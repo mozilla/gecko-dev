@@ -29,6 +29,7 @@
 #include "mozilla/StaticPrefs_security.h"
 #include "mozIThirdPartyUtil.h"
 #include "ThirdPartyUtil.h"
+#include "nsContentSecurityManager.h"
 #include "nsFrameLoader.h"
 #include "nsFrameLoaderOwner.h"
 #include "nsIContentPolicy.h"
@@ -1202,12 +1203,8 @@ LoadInfo::SetTriggeringStorageAccess(bool aFlags) {
 
 NS_IMETHODIMP
 LoadInfo::GetSecurityMode(uint32_t* aFlags) {
-  *aFlags = (mSecurityFlags &
-             (nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT |
-              nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED |
-              nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT |
-              nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL |
-              nsILoadInfo::SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT));
+  *aFlags = nsContentSecurityManager::ComputeSecurityMode(mSecurityFlags);
+
   return NS_OK;
 }
 

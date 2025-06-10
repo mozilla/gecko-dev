@@ -6,6 +6,7 @@
 
 #include "SecFetch.h"
 #include "nsIHttpChannel.h"
+#include "nsContentSecurityManager.h"
 #include "nsContentUtils.h"
 #include "nsIRedirectHistoryEntry.h"
 #include "nsIReferrerInfo.h"
@@ -13,6 +14,7 @@
 #include "nsMixedContentBlocker.h"
 #include "nsNetUtil.h"
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/dom/RequestBinding.h"
 #include "mozilla/StaticPrefs_dom.h"
 
 // Helper function which maps an internal content policy type
@@ -302,36 +304,20 @@ void mozilla::dom::SecFetch::AddSecFetchDest(nsIHttpChannel* aHTTPChannel) {
 }
 
 void mozilla::dom::SecFetch::AddSecFetchMode(nsIHttpChannel* aHTTPChannel) {
-  nsAutoCString mode("no-cors");
-
   nsCOMPtr<nsILoadInfo> loadInfo = aHTTPChannel->LoadInfo();
   uint32_t securityMode = loadInfo->GetSecurityMode();
   ExtContentPolicyType externalType = loadInfo->GetExternalContentPolicyType();
 
-  if (securityMode ==
-          nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT ||
-      securityMode == nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED) {
-    mode = "same-origin"_ns;
-  } else if (securityMode ==
-             nsILoadInfo::SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT) {
-    mode = "cors"_ns;
-  } else {
-    // If it's not one of the security modes above, then we ensure it's
-    // at least one of the others defined in nsILoadInfo
-    MOZ_ASSERT(
-        securityMode ==
-                nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT ||
-            securityMode ==
-                nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
-        "unhandled security mode");
-  }
-
+  nsAutoCString mode;
   if (externalType == ExtContentPolicy::TYPE_DOCUMENT ||
       externalType == ExtContentPolicy::TYPE_SUBDOCUMENT ||
       externalType == ExtContentPolicy::TYPE_OBJECT) {
     mode = "navigate"_ns;
   } else if (externalType == ExtContentPolicy::TYPE_WEBSOCKET) {
     mode = "websocket"_ns;
+  } else {
+    mode = GetEnumString(
+        nsContentSecurityManager::SecurityModeToRequestMode(securityMode));
   }
 
   nsresult rv =

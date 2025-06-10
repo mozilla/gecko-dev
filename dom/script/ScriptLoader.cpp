@@ -462,6 +462,18 @@ nsContentPolicyType ScriptLoadRequestToContentPolicyType(
   return nsIContentPolicy::TYPE_INTERNAL_SCRIPT;
 }
 
+RequestMode ComputeRequestModeForContentPolicy(
+    const ScriptLoadRequest* aRequest) {
+  auto corsMapping =
+      aRequest->IsModuleRequest()
+          ? nsContentSecurityManager::REQUIRE_CORS_CHECKS
+          : nsContentSecurityManager::CORS_NONE_MAPS_TO_DISABLED_CORS_CHECKS;
+  return nsContentSecurityManager::SecurityModeToRequestMode(
+      nsContentSecurityManager::ComputeSecurityMode(
+          nsContentSecurityManager::ComputeSecurityFlags(aRequest->CORSMode(),
+                                                         corsMapping)));
+}
+
 nsresult ScriptLoader::CheckContentPolicy(nsIScriptElement* aElement,
                                           const nsAString& aNonce,
                                           ScriptLoadRequest* aRequest) {
@@ -482,6 +494,9 @@ nsresult ScriptLoader::CheckContentPolicy(nsIScriptElement* aElement,
   secCheckLoadInfo->SetParserCreatedScript(aElement &&
                                            aElement->GetParserCreated() !=
                                                mozilla::dom::NOT_FROM_PARSER);
+  Maybe<RequestMode> requestMode =
+      Some(ComputeRequestModeForContentPolicy(aRequest));
+  secCheckLoadInfo->SetRequestMode(requestMode);
   // Use nonce of the current element, instead of the preload, because those
   // are allowed to differ.
   secCheckLoadInfo->SetCspNonce(aNonce);
