@@ -200,7 +200,7 @@ var TelemetryReportingPolicyImpl = {
   _ensureUserIsNotifiedPromise: undefined,
   // Nimbus `preonboarding` feature variables.  Set in response to
   // `sessionstore-window-restored`; immutable there-after.
-  _nimbusVariables: null,
+  _nimbusVariables: {},
 
   get _log() {
     if (!this._logger) {
