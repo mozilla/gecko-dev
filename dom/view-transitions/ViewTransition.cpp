@@ -64,7 +64,7 @@ static CSSToCSSMatrix4x4Flagged EffectiveTransform(nsIFrame* aFrame) {
   if (boundingRect.Size() != untransformedSize) {
     float sx = boundingRect.width / untransformedSize.width;
     float sy = boundingRect.height / untransformedSize.height;
-    matrix = CSSToCSSMatrix4x4Flagged::Scaling(sx, sy, 0.0f);
+    matrix = CSSToCSSMatrix4x4Flagged::Scaling(sx, sy, 1.0f);
   }
   auto inkOverflowOffset = aFrame->InkOverflowRectRelativeToSelf().TopLeft();
   if (inkOverflowOffset != nsPoint()) {
