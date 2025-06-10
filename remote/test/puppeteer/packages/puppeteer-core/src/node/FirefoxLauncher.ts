@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import fs from 'fs';
-import {rename, unlink, mkdtemp} from 'fs/promises';
-import os from 'os';
-import path from 'path';
+import fs from 'node:fs';
+import {rename, unlink, mkdtemp} from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
 import {Browser as SupportedBrowsers, createProfile} from '@puppeteer/browsers';
 
@@ -32,13 +32,9 @@ export class FirefoxLauncher extends BrowserLauncher {
   ): Record<string, unknown> {
     return {
       ...extraPrefsFirefox,
-      // Only enable the WebDriver BiDi protocol
-      'remote.active-protocols': 1,
       // Force all web content to use a single content process. TODO: remove
       // this once Firefox supports mouse event dispatch from the main frame
-      // context. Once this happens, webContentIsolationStrategy should only
-      // be set for CDP. See
-      // https://bugzilla.mozilla.org/show_bug.cgi?id=1773393
+      // context. See https://bugzilla.mozilla.org/show_bug.cgi?id=1773393.
       'fission.webContentIsolationStrategy': 0,
     };
   }

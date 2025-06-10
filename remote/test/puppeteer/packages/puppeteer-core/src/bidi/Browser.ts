@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type {ChildProcess} from 'child_process';
+import type {ChildProcess} from 'node:child_process';
 
 import * as Bidi from 'chromium-bidi/lib/cjs/protocol/protocol.js';
 
@@ -57,18 +57,19 @@ export class BidiBrowser extends Browser {
     'network',
     'log',
     'script',
+    'input',
   ];
   static readonly subscribeCdpEvents: Bidi.Cdp.EventNames[] = [
     // Coverage
-    'cdp.Debugger.scriptParsed',
-    'cdp.CSS.styleSheetAdded',
-    'cdp.Runtime.executionContextsCleared',
+    'goog:cdp.Debugger.scriptParsed',
+    'goog:cdp.CSS.styleSheetAdded',
+    'goog:cdp.Runtime.executionContextsCleared',
     // Tracing
-    'cdp.Tracing.tracingComplete',
+    'goog:cdp.Tracing.tracingComplete',
     // TODO: subscribe to all CDP events in the future.
-    'cdp.Network.requestWillBeSent',
-    'cdp.Debugger.scriptParsed',
-    'cdp.Page.screencastFrame',
+    'goog:cdp.Network.requestWillBeSent',
+    'goog:cdp.Debugger.scriptParsed',
+    'goog:cdp.Page.screencastFrame',
   ];
 
   static async create(opts: BidiBrowserOptions): Promise<BidiBrowser> {
@@ -239,6 +240,14 @@ export class BidiBrowser extends Browser {
 
   override newPage(): Promise<Page> {
     return this.defaultBrowserContext().newPage();
+  }
+
+  override installExtension(path: string): Promise<string> {
+    return this.#browserCore.installExtension(path);
+  }
+
+  override async uninstallExtension(id: string): Promise<void> {
+    await this.#browserCore.uninstallExtension(id);
   }
 
   override targets(): Target[] {

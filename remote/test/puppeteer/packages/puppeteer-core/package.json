@@ -1,6 +1,6 @@
 {
   "name": "puppeteer-core",
-  "version": "24.0.0",
+  "version": "24.10.0",
   "description": "A high-level API to control headless Chrome over the DevTools Protocol",
   "keywords": [
     "puppeteer",
@@ -44,13 +44,13 @@
   },
   "wireit": {
     "check": {
-      "command": "tsx tools/ensure-correct-devtools-protocol-package.mts",
+      "command": "node --experimental-strip-types tools/ensure-correct-devtools-protocol-package.mts",
       "dependencies": [
         "build"
       ]
     },
     "prepack": {
-      "command": "tsx ../../tools/cp.ts ../../README.md README.md",
+      "command": "node --experimental-strip-types ../../tools/cp.ts ../../README.md README.md",
       "files": [
         "../../README.md"
       ],
@@ -140,20 +140,20 @@
   "author": "The Chromium Authors",
   "license": "Apache-2.0",
   "dependencies": {
-    "@puppeteer/browsers": "2.7.0",
-    "debug": "^4.4.0",
-    "chromium-bidi": "0.11.0",
-    "devtools-protocol": "0.0.1367902",
+    "@puppeteer/browsers": "2.10.5",
+    "debug": "^4.4.1",
+    "chromium-bidi": "5.1.0",
+    "devtools-protocol": "0.0.1452169",
     "typed-query-selector": "^2.12.0",
-    "ws": "^8.18.0"
+    "ws": "^8.18.2"
   },
   "devDependencies": {
-    "@types/chrome": "0.0.289",
+    "@types/chrome": "0.0.323",
     "@types/debug": "4.1.12",
     "@types/node": "^18.17.15",
-    "@types/ws": "8.5.13",
+    "@types/ws": "8.18.1",
     "mitt": "3.0.1",
     "parsel-js": "1.2.1",
-    "rxjs": "7.8.1"
+    "rxjs": "7.8.2"
   }
 }

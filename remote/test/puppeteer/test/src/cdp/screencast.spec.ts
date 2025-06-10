@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {statSync} from 'fs';
+import {statSync} from 'node:fs';
 
 import expect from 'expect';
 
@@ -90,6 +90,31 @@ describe('Screencasts', function () {
       await expect(
         page.screencast({crop: {x: 0, y: 0, height: 1, width: 10000}}),
       ).rejects.toBeDefined();
+
+      await expect(page.screencast({format: 'gif'})).rejects.toBeDefined();
+      await expect(page.screencast({format: 'webm'})).rejects.toBeDefined();
+      await expect(page.screencast({format: 'mp4'})).rejects.toBeDefined();
+
+      await expect(page.screencast({fps: 0})).rejects.toBeDefined();
+      await expect(page.screencast({fps: -1})).rejects.toBeDefined();
+
+      await expect(page.screencast({loop: 0})).rejects.toBeDefined();
+      await expect(page.screencast({loop: -1})).rejects.toBeDefined();
+      await expect(page.screencast({loop: Infinity})).rejects.toBeDefined();
+
+      await expect(page.screencast({delay: 0})).rejects.toBeDefined();
+      await expect(page.screencast({delay: -1})).rejects.toBeDefined();
+
+      await expect(page.screencast({quality: 0})).rejects.toBeDefined();
+      await expect(page.screencast({quality: -1})).rejects.toBeDefined();
+
+      await expect(page.screencast({colors: 0})).rejects.toBeDefined();
+      await expect(page.screencast({colors: -1})).rejects.toBeDefined();
+
+      await expect(page.screencast({path: 'test.webm'})).rejects.toBeDefined();
+
+      await expect(page.screencast({overwrite: true})).rejects.toBeDefined();
+      await expect(page.screencast({overwrite: false})).rejects.toBeDefined();
 
       await expect(
         page.screencast({ffmpegPath: 'non-existent-path'}),

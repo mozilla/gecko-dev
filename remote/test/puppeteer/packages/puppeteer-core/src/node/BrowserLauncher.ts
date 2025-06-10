@@ -3,9 +3,9 @@
  * Copyright 2017 Google Inc.
  * SPDX-License-Identifier: Apache-2.0
  */
-import {existsSync} from 'fs';
-import {tmpdir} from 'os';
-import {join} from 'path';
+import {existsSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
 import {
   Browser as InstalledBrowser,
@@ -74,6 +74,7 @@ export abstract class BrowserLauncher {
   async launch(options: LaunchOptions = {}): Promise<Browser> {
     const {
       dumpio = false,
+      enableExtensions = false,
       env = process.env,
       handleSIGINT = true,
       handleSIGTERM = true,
@@ -123,7 +124,7 @@ export abstract class BrowserLauncher {
       usePipe
     ) {
       throw new Error(
-        'Pipe connections are not supported wtih Firefox and WebDriver BiDi',
+        'Pipe connections are not supported with Firefox and WebDriver BiDi',
       );
     }
 
@@ -207,6 +208,20 @@ export abstract class BrowserLauncher {
         throw new TimeoutError(error.message);
       }
       throw error;
+    }
+
+    if (Array.isArray(enableExtensions)) {
+      if (this.#browser === 'chrome' && !usePipe) {
+        throw new Error(
+          'To use `enableExtensions` with a list of paths in Chrome, you must be connected with `--remote-debugging-pipe` (`pipe: true`).',
+        );
+      }
+
+      await Promise.all([
+        enableExtensions.map(path => {
+          return browser.installExtension(path);
+        }),
+      ]);
     }
 
     if (waitForInitialPage) {

@@ -22,13 +22,25 @@ describe('Workers', function () {
       page.goto(server.PREFIX + '/worker/worker.html'),
     ]);
     const worker = page.workers()[0]!;
-    expect(worker?.url()).toContain('worker.js');
+    expect(worker.url()).toContain('worker.js');
 
-    expect(
-      await worker?.evaluate(() => {
-        return (globalThis as any).workerFunction();
-      }),
-    ).toBe('worker function result');
+    let result = '';
+    // TODO: Chrome is flaky and workerFunction is sometimes not yet
+    // defined. Generally, it should not be the case but it look like
+    // there is a race condition between Runtime.evaluate and the
+    // worker's main script execution.
+    for (let i = 0; i < 5; i++) {
+      try {
+        result = await worker.evaluate(() => {
+          return (globalThis as any).workerFunction();
+        });
+        break;
+      } catch {}
+      await new Promise(resolve => {
+        return setTimeout(resolve, 200);
+      });
+    }
+    expect(result).toBe('worker function result');
 
     await page.goto(server.EMPTY_PAGE);
     expect(page.workers()).toHaveLength(0);
@@ -122,5 +134,46 @@ describe('Workers', function () {
     expect(worker?.url()).toContain('worker.js');
 
     await Promise.all([waitEvent(page, 'workerdestroyed'), worker?.close()]);
+  });
+
+  it('should work with waitForNetworkIdle', async () => {
+    const {page, server} = await getTestState();
+
+    await Promise.all([
+      waitEvent(page, 'workercreated'),
+      page.goto(server.PREFIX + '/worker/worker.html', {
+        waitUntil: 'networkidle0',
+      }),
+    ]);
+
+    await page.waitForNetworkIdle({
+      timeout: 3000,
+    });
+  });
+
+  it('should retrieve body for main worker requests', async () => {
+    const {page, server} = await getTestState();
+
+    let testResponse = null;
+
+    const workerUrl = server.PREFIX + '/worker/worker.js';
+
+    page.on('response', async response => {
+      if (response.request().url() === workerUrl) {
+        testResponse = response;
+      }
+    });
+
+    // Navigate to a page with a worker.
+    await Promise.all([
+      waitEvent(page, 'workercreated'),
+      page.goto(server.PREFIX + '/worker/worker.html', {
+        waitUntil: 'networkidle0',
+      }),
+    ]);
+
+    await expect(testResponse!.text()).resolves.toContain(
+      'hello from the worker',
+    );
   });
 });

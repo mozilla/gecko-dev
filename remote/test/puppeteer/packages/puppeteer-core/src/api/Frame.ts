@@ -218,7 +218,7 @@ export const throwIfDetached = throwIfDisposed<Frame>(frame => {
  *
  * To understand frames, you can think of frames as `<iframe>` elements. Just
  * like iframes, frames can be nested, and when JavaScript is executed in a
- * frame, the JavaScript does not effect frames inside the ambient frame the
+ * frame, the JavaScript does not affect frames inside the ambient frame the
  * JavaScript executes in.
  *
  * @example
@@ -251,9 +251,25 @@ export const throwIfDetached = throwIfDisposed<Frame>(frame => {
  * An example of getting text from an iframe element:
  *
  * ```ts
- * const frame = page.frames().find(frame => frame.name() === 'myframe');
- * const text = await frame.$eval('.selector', element => element.textContent);
- * console.log(text);
+ * const frames = page.frames();
+ * let frame = null;
+ * for (const currentFrame of frames) {
+ *   const frameElement = await currentFrame.frameElement();
+ *   const name = await frameElement.evaluate(el => el.getAttribute('name'));
+ *   if (name === 'myframe') {
+ *     frame = currentFrame;
+ *     break;
+ *   }
+ * }
+ * if (frame) {
+ *   const text = await frame.$eval(
+ *     '.selector',
+ *     element => element.textContent,
+ *   );
+ *   console.log(text);
+ * } else {
+ *   console.error('Frame with name "myframe" not found.');
+ * }
  * ```
  *
  * @remarks
@@ -484,7 +500,7 @@ export abstract class Frame extends EventEmitter<FrameEvents> {
    * {@link https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors | CSS selectors}
    * can be passed as-is and a
    * {@link https://pptr.dev/guides/page-interactions#non-css-selectors | Puppeteer-specific selector syntax}
-   * allows quering by
+   * allows querying by
    * {@link https://pptr.dev/guides/page-interactions#text-selectors--p-text | text},
    * {@link https://pptr.dev/guides/page-interactions#aria-selectors--p-aria | a11y role and name},
    * and
@@ -526,7 +542,7 @@ export abstract class Frame extends EventEmitter<FrameEvents> {
    * {@link https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors | CSS selectors}
    * can be passed as-is and a
    * {@link https://pptr.dev/guides/page-interactions#non-css-selectors | Puppeteer-specific selector syntax}
-   * allows quering by
+   * allows querying by
    * {@link https://pptr.dev/guides/page-interactions#text-selectors--p-text | text},
    * {@link https://pptr.dev/guides/page-interactions#aria-selectors--p-aria | a11y role and name},
    * and
@@ -557,7 +573,7 @@ export abstract class Frame extends EventEmitter<FrameEvents> {
    * {@link https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors | CSS selectors}
    * can be passed as-is and a
    * {@link https://pptr.dev/guides/page-interactions#non-css-selectors | Puppeteer-specific selector syntax}
-   * allows quering by
+   * allows querying by
    * {@link https://pptr.dev/guides/page-interactions#text-selectors--p-text | text},
    * {@link https://pptr.dev/guides/page-interactions#aria-selectors--p-aria | a11y role and name},
    * and
@@ -599,7 +615,7 @@ export abstract class Frame extends EventEmitter<FrameEvents> {
    * {@link https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors | CSS selectors}
    * can be passed as-is and a
    * {@link https://pptr.dev/guides/page-interactions#non-css-selectors | Puppeteer-specific selector syntax}
-   * allows quering by
+   * allows querying by
    * {@link https://pptr.dev/guides/page-interactions#text-selectors--p-text | text},
    * {@link https://pptr.dev/guides/page-interactions#aria-selectors--p-aria | a11y role and name},
    * and
@@ -652,7 +668,7 @@ export abstract class Frame extends EventEmitter<FrameEvents> {
    * {@link https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors | CSS selectors}
    * can be passed as-is and a
    * {@link https://pptr.dev/guides/page-interactions#non-css-selectors | Puppeteer-specific selector syntax}
-   * allows quering by
+   * allows querying by
    * {@link https://pptr.dev/guides/page-interactions#text-selectors--p-text | text},
    * {@link https://pptr.dev/guides/page-interactions#aria-selectors--p-aria | a11y role and name},
    * and

@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import type {
   MochaTestResult,
@@ -148,6 +148,7 @@ export function getExpectationUpdates(
     platforms: NodeJS.Platform[];
     parameters: string[];
   },
+  skipPassing: boolean,
 ): RecommendedExpectation[] {
   const output = new Map<string, RecommendedExpectation>();
 
@@ -157,6 +158,10 @@ export function getExpectationUpdates(
   }, new Set());
 
   for (const pass of results.passes) {
+    if (skipPassing) {
+      continue;
+    }
+
     const expectationEntry = findEffectiveExpectationForTest(
       expectations,
       pass,

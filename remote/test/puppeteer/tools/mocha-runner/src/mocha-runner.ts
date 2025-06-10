@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#! /usr/bin/env -S node
 
 /**
  * @license
@@ -6,11 +6,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {randomUUID} from 'crypto';
-import fs from 'fs';
 import {spawn} from 'node:child_process';
-import os from 'os';
-import path from 'path';
+import {randomUUID} from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 import {globSync} from 'glob';
 import yargs from 'yargs';
@@ -47,6 +47,7 @@ const {
   shard,
   reporter,
   printMemory,
+  ignoreUnexpectedlyPassing,
 } = yargs(hideBin(process.argv))
   .parserConfiguration({'unknown-options-as-args': true})
   .scriptName('@puppeteer/mocha-runner')
@@ -84,6 +85,10 @@ const {
     requiresArg: true,
   })
   .option('print-memory', {
+    boolean: true,
+    default: false,
+  })
+  .option('ignore-unexpectedly-passing', {
     boolean: true,
     default: false,
   })
@@ -261,10 +266,15 @@ async function main() {
           }
         })();
         console.log('Finished', JSON.stringify(parameters));
-        const updates = getExpectationUpdates(results, applicableExpectations, {
-          platforms: [os.platform()],
-          parameters,
-        });
+        const updates = getExpectationUpdates(
+          results,
+          applicableExpectations,
+          {
+            platforms: [os.platform()],
+            parameters,
+          },
+          ignoreUnexpectedlyPassing,
+        );
         const totalTests = results.stats.tests;
         results.parameters = parameters;
         results.platform = platform;

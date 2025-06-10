@@ -3,10 +3,10 @@
  * Copyright 2022 Google Inc.
  * SPDX-License-Identifier: Apache-2.0
  */
-import crypto from 'crypto';
-import {mkdtemp, rm, writeFile} from 'fs/promises';
-import {tmpdir} from 'os';
-import {join} from 'path';
+import crypto from 'node:crypto';
+import {mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
 import {
   PUPPETEER_CORE_PACKAGE_PATH,
@@ -61,6 +61,9 @@ declare module 'mocha' {
   }
 }
 
+const githubActionDebuggingFlags = process.env['RUNNER_DEBUG']
+  ? ['--foreground-scripts']
+  : [];
 /**
  * Configures mocha before/after hooks to create a temp folder and install
  * specified dependencies.
@@ -99,16 +102,25 @@ export const configureSandbox = (options: SandboxOptions): void => {
 
     await options.before?.(sandbox);
     if (dependencies.length > 0) {
-      await execFile(PKG_MANAGER, [ADD_PKG_SUBCOMMAND, ...dependencies], {
-        cwd: sandbox,
-        env,
-        shell: true,
-      });
+      await execFile(
+        PKG_MANAGER,
+        [ADD_PKG_SUBCOMMAND, ...githubActionDebuggingFlags, ...dependencies],
+        {
+          cwd: sandbox,
+          env,
+          shell: true,
+        },
+      );
     }
     if (devDependencies.length > 0) {
       await execFile(
         PKG_MANAGER,
-        [ADD_PKG_SUBCOMMAND, '-D', ...devDependencies],
+        [
+          ADD_PKG_SUBCOMMAND,
+          ...githubActionDebuggingFlags,
+          '-D',
+          ...devDependencies,
+        ],
         {
           cwd: sandbox,
           env,
@@ -126,7 +138,10 @@ export const configureSandbox = (options: SandboxOptions): void => {
     ) => {
       const script = join(sandbox, `script-${crypto.randomUUID()}.${type}`);
       await writeFile(script, content);
-      await execFile('node', [script, ...(args ?? [])], {cwd: sandbox, env});
+      await execFile('node', [script, ...(args ?? [])], {
+        cwd: sandbox,
+        env,
+      });
     };
     console.timeEnd('before');
   });

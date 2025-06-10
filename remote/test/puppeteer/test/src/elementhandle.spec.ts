@@ -1059,29 +1059,6 @@ describe('ElementHandle specs', function () {
       ).toStrictEqual('bar1');
     });
 
-    it('should wait correctly with waitForSelector', async () => {
-      const {page} = await getTestState();
-      Puppeteer.registerCustomQueryHandler('getByClass', {
-        queryOne: (element, selector) => {
-          return (element as Element).querySelector(`.${selector}`);
-        },
-      });
-      const waitFor = page.waitForSelector('getByClass/foo').catch(err => {
-        return err;
-      });
-
-      // Set the page content after the waitFor has been started.
-      await page.setContent(
-        '<div id="not-foo"></div><div class="foo">Foo1</div>',
-      );
-      const element = await waitFor;
-
-      if (element instanceof Error) {
-        throw element;
-      }
-
-      expect(element).toBeDefined();
-    });
     it('should work when both queryOne and queryAll are registered', async () => {
       const {page} = await getTestState();
       await page.setContent(
@@ -1160,6 +1137,25 @@ describe('ElementHandle specs', function () {
       using element = await page.$('.foo');
       using div = await element?.toElement('div');
       expect(div).toBeDefined();
+    });
+  });
+
+  describe('ElementHandle.dispose', () => {
+    it('should dispose cached isolated handler', async () => {
+      const {page} = await getTestState();
+
+      await page.setContent(`<button>Click me!</button>`);
+
+      using button = (await page.waitForSelector('button'))!;
+
+      // Cache the handle on the isolated world
+      await button.click();
+      const spy = sinon.spy(button['isolatedHandle']!, 'dispose');
+      await button.dispose();
+      expect(button).toBeInstanceOf(ElementHandle);
+      expect(spy.calledOnce).toBeTruthy();
+      expect(button.disposed).toBeTruthy();
+      expect(button['isolatedHandle']?.disposed).toBeTruthy();
     });
   });
 

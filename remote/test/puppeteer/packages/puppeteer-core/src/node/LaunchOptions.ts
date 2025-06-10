@@ -22,7 +22,8 @@ export type ChromeReleaseChannel =
  */
 export interface LaunchOptions extends ConnectOptions {
   /**
-   * Chrome Release Channel
+   * If specified for Chrome, looks for a regular Chrome installation at a known
+   * system location instead of using the bundled Chrome binary.
    */
   channel?: ChromeReleaseChannel;
   /**
@@ -42,6 +43,12 @@ export interface LaunchOptions extends ConnectOptions {
    * @defaultValue `false`
    */
   ignoreDefaultArgs?: boolean | string[];
+  /**
+   * If `true`, avoids passing default arguments to the browser that would
+   * prevent extensions from being enabled. Passing a list of strings will
+   * load the provided paths as unpacked extensions.
+   */
+  enableExtensions?: boolean | string[];
   /**
    * Close the browser process on `Ctrl+C`.
    * @defaultValue `true`

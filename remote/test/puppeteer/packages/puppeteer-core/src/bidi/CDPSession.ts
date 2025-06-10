@@ -41,7 +41,7 @@ export class BidiCdpSession extends CDPSession {
     } else {
       (async () => {
         try {
-          const {result} = await connection.send('cdp.getSession', {
+          const {result} = await connection.send('goog:cdp.getSession', {
             context: frame._id,
           });
           this.#sessionId.resolve(result.session!);
@@ -58,6 +58,10 @@ export class BidiCdpSession extends CDPSession {
 
   override connection(): CdpConnection | undefined {
     return undefined;
+  }
+
+  override get detached(): boolean {
+    return this.#detached;
   }
 
   override async send<T extends keyof ProtocolMapping.Commands>(
@@ -77,7 +81,7 @@ export class BidiCdpSession extends CDPSession {
     }
     const session = await this.#sessionId.valueOrThrow();
     const {result} = await this.#connection.send(
-      'cdp.sendCommand',
+      'goog:cdp.sendCommand',
       {
         method: method,
         params: params,

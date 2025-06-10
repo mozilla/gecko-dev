@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import assert from 'assert';
+import assert from 'node:assert';
 
 import expect from 'expect';
 import {TimeoutError} from 'puppeteer';
@@ -17,7 +17,7 @@ describe('AriaQueryHandler', () => {
   setupTestBrowserHooks();
 
   describe('parseAriaSelector', () => {
-    it('should handle non-breaking spaces', async () => {
+    it('should handle non-breaking spaces in span', async () => {
       const {page} = await getTestState();
       await page.setContent(
         '<button id="btn" role="button"><span>&nbsp;</span><span>&nbsp;</span>Submit button and some spaces</button>',
