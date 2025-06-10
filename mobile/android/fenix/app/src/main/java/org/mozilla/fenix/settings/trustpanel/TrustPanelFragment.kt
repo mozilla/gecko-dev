@@ -20,7 +20,10 @@ import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -112,7 +115,7 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
             }
         }
 
-    @Suppress("LongMethod")
+    @Suppress("LongMethod", "MagicNumber")
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -173,7 +176,10 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                 }
 
                 MenuDialogBottomSheet(
-                    modifier = Modifier.padding(top = 8.dp, bottom = 5.dp),
+                    modifier = Modifier
+                        .padding(top = 8.dp, bottom = 5.dp)
+                        .fillMaxWidth(0.1f)
+                        .verticalScroll(rememberScrollState()),
                     onRequestDismiss = ::dismiss,
                     handlebarContentDescription = "",
                 ) {
