@@ -1020,9 +1020,10 @@ void IRGenerator::emitGuardGetterSetterSlot(NativeObject* holder,
                                   : holder->getSetter(prop);
     JSFunction* fun = &accessor->as<JSFunction>();
     if (FunctionHasStableBaseScript(fun)) {
+      bool needsClassGuard = holder->hasNonFunctionAccessor();
       ValOperandId getterSetterId = EmitLoadSlot(writer, holder, holderId, slot);
-      ObjOperandId functionId = writer.loadGetterSetterFunction(getterSetterId,
-                                                                isGetter);
+      ObjOperandId functionId = writer.loadGetterSetterFunction(
+          getterSetterId, isGetter, needsClassGuard);
       writer.saveScriptedGetterSetterCallee(functionId);
       writer.guardFunctionScript(functionId, fun->baseScript());
       return;

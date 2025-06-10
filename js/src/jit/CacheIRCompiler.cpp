@@ -9314,6 +9314,7 @@ bool CacheIRCompiler::emitMegamorphicStoreSlot(ObjOperandId objId,
 
 bool CacheIRCompiler::emitLoadGetterSetterFunction(ValOperandId getterSetterId,
                                                    bool isGetter,
+                                                   bool needsClassGuard,
                                                    ObjOperandId resultId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
 
@@ -9332,8 +9333,11 @@ bool CacheIRCompiler::emitLoadGetterSetterFunction(ValOperandId getterSetterId,
   masm.loadPtr(Address(output, offset), output);
 
   masm.branchTestPtr(Assembler::Zero, output, output, failure->label());
-  masm.branchTestObjIsFunction(Assembler::NotEqual, output, scratch, output,
-                               failure->label());
+  if (needsClassGuard) {
+    masm.branchTestObjIsFunction(Assembler::NotEqual, output, scratch, output,
+                                 failure->label());
+  }
+
   return true;
 }
 

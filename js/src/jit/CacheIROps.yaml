@@ -625,6 +625,7 @@
   args:
     getterSetter: ValId
     isGetter: BoolImm
+    needsClassGuard: BoolImm
     result: ObjId
 
 - name: GuardHasGetterSetter

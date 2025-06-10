@@ -592,11 +592,12 @@ bool WarpCacheIRTranspiler::emitGuardIsNotDOMProxy(ObjOperandId objId) {
 }
 
 bool WarpCacheIRTranspiler::emitLoadGetterSetterFunction(ValOperandId getterSetterId,
-                                                         bool isGetter,
+                                                         bool isGetter, bool needsClassGuard,
                                                          ObjOperandId resultId) {
   MDefinition* getterSetter = getOperand(getterSetterId);
 
-  auto* ins = MLoadGetterSetterFunction::New(alloc(), getterSetter, isGetter);
+  auto* ins = MLoadGetterSetterFunction::New(alloc(), getterSetter, isGetter,
+                                             needsClassGuard);
   add(ins);
 
   return defineOperand(resultId, ins);

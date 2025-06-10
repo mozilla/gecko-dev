@@ -21060,7 +21060,6 @@ void CodeGenerator::visitLoadWrapperTarget(LLoadWrapperTarget* lir) {
 void CodeGenerator::visitLoadGetterSetterFunction(LLoadGetterSetterFunction* lir) {
   ValueOperand getterSetter = ToValue(lir->getterSetter());
   Register output = ToRegister(lir->output());
-  Register temp = ToRegister(lir->temp0());
 
   masm.unboxNonDouble(getterSetter, output, JSVAL_TYPE_PRIVATE_GCTHING);
 
@@ -21070,8 +21069,12 @@ void CodeGenerator::visitLoadGetterSetterFunction(LLoadGetterSetterFunction* lir
 
   Label bail;
   masm.branchTestPtr(Assembler::Zero, output, output, &bail);
-  masm.branchTestObjIsFunction(Assembler::NotEqual, output, temp, output,
-                               &bail);
+  if (lir->mir()->needsClassGuard()) {
+    Register temp = ToRegister(lir->temp0());
+    masm.branchTestObjIsFunction(Assembler::NotEqual, output, temp, output,
+                                 &bail);
+  }
+
   bailoutFrom(&bail, lir->snapshot());
 }
 

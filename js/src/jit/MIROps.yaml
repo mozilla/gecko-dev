@@ -3290,6 +3290,7 @@
     getterSetter: Value
   arguments:
     isGetter: bool
+    needsClassGuard: bool
   result_type: Object
   generate_lir: true
   lir_temps: 1
