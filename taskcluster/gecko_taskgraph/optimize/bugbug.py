@@ -6,6 +6,7 @@
 from collections import defaultdict
 from fnmatch import fnmatch
 
+from requests.exceptions import RetryError
 from taskgraph.optimize.base import OptimizationStrategy, register_strategy, registry
 
 from gecko_taskgraph.util.bugbug import (
@@ -142,7 +143,7 @@ class BugBugPushSchedules(OptimizationStrategy):
             try:
                 new_data = push_schedules(params["project"], rev)
                 merge_bugbug_replies(data, new_data)
-            except BugbugTimeoutException:
+            except (BugbugTimeoutException, RetryError):
                 if not self.fallback:
                     raise
 
