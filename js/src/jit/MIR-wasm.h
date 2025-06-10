@@ -38,8 +38,12 @@ extern uint32_t MIRTypeToABIResultSize(jit::MIRType);
 namespace jit {
 
 class MWasmNullConstant : public MNullaryInstruction {
+  mozilla::Maybe<wasm::RefTypeHierarchy> hierarchy_;
+
   explicit MWasmNullConstant(wasm::MaybeRefType type)
-      : MNullaryInstruction(classOpcode) {
+      : MNullaryInstruction(classOpcode),
+        hierarchy_(type.isSome() ? mozilla::Some(type.value().hierarchy())
+                                 : mozilla::Nothing()) {
     setResultType(MIRType::WasmAnyRef);
     setMovable();
     if (type.isSome()) {
@@ -51,9 +55,14 @@ class MWasmNullConstant : public MNullaryInstruction {
   INSTRUCTION_HEADER(WasmNullConstant)
   TRIVIAL_NEW_WRAPPERS
 
+  mozilla::Maybe<wasm::RefTypeHierarchy> hierarchy() const {
+    return hierarchy_;
+  }
+
   HashNumber valueHash() const override;
   bool congruentTo(const MDefinition* ins) const override {
-    return ins->isWasmNullConstant() && wasmRefType() == ins->wasmRefType();
+    return ins->isWasmNullConstant() &&
+           hierarchy() == ins->toWasmNullConstant()->hierarchy();
   }
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 
