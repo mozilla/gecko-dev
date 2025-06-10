@@ -35,9 +35,16 @@ static bool TestShaderCompile(gl::GLContext* const gl, const GLenum type,
                         chars.data());
   printf_stderr("GetShaderInfoLog() ->\n%s\n", chars.data());
 
+#if defined(MOZ_WIDGET_ANDROID) && (defined(_M_IX86) || defined(__i386__) || \
+                                    defined(__x86_64__) || defined(__amd64__))
+  // Flakey gl on x86 android emulators in CI sometimes crash on the first
+  // GetShaderSource call.
+  printf_stderr("source ->\n%s\n", source.c_str());
+#else
   gl->fGetShaderSource(shader, LazyAssertedCast(chars.size() - 1), nullptr,
                        chars.data());
   printf_stderr("GetShaderSource() ->\n%s\n", chars.data());
+#endif
 
   return false;
 }
