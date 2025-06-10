@@ -49,6 +49,7 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_general.h"
 #include "nsContentUtils.h"
+#include "imgLoader.h"
 
 mozilla::LazyLogModule nsURILoader::mLog("URILoader");
 
@@ -409,25 +410,25 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request) {
   // could happen because the Content-Disposition header is set so, or, in the
   // future, because the user has specified external handling for the MIME
   // type.
-  //
-  // If we're not going to be able to retarget to an external handler, ignore
-  // content-disposition, and unconditionally try to display the content.
-  // This is used for object/embed tags, which expect to display subresources
-  // marked with an attachment disposition.
-  bool forceExternalHandling = false;
-  if (!(mFlags & nsIURILoader::DONT_RETARGET)) {
-    uint32_t disposition;
-    rv = aChannel->GetContentDisposition(&disposition);
+  uint32_t disposition;
+  rv = aChannel->GetContentDisposition(&disposition);
 
-    if (NS_SUCCEEDED(rv) && disposition == nsIChannel::DISPOSITION_ATTACHMENT) {
-      forceExternalHandling = true;
-    }
-  }
+  bool forceExternalHandling =
+      NS_SUCCEEDED(rv) && disposition == nsIChannel::DISPOSITION_ATTACHMENT;
 
   LOG(("  forceExternalHandling: %s", forceExternalHandling ? "yes" : "no"));
   LOG(("  IsSandboxed: %s", IsSandboxed(aChannel) ? "yes" : "no"));
   LOG(("  IsContentPDF: %s",
        IsContentPDF(aChannel, mContentType) ? "yes" : "no"));
+
+  // Ignore the Content-Disposition header if we're loading a PDF or Image
+  // subresource within an object/embed element.
+  if (forceExternalHandling && (mFlags & nsIURILoader::IS_OBJECT_EMBED) &&
+      (imgLoader::SupportImageWithMimeType(mContentType) ||
+       IsContentPDF(aChannel, mContentType))) {
+    LOG(("Handling pdf/image MIME internally for object/embed element"));
+    forceExternalHandling = false;
+  }
 
   bool maybeForceInternalHandling =
       forceExternalHandling &&
