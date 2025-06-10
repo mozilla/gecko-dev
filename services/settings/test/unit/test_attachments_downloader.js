@@ -216,6 +216,15 @@ add_task(async function test_downloader_reports_download_errors() {
         "uptake.remotecontent.result",
         "uptake",
         "remotesettings",
+        UptakeTelemetry.STATUS.DOWNLOAD_START,
+        {
+          source: client.identifier,
+        },
+      ],
+      [
+        "uptake.remotecontent.result",
+        "uptake",
+        "remotesettings",
         UptakeTelemetry.STATUS.DOWNLOAD_ERROR,
         {
           source: client.identifier,
@@ -244,6 +253,15 @@ add_task(async function test_downloader_reports_offline_error() {
       } catch (e) {}
 
       TelemetryTestUtils.assertEvents([
+        [
+          "uptake.remotecontent.result",
+          "uptake",
+          "remotesettings",
+          UptakeTelemetry.STATUS.DOWNLOAD_START,
+          {
+            source: client.identifier,
+          },
+        ],
         [
           "uptake.remotecontent.result",
           "uptake",

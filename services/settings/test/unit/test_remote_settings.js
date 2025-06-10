@@ -183,6 +183,7 @@ add_task(async function test_throws_when_network_is_offline() {
       clientWithDump.identifier
     );
     const expectedIncrements = {
+      [UptakeTelemetry.STATUS.SYNC_START]: 1,
       [UptakeTelemetry.STATUS.NETWORK_OFFLINE_ERROR]: 1,
     };
     checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
@@ -220,7 +221,10 @@ add_task(async function test_sync_event_is_sent_even_if_up_to_date() {
     TELEMETRY_COMPONENT,
     clientWithDump.identifier
   );
-  const expectedIncrements = { [UptakeTelemetry.STATUS.UP_TO_DATE]: 1 };
+  const expectedIncrements = {
+    [UptakeTelemetry.STATUS.SYNC_START]: 1,
+    [UptakeTelemetry.STATUS.UP_TO_DATE]: 1,
+  };
   checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
@@ -973,7 +977,10 @@ add_task(async function test_telemetry_if_sync_succeeds() {
     TELEMETRY_COMPONENT,
     client.identifier
   );
-  const expectedIncrements = { [UptakeTelemetry.STATUS.SUCCESS]: 1 };
+  const expectedIncrements = {
+    [UptakeTelemetry.STATUS.SYNC_START]: 1,
+    [UptakeTelemetry.STATUS.SUCCESS]: 1,
+  };
   checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
@@ -984,6 +991,16 @@ add_task(
 
     TelemetryTestUtils.assertEvents(
       [
+        [
+          "uptake.remotecontent.result",
+          "uptake",
+          "remotesettings",
+          UptakeTelemetry.STATUS.SYNC_START,
+          {
+            source: client.identifier,
+            trigger: "manual",
+          },
+        ],
         [
           "uptake.remotecontent.result",
           "uptake",
@@ -1019,7 +1036,10 @@ add_task(async function test_telemetry_reports_if_application_fails() {
     TELEMETRY_COMPONENT,
     client.identifier
   );
-  const expectedIncrements = { [UptakeTelemetry.STATUS.APPLY_ERROR]: 1 };
+  const expectedIncrements = {
+    [UptakeTelemetry.STATUS.SYNC_START]: 1,
+    [UptakeTelemetry.STATUS.APPLY_ERROR]: 1,
+  };
   checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
@@ -1040,7 +1060,10 @@ add_task(async function test_telemetry_reports_if_sync_fails() {
     TELEMETRY_COMPONENT,
     client.identifier
   );
-  const expectedIncrements = { [UptakeTelemetry.STATUS.SERVER_ERROR]: 1 };
+  const expectedIncrements = {
+    [UptakeTelemetry.STATUS.SYNC_START]: 1,
+    [UptakeTelemetry.STATUS.SERVER_ERROR]: 1,
+  };
   checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
@@ -1061,7 +1084,10 @@ add_task(async function test_telemetry_reports_if_parsing_fails() {
     TELEMETRY_COMPONENT,
     client.identifier
   );
-  const expectedIncrements = { [UptakeTelemetry.STATUS.PARSE_ERROR]: 1 };
+  const expectedIncrements = {
+    [UptakeTelemetry.STATUS.SYNC_START]: 1,
+    [UptakeTelemetry.STATUS.PARSE_ERROR]: 1,
+  };
   checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
@@ -1082,7 +1108,10 @@ add_task(async function test_telemetry_reports_if_fetching_signature_fails() {
     TELEMETRY_COMPONENT,
     client.identifier
   );
-  const expectedIncrements = { [UptakeTelemetry.STATUS.SERVER_ERROR]: 1 };
+  const expectedIncrements = {
+    [UptakeTelemetry.STATUS.SYNC_START]: 1,
+    [UptakeTelemetry.STATUS.SERVER_ERROR]: 1,
+  };
   checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
@@ -1106,7 +1135,10 @@ add_task(async function test_telemetry_reports_unknown_errors() {
     TELEMETRY_COMPONENT,
     client.identifier
   );
-  const expectedIncrements = { [UptakeTelemetry.STATUS.UNKNOWN_ERROR]: 1 };
+  const expectedIncrements = {
+    [UptakeTelemetry.STATUS.SYNC_START]: 1,
+    [UptakeTelemetry.STATUS.UNKNOWN_ERROR]: 1,
+  };
   checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
@@ -1132,7 +1164,10 @@ add_task(async function test_telemetry_reports_indexeddb_as_custom_1() {
     TELEMETRY_COMPONENT,
     client.identifier
   );
-  const expectedIncrements = { [UptakeTelemetry.STATUS.CUSTOM_1_ERROR]: 1 };
+  const expectedIncrements = {
+    [UptakeTelemetry.STATUS.SYNC_START]: 1,
+    [UptakeTelemetry.STATUS.CUSTOM_1_ERROR]: 1,
+  };
   checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 });
 add_task(clear_state);
@@ -1151,6 +1186,16 @@ add_task(async function test_telemetry_reports_error_name_as_event_nightly() {
 
   TelemetryTestUtils.assertEvents(
     [
+      [
+        "uptake.remotecontent.result",
+        "uptake",
+        "remotesettings",
+        UptakeTelemetry.STATUS.SYNC_START,
+        {
+          source: client.identifier,
+          trigger: "manual",
+        },
+      ],
       [
         "uptake.remotecontent.result",
         "uptake",

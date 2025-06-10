@@ -404,7 +404,10 @@ add_task(async function test_check_synchronization_with_signatures() {
   );
 
   // ensure that a success histogram is tracked when a succesful sync occurs.
-  let expectedIncrements = { [UptakeTelemetry.STATUS.SUCCESS]: 1 };
+  let expectedIncrements = {
+    [UptakeTelemetry.STATUS.SYNC_START]: 1,
+    [UptakeTelemetry.STATUS.SUCCESS]: 1,
+  };
   checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 
   //
@@ -606,7 +609,10 @@ add_task(async function test_check_synchronization_with_signatures() {
   // ensure that the failure count is incremented for a succesful sync with an
   // (initial) bad signature - only SERVICES_SETTINGS_SYNC_SIG_FAIL should
   // increment.
-  expectedIncrements = { [UptakeTelemetry.STATUS.SIGNATURE_ERROR]: 1 };
+  expectedIncrements = {
+    [UptakeTelemetry.STATUS.SYNC_START]: -2,
+    [UptakeTelemetry.STATUS.SIGNATURE_ERROR]: 1,
+  };
   checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 
   //
@@ -723,6 +729,16 @@ add_task(async function test_check_synchronization_with_signatures() {
         "uptake.remotecontent.result",
         "uptake",
         "remotesettings",
+        UptakeTelemetry.STATUS.SYNC_START,
+        {
+          source: client.identifier,
+          trigger: "manual",
+        },
+      ],
+      [
+        "uptake.remotecontent.result",
+        "uptake",
+        "remotesettings",
         UptakeTelemetry.STATUS.CORRUPTION_ERROR,
         {
           source: client.identifier,
@@ -816,7 +832,10 @@ add_task(async function test_check_synchronization_with_signatures() {
     TELEMETRY_COMPONENT,
     TELEMETRY_SOURCE
   );
-  expectedIncrements = { [UptakeTelemetry.STATUS.SIGNATURE_RETRY_ERROR]: 1 };
+  expectedIncrements = {
+    [UptakeTelemetry.STATUS.SYNC_START]: 1,
+    [UptakeTelemetry.STATUS.SIGNATURE_RETRY_ERROR]: 1,
+  };
   checkUptakeTelemetry(startSnapshot, endSnapshot, expectedIncrements);
 
   // When signature fails after retry, the local data present before sync

@@ -228,6 +228,13 @@ class AttachmentDownloader extends Downloader {
    * @see Downloader.download
    */
   async download(record, options) {
+    await lazy.UptakeTelemetry.report(
+      TELEMETRY_COMPONENT,
+      lazy.UptakeTelemetry.STATUS.DOWNLOAD_START,
+      {
+        source: this._client.identifier,
+      }
+    );
     try {
       // Explicitly await here to ensure we catch a network error.
       return await super.download(record, options);
@@ -707,6 +714,15 @@ export class RemoteSettingsClient extends EventEmitter {
     }
 
     this._syncRunning = true;
+
+    await lazy.UptakeTelemetry.report(
+      TELEMETRY_COMPONENT,
+      lazy.UptakeTelemetry.STATUS.SYNC_START,
+      {
+        source: this.identifier,
+        trigger,
+      }
+    );
 
     let importedFromDump = [];
     const startedAt = new Date();
