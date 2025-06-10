@@ -95,6 +95,7 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param allWebExtensionsDisabled Whether or not all web extensions are disabled.
  * @param extensionsMenuItemDescription The label of extensions menu item description.
  * @param scrollState The [ScrollState] used for vertical scrolling.
+ * @param showBanner Whether or not the default browser banner should be shown.
  * @param webExtensionMenuCount The number of web extensions.
  * @param onMoreMenuClick Invoked when the user clicks on the more menu item.
  * @param onCustomizeReaderViewMenuClick Invoked when the user clicks on the Customize Reader View button.
@@ -107,6 +108,8 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param onFindInPageMenuClick Invoked when the user clicks on the find in page menu item.
  * @param onToolsMenuClick Invoked when the user clicks on the tools menu item.
  * @param onSaveMenuClick Invoked when the user clicks on the save menu item.
+ * @param onBannerClick Invoked when the user clicks on the banner.
+ * @param onBannerDismiss Invoked when the user clicks on the dismiss button.
  * @param onExtensionsMenuClick Invoked when the user clicks on the extensions menu item.
  * @param onBookmarksMenuClick Invoked when the user clicks on the bookmarks menu item.
  * @param onHistoryMenuClick Invoked when the user clicks on the history menu item.
@@ -144,6 +147,7 @@ fun MainMenu(
     allWebExtensionsDisabled: Boolean,
     extensionsMenuItemDescription: String,
     scrollState: ScrollState,
+    showBanner: Boolean,
     webExtensionMenuCount: Int,
     onMoreMenuClick: () -> Unit,
     onCustomizeReaderViewMenuClick: () -> Unit,
@@ -155,6 +159,8 @@ fun MainMenu(
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
     onSaveMenuClick: () -> Unit,
+    onBannerClick: () -> Unit,
+    onBannerDismiss: () -> Unit,
     onExtensionsMenuClick: () -> Unit,
     onBookmarksMenuClick: () -> Unit,
     onHistoryMenuClick: () -> Unit,
@@ -203,6 +209,17 @@ fun MainMenu(
                     onClick = onCustomizeReaderViewMenuClick,
                 )
             }
+        }
+
+        if (accessPoint == MenuAccessPoint.Home && showBanner) {
+            DefaultBrowserBanner(
+                onDismiss = {
+                    onBannerDismiss()
+                },
+                onClick = {
+                    onBannerClick()
+                },
+            )
         }
 
         if (accessPoint == MenuAccessPoint.Home) {
@@ -930,6 +947,7 @@ private fun MenuDialogPreview() {
                 allWebExtensionsDisabled = false,
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
+                showBanner = true,
                 webExtensionMenuCount = 1,
                 onMoreMenuClick = {},
                 onCustomizeReaderViewMenuClick = {},
@@ -941,6 +959,8 @@ private fun MenuDialogPreview() {
                 onFindInPageMenuClick = {},
                 onToolsMenuClick = {},
                 onSaveMenuClick = {},
+                onBannerClick = {},
+                onBannerDismiss = {},
                 onExtensionsMenuClick = {},
                 onBookmarksMenuClick = {},
                 onHistoryMenuClick = {},
@@ -988,6 +1008,7 @@ private fun MenuDialogPrivatePreview() {
                 allWebExtensionsDisabled = false,
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
+                showBanner = true,
                 webExtensionMenuCount = 0,
                 onMoreMenuClick = {},
                 onCustomizeReaderViewMenuClick = {},
@@ -999,6 +1020,8 @@ private fun MenuDialogPrivatePreview() {
                 onFindInPageMenuClick = {},
                 onToolsMenuClick = {},
                 onSaveMenuClick = {},
+                onBannerClick = {},
+                onBannerDismiss = {},
                 onExtensionsMenuClick = {},
                 onBookmarksMenuClick = {},
                 onHistoryMenuClick = {},
