@@ -15,13 +15,18 @@
 
   &.refined-cards {
     .ds-card-link {
-      padding: var(--space-medium);
+      padding: var(--space-small);
       flex-grow: 0;
+    }
+
+    .img-wrapper {
+      width: 110px;
+      height: 117px;
     }
 
     .meta {
       padding: 0;
-      min-height: 110px;
+      min-height: 117px;
 
       .info-wrap {
         flex-grow: 1
@@ -46,8 +51,8 @@
 
     .card-stp-button-position-wrapper {
       // context menu should match the padding for the parent
-      inset-inline-end: var(--space-large);
-      inset-block-end: var(--space-medium);
+      inset-inline-end: var(--space-small);
+      inset-block-end: var(--space-small);
     }
 
     .context-menu-position-container .context-menu-button {
@@ -96,10 +101,10 @@
   }
 
   .img-wrapper {
-    width: 110px;
-    height: 110px;
+    width: 100px;
     flex-shrink: 0;
     flex-grow: 0;
+    aspect-ratio: 5/6;
 
     .ds-image.img {
       width: 100%;
@@ -130,7 +135,7 @@
 
     .info-wrap .title {
       font-size: var(--font-size-small);
-      margin-block: var(--space-xsmall) 0;
+      margin-block: 0;
       -webkit-line-clamp: 4;
     }
 
@@ -178,11 +183,11 @@
 
     .img-wrapper {
       width: 100%;
-      height: 162px;
+      height: 160px;
     }
 
     .meta {
-      padding: var(--space-small) var(--space-large);
+      padding: var(--space-large) var(--space-large) var(--space-small);
       min-height: unset;
 
       .info-wrap {
@@ -261,10 +266,6 @@
     flex-grow: 0;
     flex-shrink: 0;
     aspect-ratio: initial;
-
-    .img {
-      aspect-ratio: 2/1;
-    }
   }
 
   &:not(.placeholder) {
@@ -308,12 +309,12 @@
     @media ($break-point-layout-variant <=width < $break-point-widest),
       (min-width: $break-point-sections-variant) {
       .ds-card-link {
-        gap: var(--space-small);
+        gap: var(--space-large);
         padding: var(--space-large);
       }
 
       .meta {
-        padding: var(--space-large) var(--space-small) 0;
+        padding: 0;
         color: var(--newtab-text-primary-color);
 
         .info-wrap .excerpt {
@@ -321,16 +322,16 @@
         }
 
         .sections-card-footer {
-          max-width: 260px;
+          max-width: 334px;
 
           .source-wrapper {
-            max-width: 175px;
+            max-width: 245px;
           }
         }
       }
 
       .card-stp-button-position-wrapper {
-        inset-inline-end: var(--space-xlarge);
+        inset-inline-end: var(--space-large);
         inset-block-end: var(--space-large);
       }
 

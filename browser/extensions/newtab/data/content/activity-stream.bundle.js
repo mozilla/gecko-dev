@@ -3733,11 +3733,11 @@ class _DSCard extends (external_React_default()).PureComponent {
     this.sectionsCardImagesSizes = {
       small: {
         width: 110,
-        height: 110
+        height: 117
       },
       medium: {
         width: 300,
-        height: refinedCardsLayout ? 162 : 150
+        height: refinedCardsLayout ? 160 : 150
       },
       large: {
         width: 190,
@@ -4100,7 +4100,9 @@ class _DSCard extends (external_React_default()).PureComponent {
     const layoutsVariantAorB = layoutsVariantAEnabled || layoutsVariantBEnabled;
     const smartCrop = Prefs.values["images.smart"];
     const faviconEnabled = Prefs.values["discoverystream.publisherFavicon.enabled"];
-    const excerpt = !hideDescriptions ? this.props.excerpt : "";
+    // Refined cards have their own excerpt hiding logic.
+    // We can ignore hideDescriptions if we are in sections and refined cards.
+    const excerpt = !hideDescriptions || sectionsEnabled && refinedCardsLayout ? this.props.excerpt : "";
     let timeToRead;
     if (displayReadTime) {
       timeToRead = this.props.time_to_read || readTimeFromWordCount(this.props.word_count);
