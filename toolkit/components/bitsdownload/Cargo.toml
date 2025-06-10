@@ -2,7 +2,6 @@
 edition = "2015"
 name = "bitsdownload"
 version = "0.1.0"
-authors = ["Kirk Steuber <bytesized@mozilla.com>"]
 license = "MPL-2.0"
 
 [dependencies]
