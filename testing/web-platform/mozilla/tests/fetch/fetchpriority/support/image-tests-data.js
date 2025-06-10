@@ -40,7 +40,7 @@ const kExpectedRequestsOfDynamicLoadDisabled = kExpectedRequestsOfInitialLoadDis
 
 const kExpectedRequestsOfInitialLoadForSVGImageTagDisabled = kExpectedRequestsOfInitialLoadDisabled;
 
-const kExpectedRequestsOfInitialLoadForSVGImageTag = kExpectedRequestsOfInitialLoad;
+const kExpectedRequestsOfInitialLoadForSVGImageTag = kExpectedRequestsOfInitialLoadForSVGImageTagDisabled;
 
 const kExpectedRequestsOfDynamicLoadForSVGImageTagDisabled = kExpectedRequestsOfDynamicLoadDisabled;
 
