@@ -598,14 +598,26 @@ export const LinkMenuOptions = {
       type: at.OPEN_LINK,
       data: { url: site.url },
     }),
+    impression: ac.OnlyToMain({
+      type: at.TRENDING_SEARCH_LEARN_MORE,
+      data: {
+        variant: site.variant,
+      },
+    }),
   }),
-  TrendingSearchDismiss: () => ({
+  TrendingSearchDismiss: site => ({
     id: "newtab-trending-searches-dismiss",
     action: ac.OnlyToMain({
       type: at.SET_PREF,
       data: {
         name: "trendingSearch.enabled",
         value: false,
+      },
+    }),
+    impression: ac.OnlyToMain({
+      type: at.TRENDING_SEARCH_DISMISS,
+      data: {
+        variant: site.variant,
       },
     }),
   }),

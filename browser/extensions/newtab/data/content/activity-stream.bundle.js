@@ -273,6 +273,8 @@ for (const type of [
   "TOP_SITES_UPDATED",
   "TOTAL_BOOKMARKS_REQUEST",
   "TOTAL_BOOKMARKS_RESPONSE",
+  "TRENDING_SEARCH_IMPRESSION",
+  "TRENDING_SEARCH_SUGGESTION_OPEN",
   "TRENDING_SEARCH_TOGGLE_COLLAPSE",
   "TRENDING_SEARCH_UPDATE",
   "UNBLOCK_SECTION",
@@ -2323,14 +2325,26 @@ const LinkMenuOptions = {
       type: actionTypes.OPEN_LINK,
       data: { url: site.url },
     }),
+    impression: actionCreators.OnlyToMain({
+      type: actionTypes.TRENDING_SEARCH_LEARN_MORE,
+      data: {
+        variant: site.variant,
+      },
+    }),
   }),
-  TrendingSearchDismiss: () => ({
+  TrendingSearchDismiss: site => ({
     id: "newtab-trending-searches-dismiss",
     action: actionCreators.OnlyToMain({
       type: actionTypes.SET_PREF,
       data: {
         name: "trendingSearch.enabled",
         value: false,
+      },
+    }),
+    impression: actionCreators.OnlyToMain({
+      type: actionTypes.TRENDING_SEARCH_DISMISS,
+      data: {
+        variant: site.variant,
       },
     }),
   }),
@@ -4956,6 +4970,7 @@ const AdBanner = ({
 
 
 
+
 const PREF_TRENDING_VARIANT = "trendingSearch.variant";
 function TrendingSearches() {
   const [showContextMenu, setShowContextMenu] = (0,external_React_namespaceObject.useState)(false);
@@ -4979,7 +4994,18 @@ function TrendingSearches() {
   function onArrowClick() {
     dispatch(actionCreators.AlsoToMain({
       type: actionTypes.TRENDING_SEARCH_TOGGLE_COLLAPSE,
-      data: !collapsed
+      data: {
+        collapsed: !collapsed,
+        variant
+      }
+    }));
+  }
+  function handleLinkOpen() {
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.TRENDING_SEARCH_SUGGESTION_OPEN,
+      data: {
+        variant
+      }
     }));
   }
   const toggleContextMenu = isKeyBoard => {
@@ -4999,10 +5025,22 @@ function TrendingSearches() {
   function onUpdate() {
     setShowContextMenu(!showContextMenu);
   }
+  const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.TRENDING_SEARCH_IMPRESSION,
+      data: {
+        variant
+      }
+    }));
+  }, [dispatch, variant]);
+  const ref = useIntersectionObserver(handleIntersection);
   if (!suggestions?.length) {
     return null;
   } else if (variant === "a") {
     return /*#__PURE__*/external_React_default().createElement("section", {
+      ref: el => {
+        ref.current = [el];
+      },
       className: "trending-searches-pill-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "trending-searches-title-wrapper"
@@ -5026,11 +5064,15 @@ function TrendingSearches() {
         key: index,
         className: "trending-search-item"
       }, /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
+        onLinkClick: handleLinkOpen,
         url: ""
       }, result.lowerCaseSuggestion));
     })));
   } else if (variant === "b") {
     return /*#__PURE__*/external_React_default().createElement("div", {
+      ref: el => {
+        ref.current = [el];
+      },
       className: "trending-searches-list-view"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "trending-searches-list-view-header"
@@ -5052,8 +5094,10 @@ function TrendingSearches() {
       dispatch: dispatch,
       keyboardAccess: isKeyboardAccess,
       options: TRENDING_SEARCH_CONTEXT_MENU_OPTIONS,
+      shouldSendImpressionStats: true,
       site: {
-        url: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/trending-searches-new-tab"
+        url: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/trending-searches-new-tab",
+        variant
       }
     })))), /*#__PURE__*/external_React_default().createElement("ul", {
       className: "trending-searches-list-items"
@@ -5062,7 +5106,8 @@ function TrendingSearches() {
       className: "trending-searches-list-item"
     }, /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
       url: "",
-      title: result.suggestion
+      title: result.suggestion,
+      onLinkClick: handleLinkOpen
     }, /*#__PURE__*/external_React_default().createElement("span", {
       className: "trending-searches-icon icon icon-arrow-trending"
     }), result.lowerCaseSuggestion)))));
@@ -8677,7 +8722,7 @@ function TrendingSearch(prevState = INITIAL_STATE.TrendingSearch, action) {
     case actionTypes.TRENDING_SEARCH_UPDATE:
       return { ...prevState, suggestions: action.data };
     case actionTypes.TRENDING_SEARCH_TOGGLE_COLLAPSE:
-      return { ...prevState, collapsed: action.data };
+      return { ...prevState, collapsed: action.data.collapsed };
     default:
       return prevState;
   }
