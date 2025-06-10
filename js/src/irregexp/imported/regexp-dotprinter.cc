@@ -40,6 +40,10 @@ void DotPrinterImpl::PrintNode(const char* label, RegExpNode* node) {
         os_ << label[i];
         break;
     }
+    if (i > 40) {
+      os_ << "...";
+      break;
+    }
   }
   os_ << "\"];\n";
   Visit(node);
@@ -70,7 +74,11 @@ class AttributePrinter {
   void PrintBit(const char* name, bool value) {
     if (!value) return;
     PrintSeparator();
-    os_ << "{" << name << "}";
+    os_ << "{";
+    for (const char* p = name; *p; p++) {
+      os_ << AsUC16(static_cast<unsigned char>(*p));
+    }
+    os_ << name << "}";
   }
   void PrintPositive(const char* name, int value) {
     if (value < 0) return;
@@ -99,7 +107,9 @@ void DotPrinterImpl::PrintAttributes(RegExpNode* that) {
 }
 
 void DotPrinterImpl::VisitChoice(ChoiceNode* that) {
-  os_ << "  n" << that << " [shape=Mrecord, label=\"?\"];\n";
+  os_ << "  n" << that << " [shape=Mrecord, label=\"?";
+  if (that->AsNegativeLookaroundChoiceNode()) os_ << " neg";
+  os_ << "\"];\n";
   for (int i = 0; i < that->alternatives()->length(); i++) {
     GuardedAlternative alt = that->alternatives()->at(i);
     os_ << "  n" << that << " -> n" << alt.node();
@@ -130,7 +140,7 @@ void DotPrinterImpl::VisitText(TextNode* that) {
       case TextElement::ATOM: {
         base::Vector<const base::uc16> data = elm.atom()->data();
         for (int j = 0; j < data.length(); j++) {
-          os_ << static_cast<char>(data[j]);
+          os_ << AsUC32(data[j]);
         }
         break;
       }
@@ -141,12 +151,20 @@ void DotPrinterImpl::VisitText(TextNode* that) {
         for (int j = 0; j < node->ranges(zone)->length(); j++) {
           CharacterRange range = node->ranges(zone)->at(j);
           os_ << AsUC32(range.from()) << "-" << AsUC32(range.to());
+          if (j > 5) {
+            os_ << "...";
+            break;
+          }
         }
         os_ << "]";
         break;
       }
       default:
         UNREACHABLE();
+    }
+    if (i > 40) {
+      os_ << "...";
+      break;
     }
   }
   os_ << "\", shape=box, peripheries=2];\n";
@@ -198,16 +216,19 @@ void DotPrinterImpl::VisitAction(ActionNode* that) {
   os_ << "  n" << that << " [";
   switch (that->action_type_) {
     case ActionNode::SET_REGISTER_FOR_LOOP:
-      os_ << "label=\"$" << that->data_.u_store_register.reg
-          << ":=" << that->data_.u_store_register.value << "\", shape=octagon";
+      os_ << "label=\"$" << that->register_from() << ":=" << that->value()
+          << "\", shape=octagon";
       break;
     case ActionNode::INCREMENT_REGISTER:
-      os_ << "label=\"$" << that->data_.u_increment_register.reg
-          << "++\", shape=octagon";
+      os_ << "label=\"$" << that->register_from() << "++\", shape=octagon";
       break;
-    case ActionNode::STORE_POSITION:
-      os_ << "label=\"$" << that->data_.u_position_register.reg
-          << ":=$pos\", shape=octagon";
+    case ActionNode::CLEAR_POSITION:
+      os_ << "label=\"$" << that->register_from()
+          << ":=$pos c\", shape=octagon";
+      break;
+    case ActionNode::RESTORE_POSITION:
+      os_ << "label=\"$" << that->register_from()
+          << ":=$pos r\", shape=octagon";
       break;
     case ActionNode::BEGIN_POSITIVE_SUBMATCH:
       os_ << "label=\"$" << that->data_.u_submatch.current_position_register
@@ -227,9 +248,8 @@ void DotPrinterImpl::VisitAction(ActionNode* that) {
           << "?\", shape=septagon";
       break;
     case ActionNode::CLEAR_CAPTURES: {
-      os_ << "label=\"clear $" << that->data_.u_clear_captures.range_from
-          << " to $" << that->data_.u_clear_captures.range_to
-          << "\", shape=septagon";
+      os_ << "label=\"clear $" << that->register_from() << " to $"
+          << that->register_to() << "\", shape=septagon";
       break;
     }
     case ActionNode::MODIFY_FLAGS: {
