@@ -118,6 +118,7 @@ import org.mozilla.geckoview.WebExtension as GeckoWebExtension
 
 typealias GeckoInstallException = org.mozilla.geckoview.WebExtension.InstallException
 
+@Suppress("DEPRECATION")
 @RunWith(AndroidJUnit4::class)
 class GeckoEngineTest {
 
