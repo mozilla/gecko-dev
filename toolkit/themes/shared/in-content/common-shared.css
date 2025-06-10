@@ -533,18 +533,12 @@ xul|menulist > xul|menupopup xul|menuseparator {
 /* textboxes */
 
 html|input:where([type="email"], [type="tel"], [type="text"], [type="password"], [type="url"], [type="number"]),
-html|textarea,
-xul|search-textbox {
+html|textarea {
   appearance: none;
   border: 1px solid var(--in-content-box-border-color);
   border-radius: 4px;
   color: inherit;
   background-color: var(--background-color-box);
-}
-
-xul|search-textbox {
-  min-height: var(--input-text-min-height);
-  padding-inline: 8px;
 }
 
 html|input:where([type="email"], [type="tel"], [type="text"], [type="password"], [type="url"], [type="number"]),
@@ -563,7 +557,6 @@ html|textarea {
 
 html|input:where([type="email"], [type="tel"], [type="text"], [type="password"], [type="url"], [type="number"]):focus,
 html|textarea:focus,
-xul|search-textbox[focused],
 xul|tree:focus-visible,
 xul|richlistbox:focus-visible {
   border-color: transparent;
@@ -579,8 +572,7 @@ html|textarea:user-invalid {
 }
 
 html|input:where([type="email"], [type="tel"], [type="text"], [type="password"], [type="url"], [type="number"]):disabled,
-html|textarea:disabled,
-xul|search-textbox[disabled="true"] {
+html|textarea:disabled {
   opacity: 0.4;
 }
 
