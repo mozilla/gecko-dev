@@ -256,7 +256,7 @@ class DefaultBrowserToolbarController(
         }
 
         if (url?.isContentUrl() == true) {
-            val tab = sessionId.let { store.state.findTab(it) } ?: return
+            val tab = store.state.findTab(sessionId) ?: return
 
             store.dispatch(
                 ShareResourceAction.AddShareAction(

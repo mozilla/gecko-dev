@@ -16,10 +16,12 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.action.EngineAction
+import mozilla.components.browser.state.action.ShareResourceAction
 import mozilla.components.browser.state.ext.getUrl
 import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.selector.selectedTab
+import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.concept.engine.prompt.ShareData
@@ -28,6 +30,7 @@ import mozilla.components.feature.top.sites.DefaultTopSitesStorage
 import mozilla.components.feature.top.sites.PinnedSiteStorage
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
+import mozilla.components.support.ktx.kotlin.isContentUrl
 import mozilla.components.support.utils.BuildManufacturerChecker
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import mozilla.telemetry.glean.private.NoExtras
@@ -212,17 +215,29 @@ class DefaultBrowserToolbarMenuController(
                 val url = sessionId?.let {
                     store.state.findTab(it)?.getUrl()
                 } ?: currentSession?.content?.url
-                val directions = NavGraphDirections.actionGlobalShareFragment(
-                    sessionId = sessionId,
-                    data = arrayOf(
-                        ShareData(
-                            url = url,
-                            title = currentSession?.content?.title,
+
+                if (url?.isContentUrl() == true) {
+                    val tab = sessionId?.let { store.state.findTab(it) } ?: return
+
+                    store.dispatch(
+                        ShareResourceAction.AddShareAction(
+                            tab.id,
+                            ShareResourceState.LocalResource(url),
                         ),
-                    ),
-                    showPage = true,
-                )
-                navController.navigate(directions)
+                    )
+                } else {
+                    val directions = NavGraphDirections.actionGlobalShareFragment(
+                        sessionId = sessionId,
+                        data = arrayOf(
+                            ShareData(
+                                url = url,
+                                title = currentSession?.content?.title,
+                            ),
+                        ),
+                        showPage = true,
+                    )
+                    navController.navigate(directions)
+                }
             }
             is ToolbarMenu.Item.Settings -> browserAnimator.captureEngineViewAndDrawStatically {
                 val directions = BrowserFragmentDirections.actionBrowserFragmentToSettingsFragment()
