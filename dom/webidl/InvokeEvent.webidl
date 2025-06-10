@@ -7,7 +7,7 @@
  * https://github.com/whatwg/html/pull/9841
  */
 
-[Pref="dom.element.invokers.enabled",
+[Pref="dom.element.commandfor.enabled",
  Exposed=Window]
 interface InvokeEvent : Event {
     constructor(DOMString type, optional InvokeEventInit eventInitDict = {});
