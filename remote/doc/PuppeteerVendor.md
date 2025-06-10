@@ -75,52 +75,20 @@ All patches should be located under `remote/test/puppeteer-patches`, and can be
 applied with `git apply`:
 
 ```shell
-% git apply -3 remote/test/puppeteer-patches/remove-shebang.patch
-% git commit -a -m "Bug XXXXXXX - [puppeteer] Remove -S parameter in Shebang from mocha-runner script because it's not supported in CI"
 % git apply -3 remote/test/puppeteer-patches/skip-aria-test.patch
 % git commit -a -m "Bug XXXXXXX - [puppeteer] Skip test \"\$\$eval should handle many elements\" which is causing the error summary log to overflow"
 % git apply -3 remote/test/puppeteer-patches/skip-mozilla-ci-incompatible-tests.patch
 % git commit -a -m "Bug XXXXXXX - [puppeteer] Disable all puppeteer tests incompatible with Mozilla CI"
-% git apply -3 remote/test/puppeteer-patches/skip-wait-task-test.patch
-% git commit -a -m "Bug XXXXXXX - [puppeteer] Add missing expectation for skipped waittask test."
 ```
 
 For mercurial, use `hg import --no-commit`:
 
 ```shell
-% hg import --no-commit remote/test/puppeteer-patches/remove-shebang.patch
-% hg commit -m "Bug XXXXXXX - [puppeteer] Remove -S parameter in Shebang from mocha-runner script because it's not supported in CI"
 % hg import --no-commit remote/test/puppeteer-patches/skip-aria-test.patch
 % hg commit -m "Bug XXXXXXX - [puppeteer] Skip test \"\$\$eval should handle many elements\" which is causing the error summary log to overflow"
 % hg import --no-commit remote/test/puppeteer-patches/skip-mozilla-ci-incompatible-tests.patch
 % hg commit -m "Bug XXXXXXX - [puppeteer] Disable all puppeteer tests incompatible with Mozilla CI"
-% hg import --no-commit remote/test/puppeteer-patches/skip-wait-task-test.patch
-% hg commit -m "Bug XXXXXXX - [puppeteer] Add missing expectation for skipped waittask test."
 ```
-
-### Switch from experimental-strip-types to tsx
-
-Until node 22 is supported in our toolchain ([Bug 1942260](https://bugzilla.mozilla.org/show_bug.cgi?id=1942260))
-the various package.json files should also be updated to use `tsx` instead of `--experimental-strip-types`:
-
-```shell
-% find remote/test/puppeteer -name package.json -exec sed -i '' 's/node --experimental-strip-types/tsx/g' {} +
-```
-
-The topmost `package.json` file also needs to be updated to include the
-dependency on `tsx`. To do so, add `"tsx": "4.19.2",` in the `devDependencies`
-of [remote/test/puppeteer/package.json](https://searchfox.org/mozilla-central/rev/dd8b5213e4e7760b5fe5743fbc313398b85f8a14/remote/test/puppeteer/package.json#190).
-
-After performing the last modification, the package-lock.json file needs to be
-regenerated:
-
-```shell
-% cd remote/test/puppeteer
-% npm install
-% git commit -a -m "Bug XXXXXXX - [puppeteer] Revert to \"tsx\" as \"--experimental-strip-types\" requires Node.js >= 22.6.0."
-```
-
-For Mercurial users, replace the last `git commit -a -m` with `hg commit -m`.
 
 ### Validate that the new code works
 
