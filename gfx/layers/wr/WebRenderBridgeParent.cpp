@@ -155,7 +155,7 @@ void gfx_wr_clear_crash_annotation(mozilla::wr::CrashAnnotation aAnnotation) {
 }
 
 namespace mozilla::gfx {
-    wr::PipelineId GetTemporaryWebRenderPipelineId(wr::PipelineId aMainPipeline);
+wr::PipelineId GetTemporaryWebRenderPipelineId(wr::PipelineId aMainPipeline);
 }
 
 namespace mozilla::layers {
@@ -1156,8 +1156,8 @@ bool WebRenderBridgeParent::SetDisplayList(
     const nsTArray<OpUpdateResource>& aResourceUpdates,
     const nsTArray<RefCountedShmem>& aSmallShmems,
     const nsTArray<ipc::Shmem>& aLargeShmems, const TimeStamp& aTxnStartTime,
-    wr::TransactionBuilder& aTxn, wr::Epoch aWrEpoch,
-    const VsyncId& aVsyncId, bool aRenderOffscreen) {
+    wr::TransactionBuilder& aTxn, wr::Epoch aWrEpoch, const VsyncId& aVsyncId,
+    bool aRenderOffscreen) {
   bool success =
       UpdateResources(aResourceUpdates, aSmallShmems, aLargeShmems, aTxn);
 
@@ -1179,7 +1179,6 @@ bool WebRenderBridgeParent::SetDisplayList(
 
   aTxn.SetDisplayList(aWrEpoch, pipelineId, aDLDesc, dlItems, dlCache,
                       dlSpatialTreeData);
-
 
   if (aRenderOffscreen) {
     aTxn.RenderOffscreen(pipelineId);
@@ -1241,15 +1240,14 @@ bool WebRenderBridgeParent::ProcessDisplayListData(
 
   if (aDisplayList.mDLItems && aDisplayList.mDLCache &&
       aDisplayList.mDLSpatialTree) {
-    success =
-        SetDisplayList(
-            aDisplayList.mRect, std::move(aDisplayList.mDLItems.ref()),
-            std::move(aDisplayList.mDLCache.ref()),
-            std::move(aDisplayList.mDLSpatialTree.ref()), aDisplayList.mDLDesc,
-            aDisplayList.mResourceUpdates, aDisplayList.mSmallShmems,
-            aDisplayList.mLargeShmems, aTxnStartTime, txn, aWrEpoch,
-            aVsyncId, aRenderOffscreen) &&
-        success;
+    success = SetDisplayList(
+                  aDisplayList.mRect, std::move(aDisplayList.mDLItems.ref()),
+                  std::move(aDisplayList.mDLCache.ref()),
+                  std::move(aDisplayList.mDLSpatialTree.ref()),
+                  aDisplayList.mDLDesc, aDisplayList.mResourceUpdates,
+                  aDisplayList.mSmallShmems, aDisplayList.mLargeShmems,
+                  aTxnStartTime, txn, aWrEpoch, aVsyncId, aRenderOffscreen) &&
+              success;
   }
 
   return success;
