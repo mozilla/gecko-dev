@@ -362,6 +362,9 @@ with modules["NETWORK"]:
     # the basic_http_auth pref is disabled
     errors["NS_ERROR_BASIC_HTTP_AUTH_DISABLED"] = FAILURE(92)
     errors["NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED"] = FAILURE(93)
+    # Used to indicate cases where we need to fall back from HTTP/2
+    # to HTTP/1.1.
+    errors["NS_ERROR_HTTP2_FALLBACK_TO_HTTP1"] = FAILURE(94)
 
     # XXX really need to better rationalize these error codes.  are consumers of
     # necko really expected to know how to discern the meaning of these??

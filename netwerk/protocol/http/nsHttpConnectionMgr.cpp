@@ -1034,6 +1034,10 @@ bool nsHttpConnectionMgr::DispatchPendingQ(
             ("  removing pending transaction based on "
              "TryDispatchTransaction returning hard error %" PRIx32 "\n",
              static_cast<uint32_t>(rv)));
+        if (rv == NS_ERROR_HTTP2_FALLBACK_TO_HTTP1) {
+          pendingTransInfo->Transaction()->Close(
+              NS_ERROR_HTTP2_FALLBACK_TO_HTTP1);
+        }
       }
       if (pendingQ.RemoveElement(pendingTransInfo)) {
         // pendingTransInfo is now potentially destroyed
@@ -1407,56 +1411,10 @@ nsresult nsHttpConnectionMgr::TryDispatchTransaction(
       (!nsHttpHandler::IsHttp3Enabled() || (caps & NS_HTTP_DISALLOW_HTTP3)));
   if (conn) {
     LOG(("TryingDispatchTransaction: an active h2 connection exists"));
-    ExtendedCONNECTSupport extendedConnect = conn->GetExtendedCONNECTSupport();
     if (trans->IsWebsocketUpgrade() || trans->IsForWebTransport()) {
       RefPtr<nsHttpConnection> connTCP = do_QueryObject(conn);
       if (connTCP) {
-        LOG(("TryingDispatchTransaction: extended CONNECT"));
-        if (extendedConnect == ExtendedCONNECTSupport::NO_SUPPORT) {
-          LOG((
-              "TryingDispatchTransaction: no support for extended CONNECT over "
-              "Http2"));
-          // This is a transaction wants to do extended CONNECT and we already
-          // have a h2 connection that do not support it, we should disable h2
-          // for this transaction.
-          trans->DisableSpdy();
-          caps &= NS_HTTP_DISALLOW_SPDY;
-          trans->MakeSticky();
-        } else if (extendedConnect == ExtendedCONNECTSupport::SUPPORTED) {
-          LOG(("TryingDispatchTransaction: extended CONNECT supported"));
-
-          // No limit for number of websockets, dispatch transaction to the
-          // tunnel
-          RefPtr<nsHttpConnection> connToTunnel;
-          nsresult rv = connTCP->CreateTunnelStream(
-              trans, getter_AddRefs(connToTunnel), true);
-          if (rv == NS_ERROR_WEBTRANSPORT_SESSION_LIMIT_EXCEEDED) {
-            LOG(
-                ("TryingDispatchTransaction: WebTransport session limit "
-                 "exceeded"));
-            return rv;
-          }
-          ent->InsertIntoExtendedCONNECTConns(connToTunnel);
-          trans->SetConnection(nullptr);
-          connToTunnel
-              ->SetInSpdyTunnel();  // tells conn it is already in tunnel
-          if (trans->IsWebsocketUpgrade()) {
-            trans->SetIsHttp2Websocket(true);
-          }
-          rv = DispatchTransaction(ent, trans, connToTunnel);
-          // need to undo NonSticky bypass for transaction reset to continue
-          // for correct websocket upgrade handling
-          trans->MakeSticky();
-          trans->SetResettingForTunnelConn(false);
-          return rv;
-        } else {
-          // if we aren't sure that extended CONNECT is supported yet or we are
-          // already at the connection limit then we queue the transaction
-          LOG(
-              ("TryingDispatchTransaction: unsure if extended CONNECT "
-               "supported"));
-          return NS_ERROR_NOT_AVAILABLE;
-        }
+        return TryDispatchExtendedCONNECTransaction(ent, trans, connTCP);
       }
     } else {
       if ((caps & NS_HTTP_ALLOW_KEEPALIVE) ||
@@ -1635,6 +1593,72 @@ nsresult nsHttpConnectionMgr::TryDispatchTransactionOnIdleConn(
     return NS_OK;
   }
 
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+nsresult nsHttpConnectionMgr::TryDispatchExtendedCONNECTransaction(
+    ConnectionEntry* aEnt, nsHttpTransaction* aTrans, nsHttpConnection* aConn) {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+  MOZ_ASSERT(aTrans->IsWebsocketUpgrade() || aTrans->IsForWebTransport());
+  MOZ_ASSERT(aConn);
+
+  ExtendedCONNECTSupport extendedConnect = aConn->GetExtendedCONNECTSupport();
+  LOG(("TryingDispatchTransaction: extended CONNECT"));
+  if (extendedConnect == ExtendedCONNECTSupport::NO_SUPPORT) {
+    LOG(
+        ("TryingDispatchTransaction: no support for extended CONNECT over "
+         "HTTP/2"));
+    // This is a transaction wants to do extended CONNECT and we already
+    // have a h2 connection that do not support it, we should disable h2
+    // for this transaction.
+    aTrans->DisableSpdy();
+
+    // WebTransport doesn’t allow to fall back to HTTP/1.1.
+    if (aTrans->IsForWebTransport()) {
+      return NS_ERROR_CONNECTION_REFUSED;
+    }
+
+    // See the assertion in nsHttpConnectionMgr::OnMsgCompleteUpgrade.
+    // Transactions used for WebSockets are expected to have
+    // NS_HTTP_STICKY_CONNECTION, so we also need to call MakeRestartable to
+    // allow them to restart successfully.
+    aTrans->MakeSticky();
+    aTrans->MakeRestartable();
+
+    return NS_ERROR_HTTP2_FALLBACK_TO_HTTP1;
+  } else if (extendedConnect == ExtendedCONNECTSupport::SUPPORTED) {
+    LOG(("TryingDispatchTransaction: extended CONNECT supported"));
+
+    // No limit for number of websockets, dispatch transaction to the
+    // tunnel
+    RefPtr<nsHttpConnection> connToTunnel;
+    nsresult rv =
+        aConn->CreateTunnelStream(aTrans, getter_AddRefs(connToTunnel), true);
+    if (rv == NS_ERROR_WEBTRANSPORT_SESSION_LIMIT_EXCEEDED) {
+      LOG(
+          ("TryingDispatchTransaction: WebTransport session limit "
+           "exceeded"));
+      return rv;
+    }
+    aEnt->InsertIntoExtendedCONNECTConns(connToTunnel);
+    aTrans->SetConnection(nullptr);
+    connToTunnel->SetInSpdyTunnel();  // tells conn it is already in tunnel
+    if (aTrans->IsWebsocketUpgrade()) {
+      aTrans->SetIsHttp2Websocket(true);
+    }
+    rv = DispatchTransaction(aEnt, aTrans, connToTunnel);
+    // need to undo NonSticky bypass for transaction reset to continue
+    // for correct websocket upgrade handling
+    aTrans->MakeSticky();
+    aTrans->SetResettingForTunnelConn(false);
+    return rv;
+  }
+
+  // if we aren't sure that extended CONNECT is supported yet or we are
+  // already at the connection limit then we queue the transaction
+  LOG(
+      ("TryingDispatchTransaction: unsure if extended CONNECT "
+       "supported"));
   return NS_ERROR_NOT_AVAILABLE;
 }
 
