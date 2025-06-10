@@ -100,6 +100,7 @@ def get_json_pushchangedfiles(repository, revision):
 
     def get_pushchangedfiles():
         response = requests.get(url, timeout=60)
+        response.raise_for_status()
         return response.json()
 
     return retry(get_pushchangedfiles, attempts=10, sleeptime=10)
