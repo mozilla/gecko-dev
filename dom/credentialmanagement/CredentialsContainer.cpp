@@ -274,27 +274,6 @@ already_AddRefed<Promise> CredentialsContainer::Create(
                                             aOptions.mSignal, aRv);
   }
 
-  if (aOptions.mIdentity.WasPassed() &&
-      StaticPrefs::dom_security_credentialmanagement_identity_enabled() &&
-      StaticPrefs::
-          dom_security_credentialmanagement_identity_lightweight_enabled()) {
-    MOZ_ASSERT(mParent);
-    RefPtr<Promise> promise = CreatePromise(mParent, aRv);
-    if (!promise) {
-      return nullptr;
-    }
-
-    IdentityCredential::Create(mParent, aOptions,
-                               IsSameOriginWithAncestors(mParent))
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [promise](const RefPtr<IdentityCredential>& credential) {
-              promise->MaybeResolve(credential);
-            },
-            [promise](nsresult error) { promise->MaybeReject(error); });
-    return promise.forget();
-  }
-
   return CreateAndRejectWithNotSupported(mParent, aRv);
 }
 
@@ -312,25 +291,6 @@ already_AddRefed<Promise> CredentialsContainer::Store(
     return mWebAuthnHandler->Store(aCredential, aRv);
   }
 
-  if (type.EqualsLiteral("identity") &&
-      StaticPrefs::dom_security_credentialmanagement_identity_enabled() &&
-      StaticPrefs::
-          dom_security_credentialmanagement_identity_lightweight_enabled()) {
-    MOZ_ASSERT(mParent);
-    RefPtr<Promise> promise = CreatePromise(mParent, aRv);
-    if (!promise) {
-      return nullptr;
-    }
-
-    IdentityCredential::Store(
-        mParent, static_cast<const IdentityCredential*>(&aCredential),
-        IsSameOriginWithAncestors(mParent))
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [promise](bool success) { promise->MaybeResolveWithUndefined(); },
-            [promise](nsresult error) { promise->MaybeReject(error); });
-    return promise.forget();
-  }
   return CreateAndRejectWithNotSupported(mParent, aRv);
 }
 
