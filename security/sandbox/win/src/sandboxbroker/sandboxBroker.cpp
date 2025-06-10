@@ -115,14 +115,14 @@ static sandbox::ResultCode AddWin32kLockdownPolicy(
   return result;
 }
 
-static void CacheDirAndAutoClear(const nsAString& aDir,
-                                 StaticAutoPtr<nsString>* cacheVar) {
-  *cacheVar = new nsString(aDir);
-  ClearOnShutdown(cacheVar);
+static void CacheAndStandardizeDir(const nsAString& aDir,
+                                   StaticAutoPtr<nsString>& aCacheVar) {
+  MOZ_ASSERT(!aCacheVar);
+  aCacheVar = new nsString(aDir);
 
   // Convert network share path to format for sandbox policy.
-  if (Substring(**cacheVar, 0, 2).Equals(u"\\\\"_ns)) {
-    (*cacheVar)->InsertLiteral(u"??\\UNC", 1);
+  if (Substring(*aCacheVar, 0, 2).Equals(u"\\\\"_ns)) {
+    aCacheVar->InsertLiteral(u"??\\UNC", 1);
   }
 }
 
@@ -134,12 +134,24 @@ void SandboxBroker::Initialize(sandbox::BrokerServices* aBrokerServices,
   sRunningFromNetworkDrive = widget::WinUtils::RunningFromANetworkDrive();
 
   if (!aBinDir.IsEmpty()) {
-    CacheDirAndAutoClear(aBinDir, &sBinDir);
+    CacheAndStandardizeDir(aBinDir, sBinDir);
   }
+
+  // Clear statics on shutdown.
+  RunOnShutdown([] {
+    sLaunchErrors = nullptr;
+    sBinDir = nullptr;
+    sProfileDir = nullptr;
+    sLocalAppDataDir = nullptr;
+#ifdef ENABLE_SYSTEM_EXTENSION_DIRS
+    sUserExtensionsDir = nullptr;
+#endif
+  });
 }
 
-static void CacheDirAndAutoClear(nsIProperties* aDirSvc, const char* aDirKey,
-                                 StaticAutoPtr<nsString>* cacheVar) {
+static void CacheDirectoryServiceDir(nsIProperties* aDirSvc,
+                                     const char* aDirKey,
+                                     StaticAutoPtr<nsString>& aCacheVar) {
   nsCOMPtr<nsIFile> dirToCache;
   nsresult rv =
       aDirSvc->Get(aDirKey, NS_GET_IID(nsIFile), getter_AddRefs(dirToCache));
@@ -152,7 +164,7 @@ static void CacheDirAndAutoClear(nsIProperties* aDirSvc, const char* aDirKey,
 
   nsAutoString dirPath;
   MOZ_ALWAYS_SUCCEEDS(dirToCache->GetPath(dirPath));
-  CacheDirAndAutoClear(dirPath, cacheVar);
+  CacheAndStandardizeDir(dirPath, aCacheVar);
 }
 
 /* static */
@@ -174,16 +186,12 @@ void SandboxBroker::GeckoDependentInitialize() {
     return;
   }
 
-  CacheDirAndAutoClear(dirSvc, NS_APP_USER_PROFILE_50_DIR, &sProfileDir);
-  CacheDirAndAutoClear(dirSvc, NS_WIN_LOCAL_APPDATA_DIR, &sLocalAppDataDir);
+  CacheDirectoryServiceDir(dirSvc, NS_APP_USER_PROFILE_50_DIR, sProfileDir);
+  CacheDirectoryServiceDir(dirSvc, NS_WIN_LOCAL_APPDATA_DIR, sLocalAppDataDir);
 #ifdef ENABLE_SYSTEM_EXTENSION_DIRS
-  CacheDirAndAutoClear(dirSvc, XRE_USER_SYS_EXTENSION_DIR, &sUserExtensionsDir);
+  CacheDirectoryServiceDir(dirSvc, XRE_USER_SYS_EXTENSION_DIR,
+                           sUserExtensionsDir);
 #endif
-
-  // Create sLaunchErrors up front because ClearOnShutdown must be called on the
-  // main thread.
-  sLaunchErrors = new nsTHashtable<nsCStringHashKey>();
-  ClearOnShutdown(&sLaunchErrors);
 }
 
 SandboxBroker::SandboxBroker() {
@@ -417,16 +425,13 @@ Result<Ok, mozilla::ipc::LaunchError> SandboxBroker::LaunchApp(
     key.AppendInt(static_cast<uint32_t>(last_error), 16);
 
     // Only accumulate for each combination once per session.
-    if (sLaunchErrors) {
-      if (!sLaunchErrors->Contains(key)) {
-        glean::sandbox::failed_launch_keyed.Get(key).AccumulateSingleSample(
-            result);
-        sLaunchErrors->PutEntry(key);
-      }
-    } else {
-      // If sLaunchErrors not created yet then always accumulate.
+    if (!sLaunchErrors) {
+      sLaunchErrors = new nsTHashtable<nsCStringHashKey>();
+    }
+    if (!sLaunchErrors->Contains(key)) {
       glean::sandbox::failed_launch_keyed.Get(key).AccumulateSingleSample(
           result);
+      sLaunchErrors->PutEntry(key);
     }
 
     LOG_E(
