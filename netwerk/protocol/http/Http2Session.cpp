@@ -1210,10 +1210,10 @@ bool Http2Session::VerifyStream(Http2StreamBase* aStream,
   // This is annoying, but at least it is O(1)
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-#ifndef DEBUG
-  // Only do the real verification in debug builds
+#ifndef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  // Only do the real verification in early beta builds
   return true;
-#else   // DEBUG
+#else   // MOZ_DIAGNOSTIC_ASSERT_ENABLED
 
   if (!aStream) return true;
 
