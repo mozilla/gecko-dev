@@ -98,6 +98,7 @@ import org.mozilla.fenix.ext.getRectWithScreenLocation
 import org.mozilla.fenix.ext.increaseTapArea
 import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.requireComponents
+import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.secure
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.navigation.DefaultNavControllerProvider
@@ -688,20 +689,22 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
     }
 
     private fun dismissDialogAndGoBack() {
-        // In case we're displaying search results, we wouldn't have navigated to home, and
-        // so we don't need to navigate "back to" browser fragment.
-        // See mirror of this logic in BrowserToolbarController#handleToolbarClick.
-        if (store.state.searchTerms.isBlank()) {
-            val args by navArgs<SearchDialogFragmentArgs>()
-            args.sessionId?.let {
-                findNavController().navigate(
-                    SearchDialogFragmentDirections.actionGlobalBrowser(null),
-                )
+        runIfFragmentIsAttached {
+            // In case we're displaying search results, we wouldn't have navigated to home, and
+            // so we don't need to navigate "back to" browser fragment.
+            // See mirror of this logic in BrowserToolbarController#handleToolbarClick.
+            if (store.state.searchTerms.isBlank()) {
+                val args by navArgs<SearchDialogFragmentArgs>()
+                args.sessionId?.let {
+                    findNavController().navigate(
+                        SearchDialogFragmentDirections.actionGlobalBrowser(null),
+                    )
+                }
             }
-        }
 
-        view?.hideKeyboard()
-        dismissAllowingStateLoss()
+            view?.hideKeyboard()
+            dismissAllowingStateLoss()
+        }
     }
 
     @Suppress("DEPRECATION")
