@@ -73,7 +73,7 @@ semanticdb-kotlinc = "0.5.0"
 # Kotlin versions
 coroutines = "1.10.2"
 kotlin = "2.1.21" # remember to change ksp-plugin
-ksp-plugin = "2.1.21-2.0.1"
+ksp-plugin = "2.1.21-2.0.2"
 serialization = "1.8.1"
 
 # Linter versions
