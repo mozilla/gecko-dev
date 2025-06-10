@@ -107,8 +107,10 @@ class MOZ_RAII IRGenerator {
   void emitOptimisticClassGuard(ObjOperandId objId, JSObject* obj,
                                 GuardClassKind kind);
 
+  enum class AccessorKind { Getter, Setter };
   void emitGuardGetterSetterSlot(NativeObject* holder, PropertyInfo prop,
                                  ObjOperandId holderId,
+                                 AccessorKind kind,
                                  bool holderIsConstant = false);
   void emitCallGetterResultNoGuards(NativeGetPropKind kind, NativeObject* obj,
                                     NativeObject* holder, PropertyInfo prop,

@@ -616,6 +616,17 @@
     boolean: BooleanId
     result: NumberId
 
+# Load the getter or setter out of a GetterSetter.
+# Fails if it is null.
+- name: LoadGetterSetterFunction
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    getterSetter: ValId
+    isGetter: BoolImm
+    result: ObjId
+
 - name: GuardHasGetterSetter
   shared: true
   transpile: true
