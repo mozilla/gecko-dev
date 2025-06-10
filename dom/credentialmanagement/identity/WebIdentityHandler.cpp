@@ -145,9 +145,8 @@ void WebIdentityHandler::SetLoginStatus(const LoginStatus& aStatus,
   const RefPtr<Promise>& promise = aPromise;
   mActor->SendSetLoginStatus(aStatus)->Then(
       GetCurrentSerialEventTarget(), __func__,
-      [promise](
-          const WebIdentityChild::SetLoginStatusPromise::ResolveValueType&
-              aResult) {
+      [promise](const WebIdentityChild::SetLoginStatusPromise::ResolveValueType&
+                    aResult) {
         if (NS_SUCCEEDED(aResult)) {
           promise->MaybeResolveWithUndefined();
         } else {
@@ -156,7 +155,7 @@ void WebIdentityHandler::SetLoginStatus(const LoginStatus& aStatus,
         }
       },
       [promise](const WebIdentityChild::SetLoginStatusPromise::RejectValueType&
-                     aResult) {
+                    aResult) {
         promise->MaybeRejectWithUnknownError(
             "navigator.login.setStatus had an unexpected internal error");
       });
