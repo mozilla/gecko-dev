@@ -897,25 +897,26 @@ nsDOMWindowUtils::SendTouchEvent(
     const nsTArray<float>& aRotationAngles, const nsTArray<float>& aForces,
     const nsTArray<int32_t>& aTiltXs, const nsTArray<int32_t>& aTiltYs,
     const nsTArray<int32_t>& aTwists, int32_t aModifiers,
-    bool aIgnoreRootScrollFrame, bool* aPreventDefault) {
+    bool* aPreventDefault) {
   return SendTouchEventCommon(aType, aIdentifiers, aXs, aYs, aRxs, aRys,
                               aRotationAngles, aForces, aTiltXs, aTiltYs,
-                              aTwists, aModifiers, aIgnoreRootScrollFrame,
+                              aTwists, aModifiers,
                               /* aIsPen */ false,
                               /* aToWindow */ false, aPreventDefault);
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::SendTouchEventAsPen(
-    const nsAString& aType, uint32_t aIdentifier, int32_t aX, int32_t aY,
-    uint32_t aRx, uint32_t aRy, float aRotationAngle, float aForce,
-    int32_t aTiltX, int32_t aTiltY, int32_t aTwist, int32_t aModifier,
-    bool aIgnoreRootScrollFrame, bool* aPreventDefault) {
+nsDOMWindowUtils::SendTouchEventAsPen(const nsAString& aType,
+                                      uint32_t aIdentifier, int32_t aX,
+                                      int32_t aY, uint32_t aRx, uint32_t aRy,
+                                      float aRotationAngle, float aForce,
+                                      int32_t aTiltX, int32_t aTiltY,
+                                      int32_t aTwist, int32_t aModifier,
+                                      bool* aPreventDefault) {
   return SendTouchEventCommon(
       aType, nsTArray{aIdentifier}, nsTArray{aX}, nsTArray{aY}, nsTArray{aRx},
       nsTArray{aRy}, nsTArray{aRotationAngle}, nsTArray{aForce},
       nsTArray{aTiltX}, nsTArray{aTiltY}, nsTArray{aTwist}, aModifier,
-      aIgnoreRootScrollFrame,
       /* aIsPen */ true,
       /* aToWindow */ false, aPreventDefault);
 }
@@ -928,10 +929,10 @@ nsDOMWindowUtils::SendTouchEventToWindow(
     const nsTArray<float>& aRotationAngles, const nsTArray<float>& aForces,
     const nsTArray<int32_t>& aTiltXs, const nsTArray<int32_t>& aTiltYs,
     const nsTArray<int32_t>& aTwists, int32_t aModifiers,
-    bool aIgnoreRootScrollFrame, bool* aPreventDefault) {
+    bool* aPreventDefault) {
   return SendTouchEventCommon(aType, aIdentifiers, aXs, aYs, aRxs, aRys,
                               aRotationAngles, aForces, aTiltXs, aTiltYs,
-                              aTwists, aModifiers, aIgnoreRootScrollFrame,
+                              aTwists, aModifiers,
                               /* aIsPen */ false,
                               /* aToWindow */ true, aPreventDefault);
 }
@@ -942,9 +943,8 @@ nsresult nsDOMWindowUtils::SendTouchEventCommon(
     const nsTArray<uint32_t>& aRxs, const nsTArray<uint32_t>& aRys,
     const nsTArray<float>& aRotationAngles, const nsTArray<float>& aForces,
     const nsTArray<int32_t>& aTiltXs, const nsTArray<int32_t>& aTiltYs,
-    const nsTArray<int32_t>& aTwists, int32_t aModifiers,
-    bool aIgnoreRootScrollFrame, bool aIsPen, bool aToWindow,
-    bool* aPreventDefault) {
+    const nsTArray<int32_t>& aTwists, int32_t aModifiers, bool aIsPen,
+    bool aToWindow, bool* aPreventDefault) {
   // get the widget to send the event to
   nsPoint offset;
   nsCOMPtr<nsIWidget> widget = GetWidget(&offset);
