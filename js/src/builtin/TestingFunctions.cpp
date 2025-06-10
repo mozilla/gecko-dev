@@ -6764,6 +6764,40 @@ static bool ObjectAddress(JSContext* cx, unsigned argc, Value* vp) {
   return ReturnStringCopy(cx, args, buffer);
 }
 
+static bool ScriptAddressForFunction(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  if (js::SupportDifferentialTesting()) {
+    RootedObject callee(cx, &args.callee());
+    ReportUsageErrorASCII(cx, callee,
+                          "Function unavailable in differential testing mode.");
+    return false;
+  }
+
+  if (args.length() != 1) {
+    RootedObject callee(cx, &args.callee());
+    ReportUsageErrorASCII(cx, callee, "Wrong number of arguments");
+    return false;
+  }
+  if (!args[0].isObject() || !args[0].toObject().is<JSFunction>()) {
+    RootedObject callee(cx, &args.callee());
+    ReportUsageErrorASCII(cx, callee, "Expected function");
+    return false;
+  }
+
+  RootedFunction function(cx, &args[0].toObject().as<JSFunction>());
+  if (!function->hasBytecode()) {
+    RootedObject callee(cx, &args.callee());
+    ReportUsageErrorASCII(cx, callee, "Expected non-lazy scripted function");
+    return false;
+  }
+
+  void* ptr = function->nonLazyScript();
+  args.rval().setPrivate(ptr);
+
+  return true;
+}
+
 static bool SharedAddress(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -10514,6 +10548,10 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE)
 "objectAddress(obj)",
 "  Return the current address of the object. For debugging only--this\n"
 "  address may change during a moving GC."),
+
+    JS_FN_HELP("scriptAddressForFunction", ScriptAddressForFunction, 1, 0,
+"scriptAddressForFunction(fun)",
+"  Return the current address of a function's script."),
 
     JS_FN_HELP("sharedAddress", SharedAddress, 1, 0,
 "sharedAddress(obj)",
