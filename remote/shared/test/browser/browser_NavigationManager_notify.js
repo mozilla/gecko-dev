@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { NavigationManager, notifyNavigationStarted, notifyNavigationStopped } =
+const { notifyNavigationStarted, notifyNavigationStopped } =
   ChromeUtils.importESModule(
     "chrome://remote/content/shared/NavigationManager.sys.mjs"
   );
@@ -14,9 +14,8 @@ const FIRST_URL = "https://example.com/document-builder.sjs?html=first";
 const SECOND_URL = "https://example.com/document-builder.sjs?html=second";
 
 add_task(async function test_notifyNavigationStartedStopped() {
-  const tab = addTab(gBrowser, FIRST_URL);
+  const tab = await addTabAndWaitForNavigated(gBrowser, FIRST_URL);
   const browser = tab.linkedBrowser;
-  await BrowserTestUtils.browserLoaded(browser, false, FIRST_URL);
 
   const events = [];
   const onEvent = (name, data) => events.push({ name, data });
@@ -104,9 +103,8 @@ add_task(async function test_notifyNavigationStartedStopped() {
 });
 
 add_task(async function test_notifyNavigationWithContextDetails() {
-  const tab = addTab(gBrowser, FIRST_URL);
+  const tab = await addTabAndWaitForNavigated(gBrowser, FIRST_URL);
   const browser = tab.linkedBrowser;
-  await BrowserTestUtils.browserLoaded(browser, false, FIRST_URL);
 
   const events = [];
   const onEvent = (name, data) => events.push({ name, data });

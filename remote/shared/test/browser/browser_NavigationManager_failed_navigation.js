@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { NavigationManager } = ChromeUtils.importESModule(
-  "chrome://remote/content/shared/NavigationManager.sys.mjs"
-);
 const { TabManager } = ChromeUtils.importESModule(
   "chrome://remote/content/shared/TabManager.sys.mjs"
 );
@@ -21,13 +18,12 @@ add_task(async function testClosedPort() {
   navigationManager.on("navigation-started", onEvent);
   navigationManager.on("navigation-stopped", onEvent);
 
-  const tab = addTab(gBrowser, TEST_URL);
+  const tab = await addTabAndWaitForNavigated(gBrowser, TEST_URL);
   const browser = tab.linkedBrowser;
-  await BrowserTestUtils.browserLoaded(browser);
-
-  const navigableId = TabManager.getIdForBrowser(browser);
 
   navigationManager.startMonitoring();
+  const navigableId = TabManager.getIdForBrowser(browser);
+
   is(
     navigationManager.getNavigationForBrowsingContext(browser.browsingContext),
     null,
@@ -63,13 +59,12 @@ add_task(async function testWrongURI() {
   navigationManager.on("navigation-started", onEvent);
   navigationManager.on("navigation-stopped", onEvent);
 
-  const tab = addTab(gBrowser, TEST_URL);
+  const tab = await addTabAndWaitForNavigated(gBrowser, TEST_URL);
   const browser = tab.linkedBrowser;
-  await BrowserTestUtils.browserLoaded(browser);
-
-  const navigableId = TabManager.getIdForBrowser(browser);
 
   navigationManager.startMonitoring();
+
+  const navigableId = TabManager.getIdForBrowser(browser);
 
   is(
     navigationManager.getNavigationForBrowsingContext(browser.browsingContext),
