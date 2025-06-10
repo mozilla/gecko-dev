@@ -357,6 +357,7 @@ class Http2Session final : public ASpdySession,
                    bool aRemoveFromQueue = true);
   void SendHello();
   void RemoveStreamFromQueues(Http2StreamBase*);
+  void RemoveStreamFromTables(Http2StreamBase*);
   [[nodiscard]] nsresult ParsePadding(uint8_t&, uint16_t&);
 
   void SetWriteCallbacks();
