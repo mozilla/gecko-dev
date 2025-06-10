@@ -331,11 +331,13 @@ bool OffThreadPromiseRuntimeState::internalDelayedDispatchToEventLoop(
   // Atomics.waitAsync.
   mozilla::TimeStamp endTime = mozilla::TimeStamp::Now() +
                                mozilla::TimeDuration::FromMilliseconds(delay);
-  if (!state.internalDelayedDispatchPriorityQueue().insert(
-          DelayedDispatchable(std::move(d), endTime))) {
+  if (!state.internalDelayedDispatchPriorityQueue().reserveOne()) {
     JS::Dispatchable::ReleaseFailedTask(std::move(d));
     return false;
   }
+
+  state.internalDelayedDispatchPriorityQueue().infallibleInsert(
+      DelayedDispatchable(std::move(d), endTime));
 
   return true;
 }

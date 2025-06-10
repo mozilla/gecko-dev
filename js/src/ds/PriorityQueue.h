@@ -76,6 +76,10 @@ class PriorityQueue {
     return true;
   }
 
+  // The combination of reserveOne+infallibleInsert can be used for the case
+  // where the failure case needs to take the ownership of the value.
+  [[nodiscard]] bool reserveOne() { return heap.reserve(heap.length() + 1); }
+
   void infallibleInsert(T&& v) {
     heap.infallibleAppend(std::move(v));
     siftUp(heap.length() - 1);
