@@ -96,6 +96,7 @@ export class ContentSection extends React.PureComponent {
       mayHaveInferredPersonalization,
       mayHaveRecentSaves,
       mayHaveWeather,
+      mayHaveTrendingSearch,
       openPreferences,
       wallpapersEnabled,
       activeWallpaper,
@@ -107,6 +108,7 @@ export class ContentSection extends React.PureComponent {
       topSitesEnabled,
       pocketEnabled,
       weatherEnabled,
+      trendingSearchEnabled,
       showInferredPersonalizationEnabled,
       showRecentSavesEnabled,
       topSitesRowsCount,
@@ -136,6 +138,19 @@ export class ContentSection extends React.PureComponent {
                 data-preference="showWeather"
                 data-eventSource="WEATHER"
                 data-l10n-id="newtab-custom-weather-toggle"
+              />
+            </div>
+          )}
+
+          {mayHaveTrendingSearch && (
+            <div id="trending-search-section" className="section">
+              <moz-toggle
+                id="trending-search-toggle"
+                pressed={trendingSearchEnabled || null}
+                onToggle={this.onPreferenceSelect}
+                data-preference="trendingSearch.enabled"
+                data-eventSource="TRENDING_SEARCH"
+                data-l10n-id="newtab-custom-trending-search-toggle"
               />
             </div>
           )}

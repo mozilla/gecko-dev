@@ -13080,6 +13080,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       mayHaveInferredPersonalization,
       mayHaveRecentSaves,
       mayHaveWeather,
+      mayHaveTrendingSearch,
       openPreferences,
       wallpapersEnabled,
       activeWallpaper,
@@ -13091,6 +13092,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       topSitesEnabled,
       pocketEnabled,
       weatherEnabled,
+      trendingSearchEnabled,
       showInferredPersonalizationEnabled,
       showRecentSavesEnabled,
       topSitesRowsCount
@@ -13118,6 +13120,16 @@ class ContentSection extends (external_React_default()).PureComponent {
       "data-preference": "showWeather",
       "data-eventSource": "WEATHER",
       "data-l10n-id": "newtab-custom-weather-toggle"
+    })), mayHaveTrendingSearch && /*#__PURE__*/external_React_default().createElement("div", {
+      id: "trending-search-section",
+      className: "section"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "trending-search-toggle",
+      pressed: trendingSearchEnabled || null,
+      onToggle: this.onPreferenceSelect,
+      "data-preference": "trendingSearch.enabled",
+      "data-eventSource": "TRENDING_SEARCH",
+      "data-l10n-id": "newtab-custom-trending-search-toggle"
     })), /*#__PURE__*/external_React_default().createElement("div", {
       id: "shortcuts-section",
       className: "section"
@@ -13296,12 +13308,14 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
       setPref: this.props.setPref,
       enabledSections: this.props.enabledSections,
       wallpapersEnabled: this.props.wallpapersEnabled,
+      trendingSearchEnabled: this.props.trendingSearchEnabled,
       activeWallpaper: this.props.activeWallpaper,
       pocketRegion: this.props.pocketRegion,
       mayHaveTopicSections: this.props.mayHaveTopicSections,
       mayHaveInferredPersonalization: this.props.mayHaveInferredPersonalization,
       mayHaveRecentSaves: this.props.DiscoveryStream.recentSavesEnabled,
       mayHaveWeather: this.props.mayHaveWeather,
+      mayHaveTrendingSearch: this.props.mayHaveTrendingSearch,
       dispatch: this.props.dispatch,
       exitEventFired: this.state.exitEventFired
     }))));
@@ -15045,6 +15059,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       showTopicSelection
     } = DiscoveryStream;
     const mayShowTopicSelection = showTopicSelection && prefs["discoverystream.topicSelection.enabled"];
+    const trendingSearchEnabled = prefs["trendingSearch.enabled"];
     const {
       pocketConfig
     } = prefs;
@@ -15063,7 +15078,8 @@ class BaseContent extends (external_React_default()).PureComponent {
       showInferredPersonalizationEnabled: prefs[Base_PREF_INFERRED_PERSONALIZATION_USER],
       showRecentSavesEnabled: prefs.showRecentSaves,
       topSitesRowsCount: prefs.topSitesRows,
-      weatherEnabled: prefs.showWeather
+      weatherEnabled: prefs.showWeather,
+      trendingSearchEnabled: prefs["trendingSearch.enabled"]
     };
     const pocketRegion = prefs["feeds.system.topstories"];
     const mayHaveSponsoredStories = prefs["system.showSponsored"];
@@ -15073,6 +15089,9 @@ class BaseContent extends (external_React_default()).PureComponent {
       mayHaveSponsoredTopSites
     } = prefs;
     const supportUrl = prefs["support.url"];
+
+    // Trending Searches experiment pref check
+    const mayHaveTrendingSearch = prefs["system.trendingSearch.enabled"] && prefs["trendingSearch.defaultSearchEngine"] === "Google";
 
     // Mobile Download Promo Pref Checks
     const mobileDownloadPromoEnabled = prefs["mobileDownloadModal.enabled"];
@@ -15129,12 +15148,14 @@ class BaseContent extends (external_React_default()).PureComponent {
       enabledSections: enabledSections,
       wallpapersEnabled: wallpapersEnabled,
       activeWallpaper: activeWallpaper,
+      trendingSearchEnabled: trendingSearchEnabled,
       pocketRegion: pocketRegion,
       mayHaveTopicSections: mayHavePersonalizedTopicSections,
       mayHaveSponsoredTopSites: mayHaveSponsoredTopSites,
       mayHaveSponsoredStories: mayHaveSponsoredStories,
       mayHaveInferredPersonalization: mayHaveInferredPersonalization,
       mayHaveWeather: mayHaveWeather,
+      mayHaveTrendingSearch: mayHaveTrendingSearch,
       spocMessageVariant: spocMessageVariant,
       showing: customizeMenuVisible
     }), this.shouldShowOMCHighlight("CustomWallpaperHighlight") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {

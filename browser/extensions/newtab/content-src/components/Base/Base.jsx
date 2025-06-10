@@ -619,6 +619,7 @@ export class BaseContent extends React.PureComponent {
     const { showTopicSelection } = DiscoveryStream;
     const mayShowTopicSelection =
       showTopicSelection && prefs["discoverystream.topicSelection.enabled"];
+    const trendingSearchEnabled = prefs["trendingSearch.enabled"];
 
     const { pocketConfig } = prefs;
 
@@ -651,6 +652,7 @@ export class BaseContent extends React.PureComponent {
       showRecentSavesEnabled: prefs.showRecentSaves,
       topSitesRowsCount: prefs.topSitesRows,
       weatherEnabled: prefs.showWeather,
+      trendingSearchEnabled: prefs["trendingSearch.enabled"],
     };
 
     const pocketRegion = prefs["feeds.system.topstories"];
@@ -660,6 +662,11 @@ export class BaseContent extends React.PureComponent {
     const mayHaveWeather = prefs["system.showWeather"];
     const { mayHaveSponsoredTopSites } = prefs;
     const supportUrl = prefs["support.url"];
+
+    // Trending Searches experiment pref check
+    const mayHaveTrendingSearch =
+      prefs["system.trendingSearch.enabled"] &&
+      prefs["trendingSearch.defaultSearchEngine"] === "Google";
 
     // Mobile Download Promo Pref Checks
     const mobileDownloadPromoEnabled = prefs["mobileDownloadModal.enabled"];
@@ -763,12 +770,14 @@ export class BaseContent extends React.PureComponent {
             enabledSections={enabledSections}
             wallpapersEnabled={wallpapersEnabled}
             activeWallpaper={activeWallpaper}
+            trendingSearchEnabled={trendingSearchEnabled}
             pocketRegion={pocketRegion}
             mayHaveTopicSections={mayHavePersonalizedTopicSections}
             mayHaveSponsoredTopSites={mayHaveSponsoredTopSites}
             mayHaveSponsoredStories={mayHaveSponsoredStories}
             mayHaveInferredPersonalization={mayHaveInferredPersonalization}
             mayHaveWeather={mayHaveWeather}
+            mayHaveTrendingSearch={mayHaveTrendingSearch}
             spocMessageVariant={spocMessageVariant}
             showing={customizeMenuVisible}
           />

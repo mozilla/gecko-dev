@@ -131,7 +131,7 @@ describe("AboutPreferences Feed", () => {
       await instance.observe(window, PREFERENCES_LOADED_EVENT);
 
       // Render all the prefs
-      assert.callCount(renderPreferenceSection, 6);
+      assert.callCount(renderPreferenceSection, 7);
 
       // Show or hide the "Restore defaults" button depending on prefs
       assert.calledOnce(toggleRestoreDefaults);
