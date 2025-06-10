@@ -733,12 +733,15 @@ nsresult JsepTrack::Negotiate(const SdpMediaSection& answer,
 /* static */
 void JsepTrack::SetReceivePayloadTypes(std::vector<JsepTrack*>& tracks,
                                        bool localOffer) {
-  // Maps payload types to all tracks that have negotiated them.
-  std::multimap<uint16_t, JsepTrack*> payloadTypeToTracks;
+  // Maps payload types to:
+  // - Nothing() temporarily when just initialized
+  // - Some(nullptr) when the payload type is registered to multiple tracks
+  // - Some(track) when the payload type is unique on track
+  std::map<uint16_t, Maybe<JsepTrack*>> payloadTypeToTrackCount;
 
   for (JsepTrack* track : tracks) {
     track->mUniqueReceivePayloadTypes.clear();
-    track->mDuplicateReceivePayloadTypes.clear();
+    track->mOtherReceivePayloadTypes.clear();
 
     if (track->GetMediaType() == SdpMediaSection::kApplication) {
       continue;
@@ -757,23 +760,27 @@ void JsepTrack::SetReceivePayloadTypes(std::vector<JsepTrack*>& tracks,
     }
 
     for (uint16_t pt : payloadTypesForTrack) {
-      payloadTypeToTracks.insert({pt, track});
+      // Note std::map::operator[] inserts a default-initialized value, i.e.
+      // Nothing(), if one doesn't exist.
+      auto& entry = payloadTypeToTrackCount[pt];
+      entry = entry
+                  // If unique, i.e. Some(track), set it to Some(nullptr)
+                  .andThen([](JsepTrack*) { return Some<JsepTrack*>(nullptr); })
+                  // If not unique, i.e. Nothing(), set it to Some(track)
+                  .orElse([track] { return Some(track); });
     }
   }
 
-  for (auto it = payloadTypeToTracks.begin(), end = payloadTypeToTracks.end();
-       it != end;) {
-    const auto& [key, firstTrackForPt] = *it;
+  for (const auto& [key, track] : payloadTypeToTrackCount) {
     const auto pt = AssertedCast<uint8_t>(key);
-    const size_t count = payloadTypeToTracks.count(key);
-    if (count == 1) {
-      firstTrackForPt->mUniqueReceivePayloadTypes.push_back(pt);
-      ++it;
-      continue;
+    JsepTrack* uniqueTrack = *track;
+    if (uniqueTrack) {
+      uniqueTrack->mUniqueReceivePayloadTypes.push_back(pt);
     }
-    for (auto next = payloadTypeToTracks.upper_bound(key); it != next; ++it) {
-      const auto& [_pt, track] = *it;
-      track->mDuplicateReceivePayloadTypes.push_back(pt);
+    for (JsepTrack* track : tracks) {
+      if (track != uniqueTrack) {
+        track->mOtherReceivePayloadTypes.push_back(pt);
+      }
     }
   }
 }

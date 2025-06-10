@@ -102,7 +102,7 @@ bool MediaPipelineFilter::Filter(const webrtc::RTPHeader& header) {
   // not have any ssrcs configured (either by learning them, or negotiation).
   //
 
-  if (receive_payload_type_set_.count(header.payloadType)) {
+  if (unique_payload_type_set_.count(header.payloadType)) {
     DEBUG_LOG(
         ("MediaPipelineFilter 0x%p payload-type: %u matched %zu"
          " unique payload type. learning ssrc. passing packet",
@@ -115,7 +115,7 @@ bool MediaPipelineFilter::Filter(const webrtc::RTPHeader& header) {
   DEBUG_LOG(
       ("MediaPipelineFilter 0x%p payload-type: %u did not match any of %zu"
        " unique payload-types.",
-       this, header.payloadType, receive_payload_type_set_.size()));
+       this, header.payloadType, unique_payload_type_set_.size()));
   DEBUG_LOG(
       ("MediaPipelineFilter 0x%p packet failed to match any criteria."
        " ignoring packet",
@@ -128,11 +128,11 @@ void MediaPipelineFilter::AddRemoteSSRC(uint32_t ssrc) {
 }
 
 void MediaPipelineFilter::AddUniqueReceivePT(uint8_t payload_type) {
-  receive_payload_type_set_.insert(payload_type);
+  unique_payload_type_set_.insert(payload_type);
 }
 
-void MediaPipelineFilter::AddDuplicateReceivePT(uint8_t payload_type) {
-  duplicate_payload_type_set_.insert(payload_type);
+void MediaPipelineFilter::AddOtherReceivePT(uint8_t payload_type) {
+  other_payload_type_set_.insert(payload_type);
 }
 
 void MediaPipelineFilter::Update(const MediaPipelineFilter& filter_update,
@@ -166,23 +166,23 @@ void MediaPipelineFilter::Update(const MediaPipelineFilter& filter_update,
 
   // If signaling is stable replace the pt filters, otherwise add to them.
   if (signalingStable) {
-    receive_payload_type_set_ = filter_update.receive_payload_type_set_;
-    duplicate_payload_type_set_ = filter_update.duplicate_payload_type_set_;
+    unique_payload_type_set_ = filter_update.unique_payload_type_set_;
+    other_payload_type_set_ = filter_update.other_payload_type_set_;
   } else {
-    for (const auto& uniquePT : filter_update.receive_payload_type_set_) {
-      if (!receive_payload_type_set_.count(uniquePT) &&
-          !duplicate_payload_type_set_.count(uniquePT)) {
+    for (const auto& uniquePT : filter_update.unique_payload_type_set_) {
+      if (!unique_payload_type_set_.count(uniquePT) &&
+          !other_payload_type_set_.count(uniquePT)) {
         AddUniqueReceivePT(uniquePT);
       }
     }
   }
-  for (const auto& pt : receive_payload_type_set_) {
+  for (const auto& pt : unique_payload_type_set_) {
     DEBUG_LOG(("MediaPipelineFilter 0x%p Now bound to remote unique PT %u",
                this, pt));
   }
-  for (const auto& pt : duplicate_payload_type_set_) {
-    DEBUG_LOG(("MediaPipelineFilter 0x%p Now bound to remote duplicate PT %u",
-               this, pt));
+  for (const auto& pt : other_payload_type_set_) {
+    DEBUG_LOG(
+        ("MediaPipelineFilter 0x%p Now aware of other remote PT %u", this, pt));
   }
 
   // Use extmapping from new filter
