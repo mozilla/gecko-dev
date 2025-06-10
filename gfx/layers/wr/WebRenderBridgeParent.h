@@ -340,7 +340,8 @@ class WebRenderBridgeParent final : public PWebRenderBridgeParent,
                       const nsTArray<RefCountedShmem>& aSmallShmems,
                       const nsTArray<ipc::Shmem>& aLargeShmems,
                       const TimeStamp& aTxnStartTime,
-                      wr::TransactionBuilder& aTxn, wr::Epoch aWrEpoch);
+                      wr::TransactionBuilder& aTxn, wr::Epoch aWrEpoch,
+                      const VsyncId& aVsyncId, bool aRenderOffscreen);
 
   void UpdateAPZFocusState(const FocusTarget& aFocus);
   void UpdateAPZScrollData(const wr::Epoch& aEpoch,

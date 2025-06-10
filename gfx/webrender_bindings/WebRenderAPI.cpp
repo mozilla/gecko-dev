@@ -315,6 +315,11 @@ void TransactionBuilder::SetDocumentView(
   wr_transaction_set_document_view(mTxn, &wrDocRect);
 }
 
+void TransactionBuilder::RenderOffscreen(wr::WrPipelineId aPipelineId) {
+  wr_transaction_render_offscreen(mTxn, aPipelineId);
+}
+
+
 TransactionWrapper::TransactionWrapper(Transaction* aTxn) : mTxn(aTxn) {}
 
 void TransactionWrapper::AppendDynamicProperties(
