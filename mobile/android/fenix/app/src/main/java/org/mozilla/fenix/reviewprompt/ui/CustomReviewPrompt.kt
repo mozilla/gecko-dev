@@ -26,9 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,12 +38,15 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.button.PrimaryButton
+import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.BottomSheetHandle
+import org.mozilla.fenix.reviewprompt.CustomReviewPromptAction
 import org.mozilla.fenix.reviewprompt.CustomReviewPromptState
 import org.mozilla.fenix.reviewprompt.CustomReviewPromptState.Feedback
 import org.mozilla.fenix.reviewprompt.CustomReviewPromptState.PrePrompt
 import org.mozilla.fenix.reviewprompt.CustomReviewPromptState.Rate
+import org.mozilla.fenix.reviewprompt.CustomReviewPromptStore
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -57,8 +57,8 @@ import org.mozilla.fenix.theme.FirefoxTheme
  *
  * @param state The state (or step) the prompt should be showing.
  * @param onRequestDismiss Called when the accessibility affordance to dismiss the prompt is clicked.
- * @param onIssuesButtonClick Called when the negative button in the pre-prompt is clicked.
- * @param onGreatButtonClick Called when the positive button in the pre-prompt is clicked.
+ * @param onNegativePrePromptButtonClick Called when the negative button in the pre-prompt is clicked.
+ * @param onPositivePrePromptButtonClick Called when the positive button in the pre-prompt is clicked.
  * @param onRateButtonClick Called when the rate on Play Store button is clicked.
  * @param onLeaveFeedbackButtonClick Called when the leave feedback button is clicked.
  * @param modifier The modifier to be applied to the prompt.
@@ -67,8 +67,8 @@ import org.mozilla.fenix.theme.FirefoxTheme
 fun CustomReviewPrompt(
     state: CustomReviewPromptState,
     onRequestDismiss: () -> Unit,
-    onIssuesButtonClick: () -> Unit,
-    onGreatButtonClick: () -> Unit,
+    onNegativePrePromptButtonClick: () -> Unit,
+    onPositivePrePromptButtonClick: () -> Unit,
     onRateButtonClick: () -> Unit,
     onLeaveFeedbackButtonClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -80,8 +80,8 @@ fun CustomReviewPrompt(
         Crossfade(state) { state ->
             when (state) {
                 PrePrompt -> PrePrompt(
-                    onIssuesButtonClick = onIssuesButtonClick,
-                    onGreatButtonClick = onGreatButtonClick,
+                    onNegativeButtonClick = onNegativePrePromptButtonClick,
+                    onPositiveButtonClick = onPositivePrePromptButtonClick,
                 )
 
                 Rate -> RateStep(onRateButtonClick = onRateButtonClick)
@@ -126,8 +126,8 @@ private fun BottomSheet(
 
 @Composable
 private fun PrePrompt(
-    onIssuesButtonClick: () -> Unit,
-    onGreatButtonClick: () -> Unit,
+    onNegativeButtonClick: () -> Unit,
+    onPositiveButtonClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier) {
@@ -146,7 +146,7 @@ private fun PrePrompt(
             FoxEmojiButton(
                 emoji = painterResource(R.drawable.review_prompt_negative_button),
                 label = stringResource(R.string.review_prompt_negative_button),
-                onClick = onIssuesButtonClick,
+                onClick = onNegativeButtonClick,
                 modifier = Modifier.weight(1f),
             )
 
@@ -155,7 +155,7 @@ private fun PrePrompt(
             FoxEmojiButton(
                 emoji = painterResource(R.drawable.review_prompt_positive_button),
                 label = stringResource(R.string.review_prompt_positive_button),
-                onClick = onGreatButtonClick,
+                onClick = onPositiveButtonClick,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -260,8 +260,8 @@ private fun PrePromptPreview() {
         CustomReviewPrompt(
             state = PrePrompt,
             onRequestDismiss = {},
-            onIssuesButtonClick = {},
-            onGreatButtonClick = {},
+            onNegativePrePromptButtonClick = {},
+            onPositivePrePromptButtonClick = {},
             onRateButtonClick = {},
             onLeaveFeedbackButtonClick = {},
         )
@@ -275,8 +275,8 @@ private fun RatePromptPreview() {
         CustomReviewPrompt(
             state = Rate,
             onRequestDismiss = {},
-            onIssuesButtonClick = {},
-            onGreatButtonClick = {},
+            onNegativePrePromptButtonClick = {},
+            onPositivePrePromptButtonClick = {},
             onRateButtonClick = {},
             onLeaveFeedbackButtonClick = {},
         )
@@ -290,8 +290,8 @@ private fun FeedbackPromptPreview() {
         CustomReviewPrompt(
             state = Feedback,
             onRequestDismiss = {},
-            onIssuesButtonClick = {},
-            onGreatButtonClick = {},
+            onNegativePrePromptButtonClick = {},
+            onPositivePrePromptButtonClick = {},
             onRateButtonClick = {},
             onLeaveFeedbackButtonClick = {},
         )
@@ -333,7 +333,8 @@ private fun BottomSheetPreview() {
 @Preview
 @Composable
 private fun InteractiveCustomReviewPromptPreview() {
-    var promptState by remember { mutableStateOf(PrePrompt) }
+    val store = CustomReviewPromptStore(PrePrompt)
+    val promptState by store.observeAsState(PrePrompt) { it }
     FirefoxTheme {
         Box(
             Modifier.height(224.dp),
@@ -341,11 +342,21 @@ private fun InteractiveCustomReviewPromptPreview() {
         ) {
             CustomReviewPrompt(
                 state = promptState,
-                onRequestDismiss = { },
-                onIssuesButtonClick = { promptState = Feedback },
-                onGreatButtonClick = { promptState = Rate },
-                onRateButtonClick = { promptState = PrePrompt },
-                onLeaveFeedbackButtonClick = { promptState = PrePrompt },
+                onRequestDismiss = {
+                    store.dispatch(CustomReviewPromptAction.DismissRequested)
+                },
+                onNegativePrePromptButtonClick = {
+                    store.dispatch(CustomReviewPromptAction.PositivePrePromptButtonClicked)
+                },
+                onPositivePrePromptButtonClick = {
+                    store.dispatch(CustomReviewPromptAction.NegativePrePromptButtonClicked)
+                },
+                onRateButtonClick = {
+                    store.dispatch(CustomReviewPromptAction.RateButtonClicked)
+                },
+                onLeaveFeedbackButtonClick = {
+                    store.dispatch(CustomReviewPromptAction.LeaveFeedbackButtonClicked)
+                },
             )
         }
     }
