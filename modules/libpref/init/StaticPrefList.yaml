@@ -13092,7 +13092,7 @@
 # but still checks for capacity overflow and reports telemetry
 - name: network.cookie.chips.partitionLimitDryRun
   type: bool
-  value: false
+  value: true
   mirror: always
 
 # The actual CHIPS parition limit in bytes
