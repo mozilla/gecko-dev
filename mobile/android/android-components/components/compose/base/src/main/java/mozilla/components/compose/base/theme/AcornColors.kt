@@ -34,6 +34,7 @@ class AcornColors(
     layerCritical: Color,
     layerInformation: Color,
     layerSearch: Color,
+    layerAutofillText: Color,
     actionPrimary: Color,
     actionPrimaryDisabled: Color,
     actionSecondary: Color,
@@ -167,6 +168,11 @@ class AcornColors(
 
     // Search
     var layerSearch by mutableStateOf(layerSearch)
+        private set
+
+    // Autofill text background
+    // Use for the background of autofill text in the address bar.
+    var layerAutofillText by mutableStateOf(layerAutofillText)
         private set
 
     // Actions
@@ -533,6 +539,7 @@ class AcornColors(
         layerCritical: Color = this.layerCritical,
         layerInformation: Color = this.layerInformation,
         layerSearch: Color = this.layerSearch,
+        layerAutofillText: Color = this.layerAutofillText,
         actionPrimary: Color = this.actionPrimary,
         actionPrimaryDisabled: Color = this.actionPrimaryDisabled,
         actionSecondary: Color = this.actionSecondary,
@@ -615,6 +622,7 @@ class AcornColors(
         layerCritical = layerCritical,
         layerInformation = layerInformation,
         layerSearch = layerSearch,
+        layerAutofillText = layerAutofillText,
         actionPrimary = actionPrimary,
         actionPrimaryDisabled = actionPrimaryDisabled,
         actionSecondary = actionSecondary,
@@ -701,6 +709,7 @@ val darkColorPalette = AcornColors(
     layerCritical = PhotonColors.Pink80,
     layerInformation = PhotonColors.Blue50,
     layerSearch = PhotonColors.DarkGrey80,
+    layerAutofillText = PhotonColors.LightGrey05A34,
     actionPrimary = PhotonColors.Violet60,
     actionPrimaryDisabled = PhotonColors.Violet60A50,
     actionSecondary = PhotonColors.DarkGrey05,
@@ -786,6 +795,7 @@ val lightColorPalette = AcornColors(
     layerCritical = PhotonColors.Red10,
     layerInformation = PhotonColors.Blue50A44,
     layerSearch = PhotonColors.LightGrey30,
+    layerAutofillText = PhotonColors.DarkGrey05A43,
     actionPrimary = PhotonColors.Ink20,
     actionPrimaryDisabled = PhotonColors.Ink20A20,
     actionSecondary = PhotonColors.LightGrey30,
@@ -858,6 +868,7 @@ val privateColorPalette = darkColorPalette.copy(
     layer2 = PhotonColors.Violet90,
     layer3 = PhotonColors.Ink90,
     layerSearch = PhotonColors.Ink90,
+    layerAutofillText = PhotonColors.Violet60,
     borderPrimary = PhotonColors.Ink05,
     borderSecondary = PhotonColors.Ink10,
     borderToolbarDivider = PhotonColors.Violet80,
