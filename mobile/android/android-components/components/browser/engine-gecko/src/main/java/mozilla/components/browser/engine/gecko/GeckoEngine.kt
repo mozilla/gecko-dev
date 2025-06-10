@@ -25,7 +25,8 @@ import mozilla.components.browser.engine.gecko.preferences.GeckoPreferencesUtils
 import mozilla.components.browser.engine.gecko.preferences.GeckoPreferencesUtils.intoGeckoBranch
 import mozilla.components.browser.engine.gecko.profiler.Profiler
 import mozilla.components.browser.engine.gecko.serviceworker.GeckoServiceWorkerDelegate
-import mozilla.components.browser.engine.gecko.translate.GeckoTranslationUtils.intoTranslationError
+import mozilla.components.browser.engine.gecko.translate.DefaultRuntimeTranslationAccessor
+import mozilla.components.browser.engine.gecko.translate.RuntimeTranslationAccessor
 import mozilla.components.browser.engine.gecko.util.SpeculativeSessionFactory
 import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
 import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtensionException
@@ -53,12 +54,9 @@ import mozilla.components.concept.engine.preferences.Branch
 import mozilla.components.concept.engine.preferences.BrowserPreference
 import mozilla.components.concept.engine.preferences.BrowserPreferencesRuntime
 import mozilla.components.concept.engine.serviceworker.ServiceWorkerDelegate
-import mozilla.components.concept.engine.translate.Language
 import mozilla.components.concept.engine.translate.LanguageModel
 import mozilla.components.concept.engine.translate.LanguageSetting
 import mozilla.components.concept.engine.translate.ModelManagementOptions
-import mozilla.components.concept.engine.translate.ModelState
-import mozilla.components.concept.engine.translate.TranslationError
 import mozilla.components.concept.engine.translate.TranslationSupport
 import mozilla.components.concept.engine.translate.TranslationsRuntime
 import mozilla.components.concept.engine.utils.EngineVersion
@@ -86,7 +84,6 @@ import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoWebExecutor
-import org.mozilla.geckoview.TranslationsController
 import org.mozilla.geckoview.WebExtensionController
 import org.mozilla.geckoview.WebNotification
 import java.lang.ref.WeakReference
@@ -105,6 +102,7 @@ class GeckoEngine(
     override val trackingProtectionExceptionStore: TrackingProtectionExceptionStorage =
         GeckoTrackingProtectionExceptionStorage(runtime),
     private val geckoPreferenceAccessor: GeckoPreferenceAccessor = DefaultGeckoPreferenceAccessor(),
+    private val runtimeTranslationAccessor: RuntimeTranslationAccessor = DefaultRuntimeTranslationAccessor(),
 ) : Engine, WebExtensionRuntime, TranslationsRuntime, BrowserPreferencesRuntime {
     private val executor by lazy { executorProvider.invoke() }
     private val localeUpdater = LocaleSettingUpdater(context, runtime)
@@ -783,19 +781,9 @@ class GeckoEngine(
         onSuccess: (Boolean) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        TranslationsController.RuntimeTranslation.isTranslationsEngineSupported().then(
-            {
-                if (it != null) {
-                    onSuccess(it)
-                } else {
-                    onError(TranslationError.UnexpectedNull())
-                }
-                GeckoResult<Void>()
-            },
-            { throwable ->
-                onError(throwable.intoTranslationError())
-                GeckoResult<Void>()
-            },
+        runtimeTranslationAccessor.isTranslationsEngineSupported(
+            onSuccess = onSuccess,
+            onError = onError,
         )
     }
 
@@ -808,19 +796,11 @@ class GeckoEngine(
         onSuccess: (Long) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        TranslationsController.RuntimeTranslation.checkPairDownloadSize(fromLanguage, toLanguage).then(
-            {
-                if (it != null) {
-                    onSuccess(it)
-                } else {
-                    onError(TranslationError.UnexpectedNull())
-                }
-                GeckoResult<Void>()
-            },
-            { throwable ->
-                onError(throwable.intoTranslationError())
-                GeckoResult<Void>()
-            },
+        runtimeTranslationAccessor.getTranslationsPairDownloadSize(
+            fromLanguage = fromLanguage,
+            toLanguage = toLanguage,
+            onSuccess = onSuccess,
+            onError = onError,
         )
     }
 
@@ -831,28 +811,9 @@ class GeckoEngine(
         onSuccess: (List<LanguageModel>) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        TranslationsController.RuntimeTranslation.listModelDownloadStates().then(
-            {
-                if (it != null) {
-                    val listOfModels = mutableListOf<LanguageModel>()
-                    for (each in it) {
-                        val language = each.language?.let { language ->
-                            Language(language.code, each.language?.localizedDisplayName)
-                        }
-                        val status = if (each.isDownloaded) ModelState.DOWNLOADED else ModelState.NOT_DOWNLOADED
-                        val model = LanguageModel(language, status, each.size)
-                        listOfModels.add(model)
-                    }
-                    onSuccess(listOfModels)
-                } else {
-                    onError(TranslationError.UnexpectedNull())
-                }
-                GeckoResult<Void>()
-            },
-            { throwable ->
-                onError(throwable.intoTranslationError())
-                GeckoResult<Void>()
-            },
+        runtimeTranslationAccessor.getTranslationsModelDownloadStates(
+            onSuccess = onSuccess,
+            onError = onError,
         )
     }
 
@@ -863,34 +824,9 @@ class GeckoEngine(
         onSuccess: (TranslationSupport) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        TranslationsController.RuntimeTranslation.listSupportedLanguages().then(
-            {
-                if (it != null) {
-                    val listOfFromLanguages = mutableListOf<Language>()
-                    val listOfToLanguages = mutableListOf<Language>()
-
-                    if (it.fromLanguages != null) {
-                        for (each in it.fromLanguages!!) {
-                            listOfFromLanguages.add(Language(each.code, each.localizedDisplayName))
-                        }
-                    }
-
-                    if (it.toLanguages != null) {
-                        for (each in it.toLanguages!!) {
-                            listOfToLanguages.add(Language(each.code, each.localizedDisplayName))
-                        }
-                    }
-
-                    onSuccess(TranslationSupport(listOfFromLanguages, listOfToLanguages))
-                } else {
-                    onError(TranslationError.UnexpectedNull())
-                }
-                GeckoResult<Void>()
-            },
-            { throwable ->
-                onError(throwable.intoTranslationError())
-                GeckoResult<Void>()
-            },
+        runtimeTranslationAccessor.getSupportedTranslationLanguages(
+            onSuccess = onSuccess,
+            onError = onError,
         )
     }
 
@@ -902,22 +838,10 @@ class GeckoEngine(
         onSuccess: () -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        val geckoOptions =
-            TranslationsController.RuntimeTranslation.ModelManagementOptions.Builder()
-                .operation(options.operation.toString())
-                .operationLevel(options.operationLevel.toString())
-
-        options.languageToManage?.let { geckoOptions.languageToManage(it) }
-
-        TranslationsController.RuntimeTranslation.manageLanguageModel(geckoOptions.build()).then(
-            {
-                onSuccess()
-                GeckoResult<Void>()
-            },
-            { throwable ->
-                onError(throwable.intoTranslationError())
-                GeckoResult<Void>()
-            },
+        runtimeTranslationAccessor.manageTranslationsLanguageModel(
+            options = options,
+            onSuccess = onSuccess,
+            onError = onError,
         )
     }
 
@@ -928,20 +852,9 @@ class GeckoEngine(
         onSuccess: (List<String>) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        TranslationsController.RuntimeTranslation.preferredLanguages().then(
-            {
-                if (it != null) {
-                    onSuccess(it)
-                } else {
-                    onError(TranslationError.UnexpectedNull())
-                }
-
-                GeckoResult<Void>()
-            },
-            { throwable ->
-                onError(throwable.intoTranslationError())
-                GeckoResult<Void>()
-            },
+        runtimeTranslationAccessor.getUserPreferredLanguages(
+            onSuccess = onSuccess,
+            onError = onError,
         )
     }
 
@@ -967,24 +880,10 @@ class GeckoEngine(
         onSuccess: (LanguageSetting) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        TranslationsController.RuntimeTranslation.getLanguageSetting(languageCode).then(
-            {
-                if (it != null) {
-                    try {
-                        onSuccess(LanguageSetting.fromValue(it))
-                    } catch (e: IllegalArgumentException) {
-                        onError(e.intoTranslationError())
-                    }
-                } else {
-                    onError(TranslationError.UnexpectedNull())
-                }
-
-                GeckoResult<Void>()
-            },
-            { throwable ->
-                onError(throwable.intoTranslationError())
-                GeckoResult<Void>()
-            },
+        runtimeTranslationAccessor.getLanguageSetting(
+            languageCode = languageCode,
+            onSuccess = onSuccess,
+            onError = onError,
         )
     }
 
@@ -997,15 +896,11 @@ class GeckoEngine(
         onSuccess: () -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        TranslationsController.RuntimeTranslation.setLanguageSettings(languageCode, languageSetting.toString()).then(
-            {
-                onSuccess()
-                GeckoResult<Void>()
-            },
-            { throwable ->
-                onError(throwable.intoTranslationError())
-                GeckoResult<Void>()
-            },
+        runtimeTranslationAccessor.setLanguageSetting(
+            languageCode = languageCode,
+            languageSetting = languageSetting,
+            onSuccess = onSuccess,
+            onError = onError,
         )
     }
 
@@ -1016,27 +911,9 @@ class GeckoEngine(
         onSuccess: (Map<String, LanguageSetting>) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        TranslationsController.RuntimeTranslation.getLanguageSettings().then(
-            {
-                if (it != null) {
-                    try {
-                        val result = mutableMapOf<String, LanguageSetting>()
-                        it.forEach { item ->
-                            result[item.key] = LanguageSetting.fromValue(item.value)
-                        }
-                        onSuccess(result)
-                    } catch (e: IllegalArgumentException) {
-                        onError(e.intoTranslationError())
-                    }
-                } else {
-                    onError(TranslationError.UnexpectedNull())
-                }
-                GeckoResult<Void>()
-            },
-            { throwable ->
-                onError(throwable.intoTranslationError())
-                GeckoResult<Void>()
-            },
+        runtimeTranslationAccessor.getLanguageSettings(
+            onSuccess = onSuccess,
+            onError = onError,
         )
     }
 
@@ -1047,23 +924,9 @@ class GeckoEngine(
         onSuccess: (List<String>) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        TranslationsController.RuntimeTranslation.getNeverTranslateSiteList().then(
-            {
-                if (it != null) {
-                    try {
-                        onSuccess(it)
-                    } catch (e: IllegalArgumentException) {
-                        onError(e.intoTranslationError())
-                    }
-                } else {
-                    onError(TranslationError.UnexpectedNull())
-                }
-                GeckoResult<Void>()
-            },
-            { throwable ->
-                onError(throwable.intoTranslationError())
-                GeckoResult<Void>()
-            },
+        runtimeTranslationAccessor.getNeverTranslateSiteList(
+            onSuccess = onSuccess,
+            onError = onError,
         )
     }
 
@@ -1076,15 +939,11 @@ class GeckoEngine(
         onSuccess: () -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        TranslationsController.RuntimeTranslation.setNeverTranslateSpecifiedSite(setting, origin).then(
-            {
-                onSuccess()
-                GeckoResult<Void>()
-            },
-            { throwable ->
-                onError(throwable.intoTranslationError())
-                GeckoResult<Void>()
-            },
+        runtimeTranslationAccessor.setNeverTranslateSpecifiedSite(
+            origin = origin,
+            neverTranslate = setting,
+            onSuccess = onSuccess,
+            onError = onError,
         )
     }
 
