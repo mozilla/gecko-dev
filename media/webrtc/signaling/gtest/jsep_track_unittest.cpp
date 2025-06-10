@@ -1828,7 +1828,7 @@ TEST(JsepTrackRecvPayloadTypesTest, SingleTrackPTsAreUnique)
             NS_OK);
 
   std::vector tracks{&t1};
-  JsepTrack::SetUniqueReceivePayloadTypes(tracks);
+  JsepTrack::SetReceivePayloadTypes(tracks);
   EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(1));
   EXPECT_THAT(t1.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre());
 }
@@ -1894,7 +1894,7 @@ TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsAreUnique)
             NS_OK);
 
   std::vector tracks{&t1, &t2};
-  JsepTrack::SetUniqueReceivePayloadTypes(tracks);
+  JsepTrack::SetReceivePayloadTypes(tracks);
   EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(1));
   EXPECT_THAT(t1.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre());
   EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(2));
@@ -1961,7 +1961,7 @@ TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsAreDuplicates)
             NS_OK);
 
   std::vector tracks{&t1, &t2};
-  JsepTrack::SetUniqueReceivePayloadTypes(tracks);
+  JsepTrack::SetReceivePayloadTypes(tracks);
   EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre());
   EXPECT_THAT(t1.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre(1));
   EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre());
@@ -2033,7 +2033,7 @@ TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsOverlap)
             NS_OK);
 
   std::vector tracks{&t1, &t2};
-  JsepTrack::SetUniqueReceivePayloadTypes(tracks);
+  JsepTrack::SetReceivePayloadTypes(tracks);
   EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(2));
   EXPECT_THAT(t1.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre(1));
   EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(3));
@@ -2107,7 +2107,7 @@ TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsDuplicateAfterRenegotiation)
             NS_OK);
 
   std::vector tracks{&t1, &t2};
-  JsepTrack::SetUniqueReceivePayloadTypes(tracks);
+  JsepTrack::SetReceivePayloadTypes(tracks);
   EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(1, 2));
   EXPECT_THAT(t1.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre());
   EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(3, 4));
@@ -2163,7 +2163,7 @@ TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsDuplicateAfterRenegotiation)
             NS_OK);
 
   std::vector newTracks{&t1, &t2};
-  JsepTrack::SetUniqueReceivePayloadTypes(newTracks);
+  JsepTrack::SetReceivePayloadTypes(newTracks);
   EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre());
   EXPECT_THAT(t1.GetDuplicateReceivePayloadTypes(), UnorderedElementsAre(1, 2));
   EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre());

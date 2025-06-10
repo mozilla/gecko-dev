@@ -923,7 +923,7 @@ nsresult JsepSessionImpl::SetLocalDescriptionOffer(UniquePtr<Sdp> offer) {
     recvTracks.push_back(&transceiver.mRecvTrack);
   }
 
-  JsepTrack::SetUniqueReceivePayloadTypes(recvTracks, true);
+  JsepTrack::SetReceivePayloadTypes(recvTracks, true);
 
   return NS_OK;
 }
@@ -1158,7 +1158,7 @@ nsresult JsepSessionImpl::HandleNegotiatedSession(
   for (auto& transceiver : mTransceivers) {
     receiveTracks.push_back(&transceiver.mRecvTrack);
   }
-  JsepTrack::SetUniqueReceivePayloadTypes(receiveTracks);
+  JsepTrack::SetReceivePayloadTypes(receiveTracks);
 
   mNegotiations++;
 
