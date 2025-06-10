@@ -59,21 +59,24 @@ static CSSToCSSMatrix4x4Flagged EffectiveTransform(nsIFrame* aFrame) {
     return matrix;
   }
 
-  CSSSize untransformedSize = CSSSize::FromAppUnits(aFrame->GetSize());
-  CSSRect boundingRect = CSSRect::FromAppUnits(aFrame->GetBoundingClientRect());
+  auto untransformedSize = CSSSize::FromAppUnits(aFrame->GetSize());
+  auto boundingRect = CSSRect::FromAppUnits(aFrame->GetBoundingClientRect());
+  auto inkOverflowRect =
+      CSSRect::FromAppUnits(aFrame->InkOverflowRectRelativeToSelf());
   if (boundingRect.Size() != untransformedSize) {
     float sx = boundingRect.width / untransformedSize.width;
     float sy = boundingRect.height / untransformedSize.height;
     matrix = CSSToCSSMatrix4x4Flagged::Scaling(sx, sy, 1.0f);
   }
-  auto inkOverflowOffset = aFrame->InkOverflowRectRelativeToSelf().TopLeft();
-  if (inkOverflowOffset != nsPoint()) {
-    auto cssOffset = CSSPoint::FromAppUnits(inkOverflowOffset);
-    matrix.PostTranslate(cssOffset.x, cssOffset.y, 0.0f);
+  if (inkOverflowRect.TopLeft() != CSSPoint()) {
+    matrix.PostTranslate(inkOverflowRect.x, inkOverflowRect.y, 0.0f);
   }
   if (boundingRect.TopLeft() != CSSPoint()) {
     matrix.PostTranslate(boundingRect.x, boundingRect.y, 0.0f);
   }
+  // Compensate for the default transform-origin of 50% 50%.
+  matrix.ChangeBasis(-inkOverflowRect.Width() / 2,
+                     -inkOverflowRect.Height() / 2, 0.0f);
   return matrix;
 }
 
