@@ -94,3 +94,105 @@ add_task(async function filename_has_doublebyte_chars() {
     }
   );
 });
+
+add_task(async function file_saved_to_screenshots_folder() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.screenshots.folderList", 3]],
+  });
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: TEST_PAGE,
+    },
+    async browser => {
+      const expectedDir =
+        AppConstants.platform === "macosx"
+          ? Services.dirsvc.get("Scrnshts", Ci.nsIFile).path
+          : Services.dirsvc.get("DfltDwnld", Ci.nsIFile).path;
+
+      info(`expectedDir: ${expectedDir}`);
+
+      let documentTitle = "MyScreenshot";
+
+      let result = await getFilename(documentTitle, browser);
+      Assert.stringContains(result.filename, expectedDir);
+    }
+  );
+});
+
+add_task(async function file_saved_to_desktop_folder() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.screenshots.folderList", 0]],
+  });
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: TEST_PAGE,
+    },
+    async browser => {
+      const expectedDir = Services.dirsvc.get("Desk", Ci.nsIFile).path;
+
+      info(`expectedDir: ${expectedDir}`);
+
+      let documentTitle = "MyScreenshot";
+
+      let result = await getFilename(documentTitle, browser);
+      Assert.stringContains(result.filename, expectedDir);
+    }
+  );
+});
+
+add_task(async function file_saved_to_downloads_folder() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.screenshots.folderList", 1]],
+  });
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: TEST_PAGE,
+    },
+    async browser => {
+      const expectedDir = Services.dirsvc.get("DfltDwnld", Ci.nsIFile).path;
+
+      info(`expectedDir: ${expectedDir}`);
+
+      let documentTitle = "MyScreenshot";
+
+      let result = await getFilename(documentTitle, browser);
+      Assert.stringContains(result.filename, expectedDir);
+    }
+  );
+});
+
+add_task(async function file_saved_to_custom_folder() {
+  let expectedDir = PathUtils.join(
+    PathUtils.tempDir,
+    "testsavedir" + Math.floor(Math.random() * 2 ** 32)
+  );
+  await IOUtils.makeDirectory(expectedDir);
+
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.screenshots.folderList", 2],
+      ["browser.screenshots.dir", expectedDir],
+    ],
+  });
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: TEST_PAGE,
+    },
+    async browser => {
+      info(`expectedDir: ${expectedDir}`);
+
+      let documentTitle = "MyScreenshot";
+
+      let result = await getFilename(documentTitle, browser);
+      Assert.stringContains(result.filename, expectedDir);
+    }
+  );
+});

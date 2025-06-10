@@ -273,6 +273,17 @@ export const Downloads = {
   },
 
   /**
+   * Returns the preferred screenshots directory based on the user preferences
+   * in the current profile asynchronously.
+   *
+   * @return {Promise}
+   * @resolves The screenshots directory string path.
+   */
+  getPreferredScreenshotsDirectory() {
+    return lazy.DownloadIntegration.getPreferredScreenshotsDirectory();
+  },
+
+  /**
    * Returns the temporary directory where downloads are placed before the
    * final location is chosen, or while the document is opened temporarily
    * with an external application. This may or may not be the system temporary
