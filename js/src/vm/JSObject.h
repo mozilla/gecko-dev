@@ -210,6 +210,13 @@ class JSObject
     return setFlag(cx, obj, js::ObjectFlag::HasFuseProperty);
   }
 
+  bool hasNonFunctionAccessor() const {
+    return hasFlag(js::ObjectFlag::HasNonFunctionAccessor);
+  }
+  static bool setHasNonFunctionAccessor(JSContext* cx, JS::HandleObject obj) {
+    return setFlag(cx, obj, js::ObjectFlag::HasNonFunctionAccessor);
+  }
+
   // A "qualified" varobj is the object on which "qualified" variable
   // declarations (i.e., those defined with "var") are kept.
   //

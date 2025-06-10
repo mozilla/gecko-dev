@@ -89,6 +89,10 @@ enum class ObjectFlag : uint32_t {
   // If set, we have already called the preserveWrapper hook for this object.
   // This should only be set if `obj->getClass()->preservesWrapper()` is true.
   HasPreservedWrapper = 1 << 15,
+
+  // If set, the object may have an accessor property where the getter or setter
+  // is a non-JSFunction callable object.
+  HasNonFunctionAccessor = 1 << 16,
 };
 
 using ObjectFlags = EnumFlags<ObjectFlag>;
