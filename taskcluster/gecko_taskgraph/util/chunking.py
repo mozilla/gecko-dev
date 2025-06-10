@@ -7,6 +7,7 @@
 
 import logging
 import os
+import traceback
 from abc import ABCMeta, abstractmethod
 
 from manifestparser import TestManifest
@@ -14,6 +15,7 @@ from manifestparser.filters import chunk_by_runtime, tags
 from mozbuild.util import memoize
 from mozinfo.platforminfo import PlatformInfo
 from moztest.resolve import TEST_SUITES, TestManifestLoader, TestResolver
+from requests.exceptions import RetryError
 from taskgraph.util import json
 from taskgraph.util.yaml import load_yaml
 
@@ -343,7 +345,8 @@ class BugbugLoader(DefaultLoader):
 
         try:
             data = push_schedules(self.params["project"], self.params["head_rev"])
-        except BugbugTimeoutException:
+        except (BugbugTimeoutException, RetryError):
+            traceback.print_exc()
             logger.warning("Timed out waiting for bugbug, loading all test manifests.")
             self.timedout = True
             return self.get_manifests(suite, mozinfo)
