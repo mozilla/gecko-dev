@@ -9,6 +9,7 @@
 
 #include <cstdint>
 
+#include "mozilla/dom/quota/ForwardDecls.h"
 #include "nsISupportsImpl.h"
 
 namespace mozilla::dom::quota {
@@ -54,6 +55,10 @@ class OpenClientDirectoryInfo {
 
   void AssertIsOnOwningThread() const;
 
+  void SetFirstAccessPromise(RefPtr<BoolPromise> aFirstAccessPromise);
+
+  RefPtr<BoolPromise> AcquireFirstAccessPromise() const;
+
   void SetLastAccessDirectoryLock(
       RefPtr<UniversalDirectoryLock> aLastAccessDirectoryLock);
 
@@ -70,6 +75,7 @@ class OpenClientDirectoryInfo {
  private:
   NS_DECL_OWNINGTHREAD
 
+  RefPtr<BoolPromise> mFirstAccessPromise;
   RefPtr<UniversalDirectoryLock> mLastAccessDirectoryLock;
 
   // Use uint64_t instead of uint32_t for alignment and compatibility:

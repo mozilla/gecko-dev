@@ -695,12 +695,9 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Ongoing_OriginDirectoryExists) {
                      const auto saveOriginAccessTimeCountNow =
                          quotaManager->SaveOriginAccessTimeCount();
 
-                     // XXX This callback should only be called once the access
-                     // time update has completed, but it's currently triggered
-                     // before the update finishes!
                      EXPECT_EQ(saveOriginAccessTimeCountNow -
                                    saveOriginAccessTimeCountBefore,
-                               0u);
+                               1u);
 
                      directoryLockHandle = std::move(aValue.ResolveValue());
 
@@ -743,12 +740,9 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Ongoing_OriginDirectoryExists) {
                      const auto saveOriginAccessTimeCountNow =
                          quotaManager->SaveOriginAccessTimeCount();
 
-                     // XXX This callback should only be called once the access
-                     // time update has completed, but it's currently triggered
-                     // before the update finishes!
                      EXPECT_EQ(saveOriginAccessTimeCountNow -
                                    saveOriginAccessTimeCountBefore,
-                               0u);
+                               1u);
 
                      directoryLockHandle2 = std::move(aValue.ResolveValue());
 

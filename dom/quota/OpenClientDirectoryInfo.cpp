@@ -23,6 +23,22 @@ void OpenClientDirectoryInfo::AssertIsOnOwningThread() const {
   NS_ASSERT_OWNINGTHREAD(OpenClientDirectoryInfo);
 }
 
+void OpenClientDirectoryInfo::SetFirstAccessPromise(
+    RefPtr<BoolPromise> aFirstAccessPromise) {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(aFirstAccessPromise);
+  MOZ_ASSERT(!mFirstAccessPromise);
+
+  mFirstAccessPromise = std::move(aFirstAccessPromise);
+}
+
+RefPtr<BoolPromise> OpenClientDirectoryInfo::AcquireFirstAccessPromise() const {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(mFirstAccessPromise);
+
+  return mFirstAccessPromise;
+}
+
 void OpenClientDirectoryInfo::SetLastAccessDirectoryLock(
     RefPtr<UniversalDirectoryLock> aLastAccessDirectoryLock) {
   AssertIsOnOwningThread();

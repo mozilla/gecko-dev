@@ -5641,9 +5641,10 @@ QuotaManager::OpenClientDirectoryImpl(
                             aOpenClientDirectoryInfo) mutable {
                       if (aClientMetadata.mPersistenceType !=
                           PERSISTENCE_TYPE_PERSISTENT) {
-                        self.SaveOriginAccessTime(
-                            aClientMetadata,
-                            std::move(firstAccessDirectoryLock));
+                        aOpenClientDirectoryInfo.SetFirstAccessPromise(
+                            self.SaveOriginAccessTime(
+                                aClientMetadata,
+                                std::move(firstAccessDirectoryLock)));
 
                         aOpenClientDirectoryInfo.SetLastAccessDirectoryLock(
                             std::move(lastAccessDirectoryLock));
@@ -5655,8 +5656,25 @@ QuotaManager::OpenClientDirectoryImpl(
                 SafeDropDirectoryLock(firstAccessDirectoryLock);
                 SafeDropDirectoryLock(lastAccessDirectoryLock);
 
-                return ClientDirectoryLockHandlePromise::CreateAndResolve(
-                    std::move(clientDirectoryLockHandle), __func__);
+                return Map<ClientDirectoryLockHandlePromise>(
+                    self->WithOpenClientDirectoryInfo(
+                        aClientMetadata,
+                        [aClientMetadata](
+                            OpenClientDirectoryInfo& aOpenClientDirectoryInfo) {
+                          if (aClientMetadata.mPersistenceType !=
+                              PERSISTENCE_TYPE_PERSISTENT) {
+                            return aOpenClientDirectoryInfo
+                                .AcquireFirstAccessPromise();
+                          }
+
+                          return BoolPromise::CreateAndResolve(true, __func__);
+                        }),
+                    [clientDirectoryLockHandle =
+                         std::move(clientDirectoryLockHandle)](
+                        const BoolPromise::ResolveOrRejectValue&
+                            aValue) mutable {
+                      return std::move(clientDirectoryLockHandle);
+                    });
               }));
 }
 
@@ -8147,6 +8165,23 @@ void QuotaManager::RegisterClientDirectoryLockHandle(
   if (firstHandle) {
     std::forward<UpdateCallback>(aUpdateCallback)(openClientDirectoryInfo);
   }
+}
+
+template <typename Callback>
+auto QuotaManager::WithOpenClientDirectoryInfo(
+    const OriginMetadata& aOriginMetadata, Callback&& aCallback)
+    -> std::invoke_result_t<Callback, OpenClientDirectoryInfo&> {
+  AssertIsOnOwningThread();
+
+  auto backgroundThreadData = mBackgroundThreadAccessible.Access();
+
+  auto entry = backgroundThreadData->mOpenClientDirectoryInfos.Lookup(
+      aOriginMetadata.GetCompositeKey());
+  MOZ_ASSERT(entry);
+
+  auto& openClientDirectoryInfo = entry.Data();
+
+  return std::forward<Callback>(aCallback)(openClientDirectoryInfo);
 }
 
 template <typename UpdateCallback>

@@ -927,6 +927,25 @@ class QuotaManager final : public BackgroundThreadObject {
                                          UpdateCallback&& aUpdateCallback);
 
   /**
+   * Invokes the given callback with the active OpenClientDirectoryInfo entry
+   * for the specified origin.
+   *
+   * This method is typically used after the first handle has been registered
+   * via RegisterClientDirectoryLockHandle. It provides easy access to the
+   * associated OpenClientDirectoryInfo for reading and/or updating its data.
+   *
+   * Currently, it is primarily used in the final step of OpenClientDirectory
+   * to retrieve the first-access promise returned by SaveOriginAccessTime,
+   * which is stored during the first handle registration. The returned promise
+   * is then used to ensure that client access is blocked until the origin
+   * access time update is complete.
+   */
+  template <typename Callback>
+  auto WithOpenClientDirectoryInfo(const OriginMetadata& aOriginMetadata,
+                                   Callback&& aCallback)
+      -> std::invoke_result_t<Callback, OpenClientDirectoryInfo&>;
+
+  /**
    * Unregisters a ClientDirectoryLockHandle for the given origin.
    *
    * Decreases the active handle count and removes the internal tracking entry
