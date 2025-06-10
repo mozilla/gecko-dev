@@ -79,6 +79,24 @@ class WallpapersUseCasesTest {
     }
 
     @Test
+    fun `WHEN retrieving users wallpaper choice THEN appstore is updated with wallpaper lacking metadata`() = runTest {
+        val name = "name"
+        val textColor = 1L
+        val cardColorLight = 2L
+        val cardColorDark = 3L
+        every { mockSettings.currentWallpaperName } returns name
+        every { mockSettings.currentWallpaperTextColor } returns textColor
+        every { mockSettings.currentWallpaperCardColorLight } returns cardColorLight
+        every { mockSettings.currentWallpaperCardColorDark } returns cardColorDark
+        val chosenWallpaper = Wallpaper.Default.copy(name = name, textColor = textColor, cardColorLight = cardColorLight, cardColorDark = cardColorDark)
+
+        WallpapersUseCases.DefaultFetchCurrentWallpaperUseCase(mockSettings, appStore).invoke()
+
+        appStore.waitUntilIdle()
+        assertEquals(chosenWallpaper, appStore.state.wallpaperState.currentWallpaper)
+    }
+
+    @Test
     fun `WHEN initializing THEN the default wallpaper is not downloaded`() = runTest {
         val fakeRemoteWallpapers = listOf("first", "second", "third").map { name ->
             makeFakeRemoteWallpaper(TimeRelation.LATER, name)

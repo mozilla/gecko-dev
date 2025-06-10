@@ -20,6 +20,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration.Builder
 import androidx.work.Configuration.Provider
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -288,6 +289,10 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         )
 
         components.analytics.metricsStorage.tryRegisterAsUsageRecorder(this)
+
+        CoroutineScope(IO).launch {
+            components.useCases.wallpaperUseCases.fetchCurrentWallpaperUseCase.invoke()
+        }
     }
 
     @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage

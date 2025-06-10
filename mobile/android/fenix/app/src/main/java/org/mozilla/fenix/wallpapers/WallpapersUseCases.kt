@@ -38,6 +38,10 @@ class WallpapersUseCases(
     private val downloader = WallpaperDownloader(storageRootDirectory, client)
     private val fileManager = WallpaperFileManager(storageRootDirectory)
 
+    val fetchCurrentWallpaperUseCase: FetchCurrentWallpaperUseCase by lazy {
+        DefaultFetchCurrentWallpaperUseCase(context.settings(), appStore)
+    }
+
     // Use case for initializing wallpaper feature. Should usually be called early
     // in the app's lifetime to ensure that any potential long-running tasks can complete quickly.
     val initialize: InitializeWallpapersUseCase by lazy {
@@ -75,6 +79,27 @@ class WallpapersUseCases(
     }
 
     /**
+     * Contract for use cases that retrieve the user's currently selected wallpaper.
+     */
+    interface FetchCurrentWallpaperUseCase {
+        /**
+         * Start operation to retrieve user's currently selected wallpaper.
+         */
+        suspend operator fun invoke()
+    }
+
+    internal class DefaultFetchCurrentWallpaperUseCase(
+        private val settings: Settings,
+        private val appStore: AppStore,
+    ) : FetchCurrentWallpaperUseCase {
+        override suspend fun invoke() {
+            Wallpaper.getCurrentWallpaperFromSettings(settings)?.let {
+                appStore.dispatch(AppAction.WallpaperAction.UpdateCurrentWallpaper(it))
+            }
+        }
+    }
+
+    /**
      * Contract for usecases that initialize the wallpaper feature.
      */
     interface InitializeWallpapersUseCase {
@@ -97,10 +122,6 @@ class WallpapersUseCases(
         private val currentLocale: String,
     ) : InitializeWallpapersUseCase {
         override suspend fun invoke() {
-            Wallpaper.getCurrentWallpaperFromSettings(settings)?.let {
-                appStore.dispatch(AppAction.WallpaperAction.UpdateCurrentWallpaper(it))
-            }
-
             val currentWallpaperName = if (settings.shouldMigrateLegacyWallpaper) {
                 val migratedWallpaperName =
                     migrationHelper.migrateLegacyWallpaper(settings.currentWallpaperName)
@@ -122,8 +143,8 @@ class WallpapersUseCases(
                 ?: fileManager.lookupExpiredWallpaper(settings)
                 ?: Wallpaper.Default
 
-            // Dispatching this early will make it accessible to the home screen ASAP. If it has been
-            // dispatched above, we may still need to update other metadata about it.
+            // Dispatching this early will make it accessible to the home screen ASAP. This may have
+            // been dispatched by FetchCurrentWallpaperUseCase, but this could include additional metadata.
             appStore.dispatch(AppAction.WallpaperAction.UpdateCurrentWallpaper(currentWallpaper))
 
             fileManager.clean(
