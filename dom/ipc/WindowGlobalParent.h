@@ -318,19 +318,6 @@ class WindowGlobalParent final : public WindowContext,
 
   mozilla::ipc::IPCResult RecvReloadWithHttpsOnlyException();
 
-  mozilla::ipc::IPCResult RecvGetIdentityCredential(
-      IdentityCredentialRequestOptions&& aOptions,
-      const CredentialMediationRequirement& aMediationRequirement,
-      bool aHasUserActivation, const GetIdentityCredentialResolver& aResolver);
-  mozilla::ipc::IPCResult RecvDisconnectIdentityCredential(
-      const IdentityCredentialDisconnectOptions& aOptions,
-      const DisconnectIdentityCredentialResolver& aResolver);
-  mozilla::ipc::IPCResult RecvSetLoginStatus(
-      LoginStatus aStatus, const SetLoginStatusResolver& aResolver);
-
-  mozilla::ipc::IPCResult RecvPreventSilentAccess(
-      const PreventSilentAccessResolver& aResolver);
-
   mozilla::ipc::IPCResult RecvGetStorageAccessPermission(
       bool aIncludeIdentityCredential,
       GetStorageAccessPermissionResolver&& aResolve);
@@ -346,6 +333,8 @@ class WindowGlobalParent final : public WindowContext,
 
   already_AddRefed<dom::PWebAuthnTransactionParent>
   AllocPWebAuthnTransactionParent();
+
+  already_AddRefed<dom::PWebIdentityParent> AllocPWebIdentityParent();
 
  private:
   WindowGlobalParent(CanonicalBrowsingContext* aBrowsingContext,
