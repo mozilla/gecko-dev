@@ -34,6 +34,7 @@ import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.CustomTabsUseCases
 import mozilla.components.feature.tabs.toolbar.TabCounterToolbarButton
 import mozilla.components.feature.toolbar.ToolbarBehaviorController
+import mozilla.components.feature.toolbar.ToolbarFeature
 import mozilla.components.feature.toolbar.ToolbarPresenter
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.feature.LifecycleAwareFeature
@@ -73,6 +74,12 @@ class BrowserToolbarIntegration(
         toolbar,
         store,
         customTabId,
+        urlRenderConfiguration = ToolbarFeature.UrlRenderConfiguration(
+            toolbar.context.components.publicSuffixList,
+            ContextCompat.getColor(toolbar.context, R.color.primaryText),
+            ContextCompat.getColor(toolbar.context, R.color.secondaryText),
+            ToolbarFeature.RenderStyle.ColoredUrl,
+        ),
     )
 
     @VisibleForTesting
