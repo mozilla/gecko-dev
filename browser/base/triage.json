@@ -12,9 +12,6 @@
     "Mike Conley": {
       "bzmail": "mconley@mozilla.com"
     },
-    "Marco Bonardo": {
-      "bzmail": "mak@mozilla.com"
-    },
     "Fred Chasen": {
       "bzmail": "fchasen@mozilla.com"
     },
@@ -24,47 +21,69 @@
     "Hanna Jones": {
       "bzmail": "hjones@mozilla.com"
     },
-    "Nick Alexander": {
-      "bzmail": "nalexander@mozilla.com"
-    },
-    "Mandy Cheang": {
-      "bzmail": "mcheang@mozilla.com"
-    },
-    "Katherine Patenio": {
-      "bzmail": "kpatenio@mozilla.com"
-    },
-    "Robin Steuber": {
-      "bzmail": "bytesized@mozilla.com"
-    },
     "Mark Striemer": {
       "bzmail": "mstriemer@mozilla.com"
-    },
-    "Sarah Clements": {
-      "bzmail": "sclements@mozilla.com"
     },
     "Jared Hirsch": {
       "bzmail": "jhirsch@mozilla.com"
     },
     "Kelly Cochrane": {
       "bzmail": "kcochrane@mozilla.com"
+    },
+    "Cieara Meador": {
+      "bzmail": "cmeador@mozilla.com"
+    },
+    "Stephen Thompson": {
+      "bzmail": "sthompson@mozilla.com"
+    },
+    "Emily McMinn": {
+      "bzmail": "emcminn@mozilla.com"
+    },
+    "Nikki Sharpley": {
+      "bzmail": "nsharpley@mozilla.com"
+    },
+    "DJ Walker": {
+      "bzmail": "dwalker@mozilla.com"
+    },
+    "Chris DuPuis": {
+      "bzmail": "cdupuis@mozilla.com"
+    },
+    "Nicholas Rishel": {
+      "bzmail": "nrishel@mozilla.com"
+    },
+    "William Durand": {
+      "bzmail": "wdurand@mozilla.com"
+    },
+    "Andrea Marchesini": {
+      "bzmail": "amarchesini@mozilla.com"
+    },
+    "Tarek Ziadé": {
+      "bzmail": "tziade@mozilla.com"
     }
   },
   "duty-start-dates": {
-    "2024-04-01": "Mike Conley",
-    "2024-05-01": "Marco Bonardo",
-    "2024-06-01": "Dan Mosedale",
-    "2024-07-01": "Gijs Kruitbosch",
-    "2024-08-01": "Hanna Jones",
-    "2024-09-01": "Sarah Clements",
-    "2024-10-01": "Nick Alexander",
-    "2024-11-01": "Mandy Cheang",
-    "2024-12-01": "Katherine Patenio",
-    "2025-01-01": "Mike Conley",
-    "2025-02-01": "Robin Steuber",
-    "2025-03-01": "Dave Townsend",
-    "2025-04-01": "Mark Striemer",
-    "2025-05-01": "Marco Bonardo",
     "2025-06-01": "Jared Hirsch",
-    "2025-07-01": "Kelly Cochrane"
+    "2025-07-01": "Kelly Cochrane",
+    "2025-08-01": "Cieara Meador",
+    "2025-09-01": "Hanna Jones",
+    "2025-10-01": "Stephen Thompson",
+    "2025-11-01": "Emily McMinn",
+    "2025-12-01": "Nikki Sharpley",
+    "2026-01-01": "DJ Walker",
+    "2026-02-01": "Mark Banner",
+    "2026-03-01": "Fred Chasen",
+    "2026-04-01": "Chris DuPuis",
+    "2026-05-01": "Jared Hirsch",
+    "2026-06-01": "Ed Lee",
+    "2026-07-01": "Dan Mosedale",
+    "2026-08-01": "Nicholas Rishel",
+    "2026-09-01": "Mark Striemer",
+    "2026-10-01": "Kelly Cochrane",
+    "2026-11-01": "Mike Conley",
+    "2026-12-01": "William Durand",
+    "2027-01-01": "Gijs Kruitbosch",
+    "2027-02-01": "Andrea Marchesini",
+    "2027-03-01": "Dave Townsend",
+    "2027-04-01": "Tarek Ziadé"
   }
 }
