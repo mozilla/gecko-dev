@@ -45,8 +45,9 @@ interface HTMLButtonElement : HTMLElement {
   undefined setCustomValidity(DOMString error);
 
   readonly attribute NodeList labels;
+
+  [Pref="dom.element.commandfor.enabled", CEReactions] attribute Element? invokeTargetElement;
+  [Pref="dom.element.commandfor.enabled", CEReactions] attribute DOMString invokeAction;
 };
 
 HTMLButtonElement includes PopoverInvokerElement;
-
-HTMLButtonElement includes InvokerElement;

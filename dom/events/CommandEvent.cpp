@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/CommandEvent.h"
 #include "mozilla/MiscEvents.h"
+#include "nsContentUtils.h"
 #include "prtime.h"
 
 namespace mozilla::dom {
