@@ -11,6 +11,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -35,6 +36,7 @@ import org.mozilla.fenix.components.menu.compose.MenuItemState
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
+@Suppress("LongParameterList")
 @Composable
 internal fun MenuNavHeader(
     state: MenuItemState = MenuItemState.ENABLED,
@@ -44,11 +46,33 @@ internal fun MenuNavHeader(
     onRefreshButtonClick: (longPress: Boolean) -> Unit,
     onStopButtonClick: () -> Unit,
     onShareButtonClick: () -> Unit,
+    isExtensionsExpanded: Boolean,
+    isMoreMenuExpanded: Boolean,
 ) {
+    Spacer(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(12.dp)
+            .background(
+                if (isExtensionsExpanded || isMoreMenuExpanded) {
+                    FirefoxTheme.colors.layerSearch
+                } else {
+                    Color.Transparent
+                },
+            ),
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 12.dp)
+            .background(
+                color = if (isExtensionsExpanded || isMoreMenuExpanded) {
+                    FirefoxTheme.colors.layerSearch
+                } else {
+                    Color.Transparent
+                },
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp)
             .verticalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -170,6 +194,8 @@ private fun MenuHeaderPreview() {
                 onRefreshButtonClick = {},
                 onStopButtonClick = {},
                 onShareButtonClick = {},
+                isExtensionsExpanded = false,
+                isMoreMenuExpanded = false,
             )
         }
     }
@@ -190,6 +216,8 @@ private fun MenuHeaderPrivatePreview() {
                 onRefreshButtonClick = {},
                 onStopButtonClick = {},
                 onShareButtonClick = {},
+                isExtensionsExpanded = false,
+                isMoreMenuExpanded = false,
             )
         }
     }

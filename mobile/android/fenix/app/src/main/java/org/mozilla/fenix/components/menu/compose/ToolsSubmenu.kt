@@ -41,7 +41,7 @@ internal fun ToolsSubmenu(
     onWebCompatReporterClick: () -> Unit,
     onOpenInRegularTabClick: () -> Unit,
 ) {
-    MenuScaffold(
+    MenuFrame(
         header = {
             SubmenuHeader(
                 header = stringResource(id = R.string.browser_menu_tools),

@@ -20,14 +20,17 @@ import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -170,6 +173,7 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                 }
 
                 MenuDialogBottomSheet(
+                    modifier = Modifier.padding(top = 8.dp, bottom = 5.dp),
                     onRequestDismiss = ::dismiss,
                     handlebarContentDescription = "",
                 ) {

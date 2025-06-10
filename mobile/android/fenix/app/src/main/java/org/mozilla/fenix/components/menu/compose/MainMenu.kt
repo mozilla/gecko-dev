@@ -171,7 +171,7 @@ fun MainMenu(
     moreSettingsSubmenu: @Composable ColumnScope.() -> Unit,
     extensionSubmenu: @Composable ColumnScope.() -> Unit,
 ) {
-    MenuScaffold(
+    MenuFrame(
         header = {
             MenuNavHeader(
                 state = if (accessPoint == MenuAccessPoint.Home) {
@@ -189,12 +189,14 @@ fun MainMenu(
                 onRefreshButtonClick = onRefreshButtonClick,
                 onStopButtonClick = onStopButtonClick,
                 onShareButtonClick = onShareButtonClick,
+                isExtensionsExpanded = isExtensionsExpanded,
+                isMoreMenuExpanded = isMoreMenuExpanded,
             )
         },
         scrollState = scrollState,
     ) {
-        MenuGroup {
-            if (isReaderViewActive) {
+        if (isReaderViewActive) {
+            MenuGroup {
                 MenuItem(
                     label = stringResource(id = R.string.browser_menu_customize_reader_view_2),
                     beforeIconPainter = painterResource(id = R.drawable.mozac_ic_tool_24),
