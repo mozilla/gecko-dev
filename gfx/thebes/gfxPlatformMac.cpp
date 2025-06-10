@@ -16,6 +16,7 @@
 #include "gfxConfig.h"
 
 #include "AppleUtils.h"
+#include "CFTypeRefPtr.h"
 #include "nsTArray.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/VsyncDispatcher.h"
@@ -703,14 +704,16 @@ uint32_t gfxPlatformMac::ReadAntiAliasingThreshold() {
 
   // value set via Appearance pref panel, "Turn off text smoothing for font
   // sizes xxx and smaller"
-  CFNumberRef prefValue = (CFNumberRef)CFPreferencesCopyAppValue(
-      CFSTR("AppleAntiAliasingThreshold"), kCFPreferencesCurrentApplication);
+  auto prefValue = CFTypeRefPtr<CFPropertyListRef>::WrapUnderCreateRule(
+      CFPreferencesCopyAppValue(CFSTR("AppleAntiAliasingThreshold"),
+                                kCFPreferencesCurrentApplication));
 
   if (prefValue) {
-    if (!CFNumberGetValue(prefValue, kCFNumberIntType, &threshold)) {
+    if (CFGetTypeID(prefValue.get()) != CFNumberGetTypeID() ||
+        !CFNumberGetValue(static_cast<CFNumberRef>(prefValue.get()),
+                          kCFNumberIntType, &threshold)) {
       threshold = 0;
     }
-    CFRelease(prefValue);
   }
 
   return threshold;
@@ -728,8 +731,7 @@ static CVReturn VsyncCallback(CVDisplayLinkRef aDisplayLink,
 
 class OSXVsyncSource final : public VsyncSource {
  public:
-  OSXVsyncSource()
-      : mDisplayLink(nullptr, "OSXVsyncSource::mDisplayLink") {
+  OSXVsyncSource() : mDisplayLink(nullptr, "OSXVsyncSource::mDisplayLink") {
     MOZ_ASSERT(NS_IsMainThread());
     mTimer = NS_NewTimer();
     CGDisplayRegisterReconfigurationCallback(DisplayReconfigurationCallback,
