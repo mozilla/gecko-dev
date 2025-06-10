@@ -68,6 +68,8 @@ bool SandboxBroker::sRunningFromNetworkDrive = false;
 static StaticAutoPtr<nsString> sBinDir;
 static StaticAutoPtr<nsString> sProfileDir;
 static StaticAutoPtr<nsString> sLocalAppDataDir;
+static StaticAutoPtr<nsString> sSystemFontsDir;
+static StaticAutoPtr<nsString> sWindowsSystemDir;
 #ifdef ENABLE_SYSTEM_EXTENSION_DIRS
 static StaticAutoPtr<nsString> sUserExtensionsDir;
 #endif
@@ -143,6 +145,8 @@ void SandboxBroker::Initialize(sandbox::BrokerServices* aBrokerServices,
     sBinDir = nullptr;
     sProfileDir = nullptr;
     sLocalAppDataDir = nullptr;
+    sSystemFontsDir = nullptr;
+    sWindowsSystemDir = nullptr;
 #ifdef ENABLE_SYSTEM_EXTENSION_DIRS
     sUserExtensionsDir = nullptr;
 #endif
@@ -165,6 +169,67 @@ static void CacheDirectoryServiceDir(nsIProperties* aDirSvc,
   nsAutoString dirPath;
   MOZ_ALWAYS_SUCCEEDS(dirToCache->GetPath(dirPath));
   CacheAndStandardizeDir(dirPath, aCacheVar);
+}
+
+static void AddCachedDirRule(sandbox::TargetPolicy* aPolicy,
+                             sandbox::TargetPolicy::Semantics aAccess,
+                             const StaticAutoPtr<nsString>& aBaseDir,
+                             const nsLiteralString& aRelativePath = u""_ns) {
+  if (!aBaseDir) {
+    // This can only be an NS_WARNING, because it can null for xpcshell tests.
+    NS_WARNING("Tried to add rule with null base dir.");
+    LOG_E("Tried to add rule with null base dir. Relative path: %S, Access: %d",
+          static_cast<const wchar_t*>(aRelativePath.get()), aAccess);
+    return;
+  }
+
+  nsAutoString rulePath(*aBaseDir);
+  rulePath.Append(aRelativePath);
+
+  sandbox::ResultCode result = aPolicy->AddRule(
+      sandbox::TargetPolicy::SUBSYS_FILES, aAccess, rulePath.get());
+  if (sandbox::SBOX_ALL_OK != result) {
+    NS_ERROR("Failed to add file policy rule.");
+    LOG_E("Failed (ResultCode %d) to add %d access to: %S", result, aAccess,
+          rulePath.getW());
+  }
+}
+
+static void EnsureWindowsDirCached(GUID aFolderID,
+                                   StaticAutoPtr<nsString>& aCacheVar,
+                                   const char* aErrMsg) {
+  if (aCacheVar) {
+    return;
+  }
+
+  UniquePtr<wchar_t, mozilla::CoTaskMemFreeDeleter> dirPath;
+  if (FAILED(::SHGetKnownFolderPath(aFolderID, 0, nullptr,
+                                    getter_Transfers(dirPath)))) {
+    NS_ERROR(aErrMsg);
+    LOG_E("%s", aErrMsg);
+    return;
+  }
+
+  CacheAndStandardizeDir(nsDependentString(dirPath.get()), aCacheVar);
+}
+
+static void AddCachedWindowsDirRule(
+    sandbox::TargetPolicy* aPolicy, sandbox::TargetPolicy::Semantics aAccess,
+    GUID aFolderID, const nsLiteralString& aRelativePath = u""_ns) {
+  if (aFolderID == FOLDERID_Fonts) {
+    EnsureWindowsDirCached(FOLDERID_Fonts, sSystemFontsDir,
+                           "Failed to get Windows Fonts folder");
+    AddCachedDirRule(aPolicy, aAccess, sSystemFontsDir, aRelativePath);
+    return;
+  }
+  if (aFolderID == FOLDERID_System) {
+    EnsureWindowsDirCached(FOLDERID_System, sWindowsSystemDir,
+                           "Failed to get Windows System folder");
+    AddCachedDirRule(aPolicy, aAccess, sWindowsSystemDir, aRelativePath);
+    return;
+  }
+
+  MOZ_CRASH("Unhandled FOLDERID guid.");
 }
 
 /* static */
@@ -513,30 +578,6 @@ Result<Ok, mozilla::ipc::LaunchError> SandboxBroker::LaunchApp(
   *aProcessHandle = targetInfo.hProcess;
 
   return Ok();
-}
-
-static void AddCachedDirRule(sandbox::TargetPolicy* aPolicy,
-                             sandbox::TargetPolicy::Semantics aAccess,
-                             const StaticAutoPtr<nsString>& aBaseDir,
-                             const nsLiteralString& aRelativePath) {
-  if (!aBaseDir) {
-    // This can only be an NS_WARNING, because it can null for xpcshell tests.
-    NS_WARNING("Tried to add rule with null base dir.");
-    LOG_E("Tried to add rule with null base dir. Relative path: %S, Access: %d",
-          static_cast<const wchar_t*>(aRelativePath.get()), aAccess);
-    return;
-  }
-
-  nsAutoString rulePath(*aBaseDir);
-  rulePath.Append(aRelativePath);
-
-  sandbox::ResultCode result = aPolicy->AddRule(
-      sandbox::TargetPolicy::SUBSYS_FILES, aAccess, rulePath.get());
-  if (sandbox::SBOX_ALL_OK != result) {
-    NS_ERROR("Failed to add file policy rule.");
-    LOG_E("Failed (ResultCode %d) to add %d access to: %S", result, aAccess,
-          rulePath.getW());
-  }
 }
 
 // This function caches and returns an array of NT paths of the executable's
@@ -1069,48 +1110,17 @@ void SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
 
   if (aSandboxLevel >= 8) {
     // Content process still needs to be able to read fonts.
-    wchar_t* fontsPath;
-    if (SUCCEEDED(
-            ::SHGetKnownFolderPath(FOLDERID_Fonts, 0, nullptr, &fontsPath))) {
-      std::wstring fontsStr = fontsPath;
-      ::CoTaskMemFree(fontsPath);
-      result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
-                                sandbox::TargetPolicy::FILES_ALLOW_READONLY,
-                                fontsStr.c_str());
-      if (sandbox::SBOX_ALL_OK != result) {
-        NS_ERROR("Failed to add fonts dir read access policy rule.");
-        LOG_E("Failed (ResultCode %d) to add read access to: %S", result,
-              fontsStr.c_str());
-      }
-
-      fontsStr += L"\\*";
-      result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
-                                sandbox::TargetPolicy::FILES_ALLOW_READONLY,
-                                fontsStr.c_str());
-      if (sandbox::SBOX_ALL_OK != result) {
-        NS_ERROR("Failed to add fonts read access policy rule.");
-        LOG_E("Failed (ResultCode %d) to add read access to: %S", result,
-              fontsStr.c_str());
-      }
-    }
+    AddCachedWindowsDirRule(
+        mPolicy, sandbox::TargetPolicy::FILES_ALLOW_READONLY, FOLDERID_Fonts);
+    AddCachedWindowsDirRule(mPolicy,
+                            sandbox::TargetPolicy::FILES_ALLOW_READONLY,
+                            FOLDERID_Fonts, u"\\*"_ns);
 
     // Add access to Windows system binary dir to allow DLLs that are not
     // required in all content processes to load later.
-    wchar_t* systemBinPath;
-    if (SUCCEEDED(::SHGetKnownFolderPath(FOLDERID_System, 0, nullptr,
-                                         &systemBinPath))) {
-      std::wstring systemBinPathStr = systemBinPath;
-      ::CoTaskMemFree(systemBinPath);
-      systemBinPathStr += L"\\*";
-      result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_FILES,
-                                sandbox::TargetPolicy::FILES_ALLOW_READONLY,
-                                systemBinPathStr.c_str());
-      if (sandbox::SBOX_ALL_OK != result) {
-        NS_ERROR("Failed to add rule for system bin dir.");
-        LOG_E("Failed (ResultCode %d) to add read access to: %S", result,
-              systemBinPathStr.c_str());
-      }
-    }
+    AddCachedWindowsDirRule(mPolicy,
+                            sandbox::TargetPolicy::FILES_ALLOW_READONLY,
+                            FOLDERID_System, u"\\*"_ns);
 
     // Read access for MF Media Source Activate and subkeys/values.
     result = mPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_REGISTRY,
