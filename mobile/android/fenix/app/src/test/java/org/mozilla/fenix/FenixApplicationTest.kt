@@ -18,7 +18,6 @@ import mozilla.components.concept.engine.webextension.DisabledFlags
 import mozilla.components.concept.engine.webextension.Metadata
 import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.feature.addons.migration.DefaultSupportedAddonsChecker
-import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.utils.BrowsersCache
 import org.junit.Assert.assertEquals
@@ -171,7 +170,7 @@ class FenixApplicationTest {
             settings = settings,
             browsersCache = browsersCache,
             mozillaProductDetector = mozillaProductDetector,
-        ).joinBlocking()
+        )
 
         // Verify that browser defaults metrics are set.
         assertEquals("Mozilla", Metrics.distributionId.testGetValue())
@@ -222,7 +221,7 @@ class FenixApplicationTest {
         assertNull(SearchDefaultEngine.name.testGetValue())
         assertNull(SearchDefaultEngine.searchUrl.testGetValue())
 
-        application.setStartupMetrics(browserStore, settings, browsersCache, mozillaProductDetector).joinBlocking()
+        application.setStartupMetrics(browserStore, settings, browsersCache, mozillaProductDetector)
 
         assertEquals(contextId, TopSites.contextId.testGetValue()!!.toString())
         assertEquals(contextId, settings.contileContextId)
@@ -237,7 +236,7 @@ class FenixApplicationTest {
             every { blockCookiesSelectionInCustomTrackingProtection } returns "Test"
         }
 
-        application.setStartupMetrics(browserStore, settings, browsersCache, mozillaProductDetector).joinBlocking()
+        application.setStartupMetrics(browserStore, settings, browsersCache, mozillaProductDetector)
 
         assertEquals("Test", Preferences.etpCustomCookiesSelection.testGetValue())
     }
@@ -254,7 +253,7 @@ class FenixApplicationTest {
         shadowOf(packageManager)
             .setInstallSourceInfo(testContext.packageName, "initiating.package", "installing.package")
 
-        application.setStartupMetrics(browserStore, settings, browsersCache, mozillaProductDetector).joinBlocking()
+        application.setStartupMetrics(browserStore, settings, browsersCache, mozillaProductDetector)
 
         assertEquals("Test", Preferences.etpCustomCookiesSelection.testGetValue())
     }
