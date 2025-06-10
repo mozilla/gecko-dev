@@ -235,7 +235,7 @@ pub(crate) mod profiler_utils {
     pub(crate) fn stream_identifiers_by_id<MetricT: MetricMetadataGetter + MetricNamer>(
         id: &super::MetricId,
         json_writer: &mut gecko_profiler::JSONWriter,
-    ) -> () {
+    ) {
         match MetricT::get_metric_metadata_by_id(id) {
             Ok((metadata, mlabel)) => {
                 // Write the category, as that will always be contained
