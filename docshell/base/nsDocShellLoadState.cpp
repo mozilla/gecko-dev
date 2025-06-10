@@ -1427,7 +1427,7 @@ NavigationType nsDocShellLoadState::GetNavigationType() const {
 }
 
 mozilla::dom::FormData* nsDocShellLoadState::GetFormDataEntryList() {
-  return nullptr;
+  return mFormDataEntryList;
 }
 
 void nsDocShellLoadState::SetFormDataEntryList(
