@@ -19,7 +19,6 @@ PROD_GVEX = "geckoview"
 PROD_CHRM = "chrome-m"
 MOZILLA_PRODUCTS = [PROD_FENIX, PROD_FOCUS, PROD_GVEX]
 
-MEASUREMENT_DATA = ["mean", "median", "standard_deviation"]
 OLD_VERSION_FOCUS_PAGE_START_LINE_COUNT = 3
 NEW_VERSION_FOCUS_PAGE_START_LINE_COUNT = 2
 STDOUT_LINE_COUNT = 2
@@ -102,8 +101,6 @@ class Startup_test:
         return results
 
     def should_alert(self, key_name):
-        if MEASUREMENT_DATA[2] in key_name:
-            return False
         return True
 
     def run_tests(self):
@@ -127,20 +124,9 @@ class Startup_test:
         self.device.stop_application(self.package_id)
         print(f"{self.test_name}: {str(test_measurements)}")
         # Bug 1934023 - create way to pass median and still have replicates available
-        measurements[f"{self.test_name}.{MEASUREMENT_DATA[0]}"] = [
-            statistics.mean(test_measurements)
-        ]
-        print(f"Mean: {statistics.mean(test_measurements)}")
-        measurements[f"{self.test_name}.{MEASUREMENT_DATA[1]}"] = [
-            statistics.median(test_measurements)
-        ]
-        print(f"Median: {statistics.median(test_measurements)}")
-        if ITERATIONS > 1:
-            measurements[f"{self.test_name}.{MEASUREMENT_DATA[2]}"] = [
-                statistics.stdev(test_measurements)
-            ]
-            print(f"Standard Deviation: {statistics.stdev(test_measurements)}")
-
+        # Bug 1971336 Remove the .mean metric once we have a sufficient data redundancy
+        measurements[f"{self.test_name}.mean"] = [statistics.mean(test_measurements)]
+        measurements[self.test_name] = test_measurements
         return measurements
 
     def get_measurement(self, test_name, stdout):
@@ -301,10 +287,17 @@ if __name__ == "__main__":
 
     Startup = Startup_test(browser, test)
     startup_data = Startup.run()
-    for measurement in MEASUREMENT_DATA:
-        print(
-            'perfMetrics: {"values": ',
-            startup_data[f"{test}.{measurement}"],
-            ', "name": "' + f"{test}.{measurement}" + '", "shouldAlert": true',
-            "}",
-        )
+    # Bug 1971336 Remove the .mean metric once we have a sufficient data redundancy
+    print(
+        'perfMetrics: {"values": ',
+        startup_data[f"{test}.mean"],
+        ', "name": "' + f"{test}.mean" + '", "shouldAlert": true',
+        "}",
+    )
+
+    print(
+        'perfMetrics: {"values": ',
+        startup_data[test],
+        ', "name": "' + f"{test}" + '", "shouldAlert": true',
+        "}",
+    )
