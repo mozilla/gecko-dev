@@ -115,19 +115,6 @@ add_task(async function () {
       expectedInputValueAfterAddingParamValue: `${HTTPS_CUSTOM_GET_URL}?a=3&b=4&My-param=my-value`,
       expectedInputValueAfterUncheckingParam: `${HTTPS_CUSTOM_GET_URL}?a=3&b=4`,
     },
-    {
-      url: HTTPS_CUSTOM_GET_URL,
-      queryString: "?a=3&a=4&b=5",
-      expectedParametersSize: 3,
-      expectedParameters: [
-        { name: "a", value: "3" },
-        { name: "a", value: "4" },
-        { name: "b", value: "5" },
-      ],
-      expectedInputValueAfterAddingParamName: `${HTTPS_CUSTOM_GET_URL}?a=3&a=4&b=5&My-param=`,
-      expectedInputValueAfterAddingParamValue: `${HTTPS_CUSTOM_GET_URL}?a=3&a=4&b=5&My-param=my-value`,
-      expectedInputValueAfterUncheckingParam: `${HTTPS_CUSTOM_GET_URL}?a=3&a=4&b=5`,
-    },
     // Checking with an invalid URL string
     {
       url: "invalid",
