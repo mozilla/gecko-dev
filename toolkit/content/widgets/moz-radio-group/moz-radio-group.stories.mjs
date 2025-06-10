@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html, ifDefined } from "../vendor/lit.all.mjs";
+import { html, ifDefined, classMap } from "../vendor/lit.all.mjs";
 import "./moz-radio-group.mjs";
 
 let greetings = ["hello", "howdy", "hola"];
@@ -101,6 +101,7 @@ const Template = ({
   hasSlottedSupportLinks,
   groupSlottedSupportLink,
   nestedFields,
+  ellipsized,
 }) => html`
   <moz-radio-group
     name=${groupName}
@@ -123,6 +124,7 @@ const Template = ({
           iconSrc=${ifDefined(showIcons ? icons[i] : "")}
           accesskey=${ifDefined(showAccesskeys ? accesskeys[i] : "")}
           support-page=${ifDefined(supportPage)}
+          class=${classMap({ "text-truncated-ellipsis": ellipsized })}
         >
           ${hasSlottedSupportLinks
             ? html`<a slot="support-link" href="www.example.com">
@@ -232,4 +234,11 @@ export const WithNestedFields = Template.bind({});
 WithNestedFields.args = {
   ...Default.args,
   nestedFields: true,
+};
+
+export const WithEllipsizedLabel = Template.bind({});
+WithEllipsizedLabel.args = {
+  ...Default.args,
+  ellipsized: true,
+  l10nId: "moz-checkbox-long-label",
 };

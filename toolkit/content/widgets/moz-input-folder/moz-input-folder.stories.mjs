@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html, ifDefined } from "../vendor/lit.all.mjs";
+import { html, ifDefined, classMap } from "../vendor/lit.all.mjs";
 import "./moz-input-folder.mjs";
 
 export default {
@@ -14,6 +14,7 @@ export default {
         "moz-input-folder-label",
         "moz-input-folder-placeholder",
         "moz-input-folder-description",
+        "moz-input-folder-long-label",
       ],
       control: { type: "select" },
     },
@@ -31,6 +32,8 @@ moz-input-folder-description =
   .label = Save files to
   .description = Description text
   .placeholder = Select folder
+moz-input-folder-long-label =
+  .label = Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum libero enim, luctus eu ante a, maximus imperdiet mi. Suspendisse sodales, nisi et commodo malesuada, lectus.
     `,
   },
 };
@@ -45,6 +48,7 @@ const Template = ({
   supportPage,
   hasSlottedDescription,
   hasSlottedSupportLink,
+  ellipsized,
 }) => html`
   <div style="width: 400px;">
     <moz-input-folder
@@ -63,6 +67,7 @@ const Template = ({
         },
         capture: true,
       }}
+      class=${classMap({ "text-truncated-ellipsis": ellipsized })}
     >
       ${hasSlottedDescription
         ? html`<div slot="description">${description}</div>`
@@ -136,4 +141,11 @@ WithSlottedSupportLink.args = {
   ...Default.args,
   hasSlottedSupportLink: true,
   l10nId: "moz-input-folder-description",
+};
+
+export const WithEllipsizedLabel = Template.bind({});
+WithEllipsizedLabel.args = {
+  ...Default.args,
+  ellipsized: true,
+  l10nId: "moz-input-folder-long-label",
 };

@@ -426,7 +426,9 @@ export class MozBaseInputElement extends MozLitElement {
     if (!this.label) {
       return "";
     }
-    return html`${this.iconTemplate()}<span class="text">${this.label}</span>`;
+    return html`<span class="text-container"
+      >${this.iconTemplate()}<span class="text">${this.label}</span></span
+    >`;
   }
 
   descriptionTemplate() {

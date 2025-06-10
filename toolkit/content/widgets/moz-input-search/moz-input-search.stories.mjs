@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html, ifDefined } from "../vendor/lit.all.mjs";
+import { html, ifDefined, classMap } from "../vendor/lit.all.mjs";
 import "./moz-input-search.mjs";
 
 export default {
@@ -49,6 +49,7 @@ const Template = ({
   accessKey,
   hasSlottedDescription,
   hasSlottedSupportLink,
+  ellipsized,
 }) => html`
   <moz-input-search
     name=${name}
@@ -58,6 +59,7 @@ const Template = ({
     data-l10n-id=${l10nId}
     support-page=${ifDefined(supportPage || null)}
     accesskey=${ifDefined(accessKey || null)}
+    class=${classMap({ "text-truncated-ellipsis": ellipsized })}
   >
     ${hasSlottedDescription
       ? html`<div slot="description">${description}</div>`
@@ -131,4 +133,11 @@ WithSlottedSupportLink.args = {
   ...Default.args,
   hasSlottedSupportLink: true,
   l10nId: "moz-input-search-description",
+};
+
+export const WithEllipsizedLabel = Template.bind({});
+WithEllipsizedLabel.args = {
+  ...Default.args,
+  ellipsized: true,
+  l10nId: "moz-input-search-label-wrapped",
 };

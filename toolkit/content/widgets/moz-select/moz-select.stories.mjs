@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html, ifDefined } from "../vendor/lit.all.mjs";
+import { html, ifDefined, classMap } from "../vendor/lit.all.mjs";
 import "./moz-select.mjs";
 
 export default {
@@ -10,7 +10,11 @@ export default {
   component: "moz-select",
   argTypes: {
     l10nId: {
-      options: ["moz-select-label", "moz-select-description"],
+      options: [
+        "moz-select-label",
+        "moz-select-description",
+        "moz-select-long-label",
+      ],
       control: { type: "select" },
     },
     label: { table: { disable: true } },
@@ -22,6 +26,8 @@ export default {
     fluent: `
 moz-select-label =
   .label = Select an option
+moz-select-long-label =
+  .label = Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum libero enim, luctus eu ante a, maximus imperdiet mi. Suspendisse sodales, nisi et commodo malesuada, lectus.
 moz-select-description =
   .label = Select an option
   .description = This is a description for the select dropdown
@@ -102,6 +108,7 @@ const Template = ({
   useOtherOptions,
   options = useOtherOptions ? OTHER_OPTIONS : DEFAULT_OPTIONS,
   hasSlottedSupportLink,
+  ellipsized,
 }) => html`
   <div style="width:300px">
     <moz-select
@@ -112,6 +119,7 @@ const Template = ({
       data-l10n-id=${l10nId}
       support-page=${ifDefined(supportPage || null)}
       accesskey=${ifDefined(accessKey || null)}
+      class=${classMap({ "text-truncated-ellipsis": ellipsized })}
     >
       ${hasSlottedDescription
         ? html`<div slot="description">${description}</div>`
@@ -144,6 +152,7 @@ Default.args = {
   hasSlottedDescription: false,
   useOtherOptions: false,
   hasSlottedSupportLink: false,
+  ellipsized: false,
 };
 
 export const WithIcon = Template.bind({});
@@ -208,4 +217,11 @@ export const PreselectedValue = Template.bind({});
 PreselectedValue.args = {
   ...Default.args,
   value: "2",
+};
+
+export const WithEllipsizedLabel = Template.bind({});
+WithEllipsizedLabel.args = {
+  ...Default.args,
+  ellipsized: true,
+  l10nId: "moz-select-long-label",
 };

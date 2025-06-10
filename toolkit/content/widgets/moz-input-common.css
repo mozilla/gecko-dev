@@ -59,6 +59,13 @@
     }
   }
 
+  :host(.text-truncated-ellipsis) .text-container {
+    display: inline-block;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   /* Input */
 
   #input {
@@ -112,6 +119,10 @@
 
   ::slotted([slot="description"]) {
     display: inline;
+  }
+
+  :host(.text-truncated-ellipsis) .description {
+    white-space: initial;
   }
 
   /* Support link */
