@@ -685,6 +685,7 @@ dependencies {
     implementation libs.androidx.datastore
     implementation libs.androidx.datastore.preferences
     implementation libs.androidx.fragment
+    implementation libs.androidx.fragment.compose
     implementation libs.androidx.lifecycle.common
     implementation libs.androidx.lifecycle.livedata
     implementation libs.androidx.lifecycle.process

@@ -187,6 +187,9 @@
         app:popUpTo="@id/unlockPrivateTabsFragment"
         app:popUpToInclusive="false"
         app:destination="@+id/unlockPrivateTabsFragment"/>
+    <action
+        android:id="@+id/action_global_customReviewPromptDialogFragment"
+        app:destination="@id/customReviewPromptDialogFragment" />
 
     <dialog
         android:id="@+id/tabsTrayFragment"
@@ -1758,4 +1761,7 @@
                 app:argType="org.mozilla.fenix.trackingprotection.CookieBannerUIMode" />
         </dialog>
     </navigation>
+    <dialog
+        android:id="@+id/customReviewPromptDialogFragment"
+        android:name="org.mozilla.fenix.reviewprompt.CustomReviewPromptBottomSheetFragment" />
 </navigation>
