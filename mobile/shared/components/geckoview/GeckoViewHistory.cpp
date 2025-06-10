@@ -4,9 +4,6 @@
 
 #include "GeckoViewHistory.h"
 
-#ifdef MOZ_WIDGET_ANDROID
-#  include "JavaBuiltins.h"
-#endif
 #include "jsapi.h"
 #include "js/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
 #include "js/PropertyAndElement.h"  // JS_GetElement
@@ -32,8 +29,8 @@ using namespace mozilla::dom;
 using namespace mozilla::ipc;
 using namespace mozilla::widget;
 
-static const char16_t kOnVisitedMessage[] = u"GeckoView:OnVisited";
-static const char16_t kGetVisitedMessage[] = u"GeckoView:GetVisited";
+static const nsLiteralString kOnVisitedMessage = u"GeckoView:OnVisited"_ns;
+static const nsLiteralString kGetVisitedMessage = u"GeckoView:GetVisited"_ns;
 
 // Keep in sync with `GeckoSession.HistoryDelegate.VisitFlags`.
 enum class GeckoViewVisitFlags : int32_t {
@@ -241,6 +238,7 @@ NS_IMETHODIMP
 GeckoViewHistory::VisitURI(nsIWidget* aWidget, nsIURI* aURI,
                            nsIURI* aLastVisitedURI, uint32_t aFlags,
                            uint64_t aBrowserId) {
+  AssertIsOnMainThread();
   if (!aURI) {
     return NS_OK;
   }
@@ -274,28 +272,33 @@ GeckoViewHistory::VisitURI(nsIWidget* aWidget, nsIURI* aURI,
   }
 
   // If nobody is listening for this, we can stop now.
-  if (!dispatcher->HasListener(kOnVisitedMessage)) {
+  if (!dispatcher->HasEmbedderListener(kOnVisitedMessage)) {
     return NS_OK;
   }
 
-#ifdef MOZ_WIDGET_ANDROID
-  AutoTArray<jni::String::LocalRef, 3> keys;
-  AutoTArray<jni::Object::LocalRef, 3> values;
+  dom::AutoJSAPI jsapi;
+  NS_ENSURE_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()), NS_OK);
+
+  JS::Rooted<JSObject*> bundle(jsapi.cx(), JS_NewPlainObject(jsapi.cx()));
+  NS_ENSURE_TRUE(bundle, NS_OK);
+
+  JS::Rooted<JS::Value> value(jsapi.cx());
 
   nsAutoCString uriSpec;
   if (NS_WARN_IF(NS_FAILED(aURI->GetSpec(uriSpec)))) {
     return NS_OK;
   }
-  keys.AppendElement(jni::StringParam(u"url"_ns));
-  values.AppendElement(jni::StringParam(uriSpec));
+  NS_ENSURE_TRUE(ToJSValue(jsapi.cx(), uriSpec, &value), NS_OK);
+  NS_ENSURE_TRUE(JS_SetProperty(jsapi.cx(), bundle, "url", value), NS_OK);
 
   if (aLastVisitedURI) {
     nsAutoCString lastVisitedURISpec;
     if (NS_WARN_IF(NS_FAILED(aLastVisitedURI->GetSpec(lastVisitedURISpec)))) {
       return NS_OK;
     }
-    keys.AppendElement(jni::StringParam(u"lastVisitedURL"_ns));
-    values.AppendElement(jni::StringParam(lastVisitedURISpec));
+    NS_ENSURE_TRUE(ToJSValue(jsapi.cx(), lastVisitedURISpec, &value), NS_OK);
+    NS_ENSURE_TRUE(JS_SetProperty(jsapi.cx(), bundle, "lastVisitedURL", value),
+                   NS_OK);
   }
 
   int32_t flags = 0;
@@ -321,26 +324,14 @@ GeckoViewHistory::VisitURI(nsIWidget* aWidget, nsIURI* aURI,
     flags |=
         static_cast<int32_t>(GeckoViewVisitFlags::VISIT_UNRECOVERABLE_ERROR);
   }
-  keys.AppendElement(jni::StringParam(u"flags"_ns));
-  values.AppendElement(java::sdk::Integer::ValueOf(flags));
-
-  MOZ_ASSERT(keys.Length() == values.Length());
-
-  auto bundleKeys = jni::ObjectArray::New<jni::String>(keys.Length());
-  auto bundleValues = jni::ObjectArray::New<jni::Object>(values.Length());
-  for (size_t i = 0; i < keys.Length(); ++i) {
-    bundleKeys->SetElement(i, keys[i]);
-    bundleValues->SetElement(i, values[i]);
-  }
-  auto bundle = java::GeckoBundle::New(bundleKeys, bundleValues);
+  value = JS::Int32Value(flags);
+  NS_ENSURE_TRUE(JS_SetProperty(jsapi.cx(), bundle, "flags", value), NS_OK);
 
   nsCOMPtr<nsIGeckoViewEventCallback> callback =
       new OnVisitedCallback(this, aURI);
 
   Unused << NS_WARN_IF(
       NS_FAILED(dispatcher->Dispatch(kOnVisitedMessage, bundle, callback)));
-#endif
-
   return NS_OK;
 }
 
@@ -452,6 +443,8 @@ void GeckoViewHistory::QueryVisitedState(nsIWidget* aWidget,
                                          ContentParent* aInterestedProcess,
                                          nsTArray<RefPtr<nsIURI>>&& aURIs) {
   MOZ_ASSERT(XRE_IsParentProcess());
+  AssertIsOnMainThread();
+
   RefPtr<nsWindow> window = nsWindow::From(aWidget);
   if (NS_WARN_IF(!window)) {
     return;
@@ -462,38 +455,34 @@ void GeckoViewHistory::QueryVisitedState(nsIWidget* aWidget,
   }
 
   // If nobody is listening for this we can stop now
-  if (!dispatcher->HasListener(kGetVisitedMessage)) {
+  if (!dispatcher->HasEmbedderListener(kGetVisitedMessage)) {
     return;
   }
 
-#ifdef MOZ_WIDGET_ANDROID
-  // Assemble a bundle like `{ urls: ["http://example.com/1", ...] }`.
-  auto uris = jni::ObjectArray::New<jni::String>(aURIs.Length());
-  for (size_t i = 0; i < aURIs.Length(); ++i) {
+  dom::AutoJSAPI jsapi;
+  NS_ENSURE_TRUE_VOID(!jsapi.Init(xpc::PrivilegedJunkScope()));
+
+  nsTArray<nsCString> specs(aURIs.Length());
+  for (auto& uri : aURIs) {
     nsAutoCString uriSpec;
-    if (NS_WARN_IF(NS_FAILED(aURIs[i]->GetSpec(uriSpec)))) {
+    if (NS_WARN_IF(NS_FAILED(uri->GetSpec(uriSpec)))) {
       continue;
     }
-    jni::String::LocalRef value{jni::StringParam(uriSpec)};
-    uris->SetElement(i, value);
+    specs.AppendElement(uriSpec);
   }
 
-  auto bundleKeys = jni::ObjectArray::New<jni::String>(1);
-  jni::String::LocalRef key(jni::StringParam(u"urls"_ns));
-  bundleKeys->SetElement(0, key);
+  JS::Rooted<JS::Value> urls(jsapi.cx());
+  NS_ENSURE_TRUE_VOID(ToJSValue(jsapi.cx(), specs, &urls));
 
-  auto bundleValues = jni::ObjectArray::New<jni::Object>(1);
-  jni::Object::LocalRef value(uris);
-  bundleValues->SetElement(0, value);
-
-  auto bundle = java::GeckoBundle::New(bundleKeys, bundleValues);
+  JS::Rooted<JSObject*> bundle(jsapi.cx(), JS_NewPlainObject(jsapi.cx()));
+  NS_ENSURE_TRUE_VOID(bundle);
+  NS_ENSURE_TRUE_VOID(JS_SetProperty(jsapi.cx(), bundle, "urls", urls));
 
   nsCOMPtr<nsIGeckoViewEventCallback> callback =
       new GetVisitedCallback(this, aInterestedProcess, std::move(aURIs));
 
   Unused << NS_WARN_IF(
       NS_FAILED(dispatcher->Dispatch(kGetVisitedMessage, bundle, callback)));
-#endif
 }
 
 /**

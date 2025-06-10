@@ -7,6 +7,7 @@
 #ifndef mozilla_widget_AndroidView_h
 #define mozilla_widget_AndroidView_h
 
+#include "mozilla/java/GeckoBundleWrappers.h"
 #include "mozilla/widget/EventDispatcher.h"
 
 namespace mozilla {
