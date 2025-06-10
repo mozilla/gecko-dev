@@ -48,8 +48,6 @@ support-files = [
 
 ["test_tabs.xhtml"]
 
-["test_textbox.xhtml"]
-
 ["test_tree.xhtml"]
 
 ["test_visibility.html"]

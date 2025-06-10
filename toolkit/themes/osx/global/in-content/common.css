@@ -35,14 +35,6 @@ xul|*.text-link:-moz-focusring {
   box-shadow: none;
 }
 
-xul|search-textbox::part(search-sign) {
-  -moz-context-properties: fill, fill-opacity;
-  fill: currentColor;
-  fill-opacity: 0.8;
-  list-style-image: url(chrome://global/skin/icons/search-textbox.svg);
-  margin-inline-end: 5px;
-}
-
 html|button {
   /* XUL button min-width */
   min-width: 79px;

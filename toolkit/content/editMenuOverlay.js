@@ -98,9 +98,8 @@ window.addEventListener("contextmenu", e => {
     target.ownerDocument == document &&
     !e.defaultPrevented &&
     target.parentNode.nodeName != "moz-input-box" &&
-    ((["textarea", "input"].includes(target.localName) &&
-      target.namespaceURI == HTML_NS) ||
-      target.closest("search-textbox"));
+    ["textarea", "input"].includes(target.localName) &&
+    target.namespaceURI == HTML_NS;
 
   if (!needsContextMenu) {
     return;

@@ -54,7 +54,6 @@ reftest.jar:
   res/httpd.sys.mjs (../../../netwerk/test/httpserver/httpd.sys.mjs)
   res/StructuredLog.sys.mjs (../../../testing/modules/StructuredLog.sys.mjs)
   res/PerTestCoverageUtils.sys.mjs (../../../tools/code-coverage/PerTestCoverageUtils.sys.mjs)
-  res/input.css (../../../editor/reftests/xul/input.css)
   res/progress.css (../../../layout/reftests/forms/progress/style.css)
   res/manifest.sys.mjs (manifest.sys.mjs)
   res/reftest.sys.mjs (reftest.sys.mjs)

@@ -104,5 +104,3 @@ skip-if = [
 ["test_txtcntr.html"]
 
 ["test_txtctrl.html"]
-
-["test_txtctrl.xhtml"]

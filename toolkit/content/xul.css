@@ -301,7 +301,6 @@ toolbaritem,
 toolbarbutton,
 toolbarseparator,
 button,
-search-textbox,
 html|input,
 tab,
 radio,
@@ -522,12 +521,6 @@ tooltip[titletip="true"] {
   flex-grow: inherit;
   flex-shrink: inherit;
   flex-direction: inherit;
-}
-
-/********** textbox **********/
-
-search-textbox {
-  text-shadow: none;
 }
 
 /* Prefix with (xul|*):root to workaround HTML tests loading xul.css */
