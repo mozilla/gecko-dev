@@ -7524,7 +7524,7 @@ mozilla::ipc::IPCResult ContentParent::RecvNotifyOnHistoryReload(
 
 mozilla::ipc::IPCResult ContentParent::RecvHistoryCommit(
     const MaybeDiscarded<BrowsingContext>& aContext, const uint64_t& aLoadID,
-    const nsID& aChangeID, const uint32_t& aLoadType, const bool& aPersist,
+    const nsID& aChangeID, const uint32_t& aLoadType,
     const bool& aCloneEntryChildren, const bool& aChannelExpired,
     const uint32_t& aCacheKey, nsIPrincipal* aPartitionedPrincipal) {
   if (!ValidatePrincipal(aPartitionedPrincipal,
@@ -7539,7 +7539,7 @@ mozilla::ipc::IPCResult ContentParent::RecvHistoryCommit(
       return IPC_FAIL(
           this, "Could not get canonical. aContext.get_canonical() fails.");
     }
-    canonical->SessionHistoryCommit(aLoadID, aChangeID, aLoadType, aPersist,
+    canonical->SessionHistoryCommit(aLoadID, aChangeID, aLoadType,
                                     aCloneEntryChildren, aChannelExpired,
                                     aCacheKey, aPartitionedPrincipal);
   }

@@ -1783,7 +1783,7 @@ parent:
 
     async HistoryCommit(MaybeDiscardedBrowsingContext aContext,
                         uint64_t aLoadID, nsID aChangeID, uint32_t aLoadType,
-                        bool aPersist, bool aCloneEntryChildren,
+                        bool aCloneEntryChildren,
                         bool aChannelExpired, uint32_t aCacheKey,
                         nullable nsIPrincipal aPartitionedPrincipal);
 

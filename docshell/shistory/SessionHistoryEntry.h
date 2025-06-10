@@ -160,7 +160,8 @@ class SessionHistoryInfo {
 
   void SetSaveLayoutStateFlag(bool aSaveLayoutStateFlag);
 
-  bool GetPersist() const { return mPersist; }
+  bool IsTransient() { return mTransient; }
+  void SetTransient() { mTransient = true; }
 
   nsID& NavigationKey() { return mNavigationKey; }
   const nsID& NavigationKey() const { return mNavigationKey; }
@@ -196,7 +197,7 @@ class SessionHistoryInfo {
   bool mLoadReplace = false;
   bool mURIWasModified = false;
   bool mScrollRestorationIsManual = false;
-  bool mPersist = true;
+  bool mTransient = false;
   bool mHasUserInteraction = false;
   bool mHasUserActivation = false;
 

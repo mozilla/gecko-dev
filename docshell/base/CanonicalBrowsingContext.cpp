@@ -555,11 +555,11 @@ CanonicalBrowsingContext::CreateLoadingSessionHistoryEntryForLoad(
     entry = mActiveEntry;
   } else {
     entry = new SessionHistoryEntry(aLoadState, aChannel);
-    if (IsTop()) {
-      // Only top level pages care about Get/SetPersist.
-      entry->SetPersist(
-          nsDocShell::ShouldAddToSessionHistory(aLoadState->URI(), aChannel));
-    } else if (mActiveEntry || !mLoadingEntries.IsEmpty()) {
+    if (IsTop() &&
+        !nsDocShell::ShouldAddToSessionHistory(aLoadState->URI(), aChannel)) {
+      entry->SetTransient();
+    }
+    if (!IsTop() && (mActiveEntry || !mLoadingEntries.IsEmpty())) {
       entry->SetIsSubFrame(true);
     }
     entry->SetDocshellID(GetHistoryID());
@@ -602,8 +602,9 @@ CanonicalBrowsingContext::ReplaceLoadingSessionHistoryEntryForLoad(
         // Only top level pages care about Get/SetPersist.
         nsCOMPtr<nsIURI> uri;
         aNewChannel->GetURI(getter_AddRefs(uri));
-        loadingEntry->SetPersist(
-            nsDocShell::ShouldAddToSessionHistory(uri, aNewChannel));
+        if (!nsDocShell::ShouldAddToSessionHistory(uri, aNewChannel)) {
+          loadingEntry->SetTransient();
+        }
       } else {
         loadingEntry->SetIsSubFrame(aInfo->mInfo.IsSubFrame());
       }
@@ -955,7 +956,7 @@ void CanonicalBrowsingContext::CallOnTopDescendants(
 }
 
 void CanonicalBrowsingContext::SessionHistoryCommit(
-    uint64_t aLoadId, const nsID& aChangeID, uint32_t aLoadType, bool aPersist,
+    uint64_t aLoadId, const nsID& aChangeID, uint32_t aLoadType,
     bool aCloneEntryChildren, bool aChannelExpired, uint32_t aCacheKey,
     nsIPrincipal* aPartitionedPrincipal) {
   MOZ_LOG(gSHLog, LogLevel::Verbose,
@@ -1052,7 +1053,7 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
             mActiveEntry->SetWireframe(Nothing());
           }
         } else if (addEntry) {
-          shistory->AddEntry(mActiveEntry, aPersist);
+          shistory->AddEntry(mActiveEntry);
           shistory->InternalSetRequestedIndex(-1);
         }
       } else {
@@ -1084,10 +1085,10 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
               //       make a copy of the shared state.
               mActiveEntry->ReplaceWith(*newActiveEntry);
             } else {
-              // AddChildSHEntryHelper does update the index of the session
+              // AddNestedSHEntry does update the index of the session
               // history!
-              shistory->AddChildSHEntryHelper(mActiveEntry, newActiveEntry,
-                                              Top(), aCloneEntryChildren);
+              shistory->AddNestedSHEntry(mActiveEntry, newActiveEntry, Top(),
+                                         aCloneEntryChildren);
               mActiveEntry = newActiveEntry;
             }
           } else {
@@ -1205,14 +1206,12 @@ void CanonicalBrowsingContext::SetActiveSessionHistoryEntry(
 
   if (IsTop()) {
     Maybe<int32_t> previousEntryIndex, loadedEntryIndex;
-    shistory->AddToRootSessionHistory(
-        true, oldActiveEntry, this, mActiveEntry, aLoadType,
-        nsDocShell::ShouldAddToSessionHistory(aInfo->GetURI(), nullptr),
-        &previousEntryIndex, &loadedEntryIndex);
+    shistory->AddToRootSessionHistory(true, oldActiveEntry, this, mActiveEntry,
+                                      aLoadType, &previousEntryIndex,
+                                      &loadedEntryIndex);
   } else {
     if (oldActiveEntry) {
-      shistory->AddChildSHEntryHelper(oldActiveEntry, mActiveEntry, Top(),
-                                      true);
+      shistory->AddNestedSHEntry(oldActiveEntry, mActiveEntry, Top(), true);
     } else if (GetParent() && GetParent()->mActiveEntry) {
       GetParent()->mActiveEntry->AddChild(
           mActiveEntry, CreatedDynamically() ? -1 : GetParent()->IndexOf(this),

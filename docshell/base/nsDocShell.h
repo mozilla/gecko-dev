@@ -992,8 +992,8 @@ class nsDocShell final : public nsDocLoader,
   void RefreshURIToQueue();
   nsresult Embed(nsIDocumentViewer* aDocumentViewer,
                  mozilla::dom::WindowGlobalChild* aWindowActor,
-                 bool aIsTransientAboutBlank, bool aPersist,
-                 nsIRequest* aRequest, nsIURI* aPreviousURI);
+                 bool aIsTransientAboutBlank, nsIRequest* aRequest,
+                 nsIURI* aPreviousURI);
   nsPresContext* GetEldestPresContext();
   nsresult CheckLoadingPermissions();
   nsresult LoadHistoryEntry(nsISHEntry* aEntry, uint32_t aLoadType,
@@ -1089,8 +1089,8 @@ class nsDocShell final : public nsDocLoader,
   // aPreviousURI should be the URI that was previously loaded into the
   // nsDocshell
   // aPartitionedPrincipal is the partitioned principal of the current document.
-  void MoveLoadingToActiveEntry(bool aPersist, bool aExpired,
-                                uint32_t aCacheKey, nsIURI* aPreviousURI,
+  void MoveLoadingToActiveEntry(bool aExpired, uint32_t aCacheKey,
+                                nsIURI* aPreviousURI,
                                 nsIPrincipal* aPartitionedPrincipal);
 
   void ActivenessMaybeChanged();

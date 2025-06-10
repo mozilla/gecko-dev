@@ -3791,38 +3791,47 @@ bool BrowsingContext::ShouldAddEntryForRefresh(nsIURI* aPreviousURI,
   return !equalsURI;
 }
 
+bool BrowsingContext::AddSHEntryWouldIncreaseLength(
+    SessionHistoryInfo* aCurrentEntry) const {
+  // nsSHistory::AddEntry and AddNestedSHEntry do a replace load if the current
+  // entry is marked as transient.
+  const bool isCurrentTransientEntry =
+      aCurrentEntry && aCurrentEntry->IsTransient();
+
+  // If this is the first entry for an iframe, it would be added to the parent
+  // entry instead of creating a new top-level entry.
+  const bool wouldAddToParentEntry = !IsTop() && !aCurrentEntry;
+
+  return !isCurrentTransientEntry && !wouldAddToParentEntry;
+}
+
 void BrowsingContext::SessionHistoryCommit(
     const LoadingSessionHistoryInfo& aInfo, uint32_t aLoadType,
     nsIURI* aPreviousURI, SessionHistoryInfo* aPreviousActiveEntry,
-    bool aPersist, bool aCloneEntryChildren, bool aChannelExpired,
-    uint32_t aCacheKey, nsIPrincipal* aPartitionedPrincipal) {
+    bool aCloneEntryChildren, bool aChannelExpired, uint32_t aCacheKey,
+    nsIPrincipal* aPartitionedPrincipal) {
   nsID changeID = {};
   if (XRE_IsContentProcess()) {
     RefPtr<ChildSHistory> rootSH = Top()->GetChildSessionHistory();
     if (rootSH) {
       if (!aInfo.mLoadIsFromSessionHistory) {
-        // We try to mimic as closely as possible what will happen in
-        // CanonicalBrowsingContext::SessionHistoryCommit. We'll be
-        // incrementing the session history length if we're not replacing,
-        // this is a top-level load or it's not the initial load in an iframe,
-        // ShouldUpdateSessionHistory(loadType) returns true and it's not a
-        // refresh for which ShouldAddEntryForRefresh returns false.
+        // We try to mimic as closely as possible whether
+        // CanonicalBrowsingContext::SessionHistoryCommit will increase
+        // the session history length.
         // It is possible that this leads to wrong length temporarily, but
-        // so would not having the check for replace.
-        // Note that nsSHistory::AddEntry does a replace load if the current
-        // entry is not marked as a persisted entry. The child process does
-        // not have access to the current entry, so we use the previous active
-        // entry as the best approximation. When that's not the current entry
-        // then the length might be wrong briefly, until the parent process
-        // commits the actual length.
-        if (!LOAD_TYPE_HAS_FLAGS(
-                aLoadType, nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY) &&
-            (IsTop()
-                 ? (!aPreviousActiveEntry || aPreviousActiveEntry->GetPersist())
-                 : !!aPreviousActiveEntry) &&
+        // so would not having these checks.
+        // The child process does not have access to the current entry, so we
+        // use the previous active entry as the best approximation. When that's
+        // not the current entry then the length might be wrong briefly, until
+        // the parent process commits the actual length.
+        const bool isReplaceLoad = LOAD_TYPE_HAS_FLAGS(
+                       aLoadType, nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY),
+                   isRefreshLoad = LOAD_TYPE_HAS_FLAGS(
+                       aLoadType, nsIWebNavigation::LOAD_FLAGS_IS_REFRESH);
+        if (!isReplaceLoad &&
+            AddSHEntryWouldIncreaseLength(aPreviousActiveEntry) &&
             ShouldUpdateSessionHistory(aLoadType) &&
-            (!LOAD_TYPE_HAS_FLAGS(aLoadType,
-                                  nsIWebNavigation::LOAD_FLAGS_IS_REFRESH) ||
+            (!isRefreshLoad ||
              ShouldAddEntryForRefresh(aPreviousURI, aInfo.mInfo))) {
           changeID = rootSH->AddPendingHistoryChange();
         }
@@ -3833,18 +3842,23 @@ void BrowsingContext::SessionHistoryCommit(
     }
     ContentChild* cc = ContentChild::GetSingleton();
     mozilla::Unused << cc->SendHistoryCommit(
-        this, aInfo.mLoadId, changeID, aLoadType, aPersist, aCloneEntryChildren,
+        this, aInfo.mLoadId, changeID, aLoadType, aCloneEntryChildren,
         aChannelExpired, aCacheKey, aPartitionedPrincipal);
   } else {
-    Canonical()->SessionHistoryCommit(
-        aInfo.mLoadId, changeID, aLoadType, aPersist, aCloneEntryChildren,
-        aChannelExpired, aCacheKey, aPartitionedPrincipal);
+    Canonical()->SessionHistoryCommit(aInfo.mLoadId, changeID, aLoadType,
+                                      aCloneEntryChildren, aChannelExpired,
+                                      aCacheKey, aPartitionedPrincipal);
   }
 }
 
 void BrowsingContext::SetActiveSessionHistoryEntry(
     const Maybe<nsPoint>& aPreviousScrollPos, SessionHistoryInfo* aInfo,
-    uint32_t aLoadType, uint32_t aUpdatedCacheKey, bool aUpdateLength) {
+    SessionHistoryInfo* aPreviousActiveEntry, uint32_t aLoadType,
+    uint32_t aUpdatedCacheKey, bool aUpdateLength) {
+  if (IsTop() &&
+      !nsDocShell::ShouldAddToSessionHistory(aInfo->GetURI(), nullptr)) {
+    aInfo->SetTransient();
+  }
   if (XRE_IsContentProcess()) {
     // XXX Why we update cache key only in content process case?
     if (aUpdatedCacheKey != 0) {
@@ -3855,7 +3869,11 @@ void BrowsingContext::SetActiveSessionHistoryEntry(
     if (aUpdateLength) {
       RefPtr<ChildSHistory> shistory = Top()->GetChildSessionHistory();
       if (shistory) {
-        changeID = shistory->AddPendingHistoryChange();
+        // We try to mimic what will happen in
+        // CanonicalBrowsingContext::SendSetActiveSessionHistoryEntry
+        if (AddSHEntryWouldIncreaseLength(aPreviousActiveEntry)) {
+          changeID = shistory->AddPendingHistoryChange();
+        }
       }
     }
     ContentChild::GetSingleton()->SendSetActiveSessionHistoryEntry(

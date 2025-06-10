@@ -157,12 +157,8 @@ interface nsISHistory: nsISupports
    * Add a new Entry to the History List.
    *
    * @param aEntry            The entry to add.
-   * @param aPersist          If true this specifies that the entry should
-   *                          persist in the list. If false, this means that
-   *                          when new entries are added this element will not
-   *                          appear in the session history list.
    */
-  void addEntry(in nsISHEntry aEntry, in boolean aPersist);
+  void addEntry(in nsISHEntry aEntry);
 
   /**
    * Update the index maintained by sessionHistory
@@ -280,12 +276,19 @@ interface nsISHistory: nsISupports
   [noscript] void AddToRootSessionHistory(in boolean aCloneChildren, in nsISHEntry aOSHE,
                                           in BrowsingContext aRootBC, in nsISHEntry aEntry,
                                           in unsigned long aLoadType,
-                                          in boolean aShouldPersist,
                                           out MaybeInt32 aPreviousEntryIndex,
                                           out MaybeInt32 aLoadedEntryIndex);
 
-  [noscript] void AddChildSHEntryHelper(in nsISHEntry aCloneRef, in nsISHEntry aNewEntry,
-                                        in BrowsingContext aRootBC, in boolean aCloneChildren);
+  /**
+   * Add the new entry aNewEntry for the docshell that is associated with aOldEntry.
+   *
+   * If aOldEntry is transient, it will be replaced by aNewEntry. Otherwise, a new top-level entry
+   * is created.
+   *
+   * @param aCloneChildren whether aNewEntry should have the same child SH entries as aOldEntry
+   */
+  [noscript] void AddNestedSHEntry(in nsISHEntry aOldEntry, in nsISHEntry aNewEntry,
+                                   in BrowsingContext aRootBC, in boolean aCloneChildren);
 
   /**
    * Determine if we can navigate back in history from the entry at aIndex

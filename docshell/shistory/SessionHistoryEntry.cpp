@@ -158,7 +158,7 @@ void SessionHistoryInfo::Reset(nsIURI* aURI, const nsID& aDocShellID,
   mLoadReplace = false;
   mURIWasModified = false;
   mScrollRestorationIsManual = false;
-  mPersist = false;
+  mTransient = false;
   mHasUserInteraction = false;
   mHasUserActivation = false;
 
@@ -1020,14 +1020,14 @@ SessionHistoryEntry::GetChildCount(int32_t* aChildCount) {
 }
 
 NS_IMETHODIMP
-SessionHistoryEntry::GetPersist(bool* aPersist) {
-  *aPersist = mInfo->mPersist;
+SessionHistoryEntry::IsTransient(bool* aIsTransient) {
+  *aIsTransient = mInfo->IsTransient();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-SessionHistoryEntry::SetPersist(bool aPersist) {
-  mInfo->mPersist = aPersist;
+SessionHistoryEntry::SetTransient() {
+  mInfo->SetTransient();
   return NS_OK;
 }
 
@@ -1575,7 +1575,7 @@ void IPDLParamTraits<dom::SessionHistoryInfo>::Write(
   WriteIPDLParam(aWriter, aActor, aParam.mLoadReplace);
   WriteIPDLParam(aWriter, aActor, aParam.mURIWasModified);
   WriteIPDLParam(aWriter, aActor, aParam.mScrollRestorationIsManual);
-  WriteIPDLParam(aWriter, aActor, aParam.mPersist);
+  WriteIPDLParam(aWriter, aActor, aParam.mTransient);
   WriteIPDLParam(aWriter, aActor, aParam.mHasUserInteraction);
   WriteIPDLParam(aWriter, aActor, aParam.mHasUserActivation);
   WriteIPDLParam(aWriter, aActor, aParam.mSharedState.Get()->mId);
@@ -1619,7 +1619,7 @@ bool IPDLParamTraits<dom::SessionHistoryInfo>::Read(
       !ReadIPDLParam(aReader, aActor, &aResult->mLoadReplace) ||
       !ReadIPDLParam(aReader, aActor, &aResult->mURIWasModified) ||
       !ReadIPDLParam(aReader, aActor, &aResult->mScrollRestorationIsManual) ||
-      !ReadIPDLParam(aReader, aActor, &aResult->mPersist) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mTransient) ||
       !ReadIPDLParam(aReader, aActor, &aResult->mHasUserInteraction) ||
       !ReadIPDLParam(aReader, aActor, &aResult->mHasUserActivation) ||
       !ReadIPDLParam(aReader, aActor, &sharedId)) {

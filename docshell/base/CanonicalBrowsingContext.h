@@ -168,9 +168,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
       TopDescendantKind aKind);
 
   void SessionHistoryCommit(uint64_t aLoadId, const nsID& aChangeID,
-                            uint32_t aLoadType, bool aPersist,
-                            bool aCloneEntryChildren, bool aChannelExpired,
-                            uint32_t aCacheKey,
+                            uint32_t aLoadType, bool aCloneEntryChildren,
+                            bool aChannelExpired, uint32_t aCacheKey,
                             nsIPrincipal* aPartitionedPrincipal);
 
   // Calls the session history listeners' OnHistoryReload, storing the result in

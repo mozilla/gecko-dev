@@ -876,8 +876,8 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   void SessionHistoryCommit(const LoadingSessionHistoryInfo& aInfo,
                             uint32_t aLoadType, nsIURI* aCurrentURI,
                             SessionHistoryInfo* aPreviousActiveEntry,
-                            bool aPersist, bool aCloneEntryChildren,
-                            bool aChannelExpired, uint32_t aCacheKey,
+                            bool aCloneEntryChildren, bool aChannelExpired,
+                            uint32_t aCacheKey,
                             nsIPrincipal* aPartitionedPrincipal);
 
   // Set a new active entry on this browsing context. This is used for
@@ -886,10 +886,13 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   // its shared state.
   // aPreviousScrollPos is the scroll position that needs to be saved on the
   // previous active entry.
+  // aPreviousActiveEntry should be the best available approximation of the
+  // current active entry in the parent, which the child process cannot access.
   // aUpdatedCacheKey is the cache key to set on the new active entry. If
   // aUpdatedCacheKey is 0 then it will be ignored.
   void SetActiveSessionHistoryEntry(const Maybe<nsPoint>& aPreviousScrollPos,
                                     SessionHistoryInfo* aInfo,
+                                    SessionHistoryInfo* aPreviousActiveEntry,
                                     uint32_t aLoadType,
                                     uint32_t aUpdatedCacheKey,
                                     bool aUpdateLength = true);
@@ -1017,6 +1020,8 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
                                        bool aHasPostData);
 
  private:
+  bool AddSHEntryWouldIncreaseLength(SessionHistoryInfo* aCurrentEntry) const;
+
   // Assert that this BrowsingContext is coherent relative to related
   // BrowsingContexts. This will be run before the BrowsingContext is attached.
   //

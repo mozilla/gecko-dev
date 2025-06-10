@@ -64,7 +64,7 @@ class nsSHEntry : public nsISHEntry, public nsSupportsWeakReference {
   bool mIsSrcdocEntry;
   bool mScrollRestorationIsManual;
   bool mLoadedInThisProcess;
-  bool mPersist;
+  bool mTransient;
   bool mHasUserInteraction;
   bool mHasUserActivation;
 };
