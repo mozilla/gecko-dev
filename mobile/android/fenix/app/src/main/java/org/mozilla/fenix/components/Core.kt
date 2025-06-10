@@ -63,7 +63,6 @@ import mozilla.components.feature.recentlyclosed.RecentlyClosedMiddleware
 import mozilla.components.feature.recentlyclosed.RecentlyClosedTabsStorage
 import mozilla.components.feature.search.SearchApplicationName
 import mozilla.components.feature.search.SearchDeviceType
-import mozilla.components.feature.search.SearchEngineSelector
 import mozilla.components.feature.search.SearchUpdateChannel
 import mozilla.components.feature.search.middleware.AdsTelemetryMiddleware
 import mozilla.components.feature.search.middleware.SearchExtraParams
@@ -714,7 +713,6 @@ class Core(
             deviceType = deviceType,
             experiment = "",
             updateChannel = updateChannel,
-            selector = SearchEngineSelector(),
             service = context.components.remoteSettingsService.value,
         )
     }
