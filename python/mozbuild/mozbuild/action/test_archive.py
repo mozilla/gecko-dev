@@ -52,7 +52,7 @@ TEST_HARNESS_BINS = [
     "plugin-container",
 ]
 
-TEST_HARNESS_DLLS = ["crashinjectdll", "mozglue"]
+TEST_HARNESS_DLLS = ["crashinjectdll", "mozglue", "xul", "nss3", "gkcodecs", "lgpllibs"]
 
 GMP_TEST_PLUGIN_DIRS = ["gmp-fake/**", "gmp-fakeopenh264/**"]
 
