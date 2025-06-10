@@ -573,18 +573,6 @@ class MDefinition : public MNode {
     setBlockAndKind(block, Kind::Definition);
   }
 
-  void setWasmRefType(wasm::MaybeRefType refType) {
-    // Ensure that we do not regress from Some to Nothing.
-    MOZ_ASSERT(!(wasmRefType_.isSome() && refType.isNothing()));
-    // Ensure that the new ref type is a subtype of the previous one (i.e. we
-    // only narrow ref types).
-    MOZ_ASSERT_IF(
-        wasmRefType_.isSome(),
-        wasm::RefType::isSubTypeOf(refType.value(), wasmRefType_.value()));
-
-    wasmRefType_ = refType;
-  }
-
   static HashNumber addU32ToHash(HashNumber hash, uint32_t data) {
     return data + (hash << 6) + (hash << 16) - hash;
   }
@@ -754,11 +742,16 @@ class MDefinition : public MNode {
   // Get the wasm reference type stored on the node.
   wasm::MaybeRefType wasmRefType() const { return wasmRefType_; }
 
+  // Sets the wasm reference type stored on the node. Does not check if there
+  // was already a type on the node, which may lead to bugs; consider using
+  // `initWasmRefType` instead if it applies.
+  void setWasmRefType(wasm::MaybeRefType refType) { wasmRefType_ = refType; }
+
   // Sets the wasm reference type stored on the node. To be used for nodes that
   // have a fixed ref type that is set up front, which is a common case. Must be
   // called only during the node constructor and never again afterward.
   void initWasmRefType(wasm::MaybeRefType refType) {
-    MOZ_RELEASE_ASSERT(!wasmRefType_);
+    MOZ_ASSERT(!wasmRefType_);
     setWasmRefType(refType);
   }
 
@@ -767,13 +760,6 @@ class MDefinition : public MNode {
   // which means it will return either Nothing or a value set by
   // initWasmRefType.
   virtual wasm::MaybeRefType computeWasmRefType() const { return wasmRefType_; }
-
-  // Updates the wasm reference type stored on the node by calling
-  // computeWasmRefType and setWasmRefType. Returns true if the type changed.
-  //
-  // This is used in an analysis pass to assign the type to the node, multiple
-  // times if necessary as type information is computed.
-  bool updateWasmRefType();
 
   // Return true if the result type is a member of the given types.
   bool typeIsOneOf(MIRTypeEnumSet types) const {
