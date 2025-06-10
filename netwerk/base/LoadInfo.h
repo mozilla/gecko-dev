@@ -264,6 +264,7 @@ class LoadInfo final : public nsILoadInfo {
       bool aHasValidUserGestureActivation, bool aTextDirectiveUserActivation,
       bool aIsSameDocumentNavigation, bool aAllowDeprecatedSystemRequests,
       bool aIsInDevToolsContext, bool aParserCreatedScript,
+      Maybe<dom::RequestMode> aRequestMode,
       nsILoadInfo::StoragePermissionState aStoragePermission,
       nsILoadInfo::IPAddressSpace aParentIPAddressSpace,
       nsILoadInfo::IPAddressSpace aIPAddressSpace,
@@ -397,6 +398,7 @@ class LoadInfo final : public nsILoadInfo {
   bool mIsUserTriggeredSave = false;
   bool mIsInDevToolsContext = false;
   bool mParserCreatedScript = false;
+  Maybe<dom::RequestMode> mRequestMode;
   nsILoadInfo::StoragePermissionState mStoragePermission =
       nsILoadInfo::NoStoragePermission;
   // IP Address space of the parent browsing context.

@@ -36,6 +36,7 @@ class ClientSource;
 struct FeaturePolicyInfo;
 class PerformanceStorage;
 class ServiceWorkerDescriptor;
+enum class RequestMode : uint8_t;
 } // namespace dom
 } // namespace mozilla
 %}
@@ -60,6 +61,7 @@ native OriginAttributes(mozilla::OriginAttributes);
       native CSPRef(already_AddRefed<nsIContentSecurityPolicy>);
       native MaybeFeaturePolicyInfo(mozilla::Maybe<mozilla::dom::FeaturePolicyInfo>);
 [ref] native const_FeaturePolicyInfoRef(const mozilla::dom::FeaturePolicyInfo);
+      native MaybeRequestMode(mozilla::Maybe<mozilla::dom::RequestMode>);
 
 typedef unsigned long nsSecurityFlags;
 
@@ -580,6 +582,13 @@ interface nsILoadInfo : nsISupports
    * the script was created by the HTML parser.
    */
   [infallible] attribute boolean parserCreatedScript;
+
+  /**
+   * Request mode of the request. This is only set by ScriptLoader
+   * for script loads.
+   */
+  [noscript]
+  attribute MaybeRequestMode requestMode;
 
   /**
    * True if this request is known to have been triggered by a user

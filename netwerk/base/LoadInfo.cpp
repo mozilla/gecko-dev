@@ -770,6 +770,7 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
       mAllowDeprecatedSystemRequests(rhs.mAllowDeprecatedSystemRequests),
       mIsInDevToolsContext(rhs.mIsInDevToolsContext),
       mParserCreatedScript(rhs.mParserCreatedScript),
+      mRequestMode(rhs.mRequestMode),
       mStoragePermission(rhs.mStoragePermission),
       mParentIPAddressSpace(rhs.mParentIPAddressSpace),
       mIPAddressSpace(rhs.mIPAddressSpace),
@@ -834,6 +835,7 @@ LoadInfo::LoadInfo(
     bool aHasValidUserGestureActivation, bool aTextDirectiveUserActivation,
     bool aIsSameDocumentNavigation, bool aAllowDeprecatedSystemRequests,
     bool aIsInDevToolsContext, bool aParserCreatedScript,
+    Maybe<RequestMode> aRequestMode,
     nsILoadInfo::StoragePermissionState aStoragePermission,
     nsILoadInfo::IPAddressSpace aParentIPAddressSpace,
     nsILoadInfo::IPAddressSpace aIPAddressSpace,
@@ -919,6 +921,7 @@ LoadInfo::LoadInfo(
       mAllowDeprecatedSystemRequests(aAllowDeprecatedSystemRequests),
       mIsInDevToolsContext(aIsInDevToolsContext),
       mParserCreatedScript(aParserCreatedScript),
+      mRequestMode(aRequestMode),
       mStoragePermission(aStoragePermission),
       mParentIPAddressSpace(aParentIPAddressSpace),
       mIPAddressSpace(aIPAddressSpace),
@@ -2254,6 +2257,18 @@ LoadInfo::GetParserCreatedScript(bool* aParserCreatedScript) {
 NS_IMETHODIMP
 LoadInfo::SetParserCreatedScript(bool aParserCreatedScript) {
   mParserCreatedScript = aParserCreatedScript;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::GetRequestMode(Maybe<RequestMode>* aRequestMode) {
+  *aRequestMode = mRequestMode;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::SetRequestMode(Maybe<RequestMode> aRequestMode) {
+  mRequestMode = aRequestMode;
   return NS_OK;
 }
 

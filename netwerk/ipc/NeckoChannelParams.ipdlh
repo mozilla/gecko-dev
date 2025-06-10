@@ -189,6 +189,7 @@ struct LoadInfoArgs
   bool                        allowDeprecatedSystemRequests;
   bool                        isInDevToolsContext;
   bool                        parserCreatedScript;
+  RequestMode?                requestMode;
   bool                        isFromProcessingFrameAttributes;
   bool                        isMediaRequest;
   bool                        isMediaInitialRequest;
@@ -265,6 +266,8 @@ struct ParentLoadInfoForwarderArgs
   // Only ever returns true if the loadinfo is of TYPE_SCRIPT and
   // the script was created by the HTML parser.
   bool parserCreatedScript;
+
+  RequestMode? requestMode;
 
   // Sandbox Flags of the Document that triggered the load
   uint32_t triggeringSandboxFlags;

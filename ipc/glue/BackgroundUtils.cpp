@@ -555,6 +555,9 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
         Some(overriddenFingerprintingSettings.ref());
   }
 
+  Maybe<RequestMode> requestMode;
+  aLoadInfo->GetRequestMode(&requestMode);
+
   *outLoadInfoArgs = LoadInfoArgs(
       loadingPrincipalInfo, triggeringPrincipalInfo, principalToInheritInfo,
       topLevelPrincipalInfo, optionalResultPrincipalURI, triggeringRemoteType,
@@ -596,7 +599,7 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
       aLoadInfo->GetTextDirectiveUserActivation(),
       aLoadInfo->GetAllowDeprecatedSystemRequests(),
       aLoadInfo->GetIsInDevToolsContext(), aLoadInfo->GetParserCreatedScript(),
-      aLoadInfo->GetIsFromProcessingFrameAttributes(),
+      requestMode, aLoadInfo->GetIsFromProcessingFrameAttributes(),
       aLoadInfo->GetIsMediaRequest(), aLoadInfo->GetIsMediaInitialRequest(),
       aLoadInfo->GetIsFromObjectOrEmbed(), cookieJarSettingsArgs,
       aLoadInfo->GetRequestBlockingReason(), maybeCspToInheritInfo,
@@ -893,10 +896,11 @@ nsresult LoadInfoArgsToLoadInfo(const LoadInfoArgs& loadInfoArgs,
       /* aIsSameDocumentNavigation */ false,
       loadInfoArgs.allowDeprecatedSystemRequests(),
       loadInfoArgs.isInDevToolsContext(), loadInfoArgs.parserCreatedScript(),
-      loadInfoArgs.storagePermission(), loadInfoArgs.parentIPAddressSpace(),
-      loadInfoArgs.ipAddressSpace(), overriddenFingerprintingSettings,
-      loadInfoArgs.isMetaRefresh(), loadInfoArgs.requestBlockingReason(),
-      loadingContext, loadInfoArgs.loadingEmbedderPolicy(),
+      loadInfoArgs.requestMode(), loadInfoArgs.storagePermission(),
+      loadInfoArgs.parentIPAddressSpace(), loadInfoArgs.ipAddressSpace(),
+      overriddenFingerprintingSettings, loadInfoArgs.isMetaRefresh(),
+      loadInfoArgs.requestBlockingReason(), loadingContext,
+      loadInfoArgs.loadingEmbedderPolicy(),
       loadInfoArgs.originTrialCoepCredentiallessEnabledForTopLevel(),
       loadInfoArgs.unstrippedURI(), interceptionInfo,
       loadInfoArgs.hasInjectedCookieForCookieBannerHandling(),
@@ -967,6 +971,9 @@ void LoadInfoToParentLoadInfoForwarder(
         Some(overriddenFingerprintingSettings.ref());
   }
 
+  Maybe<RequestMode> requestMode;
+  aLoadInfo->GetRequestMode(&requestMode);
+
   *aForwarderArgsOut = ParentLoadInfoForwarderArgs(
       aLoadInfo->GetAllowInsecureRedirectToDataURI(), ipcController, tainting,
       aLoadInfo->GetSkipContentSniffing(), aLoadInfo->GetHttpsOnlyStatus(),
@@ -975,7 +982,7 @@ void LoadInfoToParentLoadInfoForwarder(
       aLoadInfo->GetTextDirectiveUserActivation(),
       aLoadInfo->GetAllowDeprecatedSystemRequests(),
       aLoadInfo->GetIsInDevToolsContext(), aLoadInfo->GetParserCreatedScript(),
-      aLoadInfo->GetTriggeringSandboxFlags(),
+      requestMode, aLoadInfo->GetTriggeringSandboxFlags(),
       aLoadInfo->GetTriggeringWindowId(),
       aLoadInfo->GetTriggeringStorageAccess(),
       aLoadInfo->GetServiceWorkerTaintingSynthesized(),
@@ -1052,6 +1059,9 @@ nsresult MergeParentLoadInfoForwarder(
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = aLoadInfo->SetParserCreatedScript(aForwarderArgs.parserCreatedScript());
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = aLoadInfo->SetRequestMode(aForwarderArgs.requestMode());
   NS_ENSURE_SUCCESS(rv, rv);
 
   MOZ_ALWAYS_SUCCEEDS(aLoadInfo->SetDocumentHasUserInteracted(
