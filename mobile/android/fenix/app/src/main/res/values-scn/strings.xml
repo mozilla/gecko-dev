@@ -577,7 +577,7 @@
   -->
   <string name="onboarding_add_on_header" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">Pirsunalizza Firefox chî stinneri</string>
   <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_sub_header" moz:removedIn="140" tools:ignore="UnusedResources">Junci stinneri terzi p\'ammigghiurari a to sicurizza, a pruduttività e autru superchiu.</string>
+  <string name="onboarding_add_on_sub_header" moz:removedIn="140" tools:ignore="UnusedResources">Junci stinneri terzi pi fari megghiu a to sicurizza, a pruduttività e autru ancora.</string>
   <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
   <string name="onboarding_add_on_explore_more_extensions_2" moz:removedIn="140" tools:ignore="UnusedResources">Scopri cchiù assai stinneri</string>
   <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
@@ -611,7 +611,7 @@
   <!-- Content description for the star rating group. %1$s is the rating. -->
   <string name="onboarding_add_on_star_rating_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Vutatu cu %1$s di 5 stiḍḍi</string>
   <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
-  <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">Ajùtani a \'mmigghiurari a Firefox</string>
+  <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">Ajùtani a fari addivintari Firefox megghiu</string>
   <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_title">Manna \'n autumàticu i signalijazzioni di scasciu</string>
   <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
@@ -641,7 +641,7 @@
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
   <string name="onboarding_term_of_service_line_two_link_text">Abbisu di privatizza</string>
   <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$s is replaced by an active link using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
-  <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">P\'ajutàrini a \'mmigghiurari u navicaturi, Firefox manna dati diagnòstici e di ntirazzioni a Mozilla. %1$s</string>
+  <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">P\'ajutàrini a fari megghiu u navicaturi, Firefox manna dati diagnòstici e di ntirazzioni a Mozilla. %1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
   <string name="onboarding_term_of_service_line_three_link_text">Manija</string>
   <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
@@ -2090,7 +2090,7 @@
     Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments
   -->
-  <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">Pi favuri ajùtani a \'mmigghiurari Firefox arrispunnennu a na ntirbista nicareḍḍa.</string>
+  <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">Pi favuri ajùtani a fari megghiu Firefox arrispunnennu a na ntirbista nicareḍḍa.</string>
   <!-- Preference for taking the short survey. -->
   <string name="preferences_take_survey">Fai a ntirbista</string>
   <!-- Preference for not taking the short survey. -->
@@ -3386,7 +3386,7 @@
 
     The microsurvey prompt title. Note: The word "Firefox" should NOT be translated
   -->
-  <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">Ajùtani a \'mmigghiurari Firefox. Cci voli sulu un minutu.</string>
+  <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">Ajùtani a fari megghiu Firefox. Cci voli sulu un minutu.</string>
   <!-- The continue button label -->
   <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Cuntinua</string>
   <!--
@@ -3420,11 +3420,11 @@
   <!-- Option for likert scale -->
   <string name="likert_scale_option_8" tools:ignore="UnusedResources">Nun usu a sincrunizzazzioni</string>
   <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-  <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Ajùtani a \'mmigghiurari Firefox. Cci voli sulu un minutu</string>
+  <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Ajùtani a fari megghiu Firefox. Cci voli sulu un minutu</string>
   <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
-  <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Ajùtani a \'mmigghiurari i risciduti nni Firefox. Cci voli sulu un minutu</string>
+  <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Ajùtani a fari megghiu i risciduti nni Firefox. Cci voli sulu un minutu</string>
   <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
-  <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Ajùtani a \'mmigghiurari a sincrunizzazzioni nni Firefox. Cci voli sulu un minutu</string>
+  <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Ajùtani a fari megghiu a sincrunizzazzioni nni Firefox. Cci voli sulu un minutu</string>
   <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
   <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Quantu sì satisfatu/a dâ stampa di Firefox?</string>
   <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -3702,7 +3702,7 @@
   <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
   <string name="review_prompt_rate_button">Vàluta %1$s nne Play Store</string>
   <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="review_prompt_feedback_header">Ni dispiaci chi stai avennu mpidugghi. Fanni sapiri comu putemu ammigghiurari %1$s.</string>
+  <string name="review_prompt_feedback_header">Ni dispiaci chi stai avennu mpidugghi. Fanni sapiri comu putemu fari megghiu %1$s.</string>
   <!-- Label for a button opening a feedback forum -->
   <string name="review_prompt_feedback_button">Lassa un cummentu</string>
 </resources>

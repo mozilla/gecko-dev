@@ -1661,6 +1661,8 @@
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Logg inn eller logg ut</string>
   <!-- Broken site reason text for site is slow -->
   <string name="webcompat_reporter_reason_slow2">Nettstaden er treg</string>
+  <!-- Broken site reason text for video isn’t playing or loading -->
+  <string name="webcompat_reporter_reason_media2">Videoen spelar ikkje eller vert ikkje lasta inn</string>
   <!-- Broken site reason text for missing content -->
   <string name="webcompat_reporter_reason_content2">Manglande innhald</string>
   <!-- Broken site reason text for ad blocker -->

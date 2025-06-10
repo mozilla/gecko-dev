@@ -2176,7 +2176,7 @@
   <!-- Title for the cached images and files item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_cached_files">Obrázky a súbory vo vyrovnávacej pamäti</string>
   <!-- Subtitle for the cached images and files item in Delete browsing data -->
-  <string name="preferences_delete_browsing_data_cached_files_subtitle">Uvolní priestor v zariadení</string>
+  <string name="preferences_delete_browsing_data_cached_files_subtitle">Uvoľní priestor v zariadení</string>
   <!-- Title for the site permissions item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_site_permissions">Oprávnenia stránok</string>
   <!-- Title for the downloads item in Delete browsing data -->
