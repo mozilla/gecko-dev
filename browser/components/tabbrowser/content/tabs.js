@@ -697,12 +697,24 @@
         // Set this before adjusting dragged tab's position
         let pinnedTabs = this.visibleTabs.slice(0, gBrowser.pinnedTabCount);
         let tabsPerRow = 0;
-        let position = 0;
+        let position = RTL_UI
+          ? window.windowUtils.getBoundsWithoutFlushing(
+              this.pinnedTabsContainer
+            ).right
+          : 0;
         for (let pinnedTab of pinnedTabs) {
-          let tabPosition =
-            window.windowUtils.getBoundsWithoutFlushing(pinnedTab).left;
-          if (tabPosition < position) {
-            break;
+          let tabPosition;
+          let rect = window.windowUtils.getBoundsWithoutFlushing(pinnedTab);
+          if (RTL_UI) {
+            tabPosition = rect.right;
+            if (tabPosition > position) {
+              break;
+            }
+          } else {
+            tabPosition = rect.left;
+            if (tabPosition < position) {
+              break;
+            }
           }
           tabsPerRow++;
           position = tabPosition;
@@ -2200,13 +2212,16 @@
       let shiftNumber = this.#maxTabsPerRow - movingTabs.length;
 
       let getTabShift = (tab, dropIndex) => {
-        if (tab._tPos < draggedTab._tPos && tab._tPos >= dropIndex) {
+        if (
+          tab.elementIndex < draggedTab.elementIndex &&
+          tab.elementIndex >= dropIndex
+        ) {
           // If tab is at the end of a row, shift back and down
-          let tabRow = Math.ceil((tab._tPos + 1) / this.#maxTabsPerRow);
+          let tabRow = Math.ceil((tab.elementIndex + 1) / this.#maxTabsPerRow);
           let shiftedTabRow = Math.ceil(
-            (tab._tPos + 1 + movingTabs.length) / this.#maxTabsPerRow
+            (tab.elementIndex + 1 + movingTabs.length) / this.#maxTabsPerRow
           );
-          if (tab._tPos && tabRow != shiftedTabRow) {
+          if (tab.elementIndex && tabRow != shiftedTabRow) {
             return [
               RTL_UI ? tabWidth * shiftNumber : -tabWidth * shiftNumber,
               shiftSizeY,
@@ -2214,13 +2229,16 @@
           }
           return [RTL_UI ? -shiftSizeX : shiftSizeX, 0];
         }
-        if (tab._tPos > draggedTab._tPos && tab._tPos < dropIndex) {
+        if (
+          tab.elementIndex > draggedTab.elementIndex &&
+          tab.elementIndex < dropIndex
+        ) {
           // If tab is not index 0 and at the start of a row, shift across and up
-          let tabRow = Math.floor(tab._tPos / this.#maxTabsPerRow);
+          let tabRow = Math.floor(tab.elementIndex / this.#maxTabsPerRow);
           let shiftedTabRow = Math.floor(
-            (tab._tPos - movingTabs.length) / this.#maxTabsPerRow
+            (tab.elementIndex - movingTabs.length) / this.#maxTabsPerRow
           );
-          if (tab._tPos && tabRow != shiftedTabRow) {
+          if (tab.elementIndex && tabRow != shiftedTabRow) {
             return [
               RTL_UI ? -tabWidth * shiftNumber : tabWidth * shiftNumber,
               -shiftSizeY,
@@ -2234,7 +2252,8 @@
       let low = 0;
       let high = tabs.length - 1;
       let newIndex = -1;
-      let oldIndex = dragData.animDropIndex ?? movingTabs[0]._tPos;
+      let oldIndex =
+        dragData.animDropElementIndex ?? movingTabs[0].elementIndex;
       while (low <= high) {
         let mid = Math.floor((low + high) / 2);
         if (tabs[mid] == draggedTab && ++mid > high) {
@@ -2248,12 +2267,16 @@
           low = mid + 1;
         } else if (screenY > tabCenterY) {
           high = mid - 1;
-        } else if (screenX > tabCenterX) {
+        } else if (
+          RTL_UI ? screenX + tabWidth < tabCenterX : screenX > tabCenterX
+        ) {
           high = mid - 1;
-        } else if (screenX + tabWidth < tabCenterX) {
+        } else if (
+          RTL_UI ? screenX > tabCenterX : screenX + tabWidth < tabCenterX
+        ) {
           low = mid + 1;
         } else {
-          newIndex = tabs[mid]._tPos;
+          newIndex = tabs[mid].elementIndex;
           break;
         }
       }
@@ -2266,10 +2289,11 @@
         newIndex = oldIndex;
       }
 
-      if (newIndex == dragData.animDropIndex) {
+      if (newIndex == dragData.animDropElementIndex) {
         return;
       }
-      dragData.animDropIndex = newIndex;
+
+      dragData.animDropElementIndex = newIndex;
       dragData.dropElement = tabs[newIndex];
       dragData.dropBefore = newIndex < tabs.length;
 
