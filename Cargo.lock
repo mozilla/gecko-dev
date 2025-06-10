@@ -7000,6 +7000,7 @@ name = "uniffi-bindgen-gecko-js-test-fixtures"
 version = "0.29.0"
 dependencies = [
  "uniffi_bindings_tests",
+ "uniffi_bindings_tests_collision",
  "uniffi_bindings_tests_external_types",
 ]
 
@@ -7038,6 +7039,14 @@ dependencies = [
  "thiserror 1.999.999",
  "uniffi",
  "url",
+]
+
+[[package]]
+name = "uniffi_bindings_tests_collision"
+version = "0.1.0"
+dependencies = [
+ "uniffi",
+ "uniffi_bindings_tests",
 ]
 
 [[package]]

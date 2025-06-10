@@ -618,11 +618,11 @@ export class FfiConverterUInt32 extends FfiConverter {
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeApplicationErrorReporter extends FfiConverter {
     static lower(callbackObj) {
-        return uniffiCallbackHandlerApplicationErrorReporter.storeCallbackObj(callbackObj)
+        return uniffiCallbackHandlerErrorsupportApplicationErrorReporter.storeCallbackObj(callbackObj)
     }
 
     static lift(handleId) {
-        return uniffiCallbackHandlerApplicationErrorReporter.getCallbackObj(handleId)
+        return uniffiCallbackHandlerErrorsupportApplicationErrorReporter.getCallbackObj(handleId)
     }
 
     static read(dataStream) {
@@ -636,7 +636,7 @@ export class FfiConverterTypeApplicationErrorReporter extends FfiConverter {
     static computeSize(callbackObj) {
         return 8;
     }
-}const uniffiCallbackHandlerApplicationErrorReporter = new UniFFICallbackHandler(
+}const uniffiCallbackHandlerErrorsupportApplicationErrorReporter = new UniFFICallbackHandler(
     "ApplicationErrorReporter",
     2,
     [
@@ -668,4 +668,4 @@ export class FfiConverterTypeApplicationErrorReporter extends FfiConverter {
 );
 
 // Allow the shutdown-related functionality to be tested in the unit tests
-UnitTestObjs.uniffiCallbackHandlerApplicationErrorReporter = uniffiCallbackHandlerApplicationErrorReporter;
+UnitTestObjs.uniffiCallbackHandlerErrorsupportApplicationErrorReporter = uniffiCallbackHandlerErrorsupportApplicationErrorReporter;

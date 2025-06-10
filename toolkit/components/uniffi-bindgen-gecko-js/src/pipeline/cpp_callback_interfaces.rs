@@ -189,10 +189,15 @@ fn generate_cpp_callback_interface(
             .callback_interface
             .then(|| format!("FfiValueCallbackInterface{module_name}_{interface_name}")),
         handler_var: format!(
-            "gUniffiCallbackHandler{}",
+            "gUniffiCallbackHandler{}{}",
+            module_name.to_upper_camel_case(),
             interface_name.to_upper_camel_case()
         ),
-        vtable_var: format!("kUniffiVtable{}", interface_name.to_upper_camel_case()),
+        vtable_var: format!(
+            "kUniffiVtable{}{}",
+            module_name.to_upper_camel_case(),
+            interface_name.to_upper_camel_case()
+        ),
         vtable_struct_type: vtable.struct_type.clone(),
         init_fn: vtable.init_fn.clone(),
         free_fn: format!(

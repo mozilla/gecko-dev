@@ -195,6 +195,9 @@
 "TestTraitInterface.set_value" = "Sync"
 "TestTraitInterface.throw_if_equal" = "Sync"
 
+[uniffi_bindings_tests_collision.async_wrappers]
+"invoke_collision_callback" = "Sync"
+
 [uniffi_bindings_tests_external_types.async_wrappers]
 "roundtrip_ext_custom_type" = "Sync"
 "roundtrip_ext_enum" = "Sync"

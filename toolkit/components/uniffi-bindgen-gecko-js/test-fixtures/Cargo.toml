@@ -9,3 +9,4 @@ crate-type = ["lib", "staticlib"]
 [dependencies]
 uniffi_bindings_tests = { path = "../uniffi_bindings_tests" }
 uniffi_bindings_tests_external_types = { path = "../uniffi_bindings_tests_external_types" }
+uniffi_bindings_tests_collision = { path = "../uniffi_bindings_tests_collision" }

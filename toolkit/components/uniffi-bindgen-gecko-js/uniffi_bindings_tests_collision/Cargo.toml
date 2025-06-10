@@ -1,0 +1,12 @@
+[package]
+name = "uniffi_bindings_tests_collision"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["lib", "staticlib"]
+
+[dependencies]
+uniffi = { workspace = true }
+
+uniffi_bindings_tests = { path = "../uniffi_bindings_tests" }

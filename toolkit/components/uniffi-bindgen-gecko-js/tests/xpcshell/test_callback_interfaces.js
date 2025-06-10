@@ -56,7 +56,7 @@ add_task(async () => {
 add_task(async function testCleanupAfterFailedLower() {
   const cbi = new Callback(42);
   Assert.equal(
-    UnitTestObjs.uniffiCallbackHandlerTestCallbackInterface.hasRegisteredCallbacks(),
+    UnitTestObjs.uniffiCallbackHandlerUniffiBindingsTestsTestCallbackInterface.hasRegisteredCallbacks(),
     false
   );
   // Call `invokeTestCallbackInterfaceSetValue` with an invalid second argument.
@@ -68,7 +68,7 @@ add_task(async function testCleanupAfterFailedLower() {
     // Errors are expected
     .catch(() => null);
   Assert.equal(
-    UnitTestObjs.uniffiCallbackHandlerTestCallbackInterface.hasRegisteredCallbacks(),
+    UnitTestObjs.uniffiCallbackHandlerUniffiBindingsTestsTestCallbackInterface.hasRegisteredCallbacks(),
     false
   );
 });
@@ -78,7 +78,7 @@ add_task(async function testCleanupAfterFailedLower() {
 add_task(async function testCleanupAfterFailedCppLower() {
   const cbi = new Callback(42);
   Assert.equal(
-    UnitTestObjs.uniffiCallbackHandlerTestCallbackInterface.hasRegisteredCallbacks(),
+    UnitTestObjs.uniffiCallbackHandlerUniffiBindingsTestsTestCallbackInterface.hasRegisteredCallbacks(),
     false
   );
   // Call `invokeTestCallbackInterfaceSetValue` with an invalid second argument.
@@ -96,7 +96,7 @@ add_task(async function testCleanupAfterFailedCppLower() {
   do_test_pending();
   do_timeout(100, () => {
     Assert.equal(
-      UnitTestObjs.uniffiCallbackHandlerTestCallbackInterface.hasRegisteredCallbacks(),
+      UnitTestObjs.uniffiCallbackHandlerUniffiBindingsTestsTestCallbackInterface.hasRegisteredCallbacks(),
       false
     );
     do_test_finished();

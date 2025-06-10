@@ -523,6 +523,30 @@ class FfiConverterArrayBuffer extends FfiConverter {
 const uniffiObjectPtr = Symbol("uniffiObjectPtr");
 const constructUniffiObject = Symbol("constructUniffiObject");
 UnitTestObjs.uniffiObjectPtr = uniffiObjectPtr;
+/**
+ * invokeCollisionCallback
+ * @param {TestCallbackInterface} cb
+ * @returns {string}
+ */
+export function invokeCollisionCallback(
+    cb) {
+   
+if (cb instanceof UniffiSkipJsTypeCheck) {
+    cb = cb.value;
+} else {
+    FfiConverterTypeTestCallbackInterface.checkType(cb);
+}
+const result = UniFFIScaffolding.callSync(
+    195, // uniffi_uniffi_bindings_tests_collision_fn_func_invoke_collision_callback
+    FfiConverterTypeTestCallbackInterface.lower(cb),
+)
+return handleRustResult(
+    result,
+    FfiConverterString.lift.bind(FfiConverterString),
+    null,
+)
+}
+
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterString extends FfiConverter {
@@ -553,262 +577,14 @@ export class FfiConverterString extends FfiConverter {
         return 4 + lazy.encoder.encode(value).length
     }
 }
-
-/**
- * ApiError
- */
-export class ApiError extends Error {}
-
-
-/**
- * Other
- */
-export class Other extends ApiError {
-
-    constructor(
-        reason,
-        ...params
-    ) {
-        const message = `reason: ${ reason }`;
-        super(message, ...params);
-        this.reason = reason;
-    }
-    toString() {
-        return `Other: ${super.toString()}`
-    }
-}
-
 // Export the FFIConverter object to make external types work.
-export class FfiConverterTypeApiError extends FfiConverterArrayBuffer {
-    static read(dataStream) {
-        switch (dataStream.readInt32()) {
-            case 1:
-                return new Other(
-                    FfiConverterString.read(dataStream)
-                    );
-            default:
-                throw new UniFFITypeError("Unknown ApiError variant");
-        }
-    }
-    static computeSize(value) {
-        // Size of the Int indicating the variant
-        let totalSize = 4;
-        if (value instanceof Other) {
-            totalSize += FfiConverterString.computeSize(value.reason);
-            return totalSize;
-        }
-        throw new UniFFITypeError("Unknown ApiError variant");
-    }
-    static write(dataStream, value) {
-        if (value instanceof Other) {
-            dataStream.writeInt32(1);
-            FfiConverterString.write(dataStream, value.reason);
-            return;
-        }
-        throw new UniFFITypeError("Unknown ApiError variant");
-    }
-
-    static errorClass = ApiError;
-}
-// Export the FFIConverter object to make external types work.
-export class FfiConverterUInt8 extends FfiConverter {
-    static checkType(value) {
-        super.checkType(value);
-        if (!Number.isInteger(value)) {
-            throw new UniFFITypeError(`${value} is not an integer`);
-        }
-        if (value < 0 || value > 256) {
-            throw new UniFFITypeError(`${value} exceeds the U8 bounds`);
-        }
-    }
-    static computeSize(_value) {
-        return 1;
-    }
-    static lift(value) {
-        return value;
-    }
-    static lower(value) {
-        return value;
-    }
-    static write(dataStream, value) {
-        dataStream.writeUint8(value)
-    }
-    static read(dataStream) {
-        return dataStream.readUint8()
-    }
-}
-/**
- * Top-level API for the context_id component
- */
-export class ContextIdComponent {
-    // Use `init` to instantiate this class.
-    // DO NOT USE THIS CONSTRUCTOR DIRECTLY
-    constructor(opts) {
-        if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
-            throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
-            "Please use a UDL defined constructor, or the init function for the primary constructor")
-        }
-        if (!(opts[constructUniffiObject] instanceof UniFFIPointer)) {
-            throw new UniFFIError("Attempting to create a UniFFI object with a pointer that is not an instance of UniFFIPointer")
-        }
-        this[uniffiObjectPtr] = opts[constructUniffiObject];
-    }
-    /**
-     * Construct a new [ContextIDComponent].
-     * 
-     * If no creation timestamp is provided, the current time will be used.
-     * @param {string} initContextId
-     * @param {number} creationTimestampS
-     * @param {boolean} runningInTestAutomation
-     * @param {ContextIdCallback} callback
-     * @returns {ContextIdComponent}
-     */
-    static init(
-        initContextId, 
-        creationTimestampS, 
-        runningInTestAutomation, 
-        callback) {
-       
-        FfiConverterString.checkType(initContextId);
-        FfiConverterInt64.checkType(creationTimestampS);
-        FfiConverterBoolean.checkType(runningInTestAutomation);
-        FfiConverterTypeContextIdCallback.checkType(callback);
-        const result = UniFFIScaffolding.callSync(
-            1, // uniffi_context_id_fn_constructor_contextidcomponent_new
-            FfiConverterString.lower(initContextId),
-            FfiConverterInt64.lower(creationTimestampS),
-            FfiConverterBoolean.lower(runningInTestAutomation),
-            FfiConverterTypeContextIdCallback.lower(callback),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterTypeContextIDComponent.lift.bind(FfiConverterTypeContextIDComponent),
-            FfiConverterTypeApiError.lift.bind(FfiConverterTypeApiError),
-        )
-    }
-
-    /**
-     * Regenerate the context ID.
-     */
-    async forceRotation() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            2, // uniffi_context_id_fn_method_contextidcomponent_force_rotation
-            FfiConverterTypeContextIDComponent.lowerReceiver(this),
-        )
-        return handleRustResult(
-            result,
-            (result) => undefined,
-            FfiConverterTypeApiError.lift.bind(FfiConverterTypeApiError),
-        )
-    }
-
-    /**
-     * Return the current context ID string.
-     * @param {number} rotationDaysInS
-     * @returns {Promise<string>}}
-     */
-    async request(
-        rotationDaysInS) {
-       
-        FfiConverterUInt8.checkType(rotationDaysInS);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            3, // uniffi_context_id_fn_method_contextidcomponent_request
-            FfiConverterTypeContextIDComponent.lowerReceiver(this),
-            FfiConverterUInt8.lower(rotationDaysInS),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterString.lift.bind(FfiConverterString),
-            FfiConverterTypeApiError.lift.bind(FfiConverterTypeApiError),
-        )
-    }
-
-    /**
-     * Unset the callbacks set during construction, and use a default
-     * no-op ContextIdCallback instead.
-     */
-    async unsetCallback() {
-       
-        const result = await UniFFIScaffolding.callAsyncWrapper(
-            4, // uniffi_context_id_fn_method_contextidcomponent_unset_callback
-            FfiConverterTypeContextIDComponent.lowerReceiver(this),
-        )
-        return handleRustResult(
-            result,
-            (result) => undefined,
-            FfiConverterTypeApiError.lift.bind(FfiConverterTypeApiError),
-        )
-    }
-
-}
-
-// Export the FFIConverter object to make external types work.
-export class FfiConverterTypeContextIDComponent extends FfiConverter {
-    static lift(value) {
-        const opts = {};
-        opts[constructUniffiObject] = value;
-        return new ContextIdComponent(opts);
-    }
-
-    static lower(value) {
-        const ptr = value[uniffiObjectPtr];
-        if (!(ptr instanceof UniFFIPointer)) {
-            throw new UniFFITypeError("Object is not a 'ContextIdComponent' instance");
-        }
-        return ptr;
-    }
-
-    static lowerReceiver(value) {
-        // This works exactly the same as lower for non-trait interfaces
-        return this.lower(value);
-    }
-
-    static read(dataStream) {
-        return this.lift(dataStream.readPointer(1));
-    }
-
-    static write(dataStream, value) {
-        dataStream.writePointer(1, this.lower(value));
-    }
-
-    static computeSize(value) {
-        return 8;
-    }
-}
-
-// Export the FFIConverter object to make external types work.
-export class FfiConverterInt64 extends FfiConverter {
-    static checkType(value) {
-        super.checkType(value);
-        if (!Number.isSafeInteger(value)) {
-            throw new UniFFITypeError(`${value} exceeds the safe integer bounds`);
-        }
-    }
-    static computeSize(_value) {
-        return 8;
-    }
-    static lift(value) {
-        return value;
-    }
-    static lower(value) {
-        return value;
-    }
-    static write(dataStream, value) {
-        dataStream.writeInt64(value)
-    }
-    static read(dataStream) {
-        return dataStream.readInt64()
-    }
-}
-// Export the FFIConverter object to make external types work.
-export class FfiConverterTypeContextIdCallback extends FfiConverter {
+export class FfiConverterTypeTestCallbackInterface extends FfiConverter {
     static lower(callbackObj) {
-        return uniffiCallbackHandlerContextIdContextIdCallback.storeCallbackObj(callbackObj)
+        return uniffiCallbackHandlerUniffiBindingsTestsCollisionTestCallbackInterface.storeCallbackObj(callbackObj)
     }
 
     static lift(handleId) {
-        return uniffiCallbackHandlerContextIdContextIdCallback.getCallbackObj(handleId)
+        return uniffiCallbackHandlerUniffiBindingsTestsCollisionTestCallbackInterface.getCallbackObj(handleId)
     }
 
     static read(dataStream) {
@@ -822,27 +598,15 @@ export class FfiConverterTypeContextIdCallback extends FfiConverter {
     static computeSize(callbackObj) {
         return 8;
     }
-}const uniffiCallbackHandlerContextIdContextIdCallback = new UniFFICallbackHandler(
-    "ContextIdCallback",
-    1,
+}const uniffiCallbackHandlerUniffiBindingsTestsCollisionTestCallbackInterface = new UniFFICallbackHandler(
+    "TestCallbackInterface",
+    7,
     [
         new UniFFICallbackMethodHandler(
-            "persist",
+            "getValue",
             [
-                FfiConverterString,
-                FfiConverterInt64,
             ],
-            (result) => undefined,
-            (e) => {
-              throw e;
-            }
-        ),
-        new UniFFICallbackMethodHandler(
-            "rotated",
-            [
-                FfiConverterString,
-            ],
-            (result) => undefined,
+            FfiConverterString.lower.bind(FfiConverterString),
             (e) => {
               throw e;
             }
@@ -851,26 +615,13 @@ export class FfiConverterTypeContextIdCallback extends FfiConverter {
 );
 
 // Allow the shutdown-related functionality to be tested in the unit tests
-UnitTestObjs.uniffiCallbackHandlerContextIdContextIdCallback = uniffiCallbackHandlerContextIdContextIdCallback;
-// Export the FFIConverter object to make external types work.
-export class FfiConverterBoolean extends FfiConverter {
-    static computeSize(_value) {
-        return 1;
-    }
-    static lift(value) {
-        return value == 1;
-    }
-    static lower(value) {
-        if (value) {
-            return 1;
-        } else {
-            return 0;
-        }
-    }
-    static write(dataStream, value) {
-        dataStream.writeUint8(this.lower(value))
-    }
-    static read(dataStream) {
-        return this.lift(dataStream.readUint8())
+UnitTestObjs.uniffiCallbackHandlerUniffiBindingsTestsCollisionTestCallbackInterface = uniffiCallbackHandlerUniffiBindingsTestsCollisionTestCallbackInterface;
+// Wrapper to skip type checking for function arguments
+//
+// This is only defined and used on test fixtures.  The goal is to skip the JS type checking so that
+// we can test the lower-level C++ type checking.
+export class UniffiSkipJsTypeCheck {
+    constructor(value) {
+        this.value = value;
     }
 }
