@@ -867,6 +867,10 @@ beetmover-android-app
 ---------------------
 A beetmover task for android APKs and AABs.
 
+push-apks
+-----------
+Push Focus and Fenix APKs to the Samsung Galaxy Store.
+
 push-bundle
 -----------
 Push Focus and Fenix AABs to Google Play.

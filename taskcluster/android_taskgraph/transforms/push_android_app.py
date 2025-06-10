@@ -18,6 +18,7 @@ def resolve_keys(config, tasks):
     for task in tasks:
         for key in (
             "worker.channel",
+            "worker.commit",
             "worker.dep",
             "worker.certificate-alias",
             "worker.product",

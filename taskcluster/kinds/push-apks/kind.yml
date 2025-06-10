@@ -1,0 +1,65 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+loader: taskgraph.loader.transform:loader
+
+transforms:
+    - taskgraph.transforms.from_deps
+    - android_taskgraph.transforms.upstream_artifacts
+    - android_taskgraph.transforms.treeherder
+    - android_taskgraph.transforms.push_android_app
+    - android_taskgraph.transforms.startup_tests_deps
+    - gecko_taskgraph.transforms.task
+
+kind-dependencies:
+    - signing-apk
+    - android-startup-test
+
+tasks:
+    push-bundle:
+        description: Publish Fenix and Focus APKs
+        from-deps:
+            kinds: [signing-apk]
+            with-attributes:
+                build-type:
+                    - fenix-release
+                    - focus-release
+            group-by:
+                attribute: build-type
+            copy-attributes: true
+        worker-type: push-apk
+        only-archs:
+            - arm64-v8a
+            - armeabi-v7a
+        worker:
+            target-store: samsung
+            commit:
+                by-level:
+                    '3': true
+                    default: false
+            dep:
+                by-level:
+                    '3': false
+                    default: true
+            product:
+                by-build-type:
+                    fenix-release: fenix
+                    focus-release: focus-android
+            channel:
+                by-build-type:
+                    fenix-release: fenix-release
+                    focus-release: focus-release
+        shipping-phase: push
+        shipping-product: firefox-android
+        treeherder:
+            symbol:
+                by-build-type:
+                    default: gp-apk
+                    focus-release: gpf-apk
+            kind: build
+        routes:
+            by-level:
+                '3':
+                    - "notify.email.release-mgmt@mozilla.com.on-failed"
+                'default': []

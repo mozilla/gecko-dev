@@ -71,7 +71,8 @@ def build_scriptworker_beetmover_payload(config, task, task_def):
                 Required("paths"): [str],
             }
         ],
-        Required("certificate-alias"): str,
+        Optional("certificate-alias"): str,
+        Optional("target-store"): str,
         Required("channel"): str,
         Required("commit"): bool,
         Required("product"): str,
@@ -84,11 +85,16 @@ def build_push_apk_payload(config, task, task_def):
     task_def["tags"]["worker-implementation"] = "scriptworker"
 
     task_def["payload"] = {
-        "certificate_alias": worker["certificate-alias"],
         "channel": worker["channel"],
         "commit": worker["commit"],
         "upstreamArtifacts": worker["upstream-artifacts"],
     }
+
+    if "certificate-alias" in worker:
+        task_def["payload"]["certificate_alias"] = worker["certificate-alias"]
+
+    if "target-store" in worker:
+        task_def["payload"]["target_store"] = worker["target-store"]
 
     scope_prefix = config.graph_config["scriptworker"]["scope-prefix"]
     task_def["scopes"].append(
