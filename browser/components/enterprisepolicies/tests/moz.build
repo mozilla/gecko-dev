@@ -15,6 +15,7 @@ BROWSER_CHROME_MANIFESTS += [
     "browser/homepage_button/browser.toml",
     "browser/managedbookmarks/browser.toml",
     "browser/show_home_button/browser.toml",
+    "browser/trackingprotection/browser.toml",
 ]
 
 XPCSHELL_TESTS_MANIFESTS += ["xpcshell/xpcshell.toml"]

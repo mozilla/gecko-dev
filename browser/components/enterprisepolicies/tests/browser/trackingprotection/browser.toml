@@ -1,0 +1,5 @@
+[DEFAULT]
+prefs = ["browser.policies.alternatePath='<test-root>/browser/components/enterprisepolicies/tests/browser/trackingprotection/trackingprotection.json'"]
+support-files = ["trackingprotection.json"]
+
+["browser_policy_trackingprotection.js"]

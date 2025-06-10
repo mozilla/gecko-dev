@@ -1185,7 +1185,35 @@ export var Policies = {
   },
 
   EnableTrackingProtection: {
+    onAllWindowsRestored(manager, param) {
+      if (param.Category) {
+        // browser.contentblocking.category only works as a default pref if
+        // it is locked.
+        PoliciesUtils.setDefaultPref(
+          "browser.contentblocking.category",
+          param.Category,
+          true
+        );
+        let { ContentBlockingPrefs } = ChromeUtils.importESModule(
+          "moz-src:///browser/components/protections/ContentBlockingPrefs.sys.mjs"
+        );
+        // These are always locked because they would reset at
+        // startup anyway.
+        ContentBlockingPrefs.setPrefsToCategory(
+          param.Category,
+          true // locked
+        );
+        ContentBlockingPrefs.matchCBCategory();
+      }
+    },
     onBeforeUIStartup(manager, param) {
+      if ("Exceptions" in param) {
+        addAllowDenyPermissions("trackingprotection", param.Exceptions);
+      }
+      if (param.Category) {
+        // If a category is set, we ignore everything except exceptions.
+        return;
+      }
       if (param.Value) {
         PoliciesUtils.setDefaultPref(
           "privacy.trackingprotection.enabled",
@@ -1226,9 +1254,6 @@ export var Policies = {
           param.EmailTracking,
           param.Locked
         );
-      }
-      if ("Exceptions" in param) {
-        addAllowDenyPermissions("trackingprotection", param.Exceptions);
       }
     },
   },
