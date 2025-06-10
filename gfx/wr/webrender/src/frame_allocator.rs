@@ -139,7 +139,7 @@ impl Clone for FrameAllocator {
         unsafe {
             if let Some(inner) = self.inner.as_mut() {
                 // When cloning a `FrameAllocator`, we have to decrement the
-                // counter of dropped references in the nner allocator to
+                // counter of dropped references in the inner allocator to
                 // balance the fact that an extra `FrameAllocator` will be
                 // dropped (that hasn't been accounted in `FrameMemory`).
                 inner.references_dropped.fetch_sub(1, Ordering::Relaxed);
@@ -158,7 +158,7 @@ impl Drop for FrameAllocator {
     fn drop(&mut self) {
         unsafe {
             if let Some(inner) = self.inner.as_mut() {
-                inner.references_dropped.fetch_add(1, Ordering::Release);
+                inner.references_dropped.fetch_add(1, Ordering::Relaxed);
             }
         }
     }
@@ -457,4 +457,48 @@ impl FrameInnerAllocator {
     fn set_frame_id(&mut self, id: FrameId) {
         self.frame_id = Some(id);
     }
+}
+
+#[test]
+fn frame_memory_simple() {
+    use std::sync::mpsc::channel;
+
+    let chunk_pool = Arc::new(ChunkPool::new());
+    let mut memory = FrameMemory::new(chunk_pool);
+
+    memory.begin_frame(FrameId::first());
+
+    let alloc = memory.allocator();
+    let a2 = memory.allocator();
+    let a3 = memory.allocator();
+    let v1: FrameVec<u32> = memory.new_vec_with_capacity(10);
+    let v2: FrameVec<u32> = memory.new_vec_with_capacity(256);
+    let v3: FrameVec<u32> = memory.new_vec_with_capacity(1024 * 128);
+    let v4: FrameVec<u32> = memory.new_vec_with_capacity(128);
+    let mut v5 = alloc.clone().new_vec();
+    for i in 0..256u32 {
+        v5.push(i);
+    }
+    let v6 = v2.clone().clone().clone().clone();
+    let mut frame = alloc.new_vec();
+    frame.push(v1);
+    frame.push(v2);
+    frame.push(v3);
+    frame.push(v4);
+    frame.push(v5);
+    frame.push(v6);
+    let (tx, rx) = channel();
+    tx.send(frame).unwrap();
+
+    let handle = std::thread::spawn(move || {
+        let mut frame = rx.recv().unwrap();
+        frame.push(memory.new_vec_with_capacity(10));
+        std::mem::drop(a3);
+        std::mem::drop(a2);
+        std::mem::drop(frame);
+
+        memory.assert_memory_reusable();
+    });
+
+    handle.join().unwrap();
 }
