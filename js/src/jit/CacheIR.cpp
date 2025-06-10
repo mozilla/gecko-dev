@@ -976,6 +976,25 @@ void IRGenerator::emitCallGetterResultNoGuards(NativeGetPropKind kind,
   }
 }
 
+static bool FunctionHasStableBaseScript(JSFunction* fun) {
+  // When guarding a callee, guarding on the JSFunction* is most efficient,
+  // but doesn't work well for lambda clones (multiple functions with the
+  // same BaseScript). We can instead guard on the BaseScript itself.
+  if (!fun->hasBaseScript()) {
+    return false;
+  }
+  // Self-hosted functions are more complicated: top-level functions can be
+  // relazified using SelfHostedLazyScript and this means they don't have a
+  // stable BaseScript pointer. These functions are never lambda clones, though,
+  // so we can just always guard on the JSFunction*. Self-hosted lambdas are
+  // never relazified so there we use the normal heuristics.
+  if (fun->isSelfHostedBuiltin() && !fun->isLambda()) {
+    return false;
+  }
+  return true;
+}
+
+
 // See the SMDOC comment in vm/GetterSetter.h for more info on Getter/Setter
 // properties
 void IRGenerator::emitGuardGetterSetterSlot(NativeObject* holder,
@@ -1000,7 +1019,7 @@ void IRGenerator::emitGuardGetterSetterSlot(NativeObject* holder,
     JSObject* accessor = isGetter ? holder->getGetter(prop)
                                   : holder->getSetter(prop);
     JSFunction* fun = &accessor->as<JSFunction>();
-    if (fun->hasBaseScript()) {
+    if (FunctionHasStableBaseScript(fun)) {
       ValOperandId getterSetterId = EmitLoadSlot(writer, holder, holderId, slot);
       ObjOperandId functionId = writer.loadGetterSetterFunction(getterSetterId,
                                                                 isGetter);
@@ -6649,14 +6668,7 @@ void IRGenerator::emitCalleeGuard(ObjOperandId calleeId, JSFunction* callee) {
   // for lambda clones (multiple functions with the same BaseScript). We guard
   // on the function's BaseScript if the callee is scripted and this isn't the
   // first IC stub.
-  //
-  // Self-hosted functions are more complicated: top-level functions can be
-  // relazified using SelfHostedLazyScript and this means they don't have a
-  // stable BaseScript pointer. These functions are never lambda clones, though,
-  // so we can just always guard on the JSFunction*. Self-hosted lambdas are
-  // never relazified so there we use the normal heuristics.
-  if (isFirstStub_ || !callee->hasBaseScript() ||
-      (callee->isSelfHostedBuiltin() && !callee->isLambda())) {
+  if (isFirstStub_ || !FunctionHasStableBaseScript(callee)) {
     writer.guardSpecificFunction(calleeId, callee);
   } else {
     MOZ_ASSERT_IF(callee->isSelfHostedBuiltin(),
