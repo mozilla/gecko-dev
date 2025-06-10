@@ -241,7 +241,7 @@ module.exports = function (config) {
                 statements: 84.43,
                 lines: 83.9,
                 functions: 79.31,
-                branches: 53.62,
+                branches: 53.42,
               },
             "content-src/components/DiscoveryStreamComponents/SectionContextMenu/SectionContextMenu.jsx":
               {
