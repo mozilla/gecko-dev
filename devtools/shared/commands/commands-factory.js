@@ -169,9 +169,6 @@ exports.CommandsFactory = {
     // Because the debugger can't be running in the same compartment than its debuggee,
     // we have to load the server in a dedicated Loader, flagged with
     // `freshCompartment`, which will force it to be loaded in another compartment.
-    // We aren't using `invisibleToDebugger` in order to allow the Browser toolbox to
-    // debug the Browser console. This is fine as they will spawn distinct Loaders and
-    // so distinct `DevToolsServer` and actor modules.
     const customLoader = new DevToolsLoader({
       freshCompartment: true,
     });

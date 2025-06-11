@@ -140,7 +140,6 @@ function BrowserLoaderBuilder({
     sandboxPrototype: window,
     sandboxName: "DevTools (UI loader)",
     paths: loaderOptions.paths,
-    invisibleToDebugger: loaderOptions.invisibleToDebugger,
     // Make sure `define` function exists.  This allows defining some modules
     // in AMD format while retaining CommonJS compatibility through this hook.
     // JSON Viewer needs modules in AMD format, as it currently uses RequireJS

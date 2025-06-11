@@ -25,9 +25,8 @@ const { Constructor: CC } = Components;
 // and allocation sites if DEBUG_DEVTOOLS_ALLOCATIONS is set to "verbose".
 const DEBUG_ALLOCATIONS = Services.env.get("DEBUG_DEVTOOLS_ALLOCATIONS");
 if (DEBUG_ALLOCATIONS) {
-  // Use a custom loader with `invisibleToDebugger` flag for the allocation tracker
-  // as it instantiates custom Debugger API instances and has to be running in a distinct
-  // compartments from DevTools and system scopes (JSMs, XPCOM,...)
+  // Load the allocation tracker from the distinct privileged loader in order
+  // to be able to debug all privileged code (ESMs, XPCOM,...) running in the shared privileged global.
   const {
     useDistinctSystemPrincipalLoader,
     releaseDistinctSystemPrincipalLoader,
@@ -72,9 +71,8 @@ if (DEBUG_ALLOCATIONS) {
 // in any other way on parent process's main thread.
 const DEBUG_STEP = Services.env.get("DEBUG_STEP");
 if (DEBUG_STEP) {
-  // Use a custom loader with `invisibleToDebugger` flag for the allocation tracker
-  // as it instantiates custom Debugger API instances and has to be running in a distinct
-  // compartments from DevTools and system scopes (JSMs, XPCOM,...)
+  // Load the stepper code from the distinct privileged loader in order
+  // to be able to debug all privileged code (ESMs, XPCOM,...) running in the shared privileged global.
   const {
     useDistinctSystemPrincipalLoader,
     releaseDistinctSystemPrincipalLoader,
@@ -97,9 +95,8 @@ if (DEBUG_STEP) {
 
 const DEBUG_TRACE_LINE = Services.env.get("DEBUG_TRACE_LINE");
 if (DEBUG_TRACE_LINE) {
-  // Use a custom loader with `invisibleToDebugger` flag for the allocation tracker
-  // as it instantiates custom Debugger API instances and has to be running in a distinct
-  // compartments from DevTools and system scopes (ESMs, XPCOM,...)
+  // Load the tracing code from the distinct privileged loader in order
+  // to be able to debug all privileged code (ESMs, XPCOM,...) running in the shared privileged global.
   const {
     useDistinctSystemPrincipalLoader,
     releaseDistinctSystemPrincipalLoader,

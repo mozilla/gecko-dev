@@ -46,8 +46,6 @@ skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"
 
 ["test_independent_loaders.js"]
 
-["test_invisible_loader.js"]
-
 ["test_isSet.js"]
 
 ["test_loader.js"]

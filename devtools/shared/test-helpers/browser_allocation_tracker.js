@@ -3,16 +3,20 @@
 
 "use strict";
 
-// Load the tracker in a dedicated loader using invisibleToDebugger and freshCompartment
-// so that it can inspect any other module/compartment, even DevTools, chrome,
-// and this script!
-const { DevToolsLoader } = ChromeUtils.importESModule(
-  "resource://devtools/shared/loader/Loader.sys.mjs"
+// Load the tracker from a distinct compartment so that it can inspect any other
+// module/compartment, even DevTools, chrome, and this script!
+const {
+  useDistinctSystemPrincipalLoader,
+  releaseDistinctSystemPrincipalLoader,
+} = ChromeUtils.importESModule(
+  "resource://devtools/shared/loader/DistinctSystemPrincipalLoader.sys.mjs",
+  { global: "shared" }
 );
-const loader = new DevToolsLoader({
-  invisibleToDebugger: true,
-  freshCompartment: true,
-});
+
+const requester = {};
+const loader = useDistinctSystemPrincipalLoader(requester);
+registerCleanupFunction(() => releaseDistinctSystemPrincipalLoader(requester));
+
 const { allocationTracker } = loader.require(
   "chrome://mochitests/content/browser/devtools/shared/test-helpers/allocation-tracker"
 );

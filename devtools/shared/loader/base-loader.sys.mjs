@@ -107,10 +107,6 @@ function join(base, ...paths) {
 //    throw exception if omitted.
 // - `prototype`: Ancestor for the sandbox that will be created. Defaults to
 //    `{}`.
-// - `invisibleToDebugger`: True, if the sandbox is part of the debugger
-//    implementation and should not be tracked by debugger API.
-// For more details see:
-// @see https://searchfox.org/mozilla-central/rev/0948667bc62415d48abff27e1405fb4ab4d65d75/js/xpconnect/idl/xpccomponents.idl#127-245
 function Sandbox(options) {
   // Normalize options and rename to match `Cu.Sandbox` expectations.
   const sandboxOptions = {
@@ -155,8 +151,6 @@ function Sandbox(options) {
 
     sandboxName: options.name,
     sandboxPrototype: "prototype" in options ? options.prototype : {},
-    invisibleToDebugger:
-      "invisibleToDebugger" in options ? options.invisibleToDebugger : false,
     freshCompartment: options.freshCompartment || false,
   };
 
@@ -512,8 +506,6 @@ export function unload(loader, reason) {
 //   from. Map is also exposed under `globals` property of the returned loader
 //   so it can be extended further later. Defaults to `{}`.
 // - `sandboxName`: String, name of the sandbox displayed in about:memory.
-// - `invisibleToDebugger`: Boolean. Should be true when loading debugger
-//   modules, in order to ignore them from the Debugger API.
 // - `sandboxPrototype`: Object used to define globals on all module's
 //   sandboxes.
 // - `requireHook`: Optional function used to replace native require function
@@ -568,7 +560,6 @@ export function Loader(options) {
     // global objects.
     sharedGlobal = Sandbox({
       name: options.sandboxName || "DevTools",
-      invisibleToDebugger: options.invisibleToDebugger || false,
       prototype: options.sandboxPrototype || globals,
       freshCompartment: options.freshCompartment,
     });
@@ -602,11 +593,6 @@ export function Loader(options) {
     supportAMDModules: {
       enumerable: false,
       value: options.supportAMDModules || false,
-    },
-    // Whether the modules loaded should be ignored by the debugger
-    invisibleToDebugger: {
-      enumerable: false,
-      value: options.invisibleToDebugger || false,
     },
     requireHook: {
       enumerable: false,

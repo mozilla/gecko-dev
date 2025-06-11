@@ -859,11 +859,14 @@ class EventCollector {
     if (!this.chromeEnabled) {
       dbg = new Debugger();
     } else {
-      // When the chrome pref is turned on, we may try to debug system compartments.
-      // But since bug 1517210, the server is also loaded using the system principal
-      // and so here, we have to ensure using a special Debugger instance, loaded
-      // in a compartment flagged with invisibleToDebugger=true. This helps the Debugger
-      // know about the precise boundary between debuggee and debugger code.
+      // When the chrome pref is turned on, we may inspect DOM Elements from
+      // privileged documents.
+      // But since bug 1517210, the DevTools Server is also loaded in the shared
+      // privileged global.
+      // As the Debugger API requires to be used from distinct compartments
+      // between the debuggee and the debugger modules,
+      // we have to ensure spawning it from a distinct compartment.
+      // That's what ChromeDebugger builtin module does.
       const ChromeDebugger = require("ChromeDebugger");
       dbg = new ChromeDebugger();
     }
