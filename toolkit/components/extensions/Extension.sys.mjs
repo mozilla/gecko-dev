@@ -1447,7 +1447,8 @@ export class ExtensionData {
         perm => !oldPermissions.permissions.includes(perm)
       ),
       data_collection: newPermissions.data_collection.filter(
-        perm => newPermissions.data_collection.includes(perm) && perm !== "none"
+        perm =>
+          !oldPermissions.data_collection.includes(perm) && perm !== "none"
       ),
     };
   }
