@@ -416,19 +416,17 @@ export class SearchModeSwitcher {
   }
 
   search({ engine = null, restrict = null, openEngineHomePage = false } = {}) {
-    let gBrowser = this.#input.window.gBrowser;
     let search = "";
     let opts = null;
     if (engine) {
-      let state = this.#input.getBrowserState(gBrowser.selectedBrowser);
-      search = gBrowser.userTypedValue ?? state.persist?.searchTerms ?? "";
+      search = this.#input.value;
       opts = {
         searchEngine: engine,
         searchModeEntry: "searchbutton",
         openEngineHomePage,
       };
     } else if (restrict) {
-      search = restrict + " " + (gBrowser.userTypedValue || "");
+      search = restrict + " " + this.#input.value;
       opts = { searchModeEntry: "searchbutton" };
     }
 
