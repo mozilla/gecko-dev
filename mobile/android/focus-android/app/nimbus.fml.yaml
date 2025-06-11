@@ -50,7 +50,7 @@ features:
         description: >
           Uses search configuration from remote servers .
         type: Boolean
-        default: false
+        default: true
 
 types:
   objects: { }
