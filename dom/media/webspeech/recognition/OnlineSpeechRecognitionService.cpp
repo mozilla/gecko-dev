@@ -351,7 +351,7 @@ void OnlineSpeechRecognitionService::DoSTT() {
     // Tell the server to not store the sample by default
     rv = httpChan->SetRequestHeader("Store-Sample"_ns, "0"_ns, false);
     MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
-    // Set the product tag as teh web speech api
+    // Set the product tag as the web speech api
     rv = httpChan->SetRequestHeader("Product-Tag"_ns, "wsa"_ns, false);
     MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
   }
