@@ -8,9 +8,13 @@ function run_test() {
     "resource://gre/modules/jsdebugger.sys.mjs"
   );
   addDebuggerToGlobal(globalThis);
-  const g = createTestGlobal("test1");
 
-  const dbg = makeDebugger();
+  const dbg = makeDebugger({
+    shouldAddNewGlobalAsDebuggee() {
+      return true;
+    },
+  });
+  const g = createTestGlobal("test1");
   dbg.addDebuggee(g);
   dbg.onDebuggerStatement = function (frame) {
     const args = frame.arguments;
@@ -29,7 +33,6 @@ function run_test() {
   // Not using the "stringify a function" trick because that runs afoul of the
   // Cu.importGlobalProperties lint and we don't need it here anyway.
   g2.eval(`(function createBadEvent() {
-    Cu.importGlobalProperties(["DOMParser"]);
     let parser = new DOMParser();
     let doc = parser.parseFromString("<foo></foo>", "text/xml");
     g.stopMe(doc.createEvent("MouseEvent"));

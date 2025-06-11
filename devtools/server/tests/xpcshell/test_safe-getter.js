@@ -9,7 +9,7 @@ function run_test() {
   );
   addDebuggerToGlobal(globalThis);
   const g = createTestGlobal("test", {
-    wantGlobalProperties: ["ChromeUtils"],
+    chrome: true,
   });
   const dbg = new Debugger();
   const gw = dbg.addDebuggee(g);

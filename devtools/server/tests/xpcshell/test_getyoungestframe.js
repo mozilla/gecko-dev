@@ -13,7 +13,11 @@ function run_test() {
   );
   const g = createTestGlobal("test1");
 
-  const dbg = makeDebugger();
+  const dbg = makeDebugger({
+    shouldAddNewGlobalAsDebuggee() {
+      return true;
+    },
+  });
   dbg.uncaughtExceptionHook = testExceptionHook;
 
   dbg.addDebuggee(g);
