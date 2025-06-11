@@ -1540,8 +1540,8 @@ richlistitem .text-link:hover {
 /* Styles for the "sponsors support our mission" message and link on the Home tab */
 .mission-message {
   margin-block-start: var(--space-large);
-}
 
-.mission-message-link {
-  font-size: var(--font-size-small);
+  > a {
+    font-size: var(--font-size-small);
+  }
 }
