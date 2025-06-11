@@ -62,7 +62,7 @@ internal fun FileListItem(
         description = fileItem.description,
         isSelected = isSelected,
         icon = fileItem.icon,
-        afterListAction = {
+        afterListItemAction = {
             if (isMenuIconVisible) {
                 var menuExpanded by remember { mutableStateOf(false) }
 

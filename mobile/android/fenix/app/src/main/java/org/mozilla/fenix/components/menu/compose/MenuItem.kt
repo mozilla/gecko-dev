@@ -210,7 +210,7 @@ internal fun WebExtensionMenuItem(
             .background(
                 color = FirefoxTheme.colors.layer3,
             ),
-        afterListAction = {
+        afterListItemAction = {
             Row(
                 modifier = Modifier.padding(start = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
