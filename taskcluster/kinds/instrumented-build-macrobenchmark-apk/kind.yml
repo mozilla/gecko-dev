@@ -36,6 +36,10 @@ tasks:
         dependencies:
             build-fat-aar: build-fat-aar-android-geckoview-fat-aar/opt
             baseline-profile: generate-baseline-profile-firebase-fenix
+        fetches:
+            baseline-profile:
+                - artifact: baselineProfile.tar.zst
+                  dest: baselineProfiles
         source-project-name: "fenix"
         run:
             gradle-package-command: ":benchmark:assembleBenchmark :app:assembleBenchmark"

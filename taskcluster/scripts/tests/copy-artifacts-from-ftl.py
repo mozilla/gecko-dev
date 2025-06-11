@@ -57,9 +57,9 @@ class Worker(Enum):
     """
 
     RESULTS_DIR = "/builds/worker/artifacts/results"
-    BASELINE_PROFILE_DEST = "/builds/worker/artifacts/build/baseline-prof.txt"
+    BASELINE_PROFILE_DIR = "/builds/worker/workspace/baselineProfile"
     MACROBENCHMARK_DEST = "/builds/worker/artifacts/build/macrobenchmark.json"
-    ARTIFACTS_DIR = "/builds/worker/artifacts"
+    ARTIFACTS_DIR = "/builds/worker/artifacts/build"
 
 
 class ArtifactType(Enum):
@@ -134,16 +134,16 @@ def fetch_artifacts(root_gcs_path, device, artifact_pattern):
     Returns:
         list: A list of artifacts matching the specified pattern.
     """
-    gcs_path_pattern = f"gs://{root_gcs_path.rstrip('/')}/{device}/{artifact_pattern}"
+    gcs_path = f"gs://{root_gcs_path.rstrip('/')}/{device}*/{artifact_pattern}"
 
     try:
-        result = subprocess.check_output(["gsutil", "ls", gcs_path_pattern], text=True)
+        result = subprocess.check_output(["gsutil", "ls", gcs_path], text=True)
         return result.splitlines()
     except subprocess.CalledProcessError as e:
         if "AccessDeniedException" in e.output:
-            logging.error(f"Permission denied for GCS path: {gcs_path_pattern}")
+            logging.error(f"Permission denied for GCS path: {gcs_path}")
         elif "network error" in e.output.lower():
-            logging.error(f"Network error accessing GCS path: {gcs_path_pattern}")
+            logging.error(f"Network error accessing GCS path: {gcs_path}")
         else:
             logging.error(f"Failed to list files: {e.output}")
         return []
@@ -250,22 +250,38 @@ def process_artifacts(artifact_type):
         exit_with_error("Could not find root GCS path in matrix file.")
 
     if artifact_type == ArtifactType.BASELINE_PROFILE:
-        return process_baseline_profile_artifact(root_gcs_path, device_names)
+        return process_baseline_profile_artifacts(root_gcs_path, device_names)
     elif artifact_type == ArtifactType.MACROBENCHMARK:
         return process_macrobenchmark_artifact(root_gcs_path, device_names)
     else:
         return process_crash_artifacts(root_gcs_path, device_names)
 
 
-def process_baseline_profile_artifact(root_gcs_path, device_names):
+def process_baseline_profile_artifacts(root_gcs_path, device_names):
     device = device_names[0]
-    artifact = fetch_artifacts(
+    artifacts = fetch_artifacts(
         root_gcs_path, device, ArtifactType.BASELINE_PROFILE.value
-    )[0]
-    if not artifact:
-        exit_with_error(f"No artifacts found for device: {device}")
+    )
+    if not artifacts:
+        exit_with_error(f"No baseline profile artifacts found for device: {device}")
 
-    gsutil_cp(artifact, Worker.BASELINE_PROFILE_DEST.value)
+    downloaded_files = []
+
+    for artifact in artifacts:
+        base_name = os.path.basename(artifact)
+        dest_path = os.path.join(Worker.BASELINE_PROFILE_DIR.value, base_name)
+        count = 1
+
+        # If file exists, find a unique name
+        while os.path.exists(dest_path):
+            name, extension = os.path.splitext(base_name)
+            dest_path = os.path.join(
+                Worker.BASELINE_PROFILE_DIR.value, f"{name}_{count}{extension}"
+            )
+            count += 1
+
+        gsutil_cp(artifact, dest_path)
+        downloaded_files.append(dest_path)
 
 
 def process_macrobenchmark_artifact(root_gcs_path, device_names):

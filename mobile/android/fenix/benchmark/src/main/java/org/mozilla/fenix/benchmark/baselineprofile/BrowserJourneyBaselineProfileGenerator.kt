@@ -47,7 +47,7 @@ import org.mozilla.fenix.benchmark.utils.isFirstIteration
 @RunWith(AndroidJUnit4::class)
 @BaselineProfileGenerator
 @Ignore("Disabled: https://bugzilla.mozilla.org/show_bug.cgi?id=1964970, " +
-    "https://bugzilla.mozilla.org/show_bug.cgi?id=1966228")
+        "https://bugzilla.mozilla.org/show_bug.cgi?id=1971318")
 class BrowserJourneyBaselineProfileGenerator {
 
     @get:Rule

@@ -123,8 +123,7 @@ tasks:
             baseline-profile: generate-baseline-profile-firebase-fenix
         fetches:
             baseline-profile:
-                - artifact: baseline-prof.txt
-                  extract: false
+                - artifact: baselineProfile.tar.zst
                   dest: baselineProfiles
         description: 'Fenix release AAB build from source code'
         include-shippable-secrets: true
@@ -167,8 +166,7 @@ tasks:
             baseline-profile: generate-baseline-profile-firebase-fenix
         fetches:
             baseline-profile:
-                - artifact: baseline-prof.txt
-                  extract: false
+                - artifact: baselineProfile.tar.zst
                   dest: baselineProfiles
         description: 'Fenix nightly AAB build from source code'
         include-shippable-secrets: true
@@ -215,8 +213,7 @@ tasks:
             baseline-profile: generate-baseline-profile-firebase-fenix
         fetches:
             baseline-profile:
-                - artifact: baseline-prof.txt
-                  extract: false
+                - artifact: baselineProfile.tar.zst
                   dest: baselineProfiles
         description: 'Fenix beta AAB build from source code'
         include-shippable-secrets: true

@@ -126,8 +126,7 @@ tasks:
             baseline-profile: generate-baseline-profile-firebase-fenix
         fetches:
             baseline-profile:
-                - artifact: baseline-prof.txt
-                  extract: false
+                - artifact: baselineProfile.tar.zst
                   dest: baselineProfiles
         include-shippable-secrets: true
         include-release-version: true
@@ -175,8 +174,7 @@ tasks:
             baseline-profile: generate-baseline-profile-firebase-fenix
         fetches:
             baseline-profile:
-                - artifact: baseline-prof.txt
-                  extract: false
+                - artifact: baselineProfile.tar.zst
                   dest: baselineProfiles
         include-shippable-secrets: true
         include-nightly-version: true
@@ -224,8 +222,7 @@ tasks:
             baseline-profile: generate-baseline-profile-firebase-fenix
         fetches:
             baseline-profile:
-                - artifact: baseline-prof.txt
-                  extract: false
+                - artifact: baselineProfile.tar.zst
                   dest: baselineProfiles
         include-shippable-secrets: true
         include-release-version: true
@@ -485,8 +482,7 @@ tasks:
             baseline-profile: generate-baseline-profile-firebase-fenix
         fetches:
             baseline-profile:
-                - artifact: baseline-prof.txt
-                  extract: false
+                - artifact: baselineProfile.tar.zst
                   dest: baselineProfiles
         attributes:
             nightly: false
@@ -533,8 +529,7 @@ tasks:
             baseline-profile: generate-baseline-profile-firebase-fenix
         fetches:
             baseline-profile:
-                - artifact: baseline-prof.txt
-                  extract: false
+                - artifact: baselineProfile.tar.zst
                   dest: baselineProfiles
         attributes:
             release-type: release
