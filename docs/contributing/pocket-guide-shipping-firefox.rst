@@ -212,35 +212,31 @@ Further Reading/Useful links:
 Release & Feature QA
 ~~~~~~~~~~~~~~~~~~~~
 
-Release QA is performed regularly and throughout the Release Cycle.
-Organized in two-week sprints its primary goals are:
+The Desktop Test Engineering team is responsible for testing all critical browser areas,
+core and new. Organized in two-week sprints its primary goals are:
 
--  Qualifying builds for release
--  Feature testing
--  Product Integrity requests
--  Bug work
--  Community engagement
 
-Features that can have significant impact and/or pose risk to the code
-base should be nominated for QA support by the :ref:`feature
-owner <feature owner>` in its intended release. This process is kicked
-off by filing a :ref:`Product Integrity <product integrity>` team request
-:ref:`PI request <pi request>`. These are due by the end of week 2
-of the Nightly cycle.
+-  qualifying builds for release,
+-  new feature testing based on Jira request,
+-  smoke, functional, exploratory and other recurring testing activities conducted each release cycle,
+-  bug work (such as bug fix verification and investigation),
+-  various process improvement initiatives,
+-  and community engagement.
 
-.. note::
 
-  Manual QA testing is only required for features as they go
-  through the Beta cycle. Nightly Feature testing is always optional.
+Features that can have significant impact and/or pose risk to the code base should be
+nominated for QA support by the :ref:`feature owner <feature owner>` in its intended
+release by submitting a new request in Jira. This process is kicked off by filing a new
+Jira ticket `here <https://mozilla-hub.atlassian.net/jira/software/c/projects/QA/boards/261>`__
+(detailed steps in `How to file a QA
+request <https://docs.google.com/document/d/1oz1YyaaBI-oHUDsktWA-dLtX7WzhYqs7C121yOPKo2w/edit?usp=sharing>`__).
+These are due by the end of week 4 of the previous Nightly cycle in which the feature needs testing.
 
 Further Reading/Useful links:
 
--  `QA Feature
-   Testing <https://wiki.mozilla.org/QA/Feature_Testing_v2>`__
--  `Release QA
-   overview <https://docs.google.com/document/d/1ic_3TO9-kNmZr11h1ZpyQbSlgiXzVewr3kSAP5ML4mQ/edit#heading=h.pvvuwlkkvtc4>`__
--  `PI Request template and
-   overview <https://mana.mozilla.org/wiki/pages/viewpage.action?spaceKey=PI&title=PI+Request>`__
+-  `DTE team overview <https://mozilla-hub.atlassian.net/wiki/spaces/FDPDT/pages/10617155/Desktop+Test+Engineering>`__
+-  `DTE feature testing process <https://docs.google.com/document/d/1AIgAs78HWAPA3ROOdHzVW8fwRqfj8mog0sutaxp3Xfw/edit?usp=sharing>`__
+-  `How to file a QA request <https://docs.google.com/document/d/1oz1YyaaBI-oHUDsktWA-dLtX7WzhYqs7C121yOPKo2w/edit?usp=sharing>`__
 
 Experiments
 ~~~~~~~~~~~
