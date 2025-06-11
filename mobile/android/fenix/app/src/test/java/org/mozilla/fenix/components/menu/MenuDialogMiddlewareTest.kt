@@ -9,10 +9,8 @@ import android.app.PendingIntent
 import android.content.Intent
 import kotlinx.coroutines.runBlocking
 import mozilla.appservices.places.BookmarkRoot
-import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ReaderState
 import mozilla.components.browser.state.state.createTab
-import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.webextension.InstallationMethod
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
@@ -74,7 +72,6 @@ class MenuDialogMiddlewareTest {
     private val addBookmarkUseCase: AddBookmarksUseCase =
         spy(AddBookmarksUseCase(storage = bookmarksStorage))
 
-    private val browserStore: BrowserStore = BrowserStore(BrowserState())
     private val addonManager: AddonManager = mock()
     private val onDeleteAndQuit: () -> Unit = mock()
 
@@ -1155,7 +1152,6 @@ class MenuDialogMiddlewareTest {
         initialState = menuState,
         middleware = listOf(
             MenuDialogMiddleware(
-                browserStore = browserStore,
                 appStore = appStore,
                 addonManager = addonManager,
                 settings = settings,

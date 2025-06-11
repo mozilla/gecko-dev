@@ -46,13 +46,6 @@ sealed class MenuAction : Action {
     data class UpdateBookmarkState(val bookmarkState: BookmarkState) : MenuAction()
 
     /**
-     * [MenuAction] dispatched when a url is loaded .
-     *
-     * @property isLoading The new [isLoading] state to be updated.
-     */
-    data class SetLoading(val isLoading: Boolean) : MenuAction()
-
-    /**
      * [MenuAction] dispatched when a site is to be added to shortcuts.
      */
     data object AddShortcut : MenuAction()
@@ -371,10 +364,5 @@ sealed class MenuAction : Action {
         data class Reload(
             val bypassCache: Boolean,
         ) : Navigate()
-
-        /**
-         * [Navigate] action dispatched when stopping the current page from loading.
-         */
-        data object Stop : Navigate()
     }
 }

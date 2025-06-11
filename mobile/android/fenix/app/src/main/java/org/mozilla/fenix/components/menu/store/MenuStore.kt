@@ -99,10 +99,6 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.UpdateAvailableAddons -> state.copyWithExtensionMenuState {
             it.copy(availableAddons = action.availableAddons)
         }
-
-        is MenuAction.SetLoading -> state.copyWithBrowserMenuState {
-            it.copy(isLoading = action.isLoading)
-        }
     }
 }
 
