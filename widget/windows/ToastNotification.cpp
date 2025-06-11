@@ -778,7 +778,8 @@ ToastNotification::GetHistory(nsTArray<nsString>& aResult) {
   if (mAumid.isNothing()) {
     return NS_ERROR_NOT_INITIALIZED;
   }
-  nsCOMPtr<nsIAlertsServiceRust> service = do_GetService("@mozilla.org/windows-alerts-service-rust;1");
+  nsCOMPtr<nsIAlertsServiceRust> service =
+      do_GetService("@mozilla.org/windows-alerts-service-rust;1");
   return service->GetHistory(*mAumid, aResult);
 }
 
