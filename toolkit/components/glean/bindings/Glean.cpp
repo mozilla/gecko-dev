@@ -4,16 +4,35 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/glean/bindings/Glean.h"
+
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/DOMJSClass.h"
 #include "mozilla/dom/GleanBinding.h"
 #include "mozilla/dom/BindingUtils.h"
-#include "mozilla/glean/bindings/Glean.h"
 #include "mozilla/glean/bindings/Category.h"
 #include "mozilla/glean/bindings/GleanJSMetricsLookup.h"
 #include "mozilla/glean/bindings/jog/jog_ffi_generated.h"
 #include "mozilla/glean/bindings/jog/JOG.h"
 #include "MainThreadUtils.h"
+#include "nsContentUtils.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
+
+namespace mozilla::dom {
+bool GleanWebidlEnabled(JSContext* aCx, JSObject* aObj) {
+  // Glean is needed in ChromeOnly contexts and also in privileged about pages.
+  nsIPrincipal* principal = nsContentUtils::SubjectPrincipal(aCx);
+  if (principal->IsSystemPrincipal()) {
+    return true;
+  }
+
+  uint32_t flags = 0;
+  if (NS_FAILED(principal->GetAboutModuleFlags(&flags))) {
+    return false;
+  }
+  return flags & nsIAboutModule::IS_SECURE_CHROME_UI;
+}
+}  // namespace mozilla::dom
 
 namespace mozilla::glean {
 
@@ -37,6 +56,8 @@ NS_INTERFACE_MAP_END
 JSObject* Glean::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return dom::GleanImpl_Binding::Wrap(aCx, this, aGivenProto);
 }
+
+Glean::Glean(nsIGlobalObject* aGlobal) : mParent(aGlobal) {}
 
 // static
 bool Glean::DefineGlean(JSContext* aCx, JS::Handle<JSObject*> aGlobal) {

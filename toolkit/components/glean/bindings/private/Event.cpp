@@ -7,6 +7,7 @@
 #include "mozilla/glean/bindings/Event.h"
 
 #include "nsString.h"
+#include "mozilla/ErrorResult.h"
 #include "mozilla/dom/GleanMetricsBinding.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/glean/bindings/Common.h"

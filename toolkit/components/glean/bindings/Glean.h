@@ -8,10 +8,22 @@
 #define mozilla_glean_Glean_h
 
 #include "js/TypeDecls.h"
-#include "nsGlobalWindowInner.h"
+#include "nsCOMPtr.h"
 #include "nsISupports.h"
 #include "nsTArrayForwardDeclare.h"
 #include "nsWrapperCache.h"
+
+class nsIGlobalObject;
+
+namespace mozilla::dom {
+/*
+ * WebIDL permission function for whether Glean APIs are permitted for aCx.
+ *
+ * Here instead of nsIGlobalWindowInner or BindingUtils for organization and
+ * header include optimization reasons.
+ */
+bool GleanWebidlEnabled(JSContext* aCx, JSObject* aObj);
+}  // namespace mozilla::dom
 
 namespace mozilla::glean {
 
@@ -22,7 +34,7 @@ class Glean final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(Glean)
 
-  explicit Glean(nsIGlobalObject* aGlobal) : mParent(aGlobal) {}
+  explicit Glean(nsIGlobalObject* aGlobal);
 
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;

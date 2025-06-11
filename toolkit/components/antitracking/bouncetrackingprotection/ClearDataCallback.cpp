@@ -4,7 +4,9 @@
 
 #include "ClearDataCallback.h"
 #include "mozilla/glean/AntitrackingBouncetrackingprotectionMetrics.h"
+#include "nsContentUtils.h"
 #include "nsIBounceTrackingProtection.h"
+#include "nsIObserverService.h"
 #include "nsIURIClassifier.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
 #include "nsNetCID.h"

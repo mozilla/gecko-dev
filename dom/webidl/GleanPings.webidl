@@ -6,7 +6,7 @@
 
 interface nsIGleanPing;
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanPingsImpl {
   /**
    * Get a ping by name.

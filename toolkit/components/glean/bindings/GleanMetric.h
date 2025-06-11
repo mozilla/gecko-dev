@@ -7,11 +7,8 @@
 #ifndef mozilla_glean_GleanMetric_h
 #define mozilla_glean_GleanMetric_h
 
-#include "js/TypeDecls.h"
-#include "nsIGlobalObject.h"
 #include "nsWrapperCache.h"
 #include "nsClassHashtable.h"
-#include "nsGlobalWindowInner.h"
 #include "nsTHashMap.h"
 #include "mozilla/DataMutex.h"
 

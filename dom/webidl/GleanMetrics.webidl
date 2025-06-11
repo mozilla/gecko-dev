@@ -10,10 +10,10 @@
 /**
  * Base interface for all metric types to make typing more expressive.
  */
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanMetric {};
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanBoolean : GleanMetric {
   /**
    * Set to the specified boolean value.
@@ -43,7 +43,7 @@ interface GleanBoolean : GleanMetric {
   boolean? testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanDatetime : GleanMetric {
   /**
    * Set the datetime to the provided value, or the local now.
@@ -81,7 +81,7 @@ interface GleanDatetime : GleanMetric {
   any testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanCounter : GleanMetric {
   /*
    * Increases the counter by `amount`.
@@ -117,7 +117,7 @@ dictionary GleanDistributionData {
   required record<UTF8String, unsigned long long> values;
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanTimingDistribution : GleanMetric {
   /**
    * Starts tracking time for the provided metric.
@@ -201,7 +201,7 @@ interface GleanTimingDistribution : GleanMetric {
   undefined testAccumulateRawMillis(unsigned long long aSample);
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanMemoryDistribution : GleanMetric {
   /**
    * Accumulates the provided signed sample in the metric.
@@ -235,7 +235,7 @@ interface GleanMemoryDistribution : GleanMetric {
   GleanDistributionData? testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanCustomDistribution : GleanMetric {
   /**
    * Accumulates the provided signed samples in the metric.
@@ -278,7 +278,7 @@ interface GleanCustomDistribution : GleanMetric {
   GleanDistributionData? testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanString : GleanMetric {
   /**
    * Set the string to the provided value.
@@ -308,7 +308,7 @@ interface GleanString : GleanMetric {
   UTF8String? testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanStringList : GleanMetric {
   /**
    * Adds a new string to the list.
@@ -350,7 +350,7 @@ interface GleanStringList : GleanMetric {
   sequence<UTF8String>? testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanTimespan : GleanMetric {
   /**
    * Start tracking time for the provided metric.
@@ -410,7 +410,7 @@ interface GleanTimespan : GleanMetric {
   unsigned long long? testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanUuid : GleanMetric {
   /**
    * Set to the specified value.
@@ -452,7 +452,7 @@ dictionary GleanEventRecord {
   record<UTF8String, UTF8String> extra;
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanEvent : GleanMetric {
 
   /*
@@ -488,7 +488,7 @@ interface GleanEvent : GleanMetric {
   sequence<GleanEventRecord>? testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanQuantity : GleanMetric {
   /**
    * Set to the specified value.
@@ -518,7 +518,7 @@ interface GleanQuantity : GleanMetric {
   long long? testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanDenominator : GleanMetric {
   /*
    * Increases the counter by `aAmount`.
@@ -553,7 +553,7 @@ dictionary GleanRateData {
   required long denominator;
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanNumerator : GleanMetric {
   /*
    * Increases the numerator by `aAmount`.
@@ -583,7 +583,7 @@ interface GleanNumerator : GleanMetric {
   GleanRateData? testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanRate : GleanMetric {
   /*
    * Increases the numerator by `amount`.
@@ -620,7 +620,7 @@ interface GleanRate : GleanMetric {
   GleanRateData? testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanUrl : GleanMetric {
   /**
    * Set to the specified value.
@@ -650,7 +650,7 @@ interface GleanUrl : GleanMetric {
   UTF8String? testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanText : GleanMetric {
   /**
    * Set to the provided value.
@@ -680,7 +680,7 @@ interface GleanText : GleanMetric {
   UTF8String? testGetValue(optional UTF8String aPingName = "");
 };
 
-[Func="nsGlobalWindowInner::IsGleanNeeded", Exposed=Window]
+[Func="GleanWebidlEnabled", Exposed=Window]
 interface GleanObject : GleanMetric {
   /**
    * Set to the specified object.

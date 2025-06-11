@@ -3355,21 +3355,6 @@ bool nsGlobalWindowInner::DeviceSensorsEnabled(JSContext*, JSObject*) {
   return Preferences::GetBool("device.sensors.enabled");
 }
 
-/* static */
-bool nsGlobalWindowInner::IsGleanNeeded(JSContext* aCx, JSObject* aObj) {
-  // Glean is needed in ChromeOnly contexts and also in privileged about pages.
-  nsIPrincipal* principal = nsContentUtils::SubjectPrincipal(aCx);
-  if (principal->IsSystemPrincipal()) {
-    return true;
-  }
-
-  uint32_t flags = 0;
-  if (NS_FAILED(principal->GetAboutModuleFlags(&flags))) {
-    return false;
-  }
-  return flags & nsIAboutModule::IS_SECURE_CHROME_UI;
-}
-
 Crypto* nsGlobalWindowInner::GetCrypto(ErrorResult& aError) {
   if (!mCrypto) {
     mCrypto = new Crypto(this);

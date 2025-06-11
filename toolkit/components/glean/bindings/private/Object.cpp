@@ -7,6 +7,7 @@
 #include "mozilla/glean/bindings/Object.h"
 
 #include "Common.h"
+#include "mozilla/ErrorResult.h"
 #include "mozilla/dom/GleanMetricsBinding.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/Logging.h"
