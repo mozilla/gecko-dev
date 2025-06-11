@@ -183,8 +183,18 @@ async function reformatExpectedWebCompatInfo(tab, overrides) {
   if (expectedCodecs) {
     reformatted.details.additionalData.gfxData.codecSupport = rawActual => {
       const actual = Object.entries(rawActual)
-        .map(([name, { hardware, software }]) =>
-          `${name} ${software ? "SW" : ""} ${hardware ? "HW" : ""}`.trim()
+        .map(
+          ([
+            name,
+            { hardwareDecode, softwareDecode, hardwareEncode, softwareEncode },
+          ]) =>
+            (
+              `${name} ` +
+              `${softwareDecode ? "SWDEC " : ""}` +
+              `${hardwareDecode ? "HWDEC " : ""}` +
+              `${softwareEncode ? "SWENC " : ""}` +
+              `${hardwareEncode ? "HWENC " : ""}`
+            ).trim()
         )
         .sort()
         .join("\n");

@@ -122,10 +122,17 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
     for (const item of codecSupportInfo.split("\n")) {
       const [codec, ...types] = item.split(" ");
       if (!codecs[codec]) {
-        codecs[codec] = { hardware: false, software: false };
+        codecs[codec] = {
+          hardwareDecode: false,
+          softwareDecode: false,
+          hardwareEncode: false,
+          softwareEncode: false,
+        };
       }
-      codecs[codec].software ||= types.includes("SW");
-      codecs[codec].hardware ||= types.includes("HW");
+      codecs[codec].softwareDecode ||= types.includes("SWDEC");
+      codecs[codec].hardwareDecode ||= types.includes("HWDEC");
+      codecs[codec].softwareEncode ||= types.includes("SWENC");
+      codecs[codec].hardwareEncode ||= types.includes("HWENC");
     }
     return codecs;
   }
