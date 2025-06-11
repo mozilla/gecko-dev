@@ -140,6 +140,14 @@ def mozharness_test_on_docker(config, job, taskdesc):
             for (prefix, path) in artifacts
         ]
     )
+    worker["artifacts"].append(
+        {
+            "name": "public/xsession-errors.log",
+            "path": "{workdir}/.xsession-errors".format(**run),
+            "type": "file",
+            "expires-after": get_expiration(config, "default"),
+        }
+    )
 
     env = worker.setdefault("env", {})
     env.update(

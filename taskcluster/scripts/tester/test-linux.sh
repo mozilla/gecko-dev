@@ -120,10 +120,6 @@ cleanup_mutter() {
 
 cleanup() {
     local rv=$?
-    if [[ -s $HOME/.xsession-errors ]]; then
-      # To share X issues
-      cp "$HOME/.xsession-errors" "$WORKING_DIR/artifacts/public/xsession-errors.log"
-    fi
     if $NEED_PIPEWIRE; then
         cleanup_pipewire
     fi
