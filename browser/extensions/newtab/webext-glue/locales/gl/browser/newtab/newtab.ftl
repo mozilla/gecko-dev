@@ -272,6 +272,9 @@ newtab-custom-recent-subtitle = Unha selección de sitios e contido recentes
 newtab-custom-recent-toggle =
     .label = Actividade recente
     .description = Unha selección de sitios e contido recentes
+newtab-custom-weather-toggle =
+    .label = Tempo
+    .description = Predición de hoxe dunha ollada
 newtab-custom-close-button = Pechar
 newtab-custom-settings = Xestionar máis axustes
 
@@ -279,8 +282,16 @@ newtab-custom-settings = Xestionar máis axustes
 
 newtab-wallpaper-title = Fondos de pantalla
 newtab-wallpaper-reset = Restablecer os valores predeterminados
+newtab-wallpaper-upload-image = Subir unha imaxe
+newtab-wallpaper-custom-color = Escolle unha cor
+# Variables
+#   $file_size (number) - The number of the maximum image file size (in MB) that may be uploaded
+newtab-wallpaper-error-max-file-size = A imaxe superou o límite de tamaño do ficheiro de { $file_size }MB. Proba a subir un ficheiro máis pequeno.
 newtab-wallpaper-light-red-panda = Panda vermello
 newtab-wallpaper-light-mountain = Montaña branca
+newtab-wallpaper-light-sky = Ceo con nubes rosas e vermellas
+newtab-wallpaper-light-color = Formas azuis, rosas e amarelas
+newtab-wallpaper-light-landscape = Paisaxe de montaña de néboa azul
 
 ## Solid Colors
 
@@ -305,6 +316,15 @@ newtab-wallpaper-feature-highlight-button = Entendido
 
 ## Celestial
 
+# “Celestial” referring to astronomy; positioned in or relating to the sky,
+# or outer space as observed in astronomy.
+# Not to be confused with religious definition of the word.
+newtab-wallpaper-category-title-celestial = Celestial
+newtab-wallpaper-celestial-lunar-eclipse = Eclipse lunar
+newtab-wallpaper-celestial-earth-night = Foto nocturna desde a órbita terrestre baixa
+newtab-wallpaper-celestial-starry-sky = Ceo estrelado
+newtab-wallpaper-celestial-eclipse-time-lapse = Timelapse dunha eclipse lunar
+newtab-wallpaper-celestial-river = Imaxe de satélite dun río
 
 ## New Tab Weather
 
@@ -382,17 +402,28 @@ newtab-topic-selection-button-pick-interests = Seleccionar os seus intereses
 ## "Follow", "unfollow", and "following" are social media terms that refer to subscribing to or unsubscribing from a section of stories.
 ## e.g. Following the travel section of stories.
 
+newtab-section-follow-button = Seguir
+newtab-section-following-button = Seguindo
+newtab-section-unfollow-button = Deixar de seguir
 
 ## Button to block/unblock listed topics
 ## "Block", "unblocked", and "blocked" are social media terms that refer to hiding a section of stories.
 ## e.g. Blocked the politics section of stories.
 
+newtab-section-block-button = Bloquear
+newtab-section-blocked-button = Bloqueado
+newtab-section-unblock-button = Desbloquear
 
 ## Confirmation modal for blocking a section
 
+newtab-section-cancel-button = Agora non
+newtab-section-confirm-block-topic-p1 = Estás seguro de que queres bloquear este tema?
 
 ## Strings for custom wallpaper highlight
 
+newtab-section-mangage-topics-title = Temas
+newtab-section-mangage-topics-followed-topics-empty-state = Aínda non segues ningún tema.
+newtab-section-mangage-topics-blocked-topics-empty-state = Aínda non bloqueaches ningún tema.
 
 ## Strings for download mobile highlight
 

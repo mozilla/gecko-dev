@@ -117,6 +117,9 @@ newtab-menu-delete-pocket = ลบจาก { -pocket-brand-name }
 newtab-menu-archive-pocket = เก็บถาวรใน { -pocket-brand-name }
 newtab-menu-show-privacy-info = สปอนเซอร์ของเราและความเป็นส่วนตัวของคุณ
 newtab-menu-about-fakespot = เกี่ยวกับ { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = รายงาน
+newtab-menu-report-content = รายงานเนื้อหานี้
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = ปิดกั้น
@@ -128,6 +131,7 @@ newtab-menu-section-unfollow = เลิกติดตามหัวข้อ
 
 newtab-menu-manage-sponsored-content = จัดการเนื้อหาที่ได้รับการสนับสนุน
 newtab-menu-our-sponsors-and-your-privacy = ผู้สนับสนุนของเราและความเป็นส่วนตัวของคุณ
+newtab-menu-report-this-ad = รายงานโฆษณานี้
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -189,6 +193,8 @@ newtab-label-sponsored-by = สนับสนุนโดย { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } นาที
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = ได้รับการสนับสนุน
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -384,6 +390,7 @@ newtab-wallpaper-starry-canyon = คืนที่เต็มไปด้ว�
 newtab-wallpaper-suspension-bridge = ภาพถ่ายสะพานแขวนสีเทาในช่วงกลางวัน
 newtab-wallpaper-sand-dunes = เนินทรายสีขาว
 newtab-wallpaper-palm-trees = ภาพเงาของต้นมะพร้าวในช่วงชั่วโมงทองคำ
+newtab-wallpaper-blue-flowers = ภาพถ่ายระยะใกล้ของดอกไม้กลีบสีน้ำเงินที่กำลังบาน
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -518,9 +525,40 @@ newtab-section-mangage-topics-followed-topics = ติดตามอยู่
 newtab-section-mangage-topics-followed-topics-empty-state = คุณยังไม่ได้ติดตามหัวข้อใดๆ
 newtab-section-mangage-topics-blocked-topics = ปิดกั้นอยู่
 newtab-section-mangage-topics-blocked-topics-empty-state = คุณยังไม่ได้ปิดกั้นหัวข้อใดๆ
+newtab-custom-wallpaper-title = รูปพื้นหลังกำหนดเองอยู่ตรงนี้
+# 'Make firefox yours" means to customize or personalize
+newtab-custom-wallpaper-subtitle = อัปโหลดรูปพื้นหลังของคุณเองหรือเลือกสีกำหนดเองเพื่อปรับแต่ง { -brand-product-name } ในแบบของคุณ
+newtab-custom-wallpaper-cta = ลองเลย
 
 ## Strings for download mobile highlight
 
+newtab-download-mobile-highlight-title = ดาวน์โหลด { -brand-product-name } สำหรับมือถือ
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = สแกนโค้ดเพื่อท่องเว็บอย่างปลอดภัยขณะเดินทาง
+newtab-download-mobile-highlight-body-variant-b = ท่องเว็บต่อจากที่ค้างไว้ได้เมื่อคุณซิงค์แท็บ รหัสผ่าน และอื่นๆ ของคุณ
+newtab-download-mobile-highlight-body-variant-c = คุณรู้ไหมว่าคุณสามารถใช้ { -brand-product-name } ขณะเดินทางได้? นำเบราว์เซอร์ตัวเดียวกันนี้มาไว้ในกระเป๋าของคุณ
+newtab-download-mobile-highlight-image =
+    .aria-label = คิวอาร์โค้ดสำหรับดาวน์โหลด { -brand-product-name } สำหรับมือถือ
 
 ## Strings for reporting ads and content
 
+newtab-report-content-why-reporting-this =
+    .label = ทำไมคุณถึงรายงานสิ่งนี้?
+newtab-report-ads-reason-not-interested =
+    .label = ฉันไม่สนใจ
+newtab-report-ads-reason-inappropriate =
+    .label = มันไม่เหมาะสม
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = ฉันเห็นมันมาหลายครั้งเกินไปแล้ว
+newtab-report-content-wrong-category =
+    .label = หมวดหมู่ผิด
+newtab-report-content-outdated =
+    .label = ล้าสมัย
+newtab-report-content-inappropriate-offensive =
+    .label = ไม่เหมาะสมหรือก้าวร้าว
+newtab-report-content-spam-misleading =
+    .label = สแปมหรือทำให้เข้าใจผิด
+newtab-report-cancel = ยกเลิก
+newtab-report-submit = ส่ง
+newtab-toast-thanks-for-reporting =
+    .message = ขอบคุณที่รายงานสิ่งนี้

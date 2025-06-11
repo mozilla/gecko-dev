@@ -123,6 +123,7 @@ newtab-menu-section-block = Արգելափակել
 
 ## Context menu options for sponsored stories and new ad formats on New Tab.
 
+newtab-menu-report-this-ad = Հաղորդել այս գովազդի մասին
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -182,6 +183,8 @@ newtab-label-sponsored-by = Հովանավորված է { $sponsor }-ի կողմ
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } րոպե
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Հովանավորված
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -480,3 +483,19 @@ newtab-custom-wallpaper-cta = Փորձել
 
 ## Strings for reporting ads and content
 
+newtab-report-ads-reason-inappropriate =
+    .label = Անպատշաճ է
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Ես դա չափազանց շատ անգամներ եմ տեսել
+newtab-report-content-wrong-category =
+    .label = Սխալ անվանակարգ
+newtab-report-content-outdated =
+    .label = Հնացած
+newtab-report-content-inappropriate-offensive =
+    .label = Անպատշաճ կամ վիրավորական
+newtab-report-content-spam-misleading =
+    .label = Սպամ կամ մոլորեցնող
+newtab-report-cancel = Չեղարկել
+newtab-report-submit = Ուղարկել
+newtab-toast-thanks-for-reporting =
+    .message = Շնորհակալություն հայտնելու համար:

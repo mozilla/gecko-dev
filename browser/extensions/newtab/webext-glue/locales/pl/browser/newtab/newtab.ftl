@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Usuń z { -pocket-brand-name }
 newtab-menu-archive-pocket = Archiwizuj w { -pocket-brand-name }
 newtab-menu-show-privacy-info = Nasi sponsorzy i Twoja prywatność
 newtab-menu-about-fakespot = Informacje o { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Zgłoś
 newtab-menu-report-content = Zgłoś tę treść
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -190,6 +192,8 @@ newtab-label-sponsored-by = Sponsor: { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponsorowane
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -529,6 +533,13 @@ newtab-custom-wallpaper-cta = Wypróbuj
 
 ## Strings for download mobile highlight
 
+newtab-download-mobile-highlight-title = Pobierz { -brand-product-name(case: "acc") } na telefon
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Zeskanuj kod, aby bezpiecznie przeglądać Internet wszędzie tam, gdzie jesteś.
+newtab-download-mobile-highlight-body-variant-b = Szybko kontynuuj od tego samego miejsca po synchronizacji kart, haseł i nie tylko.
+newtab-download-mobile-highlight-body-variant-c = Czy wiesz, że możesz zabrać { -brand-product-name(case: "acc") } ze sobą? Ta sama przeglądarka. W kieszeni.
+newtab-download-mobile-highlight-image =
+    .aria-label = Kod QR do pobrania { -brand-product-name(case: "gen") } na telefon
 
 ## Strings for reporting ads and content
 
@@ -550,3 +561,5 @@ newtab-report-content-spam-misleading =
     .label = Spam lub wprowadza w błąd
 newtab-report-cancel = Anuluj
 newtab-report-submit = Wyślij
+newtab-toast-thanks-for-reporting =
+    .message = Dziękujemy za zgłoszenie.

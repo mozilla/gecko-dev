@@ -117,13 +117,15 @@ newtab-menu-delete-pocket = Delete from { -pocket-brand-name }
 newtab-menu-archive-pocket = Archive in { -pocket-brand-name }
 newtab-menu-show-privacy-info = Our sponsors & your privacy
 newtab-menu-about-fakespot = About { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Report
 newtab-menu-report-content = Report this content
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Block
 # "Follow", "unfollow", and "following" are social media terms that refer to subscribing to or unsubscribing from a section of stories.
 # e.g. Following the travel section of stories.
-newtab-menu-section-unfollow = Unfollow Topic
+newtab-menu-section-unfollow = Unfollow topic
 
 ## Context menu options for sponsored stories and new ad formats on New Tab.
 
@@ -191,6 +193,8 @@ newtab-label-sponsored-by = Sponsored by { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponsored
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -557,3 +561,5 @@ newtab-report-content-spam-misleading =
     .label = Spam or misleading
 newtab-report-cancel = Cancel
 newtab-report-submit = Submit
+newtab-toast-thanks-for-reporting =
+    .message = Thank you for reporting this.

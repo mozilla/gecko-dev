@@ -512,9 +512,12 @@ newtab-section-cancel-button = Қазір емес
 newtab-section-mangage-topics-title = Тақырыптар
 newtab-section-manage-topics-button-v2 =
     .label = Темаларды басқару
+newtab-section-mangage-topics-blocked-topics = Бұғатталған
+newtab-custom-wallpaper-cta = Қолданып көру
 
 ## Strings for download mobile highlight
 
+newtab-download-mobile-highlight-title = Мобильді { -brand-product-name } жүктеп алу
 newtab-download-mobile-highlight-image =
     .aria-label = Мобильді { -brand-product-name } жүктеп алу үшін QR коды
 

@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Xóa khỏi { -pocket-brand-name }
 newtab-menu-archive-pocket = Lưu trữ trong { -pocket-brand-name }
 newtab-menu-show-privacy-info = Nhà tài trợ của chúng tôi và sự riêng tư của bạn
 newtab-menu-about-fakespot = Về { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Báo cáo
 newtab-menu-report-content = Báo cáo nội dung này
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -191,6 +193,8 @@ newtab-label-sponsored-by = Được tài trợ bởi { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } phút
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Được tài trợ
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.

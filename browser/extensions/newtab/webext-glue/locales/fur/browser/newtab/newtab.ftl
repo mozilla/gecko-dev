@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Elimine di { -pocket-brand-name }
 newtab-menu-archive-pocket = Archivie in { -pocket-brand-name }
 newtab-menu-show-privacy-info = I nestris patrocinadôrs e la tô riservatece
 newtab-menu-about-fakespot = Informazions su { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Segnale
 newtab-menu-report-content = Segnale chest contignût
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -192,6 +194,8 @@ newtab-label-sponsored-by = Patrocinât di { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponsorizât
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -530,6 +534,33 @@ newtab-custom-wallpaper-cta = Provilu
 
 ## Strings for download mobile highlight
 
+newtab-download-mobile-highlight-title = Discjame { -brand-product-name } par dispositîfs mobii
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Scansione il codiç par navigâ in sigurece dapardut.
+newtab-download-mobile-highlight-body-variant-b = Ripie di dulà che tu jeris restât sincronizant schedis, passwords e tant altri.
+newtab-download-mobile-highlight-body-variant-c = Savevistu che tu puedis simpri puartâ daûr { -brand-product-name }? Il stes navigadôr, te tô sachete.
+newtab-download-mobile-highlight-image =
+    .aria-label = Codiç QR par discjariâ { -brand-product-name } par dispositîfs mobii
 
 ## Strings for reporting ads and content
 
+newtab-report-content-why-reporting-this =
+    .label = Parcè stâstu segnalant cheste publicitât?
+newtab-report-ads-reason-not-interested =
+    .label = No mi interesse
+newtab-report-ads-reason-inappropriate =
+    .label = E je inadate
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Le ai viodude masse voltis
+newtab-report-content-wrong-category =
+    .label = Categorie sbaliade
+newtab-report-content-outdated =
+    .label = Vecje
+newtab-report-content-inappropriate-offensive =
+    .label = Inadate o ofensive
+newtab-report-content-spam-misleading =
+    .label = Spam o ingjanose
+newtab-report-cancel = Anule
+newtab-report-submit = Invie
+newtab-toast-thanks-for-reporting =
+    .message = Graciis pe segnalazion.

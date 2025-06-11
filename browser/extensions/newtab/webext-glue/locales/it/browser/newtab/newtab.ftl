@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Elimina da { -pocket-brand-name }
 newtab-menu-archive-pocket = Archivia in { -pocket-brand-name }
 newtab-menu-show-privacy-info = I nostri sponsor e la tua privacy
 newtab-menu-about-fakespot = Informazioni su { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Segnala
 newtab-menu-report-content = Segnala questo contenuto
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -193,6 +195,8 @@ newtab-label-sponsored-by = Sponsorizzata da { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponsorizzato
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -276,7 +280,7 @@ newtab-toast-dismiss-button =
 ## Pocket content onboarding experience dialog and modal for new users seeing the Pocket section for the first time, shown as the first item in the Pocket section.
 
 newtab-pocket-onboarding-discover = Scopri il meglio del Web
-newtab-pocket-onboarding-cta = { -pocket-brand-name } esplora un’ampia gamma di pubblicazioni per portare i contenuti più istruttivi, stimolanti e affidabili direttamente nel tuo { -brand-product-name }.
+newtab-pocket-onboarding-cta = { -pocket-brand-name } esplora un’ampia gamma di pubblicazioni per portare i contenuti più istruttivi, stimolanti e attendibili direttamente nel tuo { -brand-product-name }.
 
 ## Error Fallback Content.
 ## This message and suggested action link are shown in each section of UI that fails to render.
@@ -314,6 +318,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Meteo
     .description = Panoramica delle previsioni meteo per oggi
+newtab-custom-trending-search-toggle =
+    .label = Ricerche di tendenza
+    .description = Argomenti popolari e cercati di frequente
 newtab-custom-close-button = Chiudi
 newtab-custom-settings = Gestisci altre impostazioni
 
@@ -562,3 +569,13 @@ newtab-report-submit = Invia
 newtab-toast-thanks-for-reporting =
     .message = Grazie per la segnalazione.
 
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Di tendenza su Google
+newtab-trending-searches-show-trending =
+    .title = Mostra ricerche di tendenza
+newtab-trending-searches-hide-trending =
+    .title = Nascondi ricerche di tendenza
+newtab-trending-searches-learn-more = Ulteriori informazioni
+newtab-trending-searches-dismiss = Nascondi ricerche di tendenza

@@ -1,47 +1,39 @@
 {
   "metrics": {
-    "newtab": {
-      "wallpaper_click": {
-        "type": "text",
-        "description": "Number of clicks",
-        "lifetime": "ping",
-        "pings": ["newtab"],
-        "disabled": false
-      },
-      "load_time": {
-        "type": "event",
-        "description": "Time taken to load and render",
-        "lifetime": "ping",
-        "pings": ["spoc-1"],
+    "topsites": {
+      "pin": {
+        "description": "Recorded when a topsite tile is pinned.\n",
         "disabled": false,
         "extraArgs": {
-          "allowed_extra_keys": ["is_page_followed", "newtab_visit_id"]
-        }
+          "allowed_extra_keys": [
+            "advertiser_name",
+            "is_sponsored",
+            "newtab_visit_id",
+            "position",
+            "tile_id"
+          ]
+        },
+        "lifetime": "ping",
+        "pings": ["newtab"],
+        "type": "event"
+      },
+      "unpin": {
+        "description": "Recorded when a topsite tile is unpinned.\n",
+        "disabled": false,
+        "extraArgs": {
+          "allowed_extra_keys": [
+            "advertiser_name",
+            "is_sponsored",
+            "newtab_visit_id",
+            "position",
+            "tile_id"
+          ]
+        },
+        "lifetime": "ping",
+        "pings": ["newtab"],
+        "type": "event"
       }
     }
   },
-  "pings": {
-    "messaging-system": {
-      "includeClientId": false,
-      "sendIfEmpty": false,
-      "preciseTimestamps": true,
-      "includeInfoSections": true,
-      "enabled": true,
-      "schedulesPings": [],
-      "reasonCodes": [],
-      "followsCollectionEnabled": true,
-      "uploaderCapabilities": []
-    },
-    "spoc-1": {
-      "includeClientId": false,
-      "sendIfEmpty": false,
-      "preciseTimestamps": true,
-      "includeInfoSections": true,
-      "enabled": true,
-      "schedulesPings": [],
-      "reasonCodes": ["click", "impression", "save"],
-      "followsCollectionEnabled": true,
-      "uploaderCapabilities": []
-    }
-  }
+  "pings": {}
 }

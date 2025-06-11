@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = { -pocket-brand-name }에서 삭제
 newtab-menu-archive-pocket = { -pocket-brand-name }에 보관
 newtab-menu-show-privacy-info = 우리의 스폰서와 개인 정보 보호
 newtab-menu-about-fakespot = { -fakespot-brand-name } 정보
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = 신고
 newtab-menu-report-content = 이 콘텐츠 신고
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -181,7 +183,7 @@ newtab-label-download = 다운로드됨
 # This string is used in the story cards to indicate sponsored content
 # Variables:
 #   $sponsorOrSource (string) - The name of a company or their domain
-newtab-label-sponsored = { $sponsorOrSource } · 후원
+newtab-label-sponsored = { $sponsorOrSource } · 스폰서
 # This string is used at the bottom of story cards to indicate sponsored content
 # Variables:
 #   $sponsor (string) - The name of a sponsor
@@ -191,6 +193,8 @@ newtab-label-sponsored-by = { $sponsor } 후원
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead }분
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = 스폰서
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -354,7 +358,7 @@ newtab-wallpaper-pink = 분홍색
 newtab-wallpaper-light-pink = 연분홍색
 newtab-wallpaper-red = 빨간색
 newtab-wallpaper-dark-blue = 진청색
-newtab-wallpaper-dark-purple = 진보라
+newtab-wallpaper-dark-purple = 진보라색
 newtab-wallpaper-dark-green = 진녹색
 newtab-wallpaper-brown = 갈색
 

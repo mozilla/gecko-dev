@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Slet fra { -pocket-brand-name }
 newtab-menu-archive-pocket = Arkiver i { -pocket-brand-name }
 newtab-menu-show-privacy-info = Vores sponsorer og dit privatliv
 newtab-menu-about-fakespot = Om { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Rapporter
 newtab-menu-report-content = Rapporter indholdet
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -192,6 +194,8 @@ newtab-label-sponsored-by = Sponsoreret af { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponsoreret
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -530,6 +534,13 @@ newtab-custom-wallpaper-cta = Prøv det
 
 ## Strings for download mobile highlight
 
+newtab-download-mobile-highlight-title = Hent { -brand-product-name } til mobil
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Skan koden for at surfe sikkert på farten.
+newtab-download-mobile-highlight-body-variant-b = Fortsæt, hvor du slap ved at synkronisere faneblade, adgangskoder med mere.
+newtab-download-mobile-highlight-body-variant-c = Viste du, at du kan tage { -brand-product-name } med på farten? Samme browser, men i din lomme.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR-kode til at hente { -brand-product-name } til mobilen
 
 ## Strings for reporting ads and content
 
@@ -551,3 +562,5 @@ newtab-report-content-spam-misleading =
     .label = Spam eller vildledende
 newtab-report-cancel = Annuller
 newtab-report-submit = Indsend
+newtab-toast-thanks-for-reporting =
+    .message = Tak for at du rapporterer dette.

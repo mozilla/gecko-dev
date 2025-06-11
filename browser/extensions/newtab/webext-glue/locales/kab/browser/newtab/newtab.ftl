@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Kkes si { -pocket-brand-name }
 newtab-menu-archive-pocket = Ḥrez di { -pocket-brand-name }
 newtab-menu-show-privacy-info = Wid yettbeddan fell-aɣ akked tudert-ik tabaḍnit
 newtab-menu-about-fakespot = Γef { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Aneqqis
 newtab-menu-report-content = Ccetki ɣef ugbur-a
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -128,6 +130,7 @@ newtab-menu-section-unfollow = Ur ṭṭafar ara asentel-a
 ## Context menu options for sponsored stories and new ad formats on New Tab.
 
 newtab-menu-manage-sponsored-content = Sefrek agbur yesεan bab
+newtab-menu-our-sponsors-and-your-privacy = Wid yettbeddan fell-aɣ akked tudert-ik tabaḍnit
 newtab-menu-report-this-ad = Ccetki ɣef udellel-a
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
@@ -186,6 +189,8 @@ newtab-label-sponsored-by = Ddaw leɛnaya n { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } tsd
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = S lmendad
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -317,11 +322,13 @@ newtab-wallpaper-dark-mountain = Tugna n yidurar
 
 newtab-wallpaper-blue = Amidadi
 newtab-wallpaper-green = Azegzaw
+newtab-wallpaper-beige = Beige
 newtab-wallpaper-yellow = Awraɣ
 newtab-wallpaper-orange = Ačinawi
 newtab-wallpaper-pink = Axuxi
 newtab-wallpaper-red = Azggaɣ
 newtab-wallpaper-dark-blue = Amidadi iḥemqen
+newtab-wallpaper-dark-purple = Axuxi Iḥemqen
 newtab-wallpaper-brown = Aqehwi
 
 ## Abstract
@@ -404,21 +411,48 @@ newtab-topic-selection-button-update-interests = Leqqem ismenyaf-ik
 ## "Follow", "unfollow", and "following" are social media terms that refer to subscribing to or unsubscribing from a section of stories.
 ## e.g. Following the travel section of stories.
 
+newtab-section-follow-button = Ḍfer
+newtab-section-following-button = Aḍfar
+newtab-section-unfollow-button = Ur ṭṭafar ara
 
 ## Button to block/unblock listed topics
 ## "Block", "unblocked", and "blocked" are social media terms that refer to hiding a section of stories.
 ## e.g. Blocked the politics section of stories.
 
+newtab-section-block-button = Sewḥel
+newtab-section-blocked-button = Iwḥel
+newtab-section-unblock-button = Serreḥ
 
 ## Confirmation modal for blocking a section
 
+newtab-section-cancel-button = Mačči tura
+newtab-section-confirm-block-topic-p1 = D tidet tebɣiḍ ad tesweḥleḍ asental-a?
+# Variables:
+#   $topic (string) - Name of topic that user is blocking
+newtab-section-block-topic-button = Sewḥel { $topic }
 
 ## Strings for custom wallpaper highlight
 
+newtab-section-mangage-topics-title = Isental
+newtab-section-manage-topics-button-v2 =
+    .label = Sefrek isental
+newtab-section-mangage-topics-followed-topics = Yettwaḍfar
+newtab-section-mangage-topics-followed-topics-empty-state = Ur teḍfireḍ ula d yiwen usentel akka ar tura.
 newtab-section-mangage-topics-blocked-topics = Iwḥel
+newtab-section-mangage-topics-blocked-topics-empty-state = Ur tesweḥleḍ ula d yiwen usentel akka ar tura.
+newtab-custom-wallpaper-cta = Ɛreḍ-it
 
 ## Strings for download mobile highlight
 
+newtab-download-mobile-highlight-title = Sader { -brand-product-name } i uziraz
+newtab-download-mobile-highlight-image =
+    .aria-label = Tangalt QR i usader n { -brand-product-name } i uziraz
 
 ## Strings for reporting ads and content
 
+newtab-report-content-why-reporting-this =
+    .label = Ayɣer i d-tuzneḍ aneqqis ɣef waya?
+newtab-report-content-wrong-category =
+    .label = Yir taggayt
+newtab-report-cancel = Sefsex
+newtab-report-submit = Azen

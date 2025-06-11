@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Видалити з { -pocket-brand-name }
 newtab-menu-archive-pocket = Архівувати в { -pocket-brand-name }
 newtab-menu-show-privacy-info = Наші спонсори і ваша приватність
 newtab-menu-about-fakespot = Про { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Повідомити
 newtab-menu-report-content = Повідомити про цей вміст
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -191,6 +193,8 @@ newtab-label-sponsored-by = Від спонсора { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } хв
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Спонсоровано
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -530,6 +534,13 @@ newtab-custom-wallpaper-cta = Спробувати
 
 ## Strings for download mobile highlight
 
+newtab-download-mobile-highlight-title = Завантажити { -brand-product-name } для мобільних пристроїв
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Скануйте код, щоб безпечно переглядати вебсторінки в дорозі.
+newtab-download-mobile-highlight-body-variant-b = Продовжуйте з того місця, де зупинилися, синхронізуючи вкладки, паролі тощо.
+newtab-download-mobile-highlight-body-variant-c = Чи знаєте ви, що { -brand-product-name } можна використовувати де б ви не були? Той самий браузер у вашій кишені.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR-код для завантаження { -brand-product-name } для мобільних пристроїв
 
 ## Strings for reporting ads and content
 
@@ -551,3 +562,5 @@ newtab-report-content-spam-misleading =
     .label = Спам або введення в оману
 newtab-report-cancel = Скасувати
 newtab-report-submit = Надіслати
+newtab-toast-thanks-for-reporting =
+    .message = Дякуємо, що повідомили про це.

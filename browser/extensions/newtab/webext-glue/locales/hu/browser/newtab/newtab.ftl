@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Törlés a { -pocket-brand-name }ből
 newtab-menu-archive-pocket = Archiválás a { -pocket-brand-name }ben
 newtab-menu-show-privacy-info = Támogatóink és az Ön adatvédelme
 newtab-menu-about-fakespot = A { -fakespot-brand-name } névjegye
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Jelentés
 newtab-menu-report-content = Tartalom jelentése
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -191,6 +193,8 @@ newtab-label-sponsored-by = Szponzorálta: { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } perc
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Szponzorált
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -529,6 +533,13 @@ newtab-custom-wallpaper-cta = Próbálja ki
 
 ## Strings for download mobile highlight
 
+newtab-download-mobile-highlight-title = Töltse le a mobilos { -brand-product-name }ot
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Olvassa le a kódot, hogy biztonságosan böngésszen útközben.
+newtab-download-mobile-highlight-body-variant-b = Folytassa ott, ahol abbahagyta, és szinkronizálja lapjait, jelszavait és egyebeit.
+newtab-download-mobile-highlight-body-variant-c = Tudta, hogy magával viheti a { -brand-product-name }ot? Ugyanaz a böngésző. A zsebében.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR-kód a mobilos { -brand-product-name } letöltéséhez
 
 ## Strings for reporting ads and content
 
@@ -550,3 +561,5 @@ newtab-report-content-spam-misleading =
     .label = Kéretlen vagy félrevezető
 newtab-report-cancel = Mégse
 newtab-report-submit = Elküldés
+newtab-toast-thanks-for-reporting =
+    .message = Köszönjük, hogy bejelentette.

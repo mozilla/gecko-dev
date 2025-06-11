@@ -109,14 +109,17 @@ newtab-menu-edit-topsites = Uredi
 newtab-menu-open-new-window = Otvori u novom prozoru
 newtab-menu-open-new-private-window = Otvori u novom privatnom prozoru
 newtab-menu-dismiss = Odbaci
-newtab-menu-pin = Zakači
-newtab-menu-unpin = Otkači
+newtab-menu-pin = Prikvači
+newtab-menu-unpin = Otkvači
 newtab-menu-delete-history = Izbriši iz povijesti
 newtab-menu-save-to-pocket = Spremi u { -pocket-brand-name }
 newtab-menu-delete-pocket = Izbriši iz { -pocket-brand-name(case: "gen") }
 newtab-menu-archive-pocket = Arhiviraj u { -pocket-brand-name }
 newtab-menu-show-privacy-info = Naši sponzori i tvoja privatnost
 newtab-menu-about-fakespot = O proširenju { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Prijavi
+newtab-menu-report-content = Prijavi ovaj sadržaj
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Blokiraj
@@ -126,6 +129,9 @@ newtab-menu-section-unfollow = Prestani pratiti temu
 
 ## Context menu options for sponsored stories and new ad formats on New Tab.
 
+newtab-menu-manage-sponsored-content = Upravljaj sponzoriranim sadržajem
+newtab-menu-our-sponsors-and-your-privacy = Naši sponzori i tvoja privatnost
+newtab-menu-report-this-ad = Prijavi ovaj oglas
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -187,6 +193,8 @@ newtab-label-sponsored-by = Sponzor { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponzorirano
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -365,6 +373,10 @@ newtab-wallpaper-abstract-purple = Ljubičasti oblici
 newtab-wallpaper-abstract-orange = Narančasti oblici
 newtab-wallpaper-gradient-orange = Gradijent narančaste i ružičaste
 newtab-wallpaper-abstract-blue-purple = Plavi i ljubičasti oblici
+newtab-wallpaper-abstract-white-curves = Bijela sa zasjenjenim krivuljama
+newtab-wallpaper-abstract-purple-green = Gradijent ljubičaste boje i zelenog svjetla
+newtab-wallpaper-abstract-blue-purple-waves = Plavi i ljubičasti valoviti oblici
+newtab-wallpaper-abstract-black-waves = Crni valoviti oblici
 
 ## Celestial
 
@@ -375,6 +387,12 @@ newtab-wallpaper-storm-sky = Olujno nebo
 newtab-wallpaper-sky-with-pink-clouds = Nebo s ružičastim oblacima
 newtab-wallpaper-red-panda-yawns-in-a-tree = Crvena panda zijeva na drvetu
 newtab-wallpaper-white-mountains = Bijele planine
+newtab-wallpaper-hot-air-balloons = Različite boje balona na vrući zrak tijekom dana
+newtab-wallpaper-starry-canyon = Plava zvjezdana noć
+newtab-wallpaper-suspension-bridge = Fotografija sivog visećeg mosta tijekom dana
+newtab-wallpaper-sand-dunes = Bijele pješčane dine
+newtab-wallpaper-palm-trees = Silueta kokosovih palmi tijekom zlatnog sata
+newtab-wallpaper-blue-flowers = Fotografija cvjetajućih plavih latica izbliza
 # Variables
 #   $author_string (String) - The name of the creator of the photo.
 #   $webpage_string (String) - The name of the webpage where the photo is located.
@@ -392,8 +410,16 @@ feature-highlight-wallpaper =
 
 ## Celestial
 
+# “Celestial” referring to astronomy; positioned in or relating to the sky,
+# or outer space as observed in astronomy.
+# Not to be confused with religious definition of the word.
+newtab-wallpaper-category-title-celestial = Nebesko
 newtab-wallpaper-celestial-lunar-eclipse = Pomrčina mjeseca
+newtab-wallpaper-celestial-earth-night = Noćna fotografija iz niske orbite Zemlje
 newtab-wallpaper-celestial-starry-sky = Zvjezdano nebo
+newtab-wallpaper-celestial-eclipse-time-lapse = Ubrzana snimka pomrčine Mjeseca
+newtab-wallpaper-celestial-black-hole = Ilustracija galaksije sa crnom rupom
+newtab-wallpaper-celestial-river = Satelitska snimka rijeke
 
 ## New Tab Weather
 
@@ -486,6 +512,8 @@ newtab-section-unblock-button = Odblokiraj
 ## Confirmation modal for blocking a section
 
 newtab-section-cancel-button = Ne sada
+newtab-section-confirm-block-topic-p1 = Stvarno želiš blokirati ovu temu?
+newtab-section-confirm-block-topic-p2 = Blokirane teme se više neće pojavljivati u tvom feedu.
 # Variables:
 #   $topic (string) - Name of topic that user is blocking
 newtab-section-block-topic-button = Blokiraj temu „{ $topic }”
@@ -499,9 +527,40 @@ newtab-section-mangage-topics-followed-topics = Praćene
 newtab-section-mangage-topics-followed-topics-empty-state = Još nisi pratio/la nijednu temu.
 newtab-section-mangage-topics-blocked-topics = Blokirane
 newtab-section-mangage-topics-blocked-topics-empty-state = Još nisi blokirao/la nijednu temu.
+newtab-custom-wallpaper-title = Prilagođene slike pozadine su ovdje
+# 'Make firefox yours" means to customize or personalize
+newtab-custom-wallpaper-subtitle = Prenesi vlastitu sliku pozadine ili odaberi prilagođenu za tvoj { -brand-product-name }.
+newtab-custom-wallpaper-cta = Isprobaj
 
 ## Strings for download mobile highlight
 
+newtab-download-mobile-highlight-title = Preuzmi { -brand-product-name } za mobilne uređaje
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Skeniraj kod za sigurno pregledavanje na putu.
+newtab-download-mobile-highlight-body-variant-b = Nastavi tamo gdje si stao/la prilikom sinkronizacije kartica, lozinki i više.
+newtab-download-mobile-highlight-body-variant-c = Znaš li da { -brand-product-name } možeš ponijeti sa sobom? Isti preglednik. U tvom džepu.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR kod za preuzimanje { -brand-product-name }a za mobilne uređaje
 
 ## Strings for reporting ads and content
 
+newtab-report-content-why-reporting-this =
+    .label = Zašto ovo prijavljuješ?
+newtab-report-ads-reason-not-interested =
+    .label = Ne zanima me
+newtab-report-ads-reason-inappropriate =
+    .label = Nije prikladno
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = Vidio/vidjela sam to previše puta
+newtab-report-content-wrong-category =
+    .label = Kriva kategorija
+newtab-report-content-outdated =
+    .label = Zastarjelo
+newtab-report-content-inappropriate-offensive =
+    .label = Neprikladno ili uvredljivo
+newtab-report-content-spam-misleading =
+    .label = Nametljivo ili obmanjujuće
+newtab-report-cancel = Odustani
+newtab-report-submit = Pošalji
+newtab-toast-thanks-for-reporting =
+    .message = Hvala na prijavi!
