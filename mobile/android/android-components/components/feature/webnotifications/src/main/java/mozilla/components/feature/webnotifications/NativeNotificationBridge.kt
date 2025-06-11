@@ -65,21 +65,6 @@ internal class NativeNotificationBridge(
                 .setAutoCancel(true)
                 .setSilent(notification.silent)
 
-            for (browserAction in actions) {
-                val intent = Intent(context, activityClass).apply {
-                    putExtra(EXTRA_ON_CLICK, notification.engineNotification)
-                    action = browserAction.name
-                }
-                val pendingIntent = PendingIntent.getActivity(
-                    context,
-                    requestId,
-                    intent,
-                    PendingIntentUtils.defaultFlags,
-                )
-                val actionBuilder = NotificationCompat.Action.Builder(0, browserAction.title, pendingIntent)
-                builder.addAction(actionBuilder.build())
-            }
-
             sourceUrl?.let {
                 builder.setSubText(it.tryGetHostFromUrl())
             }
