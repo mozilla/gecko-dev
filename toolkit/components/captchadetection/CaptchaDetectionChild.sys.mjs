@@ -21,20 +21,20 @@ class CaptchaHandler {
   /**
    * @param {CaptchaDetectionChild} actor - The window actor.
    * @param {Event} _event - The initial event that created the actor.
+   * @param {boolean} skipConstructedNotif - Whether to skip the constructed notification. Used for captchas with multiple frames.
    */
-  constructor(actor, _event) {
+  constructor(actor, _event, skipConstructedNotif = false) {
     /** @type {CaptchaDetectionChild} */
     this.actor = actor;
-    this.tabId = this.actor.docShell.browserChild.tabId;
-    this.isPBM = this.actor.browsingContext.usePrivateBrowsing;
-    this.notifyConstructed();
+    if (!skipConstructedNotif) {
+      this.notifyConstructed();
+    }
   }
 
   notifyConstructed() {
     lazy.console.debug(`CaptchaHandler constructed: ${this.constructor.type}`);
     this.actor.sendAsyncMessage("CaptchaHandler:Constructed", {
       type: this.constructor.type,
-      isPBM: this.isPBM,
     });
   }
 
@@ -43,11 +43,7 @@ class CaptchaHandler {
   }
 
   updateState(state) {
-    this.actor.sendAsyncMessage("CaptchaState:Update", {
-      tabId: this.tabId,
-      isPBM: this.isPBM,
-      state,
-    });
+    this.actor.sendAsyncMessage("CaptchaState:Update", state);
   }
 
   onActorDestroy() {
@@ -87,7 +83,15 @@ class GoogleRecaptchaV2Handler extends CaptchaHandler {
   static type = "g-recaptcha-v2";
 
   constructor(actor, event) {
-    super(actor, event);
+    super(
+      actor,
+      event,
+      actor.document.location.pathname.endsWith("/bframe") ||
+        (Cu.isInAutomation &&
+          actor.document.location.pathname.endsWith(
+            "g_recaptcha_v2_checkbox.html"
+          ))
+    );
     this.#enabled = true;
     this.#mutationObserver = new this.actor.contentWindow.MutationObserver(
       this.#mutationHandler.bind(this)
@@ -109,10 +113,13 @@ class GoogleRecaptchaV2Handler extends CaptchaHandler {
       );
     }
 
-    return [
-      "https://www.google.com/recaptcha/api2/",
-      "https://www.google.com/recaptcha/enterprise/",
-    ].some(match => document.location.href.startsWith(match));
+    return (
+      [
+        "https://www.google.com/recaptcha/api2/",
+        "https://www.google.com/recaptcha/enterprise/",
+      ].some(match => document.location.href.startsWith(match)) &&
+      !document.location.search.includes("size=invisible")
+    );
   }
 
   #mutationHandler(_mutations, observer) {
@@ -327,17 +334,19 @@ class HCaptchaHandler extends CaptchaHandler {
   static type = "hCaptcha";
 
   constructor(actor, event) {
-    super(actor, event);
-
     let params = null;
     try {
-      params = new URLSearchParams(this.actor.document.location.hash.slice(1));
+      params = new URLSearchParams(actor.document.location.hash.slice(1));
     } catch {
       // invalid URL
+      super(actor, event, true);
       return;
     }
 
     const frameType = params.get("frame");
+
+    super(actor, event, frameType === "challenge");
+
     if (frameType === "challenge") {
       this.#initChallengeHandler();
     } else if (frameType === "checkbox") {
@@ -357,7 +366,10 @@ class HCaptchaHandler extends CaptchaHandler {
     return (
       document.location.href.startsWith(
         "https://newassets.hcaptcha.com/captcha/v1/"
-      ) && document.location.pathname.endsWith("/static/hcaptcha.html")
+      ) &&
+      document.location.pathname.endsWith("/static/hcaptcha.html") &&
+      !document.location.hash.includes("size=invisible") &&
+      !document.location.hash.includes("frame=checkbox-invisible")
     );
   }
 
@@ -507,9 +519,7 @@ export class CaptchaDetectionChild extends JSWindowActorChild {
     }
 
     if (event.type === "pagehide") {
-      this.sendAsyncMessage("TabState:Closed", {
-        tabId: this.docShell.browserChild.tabId,
-      });
+      this.sendAsyncMessage("Page:Hide");
     }
 
     this.handler?.handleEvent(event);

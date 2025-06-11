@@ -46,7 +46,7 @@
 
         const occurredCount =
           await GleanTest.captchaDetection.googleRecaptchaV2Oc.testGetValue();
-        is(occurredCount, 2, "We should have detected the occurrence");
+        is(occurredCount, 1, "We should have detected the occurrence");
 
         await CaptchaTestingUtils.clearPrefs();
       });
