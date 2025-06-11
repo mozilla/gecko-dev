@@ -1081,8 +1081,8 @@ static bool ProvidesTitle(const Accessible* aAccessible, nsString& aName) {
   if ([relations count] > 0) {
     // only fire AXValidationErrorChanged if related node is not
     // `aria-invalid="false"`
-    for (uint32_t relIdx = 0; relIdx <= [relations count]; relIdx++) {
-      NSString* invalidStr = [relations[relIdx] moxInvalid];
+    for (mozAccessible* related : relations) {
+      NSString* invalidStr = [related moxInvalid];
       if (![invalidStr isEqualToString:@"false"]) {
         [self moxPostNotification:@"AXValidationErrorChanged"];
         break;
