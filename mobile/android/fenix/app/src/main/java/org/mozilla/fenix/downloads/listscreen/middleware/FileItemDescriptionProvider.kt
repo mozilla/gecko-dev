@@ -67,7 +67,10 @@ class DefaultFileItemDescriptionProvider(
                 )
             }
 
-            if (estimatedSecsRemaining == null) {
+            if (downloadState.contentLength == null) {
+                // This will be changed in https://bugzilla.mozilla.org/show_bug.cgi?id=1971338
+                fileSizeFormatter.formatSizeInBytes(downloadState.currentBytesCopied)
+            } else if (estimatedSecsRemaining == null) {
                 context.getString(
                     R.string.download_item_in_progress_description_pending,
                     fileSizeFormatter.formatSizeInBytes(downloadState.currentBytesCopied),
