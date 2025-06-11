@@ -4,7 +4,10 @@
 
 package org.mozilla.fenix.downloads.listscreen.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Icon
@@ -18,7 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem
 import mozilla.components.compose.base.text.Text
@@ -26,6 +33,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.list.SelectableListItem
 import org.mozilla.fenix.downloads.listscreen.DownloadsListTestTag
 import org.mozilla.fenix.downloads.listscreen.store.FileItem
+import org.mozilla.fenix.downloads.listscreen.store.TimeCategory
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -98,4 +106,188 @@ internal fun FileListItem(
         },
         modifier = modifier,
     )
+}
+
+private data class FileListItemPreviewState(
+    val fieItem: FileItem,
+    val isSelected: Boolean,
+    val isMenuIconVisible: Boolean,
+)
+
+private class FileListItemParameterProvider : PreviewParameterProvider<FileListItemPreviewState> {
+    override val values: Sequence<FileListItemPreviewState>
+        get() = sequenceOf(
+            FileListItemPreviewState(
+                fieItem = FileItem(
+                    id = "1",
+                    url = "https://www.mozilla.org",
+                    fileName = "TestJPG.jpg",
+                    filePath = "",
+                    displayedShortUrl = "mozilla.org",
+                    contentType = "image/jpg",
+                    status = DownloadState.Status.COMPLETED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                    description = "3.4 MB • mozilla.org ",
+                ),
+                isSelected = false,
+                isMenuIconVisible = true,
+            ),
+            FileListItemPreviewState(
+                fieItem = FileItem(
+                    id = "2",
+                    url = "https://www.google.com",
+                    fileName = "TestPDF.pdf",
+                    filePath = "",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/pdf",
+                    status = DownloadState.Status.COMPLETED,
+                    timeCategory = TimeCategory.YESTERDAY,
+                    description = "1.2 GB • example.com",
+                ),
+                isSelected = false,
+                isMenuIconVisible = true,
+            ),
+            FileListItemPreviewState(
+                fieItem = FileItem(
+                    id = "3",
+                    url = "https://www.google.com",
+                    fileName = "TestVideo.mp4",
+                    filePath = "",
+                    displayedShortUrl = "google.com",
+                    contentType = "video/mp4",
+                    status = DownloadState.Status.COMPLETED,
+                    timeCategory = TimeCategory.LAST_30_DAYS,
+                    description = "63 MB • example.com",
+                ),
+                isSelected = false,
+                isMenuIconVisible = true,
+            ),
+            FileListItemPreviewState(
+                fieItem = FileItem(
+                    id = "4",
+                    url = "https://www.google.com",
+                    fileName = "TestZIP.zip",
+                    filePath = "",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/zip",
+                    status = DownloadState.Status.COMPLETED,
+                    timeCategory = TimeCategory.YESTERDAY,
+                    description = "30 MB • example.com",
+                ),
+                isSelected = false,
+                isMenuIconVisible = true,
+            ),
+            FileListItemPreviewState(
+                fieItem = FileItem(
+                    id = "5",
+                    url = "https://www.google.com",
+                    fileName = "TestMSWordDoc.docx",
+                    filePath = "",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/msword",
+                    status = DownloadState.Status.COMPLETED,
+                    timeCategory = TimeCategory.YESTERDAY,
+                    description = "13 kB • example.com",
+                ),
+                isSelected = false,
+                isMenuIconVisible = true,
+            ),
+            FileListItemPreviewState(
+                fieItem = FileItem(
+                    id = "6",
+                    url = "https://www.mozilla.org",
+                    fileName = "TestJPG.jpg",
+                    filePath = "",
+                    displayedShortUrl = "mozilla.org",
+                    contentType = "image/jpg",
+                    status = DownloadState.Status.COMPLETED,
+                    timeCategory = TimeCategory.OLDER,
+                    description = "10 MB • example.com",
+                ),
+                isSelected = true,
+                isMenuIconVisible = false,
+            ),
+            FileListItemPreviewState(
+                fieItem = FileItem(
+                    id = "7",
+                    url = "https://www.google.com",
+                    fileName = "TestPDF.pdf",
+                    filePath = "",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/pdf",
+                    status = DownloadState.Status.COMPLETED,
+                    timeCategory = TimeCategory.YESTERDAY,
+                    description = "20 MB • example.com",
+                ),
+                isSelected = true,
+                isMenuIconVisible = false,
+            ),
+            FileListItemPreviewState(
+                fieItem = FileItem(
+                    id = "8",
+                    url = "https://www.google.com",
+                    fileName = "TestVideo.mp4",
+                    filePath = "",
+                    displayedShortUrl = "google.com",
+                    contentType = "video/mp4",
+                    status = DownloadState.Status.COMPLETED,
+                    timeCategory = TimeCategory.YESTERDAY,
+                    description = "6 GB • example.com",
+                ),
+                isSelected = true,
+                isMenuIconVisible = false,
+            ),
+            FileListItemPreviewState(
+                fieItem = FileItem(
+                    id = "4",
+                    url = "https://www.google.com",
+                    fileName = "TestZIP.zip",
+                    filePath = "",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/zip",
+                    status = DownloadState.Status.COMPLETED,
+                    timeCategory = TimeCategory.TODAY,
+                    description = "31 kB • example.com",
+                ),
+                isSelected = true,
+                isMenuIconVisible = false,
+            ),
+            FileListItemPreviewState(
+                fieItem = FileItem(
+                    id = "5",
+                    url = "https://www.google.com",
+                    fileName = "TestMSWordDoc.docx",
+                    filePath = "",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/msword",
+                    status = DownloadState.Status.COMPLETED,
+                    timeCategory = TimeCategory.OLDER,
+                    description = "66 MB • example.com",
+                ),
+                isSelected = true,
+                isMenuIconVisible = false,
+            ),
+        )
+}
+
+@PreviewLightDark
+@Composable
+private fun FileListItemPreview(
+    @PreviewParameter(FileListItemParameterProvider::class) fileListItemPreviewState: FileListItemPreviewState,
+) {
+    FirefoxTheme {
+        Box(
+            modifier = Modifier.background(FirefoxTheme.colors.layer1),
+        ) {
+            FileListItem(
+                isSelected = fileListItemPreviewState.isSelected,
+                fileItem = fileListItemPreviewState.fieItem,
+                isMenuIconVisible = fileListItemPreviewState.isMenuIconVisible,
+                onShareFileClick = {},
+                onDeleteClick = {},
+                onShareUrlClick = {},
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
 }
