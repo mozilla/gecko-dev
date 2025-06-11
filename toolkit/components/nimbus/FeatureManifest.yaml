@@ -407,6 +407,12 @@ urlbar:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.impressionCaps.nonSponsoredEnabled
       description: Whether non-sponsored suggestions are subject to impression frequency caps. If false, non-sponsored suggestions can be shown an unlimited number of times over any given period. If true, non-sponsored suggestion impressions will be subject to the caps in the remote settings configuration.
+    quickSuggestMlInitDelaySeconds:
+      type: int
+      fallbackPref: browser.urlbar.quicksuggest.mlInitDelaySeconds
+      description: >-
+        How long to wait in seconds after startup before initializing the
+        Suggest ML backend.
     quickSuggestMlEnabled:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.mlEnabled

@@ -51,6 +51,8 @@ skip-if = ["true"] # Bug 1880214
 
 ["test_rust_ingest.js"]
 
+["test_suggestBackendMl.js"]
+
 ["test_weather.js"]
 
 ["test_weather_keywords.js"]
