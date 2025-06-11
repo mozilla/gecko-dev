@@ -293,45 +293,47 @@ static void DrawCellIncludingFocusRing(NSCell* aCell, NSRect aWithFrame,
 static CGFloat kMaxFocusRingWidth =
     0;  // initialized by the nsNativeThemeCocoa constructor
 
-enum { miniControlSize, smallControlSize, regularControlSize };
+enum class CocoaSize { Mini = 0, Small, Regular };
+static constexpr size_t kControlSizeCount = 3;
 
 template <typename T>
-using PerSizeArray = std::array<T, 3>;
+using PerSizeArray = EnumeratedArray<CocoaSize, T, kControlSizeCount>;
 
-enum { leftMargin, topMargin, rightMargin, bottomMargin };
-
-static size_t EnumSizeForCocoaSize(NSControlSize cocoaControlSize) {
-  if (cocoaControlSize == NSControlSizeMini)
-    return miniControlSize;
-  else if (cocoaControlSize == NSControlSizeSmall)
-    return smallControlSize;
-  else
-    return regularControlSize;
+static CocoaSize EnumSizeForCocoaSize(NSControlSize cocoaControlSize) {
+  switch (cocoaControlSize) {
+    case NSControlSizeMini:
+      return CocoaSize::Mini;
+    case NSControlSizeSmall:
+      return CocoaSize::Small;
+    default:
+      return CocoaSize::Regular;
+  }
 }
 
-static NSControlSize CocoaSizeForEnum(int32_t enumControlSize) {
-  if (enumControlSize == miniControlSize)
-    return NSControlSizeMini;
-  else if (enumControlSize == smallControlSize)
-    return NSControlSizeSmall;
-  else
-    return NSControlSizeRegular;
+static NSControlSize ControlSizeForEnum(CocoaSize enumControlSize) {
+  switch (enumControlSize) {
+    case CocoaSize::Mini:
+      return NSControlSizeMini;
+    case CocoaSize::Small:
+      return NSControlSizeSmall;
+    case CocoaSize::Regular:
+      return NSControlSizeRegular;
+  }
+  MOZ_ASSERT_UNREACHABLE("Unknown enum");
+  return NSControlSizeRegular;
 }
 
 static NSString* CUIControlSizeForCocoaSize(NSControlSize aControlSize) {
-  if (aControlSize == NSControlSizeRegular)
-    return @"regular";
-  else if (aControlSize == NSControlSizeSmall)
-    return @"small";
-  else
-    return @"mini";
+  if (aControlSize == NSControlSizeRegular) return @"regular";
+  if (aControlSize == NSControlSizeSmall) return @"small";
+  return @"mini";
 }
 
 using CellMarginArray = PerSizeArray<IntMargin>;
 
 static void InflateControlRect(NSRect* rect, NSControlSize cocoaControlSize,
                                const CellMarginArray& marginSet) {
-  size_t controlSize = EnumSizeForCocoaSize(cocoaControlSize);
+  auto controlSize = EnumSizeForCocoaSize(cocoaControlSize);
   const IntMargin& buttonMargins = marginSet[controlSize];
   rect->origin.x -= buttonMargins.left;
   rect->origin.y -= buttonMargins.bottom;
@@ -691,38 +693,40 @@ struct CellRenderSettings {
  * tolerance - The tolerance as passed to DrawCellWithSnapping.
  * NOTE: returns NSControlSizeRegular if all values in 'sizes' are zero.
  */
-static NSControlSize FindControlSize(CGFloat size, const CGFloat* sizes,
+static NSControlSize FindControlSize(CGFloat size,
+                                     const PerSizeArray<CGFloat>& sizes,
                                      CGFloat tolerance) {
-  for (uint32_t i = miniControlSize; i <= regularControlSize; ++i) {
-    if (sizes[i] == 0) {
+  for (size_t i = 0; i < kControlSizeCount; ++i) {
+    if (sizes[CocoaSize(i)] == 0) {
       continue;
     }
 
     CGFloat next = 0;
     // Find next value.
-    for (uint32_t j = i + 1; j <= regularControlSize; ++j) {
-      if (sizes[j] != 0) {
-        next = sizes[j];
+    for (size_t j = i + 1; j < kControlSizeCount; ++j) {
+      if (sizes[CocoaSize(j)] != 0) {
+        next = sizes[CocoaSize(j)];
         break;
       }
     }
 
     // If it's the latest value, we pick it.
     if (next == 0) {
-      return CocoaSizeForEnum(i);
+      return ControlSizeForEnum(CocoaSize(i));
     }
 
-    if (size <= sizes[i] + tolerance && size < next) {
-      return CocoaSizeForEnum(i);
+    if (size <= sizes[CocoaSize(i)] + tolerance && size < next) {
+      return ControlSizeForEnum(CocoaSize(i));
     }
   }
 
   // If we are here, that means sizes[] was an array with only empty values
   // or the algorithm above is wrong.
   // The former can happen but the later would be wrong.
-  NS_ASSERTION(sizes[0] == 0 && sizes[1] == 0 && sizes[2] == 0,
-               "We found no control! We shouldn't be there!");
-  return CocoaSizeForEnum(regularControlSize);
+  NS_ASSERTION(
+      std::all_of(sizes.begin(), sizes.end(), [](CGFloat s) { return s == 0; }),
+      "We found no control! We shouldn't be there!");
+  return ControlSizeForEnum(CocoaSize::Regular);
 }
 
 /*
@@ -752,25 +756,24 @@ static void DrawCellWithSnapping(NSCell* cell, CGContextRef cgContext,
 
   HIRect drawRect = destRect;
 
-  CGFloat controlWidths[3] = {miniSize.width, smallSize.width,
-                              regularSize.width};
+  PerSizeArray<CGFloat> controlWidths{miniSize.width, smallSize.width,
+                                      regularSize.width};
   NSControlSize controlSizeX =
       FindControlSize(rectWidth, controlWidths, snapTolerance);
-  CGFloat controlHeights[3] = {miniSize.height, smallSize.height,
-                               regularSize.height};
+  PerSizeArray<CGFloat> controlHeights{miniSize.height, smallSize.height,
+                                       regularSize.height};
   NSControlSize controlSizeY =
       FindControlSize(rectHeight, controlHeights, snapTolerance);
 
   NSControlSize controlSize = NSControlSizeRegular;
-  size_t sizeIndex = 0;
+  CocoaSize sizeIndex = CocoaSize::Mini;
 
   // At some sizes, don't scale but snap.
   const NSControlSize smallerControlSize =
       EnumSizeForCocoaSize(controlSizeX) < EnumSizeForCocoaSize(controlSizeY)
           ? controlSizeX
           : controlSizeY;
-  const size_t smallerControlSizeIndex =
-      EnumSizeForCocoaSize(smallerControlSize);
+  const auto smallerControlSizeIndex = EnumSizeForCocoaSize(smallerControlSize);
   const NSSize size = sizes[smallerControlSizeIndex];
   float diffWidth = size.width ? rectWidth - size.width : 0.0f;
   float diffHeight = size.height ? rectHeight - size.height : 0.0f;
@@ -779,8 +782,6 @@ static void DrawCellWithSnapping(NSCell* cell, CGContextRef cgContext,
     // Snap to the smaller control size.
     controlSize = smallerControlSize;
     sizeIndex = smallerControlSizeIndex;
-    MOZ_ASSERT(sizeIndex < std::size(settings.naturalSizes));
-
     // Resize and center the drawRect.
     if (sizes[sizeIndex].width) {
       drawRect.origin.x +=
@@ -804,7 +805,6 @@ static void DrawCellWithSnapping(NSCell* cell, CGContextRef cgContext,
 
   [cell setControlSize:controlSize];
 
-  MOZ_ASSERT(sizeIndex < std::size(settings.minimumSizes));
   const NSSize minimumSize = settings.minimumSizes[sizeIndex];
   DrawCellWithScaling(cell, cgContext, drawRect, controlSize, sizes[sizeIndex],
                       minimumSize, settings.margins, view, mirrorHorizontal);
@@ -1710,14 +1710,13 @@ static NSString* ToolbarButtonPosition(BOOL aIsFirst, BOOL aIsLast) {
 }
 
 struct SegmentedControlRenderSettings {
-  const CGFloat* heights;
+  const PerSizeArray<CGFloat> heights;
   const NSString* widgetName;
 };
 
-static const CGFloat toolbarButtonHeights[3] = {15, 18, 22};
-
-static const SegmentedControlRenderSettings toolbarButtonRenderSettings = {
-    toolbarButtonHeights, @"kCUIWidgetButtonSegmentedSCurve"};
+static constexpr const SegmentedControlRenderSettings
+    toolbarButtonRenderSettings{PerSizeArray<CGFloat>{15.0, 18.0, 22.0},
+                                @"kCUIWidgetButtonSegmentedSCurve"};
 
 nsNativeThemeCocoa::SegmentParams nsNativeThemeCocoa::ComputeSegmentParams(
     nsIFrame* aFrame, ElementState aEventState, SegmentType aSegmentType) {
@@ -2473,8 +2472,8 @@ LayoutDeviceIntSize nsNativeThemeCocoa::GetMinimumWidgetSize(
   LayoutDeviceIntSize result;
   switch (aAppearance) {
     case StyleAppearance::Button: {
-      result.SizeTo(pushButtonSettings.minimumSizes[miniControlSize].width,
-                    pushButtonSettings.naturalSizes[miniControlSize].height);
+      result.SizeTo(pushButtonSettings.minimumSizes[CocoaSize::Mini].width,
+                    pushButtonSettings.naturalSizes[CocoaSize::Mini].height);
       break;
     }
 
@@ -2490,7 +2489,7 @@ LayoutDeviceIntSize nsNativeThemeCocoa::GetMinimumWidgetSize(
     }
 
     case StyleAppearance::Toolbarbutton: {
-      result.SizeTo(0, toolbarButtonHeights[miniControlSize]);
+      result.SizeTo(0, toolbarButtonRenderSettings.heights[CocoaSize::Mini]);
       break;
     }
 
