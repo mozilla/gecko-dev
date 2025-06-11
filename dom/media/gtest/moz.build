@@ -75,8 +75,13 @@ UNIFIED_SOURCES += [
 ]
 
 if CONFIG["MOZ_WEBRTC"]:
+    LOCAL_INCLUDES += [
+        "/dom/media/webrtc/libwebrtcglue",
+    ]
+
     UNIFIED_SOURCES += [
         "TestAudioInputProcessing.cpp",
+        "TestCallWorkerThread.cpp",
         "TestRTCStatsTimestampMaker.cpp",
     ]
 
