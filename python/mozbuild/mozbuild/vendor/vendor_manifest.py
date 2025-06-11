@@ -705,6 +705,12 @@ class VendorManifest(MozbuildObject):
                     contents = f.read()
                 with open(dst, "w") as f:
                     f.write(contents)
+            elif update["action"] == "vcs-add-remove-files":
+                directory = self.get_full_path(update["path"])
+
+                self.logInfo({"d": directory}, "action: vcs-add-remove-files dir: {d}")
+
+                self.repository.add_remove_files(directory)
             elif update["action"] == "move-file":
                 src = self.get_full_path(update["from"])
                 dst = self.get_full_path(update["to"])
