@@ -15,19 +15,13 @@
 
   &.refined-cards {
     .ds-card-link {
-      padding: var(--space-xsmall) var(--space-small);
+      padding: var(--space-medium);
       flex-grow: 0;
     }
 
-    .img-wrapper {
-      width: 110px;
-      height: 117px;
-    }
-
     .meta {
-      padding-inline: 0;
-      padding-block: 0 var(--space-xsmall);
-      min-height: 125px;
+      padding: 0;
+      min-height: 110px;
 
       .info-wrap {
         flex-grow: 1
@@ -53,8 +47,7 @@
     .card-stp-button-position-wrapper {
       // context menu should match the padding for the parent
       inset-inline-end: var(--space-large);
-      inset-block-end: var(--space-small);
-
+      inset-block-end: var(--space-medium);
     }
 
     .context-menu-position-container .context-menu-button {
@@ -103,10 +96,10 @@
   }
 
   .img-wrapper {
-    width: 100px;
+    width: 110px;
+    height: 110px;
     flex-shrink: 0;
     flex-grow: 0;
-    aspect-ratio: 5/6;
 
     .ds-image.img {
       width: 100%;
@@ -185,7 +178,7 @@
 
     .img-wrapper {
       width: 100%;
-      height: 172px;
+      height: 162px;
     }
 
     .meta {
@@ -268,6 +261,10 @@
     flex-grow: 0;
     flex-shrink: 0;
     aspect-ratio: initial;
+
+    .img {
+      aspect-ratio: 2/1;
+    }
   }
 
   &:not(.placeholder) {
@@ -312,7 +309,7 @@
       (min-width: $break-point-sections-variant) {
       .ds-card-link {
         gap: var(--space-small);
-        padding: var(--space-small);
+        padding: var(--space-large);
       }
 
       .meta {
@@ -334,7 +331,7 @@
 
       .card-stp-button-position-wrapper {
         inset-inline-end: var(--space-xlarge);
-        inset-block-end: var(--space-small);
+        inset-block-end: var(--space-large);
       }
 
       &:hover,
@@ -356,16 +353,18 @@
     @media ($break-point-layout-variant <=width < $break-point-widest),
       (min-width: $break-point-sections-variant) {
       align-content: flex-start;
+      justify-content: center;
 
       .ds-card-link {
         flex-direction: row;
         gap: var(--space-xlarge);
         padding: var(--space-xxlarge);
+        flex-grow: 0;
       }
 
       .img-wrapper {
-        width: 265px;
-        height: 100%;
+        width: 190px;
+        height: 250px;
       }
 
       .ds-image.img {
