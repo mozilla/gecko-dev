@@ -1345,7 +1345,8 @@ UniquePtr<uint8_t[]> ClientWebGLContext::GetImageBuffer(
 
   if (ShouldResistFingerprinting(RFPTarget::CanvasRandomization)) {
     return gfxUtils::GetImageBufferWithRandomNoise(
-        dataSurface, premultAlpha, GetCookieJarSettings(), out_format);
+        dataSurface, premultAlpha, GetCookieJarSettings(), PrincipalOrNull(),
+        out_format);
   }
 
   return gfxUtils::GetImageBuffer(dataSurface, premultAlpha, out_format);
@@ -1366,7 +1367,7 @@ ClientWebGLContext::GetInputStream(const char* mimeType,
   if (ShouldResistFingerprinting(RFPTarget::CanvasRandomization)) {
     return gfxUtils::GetInputStreamWithRandomNoise(
         dataSurface, premultAlpha, mimeType, encoderOptions,
-        GetCookieJarSettings(), out_stream);
+        GetCookieJarSettings(), PrincipalOrNull(), out_stream);
   }
 
   return gfxUtils::GetInputStream(dataSurface, premultAlpha, mimeType,

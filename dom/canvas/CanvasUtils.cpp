@@ -322,10 +322,6 @@ ImageExtraction ImageExtractionResult(dom::HTMLCanvasElement* aCanvasElement,
   }
 
   if (ownerDoc->ShouldResistFingerprinting(RFPTarget::CanvasRandomization)) {
-    if (GetCanvasExtractDataPermission(aPrincipal) ==
-        nsIPermissionManager::ALLOW_ACTION) {
-      return ImageExtraction::Unrestricted;
-    }
     return ImageExtraction::Randomize;
   }
 

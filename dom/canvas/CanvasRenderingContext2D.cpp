@@ -2144,8 +2144,9 @@ UniquePtr<uint8_t[]> CanvasRenderingContext2D::GetImageBuffer(
 
   if (ret && ShouldResistFingerprinting(RFPTarget::CanvasRandomization)) {
     nsRFPService::RandomizePixels(
-        GetCookieJarSettings(), ret.get(), out_imageSize->width,
-        out_imageSize->height, out_imageSize->width * out_imageSize->height * 4,
+        GetCookieJarSettings(), PrincipalOrNull(), ret.get(),
+        out_imageSize->width, out_imageSize->height,
+        out_imageSize->width * out_imageSize->height * 4,
         SurfaceFormat::A8R8G8B8_UINT32);
   }
 
@@ -6395,9 +6396,10 @@ nsresult CanvasRenderingContext2D::GetImageDataArray(
       // holder.
 
       const IntSize size = readback->GetSize();
-      nsRFPService::RandomizePixels(
-          GetCookieJarSettings(), rawData.mData, size.width, size.height,
-          size.height * size.width * 4, SurfaceFormat::A8R8G8B8_UINT32);
+      nsRFPService::RandomizePixels(GetCookieJarSettings(), PrincipalOrNull(),
+                                    rawData.mData, size.width, size.height,
+                                    size.height * size.width * 4,
+                                    SurfaceFormat::A8R8G8B8_UINT32);
     }
 
     JS::AutoCheckCannotGC nogc;
