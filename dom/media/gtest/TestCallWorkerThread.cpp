@@ -16,7 +16,7 @@ namespace mozilla {
 
 RefPtr<CallWorkerThread> MakeTestCallWorkerThread() {
   return new CallWorkerThread(
-      MakeUnique<TaskQueueWrapper<DeletionPolicy::NonBlocking>>(
+      MakeUnique<WebrtcTaskQueueWrapper<DeletionPolicy::NonBlocking>>(
           TaskQueue::Create(do_AddRef(GetCurrentSerialEventTarget()),
                             "MainTaskQueue", true),
           "TestCallWorkerThread"_ns));

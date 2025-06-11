@@ -25,12 +25,12 @@
 #include "MediaPipelineFilter.h"
 #include "MediaTrackGraph.h"
 #include "MediaTrackListener.h"
-#include "TaskQueueWrapper.h"
 #include "mtransport_test_utils.h"
 #include "SharedBuffer.h"
 #include "MediaTransportHandler.h"
 #include "WebrtcCallWrapper.h"
 #include "WebrtcEnvironmentWrapper.h"
+#include "WebrtcTaskQueueWrapper.h"
 #include "PeerConnectionCtx.h"
 
 #define GTEST_HAS_RTTI 0
@@ -42,10 +42,11 @@ MOZ_MTLOG_MODULE("transportbridge")
 static MtransportTestUtils* test_utils;
 
 namespace {
-class MainAsCurrent : public TaskQueueWrapper<DeletionPolicy::NonBlocking> {
+class MainAsCurrent
+    : public WebrtcTaskQueueWrapper<DeletionPolicy::NonBlocking> {
  public:
   MainAsCurrent()
-      : TaskQueueWrapper(
+      : WebrtcTaskQueueWrapper(
             TaskQueue::Create(do_AddRef(GetMainThreadSerialEventTarget()),
                               "MainAsCurrentTaskQueue"),
             "MainAsCurrent"_ns),
@@ -465,7 +466,7 @@ class MediaPipelineTest : public ::testing::Test {
  public:
   explicit MediaPipelineTest(MediaPipelineTestOptions options = {})
       : main_task_queue_(
-            WrapUnique<TaskQueueWrapper<DeletionPolicy::NonBlocking>>(
+            WrapUnique<WebrtcTaskQueueWrapper<DeletionPolicy::NonBlocking>>(
                 new MainAsCurrent())),
         options_(options),
         env_wrapper_(WebrtcEnvironmentWrapper::Create(
@@ -587,7 +588,8 @@ class MediaPipelineTest : public ::testing::Test {
  protected:
   // main_task_queue_ has this type to make sure it goes through Delete() when
   // we're destroyed.
-  UniquePtr<TaskQueueWrapper<DeletionPolicy::NonBlocking>> main_task_queue_;
+  UniquePtr<WebrtcTaskQueueWrapper<DeletionPolicy::NonBlocking>>
+      main_task_queue_;
   const MediaPipelineTestOptions options_;
   const RefPtr<WebrtcEnvironmentWrapper> env_wrapper_;
   const RefPtr<SharedWebrtcState> shared_state_;

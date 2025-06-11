@@ -29,11 +29,11 @@ enum class DeletionPolicy : uint8_t { Blocking, NonBlocking };
  * libwebrtc.
  */
 template <DeletionPolicy Deletion>
-class TaskQueueWrapper : public webrtc::TaskQueueBase {
+class WebrtcTaskQueueWrapper : public webrtc::TaskQueueBase {
  public:
-  TaskQueueWrapper(RefPtr<TaskQueue> aTaskQueue, nsCString aName)
+  WebrtcTaskQueueWrapper(RefPtr<TaskQueue> aTaskQueue, nsCString aName)
       : mTaskQueue(std::move(aTaskQueue)), mName(std::move(aName)) {}
-  ~TaskQueueWrapper() = default;
+  ~WebrtcTaskQueueWrapper() = default;
 
   void Delete() override {
     {
@@ -73,7 +73,7 @@ class TaskQueueWrapper : public webrtc::TaskQueueBase {
   already_AddRefed<Runnable> CreateTaskRunner(
       absl::AnyInvocable<void() &&> aTask) {
     return NS_NewRunnableFunction(
-        "TaskQueueWrapper::CreateTaskRunner",
+        "WebrtcTaskQueueWrapper::CreateTaskRunner",
         [this, task = std::move(aTask),
          name = nsPrintfCString("TQ %s: webrtc::QueuedTask",
                                 mName.get())]() mutable {
@@ -89,7 +89,7 @@ class TaskQueueWrapper : public webrtc::TaskQueueBase {
 
   already_AddRefed<Runnable> CreateTaskRunner(nsCOMPtr<nsIRunnable> aRunnable) {
     return NS_NewRunnableFunction(
-        "TaskQueueWrapper::CreateTaskRunner",
+        "WebrtcTaskQueueWrapper::CreateTaskRunner",
         [this, runnable = std::move(aRunnable)]() mutable {
           CurrentTaskQueueSetter current(this);
           auto hasShutdown = mHasShutdown.Lock();
@@ -132,14 +132,14 @@ class TaskQueueWrapper : public webrtc::TaskQueueBase {
   // dispatching to that task queue (and we assert it succeeds in e.g.,
   // PostTask()).
   DataMutexBase<bool, RecursiveMutex> mHasShutdown{
-      false, "TaskQueueWrapper::mHasShutdown"};
+      false, "WebrtcTaskQueueWrapper::mHasShutdown"};
 };
 
 template <DeletionPolicy Deletion>
-class DefaultDelete<TaskQueueWrapper<Deletion>>
+class DefaultDelete<WebrtcTaskQueueWrapper<Deletion>>
     : public webrtc::TaskQueueDeleter {
  public:
-  void operator()(TaskQueueWrapper<Deletion>* aPtr) const {
+  void operator()(WebrtcTaskQueueWrapper<Deletion>* aPtr) const {
     webrtc::TaskQueueDeleter::operator()(aPtr);
   }
 };
@@ -149,15 +149,15 @@ class SharedThreadPoolWebRtcTaskQueueFactory : public webrtc::TaskQueueFactory {
   SharedThreadPoolWebRtcTaskQueueFactory() {}
 
   template <DeletionPolicy Deletion>
-  UniquePtr<TaskQueueWrapper<Deletion>> CreateTaskQueueWrapper(
+  UniquePtr<WebrtcTaskQueueWrapper<Deletion>> CreateWebrtcTaskQueueWrapper(
       absl::string_view aName, bool aSupportTailDispatch, Priority aPriority,
       MediaThreadType aThreadType = MediaThreadType::WEBRTC_WORKER) const {
     // XXX Do something with aPriority
     nsCString name(aName.data(), aName.size());
     auto taskQueue = TaskQueue::Create(GetMediaThreadPool(aThreadType),
                                        name.get(), aSupportTailDispatch);
-    return MakeUnique<TaskQueueWrapper<Deletion>>(std::move(taskQueue),
-                                                  std::move(name));
+    return MakeUnique<WebrtcTaskQueueWrapper<Deletion>>(std::move(taskQueue),
+                                                        std::move(name));
   }
 
   std::unique_ptr<webrtc::TaskQueueBase, webrtc::TaskQueueDeleter>
@@ -169,7 +169,7 @@ class SharedThreadPoolWebRtcTaskQueueFactory : public webrtc::TaskQueueFactory {
     // what they expect.
     constexpr bool supportTailDispatch = false;
     return std::unique_ptr<webrtc::TaskQueueBase, webrtc::TaskQueueDeleter>(
-        CreateTaskQueueWrapper<DeletionPolicy::Blocking>(
+        CreateWebrtcTaskQueueWrapper<DeletionPolicy::Blocking>(
             std::move(aName), supportTailDispatch, aPriority)
             .release(),
         webrtc::TaskQueueDeleter());
