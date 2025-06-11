@@ -64,5 +64,5 @@ object FeatureFlags {
     /**
      * Determines whether to show live downloads in progress in the UI.
      */
-    val showLiveDownloads = Config.channel.isDebug
+    val showLiveDownloads = Config.channel.isNightlyOrDebug
 }
