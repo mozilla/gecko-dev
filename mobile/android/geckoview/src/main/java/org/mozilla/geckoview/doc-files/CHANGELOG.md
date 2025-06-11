@@ -22,6 +22,8 @@ exclude: true
 - Added [`GeckoRuntime.notifyTelemetryPrefChanged`][141.5] to notify Gecko about telemetry preference changes.
 - Added [`GeckoRuntimeSettings.getBaselineFingerprintingProtection`][141.6], [`GeckoRuntimeSettings.getBaselineFingerprintingProtectionOverrides`][141.7], [`GeckoRuntimeSettings.setBaselineFingerprintingProtection`][141.8], and [`GeckoRuntimeSettings.setBaselineFingerprintingProtectionOverrides`][141.9] to control the baseline fingerprinting protection settings via Nimbus.
 - Added data collection permissions to [`WebExtension.MetaData`][141.10] ([bug 1960551]({{bugzilla}}1960551))
+- Added [`WebNotificationAction`][141.11] that represents action buttons of notifications.
+- Added [`WebNotification.actions`][141.12] and a new function signature with `action` to [`WebNotification.click()`][141.13] to indicate action click.
 
 [141.1]: {{javadoc_uri}}/ProfilerController.html
 [141.2]: {{javadoc_uri}}/GeckoRuntime.html#getProfilerController()
@@ -33,6 +35,9 @@ exclude: true
 [141.8]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setBaselineFingerprintingProtection
 [141.9]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setBaselineFingerprintingProtectionOverrides
 [141.10]: {{javadoc_uri}}/WebExtension.MetaData.html
+[141.11]: {{javadoc_uri}}/WebNotificationAction.html
+[141.12]: {{javadoc_uri}}/WebNotification.html#actions
+[141.13]: {{javadoc_uri}}/WebNotification.html#click(java.lang.String)
 
 ## v140
 - Added a [`GeckoPreferenceController`][140.1] class to manage Gecko preferences.
@@ -1765,4 +1770,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: eee2993ef953a8c97baf59b0155bc5404d5116c8
+[api-version]:  0a752ba709c817cd469493574d29d697070fff7
