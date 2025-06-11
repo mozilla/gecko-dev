@@ -356,7 +356,7 @@ static NSSize WindowButtonsSize(nsIFrame* aFrame) {
   NSWindow* window = NativeWindowForFrame(aFrame);
   if (!window) {
     // Return fallback values.
-    return NSMakeSize(54, 16);
+    return NSSize{54, 16};
   }
 
   NSRect buttonBox = NSZeroRect;
@@ -887,13 +887,13 @@ static void ApplyControlParamsToNSCell(
 // These are the sizes that Gecko needs to request to draw if it wants
 // to get a standard-sized Aqua radio button drawn. Note that the rects
 // that draw these are actually a little bigger.
-MOZ_RUNINIT static const CellRenderSettings radioSettings = {
+constexpr static CellRenderSettings radioSettings = {
     {
-        NSMakeSize(11, 11),  // mini
-        NSMakeSize(13, 13),  // small
-        NSMakeSize(16, 16)   // regular
+        NSSize{11, 11},  // mini
+        NSSize{13, 13},  // small
+        NSSize{16, 16}   // regular
     },
-    {NSZeroSize, NSZeroSize, NSZeroSize},
+    {NSSize{}, NSSize{}, NSSize{}},
     {
         IntMargin{0, 0, 0, 0},  // mini
         IntMargin{1, 1, 1, 2},  // small
@@ -901,13 +901,13 @@ MOZ_RUNINIT static const CellRenderSettings radioSettings = {
     },
 };
 
-MOZ_RUNINIT static const CellRenderSettings checkboxSettings = {
+constexpr static CellRenderSettings checkboxSettings = {
     {
-        NSMakeSize(11, 11),  // mini
-        NSMakeSize(13, 13),  // small
-        NSMakeSize(16, 16)   // regular
+        NSSize{11, 11},  // mini
+        NSSize{13, 13},  // small
+        NSSize{16, 16}   // regular
     },
-    {NSZeroSize, NSZeroSize, NSZeroSize},
+    {NSSize{}, NSSize{}, NSSize{}},
     {
         IntMargin{0, 1, 0, 0},  // mini
         IntMargin{0, 1, 0, 1},  // small
@@ -957,16 +957,16 @@ void nsNativeThemeCocoa::DrawCheckboxOrRadio(
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
-MOZ_RUNINIT static const CellRenderSettings searchFieldSettings = {
+constexpr static CellRenderSettings searchFieldSettings = {
     {
-        NSMakeSize(0, 16),  // mini
-        NSMakeSize(0, 19),  // small
-        NSMakeSize(0, 22)   // regular
+        NSSize{0, 16},  // mini
+        NSSize{0, 19},  // small
+        NSSize{0, 22}   // regular
     },
     {
-        NSMakeSize(32, 0),  // mini
-        NSMakeSize(38, 0),  // small
-        NSMakeSize(44, 0)   // regular
+        NSSize{32, 0},  // mini
+        NSSize{38, 0},  // small
+        NSSize{44, 0}   // regular
     },
     {
         IntMargin{0, 0, 0, 0},  // mini
@@ -1085,19 +1085,19 @@ nsNativeThemeCocoa::ControlParams nsNativeThemeCocoa::ComputeControlParams(
   return params;
 }
 
-MOZ_RUNINIT static const NSSize kHelpButtonSize = NSMakeSize(20, 20);
-MOZ_RUNINIT static const NSSize kDisclosureButtonSize = NSMakeSize(21, 21);
+constexpr static NSSize kHelpButtonSize = NSSize{20, 20};
+constexpr static NSSize kDisclosureButtonSize = NSSize{21, 21};
 
-MOZ_RUNINIT static const CellRenderSettings pushButtonSettings = {
+constexpr static CellRenderSettings pushButtonSettings = {
     {
-        NSMakeSize(0, 16),  // mini
-        NSMakeSize(0, 19),  // small
-        NSMakeSize(0, 22)   // regular
+        NSSize{0, 16},  // mini
+        NSSize{0, 19},  // small
+        NSSize{0, 22}   // regular
     },
     {
-        NSMakeSize(18, 0),  // mini
-        NSMakeSize(26, 0),  // small
-        NSMakeSize(30, 0)   // regular
+        NSSize{18, 0},  // mini
+        NSSize{26, 0},  // small
+        NSSize{30, 0}   // regular
     },
     {
         IntMargin{0, 0, 0, 0},  // mini
@@ -1143,7 +1143,7 @@ void nsNativeThemeCocoa::DrawSquareBezelPushButton(
     mCellDrawWindow.cellsShouldLookActive = aControlParams.insideActiveWindow;
   }
   DrawCellWithScaling(mPushButtonCell, cgContext, inBoxRect,
-                      NSControlSizeRegular, NSZeroSize, NSMakeSize(14, 0), {},
+                      NSControlSizeRegular, NSSize{}, NSSize{14, 0}, {},
                       mCellDrawView, aControlParams.rtl);
 
   NS_OBJC_END_TRY_IGNORE_BLOCK;
@@ -1160,7 +1160,7 @@ void nsNativeThemeCocoa::DrawHelpButton(CGContextRef cgContext,
     mCellDrawWindow.cellsShouldLookActive = aControlParams.insideActiveWindow;
   }
   DrawCellWithScaling(mHelpButtonCell, cgContext, inBoxRect,
-                      NSControlSizeRegular, NSZeroSize, kHelpButtonSize, {},
+                      NSControlSizeRegular, NSSize{}, kHelpButtonSize, {},
                       mCellDrawView,
                       false);  // Don't mirror icon in RTL.
 
@@ -1180,8 +1180,8 @@ void nsNativeThemeCocoa::DrawDisclosureButton(CGContextRef cgContext,
     mCellDrawWindow.cellsShouldLookActive = aControlParams.insideActiveWindow;
   }
   DrawCellWithScaling(mDisclosureButtonCell, cgContext, inBoxRect,
-                      NSControlSizeRegular, NSZeroSize, kDisclosureButtonSize,
-                      {}, mCellDrawView,
+                      NSControlSizeRegular, NSSize{}, kDisclosureButtonSize, {},
+                      mCellDrawView,
                       false);  // Don't mirror icon in RTL.
 
   NS_OBJC_END_TRY_IGNORE_BLOCK;
@@ -1336,16 +1336,16 @@ void nsNativeThemeCocoa::DrawButton(CGContextRef cgContext,
   }
 }
 
-MOZ_RUNINIT static const CellRenderSettings dropdownSettings = {
+constexpr static CellRenderSettings dropdownSettings = {
     {
-        NSMakeSize(0, 16),  // mini
-        NSMakeSize(0, 19),  // small
-        NSMakeSize(0, 22)   // regular
+        NSSize{0, 16},  // mini
+        NSSize{0, 19},  // small
+        NSSize{0, 22}   // regular
     },
     {
-        NSMakeSize(18, 0),  // mini
-        NSMakeSize(38, 0),  // small
-        NSMakeSize(44, 0)   // regular
+        NSSize{18, 0},  // mini
+        NSSize{38, 0},  // small
+        NSSize{44, 0}   // regular
     },
     {
         IntMargin{1, 1, 2, 1},  // mini
@@ -1354,16 +1354,16 @@ MOZ_RUNINIT static const CellRenderSettings dropdownSettings = {
     },
 };
 
-MOZ_RUNINIT static const CellRenderSettings editableMenulistSettings = {
+constexpr static CellRenderSettings editableMenulistSettings = {
     {
-        NSMakeSize(0, 15),  // mini
-        NSMakeSize(0, 18),  // small
-        NSMakeSize(0, 21)   // regular
+        NSSize{0, 15},  // mini
+        NSSize{0, 18},  // small
+        NSSize{0, 21}   // regular
     },
     {
-        NSMakeSize(18, 0),  // mini
-        NSMakeSize(38, 0),  // small
-        NSMakeSize(44, 0)   // regular
+        NSSize{18, 0},  // mini
+        NSSize{38, 0},  // small
+        NSSize{44, 0}   // regular
     },
     {
         IntMargin{0, 0, 2, 2},  // mini
@@ -1401,15 +1401,15 @@ void nsNativeThemeCocoa::DrawDropdown(CGContextRef cgContext,
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
-MOZ_RUNINIT static const CellRenderSettings progressSettings[2][2] = {
+constexpr static CellRenderSettings progressSettings[2][2] = {
     // Vertical progress bar.
     {// Determined settings.
      {{
-          NSZeroSize,         // mini
-          NSMakeSize(10, 0),  // small
-          NSMakeSize(16, 0)   // regular
+          NSSize{},       // mini
+          NSSize{10, 0},  // small
+          NSSize{16, 0}   // regular
       },
-      {NSZeroSize, NSZeroSize, NSZeroSize},
+      {NSSize{}, NSSize{}, NSSize{}},
       {
           IntMargin{0, 0, 0, 0},  // mini
           IntMargin{0, 0, 0, 0},  // small
@@ -1417,11 +1417,11 @@ MOZ_RUNINIT static const CellRenderSettings progressSettings[2][2] = {
       }},
      // There is no horizontal margin in regular undetermined size.
      {{
-          NSZeroSize,         // mini
-          NSMakeSize(10, 0),  // small
-          NSMakeSize(16, 0)   // regular
+          NSSize{},       // mini
+          NSSize{10, 0},  // small
+          NSSize{16, 0}   // regular
       },
-      {NSZeroSize, NSZeroSize, NSZeroSize},
+      {NSSize{}, NSSize{}, NSSize{}},
       {
           IntMargin{0, 0, 0, 0},  // mini
           IntMargin{1, 1, 1, 1},  // small
@@ -1430,11 +1430,11 @@ MOZ_RUNINIT static const CellRenderSettings progressSettings[2][2] = {
     // Horizontal progress bar.
     {// Determined settings.
      {{
-          NSZeroSize,         // mini
-          NSMakeSize(0, 10),  // small
-          NSMakeSize(0, 16)   // regular
+          NSSize{},       // mini
+          NSSize{0, 10},  // small
+          NSSize{0, 16}   // regular
       },
-      {NSZeroSize, NSZeroSize, NSZeroSize},
+      {NSSize{}, NSSize{}, NSSize{}},
       {
           IntMargin{0, 0, 0, 0},  // mini
           IntMargin{1, 1, 1, 1},  // small
@@ -1442,11 +1442,11 @@ MOZ_RUNINIT static const CellRenderSettings progressSettings[2][2] = {
       }},
      // There is no horizontal margin in regular undetermined size.
      {{
-          NSZeroSize,         // mini
-          NSMakeSize(0, 10),  // small
-          NSMakeSize(0, 16)   // regular
+          NSSize{},       // mini
+          NSSize{0, 10},  // small
+          NSSize{0, 16}   // regular
       },
-      {NSZeroSize, NSZeroSize, NSZeroSize},
+      {NSSize{}, NSSize{}, NSSize{}},
       {
           IntMargin{0, 0, 0, 0},  // mini
           IntMargin{1, 1, 1, 1},  // small
@@ -1492,13 +1492,13 @@ void nsNativeThemeCocoa::DrawProgress(CGContextRef cgContext,
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
-MOZ_RUNINIT static const CellRenderSettings meterSetting = {
+constexpr static CellRenderSettings meterSetting = {
     {
-        NSMakeSize(0, 16),  // mini
-        NSMakeSize(0, 16),  // small
-        NSMakeSize(0, 16)   // regular
+        NSSize{0, 16},  // mini
+        NSSize{0, 16},  // small
+        NSSize{0, 16}   // regular
     },
-    {NSZeroSize, NSZeroSize, NSZeroSize},
+    {NSSize{}, NSSize{}, NSSize{}},
     {
         IntMargin{1, 1, 1, 1},  // mini
         IntMargin{1, 1, 1, 1},  // small
