@@ -8712,8 +8712,8 @@ bool BytecodeEmitter::emitRightAssociative(ListNode* node) {
   return true;
 }
 
-Maybe<ConstantCompareOperand> ParseNodeToConstantCompareOperand(
-    ParseNode* constant) {
+Maybe<ConstantCompareOperand>
+BytecodeEmitter::parseNodeToConstantCompareOperand(ParseNode* constant) {
   switch (constant->getKind()) {
     case ParseNodeKind::NumberExpr: {
       double d = constant->as<NumericLiteral>().value();
@@ -8735,6 +8735,24 @@ Maybe<ConstantCompareOperand> ParseNodeToConstantCompareOperand(
     case ParseNodeKind::RawUndefinedExpr:
       return Some(ConstantCompareOperand(
           ConstantCompareOperand::EncodedType::Undefined));
+    case ParseNodeKind::Name: {
+      MOZ_ASSERT(constant->as<NameNode>().name() ==
+                 TaggedParserAtomIndex::WellKnown::undefined());
+      NameLocation loc = lookupName(constant->as<NameNode>().name());
+      switch (loc.kind()) {
+        case NameLocation::Kind::Global:
+          if (!sc->hasNonSyntacticScope()) {
+            return Some(ConstantCompareOperand(
+                ConstantCompareOperand::EncodedType::Undefined));
+          }
+          return Nothing();
+        case NameLocation::Kind::Intrinsic:
+          return Some(ConstantCompareOperand(
+              ConstantCompareOperand::EncodedType::Undefined));
+        default:
+          return Nothing();
+      }
+    }
     default:
       return Nothing();
   }
@@ -8767,10 +8785,10 @@ bool BytecodeEmitter::tryEmitConstantEq(ListNode* node, JSOp op,
 
   ParseNode* expressionNode;
   ParseNode* constantNode;
-  if (left->isConstant()) {
+  if (left->isConstant() || left->isUndefinedLiteral()) {
     expressionNode = right;
     constantNode = left;
-  } else if (right->isConstant()) {
+  } else if (right->isConstant() || right->isUndefinedLiteral()) {
     expressionNode = left;
     constantNode = right;
   } else {
@@ -8779,7 +8797,7 @@ bool BytecodeEmitter::tryEmitConstantEq(ListNode* node, JSOp op,
   }
 
   Maybe<ConstantCompareOperand> operand =
-      ParseNodeToConstantCompareOperand(constantNode);
+      parseNodeToConstantCompareOperand(constantNode);
   if (operand.isNothing()) {
     *emitted = false;
     return true;
