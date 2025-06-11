@@ -297,6 +297,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_toolbox_watchedByDevTools.js"]
 
 ["browser_toolbox_window_global_debugging.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1950845
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan", # Bug 1950845
+]
 
 ["browser_toolbox_window_reload_target.js"]
 
