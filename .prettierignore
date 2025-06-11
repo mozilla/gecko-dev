@@ -1021,10 +1021,6 @@ browser/components/sessionstore/test/unit/data/sessionstore_invalid.js
 # for documentation purposes (policies.json) but to be accessed by the
 # code as a .sys.mjs (schema.sys.mjs)
 browser/components/enterprisepolicies/schemas/schema.sys.mjs
-# generated or library files in pocket
-browser/components/pocket/content/panels/js/tmpl.js
-browser/components/pocket/content/panels/js/vendor.bundle.js
-browser/components/pocket/content/panels/js/main.bundle.js
 # Include the Storybook config files.
 !browser/components/storybook/.storybook/
 !browser/components/storybook/.storybook/*.js
@@ -1262,7 +1258,6 @@ toolkit/components/uniffi-bindgen-gecko-js/tests/generated/*
 ##############################################################################
 
 # These files are generated in some way.
-browser/components/pocket/content/panels/css/main.compiled.css
 browser/components/aboutwelcome/**/*.css
 browser/components/asrouter/**/*.css
 browser/extensions/newtab/**/*.css
@@ -1351,8 +1346,6 @@ testing/web-platform/tests/
 # When this is implemented, we'll update the configuration below (bug 1825508)
 ##############################################################################
 
-browser/components/pocket/content/panels/css/normalize.scss
-browser/components/pocket/content/panels/js/vendor/
 browser/components/storybook/node_modules/
 browser/components/topsites/content/tippytop/favicons/
 browser/components/topsites/content/tippytop/images/

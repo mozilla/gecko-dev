@@ -1802,7 +1802,6 @@ export default [
       "toolkit/components/reader/tests/browser/browser_bug1453818_samesite_cookie.js",
       "toolkit/components/reader/tests/browser/browser_readerMode_colorSchemePref.js",
       "toolkit/components/reader/tests/browser/browser_readerMode_hidden_nodes.js",
-      "toolkit/components/reader/tests/browser/browser_readerMode_pocket.js",
       "toolkit/components/reader/tests/browser/browser_readerMode_readingTime.js",
       "toolkit/components/reader/tests/browser/browser_readerMode_refresh.js",
       "toolkit/components/reader/tests/browser/browser_readerMode_remoteType.js",

@@ -24,7 +24,6 @@
 obj*/
 
 # These files are generated in some way.
-browser/components/pocket/content/panels/css/main.compiled.css
 browser/components/aboutwelcome/**/*.css
 browser/components/asrouter/**/*.css
 browser/extensions/newtab/**/*.css

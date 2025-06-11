@@ -62,10 +62,6 @@ export default [
   // for documentation purposes (policies.json) but to be accessed by the
   // code as a .sys.mjs (schema.sys.mjs)
   "browser/components/enterprisepolicies/schemas/schema.sys.mjs",
-  // generated or library files in pocket
-  "browser/components/pocket/content/panels/js/tmpl.js",
-  "browser/components/pocket/content/panels/js/vendor.bundle.js",
-  "browser/components/pocket/content/panels/js/main.bundle.js",
   // Include the Storybook config files.
   "!browser/components/storybook/.storybook/",
   "!browser/components/storybook/.storybook/*.js",

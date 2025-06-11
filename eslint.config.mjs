@@ -215,11 +215,7 @@ let config = [
   },
   {
     name: "jsx-files",
-    files: [
-      "**/*.jsx",
-      "browser/components/pocket/content/**/*.js",
-      "browser/components/storybook/.storybook/**/*.mjs",
-    ],
+    files: ["**/*.jsx", "browser/components/storybook/.storybook/**/*.mjs"],
     languageOptions: {
       parserOptions: {
         ecmaFeatures: {
@@ -387,7 +383,6 @@ let config = [
     files: [
       "browser/components/aboutwelcome/**",
       "browser/components/asrouter/**",
-      "browser/components/pocket/**",
       "browser/extensions/newtab/**",
       "devtools/**",
     ],
