@@ -87,6 +87,22 @@ export var UsageReporting = {
       let profileAccessor = await lazy.ProfileAge();
       let usageFirstRunUs = (await profileAccessor.firstUse) * 1_000;
       Glean.usage.firstRunDate.set(usageFirstRunUs);
+      try {
+        let wrk = Cc["@mozilla.org/windows-registry-key;1"].createInstance(
+          Ci.nsIWindowsRegKey
+        );
+        wrk.open(
+          wrk.ROOT_KEY_CURRENT_USER,
+          "Software\\Microsoft\\Windows\\CurrentVersion\\AppListBackup",
+          wrk.ACCESS_ALL
+        );
+        Glean.usage.windowsBackupEnabled.set(
+          wrk.readIntValue("IsBackupEnabledAndMSAAttached") != 0
+        );
+        wrk.close();
+      } catch (err) {
+        this._log.warn("Unable to detect Windows Backup state: " + err);
+      }
     })();
     return this._initPromise;
   },
