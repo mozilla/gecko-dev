@@ -5,6 +5,7 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
+extern crate lmdb;
 extern crate rkv;
 extern crate tempfile;
 
@@ -23,6 +24,18 @@ use tempfile::Builder;
 
 type Rkv = rkv::Rkv<SafeModeEnvironment>;
 type SingleStore = rkv::SingleStore<SafeModeDatabase>;
+
+fn eat_lmdb_err<T>(value: Result<T, rkv::StoreError>) -> Result<Option<T>, rkv::StoreError> {
+    match value {
+        Ok(value) => Ok(Some(value)),
+        Err(rkv::StoreError::LmdbError(_)) => Ok(None),
+        Err(err) => {
+            println!("Not a crash, but an error outside LMDB: {}", err);
+            println!("A refined fuzzing test, or changes to RKV, might be required.");
+            Err(err)
+        }
+    }
+}
 
 fn panic_with_err(err: rkv::StoreError) {
     println!("Got error: {}", err);
@@ -49,7 +62,7 @@ pub extern "C" fn fuzz_rkv_db_file(raw_data: *const u8, size: libc::size_t) -> l
         .unwrap();
 
     let reader = env.read().unwrap();
-    store.get(&reader, &[0]).unwrap();
+    eat_lmdb_err(store.get(&reader, &[0])).unwrap();
 
     0
 }
@@ -66,13 +79,11 @@ pub extern "C" fn fuzz_rkv_db_name(raw_data: *const u8, size: libc::size_t) -> l
     println!("Checking string: '{:?}'", name);
     // Some strings are invalid database names, and are handled as store errors.
     // Ignore those errors, but not others.
-    let store = env
-        .open_single(name.as_ref(), rkv::StoreOptions::create())
-        .unwrap();
+    let store = eat_lmdb_err(env.open_single(name.as_ref(), rkv::StoreOptions::create())).unwrap();
 
     if let Some(store) = store {
         let reader = env.read().unwrap();
-        store.get(&reader, &[0]).unwrap();
+        eat_lmdb_err(store.get(&reader, &[0])).unwrap();
     };
 
     0
@@ -96,9 +107,7 @@ pub extern "C" fn fuzz_rkv_key_write(raw_data: *const u8, size: libc::size_t) ->
     let mut writer = env.write().unwrap();
     // Some data are invalid values, and are handled as store errors.
     // Ignore those errors, but not others.
-    store
-        .put(&mut writer, data, &rkv::Value::Str("val"))
-        .unwrap();
+    eat_lmdb_err(store.put(&mut writer, data, &rkv::Value::Str("val"))).unwrap();
 
     0
 }
@@ -213,13 +222,21 @@ pub extern "C" fn fuzz_rkv_calls(raw_data: *const u8, size: libc::size_t) -> lib
         };
 
         let mut writer = env.write().unwrap();
+        let mut full = false;
 
         match store.put(&mut writer, key, &rkv::Value::Blob(&value)) {
             Ok(_) => {}
+            Err(rkv::StoreError::LmdbError(lmdb::Error::BadValSize)) => {}
+            Err(rkv::StoreError::LmdbError(lmdb::Error::MapFull)) => full = true,
             Err(err) => panic_with_err(err),
         };
 
-        maybe_commit(fuzz, writer).unwrap();
+        if full {
+            writer.abort();
+            store_resize(fuzz, env);
+        } else {
+            maybe_commit(fuzz, writer).unwrap();
+        }
     }
 
     fn store_get<I: Iterator<Item = u8> + Clone>(fuzz: &mut I, env: &Rkv, store: &SingleStore) {
@@ -230,11 +247,13 @@ pub extern "C" fn fuzz_rkv_calls(raw_data: *const u8, size: libc::size_t) -> lib
 
         let mut reader = match env.read() {
             Ok(reader) => reader,
+            Err(rkv::StoreError::LmdbError(lmdb::Error::ReadersFull)) => return,
             Err(err) => return panic_with_err(err),
         };
 
         match store.get(&mut reader, key) {
             Ok(_) => {}
+            Err(rkv::StoreError::LmdbError(lmdb::Error::BadValSize)) => {}
             Err(err) => panic_with_err(err),
         };
 
@@ -251,6 +270,8 @@ pub extern "C" fn fuzz_rkv_calls(raw_data: *const u8, size: libc::size_t) -> lib
 
         match store.delete(&mut writer, key) {
             Ok(_) => {}
+            Err(rkv::StoreError::LmdbError(lmdb::Error::BadValSize)) => {}
+            Err(rkv::StoreError::LmdbError(lmdb::Error::NotFound)) => {}
             Err(err) => panic_with_err(err),
         };
 

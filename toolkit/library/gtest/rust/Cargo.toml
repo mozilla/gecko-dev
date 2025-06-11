@@ -23,6 +23,7 @@ kvstore-gtest = { path = "../../../components/kvstore/test/gtest" }
 # Workarounds for https://github.com/rust-lang/rust/issues/58393
 mozglue-static = { path = "../../../../mozglue/static/rust" }
 swgl = { path = "../../../../gfx/wr/swgl" }
+lmdb-rkv-sys = "0.11"
 
 [lib]
 path = "lib.rs"
