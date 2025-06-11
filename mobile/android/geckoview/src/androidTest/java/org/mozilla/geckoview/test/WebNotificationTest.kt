@@ -443,4 +443,53 @@ class WebNotificationTest : BaseSessionTest() {
 
         assertThat("Promise should have been resolved.", promiseResult.value as Double, equalTo(1.0))
     }
+
+    private fun openNotificationAction(): GeckoResult<WebNotification> {
+        mainSession.loadTestPath(CLICK_ACTION_PATH)
+        mainSession.waitForPageStop()
+
+        val notificationResult = GeckoResult<WebNotification>()
+
+        sessionRule.delegateDuringNextWait(object : WebNotificationDelegate {
+            @GeckoSessionTestRule.AssertCalled
+            override fun onShowNotification(notification: WebNotification) {
+                notificationResult.complete(notification)
+            }
+        })
+
+        return notificationResult
+    }
+
+    @Test fun openWithActionsAndClickAction() {
+        val notificationResult = openNotificationAction()
+        val promiseResult = mainSession.evaluatePromiseJS("showNotification()")
+        sessionRule.waitForResult(notificationResult)
+
+        notificationResult.accept { it!!.click("action1") }
+
+        assertThat("Promise should have been resolved.", promiseResult.value as String, equalTo("action1"))
+    }
+
+    @Test fun openWithActionsAndClickTitle() {
+        val notificationResult = openNotificationAction()
+        val promiseResult = mainSession.evaluatePromiseJS("showNotification()")
+        sessionRule.waitForResult(notificationResult)
+
+        notificationResult.accept { it!!.click() }
+
+        assertThat("Promise should have been resolved.", promiseResult.value as String, equalTo(""))
+    }
+
+    @Test fun openWithActionsAndClickUnknownAction() {
+        val notificationResult = openNotificationAction()
+        val promiseResult = mainSession.evaluatePromiseJS("showNotification()")
+        sessionRule.waitForResult(notificationResult)
+
+        // This may happen when a tagged notification is replaced with a different set of actions
+        // but at the same time the user clicks the existing notification action just before the
+        // system replaces it.
+        notificationResult.accept { it!!.click("action-unknown") }
+
+        assertThat("Promise should have been resolved.", promiseResult.value as String, equalTo(""))
+    }
 }
