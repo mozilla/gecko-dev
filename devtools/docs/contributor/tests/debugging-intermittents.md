@@ -45,11 +45,61 @@ For some jobs, but not all, you can get an [interactive shell from TaskCluster](
 There's also a [handy page of e10s test debugging tips](https://wiki.mozilla.org/Electrolysis/e10s_test_tips) that is worth a read.
 
 Because intermittents are often caused by race conditions, it's sometimes useful to enable Chaos Mode.  This changes timings and event orderings a bit. The simplest way to do this is to enable it in a specific test, by
-calling `SimpleTest.testInChaosMode`.  You can also set the `MOZ_CHAOSMODE` environment variable, or even edit `mfbt/ChaosMode.cpp` directly.
+calling `SimpleTest.testInChaosMode`.  You can also set the `MOZ_CHAOSMODE` environment variable (use `0` to enable all chaos, or `0xfb` for [everything except Timer Chaos](https://bugzilla.mozilla.org/show_bug.cgi?id=1390884#c14)), or even edit `mfbt/ChaosMode.cpp` directly.
 
 Some tests leak intermittently. Use `ac_add_options --enable-logrefcnt` in your mozconfig to potentially find them.<!--TODO: how? add more detail about this -->
 
 The `rr` tool has [its own chaos mode](http://robert.ocallahan.org/2016/02/introducing-rr-chaos-mode.html).  This can also sometimes reproduce a failure that isn't ordinarily reproducible.  While it's difficult to debug JS bugs using `rr`, often if you can reliably reproduce the failure you can at least experiment (see below) to attempt a fix.
+
+## Use the Firefox Profiler
+
+To use it locally, add the parameter `--profiler` to your test command:
+
+```
+./mach test <path to test> --profiler
+```
+
+To do it in a try build it's possible to use the environment variables:
+```
+./mach try fuzzy --env MOZ_PROFILER_STARTUP=1 <test directory>
+```
+
+This will automatically upload profiles of failing tests.
+
+:::{hint}
+If you want to see a profile of a test that doesn’t fail (eg. to compare it with
+the profile of a failing run), an easy way to make it happen is to add a failure
+near the end of the test, eg. `ok(false, “force profile upload”);`.
+:::
+
+Some test types do not support running the profiler with a parameter (such as
+wpt tests), use environment variables to use it still:
+
+```
+MOZ_PROFILER_STARTUP=1 MOZ_PROFILER_SHUTDOWN=$(pwd)/test-profile.json ./mach wpt <test list>
+samply load test-profile.json
+```
+[Samply](https://github.com/mstange/samply/) is used for symbolication. Install it with `cargo install samply`.
+
+:::{hint}
+Remember that MOZ\_LOGs are recorded by the profiler as well. Use the
+`MOZ_LOG` environment variable to enable them. Also add `,profilerstacks` to your
+log string to capture the stacks for each log. For example:
+
+```
+MOZ_LOG="idleService:5,profilerstacks" MOZ_PROFILER_STARTUP_FILTERS="GeckoMain,timer" ./mach test widget/tests/test_bug343416.xhtml --profiler
+```
+:::
+
+## Slow down your machine
+
+On some operating systems, it's possible to reduce the CPU speed. For example
+when using Linux with Intel processors, it's possible to set
+`/sys/devices/system/cpu/intel_pstate/max_perf_pct` to a small value. The
+program `cpufreq-set` can also help.
+
+Be careful to prepare the command to increase it to 100% again as this can make
+the computer very slow.
 
 ## That Didn't Work
 
