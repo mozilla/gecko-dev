@@ -13,13 +13,14 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.TextField
-import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -70,10 +71,8 @@ fun BrowserEditToolbar(
         modifier = Modifier
             .background(color = AcornTheme.colors.layer1)
             .padding(all = 8.dp)
-            .background(
-                color = AcornTheme.colors.layer3,
-                shape = ROUNDED_CORNER_SHAPE,
-            ),
+            .clip(shape = ROUNDED_CORNER_SHAPE)
+            .background(color = AcornTheme.colors.layer3),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (useComposeTextField) {
@@ -82,12 +81,17 @@ fun BrowserEditToolbar(
                 onValueChange = { value ->
                     onUrlEdit(value)
                 },
-                colors = TextFieldDefaults.textFieldColors(
-                    textColor = AcornTheme.colors.textPrimary,
+                colors = TextFieldDefaults.colors(
+                    focusedTextColor = AcornTheme.colors.textPrimary,
+                    unfocusedTextColor = AcornTheme.colors.textPrimary,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent,
                     errorIndicatorColor = Color.Transparent,
+                    unfocusedContainerColor = AcornTheme.colors.layer3,
+                    focusedContainerColor = AcornTheme.colors.layer3,
+                    disabledContainerColor = AcornTheme.colors.layer3,
+                    errorContainerColor = AcornTheme.colors.layer3,
                 ),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
