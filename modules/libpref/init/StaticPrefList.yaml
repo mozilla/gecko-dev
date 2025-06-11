@@ -5545,7 +5545,11 @@
 
 - name: dom.webnotifications.actions.enabled
   type: RelaxedAtomicBool
+#if defined(ANDROID)
+  value: false
+#else
   value: @IS_NIGHTLY_BUILD@
+#endif
   mirror: always
 
 # Setting log level for notification modules.

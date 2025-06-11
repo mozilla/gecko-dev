@@ -28,7 +28,7 @@ class WebNotificationIntentProcessor(
         return when (engineNotification) {
             null -> false
             else -> {
-                engine.handleWebNotificationClick(engineNotification, intent.action)
+                engine.handleWebNotificationClick(engineNotification)
                 true
             }
         }
