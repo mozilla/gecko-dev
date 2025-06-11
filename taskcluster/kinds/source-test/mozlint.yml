@@ -87,6 +87,34 @@ rejected-words:
             - '**/*.rs'
             - 'tools/lint/rejected-words.yml'
 
+
+dot-mozilla-reference:
+    description: Give visibility to misuse of ".mozilla" being hardcoded and thus breaking XDG support
+    treeherder:
+        symbol: text(dot-mozilla-reference)
+        # We don't want patches to be backed out because of this, a follow up bug will be
+        # good enough
+        tier: 2
+    run:
+        mach: lint -v -l dot-mozilla-reference -f treeherder -f json:/builds/worker/mozlint.json .
+    when:
+        files-changed:
+            - '**/*.js'
+            - '**/*.jsx'
+            - '**/*.mjs'
+            - '**/*.cpp'
+            - '**/*.c'
+            - '**/*.h'
+            - '**/*.configure'
+            - '**/*.py'
+            - '**/*.properties'
+            - '**/*.yml'
+            - '**/*.yaml'
+            - '**/*.java'
+            - '**/*.kt'
+            - '**/*.rs'
+            - 'tools/lint/dot-mozilla-reference.yml'
+
 eslint:
     description: JS lint check
     treeherder:
