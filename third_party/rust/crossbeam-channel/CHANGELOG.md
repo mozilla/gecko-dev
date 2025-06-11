@@ -1,8 +1,25 @@
+# Version 0.5.15
+
+- Fix regression introduced in 0.5.12 that can lead to a double free when dropping unbounded channel. (#1187)
+
+# Version 0.5.14
+
+**Note:** This release has been yanked due to bug fixed in 0.5.15.
+
+- Fix stack overflow when sending large value to unbounded channel. (#1146, #1147)
+- Add `Select::new_biased` function. (#1150)
+- Remove inefficient spinning. (#1154)
+- Suppress buggy `clippy::zero_repeat_side_effects` lint in macro generated code. (#1123)
+
 # Version 0.5.13
+
+**Note:** This release has been yanked due to bug fixed in 0.5.15.
 
 - Add `select_biased!` macro. (#1040)
 
 # Version 0.5.12
+
+**Note:** This release has been yanked due to bug fixed in 0.5.15.
 
 - Fix memory leak in unbounded channel. (#1084)
 
