@@ -222,7 +222,7 @@ export class WeatherSuggestions extends SuggestProvider {
 
     // Set up location params to pass to Merino. We need to null-check each
     // suggestion property because `MerinoClient` will stringify null values.
-    let otherParams = {};
+    let otherParams = { source: "urlbar" };
     if (suggestion.city) {
       if (suggestion.city.name) {
         otherParams.city = suggestion.city.name;

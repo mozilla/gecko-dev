@@ -593,6 +593,8 @@ async function doCityTest({ desc, query, geolocation, expected }) {
     "accuweather provider should have been called the correct number of times"
   );
   if (expected) {
+    expected.weatherParams.source = "urlbar";
+
     for (let [key, value] of Object.entries(expected.weatherParams)) {
       Assert.strictEqual(
         callsByProvider.accuweather[0].get(key),
