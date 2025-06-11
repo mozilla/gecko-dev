@@ -210,3 +210,6 @@ defaults
 
 # Bug 1787790 - Normalize system fonts when using RFP
 test-pref(privacy.resistFingerprinting,true) == system-font-rfp.html system-font-rfp-ref.html
+
+# Bug 1970980 - Test for regional-indicator emoji handling with Windows-specific fonts
+skip-if(!winWidget) pref(layout.css.font-variant-emoji.enabled,true) == 1970980-regional-indicators.html 1970980-regional-indicators-ref.html
