@@ -1467,9 +1467,11 @@ export class ExtensionData {
       permissions: oldPermissions.permissions.filter(perm =>
         newPermissions.permissions.includes(perm)
       ),
-      data_collection: oldPermissions.data_collection.filter(
-        perm => newPermissions.data_collection.includes(perm) && perm !== "none"
-      ),
+      data_collection:
+        oldPermissions.data_collection?.filter(
+          perm =>
+            newPermissions.data_collection?.includes(perm) && perm !== "none"
+        ) ?? [],
     };
   }
 
@@ -1518,14 +1520,18 @@ export class ExtensionData {
       removed
     );
 
+    // Compute removed data collection permissions and account for addons
+    // installed before support for data collection permissions was introduced.
     let dataCollectionSet = new Set(
-      newPermissions.data_collection.concat(
-        newOptionalPermissions.data_collection
+      [].concat(
+        newPermissions.data_collection ?? [],
+        newOptionalPermissions.data_collection ?? []
       )
     );
     let oldDataCollectionSet = new Set(
-      oldPermissions.data_collection.concat(
-        oldOptionalPermissions.data_collection
+      [].concat(
+        oldPermissions.data_collection ?? [],
+        oldOptionalPermissions.data_collection ?? []
       )
     );
 
@@ -3256,7 +3262,11 @@ class BootstrapScope {
     if (data.oldPermissions) {
       // New permissions may be null, ensure we have an empty
       // permission set in that case.
-      let emptyPermissions = { permissions: [], origins: [] };
+      let emptyPermissions = {
+        permissions: [],
+        origins: [],
+        data_collection: [],
+      };
       await ExtensionData.migratePermissions(
         data.id,
         data.oldPermissions,
