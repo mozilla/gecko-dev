@@ -1848,14 +1848,6 @@
     "keyed": true,
     "description": "The time between navigationStart and the first contentful paint of a foreground http or https root content document, in milliseconds. The contentful paint timestamp is taken during display list building and does not include rasterization or compositing of that paint. This is collected only on page load where the main document uses HTTP3. It is keyed based on whether a \"priority\" header has been received."
   },
-  "HTTP_PROXY_TYPE": {
-    "record_in_processes": ["main", "socket"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "never",
-    "kind": "enumerated",
-    "n_values": 8,
-    "description": "HTTP Proxy Type (none, http, socks)"
-  },
   "HTTP_TRANSACTION_IS_SSL": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],

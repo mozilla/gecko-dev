@@ -284,7 +284,6 @@ class nsHttpConnectionMgr final : public HttpConnectionMgrShell,
   [[nodiscard]] nsresult TryDispatchExtendedCONNECTransaction(
       ConnectionEntry* aEnt, nsHttpTransaction* aTrans,
       nsHttpConnection* aConn);
-  void ReportProxyTelemetry(ConnectionEntry* ent);
   void StartedConnect();
   void RecvdConnect();
 
