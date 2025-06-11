@@ -54,15 +54,24 @@ export class SafeAnchor extends React.PureComponent {
 
   render() {
     const { url, className, title } = this.props;
-    return (
+
+    let anchor = (
       <a
         href={this.safeURI(url)}
         title={title}
         className={className}
         onClick={this.onClick}
+        {...(this.props.tabIndex === 0 || this.props.tabIndex
+          ? {
+              ref: this.props.setRef,
+              tabIndex: this.props.tabIndex,
+            }
+          : {})}
       >
         {this.props.children}
       </a>
     );
+
+    return anchor;
   }
 }
