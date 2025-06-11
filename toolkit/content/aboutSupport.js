@@ -1196,6 +1196,8 @@ var snapshotFormatters = {
         codecNameHeaderText,
         codecSWDecodeText,
         codecHWDecodeText,
+        codecSWEncodeText,
+        codecHWEncodeText,
         lackOfExtensionText,
       ] = await document.l10n.formatValues([
         "media-codec-support-supported",
@@ -1203,50 +1205,104 @@ var snapshotFormatters = {
         "media-codec-support-codec-name",
         "media-codec-support-sw-decoding",
         "media-codec-support-hw-decoding",
+        "media-codec-support-sw-encoding",
+        "media-codec-support-hw-encoding",
         "media-codec-support-lack-of-extension",
       ]);
 
-      function formatCodecRowHeader(a, b, c) {
+      function formatCodecRowHeader(a, b, c, d, e) {
         let h1 = $.new("th", a);
         let h2 = $.new("th", b);
         let h3 = $.new("th", c);
+        let h4 = $.new("th", d);
+        let h5 = $.new("th", e);
         h1.classList.add("codec-table-name");
         h2.classList.add("codec-table-sw");
         h3.classList.add("codec-table-hw");
-        return $.new("tr", [h1, h2, h3]);
+        h2.classList.add("codec-table-sw");
+        h3.classList.add("codec-table-hw");
+        return $.new("tr", [h1, h2, h3, h4, h5]);
       }
 
-      function formatCodecRow(codec, sw, hw) {
-        let swCell = $.new("td", sw ? supportText : unsupportedText);
-        let hwCell = $.new("td", hw ? supportText : unsupportedText);
-        if (sw) {
-          swCell.classList.add("supported");
+      function formatCodecRow(codec, swDecode, hwDecode, swEncode, hwEncode) {
+        let swDecodeCell = $.new(
+          "td",
+          swDecode ? supportText : unsupportedText
+        );
+        let hwDecodeCell = $.new(
+          "td",
+          hwDecode ? supportText : unsupportedText
+        );
+        let swEncodeCell = $.new(
+          "td",
+          swEncode ? supportText : unsupportedText
+        );
+        let hwEncodeCell = $.new(
+          "td",
+          hwEncode ? supportText : unsupportedText
+        );
+        if (swDecode) {
+          swDecodeCell.classList.add("supported");
         } else {
-          swCell.classList.add("unsupported");
+          swDecodeCell.classList.add("unsupported");
         }
-        if (hw) {
-          hwCell.classList.add("supported");
+        if (hwDecode) {
+          hwDecodeCell.classList.add("supported");
         } else {
-          hwCell.classList.add("unsupported");
+          hwDecodeCell.classList.add("unsupported");
         }
-        return $.new("tr", [$.new("td", codec), swCell, hwCell]);
+        if (swEncode) {
+          swEncodeCell.classList.add("supported");
+        } else {
+          swEncodeCell.classList.add("unsupported");
+        }
+        if (hwEncode) {
+          hwEncodeCell.classList.add("supported");
+        } else {
+          hwEncodeCell.classList.add("unsupported");
+        }
+        return $.new("tr", [
+          $.new("td", codec),
+          swDecodeCell,
+          hwDecodeCell,
+          swEncodeCell,
+          hwEncodeCell,
+        ]);
       }
 
-      function formatCodecRowForLackOfExtension(codec, sw) {
-        let swCell = $.new("td", sw ? supportText : unsupportedText);
+      function formatCodecRowForLackOfExtension(codec, swDecode, swEncode) {
+        let swDecodeCell = $.new(
+          "td",
+          swDecode ? supportText : unsupportedText
+        );
+        let swEncodeCell = $.new(
+          "td",
+          swEncode ? supportText : unsupportedText
+        );
         // Link to AV1 extension on MS store.
         let hwCell = $.new("td", [
           $.new("a", lackOfExtensionText, null, {
             href: "ms-windows-store://pdp/?ProductId=9MVZQVXJBQ9V",
           }),
         ]);
-        if (sw) {
-          swCell.classList.add("supported");
+        if (swDecode) {
+          swDecodeCell.classList.add("supported");
         } else {
-          swCell.classList.add("unsupported");
+          swDecodeCell.classList.add("unsupported");
+        }
+        if (swEncode) {
+          swEncodeCell.classList.add("supported");
+        } else {
+          swEncodeCell.classList.add("unsupported");
         }
         hwCell.classList.add("lack-of-extension");
-        return $.new("tr", [$.new("td", codec), swCell, hwCell]);
+        return $.new("tr", [
+          $.new("td", codec),
+          swDecodeCell,
+          hwCell,
+          swEncodeCell,
+          hwCell,
+        ]);
       }
 
       // Parse codec support string and create dictionary containing
@@ -1260,17 +1316,25 @@ var snapshotFormatters = {
         if (!(codec_name in codecs)) {
           codecs[codec_name] = {
             name: codec_name,
-            sw: false,
-            hw: false,
+            swDecode: false,
+            hwDecode: false,
+            swEncode: false,
+            hwEncode: false,
             lackOfExtension: false,
           };
         }
 
-        if (codec_support.includes("SW")) {
-          codecs[codec_name].sw = true;
+        if (codec_support.includes("SWDEC")) {
+          codecs[codec_name].swDecode = true;
         }
-        if (codec_support.includes("HW")) {
-          codecs[codec_name].hw = true;
+        if (codec_support.includes("HWDEC")) {
+          codecs[codec_name].hwDecode = true;
+        }
+        if (codec_support.includes("SWENC")) {
+          codecs[codec_name].swEncode = true;
+        }
+        if (codec_support.includes("HWENC")) {
+          codecs[codec_name].hwEncode = true;
         }
         if (codec_support.includes("LACK_OF_EXTENSION")) {
           codecs[codec_name].lackOfExtension = true;
@@ -1285,11 +1349,21 @@ var snapshotFormatters = {
         }
         if (codecs[c].lackOfExtension) {
           codecSupportRows.push(
-            formatCodecRowForLackOfExtension(codecs[c].name, codecs[c].sw)
+            formatCodecRowForLackOfExtension(
+              codecs[c].name,
+              codecs[c].swDecode,
+              codecs[c].swEncode
+            )
           );
         } else {
           codecSupportRows.push(
-            formatCodecRow(codecs[c].name, codecs[c].sw, codecs[c].hw)
+            formatCodecRow(
+              codecs[c].name,
+              codecs[c].swDecode,
+              codecs[c].hwDecode,
+              codecs[c].swEncode,
+              codecs[c].hwEncode
+            )
           );
         }
       }
@@ -1298,7 +1372,9 @@ var snapshotFormatters = {
         formatCodecRowHeader(
           codecNameHeaderText,
           codecSWDecodeText,
-          codecHWDecodeText
+          codecHWDecodeText,
+          codecSWEncodeText,
+          codecHWEncodeText
         ),
         $.new("tbody", codecSupportRows),
       ]);
