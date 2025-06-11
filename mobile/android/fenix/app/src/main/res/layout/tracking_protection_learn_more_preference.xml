@@ -7,7 +7,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
-    android:textDirection="locale"
     android:background="#FF0250BB">
 
     <ImageView
@@ -29,7 +28,6 @@
         android:layout_marginBottom="8dp"
         android:ellipsize="none"
         android:gravity="center_vertical"
-        android:layoutDirection="locale"
         android:letterSpacing="0.02"
         android:lineSpacingExtra="4sp"
         android:scrollHorizontally="false"
@@ -49,7 +47,6 @@
         android:layout_height="wrap_content"
         android:ellipsize="none"
         android:gravity="top"
-        android:layoutDirection="locale"
         android:letterSpacing="0.02"
         android:lineSpacingExtra="-2sp"
         android:layout_marginBottom="16dp"

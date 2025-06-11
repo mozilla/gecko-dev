@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:width="360dp"
     android:height="160dp"
+    android:autoMirrored="true"
     android:viewportWidth="360"
     android:viewportHeight="160"
     tools:ignore="VectorRaster">
