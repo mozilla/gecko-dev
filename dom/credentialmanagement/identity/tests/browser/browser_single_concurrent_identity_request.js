@@ -44,8 +44,8 @@ add_task(async function test_concurrent_identity_credential() {
   ok(concurrentResponse.name, "expect a DOMException which must have a name.");
   is(
     concurrentResponse.name,
-    "NotAllowedError",
-    "Expected 'NotAllowedError', but got '" + concurrentResponse.name + "'"
+    "InvalidStateError",
+    "Expected 'InvalidStateError', but got '" + concurrentResponse.name + "'"
   );
 
   // Close tabs.
