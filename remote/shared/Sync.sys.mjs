@@ -7,6 +7,9 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
+
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
 });
@@ -53,21 +56,30 @@ export function AnimationFramePromise(win, options = {}) {
     }
   }
 
-  const request = resolve => {
+  const animationFramePromise = new Promise(resolve => {
     executeSoon(() => {
       win.requestAnimationFrame(resolve);
     });
-  };
+  });
 
-  const animationFramePromise =
-    timeout !== null
-      ? new TimedPromise(request, { throws: null, timeout })
-      : new Promise(request);
+  const promises = [
+    animationFramePromise,
+    new EventPromise(win, "pagehide"), // window closed or moved to BFCache
+  ];
 
-  // Abort if the underlying window is no longer active (closed, BFCache)
-  const unloadPromise = new EventPromise(win, "pagehide");
+  let timer;
+  if (timeout != null) {
+    promises.push(
+      new Promise(resolve => {
+        timer = lazy.setTimeout(() => {
+          lazy.logger.warn("Timed out waiting for animation frame");
+          resolve();
+        }, timeout);
+      })
+    );
+  }
 
-  return Promise.race([animationFramePromise, unloadPromise]);
+  return Promise.race(promises).then(() => lazy.clearTimeout(timer));
 }
 
 /**
