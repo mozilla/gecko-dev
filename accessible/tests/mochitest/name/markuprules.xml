@@ -110,7 +110,7 @@
     </ruleset>
 
     <!-- specific -->
-    <ruleset id="HTMLCell">
+    <ruleset id="HTMLARIAGridCell">
       <ruleset ref="ARIA"/>
       <rule fromsubtree="true"/>
       <rule attr="title" type="string"/>
@@ -299,7 +299,7 @@
     </markup>
 
     <markup id="HTMLTdTest"
-            ref="html:table/html:tr/html:td" ruleset="HTMLCell">
+            ref="html:table/html:tr/html:td" ruleset="HTMLElm">
       <html:span id="l1" textequiv="test2">test2</html:span>
       <html:span id="l2" textequiv="test3">test3</html:span>
       <html:label for="tc" textequiv="test4">test4</html:label>
@@ -308,8 +308,7 @@
           <html:td id="tc"
                    aria-label="test1"
                    aria-labelledby="l1 l2"
-                   title="test5"
-                   textequiv="This is a paragraph This is a link • This is a list">
+                   title="test5">
             <html:p>This is a paragraph</html:p>
             <html:a href="#">This is a link</html:a>
             <html:ul>
@@ -321,7 +320,7 @@
     </markup>
 
     <markup id="HTMLTdARIAGridCellTest"
-            ref="html:table/html:tr/html:td" ruleset="HTMLCell">
+            ref="html:table/html:tr/html:td" ruleset="HTMLARIAGridCell">
       <html:span id="l1" textequiv="test2">test2</html:span>
       <html:span id="l2" textequiv="test3">test3</html:span>
       <html:label for="gc" textequiv="test4">test4</html:label>

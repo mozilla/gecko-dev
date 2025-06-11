@@ -25,7 +25,7 @@ const ARIARule = [{ attr: "aria-labelledby" }, { attr: "aria-label" }];
 const HTMLControlHeadRule = [...ARIARule, { elm: "label" }];
 const rules = {
   CSSContent: [{ elm: "style" }, { fromsubtree: true }],
-  HTMLCell: [...ARIARule, { fromsubtree: true }, { attr: "title" }],
+  HTMLARIAGridCell: [...ARIARule, { fromsubtree: true }, { attr: "title" }],
   HTMLControl: [
     ...HTMLControlHeadRule,
     { fromsubtree: true },
@@ -227,7 +227,7 @@ const markupTests = [
   },
   {
     id: "tc",
-    ruleset: "HTMLCell",
+    ruleset: "HTMLElm",
     markup: `
     <span id="l1">test2</span>
     <span id="l2">test3</span>
@@ -246,16 +246,11 @@ const markupTests = [
         </td>
       </tr>
     </table>`,
-    expected: [
-      "test2 test3",
-      "test1",
-      "This is a paragraph This is a link \u2022 This is a list",
-      "test5",
-    ],
+    expected: ["test2 test3", "test1", "test5"],
   },
   {
     id: "gc",
-    ruleset: "HTMLCell",
+    ruleset: "HTMLARIAGridCell",
     markup: `
     <span id="l1">test2</span>
     <span id="l2">test3</span>

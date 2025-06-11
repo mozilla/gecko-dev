@@ -288,7 +288,7 @@ ROLE(CELL,
      java::SessionAccessibility::CLASSNAME_VIEW,
      IsAccessibilityElementRule::IfChildlessWithNameAndFocusable,
      UIA_DataItemControlTypeId,
-     eNameFromSubtreeRule)
+     eNameFromSubtreeIfReqRule)
 
 ROLE(LINK,
      "link",
