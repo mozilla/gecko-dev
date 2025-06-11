@@ -63,6 +63,7 @@ categories:
         - testing/sheriffed-intermittents
         - testing/tests-for-new-config
         - testing/intermittent
+        - testing/debugging-intermittents
         - testing/testing-policy
         - testing/ci-configs
         - testing/browser-chrome

@@ -119,14 +119,14 @@ Sometimes the problem is a race at a specific spot in the test.  You can test th
 yield new Promise(r => setTimeout(r, 100));
 ```
 
-See the `waitForTick` and `waitForTime` functions in `DevToolsUtils` for similar functionality.
 
 You can use a similar trick to "pause" the test at a certain point. This is useful when debugging locally because it will leave Firefox open and responsive, at the specific spot you've chosen.  Do this
 using `yield new Promise(r => r);`.
 
-`shared-head.js` also has some helpers, like `once`, to bind to events with additional logging.
-
 You can also binary search the test by either commenting out chunks of it, or hacking in early `return`s.  You can do a bunch of these experiments in parallel without waiting for the first to complete.
+
+For the tests in the devtools codebase, see the `waitForTick` and `waitForTime` functions in `DevToolsUtils`. `shared-head.js` also has some helpers, like `once`, to bind to events with additional logging.
+
 
 ## Verifying
 
