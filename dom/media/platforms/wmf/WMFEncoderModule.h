@@ -12,8 +12,8 @@
 namespace mozilla {
 class WMFEncoderModule final : public PlatformEncoderModule {
  public:
-  virtual bool Supports(const EncoderConfig& aConfig) const override;
-  virtual bool SupportsCodec(CodecType aCodec) const override;
+  media::EncodeSupportSet Supports(const EncoderConfig& aConfig) const override;
+  media::EncodeSupportSet SupportsCodec(CodecType aCodecType) const override;
 
   const char* GetName() const override { return "WMF Encoder Module"; }
 

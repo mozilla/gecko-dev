@@ -310,6 +310,19 @@ bool FFmpegVideoEncoder<LIBAV_VER>::SvcEnabled() const {
 }
 
 MediaResult FFmpegVideoEncoder<LIBAV_VER>::InitEncoder() {
+  MediaResult result(NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR);
+  if (mConfig.mHardwarePreference != HardwarePreference::RequireSoftware) {
+    result = InitEncoderInternal(/* aHardware */ true);
+  }
+  // TODO(aosmond): We should be checking here for RequireHardware, but we fail
+  // encoding tests if we don't allow fallback to software on Linux in CI.
+  if (NS_FAILED(result.Code())) {
+    result = InitEncoderInternal(/* aHardware */ false);
+  }
+  return result;
+}
+
+MediaResult FFmpegVideoEncoder<LIBAV_VER>::InitEncoderInternal(bool aHardware) {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
 
   ForceEnablingFFmpegDebugLogs();
@@ -317,7 +330,7 @@ MediaResult FFmpegVideoEncoder<LIBAV_VER>::InitEncoder() {
   FFMPEGV_LOG("FFmpegVideoEncoder::InitEncoder");
 
   // Initialize the common members of the encoder instance
-  auto r = AllocateCodecContext(mLib, mCodecID);
+  auto r = AllocateCodecContext(aHardware);
   if (r.isErr()) {
     return r.inspectErr();
   }

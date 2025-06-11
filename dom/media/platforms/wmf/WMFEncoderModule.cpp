@@ -8,26 +8,31 @@
 
 #include "WMFMediaDataEncoder.h"
 
+using mozilla::media::EncodeSupportSet;
+
 namespace mozilla {
+
 extern LazyLogModule sPEMLog;
 
-bool WMFEncoderModule::SupportsCodec(CodecType aCodecType) const {
+EncodeSupportSet WMFEncoderModule::SupportsCodec(CodecType aCodecType) const {
   if (aCodecType > CodecType::_BeginAudio_ &&
       aCodecType < CodecType::_EndAudio_) {
-    return false;
+    return EncodeSupportSet{};
   }
   return CanCreateWMFEncoder(aCodecType);
 }
 
-bool WMFEncoderModule::Supports(const EncoderConfig& aConfig) const {
+EncodeSupportSet WMFEncoderModule::Supports(
+    const EncoderConfig& aConfig) const {
   if (!CanLikelyEncode(aConfig)) {
-    return false;
+    return EncodeSupportSet{};
   }
   if (aConfig.IsAudio()) {
-    return false;
+    return EncodeSupportSet{};
   }
-  if (aConfig.mScalabilityMode != ScalabilityMode::None) {
-    return aConfig.mCodec == CodecType::H264;
+  if (aConfig.mScalabilityMode != ScalabilityMode::None &&
+      aConfig.mCodec != CodecType::H264) {
+    return EncodeSupportSet{};
   }
   return SupportsCodec(aConfig.mCodec);
 }
