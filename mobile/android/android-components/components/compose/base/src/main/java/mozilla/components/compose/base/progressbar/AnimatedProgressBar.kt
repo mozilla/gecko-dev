@@ -21,7 +21,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -232,15 +232,15 @@ private fun AnimatedProgressBarPreview() {
         ) {
             AnimatedProgressBar(25)
 
-            Divider(thickness = 20.dp)
+            HorizontalDivider(thickness = 20.dp)
 
             AnimatedProgressBar(50)
 
-            Divider(thickness = 20.dp)
+            HorizontalDivider(thickness = 20.dp)
 
             AnimatedProgressBar(75)
 
-            Divider(thickness = 20.dp)
+            HorizontalDivider(thickness = 20.dp)
 
             AnimatedProgressBar(99)
         }
@@ -261,15 +261,15 @@ private fun AnimatedProgressBarRTLPreview() {
         ) {
             AnimatedProgressBar(25)
 
-            Divider(thickness = 20.dp)
+            HorizontalDivider(thickness = 20.dp)
 
             AnimatedProgressBar(50)
 
-            Divider(thickness = 20.dp)
+            HorizontalDivider(thickness = 20.dp)
 
             AnimatedProgressBar(75)
 
-            Divider(thickness = 20.dp)
+            HorizontalDivider(thickness = 20.dp)
 
             AnimatedProgressBar(99)
         }

@@ -11,12 +11,13 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.Icon
-import androidx.compose.material.LocalContentAlpha
-import androidx.compose.material.Text
-import androidx.compose.material.minimumInteractiveComponentSize
-import androidx.compose.material.ripple
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonColors
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -70,6 +71,10 @@ fun LongPressIconButton(
     onLongClick: (() -> Unit),
     contentDescription: String,
     modifier: Modifier = Modifier,
+    colors: IconButtonColors = IconButtonDefaults.iconButtonColors(
+        contentColor = AcornTheme.colors.iconPrimary,
+        disabledContentColor = AcornTheme.colors.iconDisabled,
+    ),
     onClickLabel: String? = null,
     onLongClickLabel: String? = null,
     enabled: Boolean = true,
@@ -108,8 +113,8 @@ fun LongPressIconButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        val contentAlpha = if (enabled) LocalContentAlpha.current else ContentAlpha.disabled
-        CompositionLocalProvider(LocalContentAlpha provides contentAlpha, content = content)
+        val contentColor = if (enabled) colors.contentColor else colors.disabledContentColor
+        CompositionLocalProvider(LocalContentColor provides contentColor, content = content)
     }
 }
 
@@ -122,11 +127,11 @@ private fun LongPressIconButtonPreview() {
             onLongClick = {},
             contentDescription = "test",
             modifier = Modifier.background(AcornTheme.colors.layer1),
+            colors = IconButtonDefaults.iconButtonColors(contentColor = AcornTheme.colors.iconButton),
         ) {
             Icon(
                 painter = painterResource(iconsR.drawable.mozac_ic_bookmark_fill_24),
                 contentDescription = null,
-                tint = AcornTheme.colors.iconButton,
             )
         }
     }
@@ -141,11 +146,9 @@ private fun LongPressTextButtonPreview() {
             onLongClick = {},
             contentDescription = "test",
             modifier = Modifier.background(AcornTheme.colors.layer1),
+            colors = IconButtonDefaults.iconButtonColors(contentColor = AcornTheme.colors.textPrimary),
         ) {
-            Text(
-                text = "button",
-                color = AcornTheme.colors.textPrimary,
-            )
+            Text(text = "button")
         }
     }
 }

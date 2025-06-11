@@ -6,7 +6,7 @@ package mozilla.components.compose.base.button
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,7 +34,7 @@ fun TextButton(
     textColor: Color = AcornTheme.colors.textAccent,
     upperCaseText: Boolean = true,
 ) {
-    androidx.compose.material.TextButton(
+    androidx.compose.material3.TextButton(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled,
