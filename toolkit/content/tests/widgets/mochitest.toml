@@ -6,6 +6,7 @@ support-files = [
   "image.png",
   "image-zh.png",
   "seek_with_sound.webm",
+  "seek_with_sound.webm^headers^",
   "video.webm",
   "head.js",
   "tree_shared.js",
