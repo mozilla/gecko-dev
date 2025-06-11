@@ -1,5 +1,11 @@
 const VIDEO_PAGE = GetTestWebBasedURL("file_video.html");
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 function setup_test_preference(enableUserGesture) {
   let state = enableUserGesture ? "enable" : "disable";
   info(`- set pref : ${state} user gesture -`);
