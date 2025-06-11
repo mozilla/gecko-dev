@@ -15,6 +15,10 @@
 "ContextIDComponent.force_rotation" = "AsyncWrapped"
 "ContextIDComponent.request" = "AsyncWrapped"
 
+[filter_adult.async_wrappers]
+"FilterAdultComponent.new" = "Sync"
+"FilterAdultComponent.contains" = "Sync"
+
 [search.async_wrappers]
 "SearchEngineSelector.new" = "Sync"
 "SearchEngineSelector.clear_search_config" = "Sync"
