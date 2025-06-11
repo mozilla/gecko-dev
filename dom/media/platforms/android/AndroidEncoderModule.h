@@ -14,8 +14,8 @@ class AndroidEncoderModule final : public PlatformEncoderModule {
   AndroidEncoderModule() = default;
   virtual ~AndroidEncoderModule() = default;
   // aCodec is the full codec string
-  media::EncodeSupportSet Supports(const EncoderConfig& aConfig) const override;
-  media::EncodeSupportSet SupportsCodec(CodecType aCodec) const override;
+  bool Supports(const EncoderConfig& aConfig) const override;
+  bool SupportsCodec(CodecType aCodec) const override;
 
   const char* GetName() const override { return "Android Encoder Module"; }
 

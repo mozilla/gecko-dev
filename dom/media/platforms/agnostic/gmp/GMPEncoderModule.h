@@ -18,8 +18,8 @@ class GMPEncoderModule final : public PlatformEncoderModule {
       const EncoderConfig& aConfig,
       const RefPtr<TaskQueue>& aTaskQueue) const override;
 
-  media::EncodeSupportSet Supports(const EncoderConfig& aConfig) const override;
-  media::EncodeSupportSet SupportsCodec(CodecType aCodecType) const override;
+  bool Supports(const EncoderConfig& aConfig) const override;
+  bool SupportsCodec(CodecType aCodecType) const override;
 
   const char* GetName() const override { return "GMP Encoder Module"; }
 };

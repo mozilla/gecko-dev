@@ -56,16 +56,11 @@ int GfxInfo::sGLXTestPipe = -1;
 pid_t GfxInfo::sGLXTestPID = 0;
 
 // bits to use decoding codec information returned from glxtest
-constexpr int CODEC_HW_DEC_H264 = 1 << 4;
-constexpr int CODEC_HW_ENC_H264 = 1 << 5;
-constexpr int CODEC_HW_DEC_VP8 = 1 << 6;
-constexpr int CODEC_HW_ENC_VP8 = 1 << 7;
-constexpr int CODEC_HW_DEC_VP9 = 1 << 8;
-constexpr int CODEC_HW_ENC_VP9 = 1 << 9;
-constexpr int CODEC_HW_DEC_AV1 = 1 << 10;
-constexpr int CODEC_HW_ENC_AV1 = 1 << 11;
-constexpr int CODEC_HW_DEC_HEVC = 1 << 12;
-constexpr int CODEC_HW_ENC_HEVC = 1 << 13;
+constexpr int CODEC_HW_H264 = 1 << 4;
+constexpr int CODEC_HW_VP8 = 1 << 5;
+constexpr int CODEC_HW_VP9 = 1 << 6;
+constexpr int CODEC_HW_AV1 = 1 << 7;
+constexpr int CODEC_HW_HEVC = 1 << 8;
 
 nsresult GfxInfo::Init() {
   mGLMajorVersion = 0;
@@ -694,22 +689,26 @@ void GfxInfo::GetDataVAAPI() {
       }
 
       std::istringstream(line) >> mVAAPISupportedCodecs;
-
-#  define VAAPI_CODEC_CHECK(name)                           \
-    if (mVAAPISupportedCodecs & CODEC_HW_DEC_##name) {      \
-      media::MCSInfo::AddSupport(                           \
-          media::MediaCodecsSupport::name##HardwareDecode); \
-    }                                                       \
-    if (mVAAPISupportedCodecs & CODEC_HW_ENC_##name) {      \
-      media::MCSInfo::AddSupport(                           \
-          media::MediaCodecsSupport::name##HardwareEncode); \
-    }
-      VAAPI_CODEC_CHECK(H264)
-      VAAPI_CODEC_CHECK(VP8)
-      VAAPI_CODEC_CHECK(VP9)
-      VAAPI_CODEC_CHECK(AV1)
-      VAAPI_CODEC_CHECK(HEVC)
-#  undef VAAPI_CODEC_CHECK
+      if (mVAAPISupportedCodecs & CODEC_HW_H264) {
+        media::MCSInfo::AddSupport(
+            media::MediaCodecsSupport::H264HardwareDecode);
+      }
+      if (mVAAPISupportedCodecs & CODEC_HW_VP8) {
+        media::MCSInfo::AddSupport(
+            media::MediaCodecsSupport::VP8HardwareDecode);
+      }
+      if (mVAAPISupportedCodecs & CODEC_HW_VP9) {
+        media::MCSInfo::AddSupport(
+            media::MediaCodecsSupport::VP9HardwareDecode);
+      }
+      if (mVAAPISupportedCodecs & CODEC_HW_AV1) {
+        media::MCSInfo::AddSupport(
+            media::MediaCodecsSupport::AV1HardwareDecode);
+      }
+      if (mVAAPISupportedCodecs & CODEC_HW_HEVC) {
+        media::MCSInfo::AddSupport(
+            media::MediaCodecsSupport::HEVCHardwareDecode);
+      }
     } else if (!strcmp(line, "WARNING") || !strcmp(line, "ERROR")) {
       gfxCriticalNote << "vaapitest: " << line;
       line = NS_strtok("\n", &bufptr);
@@ -833,22 +832,22 @@ void GfxInfo::V4L2ProbeDevice(nsCString& dev) {
   if (outFormats.Contains("H264")) {
     mIsV4L2Supported = Some(true);
     media::MCSInfo::AddSupport(media::MediaCodecsSupport::H264HardwareDecode);
-    mV4L2SupportedCodecs |= CODEC_HW_DEC_H264;
+    mV4L2SupportedCodecs |= CODEC_HW_H264;
   }
   if (outFormats.Contains("VP80")) {
     mIsV4L2Supported = Some(true);
     media::MCSInfo::AddSupport(media::MediaCodecsSupport::VP8HardwareDecode);
-    mV4L2SupportedCodecs |= CODEC_HW_DEC_VP8;
+    mV4L2SupportedCodecs |= CODEC_HW_VP8;
   }
   if (outFormats.Contains("VP90")) {
     mIsV4L2Supported = Some(true);
     media::MCSInfo::AddSupport(media::MediaCodecsSupport::VP9HardwareDecode);
-    mV4L2SupportedCodecs |= CODEC_HW_DEC_VP9;
+    mV4L2SupportedCodecs |= CODEC_HW_VP9;
   }
   if (outFormats.Contains("HEVC")) {
     mIsV4L2Supported = Some(true);
     media::MCSInfo::AddSupport(media::MediaCodecsSupport::HEVCHardwareDecode);
-    mV4L2SupportedCodecs |= CODEC_HW_DEC_HEVC;
+    mV4L2SupportedCodecs |= CODEC_HW_HEVC;
   }
 }
 
@@ -1311,28 +1310,11 @@ nsresult GfxInfo::GetFeatureStatusImpl(
   const struct {
     int32_t mFeature;
     int32_t mCodec;
-    nsLiteralCString mFailureId;
-  } kFeatureToCodecs[] = {
-      {nsIGfxInfo::FEATURE_H264_HW_DECODE, CODEC_HW_DEC_H264,
-       "FEATURE_FAILURE_VIDEO_DECODING_MISSING"_ns},
-      {nsIGfxInfo::FEATURE_H264_HW_ENCODE, CODEC_HW_ENC_H264,
-       "FEATURE_FAILURE_VIDEO_ENCODING_MISSING"_ns},
-      {nsIGfxInfo::FEATURE_VP8_HW_DECODE, CODEC_HW_DEC_VP8,
-       "FEATURE_FAILURE_VIDEO_DECODING_MISSING"_ns},
-      {nsIGfxInfo::FEATURE_VP8_HW_ENCODE, CODEC_HW_ENC_VP8,
-       "FEATURE_FAILURE_VIDEO_ENCODING_MISSING"_ns},
-      {nsIGfxInfo::FEATURE_VP9_HW_DECODE, CODEC_HW_DEC_VP9,
-       "FEATURE_FAILURE_VIDEO_DECODING_MISSING"_ns},
-      {nsIGfxInfo::FEATURE_VP9_HW_ENCODE, CODEC_HW_ENC_VP9,
-       "FEATURE_FAILURE_VIDEO_ENCODING_MISSING"_ns},
-      {nsIGfxInfo::FEATURE_AV1_HW_DECODE, CODEC_HW_DEC_AV1,
-       "FEATURE_FAILURE_VIDEO_DECODING_MISSING"_ns},
-      {nsIGfxInfo::FEATURE_AV1_HW_ENCODE, CODEC_HW_ENC_AV1,
-       "FEATURE_FAILURE_VIDEO_ENCODING_MISSING"_ns},
-      {nsIGfxInfo::FEATURE_HEVC_HW_DECODE, CODEC_HW_DEC_HEVC,
-       "FEATURE_FAILURE_VIDEO_DECODING_MISSING"_ns},
-      {nsIGfxInfo::FEATURE_HEVC_HW_ENCODE, CODEC_HW_ENC_HEVC,
-       "FEATURE_FAILURE_VIDEO_ENCODING_MISSING"_ns}};
+  } kFeatureToCodecs[] = {{nsIGfxInfo::FEATURE_H264_HW_DECODE, CODEC_HW_H264},
+                          {nsIGfxInfo::FEATURE_VP8_HW_DECODE, CODEC_HW_VP8},
+                          {nsIGfxInfo::FEATURE_VP9_HW_DECODE, CODEC_HW_VP9},
+                          {nsIGfxInfo::FEATURE_AV1_HW_DECODE, CODEC_HW_AV1},
+                          {nsIGfxInfo::FEATURE_HEVC_HW_DECODE, CODEC_HW_HEVC}};
 
   for (const auto& pair : kFeatureToCodecs) {
     if (aFeature != pair.mFeature) {
@@ -1343,7 +1325,7 @@ nsresult GfxInfo::GetFeatureStatusImpl(
       *aStatus = nsIGfxInfo::FEATURE_STATUS_OK;
     } else {
       *aStatus = nsIGfxInfo::FEATURE_BLOCKED_PLATFORM_TEST;
-      aFailureId = pair.mFailureId;
+      aFailureId = "FEATURE_FAILURE_VIDEO_DECODING_MISSING";
     }
     return NS_OK;
   }

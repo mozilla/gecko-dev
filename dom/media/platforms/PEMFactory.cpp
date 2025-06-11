@@ -28,7 +28,6 @@
 
 #include "GMPEncoderModule.h"
 
-#include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/gfx/gfxVars.h"
 
@@ -42,36 +41,6 @@ LazyLogModule sPEMLog("PlatformEncoderModule");
 #define LOG(fmt, ...)                        \
   MOZ_LOG(sPEMLog, mozilla::LogLevel::Debug, \
           ("[PEMFactory] %s: " fmt, __func__, ##__VA_ARGS__))
-
-static CodecType MediaCodecToCodecType(media::MediaCodec aCodec) {
-  switch (aCodec) {
-    case media::MediaCodec::H264:
-      return CodecType::H264;
-    case media::MediaCodec::VP8:
-      return CodecType::VP8;
-    case media::MediaCodec::VP9:
-      return CodecType::VP9;
-    case media::MediaCodec::AV1:
-      return CodecType::AV1;
-    case media::MediaCodec::HEVC:
-      return CodecType::H265;
-    case media::MediaCodec::AAC:
-      return CodecType::AAC;
-    case media::MediaCodec::FLAC:
-      return CodecType::Flac;
-    case media::MediaCodec::Opus:
-      return CodecType::Opus;
-    case media::MediaCodec::Vorbis:
-      return CodecType::Vorbis;
-    case media::MediaCodec::MP3:
-    case media::MediaCodec::Wave:
-    case media::MediaCodec::SENTINEL:
-      return CodecType::Unknown;
-    default:
-      MOZ_ASSERT_UNREACHABLE("Unhandled MediaCodec type!");
-      return CodecType::Unknown;
-  }
-}
 
 PEMFactory::PEMFactory() {
   gfx::gfxVars::Initialize();
@@ -137,7 +106,7 @@ PEMFactory::CheckAndMaybeCreateEncoder(const EncoderConfig& aConfig,
                                        uint32_t aIndex,
                                        const RefPtr<TaskQueue>& aTaskQueue) {
   for (uint32_t i = aIndex; i < mCurrentPEMs.Length(); i++) {
-    if (mCurrentPEMs[i]->Supports(aConfig).isEmpty()) {
+    if (!mCurrentPEMs[i]->Supports(aConfig)) {
       continue;
     }
     return CreateEncoderWithPEM(mCurrentPEMs[i], aConfig, aTaskQueue)
@@ -196,76 +165,46 @@ PEMFactory::CreateEncoderWithPEM(PlatformEncoderModule* aPEM,
   return aPEM->AsyncCreateEncoder(aConfig, aTaskQueue);
 }
 
-media::EncodeSupportSet PEMFactory::Supports(
-    const EncoderConfig& aConfig) const {
+bool PEMFactory::Supports(const EncoderConfig& aConfig) const {
   RefPtr<PlatformEncoderModule> found;
   for (const auto& m : mCurrentPEMs) {
-    media::EncodeSupportSet supports = m->Supports(aConfig);
-    if (!supports.isEmpty()) {
+    if (m->Supports(aConfig)) {
       // TODO name
       LOG("Checking if %s supports codec %s: yes", m->GetName(),
           GetCodecTypeString(aConfig.mCodec));
-      return supports;
+      return true;
     }
     LOG("Checking if %s supports codec %s: no", m->GetName(),
         GetCodecTypeString(aConfig.mCodec));
   }
-  return media::EncodeSupportSet{};
+  return false;
 }
 
-media::EncodeSupportSet PEMFactory::SupportsCodec(CodecType aCodec) const {
-  media::EncodeSupportSet supports{};
+bool PEMFactory::SupportsCodec(CodecType aCodec) const {
   for (const auto& m : mCurrentPEMs) {
-    media::EncodeSupportSet pemSupports = m->SupportsCodec(aCodec);
-    // TODO name
-    LOG("Checking if %s supports codec %d: %s", m->GetName(),
-        static_cast<int>(aCodec), pemSupports.isEmpty() ? "no" : "yes");
-    supports += pemSupports;
+    if (m->SupportsCodec(aCodec)) {
+      // TODO name
+      LOG("Checking if %s supports codec %d: yes", m->GetName(),
+          static_cast<int>(aCodec));
+      return true;
+    }
+    LOG("Checking if %s supports codec %d: no", m->GetName(),
+        static_cast<int>(aCodec));
   }
-  if (supports.isEmpty()) {
-    LOG("No PEM support %d", static_cast<int>(aCodec));
-  }
-  return supports;
+  LOG("No PEM support %d", static_cast<int>(aCodec));
+  return false;
 }
 
 already_AddRefed<PlatformEncoderModule> PEMFactory::FindPEM(
     const EncoderConfig& aConfig) const {
   RefPtr<PlatformEncoderModule> found;
   for (const auto& m : mCurrentPEMs) {
-    if (!m->Supports(aConfig).isEmpty()) {
+    if (m->Supports(aConfig)) {
       found = m;
       break;
     }
   }
   return found.forget();
-}
-
-StaticMutex PEMFactory::sSupportedMutex;
-
-/* static */
-media::MediaCodecsSupported PEMFactory::Supported(bool aForceRefresh) {
-  StaticMutexAutoLock lock(sSupportedMutex);
-
-  static auto calculate = []() {
-    auto pem = MakeRefPtr<PEMFactory>();
-    MediaCodecsSupported supported;
-    for (const auto& cd : MCSInfo::GetAllCodecDefinitions()) {
-      auto codecType = MediaCodecToCodecType(cd.codec);
-      if (codecType == CodecType::Unknown) {
-        continue;
-      }
-      supported += MCSInfo::GetEncodeMediaCodecsSupported(
-          cd.codec, pem->SupportsCodec(codecType));
-    }
-    return supported;
-  };
-
-  static MediaCodecsSupported supported = calculate();
-  if (aForceRefresh) {
-    supported = calculate();
-  }
-
-  return supported;
 }
 
 }  // namespace mozilla

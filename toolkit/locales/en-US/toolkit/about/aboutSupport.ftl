@@ -183,8 +183,6 @@ media-capabilities-enumerate = Enumerate database
 
 media-codec-support-sw-decoding = Software Decoding
 media-codec-support-hw-decoding = Hardware Decoding
-media-codec-support-sw-encoding = Software Encoding
-media-codec-support-hw-encoding = Hardware Encoding
 media-codec-support-codec-name = Codec Name
 media-codec-support-supported = Supported
 media-codec-support-unsupported = Unsupported

@@ -87,7 +87,6 @@ struct MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS FFmpegLibWrapper {
                           int64_t dts, int64_t pos);
   AVCodec* (*av_codec_iterate)(void** opaque);
   int (*av_codec_is_decoder)(const AVCodec* codec);
-  int (*av_codec_is_encoder)(const AVCodec* codec);
   void (*avcodec_align_dimensions)(AVCodecContext* s, int* width, int* height);
   int (*av_strerror)(int errnum, char* errbuf, size_t errbuf_size);
   AVCodecDescriptor* (*avcodec_descriptor_get)(int id);

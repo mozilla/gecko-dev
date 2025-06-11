@@ -31,10 +31,8 @@ class FFmpegDataEncoder<LIBAV_VER> : public MediaDataEncoder {
   using DurationMap = SimpleMap<int64_t, int64_t, ThreadSafePolicy>;
 
  public:
-  static AVCodec* FindSoftwareEncoder(const FFmpegLibWrapper* aLib,
-                                      AVCodecID aCodecId);
-  static AVCodec* FindHardwareEncoder(const FFmpegLibWrapper* aLib,
-                                      AVCodecID aCodecId);
+  static AVCodec* FindEncoderWithPreference(const FFmpegLibWrapper* aLib,
+                                            AVCodecID aCodecId);
 
   FFmpegDataEncoder(const FFmpegLibWrapper* aLib, AVCodecID aCodecID,
                     const RefPtr<TaskQueue>& aTaskQueue,
@@ -52,7 +50,8 @@ class FFmpegDataEncoder<LIBAV_VER> : public MediaDataEncoder {
   RefPtr<GenericPromise> SetBitrate(uint32_t aBitRate) override;
 
  protected:
-  Result<AVCodecContext*, MediaResult> AllocateCodecContext(bool aHardware);
+  static Result<AVCodecContext*, MediaResult> AllocateCodecContext(
+      const FFmpegLibWrapper* aLib, AVCodecID aCodecId);
 
   // This method copies data from an AVPacket into a newly created MediaRawData.
   // It should serve as the initial step in implementing ToMediaRawData.
