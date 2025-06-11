@@ -576,11 +576,11 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 /* Separators */
 
 /* Override the toolkit styles, and make sure separators are draggable by
- * making them wider, and using a pseudo-element for the visual separator. */
+ * making them wider, and using a pseudo-element for the visual separator.
+ * TODO(bug 1971526): consider actually pushing this down to toolkit */
 #PlacesToolbarItems > toolbarseparator {
   margin: 0;
   padding-inline: 4px;
-  appearance: none;
 
   /* When adjacent to the bookmarks items, give the bookmarks items a leading separator. */
   &::before {

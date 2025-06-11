@@ -1903,9 +1903,6 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
       return Some(WidgetInfo::Segment(params));
     }
 
-    case StyleAppearance::Separator:
-      return Some(WidgetInfo::Separator());
-
     case StyleAppearance::MozSidebar:
     case StyleAppearance::MozWindowTitlebar: {
       return Nothing();
@@ -2096,11 +2093,6 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo,
           DrawSegment(cgContext, macRect, params);
           break;
         }
-        case Widget::eSeparator: {
-          HIThemeSeparatorDrawInfo sdi = {0, kThemeStateActive};
-          HIThemeDrawSeparator(&macRect, &sdi, cgContext, HITHEME_ORIENTATION);
-          break;
-        }
         case Widget::eGroupBox: {
           HIThemeGroupBoxDrawInfo gdi = {0, kThemeStateActive,
                                          kHIThemeGroupBoxKindPrimary};
@@ -2192,7 +2184,6 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
     case StyleAppearance::MozMacDisclosureButtonOpen:
     case StyleAppearance::MozMacDisclosureButtonClosed:
     case StyleAppearance::Toolbarbutton:
-    case StyleAppearance::Separator:
     case StyleAppearance::Menulist:
     case StyleAppearance::MozMenulistArrowButton:
     case StyleAppearance::Textfield:
@@ -2466,11 +2457,6 @@ LayoutDeviceIntSize nsNativeThemeCocoa::GetMinimumWidgetSize(
       break;
     }
 
-    case StyleAppearance::Separator: {
-      result.SizeTo(1, 1);
-      break;
-    }
-
     case StyleAppearance::RangeThumb: {
       SInt32 width = 0;
       SInt32 height = 0;
@@ -2561,7 +2547,6 @@ bool nsNativeThemeCocoa::ThemeSupportsWidget(nsPresContext* aPresContext,
     case StyleAppearance::Progresschunk:
     case StyleAppearance::Meter:
     case StyleAppearance::Meterchunk:
-    case StyleAppearance::Separator:
     case StyleAppearance::Range:
       return !IsWidgetStyled(aPresContext, aFrame, aAppearance);
 
@@ -2620,7 +2605,6 @@ bool nsNativeThemeCocoa::WidgetAppearanceDependsOnWindowFocus(
   switch (aAppearance) {
     case StyleAppearance::Menupopup:
     case StyleAppearance::Tooltip:
-    case StyleAppearance::Separator:
     case StyleAppearance::NumberInput:
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:

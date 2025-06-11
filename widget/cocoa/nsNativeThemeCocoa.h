@@ -139,7 +139,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     eButton,     // ButtonParams
     eDropdown,   // DropdownParams
     eSegment,    // SegmentParams
-    eSeparator,
     eGroupBox,
     eTextField,           // TextFieldParams
     eSearchField,         // TextFieldParams
@@ -168,9 +167,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     }
     static WidgetInfo Segment(const SegmentParams& aParams) {
       return WidgetInfo(Widget::eSegment, aParams);
-    }
-    static WidgetInfo Separator() {
-      return WidgetInfo(Widget::eSeparator, false);
     }
     static WidgetInfo GroupBox() {
       return WidgetInfo(Widget::eGroupBox, false);

@@ -1538,9 +1538,6 @@ pub enum Appearance {
     /// The scroll corner
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     Scrollcorner,
-    /// A separator.  Can be horizontal or vertical.
-    #[parse(condition = "ParserContext::chrome_rules_enabled")]
-    Separator,
     /// The up button of a spin control.
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     SpinnerUpbutton,

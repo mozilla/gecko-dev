@@ -10,9 +10,7 @@ toolbar {
 }
 
 toolbarseparator {
-  appearance: auto;
-  -moz-default-appearance: separator;
-  margin: 3px 4px;
+  min-width: 2px;
 }
 
 toolbarpaletteitem {
