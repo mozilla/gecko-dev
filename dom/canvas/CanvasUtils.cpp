@@ -14,6 +14,7 @@
 #include "mozilla/dom/OffscreenCanvas.h"
 #include "mozilla/dom/UserActivation.h"
 #include "mozilla/dom/WorkerCommon.h"
+#include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/gfx/gfxVars.h"
@@ -101,12 +102,12 @@ uint32_t GetCanvasExtractDataPermission(nsIPrincipal& aPrincipal) {
     nsresult rv;
     nsCOMPtr<nsIPermissionManager> permissionManager =
         do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, false);
+    NS_ENSURE_SUCCESS(rv, nsIPermissionManager::UNKNOWN_ACTION);
 
     uint32_t permission;
     rv = permissionManager->TestPermissionFromPrincipal(
         &aPrincipal, PERMISSION_CANVAS_EXTRACT_DATA, &permission);
-    NS_ENSURE_SUCCESS(rv, false);
+    NS_ENSURE_SUCCESS(rv, nsIPermissionManager::UNKNOWN_ACTION);
 
     return permission;
   }
@@ -331,6 +332,208 @@ ImageExtraction ImageExtractionResult(dom::HTMLCanvasElement* aCanvasElement,
   return ImageExtraction::Unrestricted;
 }
 
+/*
+┌──────────────────────────────────────────────────────────────────────────┐
+│IsImageExtractionAllowed(dom::OffscreenCanvas*, JSContext*, nsIPrincipal&)│
+└────────────────────────────────────┬─────────────────────────────────────┘
+                                     │
+                   ┌─────────────────▼────────────────────┐
+ ┌─────No──────────│Any prompt RFP target enabled? See [1]│
+ ▼                 └─────────────────┬────────────────────┘
+ │                                   │Yes
+ │                 ┌─────────────────▼────────┐
+ ├─────Yes─────────┤Is unrestricted principal?│
+ ▼                 └─────────────────┬────────┘
+ │                                   │No
+ │                 ┌─────────────────▼────────┐
+ │          ┌──No──┤Are third parties blocked?│
+ │          │      └─────────────────┬────────┘
+ │          │                        │Yes
+ │          │      ┌─────────────────▼─────────────┐
+ │          │      │Are we in a third-party window?├───────Yes──────────┐
+ │          │      └─────────────────┬─────────────┘                    ▼
+ │          │                        │No                                │
+ │          │      ┌─────────────────▼──┐                               │
+ │          └──────►Do we show a prompt?├────────────Yes─┐              │
+ │                 └─────────────────┬──┘                ▼              │
+ │                                   │No                 │              │
+ │                 ┌─────────────────▼─────────────┐     │              │
+ │                 │Do we allow reading canvas data│     │              │
+ │                 │in response to user input?     ├─No──┤              │
+ │                 └─────────────────┬─────────────┘     ▼              │
+ │                                   │Yes                │              │
+ │                 ┌─────────────────▼─────────┐         │              │
+ ├─────Yes─────────┼Are we handling user input?│         │              │
+ ▼                 └─────────────────┬─────────┘         │              │
+ │                                   │No                 │              │
+ │                 ┌─────────────────▼─────────────┐     │              │
+┌▼─────┐           │Show Permission Prompt (either ◄─────┘          ┌───▼──┐
+│return│           │w/ doorhanger, or w/o depending│                │return│
+│true  │           │on User Input)                 ├────────────────►false │
+└──────┘           └───────────────────────────────┘                └──────┘
+[1]: CanvasImageExtractionPrompt, CanvasExtractionBeforeUserInputIsBlocked,
+     CanvasExtractionFromThirdPartiesIsBlocked are the RFP targets mentioned.
+ */
+bool IsImageExtractionAllowed(dom::OffscreenCanvas* aOffscreenCanvas,
+                              JSContext* aCx, nsIPrincipal& aPrincipal) {
+  if (!aOffscreenCanvas) {
+    return false;
+  }
+
+  bool canvasImageExtractionPrompt =
+      aOffscreenCanvas->ShouldResistFingerprinting(
+          RFPTarget::CanvasImageExtractionPrompt);
+  bool canvasExtractionBeforeUserInputIsBlocked =
+      aOffscreenCanvas->ShouldResistFingerprinting(
+          RFPTarget::CanvasExtractionBeforeUserInputIsBlocked);
+  bool canvasExtractionFromThirdPartiesIsBlocked =
+      aOffscreenCanvas->ShouldResistFingerprinting(
+          RFPTarget::CanvasExtractionFromThirdPartiesIsBlocked);
+
+  if (!canvasImageExtractionPrompt &&
+      !canvasExtractionBeforeUserInputIsBlocked &&
+      !canvasExtractionFromThirdPartiesIsBlocked) {
+    return true;
+  }
+
+  // Don't proceed if we don't have a document or JavaScript context.
+  if (!aCx) {
+    return false;
+  }
+
+  if (IsUnrestrictedPrincipal(aPrincipal)) {
+    return true;
+  }
+
+  // Define some lambdas to help with the logic
+
+  Maybe<uint64_t> winId = Nothing();
+  RefPtr<dom::WindowContext> win = nullptr;
+  // Tries to get window Id and window. We need window
+  // multiple times or zero times depending on the conditions.
+  // So, we "cache" the window Id and window.
+  auto tryWin = [&]() {
+    if (win) {
+      return win;
+    }
+
+    if (winId.isNothing()) {
+      winId = aOffscreenCanvas->GetWindowID();
+      if (winId.isNothing()) {
+        // Do not try again if we failed to get the window ID
+        winId = Some(UINT64_MAX);
+      }
+    } else {
+      // Workers created outside of a window will return UINT64_MAX
+      if (*winId == UINT64_MAX) {
+        return win;
+      }
+    }
+
+    win = dom::WindowGlobalParent::GetById(*winId);
+    return win;
+  };
+
+  Maybe<nsAutoCString> origin = Nothing();
+  auto tryOrigin = [&]() {
+    if (origin.isSome()) {
+      return !origin->IsEmpty();
+    }
+
+    nsAutoCString originResult;
+    nsresult rv = aPrincipal.GetOrigin(originResult);
+    origin = NS_FAILED(rv) ? Some(""_ns) : Some(originResult);
+    return NS_SUCCEEDED(rv);
+  };
+
+  auto reportToConsole = [&](nsLiteralCString reason) {
+    if (!tryWin()) {
+      return;
+    }
+
+    nsAutoString message;
+    message.Append(u"Blocked ");
+    if (tryOrigin()) {
+      message.AppendPrintf("%s's ", origin->get());
+    }
+    message.AppendPrintf("offscreen canvas from extracting canvas data %s.",
+                         reason.get());
+    nsContentUtils::ReportToConsoleByWindowID(
+        message, nsIScriptError::warningFlag, "Security"_ns, *winId);
+  };
+
+  // Logic continues from here
+
+  if (canvasExtractionFromThirdPartiesIsBlocked) {
+    if (!tryWin() || win->GetIsThirdPartyWindow()) {
+      reportToConsole(
+          "because third party window tried to extract canvas data"_ns);
+      return false;
+    }
+  }
+
+  if (!canvasImageExtractionPrompt &&
+      !canvasExtractionBeforeUserInputIsBlocked) {
+    return true;
+  }
+
+  // -------------------------------------------------------------------
+  // At this point, there's only one way to return true: if we are always
+  // allowing canvas in response to user input, and not prompting
+  bool hidePermissionDoorhanger = false;
+  if (!canvasImageExtractionPrompt &&
+      canvasExtractionBeforeUserInputIsBlocked) {
+    // If so, see if this is in response to user input.
+    if (dom::UserActivation::IsHandlingUserInput()) {
+      return true;
+    }
+
+    hidePermissionDoorhanger = true;
+  }
+
+  // -------------------------------------------------------------------
+  // Now we know we're going to block it, and log something to the console,
+  // and show some sort of prompt maybe with the doorhanger, maybe not
+
+  hidePermissionDoorhanger |= canvasExtractionBeforeUserInputIsBlocked &&
+                              !dom::UserActivation::IsHandlingUserInput();
+
+  reportToConsole(hidePermissionDoorhanger
+                      ? "because no user input was detected"_ns
+                      : "but prompting the user."_ns);
+
+  // Show the prompt to the user (asynchronous) - maybe with the doorhanger,
+  // maybe not
+  if (!tryOrigin() || !tryWin()) {
+    return false;
+  }
+
+  NS_DispatchToMainThread(
+      NS_NewRunnableFunction("IsImageExtractionAllowedOffscreen", [=]() {
+        if (XRE_IsContentProcess()) {
+          dom::BrowserChild* browserChild =
+              dom::BrowserChild::GetFrom(win->GetExtantDoc()->GetWindow());
+
+          if (browserChild) {
+            browserChild->SendShowCanvasPermissionPrompt(
+                *origin, hidePermissionDoorhanger);
+          }
+        } else {
+          nsCOMPtr<nsIObserverService> obs =
+              mozilla::services::GetObserverService();
+          if (obs) {
+            obs->NotifyObservers(
+                win,
+                hidePermissionDoorhanger
+                    ? TOPIC_CANVAS_PERMISSIONS_PROMPT_HIDE_DOORHANGER
+                    : TOPIC_CANVAS_PERMISSIONS_PROMPT,
+                NS_ConvertUTF8toUTF16(*origin).get());
+          }
+        }
+      }));
+  return false;
+}
+
 ImageExtraction ImageExtractionResult(dom::OffscreenCanvas* aOffscreenCanvas,
                                       JSContext* aCx,
                                       nsIPrincipal& aPrincipal) {
@@ -338,13 +541,7 @@ ImageExtraction ImageExtractionResult(dom::OffscreenCanvas* aOffscreenCanvas,
     return ImageExtraction::Unrestricted;
   }
 
-  if (aOffscreenCanvas->ShouldResistFingerprinting(
-          RFPTarget::CanvasImageExtractionPrompt)) {
-    if (GetCanvasExtractDataPermission(aPrincipal) ==
-        nsIPermissionManager::ALLOW_ACTION) {
-      return ImageExtraction::Unrestricted;
-    }
-
+  if (!IsImageExtractionAllowed(aOffscreenCanvas, aCx, aPrincipal)) {
     return ImageExtraction::Placeholder;
   }
 
