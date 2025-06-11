@@ -132,9 +132,7 @@ async function migrateEnrollmentsToSql() {
 
   // Likewise, the set of all recipes is
   const { recipes } =
-    await lazy.ExperimentAPI._rsLoader.getRecipesFromAllCollections({
-      trigger: "migration",
-    });
+    await lazy.ExperimentAPI._rsLoader.getRecipesFromAllCollections();
 
   const recipesBySlug = new Map(recipes.map(r => [r.slug, r]));
 
