@@ -21,6 +21,10 @@ export default {
       options: ["moz-visual-picker", "moz-visual-picker-description"],
       control: { type: "select" },
     },
+    type: {
+      options: ["radio", "listbox"],
+      control: { type: "select" },
+    },
   },
   parameters: {
     actions: {
@@ -57,7 +61,7 @@ function getSlottedContent(type, index) {
   </div>`;
 }
 
-const Template = ({ value, slottedItem, pickerL10nId, supportPage }) => {
+const Template = ({ value, slottedItem, pickerL10nId, supportPage, type }) => {
   return html`
     <style>
       .slotted {
@@ -98,6 +102,7 @@ const Template = ({ value, slottedItem, pickerL10nId, supportPage }) => {
       }
     </style>
     <moz-visual-picker
+      type=${type}
       data-l10n-id=${pickerL10nId}
       value=${ifDefined(value)}
       support-page=${supportPage}
@@ -121,6 +126,7 @@ Default.args = {
   slottedItem: "card",
   value: "1",
   supportPage: "",
+  type: "radio",
 };
 
 export const WithPickerDescription = Template.bind({});
@@ -139,4 +145,10 @@ export const AllUnselected = Template.bind({});
 AllUnselected.args = {
   ...Default.args,
   value: "",
+};
+
+export const Listbox = Template.bind({});
+Listbox.args = {
+  ...Default.args,
+  type: "listbox",
 };
