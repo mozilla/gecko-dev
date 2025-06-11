@@ -5,7 +5,10 @@
 
 add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
-    set: [["sidebar.revamp", true]],
+    set: [
+      ["sidebar.revamp", true],
+      ["sidebar.verticalTabs", true],
+    ],
   });
 });
 
@@ -51,6 +54,14 @@ add_task(async function test_button_removed() {
   ok(!sidebarButton, "Sidebar button has been removed.");
   ok(sidebarMain.hidden, "Sidebar launcher has been hidden.");
   ok(sidebarBox.hidden, "Sidebar panel has been hidden.");
+
+  const tabstrip = document.getElementById("tabbrowser-tabs");
+  info("Tab orientation should change to horizontal.");
+  await BrowserTestUtils.waitForMutationCondition(
+    tabstrip,
+    { attributeFilter: ["orient"] },
+    () => tabstrip.getAttribute("orient") === "horizontal"
+  );
 
   CustomizableUI.reset();
   CustomizableUI.addWidgetToArea("sidebar-button", "nav-bar", 0);

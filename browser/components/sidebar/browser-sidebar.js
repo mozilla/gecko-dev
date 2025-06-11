@@ -1998,9 +1998,9 @@ var SidebarController = {
       !this.verticalTabsEnabled &&
       this.sidebarRevampVisibility == "hide-sidebar"
     ) {
-      // the sidebar.visibility pref didn't change so updateVisbility hasn't
-      // been called; we need to call it here to un-expand the launcher
-      this._state.updateVisibility(undefined, false);
+      // the sidebar.visibility pref didn't change so launcherExpanded hasn't
+      // been updated; we need to set it here to un-expand the launcher
+      this._state.launcherExpanded = false;
     }
   },
 
