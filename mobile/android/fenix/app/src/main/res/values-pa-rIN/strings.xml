@@ -1576,6 +1576,8 @@
   <string name="download_time_period_last_30_days">ਆਖਰੀ 30 ਦਿਨਾ</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">ਹੋਰ ਪੁਰਾਣੇ</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">…ਡਾਊਨਲੋਡ ਕਰਨ ਲਈ ਤਿਆਰੀ ਕੀਤੀ ਜਾ ਰਹੀ ਹੈ</string>
   <!--
     Description of an in progress download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
@@ -1583,12 +1585,33 @@
     %3$s is the amount of time remaining to complete the download.
   -->
   <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s ਬਾਕੀ</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description_2">%1$s / %2$s • %3$s ਵਿੱਚ।</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is unknown.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_in_progress_description_pending">%1$s / %2$s • ਬਾਕੀ</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_paused_description">%1$s / %2$s • ਰੁਕਿਆ</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">ਰੁਕਿਆ</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">ਬਕਾਇਆ</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">ਡਾਊਨਲੋਡ ਅਸਫ਼ਲ ਹੈ</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">ਵੇਰਵੇ</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">ਡਾਊਨਲੋਡਾਂ ਨੂੰ ਖੋਜੋ</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1645,14 +1668,30 @@
     Broken site reason text for site slow or not working
   -->
   <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">ਸਾਈਟ ਹੌਲੀ ਹੈ ਜਾਂ ਕੰਮ ਨਹੀਂ ਕਰਦੀ ਹੈ</string>
+  <!-- Broken site reason text for site doesn’t load -->
+  <string name="webcompat_reporter_reason_load">ਸਾਈਟ ਲੋਡ ਨਹੀਂ ਹੋਈ ਹੈ</string>
+  <!-- Broken site reason text for can’t pay, check out or shop -->
+  <string name="webcompat_reporter_reason_checkout">ਭੁਗਤਾਨ, ਚੈਕ ਆਉਟ ਜਾਂ ਖਰੀਦਦਾਰੀ ਨਹੀਂ ਕੀਤੀ ਜਾ ਸਕਦੀ ਹੈ</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">ਚਿੱਤਰ ਜਾਂ ਵੀਡੀਓ</string>
   <!-- Broken site reason text for buttons, links, and other content -->
   <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">ਬਟਨ, ਲਿੰਕ ਜਾਂ ਹੋਰ ਸਮੱਗਰੀ</string>
   <!-- Broken site reason text for sign in or sign out -->
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">ਸਾਈਨ-ਇਨ ਜਾਂ ਸਾਈਨ-ਆਉਟ</string>
+  <!-- Broken site reason text for site is slow -->
+  <string name="webcompat_reporter_reason_slow2">ਸਾਈਟ ਹੌਲੀ ਹੈ</string>
+  <!-- Broken site reason text for video isn’t playing or loading -->
+  <string name="webcompat_reporter_reason_media2">ਵਿਡੀਓ ਨਹੀਂ ਚੱਲਦੀ ਹੈ ਜਾਂ ਲੋਡ ਨਹੀਂ ਹੁੰਦੀ ਹੈ</string>
+  <!-- Broken site reason text for missing content -->
+  <string name="webcompat_reporter_reason_content2">ਸਮੱਗਰੀ ਮੌਜੂਦ ਨਹੀਂ ਹੈ</string>
+  <!-- Broken site reason text for can’t sign in or register -->
+  <string name="webcompat_reporter_reason_account2">ਸਾਈਨ ਇਨ ਜਾਂ ਰਜਿਸਟਰ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">ਇਸ਼ਤਿਹਾਰ ਰੋਕੂ</string>
+  <!-- Broken site reason text for site asked to turn off ad blocker -->
+  <string name="webcompat_reporter_reason_turn_off_adblocker">ਸਾਈਟ ਨੇ ਇਸ਼ਤਿਹਾਰ ਰੋਕੂ ਬੰਦ ਕਰਨ ਲਈ ਕਿਹਾ ਹੈ</string>
+  <!-- Broken site reason text for browser isn’t supported or blocked -->
+  <string name="webcompat_reporter_reason_notsupported">ਬਰਾਊਜ਼ਰ ਸਹਾਇਕ ਨਹੀਂ ਹੈ ਜਾਂ ਪਾਬੰਦੀ ਲਾਈ ਹੈ</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">ਕੁਝ ਹੋਰ</string>
   <!--
@@ -1883,6 +1922,10 @@
   <string name="studies_on">ਚਾਲੂ</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">ਬੰਦ</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">ਚਾਲੂ</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">ਬੰਦ</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">ਇਜਾਜ਼ਤਾਂ</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
@@ -2508,6 +2551,8 @@
   <string name="preferences_passwords_exceptions_remove_all">ਸਾਰੀਆਂ ਛੋਟਾਂ ਹਟਾ ਦਿਓ</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">ਪਾਸਵਰਡ ਖੋਜੋ</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">ਪਿੱਛੇ</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">ਸਾਈਟ</string>
   <!-- The header for the username for a login -->
@@ -2920,6 +2965,8 @@
     Header text for a section on the home screen.
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">ਸੋਚਣ ਲਈ ਮਜ਼ਬੂਰ ਕਰਨ ਵਾਲੇ ਲੇਖ</string>
+  <!-- Header text for a section on the home screen. -->
+  <string name="pocket_stories_header_2">ਲੇਖ</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">ਵਿਸ਼ੇ ਮੁਤਾਬਕ ਲੇਖ</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
@@ -3640,4 +3687,22 @@
   <string name="private_tab_cfr_negative">ਨਹੀਂ ਜੀ, ਧੰਨਵਾਦ</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">ਟੈਬਾਂ ਨੂੰ ਲਾਕ ਕਰੋ</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">%1$s ਬਾਰੇ ਤੁਸੀਂ ਕੀ ਸੋਚਦੇ ਹੋ?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">ਮੈਨੂੰ ਮਸਲੇ ਹਨ</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">ਸ਼ਾਨਦਾਰ ਹੈ!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">%1$s ਨੂੰ ਪਿਆਰ ਦੇਣ ਲਈ ਧੰਨਵਾਦ ਹੈ। ਕੀ ਤੁਹਾਡੇ ਕੋਲ ਰੇਟਿੰਗ ਰਾਹੀਂ ਇਹ ਪਿਆਰ ਵੰਡਣ ਵਾਸਤੇ ਇੱਕ ਸਕਿੰਟ ਹੈ?</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">ਪਲੇਅ ਸਟੋਰ ਉੱਤੇ %1$s ਨੂੰ ਰੇਟ ਦਿਓ</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">ਸਾਨੂੰ ਅਫ਼ਸੋਸ ਹੈ ਕਿ ਤੁਹਾਨੂੰ ਮਸਲੇ ਆ ਰਹੇ ਹਨ। ਸਾਨੂੰ ਦੱਸੋ ਕਿ ਅਸੀਂ %1$s ਨੂੰ ਕਿਵੇਂ ਸੁਧਾਰ ਸਕਦੇ ਹਾਂ।</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">ਸੁਝਾਅ ਦਿਓ</string>
 </resources>
