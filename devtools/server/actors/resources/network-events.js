@@ -304,15 +304,22 @@ class NetworkEventWatcher {
       resourceId: resource.resourceId,
       isBlocked,
       receivedUpdates: [],
-      resourceUpdates: {
-        // Requests already come with request cookies and headers, so those
-        // should always be considered as available. But the client still
-        // heavily relies on those `Available` flags to fetch additional data,
-        // so it is better to keep them for consistency.
-        requestCookiesAvailable: true,
-        requestHeadersAvailable: true,
-      },
+      resourceUpdates: {},
     };
+
+    // Requests already come with request cookies and headers, so those
+    // should always be considered as available. But the client still
+    // heavily relies on those `Available` flags to fetch additional data,
+    // so it is better to keep them for consistency.
+    lazy.NetworkUtils.setEventAsAvailable(
+      networkEvent.resourceUpdates,
+      lazy.NetworkUtils.NETWORK_EVENT_TYPES.REQUEST_COOKIES
+    );
+    lazy.NetworkUtils.setEventAsAvailable(
+      networkEvent.resourceUpdates,
+      lazy.NetworkUtils.NETWORK_EVENT_TYPES.REQUEST_HEADERS
+    );
+
     this.networkEvents.set(resource.resourceId, networkEvent);
 
     this.onNetworkEventAvailable([resource]);
@@ -335,15 +342,15 @@ class NetworkEventWatcher {
     if (!networkEvent) {
       return;
     }
-
+    const { NETWORK_EVENT_TYPES } = lazy.NetworkUtils;
     const { resourceUpdates, receivedUpdates } = networkEvent;
 
     switch (updateResource.updateType) {
-      case "cacheDetails":
+      case NETWORK_EVENT_TYPES.CACHE_DETAILS:
         resourceUpdates.fromCache = updateResource.fromCache;
         resourceUpdates.fromServiceWorker = updateResource.fromServiceWorker;
         break;
-      case "responseStart":
+      case NETWORK_EVENT_TYPES.RESPONSE_START:
         resourceUpdates.httpVersion = updateResource.httpVersion;
         resourceUpdates.status = updateResource.status;
         resourceUpdates.statusText = updateResource.statusText;
@@ -360,35 +367,47 @@ class NetworkEventWatcher {
         resourceUpdates.proxyStatus = updateResource.proxyStatus;
         resourceUpdates.proxyStatusText = updateResource.proxyStatusText;
 
-        resourceUpdates.responseHeadersAvailable = true;
-        resourceUpdates.responseCookiesAvailable = true;
+        lazy.NetworkUtils.setEventAsAvailable(
+          resourceUpdates,
+          NETWORK_EVENT_TYPES.RESPONSE_COOKIES
+        );
+        lazy.NetworkUtils.setEventAsAvailable(
+          resourceUpdates,
+          NETWORK_EVENT_TYPES.RESPONSE_HEADERS
+        );
         if (resourceUpdates.earlyHintsStatus.length) {
-          resourceUpdates.earlyHintsResponseHeadersAvailable = true;
+          lazy.NetworkUtils.setEventAsAvailable(
+            resourceUpdates,
+            NETWORK_EVENT_TYPES.EARLY_HINT_RESPONSE_HEADERS
+          );
         }
         break;
-      case "responseContent":
+      case NETWORK_EVENT_TYPES.RESPONSE_CONTENT:
         resourceUpdates.contentSize = updateResource.contentSize;
         resourceUpdates.transferredSize = updateResource.transferredSize;
         resourceUpdates.mimeType = updateResource.mimeType;
         resourceUpdates.blockingExtension = updateResource.blockingExtension;
         resourceUpdates.blockedReason = updateResource.blockedReason;
         break;
-      case "eventTimings":
+      case NETWORK_EVENT_TYPES.EVENT_TIMINGS:
         resourceUpdates.totalTime = updateResource.totalTime;
         break;
-      case "securityInfo":
+      case NETWORK_EVENT_TYPES.SECURITY_INFO:
         resourceUpdates.securityState = updateResource.state;
         resourceUpdates.isRacing = updateResource.isRacing;
         break;
     }
 
-    resourceUpdates[`${updateResource.updateType}Available`] = true;
+    lazy.NetworkUtils.setEventAsAvailable(
+      resourceUpdates,
+      updateResource.updateType
+    );
     receivedUpdates.push(updateResource.updateType);
 
     const isComplete =
-      receivedUpdates.includes("eventTimings") &&
-      receivedUpdates.includes("responseContent") &&
-      receivedUpdates.includes("securityInfo");
+      receivedUpdates.includes(NETWORK_EVENT_TYPES.EVENT_TIMINGS) &&
+      receivedUpdates.includes(NETWORK_EVENT_TYPES.RESPONSE_CONTENT) &&
+      receivedUpdates.includes(NETWORK_EVENT_TYPES.SECURITY_INFO);
 
     if (isComplete) {
       this._emitUpdate(networkEvent);
