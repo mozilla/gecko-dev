@@ -5571,6 +5571,12 @@
 #endif
   mirror: always
 
+# Forcing all notification requests do storage cleanup.
+- name: dom.webnotifications.testing.force_storage_cleanup.enabled
+  type: bool
+  value: false
+  mirror: always
+
 - name: dom.worker.canceling.timeoutMilliseconds
   type: RelaxedAtomicUint32
   value: 30000    # 30 seconds

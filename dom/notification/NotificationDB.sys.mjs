@@ -15,12 +15,6 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
   });
 });
 
-const NOTIFICATION_STORE_DIR = PathUtils.profileDir;
-const NOTIFICATION_STORE_PATH = PathUtils.join(
-  NOTIFICATION_STORE_DIR,
-  "notificationstore.json"
-);
-
 export class NotificationDB {
   // Ensure we won't call init() while xpcom-shutdown is performed
   #shutdownInProgress = false;
@@ -35,6 +29,8 @@ export class NotificationDB {
   #loaded = false;
   #tasks = [];
   #runningTask = null;
+
+  #storagePath = null;
 
   storageQualifier() {
     return "Notification";
@@ -125,7 +121,7 @@ export class NotificationDB {
 
   // Attempt to read notification file, if it's not there we will create it.
   load() {
-    var promise = IOUtils.readUTF8(NOTIFICATION_STORE_PATH);
+    var promise = IOUtils.readUTF8(this.#storagePath);
     return promise.then(
       data => {
         if (data.length) {
@@ -162,6 +158,11 @@ export class NotificationDB {
 
   // Creates the notification directory.
   createStore() {
+    const NOTIFICATION_STORE_DIR = PathUtils.profileDir;
+    this.#storagePath = PathUtils.join(
+      NOTIFICATION_STORE_DIR,
+      "notificationstore.json"
+    );
     var promise = IOUtils.makeDirectory(NOTIFICATION_STORE_DIR, {
       ignoreExisting: true,
     });
@@ -170,16 +171,16 @@ export class NotificationDB {
 
   // Creates the notification file once the directory is created.
   createFile() {
-    return IOUtils.writeUTF8(NOTIFICATION_STORE_PATH, "", {
-      tmpPath: NOTIFICATION_STORE_PATH + ".tmp",
+    return IOUtils.writeUTF8(this.#storagePath, "", {
+      tmpPath: this.#storagePath + ".tmp",
     });
   }
 
   // Save current notifications to the file.
   save() {
     var data = JSON.stringify(this.#notifications);
-    return IOUtils.writeUTF8(NOTIFICATION_STORE_PATH, data, {
-      tmpPath: NOTIFICATION_STORE_PATH + ".tmp",
+    return IOUtils.writeUTF8(this.#storagePath, data, {
+      tmpPath: this.#storagePath + ".tmp",
     });
   }
 
@@ -447,4 +448,4 @@ export class NotificationDB {
   }
 }
 
-new NotificationDB();
+export const db = new NotificationDB();

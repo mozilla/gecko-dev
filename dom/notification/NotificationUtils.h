@@ -86,7 +86,8 @@ void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId);
 // Show an alert and clean up any previously stored notifications that
 // aren't currently known to the notification backend.
 //
-// The cleanup happens when this is globally the first call.
+// The cleanup happens when this is globally the first call, or always if
+// dom.webnotifications.testing.force_storage_cleanup.enabled is set.
 nsresult ShowAlertWithCleanup(nsIAlertNotification* aAlert,
                               nsIObserver* aAlertListener);
 

@@ -227,7 +227,9 @@ void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId) {
 nsresult ShowAlertWithCleanup(nsIAlertNotification* aAlert,
                               nsIObserver* aAlertListener) {
   nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service();
-  if (!gTriedStorageCleanup) {
+  if (!gTriedStorageCleanup ||
+      StaticPrefs::
+          dom_webnotifications_testing_force_storage_cleanup_enabled()) {
     // The below may fail, but retry probably won't make it work
     gTriedStorageCleanup = true;
 

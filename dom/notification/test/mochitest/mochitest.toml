@@ -21,6 +21,13 @@ skip-if = [
   "os == 'android'", # Bug 1948752, Notification.onshow/close are broken on Android
 ]
 
+["test_notification_cleanup.html"]
+support-files = ["notification_empty_sw.js"]
+skip-if = [
+  "xorigin", # Bug 1792790
+  "os == 'android'", # Bug 1948752, Notification.onshow/close are broken on Android
+]
+
 ["test_notification_crossorigin_iframe.html"]
 support-files = ["blank.html"]
 

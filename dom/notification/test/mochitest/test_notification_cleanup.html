@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/dom/serviceworkers/test/utils.js"></script>
+<script src="MockAlertsService.js"></script>
+<script src="NotificationTest.js"></script>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css">
+<script>
+  add_task(async function setup_db() {
+    await SpecialPowers.spawnChrome([location.href], async (url) => {
+      let { db } = ChromeUtils.importESModule(
+        "resource://gre/modules/NotificationDB.sys.mjs"
+      );
+
+      const origin = new URL(url).origin;
+      const scope = new URL(".", url).href;
+      await db.load();
+      await db.taskSave({
+        origin,
+        notification: {
+          id: "foo",
+          title: "foo",
+          actions: [],
+          serviceWorkerRegistrationScope: scope,
+        },
+      });
+      await db.taskSave({
+        origin,
+        notification: {
+          id: "bar",
+          title: "bar",
+          actions: [],
+          serviceWorkerRegistrationScope: scope,
+        },
+      });
+      await db.taskSave({
+        origin,
+        notification: {
+          id: "baz",
+          title: "baz",
+          actions: [],
+          serviceWorkerRegistrationScope: scope,
+        },
+      });
+    });
+  });
+
+  add_task(async function test_notification_cleanup() {
+    // Force storage cleanup, otherwise the cleanup won't happen as other tests
+    // may already have made notification requests
+    await SpecialPowers.pushPrefEnv({
+      set: [["dom.webnotifications.testing.force_storage_cleanup.enabled", true]]
+    });
+
+    // Now pretend that bar and baz is still alive in the notification backend
+    /** @type {ServiceWorkerRegistration} */
+    const registration = await setupServiceWorker("notification_empty_sw.js", ".")
+    await MockAlertsService.setHistory(["bar", "baz"]);
+
+    // First use of PNotification
+    await registration.showNotification("hello");
+
+    // bar and baz should be kept, foo should be gone, hello should be added
+    const notifications = await registration.getNotifications();
+    is(notifications.length, 3, "Should get three notifications")
+    isDeeply(notifications.map(n => n.title).sort(), ["bar", "baz", "hello"], "Should get three different notifications");
+  });
+</script>
