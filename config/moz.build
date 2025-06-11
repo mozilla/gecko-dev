@@ -95,8 +95,6 @@ if CONFIG["WRAP_STL_INCLUDES"]:
 
 if CONFIG["WRAP_SYSTEM_INCLUDES"]:
     include("system-headers.mozbuild")
-    if CONFIG["ANDROID_SYSTEM_HEADERS"]:
-        system_headers += CONFIG["ANDROID_SYSTEM_HEADERS"]
     output_dir = "/dist/system_wrappers"
     outputs = tuple(
         ["system-header.sentinel"]
