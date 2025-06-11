@@ -19,6 +19,8 @@ SOURCES += [
     "viewporter-protocol.c",
     "xdg-activation-v1-protocol.c",
     "xdg-output-unstable-v1-protocol.c",
+    "xdg-shell-protocol.c",
+    "xx-pip-v1-protocol.c",
 ]
 
 EXPORTS.mozilla.widget += [
@@ -33,6 +35,8 @@ EXPORTS.mozilla.widget += [
     "viewporter-client-protocol.h",
     "xdg-activation-v1-client-protocol.h",
     "xdg-output-unstable-v1-client-protocol.h",
+    "xdg-shell-client-protocol.h",
+    "xx-pip-v1-client-protocol.h",
 ]
 
 include("/ipc/chromium/chromium-config.mozbuild")

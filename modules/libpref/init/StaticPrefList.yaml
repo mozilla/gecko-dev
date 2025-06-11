@@ -18651,6 +18651,13 @@
   value: true
   mirror: once
 
+# Whether experimental PiP support for Wayland is enabled via the xx_pip_v1
+# protocol.
+- name: widget.wayland.experimental.pip.enabled
+  type: bool
+  value: true
+  mirror: once
+
 # Whether to keep firing vsync at layout.throttled_frame_rate after we've been
 # occluded.
 - name: widget.wayland.vsync.keep-firing-at-idle
