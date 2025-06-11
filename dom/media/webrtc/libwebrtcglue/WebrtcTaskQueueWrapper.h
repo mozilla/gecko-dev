@@ -9,13 +9,11 @@
 #include "api/task_queue/task_queue_factory.h"
 #include "mozilla/DataMutex.h"
 #include "mozilla/RecursiveMutex.h"
-#include "mozilla/ProfilerRunnable.h"
 #include "mozilla/TaskQueue.h"
 #include "VideoUtils.h"
 #include "mozilla/media/MediaUtils.h"  // For media::Await
 
 namespace mozilla {
-
 enum class DeletionPolicy : uint8_t { Blocking, NonBlocking };
 
 /**
@@ -30,9 +28,37 @@ enum class DeletionPolicy : uint8_t { Blocking, NonBlocking };
  */
 template <DeletionPolicy Deletion>
 class WebrtcTaskQueueWrapper : public webrtc::TaskQueueBase {
+ private:
+  class TaskQueueObserver final : public TaskQueue::Observer {
+   public:
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TaskQueueObserver, override);
+
+    explicit TaskQueueObserver(WebrtcTaskQueueWrapper* aOwner)
+        : mOwner(aOwner) {}
+
+    void WillProcessEvent(TaskQueue* aQueue) override {
+      mCurrent.emplace(mOwner);
+    }
+    void DidProcessEvent(TaskQueue* aQueue) override { mCurrent = Nothing(); }
+
+   private:
+    ~TaskQueueObserver() override = default;
+    // mOwner is safe because it is not destroyed until the underlying TaskQueue
+    // has finished shutdown.
+    WebrtcTaskQueueWrapper* const mOwner;
+    Maybe<CurrentTaskQueueSetter> mCurrent;
+  };
+
  public:
-  WebrtcTaskQueueWrapper(RefPtr<TaskQueue> aTaskQueue, nsCString aName)
-      : mTaskQueue(std::move(aTaskQueue)), mName(std::move(aName)) {}
+  WebrtcTaskQueueWrapper(already_AddRefed<nsIEventTarget> aTarget,
+                         nsCString aName, bool aSupportsTailDispatch)
+      : mTaskQueue(TaskQueue::Create(std::move(aTarget),
+                                     "WebrtcTaskQueueWrapper::mTaskQueue",
+                                     aSupportsTailDispatch)),
+        mName(std::move(aName)) {
+    auto observer = MakeRefPtr<TaskQueueObserver>(this);
+    mTaskQueue->SetObserver(observer);
+  }
   ~WebrtcTaskQueueWrapper() = default;
 
   void Delete() override {
@@ -60,6 +86,7 @@ class WebrtcTaskQueueWrapper : public webrtc::TaskQueueBase {
           // prevent queued tasks from executing with mHasShutdown, that is a
           // member variable, which means we still need to ensure that the
           // queue is done executing tasks before destroying it.
+          mTaskQueue->SetObserver(nullptr);
           delete this;
           return GenericPromise::CreateAndResolve(true, __func__);
         });
@@ -71,33 +98,14 @@ class WebrtcTaskQueueWrapper : public webrtc::TaskQueueBase {
   }
 
   already_AddRefed<Runnable> CreateTaskRunner(
-      absl::AnyInvocable<void() &&> aTask) {
+      absl::AnyInvocable<void() &&>&& aTask) {
     return NS_NewRunnableFunction(
-        "WebrtcTaskQueueWrapper::CreateTaskRunner",
-        [this, task = std::move(aTask),
-         name = nsPrintfCString("TQ %s: webrtc::QueuedTask",
-                                mName.get())]() mutable {
-          CurrentTaskQueueSetter current(this);
-          auto hasShutdown = mHasShutdown.Lock();
-          if (*hasShutdown) {
+        __func__, [this, task = std::move(aTask)]() mutable {
+          auto hasShutdownGuard = mHasShutdown.ConstLock();
+          if (*hasShutdownGuard) {
             return;
           }
-          AUTO_PROFILE_FOLLOWING_RUNNABLE(name);
           std::move(task)();
-        });
-  }
-
-  already_AddRefed<Runnable> CreateTaskRunner(nsCOMPtr<nsIRunnable> aRunnable) {
-    return NS_NewRunnableFunction(
-        "WebrtcTaskQueueWrapper::CreateTaskRunner",
-        [this, runnable = std::move(aRunnable)]() mutable {
-          CurrentTaskQueueSetter current(this);
-          auto hasShutdown = mHasShutdown.Lock();
-          if (*hasShutdown) {
-            return;
-          }
-          AUTO_PROFILE_FOLLOWING_RUNNABLE(runnable);
-          runnable->Run();
         });
   }
 
@@ -146,18 +154,14 @@ class DefaultDelete<WebrtcTaskQueueWrapper<Deletion>>
 
 class SharedThreadPoolWebRtcTaskQueueFactory : public webrtc::TaskQueueFactory {
  public:
-  SharedThreadPoolWebRtcTaskQueueFactory() {}
-
   template <DeletionPolicy Deletion>
   UniquePtr<WebrtcTaskQueueWrapper<Deletion>> CreateWebrtcTaskQueueWrapper(
       absl::string_view aName, bool aSupportTailDispatch, Priority aPriority,
       MediaThreadType aThreadType = MediaThreadType::WEBRTC_WORKER) const {
     // XXX Do something with aPriority
     nsCString name(aName.data(), aName.size());
-    auto taskQueue = TaskQueue::Create(GetMediaThreadPool(aThreadType),
-                                       name.get(), aSupportTailDispatch);
-    return MakeUnique<WebrtcTaskQueueWrapper<Deletion>>(std::move(taskQueue),
-                                                        std::move(name));
+    return MakeUnique<WebrtcTaskQueueWrapper<Deletion>>(
+        GetMediaThreadPool(aThreadType), std::move(name), aSupportTailDispatch);
   }
 
   std::unique_ptr<webrtc::TaskQueueBase, webrtc::TaskQueueDeleter>
