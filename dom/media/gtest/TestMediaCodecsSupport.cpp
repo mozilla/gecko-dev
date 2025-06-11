@@ -188,11 +188,11 @@ TEST(MediaCodecsSupport, GetMediaCodecsSupportedString)
     nsCString cn(it.commonName);
     // H264/VP8/VP9 support text should reflect args to MCSInfo::AddSupport
     if (cn == "H264"_ns) {
-      targetString += "H264 SWDEC HWDEC"_ns;
+      targetString += "H264 SW HW"_ns;
     } else if (cn.Equals("VP8"_ns)) {
-      targetString += "VP8 SWDEC"_ns;
+      targetString += "VP8 SW"_ns;
     } else if (cn.Equals("VP9"_ns)) {
-      targetString += "VP9 HWDEC"_ns;
+      targetString += "VP9 HW"_ns;
     } else {
       targetString += nsCString(it.commonName) + " NONE"_ns;
     }

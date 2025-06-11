@@ -22,7 +22,6 @@
 #include "gfxConfig.h"
 #include "gfxCrashReporterUtils.h"
 #include "gfxPlatform.h"
-#include "MediaCodecsSupport.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Components.h"
 #include "mozilla/FOGIPC.h"
@@ -79,6 +78,7 @@
 #  include "mozilla/layers/GpuProcessD3D11TextureMap.h"
 #  include "mozilla/layers/TextureD3D11.h"
 #  include "mozilla/widget/WinCompositorWindowThread.h"
+#  include "MediaCodecsSupport.h"
 #  include "WMFDecoderModule.h"
 #else
 #  include <unistd.h>
@@ -120,7 +120,7 @@ static media::MediaCodecsSupported GetFullMediaCodecSupport(
     }
   });
 #endif
-  return media::MCSInfo::GetSupportFromFactory();
+  return PDMFactory::Supported(aForceRefresh);
 }
 
 static GPUParent* sGPUParent;

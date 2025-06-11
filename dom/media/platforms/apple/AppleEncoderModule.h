@@ -14,8 +14,8 @@ class AppleEncoderModule final : public PlatformEncoderModule {
  public:
   virtual ~AppleEncoderModule() = default;
 
-  media::EncodeSupportSet Supports(const EncoderConfig& aConfig) const override;
-  media::EncodeSupportSet SupportsCodec(CodecType aCodec) const override;
+  bool Supports(const EncoderConfig& aConfig) const override;
+  bool SupportsCodec(CodecType aCodec) const override;
 
   const char* GetName() const override { return "Apple Encoder Module"; }
 

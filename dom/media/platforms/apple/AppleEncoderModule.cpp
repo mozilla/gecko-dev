@@ -10,9 +10,6 @@
 #include "VideoUtils.h"
 #include "AppleUtils.h"
 
-using mozilla::media::EncodeSupport;
-using mozilla::media::EncodeSupportSet;
-
 namespace mozilla {
 
 extern LazyLogModule sPEMLog;
@@ -23,25 +20,20 @@ extern LazyLogModule sPEMLog;
   MOZ_LOG(sPEMLog, mozilla::LogLevel::Debug, \
           ("[AppleEncoderModule] %s: " fmt, __func__, ##__VA_ARGS__))
 
-EncodeSupportSet AppleEncoderModule::SupportsCodec(CodecType aCodec) const {
-  if (aCodec != CodecType::H264) {
-    return EncodeSupportSet{};
-  }
-  return EncodeSupportSet{EncodeSupport::HardwareEncode,
-                          EncodeSupport::SoftwareEncode};
+bool AppleEncoderModule::SupportsCodec(CodecType aCodec) const {
+  return aCodec == CodecType::H264;
 }
 
-EncodeSupportSet AppleEncoderModule::Supports(
-    const EncoderConfig& aConfig) const {
+bool AppleEncoderModule::Supports(const EncoderConfig& aConfig) const {
   if (!CanLikelyEncode(aConfig)) {
-    return EncodeSupportSet{};
+    return false;
   }
   // Only two temporal layers supported, and only from 11.3 and more recent
   if (aConfig.mScalabilityMode == ScalabilityMode::L1T3 ||
       (aConfig.mScalabilityMode != ScalabilityMode::None && !OSSupportsSVC())) {
-    return EncodeSupportSet{};
+    return false;
   }
-  return SupportsCodec(aConfig.mCodec);
+  return aConfig.mCodec == CodecType::H264;
 }
 
 already_AddRefed<MediaDataEncoder> AppleEncoderModule::CreateVideoEncoder(

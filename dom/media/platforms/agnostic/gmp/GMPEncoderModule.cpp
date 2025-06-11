@@ -12,14 +12,11 @@
 #include "MediaDataEncoderProxy.h"
 #include "MP4Decoder.h"
 
-using mozilla::media::EncodeSupport;
-using mozilla::media::EncodeSupportSet;
-
 namespace mozilla {
 
 already_AddRefed<MediaDataEncoder> GMPEncoderModule::CreateVideoEncoder(
     const EncoderConfig& aConfig, const RefPtr<TaskQueue>& aTaskQueue) const {
-  if (Supports(aConfig).isEmpty()) {
+  if (!Supports(aConfig)) {
     return nullptr;
   }
 
@@ -39,44 +36,36 @@ already_AddRefed<MediaDataEncoder> GMPEncoderModule::CreateVideoEncoder(
       new MediaDataEncoderProxy(encoder.forget(), thread.forget()));
 }
 
-media::EncodeSupportSet GMPEncoderModule::Supports(
-    const EncoderConfig& aConfig) const {
+bool GMPEncoderModule::Supports(const EncoderConfig& aConfig) const {
   if (!CanLikelyEncode(aConfig)) {
-    return EncodeSupportSet{};
+    return false;
   }
   if (aConfig.mCodec != CodecType::H264) {
-    return EncodeSupportSet{};
+    return false;
   }
   if (aConfig.mHardwarePreference == HardwarePreference::RequireHardware) {
-    return EncodeSupportSet{};
+    return false;
   }
   if (aConfig.mCodecSpecific && aConfig.mCodecSpecific->is<H264Specific>()) {
     const auto& codecSpecific = aConfig.mCodecSpecific->as<H264Specific>();
     if (codecSpecific.mProfile != H264_PROFILE_UNKNOWN &&
         codecSpecific.mProfile != H264_PROFILE_BASE &&
         !HaveGMPFor("encode-video"_ns, {"moz-h264-advanced"_ns})) {
-      return EncodeSupportSet{};
+      return false;
     }
   }
   if (aConfig.mScalabilityMode != ScalabilityMode::None &&
       !HaveGMPFor("encode-video"_ns, {"moz-h264-temporal-svc"_ns})) {
-    return EncodeSupportSet{};
+    return false;
   }
-  if (!HaveGMPFor("encode-video"_ns, {"h264"_ns})) {
-    return EncodeSupportSet{};
-  }
-  return EncodeSupportSet{EncodeSupport::SoftwareEncode};
+  return HaveGMPFor("encode-video"_ns, {"h264"_ns});
 }
 
-media::EncodeSupportSet GMPEncoderModule::SupportsCodec(
-    CodecType aCodecType) const {
+bool GMPEncoderModule::SupportsCodec(CodecType aCodecType) const {
   if (aCodecType != CodecType::H264) {
-    return EncodeSupportSet{};
+    return false;
   }
-  if (!HaveGMPFor("encode-video"_ns, {"h264"_ns})) {
-    return EncodeSupportSet{};
-  }
-  return EncodeSupportSet{EncodeSupport::SoftwareEncode};
+  return HaveGMPFor("encode-video"_ns, {"h264"_ns});
 }
 
 }  // namespace mozilla

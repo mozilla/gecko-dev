@@ -90,15 +90,10 @@ class gfxVarReceiver;
   _(SupportsThreadsafeGL, bool, false)                             \
   _(AllowWebGPU, bool, false)                                      \
   _(UseVP8HwDecode, bool, false)                                   \
-  _(UseVP8HwEncode, bool, false)                                   \
   _(UseVP9HwDecode, bool, false)                                   \
-  _(UseVP9HwEncode, bool, false)                                   \
   _(UseAV1HwDecode, bool, false)                                   \
-  _(UseAV1HwEncode, bool, false)                                   \
   _(UseH264HwDecode, bool, false)                                  \
-  _(UseH264HwEncode, bool, false)                                  \
   _(UseHEVCHwDecode, bool, false)                                  \
-  _(UseHEVCHwEncode, bool, false)                                  \
   _(HwDecodedVideoZeroCopy, bool, false)                           \
   _(UseDMABufSurfaceExport, bool, true)                            \
   _(ReuseDecoderDevice, bool, false)                               \

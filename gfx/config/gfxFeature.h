@@ -55,11 +55,6 @@ namespace gfx {
   _(HEVC_HW_DECODE, Feature, "HEVC hardware decoding")                       \
   _(REMOTE_CANVAS, Feature, "Remote canvas")                                 \
   _(DMABUF_WEBGL, Feature, "DMABuf for WebGL")                               \
-  _(VP8_HW_ENCODE, Feature, "VP8 hardware encoding")                         \
-  _(VP9_HW_ENCODE, Feature, "VP9 hardware encoding")                         \
-  _(H264_HW_ENCODE, Feature, "H.264 hardware encoding")                      \
-  _(AV1_HW_ENCODE, Feature, "AV1 hardware encoding")                         \
-  _(HEVC_HW_ENCODE, Feature, "HEVC hardware encoding")                       \
   /* Add new entries above this comment */
 
 enum class Feature : uint32_t {

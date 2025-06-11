@@ -16,7 +16,7 @@ template <typename T>
 bool Supports(const RefPtr<T>& aEncoderConfigInternal) {
   RefPtr<PEMFactory> factory = new PEMFactory();
   EncoderConfig config = aEncoderConfigInternal->ToEncoderConfig();
-  return !factory->Supports(config).isEmpty();
+  return factory->Supports(config);
 }
 
 }  // namespace mozilla::EncoderSupport
