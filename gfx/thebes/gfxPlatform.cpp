@@ -3006,53 +3006,37 @@ void gfxPlatform::InitHardwareVideoConfig() {
   nsCString message;
   nsCString failureId;
 
-  FeatureState& featureVP8 = gfxConfig::GetFeature(Feature::VP8_HW_DECODE);
-  featureVP8.EnableByDefault();
+#define CODEC_HW_FEATURE_SETUP(name)                                         \
+  FeatureState& featureDec##name =                                           \
+      gfxConfig::GetFeature(Feature::name##_HW_DECODE);                      \
+  featureDec##name.EnableByDefault();                                        \
+  if (!IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_##name##_HW_DECODE, &message, \
+                           failureId)) {                                     \
+    featureDec##name.Disable(FeatureStatus::Blocklisted, message.get(),      \
+                             failureId);                                     \
+  }                                                                          \
+  gfxVars::SetUse##name##HwDecode(featureDec##name.IsEnabled());             \
+  FeatureState& featureEnc##name =                                           \
+      gfxConfig::GetFeature(Feature::name##_HW_ENCODE);                      \
+  featureEnc##name.EnableByDefault();                                        \
+  if (!IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_##name##_HW_ENCODE, &message, \
+                           failureId)) {                                     \
+    featureEnc##name.Disable(FeatureStatus::Blocklisted, message.get(),      \
+                             failureId);                                     \
+  }                                                                          \
+  gfxVars::SetUse##name##HwEncode(featureEnc##name.IsEnabled());
 
-  if (!IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_VP8_HW_DECODE, &message,
-                           failureId)) {
-    featureVP8.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
-  }
-  gfxVars::SetUseVP8HwDecode(featureVP8.IsEnabled());
+  CODEC_HW_FEATURE_SETUP(VP8)
+  CODEC_HW_FEATURE_SETUP(VP9)
 
-  FeatureState& featureVP9 = gfxConfig::GetFeature(Feature::VP9_HW_DECODE);
-  featureVP9.EnableByDefault();
-
-  if (!IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_VP9_HW_DECODE, &message,
-                           failureId)) {
-    featureVP9.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
-  }
-  gfxVars::SetUseVP9HwDecode(featureVP9.IsEnabled());
-
-  // H264/AV1/HEVC_HW_DECODE are used on Linux only right now.
+  // H264/AV1/HEVC_HW_DECODE/ENCODE are used on Linux only right now.
 #ifdef MOZ_WIDGET_GTK
-  FeatureState& featureH264 = gfxConfig::GetFeature(Feature::H264_HW_DECODE);
-  featureH264.EnableByDefault();
-
-  if (!IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_H264_HW_DECODE, &message,
-                           failureId)) {
-    featureH264.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
-  }
-  gfxVars::SetUseH264HwDecode(featureH264.IsEnabled());
-
-  FeatureState& featureAV1 = gfxConfig::GetFeature(Feature::AV1_HW_DECODE);
-  featureAV1.EnableByDefault();
-
-  if (!IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_AV1_HW_DECODE, &message,
-                           failureId)) {
-    featureAV1.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
-  }
-  gfxVars::SetUseAV1HwDecode(featureAV1.IsEnabled());
-
-  FeatureState& featureHEVC = gfxConfig::GetFeature(Feature::HEVC_HW_DECODE);
-  featureHEVC.EnableByDefault();
-
-  if (!IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_HEVC_HW_DECODE, &message,
-                           failureId)) {
-    featureHEVC.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
-  }
-  gfxVars::SetUseHEVCHwDecode(featureHEVC.IsEnabled());
+  CODEC_HW_FEATURE_SETUP(H264)
+  CODEC_HW_FEATURE_SETUP(HEVC)
+  CODEC_HW_FEATURE_SETUP(AV1)
 #endif
+
+#undef CODEC_HW_FEATURE_SETUP
 }
 
 void gfxPlatform::InitWebGLConfig() {
