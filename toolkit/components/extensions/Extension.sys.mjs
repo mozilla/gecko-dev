@@ -1518,9 +1518,23 @@ export class ExtensionData {
       removed
     );
 
+    let dataCollectionSet = new Set(
+      newPermissions.data_collection.concat(
+        newOptionalPermissions.data_collection
+      )
+    );
+    let oldDataCollectionSet = new Set(
+      oldPermissions.data_collection.concat(
+        oldOptionalPermissions.data_collection
+      )
+    );
+
     // Remove any optional permissions that have been removed from the manifest.
     await lazy.ExtensionPermissions.remove(id, {
       permissions: removed,
+      data_collection: Array.from(
+        oldDataCollectionSet.difference(dataCollectionSet)
+      ),
       origins: [],
     });
   }
