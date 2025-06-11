@@ -712,6 +712,67 @@ class DownloadUIStoreTest {
     }
 
     @Test
+    fun `GIVEN live downloads is enabled and a download was cancelled WHEN downloading the same file THEN only the downloading download item is displayed`() {
+        val downloads = mapOf(
+            "1" to DownloadState(
+                id = "1",
+                createdTime = 1,
+                url = "https://www.google.com",
+                fileName = "1.pdf",
+                status = DownloadState.Status.CANCELLED,
+                contentLength = 10000,
+                destinationDirectory = "",
+                directoryPath = "downloads",
+                contentType = "application/pdf",
+            ),
+            "2" to DownloadState(
+                id = "2",
+                createdTime = 2,
+                url = "https://www.google.com",
+                fileName = "1.pdf",
+                status = DownloadState.Status.DOWNLOADING,
+                destinationDirectory = "",
+                contentLength = 10000,
+                directoryPath = "downloads",
+                contentType = "application/pdf",
+            ),
+        )
+        val browserStore = BrowserStore(initialState = BrowserState(downloads = downloads))
+
+        val downloadsStore = DownloadUIStore(
+            initialState = DownloadUIState.INITIAL,
+            middleware = listOf(
+                DownloadUIMapperMiddleware(
+                    browserStore = browserStore,
+                    fileItemDescriptionProvider = fakeFileItemDescriptionProvider,
+                    scope = scope,
+                    isLiveDownloadsEnabled = true,
+                ),
+            ),
+        )
+        downloadsStore.waitUntilIdle()
+
+        val expectedList = DownloadUIState.ItemsState.Items(
+            listOf(
+                HeaderItem(TimeCategory.IN_PROGRESS),
+                FileItem(
+                    id = "2",
+                    url = "https://www.google.com",
+                    fileName = "1.pdf",
+                    filePath = "downloads/1.pdf",
+                    description = "Downloading",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/pdf",
+                    status = FileItem.Status.Downloading(0f),
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+            ),
+        )
+
+        assertEquals(expectedList, downloadsStore.state.itemsState)
+    }
+
+    @Test
     fun `WHEN two download states point to the same existing file THEN only one download item is displayed`() {
         val downloads = mapOf(
             "1" to DownloadState(

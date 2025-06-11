@@ -73,8 +73,8 @@ class DownloadUIMapperMiddleware(
 
     private fun Map<String, DownloadState>.toFileItemsList(): List<FileItem> =
         values
-            .distinctBy { it.fileName }
             .filter { isDisplayableItem(it.status) }
+            .distinctBy { it.fileName }
             .sortedByDescending { it.createdTime } // sort from newest to oldest
             .map { it.toFileItem() }
 
