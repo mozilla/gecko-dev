@@ -9,6 +9,12 @@ const DUMMY_SUPPORT_URL = BAD_CERT_PAGE + DUMMY_SUPPORT_BASE_PATH;
 const OFFLINE_SUPPORT_PAGE =
   "chrome://global/content/neterror/supportpages/time-errors.html";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function testOfflineSupportPage() {
   // Cache the original value of app.support.baseURL pref to reset later
   let originalBaseURL = Services.prefs.getCharPref("app.support.baseURL");

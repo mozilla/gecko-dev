@@ -21,6 +21,12 @@ const OPEN_NOOPENER_WINDOW = `
   <a rel="noopener" target="_blank" href="${OPENED_URI}">Open the window</a>
 `;
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_bc_id_overflow() {
   is(document.querySelector(".printPreviewBrowser"), null);
 

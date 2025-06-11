@@ -34,7 +34,10 @@ async function emptyToolbarMessageVisible(visible, win = window) {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     // Ensure we can wait for about:newtab to load.
-    set: [["browser.newtab.preload", false]],
+    set: [
+      ["browser.newtab.preload", false],
+      ["test.wait300msAfterTabSwitch", true],
+    ],
   });
   // Move all existing bookmarks in the Bookmarks Toolbar and
   // Other Bookmarks to the Bookmarks Menu so they don't affect

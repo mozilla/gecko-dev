@@ -7,7 +7,10 @@ add_task(async function () {
     "http://mochi.test:8888/browser/toolkit/content/tests/browser/doggy.png";
 
   await SpecialPowers.pushPrefEnv({
-    set: [["dom.text-recognition.enabled", true]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["dom.text-recognition.enabled", true],
+    ],
   });
 
   clearTelemetry();

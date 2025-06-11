@@ -461,7 +461,10 @@ let kDefaultSelectStyles = {};
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["dom.forms.select.customstyling", true]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["dom.forms.select.customstyling", true],
+    ],
   });
   kDefaultSelectStyles = await BrowserTestUtils.withNewTab(
     `data:text/html,<select>`,

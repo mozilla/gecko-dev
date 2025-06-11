@@ -3,6 +3,12 @@
 
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async () => {
   // Create a tab that loads a system font.
   const CROSS_ORIGIN_DOMAIN = "https://example.com";

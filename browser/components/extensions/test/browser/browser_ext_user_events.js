@@ -1,5 +1,11 @@
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 // Test that different types of events are all considered
 // "handling user input".
 add_task(async function testSources() {

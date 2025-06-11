@@ -71,6 +71,12 @@ async function isRecordFound(hostname) {
 let https_requestUrl = `https://example.com/browser/netwerk/test/browser/file_link_dns_prefetch.sjs`;
 let http_requestUrl = `http://example.com/browser/netwerk/test/browser/file_link_dns_prefetch.sjs`; // eslint-disable-line @microsoft/sdl/no-insecure-url
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 // Test dns-prefetch on https
 add_task(async function test_https_dns_prefetch() {
   Services.dns.clearCache(true);

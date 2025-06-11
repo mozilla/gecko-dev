@@ -8,7 +8,10 @@ SELECT +=
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["dom.forms.selectSearch", true]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["dom.forms.selectSearch", true],
+    ],
   });
 });
 

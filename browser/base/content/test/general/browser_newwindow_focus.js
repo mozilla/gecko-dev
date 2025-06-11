@@ -7,6 +7,12 @@
 
 const PAGE = `data:text/html,<a id="target" href="%23" onclick="window.open('http://www.example.com', '_blank', 'width=100,height=100');">Click me</a>`;
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Test that when a new window is opened from content, focus moves
  * to the initial browser in that window once the window has finished

@@ -36,6 +36,7 @@ add_setup(async function () {
 
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["privacy.firstparty.isolate", true],
       ["dom.security.https_first", false],
     ],

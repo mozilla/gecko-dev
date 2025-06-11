@@ -86,6 +86,7 @@ async function runIframeTest(useIframeSameSite) {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       [
         "privacy.bounceTrackingProtection.mode",
         Ci.nsIBounceTrackingProtection.MODE_ENABLED,

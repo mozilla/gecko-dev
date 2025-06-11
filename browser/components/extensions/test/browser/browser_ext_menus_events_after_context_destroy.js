@@ -4,6 +4,12 @@
 
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 // This test does verify that the menus API events are still emitted when
 // there are extension context alive with subscribed listeners
 // (See Bug 1602384).

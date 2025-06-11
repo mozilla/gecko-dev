@@ -17,6 +17,12 @@ const tab1URL = `data:text/html,
 const ORIGIN =
   "https://example.com/browser/browser/base/content/test/fullscreen/fullscreen_frame.html";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_fullscreen_cross_origin() {
   async function requestFullscreenThenCloseTab() {
     await BrowserTestUtils.withNewTab(ORIGIN, async function (browser) {

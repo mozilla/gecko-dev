@@ -13,6 +13,12 @@ function isRedThumbnailFuzz(r, g, b, expectedR, expectedB, expectedG, aFuzz) {
   );
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 // Test for black borders caused by scrollbars.
 add_task(async function thumbnails_bg_bug727765() {
   // Create a tab with a page with a red background and scrollbars.

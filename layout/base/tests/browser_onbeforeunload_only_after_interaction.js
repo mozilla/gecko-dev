@@ -22,6 +22,12 @@ const PAGE_URL =
   "data:text/html," +
   encodeURIComponent("<script>(" + pageScript.toSource() + ")();</script>");
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function doClick() {
   // The onbeforeunload dialog should appear.
   let dialogPromise = PromptTestUtils.waitForPrompt(null, {

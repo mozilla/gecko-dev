@@ -1,5 +1,11 @@
 /* Make sure that the context menu appears on form elements */
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function () {
   await BrowserTestUtils.openNewForegroundTab(gBrowser, "data:text/html,test");
 

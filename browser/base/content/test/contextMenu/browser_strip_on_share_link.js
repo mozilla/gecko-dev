@@ -11,6 +11,7 @@ let url =
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["privacy.query_stripping.strip_list", "stripParam"],
       ["privacy.query_stripping.strip_on_share.canDisable", false],
     ],

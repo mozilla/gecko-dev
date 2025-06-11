@@ -14,6 +14,12 @@ function getSVGUrl(fill) {
   );
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_capture_svg() {
   // Create a tab with a red background.
   await BrowserTestUtils.withNewTab(

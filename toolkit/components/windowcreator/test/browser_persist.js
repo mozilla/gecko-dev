@@ -86,6 +86,12 @@ async function persist(name, uri) {
   });
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function () {
   for (let filename of REFTESTS) {
     let uri = contentBase + filename;

@@ -26,7 +26,10 @@ add_task(async function () {
   // So now we make sure that warmed tabs are evicted very shortly
   // after warming to avoid the test running too long.
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.tabs.remote.warmup.unloadDelayMs", 50]],
+    set: [
+      ["browser.tabs.remote.warmup.unloadDelayMs", 50],
+      ["test.wait300msAfterTabSwitch", true],
+    ],
   });
   await testLinkClick(false, false);
   await testLinkClick(false, true);

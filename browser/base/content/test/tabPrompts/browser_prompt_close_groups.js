@@ -39,6 +39,12 @@ async function addBeforeUnloadTab() {
   return tab;
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * When closing a group with a tab prompt and accepting the prompt,
  * the group should close.

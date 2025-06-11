@@ -11,7 +11,10 @@ const TEST_PATH_HTTPS = getRootDirectory(gTestPath).replace(
 
 add_task(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["dom.security.https_first", false]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["dom.security.https_first", false],
+    ],
   });
   await BrowserTestUtils.withNewTab(
     TEST_PATH_HTTPS + "file_csp_meta_uir.html",

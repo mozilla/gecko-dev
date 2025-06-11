@@ -5,6 +5,12 @@
 
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_explicit_object_prototype() {
   const url =
     "http://mochi.test:8888/browser/js/xpconnect/tests/browser/browser_promise_userInteractionHandling.html";

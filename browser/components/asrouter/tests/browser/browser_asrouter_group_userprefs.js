@@ -33,6 +33,7 @@ add_setup(async function () {
         "browser.newtabpage.activity-stream.asrouter.providers.cfr",
         `{"id":"cfr","enabled":true,"type":"remote-settings","collection":"cfr","updateCycleInMs":0}`,
       ],
+      ["test.wait300msAfterTabSwitch", true],
     ],
   });
 

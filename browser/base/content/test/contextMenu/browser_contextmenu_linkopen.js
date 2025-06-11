@@ -90,6 +90,12 @@ async function activateContextAndWaitFor(selector, where) {
   await closeMethod(openedThing);
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_select_text_link() {
   let testTab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,

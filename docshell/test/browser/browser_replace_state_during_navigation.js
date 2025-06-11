@@ -13,7 +13,10 @@ const TEST_URI_2 =
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.navigation.requireUserInteraction", true]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["browser.navigation.requireUserInteraction", true],
+    ],
   });
 });
 

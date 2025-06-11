@@ -6,6 +6,12 @@
  * doggy.png in file picker dialog.
  */
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 let MockFilePicker = SpecialPowers.MockFilePicker;
 MockFilePicker.init(window.browsingContext);
 add_task(async function () {

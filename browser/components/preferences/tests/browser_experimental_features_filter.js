@@ -3,6 +3,12 @@
 
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 // This test verifies that searching filters the features to just that subset that
 // contains the search terms.
 add_task(async function testFilterFeatures() {

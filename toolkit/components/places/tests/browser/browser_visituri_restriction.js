@@ -14,6 +14,7 @@ const TEST_PAGE = `data:text/html,
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       // Enable restriction feature.
       ["places.history.floodingPrevention.enabled", true],
       // Restrict from the second visit.

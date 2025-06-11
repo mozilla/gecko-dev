@@ -5,6 +5,12 @@
 const frameSource = `<a href="about:mozilla">Inner frame</a>`;
 const source = `<html><h1>Top level text</h1><iframe srcdoc='${frameSource}' id="f"></iframe></html>`;
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function testPrintFrame() {
   let url = `data:text/html,${source}`;
   await BrowserTestUtils.withNewTab(
