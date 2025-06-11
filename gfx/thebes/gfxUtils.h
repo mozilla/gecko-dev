@@ -400,7 +400,8 @@ class gfxUtils {
 
   static mozilla::UniquePtr<uint8_t[]> GetImageBufferWithRandomNoise(
       DataSourceSurface* aSurface, bool aIsAlphaPremultiplied,
-      nsICookieJarSettings* aCookieJarSettings, int32_t* outFormat);
+      nsICookieJarSettings* aCookieJarSettings, nsIPrincipal* aPrincipal,
+      int32_t* outFormat);
 
   static nsresult GetInputStream(DataSourceSurface* aSurface,
                                  bool aIsAlphaPremultiplied,
@@ -411,7 +412,8 @@ class gfxUtils {
   static nsresult GetInputStreamWithRandomNoise(
       DataSourceSurface* aSurface, bool aIsAlphaPremultiplied,
       const char* aMimeType, const nsAString& aEncoderOptions,
-      nsICookieJarSettings* aCookieJarSettings, nsIInputStream** outStream);
+      nsICookieJarSettings* aCookieJarSettings, nsIPrincipal* aPrincipal,
+      nsIInputStream** outStream);
 
   static void RemoveShaderCacheFromDiskIfNecessary();
 

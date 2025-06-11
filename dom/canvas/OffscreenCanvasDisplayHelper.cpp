@@ -577,9 +577,21 @@ UniquePtr<uint8_t[]> OffscreenCanvasDisplayHelper::GetImageBuffer(
   }
 
   if (resistFingerprinting) {
+    nsIPrincipal* principal;
+    {
+      MutexAutoLock lock(mMutex);
+      if (mCanvasElement) {
+        principal = mCanvasElement->NodePrincipal();
+      }
+      if (mOffscreenCanvas) {
+        principal = mOffscreenCanvas->GetParentObject()
+                        ? mOffscreenCanvas->GetParentObject()->PrincipalOrNull()
+                        : nullptr;
+      }
+    }
     nsRFPService::RandomizePixels(
-        cookieJarSettings, imageBuffer.get(), dataSurface->GetSize().width,
-        dataSurface->GetSize().height,
+        cookieJarSettings, principal, imageBuffer.get(),
+        dataSurface->GetSize().width, dataSurface->GetSize().height,
         dataSurface->GetSize().width * dataSurface->GetSize().height * 4,
         gfx::SurfaceFormat::A8R8G8B8_UINT32);
   }
