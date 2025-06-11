@@ -18,6 +18,7 @@ harness = false
 [dependencies]
 uniffi = { workspace = true }
 context_id = "0.1"
+filter_adult = "0.1"
 tabs = "0.1"
 search = "0.1"
 suggest = "0.1"
