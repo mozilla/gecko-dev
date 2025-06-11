@@ -17,7 +17,7 @@
   <string name="action_save">Sarba</string>
   <!-- This text is shown in the URL bar when it's empty -->
   <string name="urlbar_hint">Riscedi o metti nu nnirizzu</string>
-  <string name="teaser">Navicazzioni privata \'n autumàticu.\nNàvica. Scancella. Fallu arrè.</string>
+  <string name="teaser">Navicazzioni privata ’n autumàticu.\nNàvica. Scancella. Fallu arrè.</string>
   <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
   <string name="feedback_erase">A to crunuluggìa di navicazzioni fu scancillata.</string>
   <string name="feedback_erase2">Crunuluggìa di navicazzioni scancillata</string>
@@ -48,9 +48,9 @@
   <!-- Menu item: Add the current page as a shortcut to the device's home screen (launcher). -->
   <string name="menu_add_to_home_screen">Junci â schirmata mastra</string>
   <!-- Menu item: Add the current site as a shortcut on the Home screen -->
-  <string name="menu_add_to_shortcuts">Junci a l\'accurzi</string>
+  <string name="menu_add_to_shortcuts">Junci a l’accurzi</string>
   <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
-  <string name="menu_remove_from_shortcuts">Leva di l\'accurzi</string>
+  <string name="menu_remove_from_shortcuts">Leva di l’accurzi</string>
   <!-- Menu item: Shows information about features and changes that are new to this version -->
   <string name="menu_settings">Mpustazzioni</string>
   <string name="menu_about">Nfurmazzioni</string>
@@ -68,11 +68,11 @@
     Menu item: This is the subtitle for the Trackers blocked menu entry that shows how many
     trackers have been blocked for the currently loaded website.
   -->
-  <string name="menu_trackers_blocked_subtitle">Si veni sdisattivatu, po èssiri chi s\'abbèrsanu certi prubblemi cu certi siti</string>
+  <string name="menu_trackers_blocked_subtitle">Si veni sdisattivatu, po èssiri chi s’abbèrsanu certi prubblemi cu certi siti</string>
   <!-- Menu item: This is the label for turning off content blocking for the current website. -->
   <string name="menu_content_blocking">Bloccu dî cuntinuti</string>
   <!-- This is the subtitle content blocking toggle -->
-  <string name="menu_content_blocking_subtitle">Sdisattìvalu p\'abbirsari certi siti</string>
+  <string name="menu_content_blocking_subtitle">Sdisattìvalu p’abbirsari certi siti</string>
   <!--
     This is a small text at the bottom of the menu shown in a "custom tab" for branding purposes.
     See https://github.com/mozilla-mobile/focus-android/issues/2106
@@ -149,7 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ti duna u cuntrollu.</p> <p>Ùsalu comu navicaturi privatu: <ul> <li>Riscedi e nàvica direttu di l\'applicazzioni</li> <li>Ferma i trazzatura (o cancia i mpustazzioni pi pirmittìrili)</li> <li>Scancella i viscotta e macari a crunuluggìa di risciduta e di navicazzioni</li> </ul> </p> <p>%1$s fu criatu di Mozilla. A nostra missioni è chiḍḍa d\'ammuttari pi na riti graputa e \'n saluti.<br/> <a href=\"%2$s\">Cchiù nfurmazzioni</a></p>]]></string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ti duna u cuntrollu.</p> <p>Ùsalu comu navicaturi privatu: <ul> <li>Riscedi e nàvica direttu di l’applicazzioni</li> <li>Ferma i trazzatura (o cancia i mpustazzioni pi pirmittìrili)</li> <li>Scancella i viscotta e macari a crunuluggìa di risciduta e di navicazzioni</li> </ul> </p> <p>%1$s fu criatu di Mozilla. A nostra missioni è chiḍḍa d’ammuttari pi na riti graputa e ’n saluti.<br/> <a href=\"%2$s\">Cchiù nfurmazzioni</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Privatizza e sicurizza</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -172,7 +172,7 @@
   <!-- Preference category for settings related to controlling web content -->
   <string name="preference_category_web_content">Cuntinutu web</string>
   <!-- Preference category: stealth settings for while switching apps -->
-  <string name="preference_category_switching_apps">Canciu d\'applicazzioni</string>
+  <string name="preference_category_switching_apps">Canciu d’applicazzioni</string>
   <!-- Preference category for General Settings -->
   <string name="preference_category_general">Ginirali</string>
   <!-- Preference summary for General Settings category; the two things users can find in this category -->
@@ -203,14 +203,14 @@
     Summary for the toggle to enable autocomplete for the topsites list
     %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
-  <string name="preference_autocomplete_topsite_summary2">Attìvalu pi fàrici cumplitari \'n autumàticu a %s cchiù assai di 450 siti pupulari nnâ barra dû nnirizzu.</string>
+  <string name="preference_autocomplete_topsite_summary2">Attìvalu pi fàrici cumplitari ’n autumàticu a %s cchiù assai di 450 siti pupulari nnâ barra dû nnirizzu.</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">Pî siti chi junci</string>
   <!--
     Summary for the toggle to enable autocomplete for the user-defined list
     %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
-  <string name="preference_autocomplete_user_list_summary2">Attìvalu pi fàrici jìnchiri \'n autumàticu a %s i to siti prifiruti.</string>
+  <string name="preference_autocomplete_user_list_summary2">Attìvalu pi fàrici jìnchiri ’n autumàticu a %s i to siti prifiruti.</string>
   <!-- Preference category: Manage (user-defined) sites -->
   <string name="preference_category_autocomplete_manage_sites">Manija i siti</string>
   <!-- Item in autocomplete settings that will open a new preference screen for adding and removing URLs to the user-defined list -->
@@ -218,7 +218,7 @@
   <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
   <string name="preference_autocomplete_action_add">+ Junci nnirizzu pirsunalizzatu</string>
   <!-- Explanation text above the list of custom autocomplete URLs. -->
-  <string name="preference_autocomplete_explanation_text">A to lista di jìnchiri \'n autumàticu:</string>
+  <string name="preference_autocomplete_explanation_text">A to lista di jìnchiri ’n autumàticu:</string>
   <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
   <string name="preference_autocomplete_action_add2">Junci nnirizzu</string>
   <!-- Title of the screen for adding custom autocomplete URLs. -->
@@ -226,7 +226,7 @@
   <!-- Label for the button to quick add custom autocomplete URLs. -->
   <string name="custom_autocomplete_quick_add">Junci nnirizzu pirsunalizzatu</string>
   <!-- Label for the button to quick add the current URL to the custom autocomplete list -->
-  <string name="add_custom_autocomplete_label">Junci lijami di jìnchiri \'n autumàticu</string>
+  <string name="add_custom_autocomplete_label">Junci lijami di jìnchiri ’n autumàticu</string>
   <!-- Preference category for settings about cookies and site data -->
   <string name="preference_category_cookies">Viscotta e dati dî siti</string>
   <!-- Preference category for settings about data choices -->
@@ -236,7 +236,7 @@
   <!-- A link to SUMO at autocomplete settings. -->
   <string name="preference_autocomplete_learn_more">Cchiù nfurmazzioni</string>
   <!-- Preference summary: Custom (user-defined) autocomplete URLs. -->
-  <string name="preference_autocomplete_custom_summary">Junci e manija i nnirizzi pirsunalizzati di jìnchiri \'n autumàticu.</string>
+  <string name="preference_autocomplete_custom_summary">Junci e manija i nnirizzi pirsunalizzati di jìnchiri ’n autumàticu.</string>
   <!-- Label for the "custom autocomplete URL" input field -->
   <string name="preference_autocomplete_add_title">Nnirizzu di jùnciri</string>
   <!-- "Hint" text for the "custom autocomplete URL" input field. Shown when the field is empty. -->
@@ -261,13 +261,13 @@
   <string name="preference_language_systemdefault">Pridifinuta di sistema</string>
   <string name="preference_category_privacy">Privatizza</string>
   <string name="preference_privacy_block_ads">Ferma i trazzatura dî pubblicità</string>
-  <string name="preference_privacy_block_ads_summary">Certi pubblicità tràzzanu i visiti ê siti, puru si nun l\'ammacchi</string>
+  <string name="preference_privacy_block_ads_summary">Certi pubblicità tràzzanu i visiti ê siti, puru si nun l’ammacchi</string>
   <string name="preference_privacy_block_analytics">Ferma i trazzatura dî statìstichi</string>
-  <string name="preference_privacy_block_analytics_summary">Usati pi ricògghiri, analizzari e misurari l\'attività comu i tocchi e i muvimenti</string>
+  <string name="preference_privacy_block_analytics_summary">Usati pi ricògghiri, analizzari e misurari l’attività comu i tocchi e i muvimenti</string>
   <string name="preference_privacy_block_social">Ferma i trazzatura suciali</string>
   <string name="preference_privacy_block_social_summary">Ncurpurati nnî siti pi trazzari i to vìsiti e mustràriti funzioni a tipu i buttuna di spartuta</string>
   <string name="preference_privacy_block_content">Ferma autri trazzatura dî cuntinuti</string>
-  <string name="preference_privacy_block_content_summary2">Si l\'attivi, po èssiri chi certi pàggini sfarsìjanu</string>
+  <string name="preference_privacy_block_content_summary2">Si l’attivi, po èssiri chi certi pàggini sfarsìjanu</string>
   <string name="preference_privacy_category_cookies">Ferma i viscotta</string>
   <!--
     Three options for Cookie blocking. Yes (All cookies Blocked), Block 3rd-party cookies
@@ -279,7 +279,7 @@
   <string name="preference_privacy_should_block_cookies_cross_site_option">Ferma i viscotta ntirsitu</string>
   <string name="preference_privacy_should_block_cookies_yes_option2">Se, grazzi</string>
   <!-- Preference Title: Biometrics can be used to unlock Focus if the previous session's data was not erased by the user. -->
-  <string name="preference_security_biometric">Usa u jìditu pi sbluccari l\'applicazzioni</string>
+  <string name="preference_security_biometric">Usa u jìditu pi sbluccari l’applicazzioni</string>
   <!--
     Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
     open when the app was last run to ensure that only the phone's owner can view a previous session.
@@ -301,7 +301,7 @@
   <string name="preference_privacy_stealth_summary">Ammuccia i pàggini quannu canci applicazzioni e ferma a cattura dî schirmati.</string>
   <string name="preference_category_security">Sicurizza</string>
   <string name="preference_category_performance">Pristazzioni</string>
-  <string name="preference_performance_block_webfonts">Ferma i caràttari \'n linia</string>
+  <string name="preference_performance_block_webfonts">Ferma i caràttari ’n linia</string>
   <!-- This text is shown below the setting for disabling web fonts. Some websites use icons/images from a font and those do not show up if fonts are blocked. -->
   <string name="preference_performance_block_webfonts_summary">Po èssiri chi nun si vìdinu certi coni o mmàggini</string>
   <string name="preference_performance_block_javascript">Ferma JavaScript</string>
@@ -315,14 +315,14 @@
   -->
   <string name="preference_default_browser2">Mposta %1$s comu navicaturi pridifinutu</string>
   <string name="preference_category_mozilla">Mozilla</string>
-  <string name="preference_mozilla_telemetry2">Manna i dati d\'usu</string>
+  <string name="preference_mozilla_telemetry2">Manna i dati d’usu</string>
   <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->
   <string name="preference_mozilla_telemetry_summary">Cchiù nfurmazzioni</string>
   <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
   <string name="preference_mozilla_telemetry_summary2">Mozilla cerca di ricògghiri sulu chiḍḍu chi ci serbi pi fari megghiu %1$s pi tutti.</string>
   <!-- Preference switch for daily usage ping data collection -->
-  <string name="preference_daily_usage_ping_title">Ping d\'usu nnô jornu</string>
-  <string name="preference_daily_usage_ping_description">Chistu ajuta Mozilla a fari na stima di l\'utenti attivi.</string>
+  <string name="preference_daily_usage_ping_title">Ping d’usu nnô jornu</string>
+  <string name="preference_daily_usage_ping_description">Chistu ajuta Mozilla a fari na stima di l’utenti attivi.</string>
   <string name="preference_daily_usage_ping_learn_more">Cchiù nfurmazzioni</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Abbisu di privatizza</string>
@@ -346,23 +346,23 @@
     Action for adding an additional search engine to the list.
     The "+" is used to emphasize that this is an "add" action
   -->
-  <string name="preference_search_add2">+ Junci n\'autru muturi di risciduta</string>
+  <string name="preference_search_add2">+ Junci n’autru muturi di risciduta</string>
   <string name="preference_search_remove_title">Leva mutura di risciduta</string>
   <string name="preference_search_remove">Leva</string>
   <!-- Action for dding an additional search engine to the list -->
-  <string name="preference_search_add3">Junci n\'autru muturi di risciduta</string>
+  <string name="preference_search_add3">Junci n’autru muturi di risciduta</string>
   <!-- Explanation text above the list of search engines -->
   <string name="preference_select_preferred_engine">Scarta u muturi chi prifirisci:</string>
   <!-- Clickable action text that shows when user long-presses on a search engine search field (this is similar to paste or copy when long-pressing a text field) -->
   <string name="action_option_add_search_engine">Junci muturi di risciduta</string>
   <string name="search_add_manually_name_hint">Nomu dû muturi di risciduta</string>
-  <string name="search_add_manually_string">Stringa di risciduta d\'usari</string>
+  <string name="search_add_manually_string">Stringa di risciduta d’usari</string>
   <string name="search_add_manually_save">Sarba</string>
   <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
   <string name="search_add_manually_example">Scempru: example.com/search/?q=%s</string>
   <string name="search_add_confirmation">Juncisti un muturi di risciduta novu.</string>
   <string name="search_add_error_empty_name">Metti u nomu dû muturi di risciduta</string>
-  <string name="search_add_error_duplicate_name">Già cc\'è un muturi di risciduta cu stu nomu.</string>
+  <string name="search_add_error_duplicate_name">Già cc’è un muturi di risciduta cu stu nomu.</string>
   <string name="search_add_error_empty_search">Metti na stringa di risciduta</string>
   <string name="search_add_error_format">Cuntrolla chi a stringa di risciduta appatta cû furmatu di scempru</string>
   <!-- Content description (not visible, for screen readers etc.): Clear text in URL bar -->
@@ -407,15 +407,15 @@
   -->
   <string name="indicator_content_description_menu">Buttuni autri aḍḍijuti</string>
   <!-- Content description (not visible, for screen readers etc.): Navigate forward (browsing history) -->
-  <string name="content_description_forward">Nàvica \'n avanzi</string>
+  <string name="content_description_forward">Nàvica ’n avanzi</string>
   <!-- Content description (not visible, for screen readers etc.): Reload current website -->
   <string name="content_description_reload">Càrrica arrè u situ</string>
   <!-- Content description (not visible, for screen readers etc.): Navigate back (browsing history) -->
-  <string name="content_description_back">Torna nn\'arrè</string>
+  <string name="content_description_back">Torna nn’arrè</string>
   <!-- Content description (not visible, for screen readers etc.): Stop loading the current website. This button will turn into the refresh button once loading has been completed (see content_description_reload) -->
   <string name="content_description_stop">Ferma u carricamentu dû situ</string>
   <!-- Content description (not visible, for screen readers etc.): Custom Tab exit button - closes the custom tab and returns to the previous app. -->
-  <string name="content_description_customtab_exit">Torna a l\'app di prima</string>
+  <string name="content_description_customtab_exit">Torna a l’app di prima</string>
   <!--
     Content description (not visible, for screen readers etc.): This is the description for the ImageView in the menu that displays
     the number of trackers blocked for the current session
@@ -427,19 +427,19 @@
   -->
   <string name="content_description_blocking_switch">Ferma i trazzatura</string>
   <string name="your_rights">I to diritti</string>
-  <string name="external_app_prompt_title">Grapi lijami nta n\'autra applicazzioni</string>
+  <string name="external_app_prompt_title">Grapi lijami nta n’autra applicazzioni</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
     %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
-  <string name="external_app_prompt">Po\' nèsciri di %1$s pi gràpiri sta lijami nne %2$s.</string>
+  <string name="external_app_prompt">Po’ nèsciri di %1$s pi gràpiri sta lijami nne %2$s.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
-  <string name="external_app_prompt_no_app_title">Attrova n\'applicazzioni chi po gràpiri sta lijami</string>
+  <string name="external_app_prompt_no_app_title">Attrova n’applicazzioni chi po gràpiri sta lijami</string>
   <!--
     This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
-  <string name="external_app_prompt_no_app">Nuḍḍa di l\'applicazzioni dû to dispusitivu sâ fìdanu a gràpiri sta lijami. Po\' nèsciri di %1$s pi fari na risciduta nne %2$s pi n\'applicazzioni chi u po fari.</string>
+  <string name="external_app_prompt_no_app">Nuḍḍa di l’applicazzioni dû to dispusitivu sâ fìdanu a gràpiri sta lijami. Po’ nèsciri di %1$s pi fari na risciduta nne %2$s pi n’applicazzioni chi u po fari.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">Nèsciri dâ navicazzioni privata?</string>
   <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
@@ -447,7 +447,7 @@
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">Grapi</string>
   <!-- Snackbar that will be displayed after a website has been added to shortcuts. -->
-  <string name="snackbar_added_to_shortcuts">Juncisti a l\'accurzi!</string>
+  <string name="snackbar_added_to_shortcuts">Juncisti a l’accurzi!</string>
   <string name="error_hostLookup_title">Nun potti attruvari u sirburi</string>
   <!--
     New Onboarding flow first screen title
@@ -488,9 +488,9 @@
 
     %1$s will be replaced by the app short name(Focus)
   -->
-  <string name="onboarding_second_screen_title">%1$s nun è comu l\'autri navicatura</string>
+  <string name="onboarding_second_screen_title">%1$s nun è comu l’autri navicatura</string>
   <!-- New Onboarding flow second screen subtitle the one that appears under title -->
-  <string name="onboarding_second_screen_subtitle_one">Scancillamu a to crunuluggìa quannu chiuji l\'applicazzioni p\'aviri privatizza superchiu.</string>
+  <string name="onboarding_second_screen_subtitle_one">Scancillamu a to crunuluggìa quannu chiuji l’applicazzioni p’aviri privatizza superchiu.</string>
   <!--
     New Onboarding flow second screen subtitle two the one that appears under subtitle one
 
@@ -504,11 +504,11 @@
   <!-- First run tour (Default browser): Title -->
   <string name="firstrun_defaultbrowser_title">Ammutta a to privatizza</string>
   <!-- First run tour (Default browser): Text. -->
-  <string name="firstrun_defaultbrowser_text2">Porta a navicazzioni privata a n\'autru liveḍḍu. Ferma i pubblicità e autri cuntinuti chi ti ponnu trazzari ntra i siti e fari ammurrari u carricamentu dî pàggini.</string>
+  <string name="firstrun_defaultbrowser_text2">Porta a navicazzioni privata a n’autru liveḍḍu. Ferma i pubblicità e autri cuntinuti chi ti ponnu trazzari ntra i siti e fari ammurrari u carricamentu dî pàggini.</string>
   <!-- First run tour (Search): Title -->
   <string name="firstrun_search_title">Riscedi â to manera</string>
   <!-- First run tour (Search): Text -->
-  <string name="firstrun_search_text">Stai circannu n\'autra cosa? Scarta n\'autru muturi di risciduta pridifinutu nnê Mpustazzioni.</string>
+  <string name="firstrun_search_text">Stai circannu n’autra cosa? Scarta n’autru muturi di risciduta pridifinutu nnê Mpustazzioni.</string>
   <!-- First run tour (Shortcut): Title -->
   <string name="firstrun_shortcut_title">Junci accurzi â to schirmata mastra</string>
   <!-- First run tour (Shortcut): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
@@ -516,7 +516,7 @@
   <!-- First run tour (Privacy): Title -->
   <string name="firstrun_privacy_title">Aḍḍìccati â privatizza</string>
   <!-- First run tour (Privacy): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-  <string name="firstrun_privacy_text">Cunfijura %1$s comu navicaturi pridifinutu e pìgghiati tutti i binifici dâ navicazzioni privata quannu grapi i pàggini di l\'autri applicazzioni.</string>
+  <string name="firstrun_privacy_text">Cunfijura %1$s comu navicaturi pridifinutu e pìgghiati tutti i binifici dâ navicazzioni privata quannu grapi i pàggini di l’autri applicazzioni.</string>
   <string name="firstrun_close_button">OK, bonu</string>
   <string name="firstrun_skip_button">Sauta</string>
   <string name="firstrun_next_button">Avanti</string>
@@ -534,7 +534,7 @@
     When enhanced tracking protection is disabled for the current session then we will show this warning in the "Add to home screen" dialog to
     let the user know that the shortcut will always be opened with enhanced tracking protection disabled.
   -->
-  <string name="dialog_addtohomescreen_tracking_protection2">L\'accurzu si grapi câ prutizzioni avanzata dû trazzamentu sdisabbilitata</string>
+  <string name="dialog_addtohomescreen_tracking_protection2">L’accurzu si grapi câ prutizzioni avanzata dû trazzamentu sdisabbilitata</string>
   <!--
     The user visible name of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
     The recommended maximum length is 40 characters; the value may be truncated if it is too long.
@@ -550,7 +550,7 @@
     * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
     * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
   -->
-  <string name="notification_browsing_session_channel_description">I nutìfichi ti pirmèttinu di scancillari a to sissioni di %1$s c\'un toccu. Nun ti serbi gràpiri l\'applicazzioni o vìdiri chiḍḍu chi cc\'è nnô navicaturi.</string>
+  <string name="notification_browsing_session_channel_description">I nutìfichi ti pirmèttinu di scancillari a to sissioni di %1$s c’un toccu. Nun ti serbi gràpiri l’applicazzioni o vìdiri chiḍḍu chi cc’è nnô navicaturi.</string>
   <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
   <string name="tabs_tray_action_erase">Scancella crunuluggìa di navicazzioni</string>
   <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
@@ -575,7 +575,7 @@
   <string name="security_popup_security_verified">Virificatu di: %1$s</string>
   <!-- Content Description of Security Icon in toolbar -->
   <string name="site_security_icon_content_description">Sicurizza dû situ</string>
-  <string name="preference_autocomplete_duplicate_url_error">U nnirizzu cc\'è già</string>
+  <string name="preference_autocomplete_duplicate_url_error">U nnirizzu cc’è già</string>
   <!-- Label for the Find in page button -->
   <string name="find_in_page">Attrova nnâ pàggina</string>
   <!-- Watermark/Hint for the find in page input field -->
@@ -607,7 +607,7 @@
   <!-- Description of what a user may find in the Advanced Setting category, used for debugging -->
   <string name="preference_advanced_summary">Stigghi dî sbiluppatura</string>
   <!-- Preference for open links in third party apps -->
-  <string name="preferences_open_links_in_apps">Grapi i lijami nni l\'applicazzioni</string>
+  <string name="preferences_open_links_in_apps">Grapi i lijami nni l’applicazzioni</string>
   <!-- Title of Advanced Setting category -->
   <string name="preference_category_advanced">Avanzati</string>
   <!-- Preference for site permissions -->
@@ -637,15 +637,15 @@
   <!-- Text for indicating cookie banner handling is on this site, this is shown when the user enters in details after he clicks on the item from protection panel. -->
   <string name="cookie_banner_exception_panel_switch_state_on">Attivata pi stu situ</string>
   <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
-  <string name="cookie_banner_exception_panel_title_state_on_for_site">Vo\' attivari a riduzzioni dî banneri dî viscotta pi %1$s?</string>
+  <string name="cookie_banner_exception_panel_title_state_on_for_site">Vo’ attivari a riduzzioni dî banneri dî viscotta pi %1$s?</string>
   <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
-  <string name="cookie_banner_exception_panel_title_state_off_for_site">Vo\' sdisattivari a riduzzioni dî banneri dî viscotta pi %1$s?</string>
+  <string name="cookie_banner_exception_panel_title_state_off_for_site">Vo’ sdisattivari a riduzzioni dî banneri dî viscotta pi %1$s?</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="cookie_banner_exception_panel_description_state_on_for_site">%1$s scancella i viscotta di stu situ e attualizza a pàggina. Scancillari tutti i viscotta ti po fari nèsciri dî siti o sbacantari i carrelli dâ spisa.</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
-  <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s po pruvari a rifiutari \'n autumàticu i dumanni dî viscotta.</string>
+  <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s po pruvari a rifiutari ’n autumàticu i dumanni dî viscotta.</string>
   <!-- Long text for a detail explanation indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
-  <string name="cookie_banner_exception_panel_description_site_is_not_supported">Stu situ accamora nun è suppurtatu dâ riduzzioni dî banneri dî viscotta. Vo\' addumannari â nostra squatra di dàricci na taliata e jùnciri a cumpatibbilità \'n futuru?</string>
+  <string name="cookie_banner_exception_panel_description_site_is_not_supported">Stu situ accamora nun è suppurtatu dâ riduzzioni dî banneri dî viscotta. Vo’ addumannari â nostra squatra di dàricci na taliata e jùnciri a cumpatibbilità ’n futuru?</string>
   <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
   <string name="cookie_banner_exception_panel_site_is_not_supported_cancel_button">Sfai</string>
   <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
@@ -695,7 +695,7 @@
   <!-- Preference for allow autoplay audio and video -->
   <string name="preference_allow_audio_video_autoplay">Pirmetti audiu e vidiu</string>
   <!-- Preference for block autoplay audio only -->
-  <string name="preference_block_autoplay_audio_only">Blocca sulu l\'audiu</string>
+  <string name="preference_block_autoplay_audio_only">Blocca sulu l’audiu</string>
   <!-- Preference summary for block autoplay audio only -->
   <string name="preference_block_autoplay_audio_only_summary">Raccumannata</string>
   <!-- Preference for block autoplay audio and video -->
@@ -703,7 +703,7 @@
   <!-- Preference for studies -->
   <string name="preference_studies" moz:removedIn="140">Studi</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox po nzitari e abbiari studi di tempu \'n tempu.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox po nzitari e abbiari studi di tempu ’n tempu.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more" moz:removedIn="140">Cchiù nfurmazzioni</string>
   <!-- Title of the remove studies button -->
@@ -719,14 +719,14 @@
   <!-- Title text for biometric prompt pop-up -->
   <string name="biometric_prompt_title">Cunferma usannu u jìditu</string>
   <!-- Subtitle text for biometric prompt pop-up -->
-  <string name="biometric_prompt_subtitle">Po\' usari u to jìditu pi cuntinuari a sissioni attuali di l\'applicazzioni.</string>
+  <string name="biometric_prompt_subtitle">Po’ usari u to jìditu pi cuntinuari a sissioni attuali di l’applicazzioni.</string>
   <!--
     Button for the fingerprint authentication dialog box that is shown to the user when sharing a link to the app
     while the user has biometric authentication enabled. When pressed, the user's previous session is cleared, and the shared link is opened.
   -->
   <string name="biometric_auth_open_link_new_session">Grapi a lijami nta na sissioni nova</string>
   <!-- Description for the fingerprint authentication image. Used for accessibility purposes. -->
-  <string name="biometric_auth_image_description">Cona di l\'urma jiditali</string>
+  <string name="biometric_auth_image_description">Cona di l’urma jiditali</string>
   <!--
     Error text displayed when the user's fingerprint cannot be recognized upon re-entering the app.
     This is displayed during the authentication flow as the app launches.
@@ -743,7 +743,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description">P\'aviri suggirimenti, %1$s manna chiḍḍu chi scrivi nnâ barra dû nnirizzu ô muturi di risciduta.</string>
+  <string name="enable_search_suggestion_description">P’aviri suggirimenti, %1$s manna chiḍḍu chi scrivi nnâ barra dû nnirizzu ô muturi di risciduta.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">No</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -763,7 +763,7 @@
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
   -->
-  <string name="tip_add_to_homescreen">Accedi c\'un toccu sulu ê siti chi vìsiti cchiù assai%1$s Minù &gt; Junci â schirmata mastra</string>
+  <string name="tip_add_to_homescreen">Accedi c’un toccu sulu ê siti chi vìsiti cchiù assai%1$s Minù &gt; Junci â schirmata mastra</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
@@ -774,7 +774,7 @@
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Jinchi \'n autumàticu i nnirizzi pî siti chi vìsiti cchiù assai\nTeni ammaccatu u nnirizzu nnâ barra dî nnirizzi</string>
+  <string name="tip_autocomplete_url">Jinchi ’n autumàticu i nnirizzi pî siti chi vìsiti cchiù assai\nTeni ammaccatu u nnirizzu nnâ barra dî nnirizzi</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
@@ -795,7 +795,7 @@
   <!-- Title of the preference to enable "HTTPS-Only" mode -->
   <string name="preference_https_only_title">Mudalità sulu HTTPS</string>
   <!-- Description of the preference to enable "HTTPS-Only" mode. -->
-  <string name="preference_https_only_summary3">Prova a cullijàrisi \'n autumàticu ê siti usannu u prutucollu di cifratura HTTPS pi na sicurizza supiriuri.</string>
+  <string name="preference_https_only_summary3">Prova a cullijàrisi ’n autumàticu ê siti usannu u prutucollu di cifratura HTTPS pi na sicurizza supiriuri.</string>
   <!-- Preference for exceptions tracking protection -->
   <string name="preference_exceptions">Eccizzioni</string>
   <!-- Description for the exceptions preference screen -->
@@ -807,7 +807,7 @@
   <!-- Title for Preference screen for cookie blocking for exceptions tracking protection -->
   <string name="preference_block_cookies_title">Ferma i viscotta</string>
   <!-- Message for Preference screen for cookie blocking for exceptions tracking protection -->
-  <string name="preference_category_block_cookies">Vo\' firmari i viscotta?</string>
+  <string name="preference_category_block_cookies">Vo’ firmari i viscotta?</string>
   <!-- Title for the tab crash report screen -->
   <string name="tab_crash_report_title">A scheda sfarsijau</string>
   <!-- Headline for the tab crash report screen -->
@@ -843,7 +843,7 @@
   <!-- Title for the list of trackers enhanced tracking protection can block. -->
   <string name="trackers_and_scripts">Trazzatura e script di firmari</string>
   <!-- Content description (not visible, for screen readers etc.): Navigate back button description. -->
-  <string name="go_back">Vai nn\'arrè</string>
+  <string name="go_back">Vai nn’arrè</string>
   <!--
     Top Sites
 
@@ -855,7 +855,7 @@
   <!-- Text for the dialog title for renaming a top site -->
   <string name="rename_top_site">Cancia nomu</string>
   <!-- Placeholder text for the input field of rename top site -->
-  <string name="placeholder_rename_top_site">Nomu di l\'accurzu</string>
+  <string name="placeholder_rename_top_site">Nomu di l’accurzu</string>
   <!--
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
@@ -881,13 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s prova a usari na cunnissioni cu HTTPS quann\'è pussìbbili p\'aviri cchiù assai sicurizza. <a href=\"%2$s\">Cchiù nfurmazzioni</a> <br/><br/> Cancia sta mpustazzioni nnê Mpustazzioni > Privatizza e sicurizza > Sicurizza.]]></string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s prova a usari na cunnissioni cu HTTPS quann’è pussìbbili p’aviri cchiù assai sicurizza. <a href=\"%2$s\">Cchiù nfurmazzioni</a> <br/><br/> Cancia sta mpustazzioni nnê Mpustazzioni > Privatizza e sicurizza > Sicurizza.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">A cunnissioni nun è sicura</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Chistu putissi èssiru un prubblema di cunfijurazzioni dû sirburi, o putissi èssiri quarchidunu chi sta mpirsunannu u sirburi. <br/><br/> Si già ti cullijasti cu stu sirburi \'n passatu, l\'erruri putissi èssiri timpuraniu.]]></string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Chistu putissi èssiru un prubblema di cunfijurazzioni dû sirburi, o putissi èssiri quarchidunu chi sta mpirsunannu u sirburi. <br/><br/> Si già ti cullijasti cu stu sirburi ’n passatu, l’erruri putissi èssiri timpuraniu.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>È pussìbbili chi quarchidunu sta pruvannu a farsificari stu situ e cuntinuari po èssiri piriculusu.</label> <br><br> <label>%1$s nun àvi fiducia nni <b>%2$s</b> picchì cu\' ci detti u cirtificatu è scanusciutu, u cirtificatu sû firmau sulu o u sirburi nun sta mannannu a catina di cirtificati giusta.</label>]]></string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>È pussìbbili chi quarchidunu sta pruvannu a farsificari stu situ e cuntinuari po èssiri piriculusu.</label> <br><br> <label>%1$s nun àvi fiducia nni <b>%2$s</b> picchì cu’ ci detti u cirtificatu è scanusciutu, u cirtificatu sû firmau sulu o u sirburi nun sta mannannu a catina di cirtificati giusta.</label>]]></string>
   <!--
     Sessions List
 
@@ -899,7 +899,7 @@
 
     CFR for Toolbar Shield Icon (Banner Info Message)
   -->
-  <string name="cfr_for_toolbar_shield_icon2">U ncagghiammu! Firmammu stu situ di spiàriti. Ammacca a cona dû scudu quannu vo\' pi vìdiri soccu stamu bluccannu.</string>
+  <string name="cfr_for_toolbar_shield_icon2">U ncagghiammu! Firmammu stu situ di spiàriti. Ammacca a cona dû scudu quannu vo’ pi vìdiri soccu stamu bluccannu.</string>
   <!-- Content description (not visible, for screen readers etc.): Button that closes the CFR popup -->
   <string name="cfr_close_button_description">Chiuji a finestra assummanti</string>
   <!--
@@ -952,11 +952,11 @@
 
     This text should be as short as possible, max 68 chars
   -->
-  <string name="exit_fullscreen_with_gesture_short">Tira di susu e movi nn\'arrè pi nèsciri</string>
+  <string name="exit_fullscreen_with_gesture_short">Tira di susu e movi nn’arrè pi nèsciri</string>
   <!--
     Message shown to explain how to exit fullscreen mode when using back button navigation.
 
     This text should be as short as possible, max 68 chars
   -->
-  <string name="exit_fullscreen_with_back_button_short">Tira di susu e ammacca nn\'arrè pi nèsciri</string>
+  <string name="exit_fullscreen_with_back_button_short">Tira di susu e ammacca nn’arrè pi nèsciri</string>
 </resources>

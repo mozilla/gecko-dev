@@ -3693,8 +3693,12 @@
   <string name="review_prompt_negative_button">Cheapañuai’aína</string>
   <!-- Label for a button positively rating the user's experience with the app -->
   <string name="review_prompt_positive_button">¡Oĩ porã!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">Aguyje ehayhúre %1$s. ¿Ereko peteĩ aravo’i emoherakuã hag̃ua ne mborayhu embopapapývo?</string>
   <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
   <string name="review_prompt_rate_button">Embokyta %1$s Play Store-pe</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">Rombyasy eguereko haguére apañuái. Mba’éichapa roipytyvõkuaa %1$s.</string>
   <!-- Label for a button opening a feedback forum -->
   <string name="review_prompt_feedback_button">Ehai ne remiandu</string>
 </resources>

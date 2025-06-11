@@ -243,6 +243,8 @@
   <string name="browser_menu_extensions_disabled_description">താൽക്കാലികമായി പ്രവർത്തനരഹിതമാക്കി</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">വിപുലീകരണങ്ങളൊന്നും പ്രവർത്തനക്ഷമമാക്കിയിട്ടില്ല</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">ശുപാർശപെട്ട വിപുലീകരണം ഉപയോഗിച്ചുന്നോക്കുക</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">രൂപരേഖ വിവരങ്ങൾ</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -370,6 +372,8 @@
   <string name="browser_menu_save_description">അടയാളക്കുറിപ്പുവയ്ക്കുക, കുറുക്കുവഴി, ആമുഖം, ശേഖരം, പീ.ഡീ.എഫ.</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">ഈ താള്‍ അടയാളപ്പെടുത്തുക</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">താളിനെ കുറിച്ചിടുക</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">അടയാളക്കുറിപ്പ് തിരുത്തുക</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -1503,6 +1507,8 @@
   <string name="download_time_period_last_30_days">കഴിഞ്ഞ 30 ദിവസങ്ങൾ</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">പഴയതു്</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">ഇറക്കിവയ്ക്കൽ ഒരുങ്ങുന്നു…</string>
   <!--
     Description of an in progress download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
@@ -1510,12 +1516,33 @@
     %3$s is the amount of time remaining to complete the download.
   -->
   <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s ഒഴിഞ്ഞിരിപ്പുണ്ടു്</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description_2">%1$s / %2$s • %3$s-ൽ</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is unknown.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_in_progress_description_pending">%1$s / %2$s • മിച്ചം</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_paused_description">%1$s / %2$s • നിൎത്തിയിരിപ്പുണ്ടു്</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">താല്ക്കാലം നിറുത്തി</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">ഒഴിഞ്ഞിരിക്കുന്നതു്</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">ഇറക്കിവയ്ക്കൽ തോറ്റു</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">വിശദാംശങ്ങൾ</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">ഇറക്കിവച്ചതിലു് തിരയുക</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1824,6 +1851,10 @@
   <string name="studies_on">തുറന്നതു്</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">അണച്ചതു്</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">തുടങ്ങിവച്ചതു്</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">അണച്ചതു്</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">അനുമതികൾ</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
@@ -3476,4 +3507,10 @@
   <string name="private_tab_cfr_negative">വേണ്ട, നന്ദി</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">ടാബുകൾ പൂട്ടുക</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">%1$s-നെ പറ്റി താങ്ങൾക്കു് എന്തഭിപ്രായമുണ്ടു് ?</string>
 </resources>

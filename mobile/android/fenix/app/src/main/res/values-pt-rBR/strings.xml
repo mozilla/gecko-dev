@@ -1576,6 +1576,8 @@
   <string name="download_time_period_last_30_days">Últimos 30 dias</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Mais antigos</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">Preparando download…</string>
   <!--
     Description of an in progress download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
@@ -3695,8 +3697,12 @@
   <string name="review_prompt_negative_button">Estou tendo problemas</string>
   <!-- Label for a button positively rating the user's experience with the app -->
   <string name="review_prompt_positive_button">É excelente!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">Obrigado por gostar tanto do %1$s. Tem um segundo para divulgar este amor com uma avaliação?</string>
   <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
   <string name="review_prompt_rate_button">Avalie o %1$s na Play Store</string>
   <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
   <string name="review_prompt_feedback_header">Lamentamos que esteja com problemas. Diga como podemos melhorar o %1$s.</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">Dê a sua opinião</string>
 </resources>

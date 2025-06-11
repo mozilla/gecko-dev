@@ -12,7 +12,7 @@
     When an add-on requires access to more than 4 sites, for example the add-on requires access for 5 sites. We will show the first 4 sites in individual entries, as in mozac_feature_addons_permissions_one_site_description,
     then we will show another collapsed entry saying "Access your data on 1 other site". This entry it's for the singular case, when the add-on is only accessing one extra site.
   -->
-  <string name="mozac_feature_addons_permissions_one_extra_site_description" tools:ignore="PluralsCandidate">Accèdiri ê to dati nta n\'autru situ</string>
+  <string name="mozac_feature_addons_permissions_one_extra_site_description" tools:ignore="PluralsCandidate">Accèdiri ê to dati nta n’autru situ</string>
   <!--
     When an add-on requires access to more than 4 sites, for example the add-on requires access for 6 sites. We will show the first 4 sites in individual entries, as in mozac_feature_addons_permissions_one_site_description,
     then we will show another collapsed entry saying "Access your data on 2 other sites". This entry it's for the plural case, when the add-on is accessing more than one extra site.
@@ -23,7 +23,7 @@
     When an add-on requires access to more than 4 domains, for example the add-on requires access for 5 domains. We will show the first 4 domains in individual entries, as in mozac_feature_addons_permissions_sites_in_domain_description,
     then we will show another collapsed entry saying "Access your data on 1 other domain". This entry it's for the singular case, when the add-on is only accessing one extra domain.
   -->
-  <string name="mozac_feature_addons_permissions_one_extra_domain_description" tools:ignore="PluralsCandidate">Accèdiri ê to dati nta n\'autru duminiu</string>
+  <string name="mozac_feature_addons_permissions_one_extra_domain_description" tools:ignore="PluralsCandidate">Accèdiri ê to dati nta n’autru duminiu</string>
   <!--
     When an add-on requires access to more than 4 domains, for example the add-on requires access for 6 domains. We will show the first 4 domains in individual entries, as in mozac_feature_addons_permissions_sites_in_domain_description,
     then we will show another collapsed entry saying "Access your data on 2 other domains". This entry it's for the plural case, when the add-on is accessing more than one extra domain.
@@ -37,7 +37,7 @@
   <!-- Description for tabs add-on permission. -->
   <string name="mozac_feature_addons_permissions_tabs_description">Accèdiri ê schedi dû navicaturi</string>
   <!-- Description for navigation permission. -->
-  <string name="mozac_feature_addons_permissions_web_navigation_description">Accèdiri a l\'attività dû navicatri mentri chi l\'usi</string>
+  <string name="mozac_feature_addons_permissions_web_navigation_description">Accèdiri a l’attività dû navicatri mentri chi l’usi</string>
   <!-- Description for bookmarks permission. -->
   <string name="mozac_feature_addons_permissions_bookmarks_description">Lèggiri e canciari i nzingalibbra</string>
   <!-- Description for browser_setting permission. -->
@@ -63,13 +63,13 @@
   <!-- Description for history permission. -->
   <string name="mozac_feature_addons_permissions_history_description">Accèdiri â crunuluggìa di navicazzioni</string>
   <!-- Description for management permission. -->
-  <string name="mozac_feature_addons_permissions_management_description">Cuntrullari l\'usu dî stinneri e manijari i temi</string>
+  <string name="mozac_feature_addons_permissions_management_description">Cuntrullari l’usu dî stinneri e manijari i temi</string>
   <!-- Description for native_messaging permission. -->
   <string name="mozac_feature_addons_permissions_native_messaging_description">Scanciari missaggi cu prugrammi sparti a chistu</string>
   <!-- Description for notifications permission. -->
   <string name="mozac_feature_addons_permissions_notifications_description">Mustràriti abbisi</string>
   <!-- Description for pkcs11 permission. -->
-  <string name="mozac_feature_addons_permissions_pkcs11_description">Furniri sirbizza d\'autinticazzioni crittugràfica</string>
+  <string name="mozac_feature_addons_permissions_pkcs11_description">Furniri sirbizza d’autinticazzioni crittugràfica</string>
   <!-- Description for proxy permission. -->
   <string name="mozac_feature_addons_permissions_proxy_description">Cuntrullari i mpustazzioni dû proxy dû navicaturi</string>
   <!-- Description for sessions permission. -->
@@ -85,7 +85,7 @@
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">I prugrammi nun virificati ponnu èssiri un rìsicu pâ sicurizza e pâ privatizza. Abbìa sulu prugrammi di stinneri o funti chi ài fiducia.</string>
   <!-- Description for devtools permission. -->
-  <string name="mozac_feature_addons_permissions_devtools_description">Pirmèttiri ê stigghi di sbiluppu l\'accessu ê dati dî schedi</string>
+  <string name="mozac_feature_addons_permissions_devtools_description">Pirmèttiri ê stigghi di sbiluppu l’accessu ê dati dî schedi</string>
   <!-- Description for text button that expands the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_all_sites">Mustra tutti i siti</string>
   <!-- Description for text button that hides the majority of the list of domain permissions -->
@@ -139,7 +139,7 @@
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s addumanna pirmissi suverchiu.</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle">Addumanna u to\' pirmissu pi:</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle">Addumanna u to’ pirmissu pi:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">Vulissi:</string>
   <!-- This is a button to add (install) an add-on . -->
@@ -177,11 +177,11 @@
   <!-- The label of the deny button on a notification, this will be shown to the user when an add-on needs new permissions. Indicates the user denies the new permissions and prevents the add-on from be updated -->
   <string name="mozac_feature_addons_updater_notification_deny_button">Nun pirmèttiri</string>
   <!-- The tile of the notification, this will be shown to the user when an add-on needs new permissions, to be updated. %1$s is the name of the add-ons -->
-  <string name="mozac_feature_addons_updater_notification_title">%1$s àvi n\'attualizzu novu</string>
+  <string name="mozac_feature_addons_updater_notification_title">%1$s àvi n’attualizzu novu</string>
   <!-- The content of the notification, this will be shown when an add-on needs new permissions, to be updated. %1$d is the amount of new permissions -->
   <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">%1$d addumanna pirmissi novi</string>
   <!-- The content of the notification displayed when an add-on needs a new permission -->
-  <string name="mozac_feature_addons_updater_notification_content_singular">Cc\'è bisognu d\'un pirmissu novu</string>
+  <string name="mozac_feature_addons_updater_notification_content_singular">Cc’è bisognu d’un pirmissu novu</string>
   <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_addons_updater_notification_channel_2">Attualizzi dî stinneri</string>
   <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->
@@ -197,7 +197,7 @@
   <!-- The content of the notification, this will be shown to the user when more than two newly supported add-ons are available. %1$s is the app name (in most cases Firefox). -->
   <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">Jùncili a %1$s</string>
   <!-- This is the caption for not yet supported screen caption -->
-  <string name="mozac_feature_addons_not_yet_supported_caption2">Stamu travagghiannu p\'uffrìriti n\'aḍḍijuta di stinneri cunzigghiati.</string>
+  <string name="mozac_feature_addons_not_yet_supported_caption2">Stamu travagghiannu p’uffrìriti n’aḍḍijuta di stinneri cunzigghiati.</string>
   <!-- This is the caption for the extension installation progress overlay -->
   <string name="mozac_extension_install_progress_caption">Staju scarricannu e virificannu u stinneriu…</string>
   <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->
@@ -223,7 +223,7 @@
   <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
   <string name="mozac_feature_addons_blocklisted_2">%1$s rumpi i pulìtichi di Mozilla e nun po èssiri nzitatu nni %2$s.</string>
   <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_admin_install_only">%1$s nun potti èssiri nzitatu picchì po èssiri nzitatu sulu di n\'urganizzazzioni chi usa i pulìtichi di mpria, ma sta chiattafurma nun i supporta.</string>
+  <string name="mozac_feature_addons_admin_install_only">%1$s nun potti èssiri nzitatu picchì po èssiri nzitatu sulu di n’urganizzazzioni chi usa i pulìtichi di mpria, ma sta chiattafurma nun i supporta.</string>
   <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
   <string name="mozac_feature_addons_soft_blocked_1">%1$s rumpi i pulìtichi di Mozilla e nun po èssiri nzitatu nni %2$s.</string>
   <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -257,7 +257,7 @@
   <!-- Displayed in the "Status" field for the updater when there was an error during the add-on update. -->
   <string name="mozac_feature_addons_updater_status_error">Erruri</string>
   <!-- Text shown in a dialog that displays information about the last attempt to update an add-on. This is the title of the dialog. -->
-  <string name="mozac_feature_addons_updater_dialog_title">Nfurmazzioni di l\'attualizzaturi</string>
+  <string name="mozac_feature_addons_updater_dialog_title">Nfurmazzioni di l’attualizzaturi</string>
   <!-- Label in the dialog displaying information for the last attempt to update add-ons. It's followed by the date of the last attempt. -->
   <string name="mozac_feature_addons_updater_dialog_last_attempt">Ùrtimu tintativu:</string>
   <!-- Displayed in the "Status" field for the updater when an add-on has been correctly updated -->
@@ -275,7 +275,7 @@
   <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_status_blocklisted_1">Stu stinneriu è bluccatu picchì rumpi i pulìtichi di Mozilla e fu sdisabbilitatu.</string>
   <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-  <string name="mozac_feature_addons_status_softblocked_1">Stu stinneriu è limitatu picchì rumpi i pulìtichi di Mozilla e fu sdisabbilitatu. U poi abbilitari, ma po\' èssiri un rìsicu.</string>
+  <string name="mozac_feature_addons_status_softblocked_1">Stu stinneriu è limitatu picchì rumpi i pulìtichi di Mozilla e fu sdisabbilitatu. U poi abbilitari, ma po’ èssiri un rìsicu.</string>
   <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
   <string name="mozac_feature_addons_status_softblocked_re_enabled">Stu stinneriu rumpi i pulìtichi di Mozilla. Usallu po èssiri un rìsicu.</string>
   <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
