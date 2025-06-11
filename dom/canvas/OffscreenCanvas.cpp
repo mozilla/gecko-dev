@@ -26,7 +26,6 @@
 #include "ImageBitmap.h"
 #include "ImageBitmapRenderingContext.h"
 #include "nsContentUtils.h"
-#include "nsIPermissionManager.h"
 #include "nsProxyRelease.h"
 #include "WebGLChild.h"
 
@@ -504,11 +503,8 @@ already_AddRefed<Promise> OffscreenCanvas::ConvertToBlob(
 
   RefPtr<EncodeCompleteCallback> callback =
       CreateEncodeCompleteCallback(promise);
-
-  bool usePlaceholder = mCurrentContext && mCurrentContext->PrincipalOrNull() &&
-                        !CanvasUtils::IsImageExtractionAllowed(
-                            this, nsContentUtils::GetCurrentJSContext(),
-                            *mCurrentContext->PrincipalOrNull());
+  bool usePlaceholder =
+      ShouldResistFingerprinting(RFPTarget::CanvasImageExtractionPrompt);
   CanvasRenderingContextHelper::ToBlob(callback, type, encodeOptions,
                                        /* aUsingCustomOptions */ false,
                                        usePlaceholder, aRv);
@@ -549,10 +545,8 @@ already_AddRefed<Promise> OffscreenCanvas::ToBlob(JSContext* aCx,
 
   RefPtr<EncodeCompleteCallback> callback =
       CreateEncodeCompleteCallback(promise);
-  bool usePlaceholder = mCurrentContext && mCurrentContext->PrincipalOrNull() &&
-                        !CanvasUtils::IsImageExtractionAllowed(
-                            this, nsContentUtils::GetCurrentJSContext(),
-                            *mCurrentContext->PrincipalOrNull());
+  bool usePlaceholder =
+      ShouldResistFingerprinting(RFPTarget::CanvasImageExtractionPrompt);
   CanvasRenderingContextHelper::ToBlob(aCx, callback, aType, aParams,
                                        usePlaceholder, aRv);
 

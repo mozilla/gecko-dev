@@ -19,10 +19,6 @@ function getImageData(tab, isOffscreen, method) {
       ? new OffscreenCanvas(3, 1)
       : document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    if (!isOffscreen) {
-      canvas.width = 3;
-      canvas.height = 1;
-    }
 
     ctx.fillStyle = "rgb(255, 0, 0)";
     ctx.fillRect(0, 0, 1, 1);
@@ -34,13 +30,13 @@ function getImageData(tab, isOffscreen, method) {
     if (method === "getImageData") {
       return ctx.getImageData(0, 0, 3, 1).data.join(",");
     } else if (method === "toDataURL") {
-      return canvas.toDataURL("image/png", 1);
+      return canvas.toDataURL();
     } else if (method === "toBlob") {
       return new Promise((resolve, reject) => {
         if (isOffscreen) {
-          canvas.toBlob().then(resolve, reject);
+          canvas.convertToBlob().then(resolve, reject);
         } else {
-          canvas.toBlob(resolve, "image/png", 1);
+          canvas.toBlob(resolve, "image/png");
         }
       }).then(blob => {
         const reader = new FileReader();
@@ -50,18 +46,8 @@ function getImageData(tab, isOffscreen, method) {
         reader.onerror = reject;
         return promise;
       });
-    } else if (method === "convertToBlob") {
-      return canvas.convertToBlob().then(blob => {
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        const { promise, resolve, reject } = Promise.withResolvers();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        return promise;
-      });
     }
-
-    throw new Error("Unknown method");
+    return null;
   };
 
   const extractCanvasExpr = `(${extractCanvas.toString()})(${isOffscreen}, "${method}");`;
@@ -82,7 +68,6 @@ const TEST_CASES = [
   // OffscreenCanvas
   [true, "getImageData", null],
   [true, "toBlob", null],
-  [true, "convertToBlob", null],
 ];
 
 add_setup(async function setup() {
@@ -103,15 +88,8 @@ add_setup(async function setup() {
   for (let i = 0; i < TEST_CASES.length; i++) {
     const test_case = TEST_CASES[i];
     const [isOffscreen, method] = test_case;
-    const readback = await getImageData(tab, isOffscreen, method);
-    if (readback == null || !readback.length) {
-      throw new Error(
-        `Failed to get the initial readback for ${
-          isOffscreen ? "Offscreen Canvas" : "HTML Canvas"
-        } ${method} got ${readback}`
-      );
-    }
-    test_case[2] = readback;
+    const imageData = await getImageData(tab, isOffscreen, method);
+    test_case[2] = imageData;
   }
 
   BrowserTestUtils.removeTab(tab);
@@ -149,13 +127,19 @@ async function runTest(permissionGranted, isRFP) {
   for (let i = 0; i < TEST_CASES.length; i++) {
     const test_case = TEST_CASES[i];
     const [isOffscreen, method, trueValue] = test_case;
-    const readback = await getImageData(tab, isOffscreen, method);
-    const message = `PermissionGranted: ${permissionGranted}; Method: ${method}; Offscreen: ${isOffscreen}; Image should be ${
-      permissionGranted ? "the same" : "different"
-    }`;
+    const imageData = await getImageData(tab, isOffscreen, method);
+    const message = `Image data was ${
+      permissionGranted ? "not " : ""
+    }randomized for ${method} on ${
+      isOffscreen ? "OffscreenCanvas" : "HTMLCanvasElement"
+    }.`;
+    if (isOffscreen) {
+      // Offscreen canvas doesn't respect the permission.
+      continue;
+    }
     permissionGranted
-      ? is(readback, trueValue, message)
-      : isnot(readback, trueValue, message);
+      ? is(imageData, trueValue, message)
+      : isnot(imageData, trueValue, message);
   }
 
   if (permissionGranted) {

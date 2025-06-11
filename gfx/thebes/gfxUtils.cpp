@@ -1613,14 +1613,13 @@ UniquePtr<uint8_t[]> gfxUtils::GetImageBuffer(gfx::DataSourceSurface* aSurface,
 /* static */
 UniquePtr<uint8_t[]> gfxUtils::GetImageBufferWithRandomNoise(
     gfx::DataSourceSurface* aSurface, bool aIsAlphaPremultiplied,
-    nsICookieJarSettings* aCookieJarSettings, nsIPrincipal* aPrincipal,
-    int32_t* outFormat) {
+    nsICookieJarSettings* aCookieJarSettings, int32_t* outFormat) {
   UniquePtr<uint8_t[]> imageBuffer =
       GetImageBuffer(aSurface, aIsAlphaPremultiplied, outFormat);
 
   nsRFPService::RandomizePixels(
-      aCookieJarSettings, aPrincipal, imageBuffer.get(),
-      aSurface->GetSize().width, aSurface->GetSize().height,
+      aCookieJarSettings, imageBuffer.get(), aSurface->GetSize().width,
+      aSurface->GetSize().height,
       aSurface->GetSize().width * aSurface->GetSize().height * 4,
       SurfaceFormat::A8R8G8B8_UINT32);
 
@@ -1652,8 +1651,7 @@ nsresult gfxUtils::GetInputStream(gfx::DataSourceSurface* aSurface,
 nsresult gfxUtils::GetInputStreamWithRandomNoise(
     gfx::DataSourceSurface* aSurface, bool aIsAlphaPremultiplied,
     const char* aMimeType, const nsAString& aEncoderOptions,
-    nsICookieJarSettings* aCookieJarSettings, nsIPrincipal* aPrincipal,
-    nsIInputStream** outStream) {
+    nsICookieJarSettings* aCookieJarSettings, nsIInputStream** outStream) {
   nsCString enccid("@mozilla.org/image/encoder;2?type=");
   enccid += aMimeType;
   nsCOMPtr<imgIEncoder> encoder = do_CreateInstance(enccid.get());
@@ -1669,8 +1667,8 @@ nsresult gfxUtils::GetInputStreamWithRandomNoise(
   }
 
   nsRFPService::RandomizePixels(
-      aCookieJarSettings, aPrincipal, imageBuffer.get(),
-      aSurface->GetSize().width, aSurface->GetSize().height,
+      aCookieJarSettings, imageBuffer.get(), aSurface->GetSize().width,
+      aSurface->GetSize().height,
       aSurface->GetSize().width * aSurface->GetSize().height * 4,
       SurfaceFormat::A8R8G8B8_UINT32);
 
