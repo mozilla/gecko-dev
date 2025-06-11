@@ -18494,12 +18494,6 @@ already_AddRefed<ViewTransition> Document::StartViewTransition(
   // Step 6: Set document's active view transition to transition.
   mActiveViewTransition = transition;
 
-  // Enable :active-view-transition to allow associated styles to
-  // be applied during the view transition.
-  if (auto* root = this->GetRootElement()) {
-    root->AddStates(ElementState::ACTIVE_VIEW_TRANSITION);
-  }
-
   EnsureViewTransitionOperationsHappen();
 
   // Step 7: return transition
