@@ -153,7 +153,7 @@ add_task(async function suggestDisabledLocales() {
       queries,
     },
     {
-      homeRegion: "XX",
+      homeRegion: "DE",
       locales: ["de", "en-US", "fr"],
       expectedQuickSuggestEnabled: false,
       queries,
