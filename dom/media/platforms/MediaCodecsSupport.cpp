@@ -10,6 +10,8 @@
 #endif
 #include "MediaCodecsSupport.h"
 #include "MP4Decoder.h"
+#include "PDMFactory.h"
+#include "PEMFactory.h"
 #include "PlatformDecoderModule.h"
 #include "VPXDecoder.h"
 #include "mozilla/AppShutdown.h"
@@ -27,6 +29,13 @@ static StaticMutex sUpdateMutex;
 
 #define CODEC_SUPPORT_LOG(msg, ...) \
   MOZ_LOG(sPDMLog, LogLevel::Debug, ("MediaCodecsSupport, " msg, ##__VA_ARGS__))
+
+/* static */
+MediaCodecsSupported MCSInfo::GetSupportFromFactory(
+    bool aForceRefresh /* = false */) {
+  return PDMFactory::Supported(aForceRefresh) +
+         PEMFactory::Supported(aForceRefresh);
+}
 
 void MCSInfo::AddSupport(const MediaCodecsSupported& aSupport) {
   StaticMutexAutoLock lock(sUpdateMutex);

@@ -42,12 +42,12 @@
     } while (0)
 #endif
 
-#define RUN_IF_SUPPORTED(codecType, test)   \
-  do {                                      \
-    RefPtr<PEMFactory> f(new PEMFactory()); \
-    if (f->SupportsCodec(codecType)) {      \
-      test();                               \
-    }                                       \
+#define RUN_IF_SUPPORTED(codecType, test)         \
+  do {                                            \
+    RefPtr<PEMFactory> f(new PEMFactory());       \
+    if (!f->SupportsCodec(codecType).isEmpty()) { \
+      test();                                     \
+    }                                             \
   } while (0)
 
 #define BLOCK_SIZE 64
@@ -191,7 +191,7 @@ already_AddRefed<MediaDataEncoder> CreateVideoEncoder(
     const Maybe<T>& aSpecific) {
   RefPtr<PEMFactory> f(new PEMFactory());
 
-  if (!f->SupportsCodec(aCodec)) {
+  if (f->SupportsCodec(aCodec).isEmpty()) {
     return nullptr;
   }
 

@@ -9,6 +9,7 @@
 #include "AnnexB.h"
 #include "H264.h"
 #include "libyuv.h"
+#include "MediaCodecsSupport.h"
 #include "mozilla/Logging.h"
 #include "mozilla/mscom/EnsureMTA.h"
 #include "WMF.h"
@@ -30,7 +31,7 @@ extern LazyLogModule sPEMLog;
 
 GUID CodecToSubtype(CodecType aCodec);
 
-bool CanCreateWMFEncoder(CodecType aCodec);
+media::EncodeSupportSet CanCreateWMFEncoder(CodecType aCodec);
 
 already_AddRefed<MediaByteBuffer> ParseH264Parameters(
     nsTArray<uint8_t>& aHeader, const bool aAsAnnexB);

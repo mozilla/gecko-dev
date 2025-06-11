@@ -9,6 +9,9 @@
 #include "mozilla/Logging.h"
 #include "mozilla/java/HardwareCodecCapabilityUtilsWrappers.h"
 
+using mozilla::media::EncodeSupport;
+using mozilla::media::EncodeSupportSet;
+
 namespace mozilla {
 extern LazyLogModule sPEMLog;
 #define AND_PEM_LOG(arg, ...)            \
@@ -16,27 +19,45 @@ extern LazyLogModule sPEMLog;
       sPEMLog, mozilla::LogLevel::Debug, \
       ("AndroidEncoderModule(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
 
-bool AndroidEncoderModule::SupportsCodec(CodecType aCodec) const {
-  return aCodec == CodecType::H264 ||
-         (aCodec == CodecType::VP8 &&
-          java::HardwareCodecCapabilityUtils::HasHWVP8(true /* encoder */)) ||
-         (aCodec == CodecType::VP9 &&
-          java::HardwareCodecCapabilityUtils::HasHWVP9(true /* encoder */));
+EncodeSupportSet AndroidEncoderModule::SupportsCodec(CodecType aCodec) const {
+  EncodeSupportSet supports{};
+  switch (aCodec) {
+    case CodecType::H264:
+      supports += EncodeSupport::SoftwareEncode;
+      if (java::HardwareCodecCapabilityUtils::HasHWH264(true /* encoder */)) {
+        supports += EncodeSupport::HardwareEncode;
+      }
+      break;
+    case CodecType::VP8:
+      if (java::HardwareCodecCapabilityUtils::HasHWVP8(true /* encoder */)) {
+        supports += EncodeSupport::HardwareEncode;
+      }
+      break;
+    case CodecType::VP9:
+      if (java::HardwareCodecCapabilityUtils::HasHWVP9(true /* encoder */)) {
+        supports += EncodeSupport::HardwareEncode;
+      }
+      break;
+    default:
+      break;
+  }
+  return supports;
 }
 
-bool AndroidEncoderModule::Supports(const EncoderConfig& aConfig) const {
+EncodeSupportSet AndroidEncoderModule::Supports(
+    const EncoderConfig& aConfig) const {
   if (!CanLikelyEncode(aConfig)) {
-    return false;
+    return EncodeSupportSet{};
   }
   if (aConfig.mScalabilityMode != ScalabilityMode::None) {
-    return false;
+    return EncodeSupportSet{};
   }
   return SupportsCodec(aConfig.mCodec);
 }
 
 already_AddRefed<MediaDataEncoder> AndroidEncoderModule::CreateVideoEncoder(
     const EncoderConfig& aConfig, const RefPtr<TaskQueue>& aTaskQueue) const {
-  if (!Supports(aConfig)) {
+  if (Supports(aConfig).isEmpty()) {
     AND_PEM_LOG("Unsupported codec type: %s",
                 GetCodecTypeString(aConfig.mCodec));
     return nullptr;
