@@ -65,13 +65,25 @@
 //! ```
 //!
 //! Huzzah!
+//!
+//! # `no_std`
+//!
+//! To use `replace_with` with `no_std` you have to disable the `std` feature, which is active by
+//! default, by specifying your dependency to it like this:
+//!
+//! ```toml
+//! # Cargo.toml
+//!
+//! replace_with = { version = "0.1", default-features = false }
+//! ```
+//!
+//! The `nightly` feature can be enabled to use [`core::intrinsics::abort()`](https://doc.rust-lang.org/core/intrinsics/fn.abort.html)
+//! instead of triggering an abort via [`std::process::abort()`](https://doc.rust-lang.org/std/process/fn.abort.html)
+//! or [`extern "C" fn abort() { panic!() } abort()`](https://doc.rust-lang.org/reference/items/functions.html#r-items.fn.extern.abort).
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(
-	all(not(feature = "std"), feature = "nightly"),
-	feature(core_intrinsics)
-)]
-#![doc(html_root_url = "https://docs.rs/replace_with/0.1.7")]
+#![cfg_attr(feature = "nightly", feature(core_intrinsics))]
+#![doc(html_root_url = "https://docs.rs/replace_with/0.1.8")]
 #![warn(
 	missing_copy_implementations,
 	missing_debug_implementations,
@@ -90,6 +102,37 @@ use core as std;
 
 use std::{mem, ptr};
 
+#[cfg(feature = "nightly")]
+#[inline(always)]
+fn abort() -> ! {
+	unsafe { std::intrinsics::abort() }
+}
+
+#[cfg(all(not(feature = "nightly"), feature = "std"))]
+use std::process::abort;
+
+// TODO: https://github.com/rust-lang/rfcs/issues/2512
+#[cfg(all(not(feature = "nightly"), not(feature = "std")))]
+#[inline(always)]
+fn abort() -> ! {
+	if cfg!(panic = "abort") {
+		panic!()
+	} else {
+		// https://doc.rust-lang.org/reference/items/functions.html#r-items.fn.extern.abort
+		#[inline(always)]
+		extern "C" fn abort() -> ! {
+			panic!();
+		}
+		on_unwind(|| abort(), || loop {})
+	}
+}
+
+// TODO: https://github.com/rust-lang/rust/issues/130338
+#[inline(always)]
+fn abort_unwind<F: FnOnce() -> R, R>(f: F) -> R {
+	on_unwind(f, || abort())
+}
+
 struct OnDrop<F: FnOnce()>(mem::ManuallyDrop<F>);
 impl<F: FnOnce()> Drop for OnDrop<F> {
 	#[inline(always)]
@@ -98,20 +141,27 @@ impl<F: FnOnce()> Drop for OnDrop<F> {
 	}
 }
 
+#[inline(always)]
+fn on_unwind_inner<F: FnOnce() -> T, T, P: FnOnce()>(f: F, p: P) -> (T, P) {
+	if cfg!(panic = "abort") {
+		return (f(), p);
+	}
+	let p = OnDrop(mem::ManuallyDrop::new(p));
+	let t = f();
+	let mut p = mem::ManuallyDrop::new(p);
+	(t, unsafe { mem::ManuallyDrop::take(&mut p.0) })
+}
+
 #[doc(hidden)]
 #[inline(always)]
 pub fn on_unwind<F: FnOnce() -> T, T, P: FnOnce()>(f: F, p: P) -> T {
-	let x = OnDrop(mem::ManuallyDrop::new(p));
-	let t = f();
-	let mut x = mem::ManuallyDrop::new(x);
-	unsafe { mem::ManuallyDrop::drop(&mut x.0) };
-	t
+	on_unwind_inner(f, p).0
 }
 
 #[doc(hidden)]
 #[inline(always)]
 pub fn on_return_or_unwind<F: FnOnce() -> T, T, P: FnOnce()>(f: F, p: P) -> T {
-	let _x = OnDrop(mem::ManuallyDrop::new(p));
+	let _p = OnDrop(mem::ManuallyDrop::new(p));
 	f()
 }
 
@@ -124,8 +174,7 @@ pub fn on_return_or_unwind<F: FnOnce() -> T, T, P: FnOnce()>(f: F, p: P) -> T {
 /// # An important note
 ///
 /// On panic (or to be more precise, unwinding) of the closure `f`, `default` will be called to
-/// provide a replacement value. `default` should not panic – doing so will constitute a double
-/// panic and will most likely abort the process.
+/// provide a replacement value. `default` should not panic – doing so will abort the process.
 ///
 /// # Example
 ///
@@ -153,7 +202,8 @@ pub fn on_return_or_unwind<F: FnOnce() -> T, T, P: FnOnce()>(f: F, p: P) -> T {
 pub fn replace_with<T, D: FnOnce() -> T, F: FnOnce(T) -> T>(dest: &mut T, default: D, f: F) {
 	unsafe {
 		let old = ptr::read(dest);
-		let new = on_unwind(move || f(old), || ptr::write(dest, default()));
+		let (new, _default) =
+			on_unwind_inner(move || f(old), || ptr::write(dest, abort_unwind(default)));
 		ptr::write(dest, new);
 	}
 }
@@ -167,8 +217,7 @@ pub fn replace_with<T, D: FnOnce() -> T, F: FnOnce(T) -> T>(dest: &mut T, defaul
 /// # An important note
 ///
 /// On panic (or to be more precise, unwinding) of the closure `f`, `T::default()` will be called to
-/// provide a replacement value. `T::default()` should not panic – doing so will constitute a double
-/// panic and will most likely abort the process.
+/// provide a replacement value. `T::default()` should not panic – doing so will abort the process.
 ///
 /// Equivalent to `replace_with(dest, T::default, f)`.
 ///
@@ -239,15 +288,8 @@ pub fn replace_with_or_default<T: Default, F: FnOnce(T) -> T>(dest: &mut T, f: F
 /// }
 /// ```
 #[inline]
-#[cfg(feature = "std")]
 pub fn replace_with_or_abort<T, F: FnOnce(T) -> T>(dest: &mut T, f: F) {
-	replace_with(dest, || std::process::abort(), f);
-}
-
-#[inline]
-#[cfg(all(not(feature = "std"), feature = "nightly"))]
-pub fn replace_with_or_abort<T, F: FnOnce(T) -> T>(dest: &mut T, f: F) {
-	replace_with(dest, || unsafe { std::intrinsics::abort() }, f);
+	replace_with(dest, || abort(), f);
 }
 
 /// Temporarily takes ownership of a value at a mutable location, and replace it with a new value
@@ -307,6 +349,7 @@ pub fn replace_with_or_abort<T, F: FnOnce(T) -> T>(dest: &mut T, f: F) {
 ///
 #[inline]
 #[cfg(feature = "panic_abort")]
+#[deprecated = "Use replace_with_or_abort() instead, which used cfg!(panic = \"abort\") to guarentee soundness"]
 pub unsafe fn replace_with_or_abort_unchecked<T, F: FnOnce(T) -> T>(dest: &mut T, f: F) {
 	ptr::write(dest, f(ptr::read(dest)));
 }
@@ -323,8 +366,7 @@ pub unsafe fn replace_with_or_abort_unchecked<T, F: FnOnce(T) -> T>(dest: &mut T
 /// # An important note
 ///
 /// On panic (or to be more precise, unwinding) of the closure `f`, `default` will be called to
-/// provide a replacement value. `default` should not panic – doing so will constitute a double
-/// panic and will most likely abort the process.
+/// provide a replacement value. `default` should not panic – doing so will abort the process.
 ///
 /// # Example
 ///
@@ -345,7 +387,8 @@ pub fn replace_with_and_return<T, U, D: FnOnce() -> T, F: FnOnce(T) -> (U, T)>(
 ) -> U {
 	unsafe {
 		let old = ptr::read(dest);
-		let (res, new) = on_unwind(move || f(old), || ptr::write(dest, default()));
+		let ((res, new), _default) =
+			on_unwind_inner(move || f(old), || ptr::write(dest, abort_unwind(default)));
 		ptr::write(dest, new);
 		res
 	}
@@ -364,8 +407,7 @@ pub fn replace_with_and_return<T, U, D: FnOnce() -> T, F: FnOnce(T) -> (U, T)>(
 /// # An important note
 ///
 /// On panic (or to be more precise, unwinding) of the closure `f`, `T::default()` will be called to
-/// provide a replacement value. `T::default()` should not panic – doing so will constitute a double
-/// panic and will most likely abort the process.
+/// provide a replacement value. `T::default()` should not panic – doing so will abort the process.
 ///
 /// Equivalent to `replace_with_and_return(dest, T::default, f)`.
 ///
@@ -414,15 +456,8 @@ pub fn replace_with_or_default_and_return<T: Default, U, F: FnOnce(T) -> (U, T)>
 /// }
 /// ```
 #[inline]
-#[cfg(feature = "std")]
 pub fn replace_with_or_abort_and_return<T, U, F: FnOnce(T) -> (U, T)>(dest: &mut T, f: F) -> U {
-	replace_with_and_return(dest, || std::process::abort(), f)
-}
-
-#[inline]
-#[cfg(all(not(feature = "std"), feature = "nightly"))]
-pub fn replace_with_or_abort_and_return<T, U, F: FnOnce(T) -> (U, T)>(dest: &mut T, f: F) -> U {
-	replace_with_and_return(dest, || unsafe { std::intrinsics::abort() }, f)
+	replace_with_and_return(dest, || abort(), f)
 }
 
 /// Temporarily takes ownership of a value at a mutable location, and replace it with a new value
@@ -473,8 +508,8 @@ pub fn replace_with_or_abort_and_return<T, U, F: FnOnce(T) -> (U, T)>(dest: &mut
 /// }
 /// ```
 #[inline]
-#[cfg(feature = "std")]
 #[cfg(feature = "panic_abort")]
+#[deprecated = "Use replace_with_or_abort_and_return() instead, which used cfg!(panic = \"abort\") to guarentee soundness"]
 pub unsafe fn replace_with_or_abort_and_return_unchecked<T, U, F: FnOnce(T) -> (U, T)>(
 	dest: &mut T, f: F,
 ) -> U {
@@ -485,6 +520,56 @@ pub unsafe fn replace_with_or_abort_and_return_unchecked<T, U, F: FnOnce(T) -> (
 
 #[cfg(test)]
 mod test {
+	/// https://github.com/alecmocatta/replace_with/issues/18 replace_with[_and_return] has
+	/// undefined behavior if default panics.
+	#[test]
+	#[ignore = "should abort, cc https://github.com/rust-lang/rust/issues/67650"]
+	#[cfg(feature = "std")]
+	fn default_panic() {
+		let mut s = String::from("abc");
+		replace_with(
+			&mut s,
+			move || {
+				panic!();
+			},
+			|s| {
+				drop(s);
+				panic!();
+			},
+		);
+	}
+
+	/// https://github.com/alecmocatta/replace_with/issues/21 replace_with doesn't write the return
+	/// value before dropping the default closure, causing a use after free if the drop glue of the
+	/// latter panics
+	#[test]
+	#[should_panic]
+	#[cfg(feature = "std")]
+	fn default_drop_panic() {
+		struct OnDropPanic();
+		impl Drop for OnDropPanic {
+			fn drop(&mut self) {
+				panic!();
+			}
+		}
+
+		let mut s = String::from("abc");
+		let panicking_drop = OnDropPanic();
+		replace_with(
+			&mut s,
+			// The code inside this closure never runs, but because `panicking_drop` is owned by the
+			// closure, dropping this closure causes a panic.
+			move || {
+				drop(panicking_drop);
+				unreachable!()
+			},
+			|s| {
+				drop(s);
+				String::new()
+			},
+		);
+	}
+
 	// These functions copied from https://github.com/Sgeo/take_mut/blob/1bd70d842c6febcd16ec1fe3a954a84032b89f52/src/lib.rs#L102-L147
 
 	// Copyright (c) 2016 Sgeo
@@ -515,7 +600,7 @@ mod test {
 		enum Foo {
 			A,
 			B,
-		};
+		}
 		impl Drop for Foo {
 			#[cfg(feature = "std")]
 			fn drop(&mut self) {
@@ -555,8 +640,8 @@ mod test {
 		assert_eq!(&quax, &Foo::A);
 	}
 
-	#[cfg(all(feature = "std", not(miri)))] // https://github.com/rust-lang/miri/issues/658
 	#[test]
+	#[cfg(feature = "std")]
 	fn it_works_recover_panic() {
 		use std::panic;
 
@@ -565,7 +650,7 @@ mod test {
 			A,
 			B,
 			C,
-		};
+		}
 		impl Drop for Foo {
 			fn drop(&mut self) {
 				match *self {

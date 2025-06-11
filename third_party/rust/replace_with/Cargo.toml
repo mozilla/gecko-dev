@@ -3,19 +3,26 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies
+# to registry (e.g., crates.io) dependencies.
 #
-# If you believe there's an error in this file please file an
-# issue against the rust-lang/cargo repository. If you're
-# editing this file be aware that the upstream Cargo.toml
-# will likely look very different (and much more reasonable)
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
 
 [package]
 edition = "2018"
 name = "replace_with"
-version = "0.1.7"
+version = "0.1.8"
 authors = ["Alec Mocatta <alec@mocatta.net>"]
-description = "Temporarily take ownership of a value at a mutable location, and replace it with a new value based on the old one.\n"
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = """
+Temporarily take ownership of a value at a mutable location, and replace it with a new value based on the old one.
+"""
 homepage = "https://github.com/alecmocatta/replace_with"
 documentation = "https://docs.rs/replace_with"
 readme = "README.md"
@@ -24,11 +31,6 @@ categories = ["rust-patterns"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/alecmocatta/replace_with"
 
-[features]
-default = ["std"]
-nightly = []
-panic_abort = []
-std = []
 [badges.azure-devops]
 build = "11"
 pipeline = "tests"
@@ -36,3 +38,13 @@ project = "alecmocatta/replace_with"
 
 [badges.maintenance]
 status = "actively-developed"
+
+[features]
+default = ["std"]
+nightly = []
+panic_abort = []
+std = []
+
+[lib]
+name = "replace_with"
+path = "src/lib.rs"
