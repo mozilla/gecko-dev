@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.downloads.listscreen.store
 
-import mozilla.components.browser.state.state.content.DownloadState
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mozilla.fenix.R
@@ -20,7 +19,7 @@ class FileItemToIconMapperTest {
             description = "Test description",
             displayedShortUrl = "url",
             contentType = "image/png",
-            status = DownloadState.Status.COMPLETED,
+            status = FileItem.Status.Completed,
             timeCategory = TimeCategory.TODAY,
         )
 

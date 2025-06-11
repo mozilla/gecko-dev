@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.downloads.listscreen.store
 
-import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.UiStore
@@ -79,30 +78,30 @@ private fun downloadStateReducer(
         is DownloadUIAction.ShareFileClicked -> state
         is DownloadUIAction.UndoPendingDeletion -> state
         is DownloadUIAction.PauseDownload -> {
-            state.copyWithFileItemStatus(
+            state.copyWithFileItemStatusTransition(
                 downloadId = action.downloadId,
-                status = DownloadState.Status.PAUSED,
+                downloadControlAction = FileItem.Status.DownloadControlAction.PAUSE,
             )
         }
 
         is DownloadUIAction.ResumeDownload -> {
-            state.copyWithFileItemStatus(
+            state.copyWithFileItemStatusTransition(
                 downloadId = action.downloadId,
-                status = DownloadState.Status.DOWNLOADING,
+                downloadControlAction = FileItem.Status.DownloadControlAction.RESUME,
             )
         }
 
         is DownloadUIAction.RetryDownload -> {
-            state.copyWithFileItemStatus(
+            state.copyWithFileItemStatusTransition(
                 downloadId = action.downloadId,
-                status = DownloadState.Status.DOWNLOADING,
+                downloadControlAction = FileItem.Status.DownloadControlAction.RETRY,
             )
         }
 
         is DownloadUIAction.CancelDownload -> {
-            state.copyWithFileItemStatus(
+            state.copyWithFileItemStatusTransition(
                 downloadId = action.downloadId,
-                status = DownloadState.Status.CANCELLED,
+                downloadControlAction = FileItem.Status.DownloadControlAction.CANCEL,
             )
         }
 
@@ -115,9 +114,9 @@ private fun downloadStateReducer(
     }
 }
 
-private fun DownloadUIState.copyWithFileItemStatus(
+private fun DownloadUIState.copyWithFileItemStatusTransition(
     downloadId: String,
-    status: DownloadState.Status,
+    downloadControlAction: FileItem.Status.DownloadControlAction,
 ): DownloadUIState {
     val itemIndex = items.indexOfFirst { it.id == downloadId }
     if (itemIndex == -1) {
@@ -126,7 +125,7 @@ private fun DownloadUIState.copyWithFileItemStatus(
 
     val updatedItems = items.map {
         if (it.id == downloadId) {
-            it.copy(status = status)
+            it.copy(status = it.status.transition(action = downloadControlAction))
         } else {
             it
         }

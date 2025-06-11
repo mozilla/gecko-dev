@@ -349,15 +349,10 @@ internal fun NotificationCompat.Builder.setCompatGroup(groupKey: String): Notifi
     }
 }
 
-private fun DownloadState.getPercent(): Int? {
-    val bytesCopied = currentBytesCopied
-    val contentLength = contentLength
-    return if (contentLength == null || contentLength == 0L) {
-        null
-    } else {
-        (DownloadNotification.PERCENTAGE_MULTIPLIER * bytesCopied / contentLength).toInt()
+private fun DownloadState.getPercent(): Int? =
+    progress?.let { progress ->
+        (DownloadNotification.PERCENTAGE_MULTIPLIER * progress).toInt()
     }
-}
 
 @VisibleForTesting
 internal fun DownloadState.getProgress(fileSizeFormatter: FileSizeFormatter): String {

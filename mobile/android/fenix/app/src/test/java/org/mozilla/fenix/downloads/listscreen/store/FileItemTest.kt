@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.downloads.listscreen.store
 
-import mozilla.components.browser.state.state.content.DownloadState
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -27,7 +26,7 @@ class FileItemTest {
     fun `WHEN file item is in progress THEN it is recognized by the correct ContentTypeFilter`() {
         val inProgressFile = fileItem(
             contentType = "image/png",
-            status = DownloadState.Status.DOWNLOADING,
+            status = FileItem.Status.Downloading(progress = 0.5f),
         )
         assertEquals(FileItem.ContentTypeFilter.Image, inProgressFile.matchingContentTypeFilter)
     }
@@ -36,7 +35,7 @@ class FileItemTest {
     fun `WHEN file item is paused THEN it should only match the All ContentTypeFilter`() {
         val pausedFile = fileItem(
             contentType = "image/png",
-            status = DownloadState.Status.PAUSED,
+            status = FileItem.Status.Paused(progress = 0.5f),
         )
         assertEquals(FileItem.ContentTypeFilter.Image, pausedFile.matchingContentTypeFilter)
     }
@@ -45,7 +44,7 @@ class FileItemTest {
     fun `WHEN file item failed to download THEN it should only match the All ContentTypeFilter`() {
         val failedFile = fileItem(
             contentType = "image/png",
-            status = DownloadState.Status.FAILED,
+            status = FileItem.Status.Failed,
         )
         assertEquals(FileItem.ContentTypeFilter.Image, failedFile.matchingContentTypeFilter)
     }

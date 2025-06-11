@@ -65,7 +65,7 @@ class DownloadFragment : ComposeFragment() {
                 url = item.url,
                 fileName = item.fileName,
                 contentType = item.contentType,
-                status = item.status,
+                status = item.status.toDownloadStateStatus(),
             )
 
             val canOpenFile = AbstractFetchDownloadService.openFile(

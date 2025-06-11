@@ -66,6 +66,13 @@ data class DownloadState(
                 contentType == "application/pdf"
             }
 
+    val progress: Float?
+        get() = if (contentLength == null || contentLength == 0L) {
+            null
+        } else {
+            currentBytesCopied.toFloat() / contentLength.toFloat()
+        }
+
     /**
      * Status that represents every state that a download can be in.
      */

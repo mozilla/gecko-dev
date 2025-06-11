@@ -45,7 +45,6 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem
@@ -567,7 +566,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         description = "1.2 MB • example.com",
                         displayedShortUrl = "example.com",
                         contentType = "application/pdf",
-                        status = DownloadState.Status.COMPLETED,
+                        status = FileItem.Status.Completed,
                         filePath = "/path/to/file1",
                         timeCategory = TimeCategory.TODAY,
                     ),
@@ -578,7 +577,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         description = "2.3 MB • example.com",
                         displayedShortUrl = "example.com",
                         contentType = "image/png",
-                        status = DownloadState.Status.COMPLETED,
+                        status = FileItem.Status.Completed,
                         filePath = "/path/to/file1",
                         timeCategory = TimeCategory.TODAY,
                     ),
@@ -589,7 +588,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         description = "3.4 MB • example.com",
                         displayedShortUrl = "example.com",
                         contentType = "application/zip",
-                        status = DownloadState.Status.COMPLETED,
+                        status = FileItem.Status.Completed,
                         filePath = "/path/to/file1",
                         timeCategory = TimeCategory.OLDER,
                     ),
@@ -607,7 +606,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         description = "1.2 MB • example.com",
                         displayedShortUrl = "example.com",
                         contentType = "application/zip",
-                        status = DownloadState.Status.COMPLETED,
+                        status = FileItem.Status.Completed,
                         filePath = "/path/to/file1",
                         timeCategory = TimeCategory.TODAY,
                     )

@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.downloads.listscreen.middleware
 
+import androidx.annotation.FloatRange
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.map
@@ -89,13 +90,24 @@ class DownloadUIMapperMiddleware(
             filePath = filePath,
             displayedShortUrl = url.getBaseDomainUrl(),
             contentType = contentType,
-            status = status,
+            status = status.toFileItemStatus(progress = progress),
             timeCategory = categorizeGroup(
                 epochMillis = createdTime,
                 status = status,
             ),
             description = fileItemDescriptionProvider.getDescription(downloadState = this),
         )
+
+    private fun DownloadState.Status.toFileItemStatus(
+        @FloatRange(from = 0.0, to = 1.0) progress: Float?,
+    ): FileItem.Status = when (this) {
+        DownloadState.Status.INITIATED -> FileItem.Status.Initiated
+        DownloadState.Status.DOWNLOADING -> FileItem.Status.Downloading(progress = progress)
+        DownloadState.Status.PAUSED -> FileItem.Status.Paused(progress = progress)
+        DownloadState.Status.CANCELLED -> FileItem.Status.Cancelled
+        DownloadState.Status.FAILED -> FileItem.Status.Failed
+        DownloadState.Status.COMPLETED -> FileItem.Status.Completed
+    }
 
     private fun categorizeGroup(epochMillis: Long, status: DownloadState.Status): TimeCategory {
         if (isDisplayableItem(status) && status != DownloadState.Status.COMPLETED) {

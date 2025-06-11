@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.downloads.listscreen.store
 
-import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.lib.state.State
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState.Mode
 
@@ -44,7 +43,7 @@ data class DownloadUIState(
             val selectedTypeContainsItems = itemsNotPendingDeletion
                 .filter {
                     userSelectedContentTypeFilter == FileItem.ContentTypeFilter.All ||
-                    it.status == DownloadState.Status.COMPLETED
+                    it.status == FileItem.Status.Completed
                 }
                 .any { download -> userSelectedContentTypeFilter.predicate(download.contentType) }
 
@@ -63,7 +62,7 @@ data class DownloadUIState(
     val itemsMatchingFilters = itemsNotPendingDeletion
         .filter {
             selectedContentTypeFilter == FileItem.ContentTypeFilter.All ||
-            it.status == DownloadState.Status.COMPLETED
+            it.status == FileItem.Status.Completed
         }
         .filter { selectedContentTypeFilter.predicate(it.contentType) }
         .filter { it.stringToMatchForSearchQuery.contains(searchQuery, ignoreCase = true) }
@@ -83,7 +82,7 @@ data class DownloadUIState(
      */
     private val matchingFilters: List<FileItem.ContentTypeFilter> =
         itemsNotPendingDeletion
-            .filter { it.status == DownloadState.Status.COMPLETED }
+            .filter { it.status == FileItem.Status.Completed }
             .map { it.matchingContentTypeFilter }
             .distinct()
             .sorted()

@@ -43,14 +43,18 @@ class DownloadsServiceCommunicationMiddlewareTest {
 
     @Test
     fun `WHEN the user pauses a download THEN the corresponding broadcastIntent will be sent`() {
-        store.dispatch(action = DownloadUIAction.PauseDownload("id"))
+        store.dispatch(
+            action = DownloadUIAction.PauseDownload(downloadId = "id"),
+        )
         assertEquals("id", broadcastSender.downloadId)
         assertEquals(AbstractFetchDownloadService.ACTION_PAUSE, broadcastSender.action)
     }
 
     @Test
     fun `WHEN the user resumes a download THEN the corresponding broadcastIntent will be sent`() {
-        store.dispatch(action = DownloadUIAction.ResumeDownload("id"))
+        store.dispatch(
+            action = DownloadUIAction.ResumeDownload(downloadId = "id"),
+        )
         assertEquals("id", broadcastSender.downloadId)
         assertEquals(AbstractFetchDownloadService.ACTION_RESUME, broadcastSender.action)
     }
