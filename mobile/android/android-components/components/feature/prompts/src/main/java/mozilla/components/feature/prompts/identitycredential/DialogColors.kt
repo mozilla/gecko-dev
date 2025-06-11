@@ -4,8 +4,7 @@
 
 package mozilla.components.feature.prompts.identitycredential
 
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.MaterialTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
@@ -28,10 +27,8 @@ data class DialogColors(
          */
         @Composable
         fun default(
-            title: Color = MaterialTheme.colors.onBackground,
-            description: Color = MaterialTheme.colors.onBackground.copy(
-                alpha = ContentAlpha.medium,
-            ),
+            title: Color = MaterialTheme.colorScheme.onBackground,
+            description: Color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.74f),
         ) = DialogColors(
             title,
             description,

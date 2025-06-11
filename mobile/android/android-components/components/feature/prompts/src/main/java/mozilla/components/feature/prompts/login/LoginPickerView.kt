@@ -5,7 +5,9 @@
 package mozilla.components.feature.prompts.login
 
 import android.content.Context
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,10 +19,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.Divider
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -107,13 +111,13 @@ private fun LoginListItem(
         Text(
             text = login.username,
             color = loginPickerColors.primary,
-            style = MaterialTheme.typography.body1,
+            style = MaterialTheme.typography.bodyLarge,
         )
 
         Text(
             text = login.passwordDisplay,
             color = loginPickerColors.primary,
-            style = MaterialTheme.typography.body2,
+            style = MaterialTheme.typography.bodyMedium,
         )
     }
 }
@@ -165,7 +169,7 @@ private fun LoginPickerHeader(
             text = stringResource(id = R.string.mozac_feature_prompts_saved_logins_2),
             color = loginPickerColors.header,
             fontSize = 16.sp,
-            style = MaterialTheme.typography.subtitle2,
+            style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.weight(1f),
         )
 
@@ -206,7 +210,7 @@ private fun LoginPickerFooter(
         Text(
             text = stringResource(id = R.string.mozac_feature_prompts_manage_logins_2),
             color = loginPickerColors.primary,
-            style = MaterialTheme.typography.subtitle2,
+            style = MaterialTheme.typography.titleSmall,
         )
 
         Spacer(Modifier.fillMaxWidth())
@@ -262,7 +266,7 @@ fun LoginPicker(
                         loginPickerColors = loginPickerColors,
                         onListItemClicked = { onLoginSelected(login) },
                     )
-                    Divider()
+                    HorizontalDivider()
                 }
             }
 
@@ -281,21 +285,31 @@ fun LoginPicker(
 private fun LoginPreview() {
     var isExpanded by remember { mutableStateOf(true) }
 
-    LoginPicker(
-        logins = listOf(
-            Login("1", "foxy-1@mozilla.com", "foxy@mozilla.com", "1"),
-            Login("2", "foxy-2@mozilla.com", "foxy@mozilla.com", "1"),
-            Login("3", "foxy-3@mozilla.com", "foxy@mozilla.com", "1"),
-            Login("4", "foxy-4@mozilla.com", "foxy@mozilla.com", "1"),
-            Login("5", "foxy-5@mozilla.com", "foxy@mozilla.com", "1"),
-        ),
-        isExpanded = isExpanded,
-        onExpandToggleClick = { isExpanded = it },
-        onLoginSelected = { },
-        onManagePasswordClicked = { },
-        loginPickerColors = LoginPickerColors(
-            primary = MaterialTheme.colors.primary,
-            header = MaterialTheme.colors.onBackground,
-        ),
-    )
+    MaterialTheme(
+        colorScheme = if (isSystemInDarkTheme()) {
+            darkColorScheme()
+        } else {
+            lightColorScheme()
+        },
+    ) {
+        Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.surface)) {
+            LoginPicker(
+                logins = listOf(
+                    Login("1", "foxy-1@mozilla.com", "foxy@mozilla.com", "1"),
+                    Login("2", "foxy-2@mozilla.com", "foxy@mozilla.com", "1"),
+                    Login("3", "foxy-3@mozilla.com", "foxy@mozilla.com", "1"),
+                    Login("4", "foxy-4@mozilla.com", "foxy@mozilla.com", "1"),
+                    Login("5", "foxy-5@mozilla.com", "foxy@mozilla.com", "1"),
+                ),
+                isExpanded = isExpanded,
+                onExpandToggleClick = { isExpanded = it },
+                onLoginSelected = { },
+                onManagePasswordClicked = { },
+                loginPickerColors = LoginPickerColors(
+                    primary = MaterialTheme.colorScheme.primary,
+                    header = MaterialTheme.colorScheme.onBackground,
+                ),
+            )
+        }
+    }
 }

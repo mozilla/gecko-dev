@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.core.view.isVisible
+import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.concept.storage.Login
 import mozilla.components.feature.prompts.concept.AutocompletePrompt
 import mozilla.components.feature.prompts.concept.ExpandablePrompt
@@ -41,20 +42,22 @@ class LoginSelectBar @JvmOverloads constructor(
 
     @Composable
     override fun Content() {
-        LoginPicker(
-            logins = logins,
-            isExpanded = isExpanded,
-            onExpandToggleClick = {
-                when (it) {
-                    true -> expandablePromptListener?.onExpanded()
-                    false -> expandablePromptListener?.onCollapsed()
-                }
-                isExpanded = it
-            },
-            onLoginSelected = { selectablePromptListener?.onOptionSelect(it) },
-            onManagePasswordClicked = { selectablePromptListener?.onManageOptions() },
-            loginPickerColors = loginPickerColors,
-        )
+        AcornTheme {
+            LoginPicker(
+                logins = logins,
+                isExpanded = isExpanded,
+                onExpandToggleClick = {
+                    when (it) {
+                        true -> expandablePromptListener?.onExpanded()
+                        false -> expandablePromptListener?.onCollapsed()
+                    }
+                    isExpanded = it
+                },
+                onLoginSelected = { selectablePromptListener?.onOptionSelect(it) },
+                onManagePasswordClicked = { selectablePromptListener?.onManageOptions() },
+                loginPickerColors = loginPickerColors,
+            )
+        }
     }
 
     override fun populate(options: List<Login>) {
