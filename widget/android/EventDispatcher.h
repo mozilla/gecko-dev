@@ -7,10 +7,19 @@
 #ifndef mozilla_widget_EventDispatcher_h
 #define mozilla_widget_EventDispatcher_h
 
-#include "mozilla/java/EventDispatcherNatives.h"
-#include "mozilla/widget/EventDispatcherBase.h"
+#include "jsapi.h"
+#include "nsClassHashtable.h"
+#include "nsCOMArray.h"
+#include "nsIGeckoViewBridge.h"
+#include "nsHashKeys.h"
+#include "nsPIDOMWindow.h"
 
-namespace mozilla::widget {
+#include "mozilla/java/EventDispatcherNatives.h"
+#include "mozilla/java/GeckoBundleWrappers.h"
+#include "mozilla/Mutex.h"
+
+namespace mozilla {
+namespace widget {
 
 /**
  * EventDispatcher is the Gecko counterpart to the Java EventDispatcher class.
@@ -18,43 +27,78 @@ namespace mozilla::widget {
  * side may notify event listeners on the Gecko side, and vice versa.
  */
 class EventDispatcher final
-    : public EventDispatcherBase,
+    : public nsIGeckoViewEventDispatcher,
       public java::EventDispatcher::Natives<EventDispatcher> {
   using NativesBase = java::EventDispatcher::Natives<EventDispatcher>;
 
  public:
-  void Attach(java::EventDispatcher::Param aDispatcher);
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIGECKOVIEWEVENTDISPATCHER
+
+  EventDispatcher() {}
+
+  void Attach(java::EventDispatcher::Param aDispatcher,
+              nsPIDOMWindowOuter* aDOMWindow);
   void Detach();
 
-  void Activate();
+  nsresult Dispatch(const char16_t* aEvent,
+                    java::GeckoBundle::Param aData = nullptr,
+                    nsIGeckoViewEventCallback* aCallback = nullptr);
 
-  using EventDispatcherBase::HasGeckoListener;
-  bool HasGeckoListener(jni::String::Param aEvent) {
-    return EventDispatcherBase::HasGeckoListener(aEvent->ToString());
-  }
-
-  using EventDispatcherBase::DispatchToGecko;
+  bool HasListener(const char16_t* aEvent);
+  bool HasGeckoListener(jni::String::Param aEvent);
   void DispatchToGecko(jni::String::Param aEvent, jni::Object::Param aData,
                        jni::Object::Param aCallback);
-
-  bool HasEmbedderListener(const nsAString& aEvent) override;
-  nsresult DispatchToEmbedder(JSContext* aCx, const nsAString& aEvent,
-                              JS::Handle<JS::Value> aData,
-                              nsIGeckoViewEventCallback* aCallback) override;
 
   static nsresult UnboxBundle(JSContext* aCx, jni::Object::Param aData,
                               JS::MutableHandle<JS::Value> aOut);
 
+  nsIGlobalObject* GetGlobalObject();
+
+  using NativesBase::DisposeNative;
+
  private:
   friend class java::EventDispatcher::Natives<EventDispatcher>;
 
-  virtual ~EventDispatcher() = default;
+  java::EventDispatcher::WeakRef mDispatcher;
+  nsCOMPtr<nsPIDOMWindowOuter> mDOMWindow;
+
+  virtual ~EventDispatcher() {}
 
   void Shutdown();
 
-  java::EventDispatcher::WeakRef mDispatcher;
+  struct ListenersList {
+    nsCOMArray<nsIGeckoViewEventListener> listeners{/* count */ 1};
+    // 0 if the list can be modified
+    uint32_t lockCount{0};
+    // true if this list has a listener that is being unregistered
+    bool unregistering{false};
+  };
+
+  using ListenersMap = nsClassHashtable<nsStringHashKey, ListenersList>;
+
+  Mutex mLock MOZ_UNANNOTATED{"mozilla::widget::EventDispatcher"};
+  ListenersMap mListenersMap;
+
+  using IterateEventsCallback = nsresult (EventDispatcher::*)(
+      const nsAString&, nsIGeckoViewEventListener*);
+
+  nsresult IterateEvents(JSContext* aCx, JS::Handle<JS::Value> aEvents,
+                         IterateEventsCallback aCallback,
+                         nsIGeckoViewEventListener* aListener);
+  nsresult RegisterEventLocked(const nsAString&, nsIGeckoViewEventListener*);
+  nsresult UnregisterEventLocked(const nsAString&, nsIGeckoViewEventListener*);
+
+  nsresult DispatchOnGecko(ListenersList* list, const nsAString& aEvent,
+                           JS::Handle<JS::Value> aData,
+                           nsIGeckoViewEventCallback* aCallback);
+
+  java::EventDispatcher::NativeCallbackDelegate::LocalRef WrapCallback(
+      nsIGeckoViewEventCallback* aCallback,
+      nsIGeckoViewEventFinalizer* aFinalizer = nullptr);
 };
 
-}  // namespace mozilla::widget
+}  // namespace widget
+}  // namespace mozilla
 
 #endif  // mozilla_widget_EventDispatcher_h
