@@ -3036,6 +3036,7 @@ ImpressionStats_ImpressionStats.defaultProps = {
   source: ""
 };
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/SafeAnchor/SafeAnchor.jsx
+function SafeAnchor_extends() { return SafeAnchor_extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, SafeAnchor_extends.apply(null, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -3100,12 +3101,16 @@ class SafeAnchor extends (external_React_default()).PureComponent {
       className,
       title
     } = this.props;
-    return /*#__PURE__*/external_React_default().createElement("a", {
+    let anchor = /*#__PURE__*/external_React_default().createElement("a", SafeAnchor_extends({
       href: this.safeURI(url),
       title: title,
       className: className,
       onClick: this.onClick
-    }, this.props.children);
+    }, this.props.tabIndex === 0 || this.props.tabIndex ? {
+      ref: this.props.setRef,
+      tabIndex: this.props.tabIndex
+    } : {}), this.props.children);
+    return anchor;
   }
 }
 ;// CONCATENATED MODULE: ./content-src/components/Card/types.mjs
@@ -4975,6 +4980,7 @@ function TrendingSearches() {
     collapsed
   } = TrendingSearch;
   const variant = prefs[PREF_TRENDING_VARIANT];
+  let resultRef = (0,external_React_namespaceObject.useRef)([]);
   const TRENDING_SEARCH_CONTEXT_MENU_OPTIONS = ["TrendingSearchLearnMore", "TrendingSearchDismiss"];
   function onArrowClick() {
     dispatch(actionCreators.AlsoToMain({
@@ -4999,55 +5005,81 @@ function TrendingSearches() {
   function onUpdate() {
     setShowContextMenu(!showContextMenu);
   }
+  function handleResultKeyDown(event, index) {
+    const maxResults = suggestions.length;
+    let nextIndex = index;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (index < maxResults - 1) {
+        nextIndex = index + 1;
+      } else {
+        return;
+      }
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (index > 0) {
+        nextIndex = index - 1;
+      } else {
+        return;
+      }
+    }
+    resultRef.current[index].tabIndex = -1;
+    resultRef.current[nextIndex].tabIndex = 0;
+    resultRef.current[nextIndex].focus();
+  }
   if (!suggestions?.length) {
     return null;
   } else if (variant === "a") {
-    return /*#__PURE__*/external_React_default().createElement("section", {
+    return /*#__PURE__*/React.createElement("section", {
       className: "trending-searches-pill-wrapper"
-    }, /*#__PURE__*/external_React_default().createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       className: "trending-searches-title-wrapper"
-    }, /*#__PURE__*/external_React_default().createElement("span", {
+    }, /*#__PURE__*/React.createElement("span", {
       className: "trending-searches-icon icon icon-arrow-trending"
-    }), /*#__PURE__*/external_React_default().createElement("h2", {
+    }), /*#__PURE__*/React.createElement("h2", {
       className: "trending-searches-title",
       "data-l10n-id": "newtab-trending-searches-trending-on-google"
-    }), /*#__PURE__*/external_React_default().createElement("div", {
+    }), /*#__PURE__*/React.createElement("div", {
       className: "close-open-trending-searches"
-    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
+    }, /*#__PURE__*/React.createElement("moz-button", {
       iconsrc: `chrome://global/skin/icons/arrow-${collapsed ? "down" : "up"}.svg`,
       onClick: onArrowClick,
       className: `icon icon-arrowhead-up`,
       type: "icon ghost",
       "data-l10n-id": `newtab-trending-searches-${collapsed ? "hide" : "show"}-trending`
-    }))), !collapsed && /*#__PURE__*/external_React_default().createElement("ul", {
+    }))), !collapsed && /*#__PURE__*/React.createElement("ul", {
       className: "trending-searches-list"
     }, suggestions.map((result, index) => {
-      return /*#__PURE__*/external_React_default().createElement("li", {
-        key: index,
-        className: "trending-search-item"
-      }, /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
-        url: ""
+      return /*#__PURE__*/React.createElement("li", {
+        key: result.suggestion,
+        className: "trending-search-item",
+        onKeyDown: e => handleResultKeyDown(e, index)
+      }, /*#__PURE__*/React.createElement(SafeAnchor, {
+        url: result.searchUrl,
+        title: result.suggestion,
+        setRef: item => resultRef.current[index] = item,
+        tabIndex: index === 0 ? 0 : -1
       }, result.lowerCaseSuggestion));
     })));
   } else if (variant === "b") {
-    return /*#__PURE__*/external_React_default().createElement("div", {
+    return /*#__PURE__*/React.createElement("div", {
       className: "trending-searches-list-view"
-    }, /*#__PURE__*/external_React_default().createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       className: "trending-searches-list-view-header"
-    }, /*#__PURE__*/external_React_default().createElement("h3", {
+    }, /*#__PURE__*/React.createElement("h3", {
       "data-l10n-id": "newtab-trending-searches-trending-on-google"
-    }), /*#__PURE__*/external_React_default().createElement("div", {
+    }), /*#__PURE__*/React.createElement("div", {
       className: "trending-searches-context-menu-wrapper"
-    }, /*#__PURE__*/external_React_default().createElement("div", {
+    }, /*#__PURE__*/React.createElement("div", {
       className: `trending-searches-context-menu ${showContextMenu ? "context-menu-open" : ""}`
-    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
+    }, /*#__PURE__*/React.createElement("moz-button", {
       type: "icon ghost",
       size: "default",
       "data-l10n-id": "newtab-menu-section-tooltip",
       iconsrc: "chrome://global/skin/icons/more.svg",
       onClick: onContextMenuClick,
       onKeyDown: onContextMenuKeyDown
-    }), showContextMenu && /*#__PURE__*/external_React_default().createElement(LinkMenu, {
+    }), showContextMenu && /*#__PURE__*/React.createElement(LinkMenu, {
       onUpdate: onUpdate,
       dispatch: dispatch,
       keyboardAccess: isKeyboardAccess,
@@ -5055,17 +5087,22 @@ function TrendingSearches() {
       site: {
         url: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/trending-searches-new-tab"
       }
-    })))), /*#__PURE__*/external_React_default().createElement("ul", {
+    })))), /*#__PURE__*/React.createElement("ul", {
       className: "trending-searches-list-items"
-    }, suggestions.slice(0, 6).map(result => /*#__PURE__*/external_React_default().createElement("li", {
-      key: result.suggestion,
-      className: "trending-searches-list-item"
-    }, /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
-      url: "",
-      title: result.suggestion
-    }, /*#__PURE__*/external_React_default().createElement("span", {
-      className: "trending-searches-icon icon icon-arrow-trending"
-    }), result.lowerCaseSuggestion)))));
+    }, suggestions.slice(0, 6).map((result, index) => {
+      return /*#__PURE__*/React.createElement("li", {
+        key: result.suggestion,
+        className: "trending-searches-list-item",
+        onKeyDown: e => handleResultKeyDown(e, index)
+      }, /*#__PURE__*/React.createElement(SafeAnchor, {
+        url: result.searchUrl,
+        title: result.suggestion,
+        setRef: item => resultRef.current[index] = item,
+        tabIndex: index === 0 ? 0 : -1
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "trending-searches-icon icon icon-arrow-trending"
+      }), result.lowerCaseSuggestion));
+    })));
   }
 }
 
