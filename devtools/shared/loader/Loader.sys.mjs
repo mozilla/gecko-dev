@@ -28,6 +28,7 @@ var gNextLoaderID = 0;
  * @param invisibleToDebugger boolean
  *        If true, the modules won't be visible by the Debugger API.
  *        This typically allows to hide server modules from the debugger panel.
+ *        This is now only used by some tests.
  * @param freshCompartment boolean
  *        If true, the modules will be forced to be loaded in a distinct
  *        compartment. It is typically used to load the modules in a distinct
@@ -199,17 +200,6 @@ DevToolsLoader.prototype = {
 };
 
 // Export the standard instance of DevToolsLoader used by the tools.
-export var loader = new DevToolsLoader({
-  /**
-   * Sets whether the compartments loaded by this instance should be invisible
-   * to the debugger.  Invisibility is needed for loaders that support debugging
-   * of chrome code.  This is true of remote target environments, like Fennec or
-   * B2G.  It is not the default case for desktop Firefox because we offer the
-   * Browser Toolbox for chrome debugging there, which uses its own, separate
-   * loader instance.
-   * @see devtools/client/framework/browser-toolbox/Launcher.sys.mjs
-   */
-  invisibleToDebugger: Services.appinfo.name !== "Firefox",
-});
+export var loader = new DevToolsLoader();
 
 export var require = loader.require;

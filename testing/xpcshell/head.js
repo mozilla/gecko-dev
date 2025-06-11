@@ -404,9 +404,20 @@ function _setupDevToolsServer(breakpointFiles, callback) {
 
   let require;
   try {
-    ({ require } = ChromeUtils.importESModule(
-      "resource://devtools/shared/loader/Loader.sys.mjs"
-    ));
+    const {
+      useDistinctSystemPrincipalLoader,
+      releaseDistinctSystemPrincipalLoader,
+    } = ChromeUtils.importESModule(
+      "resource://devtools/shared/loader/DistinctSystemPrincipalLoader.sys.mjs",
+      { global: "shared" }
+    );
+    const requester = {};
+    const distinctLoader = useDistinctSystemPrincipalLoader(requester);
+    registerCleanupFunction(() => {
+      releaseDistinctSystemPrincipalLoader(requester);
+    });
+
+    require = distinctLoader.require;
   } catch (e) {
     throw new Error(
       "resource://devtools appears to be inaccessible from the " +
