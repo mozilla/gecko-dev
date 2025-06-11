@@ -269,28 +269,6 @@ pub fn new_tab_override_suggestion() -> Suggestion {
     }
 }
 
-pub fn burnout_pocket() -> JsonValue {
-    json!({
-        "description": "pocket suggestion",
-        "url": "https://getpocket.com/collections/its-not-just-burnout-how-grind-culture-failed-women",
-        "lowConfidenceKeywords": ["soft life", "workaholism", "toxic work culture", "work-life balance"],
-        "highConfidenceKeywords": ["burnout women", "grind culture", "women burnout"],
-        "title": "‘It’s Not Just Burnout:’ How Grind Culture Fails Women",
-        "score": 0.25
-    })
-}
-
-pub fn burnout_suggestion(is_top_pick: bool) -> Suggestion {
-    Suggestion::Pocket {
-        title: "‘It’s Not Just Burnout:’ How Grind Culture Fails Women".into(),
-        url:
-            "https://getpocket.com/collections/its-not-just-burnout-how-grind-culture-failed-women"
-                .into(),
-        score: 0.25,
-        is_top_pick,
-    }
-}
-
 pub fn ramen_yelp() -> JsonValue {
     json!({
         "subjects": ["ramen", "spicy ramen", "spicy random ramen", "rats", "raven", "raccoon", "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789", "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789Z"],
@@ -380,31 +358,11 @@ pub fn multimatch_amo() -> JsonValue {
     })
 }
 
-pub fn multimatch_pocket() -> JsonValue {
-    json!({
-        "description": "pocket suggestion multi-match",
-        "url": "https://getpocket.com/collections/multimatch",
-        "lowConfidenceKeywords": [],
-        "highConfidenceKeywords": ["multimatch"],
-        "title": "Multimatching",
-        "score": 0.88
-    })
-}
-
 pub fn multimatch_wiki_icon() -> MockIcon {
     MockIcon {
         id: "multimatch-wiki-favicon",
         data: "multimatch-wiki-icon-data",
         mimetype: "image/png",
-    }
-}
-
-pub fn multimatch_pocket_suggestion(is_top_pick: bool) -> Suggestion {
-    Suggestion::Pocket {
-        title: "Multimatching".into(),
-        url: "https://getpocket.com/collections/multimatch".into(),
-        score: 0.88,
-        is_top_pick,
     }
 }
 

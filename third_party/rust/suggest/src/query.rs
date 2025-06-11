@@ -77,14 +77,6 @@ impl SuggestionQuery {
         }
     }
 
-    pub fn pocket(keyword: &str) -> Self {
-        Self {
-            keyword: keyword.into(),
-            providers: vec![SuggestionProvider::Pocket],
-            ..Self::default()
-        }
-    }
-
     pub fn yelp(keyword: &str) -> Self {
         Self {
             keyword: keyword.into(),
