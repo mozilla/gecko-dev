@@ -27,6 +27,7 @@
 #include "nsAppRunner.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
+#include "nsIAlertsServiceRust.h"
 #include "nsIObserverService.h"
 #include "nsIWindowMediator.h"
 #include "nsPIDOMWindow.h"
@@ -770,6 +771,15 @@ ToastNotification::CloseAlert(const nsAString& aAlertName,
   handler->UnregisterHandler();
 
   return NS_OK;
+}
+
+NS_IMETHODIMP
+ToastNotification::GetHistory(nsTArray<nsString>& aResult) {
+  if (mAumid.isNothing()) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+  nsCOMPtr<nsIAlertsServiceRust> service = do_GetService("@mozilla.org/windows-alerts-service-rust;1");
+  return service->GetHistory(*mAumid, aResult);
 }
 
 bool ToastNotification::IsActiveHandler(const nsAString& aAlertName,

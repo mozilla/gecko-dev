@@ -73,6 +73,15 @@ NS_IMETHODIMP nsSystemAlertsService::CloseAlert(const nsAString& aAlertName,
   return listener->Close();
 }
 
+NS_IMETHODIMP nsSystemAlertsService::GetHistory(nsTArray<nsString>& aResult) {
+  // Neither org.freedesktop.Notifications nor
+  // org.freedesktop.portal.Notification supports getting the previous
+  // notifications
+  // https://specifications.freedesktop.org/notification-spec/latest/protocol.html
+  // https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Notification.html
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
 NS_IMETHODIMP nsSystemAlertsService::GetManualDoNotDisturb(bool* aRetVal) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }

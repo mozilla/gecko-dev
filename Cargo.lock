@@ -2644,6 +2644,7 @@ dependencies = [
  "webext-storage",
  "webrender_bindings",
  "wgpu_bindings",
+ "widget_windows",
  "wpf-gpu-raster",
  "xpcom",
 ]
@@ -7648,6 +7649,18 @@ dependencies = [
  "cc",
  "cfg-if",
  "libc",
+]
+
+[[package]]
+name = "widget_windows"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "nserror",
+ "nsstring",
+ "thin-vec",
+ "windows",
+ "xpcom",
 ]
 
 [[package]]

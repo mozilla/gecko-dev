@@ -163,6 +163,12 @@ if CONFIG["MOZ_ENABLE_SKIA_PDF"]:
         "WindowsEMF.cpp",
     ]
 
+XPIDL_SOURCES += [
+    "nsIAlertsServiceRust.idl",
+]
+
+XPIDL_MODULE = "widget_windows"
+
 XPCOM_MANIFESTS += [
     "components.conf",
 ]
