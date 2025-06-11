@@ -39,6 +39,9 @@ legend {
 
   fieldset[aria-orientation="horizontal"] & {
     flex-direction: row;
+    flex-wrap: wrap;
+    row-gap: var(--space-small);
+    column-gap: var(--space-medium);
   }
 }
 

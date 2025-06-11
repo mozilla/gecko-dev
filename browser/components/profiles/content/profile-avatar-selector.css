@@ -29,3 +29,7 @@
   --button-icon-fill: transparent;
   --button-icon-stroke: currentColor;
 }
+
+moz-visual-picker-item {
+  --visual-picker-item-border-color: transparent;
+}

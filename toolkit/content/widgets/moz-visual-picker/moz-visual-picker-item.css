@@ -5,11 +5,13 @@
 :host {
   --visual-picker-item-border-radius: var(--border-radius-medium);
   --visual-picker-item-border-width: var(--border-width);
+  --visual-picker-item-border-color: var(--border-color-interactive);
+
   cursor: default;
 }
 
 .picker-item {
-  border: var(--visual-picker-item-border-width) solid var(--border-color-interactive);
+  border: var(--visual-picker-item-border-width) solid var(--visual-picker-item-border-color);
   border-radius: var(--visual-picker-item-border-radius);
   margin: 2px;
 

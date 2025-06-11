@@ -521,6 +521,13 @@
             thirdItem,
             "First non-disabled picker item is focusable when all items are un-checked."
           );
+
+          synthesizeKey("KEY_Enter");
+          is(
+            picker.value,
+            thirdItem.value,
+            "Hitting enter selects the focused item."
+          );
         }
 
         await validateNoItemSelected("radio");
@@ -872,6 +879,18 @@
         is(
           picker.value,
           "second",
+          "The picker value changes when a new item is selected."
+        );
+
+        await navigate("left");
+        synthesizeKey("KEY_Enter");
+        ok(
+          firstItem.checked,
+          "First item is selected when enter key is pressed."
+        );
+        is(
+          picker.value,
+          "first",
           "The picker value changes when a new item is selected."
         );
       });

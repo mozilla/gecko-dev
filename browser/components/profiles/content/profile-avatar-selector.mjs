@@ -7,7 +7,6 @@ import { html } from "chrome://global/content/vendor/lit.all.mjs";
 
 /**
  * Element used for displaying an avatar on the about:editprofile and about:newprofile pages.
- * profiles-group-item wraps this element to behave as a radio element.
  */
 export class ProfileAvatarSelector extends MozLitElement {
   static properties = {
@@ -70,23 +69,24 @@ export class ProfileAvatarSelector extends MozLitElement {
     // files don't exist.
     avatars = avatars.slice(0, 6);
 
-    return html`<profiles-group
+    return html`<moz-visual-picker
       value=${this.avatar}
       name="avatar"
       id="avatars"
-      @click=${this.handleAvatarClick}
+      @change=${this.handleAvatarChange}
       >${avatars.map(
         avatar =>
-          html`<profiles-group-item
+          html`<moz-visual-picker-item
             l10nId=${this.getAvatarL10nId(avatar)}
             value=${avatar}
             ><moz-button
               class="avatar-button"
               type="ghost"
               iconSrc="chrome://browser/content/profiles/assets/16_${avatar}.svg"
+              tabindex="-1"
             ></moz-button
-          ></profiles-group-item>`
-      )}</profiles-group
+          ></moz-visual-picker-item>`
+      )}</moz-visual-picker
     >`;
   }
 
