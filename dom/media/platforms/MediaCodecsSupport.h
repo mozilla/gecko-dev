@@ -41,11 +41,13 @@ enum class MediaCodec : int {
 };
 using MediaCodecSet = EnumSet<MediaCodec, uint64_t>;
 
-// Helper macros used to create codec-specific SW/HW decode enums below.
+// Helper macros used to create codec-specific SW/HW de/encode enums below.
 #define SW_DECODE(codec) codec##SoftwareDecode
 #define HW_DECODE(codec) codec##HardwareDecode
+#define SW_ENCODE(codec) codec##SoftwareEncode
+#define HW_ENCODE(codec) codec##HardwareEncode
 
-// For codec which we can do hardware decoding once user installs the free
+// For codec which we can do hardware de/encoding once user installs the free
 // platform extension, eg. AV1 on Windows
 #define LACK_HW_EXTENSION(codec) codec##LackOfExtension
 
@@ -56,13 +58,17 @@ using MediaCodecSet = EnumSet<MediaCodec, uint64_t>;
 // for debug purposes / check for erroneous PDM return values.
 // Example: MediaCodecsSupport::AACSoftwareDecode
 enum class MediaCodecsSupport : int {
-#define X(name) SW_DECODE(name), HW_DECODE(name), LACK_HW_EXTENSION(name),
+#define X(name)                                                       \
+  SW_DECODE(name), HW_DECODE(name), SW_ENCODE(name), HW_ENCODE(name), \
+      LACK_HW_EXTENSION(name),
   CODEC_LIST
 #undef X
       SENTINEL
 };
 #undef SW_DECODE
 #undef HW_DECODE
+#undef SW_ENCODE
+#undef HW_ENCODE
 #undef CODEC_LIST  // end of macros!
 
 // Enumset containing per-codec SW/HW support
@@ -76,6 +82,14 @@ enum class DecodeSupport : int {
 };
 using DecodeSupportSet = EnumSet<DecodeSupport, uint64_t>;
 
+// Codec-agnostic SW/HW decode support information.
+enum class EncodeSupport : int {
+  SoftwareEncode,
+  HardwareEncode,
+  UnsureDueToLackOfExtension,
+};
+using EncodeSupportSet = EnumSet<EncodeSupport, uint64_t>;
+
 // CodecDefinition stores information needed to convert / index
 // codec support information between types. See: GetAllCodecDefinitions()
 struct CodecDefinition {
@@ -84,6 +98,8 @@ struct CodecDefinition {
   const char* mimeTypeString = "Undefined MIME type string";
   MediaCodecsSupport swDecodeSupport = MediaCodecsSupport::SENTINEL;
   MediaCodecsSupport hwDecodeSupport = MediaCodecsSupport::SENTINEL;
+  MediaCodecsSupport swEncodeSupport = MediaCodecsSupport::SENTINEL;
+  MediaCodecsSupport hwEncodeSupport = MediaCodecsSupport::SENTINEL;
   MediaCodecsSupport lackOfHWExtenstion = MediaCodecsSupport::SENTINEL;
 };
 
@@ -128,6 +144,8 @@ class MCSInfo final {
   //
   static DecodeSupportSet GetDecodeSupportSet(
       const MediaCodec& aCodec, const MediaCodecsSupported& aSupported);
+  static EncodeSupportSet GetEncodeSupportSet(
+      const MediaCodec& aCodec, const MediaCodecsSupported& aSupported);
 
   // Return codec-specific SW/HW support enums for a given codec.
   // The DecodeSupportSet argument is used which codec-specific SW/HW
@@ -142,6 +160,8 @@ class MCSInfo final {
   //
   static MediaCodecsSupported GetDecodeMediaCodecsSupported(
       const MediaCodec& aCodec, const DecodeSupportSet& aSupportSet);
+  static MediaCodecsSupported GetEncodeMediaCodecsSupported(
+      const MediaCodec& aCodec, const EncodeSupportSet& aSupportSet);
 
   // Generate a plaintext description for the SW/HW support information
   // contained in a MediaCodecsSupported EnumSet.
@@ -183,11 +203,19 @@ class MCSInfo final {
   // codec type and decode support level requested.
   static MediaCodecsSupport GetMediaCodecsSupportEnum(
       const MediaCodec& aCodec, const DecodeSupport& aSupport);
+  static MediaCodecsSupport GetMediaCodecsSupportEnum(
+      const MediaCodec& aCodec, const EncodeSupport& aSupport);
 
   // Returns true if SW/HW decode enum for a given codec is present in the args.
   static bool SupportsSoftwareDecode(
       const MediaCodecsSupported& aSupportedCodecs, const MediaCodec& aCodec);
   static bool SupportsHardwareDecode(
+      const MediaCodecsSupported& aSupportedCodecs, const MediaCodec& aCodec);
+
+  // Returns true if SW/HW encode enum for a given codec is present in the args.
+  static bool SupportsSoftwareEncode(
+      const MediaCodecsSupported& aSupportedCodecs, const MediaCodec& aCodec);
+  static bool SupportsHardwareEncode(
       const MediaCodecsSupported& aSupportedCodecs, const MediaCodec& aCodec);
 
   MCSInfo(MCSInfo const&) = delete;
