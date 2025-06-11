@@ -103,6 +103,21 @@ TEST(TaskQueue, GetCurrentSerialEventTarget)
   tq1->AwaitShutdownAndIdle();
 }
 
+TEST(TaskQueue, DirectTaskGetCurrentSerialEventTarget)
+{
+  RefPtr<TaskQueue> tq1 = TaskQueue::Create(
+      GetMediaThreadPool(MediaThreadType::SUPERVISOR),
+      "TestTaskQueue DirectTaskGetCurrentSerialEventTarget", true);
+  Unused << tq1->Dispatch(NS_NewRunnableFunction(
+      "TestTaskQueue::DirectTaskGetCurrentSerialEventTarget::TestBody", [&]() {
+        AbstractThread::DispatchDirectTask(NS_NewRunnableFunction(
+            "TestTaskQueue::DirectTaskGetCurrentSerialEventTarget::DirectTask",
+            [&] { EXPECT_EQ(GetCurrentSerialEventTarget(), tq1); }));
+      }));
+  tq1->BeginShutdown();
+  tq1->AwaitShutdownAndIdle();
+}
+
 namespace {
 
 class TestShutdownTask final : public nsITargetShutdownTask {

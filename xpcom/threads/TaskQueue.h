@@ -194,11 +194,15 @@ class TaskQueue final : public AbstractThread,
 
       MOZ_ASSERT(mQueue->mRunningThread == nullptr);
       mQueue->mRunningThread = PR_GetCurrentThread();
+
+      mEventTargetGuard.emplace(mQueue);
     }
 
     ~AutoTaskGuard() {
       mTaskDispatcher->DrainDirectTasks();
       mTaskDispatcher.reset();
+
+      mEventTargetGuard = Nothing();
 
       MOZ_ASSERT(mQueue->mRunningThread == PR_GetCurrentThread());
       mQueue->mRunningThread = nullptr;
@@ -209,6 +213,7 @@ class TaskQueue final : public AbstractThread,
 
    private:
     Maybe<AutoTaskDispatcher> mTaskDispatcher;
+    Maybe<SerialEventTargetGuard> mEventTargetGuard;
     TaskQueue* mQueue;
     AbstractThread* mLastCurrentThread;
   };
