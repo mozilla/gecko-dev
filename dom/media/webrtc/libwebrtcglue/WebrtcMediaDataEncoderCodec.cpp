@@ -61,7 +61,7 @@ bool WebrtcMediaDataEncoder::CanCreate(
     const webrtc::VideoCodecType aCodecType) {
   auto factory = MakeRefPtr<PEMFactory>();
   CodecType type = ConvertWebrtcCodecTypeToCodecType(aCodecType);
-  return factory->SupportsCodec(type);
+  return !factory->SupportsCodec(type).isEmpty();
 }
 
 static const char* PacketModeStr(const webrtc::CodecSpecificInfo& aInfo) {

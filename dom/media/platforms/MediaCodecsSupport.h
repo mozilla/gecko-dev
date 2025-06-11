@@ -106,6 +106,10 @@ struct CodecDefinition {
 // Singleton class used to collect, manage, and report codec support data.
 class MCSInfo final {
  public:
+  // Gets the codec support from current PDMFactory and PEMFactory
+  // configuration.
+  static MediaCodecsSupported GetSupportFromFactory(bool aForceRefresh = false);
+
   // Add codec support information to our aggregated list of supported codecs.
   // Incoming support info is merged with the current support info.
   // This is because different PDMs may report different codec support

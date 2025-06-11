@@ -106,6 +106,8 @@ class PDMFactory final {
 
   DecoderDoctorDiagnostics::FlagsSet mFailureFlags;
 
+  static StaticMutex sSupportedMutex;
+
   friend class RemoteVideoDecoderParent;
   static void EnsureInit();
   static void ForcePDM(PlatformDecoderModule* aPDM);

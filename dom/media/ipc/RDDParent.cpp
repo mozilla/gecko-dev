@@ -17,8 +17,8 @@
 #  include <unistd.h>
 #endif
 
-#include "PDMFactory.h"
 #include "gfxConfig.h"
+#include "MediaCodecsSupport.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/FOGIPC.h"
 #include "mozilla/Preferences.h"
@@ -144,7 +144,7 @@ mozilla::ipc::IPCResult RDDParent::RecvInit(
     gfxVars::ApplyUpdate(var);
   }
 
-  auto supported = PDMFactory::Supported();
+  auto supported = media::MCSInfo::GetSupportFromFactory();
   Unused << SendUpdateMediaCodecsSupported(supported);
 
 #if defined(MOZ_SANDBOX)

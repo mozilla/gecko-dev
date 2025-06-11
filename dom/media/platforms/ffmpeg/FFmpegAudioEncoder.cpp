@@ -59,7 +59,7 @@ MediaResult FFmpegAudioEncoder<LIBAV_VER>::InitEncoder() {
   FFMPEG_LOG("FFmpegAudioEncoder::InitEncoder");
 
   // Initialize the common members of the encoder instance
-  auto r = AllocateCodecContext(mLib, mCodecID);
+  auto r = AllocateCodecContext(/* aHardware */ false);
   if (r.isErr()) {
     return r.unwrapErr();
   }
