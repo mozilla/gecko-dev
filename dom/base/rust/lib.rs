@@ -137,6 +137,9 @@ bitflags! {
         /// https://drafts.csswg.org/selectors-4/#open-state
         /// Match whether an openable element is currently open
         const OPEN = 1u64 << 49;
+        /// For :active-view-transition.
+        /// <https://www.w3.org/TR/css-view-transitions-2/#the-active-view-transition-pseudo>
+        const ACTIVE_VIEW_TRANSITION = 1u64 << 50;
 
         /// Some convenience unions.
         const DIR_STATES = Self::LTR.bits() | Self::RTL.bits();

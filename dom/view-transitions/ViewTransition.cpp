@@ -1474,6 +1474,12 @@ void ViewTransition::ClearActiveTransition(bool aIsDocumentHidden) {
   MOZ_ASSERT(mDocument);
   MOZ_ASSERT(mDocument->GetActiveViewTransition() == this);
 
+  // Ensure that any styles associated with :active-view-transition no longer
+  // apply.
+  if (auto* root = mDocument->GetRootElement()) {
+    root->RemoveStates(ElementState::ACTIVE_VIEW_TRANSITION);
+  }
+
   // Step 3
   ClearNamedElements();
 
