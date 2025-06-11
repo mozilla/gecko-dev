@@ -81,8 +81,8 @@ if CONFIG["MOZ_WEBRTC"]:
 
     UNIFIED_SOURCES += [
         "TestAudioInputProcessing.cpp",
-        "TestCallWorkerThread.cpp",
         "TestRTCStatsTimestampMaker.cpp",
+        "TestWebrtcTaskQueueWrapper.cpp",
     ]
 
 if CONFIG["OS_TARGET"] != "Android":

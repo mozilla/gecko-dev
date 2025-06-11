@@ -20,7 +20,6 @@ LOCAL_INCLUDES += [
 
 UNIFIED_SOURCES += [
     "AudioConduit.cpp",
-    "CallWorkerThread.cpp",
     "FrameTransformer.cpp",
     "FrameTransformerProxy.cpp",
     "GmpVideoCodec.cpp",
@@ -34,6 +33,7 @@ UNIFIED_SOURCES += [
     "WebrtcGmpVideoCodec.cpp",
     "WebrtcMediaDataDecoderCodec.cpp",
     "WebrtcMediaDataEncoderCodec.cpp",
+    "WebrtcTaskQueueWrapper.cpp",
     "WebrtcVideoCodecFactory.cpp",
 ]
 
