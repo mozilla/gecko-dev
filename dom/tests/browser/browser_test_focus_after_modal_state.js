@@ -13,6 +13,12 @@ function awaitAndClosePrompt(browser) {
   );
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function () {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
   let browser = tab.linkedBrowser;

@@ -9,6 +9,7 @@ const BASE_URL = "http://mochi.test:8888/browser/dom/base/test/";
 add_task(async function bug1703472() {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       // Enable the popup blocker
       ["dom.disable_open_during_load", true],
     ],

@@ -10,7 +10,10 @@ const VIEW_SRC_URI = "view-source:" + HTML_URI;
 
 add_task(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.navigation.requireUserInteraction", false]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["browser.navigation.requireUserInteraction", false],
+    ],
   });
 
   info("load baseline html in new tab");

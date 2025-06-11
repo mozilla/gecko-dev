@@ -135,6 +135,12 @@ async function doAllTests() {
 // constant starting and stopping processes, and opens a new window ~144 times.
 requestLongerTimeout(30);
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function newtab_sameproc() {
   await SpecialPowers.pushPrefEnv({
     set: [

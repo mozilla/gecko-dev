@@ -40,7 +40,10 @@ add_setup(async function () {
   await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:mozilla");
   // Bug 1968055 - Temporarily enabled pocket pref while we remove the pref entirely
   await SpecialPowers.pushPrefEnv({
-    set: [["extensions.pocket.enabled", true]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["extensions.pocket.enabled", true],
+    ],
   });
 });
 

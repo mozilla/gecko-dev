@@ -1,5 +1,11 @@
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function closing_tab_with_dependents_should_close_window() {
   info("Opening window");
   let win = await BrowserTestUtils.openNewBrowserWindow();

@@ -91,6 +91,7 @@ add_setup(async function init() {
 
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["test.events.async.enabled", true],
       // This test aims to synthesize mousemove events at specific times, so
       // disable the automatically synthesized mousemove events during reflow.

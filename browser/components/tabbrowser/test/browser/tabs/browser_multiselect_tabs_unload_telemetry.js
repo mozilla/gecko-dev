@@ -49,7 +49,10 @@ add_setup(async function () {
   await BrowserTestUtils.switchTab(gBrowser, originalTab);
 
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.tabs.unloadTabInContextMenu", true]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["browser.tabs.unloadTabInContextMenu", true],
+    ],
   });
 });
 

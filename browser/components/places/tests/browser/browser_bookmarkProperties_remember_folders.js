@@ -84,6 +84,10 @@ async function assertRecentFolders(expectedGuids, msg) {
 }
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   await PlacesUtils.bookmarks.eraseEverything();
   await PlacesUtils.metadata.delete(PlacesUIUtils.LAST_USED_FOLDERS_META_KEY);
 

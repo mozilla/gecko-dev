@@ -10,6 +10,12 @@ function assertPixel(actual, expected, message) {
   isfuzzy(actual[2], expected[2], 1, "B color value");
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_visibleScreenshot() {
   await BrowserTestUtils.withNewTab(
     {

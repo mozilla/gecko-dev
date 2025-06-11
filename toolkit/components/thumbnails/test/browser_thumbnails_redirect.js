@@ -9,6 +9,12 @@ const FINAL_URL =
   "http://mochi.test:8888/browser/toolkit/components/" +
   "thumbnails/test/background_red.html";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * These tests ensure that we save and provide thumbnails for redirecting sites.
  */

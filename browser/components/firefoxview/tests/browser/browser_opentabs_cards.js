@@ -8,7 +8,11 @@ const ROW_DATE_ID = "fxview-tab-row-date";
 let gInitialTab;
 let gInitialTabURL;
 
-add_setup(function () {
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   // This test opens a lot of windows and tabs and might run long on slower configurations
   requestLongerTimeout(3);
   gInitialTab = gBrowser.selectedTab;

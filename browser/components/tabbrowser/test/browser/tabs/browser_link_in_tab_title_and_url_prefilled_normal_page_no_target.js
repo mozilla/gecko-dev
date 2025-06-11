@@ -17,7 +17,10 @@ const { UrlbarTestUtils } = ChromeUtils.importESModule(
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.http.blank_page_with_error_response.enabled", true]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["browser.http.blank_page_with_error_response.enabled", true],
+    ],
   });
 });
 

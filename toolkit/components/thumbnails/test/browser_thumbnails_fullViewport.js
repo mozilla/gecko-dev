@@ -28,6 +28,12 @@ const PAGE_MARKUP = `
 `;
 const PAGE_URL = BUILDER_URL + encodeURI(PAGE_MARKUP);
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * These tests ensure that it's possible to capture the full viewport of
  * a browser, and not just the top region.

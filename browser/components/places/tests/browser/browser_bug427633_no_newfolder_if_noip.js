@@ -5,6 +5,12 @@
  * insertionPoint is invalid.
  */
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 const TEST_URL = "about:buildconfig";
 
 add_task(async function () {

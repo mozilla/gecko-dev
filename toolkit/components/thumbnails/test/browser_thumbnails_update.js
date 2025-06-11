@@ -23,6 +23,12 @@ function getThumbnailModifiedTime(url) {
   return file.lastModifiedTime;
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Check functionality of a normal captureAndStoreIfStale request
  */

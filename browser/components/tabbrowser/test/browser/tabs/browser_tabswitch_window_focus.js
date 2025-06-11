@@ -5,6 +5,12 @@ SpecialPowers.pushPrefEnv({ set: [["dom.disable_window_flip", false]] });
 
 const FILE = getRootDirectory(gTestPath) + "open_window_in_new_tab.html";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function () {
   info("Opening first tab: " + FILE);
   let firstTab = await BrowserTestUtils.openNewForegroundTab(gBrowser, FILE);

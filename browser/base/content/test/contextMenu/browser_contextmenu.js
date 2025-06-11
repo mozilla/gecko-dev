@@ -70,6 +70,7 @@ function getThisFrameSubMenu(base_menu) {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["browser.search.separatePrivateDefault.ui.enabled", true],
       ["privacy.query_stripping.strip_on_share.canDisable", false],
       ["dom.text_fragments.create_text_fragment.enabled", true],

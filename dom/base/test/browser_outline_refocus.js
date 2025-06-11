@@ -37,6 +37,12 @@ async function test_browser_outline_refocus(
   });
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function browser_outline_refocus_mouse() {
   await test_browser_outline_refocus(
     "Link shouldn't show outlines since it was originally focused by mouse",

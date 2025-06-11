@@ -187,6 +187,12 @@ function testNonDefaultChromeToolbars(toolbars) {
   ok(!toolbars.toolbar, "toolbar should not be visible with toolbar=no");
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Ensure that toolbars of a window opened in the content context have the
  * correct visibility.

@@ -185,6 +185,7 @@ add_setup(async function () {
   await IOUtils.makeDirectory(tmpDir);
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["browser.download.start_downloads_in_tmp_dir", true],
       ["browser.helperApps.deleteTempFileOnExit", true],
       ["browser.download.folderList", 2],
