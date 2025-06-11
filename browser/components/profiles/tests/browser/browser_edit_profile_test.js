@@ -428,7 +428,7 @@ add_task(async function test_avatar_picker_arrow_key_support() {
         EventUtils.synthesizeMouseAtCenter(avatars[0], {}, content);
         avatars[0].focus();
         let selectedAvatar = editProfileCard.shadowRoot.querySelector(
-          "#avatars > moz-visual-picker-item[checked]"
+          "#avatars > profiles-group-item[checked]"
         );
         Assert.equal("book", selectedAvatar.value, "Book avatar was selected");
         Assert.equal(
@@ -512,7 +512,7 @@ add_task(async function test_theme_picker_arrow_key_support() {
         EventUtils.synthesizeMouseAtCenter(themeCards[0], {}, content);
         themeCards[0].focus();
         let selectedTheme = editProfileCard.shadowRoot.querySelector(
-          "#themes > moz-visual-picker-item[checked]"
+          "#themes > profiles-group-item[checked]"
         );
         Assert.equal(
           "firefox-compact-light@mozilla.org",

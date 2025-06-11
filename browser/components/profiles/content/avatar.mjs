@@ -7,6 +7,7 @@ import { html } from "chrome://global/content/vendor/lit.all.mjs";
 
 /**
  * Element used for displaying an avatar on the about:editprofile and about:newprofile pages.
+ * profiles-group-item wraps this element to behave as a radio element.
  */
 export class Avatar extends MozLitElement {
   static properties = {

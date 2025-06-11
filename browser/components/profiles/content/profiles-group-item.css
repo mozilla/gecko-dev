@@ -1,0 +1,35 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+.wrapper ::slotted(:not(moz-button):first-of-type) {
+  display: block;
+  outline-offset: var(--focus-outline-offset);
+  border: 1px solid var(--border-color-interactive);
+}
+
+.wrapper[checked] ::slotted(:not(moz-button):first-of-type) {
+  border: var(--focus-outline);
+  border-width: 1px;
+}
+
+.wrapper:focus-within ::slotted(:not(moz-button):first-of-type) {
+  outline: var(--focus-outline);
+}
+
+.wrapper {
+  display: contents;
+}
+
+input,
+label {
+  display: block;
+  overflow: hidden;
+  appearance: none;
+  height: 0;
+  width: 0;
+
+  &:focus {
+    outline: none;
+  }
+}

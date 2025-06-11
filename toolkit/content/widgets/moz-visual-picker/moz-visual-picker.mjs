@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html, nothing } from "chrome://global/content/vendor/lit.all.mjs";
+import { html } from "chrome://global/content/vendor/lit.all.mjs";
 import {
   SelectControlItemMixin,
   SelectControlBaseElement,
 } from "../lit-select-control.mjs";
 import { MozLitElement } from "../lit-utils.mjs";
-import { ifDefined } from "../vendor/lit.all.mjs";
 
 /**
  * An element that groups related items and allows a user to navigate between
@@ -47,11 +46,6 @@ customElements.define("moz-visual-picker", MozVisualPicker);
  * @slot default - The item's content, used for what gets displayed.
  */
 export class MozVisualPickerItem extends SelectControlItemMixin(MozLitElement) {
-  static properties = {
-    label: { type: String },
-    ariaLabel: { type: String, fluent: true, mapped: true },
-  };
-
   static queries = {
     itemEl: ".picker-item",
   };
@@ -69,7 +63,7 @@ export class MozVisualPickerItem extends SelectControlItemMixin(MozLitElement) {
   }
 
   handleKeydown(event) {
-    if (event.code == "Space" || event.code == "Enter") {
+    if (event.keyCode == KeyEvent.DOM_VK_SPACE) {
       this.handleClick(event);
     }
   }
@@ -101,15 +95,6 @@ export class MozVisualPickerItem extends SelectControlItemMixin(MozLitElement) {
     );
   }
 
-  handleSlotchange(event) {
-    // If the user hasn't provide a visual or accessible label fallback to
-    // labelling the picker item based on slotted content.
-    if (!this.label && !this.ariaLabel) {
-      let elements = event.target.assignedElements();
-      this.itemEl.ariaLabelledByElements = elements;
-    }
-  }
-
   render() {
     return html`
       <link
@@ -118,21 +103,16 @@ export class MozVisualPickerItem extends SelectControlItemMixin(MozLitElement) {
       />
       <div
         class="picker-item"
-        role=${this.role}
+        role="radio"
         value=${this.value}
-        aria-label=${ifDefined(this.ariaLabel)}
-        aria-checked=${this.role == "radio" ? this.checked : nothing}
-        aria-selected=${this.role == "option" ? this.checked : nothing}
+        aria-checked=${this.checked}
         tabindex=${this.itemTabIndex}
         ?checked=${this.checked}
         ?disabled=${this.isDisabled}
         @click=${this.handleClick}
         @keydown=${this.handleKeydown}
-        @slotchange=${this.handleSlotchange}
       >
-        ${this.label
-          ? html`<p class="label">${this.label}</p>`
-          : html`<slot></slot>`}
+        <slot></slot>
       </div>
     `;
   }
