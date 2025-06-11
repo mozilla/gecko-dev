@@ -34,7 +34,7 @@ skip-if(useDrawSnapshot) == sticky-pos-scrollable-3.html sticky-pos-scrollable-3
 skip-if(useDrawSnapshot) == sticky-pos-scrollable-4.html sticky-pos-scrollable-4-ref.html
 skip-if(useDrawSnapshot) == sticky-pos-scrollable-5.html sticky-pos-scrollable-5-ref.html
 skip-if(useDrawSnapshot) == sticky-pos-scrollable-6.html sticky-pos-scrollable-6-ref.html
-skip-if(useDrawSnapshot) fuzzy-if(appleSilicon,0-1,0-8) == sticky-pos-scrollable-7.html sticky-pos-scrollable-7-ref.html
+skip-if(useDrawSnapshot) fuzzy-if(winWidget,0-50,0-60) fuzzy-if(cocoaWidget,0-28,0-460) fuzzy-if(swgl,0-127,0-136) fuzzy-if(Android&&swgl,0-127,0-85) fuzzy-if(appleSilicon,0-1,0-8) == sticky-pos-scrollable-7.html sticky-pos-scrollable-7-ref.html
 skip-if(useDrawSnapshot) fuzzy(0-2,0-2) fuzzy-if(gtkWidget,0-1,0-4) fuzzy-if(winWidget,0-1,0-51) fuzzy-if(appleSilicon,0-1,0-8) == fixed-pos-scrollable-1.html fixed-pos-scrollable-1-ref.html
 skip-if(useDrawSnapshot) == culling-1.html culling-1-ref.html
 skip-if(useDrawSnapshot) == position-fixed-iframe-1.html position-fixed-iframe-1-ref.html

@@ -574,8 +574,7 @@ fn create_tile_cache(
                     if BorderRadius::from(radius).can_use_fast_path_in(&rect.into()) {
                         rounded_rect_count += 1;
 
-                        // TODO(gw): Enable this once also supported by native and swgl compositors
-                        false
+                        true
                     } else {
                         false
                     }
