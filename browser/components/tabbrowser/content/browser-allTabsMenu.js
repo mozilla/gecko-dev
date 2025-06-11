@@ -21,6 +21,8 @@ var gTabsPanel = {
     containerTabsView: "allTabsMenu-containerTabsView",
     hiddenTabsButton: "allTabsMenu-hiddenTabsButton",
     hiddenTabsView: "allTabsMenu-hiddenTabsView",
+    hiddenTabsViewTabs: "allTabsMenu-hiddenTabsView-tabs",
+    hiddenAudioTabs: "allTabsMenu-allTabsView-hiddenAudio-tabs",
     groupsView: "allTabsMenu-groupsView",
     groupsSubView: "allTabsMenu-groupsSubView",
   },
@@ -56,15 +58,16 @@ var gTabsPanel = {
 
     this.hiddenAudioTabsPopup = new TabsPanel({
       view: this.allTabsView,
-      insertBefore: document.getElementById("allTabsMenu-hiddenTabsSeparator"),
-      filterFn: tab => tab.hidden && tab.soundPlaying,
+      containerNode: this.hiddenAudioTabs,
+      filterFn: tab => tab.soundPlaying,
+      onlyHiddenTabs: true,
     });
     this.allTabsPanel = new TabsPanel({
       view: this.allTabsView,
       containerNode: this.allTabsViewTabs,
       filterFn: tab => !tab.hidden,
       dropIndicator: this.dropIndicator,
-      showGroups: true,
+      onlyHiddenTabs: false,
     });
     this.groupsPanel = new GroupsPanel({
       view: this.allTabsView,
@@ -181,7 +184,9 @@ var gTabsPanel = {
 
     this.hiddenTabsPopup = new TabsPanel({
       view: this.hiddenTabsView,
-      filterFn: tab => tab.hidden && tab != FirefoxViewHandler.tab,
+      containerNode: this.hiddenTabsViewTabs,
+      filterFn: tab => tab != FirefoxViewHandler.tab,
+      onlyHiddenTabs: true,
     });
 
     this._initialized = true;

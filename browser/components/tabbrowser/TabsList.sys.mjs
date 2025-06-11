@@ -11,6 +11,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 const TAB_DROP_TYPE = "application/x-moz-tabbrowser-tab";
 
+const ROW_VARIANT_TAB = "tab";
+const ROW_VARIANT_TAB_GROUP = "tab-group";
+
 function setAttributes(element, attrs) {
   for (let [name, value] of Object.entries(attrs)) {
     if (value) {
@@ -21,34 +24,92 @@ function setAttributes(element, attrs) {
   }
 }
 
-class TabsListBase {
-  /** @type {boolean} */
-  #domRefreshPending = false;
+/**
+ * @param {Element} element
+ *   One row (`toolbaritem`) of this tab list or one of its descendent
+ *   elements, e.g. a `toolbarbutton`.
+ * @returns {MozTabbrowserTab|undefined}
+ */
+function getTabFromRow(element) {
+  return element.closest("toolbaritem")?._tab;
+}
 
+/**
+ * @param {Element} element
+ *   One row (`toolbaritem`) of this tab list or one of its descendent
+ *   elements, e.g. a `toolbarbutton`.
+ * @returns {MozTabbrowserTabGroup|undefined}
+ */
+function getTabGroupFromRow(element) {
+  return element.closest("toolbaritem")?._tabGroup;
+}
+
+/**
+ * @param {Element} element
+ *   One row (`toolbaritem`) of this tab list or one of its descendent
+ *   elements, e.g. a `toolbarbutton`.
+ * @returns {"tab"|"tab-group"|undefined}
+ */
+function getRowVariant(element) {
+  return element.closest("toolbaritem")?.getAttribute("row-variant");
+}
+
+class TabsListBase {
+  /** @returns {Promise<void>} */
+  get domRefreshComplete() {
+    return this.#domRefreshPromise ?? Promise.resolve();
+  }
+
+  /** @type {Promise<void>|undefined} */
+  #domRefreshPromise;
+
+  /** @type {Map<MozTabbrowserTab, XulToolbarItem>} */
+  tabToElement = new Map();
+
+  /**
+   * @param {object} opts
+   * @param {string} opts.className
+   * @param {function(MozTabbrowserTab):boolean} opts.filterFn
+   * @param {Element} opts.containerNode
+   * @param {Element} [opts.dropIndicator=null]
+   * @param {boolean} opts.onlyHiddenTabs
+   */
   constructor({
     className,
     filterFn,
-    insertBefore,
     containerNode,
     dropIndicator = null,
+    onlyHiddenTabs,
   }) {
+    /** @type {string} */
     this.className = className;
-    this.filterFn = filterFn;
-    this.insertBefore = insertBefore;
+    /** @type {function(MozTabbrowserTab):boolean} */
+    this.filterFn = onlyHiddenTabs
+      ? tab => filterFn(tab) && tab.hidden
+      : filterFn;
+    /** @type {Element} */
     this.containerNode = containerNode;
+    /** @type {Element|null} */
     this.dropIndicator = dropIndicator;
 
     if (this.dropIndicator) {
+      /** @type {XulToolbarItem|null} */
       this.dropTargetRow = null;
+      /** @type {-1|0} */
       this.dropTargetDirection = 0;
     }
 
+    /** @type {Document} */
     this.doc = containerNode.ownerDocument;
+    /** @type {Tabbrowser} */
     this.gBrowser = this.doc.defaultView.gBrowser;
-    this.tabToElement = new Map();
+    /** @type {boolean} */
     this.listenersRegistered = false;
+    /** @type {boolean} */
+    this.onlyHiddenTabs = onlyHiddenTabs;
   }
 
+  /** @returns {MapIterator<XulToolbarItem>} */
   get rows() {
     return this.tabToElement.values();
   }
@@ -66,6 +127,7 @@ class TabsListBase {
       case "TabGroupCreate":
       case "TabGroupRemoved":
       case "TabGrouped":
+      case "TabGroupMoved":
       case "TabUngrouped":
         this._refreshDOM();
         break;
@@ -78,7 +140,7 @@ class TabsListBase {
         }
         break;
       case "command":
-        this._selectTab(event.target.tab);
+        this.#handleCommand(event);
         break;
       case "dragstart":
         this._onDragStart(event);
@@ -98,6 +160,35 @@ class TabsListBase {
       case "click":
         this._onClick(event);
         break;
+    }
+  }
+
+  /**
+   * @param {XULCommandEvent} event
+   */
+  #handleCommand(event) {
+    if (event.target.classList.contains("all-tabs-mute-button")) {
+      getTabFromRow(event.target)?.toggleMuteAudio();
+    } else if (event.target.classList.contains("all-tabs-close-button")) {
+      const tab = getTabFromRow(event.target);
+      if (tab) {
+        this.gBrowser.removeTab(
+          tab,
+          lazy.TabMetrics.userTriggeredContext(
+            lazy.TabMetrics.METRIC_SOURCE.TAB_OVERFLOW_MENU
+          )
+        );
+      }
+    } else {
+      const rowVariant = getRowVariant(event.target);
+      if (rowVariant == ROW_VARIANT_TAB) {
+        const tab = getTabFromRow(event.target);
+        if (tab) {
+          this._selectTab(tab);
+        }
+      } else if (rowVariant == ROW_VARIANT_TAB_GROUP) {
+        getTabGroupFromRow(event.target)?.select();
+      }
     }
   }
 
@@ -127,7 +218,10 @@ class TabsListBase {
           fragment.appendChild(this._createGroupRow(tab.group));
           currentGroupId = tab.group.id;
         }
-        if (!tab.group?.collapsed) {
+        if (!tab.group?.collapsed || this.onlyHiddenTabs) {
+          // Don't show tabs in collapsed tab groups in the main tabs list.
+          // However, in the hidden tabs lists, do show hidden tabs even if
+          // they belong to collapsed tab groups.
           fragment.appendChild(this._createRow(tab));
         }
       }
@@ -137,7 +231,7 @@ class TabsListBase {
   }
 
   _addElement(elementOrFragment) {
-    this.containerNode.insertBefore(elementOrFragment, this.insertBefore);
+    this.containerNode.appendChild(elementOrFragment);
   }
 
   /*
@@ -151,27 +245,25 @@ class TabsListBase {
 
   _cleanupDOM() {
     this.containerNode
-      .querySelectorAll(":scope .all-tabs-group-item")
+      .querySelectorAll(":scope toolbaritem")
       .forEach(node => node.remove());
-
-    for (let item of this.rows) {
-      item.remove();
-    }
     this.tabToElement = new Map();
   }
 
   _refreshDOM() {
-    if (!this.#domRefreshPending) {
-      this.#domRefreshPending = true;
-      this.containerNode.ownerGlobal.requestAnimationFrame(() => {
-        if (this.#domRefreshPending) {
-          this.#domRefreshPending = false;
-          if (this.listenersRegistered) {
-            // Only re-render the menu DOM if the menu is still open.
-            this._cleanupDOM();
-            this._populateDOM();
+    if (!this.#domRefreshPromise) {
+      this.#domRefreshPromise = new Promise(resolve => {
+        this.containerNode.ownerGlobal.requestAnimationFrame(() => {
+          if (this.#domRefreshPromise) {
+            if (this.listenersRegistered) {
+              // Only re-render the menu DOM if the menu is still open.
+              this._cleanupDOM();
+              this._populateDOM();
+            }
+            resolve();
+            this.#domRefreshPromise = undefined;
           }
-        }
+        });
       });
     }
   }
@@ -187,10 +279,12 @@ class TabsListBase {
     this.gBrowser.tabContainer.addEventListener("TabGroupExpand", this);
     this.gBrowser.tabContainer.addEventListener("TabGroupCreate", this);
     this.gBrowser.tabContainer.addEventListener("TabGroupRemoved", this);
+    this.gBrowser.tabContainer.addEventListener("TabGroupMoved", this);
     this.gBrowser.tabContainer.addEventListener("TabGrouped", this);
     this.gBrowser.tabContainer.addEventListener("TabUngrouped", this);
 
     this.containerNode.addEventListener("click", this);
+    this.containerNode.addEventListener("command", this);
 
     if (this.dropIndicator) {
       this.containerNode.addEventListener("dragstart", this);
@@ -210,10 +304,12 @@ class TabsListBase {
     this.gBrowser.tabContainer.removeEventListener("TabGroupExpand", this);
     this.gBrowser.tabContainer.removeEventListener("TabGroupCreate", this);
     this.gBrowser.tabContainer.removeEventListener("TabGroupRemoved", this);
+    this.gBrowser.tabContainer.removeEventListener("TabGroupMoved", this);
     this.gBrowser.tabContainer.removeEventListener("TabGrouped", this);
     this.gBrowser.tabContainer.removeEventListener("TabUngrouped", this);
 
     this.containerNode.removeEventListener("click", this);
+    this.containerNode.removeEventListener("command", this);
 
     if (this.dropIndicator) {
       this.containerNode.removeEventListener("dragstart", this);
@@ -226,6 +322,9 @@ class TabsListBase {
     this.listenersRegistered = false;
   }
 
+  /**
+   * @param {MozTabbrowserTab} tab
+   */
   _tabAttrModified(tab) {
     let item = this.tabToElement.get(tab);
     if (item) {
@@ -251,26 +350,48 @@ class TabsListBase {
       this._addTab(tab);
     }
   }
+
+  /**
+   * @param {MozTabbrowserTab} tab
+   */
   _addTab(newTab) {
     if (!this.filterFn(newTab)) {
       return;
     }
-    let newRow = this._createRow(newTab);
-    let nextTab = newTab.nextElementSibling;
-
-    while (nextTab && !this.filterFn(nextTab)) {
-      nextTab = nextTab.nextElementSibling;
+    if (newTab.group?.collapsed && !this.onlyHiddenTabs) {
+      return;
     }
 
-    // If we found a tab after this one in the list, insert the new row before it.
-    let nextRow = this.tabToElement.get(nextTab);
-    if (nextRow) {
-      nextRow.parentNode.insertBefore(newRow, nextRow);
-    } else {
-      // If there's no next tab then insert it as usual.
+    let newRow = this._createRow(newTab);
+    let nextTab = this.gBrowser.tabContainer.findNextTab(newTab, {
+      filter: this.filterFn,
+    });
+    if (!nextTab) {
+      // If there's no next tab then append the new row to the end of the menu.
       this._addElement(newRow);
+    } else if (!newTab.group && nextTab.group) {
+      // newTab should not go right before nextTab because then it would
+      // appear to be inside the tab group; instead, put newTab before
+      // nextTab's tab group's row menu item.
+      // Should be equivalent to `.insertBefore(newRow, nextRow.previousSiblingElement)`
+      // but this is more explicit about inserting before the nextTab's tab group's
+      // row menu item.
+      let nextTabTabGroupRow = this.containerNode.querySelector(
+        `:scope [tab-group-id="${nextTab.group.id}"]`
+      );
+      this.containerNode.insertBefore(newRow, nextTabTabGroupRow);
+    } else {
+      let nextRow = this.tabToElement.get(nextTab);
+      if (!nextRow) {
+        // If for some reason the next tab has no item in this menu already,
+        // just add this new tab's menu item to the end.
+        this._addElement(newRow);
+      } else {
+        this.containerNode.insertBefore(newRow, nextRow);
+      }
     }
   }
+
   _tabClose(tab) {
     let item = this.tabToElement.get(tab);
     if (item) {
@@ -281,6 +402,20 @@ class TabsListBase {
   _removeItem(item, tab) {
     this.tabToElement.delete(tab);
     item.remove();
+    // If removing this grouped tab results in there being no more tabs from
+    // this tab group in the menu list, then also remove the tab group label
+    // menu item. This is only relevant right now in tabs lists that only show
+    // hidden tabs. For the normal tabs list, removing the last tab in a group
+    // will also remove the tab group, which re-renders the whole tabs list
+    // with the side-effect of removing the tab group label menu item.
+    if (
+      tab.group &&
+      !this.tabToElement.keys().some(t => t.group == tab.group)
+    ) {
+      this.containerNode
+        .querySelector(`:scope [tab-group-id="${tab.group.id}"]`)
+        ?.remove();
+    }
   }
 }
 
@@ -290,13 +425,19 @@ const TABS_PANEL_EVENTS = {
 };
 
 export class TabsPanel extends TabsListBase {
+  /**
+   * @param {object} opts
+   * @param {string} opts.className
+   * @param {function(MozTabbrowserTab):boolean} opts.filterFn
+   * @param {Element} opts.containerNode
+   * @param {Element} [opts.dropIndicator=null]
+   * @param {Element} opts.view
+   * @param {boolean} opts.onlyHiddenTabs
+   */
   constructor(opts) {
     super({
       ...opts,
-      containerNode:
-        opts.containerNode ||
-        opts.insertBefore?.parentNode ||
-        opts.view.firstElementChild,
+      containerNode: opts.containerNode || opts.view.firstElementChild,
     });
     this.view = opts.view;
     this.view.addEventListener(TABS_PANEL_EVENTS.show, this);
@@ -318,26 +459,6 @@ export class TabsPanel extends TabsListBase {
           this.gBrowser.translateTabContextMenu();
         }
         break;
-      case "command":
-        if (event.target.classList.contains("all-tabs-mute-button")) {
-          event.target.tab.toggleMuteAudio();
-          break;
-        }
-        if (event.target.classList.contains("all-tabs-close-button")) {
-          this.gBrowser.removeTab(
-            event.target.tab,
-            lazy.TabMetrics.userTriggeredContext(
-              lazy.TabMetrics.METRIC_SOURCE.TAB_OVERFLOW_MENU
-            )
-          );
-          break;
-        }
-        if ("tabGroupId" in event.target.dataset) {
-          this.gBrowser
-            .getTabGroupById(event.target.dataset.tabGroupId)
-            ?.select();
-        }
-      // fall through
       default:
         super.handleEvent(event);
         break;
@@ -351,8 +472,8 @@ export class TabsPanel extends TabsListBase {
     // so set the image attributes again now that the elements are in the DOM.
     for (let row of this.rows) {
       // Ensure this isn't a group label
-      if (row.tab) {
-        this._setImageAttributes(row, row.tab);
+      if (getRowVariant(row) == ROW_VARIANT_TAB) {
+        this._setImageAttributes(row, getTabFromRow(row));
       }
     }
   }
@@ -372,16 +493,26 @@ export class TabsPanel extends TabsListBase {
     this.panelMultiView.removeEventListener(TABS_PANEL_EVENTS.hide, this);
   }
 
+  /**
+   * @param {MozTabbrowserTab} tab
+   * @returns {XULElement}
+   */
   _createRow(tab) {
     let { doc } = this;
     let row = doc.createXULElement("toolbaritem");
     row.setAttribute("class", "all-tabs-item");
-    row.setAttribute("context", "tabContextMenu");
     if (this.className) {
       row.classList.add(this.className);
     }
-    row.tab = tab;
-    row.addEventListener("command", this);
+    row.setAttribute("context", "tabContextMenu");
+    row.setAttribute("row-variant", ROW_VARIANT_TAB);
+
+    /**
+     * Setting a new property `XulToolbarItem._tab` on the row elements
+     * for internal use by this module only.
+     * @see getTabFromRow
+     */
+    row._tab = tab;
     this.tabToElement.set(tab, row);
 
     let button = doc.createXULElement("toolbarbutton");
@@ -391,6 +522,12 @@ export class TabsPanel extends TabsListBase {
     );
     button.setAttribute("flex", "1");
     button.setAttribute("crop", "end");
+
+    /**
+     * Setting a new property `MozToolbarbutton.tab` on the buttons
+     * to support tab context menu integration.
+     * @see TabContextMenu.updateContextMenu
+     */
     button.tab = tab;
 
     if (tab.userContextId) {
@@ -415,7 +552,6 @@ export class TabsPanel extends TabsListBase {
       "subviewbutton"
     );
     muteButton.setAttribute("closemenu", "none");
-    muteButton.tab = tab;
     row.appendChild(muteButton);
 
     if (!tab.pinned) {
@@ -427,7 +563,6 @@ export class TabsPanel extends TabsListBase {
       );
       closeButton.setAttribute("closemenu", "none");
       doc.l10n.setAttributes(closeButton, "tabbrowser-manager-close-tab");
-      closeButton.tab = tab;
       row.appendChild(closeButton);
     }
 
@@ -444,6 +579,15 @@ export class TabsPanel extends TabsListBase {
     let { doc } = this;
     let row = doc.createXULElement("toolbaritem");
     row.setAttribute("class", "all-tabs-item all-tabs-group-item");
+    row.setAttribute("row-variant", ROW_VARIANT_TAB_GROUP);
+    row.setAttribute("tab-group-id", group.id);
+    /**
+     * Setting a new property `XulToolbarItem._tabGroup` on the row elements
+     * for internal use by this module only.
+     * @see getTabGroupFromRow
+     */
+    row._tabGroup = group;
+
     row.style.setProperty(
       "--tab-group-color",
       `var(--tab-group-color-${group.color})`
@@ -456,10 +600,9 @@ export class TabsPanel extends TabsListBase {
       "--tab-group-color-pale",
       `var(--tab-group-color-${group.color}-pale)`
     );
-    row.addEventListener("command", this);
+
     let button = doc.createXULElement("toolbarbutton");
     button.setAttribute("context", "open-tab-group-context-menu");
-    button.dataset.tabGroupId = group.id;
     button.classList.add(
       "all-tabs-button",
       "all-tabs-group-button",
@@ -491,6 +634,10 @@ export class TabsPanel extends TabsListBase {
     return row;
   }
 
+  /**
+   * @param {XulToolbarItem} row
+   * @param {MozTabbrowserTab} tab
+   */
   _setRowAttributes(row, tab) {
     setAttributes(row, { selected: tab.selected });
 
@@ -520,6 +667,10 @@ export class TabsPanel extends TabsListBase {
     });
   }
 
+  /**
+   * @param {XulToolbarItem} row
+   * @param {MozTabbrowserTab} tab
+   */
   _setImageAttributes(row, tab) {
     let button = row.firstElementChild;
     let image = button.icon;
@@ -536,26 +687,45 @@ export class TabsPanel extends TabsListBase {
     }
   }
 
+  /**
+   * @param {DragEvent} event
+   */
   _onDragStart(event) {
     const row = this._getTargetRowFromEvent(event);
     if (!row) {
       return;
     }
 
-    this.gBrowser.tabContainer.startTabDrag(event, row.firstElementChild.tab, {
+    const elementToDrag =
+      getRowVariant(row) == ROW_VARIANT_TAB_GROUP
+        ? getTabGroupFromRow(row).labelElement
+        : getTabFromRow(row);
+
+    this.gBrowser.tabContainer.startTabDrag(event, elementToDrag, {
       fromTabList: true,
     });
   }
 
+  /**
+   * @param {DragEvent} event
+   * @returns {XulToolbarItem|undefined}
+   */
   _getTargetRowFromEvent(event) {
     return event.target.closest("toolbaritem");
   }
 
+  /**
+   * @param {DragEvent} event
+   * @returns {boolean}
+   */
   _isMovingTabs(event) {
     var effects = this.gBrowser.tabContainer.getDropEffectForTabDrag(event);
     return effects == "move";
   }
 
+  /**
+   * @param {DragEvent} event
+   */
   _onDragOver(event) {
     if (!this._isMovingTabs(event)) {
       return;
@@ -569,10 +739,17 @@ export class TabsPanel extends TabsListBase {
     event.stopPropagation();
   }
 
+  /**
+   * @param {XulToolbarItem} row
+   * @returns {number}
+   */
   _getRowIndex(row) {
     return Array.prototype.indexOf.call(this.containerNode.children, row);
   }
 
+  /**
+   * @param {DragEvent} event
+   */
   _onDrop(event) {
     if (!this._isMovingTabs(event)) {
       return;
@@ -585,29 +762,39 @@ export class TabsPanel extends TabsListBase {
     event.preventDefault();
     event.stopPropagation();
 
-    let draggedTab = event.dataTransfer.mozGetDataAt(TAB_DROP_TYPE, 0);
+    let draggedElement = event.dataTransfer.mozGetDataAt(TAB_DROP_TYPE, 0);
+    let targetElement =
+      getRowVariant(this.dropTargetRow) == ROW_VARIANT_TAB_GROUP
+        ? getTabGroupFromRow(this.dropTargetRow).labelElement
+        : getTabFromRow(this.dropTargetRow);
 
-    if (draggedTab === this.dropTargetRow.firstElementChild.tab) {
+    if (draggedElement === targetElement) {
       this._clearDropTarget();
       return;
     }
 
-    const targetTab = this.dropTargetRow.firstElementChild.tab;
-
     // NOTE: Given the list is opened only when the window is focused,
     //       we don't have to check `draggedTab.container`.
-
-    let pos;
-    if (draggedTab._tPos < targetTab._tPos) {
-      pos = targetTab._tPos + this.dropTargetDirection;
+    const metricsContext = {
+      isUserTriggered: true,
+      telemetrySource: lazy.TabMetrics.METRIC_SOURCE.TAB_OVERFLOW_MENU,
+    };
+    if (this.dropTargetDirection == -1) {
+      this.gBrowser.moveTabBefore(
+        draggedElement,
+        targetElement,
+        metricsContext
+      );
     } else {
-      pos = targetTab._tPos + this.dropTargetDirection + 1;
+      this.gBrowser.moveTabAfter(draggedElement, targetElement, metricsContext);
     }
-    this.gBrowser.moveTabTo(draggedTab, { tabIndex: pos });
 
     this._clearDropTarget();
   }
 
+  /**
+   * @param {DragEvent} event
+   */
   _onDragLeave(event) {
     if (!this._isMovingTabs(event)) {
       return;
@@ -624,6 +811,9 @@ export class TabsPanel extends TabsListBase {
     this._clearDropTarget();
   }
 
+  /**
+   * @param {DragEvent} event
+   */
   _onDragEnd(event) {
     if (!this._isMovingTabs(event)) {
       return;
@@ -632,6 +822,10 @@ export class TabsPanel extends TabsListBase {
     this._clearDropTarget();
   }
 
+  /**
+   * @param {DragEvent} event
+   * @returns {boolean}
+   */
   _updateDropTarget(event) {
     const row = this._getTargetRowFromEvent(event);
     if (!row) {
@@ -654,6 +848,10 @@ export class TabsPanel extends TabsListBase {
     return true;
   }
 
+  /**
+   * @param {XulToolbarItem} row
+   * @param {-1|0} direction
+   */
   _setDropTarget(row, direction) {
     this.dropTargetRow = row;
     this.dropTargetDirection = direction;
@@ -697,6 +895,9 @@ export class TabsPanel extends TabsListBase {
     }
   }
 
+  /**
+   * @param {MouseEvent} event
+   */
   _onClick(event) {
     if (event.button == 1) {
       const row = this._getTargetRowFromEvent(event);
@@ -704,9 +905,17 @@ export class TabsPanel extends TabsListBase {
         return;
       }
 
-      this.gBrowser.removeTab(row.tab, {
-        animate: true,
-      });
+      const rowVariant = getRowVariant(row);
+
+      if (rowVariant == ROW_VARIANT_TAB) {
+        const tab = getTabFromRow(row);
+        this.gBrowser.removeTab(tab, {
+          telemetrySource: lazy.TabMetrics.METRIC_SOURCE.TAB_OVERFLOW_MENU,
+          animate: true,
+        });
+      } else if (rowVariant == ROW_VARIANT_TAB_GROUP) {
+        getTabGroupFromRow(row)?.saveAndClose({ isUserTriggered: true });
+      }
     }
   }
 }

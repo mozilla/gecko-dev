@@ -6091,7 +6091,8 @@
     #moveTabNextTo(element, targetElement, moveBefore = false, metricsContext) {
       if (this.isTabGroupLabel(targetElement)) {
         targetElement = targetElement.group;
-        if (!moveBefore) {
+        if (!moveBefore && !targetElement.collapsed) {
+          // Right after the tab group label = before the first tab in the tab group
           targetElement = targetElement.tabs[0];
           moveBefore = true;
         }
@@ -6108,7 +6109,21 @@
         targetElement = this.tabs[this.pinnedTabCount - 1];
         moveBefore = false;
       } else if (!element.pinned && targetElement && targetElement.pinned) {
+        // If the caller asks to move an unpinned element next to a pinned
+        // tab, move the unpinned element to be the first unpinned element
+        // in the tab strip. Potential scenarios:
+        // 1. Moving an unpinned tab and the first unpinned tab is ungrouped:
+        //    move the unpinned tab right before the first unpinned tab.
+        // 2. Moving an unpinned tab and the first unpinned tab is grouped:
+        //    move the unpinned tab right before the tab group.
+        // 3. Moving a tab group and the first unpinned tab is ungrouped:
+        //    move the tab group right before the first unpinned tab.
+        // 4. Moving a tab group and the first unpinned tab is grouped:
+        //    move the tab group right before the first unpinned tab's tab group.
         targetElement = this.tabs[this.pinnedTabCount];
+        if (targetElement.group) {
+          targetElement = targetElement.group;
+        }
         moveBefore = true;
       }
 
