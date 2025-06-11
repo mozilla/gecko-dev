@@ -252,7 +252,7 @@ private fun getContextMenuItems(
 }
 
 private data class FileListItemPreviewState(
-    val fieItem: FileItem,
+    val fileItem: FileItem,
     val isSelected: Boolean,
     val areAfterListItemIconsVisible: Boolean,
 )
@@ -261,7 +261,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
     override val values: Sequence<FileListItemPreviewState>
         get() = sequenceOf(
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "1",
                     url = "https://www.mozilla.org",
                     fileName = "TestJPG.jpg",
@@ -276,7 +276,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = true,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "2",
                     url = "https://www.google.com",
                     fileName = "TestPDF.pdf",
@@ -291,7 +291,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = true,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "3",
                     url = "https://www.google.com",
                     fileName = "TestVideo.mp4",
@@ -306,7 +306,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = true,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "4",
                     url = "https://www.google.com",
                     fileName = "TestZIP.zip",
@@ -321,7 +321,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = true,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "5",
                     url = "https://www.google.com",
                     fileName = "TestMSWordDoc.docx",
@@ -336,7 +336,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = true,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "6",
                     url = "https://www.mozilla.org",
                     fileName = "TestJPG.jpg",
@@ -351,7 +351,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = false,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "7",
                     url = "https://www.google.com",
                     fileName = "TestPDF.pdf",
@@ -366,7 +366,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = false,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "8",
                     url = "https://www.google.com",
                     fileName = "TestVideo.mp4",
@@ -381,7 +381,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = false,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "9",
                     url = "https://www.google.com",
                     fileName = "TestZIP.zip",
@@ -396,7 +396,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = false,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "10",
                     url = "https://www.google.com",
                     fileName = "TestMSWordDoc.docx",
@@ -411,7 +411,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = false,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "11",
                     fileName = "File 11",
                     url = "https://example.com/file11",
@@ -426,7 +426,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = true,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "12",
                     fileName = "File 12",
                     url = "https://example.com/file12",
@@ -441,7 +441,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = true,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "13",
                     fileName = "File 13",
                     url = "https://example.com/file13",
@@ -456,7 +456,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = true,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "14",
                     fileName = "File 14",
                     url = "https://example.com/file14",
@@ -471,7 +471,7 @@ private class FileListItemParameterProvider : PreviewParameterProvider<FileListI
                 areAfterListItemIconsVisible = true,
             ),
             FileListItemPreviewState(
-                fieItem = FileItem(
+                fileItem = FileItem(
                     id = "15",
                     fileName = "File 15",
                     url = "https://example.com/file15",
@@ -499,7 +499,7 @@ private fun FileListItemPreview(
         ) {
             FileListItem(
                 isSelected = fileListItemPreviewState.isSelected,
-                fileItem = fileListItemPreviewState.fieItem,
+                fileItem = fileListItemPreviewState.fileItem,
                 areAfterListItemIconsVisible = fileListItemPreviewState.areAfterListItemIconsVisible,
                 onPauseClick = {},
                 onResumeClick = {},
