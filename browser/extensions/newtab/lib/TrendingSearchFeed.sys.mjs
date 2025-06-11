@@ -4,8 +4,6 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  BrowserSearchTelemetry:
-    "moz-src:///browser/components/search/BrowserSearchTelemetry.sys.mjs",
   PersistentCache: "resource://newtab/lib/PersistentCache.sys.mjs",
   SearchSuggestionController:
     "moz-src:///toolkit/components/search/SearchSuggestionController.sys.mjs",
@@ -133,14 +131,6 @@ export class TrendingSearchFeed {
     return results;
   }
 
-  handleSearchTelemetry(browser) {
-    lazy.BrowserSearchTelemetry.recordSearch(
-      browser,
-      this.defaultEngine,
-      "newtab"
-    );
-  }
-
   async onAction(action) {
     switch (action.type) {
       case at.INIT:
@@ -153,9 +143,6 @@ export class TrendingSearchFeed {
         if (this.enabled) {
           await this.loadTrendingSearch();
         }
-        break;
-      case at.TRENDING_SEARCH_SUGGESTION_OPEN:
-        this.handleSearchTelemetry(action._target.browser);
         break;
       case at.PREF_CHANGED:
         if (
