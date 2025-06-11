@@ -113,6 +113,7 @@ skip-if = [
 https_first_disabled = true
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1654354
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1958918
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 1654354
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan",
 ]
