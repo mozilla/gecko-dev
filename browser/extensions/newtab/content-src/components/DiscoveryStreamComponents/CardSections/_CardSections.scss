@@ -186,6 +186,12 @@
       height: 160px;
     }
 
+    &.ds-spoc-rectangle {
+      .img-wrapper {
+        height: 250px;
+      }
+    }
+
     .meta {
       padding: var(--space-large) var(--space-large) var(--space-small);
       min-height: unset;
