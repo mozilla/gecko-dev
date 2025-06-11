@@ -9,8 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -239,7 +239,7 @@ private fun CFRPopupBelowShapePreview() {
     ) {
         Text(
             text = "This is just a test",
-            color = MaterialTheme.colors.onPrimary,
+            color = MaterialTheme.colorScheme.onPrimary,
         )
     }
 }
@@ -266,7 +266,7 @@ private fun CFRPopupAboveShapePreview() {
     ) {
         Text(
             text = "This is just a test",
-            color = MaterialTheme.colors.onPrimary,
+            color = MaterialTheme.colorScheme.onPrimary,
         )
     }
 }

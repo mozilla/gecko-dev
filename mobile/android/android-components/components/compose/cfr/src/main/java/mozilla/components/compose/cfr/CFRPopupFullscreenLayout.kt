@@ -11,7 +11,7 @@ import android.view.View
 import android.view.WindowManager
 import androidx.annotation.Px
 import androidx.annotation.VisibleForTesting
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalConfiguration
