@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <memory>
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "gtest/gtest-spi.h"
 #include "mozilla/SharedThreadPool.h"
@@ -18,10 +17,6 @@
 namespace TestTaskQueue {
 
 using namespace mozilla;
-using testing::_;
-using testing::InSequence;
-using testing::MockFunction;
-using testing::StrEq;
 
 TEST(TaskQueue, EventOrder)
 {
@@ -217,161 +212,6 @@ TEST(TaskQueue, UnregisteredShutdownTask)
   tq->BeginShutdown();
   tq->AwaitShutdownAndIdle();
 }
-
-// Mock function to register code flow and current targets. Targets are 1)
-// TaskQueue::Observer's task queue, 2) AbstractThread::GetCurrent(), and 3)
-// GetCurrentSerialEventTarget().
-using ObserverCheckpoint = MockFunction<void(
-    const char*, TaskQueue*, AbstractThread*, nsISerialEventTarget*)>;
-// Helpers because the thread args are usually the same.
-// These are macros because EXPECT_CALL is a macro, and derives line numbers
-// this way.
-#define EXPECT_OBS_CALL(cp, str, tq) \
-  EXPECT_CALL(cp, Call(StrEq(str), tq, tq, tq))
-#define EXPECT_RUNNABLE_CALL(cp, str, tq) \
-  EXPECT_CALL(cp, Call(StrEq(str), nullptr, tq, tq))
-#define EXPECT_OBSDTOR_CALL(cp, str)                                      \
-  EXPECT_CALL(cp, Call(StrEq(str), nullptr, AbstractThread::MainThread(), \
-                       GetMainThreadSerialEventTarget()))
-class Observer final : public TaskQueue::Observer {
- public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Observer, override);
-
-  explicit Observer(ObserverCheckpoint& aFunc) : mFunc(aFunc) {}
-  void WillProcessEvent(TaskQueue* aTaskQueue) override {
-    mFunc.Call(__func__, aTaskQueue, AbstractThread::GetCurrent(),
-               GetCurrentSerialEventTarget());
-  };
-  void DidProcessEvent(TaskQueue* aTaskQueue) override {
-    EXPECT_EQ(aTaskQueue, AbstractThread::GetCurrent());
-    mFunc.Call(__func__, aTaskQueue, AbstractThread::GetCurrent(),
-               GetCurrentSerialEventTarget());
-  }
-
- private:
-  ~Observer() override {
-    mFunc.Call(__func__, nullptr, AbstractThread::GetCurrent(),
-               GetCurrentSerialEventTarget());
-  }
-
-  ObserverCheckpoint& mFunc;
-};
-
-TEST(TaskQueue, Observer)
-{
-  RefPtr<TaskQueue> taskQueue = TaskQueue::Create(
-      do_AddRef(AbstractThread::MainThread()), "Testing TaskQueue");
-  TaskQueue* tq = taskQueue;
-
-  ObserverCheckpoint checkpoint;
-  {
-    InSequence seq;
-    EXPECT_OBS_CALL(checkpoint, "WillProcessEvent", tq);
-    EXPECT_RUNNABLE_CALL(checkpoint, "Runnable", tq);
-    EXPECT_OBS_CALL(checkpoint, "DidProcessEvent", tq);
-    EXPECT_OBSDTOR_CALL(checkpoint, "~Observer");
-  }
-
-  {
-    auto obs = MakeRefPtr<Observer>(checkpoint);
-    tq->SetObserver(obs);
-  }
-
-  MOZ_ALWAYS_SUCCEEDS(tq->Dispatch(NS_NewRunnableFunction(__func__, [&] {
-    checkpoint.Call("Runnable", nullptr, AbstractThread::GetCurrent(),
-                    GetCurrentSerialEventTarget());
-  })));
-  NS_ProcessPendingEvents(nullptr);
-
-  tq->BeginShutdown();
-}
-
-TEST(TaskQueue, ObserverTransactional)
-{
-  RefPtr<TaskQueue> taskQueue = TaskQueue::Create(
-      do_AddRef(AbstractThread::MainThread()), "Testing TaskQueue");
-  TaskQueue* tq = taskQueue;
-
-  ObserverCheckpoint checkpoint;
-  {
-    InSequence seq;
-    EXPECT_RUNNABLE_CALL(checkpoint, "Runnable1", tq);
-    EXPECT_OBS_CALL(checkpoint, "WillProcessEvent", tq);
-    EXPECT_RUNNABLE_CALL(checkpoint, "Runnable2", tq);
-    EXPECT_OBS_CALL(checkpoint, "DidProcessEvent", tq);
-    EXPECT_RUNNABLE_CALL(checkpoint, "~Observer", _);
-  }
-
-  {
-    auto obs = MakeRefPtr<Observer>(checkpoint);
-    MOZ_ALWAYS_SUCCEEDS(tq->Dispatch(NS_NewRunnableFunction(__func__, [&] {
-      tq->SetObserver(obs);
-      checkpoint.Call("Runnable1", nullptr, AbstractThread::GetCurrent(),
-                      GetCurrentSerialEventTarget());
-    })));
-    NS_ProcessPendingEvents(nullptr);
-  }
-
-  MOZ_ALWAYS_SUCCEEDS(tq->Dispatch(NS_NewRunnableFunction(__func__, [&] {
-    // Note this technically destroys the observer on a different event target
-    // than if it's destroyed through shutdown.
-    tq->SetObserver(nullptr);
-    checkpoint.Call("Runnable2", nullptr, AbstractThread::GetCurrent(),
-                    GetCurrentSerialEventTarget());
-  })));
-  NS_ProcessPendingEvents(nullptr);
-
-  tq->BeginShutdown();
-}
-
-TEST(TaskQueue, ObserverDirectTask)
-{
-  RefPtr<TaskQueue> taskQueue =
-      TaskQueue::Create(do_AddRef(AbstractThread::MainThread()),
-                        "Testing TaskQueue", /*aSupportsTailDispatch=*/true);
-  TaskQueue* tq = taskQueue;
-  ObserverCheckpoint checkpoint;
-
-  {
-    auto obs = MakeRefPtr<Observer>(checkpoint);
-    tq->SetObserver(obs);
-  }
-
-  {
-    InSequence seq;
-    EXPECT_OBS_CALL(checkpoint, "WillProcessEvent", tq);
-    EXPECT_RUNNABLE_CALL(checkpoint, "Runnable1", tq);
-    EXPECT_RUNNABLE_CALL(checkpoint, "Runnable1.Direct", tq);
-    EXPECT_OBS_CALL(checkpoint, "DidProcessEvent", tq);
-    EXPECT_OBS_CALL(checkpoint, "WillProcessEvent", tq);
-    EXPECT_RUNNABLE_CALL(checkpoint, "Runnable2", tq);
-    EXPECT_OBS_CALL(checkpoint, "DidProcessEvent", tq);
-    EXPECT_OBSDTOR_CALL(checkpoint, "~Observer");
-  }
-
-  MOZ_ALWAYS_SUCCEEDS(tq->Dispatch(NS_NewRunnableFunction(__func__, [&] {
-    checkpoint.Call("Runnable1", nullptr, AbstractThread::GetCurrent(),
-                    GetCurrentSerialEventTarget());
-    tq->TailDispatcher().AddDirectTask(
-        NS_NewRunnableFunction("TestDirectTask", [&] {
-          checkpoint.Call("Runnable1.Direct", nullptr,
-                          AbstractThread::GetCurrent(),
-                          GetCurrentSerialEventTarget());
-        }));
-  })));
-
-  MOZ_ALWAYS_SUCCEEDS(tq->Dispatch(NS_NewRunnableFunction(__func__, [&] {
-    checkpoint.Call("Runnable2", nullptr, AbstractThread::GetCurrent(),
-                    GetCurrentSerialEventTarget());
-  })));
-  NS_ProcessPendingEvents(nullptr);
-
-  tq->BeginShutdown();
-}
-
-#undef EXPECT_OBS_CALL
-#undef EXPECT_RUNNABLE_CALL
-#undef EXPECT_CP_CALL
 
 TEST(AbstractThread, GetCurrentSerialEventTarget)
 {
