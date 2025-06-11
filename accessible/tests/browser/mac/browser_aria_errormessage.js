@@ -266,3 +266,26 @@ addAccessibleTask(
     );
   }
 );
+
+/**
+ * This test modifies the innerText of an associated error message on an
+ * input with aria-invalid=false and verifies the error change event
+ * is NOT fired.
+ */
+addAccessibleTask(
+  `
+    <label for="input">Valid field with associated error error</label><input id="input" aria-invalid="false" aria-errormessage="error-msg">
+    <div id="error-msg">Field validation failed</div>
+  `,
+  async (browser, _accDoc) => {
+    // XXX: We don't have a way to await unexpected, non-core events, so we
+    // use the core EVENT_ERRORMESSAGE_CHANGED here as a proxy for AXValidationErrorChanged
+    const unexpectedEvents = { unexpected: [[EVENT_ERRORMESSAGE_CHANGED]] };
+    info("Setting new error message text");
+    await contentSpawnMutation(browser, unexpectedEvents, function () {
+      content.document.getElementById("error-msg").innerText =
+        "new error message";
+    });
+    ok(true, "Did not receive error message event!");
+  }
+);
