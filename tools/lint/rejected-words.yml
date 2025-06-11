@@ -10,7 +10,7 @@ avoid-blacklist-and-whitelist:
     extensions:
         - js
         - mjs
-        - jxs
+        - jsx
         - idl
         - webidl
         - xml

@@ -39,7 +39,7 @@ codespell:
     when:
         files-changed:
             - '**/*.js'
-            - '**/*.jxs'
+            - '**/*.jsx'
             - '**/*.mjs'
             - '**/*.xml'
             - '**/*.html'
@@ -67,7 +67,7 @@ rejected-words:
     when:
         files-changed:
             - '**/*.js'
-            - '**/*.jxs'
+            - '**/*.jsx'
             - '**/*.mjs'
             - '**/*.xml'
             - '**/*.html'
