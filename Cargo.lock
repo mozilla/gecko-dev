@@ -1231,7 +1231,6 @@ dependencies = [
  "gtkbind",
  "intl-memoizer",
  "libloading",
- "lmdb-rkv-sys",
  "log",
  "memtest",
  "minidump-analyzer",
@@ -2387,7 +2386,6 @@ version = "0.1.0"
 dependencies = [
  "lazy_static",
  "libc",
- "lmdb-rkv",
  "rkv",
  "tempfile",
 ]
@@ -2518,7 +2516,6 @@ name = "gkrust"
 version = "0.1.0"
 dependencies = [
  "gkrust-shared",
- "lmdb-rkv-sys",
  "mozglue-static",
  "mozilla-central-workspace-hack",
  "stylo_tests",
@@ -2536,7 +2533,6 @@ dependencies = [
  "gkrust-shared",
  "kvstore-gtest",
  "l10nregistry-ffi-gtest",
- "lmdb-rkv-sys",
  "moz_task-gtest",
  "mozglue-static",
  "mozilla-central-workspace-hack",
@@ -2599,7 +2595,6 @@ dependencies = [
  "l10nregistry",
  "l10nregistry-ffi",
  "libz-rs-sys",
- "lmdb-rkv-sys",
  "localization-ffi",
  "log",
  "mapped_hyph",
@@ -3779,29 +3774,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4ce301924b7887e9d637144fdade93f9dfff9b60981d4ac161db09720d39aa5"
 
 [[package]]
-name = "lmdb-rkv"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "447a296f7aca299cfbb50f4e4f3d49451549af655fb7215d7f8c0c3d64bad42b"
-dependencies = [
- "bitflags 1.999.999",
- "byteorder",
- "libc",
- "lmdb-rkv-sys",
-]
-
-[[package]]
-name = "lmdb-rkv-sys"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61b9ce6b3be08acefa3003c57b7565377432a89ec24476bbe72e11d101f852fe"
-dependencies = [
- "cc",
- "libc",
- "pkg-config",
-]
-
-[[package]]
 name = "localization-ffi"
 version = "0.1.0"
 dependencies = [
@@ -4479,7 +4451,6 @@ dependencies = [
  "indexmap",
  "itertools 0.14.0",
  "libc",
- "lmdb-rkv-sys",
  "log",
  "memchr",
  "mio",
@@ -5662,7 +5633,6 @@ dependencies = [
  "byteorder",
  "id-arena",
  "lazy_static",
- "lmdb-rkv",
  "log",
  "ordered-float",
  "paste",

@@ -535,12 +535,6 @@ notes = "The in-gecko feature that we enable makes only pre-built bindings used,
 version = "0.2.0"
 criteria = "safe-to-deploy"
 
-[[exemptions.lmdb-rkv-sys]]
-version = "0.11.2"
-criteria = "safe-to-deploy"
-suggest = false
-notes = "This crate is forked from another crate and not developed in-house. Given that LMDB-backed RKV is going away, we will probably never bother auditing this"
-
 [[exemptions.mach]]
 version = "0.3.2"
 criteria = "safe-to-deploy"
