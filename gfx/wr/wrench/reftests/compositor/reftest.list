@@ -1,7 +1,7 @@
 color_targets(3) == rounded-corners-1.yaml rounded-corners-1-ref.yaml
 # color_targets(2) == rounded-corners-2.yaml rounded-corners-2-ref.yaml
 == rounded-corners-3.yaml rounded-corners-3-ref.yaml
-# fuzzy(2,106) == rounded-corners-4.yaml rounded-corners-4-ref.yaml
-# fuzzy(1,6) == rounded-yuv-surface.yaml rounded-yuv-surface-ref.yaml
+== rounded-corners-4.yaml rounded-corners-4-ref.yaml
+# fuzzy(2,106) == rounded-yuv-surface.yaml rounded-yuv-surface-ref.yaml
 == rounded-rgb-surface.yaml rounded-rgb-surface-ref.yaml
 == tile-occlusion.yaml tile-occlusion-ref.yaml
