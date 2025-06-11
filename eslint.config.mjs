@@ -39,10 +39,20 @@ const httpTestingPaths = [
   `**/*Downgrade*.{${mozilla.allFileExtensions.join(",")}}`,
 ];
 
-function wrapPathsWithAllExts(paths, excludedExts = []) {
-  let extensions = mozilla.allFileExtensions.filter(
-    f => !excludedExts.includes(f)
-  );
+/**
+ * Takes each path in the paths array, and expands it with the list of extensions
+ * that ESLint is watching.
+ *
+ * @param {object} options
+ * @param {string[]} options.paths
+ *   The list of paths to wrap.
+ * @param {string[]} [options.excludedExtensions]
+ *   The list of extensions to be excluded from the wrapping.
+ */
+function wrapPaths({ paths, excludedExtensions }) {
+  let extensions = excludedExtensions
+    ? mozilla.allFileExtensions.filter(f => !excludedExtensions.includes(f))
+    : mozilla.allFileExtensions;
   return paths.map(p => {
     if (p.endsWith("**")) {
       return p + `/*.{${extensions.join(",")}}`;
@@ -57,9 +67,15 @@ function wrapPathsWithAllExts(paths, excludedExts = []) {
   });
 }
 
+/**
+ * Wraps the paths listed in the files section of a configuration with the
+ * file extensions that ESLint is watching.
+ *
+ * @param {object} configs
+ */
 function wrapPathsInConfig(configs) {
   for (let config of configs) {
-    config.files = wrapPathsWithAllExts(config.files);
+    config.files = wrapPaths({ paths: config.files });
   }
   return configs;
 }
@@ -104,7 +120,7 @@ let config = [
   },
   {
     name: "all-files",
-    files: wrapPathsWithAllExts(["**"]),
+    files: wrapPaths({ paths: ["**"] }),
     linterOptions: {
       // With this option on, if an inline comment disables a rule, and the
       // rule is able to be automatically fixed, then ESLint will remove the
@@ -141,13 +157,16 @@ let config = [
   {
     name: "define-globals-for-browser-env",
     // Not available for sjs files.
-    files: wrapPathsWithAllExts(["**"], ["sjs"]),
+    files: wrapPaths({ paths: ["**"], excludedExtensions: ["sjs"] }),
     ignores: [
       // Also not available for various other scopes and tools.
       "**/*.sys.mjs",
       "**/?(*.)worker.?(m)js",
       "**/?(*.)serviceworker.?(m)js",
-      ...wrapPathsWithAllExts(testPaths.xpcshell, ["mjs", "sjs"]),
+      ...wrapPaths({
+        paths: testPaths.xpcshell,
+        excludedExtensions: ["mjs", "sjs"],
+      }),
       "tools/lint/eslint/**",
     ],
     languageOptions: {
@@ -159,7 +178,7 @@ let config = [
     // privileged and specific environment. mjs are handled separately by
     // the recommended configuration in eslint-plugin-mozilla.
     name: "define-privileged-and-specific-globals-for-most-files",
-    files: wrapPathsWithAllExts(["**"], ["json"]),
+    files: wrapPaths({ paths: ["**"], excludedExtensions: ["json"] }),
     ignores: ["browser/components/storybook/**", "tools"],
     languageOptions: {
       globals: {
@@ -249,11 +268,14 @@ let config = [
   },
   {
     ...mozilla.configs["flat/general-test"],
-    files: wrapPathsWithAllExts(["**/test/**", "**/tests/**"]),
+    files: wrapPaths({ paths: ["**/test/**", "**/tests/**"] }),
   },
   {
     ...mozilla.configs["flat/xpcshell-test"],
-    files: wrapPathsWithAllExts(testPaths.xpcshell, ["mjs", "sjs"]),
+    files: wrapPaths({
+      paths: testPaths.xpcshell,
+      excludedExtensions: ["mjs", "sjs"],
+    }),
   },
   {
     name: "no-unused-vars-disable-on-headjs",
@@ -295,16 +317,25 @@ let config = [
   },
   {
     ...mozilla.configs["flat/browser-test"],
-    files: wrapPathsWithAllExts(testPaths.browser, ["mjs", "sjs"]),
+    files: wrapPaths({
+      paths: testPaths.browser,
+      excludedExtensions: ["mjs", "sjs"],
+    }),
   },
   {
     ...mozilla.configs["flat/mochitest-test"],
-    files: wrapPathsWithAllExts(testPaths.mochitest, ["mjs"]),
+    files: wrapPaths({
+      paths: testPaths.mochitest,
+      excludedExtensions: ["mjs"],
+    }),
     ignores: ["security/manager/ssl/tests/mochitest/browser/**"],
   },
   {
     ...mozilla.configs["flat/chrome-test"],
-    files: wrapPathsWithAllExts(testPaths.chrome, ["mjs", "sjs"]),
+    files: wrapPaths({
+      paths: testPaths.chrome,
+      excludedExtensions: ["mjs", "sjs"],
+    }),
   },
   {
     name: "simpletest",
@@ -337,12 +368,14 @@ let config = [
     // Some directories reuse `test_foo.js` files between mochitest-plain and
     // unit tests, or use custom postMessage-based assertion propagation into
     // browser tests. Ignore those too:
-    files: wrapPathsWithAllExts([
-      // Reuses xpcshell unit test scripts in mochitest-plain HTML files.
-      "dom/indexedDB/test/**",
-      // Dispatches functions to the webpage in ways that are hard to detect.
-      "toolkit/components/antitracking/test/**",
-    ]),
+    files: wrapPaths({
+      paths: [
+        // Reuses xpcshell unit test scripts in mochitest-plain HTML files.
+        "dom/indexedDB/test/**",
+        // Dispatches functions to the webpage in ways that are hard to detect.
+        "toolkit/components/antitracking/test/**",
+      ],
+    }),
     rules: {
       "mozilla/no-comparison-or-assignment-inside-ok": "off",
     },
@@ -377,12 +410,12 @@ let config = [
   },
   {
     name: "mozilla/valid-jsdoc",
-    files: wrapPathsWithAllExts(["**"]),
+    files: wrapPaths({ paths: ["**"] }),
     ...mozilla.configs["flat/valid-jsdoc"],
   },
   {
     name: "mozilla/require-jsdoc",
-    files: wrapPathsWithAllExts(["**"]),
+    files: wrapPaths({ paths: ["**"] }),
     ...mozilla.configs["flat/valid-jsdoc"],
   },
 
@@ -401,7 +434,7 @@ let config = [
   { name: "eslint-config-prettier", ...eslintConfigPrettier },
   {
     name: "enable-curly",
-    files: wrapPathsWithAllExts(["**/"]),
+    files: wrapPaths({ paths: ["**/"] }),
     rules: {
       // Require braces around blocks that start a new line. This must be
       // configured after eslint-config-prettier is included, as otherwise
