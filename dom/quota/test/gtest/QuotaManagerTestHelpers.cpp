@@ -38,7 +38,7 @@ FullOriginMetadata GetFullOriginMetadata(const nsCString& aOriginSuffix,
                                          const nsCString& aGroupNoSuffix,
                                          const nsCString& aOriginNoSuffix) {
   return {GetOriginMetadata(aOriginSuffix, aGroupNoSuffix, aOriginNoSuffix),
-          /* aPersisted */ false, /* aLastAccessTime */ 0};
+          OriginStateMetadata{/* aLastAccessTime */ 0, /* aPersisted */ false}};
 }
 
 }  // namespace mozilla::dom::quota::test

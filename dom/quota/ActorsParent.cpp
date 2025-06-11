@@ -3421,8 +3421,8 @@ QuotaManager::GetOrCreateTemporaryOriginDirectory(
     // since we lack atomic support for creating the origin directory along
     // with its metadata, we need to add the origin to cached origins right
     // after directory creation.
-    AddTemporaryOrigin(
-        FullOriginMetadata{aOriginMetadata, persisted, timestamp});
+    AddTemporaryOrigin(FullOriginMetadata{
+        aOriginMetadata, OriginStateMetadata{timestamp, persisted}});
 
     QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(*directory, timestamp,
                                                   persisted, aOriginMetadata)));
@@ -4158,7 +4158,8 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
     QM_TRY(OkIf(usage.isValid()), NS_ERROR_FAILURE);
 
     InitQuotaForOrigin(
-        FullOriginMetadata{aOriginMetadata, aPersisted, aAccessTime},
+        FullOriginMetadata{aOriginMetadata,
+                           OriginStateMetadata{aAccessTime, aPersisted}},
         clientUsages, usage.value());
   }
 
@@ -6290,10 +6291,12 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
     if (!aCreateIfNonExistent) {
       const int64_t timestamp = PR_Now();
 
-      InitQuotaForOrigin(FullOriginMetadata{aOriginMetadata,
-                                            /* aPersisted */ false, timestamp},
-                         ClientUsageArray(), /* aUsageBytes */ 0,
-                         /* aDirectoryExists */ false);
+      InitQuotaForOrigin(
+          FullOriginMetadata{
+              aOriginMetadata,
+              OriginStateMetadata{timestamp, /* aPersisted */ false}},
+          ClientUsageArray(), /* aUsageBytes */ 0,
+          /* aDirectoryExists */ false);
 
       return std::pair(std::move(directory), false);
     }
@@ -6303,9 +6306,9 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
     if (created) {
       const int64_t timestamp = PR_Now();
 
-      FullOriginMetadata fullOriginMetadata =
-          FullOriginMetadata{aOriginMetadata,
-                             /* aPersisted */ false, timestamp};
+      FullOriginMetadata fullOriginMetadata = FullOriginMetadata{
+          aOriginMetadata,
+          OriginStateMetadata{timestamp, /* aPersisted */ false}};
 
       // Usually, infallible operations are placed after fallible ones.
       // However, since we lack atomic support for creating the origin
@@ -7228,6 +7231,23 @@ uint64_t QuotaManager::GetGroupLimit() const {
   // storage limit).
   return std::min<uint64_t>(mTemporaryStorageLimit,
                             std::max<uint64_t>(x, 10 MB));
+}
+
+Maybe<OriginStateMetadata> QuotaManager::GetOriginStateMetadata(
+    const OriginMetadata& aOriginMetadata) {
+  AssertIsOnIOThread();
+  MOZ_DIAGNOSTIC_ASSERT(mStorageConnection);
+  MOZ_DIAGNOSTIC_ASSERT(mTemporaryStorageInitializedInternal);
+
+  MutexAutoLock lock(mQuotaMutex);
+
+  RefPtr<OriginInfo> originInfo =
+      LockedGetOriginInfo(aOriginMetadata.mPersistenceType, aOriginMetadata);
+  if (originInfo) {
+    return Some(originInfo->LockedFlattenToOriginStateMetadata());
+  }
+
+  return Nothing();
 }
 
 std::pair<uint64_t, uint64_t> QuotaManager::GetUsageAndLimitForEstimate(

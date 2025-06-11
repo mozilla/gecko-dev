@@ -3536,8 +3536,9 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
         timestamp = PR_Now();
       }
 
-      FullOriginMetadata fullOriginMetadata =
-          FullOriginMetadata{originMetadata, /* aPersisted */ true, timestamp};
+      FullOriginMetadata fullOriginMetadata = FullOriginMetadata{
+          originMetadata,
+          OriginStateMetadata{timestamp, /* aPersisted */ true}};
 
       // Usually, infallible operations are placed after fallible ones.
       // However, since we lack atomic support for creating the origin
@@ -3567,7 +3568,8 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
         // origin directory has been just created.
 
         FullOriginMetadata fullOriginMetadata = FullOriginMetadata{
-            originMetadata, /* aPersisted */ true, timestamp};
+            originMetadata,
+            OriginStateMetadata{timestamp, /* aPersisted */ true}};
 
         aQuotaManager.InitQuotaForOrigin(fullOriginMetadata, ClientUsageArray(),
                                          /* aUsageBytes */ 0);

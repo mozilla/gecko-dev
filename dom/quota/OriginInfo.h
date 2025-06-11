@@ -74,6 +74,8 @@ class OriginInfo final {
 
   OriginMetadata FlattenToOriginMetadata() const;
 
+  OriginStateMetadata LockedFlattenToOriginStateMetadata() const;
+
   FullOriginMetadata LockedFlattenToFullOriginMetadata() const;
 
   nsresult LockedBindToStatement(mozIStorageStatement* aStatement) const;

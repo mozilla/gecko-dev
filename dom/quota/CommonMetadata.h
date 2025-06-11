@@ -78,17 +78,23 @@ struct OriginMetadata : public PrincipalMetadata {
   }
 };
 
-struct FullOriginMetadata : OriginMetadata {
-  bool mPersisted;
+struct OriginStateMetadata {
   int64_t mLastAccessTime;
+  bool mPersisted;
 
+  OriginStateMetadata() = default;
+
+  OriginStateMetadata(int64_t aLastAccessTime, bool aPersisted)
+      : mLastAccessTime(aLastAccessTime), mPersisted(aPersisted) {}
+};
+
+struct FullOriginMetadata : OriginMetadata, OriginStateMetadata {
   FullOriginMetadata() = default;
 
-  FullOriginMetadata(OriginMetadata aOriginMetadata, bool aPersisted,
-                     int64_t aLastAccessTime)
+  FullOriginMetadata(OriginMetadata aOriginMetadata,
+                     OriginStateMetadata aOriginStateMetadata)
       : OriginMetadata(std::move(aOriginMetadata)),
-        mPersisted(aPersisted),
-        mLastAccessTime(aLastAccessTime) {}
+        OriginStateMetadata(aOriginStateMetadata) {}
 };
 
 struct OriginUsageMetadata : FullOriginMetadata {
