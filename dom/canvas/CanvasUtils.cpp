@@ -15,6 +15,7 @@
 #include "mozilla/dom/UserActivation.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerPrivate.h"
+#include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/StaticPrefs_gfx.h"
@@ -65,22 +66,61 @@ static bool IsUnrestrictedPrincipal(nsIPrincipal& aPrincipal) {
 
 namespace mozilla::CanvasUtils {
 
+class OffscreenCanvasPermissionRunnable final
+    : public dom::WorkerMainThreadRunnable {
+ public:
+  OffscreenCanvasPermissionRunnable(dom::WorkerPrivate* aWorkerPrivate,
+                                    nsIPrincipal* aPrincipal)
+      : WorkerMainThreadRunnable(aWorkerPrivate,
+                                 "OffscreenCanvasPermissionRunnable"_ns),
+        mPrincipal(aPrincipal) {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+  }
+
+  bool MainThreadRun() override {
+    AssertIsOnMainThread();
+
+    mResult = GetCanvasExtractDataPermission(*mPrincipal);
+    return true;
+  }
+
+  uint32_t GetResult() const { return mResult; }
+
+ private:
+  nsCOMPtr<nsIPrincipal> mPrincipal;
+  uint32_t mResult = nsIPermissionManager::UNKNOWN_ACTION;
+};
+
 uint32_t GetCanvasExtractDataPermission(nsIPrincipal& aPrincipal) {
   if (IsUnrestrictedPrincipal(aPrincipal)) {
     return true;
   }
 
-  nsresult rv;
-  nsCOMPtr<nsIPermissionManager> permissionManager =
-      do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, false);
+  if (NS_IsMainThread()) {
+    nsresult rv;
+    nsCOMPtr<nsIPermissionManager> permissionManager =
+        do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, false);
 
-  uint32_t permission;
-  rv = permissionManager->TestPermissionFromPrincipal(
-      &aPrincipal, PERMISSION_CANVAS_EXTRACT_DATA, &permission);
-  NS_ENSURE_SUCCESS(rv, false);
+    uint32_t permission;
+    rv = permissionManager->TestPermissionFromPrincipal(
+        &aPrincipal, PERMISSION_CANVAS_EXTRACT_DATA, &permission);
+    NS_ENSURE_SUCCESS(rv, false);
 
-  return permission;
+    return permission;
+  }
+  if (auto* workerPrivate = dom::GetCurrentThreadWorkerPrivate()) {
+    RefPtr<OffscreenCanvasPermissionRunnable> runnable =
+        new OffscreenCanvasPermissionRunnable(workerPrivate, &aPrincipal);
+    ErrorResult rv;
+    runnable->Dispatch(workerPrivate, dom::WorkerStatus::Canceling, rv);
+    if (rv.Failed()) {
+      return nsIPermissionManager::UNKNOWN_ACTION;
+    }
+    return runnable->GetResult();
+  }
+  return nsIPermissionManager::UNKNOWN_ACTION;
 }
 
 bool IsImageExtractionAllowed(dom::Document* aDocument, JSContext* aCx,
@@ -300,11 +340,20 @@ ImageExtraction ImageExtractionResult(dom::OffscreenCanvas* aOffscreenCanvas,
 
   if (aOffscreenCanvas->ShouldResistFingerprinting(
           RFPTarget::CanvasImageExtractionPrompt)) {
+    if (GetCanvasExtractDataPermission(aPrincipal) ==
+        nsIPermissionManager::ALLOW_ACTION) {
+      return ImageExtraction::Unrestricted;
+    }
+
     return ImageExtraction::Placeholder;
   }
 
   if (aOffscreenCanvas->ShouldResistFingerprinting(
           RFPTarget::CanvasRandomization)) {
+    if (GetCanvasExtractDataPermission(aPrincipal) ==
+        nsIPermissionManager::ALLOW_ACTION) {
+      return ImageExtraction::Unrestricted;
+    }
     return ImageExtraction::Randomize;
   }
 
