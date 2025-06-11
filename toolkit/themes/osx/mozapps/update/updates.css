@@ -45,7 +45,7 @@
   padding: 10px 12px 12px 12px;
   -moz-window-dragging: drag;
   /* Not quite a sidebar, but in a sense an auxiliary toolbar */
-  border-top-color: 1px solid -moz-sidebarborder;
+  border-top: 1px solid -moz-sidebarborder;
   background-color: -moz-sidebar;
   color: -moz-sidebartext;
 
