@@ -433,8 +433,8 @@ user-login = "seanmonstar"
 user-name = "Sean McArthur"
 
 [[publisher.ohttp]]
-version = "0.5.1"
-when = "2024-01-10"
+version = "0.5.4"
+when = "2025-02-27"
 user-id = 128763
 user-login = "martinthomson"
 user-name = "Martin Thomson"
