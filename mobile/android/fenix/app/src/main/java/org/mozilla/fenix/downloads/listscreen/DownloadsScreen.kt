@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem
+import mozilla.components.compose.base.modifier.thenConditional
 import mozilla.components.compose.base.text.Text
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
@@ -227,24 +228,41 @@ fun DownloadsScreen(
                     downloadsStore.dispatch(DownloadUIAction.RemoveItemForRemoval(item))
                 }
             },
-            onDeleteClick = { item ->
+            onPauseClick = {
                 downloadsStore.dispatch(
-                    DownloadUIAction.AddPendingDeletionSet(
-                        setOf(item.id),
-                    ),
+                    DownloadUIAction.PauseDownload(downloadId = it),
                 )
-                showDeleteSnackbar(
-                    selectedItems = setOf(item),
-                    undoDelayProvider = undoDelayProvider,
-                    coroutineScope = coroutineScope,
-                    snackbarHostState = snackbarHostState,
-                    context = context,
-                    undoAction = {
-                        downloadsStore.dispatch(
-                            DownloadUIAction.UndoPendingDeletion,
-                        )
-                    },
+            },
+            onResumeClick = {
+                downloadsStore.dispatch(
+                    DownloadUIAction.ResumeDownload(downloadId = it),
                 )
+            },
+            onRetryClick = {
+                downloadsStore.dispatch(DownloadUIAction.RetryDownload(downloadId = it))
+            },
+            onDeleteClick = { item ->
+                if (item.status is FileItem.Status.Completed) {
+                    downloadsStore.dispatch(
+                        DownloadUIAction.AddPendingDeletionSet(
+                            setOf(item.id),
+                        ),
+                    )
+                    showDeleteSnackbar(
+                        selectedItems = setOf(item),
+                        undoDelayProvider = undoDelayProvider,
+                        coroutineScope = coroutineScope,
+                        snackbarHostState = snackbarHostState,
+                        context = context,
+                        undoAction = {
+                            downloadsStore.dispatch(
+                                DownloadUIAction.UndoPendingDeletion,
+                            )
+                        },
+                    )
+                } else {
+                    downloadsStore.dispatch(DownloadUIAction.CancelDownload(downloadId = item.id))
+                }
             },
             onShareUrlClick = { downloadsStore.dispatch(DownloadUIAction.ShareUrlClicked(it.url)) },
             onShareFileClick = {
@@ -316,6 +334,9 @@ private fun ToolbarEditActions(
  * @param onContentTypeSelected Callback invoked when a content type filter is selected.
  * @param onItemClick Invoked when a download item is clicked.
  * @param onSelectionChange Invoked when selection state of an item changed.
+ * @param onPauseClick Invoked when the pause icon button is clicked.
+ * @param onResumeClick Invoked when the resume icon button is clicked.
+ * @param onRetryClick Invoked when the retry icon button is clicked.
  * @param onDeleteClick Invoked when delete icon button is clicked.
  * @param onShareUrlClick Invoked when share url button is clicked.
  * @param onShareFileClick Invoked when share file button is clicked.
@@ -328,6 +349,9 @@ private fun DownloadsScreenContent(
     onContentTypeSelected: (FileItem.ContentTypeFilter) -> Unit,
     onItemClick: (FileItem) -> Unit,
     onSelectionChange: (FileItem, Boolean) -> Unit,
+    onPauseClick: (id: String) -> Unit,
+    onResumeClick: (id: String) -> Unit,
+    onRetryClick: (id: String) -> Unit,
     onDeleteClick: (FileItem) -> Unit,
     onShareUrlClick: (FileItem) -> Unit,
     onShareFileClick: (FileItem) -> Unit,
@@ -360,6 +384,9 @@ private fun DownloadsScreenContent(
                 mode = uiState.mode,
                 onClick = onItemClick,
                 onSelectionChange = onSelectionChange,
+                onPauseClick = onPauseClick,
+                onResumeClick = onResumeClick,
+                onRetryClick = onRetryClick,
                 onDeleteClick = onDeleteClick,
                 onShareUrlClick = onShareUrlClick,
                 onShareFileClick = onShareFileClick,
@@ -370,6 +397,7 @@ private fun DownloadsScreenContent(
 }
 
 @Composable
+@Suppress("LongParameterList")
 @OptIn(ExperimentalFoundationApi::class)
 private fun DownloadsContent(
     items: List<DownloadListItem>,
@@ -377,6 +405,9 @@ private fun DownloadsContent(
     modifier: Modifier = Modifier,
     onClick: (FileItem) -> Unit,
     onSelectionChange: (FileItem, Boolean) -> Unit,
+    onPauseClick: (id: String) -> Unit,
+    onResumeClick: (id: String) -> Unit,
+    onRetryClick: (id: String) -> Unit,
     onDeleteClick: (FileItem) -> Unit,
     onShareUrlClick: (FileItem) -> Unit,
     onShareFileClick: (FileItem) -> Unit,
@@ -411,31 +442,38 @@ private fun DownloadsContent(
                     FileListItem(
                         fileItem = listItem,
                         isSelected = mode.selectedItems.contains(listItem),
-                        isMenuIconVisible = mode is Mode.Normal,
+                        areAfterListItemIconsVisible = mode is Mode.Normal ||
+                            listItem.status !is FileItem.Status.Completed,
+                        onPauseClick = onPauseClick,
                         onDeleteClick = onDeleteClick,
+                        onResumeClick = onResumeClick,
+                        onRetryClick = onRetryClick,
                         onShareUrlClick = onShareUrlClick,
                         onShareFileClick = onShareFileClick,
                         modifier = Modifier
                             .animateItem()
                             .width(FirefoxTheme.layout.size.containerMaxWidth)
-                            .combinedClickable(
-                                onClick = {
-                                    if (mode is Mode.Normal) {
-                                        onClick(listItem)
-                                    } else {
-                                        onSelectionChange(
-                                            listItem,
-                                            !mode.selectedItems.contains(listItem),
-                                        )
-                                    }
-                                },
-                                onLongClick = {
-                                    if (mode is Mode.Normal) {
-                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onSelectionChange(listItem, true)
-                                    }
-                                },
-                            )
+                            .thenConditional(
+                                modifier = Modifier
+                                    .combinedClickable(
+                                        onClick = {
+                                            if (mode is Mode.Normal) {
+                                                onClick(listItem)
+                                            } else {
+                                                onSelectionChange(
+                                                    listItem,
+                                                    !mode.selectedItems.contains(listItem),
+                                                )
+                                            }
+                                        },
+                                        onLongClick = {
+                                            if (mode is Mode.Normal) {
+                                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                onSelectionChange(listItem, true)
+                                            }
+                                        },
+                                    ),
+                            ) { listItem.status is FileItem.Status.Completed }
                             .testTag("${DownloadsListTestTag.DOWNLOADS_LIST_ITEM}.${listItem.fileName}"),
                     )
 
@@ -578,7 +616,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         displayedShortUrl = "example.com",
                         contentType = "image/png",
                         status = FileItem.Status.Completed,
-                        filePath = "/path/to/file1",
+                        filePath = "/path/to/file2",
                         timeCategory = TimeCategory.TODAY,
                     ),
                     FileItem(
@@ -589,8 +627,63 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         displayedShortUrl = "example.com",
                         contentType = "application/zip",
                         status = FileItem.Status.Completed,
-                        filePath = "/path/to/file1",
+                        filePath = "/path/to/file3",
                         timeCategory = TimeCategory.OLDER,
+                    ),
+                    FileItem(
+                        id = "4",
+                        fileName = "File 4",
+                        url = "https://example.com/file4",
+                        description = "5 MB / 10 MB • in 5s",
+                        displayedShortUrl = "example.com",
+                        contentType = "application/zip",
+                        status = FileItem.Status.Downloading(progress = 0.5f),
+                        filePath = "/path/to/file4",
+                        timeCategory = TimeCategory.IN_PROGRESS,
+                    ),
+                    FileItem(
+                        id = "5",
+                        fileName = "File 5",
+                        url = "https://example.com/file5",
+                        description = "5 MB / 10 MB • pending",
+                        displayedShortUrl = "example.com",
+                        contentType = "application/zip",
+                        status = FileItem.Status.Downloading(progress = 0.5f),
+                        filePath = "/path/to/file5",
+                        timeCategory = TimeCategory.IN_PROGRESS,
+                    ),
+                    FileItem(
+                        id = "6",
+                        fileName = "File 6",
+                        url = "https://example.com/file6",
+                        description = "5 MB / 10 MB • paused",
+                        displayedShortUrl = "example.com",
+                        contentType = "application/zip",
+                        status = FileItem.Status.Paused(progress = 0.5f),
+                        filePath = "/path/to/file6",
+                        timeCategory = TimeCategory.IN_PROGRESS,
+                    ),
+                    FileItem(
+                        id = "7",
+                        fileName = "File 7",
+                        url = "https://example.com/file7",
+                        description = "Preparing download…",
+                        displayedShortUrl = "example.com",
+                        contentType = "application/zip",
+                        status = FileItem.Status.Initiated,
+                        filePath = "/path/to/file7",
+                        timeCategory = TimeCategory.IN_PROGRESS,
+                    ),
+                    FileItem(
+                        id = "8",
+                        fileName = "File 8",
+                        url = "https://example.com/file8",
+                        description = "Download Failed",
+                        displayedShortUrl = "example.com",
+                        contentType = "application/zip",
+                        status = FileItem.Status.Failed,
+                        filePath = "/path/to/file8",
+                        timeCategory = TimeCategory.IN_PROGRESS,
                     ),
                 ),
                 mode = Mode.Normal,

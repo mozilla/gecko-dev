@@ -1393,6 +1393,12 @@
     <!-- Content description for the toolbar back button while searching the downloads -->
     <string name="download_close_search_description">Back and close search</string>
     <!-- Content description for the search bar clear text button on the downloads screen -->
+    <!-- Content description for pause action button on the downloads screen -->
+    <string name="download_pause_action">Pause</string>
+    <!-- Content description for resume action button on the downloads screen -->
+    <string name="download_resume_action">Resume</string>
+    <!-- Content description for retry download action button on the downloads screen -->
+    <string name="download_retry_action">Retry</string>
     <string name="download_clear_search_description">Clear</string>
     <!-- Text for the button to share the download URL -->
     <string name="download_share_url">Share URL</string>
