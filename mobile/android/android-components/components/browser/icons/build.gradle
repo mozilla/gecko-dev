@@ -52,7 +52,7 @@ dependencies {
     implementation project(':components:support-ktx')
 
     implementation libs.androidx.annotation
-    implementation libs.androidx.compose.material
+    implementation libs.androidx.compose.material3
     implementation libs.androidx.compose.ui
     implementation libs.androidx.core.ktx
     implementation libs.androidx.palette

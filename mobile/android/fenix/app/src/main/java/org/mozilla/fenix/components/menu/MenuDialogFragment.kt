@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.menu
 
+import android.app.Activity
 import android.app.AlertDialog
 import android.app.Dialog
 import android.app.PendingIntent
@@ -85,6 +86,7 @@ import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
 import org.mozilla.fenix.components.menu.store.TranslationInfo
 import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
+import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.nimbus.FxNimbus
@@ -188,6 +190,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
                 val components = components
                 val settings = components.settings
+                val defaultBrowser = settings.isDefaultBrowser
                 val appStore = components.appStore
                 val browserStore = components.core.store
 
@@ -228,7 +231,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         ),
                         middleware = listOf(
                             MenuDialogMiddleware(
-                                browserStore = browserStore,
                                 appStore = appStore,
                                 addonManager = components.addonManager,
                                 settings = settings,
@@ -442,6 +444,11 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
                     var contentState: Route by remember { mutableStateOf(initRoute) }
 
+                    var shouldShowDefaultBrowserBanner by
+                    remember { mutableStateOf(settings.shouldShowDefaultBrowserBanner) }
+
+                    var showBanner = shouldShowDefaultBrowserBanner && !defaultBrowser
+
                     BackHandler {
                         when (contentState) {
                             Route.ToolsMenu,
@@ -502,9 +509,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 val accountState by syncStore.observeAsState(initialValue = NotAuthenticated) { state ->
                                     state.accountState
                                 }
-                                val isSiteLoading by store.observeAsState(initialValue = false) { state ->
-                                    state.browserMenuState?.isLoading ?: false
-                                }
 
                                 val appLinksRedirect = if (selectedTab?.content?.url != null) {
                                     appLinksUseCases.appLinkRedirect(selectedTab.content.url)
@@ -517,7 +521,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     account = account,
                                     accountState = accountState,
                                     showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
-                                    isSiteLoading = isSiteLoading,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                     isExtensionsExpanded = isExtensionsExpanded,
                                     isMoreMenuExpanded = isMoreMenuExpanded,
@@ -534,6 +537,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         browserWebExtensionMenuItems = browserWebExtensionMenuItem,
                                     ),
                                     scrollState = scrollState,
+                                    showBanner = showBanner,
                                     webExtensionMenuCount = webExtensionsCount,
                                     allWebExtensionsDisabled = allWebExtensionsDisabled,
                                     onMozillaAccountButtonClick = {
@@ -574,6 +578,15 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     onSaveMenuClick = {
                                         store.dispatch(MenuAction.SaveMenuClicked)
                                         contentState = Route.SaveMenu
+                                    },
+                                    onBannerClick = {
+                                        (context as? Activity)?.openSetDefaultBrowserOption()
+                                        showBanner = false
+                                        shouldShowDefaultBrowserBanner = false
+                                    },
+                                    onBannerDismiss = {
+                                        settings.shouldShowDefaultBrowserBanner = false
+                                        shouldShowDefaultBrowserBanner = false
                                     },
                                     onExtensionsMenuClick = {
                                         if (allWebExtensionsDisabled || isExtensionsProcessDisabled) {
@@ -625,9 +638,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     },
                                     onRefreshButtonClick = { bypassCache: Boolean ->
                                         store.dispatch(MenuAction.Navigate.Reload(bypassCache))
-                                    },
-                                    onStopButtonClick = {
-                                        store.dispatch(MenuAction.Navigate.Stop)
                                     },
                                     onShareButtonClick = {
                                         selectedTab?.let {

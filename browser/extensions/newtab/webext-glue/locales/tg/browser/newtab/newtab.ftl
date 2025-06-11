@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Нест кардан аз { -pocket-brand-name }
 newtab-menu-archive-pocket = Бойгонӣ кардан ба { -pocket-brand-name }
 newtab-menu-show-privacy-info = Сарпарастони мо ва махфияти шумо
 newtab-menu-about-fakespot = Дар бораи «{ -fakespot-brand-name }»
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Гузориш додан
 newtab-menu-report-content = Гузориш дар бораи ин муҳтаво
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -189,6 +191,8 @@ newtab-label-sponsored-by = Аз тарафи сарпарасти { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } дақиқа
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Сарпарастӣ
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.

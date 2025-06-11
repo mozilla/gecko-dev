@@ -1447,7 +1447,8 @@ export class ExtensionData {
         perm => !oldPermissions.permissions.includes(perm)
       ),
       data_collection: newPermissions.data_collection.filter(
-        perm => newPermissions.data_collection.includes(perm) && perm !== "none"
+        perm =>
+          !oldPermissions.data_collection.includes(perm) && perm !== "none"
       ),
     };
   }
@@ -1467,9 +1468,11 @@ export class ExtensionData {
       permissions: oldPermissions.permissions.filter(perm =>
         newPermissions.permissions.includes(perm)
       ),
-      data_collection: oldPermissions.data_collection.filter(
-        perm => newPermissions.data_collection.includes(perm) && perm !== "none"
-      ),
+      data_collection:
+        oldPermissions.data_collection?.filter(
+          perm =>
+            newPermissions.data_collection?.includes(perm) && perm !== "none"
+        ) ?? [],
     };
   }
 
@@ -1518,9 +1521,27 @@ export class ExtensionData {
       removed
     );
 
+    // Compute removed data collection permissions and account for addons
+    // installed before support for data collection permissions was introduced.
+    let dataCollectionSet = new Set(
+      [].concat(
+        newPermissions.data_collection ?? [],
+        newOptionalPermissions.data_collection ?? []
+      )
+    );
+    let oldDataCollectionSet = new Set(
+      [].concat(
+        oldPermissions.data_collection ?? [],
+        oldOptionalPermissions.data_collection ?? []
+      )
+    );
+
     // Remove any optional permissions that have been removed from the manifest.
     await lazy.ExtensionPermissions.remove(id, {
       permissions: removed,
+      data_collection: Array.from(
+        oldDataCollectionSet.difference(dataCollectionSet)
+      ),
       origins: [],
     });
   }
@@ -3242,7 +3263,11 @@ class BootstrapScope {
     if (data.oldPermissions) {
       // New permissions may be null, ensure we have an empty
       // permission set in that case.
-      let emptyPermissions = { permissions: [], origins: [] };
+      let emptyPermissions = {
+        permissions: [],
+        origins: [],
+        data_collection: [],
+      };
       await ExtensionData.migratePermissions(
         data.id,
         data.oldPermissions,

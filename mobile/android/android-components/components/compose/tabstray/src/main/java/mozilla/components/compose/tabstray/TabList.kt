@@ -8,7 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.MaterialTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import mozilla.components.browser.state.state.TabSessionState
@@ -63,7 +63,7 @@ fun TabList(
     LazyColumn(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colors.surface),
+            .background(MaterialTheme.colorScheme.surface),
     ) {
         items(tabs) { tab ->
             Tab(

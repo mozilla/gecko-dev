@@ -262,9 +262,20 @@ class Environment(TryConfig):
                 "Can be passed in multiple times.",
             },
         ],
+        [
+            ["--record"],
+            {
+                "action": "store_true",
+                "help": "Get a screen recording of the tests where possible.",
+            },
+        ],
     ]
 
-    def try_config(self, env, **kwargs):
+    def try_config(self, env, record, **kwargs):
+        if env is None:
+            env = []
+        if record:
+            env.append("MOZ_RECORD_TEST=1")
         if not env:
             return
         return {

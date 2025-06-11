@@ -28,12 +28,12 @@ gcloud:
 
   device:
     - model: MediumPhone.arm
-      version: 33
+      version: 34
       locale: en_US
 
 flank:
   project: GOOGLE_PROJECT
-  max-test-shards: 1
+  max-test-shards: -1
   num-test-runs: 1
   output-style: compact
   full-junit-result: true

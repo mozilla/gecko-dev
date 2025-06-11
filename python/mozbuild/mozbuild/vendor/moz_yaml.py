@@ -215,6 +215,7 @@ def _schema_1():
                                     "run-script",
                                     "run-command",
                                     "delete-path",
+                                    "vcs-add-remove-files",
                                 ],
                                 msg="Invalid action specified in update-actions",
                             ),
@@ -465,6 +466,11 @@ class UpdateActions:
                 if "path" not in v or len(v.keys()) != 2:
                     raise Invalid(
                         "delete-path action must (only) specify the 'path' key"
+                    )
+            elif v["action"] == "vcs-add-remove-files":
+                if "path" not in v or len(v.keys()) != 2:
+                    raise Invalid(
+                        "vcs-add-remove-files action must (only) specify the 'path' key"
                     )
             elif v["action"] == "run-script":
                 if "script" not in v or "cwd" not in v:

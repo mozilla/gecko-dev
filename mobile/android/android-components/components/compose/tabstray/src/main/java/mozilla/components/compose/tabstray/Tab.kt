@@ -14,11 +14,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,10 +73,10 @@ fun Tab(
                 )
                 Text(
                     text = tab.content.url,
-                    style = MaterialTheme.typography.body2,
+                    style = MaterialTheme.typography.bodyMedium,
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 1,
-                    color = Color.White.copy(alpha = ContentAlpha.medium),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             IconButton(

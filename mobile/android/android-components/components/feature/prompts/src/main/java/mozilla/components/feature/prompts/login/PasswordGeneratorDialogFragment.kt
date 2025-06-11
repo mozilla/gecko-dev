@@ -12,9 +12,9 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.darkColors
-import androidx.compose.material.lightColors
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -68,7 +68,7 @@ internal class PasswordGeneratorDialogFragment : PromptDialogFragment() {
     ): View = ComposeView(requireContext()).apply {
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
         setContent {
-            val colors = if (isSystemInDarkTheme()) darkColors() else lightColors()
+            val colors = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
             MaterialTheme(colors) {
                 if (generatedPassword.isNotEmpty() && currentUrl.isNotEmpty()) {
                     PasswordGeneratorBottomSheet(

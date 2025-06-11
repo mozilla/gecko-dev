@@ -82,7 +82,6 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param accountState The [AccountState] of a Mozilla account.
  * @param showQuitMenu Whether or not the button to delete browsing data and quit
  * should be visible.
- * @param isSiteLoading Whether or not the tab is loading.
  * @param isExtensionsExpanded Whether or not the extensions menu is expanded.
  * @param isMoreMenuExpanded Whether or not the more menu is expanded.
  * @param isBookmarked Whether or not the current tab is bookmarked.
@@ -95,6 +94,7 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param allWebExtensionsDisabled Whether or not all web extensions are disabled.
  * @param extensionsMenuItemDescription The label of extensions menu item description.
  * @param scrollState The [ScrollState] used for vertical scrolling.
+ * @param showBanner Whether or not the default browser banner should be shown.
  * @param webExtensionMenuCount The number of web extensions.
  * @param onMoreMenuClick Invoked when the user clicks on the more menu item.
  * @param onCustomizeReaderViewMenuClick Invoked when the user clicks on the Customize Reader View button.
@@ -107,6 +107,8 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param onFindInPageMenuClick Invoked when the user clicks on the find in page menu item.
  * @param onToolsMenuClick Invoked when the user clicks on the tools menu item.
  * @param onSaveMenuClick Invoked when the user clicks on the save menu item.
+ * @param onBannerClick Invoked when the user clicks on the banner.
+ * @param onBannerDismiss Invoked when the user clicks on the dismiss button.
  * @param onExtensionsMenuClick Invoked when the user clicks on the extensions menu item.
  * @param onBookmarksMenuClick Invoked when the user clicks on the bookmarks menu item.
  * @param onHistoryMenuClick Invoked when the user clicks on the history menu item.
@@ -119,7 +121,6 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param onBackButtonClick Invoked when the user clicks on the back button.
  * @param onForwardButtonClick Invoked when the user clicks on the forward button.
  * @param onRefreshButtonClick Invoked when the user clicks on the refresh button.
- * @param onStopButtonClick Invoked when the user clicks on the stop button.
  * @param onShareButtonClick Invoked when the user clicks on the share button.
  * @param moreSettingsSubmenu The content of more menu item.
  * @param extensionSubmenu The content of extensions menu item to avoid configuration during animation.
@@ -131,7 +132,6 @@ fun MainMenu(
     account: Account?,
     accountState: AccountState,
     showQuitMenu: Boolean,
-    isSiteLoading: Boolean,
     isExtensionsExpanded: Boolean,
     isMoreMenuExpanded: Boolean,
     isBookmarked: Boolean,
@@ -144,6 +144,7 @@ fun MainMenu(
     allWebExtensionsDisabled: Boolean,
     extensionsMenuItemDescription: String,
     scrollState: ScrollState,
+    showBanner: Boolean,
     webExtensionMenuCount: Int,
     onMoreMenuClick: () -> Unit,
     onCustomizeReaderViewMenuClick: () -> Unit,
@@ -155,6 +156,8 @@ fun MainMenu(
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
     onSaveMenuClick: () -> Unit,
+    onBannerClick: () -> Unit,
+    onBannerDismiss: () -> Unit,
     onExtensionsMenuClick: () -> Unit,
     onBookmarksMenuClick: () -> Unit,
     onHistoryMenuClick: () -> Unit,
@@ -166,7 +169,6 @@ fun MainMenu(
     onBackButtonClick: (longPress: Boolean) -> Unit,
     onForwardButtonClick: (longPress: Boolean) -> Unit,
     onRefreshButtonClick: (longPress: Boolean) -> Unit,
-    onStopButtonClick: () -> Unit,
     onShareButtonClick: () -> Unit,
     moreSettingsSubmenu: @Composable ColumnScope.() -> Unit,
     extensionSubmenu: @Composable ColumnScope.() -> Unit,
@@ -179,15 +181,9 @@ fun MainMenu(
                 } else {
                     MenuItemState.ENABLED
                 },
-                isSiteLoading = if (accessPoint == MenuAccessPoint.Home) {
-                    false
-                } else {
-                    isSiteLoading
-                },
                 onBackButtonClick = onBackButtonClick,
                 onForwardButtonClick = onForwardButtonClick,
                 onRefreshButtonClick = onRefreshButtonClick,
-                onStopButtonClick = onStopButtonClick,
                 onShareButtonClick = onShareButtonClick,
                 isExtensionsExpanded = isExtensionsExpanded,
                 isMoreMenuExpanded = isMoreMenuExpanded,
@@ -203,6 +199,17 @@ fun MainMenu(
                     onClick = onCustomizeReaderViewMenuClick,
                 )
             }
+        }
+
+        if (accessPoint == MenuAccessPoint.Home && showBanner) {
+            DefaultBrowserBanner(
+                onDismiss = {
+                    onBannerDismiss()
+                },
+                onClick = {
+                    onBannerClick()
+                },
+            )
         }
 
         if (accessPoint == MenuAccessPoint.Home) {
@@ -916,22 +923,21 @@ private fun MenuDialogPreview() {
                 accessPoint = MenuAccessPoint.Browser,
                 account = null,
                 accountState = NotAuthenticated,
-                showQuitMenu = true,
-                isSiteLoading = false,
-                isExtensionsExpanded = false,
-                isMoreMenuExpanded = true,
                 isBookmarked = false,
                 isDesktopMode = false,
                 isPdf = false,
+                showQuitMenu = true,
+                isExtensionsProcessDisabled = true,
+                isExtensionsExpanded = false,
+                isMoreMenuExpanded = true,
                 isReaderViewActive = false,
                 isTranslationSupported = true,
                 isWebCompatReporterSupported = true,
-                isExtensionsProcessDisabled = true,
-                allWebExtensionsDisabled = false,
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
+                showBanner = true,
                 webExtensionMenuCount = 1,
-                onMoreMenuClick = {},
+                allWebExtensionsDisabled = false,
                 onCustomizeReaderViewMenuClick = {},
                 onMozillaAccountButtonClick = {},
                 onSettingsButtonClick = {},
@@ -941,6 +947,8 @@ private fun MenuDialogPreview() {
                 onFindInPageMenuClick = {},
                 onToolsMenuClick = {},
                 onSaveMenuClick = {},
+                onBannerClick = {},
+                onBannerDismiss = {},
                 onExtensionsMenuClick = {},
                 onBookmarksMenuClick = {},
                 onHistoryMenuClick = {},
@@ -952,8 +960,8 @@ private fun MenuDialogPreview() {
                 onBackButtonClick = {},
                 onForwardButtonClick = {},
                 onRefreshButtonClick = {},
-                onStopButtonClick = {},
                 onShareButtonClick = {},
+                onMoreMenuClick = {},
                 moreSettingsSubmenu = {},
                 extensionSubmenu = {},
             )
@@ -974,22 +982,21 @@ private fun MenuDialogPrivatePreview() {
                 accessPoint = MenuAccessPoint.Home,
                 account = null,
                 accountState = NotAuthenticated,
-                showQuitMenu = true,
-                isSiteLoading = false,
-                isExtensionsExpanded = true,
-                isMoreMenuExpanded = true,
                 isBookmarked = false,
                 isDesktopMode = false,
                 isPdf = false,
+                showQuitMenu = true,
+                isExtensionsExpanded = true,
+                isMoreMenuExpanded = true,
                 isReaderViewActive = false,
                 isTranslationSupported = true,
                 isWebCompatReporterSupported = true,
                 isExtensionsProcessDisabled = false,
-                allWebExtensionsDisabled = false,
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
+                showBanner = true,
                 webExtensionMenuCount = 0,
-                onMoreMenuClick = {},
+                allWebExtensionsDisabled = false,
                 onCustomizeReaderViewMenuClick = {},
                 onMozillaAccountButtonClick = {},
                 onSettingsButtonClick = {},
@@ -999,6 +1006,8 @@ private fun MenuDialogPrivatePreview() {
                 onFindInPageMenuClick = {},
                 onToolsMenuClick = {},
                 onSaveMenuClick = {},
+                onBannerClick = {},
+                onBannerDismiss = {},
                 onExtensionsMenuClick = {},
                 onBookmarksMenuClick = {},
                 onHistoryMenuClick = {},
@@ -1010,8 +1019,8 @@ private fun MenuDialogPrivatePreview() {
                 onBackButtonClick = {},
                 onForwardButtonClick = {},
                 onRefreshButtonClick = {},
-                onStopButtonClick = {},
                 onShareButtonClick = {},
+                onMoreMenuClick = {},
                 moreSettingsSubmenu = {},
                 extensionSubmenu = {
                     Addons(

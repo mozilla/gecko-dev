@@ -652,10 +652,10 @@ features:
           Whether or not to enable tab strip.
         type: Boolean
         default: false
-      force-enabled:
+      allow-on-all-devices:
         description: >
           Experimental: When true, bypasses device restrictions and enables use on all devices.
-          May cause instability or unexpected behavior.
+          May cause instability or unexpected behavior. This still requires the feature to be `enabled`.
         type: Boolean
         default: false
     defaults:

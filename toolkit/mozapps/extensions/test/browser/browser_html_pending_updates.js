@@ -326,7 +326,7 @@ add_task(async function test_pending_update_no_prompted_permission() {
   await extension.unload();
 });
 
-add_task(async function test_pending_update_with_prompted_permission() {
+add_task(async function test_pending_update_with_prompted_data_permission() {
   await SpecialPowers.pushPrefEnv({
     set: [["extensions.dataCollectionPermissions.enabled", true]],
   });
@@ -418,6 +418,9 @@ add_task(async function test_pending_update_with_prompted_permission() {
     {
       title: "With data collection and required permission",
       permissions: ["bookmarks"],
+      old_data_collection_permissions: {
+        required: ["locationInfo"],
+      },
       data_collection_permissions: {
         required: ["locationInfo", "healthInfo"],
       },
@@ -467,7 +470,7 @@ add_task(async function test_pending_update_with_prompted_permission() {
           PERMISSION_L10N.formatValueSync(
             "webext-perms-description-data-some-update",
             {
-              permissions: "location, health information",
+              permissions: "health information",
             }
           ),
           "Expected formatted data collection permission string"

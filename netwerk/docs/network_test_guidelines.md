@@ -98,7 +98,7 @@ There are a lot of intermittent failures on try (usually not able to reproduce l
   ```
   ./mach try fuzzy netwerk/test/unit --rebuild 20
   ```
-- In the case that we really need to debug an intermittent test failure, see this [document](https://firefox-source-docs.mozilla.org/devtools/tests/debugging-intermittents.html) first for some general tips. Unfortunately, there is no easy way to debug this. One can try to isolate the failed test first and enable `HTTP logging` on try to collect the log for further analysis.
+  - In the case that we really need to debug an intermittent test failure, see this [document](/testing/debugging-intermittents/index.html) first for some general tips. Unfortunately, there is no easy way to debug this. One can try to isolate the failed test first and enable `HTTP logging` on try to collect the log for further analysis.
 
 ## Writing Necko XPCShell Tests
 

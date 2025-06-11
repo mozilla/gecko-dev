@@ -100,7 +100,7 @@ add_task(async function () {
   const { Downloads } = ChromeUtils.importESModule(
     "resource://gre/modules/Downloads.sys.mjs"
   );
-  const screenshotDir = await Downloads.getPreferredDownloadsDirectory();
+  const screenshotDir = await Downloads.getPreferredScreenshotsDirectory();
 
   const { renderedDate, filePath } =
     /Saved to (?<filePath>.*Screen Shot (?<renderedDate>\d{4}-\d{2}-\d{2}) at \d{2}.\d{2}.\d{2}\.png)/.exec(

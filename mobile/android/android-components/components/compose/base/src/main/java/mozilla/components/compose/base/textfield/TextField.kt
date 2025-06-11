@@ -19,11 +19,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
-import androidx.compose.material.TextFieldDefaults
-import androidx.compose.material.TextFieldDefaults.indicatorLine
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TextFieldDefaults.indicatorLine
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,8 +83,8 @@ private val TrailingIconHeight = 24.dp
  * called. Note that this IME action may be different from what you specified in
  * [KeyboardOptions.imeAction].
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongMethod")
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun TextField(
     value: String,
@@ -110,7 +110,7 @@ fun TextField(
 
     // We use the Material textFieldColors for the indicator line as it keeps track of error
     // and focused states
-    val indicatorLineColors = TextFieldDefaults.textFieldColors(
+    val indicatorLineColors = TextFieldDefaults.colors(
         focusedIndicatorColor = colors.focusedIndicatorColor,
         unfocusedIndicatorColor = colors.unfocusedIndicatorColor,
         errorIndicatorColor = colors.errorIndicatorColor,

@@ -924,18 +924,18 @@ bool IonCacheIRCompiler::emitLoadDynamicSlotResult(ObjOperandId objId,
 }
 
 bool IonCacheIRCompiler::emitCallScriptedGetterResult(
-    ValOperandId receiverId, uint32_t getterOffset, bool sameRealm,
+    ValOperandId receiverId, ObjOperandId calleeId, bool sameRealm,
     uint32_t nargsAndFlagsOffset) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
   AutoSaveLiveRegisters save(*this);
   AutoOutputRegister output(*this);
 
   ValueOperand receiver = allocator.useValueRegister(masm, receiverId);
-
-  JSFunction* target = &objectStubField(getterOffset)->as<JSFunction>();
+  Register callee = allocator.useRegister(masm, calleeId);
   AutoScratchRegister scratch(allocator, masm);
 
-  MOZ_ASSERT(sameRealm == (cx_->realm() == target->realm()));
+  int32_t nargsAndFlags = int32StubField(nargsAndFlagsOffset);
+  size_t nargs = nargsAndFlags >> JSFunction::ArgCountShift;
 
   allocator.discardStack(masm);
 
@@ -946,25 +946,23 @@ bool IonCacheIRCompiler::emitCallScriptedGetterResult(
   // The JitFrameLayout pushed below will be aligned to JitStackAlignment,
   // so we just have to make sure the stack is aligned after we push the
   // |this| + argument Values.
-  uint32_t argSize = (target->nargs() + 1) * sizeof(Value);
+  uint32_t argSize = (nargs + 1) * sizeof(Value);
   uint32_t padding =
       ComputeByteAlignment(masm.framePushed() + argSize, JitStackAlignment);
   MOZ_ASSERT(padding % sizeof(uintptr_t) == 0);
   MOZ_ASSERT(padding < JitStackAlignment);
   masm.reserveStack(padding);
 
-  for (size_t i = 0; i < target->nargs(); i++) {
+  for (size_t i = 0; i < nargs; i++) {
     masm.Push(UndefinedValue());
   }
   masm.Push(receiver);
 
   if (!sameRealm) {
-    masm.switchToRealm(target->realm(), scratch);
+    masm.switchToObjectRealm(callee, scratch);
   }
 
-  masm.movePtr(ImmGCPtr(target), scratch);
-
-  masm.Push(scratch);
+  masm.Push(callee);
   masm.PushFrameDescriptorForJitCall(FrameType::IonICCall, /* argc = */ 0);
 
   // Check stack alignment. Add 2 * sizeof(uintptr_t) for the return address and
@@ -972,8 +970,7 @@ bool IonCacheIRCompiler::emitCallScriptedGetterResult(
   MOZ_ASSERT(
       ((masm.framePushed() + 2 * sizeof(uintptr_t)) % JitStackAlignment) == 0);
 
-  MOZ_ASSERT(target->hasJitEntry());
-  masm.loadJitCodeRaw(scratch, scratch);
+  masm.loadJitCodeRaw(callee, scratch);
   masm.callJit(scratch);
 
   if (!sameRealm) {
@@ -1126,7 +1123,7 @@ bool IonCacheIRCompiler::emitCallScriptedProxyGetByValueResult(
 #endif
 
 bool IonCacheIRCompiler::emitCallInlinedGetterResult(
-    ValOperandId receiverId, uint32_t getterOffset, uint32_t icScriptOffset,
+    ValOperandId receiverId, ObjOperandId calleeId, uint32_t icScriptOffset,
     bool sameRealm, uint32_t nargsAndFlagsOffset) {
   MOZ_CRASH("Trial inlining not supported in Ion");
 }
@@ -1675,7 +1672,7 @@ bool IonCacheIRCompiler::emitCallNativeSetter(ObjOperandId receiverId,
 }
 
 bool IonCacheIRCompiler::emitCallScriptedSetter(ObjOperandId receiverId,
-                                                uint32_t setterOffset,
+                                                ObjOperandId calleeId,
                                                 ValOperandId rhsId,
                                                 bool sameRealm,
                                                 uint32_t nargsAndFlagsOffset) {
@@ -1683,10 +1680,11 @@ bool IonCacheIRCompiler::emitCallScriptedSetter(ObjOperandId receiverId,
   AutoSaveLiveRegisters save(*this);
 
   Register receiver = allocator.useRegister(masm, receiverId);
-  JSFunction* target = &objectStubField(setterOffset)->as<JSFunction>();
+  Register callee = allocator.useRegister(masm, calleeId);
   ConstantOrRegister val = allocator.useConstantOrRegister(masm, rhsId);
 
-  MOZ_ASSERT(sameRealm == (cx_->realm() == target->realm()));
+  int32_t nargsAndFlags = int32StubField(nargsAndFlagsOffset);
+  size_t nargs = nargsAndFlags >> JSFunction::ArgCountShift;
 
   AutoScratchRegister scratch(allocator, masm);
 
@@ -1699,27 +1697,25 @@ bool IonCacheIRCompiler::emitCallScriptedSetter(ObjOperandId receiverId,
   // The JitFrameLayout pushed below will be aligned to JitStackAlignment,
   // so we just have to make sure the stack is aligned after we push the
   // |this| + argument Values.
-  size_t numArgs = std::max<size_t>(1, target->nargs());
-  uint32_t argSize = (numArgs + 1) * sizeof(Value);
+  size_t numPushedArgs = std::max<size_t>(1, nargs);
+  uint32_t argSize = (numPushedArgs + 1) * sizeof(Value);
   uint32_t padding =
       ComputeByteAlignment(masm.framePushed() + argSize, JitStackAlignment);
   MOZ_ASSERT(padding % sizeof(uintptr_t) == 0);
   MOZ_ASSERT(padding < JitStackAlignment);
   masm.reserveStack(padding);
 
-  for (size_t i = 1; i < target->nargs(); i++) {
+  for (size_t i = 1; i < nargs; i++) {
     masm.Push(UndefinedValue());
   }
   masm.Push(val);
   masm.Push(TypedOrValueRegister(MIRType::Object, AnyRegister(receiver)));
 
   if (!sameRealm) {
-    masm.switchToRealm(target->realm(), scratch);
+    masm.switchToObjectRealm(callee, scratch);
   }
 
-  masm.movePtr(ImmGCPtr(target), scratch);
-
-  masm.Push(scratch);
+  masm.Push(callee);
   masm.PushFrameDescriptorForJitCall(FrameType::IonICCall, /* argc = */ 1);
 
   // Check stack alignment. Add 2 * sizeof(uintptr_t) for the return address and
@@ -1727,8 +1723,7 @@ bool IonCacheIRCompiler::emitCallScriptedSetter(ObjOperandId receiverId,
   MOZ_ASSERT(
       ((masm.framePushed() + 2 * sizeof(uintptr_t)) % JitStackAlignment) == 0);
 
-  MOZ_ASSERT(target->hasJitEntry());
-  masm.loadJitCodeRaw(scratch, scratch);
+  masm.loadJitCodeRaw(callee, scratch);
   masm.callJit(scratch);
 
   if (!sameRealm) {
@@ -1742,7 +1737,7 @@ bool IonCacheIRCompiler::emitCallScriptedSetter(ObjOperandId receiverId,
 }
 
 bool IonCacheIRCompiler::emitCallInlinedSetter(
-    ObjOperandId receiverId, uint32_t setterOffset, ValOperandId rhsId,
+    ObjOperandId receiverId, ObjOperandId calleeId, ValOperandId rhsId,
     uint32_t icScriptOffset, bool sameRealm, uint32_t nargsAndFlagsOffset) {
   MOZ_CRASH("Trial inlining not supported in Ion");
 }

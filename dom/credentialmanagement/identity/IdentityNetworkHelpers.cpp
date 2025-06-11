@@ -119,7 +119,6 @@ IdentityNetworkHelpers::FetchAccountsHelper(
         IdentityProviderAccountList value;
         bool success = value.Init(aCx, aValue);
         if (!success) {
-          JS_ClearPendingException(aCx);
           result->Reject(NS_ERROR_INVALID_ARG, __func__);
           return;
         }
@@ -159,14 +158,12 @@ IdentityNetworkHelpers::FetchTokenHelper(nsIURI* aAccountsEndpoint,
         IdentityProviderToken value;
         bool success = value.Init(aCx, aValue);
         if (!success) {
-          JS_ClearPendingException(aCx);
           result->Reject(NS_ERROR_INVALID_ARG, __func__);
           return;
         }
         result->Resolve(value, __func__);
       },
       [result](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult&) {
-        JS_ClearPendingException(aCx);
         result->Reject(Promise::TryExtractNSResultFromRejectionValue(aValue),
                        __func__);
       });
@@ -200,14 +197,12 @@ IdentityNetworkHelpers::FetchDisconnectHelper(
         DisconnectedAccount value;
         bool success = value.Init(aCx, aValue);
         if (!success) {
-          JS_ClearPendingException(aCx);
           result->Reject(NS_ERROR_INVALID_ARG, __func__);
           return;
         }
         result->Resolve(value, __func__);
       },
       [result](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult&) {
-        JS_ClearPendingException(aCx);
         result->Reject(Promise::TryExtractNSResultFromRejectionValue(aValue),
                        __func__);
       });

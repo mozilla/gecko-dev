@@ -23,7 +23,7 @@ pub enum KeyMechanism {
 impl KeyMechanism {
     fn mech(self) -> CK_MECHANISM_TYPE {
         CK_MECHANISM_TYPE::from(match self {
-            Self::Aead(Aead::Aes128Gcm) | Self::Aead(Aead::Aes256Gcm) => CKM_AES_GCM,
+            Self::Aead(Aead::Aes128Gcm | Aead::Aes256Gcm) => CKM_AES_GCM,
             Self::Aead(Aead::ChaCha20Poly1305) => CKM_CHACHA20_POLY1305,
             Self::Hkdf => CKM_HKDF_DERIVE,
         })

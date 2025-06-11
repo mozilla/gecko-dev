@@ -121,6 +121,8 @@ If you want to run **performance tests/benchmarks** in automation or locally use
 
 Before you can install any release builds, **You will need to sign production build variants:** see [Automatically signing release builds](#automatically-sign-release-builds) for details.
 
+To get an idea of Fenix's startup execution timeline, visit the diagram in [startup-performance.md](docs/startup-performance.md).
+
 ##### Known disabled-by-default features
 Some features are disabled by default when Fenix is built locally. This can be problematic at times for checking performance since you might want to know how your code behaves with those features.
 The known features that are disabled by default are:

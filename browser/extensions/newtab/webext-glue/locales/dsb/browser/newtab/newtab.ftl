@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Z { -pocket-brand-name } wulašowaś
 newtab-menu-archive-pocket = W { -pocket-brand-name } archiwěrowaś
 newtab-menu-show-privacy-info = Naše sponsory a waša priwatnosć
 newtab-menu-about-fakespot = Wó { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = K wěsći daś
 newtab-menu-report-content = Toś to wopśimjeśe k wěsći daś
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -191,6 +193,8 @@ newtab-label-sponsored-by = Sponserowany wót { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min.
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponserowany
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -559,3 +563,5 @@ newtab-report-content-spam-misleading =
     .label = Spam abo torjecy
 newtab-report-cancel = Pśetergnuś
 newtab-report-submit = Wótpósłaś
+newtab-toast-thanks-for-reporting =
+    .message = Wjeliki źěk, až sćo dał to k wěsći.

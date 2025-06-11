@@ -167,6 +167,7 @@ vendoring:
   #   - replace-in-file-regex
   #   - delete-path
   #   - run-script
+  #   - vcs-add-remove-files
   # Unless otherwise noted, all subfields of action are required.
   #
   # If the action is copy-file, move-file, or move-dir:
@@ -178,6 +179,10 @@ vendoring:
   #   with is the string to replace it with. Accepts the special keyword
   #     '{revision}' for the commit we are updating to.
   #   File is the file to replace it in.
+  #
+  # If the action is vcs-add-remove-files
+  #   path is the directory to add all new files to version control, and
+  #     delete all removed files.
   #
   # If the action is delete-path
   #   path is the file or directory to recursively delete

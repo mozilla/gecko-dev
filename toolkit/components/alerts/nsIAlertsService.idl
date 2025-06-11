@@ -319,6 +319,11 @@ interface nsIAlertsService : nsISupports
   void closeAlert([optional] in AString aName, [optional] in boolean aContextClosed);
 
   /**
+   * Returns identifiers of notifications that exist in OS notification center.
+   */
+  Array<AString> getHistory();
+
+  /**
    * Clean up all resources used to listen to alerts.
    */
   void teardown();

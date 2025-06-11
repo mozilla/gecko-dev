@@ -14,10 +14,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -165,7 +165,7 @@ private fun StrongPasswordBottomSheetButtons(
         TextButton(
             onClick = { onCancelDialog() },
             shape = RectangleShape,
-            colors = ButtonDefaults.buttonColors(backgroundColor = colors.background),
+            colors = ButtonDefaults.buttonColors(containerColor = colors.background),
             modifier = Modifier.height(48.dp),
         ) {
             Text(
@@ -183,7 +183,7 @@ private fun StrongPasswordBottomSheetButtons(
         Button(
             onClick = { onUsePassword() },
             shape = RectangleShape,
-            colors = ButtonDefaults.buttonColors(backgroundColor = colors.confirmButton),
+            colors = ButtonDefaults.buttonColors(containerColor = colors.confirmButton),
             modifier = Modifier.height(48.dp),
         ) {
             Text(

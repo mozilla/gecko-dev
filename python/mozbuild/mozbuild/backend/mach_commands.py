@@ -166,6 +166,21 @@ def setup_vscode(command_context, interactive):
             "editor.formatOnSave": True,
         }
 
+    # Add matchers for autolinking bugs and revisions in the terminal.
+    new_settings = {
+        **new_settings,
+        "terminalLinks.matchers": [
+            {
+                "regex": "\\b[Bb]ug\\s*(\\d+)\\b",
+                "uri": "https://bugzilla.mozilla.org/show_bug.cgi?id=$1",
+            },
+            {
+                "regex": "\\b(D\\d+)\\b",
+                "uri": "https://phabricator.services.mozilla.com/$1",
+            },
+        ],
+    }
+
     import difflib
 
     try:

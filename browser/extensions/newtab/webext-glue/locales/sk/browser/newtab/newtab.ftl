@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Odstrániť z { -pocket-brand-name(case: "gen") }
 newtab-menu-archive-pocket = Archivovať v { -pocket-brand-name(case: "loc") }
 newtab-menu-show-privacy-info = Naši sponzori a vaše súkromie
 newtab-menu-about-fakespot = Čo je { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Nahlásiť
 newtab-menu-report-content = Nahlásiť tento obsah
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -187,6 +189,8 @@ newtab-label-sponsored-by = Sponzorované spoločnosťou { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min.
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponzorované
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.

@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { NavigationManager } = ChromeUtils.importESModule(
-  "chrome://remote/content/shared/NavigationManager.sys.mjs"
-);
 const { TabManager } = ChromeUtils.importESModule(
   "chrome://remote/content/shared/TabManager.sys.mjs"
 );
@@ -26,9 +23,8 @@ add_task(async function test_simpleNavigation() {
   navigationManager.on("navigation-started", onEvent);
   navigationManager.on("navigation-stopped", onEvent);
 
-  const tab = addTab(gBrowser, FIRST_URL);
+  const tab = await addTabAndWaitForNavigated(gBrowser, FIRST_URL);
   const browser = tab.linkedBrowser;
-  await BrowserTestUtils.browserLoaded(browser);
 
   const navigableId = TabManager.getIdForBrowser(browser);
 
@@ -216,9 +212,8 @@ add_task(async function test_loadPageWithIframes() {
 });
 
 add_task(async function test_loadPageWithCoop() {
-  const tab = addTab(gBrowser, FIRST_COOP_URL);
+  const tab = await addTabAndWaitForNavigated(gBrowser, FIRST_COOP_URL);
   const browser = tab.linkedBrowser;
-  await BrowserTestUtils.browserLoaded(browser, false, FIRST_COOP_URL);
 
   const events = [];
   const onEvent = (name, data) => events.push({ name, data });
@@ -262,9 +257,8 @@ add_task(async function test_sameDocumentNavigation() {
   navigationManager.on("same-document-changed", onEvent);
 
   const url = "https://example.com/document-builder.sjs?html=test";
-  const tab = addTab(gBrowser, url);
+  const tab = await addTabAndWaitForNavigated(gBrowser, url);
   const browser = tab.linkedBrowser;
-  await BrowserTestUtils.browserLoaded(browser);
 
   navigationManager.startMonitoring();
   const navigableId = TabManager.getIdForBrowser(browser);
@@ -358,9 +352,8 @@ add_task(async function test_startNavigationAndCloseTab() {
   navigationManager.on("navigation-started", onEvent);
   navigationManager.on("navigation-stopped", onEvent);
 
-  const tab = addTab(gBrowser, FIRST_URL);
+  const tab = await addTabAndWaitForNavigated(gBrowser, FIRST_URL);
   const browser = tab.linkedBrowser;
-  await BrowserTestUtils.browserLoaded(browser);
 
   navigationManager.startMonitoring();
   loadURL(browser, SECOND_URL);

@@ -180,6 +180,14 @@ NS_IMETHODIMP nsAlertsService::CloseAlert(const nsAString& aAlertName,
   return rv;
 }
 
+NS_IMETHODIMP nsAlertsService::GetHistory(nsTArray<nsString>& aResult) {
+  if (!mBackend) {
+    return NS_OK;
+  }
+
+  return mBackend->GetHistory(aResult);
+}
+
 // nsIAlertsDoNotDisturb
 NS_IMETHODIMP nsAlertsService::GetManualDoNotDisturb(bool* aRetVal) {
 #ifdef MOZ_WIDGET_ANDROID

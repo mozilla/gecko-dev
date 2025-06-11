@@ -6,7 +6,7 @@
 
 #include "WebrtcEnvironmentWrapper.h"
 
-#include "TaskQueueWrapper.h"
+#include "WebrtcTaskQueueWrapper.h"
 
 // libwebrtc includes
 #include "api/environment/environment_factory.h"
@@ -16,8 +16,7 @@ namespace mozilla {
 /* static */ RefPtr<WebrtcEnvironmentWrapper> WebrtcEnvironmentWrapper::Create(
     const dom::RTCStatsTimestampMaker& aTimestampMaker) {
   RefPtr<WebrtcEnvironmentWrapper> wrapper = new WebrtcEnvironmentWrapper(
-      MakeUnique<webrtc::RtcEventLogNull>(),
-      MakeUnique<SharedThreadPoolWebRtcTaskQueueFactory>(),
+      MakeUnique<webrtc::RtcEventLogNull>(), CreateWebrtcTaskQueueFactory(),
       WrapUnique(new webrtc::MozTrialsConfig()), aTimestampMaker);
 
   return wrapper;

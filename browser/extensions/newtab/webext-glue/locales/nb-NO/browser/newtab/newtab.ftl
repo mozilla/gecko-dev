@@ -117,6 +117,9 @@ newtab-menu-delete-pocket = Slett fra { -pocket-brand-name }
 newtab-menu-archive-pocket = Arkiver i { -pocket-brand-name }
 newtab-menu-show-privacy-info = Våre sponsorer og ditt personvern
 newtab-menu-about-fakespot = Om { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Rapporter
+newtab-menu-report-content = Rapporter dette innholdet
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Blokker
@@ -126,6 +129,9 @@ newtab-menu-section-unfollow = Slutt å følge emnet
 
 ## Context menu options for sponsored stories and new ad formats on New Tab.
 
+newtab-menu-manage-sponsored-content = Behandle sponset innhold
+newtab-menu-our-sponsors-and-your-privacy = Våre sponsorer og ditt personvern
+newtab-menu-report-this-ad = Rapporter denne annonsen
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -186,6 +192,8 @@ newtab-label-sponsored-by = Sponset av { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponset
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -365,6 +373,7 @@ newtab-wallpaper-gradient-orange = Fargeovergang oransje og rosa
 newtab-wallpaper-abstract-blue-purple = Blå og lilla former
 newtab-wallpaper-abstract-white-curves = Hvit med skraverte kurver
 newtab-wallpaper-abstract-purple-green = Fargeovergang med lilla og grønt lys
+newtab-wallpaper-abstract-blue-purple-waves = Blå og lilla bølgete former
 
 ## Celestial
 
@@ -516,3 +525,6 @@ newtab-section-mangage-topics-blocked-topics-empty-state = Du har ikke blokkert 
 
 ## Strings for reporting ads and content
 
+newtab-report-submit = Send
+newtab-toast-thanks-for-reporting =
+    .message = Takk for at du rapporterte dette.

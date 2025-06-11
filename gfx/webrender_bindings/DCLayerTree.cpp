@@ -644,7 +644,7 @@ void DCLayerTree::CompositorEndFrame() {
     if (!same) {
       // Add surfaces in z-order they were added to the scene.
       const auto visual = surface->GetRootVisual();
-      mRootVisual->AddVisual(visual, false, nullptr);
+      mRootVisual->AddVisual(visual, true, nullptr);
     }
   }
 

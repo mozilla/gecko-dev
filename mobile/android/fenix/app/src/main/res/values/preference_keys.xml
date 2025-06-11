@@ -381,6 +381,7 @@
     <string name="pref_key_inactive_tabs" translatable="false">pref_key_inactive_tabs</string>
 
     <string name="pref_key_return_to_browser" translatable="false">pref_key_return_to_browser</string>
+    <string name="pref_key_show_default_browser_banner" translatable="false">pref_key_show_default_browser_banner</string>
 
     <!-- Pocket -->
     <string name="pref_key_pocket_homescreen_recommendations" translatable="false">pref_key_pocket_homescreen_recommendations</string>

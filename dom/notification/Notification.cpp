@@ -37,18 +37,6 @@ namespace mozilla::dom {
 
 using namespace notification;
 
-struct NotificationStrings {
-  const nsString mID;
-  const nsString mTitle;
-  const nsString mDir;
-  const nsString mLang;
-  const nsString mBody;
-  const nsString mTag;
-  const nsString mIcon;
-  const nsString mData;
-  const nsString mServiceWorkerRegistrationScope;
-};
-
 class NotificationPermissionRequest : public ContentPermissionRequestBase,
                                       public nsIRunnable,
                                       public nsINamed {

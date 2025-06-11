@@ -4,6 +4,10 @@
 
 "use strict";
 
+const { NavigationManager } = ChromeUtils.importESModule(
+  "chrome://remote/content/shared/NavigationManager.sys.mjs"
+);
+
 /**
  * Add a new tab in a given browser, pointing to a given URL and automatically
  * register the cleanup function to remove it at the end of the test.
@@ -18,8 +22,56 @@
  *     The created tab.
  */
 function addTab(browser, url, options) {
+  info("Add a new tab for url: " + url);
   const tab = BrowserTestUtils.addTab(browser, url, options);
   registerCleanupFunction(() => browser.removeTab(tab));
+  return tab;
+}
+
+/**
+ * Add a new tab and wait until the navigation manager emitted the corresponding
+ * navigation-stopped event. Same arguments as addTab.
+ *
+ * @param {Browser} browser
+ *     The browser element where the tab should be added.
+ * @param {string} url
+ *     The URL for the tab.
+ * @param {object=} options
+ *     Options object to forward to BrowserTestUtils.addTab.
+ * @returns {Tab}
+ *     The created tab.
+ */
+async function addTabAndWaitForNavigated(browser, url, options) {
+  // Setup navigation manager and promises.
+  const { promise: waitForNavigation, resolve } = Promise.withResolvers();
+  const onNavigationStopped = (name, data) => {
+    if (data?.url === url) {
+      resolve();
+    }
+  };
+  const navigationManager = new NavigationManager();
+  navigationManager.on("navigation-stopped", onNavigationStopped);
+  navigationManager.startMonitoring();
+
+  // Add the new tab.
+  const tab = addTab(browser, url, options);
+
+  // See Bug 1971329, browserLoaded on its own might still miss the STATE_STOP
+  // notification.
+  info("Wait for BrowserTestUtils.browserLoaded for url: " + url);
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, url);
+
+  info("Wait for navigation-stopped for url: " + url);
+  await waitForNavigation;
+
+  // Wait for tick to allow other callbacks listening for STATE_STOP to be
+  // processed correctly.
+  await TestUtils.waitForTick();
+
+  navigationManager.stopMonitoring();
+  navigationManager.off("navigation-stopped", onNavigationStopped);
+  navigationManager.destroy();
+
   return tab;
 }
 

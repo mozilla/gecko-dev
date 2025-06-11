@@ -33,6 +33,8 @@ const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
 const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
 const PREF_REFINED_CARDS_ENABLED = "discoverystream.refinedCardsLayout.enabled";
+const PREF_INFERRED_PERSONALIZATION_USER =
+  "discoverystream.sections.personalization.inferred.user.enabled";
 
 function getLayoutData(responsiveLayouts, index, refinedCardsLayout) {
   let layoutData = {
@@ -458,7 +460,10 @@ function CardSections({
 
   function displayP13nCard() {
     if (messageData && Object.keys(messageData).length >= 1) {
-      if (messageData?.content?.messageType === "PersonalizedCard") {
+      if (
+        messageData?.content?.messageType === "PersonalizedCard" &&
+        prefs[PREF_INFERRED_PERSONALIZATION_USER]
+      ) {
         const row = messageData.content.position;
         sectionsToRender.splice(
           row,

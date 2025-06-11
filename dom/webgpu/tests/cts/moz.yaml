@@ -63,3 +63,5 @@ vendoring:
       path: '{yaml_dir}/checkout/out/'
     - action: delete-path
       path: '{yaml_dir}/checkout/deploy_key.enc'
+    - action: vcs-add-remove-files
+      path: '../../../../../testing/web-platform/mozilla/tests/webgpu/'

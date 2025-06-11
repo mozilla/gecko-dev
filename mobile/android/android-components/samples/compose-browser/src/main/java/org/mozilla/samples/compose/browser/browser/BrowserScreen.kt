@@ -11,15 +11,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.Button
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.navigation.NavController
@@ -136,7 +135,7 @@ fun TabsTray(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight()
-            .background(Color.Black.copy(alpha = ContentAlpha.medium))
+            .background(color = MaterialTheme.colorScheme.onSurfaceVariant)
             .clickable {
                 store.dispatch(BrowserScreenAction.HideTabs)
             },

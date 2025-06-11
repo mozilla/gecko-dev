@@ -638,6 +638,10 @@
           "items": {
             "type": "origin"
           }
+        },
+        "Category": {
+          "type": "string",
+          "enum": ["standard", "strict"]
         }
       }
     },

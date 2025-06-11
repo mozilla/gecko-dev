@@ -701,13 +701,8 @@ processed. In such cases, this code at the end of a test can help:
 Debugging xpcshell-tests
 ------------------------
 
-
-Running unit tests under the javascript debugger
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-Via --jsdebugger
-^^^^^^^^^^^^^^^^
+Running unit tests under the javascript debugger via ``--jsdebugger``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can specify flags when issuing the ``xpcshell-test`` command that
 will cause your test to stop right before running so you can attach the
@@ -758,13 +753,30 @@ and cause failures. Generally the firefox-appdir should only be left in
 xpcshell.toml for tests that are in the browser/ directory, or are
 Firefox-only.
 
+Running unit tests with the profiler using ``--profiler``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Similarly, it's possible to run an xpcshell test with the profiler enabled.
+After the test finishes running the profiler interface will be opened
+automatically:
+
+.. code:: bash
+
+   $ ./mach xpcshell-test --profiler browser/components/tests/unit/test_browserGlue_migration_osauth.js
+   ...
+    0:00.50 INFO Running tests sequentially.
+   ...
+    0:00.88 profiler INFO Symbolicating the performance profile... This could take a couple of minutes.
+    0:01.93 profiler INFO Temporarily serving the profile from: http://127.0.0.1:57737/profile_test_browserGlue_migration_osauth.js.json
+    0:01.93 profiler INFO Opening the profile: https://profiler.firefox.com/from-url/http%3A%2F%2F127.0.0.1%3A57737%2Fprofile_test_browserGlue_migration_osauth.js.json
+   ...
 
 Running unit tests under a C++ debugger
----------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-Via ``--debugger and -debugger-interactive``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Via ``--debugger`` and ``--debugger-interactive``
+"""""""""""""""""""""""""""""""""""""""""""""""""
 
 You can specify flags when issuing the ``xpcshell-test`` command that
 will launch xpcshell in the specified debugger (implemented in
@@ -801,7 +813,7 @@ Or with modern WinDbg (WinDbg Preview as of April 2020):
 
 
 Debugging xpcshell tests in a child process
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""""""""""""""""
 
 To debug the child process, where code is often being run in a project,
 set MOZ_DEBUG_CHILD_PROCESS=1 in your environment (or on the command
@@ -817,7 +829,7 @@ and when it wakes up you can debug it:
 
 
 Debug both parent and child processes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""""""""""
 
 Use MOZ_DEBUG_CHILD_PROCESS=1 to attach debuggers to each process. (For
 gdb at least, this means running separate copies of gdb, one for each

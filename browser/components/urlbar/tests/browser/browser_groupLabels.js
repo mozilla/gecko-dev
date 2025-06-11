@@ -457,6 +457,53 @@ add_task(async function ariaLabel() {
   UrlbarProvidersManager.unregisterProvider(provider);
 });
 
+add_task(async function hideRowLabel() {
+  const results = [
+    Object.assign(
+      new UrlbarResult(
+        UrlbarUtils.RESULT_TYPE.URL,
+        UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
+        { url: "http://example.com/1" }
+      ),
+      {
+        hideRowLabel: true,
+        isBestMatch: true,
+      }
+    ),
+    new UrlbarResult(
+      UrlbarUtils.RESULT_TYPE.URL,
+      UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
+      { url: "http://example.com/2" }
+    ),
+    new UrlbarResult(
+      UrlbarUtils.RESULT_TYPE.URL,
+      UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
+      { url: "http://example.com/3" }
+    ),
+  ];
+  const provider = new UrlbarTestUtils.TestProvider({
+    results,
+    priority: Infinity,
+  });
+  UrlbarProvidersManager.registerProvider(provider);
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "test",
+  });
+
+  const expectedRows = [
+    { hasGroupAriaLabel: false },
+    { hasGroupAriaLabel: true, ariaLabel: FIREFOX_SUGGEST_LABEL },
+    { hasGroupAriaLabel: false },
+  ];
+  await checkGroupAriaLabels(expectedRows);
+
+  await UrlbarTestUtils.promisePopupClose(window);
+
+  UrlbarProvidersManager.unregisterProvider(provider);
+});
+
 /**
  * Provider that returns a suggested-index result.
  */

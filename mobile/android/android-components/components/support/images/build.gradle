@@ -46,7 +46,7 @@ dependencies {
     implementation libs.kotlin.coroutines
 
     implementation libs.androidx.compose.ui
-    implementation libs.androidx.compose.material
+    implementation libs.androidx.compose.material3
 
     testImplementation project(':components:support-test')
 

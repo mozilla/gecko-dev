@@ -20,5 +20,7 @@
     "mythmon.idl",
     // VSCode Remote Development over SSH
     "ms-vscode-remote.remote-ssh",
+    // Support auto-linking bug numbers and phabricator revisions in the terminal
+    "fractalbrew.terminal-links",
   ]
 }

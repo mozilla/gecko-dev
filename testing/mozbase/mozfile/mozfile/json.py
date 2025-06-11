@@ -23,8 +23,28 @@ if TYPE_CHECKING:
 
 try:
     import orjson
+
+    JSONDecodeError = orjson.JSONDecodeError
+    JSONEncodeError = orjson.JSONEncodeError
 except ImportError:
     orjson = None
+    JSONDecodeError = json.JSONDecodeError
+    # std-lib raises TypeError on bad input
+    JSONEncodeError = TypeError
+
+JSONDecoder = json.JSONDecoder
+JSONEncoder = json.JSONEncoder
+
+__all__ = [
+    "load",
+    "loads",
+    "dump",
+    "dumps",
+    "JSONDecodeError",
+    "JSONEncodeError",
+    "JSONDecoder",
+    "JSONEncoder",
+]
 
 
 def loads(s: str | bytes | bytearray) -> Any:

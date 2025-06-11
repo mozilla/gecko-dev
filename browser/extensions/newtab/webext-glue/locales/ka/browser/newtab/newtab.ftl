@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = წაშლა { -pocket-brand-name }-იდან
 newtab-menu-archive-pocket = დაარქივება { -pocket-brand-name }-ში
 newtab-menu-show-privacy-info = ჩვენი დამკვეთები და თქვენი პირადულობა
 newtab-menu-about-fakespot = გაიცანით { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = მოხსენება
 newtab-menu-report-content = ამ მასალის გასაჩივრება
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -190,6 +192,8 @@ newtab-label-sponsored-by = დამკვეთია { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } წთ
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = დამკვეთისგან
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.

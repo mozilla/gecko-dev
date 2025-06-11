@@ -5,10 +5,9 @@
 package mozilla.components.compose.base.menu
 
 import androidx.annotation.DrawableRes
-import androidx.compose.material.DropdownMenuItem
-import androidx.compose.material.Text
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.text.Text
 
 /**

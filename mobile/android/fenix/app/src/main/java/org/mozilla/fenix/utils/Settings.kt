@@ -343,6 +343,11 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         false,
     )
 
+    var shouldShowDefaultBrowserBanner by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_show_default_browser_banner),
+        default = true,
+    )
+
     var defaultSearchEngineName by stringPreference(
         appContext.getPreferenceKey(R.string.pref_key_search_engine),
         default = "",

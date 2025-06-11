@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Smazat z { -pocket-brand-name(case: "gen") }
 newtab-menu-archive-pocket = Archivovat do { -pocket-brand-name(case: "gen") }
 newtab-menu-show-privacy-info = Naši sponzoři a vaše soukromí
 newtab-menu-about-fakespot = Co je { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Nahlásit
 newtab-menu-report-content = Nahlásit tento obsah
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -193,6 +195,8 @@ newtab-label-sponsored-by = Sponzorováno společností { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min.
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponzorováno
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -580,3 +584,5 @@ newtab-report-content-spam-misleading =
     .label = Nevyžádaný příspěvek nebo klamavá zpráva
 newtab-report-cancel = Zrušit
 newtab-report-submit = Odeslat
+newtab-toast-thanks-for-reporting =
+    .message = Děkujeme za nahlášení.

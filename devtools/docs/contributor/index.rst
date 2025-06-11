@@ -57,7 +57,7 @@ Automated tests
    Memory Allocation tests </devtools/tests/memory/index.md>
    JavaScript Objects tests<tests/js-object-tests.md>
    Writing tests <tests/writing-tests.md>
-   Debugging intermittent failures <tests/debugging-intermittents.md>
+   Debugging intermittent failures </testing/debugging-intermittents/index.md>
    Performance tests overview<tests/performance-tests-overview.md>
    DAMP Performance tests <tests/performance-tests-damp.md>
    Writing a new test <tests/writing-perf-tests.md>

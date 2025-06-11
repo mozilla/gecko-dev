@@ -140,7 +140,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     eDropdown,   // DropdownParams
     eSegment,    // SegmentParams
     eSeparator,
-    eStatusBar,  // bool
     eGroupBox,
     eTextField,           // TextFieldParams
     eSearchField,         // TextFieldParams
@@ -172,9 +171,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     }
     static WidgetInfo Separator() {
       return WidgetInfo(Widget::eSeparator, false);
-    }
-    static WidgetInfo StatusBar(bool aParams) {
-      return WidgetInfo(Widget::eStatusBar, aParams);
     }
     static WidgetInfo GroupBox() {
       return WidgetInfo(Widget::eGroupBox, false);
@@ -317,8 +313,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
                     const DropdownParams& aParams);
   void DrawToolbar(CGContextRef cgContext, const CGRect& inBoxRect,
                    bool aIsMain);
-  void DrawStatusBar(CGContextRef cgContext, const HIRect& inBoxRect,
-                     bool aIsMain);
   void DrawMultilineTextField(CGContextRef cgContext, const CGRect& inBoxRect,
                               bool aIsFocused);
   void RenderWidget(const WidgetInfo& aWidgetInfo, mozilla::ColorScheme,

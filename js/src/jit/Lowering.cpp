@@ -7466,6 +7466,18 @@ void LIRGenerator::visitLoadWrapperTarget(MLoadWrapperTarget* ins) {
   define(lir, ins);
 }
 
+void LIRGenerator::visitLoadGetterSetterFunction(
+    MLoadGetterSetterFunction* ins) {
+  MDefinition* getterSetter = ins->getterSetter();
+
+  LDefinition classGuardTemp =
+      ins->needsClassGuard() ? temp() : LDefinition::BogusTemp();
+  auto* lir = new (alloc())
+      LLoadGetterSetterFunction(useBoxAtStart(getterSetter), classGuardTemp);
+  assignSnapshot(lir, ins->bailoutKind());
+  define(lir, ins);
+}
+
 void LIRGenerator::visitGuardHasGetterSetter(MGuardHasGetterSetter* ins) {
   MDefinition* object = ins->object();
   MOZ_ASSERT(object->type() == MIRType::Object);

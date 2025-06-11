@@ -149,6 +149,13 @@ AndroidAlerts::CloseAlert(const nsAString& aAlertName, bool aContextClosed) {
   return NS_OK;
 }
 
+NS_IMETHODIMP AndroidAlerts::GetHistory(nsTArray<nsString>& aResult) {
+  // TODO: Implement this using NotificationManager.getActiveNotifications
+  // https://developer.android.com/reference/android/app/NotificationManager#getActiveNotifications()
+  // See bug 1971394.
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 NS_IMETHODIMP AndroidAlerts::Teardown() {
   sNotificationMap = nullptr;
   return NS_OK;

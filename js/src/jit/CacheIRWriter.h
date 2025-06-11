@@ -102,6 +102,8 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
   // instruction.
   TrialInliningState trialInliningState_ = TrialInliningState::Failure;
 
+  ObjOperandId savedScriptedGetterSetterCallee_;
+
   // Basic caching to avoid quadatic lookup behaviour in readStubField.
   mutable uint32_t lastOffset_;
   mutable uint32_t lastIndex_;
@@ -618,19 +620,40 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
     callClassHook_(calleeId, argc, flags, argcFixed, target);
   }
 
+  void saveScriptedGetterSetterCallee(ObjOperandId callee) {
+    MOZ_ASSERT(!hasSavedScriptedGetterSetterCallee());
+    savedScriptedGetterSetterCallee_ = callee;
+  }
+
+ private:
+  bool hasSavedScriptedGetterSetterCallee() {
+    return savedScriptedGetterSetterCallee_.valid();
+  }
+
+  ObjOperandId getterSetterCalleeOperand(JSFunction* target) {
+    if (hasSavedScriptedGetterSetterCallee()) {
+      return savedScriptedGetterSetterCallee_;
+    }
+    return loadObject(target);
+  }
+
+ public:
   void callScriptedGetterResult(ValOperandId receiver, JSFunction* getter,
                                 bool sameRealm) {
     MOZ_ASSERT(getter->hasJitEntry());
     uint32_t nargsAndFlags = getter->flagsAndArgCountRaw();
-    callScriptedGetterResult_(receiver, getter, sameRealm, nargsAndFlags);
+    ObjOperandId callee = getterSetterCalleeOperand(getter);
+    callScriptedGetterResult_(receiver, callee, sameRealm, nargsAndFlags);
     trialInliningState_ = TrialInliningState::Candidate;
   }
 
-  void callInlinedGetterResult(ValOperandId receiver, JSFunction* getter,
-                               ICScript* icScript, bool sameRealm) {
+  void callInlinedGetterResult(ValOperandId receiver, ObjOperandId callee,
+                               JSFunction* getter, ICScript* icScript,
+                               bool sameRealm) {
     MOZ_ASSERT(getter->hasJitEntry());
+    MOZ_ASSERT(!hasSavedScriptedGetterSetterCallee());
     uint32_t nargsAndFlags = getter->flagsAndArgCountRaw();
-    callInlinedGetterResult_(receiver, getter, icScript, sameRealm,
+    callInlinedGetterResult_(receiver, callee, icScript, sameRealm,
                              nargsAndFlags);
     trialInliningState_ = TrialInliningState::Inlined;
   }
@@ -638,6 +661,7 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
   void callNativeGetterResult(ValOperandId receiver, JSFunction* getter,
                               bool sameRealm) {
     MOZ_ASSERT(getter->isNativeWithoutJitEntry());
+    MOZ_ASSERT(!hasSavedScriptedGetterSetterCallee());
     uint32_t nargsAndFlags = getter->flagsAndArgCountRaw();
     callNativeGetterResult_(receiver, getter, sameRealm, nargsAndFlags);
   }
@@ -646,15 +670,18 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
                           ValOperandId rhs, bool sameRealm) {
     MOZ_ASSERT(setter->hasJitEntry());
     uint32_t nargsAndFlags = setter->flagsAndArgCountRaw();
-    callScriptedSetter_(receiver, setter, rhs, sameRealm, nargsAndFlags);
+    ObjOperandId callee = getterSetterCalleeOperand(setter);
+    callScriptedSetter_(receiver, callee, rhs, sameRealm, nargsAndFlags);
     trialInliningState_ = TrialInliningState::Candidate;
   }
 
-  void callInlinedSetter(ObjOperandId receiver, JSFunction* setter,
-                         ValOperandId rhs, ICScript* icScript, bool sameRealm) {
+  void callInlinedSetter(ObjOperandId receiver, ObjOperandId callee,
+                         JSFunction* setter, ValOperandId rhs,
+                         ICScript* icScript, bool sameRealm) {
     MOZ_ASSERT(setter->hasJitEntry());
+    MOZ_ASSERT(!hasSavedScriptedGetterSetterCallee());
     uint32_t nargsAndFlags = setter->flagsAndArgCountRaw();
-    callInlinedSetter_(receiver, setter, rhs, icScript, sameRealm,
+    callInlinedSetter_(receiver, callee, rhs, icScript, sameRealm,
                        nargsAndFlags);
     trialInliningState_ = TrialInliningState::Inlined;
   }
@@ -662,6 +689,7 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
   void callNativeSetter(ObjOperandId receiver, JSFunction* setter,
                         ValOperandId rhs, bool sameRealm) {
     MOZ_ASSERT(setter->isNativeWithoutJitEntry());
+    MOZ_ASSERT(!hasSavedScriptedGetterSetterCallee());
     uint32_t nargsAndFlags = setter->flagsAndArgCountRaw();
     callNativeSetter_(receiver, setter, rhs, sameRealm, nargsAndFlags);
   }

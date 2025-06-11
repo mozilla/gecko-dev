@@ -13,7 +13,7 @@
 #include "common/browser_logging/WebRtcLog.h"
 #include "gmp-video-decode.h"  // GMP_API_VIDEO_DECODER
 #include "gmp-video-encode.h"  // GMP_API_VIDEO_ENCODER
-#include "libwebrtcglue/CallWorkerThread.h"
+#include "libwebrtcglue/WebrtcTaskQueueWrapper.h"
 #include "modules/audio_device/include/fake_audio_device.h"
 #include "modules/audio_processing/include/audio_processing.h"
 #include "modules/audio_processing/include/aec_dump.h"
@@ -23,6 +23,7 @@
 #include "mozilla/glean/DomMediaWebrtcMetrics.h"
 #include "mozilla/dom/RTCStatsReportBinding.h"
 #include "nsCRTGlue.h"
+#include "nsIEventTarget.h"
 #include "nsIIOService.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
@@ -494,27 +495,20 @@ void PeerConnectionCtx::AddPeerConnection(const std::string& aKey,
     audioStateConfig.audio_device_module =
         new rtc::RefCountedObject<FakeAudioDeviceModule>();
 
-    SharedThreadPoolWebRtcTaskQueueFactory taskQueueFactory;
     constexpr bool supportTailDispatch = true;
-    // Note the NonBlocking DeletionPolicy!
-    // This task queue is passed into libwebrtc as a raw pointer.
+    // This task queue is passed into libwebrtc by means of
+    // webrtc::TaskQueueBase::GetCurrent() while running on it.
     // WebrtcCallWrapper guarantees that it outlives its webrtc::Call instance.
-    // Outside of libwebrtc we must use ref-counting to either the
-    // WebrtcCallWrapper or to the CallWorkerThread to keep it alive.
-    auto callWorkerThread =
-        WrapUnique(taskQueueFactory
-                       .CreateTaskQueueWrapper<DeletionPolicy::NonBlocking>(
-                           "CallWorker", supportTailDispatch,
-                           webrtc::TaskQueueFactory::Priority::NORMAL,
-                           MediaThreadType::WEBRTC_CALL_THREAD)
-                       .release());
+    // Outside of libwebrtc it works as a regular TaskQueue.
+    auto callWorkerThread = CreateWebrtcTaskQueueWrapper(
+        GetMediaThreadPool(MediaThreadType::WEBRTC_CALL_THREAD),
+        "CallWorker"_ns, supportTailDispatch);
 
     UniquePtr<webrtc::FieldTrialsView> trials =
         WrapUnique(new MozTrialsConfig());
 
     mSharedWebrtcState = MakeAndAddRef<SharedWebrtcState>(
-        new CallWorkerThread(std::move(callWorkerThread)),
-        std::move(audioStateConfig),
+        std::move(callWorkerThread), std::move(audioStateConfig),
         already_AddRefed(CreateBuiltinAudioDecoderFactory().release()),
         std::move(trials));
     StartTelemetryTimer();

@@ -2573,7 +2573,7 @@
 # https://github.com/whatwg/html/pull/10737
 - name: dom.dialog.light-dismiss.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Disable custom highlight API; implementation pending.
@@ -5569,6 +5569,12 @@
 #else
   value: 1000
 #endif
+  mirror: always
+
+# Forcing all notification requests do storage cleanup.
+- name: dom.webnotifications.testing.force_storage_cleanup.enabled
+  type: bool
+  value: false
   mirror: always
 
 - name: dom.worker.canceling.timeoutMilliseconds
@@ -13092,7 +13098,7 @@
 # but still checks for capacity overflow and reports telemetry
 - name: network.cookie.chips.partitionLimitDryRun
   type: bool
-  value: false
+  value: true
   mirror: always
 
 # The actual CHIPS parition limit in bytes
@@ -18647,6 +18653,13 @@
 
 # Use frame callback based vsync
 - name: widget.wayland.vsync.enabled
+  type: bool
+  value: true
+  mirror: once
+
+# Whether experimental PiP support for Wayland is enabled via the xx_pip_v1
+# protocol.
+- name: widget.wayland.experimental.pip.enabled
   type: bool
   value: true
   mirror: once

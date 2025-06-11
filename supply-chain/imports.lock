@@ -433,8 +433,8 @@ user-login = "seanmonstar"
 user-name = "Sean McArthur"
 
 [[publisher.ohttp]]
-version = "0.5.1"
-when = "2024-01-10"
+version = "0.5.4"
+when = "2025-02-27"
 user-id = 128763
 user-login = "martinthomson"
 user-name = "Martin Thomson"
@@ -2334,6 +2334,19 @@ who = "Jan-Erik Rediger <jrediger@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.5.11 -> 0.5.12"
 notes = "Minimal change fixing a memory leak."
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.crossbeam-channel]]
+who = "Jan-Erik Rediger <jrediger@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.5.13 -> 0.5.14"
+aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
+
+[[audits.mozilla.audits.crossbeam-channel]]
+who = "Jan-Erik Rediger <jrediger@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.5.14 -> 0.5.15"
+notes = "Fixes a regression from an earlier version which could lead to a double free"
 aggregated-from = "https://raw.githubusercontent.com/mozilla/glean/main/supply-chain/audits.toml"
 
 [[audits.mozilla.audits.crossbeam-utils]]

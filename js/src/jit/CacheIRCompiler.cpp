@@ -9312,6 +9312,36 @@ bool CacheIRCompiler::emitMegamorphicStoreSlot(ObjOperandId objId,
   return true;
 }
 
+bool CacheIRCompiler::emitLoadGetterSetterFunction(ValOperandId getterSetterId,
+                                                   bool isGetter,
+                                                   bool needsClassGuard,
+                                                   ObjOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  ValueOperand getterSetter = allocator.useValueRegister(masm, getterSetterId);
+  Register output = allocator.defineRegister(masm, resultId);
+  AutoScratchRegister scratch(allocator, masm);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  masm.unboxNonDouble(getterSetter, output, JSVAL_TYPE_PRIVATE_GCTHING);
+
+  size_t offset = isGetter ? GetterSetter::offsetOfGetter()
+                           : GetterSetter::offsetOfSetter();
+  masm.loadPtr(Address(output, offset), output);
+
+  masm.branchTestPtr(Assembler::Zero, output, output, failure->label());
+  if (needsClassGuard) {
+    masm.branchTestObjIsFunction(Assembler::NotEqual, output, scratch, output,
+                                 failure->label());
+  }
+
+  return true;
+}
+
 bool CacheIRCompiler::emitGuardHasGetterSetter(ObjOperandId objId,
                                                uint32_t idOffset,
                                                uint32_t getterSetterOffset) {

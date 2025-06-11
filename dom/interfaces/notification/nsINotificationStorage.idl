@@ -80,6 +80,22 @@ interface nsINotificationStorage : nsISupports
    */
   void delete(in AString origin,
               in AString id);
+
+  /**
+   * Remove all notifications from storage, except the ones in `ids`.
+   *
+   * This can be used to clean up old notifications that are not known to the
+   * system notification backend anymore. It's needed because the backend can
+   * discard notifications while Firefox is not running.
+   *
+   * No `origin` parameter because:
+   *
+   * 1. This should affect all known origins
+   * 2. The IDs are unique and should not collide between origins
+   *
+   * @param ids: the ids for the notifications to not delete
+   */
+  void deleteAllExcept(in Array<AString> ids);
 };
 
 %{C++

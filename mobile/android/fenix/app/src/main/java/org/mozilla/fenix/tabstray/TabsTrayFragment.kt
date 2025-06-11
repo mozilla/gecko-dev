@@ -45,9 +45,6 @@ import org.mozilla.fenix.GleanMetrics.TabsTray
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
-import org.mozilla.fenix.biometricauthentication.AuthenticationStatus
-import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationManager
-import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationNeededInfo
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.compose.core.Action
@@ -811,31 +808,18 @@ class TabsTrayFragment : AppCompatDialogFragment() {
 
     @VisibleForTesting
     internal fun onTabPageClick(
-        biometricAuthenticationNeededInfo: BiometricAuthenticationNeededInfo =
-            BiometricAuthenticationManager.biometricAuthenticationNeededInfo,
         biometricUtils: BiometricUtils = DefaultBiometricUtils,
         tabsTrayInteractor: TabsTrayInteractor,
         page: Page,
         isPrivateScreenLocked: Boolean,
     ) {
-        val isPrivateTabPage = page == Page.PrivateTabs
-
-        if (isPrivateTabPage && isPrivateScreenLocked) {
-            biometricAuthenticationNeededInfo.authenticationStatus =
-                AuthenticationStatus.AUTHENTICATION_IN_PROGRESS
-
+        if (page == Page.PrivateTabs && isPrivateScreenLocked) {
             verifyUser(
                 biometricUtils = biometricUtils,
                 fallbackVerification = verificationResultLauncher,
                 onVerified = ::openPrivateTabsPage,
             )
         } else {
-            // Reset authentication state when leaving PBM
-            if (!isPrivateTabPage) {
-                biometricAuthenticationNeededInfo.apply {
-                    authenticationStatus = AuthenticationStatus.NOT_AUTHENTICATED
-                }
-            }
             tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false)
         }
     }

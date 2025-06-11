@@ -24,6 +24,13 @@ async function testRefresh(url) {
     readerButton.click();
     await pageShownPromise;
 
+    // Wait for refreshing to be available.
+    await BrowserTestUtils.waitForMutationCondition(
+      refreshButton,
+      { attributes: true },
+      () => !refreshButton.disabled
+    );
+
     // Refresh the page
     pageShownPromise = BrowserTestUtils.waitForContentEvent(
       browser,

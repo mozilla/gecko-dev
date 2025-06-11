@@ -127,7 +127,7 @@ To see information on other options, simply run
 ``./mach geckoview-junit --help``; of particular note for dealing with
 intermittent test failures are ``--repeat N`` and
 ``--run-until-failure``, both of which do exactly what you’d expect.
-If a test is intermittently failing, consult `Debugging Intermittent Test Failures </devtools/tests/debugging-intermittents.html>`_ for additional tips.
+If a test is intermittently failing, consult `Debugging Intermittent Test Failures </testing/debugging-intermittents/index.html>`_ for additional tips.
 
 Other tests, such as mochitests, may be ran using:
 

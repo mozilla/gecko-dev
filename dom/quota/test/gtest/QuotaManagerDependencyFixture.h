@@ -76,6 +76,9 @@ class QuotaManagerDependencyFixture : public testing::Test {
 
   static void ProcessPendingNormalOriginOperations();
 
+  static Maybe<OriginStateMetadata> GetOriginStateMetadata(
+      const OriginMetadata& aOriginMetadata);
+
   static uint64_t TotalDirectoryIterations();
 
   static uint64_t SaveOriginAccessTimeCount();

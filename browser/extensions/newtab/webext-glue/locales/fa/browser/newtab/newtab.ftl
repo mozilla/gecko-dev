@@ -8,11 +8,18 @@
 newtab-page-title = زبانهٔ جدید
 newtab-settings-button =
     .title = صفحهٔ زبانهٔ جدید را سفارشی کنید
+newtab-personalize-settings-icon-label =
+    .title = شخصی‌سازی زبانه جدید
+    .aria-label = تنظیمات
+newtab-settings-dialog-label =
+    .aria-label = تنظیمات
 newtab-personalize-icon-label =
     .title = شحصی‌سازی زبانهٔ جدید
     .aria-label = شحصی‌سازی زبانهٔ جدید
 newtab-personalize-dialog-label =
     .aria-label = شخصی‌سازی
+newtab-logo-and-wordmark =
+    .aria-label = { -brand-full-name }
 
 ## Search box component.
 
@@ -45,13 +52,14 @@ newtab-topsites-add-search-engine-header = افزودن موتور جستجو
 newtab-topsites-add-shortcut-header = میانبر جدید
 newtab-topsites-edit-topsites-header = ویرایش سایت برتر
 newtab-topsites-edit-shortcut-header = ویرایش میانبر
+newtab-topsites-add-shortcut-label = افزودن میان‌بر
 newtab-topsites-title-label = عنوان
 newtab-topsites-title-input =
     .placeholder = عنوان را وارد کنید
-newtab-topsites-url-label = نشانی
+newtab-topsites-url-label = نشانی اینترنتی
 newtab-topsites-url-input =
     .placeholder = یک نشانی بنویسید یا بچسبانید
-newtab-topsites-url-validation = نشانی معتبر الزامی است
+newtab-topsites-url-validation = نشانی اینترنتی معتبر الزامی است
 newtab-topsites-image-url-label = نشانیِ سفارشی عکس
 newtab-topsites-use-image-link = استفاده از یک عکس سفارشی…
 newtab-topsites-image-validation = بارگیری عکس شکست خورد. آدرس دیگری امتحان کنید.
@@ -92,8 +100,8 @@ newtab-menu-content-tooltip =
     .aria-label = بازکردن فهرست زمینه برای { $title }
 # Tooltip on an empty topsite box to open the New Top Site dialog.
 newtab-menu-topsites-placeholder-tooltip =
-    .title = ویرایش این سایت
-    .aria-label = ویرایش این سایت
+    .title = ویرایش این وبگاه
+    .aria-label = ویرایش این وبگاه
 
 ## Context Menu: These strings are displayed in a context menu and are meant as a call to action for a given page.
 

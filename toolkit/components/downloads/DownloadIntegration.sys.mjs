@@ -295,6 +295,33 @@ export var DownloadIntegration = {
   _downloadsDirectory: null,
 
   /**
+   * Get the path of the directory from the provided preference.
+   * If the preference is not set or the directory does not exist,
+   * return the path of the downloads directory.
+   *
+   * @param {string} pref
+   *        The preference which contains the directory
+   *
+   * @return {Promise}
+   * @resolves The directory string path.
+   */
+  async _getCustomDirectoryOrDownloads(pref) {
+    let directoryPath = null;
+    try {
+      let directory = Services.prefs.getComplexValue(pref, Ci.nsIFile);
+      directoryPath = directory.path;
+      await IOUtils.makeDirectory(directoryPath, {
+        createAncestors: false,
+      });
+    } catch (ex) {
+      console.error(ex);
+      // Either the preference isn't set or the directory cannot be created.
+      directoryPath = await this.getSystemDownloadsDirectory();
+    }
+    return directoryPath;
+  },
+
+  /**
    * Returns the user downloads directory asynchronously.
    *
    * On platforms where external helper apps use the downloads directory, the
@@ -316,18 +343,45 @@ export var DownloadIntegration = {
         directoryPath = await this.getSystemDownloadsDirectory();
         break;
       case 2: // Custom
+        directoryPath = await this._getCustomDirectoryOrDownloads(
+          "browser.download.dir"
+        );
+        break;
+      default:
+        directoryPath = await this.getSystemDownloadsDirectory();
+    }
+    return directoryPath;
+  },
+
+  /**
+   * Returns the user screenshots directory asynchronously.
+   *
+   * @return {Promise}
+   * @resolves The screenshots directory string path.
+   */
+  async getPreferredScreenshotsDirectory() {
+    let directoryPath = null;
+    let prefValue = Services.prefs.getIntPref(
+      "browser.screenshots.folderList",
+      1
+    );
+
+    switch (prefValue) {
+      case 0: // Desktop
+        directoryPath = this._getDirectory("Desk");
+        break;
+      case 1: // Downloads
+        directoryPath = await this.getSystemDownloadsDirectory();
+        break;
+      case 2: // Custom
+        directoryPath = await this._getCustomDirectoryOrDownloads(
+          "browser.screenshots.dir"
+        );
+        break;
+      case 3: // Default OS screenshots directory
         try {
-          let directory = Services.prefs.getComplexValue(
-            "browser.download.dir",
-            Ci.nsIFile
-          );
-          directoryPath = directory.path;
-          await IOUtils.makeDirectory(directoryPath, {
-            createAncestors: false,
-          });
-        } catch (ex) {
-          console.error(ex);
-          // Either the preference isn't set or the directory cannot be created.
+          directoryPath = this._getDirectory("Scrnshts");
+        } catch {
           directoryPath = await this.getSystemDownloadsDirectory();
         }
         break;

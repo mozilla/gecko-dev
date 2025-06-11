@@ -210,10 +210,24 @@ class Toolbar extends Component {
       this.props.toggleSearchPanel();
     });
 
-    this.shortcuts.on(COPY_KEY_SHORTCUT, () => {
-      if (this.props.selectedRequest && this.props.selectedRequest.url) {
-        copyString(this.props.selectedRequest.url);
+    // Keyboard shortcut to copy the selected request URL
+    this.shortcuts.on(COPY_KEY_SHORTCUT, e => {
+      if (!this.props.selectedRequest?.url) {
+        return;
       }
+
+      const selection = window.getSelection();
+      if (
+        // We don't want to copy selected URL in clipboard if the user selected some text…
+        (!selection.isCollapsed && selection.toString()) ||
+        // …or if the keyboard shortcut happened in some inputs (which includes
+        // CodeMirror 5 underlying textarea)
+        e.target.matches("input, textarea")
+      ) {
+        return;
+      }
+
+      copyString(this.props.selectedRequest.url);
     });
   }
 

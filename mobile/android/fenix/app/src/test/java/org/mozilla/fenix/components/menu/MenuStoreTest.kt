@@ -215,29 +215,6 @@ class MenuStoreTest {
     }
 
     @Test
-    fun `WHEN setting loading state action is dispatched THEN loading state is updated`() = runTest {
-        val initialState = MenuState(
-            browserMenuState = BrowserMenuState(
-                selectedTab = TabSessionState(
-                    id = "tabId",
-                    content = ContentState(
-                        url = "www.google.com",
-                    ),
-                ),
-                bookmarkState = BookmarkState(),
-                isLoading = false,
-            ),
-        )
-        val store = MenuStore(initialState = initialState)
-
-        assertFalse(store.state.browserMenuState?.isLoading ?: false)
-
-        store.dispatch(MenuAction.SetLoading(true)).join()
-
-        assertTrue(store.state.browserMenuState?.isLoading ?: false)
-    }
-
-    @Test
     fun `WHEN add shortcut action is dispatched THEN state is not updated`() = runTest {
         val initialState = MenuState(
             browserMenuState = BrowserMenuState(

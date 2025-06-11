@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Slett frå { -pocket-brand-name }
 newtab-menu-archive-pocket = Arkiver i { -pocket-brand-name }
 newtab-menu-show-privacy-info = Våre sponsorar og ditt personvern
 newtab-menu-about-fakespot = Om { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Rapporter
 newtab-menu-report-content = Rapporter dette innhaldet
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -190,6 +192,8 @@ newtab-label-sponsored-by = Sponsa av { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponsa
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -556,3 +560,5 @@ newtab-report-content-spam-misleading =
     .label = Spam eller villeiande
 newtab-report-cancel = Avbryt
 newtab-report-submit = Send inn
+newtab-toast-thanks-for-reporting =
+    .message = Takk for at du rapporterte dette.

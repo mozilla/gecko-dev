@@ -69,6 +69,8 @@ tasks:
             commands:
                 - [python3, taskcluster/scripts/tests/test-lab.py, fenix/arm64-v8a-baseline-profile.yml, /builds/worker/fetches/target.arm64-v8a.apk, --apk_test, /builds/worker/fetches/target.noarch.apk]
                 - [python3, taskcluster/scripts/tests/copy-artifacts-from-ftl.py, "baseline_profile"]
+                - [mkdir, -p, /builds/worker/artifacts/build]
+                - [tar, -C, /builds/worker/workspace/baselineProfile, -cf, /builds/worker/artifacts/build/baselineProfile.tar.zst, .]
         treeherder:
             platform: fenix-android-all/opt
             symbol: Bpgo(run)

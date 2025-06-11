@@ -21,20 +21,25 @@ union wl_argument;
 #pragma GCC visibility push(default)
 const struct wl_interface wl_buffer_interface;
 const struct wl_interface wl_callback_interface;
+const struct wl_interface wl_compositor_interface;
 const struct wl_interface wl_data_device_interface;
 const struct wl_interface wl_data_device_manager_interface;
 const struct wl_interface wl_keyboard_interface;
+const struct wl_interface wl_output_interface;
 const struct wl_interface wl_pointer_interface;
 const struct wl_interface wl_region_interface;
 const struct wl_interface wl_registry_interface;
+const struct wl_interface wl_seat_interface;
 const struct wl_interface wl_shm_interface;
 const struct wl_interface wl_shm_pool_interface;
-const struct wl_interface wl_seat_interface;
-const struct wl_interface wl_surface_interface;
-const struct wl_interface wl_subsurface_interface;
-const struct wl_interface wl_compositor_interface;
 const struct wl_interface wl_subcompositor_interface;
-const struct wl_interface wl_output_interface;
+const struct wl_interface wl_subsurface_interface;
+const struct wl_interface wl_surface_interface;
+const struct wl_interface xdg_popup_interface;
+const struct wl_interface xdg_positioner_interface;
+const struct wl_interface xdg_surface_interface;
+const struct wl_interface xdg_toplevel_interface;
+const struct wl_interface xdg_wm_base_interface;
 #pragma GCC visibility pop
 
 MOZ_EXPORT void wl_event_queue_destroy(struct wl_event_queue* queue) {}

@@ -4608,6 +4608,11 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.6.27 -> 0.6.28"
 
+[[audits.replace_with]]
+who = "Lars Eggert <lars@eggert.org>"
+criteria = "safe-to-deploy"
+delta = "0.1.7 -> 0.1.8"
+
 [[audits.rinja]]
 who = "Ben Dean-Kawamura <bdk@mozilla.com>"
 criteria = "safe-to-deploy"

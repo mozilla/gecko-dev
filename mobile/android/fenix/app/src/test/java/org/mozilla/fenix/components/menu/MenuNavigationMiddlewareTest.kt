@@ -793,45 +793,6 @@ class MenuNavigationMiddlewareTest {
         assertTrue(dismissWasCalled)
     }
 
-    @Test
-    fun `GIVEN user is on a tab WHEN navigate stop action is dispatched THEN stop loading the page`() = runTest {
-        val tab = createTab(url = "https://www.mozilla.org")
-        var dismissWasCalled = false
-        val store = createStore(
-            customTab = null,
-            menuState = MenuState(
-                browserMenuState = BrowserMenuState(
-                    selectedTab = tab,
-                ),
-            ),
-            onDismiss = { dismissWasCalled = true },
-        )
-
-        store.dispatch(MenuAction.Navigate.Stop).join()
-
-        verify {
-            sessionUseCases.stopLoading.invoke(tab.id)
-        }
-        assertTrue(dismissWasCalled)
-    }
-
-    @Test
-    fun `GIVEN user is on a custom tab WHEN navigate stop action is dispatched THEN stop loading the page`() = runTest {
-        val customTab = createCustomTab(url = "https://www.mozilla.org")
-        var dismissWasCalled = false
-        val store = createStore(
-            customTab = customTab,
-            onDismiss = { dismissWasCalled = true },
-        )
-
-        store.dispatch(MenuAction.Navigate.Stop).join()
-
-        verify {
-            sessionUseCases.stopLoading.invoke(customTab.id)
-        }
-        assertTrue(dismissWasCalled)
-    }
-
     private fun createStore(
         customTab: CustomTabSessionState? = mockk(relaxed = true),
         menuState: MenuState = MenuState(),

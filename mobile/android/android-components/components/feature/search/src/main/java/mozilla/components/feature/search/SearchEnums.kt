@@ -74,13 +74,3 @@ fun SearchApplicationName.into(): mozilla.appservices.search.SearchApplicationNa
         SearchApplicationName.FIREFOX -> mozilla.appservices.search.SearchApplicationName.FIREFOX
     }
 }
-
-/**
- * A class that inherits from [mozilla.appservices.search.SearchEngineSelector]
- * to reduce dependencies on appservices so consumers of android-components
- * do not have to know about application services.
- *
- * SearchEngineSelector parses the JSON configuration for search engines
- * and returns the applicable engines depending on their region + locale.
- */
-class SearchEngineSelector : mozilla.appservices.search.SearchEngineSelector()

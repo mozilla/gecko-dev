@@ -15,6 +15,8 @@ class nsWindow;
 
 namespace mozilla::widget {
 
+class ScreenGetterGtk;
+
 class ScreenHelperGTK final : public ScreenManager::Helper {
  public:
   ScreenHelperGTK();
@@ -23,6 +25,14 @@ class ScreenHelperGTK final : public ScreenManager::Helper {
   static int GetMonitorCount();
   static gint GetGTKMonitorScaleFactor(gint aMonitorNum = 0);
   static RefPtr<widget::Screen> GetScreenForWindow(nsWindow* aWindow);
+
+  static void RequestRefreshScreens();
+  static int GetLastSerial() { return gLastSerial; }
+
+ private:
+  static GdkWindow* sRootWindow;
+  static StaticRefPtr<ScreenGetterGtk> gLastScreenGetter;
+  static int gLastSerial;
 };
 
 }  // namespace mozilla::widget

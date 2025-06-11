@@ -94,6 +94,8 @@ const REGION_SECTIONS_CONFIG =
 const LOCALE_SECTIONS_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.sections.locale-content-config";
 
+const BROWSER_URLBAR_PLACEHOLDERNAME = "browser.urlbar.placeholderName";
+
 export function csvPrefHasValue(stringPrefName, value) {
   if (typeof stringPrefName !== "string") {
     throw new Error(`The stringPrefName argument is not a string`);
@@ -824,6 +826,22 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "system.trendingSearch.enabled",
+    {
+      title: "Enables the trending search experiment in Nimbus",
+      value: false,
+    },
+  ],
+  [
+    "trendingSearch.defaultSearchEngine",
+    {
+      title: "Placeholder the trending search experiment in Nimbus",
+      getValue: () => {
+        return Services.prefs.getCharPref(BROWSER_URLBAR_PLACEHOLDERNAME, "");
+      },
+    },
+  ],
+  [
     "improvesearch.noDefaultSearchTile",
     {
       title: "Remove tiles that are the same as the default search",
@@ -1147,7 +1165,7 @@ export const PREFS_CONFIG = new Map([
   [
     "discoverystream.publisherFavicon.enabled",
     {
-      title: "Enables publihser favicons on recommended stories",
+      title: "Enables publisher favicons on recommended stories",
       value: false,
     },
   ],
@@ -1400,6 +1418,15 @@ export class ActivityStream {
     this._updateDynamicPrefs();
     this._defaultPrefs.init();
     Services.obs.addObserver(this, "intl:app-locales-changed");
+    Services.obs.addObserver(this, "browser-search-engine-modified");
+
+    // Bug 1969587: Because our pref system does not support async getValue(),
+    // we mirror the value of the BROWSER_URLBAR_PLACEHOLDERNAME pref into
+    // `trendingSearch.defaultEngine` using a lazily evaluated sync fallback.
+    //
+    // In some cases, BROWSER_URLBAR_PLACEHOLDERNAME is read before it's been set,
+    // so we also observe it and update our mirrored value when it changes initially.
+    Services.prefs.addObserver(BROWSER_URLBAR_PLACEHOLDERNAME, this);
 
     // Look for outdated user pref values that might have been accidentally
     // persisted when restoring the original pref value at the end of an
@@ -1477,6 +1504,8 @@ export class ActivityStream {
 
     Services.obs.removeObserver(this, "intl:app-locales-changed");
 
+    Services.prefs.removeObserver(BROWSER_URLBAR_PLACEHOLDERNAME, this);
+
     this.store.uninit();
     this.initialized = false;
   }
@@ -1531,6 +1560,7 @@ export class ActivityStream {
 
   observe(subject, topic) {
     switch (topic) {
+      case "browser-search-engine-modified":
       case "intl:app-locales-changed":
       case lazy.Region.REGION_TOPIC:
         this._updateDynamicPrefs();

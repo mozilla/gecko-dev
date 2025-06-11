@@ -414,6 +414,21 @@ void QuotaManagerDependencyFixture::ProcessPendingNormalOriginOperations() {
 }
 
 // static
+Maybe<OriginStateMetadata>
+QuotaManagerDependencyFixture::GetOriginStateMetadata(
+    const OriginMetadata& aOriginMetadata) {
+  const auto result =
+      PerformOnIOThread([aOriginMetadata]() -> Maybe<OriginStateMetadata> {
+        QuotaManager* quotaManager = QuotaManager::Get();
+        MOZ_RELEASE_ASSERT(quotaManager);
+
+        return quotaManager->GetOriginStateMetadata(aOriginMetadata);
+      });
+
+  return result;
+}
+
+// static
 uint64_t QuotaManagerDependencyFixture::TotalDirectoryIterations() {
   const auto result = PerformOnIOThread([]() -> uint64_t {
     QuotaManager* quotaManager = QuotaManager::Get();

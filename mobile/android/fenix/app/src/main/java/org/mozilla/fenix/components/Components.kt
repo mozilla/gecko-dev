@@ -65,6 +65,7 @@ import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.onboarding.FenixOnboarding
 import org.mozilla.fenix.perf.AppStartReasonProvider
 import org.mozilla.fenix.perf.StartupActivityLog
+import org.mozilla.fenix.perf.StartupStateProvider
 import org.mozilla.fenix.perf.StrictModeManager
 import org.mozilla.fenix.perf.lazyMonitored
 import org.mozilla.fenix.utils.Settings
@@ -238,6 +239,7 @@ class Components(private val context: Context) {
 
     val appStartReasonProvider by lazyMonitored { AppStartReasonProvider() }
     val startupActivityLog by lazyMonitored { StartupActivityLog() }
+    val startupStateProvider by lazyMonitored { StartupStateProvider(startupActivityLog, appStartReasonProvider) }
 
     val appStore by lazyMonitored {
         val blocklistHandler = BlocklistHandler(settings)

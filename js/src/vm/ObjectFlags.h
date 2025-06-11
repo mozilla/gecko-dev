@@ -19,7 +19,7 @@ namespace js {
 //
 // If you add a new flag here, please add appropriate code to JSObject::dump to
 // dump it as part of the object representation.
-enum class ObjectFlag : uint16_t {
+enum class ObjectFlag : uint32_t {
   IsUsedAsPrototype = 1 << 0,
   NotExtensible = 1 << 1,
   Indexed = 1 << 2,
@@ -89,6 +89,10 @@ enum class ObjectFlag : uint16_t {
   // If set, we have already called the preserveWrapper hook for this object.
   // This should only be set if `obj->getClass()->preservesWrapper()` is true.
   HasPreservedWrapper = 1 << 15,
+
+  // If set, the object may have an accessor property where the getter or setter
+  // is a non-JSFunction callable object.
+  HasNonFunctionAccessor = 1 << 16,
 };
 
 using ObjectFlags = EnumFlags<ObjectFlag>;

@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Poista { -pocket-brand-name }-palvelusta
 newtab-menu-archive-pocket = Arkistoi { -pocket-brand-name }-palveluun
 newtab-menu-show-privacy-info = Tukijamme ja yksityisyytesi
 newtab-menu-about-fakespot = Tietoja { -fakespot-brand-name }ista
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Ilmoita
 newtab-menu-report-content = Ilmoita tästä sisällöstä
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -191,6 +193,8 @@ newtab-label-sponsored-by = Sponsorina { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } min
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Sponsoroitu
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -529,6 +533,13 @@ newtab-custom-wallpaper-cta = Kokeile
 
 ## Strings for download mobile highlight
 
+newtab-download-mobile-highlight-title = Lataa { -brand-product-name } mobiililaitteille
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Skannaa koodi selataksesi turvallisesti liikkeellä ollessasi.
+newtab-download-mobile-highlight-body-variant-b = Jatka siitä, mihin jäit, synkronoimalla välilehdet, salasanat ja muut tiedot.
+newtab-download-mobile-highlight-body-variant-c = Tiesitkö, että voit ottaa { -brand-product-name }in mukaasi liikkeellä ollessasi? Sama selain. Taskussasi.
+newtab-download-mobile-highlight-image =
+    .aria-label = QR-koodi { -brand-product-name }in lataamiseksi mobiililaitteille
 
 ## Strings for reporting ads and content
 
@@ -550,3 +561,5 @@ newtab-report-content-spam-misleading =
     .label = Roskapostia tai harhaanjohtavaa
 newtab-report-cancel = Peruuta
 newtab-report-submit = Lähetä
+newtab-toast-thanks-for-reporting =
+    .message = Kiitos, että ilmoitit tästä.

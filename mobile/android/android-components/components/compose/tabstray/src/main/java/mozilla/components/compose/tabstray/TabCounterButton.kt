@@ -5,11 +5,10 @@
 package mozilla.components.compose.tabstray
 
 import androidx.compose.foundation.Image
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.material.contentColorFor
-import androidx.compose.material.primarySurface
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
@@ -39,7 +38,7 @@ fun TabCounterButton(
     IconButton(
         onClick = onClicked,
     ) {
-        val backgroundColor = MaterialTheme.colors.primarySurface
+        val backgroundColor = MaterialTheme.colorScheme.primaryContainer
         val foregroundColor = contentColorFor(backgroundColor)
         val tabs = store.observeAsComposableState { state -> state.tabs.filter(tabsFilter) }
         val count = tabs.value?.size ?: 0

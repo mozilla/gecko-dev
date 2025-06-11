@@ -35,6 +35,7 @@ Specific documentation on a few topics is available at:
    Manual Testing <manual-testing.md>
    Metrics Definitions <metrics.md>
    Release Checklist <release-checklist.md>
+   Startup Performance <startup-performance.md>
    Substituting Local GeckoView <substituting-local-gv.md>
    Sync Integration Tests <syncIntegrationTests.md>
    Telemetry <telemetry.md>

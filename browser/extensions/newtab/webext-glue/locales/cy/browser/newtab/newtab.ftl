@@ -117,6 +117,8 @@ newtab-menu-delete-pocket = Dileu o { -pocket-brand-name }
 newtab-menu-archive-pocket = Archifo i { -pocket-brand-name }
 newtab-menu-show-privacy-info = Ein noddwyr a'ch preifatrwydd
 newtab-menu-about-fakespot = Ynghylch { -fakespot-brand-name }
+# Report is a verb (i.e. report issue with the content).
+newtab-menu-report = Adrodd
 newtab-menu-report-content = Adrodd am y cynnwys hwn
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
@@ -192,6 +194,8 @@ newtab-label-sponsored-by = Noddir gan { $sponsor }
 #   $source (string) - The name of a company or their domain
 #   $timeToRead (number) - The estimated number of minutes to read this story
 newtab-label-source-read-time = { $source } · { $timeToRead } mun
+# This string is used under fixed size ads to indicate sponsored content
+newtab-label-sponsored-fixed = Noddwyd
 
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
@@ -562,3 +566,5 @@ newtab-report-content-spam-misleading =
     .label = Sbam neu gamarweiniol
 newtab-report-cancel = Diddymu
 newtab-report-submit = Cyflwyno
+newtab-toast-thanks-for-reporting =
+    .message = Diolch am adrodd ar hwn.

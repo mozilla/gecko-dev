@@ -22,11 +22,21 @@ struct ParamTraits<mozilla::dom::IdentityProviderConfig> {
   static void Write(MessageWriter* aWriter, const paramType& aParam) {
     WriteParam(aWriter, aParam.mConfigURL);
     WriteParam(aWriter, aParam.mClientId);
+    WriteParam(aWriter, aParam.mOrigin);
+    WriteParam(aWriter, aParam.mLoginURL);
+    WriteParam(aWriter, aParam.mLoginTarget);
+    WriteParam(aWriter, aParam.mEffectiveQueryURL);
+    WriteParam(aWriter, aParam.mEffectiveType);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
     return ReadParam(aReader, &aResult->mConfigURL) &&
-           ReadParam(aReader, &aResult->mClientId);
+           ReadParam(aReader, &aResult->mClientId) &&
+           ReadParam(aReader, &aResult->mOrigin) &&
+           ReadParam(aReader, &aResult->mLoginURL) &&
+           ReadParam(aReader, &aResult->mLoginTarget) &&
+           ReadParam(aReader, &aResult->mEffectiveQueryURL) &&
+           ReadParam(aReader, &aResult->mEffectiveType);
   }
 };
 
@@ -40,6 +50,11 @@ struct ParamTraits<mozilla::dom::IdentityProviderRequestOptions> {
     WriteParam(aWriter, aParam.mNonce);
     WriteParam(aWriter, aParam.mLoginHint);
     WriteParam(aWriter, aParam.mDomainHint);
+    WriteParam(aWriter, aParam.mOrigin);
+    WriteParam(aWriter, aParam.mLoginURL);
+    WriteParam(aWriter, aParam.mLoginTarget);
+    WriteParam(aWriter, aParam.mEffectiveQueryURL);
+    WriteParam(aWriter, aParam.mEffectiveType);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
@@ -47,7 +62,12 @@ struct ParamTraits<mozilla::dom::IdentityProviderRequestOptions> {
            ReadParam(aReader, &aResult->mClientId) &&
            ReadParam(aReader, &aResult->mNonce) &&
            ReadParam(aReader, &aResult->mLoginHint) &&
-           ReadParam(aReader, &aResult->mDomainHint);
+           ReadParam(aReader, &aResult->mDomainHint) &&
+           ReadParam(aReader, &aResult->mOrigin) &&
+           ReadParam(aReader, &aResult->mLoginURL) &&
+           ReadParam(aReader, &aResult->mLoginTarget) &&
+           ReadParam(aReader, &aResult->mEffectiveQueryURL) &&
+           ReadParam(aReader, &aResult->mEffectiveType);
   }
 };
 
@@ -67,6 +87,11 @@ struct ParamTraits<mozilla::dom::IdentityCredentialDisconnectOptions> {
            ReadParam(aReader, &aResult->mAccountHint);
   }
 };
+
+template <>
+struct ParamTraits<mozilla::dom::IdentityLoginTargetType>
+    : public mozilla::dom::WebIDLEnumSerializer<
+          mozilla::dom::IdentityLoginTargetType> {};
 
 template <>
 struct ParamTraits<mozilla::dom::CredentialMediationRequirement>

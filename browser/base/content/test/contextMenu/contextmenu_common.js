@@ -75,7 +75,9 @@ function getVisibleMenuItems(aMenu) {
         // Inspect accessibility properties does not have an access key. See
         // bug 1630717 for more details.
         item.id != "context-inspect-a11y" &&
-        !item.id.includes("context-media-playbackrate")
+        !item.id.includes("context-media-playbackrate") &&
+        item.id != "context-copy-link-to-highlight" &&
+        item.id != "context-copy-clean-link-to-highlight"
       ) {
         if (item.id != FRAME_OS_PID) {
           ok(key, "menuitem " + item.id + " has an access key");

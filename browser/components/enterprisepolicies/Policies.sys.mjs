@@ -1185,7 +1185,35 @@ export var Policies = {
   },
 
   EnableTrackingProtection: {
+    onAllWindowsRestored(manager, param) {
+      if (param.Category) {
+        // browser.contentblocking.category only works as a default pref if
+        // it is locked.
+        PoliciesUtils.setDefaultPref(
+          "browser.contentblocking.category",
+          param.Category,
+          true
+        );
+        let { ContentBlockingPrefs } = ChromeUtils.importESModule(
+          "moz-src:///browser/components/protections/ContentBlockingPrefs.sys.mjs"
+        );
+        // These are always locked because they would reset at
+        // startup anyway.
+        ContentBlockingPrefs.setPrefsToCategory(
+          param.Category,
+          true // locked
+        );
+        ContentBlockingPrefs.matchCBCategory();
+      }
+    },
     onBeforeUIStartup(manager, param) {
+      if ("Exceptions" in param) {
+        addAllowDenyPermissions("trackingprotection", param.Exceptions);
+      }
+      if (param.Category) {
+        // If a category is set, we ignore everything except exceptions.
+        return;
+      }
       if (param.Value) {
         PoliciesUtils.setDefaultPref(
           "privacy.trackingprotection.enabled",
@@ -1226,9 +1254,6 @@ export var Policies = {
           param.EmailTracking,
           param.Locked
         );
-      }
-      if ("Exceptions" in param) {
-        addAllowDenyPermissions("trackingprotection", param.Exceptions);
       }
     },
   },
@@ -1944,20 +1969,28 @@ export var Policies = {
         "keyword.enabled",
         "layers.",
         "layout.",
+        "mathml.disabled",
         "media.",
         "network.",
         "pdfjs.",
         "places.",
         "pref.",
         "print.",
+        "privacy.baselineFingerprintingProtection",
+        "privacy.fingerprintingProtection",
         "privacy.globalprivacycontrol.enabled",
         "privacy.userContext.enabled",
         "privacy.userContext.ui.enabled",
         "signon.",
         "spellchecker.",
+        "svg.context-properties.content.enabled",
+        "svg.disabled",
         "toolkit.legacyUserProfileCustomizations.stylesheets",
         "ui.",
+        "webgl.disabled",
+        "webgl.force-enabled",
         "widget.",
+        "xpinstall.enabled",
         "xpinstall.whitelist.required",
       ];
       if (!AppConstants.MOZ_REQUIRE_SIGNING) {
@@ -1965,6 +1998,7 @@ export var Policies = {
       }
       const allowedSecurityPrefs = [
         "security.block_fileuri_script_with_wrong_mime",
+        "security.csp.reporting.enabled",
         "security.default_personal_cert",
         "security.disable_button.openCertManager",
         "security.disable_button.openDeviceManager",

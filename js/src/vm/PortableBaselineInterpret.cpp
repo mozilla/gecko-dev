@@ -2415,7 +2415,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
       CACHEOP_CASE_FALLTHROUGH(CallScriptedSetter) {
         bool isSetter = cacheop == CacheOp::CallScriptedSetter;
         ObjOperandId receiverId = cacheIRReader.objOperandId();
-        uint32_t getterSetterOffset = cacheIRReader.stubOffset();
+        ObjOperandId calleeId = cacheIRReader.objOperandId();
         ValOperandId rhsId =
             isSetter ? cacheIRReader.valOperandId() : ValOperandId();
         bool sameRealm = cacheIRReader.readBool();
@@ -2425,8 +2425,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         Value receiver = isSetter ? ObjectValue(*reinterpret_cast<JSObject*>(
                                         READ_REG(receiverId.id())))
                                   : READ_VALUE_REG(receiverId.id());
-        JSFunction* callee = reinterpret_cast<JSFunction*>(
-            stubInfo->getStubRawWord(cstub, getterSetterOffset));
+        JSFunction* callee =
+            reinterpret_cast<JSFunction*>(READ_REG(calleeId.id()));
         Value rhs = isSetter ? READ_VALUE_REG(rhsId.id()) : UndefinedValue();
 
         if (!sameRealm) {

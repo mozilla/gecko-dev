@@ -43,49 +43,164 @@ static LazyLogModule sScreenLog("WidgetScreen");
 
 using GdkMonitor = struct _GdkMonitor;
 
+GdkWindow* ScreenHelperGTK::sRootWindow = nullptr;
+StaticRefPtr<ScreenGetterGtk> ScreenHelperGTK::gLastScreenGetter;
+int ScreenHelperGTK::gLastSerial = 0;
+
 class ScreenGetterGtk final {
  public:
-  ScreenGetterGtk() = default;
-  ~ScreenGetterGtk();
+  NS_INLINE_DECL_REFCOUNTING(ScreenGetterGtk)
 
-  void Init();
+  explicit ScreenGetterGtk(int aSerial);
+  void AddScreen(RefPtr<Screen> aScreen);
+  bool AddScreenHDRAsync(unsigned int aMonitor);
 
-#ifdef MOZ_X11
-  Atom NetWorkareaAtom() { return mNetWorkareaAtom; }
-#endif
-
-  // For internal use from signal callback functions
-  void RefreshScreens();
+ protected:
+  ~ScreenGetterGtk() = default;
 
  private:
-  GdkWindow* mRootWindow = nullptr;
-#ifdef MOZ_X11
-  Atom mNetWorkareaAtom = 0;
-#endif
+  AutoTArray<RefPtr<Screen>, 4> mScreenList;
+  int mSerial = 0;
+  unsigned int mMonitorNum = 0;
 };
 
-static GdkMonitor* GdkDisplayGetMonitor(GdkDisplay* aDisplay, int aMonitorNum) {
+static GdkMonitor* GdkDisplayGetMonitor(GdkDisplay* aDisplay,
+                                        unsigned int aMonitor) {
   static auto s_gdk_display_get_monitor = (GdkMonitor * (*)(GdkDisplay*, int))
       dlsym(RTLD_DEFAULT, "gdk_display_get_monitor");
   if (!s_gdk_display_get_monitor) {
     return nullptr;
   }
-  return s_gdk_display_get_monitor(aDisplay, aMonitorNum);
+  return s_gdk_display_get_monitor(aDisplay, aMonitor);
+}
+
+static uint32_t GetGTKPixelDepth() {
+  GdkVisual* visual = gdk_screen_get_system_visual(gdk_screen_get_default());
+  return gdk_visual_get_depth(visual);
+}
+
+static already_AddRefed<Screen> MakeScreenGtk(unsigned int aMonitor,
+                                              bool aIsHDR) {
+  GdkScreen* defaultScreen = gdk_screen_get_default();
+  gint gdkScaleFactor = ScreenHelperGTK::GetGTKMonitorScaleFactor(aMonitor);
+
+  // gdk_screen_get_monitor_geometry / workarea returns application pixels
+  // (desktop pixels), so we need to convert it to device pixels with
+  // gdkScaleFactor.
+  gint geometryScaleFactor = gdkScaleFactor;
+
+  gint refreshRate = [&] {
+    // Since gtk 3.22
+    static auto s_gdk_monitor_get_refresh_rate = (int (*)(GdkMonitor*))dlsym(
+        RTLD_DEFAULT, "gdk_monitor_get_refresh_rate");
+    if (!s_gdk_monitor_get_refresh_rate) {
+      return 0;
+    }
+    GdkMonitor* monitor =
+        GdkDisplayGetMonitor(gdk_display_get_default(), aMonitor);
+    if (!monitor) {
+      return 0;
+    }
+    // Convert to Hz.
+    return NSToIntRound(s_gdk_monitor_get_refresh_rate(monitor) / 1000.0f);
+  }();
+
+  GdkRectangle workarea;
+  gdk_screen_get_monitor_workarea(defaultScreen, aMonitor, &workarea);
+  LayoutDeviceIntRect availRect(workarea.x * geometryScaleFactor,
+                                workarea.y * geometryScaleFactor,
+                                workarea.width * geometryScaleFactor,
+                                workarea.height * geometryScaleFactor);
+  LayoutDeviceIntRect rect;
+  DesktopToLayoutDeviceScale contentsScale(1.0);
+  if (GdkIsX11Display()) {
+    GdkRectangle monitor;
+    gdk_screen_get_monitor_geometry(defaultScreen, aMonitor, &monitor);
+    rect = LayoutDeviceIntRect(monitor.x * geometryScaleFactor,
+                               monitor.y * geometryScaleFactor,
+                               monitor.width * geometryScaleFactor,
+                               monitor.height * geometryScaleFactor);
+  } else {
+    // Don't report screen shift in Wayland, see bug 1795066.
+    availRect.MoveTo(0, 0);
+    // We use Gtk workarea on Wayland as it matches our needs (Bug 1732682).
+    rect = availRect;
+    // Use per-monitor scaling factor in Wayland.
+    contentsScale.scale = gdkScaleFactor;
+  }
+
+  uint32_t pixelDepth = GetGTKPixelDepth();
+  if (pixelDepth == 32) {
+    // If a device uses 32 bits per pixel, it's still only using 8 bits
+    // per color component, which is what our callers want to know.
+    // (Some devices report 32 and some devices report 24.)
+    pixelDepth = 24;
+  }
+
+  CSSToLayoutDeviceScale defaultCssScale(gdkScaleFactor);
+
+  float dpi = 96.0f;
+  gint heightMM = gdk_screen_get_monitor_height_mm(defaultScreen, aMonitor);
+  if (heightMM > 0) {
+    dpi = rect.height / (heightMM / MM_PER_INCH_FLOAT);
+  }
+
+  LOG_SCREEN(
+      "New monitor %d size [%d,%d -> %d x %d] depth %d scale %f CssScale %f  "
+      "DPI %f refresh %d HDR %d]",
+      aMonitor, rect.x, rect.y, rect.width, rect.height, pixelDepth,
+      contentsScale.scale, defaultCssScale.scale, dpi, refreshRate, aIsHDR);
+  return MakeAndAddRef<Screen>(
+      rect, availRect, pixelDepth, pixelDepth, refreshRate, contentsScale,
+      defaultCssScale, dpi, Screen::IsPseudoDisplay::No, Screen::IsHDR(aIsHDR));
 }
 
 #ifdef MOZ_WAYLAND
-struct HDRMonitorInfo {
-  int mMonitorNum = 0;
+class WaylandMonitor {
+ public:
+  WaylandMonitor(ScreenGetterGtk* aScreenGetter, unsigned int aMonitor,
+                 wp_color_management_output_v1* aOutput,
+                 wp_image_description_v1* aDescription)
+      : mScreenGetter(aScreenGetter),
+        mMonitor(aMonitor),
+        mOutput(aOutput),
+        mDescription(aDescription) {
+    LOG_SCREEN("WaylandMonitor()[%p] monitor %d", this, mMonitor);
+  }
+  ~WaylandMonitor() {
+    LOG_SCREEN("~WaylandMonitor()[%p]", this);
+    MozClearPointer(mDescription, wp_image_description_v1_destroy);
+    MozClearPointer(mOutput, wp_color_management_output_v1_destroy);
+    mScreenGetter = nullptr;
+  }
+
+  unsigned int GetMonitor() const { return mMonitor; }
+
+  void SetHDR(bool aIsHDR) {
+    LOG_SCREEN("WaylandMonitor()[%p]: monitor num [%d] HDR %d", this, mMonitor,
+               aIsHDR);
+    mIsHDR = aIsHDR;
+  }
+
+  void Done() {
+    LOG_SCREEN("WaylandMonitor()[%p] Done", this);
+    mScreenGetter->AddScreen(MakeScreenGtk(mMonitor, mIsHDR));
+  }
+
+ private:
+  RefPtr<ScreenGetterGtk> mScreenGetter;
+  unsigned int mMonitor = 0;
+  wp_color_management_output_v1* mOutput = nullptr;
+  wp_image_description_v1* mDescription = nullptr;
   bool mIsHDR = false;
-  bool mIsDone = false;
 };
 
 void image_description_info_done(
     void* data,
     struct wp_image_description_info_v1* wp_image_description_info_v1) {
-  auto* info = static_cast<HDRMonitorInfo*>(data);
-  info->mIsDone = true;
-  LOG_SCREEN("Monitor num [%d] Done", info->mMonitorNum);
+  auto* info = static_cast<WaylandMonitor*>(data);
+  info->Done();
+  delete info;
 }
 
 /**
@@ -187,10 +302,10 @@ void image_description_info_luminances(
     void* data,
     struct wp_image_description_info_v1* wp_image_description_info_v1,
     uint32_t min_lum, uint32_t max_lum, uint32_t reference_lum) {
-  auto* info = static_cast<HDRMonitorInfo*>(data);
+  auto* info = static_cast<WaylandMonitor*>(data);
   LOG_SCREEN("Monitor num [%d] Luminance min %d max %d reference %d",
-             info->mMonitorNum, min_lum, max_lum, reference_lum);
-  info->mIsHDR = max_lum > reference_lum;
+             info->GetMonitor(), min_lum, max_lum, reference_lum);
+  info->SetHDR(max_lum > reference_lum);
 }
 /**
  * target primaries as chromaticity coordinates
@@ -287,44 +402,40 @@ static const struct wp_image_description_info_v1_listener
                                     image_description_info_target_max_cll,
                                     image_description_info_target_max_fall};
 
-bool IsMonitorHDR(gint aMonitorNum) {
-  if (!WaylandDisplayGet() || !WaylandDisplayGet()->GetColorManager()) {
-    return false;
-  }
+bool ScreenGetterGtk::AddScreenHDRAsync(unsigned int aMonitor) {
+  MOZ_DIAGNOSTIC_ASSERT(WaylandDisplayGet()->GetColorManager());
   GdkMonitor* monitor =
-      GdkDisplayGetMonitor(gdk_display_get_default(), aMonitorNum);
+      GdkDisplayGetMonitor(gdk_display_get_default(), aMonitor);
   if (!monitor) {
-    return monitor;
+    LOG_SCREEN("ScreenGetterGtk::AddScreenHDRAsync() failed to get monitor %d",
+               aMonitor);
+    return false;
   }
   static auto s_gdk_wayland_monitor_get_wl_output =
       (struct wl_output * (*)(GdkMonitor*))
           dlsym(RTLD_DEFAULT, "gdk_wayland_monitor_get_wl_output");
   if (!s_gdk_wayland_monitor_get_wl_output) {
+    LOG_SCREEN(
+        "ScreenGetterGtk::AddScreenHDRAsync() missing "
+        "gdk_wayland_monitor_get_wl_output");
     return false;
   }
   auto wlOutput = s_gdk_wayland_monitor_get_wl_output(monitor);
   if (!wlOutput) {
+    LOG_SCREEN("ScreenGetterGtk::AddScreenHDRAsync() missing wl_output");
     return false;
   }
-  auto output = wp_color_manager_v1_get_output(
+
+  LOG_SCREEN("ScreenGetterGtk::AddScreenHDR() monitor %d", aMonitor);
+  auto* output = wp_color_manager_v1_get_output(
       WaylandDisplayGet()->GetColorManager(), wlOutput);
-  auto description =
+  auto* description =
       wp_color_management_output_v1_get_image_description(output);
   auto descriptionInfo = wp_image_description_v1_get_information(description);
-
-  HDRMonitorInfo monitorInfo;
-  monitorInfo.mMonitorNum = aMonitorNum;
   wp_image_description_info_v1_add_listener(
-      descriptionInfo, &image_description_info_listener, &monitorInfo);
-
-  WaylandDisplayGet()->RequestAsyncRoundtrip();
-  WaylandDisplayGet()->WaitForAsyncRoundtrips();
-
-  wp_image_description_v1_destroy(description);
-  wp_color_management_output_v1_destroy(output);
-
-  MOZ_DIAGNOSTIC_ASSERT(monitorInfo.mIsDone);
-  return monitorInfo.mIsHDR;
+      descriptionInfo, &image_description_info_listener,
+      new WaylandMonitor(this, aMonitor, output, description));
+  return true;
 }
 #endif
 
@@ -365,32 +476,90 @@ RefPtr<Screen> ScreenHelperGTK::GetScreenForWindow(nsWindow* aWindow) {
   return nullptr;
 }
 
-static StaticAutoPtr<ScreenGetterGtk> gScreenGetter;
+void ScreenGetterGtk::AddScreen(RefPtr<Screen> aScreen) {
+  mScreenList.AppendElement(std::move(aScreen));
+  MOZ_DIAGNOSTIC_ASSERT(mScreenList.Length() <= mMonitorNum);
 
-static void monitors_changed(GdkScreen* aScreen, gpointer aClosure) {
+  if (mScreenList.Length() == mMonitorNum) {
+    if (mSerial != ScreenHelperGTK::GetLastSerial()) {
+      MOZ_DIAGNOSTIC_ASSERT(mSerial <= ScreenHelperGTK::GetLastSerial());
+      LOG_SCREEN(
+          "ScreenGetterGtk::AddScreen(): rejected, old wrong serial %d latest "
+          "%d",
+          mSerial, ScreenHelperGTK::GetLastSerial());
+      return;
+    }
+
+    LOG_SCREEN("ScreenGetterGtk::AddScreen(): Set screens, serial %d ",
+               mSerial);
+    ScreenManager::Refresh(std::move(mScreenList));
+  }
+}
+
+ScreenGetterGtk::ScreenGetterGtk(int aSerial)
+    : mSerial(aSerial),
+      mMonitorNum(gdk_screen_get_n_monitors(gdk_screen_get_default())) {
+  LOG_SCREEN("ScreenGetterGtk(): monitor num %d", mMonitorNum);
+#ifdef MOZ_WAYLAND
+  LOG_SCREEN("HDR Protocol %s",
+             GdkIsWaylandDisplay() && WaylandDisplayGet()->IsHDREnabled()
+                 ? "present"
+                 : "missing");
+#endif
+
+  for (unsigned int i = 0; i < mMonitorNum; i++) {
+#ifdef MOZ_WAYLAND
+    if (GdkIsWaylandDisplay() && WaylandDisplayGet()->IsHDREnabled()) {
+      if (AddScreenHDRAsync(i)) {
+        continue;
+      }
+    }
+#endif
+    AddScreen(MakeScreenGtk(i, /* aIsHDR */ false));
+  }
+}
+
+void ScreenHelperGTK::RequestRefreshScreens() {
+  LOG_SCREEN("ScreenHelperGTK::RequestRefreshScreens");
+
+  gLastSerial++;
+  gLastScreenGetter = new ScreenGetterGtk(gLastSerial);
+}
+
+gint ScreenHelperGTK::GetGTKMonitorScaleFactor(gint aMonitor) {
+  MOZ_ASSERT(NS_IsMainThread());
+  GdkScreen* screen = gdk_screen_get_default();
+  return aMonitor < gdk_screen_get_n_monitors(screen)
+             ? gdk_screen_get_monitor_scale_factor(screen, aMonitor)
+             : 1;
+}
+
+static void monitors_changed(GdkScreen* aScreen, gpointer unused) {
   LOG_SCREEN("Received monitors-changed event");
-  auto* self = static_cast<ScreenGetterGtk*>(aClosure);
-  self->RefreshScreens();
+  ScreenHelperGTK::RequestRefreshScreens();
 }
 
 static void screen_resolution_changed(GdkScreen* aScreen, GParamSpec* aPspec,
-                                      ScreenGetterGtk* self) {
-  self->RefreshScreens();
+                                      gpointer unused) {
+  LOG_SCREEN("Received resolution-changed event");
+  ScreenHelperGTK::RequestRefreshScreens();
 }
 
 static GdkFilterReturn root_window_event_filter(GdkXEvent* aGdkXEvent,
                                                 GdkEvent* aGdkEvent,
                                                 gpointer aClosure) {
 #ifdef MOZ_X11
-  ScreenGetterGtk* self = static_cast<ScreenGetterGtk*>(aClosure);
+  static Atom netWorkareaAtom =
+      XInternAtom(GDK_WINDOW_XDISPLAY(gdk_get_default_root_window()),
+                  "_NET_WORKAREA", X11False);
   XEvent* xevent = static_cast<XEvent*>(aGdkXEvent);
 
   switch (xevent->type) {
     case PropertyNotify: {
       XPropertyEvent* propertyEvent = &xevent->xproperty;
-      if (propertyEvent->atom == self->NetWorkareaAtom()) {
-        LOG_SCREEN("Work area size changed");
-        self->RefreshScreens();
+      if (propertyEvent->atom == netWorkareaAtom) {
+        LOG_SCREEN("X11 Work area size changed");
+        ScreenHelperGTK::RequestRefreshScreens();
       }
     } break;
     default:
@@ -401,8 +570,8 @@ static GdkFilterReturn root_window_event_filter(GdkXEvent* aGdkXEvent,
   return GDK_FILTER_CONTINUE;
 }
 
-void ScreenGetterGtk::Init() {
-  LOG_SCREEN("ScreenGetterGtk created");
+ScreenHelperGTK::ScreenHelperGTK() {
+  LOG_SCREEN("ScreenHelperGTK created");
   GdkScreen* defaultScreen = gdk_screen_get_default();
   if (!defaultScreen) {
     // Sometimes we don't initial X (e.g., xpcshell)
@@ -410,14 +579,13 @@ void ScreenGetterGtk::Init() {
             ("defaultScreen is nullptr, running headless"));
     return;
   }
-  mRootWindow = gdk_get_default_root_window();
-  MOZ_ASSERT(mRootWindow);
-
-  g_object_ref(mRootWindow);
+  sRootWindow = gdk_get_default_root_window();
+  MOZ_ASSERT(sRootWindow);
+  g_object_ref(sRootWindow);
 
   // GDK_PROPERTY_CHANGE_MASK ==> PropertyChangeMask, for PropertyNotify
-  gdk_window_set_events(mRootWindow,
-                        GdkEventMask(gdk_window_get_events(mRootWindow) |
+  gdk_window_set_events(sRootWindow,
+                        GdkEventMask(gdk_window_get_events(sRootWindow) |
                                      GDK_PROPERTY_CHANGE_MASK));
 
   g_signal_connect(defaultScreen, "monitors-changed",
@@ -427,144 +595,23 @@ void ScreenGetterGtk::Init() {
   g_signal_connect_after(defaultScreen, "notify::resolution",
                          G_CALLBACK(screen_resolution_changed), this);
 #ifdef MOZ_X11
-  gdk_window_add_filter(mRootWindow, root_window_event_filter, this);
-  if (GdkIsX11Display()) {
-    mNetWorkareaAtom = XInternAtom(GDK_WINDOW_XDISPLAY(mRootWindow),
-                                   "_NET_WORKAREA", X11False);
-  }
+  gdk_window_add_filter(sRootWindow, root_window_event_filter, this);
 #endif
-  RefreshScreens();
-}
-
-ScreenGetterGtk::~ScreenGetterGtk() {
-  if (mRootWindow) {
-    g_signal_handlers_disconnect_by_data(gdk_screen_get_default(), this);
-
-    gdk_window_remove_filter(mRootWindow, root_window_event_filter, this);
-    g_object_unref(mRootWindow);
-    mRootWindow = nullptr;
-  }
-}
-
-static uint32_t GetGTKPixelDepth() {
-  GdkVisual* visual = gdk_screen_get_system_visual(gdk_screen_get_default());
-  return gdk_visual_get_depth(visual);
-}
-
-static already_AddRefed<Screen> MakeScreenGtk(GdkScreen* aScreen,
-                                              gint aMonitorNum) {
-  gint gdkScaleFactor = ScreenHelperGTK::GetGTKMonitorScaleFactor(aMonitorNum);
-
-  // gdk_screen_get_monitor_geometry / workarea returns application pixels
-  // (desktop pixels), so we need to convert it to device pixels with
-  // gdkScaleFactor.
-  gint geometryScaleFactor = gdkScaleFactor;
-
-  gint refreshRate = [&] {
-    // Since gtk 3.22
-    static auto s_gdk_monitor_get_refresh_rate = (int (*)(GdkMonitor*))dlsym(
-        RTLD_DEFAULT, "gdk_monitor_get_refresh_rate");
-    if (!s_gdk_monitor_get_refresh_rate) {
-      return 0;
-    }
-    GdkMonitor* monitor =
-        GdkDisplayGetMonitor(gdk_display_get_default(), aMonitorNum);
-    if (!monitor) {
-      return 0;
-    }
-    // Convert to Hz.
-    return NSToIntRound(s_gdk_monitor_get_refresh_rate(monitor) / 1000.0f);
-  }();
-
-  GdkRectangle workarea;
-  gdk_screen_get_monitor_workarea(aScreen, aMonitorNum, &workarea);
-  LayoutDeviceIntRect availRect(workarea.x * geometryScaleFactor,
-                                workarea.y * geometryScaleFactor,
-                                workarea.width * geometryScaleFactor,
-                                workarea.height * geometryScaleFactor);
-  LayoutDeviceIntRect rect;
-  DesktopToLayoutDeviceScale contentsScale(1.0);
-  if (GdkIsX11Display()) {
-    GdkRectangle monitor;
-    gdk_screen_get_monitor_geometry(aScreen, aMonitorNum, &monitor);
-    rect = LayoutDeviceIntRect(monitor.x * geometryScaleFactor,
-                               monitor.y * geometryScaleFactor,
-                               monitor.width * geometryScaleFactor,
-                               monitor.height * geometryScaleFactor);
-  } else {
-    // Don't report screen shift in Wayland, see bug 1795066.
-    availRect.MoveTo(0, 0);
-    // We use Gtk workarea on Wayland as it matches our needs (Bug 1732682).
-    rect = availRect;
-    // Use per-monitor scaling factor in Wayland.
-    contentsScale.scale = gdkScaleFactor;
-  }
-
-  uint32_t pixelDepth = GetGTKPixelDepth();
-  if (pixelDepth == 32) {
-    // If a device uses 32 bits per pixel, it's still only using 8 bits
-    // per color component, which is what our callers want to know.
-    // (Some devices report 32 and some devices report 24.)
-    pixelDepth = 24;
-  }
-
-  CSSToLayoutDeviceScale defaultCssScale(gdkScaleFactor);
-
-  float dpi = 96.0f;
-  gint heightMM = gdk_screen_get_monitor_height_mm(aScreen, aMonitorNum);
-  if (heightMM > 0) {
-    dpi = rect.height / (heightMM / MM_PER_INCH_FLOAT);
-  }
-
-  bool isHDR = false;
-#ifdef MOZ_WAYLAND
-  if (GdkIsWaylandDisplay()) {
-    isHDR = WaylandDisplayGet()->IsHDREnabled();
-  }
-#endif
-
-  LOG_SCREEN(
-      "New monitor %d size [%d,%d -> %d x %d] depth %d scale %f CssScale %f  "
-      "DPI %f refresh %d HDR %d]",
-      aMonitorNum, rect.x, rect.y, rect.width, rect.height, pixelDepth,
-      contentsScale.scale, defaultCssScale.scale, dpi, refreshRate, isHDR);
-  return MakeAndAddRef<Screen>(
-      rect, availRect, pixelDepth, pixelDepth, refreshRate, contentsScale,
-      defaultCssScale, dpi, Screen::IsPseudoDisplay::No, Screen::IsHDR(isHDR));
-}
-
-void ScreenGetterGtk::RefreshScreens() {
-  LOG_SCREEN("ScreenGetterGtk::RefreshScreens()");
-  AutoTArray<RefPtr<Screen>, 4> screenList;
-
-  GdkScreen* defaultScreen = gdk_screen_get_default();
-  gint numScreens = gdk_screen_get_n_monitors(defaultScreen);
-  LOG_SCREEN("GDK reports %d screens", numScreens);
-
-  for (gint i = 0; i < numScreens; i++) {
-    screenList.AppendElement(MakeScreenGtk(defaultScreen, i));
-  }
-
-  ScreenManager::Refresh(std::move(screenList));
-}
-
-gint ScreenHelperGTK::GetGTKMonitorScaleFactor(gint aMonitorNum) {
-  MOZ_ASSERT(NS_IsMainThread());
-  GdkScreen* screen = gdk_screen_get_default();
-  return aMonitorNum < gdk_screen_get_n_monitors(screen)
-             ? gdk_screen_get_monitor_scale_factor(screen, aMonitorNum)
-             : 1;
-}
-
-ScreenHelperGTK::ScreenHelperGTK() {
-  gScreenGetter = new ScreenGetterGtk();
-  gScreenGetter->Init();
+  RequestRefreshScreens();
 }
 
 int ScreenHelperGTK::GetMonitorCount() {
   return gdk_screen_get_n_monitors(gdk_screen_get_default());
 }
 
-ScreenHelperGTK::~ScreenHelperGTK() { gScreenGetter = nullptr; }
+ScreenHelperGTK::~ScreenHelperGTK() {
+  if (sRootWindow) {
+    g_signal_handlers_disconnect_by_data(gdk_screen_get_default(), this);
+    gdk_window_remove_filter(sRootWindow, root_window_event_filter, this);
+    g_object_unref(sRootWindow);
+    sRootWindow = nullptr;
+  }
+  gLastScreenGetter = nullptr;
+}
 
 }  // namespace mozilla::widget

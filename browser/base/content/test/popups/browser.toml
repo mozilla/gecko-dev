@@ -60,6 +60,7 @@ support-files = [
 
 ["browser_popup_linux_move.js"]
 run-if = ["os == 'linux' && !headless"] # subset of other move tests
+skip-if = ["os == 'linux' && os_version == '18.04' && opt"] # Bug 1951203
 
 ["browser_popup_linux_resize.js"]
 run-if = ["os == 'linux' && !headless"] # subset of other resize tests

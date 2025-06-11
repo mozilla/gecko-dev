@@ -2363,7 +2363,10 @@ export class UrlbarView {
    *   returns an l10n object for the label's l10n string: `{ id, args }`
    */
   #rowLabel(row, currentLabel) {
-    if (!lazy.UrlbarPrefs.get("groupLabels.enabled")) {
+    if (
+      !lazy.UrlbarPrefs.get("groupLabels.enabled") ||
+      row.result.hideRowLabel
+    ) {
       return null;
     }
 

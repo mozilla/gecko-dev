@@ -33,6 +33,7 @@ UNIFIED_SOURCES += [
     "WebrtcGmpVideoCodec.cpp",
     "WebrtcMediaDataDecoderCodec.cpp",
     "WebrtcMediaDataEncoderCodec.cpp",
+    "WebrtcTaskQueueWrapper.cpp",
     "WebrtcVideoCodecFactory.cpp",
 ]
 

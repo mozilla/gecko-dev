@@ -46,5 +46,22 @@ add_task(async function () {
     await selectContextMenuItem(monitor, "request-list-context-copy-url");
   }, requestItem.url);
 
+  info(
+    "Check that URL isn't copied to clipboard when hitting CmdOrCtrl+C in input"
+  );
+  // focus filter input
+  document.querySelector(".devtools-filterinput").focus();
+
+  await SimpleTest.promiseClipboardChange(
+    // when expecting failure, aExpectedStringOrValidatorFn must be null
+    null,
+    () => synthesizeKeyShortcut("CmdOrCtrl+C"),
+    null,
+    // timeout
+    1000,
+    // Expect failure
+    true
+  );
+
   await teardown(monitor);
 });

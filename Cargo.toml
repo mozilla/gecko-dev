@@ -162,8 +162,6 @@ wasi_0_11 = { package = "wasi", path = "build/rust/wasi" }
 # else we do use requires backtrace, so dummy it out for now.
 backtrace = { path = "build/rust/backtrace" }
 
-# Patch bindgen 0.63 to 0.69
-bindgen_0_63 = { package = "bindgen", path = "build/rust/bindgen-0.63" }
 # Locally patch bindgen for https://github.com/rust-lang/rust-bindgen/pull/2824
 # and for bug 1945218
 bindgen = { path = "third_party/rust/bindgen" }

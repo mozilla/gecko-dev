@@ -109,6 +109,13 @@ export class NotificationStorage {
     });
   }
 
+  deleteAllExcept(ids) {
+    lazy.console.debug(`DELETEALLEXCEPT: ${ids}`);
+    Services.cpmm.sendAsyncMessage(this.formatMessageType("DeleteAllExcept"), {
+      ids,
+    });
+  }
+
   receiveMessage(message) {
     var request = this.#requests[message.data.requestID];
 

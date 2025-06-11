@@ -12,9 +12,9 @@ import android.view.View
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.darkColors
-import androidx.compose.material.lightColors
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.platform.ComposeView
 import mozilla.components.concept.identitycredential.Account
 import mozilla.components.concept.identitycredential.Provider
@@ -63,7 +63,7 @@ internal class SelectAccountDialogFragment : PromptDialogFragment() {
     internal fun createDialogContentView(): View {
         return ComposeView(requireContext()).apply {
             setContent {
-                val colors = if (isSystemInDarkTheme()) darkColors() else lightColors()
+                val colors = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
                 MaterialTheme(colors) {
                     SelectAccountDialog(
                         provider = provider,

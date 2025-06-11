@@ -48,13 +48,11 @@ data class MenuState(
  * @property selectedTab The current selected [TabSessionState].
  * @property bookmarkState The [BookmarkState] of the selected tab.
  * @property isPinned Whether or not the selected tab is a pinned shortcut.
- * @property isLoading Whether or not the selected tab is loading.
  */
 data class BrowserMenuState(
     val selectedTab: TabSessionState,
     val bookmarkState: BookmarkState = BookmarkState(),
     val isPinned: Boolean = false,
-    val isLoading: Boolean = false,
 )
 
 /**

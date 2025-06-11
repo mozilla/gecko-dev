@@ -171,7 +171,7 @@ add_task(async function test_aboutpreferences_event_telemetry() {
     { category: "aboutpreferences", method: "show", object: "click" },
     { clear: false }
   );
-  TelemetryTestUtils.assertNumberOfEvents(2);
+  TelemetryTestUtils.assertNumberOfEvents(2, { category: "aboutpreferences" });
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
 

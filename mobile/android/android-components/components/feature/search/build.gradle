@@ -58,6 +58,7 @@ dependencies {
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric
     testImplementation libs.testing.coroutines
+    testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
 }
 
 tasks.register("updateAdsExtensionVersion", Copy) { task ->

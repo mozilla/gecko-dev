@@ -68,7 +68,7 @@ class SMRegExpMacroAssembler final : public NativeRegExpMacroAssembler {
   virtual void CheckNotCharacterAfterMinusAnd(base::uc16 c, base::uc16 minus,
                                               base::uc16 mask,
                                               Label* on_not_equal);
-  virtual void CheckGreedyLoop(Label* on_tos_equals_current_position);
+  virtual void CheckFixedLengthLoop(Label* on_tos_equals_current_position);
   virtual void CheckCharacterInRange(base::uc16 from, base::uc16 to,
                                      Label* on_in_range);
   virtual void CheckCharacterNotInRange(base::uc16 from, base::uc16 to,

@@ -1,0 +1,41 @@
+---
+avoid-dot-mozilla-without-xdg:
+    description: >-
+        New code is hard-coding ".mozilla" which is referencing the path on
+        Linux, should ensure it is handled with XDG configuration paths. See
+        the documentation for more info.
+    level: error
+    include: ['.']
+    type: regex
+    payload: \"\.mozilla\"|'\.mozilla'
+    ignore-case: true
+    extensions:
+        - js
+        - mjs
+        - jsx
+        - cpp
+        - c
+        - h
+        - configure
+        - py
+        - properties
+        - yml
+        - yaml
+        - java
+        - kt
+        - rs
+    exclude:
+        # Files which reference .mozilla but are not referencing the Linux path
+        - tools/lint/dot-mozilla-reference.yml
+        - taskcluster/kinds/source-test/mozlint.yml
+        - browser/components/originattributes/test/browser/browser_firstPartyIsolation_aboutPages.js
+        - browser/components/originattributes/test/browser/browser_firstPartyIsolation_js_uri.js
+        - caps/OriginAttributes.cpp
+        - docshell/base/URIFixup.sys.mjs
+        - netwerk/cookie/CookieCommons.cpp
+        - toolkit/components/antitracking/test/browser/browser_thirdPartyChecks_sandboxed_context.js
+        # Files which reference .mozilla and have XDG handling in place
+        - testing/talos/talos/heavy.py
+        - toolkit/crashreporter/crash_helper_server/src/logging/env.rs
+        - toolkit/moz.configure
+        - toolkit/xre/nsXREDirProvider.cpp

@@ -23,9 +23,11 @@ import mozilla.components.feature.session.TrackingProtectionUseCases
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 
@@ -63,7 +65,7 @@ class TrackingProtectionPanelInteractorTest {
         learnMoreClicked = false
 
         context = mockk()
-        tab = createTab("https://mozilla.org")
+        tab = createTab("https://mozilla.org", id = "testID")
         val cookieBannersStorage: CookieBannersStorage = mockk(relaxed = true)
 
         interactor = TrackingProtectionPanelInteractor(
@@ -89,7 +91,7 @@ class TrackingProtectionPanelInteractorTest {
         val onComplete = slot<(Boolean) -> Unit>()
         every {
             trackingProtectionUseCases.containsException.invoke(
-                any(),
+                "testID",
                 capture(onComplete),
             )
         }.answers { onComplete.captured.invoke(true) }
@@ -137,14 +139,23 @@ class TrackingProtectionPanelInteractorTest {
     @Test
     fun `WHEN onBackPressed is called THEN call popBackStack and navigate`() = runTestOnMain {
         every { context.settings().shouldUseCookieBannerPrivateMode } returns false
+        val directionsSlot = slot<NavDirections>()
 
         interactor.onBackPressed()
 
         coVerify {
             navController.popBackStack()
 
-            navController.navigate(any<NavDirections>())
+            navController.navigate(capture(directionsSlot))
         }
+
+        val capturedDirections = directionsSlot.captured
+
+        assertTrue(directionsSlot.isCaptured)
+        assertEquals(
+            R.id.action_global_quickSettingsSheetDialogFragment,
+            capturedDirections.actionId,
+        )
     }
 
     @Test

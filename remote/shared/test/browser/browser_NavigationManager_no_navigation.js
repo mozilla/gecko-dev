@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { NavigationManager } = ChromeUtils.importESModule(
-  "chrome://remote/content/shared/NavigationManager.sys.mjs"
-);
 const { TabManager } = ChromeUtils.importESModule(
   "chrome://remote/content/shared/TabManager.sys.mjs"
 );
@@ -22,9 +19,8 @@ add_task(async function testDocumentOpenWriteClose() {
 
   const url = "https://example.com/document-builder.sjs?html=test";
 
-  const tab = addTab(gBrowser, url);
+  const tab = await addTabAndWaitForNavigated(gBrowser, url);
   const browser = tab.linkedBrowser;
-  await BrowserTestUtils.browserLoaded(browser);
 
   navigationManager.startMonitoring();
   is(events.length, 0, "No event recorded");

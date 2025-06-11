@@ -74,10 +74,29 @@ in your test, the debugger will pause there.
 
 Alternatively, you can set breakpoints using the debugger yourself. If you want
 to pause the debugger before running the test, you can use the `--no-autorun`
-flag. Alternatively, if you want to pause the debugger on failure, you can use
+flag. It's also useful to be able to switch to the Network Monitor panel before
+the tests start.
+
+Alternatively, if you want to pause the debugger on failure, you can use
 `--debug-on-failure`.
 
 For more details, see [Avoiding intermittent tests](../intermittent/index.rst).
+
+Profiling tests
+---------------
+The `./mach test` and `./mach mochitest` commands also support a `--profiler`
+flag that will start the Firefox Profiler before running tests.
+
+It's possible to get a profile also on try with `--env MOZ_PROFILER_STARTUP=1`:
+
+```
+./mach try fuzzy --env MOZ_PROFILER_STARTUP=1 <test directory>
+```
+
+The profile will be uploaded in case of a failure only, so make sure to add
+something such as `ok(false, “force profile upload”);` in your test to force the
+failure.
+
 
 Reference material
 ------------------

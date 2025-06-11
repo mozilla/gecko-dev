@@ -117,6 +117,7 @@ newtab-menu-delete-pocket = Fshije nga { -pocket-brand-name }
 newtab-menu-archive-pocket = Arkivoje në { -pocket-brand-name }
 newtab-menu-show-privacy-info = Sponsorët tanë & privatësia jonë
 newtab-menu-about-fakespot = Mvi { -fakespot-brand-name }
+newtab-menu-report-content = Njoftoni për këtë lëndë
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Bllokoje
@@ -128,6 +129,7 @@ newtab-menu-section-unfollow = Hiqe Ndjekjen e Subjektit
 
 newtab-menu-manage-sponsored-content = Administroni lëndë të sponsorizuar
 newtab-menu-our-sponsors-and-your-privacy = Sponsorët tanë dhe privatësia jonë
+newtab-menu-report-this-ad = Njoftoni për këtë reklamë
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -522,14 +524,33 @@ newtab-custom-wallpaper-cta = Provojeni
 
 ## Strings for download mobile highlight
 
+newtab-download-mobile-highlight-title = Shkarkoni { -brand-product-name } për celular
+# "Scan the code" refers to scanning the QR code that appears above the body text that leads to Firefox for mobile download.
+newtab-download-mobile-highlight-body-variant-a = Skanoni kodin, që të shfletoni pa rrezik kudo që jeni.
+newtab-download-mobile-highlight-body-variant-b = Vazhdoni ku e lata, kur njëkohësoni skedat tuaja, fjalëkalimet, etj.
+newtab-download-mobile-highlight-body-variant-c = E dinit se mund ta merrni { -brand-product-name } me vete kudo që gjendeni? Po ai shfletues. Në xhep.
+newtab-download-mobile-highlight-image =
+    .aria-label = Kod QR për të shkarkuar { -brand-product-name } për celular
 
 ## Strings for reporting ads and content
 
+newtab-report-content-why-reporting-this =
+    .label = Pse po njoftoni për këtë?
 newtab-report-ads-reason-not-interested =
     .label = S’më intereson
+newtab-report-ads-reason-inappropriate =
+    .label = Është e papërshtatshme
+newtab-report-ads-reason-seen-it-too-many-times =
+    .label = E kam parë shumë herë
+newtab-report-content-wrong-category =
+    .label = Kategori e gabuar
 newtab-report-content-outdated =
     .label = E vjetruar
 newtab-report-content-inappropriate-offensive =
     .label = E papërshtatshme ose fyese
+newtab-report-content-spam-misleading =
+    .label = Mesazh i padëshiruar, ose ngatërrues
 newtab-report-cancel = Anuloje
 newtab-report-submit = Parashtroje
+newtab-toast-thanks-for-reporting =
+    .message = Faleminderit për njoftimin rreth kësaj.

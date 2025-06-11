@@ -1,7 +1,7 @@
 # Oblivious HTTP
 
 This is a rust implementation of [Oblivious
-HTTP](https://ietf-wg-ohai.github.io/oblivious-http/draft-ietf-ohai-ohttp.html).
+HTTP](https://www.rfc-editor.org/rfc/rfc9458.html).
 
 This work is undergoing active revision in the IETF and so are these
 implementations.  Use at your own risk.

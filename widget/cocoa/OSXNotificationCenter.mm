@@ -528,6 +528,16 @@ OSXNotificationCenter::OnImageReady(nsISupports* aUserData,
   NS_OBJC_END_TRY_BLOCK_RETURN(NS_ERROR_FAILURE);
 }
 
+NS_IMETHODIMP
+OSXNotificationCenter::GetHistory(nsTArray<nsString>& aResult) {
+  // NSUserNotificationCenter doesn't support this, blocked by the migration to
+  // UNUserNotificationCenter which has
+  // getDeliveredNotificationsWithCompletionHandler
+  // https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/getdeliverednotifications(completionhandler:)?language=objc
+  // See bug 1971395.
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 // nsIAlertsDoNotDisturb
 NS_IMETHODIMP
 OSXNotificationCenter::GetManualDoNotDisturb(bool* aRetVal) {

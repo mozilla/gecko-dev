@@ -25,12 +25,12 @@
 #include "MediaPipelineFilter.h"
 #include "MediaTrackGraph.h"
 #include "MediaTrackListener.h"
-#include "TaskQueueWrapper.h"
 #include "mtransport_test_utils.h"
 #include "SharedBuffer.h"
 #include "MediaTransportHandler.h"
 #include "WebrtcCallWrapper.h"
 #include "WebrtcEnvironmentWrapper.h"
+#include "WebrtcTaskQueueWrapper.h"
 #include "PeerConnectionCtx.h"
 
 #define GTEST_HAS_RTTI 0
@@ -42,20 +42,52 @@ MOZ_MTLOG_MODULE("transportbridge")
 static MtransportTestUtils* test_utils;
 
 namespace {
-class MainAsCurrent : public TaskQueueWrapper<DeletionPolicy::NonBlocking> {
+class MainAsCurrent : public webrtc::TaskQueueBase {
  public:
   MainAsCurrent()
-      : TaskQueueWrapper(
-            TaskQueue::Create(do_AddRef(GetMainThreadSerialEventTarget()),
-                              "MainAsCurrentTaskQueue"),
-            "MainAsCurrent"_ns),
-        mSetter(this) {
+      : mTaskQueue(CreateWebrtcTaskQueueWrapper(
+            do_AddRef(GetMainThreadSerialEventTarget()), "MainAsCurrent"_ns,
+            false)),
+        mWebrtcTaskQueue(([&] {
+          // Shady but fine, as this raw pointer points to the WebrtcTaskQueue
+          // owned and kept alive by mTaskQueue.
+          webrtc::TaskQueueBase* queue{};
+          MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(NS_NewRunnableFunction(
+              "MainAsCurrent::Current",
+              [&] { queue = webrtc::TaskQueueBase::Current(); })));
+          NS_ProcessPendingEvents(nullptr);
+          MOZ_RELEASE_ASSERT(queue);
+          return queue;
+        })()),
+        mSetter(mWebrtcTaskQueue) {
     MOZ_RELEASE_ASSERT(NS_IsMainThread());
   }
 
   ~MainAsCurrent() = default;
 
+  void Delete() override { delete this; }
+
+  void PostTaskImpl(absl::AnyInvocable<void() &&> task,
+                    const PostTaskTraits& traits,
+                    const webrtc::Location& location) override {
+    mWebrtcTaskQueue->PostTask(std::move(task), location);
+  }
+
+  void PostDelayedTaskImpl(absl::AnyInvocable<void() &&> task,
+                           webrtc::TimeDelta delay,
+                           const PostDelayedTaskTraits& traits,
+                           const webrtc::Location& location) override {
+    if (traits.high_precision) {
+      mWebrtcTaskQueue->PostDelayedHighPrecisionTask(std::move(task), delay,
+                                                     location);
+      return;
+    }
+    mWebrtcTaskQueue->PostDelayedTask(std::move(task), delay, location);
+  }
+
  private:
+  RefPtr<TaskQueue> mTaskQueue;
+  webrtc::TaskQueueBase* mWebrtcTaskQueue;
   CurrentTaskQueueSetter mSetter;
 };
 
@@ -465,7 +497,7 @@ class MediaPipelineTest : public ::testing::Test {
  public:
   explicit MediaPipelineTest(MediaPipelineTestOptions options = {})
       : main_task_queue_(
-            WrapUnique<TaskQueueWrapper<DeletionPolicy::NonBlocking>>(
+            std::unique_ptr<webrtc::TaskQueueBase, webrtc::TaskQueueDeleter>(
                 new MainAsCurrent())),
         options_(options),
         env_wrapper_(WebrtcEnvironmentWrapper::Create(
@@ -587,7 +619,8 @@ class MediaPipelineTest : public ::testing::Test {
  protected:
   // main_task_queue_ has this type to make sure it goes through Delete() when
   // we're destroyed.
-  UniquePtr<TaskQueueWrapper<DeletionPolicy::NonBlocking>> main_task_queue_;
+  std::unique_ptr<webrtc::TaskQueueBase, webrtc::TaskQueueDeleter>
+      main_task_queue_;
   const MediaPipelineTestOptions options_;
   const RefPtr<WebrtcEnvironmentWrapper> env_wrapper_;
   const RefPtr<SharedWebrtcState> shared_state_;

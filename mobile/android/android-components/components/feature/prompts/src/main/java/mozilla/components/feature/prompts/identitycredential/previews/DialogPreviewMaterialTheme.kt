@@ -5,20 +5,20 @@
 package mozilla.components.feature.prompts.identitycredential.previews
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.darkColors
-import androidx.compose.material.lightColors
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import mozilla.components.ui.colors.PhotonColors
 
 @Composable
 internal fun DialogPreviewMaterialTheme(content: @Composable () -> Unit) {
-    val colors = if (!isSystemInDarkTheme()) {
-        lightColors()
+    val colorScheme = if (!isSystemInDarkTheme()) {
+        lightColorScheme()
     } else {
-        darkColors(background = PhotonColors.DarkGrey30)
+        darkColorScheme(background = PhotonColors.DarkGrey30)
     }
-    MaterialTheme(colors = colors) {
+    MaterialTheme(colorScheme = colorScheme) {
         content()
     }
 }

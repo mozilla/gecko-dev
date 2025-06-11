@@ -4,3 +4,5 @@ head = "head_notificationdb.js"
 ["test_notificationdb.js"]
 
 ["test_notificationdb_bug1024090.js"]
+
+["test_notificationdb_module.js"]

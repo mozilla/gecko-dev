@@ -11,7 +11,8 @@ import androidx.compose.animation.core.rememberTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.LayoutScopeMarker
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -204,7 +205,7 @@ private fun CustomPlacementPopupContent(
     Card(
         shape = RoundedCornerShape(CORNER_RADIUS.dp),
         modifier = Modifier.graphicsLayer { graphicsLayerAnim() },
-        elevation = ELEVATION.dp,
+        elevation = CardDefaults.cardElevation(defaultElevation = ELEVATION.dp),
     ) {
         CustomPlacementPopup.content()
     }

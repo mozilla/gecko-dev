@@ -36,7 +36,6 @@ import mozilla.components.feature.prompts.file.FileUploadsDirCleaner
 import mozilla.components.feature.prompts.file.FileUploadsDirCleanerMiddleware
 import mozilla.components.feature.search.SearchApplicationName
 import mozilla.components.feature.search.SearchDeviceType
-import mozilla.components.feature.search.SearchEngineSelector
 import mozilla.components.feature.search.SearchUpdateChannel
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.search.middleware.AdsTelemetryMiddleware
@@ -404,7 +403,6 @@ private fun getSearchEngineSelectorConfig(context: Context): SearchEngineSelecto
         deviceType = deviceType,
         experiment = "",
         updateChannel = updateChannel,
-        selector = SearchEngineSelector(),
         service = context.components.remoteSettingsService,
     )
 }

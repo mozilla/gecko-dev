@@ -218,7 +218,7 @@ void SMRegExpMacroAssembler::CheckNotCharacterAfterMinusAnd(
 
 // If the current position matches the position stored on top of the backtrack
 // stack, pops the backtrack stack and branches to the given label.
-void SMRegExpMacroAssembler::CheckGreedyLoop(Label* on_equal) {
+void SMRegExpMacroAssembler::CheckFixedLengthLoop(Label* on_equal) {
   js::jit::Label fallthrough;
   masm_.load32SignExtendToPtr(Address(backtrack_stack_pointer_, 0), temp0_);
   masm_.branchPtr(Assembler::NotEqual, temp0_, current_position_, &fallthrough);

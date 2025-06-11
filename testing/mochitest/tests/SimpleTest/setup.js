@@ -18,9 +18,7 @@ TestRunner.logger = LogController;
 
 if (!("SpecialPowers" in window)) {
   dump("SimpleTest setup.js found SpecialPowers unavailable: reloading...\n");
-  setTimeout(() => {
-    window.location.reload();
-  }, 1000);
+  setTimeout(window.location.reload);
 }
 
 /* Helper function */

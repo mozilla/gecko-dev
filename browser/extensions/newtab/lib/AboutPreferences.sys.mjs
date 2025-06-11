@@ -39,6 +39,29 @@ const PREFS_FOR_SETTINGS = () => [
     ),
   },
   {
+    id: "trending-searches",
+    pref: {
+      feed: "trendingSearch.enabled",
+      titleString: "home-prefs-trending-search-header",
+      descString: "home-prefs-trending-search-description",
+    },
+    eventSource: "TRENDING_SEARCH",
+    shouldHidePref:
+      // Hide if Trending Search experiment is not enabled for this user
+      !Services.prefs.getBoolPref(
+        "browser.newtabpage.activity-stream.system.trendingSearch.enabled",
+        false
+      ) ||
+      // Also hide if it's enabled but the user doesn't have Google as their default search engine
+      (Services.prefs.getBoolPref(
+        "browser.newtabpage.activity-stream.system.trendingSearch.enabled",
+        false
+      ) &&
+        Services.prefs.getStringPref(
+          "browser.newtabpage.activity-stream.system.trendingSearch.defaultSearchEngine"
+        ) !== "Google"),
+  },
+  {
     id: "topsites",
     pref: {
       feed: "feeds.topsites",

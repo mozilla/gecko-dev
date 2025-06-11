@@ -469,13 +469,6 @@ dependencies = [
 
 [[package]]
 name = "bindgen"
-version = "0.64.999"
-dependencies = [
- "bindgen 0.69.4",
-]
-
-[[package]]
-name = "bindgen"
 version = "0.69.4"
 dependencies = [
  "bitflags 2.9.0",
@@ -962,7 +955,7 @@ version = "0.1.999"
 name = "cocoabind"
 version = "0.1.0"
 dependencies = [
- "bindgen 0.69.4",
+ "bindgen",
  "block",
  "mozbuild",
  "objc",
@@ -1095,7 +1088,7 @@ version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3120ebb80a9de008e638ad833d4127d50ea3d3a960ea23ea69bc66d9358a028"
 dependencies = [
- "bindgen 0.69.4",
+ "bindgen",
 ]
 
 [[package]]
@@ -1224,7 +1217,7 @@ name = "crashreporter"
 version = "1.0.0"
 dependencies = [
  "anyhow",
- "bindgen 0.69.4",
+ "bindgen",
  "block",
  "buildid_reader",
  "bytes",
@@ -1274,9 +1267,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.13"
+version = "0.5.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33480d6946193aa8033910124896ca395333cae7e2d1113d1fef6c3272217df2"
+checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
 dependencies = [
  "crossbeam-utils",
 ]
@@ -2404,7 +2397,7 @@ name = "gecko-profiler"
 version = "0.1.0"
 dependencies = [
  "bincode",
- "bindgen 0.69.4",
+ "bindgen",
  "lazy_static",
  "mozbuild",
  "profiler-macros",
@@ -2651,6 +2644,7 @@ dependencies = [
  "webext-storage",
  "webrender_bindings",
  "wgpu_bindings",
+ "widget_windows",
  "wpf-gpu-raster",
  "xpcom",
 ]
@@ -2869,7 +2863,7 @@ dependencies = [
 name = "gtkbind"
 version = "0.1.0"
 dependencies = [
- "bindgen 0.69.4",
+ "bindgen",
  "mozbuild",
 ]
 
@@ -3032,7 +3026,7 @@ name = "http3server"
 version = "0.1.1"
 dependencies = [
  "base64 0.22.1",
- "bindgen 0.69.4",
+ "bindgen",
  "cfg-if",
  "http",
  "hyper",
@@ -4454,7 +4448,7 @@ version = "0.1.0"
 dependencies = [
  "allocator-api2",
  "arrayvec",
- "bindgen 0.69.4",
+ "bindgen",
  "bitflags 2.9.0",
  "byteorder",
  "bytes",
@@ -4624,7 +4618,7 @@ version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c30d3771729ec4349aae3b1a7c0b6b4a1500459e60b1fda95fe0657c3711574"
 dependencies = [
- "bindgen 0.69.4",
+ "bindgen",
  "cfg_aliases",
  "libc",
  "mozbuild",
@@ -4705,7 +4699,7 @@ name = "neqo-crypto"
 version = "0.13.4"
 source = "git+https://github.com/mozilla/neqo?tag=v0.13.4#c3179d9f363bf92a908d90e4240b315b9ff72516"
 dependencies = [
- "bindgen 0.69.4",
+ "bindgen",
  "enum-map",
  "log",
  "mozbuild",
@@ -4863,7 +4857,7 @@ name = "nss-gk-api"
 version = "0.3.0"
 source = "git+https://github.com/beurdouche/nss-gk-api?rev=e48a946811ffd64abc78de3ee284957d8d1c0d63#e48a946811ffd64abc78de3ee284957d8d1c0d63"
 dependencies = [
- "bindgen 0.69.4",
+ "bindgen",
  "log",
  "mozbuild",
  "once_cell",
@@ -4965,16 +4959,19 @@ dependencies = [
 
 [[package]]
 name = "ohttp"
-version = "0.5.1"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "578cb11a3fb5c85697ed8bb850d5ad1cbf819d3eea05c2b253cf1d240fbb10c5"
+checksum = "10a20082b908632960d0aa59af61e2771502b40249d55986e8bdbcd06d723ea5"
 dependencies = [
- "bindgen 0.64.999",
+ "bindgen",
  "byteorder",
  "hex",
  "lazy_static",
  "log",
  "mozbuild",
+ "regex",
+ "regex-automata",
+ "regex-syntax",
  "serde",
  "serde_derive",
  "thiserror 1.999.999",
@@ -5222,7 +5219,7 @@ version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0fabbdbe64b22820753da90995b3a73d02907eaeeac6f2414962a566aaa18ea"
 dependencies = [
- "bindgen 0.69.4",
+ "bindgen",
 ]
 
 [[package]]
@@ -5641,9 +5638,9 @@ dependencies = [
 
 [[package]]
 name = "replace_with"
-version = "0.1.7"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3a8614ee435691de62bcffcf4a66d91b3594bf1428a5722e79103249a095690"
+checksum = "51743d3e274e2b18df81c4dc6caf8a5b8e15dbe799e0dca05c7617380094e884"
 
 [[package]]
 name = "ringbuf"
@@ -6306,7 +6303,7 @@ dependencies = [
  "app_units",
  "arrayvec",
  "atomic_refcell",
- "bindgen 0.69.4",
+ "bindgen",
  "bitflags 2.9.0",
  "byteorder",
  "cssparser",
@@ -6556,7 +6553,7 @@ version = "0.3.999"
 name = "test-trust-anchors-static"
 version = "0.1.0"
 dependencies = [
- "bindgen 0.69.4",
+ "bindgen",
  "mozbuild",
  "mozilla-central-workspace-hack",
  "nom",
@@ -6826,7 +6823,7 @@ dependencies = [
 name = "trust-anchors"
 version = "0.1.0"
 dependencies = [
- "bindgen 0.69.4",
+ "bindgen",
  "mozbuild",
  "nom",
  "pkcs11-bindings",
@@ -7652,6 +7649,18 @@ dependencies = [
  "cc",
  "cfg-if",
  "libc",
+]
+
+[[package]]
+name = "widget_windows"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "nserror",
+ "nsstring",
+ "thin-vec",
+ "windows",
+ "xpcom",
 ]
 
 [[package]]

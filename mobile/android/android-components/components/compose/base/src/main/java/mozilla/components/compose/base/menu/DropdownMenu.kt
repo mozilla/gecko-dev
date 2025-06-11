@@ -21,10 +21,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.MenuDefaults
-import androidx.compose.material.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -53,8 +53,8 @@ import mozilla.components.compose.base.text.Text
 import mozilla.components.compose.base.text.value
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.ui.icons.R
-import androidx.compose.material.DropdownMenu as MaterialDropdownMenu
-import androidx.compose.material.DropdownMenuItem as MaterialDropdownMenuItem
+import androidx.compose.material3.DropdownMenu as MaterialDropdownMenu
+import androidx.compose.material3.DropdownMenuItem as MaterialDropdownMenuItem
 
 private val MenuItemHeight = 48.dp
 private val ItemHorizontalSpaceBetween = 16.dp
@@ -236,7 +236,7 @@ private fun FlexibleDropdownMenuItem(
         enabled = enabled,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
-        content = {
+        text = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(ItemHorizontalSpaceBetween),
                 verticalAlignment = Alignment.CenterVertically,
