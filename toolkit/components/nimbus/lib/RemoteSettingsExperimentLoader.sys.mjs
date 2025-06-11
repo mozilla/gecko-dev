@@ -349,7 +349,7 @@ export class RemoteSettingsExperimentLoader {
     lazy.log.debug(`Updating recipes with trigger "${trigger ?? ""}"`);
 
     const { recipes: allRecipes, loadingError } =
-      await this.getRecipesFromAllCollections({ forceSync });
+      await this.getRecipesFromAllCollections({ forceSync, trigger });
 
     if (!loadingError) {
       const enrollmentsCtx = new EnrollmentsContext(
@@ -401,11 +401,13 @@ export class RemoteSettingsExperimentLoader {
    * @param {object} options
    * @param {boolean} options.forceSync Whether or not to force a sync when
    * fetching recipes.
+   * @param {string} options.trigger The name of the event that triggered the
+   * update.
    *
    * @returns {Promise<{ recipes: object[]; loadingError: boolean; }>} The
    * recipes from Remote Settings.
    */
-  async getRecipesFromAllCollections({ forceSync = false } = {}) {
+  async getRecipesFromAllCollections({ forceSync = false, trigger } = {}) {
     const recipes = [];
     let loadingError = false;
 
@@ -432,6 +434,13 @@ export class RemoteSettingsExperimentLoader {
     } else {
       loadingError = true;
     }
+
+    lazy.NimbusTelemetry.recordRemoteSettingsSync(
+      forceSync,
+      experiments,
+      secureExperiments,
+      trigger
+    );
 
     return { recipes, loadingError };
   }
@@ -467,6 +476,17 @@ export class RemoteSettingsExperimentLoader {
         forceSync,
         emptyListFallback: false, // Throw instead of returning an empty list.
       });
+      if (!Array.isArray(recipes)) {
+        throw new Error("Remote Settings did not return an array");
+      }
+      if (
+        recipes.length === 0 &&
+        (await client.db.getLastModified()) === null
+      ) {
+        throw new Error(
+          "Remote Settings returned an empty list but should have thrown (no last modified)"
+        );
+      }
       lazy.log.debug(
         `Got ${recipes.length} recipes from ${client.collectionName}`
       );
@@ -639,7 +659,7 @@ export class RemoteSettingsExperimentLoader {
     // The callbacks will be called soon after the timer is registered
     lazy.timerManager.registerTimer(
       TIMER_NAME,
-      () => this.updateRecipes("timer"),
+      () => this.updateRecipes("timer", { forceSync: true }),
       this.intervalInSeconds
     );
     lazy.log.debug("Registered update timer");

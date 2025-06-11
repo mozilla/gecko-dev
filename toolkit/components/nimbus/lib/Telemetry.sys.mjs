@@ -174,6 +174,24 @@ export const NimbusTelemetry = {
     );
   },
 
+  recordRemoteSettingsSync(forceSync, experiments, secureExperiments, trigger) {
+    const event = {
+      force_sync: forceSync,
+      experiments_success: experiments !== null,
+      secure_experiments_success: secureExperiments !== null,
+    };
+    if (experiments !== null) {
+      event.experiments_empty = experiments.length === 0;
+    }
+    if (secureExperiments !== null) {
+      event.secure_experiments_empty = secureExperiments.length === 0;
+    }
+    if (trigger != null) {
+      event.trigger = trigger;
+    }
+    Glean.nimbusEvents.remoteSettingsSync.record(event);
+  },
+
   recordUnenrollment(enrollment, cause) {
     lazy.TelemetryEnvironment.setExperimentInactive(enrollment.slug);
     Services.fog.setExperimentInactive(enrollment.slug);

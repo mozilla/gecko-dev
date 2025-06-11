@@ -394,6 +394,7 @@ export const NimbusTestUtils = {
           value: {
             collectionName: "nimbus-desktop-experiments (stubbed)",
             get: () => Promise.resolve([]),
+            db: { getLastModified: () => Promise.resolve(0) },
           },
         },
 
@@ -401,6 +402,7 @@ export const NimbusTestUtils = {
           value: {
             collectionName: "nimbus-secure-experiments (stubbed)",
             get: () => Promise.resolve([]),
+            db: { getLastModified: () => Promise.resolve(0) },
           },
         },
       });
