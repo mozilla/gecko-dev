@@ -1547,9 +1547,6 @@ pub enum Appearance {
     /// The down button of a spin control.
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     SpinnerDownbutton,
-    /// A status bar in a main application window.
-    #[parse(condition = "ParserContext::chrome_rules_enabled")]
-    Statusbar,
     /// A single toolbar button (with no associated dropdown).
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     Toolbarbutton,
