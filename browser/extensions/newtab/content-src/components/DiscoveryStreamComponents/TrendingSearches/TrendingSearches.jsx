@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { useState, useRef } from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { SafeAnchor } from "../SafeAnchor/SafeAnchor";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
@@ -20,7 +20,6 @@ function TrendingSearches() {
   const { values: prefs } = Prefs;
   const { suggestions, collapsed } = TrendingSearch;
   const variant = prefs[PREF_TRENDING_VARIANT];
-  let resultRef = useRef([]);
 
   const TRENDING_SEARCH_CONTEXT_MENU_OPTIONS = [
     "TrendingSearchLearnMore",
@@ -57,31 +56,6 @@ function TrendingSearches() {
     setShowContextMenu(!showContextMenu);
   }
 
-  function handleResultKeyDown(event, index) {
-    const maxResults = suggestions.length;
-    let nextIndex = index;
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      if (index < maxResults - 1) {
-        nextIndex = index + 1;
-      } else {
-        return;
-      }
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      if (index > 0) {
-        nextIndex = index - 1;
-      } else {
-        return;
-      }
-    }
-
-    resultRef.current[index].tabIndex = -1;
-    resultRef.current[nextIndex].tabIndex = 0;
-    resultRef.current[nextIndex].focus();
-  }
-
   if (!suggestions?.length) {
     return null;
   } else if (variant === "a") {
@@ -107,19 +81,8 @@ function TrendingSearches() {
           <ul className="trending-searches-list">
             {suggestions.map((result, index) => {
               return (
-                <li
-                  key={result.suggestion}
-                  className="trending-search-item"
-                  onKeyDown={e => handleResultKeyDown(e, index)}
-                >
-                  <SafeAnchor
-                    url={result.searchUrl}
-                    title={result.suggestion}
-                    setRef={item => (resultRef.current[index] = item)}
-                    tabIndex={index === 0 ? 0 : -1}
-                  >
-                    {result.lowerCaseSuggestion}
-                  </SafeAnchor>
+                <li key={index} className="trending-search-item">
+                  <SafeAnchor url="">{result.lowerCaseSuggestion}</SafeAnchor>
                 </li>
               );
             })}
@@ -159,25 +122,14 @@ function TrendingSearches() {
           </div>
         </div>
         <ul className="trending-searches-list-items">
-          {suggestions.slice(0, 6).map((result, index) => {
-            return (
-              <li
-                key={result.suggestion}
-                className="trending-searches-list-item"
-                onKeyDown={e => handleResultKeyDown(e, index)}
-              >
-                <SafeAnchor
-                  url={result.searchUrl}
-                  title={result.suggestion}
-                  setRef={item => (resultRef.current[index] = item)}
-                  tabIndex={index === 0 ? 0 : -1}
-                >
-                  <span className="trending-searches-icon icon icon-arrow-trending"></span>
-                  {result.lowerCaseSuggestion}
-                </SafeAnchor>
-              </li>
-            );
-          })}
+          {suggestions.slice(0, 6).map(result => (
+            <li key={result.suggestion} className="trending-searches-list-item">
+              <SafeAnchor url="" title={result.suggestion}>
+                <span className="trending-searches-icon icon icon-arrow-trending"></span>
+                {result.lowerCaseSuggestion}
+              </SafeAnchor>
+            </li>
+          ))}
         </ul>
       </div>
     );
