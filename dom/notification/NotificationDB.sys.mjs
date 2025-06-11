@@ -53,6 +53,7 @@ export class NotificationDB {
       this.formatMessageType("Save"),
       this.formatMessageType("Delete"),
       this.formatMessageType("GetAll"),
+      this.formatMessageType("DeleteAllExcept"),
     ];
   }
 
@@ -252,6 +253,14 @@ export class NotificationDB {
           });
         break;
 
+      case this.formatMessageType("DeleteAllExcept"):
+        this.queueTask("deleteAllExcept", message.data).catch(error => {
+          lazy.console.debug(
+            `Error received when treating: '${message.data.requestID}': ${error}`
+          );
+        });
+        break;
+
       default:
         lazy.console.debug(`Invalid message name ${message.name}`);
     }
@@ -316,6 +325,9 @@ export class NotificationDB {
 
           case "delete":
             return this.taskDelete(task.data);
+
+          case "deleteAllExcept":
+            return this.taskDeleteAllExcept(task.data);
 
           default:
             return Promise.reject(
@@ -408,6 +420,29 @@ export class NotificationDB {
       delete this.#byTag[origin][oldNotification.tag];
     }
     delete this.#notifications[origin][id];
+    return this.save();
+  }
+
+  taskDeleteAllExcept({ ids }) {
+    lazy.console.debug("Task, deleting all");
+
+    const entries = Object.entries(this.#notifications);
+    for (const [origin, data] of entries) {
+      const originEntries = Object.entries(data).filter(
+        ([id]) => !ids.includes(id)
+      );
+      for (const [id, oldNotification] of originEntries) {
+        delete data[id];
+        if (oldNotification.tag) {
+          delete this.#byTag[origin][oldNotification.tag];
+        }
+      }
+      if (!Object.keys(data).length) {
+        delete this.#notifications[origin];
+        delete this.#byTag[origin];
+      }
+    }
+
     return this.save();
   }
 }

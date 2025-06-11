@@ -13,9 +13,7 @@
 #include "mozilla/dom/ClientOpenWindowUtils.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
 #include "mozilla/ipc/Endpoint.h"
-#include "mozilla/Components.h"
 #include "nsComponentManagerUtils.h"
-#include "nsIAlertsService.h"
 #include "nsIServiceWorkerManager.h"
 
 namespace mozilla::dom::notification {
@@ -295,10 +293,9 @@ nsresult NotificationParent::Show() {
 
   MOZ_TRY(alert->GetId(mId));
 
-  nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service();
   RefPtr<NotificationObserver> observer = new NotificationObserver(
       mArgs.mScope, principal, IPCNotification(mId, options), *this);
-  MOZ_TRY(alertService->ShowAlert(alert, observer));
+  MOZ_TRY(ShowAlertWithCleanup(alert, observer));
 
 #ifdef ANDROID
   // XXX: the Android nsIAlertsService is broken and doesn't send alertshow

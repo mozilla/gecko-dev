@@ -14,6 +14,7 @@
 #include "nsStringFwd.h"
 
 enum class nsresult : uint32_t;
+class nsIAlertNotification;
 class nsIPrincipal;
 class nsINotificationStorage;
 namespace mozilla::dom {
@@ -81,6 +82,13 @@ enum class CloseMode {
   InactiveGlobal,
 };
 void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId);
+
+// Show an alert and clean up any previously stored notifications that
+// aren't currently known to the notification backend.
+//
+// The cleanup happens when this is globally the first call.
+nsresult ShowAlertWithCleanup(nsIAlertNotification* aAlert,
+                              nsIObserver* aAlertListener);
 
 nsresult RemovePermission(nsIPrincipal* aPrincipal);
 nsresult OpenSettings(nsIPrincipal* aPrincipal);

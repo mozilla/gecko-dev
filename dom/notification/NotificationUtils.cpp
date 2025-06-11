@@ -19,6 +19,8 @@
 #include "nsIPushService.h"
 #include "nsServiceManagerUtils.h"
 
+static bool gTriedStorageCleanup = false;
+
 namespace mozilla::dom::notification {
 
 using GleanLabel = glean::web_notification::ShowOriginLabel;
@@ -206,12 +208,42 @@ nsresult UnpersistNotification(nsIPrincipal* aPrincipal, const nsString& aId) {
   return NS_ERROR_FAILURE;
 }
 
+nsresult UnpersistAllNotificationsExcept(const nsTArray<nsString>& aIds) {
+  // Cleanup makes only sense for on-disk storage
+  if (nsCOMPtr<nsINotificationStorage> notificationStorage =
+          GetNotificationStorage(false)) {
+    return notificationStorage->DeleteAllExcept(aIds);
+  }
+  return NS_ERROR_FAILURE;
+}
+
 void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId) {
-  // XXX: unpersist only when explicitly closed, bug 1095073
   UnpersistNotification(aPrincipal, aId);
   if (nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service()) {
     alertService->CloseAlert(aId, /* aContextClosed */ false);
   }
+}
+
+nsresult ShowAlertWithCleanup(nsIAlertNotification* aAlert,
+                              nsIObserver* aAlertListener) {
+  nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service();
+  if (!gTriedStorageCleanup) {
+    // The below may fail, but retry probably won't make it work
+    gTriedStorageCleanup = true;
+
+    // Get the list of currently displayed notifications known to the
+    // notification backend and unpersist all other notifications from
+    // NotificationDB.
+    // (This won't affect the following persist call by ShowAlert, as the DB
+    // maintains a job queue)
+    nsTArray<nsString> history;
+    if (NS_SUCCEEDED(alertService->GetHistory(history))) {
+      UnpersistAllNotificationsExcept(history);
+    }
+  }
+
+  MOZ_TRY(alertService->ShowAlert(aAlert, aAlertListener));
+  return NS_OK;
 }
 
 nsresult RemovePermission(nsIPrincipal* aPrincipal) {
