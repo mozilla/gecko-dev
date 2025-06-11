@@ -275,7 +275,6 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         registerActivityLifecycleCallbacks(visibilityLifecycleCallback)
         registerActivityLifecycleCallbacks(MarkersActivityLifecycleCallbacks(components.core.engine))
 
-        components.performance.startupStateDetector.registerInAppOnCreate(this)
         components.appStartReasonProvider.registerInAppOnCreate(this)
         components.startupActivityLog.registerInAppOnCreate(this)
         initVisualCompletenessQueueAndQueueTasks()
