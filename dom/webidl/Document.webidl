@@ -105,11 +105,6 @@ interface Document : Node {
   [NewObject, Throws]
   TreeWalker createTreeWalker(Node root, optional unsigned long whatToShow = 0xFFFFFFFF, optional NodeFilter? filter = null);
 
-  // NEW
-  // No support for prepend/append yet
-  // undefined prepend((Node or DOMString)... nodes);
-  // undefined append((Node or DOMString)... nodes);
-
   // These are not in the spec, but leave them for now for backwards compat.
   // So sort of like Gecko extensions
   [NewObject, Throws]
