@@ -355,6 +355,8 @@ class MenuDialogMiddleware(
                 logger.error("Failed to install addon", e)
             },
         )
+
+        onDismiss()
     }
 
     private fun toggleReaderView(
