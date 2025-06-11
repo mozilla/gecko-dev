@@ -6,6 +6,7 @@
 
 #include <memory>
 #include "gtest/gtest.h"
+#include "gtest/gtest-spi.h"
 #include "mozilla/SharedThreadPool.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/TaskQueue.h"
@@ -221,6 +222,29 @@ TEST(AbstractThread, GetCurrentSerialEventTarget)
       [mainThread]() {
         nsCOMPtr<nsISerialEventTarget> thread = GetCurrentSerialEventTarget();
         EXPECT_EQ(thread, mainThread);
+      }));
+
+  // Spin the event loop.
+  NS_ProcessPendingEvents(nullptr);
+}
+
+TEST(AbstractThread, DirectTaskGetCurrentSerialEventTarget)
+{
+  RefPtr<AbstractThread> mainThread = AbstractThread::GetCurrent();
+  EXPECT_EQ(mainThread, AbstractThread::MainThread());
+  Unused << mainThread->Dispatch(NS_NewRunnableFunction(
+      "TestAbstractThread::DirectTaskGetCurrentSerialEventTarget::TestBody",
+      [&]() {
+        AbstractThread::DispatchDirectTask(NS_NewRunnableFunction(
+            "TestAbstractThread::DirectTaskGetCurrentSerialEventTarget::"
+            "DirectTask",
+            [&] {
+              // NOTE: Currently we don't set the SerialEventTarget guard when
+              //       running direct tasks on `AbstractThread::MainThread()`.
+              //       See bug 1971198 for context.
+              EXPECT_NONFATAL_FAILURE(
+                  EXPECT_EQ(GetCurrentSerialEventTarget(), mainThread), "");
+            }));
       }));
 
   // Spin the event loop.
