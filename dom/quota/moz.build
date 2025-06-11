@@ -124,6 +124,7 @@ UNIFIED_SOURCES += [
     "ClientUsageArray.cpp",
     "DecryptingInputStream.cpp",
     "DirectoryLockImpl.cpp",
+    "DirectoryMetadata.cpp",
     "EncryptingOutputStream.cpp",
     "FileStreams.cpp",
     "FileUtils.cpp",

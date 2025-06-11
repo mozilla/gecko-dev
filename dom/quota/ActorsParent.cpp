@@ -9,6 +9,7 @@
 // Local includes
 #include "CanonicalQuotaObject.h"
 #include "ClientUsageArray.h"
+#include "DirectoryMetadata.h"
 #include "Flatten.h"
 #include "FirstInitializationAttemptsImpl.h"
 #include "GroupInfo.h"
@@ -3456,15 +3457,8 @@ nsresult QuotaManager::CreateDirectoryMetadata2(
                  GetBinaryOutputStream(*file, FileFlag::Truncate));
   MOZ_ASSERT(stream);
 
-  QM_TRY(MOZ_TO_RESULT(stream->Write64(aTimestamp)));
-
-  QM_TRY(MOZ_TO_RESULT(stream->WriteBoolean(aPersisted)));
-
-  // Reserved data 1
-  QM_TRY(MOZ_TO_RESULT(stream->Write32(0)));
-
-  // Reserved data 2
-  QM_TRY(MOZ_TO_RESULT(stream->Write32(0)));
+  QM_TRY(MOZ_TO_RESULT(WriteDirectoryMetadataHeader(
+      *stream, OriginStateMetadata{aTimestamp, aPersisted})));
 
   // Legacy field, previously used for suffix. The value is no longer used, but
   // we continue writing the correct suffix value to preserve compatibility
@@ -3524,22 +3518,10 @@ Result<FullOriginMetadata, nsresult> QuotaManager::LoadFullOriginMetadata(
 
   FullOriginMetadata fullOriginMetadata;
 
-  QM_TRY_UNWRAP(fullOriginMetadata.mLastAccessTime,
-                MOZ_TO_RESULT_INVOKE_MEMBER(binaryStream, Read64));
+  QM_TRY_INSPECT(const OriginStateMetadata& originStateMetadata,
+                 ReadDirectoryMetadataHeader(*binaryStream));
 
-  QM_TRY_UNWRAP(fullOriginMetadata.mPersisted,
-                MOZ_TO_RESULT_INVOKE_MEMBER(binaryStream, ReadBoolean));
-
-  QM_TRY_INSPECT(const bool& reservedData1,
-                 MOZ_TO_RESULT_INVOKE_MEMBER(binaryStream, Read32));
-  if (reservedData1 != 0) {
-    QM_TRY(MOZ_TO_RESULT(false));
-  }
-
-  // XXX Use for the persistence type.
-  QM_TRY_INSPECT(const bool& reservedData2,
-                 MOZ_TO_RESULT_INVOKE_MEMBER(binaryStream, Read32));
-  Unused << reservedData2;
+  static_cast<OriginStateMetadata&>(fullOriginMetadata) = originStateMetadata;
 
   fullOriginMetadata.mPersistenceType = aPersistenceType;
 
