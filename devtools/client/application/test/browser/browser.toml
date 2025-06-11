@@ -96,8 +96,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_application_panel_start-service-worker.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1781479
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1608640
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan", # Bug 1608640
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1781479
 ]
 
 ["browser_application_panel_target-switching.js"]
