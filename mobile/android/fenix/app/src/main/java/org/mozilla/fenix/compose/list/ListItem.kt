@@ -682,6 +682,8 @@ fun SelectableIconListItem(
  * @param icon The icon resource to be displayed at the beginning of the list item.
  * @param isSelected The selected state of the item.
  * @param modifier [Modifier] to be applied to the composable.
+ * @param descriptionTextColor [Color] to be applied to the description.
+ * @param iconTint Tint to be applied to [icon].
  * @param afterListItemAction Composable for adding UI to the end of the list item.
  * @param belowListItemContent Composable for adding UI to the bottom of the list item content.
  */
@@ -692,6 +694,8 @@ fun SelectableListItem(
     @DrawableRes icon: Int,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
+    descriptionTextColor: Color = FirefoxTheme.colors.textSecondary,
+    iconTint: Color = FirefoxTheme.colors.iconPrimary,
     afterListItemAction: @Composable RowScope.() -> Unit,
     belowListItemContent: @Composable ColumnScope.() -> Unit = {},
 ) {
@@ -699,6 +703,7 @@ fun SelectableListItem(
         label = label,
         description = description,
         modifier = modifier,
+        descriptionTextColor = descriptionTextColor,
         belowListItemContent = belowListItemContent,
         beforeListItemAction = {
             SelectableItemIcon(
@@ -706,7 +711,7 @@ fun SelectableListItem(
                     Icon(
                         painter = painterResource(id = icon),
                         contentDescription = null,
-                        tint = FirefoxTheme.colors.iconPrimary,
+                        tint = iconTint,
                     )
                 },
                 isSelected = isSelected,
