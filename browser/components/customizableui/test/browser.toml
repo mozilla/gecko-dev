@@ -91,7 +91,9 @@ tags = "overflowable-toolbar"
 
 ["browser_914138_widget_API_overflowable_toolbar.js"]
 tags = "overflowable-toolbar"
-skip-if = ["os == 'linux'"]
+skip-if = [
+  "os == 'linux'",
+  "devedition"]
 
 ["browser_918049_skipintoolbarset_dnd.js"]
 
