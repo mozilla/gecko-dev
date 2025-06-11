@@ -293,13 +293,10 @@ static void DrawCellIncludingFocusRing(NSCell* aCell, NSRect aWithFrame,
 static CGFloat kMaxFocusRingWidth =
     0;  // initialized by the nsNativeThemeCocoa constructor
 
-// These enums are for indexing into the margin array.
-enum {
-  leopardOSorlater = 0,  // 10.6 - 10.9
-  yosemiteOSorlater = 1  // 10.10+
-};
-
 enum { miniControlSize, smallControlSize, regularControlSize };
+
+template <typename T>
+using PerSizeArray = std::array<T, 3>;
 
 enum { leftMargin, topMargin, rightMargin, bottomMargin };
 
@@ -330,17 +327,16 @@ static NSString* CUIControlSizeForCocoaSize(NSControlSize aControlSize) {
     return @"mini";
 }
 
-static void InflateControlRect(NSRect* rect, NSControlSize cocoaControlSize,
-                               const float marginSet[][3][4]) {
-  if (!marginSet) return;
+using CellMarginArray = PerSizeArray<IntMargin>;
 
-  static int osIndex = yosemiteOSorlater;
+static void InflateControlRect(NSRect* rect, NSControlSize cocoaControlSize,
+                               const CellMarginArray& marginSet) {
   size_t controlSize = EnumSizeForCocoaSize(cocoaControlSize);
-  const float* buttonMargins = marginSet[osIndex][controlSize];
-  rect->origin.x -= buttonMargins[leftMargin];
-  rect->origin.y -= buttonMargins[bottomMargin];
-  rect->size.width += buttonMargins[leftMargin] + buttonMargins[rightMargin];
-  rect->size.height += buttonMargins[bottomMargin] + buttonMargins[topMargin];
+  const IntMargin& buttonMargins = marginSet[controlSize];
+  rect->origin.x -= buttonMargins.left;
+  rect->origin.y -= buttonMargins.bottom;
+  rect->size.width += buttonMargins.LeftRight();
+  rect->size.height += buttonMargins.TopBottom();
 }
 
 static NSWindow* NativeWindowForFrame(nsIFrame* aFrame,
@@ -538,10 +534,7 @@ static int GetBackingScaleFactorForRendering(CGContextRef cgContext) {
  *  a scale will be applied to the context so that the minimum is used
  *  for drawing.  If a control has no minimum dimensions in either/both
  *  axes, pass 0.0f.
- * marginSet - an array of margins; a multidimensional array of [2][3][4],
- *  with the first dimension being the OS version (Tiger or Leopard),
- *  the second being the control size (mini, small, regular), and the third
- *  being the 4 margin values (left, top, right, bottom).
+ * marginSet - an array of margins
  * view - The NSView that we're drawing into. As far as I can tell, it doesn't
  *  matter if this is really the right view; it just has to return YES when
  *  asked for isFlipped. Otherwise we'll get drawing bugs on 10.4.
@@ -551,7 +544,7 @@ static void DrawCellWithScaling(NSCell* cell, CGContextRef cgContext,
                                 const HIRect& destRect,
                                 NSControlSize controlSize, NSSize naturalSize,
                                 NSSize minimumSize,
-                                const float marginSet[][3][4], NSView* view,
+                                const CellMarginArray& marginSet, NSView* view,
                                 BOOL mirrorHorizontal) {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 
@@ -679,17 +672,14 @@ static void DrawCellWithScaling(NSCell* cell, CGContextRef cgContext,
 struct CellRenderSettings {
   // The natural dimensions of the control.
   // If a control has no natural dimensions in either/both axes, set to 0.0f.
-  NSSize naturalSizes[3];
+  PerSizeArray<NSSize> naturalSizes;
 
   // The minimum dimensions of the control.
   // If a control has no minimum dimensions in either/both axes, set to 0.0f.
-  NSSize minimumSizes[3];
+  PerSizeArray<NSSize> minimumSizes;
 
-  // A three-dimensional array,
-  // with the first dimension being the OS version ([0] 10.6-10.9, [1] 10.10 and
-  // above), the second being the control size (mini, small, regular), and the
-  // third being the 4 margin values (left, top, right, bottom).
-  float margins[2][3][4];
+  // A margin array indexed by control size.
+  PerSizeArray<IntMargin> margins;
 };
 
 /*
@@ -755,7 +745,7 @@ static void DrawCellWithSnapping(NSCell* cell, CGContextRef cgContext,
 
   const float rectWidth = destRect.size.width,
               rectHeight = destRect.size.height;
-  const NSSize* sizes = settings.naturalSizes;
+  const PerSizeArray<NSSize>& sizes = settings.naturalSizes;
   const NSSize miniSize = sizes[EnumSizeForCocoaSize(NSControlSizeMini)];
   const NSSize smallSize = sizes[EnumSizeForCocoaSize(NSControlSizeSmall)];
   const NSSize regularSize = sizes[EnumSizeForCocoaSize(NSControlSizeRegular)];
@@ -904,18 +894,12 @@ MOZ_RUNINIT static const CellRenderSettings radioSettings = {
         NSMakeSize(16, 16)   // regular
     },
     {NSZeroSize, NSZeroSize, NSZeroSize},
-    {{
-         // Leopard
-         {0, 0, 0, 0},  // mini
-         {0, 1, 1, 1},  // small
-         {0, 0, 0, 0}   // regular
-     },
-     {
-         // Yosemite
-         {0, 0, 0, 0},  // mini
-         {1, 1, 1, 2},  // small
-         {0, 0, 0, 0}   // regular
-     }}};
+    {
+        IntMargin{0, 0, 0, 0},  // mini
+        IntMargin{1, 1, 1, 2},  // small
+        IntMargin{0, 0, 0, 0},  // regular
+    },
+};
 
 MOZ_RUNINIT static const CellRenderSettings checkboxSettings = {
     {
@@ -924,18 +908,11 @@ MOZ_RUNINIT static const CellRenderSettings checkboxSettings = {
         NSMakeSize(16, 16)   // regular
     },
     {NSZeroSize, NSZeroSize, NSZeroSize},
-    {{
-         // Leopard
-         {0, 1, 0, 0},  // mini
-         {0, 1, 0, 1},  // small
-         {0, 1, 0, 1}   // regular
-     },
-     {
-         // Yosemite
-         {0, 1, 0, 0},  // mini
-         {0, 1, 0, 1},  // small
-         {0, 1, 0, 1}   // regular
-     }}};
+    {
+        IntMargin{0, 1, 0, 0},  // mini
+        IntMargin{0, 1, 0, 1},  // small
+        IntMargin{0, 1, 0, 1}   // regular
+    }};
 
 static NSControlStateValue CellStateForCheckboxOrRadioState(
     nsNativeThemeCocoa::CheckboxOrRadioState aState) {
@@ -991,18 +968,11 @@ MOZ_RUNINIT static const CellRenderSettings searchFieldSettings = {
         NSMakeSize(38, 0),  // small
         NSMakeSize(44, 0)   // regular
     },
-    {{
-         // Leopard
-         {0, 0, 0, 0},  // mini
-         {0, 0, 0, 0},  // small
-         {0, 0, 0, 0}   // regular
-     },
-     {
-         // Yosemite
-         {0, 0, 0, 0},  // mini
-         {0, 0, 0, 0},  // small
-         {0, 0, 0, 0}   // regular
-     }}};
+    {
+        IntMargin{0, 0, 0, 0},  // mini
+        IntMargin{0, 0, 0, 0},  // small
+        IntMargin{0, 0, 0, 0}   // regular
+    }};
 
 static bool IsToolbarStyleContainer(nsIFrame* aFrame) {
   nsIContent* content = aFrame->GetContent();
@@ -1129,18 +1099,11 @@ MOZ_RUNINIT static const CellRenderSettings pushButtonSettings = {
         NSMakeSize(26, 0),  // small
         NSMakeSize(30, 0)   // regular
     },
-    {{
-         // Leopard
-         {0, 0, 0, 0},  // mini
-         {4, 0, 4, 1},  // small
-         {5, 0, 5, 2}   // regular
-     },
-     {
-         // Yosemite
-         {0, 0, 0, 0},  // mini
-         {4, 0, 4, 1},  // small
-         {5, 0, 5, 2}   // regular
-     }}};
+    {
+        IntMargin{0, 0, 0, 0},  // mini
+        IntMargin{4, 0, 4, 1},  // small
+        IntMargin{5, 0, 5, 2}   // regular
+    }};
 
 // The height at which we start doing square buttons instead of rounded buttons
 // Rounded buttons look bad if drawn at a height greater than 26, so at that
@@ -1180,7 +1143,7 @@ void nsNativeThemeCocoa::DrawSquareBezelPushButton(
     mCellDrawWindow.cellsShouldLookActive = aControlParams.insideActiveWindow;
   }
   DrawCellWithScaling(mPushButtonCell, cgContext, inBoxRect,
-                      NSControlSizeRegular, NSZeroSize, NSMakeSize(14, 0), NULL,
+                      NSControlSizeRegular, NSZeroSize, NSMakeSize(14, 0), {},
                       mCellDrawView, aControlParams.rtl);
 
   NS_OBJC_END_TRY_IGNORE_BLOCK;
@@ -1197,7 +1160,7 @@ void nsNativeThemeCocoa::DrawHelpButton(CGContextRef cgContext,
     mCellDrawWindow.cellsShouldLookActive = aControlParams.insideActiveWindow;
   }
   DrawCellWithScaling(mHelpButtonCell, cgContext, inBoxRect,
-                      NSControlSizeRegular, NSZeroSize, kHelpButtonSize, NULL,
+                      NSControlSizeRegular, NSZeroSize, kHelpButtonSize, {},
                       mCellDrawView,
                       false);  // Don't mirror icon in RTL.
 
@@ -1218,7 +1181,7 @@ void nsNativeThemeCocoa::DrawDisclosureButton(CGContextRef cgContext,
   }
   DrawCellWithScaling(mDisclosureButtonCell, cgContext, inBoxRect,
                       NSControlSizeRegular, NSZeroSize, kDisclosureButtonSize,
-                      NULL, mCellDrawView,
+                      {}, mCellDrawView,
                       false);  // Don't mirror icon in RTL.
 
   NS_OBJC_END_TRY_IGNORE_BLOCK;
@@ -1384,18 +1347,12 @@ MOZ_RUNINIT static const CellRenderSettings dropdownSettings = {
         NSMakeSize(38, 0),  // small
         NSMakeSize(44, 0)   // regular
     },
-    {{
-         // Leopard
-         {1, 1, 2, 1},  // mini
-         {3, 0, 3, 1},  // small
-         {3, 0, 3, 0}   // regular
-     },
-     {
-         // Yosemite
-         {1, 1, 2, 1},  // mini
-         {3, 0, 3, 1},  // small
-         {3, 0, 3, 0}   // regular
-     }}};
+    {
+        IntMargin{1, 1, 2, 1},  // mini
+        IntMargin{3, 0, 3, 1},  // small
+        IntMargin{3, 0, 3, 0}   // regular
+    },
+};
 
 MOZ_RUNINIT static const CellRenderSettings editableMenulistSettings = {
     {
@@ -1408,18 +1365,11 @@ MOZ_RUNINIT static const CellRenderSettings editableMenulistSettings = {
         NSMakeSize(38, 0),  // small
         NSMakeSize(44, 0)   // regular
     },
-    {{
-         // Leopard
-         {0, 0, 2, 2},  // mini
-         {0, 0, 3, 2},  // small
-         {0, 1, 3, 3}   // regular
-     },
-     {
-         // Yosemite
-         {0, 0, 2, 2},  // mini
-         {0, 0, 3, 2},  // small
-         {0, 1, 3, 3}   // regular
-     }}};
+    {
+        IntMargin{0, 0, 2, 2},  // mini
+        IntMargin{0, 0, 3, 2},  // small
+        IntMargin{0, 1, 3, 3}   // regular
+    }};
 
 void nsNativeThemeCocoa::DrawDropdown(CGContextRef cgContext,
                                       const HIRect& inBoxRect,
@@ -1460,12 +1410,11 @@ MOZ_RUNINIT static const CellRenderSettings progressSettings[2][2] = {
           NSMakeSize(16, 0)   // regular
       },
       {NSZeroSize, NSZeroSize, NSZeroSize},
-      {{
-          // Leopard
-          {0, 0, 0, 0},  // mini
-          {1, 1, 1, 1},  // small
-          {1, 1, 1, 1}   // regular
-      }}},
+      {
+          IntMargin{0, 0, 0, 0},  // mini
+          IntMargin{0, 0, 0, 0},  // small
+          IntMargin{0, 0, 0, 0}   // regular
+      }},
      // There is no horizontal margin in regular undetermined size.
      {{
           NSZeroSize,         // mini
@@ -1473,18 +1422,11 @@ MOZ_RUNINIT static const CellRenderSettings progressSettings[2][2] = {
           NSMakeSize(16, 0)   // regular
       },
       {NSZeroSize, NSZeroSize, NSZeroSize},
-      {{
-           // Leopard
-           {0, 0, 0, 0},  // mini
-           {1, 1, 1, 1},  // small
-           {1, 0, 1, 0}   // regular
-       },
-       {
-           // Yosemite
-           {0, 0, 0, 0},  // mini
-           {1, 1, 1, 1},  // small
-           {1, 0, 1, 0}   // regular
-       }}}},
+      {
+          IntMargin{0, 0, 0, 0},  // mini
+          IntMargin{1, 1, 1, 1},  // small
+          IntMargin{1, 0, 1, 0}   // regular
+      }}},
     // Horizontal progress bar.
     {// Determined settings.
      {{
@@ -1493,18 +1435,11 @@ MOZ_RUNINIT static const CellRenderSettings progressSettings[2][2] = {
           NSMakeSize(0, 16)   // regular
       },
       {NSZeroSize, NSZeroSize, NSZeroSize},
-      {{
-           // Leopard
-           {0, 0, 0, 0},  // mini
-           {1, 1, 1, 1},  // small
-           {1, 1, 1, 1}   // regular
-       },
-       {
-           // Yosemite
-           {0, 0, 0, 0},  // mini
-           {1, 1, 1, 1},  // small
-           {1, 1, 1, 1}   // regular
-       }}},
+      {
+          IntMargin{0, 0, 0, 0},  // mini
+          IntMargin{1, 1, 1, 1},  // small
+          IntMargin{1, 1, 1, 1}   // regular
+      }},
      // There is no horizontal margin in regular undetermined size.
      {{
           NSZeroSize,         // mini
@@ -1512,18 +1447,11 @@ MOZ_RUNINIT static const CellRenderSettings progressSettings[2][2] = {
           NSMakeSize(0, 16)   // regular
       },
       {NSZeroSize, NSZeroSize, NSZeroSize},
-      {{
-           // Leopard
-           {0, 0, 0, 0},  // mini
-           {1, 1, 1, 1},  // small
-           {0, 1, 0, 1}   // regular
-       },
-       {
-           // Yosemite
-           {0, 0, 0, 0},  // mini
-           {1, 1, 1, 1},  // small
-           {0, 1, 0, 1}   // regular
-       }}}}};
+      {
+          IntMargin{0, 0, 0, 0},  // mini
+          IntMargin{1, 1, 1, 1},  // small
+          IntMargin{0, 1, 0, 1}   // regular
+      }}}};
 
 nsNativeThemeCocoa::ProgressParams nsNativeThemeCocoa::ComputeProgressParams(
     nsIFrame* aFrame, ElementState aEventState, bool aIsHorizontal) {
@@ -1571,18 +1499,12 @@ MOZ_RUNINIT static const CellRenderSettings meterSetting = {
         NSMakeSize(0, 16)   // regular
     },
     {NSZeroSize, NSZeroSize, NSZeroSize},
-    {{
-         // Leopard
-         {1, 1, 1, 1},  // mini
-         {1, 1, 1, 1},  // small
-         {1, 1, 1, 1}   // regular
-     },
-     {
-         // Yosemite
-         {1, 1, 1, 1},  // mini
-         {1, 1, 1, 1},  // small
-         {1, 1, 1, 1}   // regular
-     }}};
+    {
+        IntMargin{1, 1, 1, 1},  // mini
+        IntMargin{1, 1, 1, 1},  // small
+        IntMargin{1, 1, 1, 1}   // regular
+    },
+};
 
 nsNativeThemeCocoa::MeterParams nsNativeThemeCocoa::ComputeMeterParams(
     nsIFrame* aFrame) {
@@ -1776,10 +1698,14 @@ static CGRect SeparatorAdjustedRect(CGRect aRect,
 
 static NSString* ToolbarButtonPosition(BOOL aIsFirst, BOOL aIsLast) {
   if (aIsFirst) {
-    if (aIsLast) return @"kCUISegmentPositionOnly";
+    if (aIsLast) {
+      return @"kCUISegmentPositionOnly";
+    }
     return @"kCUISegmentPositionFirst";
   }
-  if (aIsLast) return @"kCUISegmentPositionLast";
+  if (aIsLast) {
+    return @"kCUISegmentPositionLast";
+  }
   return @"kCUISegmentPositionMiddle";
 }
 
