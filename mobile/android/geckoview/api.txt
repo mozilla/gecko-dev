@@ -764,6 +764,7 @@ package org.mozilla.geckoview {
     ctor public GeckoPreferenceController();
     method @AnyThread @NonNull public static GeckoResult<Void> clearGeckoUserPref(@NonNull String);
     method @AnyThread @NonNull public static GeckoResult<GeckoPreferenceController.GeckoPreference<?>> getGeckoPref(@NonNull String);
+    method @AnyThread @NonNull public static GeckoResult<List<GeckoPreferenceController.GeckoPreference<?>>> getGeckoPrefs(@NonNull List<String>);
     method @AnyThread @NonNull public static GeckoResult<Void> setGeckoPref(@NonNull String, @NonNull String, int);
     method @AnyThread @NonNull public static GeckoResult<Void> setGeckoPref(@NonNull String, @NonNull Integer, int);
     method @AnyThread @NonNull public static GeckoResult<Void> setGeckoPref(@NonNull String, @NonNull Boolean, int);

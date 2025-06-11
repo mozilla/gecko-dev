@@ -25,7 +25,9 @@ export const GeckoViewPreferences = {
 
     switch (aEvent) {
       case "GeckoView:Preferences:GetPref": {
-        aCallback.onSuccess(this.getPreference(aData.pref));
+        aCallback.onSuccess({
+          prefs: aData.prefs.map(pref => this.getPreference(pref)),
+        });
         return;
       }
       case "GeckoView:Preferences:SetPref": {
