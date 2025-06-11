@@ -399,7 +399,7 @@ add_task(async function test_dfpi_with_ip_and_port() {
       expectedOut: {
         firstPartyDomain: "",
         partitionKey: {
-          topLevelSite: `http://${LOCAL_IP_AND_PORT}`,
+          topLevelSite: `http://127.0.0.1`,
           hasCrossSiteAncestor: true,
         },
       },
@@ -408,6 +408,46 @@ add_task(async function test_dfpi_with_ip_and_port() {
   await runWithPrefs(
     // Enable dFPI; 5 = BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN.
     [["network.cookie.cookieBehavior", 5]],
+    () => testCookiesAPI({ testCases, topDomain: LOCAL_IP_AND_PORT })
+  );
+});
+
+add_task(async function test_dfpi_with_ip_and_port_use_port() {
+  const testCases = [
+    {
+      description: "first-party cookies for IP with port",
+      domain: "127.0.0.1",
+      detailsIn: {
+        partitionKey: null,
+      },
+      expectedOut: {
+        firstPartyDomain: "",
+        partitionKey: null,
+      },
+    },
+    {
+      description: "third-party cookies for IP with port",
+      domain: THIRD_PARTY_DOMAIN,
+      detailsIn: {
+        partitionKey: { topLevelSite: `http://${LOCAL_IP_AND_PORT}` },
+      },
+      expectedOut: {
+        firstPartyDomain: "",
+        partitionKey: {
+          topLevelSite: `http://${LOCAL_IP_AND_PORT}`,
+          hasCrossSiteAncestor: true,
+        },
+      },
+    },
+  ];
+  await runWithPrefs(
+    // Enable dFPI; 5 = BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN.
+    // Make sure the old behavior still works as long as we support
+    // `privacy.dynamic_firstparty.use_site.include_port` flipping.
+    [
+      ["network.cookie.cookieBehavior", 5],
+      ["privacy.dynamic_firstparty.use_site.include_port", true],
+    ],
     () => testCookiesAPI({ testCases, topDomain: LOCAL_IP_AND_PORT })
   );
 });

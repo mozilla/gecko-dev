@@ -60,7 +60,7 @@ static void PopulateTopLevelInfoFromURI(const bool aIsTopLevelDocument,
                                         nsIURI* aURI,
                                         bool aForeignByAncestorContext,
                                         bool aIsFirstPartyEnabled, bool aForced,
-                                        bool aUseSite,
+                                        bool aUseSite, bool aIgnorePort,
                                         nsString OriginAttributes::* aTarget,
                                         OriginAttributes& aOriginAttributes) {
   nsresult rv;
@@ -145,8 +145,12 @@ static void PopulateTopLevelInfoFromURI(const bool aIsTopLevelDocument,
   bool isInsufficientDomainLevels = (rv == NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS);
 
   int32_t port;
-  rv = uri->GetPort(&port);
-  NS_ENSURE_SUCCESS_VOID(rv);
+  if (aIgnorePort) {
+    port = -1;
+  } else {
+    rv = uri->GetPort(&port);
+    NS_ENSURE_SUCCESS_VOID(rv);
+  }
 
   nsAutoCString host;
   rv = uri->GetHost(host);
@@ -194,7 +198,7 @@ void OriginAttributes::SetFirstPartyDomain(const bool aIsTopLevelDocument,
                                            nsIURI* aURI, bool aForced) {
   PopulateTopLevelInfoFromURI(
       aIsTopLevelDocument, aURI, false, IsFirstPartyEnabled(), aForced,
-      StaticPrefs::privacy_firstparty_isolate_use_site(),
+      StaticPrefs::privacy_firstparty_isolate_use_site(), false,
       &OriginAttributes::mFirstPartyDomain, *this);
 }
 
@@ -220,6 +224,7 @@ void OriginAttributes::SetPartitionKey(nsIURI* aURI,
       false /* aIsTopLevelDocument */, aURI, aForeignByAncestorContext,
       IsFirstPartyEnabled(), true /* aForced */,
       StaticPrefs::privacy_dynamic_firstparty_use_site(),
+      !StaticPrefs::privacy_dynamic_firstparty_use_site_include_port(),
       &OriginAttributes::mPartitionKey, *this);
 }
 

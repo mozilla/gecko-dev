@@ -16,6 +16,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "network.cookie.maxageCap",
   0
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "gCanUsePortInPartitionKey",
+  "privacy.dynamic_firstparty.use_site.include_port",
+  false
+);
 
 var { ExtensionError } = ExtensionUtils;
 
@@ -74,7 +80,7 @@ function fromExtPartitionKey(extPartitionKey, cookieUrl) {
       if (cookieUrl == null) {
         let topLevelSiteURI = Services.io.newURI(topLevelSite);
         let topLevelSiteFilter = Services.eTLD.getSite(topLevelSiteURI);
-        if (topLevelSiteURI.port != -1) {
+        if (gCanUsePortInPartitionKey && topLevelSiteURI.port != -1) {
           topLevelSiteFilter += `:${topLevelSiteURI.port}`;
         }
         return topLevelSiteFilter;

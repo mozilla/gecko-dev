@@ -178,19 +178,11 @@ add_task(async function test() {
 
   // Call download() to check partitionKey of the download channel for the
   // regular browsing mode.
-  await testDownload(
-    TEST_URL,
-    `(http,localhost,${server.identity.primaryPort})`,
-    false
-  );
+  await testDownload(TEST_URL, `(http,localhost)`, false);
   remove(TEST_FILE);
 
   // Call download again for the private browsing mode.
-  await testDownload(
-    TEST_URL,
-    `(http,localhost,${server.identity.primaryPort})`,
-    true
-  );
+  await testDownload(TEST_URL, `(http,localhost)`, true);
   remove(TEST_FILE);
 
   await extension.unload();

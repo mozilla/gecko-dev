@@ -107,7 +107,7 @@ add_task(async () => {
   );
   await contentPage.close();
 
-  let key = `^partitionKey=%28http%2Clocalhost%2C${httpserv.identity.primaryPort}%29:http://localhost:${httpserv.identity.primaryPort}`;
+  let key = `^partitionKey=%28http%2Clocalhost%29:http://localhost:${httpserv.identity.primaryPort}`;
 
   Assert.equal(httpHandler.authCacheKeys.includes(key), true, "Key found!");
 
