@@ -682,6 +682,18 @@ class _QuickSuggestTestUtils {
    */
   geonamesRecords() {
     let geonames = [
+      // United States
+      {
+        id: 6252001,
+        name: "United States",
+        feature_class: "A",
+        feature_code: "PCLI",
+        country: "US",
+        admin1: "00",
+        population: 327167434,
+        latitude: "39.76",
+        longitude: "-98.5",
+      },
       // Waterloo, AL
       {
         id: 4096497,
@@ -733,6 +745,7 @@ class _QuickSuggestTestUtils {
         latitude: "42.00027",
         longitude: "-93.50049",
       },
+
       // Made-up cities with the same name in the US and CA. The CA city has a
       // larger population.
       {
@@ -757,6 +770,7 @@ class _QuickSuggestTestUtils {
         latitude: "45.50884",
         longitude: "-73.58781",
       },
+
       // Made-up cities that are only ~1.5 km apart.
       {
         id: 102,
@@ -780,6 +794,8 @@ class _QuickSuggestTestUtils {
         latitude: "33.76",
         longitude: "-84.4",
       },
+
+      // Tokyo
       {
         id: 1850147,
         name: "Tokyo",
@@ -790,6 +806,57 @@ class _QuickSuggestTestUtils {
         population: 9733276,
         latitude: "35.6895",
         longitude: "139.69171",
+      },
+
+      // UK
+      {
+        id: 2635167,
+        name: "United Kingdom of Great Britain and Northern Ireland",
+        feature_class: "A",
+        feature_code: "PCLI",
+        country: "GB",
+        admin1: "00",
+        population: 66488991,
+        latitude: "54.75844",
+        longitude: "-2.69531",
+      },
+      // England
+      {
+        id: 6269131,
+        name: "England",
+        feature_class: "A",
+        feature_code: "ADM1",
+        country: "GB",
+        admin1: "ENG",
+        population: 57106398,
+        latitude: "52.16045",
+        longitude: "-0.70312",
+      },
+      // Liverpool (metropolitan borough, admin2 for Liverpool city)
+      {
+        id: 3333167,
+        name: "Liverpool",
+        feature_class: "A",
+        feature_code: "ADM2",
+        country: "GB",
+        admin1: "ENG",
+        admin2: "H8",
+        population: 484578,
+        latitude: "53.41667",
+        longitude: "-2.91667",
+      },
+      // Liverpool (city)
+      {
+        id: 2644210,
+        name: "Liverpool",
+        feature_class: "P",
+        feature_code: "PPLA2",
+        country: "GB",
+        admin1: "ENG",
+        admin2: "H8",
+        population: 864122,
+        latitude: "53.41058",
+        longitude: "-2.97794",
       },
     ];
 
@@ -818,6 +885,27 @@ class _QuickSuggestTestUtils {
             alternates_by_geoname_id: [
               [4829764, ["AL"]],
               [4862182, ["IA"]],
+              [2635167, ["UK"]],
+            ],
+          },
+        ],
+      },
+      {
+        type: "geonames-alternates",
+        attachment: [
+          {
+            language: "en",
+            alternates_by_geoname_id: [
+              [
+                2635167,
+                [
+                  {
+                    name: "United Kingdom",
+                    is_preferred: true,
+                    is_short: true,
+                  },
+                ],
+              ],
             ],
           },
         ],
@@ -1023,14 +1111,37 @@ class _QuickSuggestTestUtils {
   weatherResult({
     source = "rust",
     provider = "Weather",
-    city = null,
-    region = null,
+    titleL10n = undefined,
     temperatureUnit = undefined,
   } = {}) {
     if (!temperatureUnit) {
       temperatureUnit =
         Services.locale.regionalPrefsLocales[0] == "en-US" ? "f" : "c";
     }
+
+    if (!titleL10n) {
+      titleL10n = {
+        id: "urlbar-result-weather-title",
+        args: {
+          city: lazy.MerinoTestUtils.WEATHER_SUGGESTION.city_name,
+          region: lazy.MerinoTestUtils.WEATHER_SUGGESTION.region_code,
+        },
+      };
+    }
+    titleL10n = {
+      ...titleL10n,
+      args: {
+        ...titleL10n.args,
+        temperature:
+          lazy.MerinoTestUtils.WEATHER_SUGGESTION.current_conditions
+            .temperature[temperatureUnit],
+        unit: temperatureUnit.toUpperCase(),
+      },
+      parseMarkup: true,
+      cacheable: true,
+      excludeArgsFromCacheKey: true,
+    };
+
     return {
       type: lazy.UrlbarUtils.RESULT_TYPE.URL,
       source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
@@ -1039,22 +1150,8 @@ class _QuickSuggestTestUtils {
       isRichSuggestion: true,
       richSuggestionIconVariation: "6",
       payload: {
+        titleL10n,
         url: lazy.MerinoTestUtils.WEATHER_SUGGESTION.url,
-        titleL10n: {
-          id: "urlbar-result-weather-title",
-          args: {
-            temperature:
-              lazy.MerinoTestUtils.WEATHER_SUGGESTION.current_conditions
-                .temperature[temperatureUnit],
-            unit: temperatureUnit.toUpperCase(),
-            city: city || lazy.MerinoTestUtils.WEATHER_SUGGESTION.city_name,
-            region:
-              region || lazy.MerinoTestUtils.WEATHER_SUGGESTION.region_code,
-          },
-          parseMarkup: true,
-          cacheable: true,
-          excludeArgsFromCacheKey: true,
-        },
         bottomTextL10n: {
           id: "urlbar-result-weather-provider-sponsored",
           args: { provider: "AccuWeather®" },

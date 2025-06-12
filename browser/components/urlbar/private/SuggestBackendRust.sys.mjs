@@ -427,16 +427,38 @@ export class SuggestBackendRust extends SuggestBackend {
    * @returns {Array}
    *   Array of `GeonameMatch` objects. An empty array if there are no matches.
    */
-  fetchGeonames(searchString, matchNamePrefix, geonameType, filter) {
+  async fetchGeonames(searchString, matchNamePrefix, geonameType, filter) {
     if (!this.#store) {
       return [];
     }
-    return this.#store.fetchGeonames(
+    let geonames = await this.#store.fetchGeonames(
       searchString,
       matchNamePrefix,
       geonameType,
       filter
     );
+    return geonames;
+  }
+
+  /**
+   * Fetches geonames alternate names stored in the Suggest database. A single
+   * geoname can have many alternate names since a place can have many different
+   * variations of its name. Alternate names also include translations of names
+   * into different languages.
+   *
+   * See `SuggestStore::fetch_geoname_alternates()` in the Rust component for
+   * full documentation.
+   *
+   * @param {Geoname} geoname
+   *   A `Geoname` object returned from `fetchGeonames()`.
+   * @returns {GeonameAlternates}
+   *   A `GeonameAlternates` object containing the alternates for the geoname,
+   *   its administrative divisions, and its country. See the Rust component for
+   *   details.
+   */
+  async fetchGeonameAlternates(geoname) {
+    let alts = await this.#store?.fetchGeonameAlternates(geoname);
+    return alts;
   }
 
   /**
