@@ -37,9 +37,7 @@ using mozilla::dom::MaybeDiscardedWindowContext from "mozilla/dom/WindowContext.
 [RefCounted] using mozilla::dom::SessionStoreRestoreData from "mozilla/dom/SessionStoreRestoreData.h";
 using mozilla::dom::CredentialMediationRequirement from "mozilla/dom/CredentialManagementBinding.h";
 using mozilla::dom::IdentityCredentialDisconnectOptions from "mozilla/dom/IdentityCredentialBinding.h";
-using mozilla::dom::IdentityCredentialInit from "mozilla/dom/IdentityCredentialBinding.h";
 using mozilla::dom::IdentityCredentialRequestOptions from "mozilla/dom/IdentityCredentialBinding.h";
-using mozilla::dom::IdentityLoginTargetType from "mozilla/dom/IdentityCredentialBinding.h";
 using mozilla::dom::LoginStatus from "mozilla/dom/LoginStatusBinding.h";
 
 namespace mozilla {
@@ -97,8 +95,6 @@ child:
     returns (bool success);
 
   async RestoreTabContent(nullable SessionStoreRestoreData aData) returns (bool success);
-
-  async NavigateForIdentityCredentialDiscovery(nsCString aUri, IdentityLoginTargetType aType);
 
 both:
   async RawMessage(JSActorMessageMeta aMetadata, ClonedMessageData? aData,
@@ -216,8 +212,6 @@ parent:
                               CredentialMediationRequirement aMediationRequirement,
                               bool aHasUserActivation)
     returns (IPCIdentityCredential? identityCredential, nsresult rv);
-  async StoreIdentityCredential(IPCIdentityCredential aCredential)
-      returns (nsresult rv);
   async DisconnectIdentityCredential(IdentityCredentialDisconnectOptions aOptions) returns (nsresult rv);
   async PreventSilentAccess() returns (nsresult rv);
 
