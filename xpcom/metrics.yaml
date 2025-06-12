@@ -1305,6 +1305,7 @@ system.os:
     expires: never
     send_in_pings:
       - metrics
+      - sync
       - update
 
   version:
@@ -1325,6 +1326,7 @@ system.os:
     expires: never
     send_in_pings:
       - metrics
+      - sync
       - update
 
   locale:
@@ -1344,6 +1346,7 @@ system.os:
     expires: never
     send_in_pings:
       - metrics
+      - sync
       - update
 
   distro:
@@ -1364,6 +1367,7 @@ system.os:
     expires: never
     send_in_pings:
       - metrics
+      - sync
       - update
 
   distro_version:
@@ -1384,6 +1388,7 @@ system.os:
     expires: never
     send_in_pings:
       - metrics
+      - sync
       - update
 
   service_pack_major:
@@ -1405,6 +1410,7 @@ system.os:
     expires: never
     send_in_pings:
       - metrics
+      - sync
       - update
 
   service_pack_minor:
@@ -1426,6 +1432,7 @@ system.os:
     expires: never
     send_in_pings:
       - metrics
+      - sync
       - update
 
   windows_build_number:
@@ -1448,6 +1455,7 @@ system.os:
     expires: never
     send_in_pings:
       - metrics
+      - sync
       - update
 
   windows_ubr:
@@ -1470,6 +1478,7 @@ system.os:
     expires: never
     send_in_pings:
       - metrics
+      - sync
       - update
 
 system:

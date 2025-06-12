@@ -134,6 +134,10 @@ run-sequentially = "Frequent timeouts, bug 1395148"
 ["test_fxa_service_cluster.js"]
 # Finally, we test each engine.
 
+["test_glean.js"]
+skip-if = ["appname == 'thunderbird'"]
+requesttimeoutfactor = 4
+
 ["test_history_engine.js"]
 skip-if = ["appname == 'thunderbird'"]
 

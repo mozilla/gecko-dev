@@ -312,34 +312,36 @@ function assert_valid_ping(record) {
   }
 }
 
+function assert_success_sync(record) {
+  ok(!record.failureReason, JSON.stringify(record.failureReason));
+  equal(undefined, record.status);
+  greater(record.engines.length, 0);
+  for (let e of record.engines) {
+    ok(!e.failureReason);
+    equal(undefined, e.status);
+    if (e.validation) {
+      equal(undefined, e.validation.problems);
+      equal(undefined, e.validation.failureReason);
+    }
+    if (e.outgoing) {
+      for (let o of e.outgoing) {
+        equal(undefined, o.failed);
+        notEqual(undefined, o.sent);
+      }
+    }
+    if (e.incoming) {
+      equal(undefined, e.incoming.failed);
+      equal(undefined, e.incoming.newFailed);
+      notEqual(undefined, e.incoming.applied || e.incoming.reconciled);
+    }
+  }
+}
+
 // Asserts that `ping` is a ping that doesn't contain any failure information
 function assert_success_ping(ping) {
   ok(!!ping);
   assert_valid_ping(ping);
-  ping.syncs.forEach(record => {
-    ok(!record.failureReason, JSON.stringify(record.failureReason));
-    equal(undefined, record.status);
-    greater(record.engines.length, 0);
-    for (let e of record.engines) {
-      ok(!e.failureReason);
-      equal(undefined, e.status);
-      if (e.validation) {
-        equal(undefined, e.validation.problems);
-        equal(undefined, e.validation.failureReason);
-      }
-      if (e.outgoing) {
-        for (let o of e.outgoing) {
-          equal(undefined, o.failed);
-          notEqual(undefined, o.sent);
-        }
-      }
-      if (e.incoming) {
-        equal(undefined, e.incoming.failed);
-        equal(undefined, e.incoming.newFailed);
-        notEqual(undefined, e.incoming.applied || e.incoming.reconciled);
-      }
-    }
-  });
+  ping.syncs.forEach(assert_success_sync);
 }
 
 // Hooks into telemetry to validate all pings after calling.

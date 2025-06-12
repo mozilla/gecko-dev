@@ -712,3 +712,489 @@ sync:
     telemetry_mirror: WEAVE_DEVICE_COUNT_MOBILE
     no_lint:
       - COMMON_PREFIX
+
+  maintenance_fix_bookmarks:
+    type: event
+    description: |
+      If the last sync failed and we ran maintainenance and this sync succeeded,
+      maintenance likely fixed the issue.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    send_in_pings:
+      - sync
+
+  maintenance_run_bookmarks:
+    type: event
+    description: |
+      Bookmark sync failed, and it's been long enough since our last maintenance,
+      so we're running Places maintenance.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    send_in_pings:
+      - sync
+
+sync.client:
+  sendcommand:
+    type: event
+    description: |
+      Records that Sync wrote a remote "command" to another client.
+      These are sync-specific commands for that other client to take some
+      action such as resetting Sync on that client or wiping the local sync
+      data.
+      (It is not used for FxA-specific commands like opening/closing tabs.)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    send_in_pings:
+      - sync
+    extra_keys:
+      flow_id:
+        description: |
+          A GUID which uniquely identifies this command invocation.
+          This GUID is the same for every device the command is sent to.
+        type: string
+      reason:
+        description: |
+          Sent when a remote client needs to take some action because of some
+          event which happened on this device, such as restoring bookmarks,
+          which means remote clients need to wipe local bookmarks before syncing
+          the newly restored set.
+          e.g. "bookmark-restore", "wipe-remote"
+        type: string
+      command:
+        description: |
+          The specific command being written.
+        type: string
+      device_id:
+        description: |
+          A GUID which identifies the device the command is being sent to.
+        type: string
+      server_time: &sync_server_time_extra
+        description: |
+           The most recent unix timestamp sent from the sync server via the
+           `X-Weave-Timestamp` HTTP header.
+           Omitted in cases where the client has not yet made a request of the
+           server and whenever else it's unavailable.
+           Included to improve flow analysis across multiple clients.
+        type: string
+
+  processcommand:
+    type: event
+    description: |
+      When the local client has any remote commands and we're processing them.
+      Almost identical to `sync.client.sendcommand` but is recorded by the
+      receiving device rather than the sending device.
+      See `sync.client.sendcommand` for more details.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    send_in_pings:
+      - sync
+    extra_keys:
+      flow_id:
+        description: |
+          A GUID which uniquely identifies this command invocation.
+          The value for this GUID will be the same as the `flow_id` sent to the
+          client via `sync.client.sendcommand`.
+        type: string
+      command:
+        description: |
+          The specific command being processed.
+        type: string
+      server_time: *sync_server_time_extra
+
+syncs:
+  discarded:
+    type: quantity
+    unit: discarded syncs
+    description: |
+      How many syncs happened which were not reported in detail
+      due to being over the number of syncs we report detailed information for.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    send_in_pings:
+      - sync
+
+  hashed_fxa_uid:
+    type: string
+    description: |
+      Hashed FxA unique ID, or string of 32 zeroes.
+      If this changes between syncs, the "sync" ping is submitted with reason "idchanged".
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    send_in_pings:
+      - sync
+
+  hashed_device_id:
+    type: string
+    description: |
+      Hashed FxA device ID, hex string of 64 characters.
+      Not included if the user is not logged in.
+      If this changes between syncs, the "sync" ping is submitted with reason "idchanged".
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    send_in_pings:
+      - sync
+
+  session_start_date:
+    type: datetime
+    time_unit: hour
+    description: |
+      When the sync telemetry session begins (the `SyncTelemetryImpl`
+      constructor runs).
+      Typically useful for ordering "sync" pings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    send_in_pings:
+      - sync
+
+  sync_node_type:
+    type: string
+    description: |
+      The "node type" as reported by the token server.
+      This will not change from sync to sync.
+      May not be present if the token server omits this information.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    send_in_pings:
+      - sync
+
+  syncs:
+    type: object
+    description: |
+      Recorded syncs.
+      The "sync" ping is not submitted if this is empty.
+      ```text
+        [{
+          when: integer ms since epoch,
+          took: integer ms duration,
+          didLogin: true if first sync after login,
+          why:
+            - "startup" if first sync after browser startup
+            - "schedule" if it's been too long since the last sync
+            - "score" if one of sync's trackers has a high score value indicating many changes since the last sync
+            - "user" if the user manually triggered the sync
+            - "tabs" if the user opened the synced tabs sidebar, triggering a sync
+          failureReason: { // if there was an error
+            name: {"httperror"|"networkerror"|...},
+            code: error code for "httperror" and "networkerror" only,
+            error: error string for "othererror" and "unexpectederror" only,
+            from: for "autherror" only,
+          },
+          devices: [{ // excluded if we couldn't get a valid uid or local device id
+            os: provided by `Services.appinfo.OS`,
+            version: provided by `Services.appinfo.version`,
+            id: hashed FxA device id,
+            device_type: e.g. "mobile", "tv", etc.,
+            syncID: hashed sync device id for device, if user is a sync user,
+                    (May be different from the FxA device ID)
+          }, ...],
+          status: {
+            sync: value of the Status.sync property, unless we succeeded,
+            service: value of Status.service, unless we succeeded,
+          },
+          engines: [{
+            name: Engine name: "bookmarks", "tabs", etc.,
+            took: milliseconds (optional),
+            status: value of Status.engines, if not success,
+            incoming: {
+              applied: number of records applied,
+              succeeded: number of records that applied without error,
+              failed: number of records that failed to apply,
+              failedReasons: [{
+                name: Error message when trying to apply the record,
+                count: How many times this particular error happened,
+              }, ...],
+            },
+            outgoing: [{
+              sent: Number of outgoing records sent,
+              failed: Number that failed to send,
+              failedReasons: [{
+                name: Error message while trying to send the record,
+                count: How many times this particular error happened,
+              }],
+            }, ...],
+            failureReason: { // if there was an error for this specific engine
+              name: {"httperror"|"networkerror"|...},
+              code: error code for "httperror" and "networkerror" only,
+              error: error string for "othererror" and "unexpectederror" only,
+              from: for "autherror" only,
+            },
+            steps: [{ // Timings and counts for detailed steps that the bookmarks engine took
+              name: Step name (e.g. "clients", "tabs", "bookmarks-buffered" see `ProgressTracker.STEPS`),
+              took: milliseconds the step took to execute,
+              counts: [{
+                name: Counter name (e.g. "items", "fetchLocalTree"),
+                count: Counter value,
+              }, ...],
+            }, ...],
+            validation: { // If the engine ran validation on itself.
+              version: integer version,
+              checked: how many records were checked,
+              took: non-monotonic integer duration in millis,
+              problems: [{
+                name: the problem (e.g. "parentChildDisagreements", "missingChildren"),
+                count: the records with this problem,
+              }, ...]
+              failureReason: { // if there was an error running validation
+                name: error name (e.g. "nserror", "unexpectederror"),
+                code: error code for "httperror" and "networkerror" only,
+                error: error string for "othererror" and "unexpectederror" only,
+                from: for "autherror" only,
+              },
+            },
+          }, ...]
+        }, ...]
+      ```
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    send_in_pings:
+      - sync
+    structure:
+      type: array
+      items:
+        type: object
+        properties:
+          when:
+            type: number
+          took:
+            type: number
+          didLogin:
+            type: boolean
+          why:
+            type: string
+          failureReason: &sync_failure_reason
+            type: object
+            properties:
+              name:
+                type: string
+              code:
+                type: number
+              error:
+                type: string
+              from:
+                type: string
+          devices:
+            type: array
+            items:
+              type: object
+              properties:
+                os:
+                  type: string
+                version:
+                  type: string
+                id:
+                  type: string
+                device_type:
+                  type: string
+                syncID:
+                  type: string
+          status:
+            type: object
+            properties:
+              sync:
+                type: string
+              service:
+                type: string
+          engines:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                took:
+                  type: number
+                status:
+                  type: string
+                incoming:
+                  type: object
+                  properties:
+                    applied:
+                      type: number
+                    succeeded:
+                      type: number
+                    failed:
+                      type: number
+                    failedReasons: &sync_named_counts
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          count:
+                            type: number
+                outgoing:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      sent:
+                        type: number
+                      failed:
+                        type: number
+                      failedReasons: *sync_named_counts
+                failureReason: *sync_failure_reason
+                steps:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      took:
+                        type: number
+                      counts: *sync_named_counts
+                validation:
+                  type: object
+                  properties:
+                    checked:
+                      type: number
+                    failureReason: *sync_failure_reason
+                    took:
+                      type: number
+                    version:
+                      type: number
+                    problems: *sync_named_counts
+
+  migrations:
+    type: object
+    description: |
+      The application-services developers are in the process of oxidizing parts
+      of firefox sync and the related data storage code,
+      which typically requires migrating the old storage into a new database and/or format.
+
+      When a migration like this occurs,
+      a record is reported in this list the next time the sync ping is submitted.
+
+      ```text
+        [{
+          migration_type: Presently this is only ever "webext-storage",
+          entries: The number of entries/preferences in the source (legacy) database, including ones we failed to read,
+          entriesSuccessful: he number of entries/preferences (see below) which we have successfully migrated into the destination database,
+          extensions: The number of distinct extensions which have at least one preference in the source (legacy) database,
+          extensionsSuccessful: The number of distinct extensions which have at least one preference in the destination (migrated) database,
+          openFailure: A boolean flag that is true if we hit a read error prior to . This likely indicates complete corruption, or a bug in an underlying library like rusqlite,
+        }]
+      ```
+
+      **Note: "entries" vs "extensions"**
+      The `webext-storage` migration record detailed above contains counts for both:
+          * The number of “entries” detected vs successfully migrated.
+          * The number of “extensions” detected vs successfully migrated.
+
+      This may seem redundant, but these refer to different (but related) things.
+      The distinction here has to do with the way the two databases store extension-storage data:
+          * The legacy database stores one row for each
+            (`extension_id`, `preference_name`, `preference_value`) triple.
+            These are referred to as `entries`.
+          * Conversely, the new database stores one row per extension,
+            which is a pair containing both the `extension_id`,
+            as well as a dictionary holding all preference data,
+            and so are equivalent to extensions.
+
+      (The description above is a somewhat simplified view of things,
+      as it ignores a number values each database stores which is irrelevant for migration)
+
+      That is, entries represent each individual preference setting,
+      and extensions represent the collected set of preferences for a given extension.
+
+      Counts for are both of these are present as it’s likely that the disparity
+      would point to different kinds of issues with the migration code.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963812
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - sync-dev@mozilla.org
+    expires: never
+    send_in_pings:
+      - sync
+    structure:
+      type: array
+      items:
+        type: object
+        properties:
+          migration_type:
+            type: string
+          entries:
+            type: number
+          entriesSuccessful:
+            type: number
+          extensions:
+            type: number
+          extensionsSuccessful:
+            type: number
+          openFailure:
+            type: boolean

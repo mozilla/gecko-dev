@@ -58,8 +58,11 @@ async function syncClientsEngine(server) {
   await engine._sync();
 }
 
-add_task(async function setup() {
+add_setup(async function () {
   engine = Service.clientsEngine;
+
+  do_get_profile(); // FOG requires a profile directory.
+  Services.fog.initializeFOG();
 });
 
 async function cleanup() {
@@ -1796,6 +1799,8 @@ add_task(async function ensureSameFlowIDs() {
   Service.recordTelemetryEvent = (object, method, value, extra) => {
     events.push({ object, method, value, extra });
   };
+  // Clear events from other test cases.
+  Services.fog.testResetFOG();
 
   let server = await serverForFoo(engine);
   try {
@@ -1833,6 +1838,10 @@ add_task(async function ensureSameFlowIDs() {
     equal(events.length, 2);
     // we don't know what the flowID is, but do know it should be the same.
     equal(events[0].extra.flowID, events[1].extra.flowID);
+    let wipeEvents = Glean.syncClient.sendcommand.testGetValue();
+    equal(wipeEvents.length, 2);
+    equal(wipeEvents[0].extra.flow_id, wipeEvents[1].extra.flow_id);
+    Services.fog.testResetFOG();
     // Wipe remote clients to ensure deduping doesn't prevent us from adding the command.
     for (let client of Object.values(engine._store._remoteClients)) {
       client.commands = [];
@@ -1845,6 +1854,11 @@ add_task(async function ensureSameFlowIDs() {
     equal(events.length, 2);
     equal(events[0].extra.flowID, flowID);
     equal(events[1].extra.flowID, flowID);
+    wipeEvents = Glean.syncClient.sendcommand.testGetValue();
+    equal(wipeEvents.length, 2);
+    equal(wipeEvents[0].extra.flow_id, flowID);
+    equal(wipeEvents[1].extra.flow_id, flowID);
+    Services.fog.testResetFOG();
 
     // Wipe remote clients to ensure deduping doesn't prevent us from adding the command.
     for (let client of Object.values(engine._store._remoteClients)) {
@@ -1861,6 +1875,11 @@ add_task(async function ensureSameFlowIDs() {
     equal(events[0].extra.flowID, events[1].extra.flowID);
     equal(events[0].extra.reason, "testing");
     equal(events[1].extra.reason, "testing");
+    wipeEvents = Glean.syncClient.sendcommand.testGetValue();
+    equal(wipeEvents.length, 2);
+    equal(wipeEvents[0].extra.reason, "testing");
+    equal(wipeEvents[1].extra.reason, "testing");
+    Services.fog.testResetFOG();
     // Wipe remote clients to ensure deduping doesn't prevent us from adding the command.
     for (let client of Object.values(engine._store._remoteClients)) {
       client.commands = [];
@@ -1878,6 +1897,12 @@ add_task(async function ensureSameFlowIDs() {
     equal(events[1].extra.flowID, flowID);
     equal(events[0].extra.reason, "testing");
     equal(events[1].extra.reason, "testing");
+    wipeEvents = Glean.syncClient.sendcommand.testGetValue();
+    equal(wipeEvents.length, 2);
+    equal(wipeEvents[0].extra.flow_id, flowID);
+    equal(wipeEvents[1].extra.flow_id, flowID);
+    equal(wipeEvents[0].extra.reason, "testing");
+    equal(wipeEvents[1].extra.reason, "testing");
     // Wipe remote clients to ensure deduping doesn't prevent us from adding the command.
     for (let client of Object.values(engine._store._remoteClients)) {
       client.commands = [];
@@ -1895,6 +1920,8 @@ add_task(async function test_duplicate_commands_telemetry() {
   Service.recordTelemetryEvent = (object, method, value, extra) => {
     events.push({ object, method, value, extra });
   };
+  // Clear events from other test cases.
+  Services.fog.testResetFOG();
 
   let server = await serverForFoo(engine);
   try {
@@ -1929,13 +1956,16 @@ add_task(async function test_duplicate_commands_telemetry() {
     await engine.sendCommand("wipeEngine", ["history"], remoteId);
     await engine.sendCommand("wipeEngine", ["history"], remoteId);
     equal(events.length, 1);
+    equal(Glean.syncClient.sendcommand.testGetValue().length, 1);
     await syncClientsEngine(server);
     // And after syncing.
     await engine.sendCommand("wipeEngine", ["history"], remoteId);
     equal(events.length, 1);
+    equal(Glean.syncClient.sendcommand.testGetValue().length, 1);
     // Ensure we aren't deduping commands to different clients
     await engine.sendCommand("wipeEngine", ["history"], remoteId2);
     equal(events.length, 2);
+    equal(Glean.syncClient.sendcommand.testGetValue().length, 2);
   } finally {
     Service.recordTelemetryEvent = origRecordTelemetryEvent;
     cleanup();
