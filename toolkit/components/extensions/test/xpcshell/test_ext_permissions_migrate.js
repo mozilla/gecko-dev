@@ -147,6 +147,76 @@ add_task(async function test_required_permissions_removed() {
   await extension.unload();
 });
 
+// This separate test task covers ExtensionData.migratePermissions behaviors
+// under some additional corner cases (e.g. updating an addon that was installed
+// before support for the data collection permission was introduced)
+add_task(async function test_migratePermissions_on_missing_data_collection() {
+  const { ExtensionData } = ChromeUtils.importESModule(
+    "resource://gre/modules/Extension.sys.mjs"
+  );
+  const { ExtensionPermissions } = ChromeUtils.importESModule(
+    "resource://gre/modules/ExtensionPermissions.sys.mjs"
+  );
+  const { sinon } = ChromeUtils.importESModule(
+    "resource://testing-common/Sinon.sys.mjs"
+  );
+  let sandbox = sinon.createSandbox();
+  let removeStub = sandbox.stub(ExtensionPermissions, "remove").resolves();
+
+  const emptyPerms = { permissions: [], origins: [] };
+  const testCases = [
+    {
+      description: "old permissions missing data_collection property",
+      id: "test@ext",
+      oldPermissions: { ...emptyPerms },
+      oldOptionalPermissions: { ...emptyPerms },
+      newPermissions: { ...emptyPerms, data_collection: ["locationInfo"] },
+      newOptionalPermissions: {
+        ...emptyPerms,
+        data_collection: ["healthInfo"],
+      },
+      expectedRemovedPermissions: { ...emptyPerms, data_collection: [] },
+    },
+    {
+      description: "new permissions missing data_collection property",
+      id: "test@ext",
+      oldPermissions: { ...emptyPerms, data_collection: ["locationInfo"] },
+      oldOptionalPermissions: {
+        ...emptyPerms,
+        data_collection: ["healthInfo"],
+      },
+      newPermissions: { ...emptyPerms },
+      newOptionalPermissions: { ...emptyPerms },
+      expectedRemovedPermissions: {
+        ...emptyPerms,
+        data_collection: ["locationInfo", "healthInfo"],
+      },
+    },
+  ];
+
+  for (const testCase of testCases) {
+    removeStub.resetHistory();
+    await ExtensionData.migratePermissions(
+      testCase.id,
+      testCase.oldPermissions,
+      testCase.oldOptionalPermissions,
+      testCase.newPermissions,
+      testCase.newOptionalPermissions
+    );
+    Assert.deepEqual(
+      removeStub.firstCall.args,
+      [testCase.id, testCase.expectedRemovedPermissions],
+      "ExtensionPermissions.remove call got the expected arguments"
+    );
+    ok(
+      removeStub.calledOnce,
+      "Expect ExtensionPermissions to have been called once"
+    );
+  }
+
+  sandbox.restore();
+});
+
 // This tests that settings are removed if a granted permission is removed.
 // We use two settings APIs to make sure the one we keep permission to is not
 // removed inadvertantly.
