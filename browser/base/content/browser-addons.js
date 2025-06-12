@@ -2768,8 +2768,8 @@ var gUnifiedExtensions = {
     let newPosition = shouldPinToToolbar ? undefined : 0;
 
     CustomizableUI.addWidgetToArea(widgetId, newArea, newPosition);
-
-    this.updateAttention();
+    // addWidgetToArea() will trigger onWidgetAdded or onWidgetMoved as needed,
+    // and our handlers will call updateAttention() as needed.
   },
 
   async moveWidget(menu, direction) {
@@ -2806,6 +2806,10 @@ var gUnifiedExtensions = {
   },
 
   onWidgetAdded(aWidgetId, aArea) {
+    if (CustomizableUI.isWebExtensionWidget(aWidgetId)) {
+      this.updateAttention();
+    }
+
     // When we pin a widget to the toolbar from a narrow window, the widget
     // will be overflowed directly. In this case, we do not want to change the
     // class name since it is going to be changed by `onWidgetOverflow()`
@@ -2818,6 +2822,12 @@ var gUnifiedExtensions = {
       CustomizableUI.getAreaType(aArea) !== CustomizableUI.TYPE_TOOLBAR;
 
     this._updateWidgetClassName(aWidgetId, inPanel);
+  },
+
+  onWidgetMoved(aWidgetId) {
+    if (CustomizableUI.isWebExtensionWidget(aWidgetId)) {
+      this.updateAttention();
+    }
   },
 
   onWidgetOverflow(aNode) {

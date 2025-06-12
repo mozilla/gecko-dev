@@ -344,6 +344,8 @@ https_first_disabled = true
 
 ["browser_ext_originControls_internals.js"]
 
+["browser_ext_originControls_multiple_windows.js"]
+
 ["browser_ext_pageAction_activeTab.js"]
 
 ["browser_ext_pageAction_click_types.js"]
