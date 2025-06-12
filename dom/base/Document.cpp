@@ -2141,6 +2141,11 @@ void Document::RecordPageLoadEventTelemetry(
       aEventTelemetryData.jsExecTime = mozilla::Some(
           static_cast<uint32_t>(timers.executionTime.ToMilliseconds()));
     }
+
+    if (!timers.delazificationTime.IsZero()) {
+      aEventTelemetryData.delazifyTime = mozilla::Some(
+          static_cast<uint32_t>(timers.delazificationTime.ToMilliseconds()));
+    }
   }
 
   // Sending a glean ping must be done on the parent process.
