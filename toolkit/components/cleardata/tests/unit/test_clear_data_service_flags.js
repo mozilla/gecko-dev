@@ -16,6 +16,7 @@ add_task(function test_clear_data_service_flags() {
   let allFlags = 0;
   Object.keys(Ci.nsIClearDataService)
     .filter(k => k.startsWith("CLEAR_"))
+    .filter(k => k != "CLEAR_BFCACHE") // TODO(Bug 1918722): merge all caches into single bit
     .forEach(flag => {
       // checks that all one bit flags are different
       const FLAG_VAL = Services.clearData[flag];
