@@ -290,14 +290,14 @@ void HLSDecoder::UpdateCurrentPrincipal(nsIURI* aMediaUri) {
 
   // Check the subsumption of old and new principals. Should be either
   // equal or disjoint.
-  if (!mContentPrincipal) {
-    mContentPrincipal = principal;
+  if (!mContentPrincipal || principal->GetIsNullPrincipal()) {
+    mContentPrincipal = std::move(principal);
   } else if (principal->Equals(mContentPrincipal)) {
     return;
   } else if (!principal->Subsumes(mContentPrincipal) &&
              !mContentPrincipal->Subsumes(principal)) {
     // Principals are disjoint -- no access.
-    mContentPrincipal = NullPrincipal::Create(OriginAttributes());
+    mContentPrincipal = NullPrincipal::Create(OriginAttributes(), aMediaUri);
   } else {
     MOZ_DIAGNOSTIC_CRASH("non-equal principals should be disjoint");
     mContentPrincipal = nullptr;
@@ -315,15 +315,16 @@ already_AddRefed<nsIPrincipal> HLSDecoder::GetContentPrincipal(
   if (element->GetCORSMode() == CORS_USE_CREDENTIALS) {
     securityFlags |= nsILoadInfo::SEC_COOKIES_INCLUDE;
   }
+  nsCOMPtr<nsIPrincipal> principal =
+      NullPrincipal::Create(OriginAttributes(), aMediaUri);
   nsCOMPtr<nsIChannel> channel;
   nsresult rv = NS_NewChannel(
       getter_AddRefs(channel), aMediaUri, static_cast<dom::Element*>(element),
       securityFlags, nsIContentPolicy::TYPE_INTERNAL_VIDEO);
-  NS_ENSURE_SUCCESS(rv, nullptr);
-  nsCOMPtr<nsIPrincipal> principal;
+  NS_ENSURE_SUCCESS(rv, principal.forget());
   nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
   if (!secMan) {
-    return nullptr;
+    return principal.forget();
   }
   secMan->GetChannelResultPrincipal(channel, getter_AddRefs(principal));
   return principal.forget();
