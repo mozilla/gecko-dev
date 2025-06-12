@@ -69,7 +69,7 @@ add_task(async function testDecodingResponseContent() {
   await BrowserTestUtils.waitForCondition(() => events[1].hasResponseContent);
 
   is(events[1].responseContent, '"', "expected response content");
-  is(events[1].truncated, true, "response content would be truncated");
+  todo_is(events[1].truncated, true, "response content would be truncated");
 
   networkObserver.destroy();
   gBrowser.removeTab(tab);

@@ -120,9 +120,9 @@ export class NetworkResponseListener {
   /**
    * Used to decode the response body.
    *
-   * @type {TextDecoder}
+   * @type {nsIScriptableUnicodeConverter}
    */
-  #textDecoder = null;
+  #uconv = null;
   /**
    * Indicates if the response had a size greater than response body limit.
    *
@@ -211,31 +211,23 @@ export class NetworkResponseListener {
   }
 
   #convertToUnicode(text, charset) {
-    if (!this.#textDecoder) {
-      this.#textDecoder = new TextDecoder(charset || "UTF-8", { fatal: true });
+    // We need to keep using the same converter instance to properly decode
+    // the streamed content.
+    if (!this.#uconv) {
+      this.#uconv = Cc[
+        "@mozilla.org/intl/scriptableunicodeconverter"
+      ].createInstance(Ci.nsIScriptableUnicodeConverter);
     }
-    const u8 = Uint8Array.from(text, c => c.charCodeAt(0));
     try {
-      return this.#textDecoder.decode(u8, { stream: true });
-    } catch (e) {
+      // Calling `charset` setter will clear the internal buffer of the
+      // decoder. Set the value only if it is different from the old one.
+      if (this.#uconv.charset !== (charset || "UTF-8")) {
+        this.#uconv.charset = charset || "UTF-8";
+      }
+      return this.#uconv.ConvertToUnicode(text);
+    } catch (ex) {
       return text;
     }
-  }
-
-  #finishConvertToUnicode() {
-    if (!this.#textDecoder) {
-      return;
-    }
-    try {
-      // Call decode with stream false to check if the decoder contains
-      // incomplete bytes in the internal buffer.
-      this.#textDecoder.decode(new Uint8Array());
-    } catch (e) {
-      // Unfortunately we have no way to retrieve bytes from the internal
-      // buffer. Set #truncated instead.
-      this.#truncated = true;
-    }
-    this.#textDecoder = null;
   }
 
   /**
@@ -293,7 +285,7 @@ export class NetworkResponseListener {
     // We need to track the offset for the onDataAvailable calls where
     // we pass the data from our pipe to the converter.
     this.#offset = 0;
-    this.#textDecoder = null;
+    this.#uconv = null;
 
     const channel = this.#request;
 
@@ -485,25 +477,24 @@ export class NetworkResponseListener {
       this.#fetchCacheInformation();
     }
 
-    let charset;
-    try {
-      charset = this.#request.contentCharset;
-    } catch (e) {
-      // Accessing the charset sometimes throws NS_ERROR_NOT_AVAILABLE when
-      // reloading the page
-    }
-    if (!charset) {
-      charset = this.#httpActivity.charset;
-    }
-
     if (!this.#httpActivity.discardResponseBody && this.#receivedData.length) {
-      this.#finishConvertToUnicode();
+      this.#uconv = null;
       this.#onComplete(this.#receivedData);
     } else if (
       !this.#httpActivity.discardResponseBody &&
       responseStatus == 304
     ) {
       // Response is cached, so we load it from cache.
+      let charset;
+      try {
+        charset = this.#request.contentCharset;
+      } catch (e) {
+        // Accessing the charset sometimes throws NS_ERROR_NOT_AVAILABLE when
+        // reloading the page
+      }
+      if (!charset) {
+        charset = this.#httpActivity.charset;
+      }
       lazy.NetworkHelper.loadFromCache(
         this.#httpActivity.url,
         charset,
@@ -613,6 +604,7 @@ export class NetworkResponseListener {
     this.#inputStream = null;
     this.#converter = null;
     this.#request = null;
+    this.#uconv = null;
   }
 
   /**
