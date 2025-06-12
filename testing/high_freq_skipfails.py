@@ -121,6 +121,8 @@ class HighFreqSkipfails:
         task_list = self.get_task_list([task_id for task_id in task_data])
         for task_id, task in task_list:
             test_setting = task.get("extra", {}).get("test-setting", {})
+            if not test_setting:
+                continue
             platform_info = PlatformInfo(test_setting)
             (bug_id, test_path, raw_manifest) = task_data[task_id]
 
