@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "chrome://browser/content/taskbartabs/TaskbarTabs.1.schema.json",
+  "type": "object",
+  "required": ["version", "taskbarTabs"],
+  "properties": {
+    "version": {
+      "description": "Taskbar Tabs serialization verion.",
+      "type": "integer",
+      "const": 1
+    },
+    "taskbarTabs": {
+      "description": "An array of registered Taskbar Tabs.",
+      "type": "array",
+      "items": {
+        "description": "A Taskbar Tab.",
+        "type": "object",
+        "required": ["id", "scopes", "userContextId", "startUrl"],
+        "properties": {
+          "id": {
+            "description": "UUID for the registered Taskbar Tab.",
+            "type": "string",
+            "format": "uuid"
+          },
+          "scopes": {
+            "description": "An array of scopes of valid domains for a Taskbar Tab.",
+            "type": "array",
+            "contains": {
+              "description": "Scope of a valid domain for a Taskbar Tab.",
+              "type": "object",
+              "required": ["hostname"],
+              "properties": {
+                "hostname": {
+                  "description": "The hostname of the scope. Note: matching second-level domains are considered in-scope navigation targets for existing Taskbar Tabs.",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "userContextId": {
+            "description": "The container associated to a Taskbar Tab.",
+            "type": "integer"
+          },
+          "startUrl": {
+            "description": "The starting URL opened when Taskbar Tab is launched from the taskbar.",
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      }
+    }
+  }
+}
