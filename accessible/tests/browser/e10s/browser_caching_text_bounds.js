@@ -148,6 +148,12 @@ async function testLineWithNonRenderedSpace(docAcc, browser, id, length) {
   }
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Test the text range boundary for simple LtR text
  */
