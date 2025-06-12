@@ -74,9 +74,43 @@ class DistributionIdManager(
             else -> Distribution.DEFAULT.id
         }
 
+        recordProviderCheckerEvents(
+            isProviderDigitalTurbine = isProviderDigitalTurbine(provider),
+            isLegacyProviderDigitalTurbine = isProviderDigitalTurbine(providerLegacy),
+            distributionMetricsProvider = DefaultDistributionMetricsProvider(),
+        )
+
         browserStoreProvider.updateDistributionId(distributionId)
 
         return distributionId
+    }
+
+    @VisibleForTesting
+    internal fun recordProviderCheckerEvents(
+        isProviderDigitalTurbine: Boolean,
+        isLegacyProviderDigitalTurbine: Boolean,
+        distributionMetricsProvider: DistributionMetricsProvider,
+    ) {
+        when {
+            isProviderDigitalTurbine && isDtTelefonicaInstalled() -> {
+                distributionMetricsProvider.recordDt001Detected()
+            }
+            isLegacyProviderDigitalTurbine && isDtTelefonicaInstalled() -> {
+                distributionMetricsProvider.recordDt001LegacyDetected()
+            }
+            isProviderDigitalTurbine && isDtUsaInstalled() -> {
+                distributionMetricsProvider.recordDt002Detected()
+            }
+            isLegacyProviderDigitalTurbine && isDtUsaInstalled() -> {
+                distributionMetricsProvider.recordDt002LegacyDetected()
+            }
+            isProviderDigitalTurbine -> {
+                distributionMetricsProvider.recordDt003Detected()
+            }
+            isLegacyProviderDigitalTurbine -> {
+                distributionMetricsProvider.recordDt003LegacyDetected()
+            }
+        }
     }
 
     /**

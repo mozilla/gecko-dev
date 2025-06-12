@@ -12696,6 +12696,84 @@ partnerships:
     notification_emails:
       - android-probes@mozilla.com
     expires: never
+  dt_001_detected:
+    type: event
+    description: |
+      When a dt-001 preinstall is detected using the DefaultDistributionProviderChecker
+    data_sensitivity:
+      - technical
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968291
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D252908
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  dt_002_detected:
+    type: event
+    description: |
+      When a dt-002 preinstall is detected using the DefaultDistributionProviderChecker
+    data_sensitivity:
+      - technical
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968291
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D252908
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  dt_003_detected:
+    type: event
+    description: |
+      When a dt-003 preinstall is detected using the DefaultDistributionProviderChecker
+    data_sensitivity:
+      - technical
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968291
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D252908
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  dt_001_legacy_detected:
+    type: event
+    description: |
+      When a dt-001 preinstall is detected using the LegacyDistributionProviderChecker
+    data_sensitivity:
+      - technical
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968291
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D252908
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  dt_002_legacy_detected:
+    type: event
+    description: |
+      When a dt-002 preinstall is detected using the LegacyDistributionProviderChecker
+    data_sensitivity:
+      - technical
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968291
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D252908
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+  dt_003_legacy_detected:
+    type: event
+    description: |
+      When a dt-003 preinstall is detected using the LegacyDistributionProviderChecker
+    data_sensitivity:
+      - technical
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968291
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D252908
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
 
 usage:
   profile_id:
