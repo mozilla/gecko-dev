@@ -256,7 +256,7 @@ export class ConditionalPanel extends PureComponent {
       let parent = this.input.parentNode;
       while (parent) {
         if (
-          parent instanceof HTMLElement &&
+          HTMLElement.isInstance(parent) &&
           parent.classList.contains("CodeMirror-scroll")
         ) {
           this.scrollParent = parent;
