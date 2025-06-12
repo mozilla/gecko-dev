@@ -37,6 +37,7 @@ SOURCES += [
     "/third_party/zucchini/chromium/components/zucchini/abs32_utils.cc",
     "/third_party/zucchini/chromium/components/zucchini/address_translator.cc",
     "/third_party/zucchini/chromium/components/zucchini/arm_utils.cc",
+    "/third_party/zucchini/chromium/components/zucchini/binary_data_histogram.cc",
     "/third_party/zucchini/chromium/components/zucchini/buffer_sink.cc",
     "/third_party/zucchini/chromium/components/zucchini/buffer_source.cc",
     "/third_party/zucchini/chromium/components/zucchini/crc32.cc",
@@ -46,8 +47,11 @@ SOURCES += [
     "/third_party/zucchini/chromium/components/zucchini/disassembler_win32.cc",
     "/third_party/zucchini/chromium/components/zucchini/element_detection.cc",
     "/third_party/zucchini/chromium/components/zucchini/encoded_view.cc",
+    "/third_party/zucchini/chromium/components/zucchini/ensemble_matcher.cc",
     "/third_party/zucchini/chromium/components/zucchini/equivalence_map.cc",
+    "/third_party/zucchini/chromium/components/zucchini/heuristic_ensemble_matcher.cc",
     "/third_party/zucchini/chromium/components/zucchini/image_index.cc",
+    "/third_party/zucchini/chromium/components/zucchini/imposed_ensemble_matcher.cc",
     "/third_party/zucchini/chromium/components/zucchini/io_utils.cc",
     "/third_party/zucchini/chromium/components/zucchini/patch_reader.cc",
     "/third_party/zucchini/chromium/components/zucchini/patch_writer.cc",
@@ -59,6 +63,7 @@ SOURCES += [
     "/third_party/zucchini/chromium/components/zucchini/target_pool.cc",
     "/third_party/zucchini/chromium/components/zucchini/targets_affinity.cc",
     "/third_party/zucchini/chromium/components/zucchini/zucchini_apply.cc",
+    "/third_party/zucchini/chromium/components/zucchini/zucchini_gen.cc",
 ]
 
 if CONFIG["TARGET_OS"] == "WINNT":

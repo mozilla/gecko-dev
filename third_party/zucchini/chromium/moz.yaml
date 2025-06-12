@@ -190,6 +190,8 @@ vendoring:
     - components/zucchini/algorithm.h
     - components/zucchini/arm_utils.cc
     - components/zucchini/arm_utils.h
+    - components/zucchini/binary_data_histogram.cc
+    - components/zucchini/binary_data_histogram.h
     - components/zucchini/buffer_sink.cc
     - components/zucchini/buffer_sink.h
     - components/zucchini/buffer_source.cc
@@ -210,11 +212,17 @@ vendoring:
     - components/zucchini/element_detection.h
     - components/zucchini/encoded_view.cc
     - components/zucchini/encoded_view.h
+    - components/zucchini/ensemble_matcher.cc
+    - components/zucchini/ensemble_matcher.h
     - components/zucchini/equivalence_map.cc
     - components/zucchini/equivalence_map.h
+    - components/zucchini/heuristic_ensemble_matcher.cc
+    - components/zucchini/heuristic_ensemble_matcher.h
     - components/zucchini/image_index.cc
     - components/zucchini/image_index.h
     - components/zucchini/image_utils.h
+    - components/zucchini/imposed_ensemble_matcher.cc
+    - components/zucchini/imposed_ensemble_matcher.h
     - components/zucchini/io_utils.cc
     - components/zucchini/io_utils.h
     - components/zucchini/patch_reader.cc
@@ -244,6 +252,8 @@ vendoring:
     - components/zucchini/zucchini.h
     - components/zucchini/zucchini_apply.cc
     - components/zucchini/zucchini_apply.h
+    - components/zucchini/zucchini_gen.cc
+    - components/zucchini/zucchini_gen.h
     # components/zucchini/zucchini_main.temporary.cc
     - LICENSE
     # third_party/abseil-cpp/absl/base/attributes.h
