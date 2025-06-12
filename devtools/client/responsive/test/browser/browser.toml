@@ -78,10 +78,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 https_first_disabled = true
 tags = "devtools webextensions"
 
-["browser_eyedropper.js"]
-
-["browser_eyedropper_update.js"]
-
 ["browser_in_rdm_pane.js"]
 
 ["browser_many_toggles.js"]

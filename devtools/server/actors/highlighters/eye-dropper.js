@@ -18,7 +18,6 @@ const {
   getCurrentZoom,
   getFrameOffsets,
 } = require("resource://devtools/shared/layout/utils.js");
-const { debounce } = require("resource://devtools/shared/debounce.js");
 
 loader.lazyGetter(this, "clipboardHelper", () =>
   Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper)
@@ -48,7 +47,6 @@ const CLOSE_DELAY = 750;
  */
 class EyeDropper {
   #pageEventListenersAbortController;
-  #debouncedUpdateScreenshot;
   constructor(highlighterEnv) {
     EventEmitter.decorate(this);
 
@@ -62,12 +60,6 @@ class EyeDropper {
     // Get a couple of settings from prefs.
     this.format = Services.prefs.getCharPref(FORMAT_PREF);
     this.eyeDropperZoomLevel = Services.prefs.getIntPref(ZOOM_LEVEL_PREF);
-
-    this.#debouncedUpdateScreenshot = debounce(
-      this.updateScreenshot.bind(this),
-      200,
-      this
-    );
   }
 
   ID_CLASS_PREFIX = "eye-dropper-";
@@ -157,9 +149,11 @@ class EyeDropper {
     // Get the page's current zoom level.
     this.pageZoom = getCurrentZoom(this.win);
 
-    // Take a screenshot of the viewport.
+    // Take a screenshot of the viewport. This needs to be done first otherwise the
+    // eyedropper UI will appear in the screenshot itself (since the UI is injected as
+    // native anonymous content in the page).
     // Once the screenshot is ready, the magnified area will be drawn.
-    this.updateScreenshot(options.screenshot);
+    this.prepareImageCapture(options.screenshot);
 
     // Start listening for user events.
     const { pageListenerTarget } = this.highlighterEnv;
@@ -173,7 +167,9 @@ class EyeDropper {
     pageListenerTarget.addEventListener("keydown", this, { signal });
     pageListenerTarget.addEventListener("DOMMouseScroll", this, { signal });
     pageListenerTarget.addEventListener("FullZoomChange", this, { signal });
-    pageListenerTarget.addEventListener("resize", this, { signal });
+
+    // Show the eye-dropper.
+    this.getElement("root").removeAttribute("hidden");
 
     // Prepare the canvas context on which we're drawing the magnified page portion.
     this.ctx = this.getElement("canvas").getCanvasContext();
@@ -243,15 +239,11 @@ class EyeDropper {
    *                       If null, we'll use `drawWindow` to get the the page screenshot
    *                       (⚠️ but it won't handle remote frames).
    */
-  async updateScreenshot(screenshot) {
-    const rootElement = this.getElement("root");
-
+  async prepareImageCapture(screenshot) {
     let imageSource;
     if (screenshot) {
       imageSource = this.#dataURItoBlob(screenshot);
     } else {
-      // Hide the eyedropper while we take the screenshot.
-      rootElement.setAttribute("hidden", "true");
       imageSource = getWindowAsImageData(this.win);
     }
 
@@ -266,10 +258,7 @@ class EyeDropper {
 
     // Set an attribute on the root element to be able to run tests after the first draw
     // was done.
-    rootElement.setAttribute("drawn", "true");
-
-    // Show the eyedropper.
-    rootElement.removeAttribute("hidden");
+    this.getElement("root").setAttribute("drawn", "true");
   }
 
   /**
@@ -421,10 +410,6 @@ class EyeDropper {
       case "FullZoomChange":
         this.hide();
         this.show();
-        break;
-      case "resize":
-        this.getElement("root").removeAttribute("drawn");
-        this.#debouncedUpdateScreenshot();
         break;
     }
   }
