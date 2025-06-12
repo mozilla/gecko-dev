@@ -2,16 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// Set up Taskbar Tabs Window UI
-export var TaskbarTabUI = {
-  init(window) {
-    let document = window.document;
+// Set up Taskbar Tabs Window Chrome.
+export const TaskbarTabsChrome = {
+  /**
+   * Modifies the window chrome for Taskbar Tabs styling (mostly hiding elements).
+   *
+   * @param {Window} aWindow
+   */
+  init(aWindow) {
+    let document = aWindow.document;
     if (!document.documentElement.hasAttribute("taskbartab")) {
       return;
     }
 
     // Ensure tab strip is hidden
-    window.TabBarVisibility.update();
+    aWindow.TabBarVisibility.update();
 
     // Hide bookmark star
     document.getElementById("star-button-box").style.display = "none";

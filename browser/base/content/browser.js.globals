@@ -145,7 +145,7 @@
   "SubDialogManager",
   "TabCrashHandler",
   "TabsSetupFlowManager",
-  "TaskbarTabUI",
+  "TaskbarTabsChrome",
   "TelemetryEnvironment",
   "TranslationsParent",
   "UITour",
