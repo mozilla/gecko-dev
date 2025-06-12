@@ -2901,9 +2901,7 @@ nsresult QuotaManager::LoadQuota() {
 
             AddTemporaryOrigin(metadata);
 
-            QM_TRY(MOZ_TO_RESULT(InitializeOrigin(
-                metadata.mPersistenceType, metadata, metadata.mLastAccessTime,
-                metadata.mPersisted, directory)));
+            QM_TRY(MOZ_TO_RESULT(InitializeOrigin(directory, metadata)));
           } else {
             MaybeCollectUnaccessedOrigin(fullOriginMetadata);
 
@@ -3748,8 +3746,6 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
   struct RenameAndInitInfo {
     nsCOMPtr<nsIFile> mOriginDirectory;
     FullOriginMetadata mFullOriginMetadata;
-    int64_t mTimestamp;
-    bool mPersisted;
   };
   nsTArray<RenameAndInitInfo> renameAndInitInfos;
 
@@ -3824,12 +3820,9 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
                           // If it's the known case, we try to restore the
                           // origin directory name if it's possible.
                           if (originSanitized.Equals(utf8LeafName + "."_ns)) {
-                            const int64_t lastAccessTime =
-                                metadata.mLastAccessTime;
-                            const bool persisted = metadata.mPersisted;
-                            renameAndInitInfos.AppendElement(RenameAndInitInfo{
-                                std::move(childDirectory), std::move(metadata),
-                                lastAccessTime, persisted});
+                            renameAndInitInfos.AppendElement(
+                                RenameAndInitInfo{std::move(childDirectory),
+                                                  std::move(metadata)});
                             break;
                           }
 
@@ -3847,10 +3840,8 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
 
                         QM_TRY(QM_OR_ELSE_WARN_IF(
                             // Expression.
-                            MOZ_TO_RESULT(InitializeOrigin(
-                                aPersistenceType, metadata,
-                                metadata.mLastAccessTime, metadata.mPersisted,
-                                childDirectory)),
+                            MOZ_TO_RESULT(
+                                InitializeOrigin(childDirectory, metadata)),
                             // Predicate.
                             IsDatabaseCorruptionError,
                             // Fallback.
@@ -3936,9 +3927,8 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
             }
 
             // XXX We don't check corruption here ?
-            QM_TRY(MOZ_TO_RESULT(InitializeOrigin(
-                aPersistenceType, info.mFullOriginMetadata, info.mTimestamp,
-                info.mPersisted, targetDirectory)));
+            QM_TRY(MOZ_TO_RESULT(
+                InitializeOrigin(targetDirectory, info.mFullOriginMetadata)));
 
             return Ok{};
           }()),
@@ -3961,12 +3951,11 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
   return NS_OK;
 }
 
-nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
-                                        const OriginMetadata& aOriginMetadata,
-                                        int64_t aAccessTime, bool aPersisted,
-                                        nsIFile* aDirectory, bool aForGroup) {
+nsresult QuotaManager::InitializeOrigin(
+    nsIFile* aDirectory, const FullOriginMetadata& aFullOriginMetadata,
+    bool aForGroup) {
   QM_LOG(("Starting origin initialization for: %s",
-          aOriginMetadata.mOrigin.get()));
+          aFullOriginMetadata.mOrigin.get()));
 
   AssertIsOnIOThread();
 
@@ -3977,12 +3966,13 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
   // decide if they want to set it. The extra info can be set sooner this way
   // as well.
 
-  const bool trackQuota = aPersistenceType != PERSISTENCE_TYPE_PERSISTENT;
+  const bool trackQuota =
+      aFullOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT;
 
   if (trackQuota && !aForGroup &&
       QuotaPrefs::LazyOriginInitializationEnabled()) {
     QM_LOG(("Skipping origin initialization for: %s (it will be done lazily)",
-            aOriginMetadata.mOrigin.get()));
+            aFullOriginMetadata.mOrigin.get()));
 
     return NS_OK;
   }
@@ -4012,7 +4002,7 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
               }
 
               QM_TRY(
-                  ([this, &file, trackQuota, aPersistenceType, &aOriginMetadata,
+                  ([this, &file, trackQuota, &aFullOriginMetadata,
                     &clientUsages]() -> Result<Ok, nsresult> {
                     QM_TRY_INSPECT(const auto& leafName,
                                    MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
@@ -4037,7 +4027,8 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
                           QM_TRY_INSPECT(
                               const auto& usageInfo,
                               (*mClients)[clientType]->InitOrigin(
-                                  aPersistenceType, aOriginMetadata,
+                                  aFullOriginMetadata.mPersistenceType,
+                                  aFullOriginMetadata,
                                   /* aCanceled */ Atomic<bool>(false)));
 
                           MOZ_ASSERT(!clientUsages[clientType]);
@@ -4061,10 +4052,10 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
                                         leafName +
                                         u" reported negative usage for group "_ns +
                                         NS_ConvertUTF8toUTF16(
-                                            aOriginMetadata.mGroup) +
+                                            aFullOriginMetadata.mGroup) +
                                         u", origin "_ns +
                                         NS_ConvertUTF8toUTF16(
-                                            aOriginMetadata.mOrigin))
+                                            aFullOriginMetadata.mOrigin))
                                         .get());
                               }
 #endif
@@ -4074,7 +4065,8 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
                           QM_TRY(MOZ_TO_RESULT(
                               (*mClients)[clientType]
                                   ->InitOriginWithoutTracking(
-                                      aPersistenceType, aOriginMetadata,
+                                      aFullOriginMetadata.mPersistenceType,
+                                      aFullOriginMetadata,
                                       /* aCanceled */ Atomic<bool>(false))));
                         }
 
@@ -4139,17 +4131,14 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
 
     QM_TRY(OkIf(usage.isValid()), NS_ERROR_FAILURE);
 
-    InitQuotaForOrigin(
-        FullOriginMetadata{aOriginMetadata,
-                           OriginStateMetadata{aAccessTime, aPersisted}},
-        clientUsages, usage.value());
+    InitQuotaForOrigin(aFullOriginMetadata, clientUsages, usage.value());
   }
 
   SleepIfEnabled(
       StaticPrefs::dom_quotaManager_originInitialization_pauseOnIOThreadMs());
 
-  QM_LOG(
-      ("Ending origin initialization for: %s", aOriginMetadata.mOrigin.get()));
+  QM_LOG(("Ending origin initialization for: %s",
+          aFullOriginMetadata.mOrigin.get()));
 
   return NS_OK;
 }
@@ -5942,9 +5931,7 @@ Result<Ok, nsresult> QuotaManager::EnsureTemporaryGroupIsInitializedInternal(
                      LoadFullOriginMetadataWithRestore(directory));
 
       // XXX Check corruption here!
-      QM_TRY(MOZ_TO_RESULT(InitializeOrigin(metadata.mPersistenceType, metadata,
-                                            metadata.mLastAccessTime,
-                                            metadata.mPersisted, directory,
+      QM_TRY(MOZ_TO_RESULT(InitializeOrigin(directory, metadata,
                                             /* aForGroup */ true)));
     }
 
@@ -6119,9 +6106,11 @@ QuotaManager::EnsurePersistentOriginIsInitializedInternal(
           return metadata.mLastAccessTime;
         }()));
 
-    QM_TRY(MOZ_TO_RESULT(InitializeOrigin(PERSISTENCE_TYPE_PERSISTENT,
-                                          aOriginMetadata, timestamp,
-                                          /* aPersisted */ true, directory)));
+    QM_TRY(MOZ_TO_RESULT(InitializeOrigin(
+        directory,
+        FullOriginMetadata{aOriginMetadata,
+                           OriginStateMetadata{timestamp,
+                                               /* aPersisted */ true}})));
 
     mInitializedOriginsInternal.AppendElement(aOriginMetadata.mOrigin);
 
@@ -6310,9 +6299,7 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
       QM_TRY_INSPECT(const auto& metadata,
                      LoadFullOriginMetadataWithRestore(directory));
 
-      QM_TRY(MOZ_TO_RESULT(InitializeOrigin(metadata.mPersistenceType, metadata,
-                                            metadata.mLastAccessTime,
-                                            metadata.mPersisted, directory)));
+      QM_TRY(MOZ_TO_RESULT(InitializeOrigin(directory, metadata)));
     }
 
     // TODO: If the metadata file exists and we didn't call

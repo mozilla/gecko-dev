@@ -834,10 +834,9 @@ class QuotaManager final : public BackgroundThreadObject {
   nsresult InitializeRepository(PersistenceType aPersistenceType,
                                 OriginFunc&& aOriginFunc);
 
-  nsresult InitializeOrigin(PersistenceType aPersistenceType,
-                            const OriginMetadata& aOriginMetadata,
-                            int64_t aAccessTime, bool aPersisted,
-                            nsIFile* aDirectory, bool aForGroup = false);
+  nsresult InitializeOrigin(nsIFile* aDirectory,
+                            const FullOriginMetadata& aFullOriginMetadata,
+                            bool aForGroup = false);
 
   using OriginInfosFlatTraversable =
       nsTArray<NotNull<RefPtr<const OriginInfo>>>;
