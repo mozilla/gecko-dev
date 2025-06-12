@@ -203,7 +203,7 @@ async function testDisabledStyleEditor(view, toolbox) {
 
 async function testRuleViewLinkLabel(view) {
   info("Checking the data URL link label");
-  let link = getRuleViewLinkByIndex(view, 1);
+  let link = await waitFor(() => getRuleViewLinkByIndex(view, 1));
   let labelElem = link.querySelector(".ruleview-rule-source-label");
   let value = labelElem.textContent;
   let tooltipText = labelElem.getAttribute("title");
@@ -220,7 +220,7 @@ async function testRuleViewLinkLabel(view) {
   );
 
   info("Checking the external link label");
-  link = getRuleViewLinkByIndex(view, 2);
+  link = await waitFor(() => getRuleViewLinkByIndex(view, 2));
   labelElem = link.querySelector(".ruleview-rule-source-label");
   value = labelElem.textContent;
   tooltipText = labelElem.getAttribute("title");
