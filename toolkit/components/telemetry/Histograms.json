@@ -993,8 +993,8 @@
       "memshrink-telemetry-alerts@mozilla.com",
       "pbone@mozilla.com"
     ],
-    "bug_numbers": [1829127, 1892149],
-    "expires_in_version": "142",
+    "bug_numbers": [1829127, 1892149, 1969170],
+    "expires_in_version": "152",
     "kind": "exponential",
     "low": 4096,
     "high": 8388608,
@@ -1009,8 +1009,8 @@
       "memshrink-telemetry-alerts@mozilla.com",
       "pbone@mozilla.com"
     ],
-    "bug_numbers": [1829127, 1892149],
-    "expires_in_version": "142",
+    "bug_numbers": [1829127, 1892149, 1969170],
+    "expires_in_version": "152",
     "kind": "exponential",
     "high": 16384,
     "n_buckets": 64,
@@ -1024,8 +1024,8 @@
       "memshrink-telemetry-alerts@mozilla.com",
       "pbone@mozilla.com"
     ],
-    "bug_numbers": [1829127, 1892149],
-    "expires_in_version": "142",
+    "bug_numbers": [1829127, 1892149, 1969170],
+    "expires_in_version": "152",
     "kind": "exponential",
     "high": 16384,
     "n_buckets": 64,
