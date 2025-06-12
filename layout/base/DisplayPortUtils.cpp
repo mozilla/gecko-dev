@@ -702,15 +702,30 @@ void DisplayPortUtils::SetDisplayPortBase(nsIContent* aContent,
             ("Setting base rect %s for scrollId=%" PRIu64 "\n",
              ToString(aBase).c_str(), viewId));
   }
+  if (nsRect* baseData = static_cast<nsRect*>(
+          aContent->GetProperty(nsGkAtoms::DisplayPortBase))) {
+    *baseData = aBase;
+    return;
+  }
+
   aContent->SetProperty(nsGkAtoms::DisplayPortBase, new nsRect(aBase),
                         nsINode::DeleteProperty<nsRect>);
 }
 
 void DisplayPortUtils::SetDisplayPortBaseIfNotSet(nsIContent* aContent,
                                                   const nsRect& aBase) {
-  if (!aContent->GetProperty(nsGkAtoms::DisplayPortBase)) {
-    SetDisplayPortBase(aContent, aBase);
+  if (aContent->GetProperty(nsGkAtoms::DisplayPortBase)) {
+    return;
   }
+  if (MOZ_LOG_TEST(sDisplayportLog, LogLevel::Verbose)) {
+    ViewID viewId = nsLayoutUtils::FindOrCreateIDFor(aContent);
+    MOZ_LOG(sDisplayportLog, LogLevel::Verbose,
+            ("Setting base rect %s for scrollId=%" PRIu64 "\n",
+             ToString(aBase).c_str(), viewId));
+  }
+
+  aContent->SetProperty(nsGkAtoms::DisplayPortBase, new nsRect(aBase),
+                        nsINode::DeleteProperty<nsRect>);
 }
 
 void DisplayPortUtils::RemoveDisplayPort(nsIContent* aContent) {
