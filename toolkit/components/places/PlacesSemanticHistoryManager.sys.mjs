@@ -218,7 +218,7 @@ class PlacesSemanticHistoryManager {
           WHERE title NOTNULL
             AND length(title || ifnull(description,'')) > :min_title_length
             AND last_visit_date NOTNULL
-          ORDER BY :samplingAttrib DESC
+          ORDER BY ${this.#samplingAttrib} DESC
           LIMIT  :rowLimit
         )
         SELECT
@@ -227,7 +227,6 @@ class PlacesSemanticHistoryManager {
             JOIN vec_history_mapping map ON tp.url_hash = map.url_hash) AS completed
         `,
       {
-        samplingAttrib: this.#samplingAttrib,
         rowLimit: this.#rowLimit,
         min_title_length: MIN_TITLE_LENGTH,
       }
@@ -455,7 +454,7 @@ class PlacesSemanticHistoryManager {
         WHERE title NOTNULL
           AND length(title || ifnull(description,'')) > :min_title_length
           AND last_visit_date NOTNULL
-        ORDER BY :samplingAttrib DESC
+        ORDER BY ${this.#samplingAttrib} DESC
         LIMIT :rowLimit
       ) AS top_places
       LEFT JOIN vec_history_mapping AS vec_map
@@ -463,7 +462,6 @@ class PlacesSemanticHistoryManager {
       WHERE vec_map.url_hash IS NULL
     `,
       {
-        samplingAttrib: this.#samplingAttrib,
         rowLimit: this.#rowLimit,
         min_title_length: MIN_TITLE_LENGTH,
       }
@@ -484,12 +482,11 @@ class PlacesSemanticHistoryManager {
           WHERE title NOTNULL
             AND length(title || ifnull(description,'')) > :min_title_length
             AND last_visit_date NOTNULL
-          ORDER BY :samplingAttrib DESC
+          ORDER BY ${this.#samplingAttrib} DESC
           LIMIT :rowLimit
         )
     `,
       {
-        samplingAttrib: this.#samplingAttrib,
         rowLimit: this.#rowLimit,
         min_title_length: MIN_TITLE_LENGTH,
       }
