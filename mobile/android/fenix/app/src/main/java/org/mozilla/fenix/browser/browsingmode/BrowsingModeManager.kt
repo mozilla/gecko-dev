@@ -5,7 +5,7 @@
 package org.mozilla.fenix.browser.browsingmode
 
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.utils.Settings
 
 /**
@@ -39,20 +39,20 @@ interface BrowsingModeManager {
  *
  * @param initialMode The initial [BrowsingMode]
  * @param settings Used to persist the last known mode across sessions.
- * @param appStore The [AppStore] that receives dispatched [AppAction.ModeChange] events.
  * @param modeDidChange Callback that is invoked whenever the browsing mode changes.
+ * @param updateAppStateMode Callback used to update the [AppState.mode].
  */
 class DefaultBrowsingModeManager(
     private var initialMode: BrowsingMode,
     private val settings: Settings,
-    private val appStore: AppStore,
     private val modeDidChange: (BrowsingMode) -> Unit,
+    private val updateAppStateMode: (BrowsingMode) -> Unit,
 ) : BrowsingModeManager {
     override var mode: BrowsingMode = initialMode
         set(value) {
             field = value
             modeDidChange(value)
             settings.lastKnownMode = value
-            appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(mode = value))
+            updateAppStateMode(value)
         }
 }

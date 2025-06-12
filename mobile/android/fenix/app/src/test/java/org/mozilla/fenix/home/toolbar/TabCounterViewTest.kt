@@ -61,8 +61,8 @@ class TabCounterViewTest {
         browsingModeManager = DefaultBrowsingModeManager(
             initialMode = BrowsingMode.Normal,
             settings = settings,
-            appStore = appStore,
             modeDidChange = modeDidChange,
+            updateAppStateMode = {},
         )
     }
 

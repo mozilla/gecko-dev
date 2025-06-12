@@ -1286,12 +1286,15 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         return DefaultBrowsingModeManager(
             initialMode = initialMode,
             settings = components.settings,
-            appStore = components.appStore,
-        ) { newMode ->
-            updateSecureWindowFlags(newMode)
-            addPrivateHomepageTabIfNecessary(newMode)
-            themeManager.currentTheme = newMode
-        }.also {
+            modeDidChange = { newMode ->
+                updateSecureWindowFlags(newMode)
+                addPrivateHomepageTabIfNecessary(newMode)
+                themeManager.currentTheme = newMode
+            },
+            updateAppStateMode = { newMode ->
+                components.appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(mode = newMode))
+            },
+        ).also {
             updateSecureWindowFlags(initialMode)
         }
     }

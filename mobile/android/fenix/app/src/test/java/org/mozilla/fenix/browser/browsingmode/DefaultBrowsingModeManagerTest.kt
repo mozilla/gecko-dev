@@ -9,14 +9,13 @@ import io.mockk.Runs
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.just
-import io.mockk.spyk
 import io.mockk.verify
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.helpers.MockkRetryTestRule
 import org.mozilla.fenix.utils.Settings
 
@@ -27,7 +26,6 @@ class DefaultBrowsingModeManagerTest {
     @MockK(relaxed = true)
     lateinit var callback: (BrowsingMode) -> Unit
     lateinit var manager: BrowsingModeManager
-    lateinit var appStore: AppStore
 
     private val initMode = BrowsingMode.Normal
 
@@ -38,8 +36,7 @@ class DefaultBrowsingModeManagerTest {
     fun before() {
         MockKAnnotations.init(this)
 
-        appStore = spyk(AppStore())
-        manager = DefaultBrowsingModeManager(initMode, settings, appStore, callback)
+        manager = DefaultBrowsingModeManager(initMode, settings, callback) {}
         every { settings.lastKnownMode = any() } just Runs
     }
 
@@ -73,12 +70,17 @@ class DefaultBrowsingModeManagerTest {
     }
 
     @Test
-    fun `WHEN mode is updated THEN a ModeChange action should be dispatch to the AppStore`() {
+    fun `WHEN mode is updated THEN updateAppStateMode callback is invoked`() {
+        var updateAppStateModeCalled = false
+        val manager = DefaultBrowsingModeManager(initMode, settings, callback, {
+            updateAppStateModeCalled = true
+        })
         assertEquals(BrowsingMode.Normal, manager.mode)
+        assertFalse(updateAppStateModeCalled)
 
         manager.mode = BrowsingMode.Private
 
         assertEquals(BrowsingMode.Private, manager.mode)
-        verify(exactly = 1) { appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(mode = manager.mode)) }
+        assertTrue(updateAppStateModeCalled)
     }
 }

@@ -68,7 +68,6 @@ import org.mozilla.fenix.collections.CollectionsDialog
 import org.mozilla.fenix.collections.show
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.TabCollectionStorage
-import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.maxActiveTime
 import org.mozilla.fenix.ext.potentialInactiveTabs
@@ -1022,12 +1021,15 @@ class DefaultTabsTrayControllerTest {
                 tabs = listOf(normalTab, privateTab),
             ),
         )
+        var appStateModeUpdate: BrowsingMode? = null
         browsingModeManager = spyk(
             DefaultBrowsingModeManager(
                 initialMode = BrowsingMode.Private,
                 settings = settings,
-                appStore = appStore,
                 modeDidChange = mockk(relaxed = true),
+                updateAppStateMode = { updatedMode ->
+                    appStateModeUpdate = updatedMode
+                },
             ),
         )
         val controller = spyk(createController())
@@ -1039,7 +1041,7 @@ class DefaultTabsTrayControllerTest {
 
             assertEquals(privateTab.id, browserStore.state.selectedTabId)
             assertEquals(true, browsingModeManager.mode.isPrivate)
-            verify { appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(BrowsingMode.Private)) }
+            assertEquals(BrowsingMode.Private, appStateModeUpdate)
 
             controller.handleTabDeletion("privateTab")
             browserStore.dispatch(TabListAction.SelectTabAction(normalTab.id)).joinBlocking()
@@ -1047,7 +1049,7 @@ class DefaultTabsTrayControllerTest {
 
             assertEquals(normalTab.id, browserStore.state.selectedTabId)
             assertEquals(false, browsingModeManager.mode.isPrivate)
-            verify { appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(BrowsingMode.Normal)) }
+            assertEquals(BrowsingMode.Normal, appStateModeUpdate)
         } finally {
             unmockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
         }
