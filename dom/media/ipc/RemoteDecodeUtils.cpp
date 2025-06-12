@@ -74,6 +74,21 @@ RemoteMediaIn GetRemoteMediaInFromVideoBridgeSource(
   }
 }
 
+layers::VideoBridgeSource GetVideoBridgeSourceFromRemoteMediaIn(
+    RemoteMediaIn aSource) {
+  switch (aSource) {
+    case RemoteMediaIn::RddProcess:
+      return layers::VideoBridgeSource::RddProcess;
+    case RemoteMediaIn::GpuProcess:
+      return layers::VideoBridgeSource::GpuProcess;
+    case RemoteMediaIn::UtilityProcess_MFMediaEngineCDM:
+      return layers::VideoBridgeSource::MFMediaEngineCDMProcess;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unsupported RemoteMediaIn");
+      return layers::VideoBridgeSource::_Count;
+  }
+}
+
 const char* RemoteMediaInToStr(RemoteMediaIn aLocation) {
   switch (aLocation) {
     case RemoteMediaIn::RddProcess:

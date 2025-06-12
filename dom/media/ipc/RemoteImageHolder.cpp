@@ -10,6 +10,7 @@
 #include "mozilla/PRemoteDecoderChild.h"
 #include "mozilla/RemoteDecodeUtils.h"
 #include "mozilla/RemoteMediaManagerChild.h"
+#include "mozilla/RemoteMediaManagerParent.h"
 #include "mozilla/gfx/SourceSurfaceRawData.h"
 #include "mozilla/gfx/Swizzle.h"
 #include "mozilla/layers/ImageDataSerializer.h"
@@ -21,6 +22,8 @@ using namespace gfx;
 using namespace layers;
 
 RemoteImageHolder::RemoteImageHolder() = default;
+RemoteImageHolder::RemoteImageHolder(layers::SurfaceDescriptor&& aSD)
+    : mSD(Some(std::move(aSD))) {}
 RemoteImageHolder::RemoteImageHolder(
     layers::IGPUVideoSurfaceManager* aManager,
     layers::VideoBridgeSource aSource, const gfx::IntSize& aSize,
@@ -154,16 +157,10 @@ already_AddRefed<layers::Image> RemoteImageHolder::TransferToImage(
   RefPtr<Image> image;
   if (mSD->type() == SurfaceDescriptor::TSurfaceDescriptorBuffer) {
     image = DeserializeImage(aBufferRecycleBin);
-  } else {
-    // The Image here creates a TextureData object that takes ownership
-    // of the SurfaceDescriptor, and is responsible for making sure that
-    // it gets deallocated.
-    SurfaceDescriptorRemoteDecoder remoteSD =
-        static_cast<const SurfaceDescriptorGPUVideo&>(*mSD);
-    remoteSD.source() = Some(mSource);
-    image = new GPUVideoImage(mManager, remoteSD, mSize, mColorDepth,
-                              mYUVColorSpace, mColorPrimaries,
-                              mTransferFunction, mColorRange);
+  } else if (mManager) {
+    image = mManager->TransferToImage(*mSD, mSize, mColorDepth, mYUVColorSpace,
+                                      mColorPrimaries, mTransferFunction,
+                                      mColorRange);
   }
   mSD = Nothing();
   mManager = nullptr;
@@ -214,11 +211,24 @@ RemoteImageHolder::~RemoteImageHolder() {
     return false;
   }
 
-  if (!aResult->IsEmpty()) {
-    aResult->mManager = RemoteMediaManagerChild::GetSingleton(
-        GetRemoteMediaInFromVideoBridgeSource(aResult->mSource));
+  if (aResult->IsEmpty()) {
+    return true;
   }
-  return true;
+
+  if (auto* manager = aActor->Manager()) {
+    if (manager->GetProtocolId() == ProtocolId::PRemoteMediaManagerMsgStart) {
+      aResult->mManager =
+          XRE_IsContentProcess()
+              ? static_cast<IGPUVideoSurfaceManager*>(
+                    static_cast<RemoteMediaManagerChild*>(manager))
+              : static_cast<IGPUVideoSurfaceManager*>(
+                    static_cast<RemoteMediaManagerParent*>(manager));
+      return true;
+    }
+  }
+
+  MOZ_ASSERT_UNREACHABLE("Unexpected or missing protocol manager!");
+  return false;
 }
 
 }  // namespace mozilla

@@ -25,6 +25,7 @@ class RemoteImageHolder final {
 
  public:
   RemoteImageHolder();
+  explicit RemoteImageHolder(layers::SurfaceDescriptor&& aSD);
   RemoteImageHolder(
       layers::IGPUVideoSurfaceManager* aManager,
       layers::VideoBridgeSource aSource, const gfx::IntSize& aSize,

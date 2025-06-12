@@ -42,6 +42,11 @@ class RemoteMediaManagerParent final : public PRemoteMediaManagerParent,
     MOZ_ASSERT_UNREACHABLE("Not usable from the parent");
     return nullptr;
   }
+  already_AddRefed<layers::Image> TransferToImage(
+      const SurfaceDescriptorGPUVideo& aSD, const gfx::IntSize& aSize,
+      const gfx::ColorDepth& aColorDepth, gfx::YUVColorSpace aYUVColorSpace,
+      gfx::ColorSpace2 aColorPrimaries, gfx::TransferFunction aTransferFunction,
+      gfx::ColorRange aColorRange) override;
   void DeallocateSurfaceDescriptor(
       const SurfaceDescriptorGPUVideo& aSD) override;
 

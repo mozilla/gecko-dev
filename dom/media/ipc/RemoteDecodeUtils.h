@@ -24,6 +24,9 @@ RemoteMediaIn GetRemoteMediaInFromKind(ipc::SandboxingKind aKind);
 RemoteMediaIn GetRemoteMediaInFromVideoBridgeSource(
     layers::VideoBridgeSource aSource);
 
+layers::VideoBridgeSource GetVideoBridgeSourceFromRemoteMediaIn(
+    RemoteMediaIn aSource);
+
 const char* RemoteMediaInToStr(RemoteMediaIn aLocation);
 
 }  // namespace mozilla

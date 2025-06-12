@@ -321,6 +321,20 @@ RemoteMediaManagerParent::RecvDeallocateSurfaceDescriptorGPUVideo(
   return IPC_OK();
 }
 
+already_AddRefed<Image> RemoteMediaManagerParent::TransferToImage(
+    const SurfaceDescriptorGPUVideo& aSD, const IntSize& aSize,
+    const ColorDepth& aColorDepth, YUVColorSpace aYUVColorSpace,
+    ColorSpace2 aColorPrimaries, TransferFunction aTransferFunction,
+    ColorRange aColorRange) {
+  MOZ_ASSERT(OnManagerThread());
+  const SurfaceDescriptorRemoteDecoder& sd = aSD;
+  const auto i = mImageMap.find(sd.handle());
+  if (NS_WARN_IF(i == mImageMap.end())) {
+    return nullptr;
+  }
+  return do_AddRef(i->second);
+}
+
 void RemoteMediaManagerParent::DeallocateSurfaceDescriptor(
     const SurfaceDescriptorGPUVideo& aSD) {
   if (!OnManagerThread()) {

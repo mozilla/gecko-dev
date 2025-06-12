@@ -28,6 +28,11 @@ class IGPUVideoSurfaceManager {
 
   virtual already_AddRefed<gfx::SourceSurface> Readback(
       const SurfaceDescriptorGPUVideo& aSD) = 0;
+  virtual already_AddRefed<Image> TransferToImage(
+      const SurfaceDescriptorGPUVideo& aSD, const gfx::IntSize& aSize,
+      const gfx::ColorDepth& aColorDepth, gfx::YUVColorSpace aYUVColorSpace,
+      gfx::ColorSpace2 aColorPrimaries, gfx::TransferFunction aTransferFunction,
+      gfx::ColorRange aColorRange) = 0;
   virtual void DeallocateSurfaceDescriptor(
       const SurfaceDescriptorGPUVideo& aSD) = 0;
 };

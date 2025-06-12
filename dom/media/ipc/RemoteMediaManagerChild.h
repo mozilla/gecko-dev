@@ -76,9 +76,13 @@ class RemoteMediaManagerChild final
   // internally and will be ignored if the IPDL actor has been destroyed.
   already_AddRefed<gfx::SourceSurface> Readback(
       const SurfaceDescriptorGPUVideo& aSD) override;
+  already_AddRefed<layers::Image> TransferToImage(
+      const SurfaceDescriptorGPUVideo& aSD, const gfx::IntSize& aSize,
+      const gfx::ColorDepth& aColorDepth, gfx::YUVColorSpace aYUVColorSpace,
+      gfx::ColorSpace2 aColorPrimaries, gfx::TransferFunction aTransferFunction,
+      gfx::ColorRange aColorRange) override;
   void DeallocateSurfaceDescriptor(
       const SurfaceDescriptorGPUVideo& aSD) override;
-
   bool AllocShmem(size_t aSize, mozilla::ipc::Shmem* aShmem) override {
     return PRemoteMediaManagerChild::AllocShmem(aSize, aShmem);
   }
