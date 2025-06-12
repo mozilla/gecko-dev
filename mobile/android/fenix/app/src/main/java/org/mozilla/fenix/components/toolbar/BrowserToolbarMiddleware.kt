@@ -563,7 +563,7 @@ class BrowserToolbarMiddleware(
 
     private fun observeTabsCountUpdates() {
         observeWhileActive(browserStore) {
-            distinctUntilChangedBy { it.tabs }
+            distinctUntilChangedBy { it.tabs.size }
             .collect {
                 updateEndBrowserActions()
             }
