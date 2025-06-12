@@ -1986,7 +1986,7 @@ pref("browser.newtabpage.activity-stream.telemetry.surfaceId", "");
 #ifdef EARLY_BETA_OR_EARLIER
   pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.region-thumbs-config", "US, CA");
 #else
-  pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.region-thumbs-config", "");
+  pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.region-thumbs-config", "US");
 #endif
 
 // Shows users compact layout of Home New Tab page. Also requires region-thumbs-config.
