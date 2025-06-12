@@ -107,8 +107,8 @@ use.counter:
     send_in_pings:
       - use-counters
 
-# Total of 2405 use counter metrics (excludes denominators).
-# Total of 362 'page' use counters.
+# Total of 2413 use counter metrics (excludes denominators).
+# Total of 365 'page' use counters.
 use.counter.page:
   svgsvgelement_getelementbyid:
     type: counter
@@ -879,6 +879,57 @@ use.counter.page:
     type: counter
     description: >
       Whether a page recovered a small oom.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  js_error_capturestacktrace:
+    type: counter
+    description: >
+      Whether a page called Error.captureStackTrace.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  js_error_capturestacktrace_ctor:
+    type: counter
+    description: >
+      Whether a page called Error.captureStackTrace with a constructor argument.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  js_error_capturestacktrace_uncallable_ctor:
+    type: counter
+    description: >
+      Whether a page called Error.captureStackTrace with a non-callable constructor argument.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -6264,7 +6315,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-# Total of 362 'document' use counters.
+# Total of 365 'document' use counters.
 use.counter.doc:
   svgsvgelement_getelementbyid:
     type: counter
@@ -7035,6 +7086,57 @@ use.counter.doc:
     type: counter
     description: >
       Whether a document recovered a small oom.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  js_error_capturestacktrace:
+    type: counter
+    description: >
+      Whether a document called Error.captureStackTrace.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  js_error_capturestacktrace_ctor:
+    type: counter
+    description: >
+      Whether a document called Error.captureStackTrace with a constructor argument.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  js_error_capturestacktrace_uncallable_ctor:
+    type: counter
+    description: >
+      Whether a document called Error.captureStackTrace with a non-callable constructor argument.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -17071,7 +17173,7 @@ use.counter.deprecated_ops.doc:
     send_in_pings:
       - use-counters
 
-# Total of 704 'CSS (page)' use counters.
+# Total of 705 'CSS (page)' use counters.
 use.counter.css.page:
   css_align_content:
     type: counter
@@ -29058,7 +29160,7 @@ use.counter.css.page:
     send_in_pings:
       - use-counters
 
-# Total of 704 'CSS (document)' use counters.
+# Total of 705 'CSS (document)' use counters.
 use.counter.css.doc:
   css_align_content:
     type: counter

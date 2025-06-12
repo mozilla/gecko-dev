@@ -2924,6 +2924,16 @@ static void SetUseCounterCallback(JSObject* obj, JSUseCounter counter) {
       SetUseCounter(obj,
                     eUseCounter_custom_JS_regexp_symbol_protocol_on_primitive);
       return;
+    case JSUseCounter::ERROR_CAPTURESTACKTRACE:
+      SetUseCounter(obj, eUseCounter_custom_JS_error_capturestacktrace);
+      return;
+    case JSUseCounter::ERROR_CAPTURESTACKTRACE_CTOR:
+      SetUseCounter(obj, eUseCounter_custom_JS_error_capturestacktrace_ctor);
+      return;
+    case JSUseCounter::ERROR_CAPTURESTACKTRACE_UNCALLABLE_CTOR:
+      SetUseCounter(
+          obj, eUseCounter_custom_JS_error_capturestacktrace_uncallable_ctor);
+      return;
     case JSUseCounter::COUNT:
       break;
   }
