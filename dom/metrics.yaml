@@ -99,6 +99,11 @@ perf:
           "Time spent executing JS during page load, in ms."
         type: quantity
         unit: ms
+      delazify_time:
+        description:
+          "Time spent delazifying JS during page load, in ms."
+        type: quantity
+        unit: ms
       redirect_time:
         type: quantity
         description:
