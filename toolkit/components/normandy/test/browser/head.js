@@ -629,10 +629,12 @@ function withClearStorage() {
   return function (testFunction) {
     return async function wrappedTestFunction(args) {
       Storage.clearAllStorage();
+      ShowHeartbeatAction._clearAllStorage();
       try {
         await testFunction(args);
       } finally {
         Storage.clearAllStorage();
+        ShowHeartbeatAction._clearAllStorage();
       }
     };
   };
