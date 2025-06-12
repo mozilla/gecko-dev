@@ -105,8 +105,7 @@ struct FeatureOptions {
       : disableOptimizingCompiler(false),
         isBuiltinModule(false),
         jsStringBuiltins(false),
-        jsStringConstants(false),
-        requireExnref(false) {}
+        jsStringConstants(false) {}
 
   // Whether we should try to disable our optimizing compiler. Only available
   // with `IsSimdPrivilegedContext`.
@@ -122,9 +121,6 @@ struct FeatureOptions {
   // feature is also enabled.
   bool jsStringConstants;
   SharedChars jsStringConstantsNamespace;
-
-  // Enable exnref support.
-  bool requireExnref;
 
   // Parse the compile options bag.
   [[nodiscard]] bool init(JSContext* cx, HandleValue val);

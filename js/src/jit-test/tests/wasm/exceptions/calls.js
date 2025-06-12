@@ -93,10 +93,7 @@ function generateLocalThrows(types, baseThrow) {
          delegate $label1)`;
 
   let basicThrows = [catchlessTryThrow, blockThrow, conditionalThrow,
-                     baseDelegate, nestedDelegate1InBlock];
-  if (wasmExnRefEnabled()) {
-    basicThrows = basicThrows.concat(catchlessThrowExnref, catchAndThrowExnref);
-  }
+                     baseDelegate, nestedDelegate1InBlock, catchlessThrowExnref, catchAndThrowExnref];
 
   // Secondary throws (will end up inside a catch block).
 

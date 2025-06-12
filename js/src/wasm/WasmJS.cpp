@@ -5531,13 +5531,11 @@ static bool WebAssemblyClassFinish(JSContext* cx, HandleObject object,
 
   wasm->setWrappedJSValueTag(wrappedJSValueTagObject);
 
-  if (ExnRefAvailable(cx)) {
-    RootedId jsTagName(cx, NameToId(cx->names().jsTag));
-    RootedValue jsTagValue(cx, ObjectValue(*wrappedJSValueTagObject));
-    if (!DefineDataProperty(cx, wasm, jsTagName, jsTagValue,
-                            JSPROP_READONLY | JSPROP_ENUMERATE)) {
-      return false;
-    }
+  RootedId jsTagName(cx, NameToId(cx->names().jsTag));
+  RootedValue jsTagValue(cx, ObjectValue(*wrappedJSValueTagObject));
+  if (!DefineDataProperty(cx, wasm, jsTagName, jsTagValue,
+                          JSPROP_READONLY | JSPROP_ENUMERATE)) {
+    return false;
   }
 
 #ifdef ENABLE_WASM_JSPI

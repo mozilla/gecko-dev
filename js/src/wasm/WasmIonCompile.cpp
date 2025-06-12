@@ -9418,14 +9418,8 @@ bool FunctionCompiler::emitBodyExprs() {
       case uint16_t(Op::Rethrow):
         CHECK(emitRethrow());
       case uint16_t(Op::ThrowRef):
-        if (!codeMeta().exnrefEnabled()) {
-          return iter().unrecognizedOpcode(&op);
-        }
         CHECK(emitThrowRef());
       case uint16_t(Op::TryTable):
-        if (!codeMeta().exnrefEnabled()) {
-          return iter().unrecognizedOpcode(&op);
-        }
         CHECK(emitTryTable());
       case uint16_t(Op::Br):
         CHECK(emitBr());

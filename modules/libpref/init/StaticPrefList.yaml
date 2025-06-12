@@ -8936,12 +8936,6 @@
     mirror: always
     set_spidermonkey_pref: startup
 
--   name: javascript.options.wasm_exnref
-    type: bool
-    value: true
-    mirror: always
-    set_spidermonkey_pref: startup
-
 -   name: javascript.options.wasm_memory_control
     type: bool
     value: false

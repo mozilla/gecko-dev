@@ -1,5 +1,3 @@
-// |jit-tests| test-also=--setpref=wasm_exnref=true;
-
 // Test if we can handle WebAssembly.Exception on suspendable stack,
 // and in suspending function.
 

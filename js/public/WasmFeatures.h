@@ -71,15 +71,6 @@
 // clang-format off
 #define JS_FOR_WASM_FEATURES(FEATURE)                                   \
   FEATURE(                                                              \
-    /* capitalized name   */ ExnRef,                                    \
-    /* lower case name    */ exnref,                                    \
-    /* compile predicate  */ true,                                      \
-    /* compiler predicate */ AnyCompilerAvailable(cx),                  \
-    /* flag predicate     */ true,                                      \
-    /* flag force enable  */ false,                                     \
-    /* flag fuzz enable   */ true,                                      \
-    /* preference name    */ exnref)                                    \
-  FEATURE(                                                              \
     /* capitalized name   */ JSStringBuiltins,                          \
     /* lower case name    */ jsStringBuiltins,                          \
     /* compile predicate  */ WASM_JS_STRING_BUILTINS_ENABLED,           \

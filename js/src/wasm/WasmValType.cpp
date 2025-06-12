@@ -170,11 +170,9 @@ static bool ToRefType(JSContext* cx, const JSLinearString* typeLinearStr,
     *out = RefType::extern_();
     return true;
   }
-  if (ExnRefAvailable(cx)) {
-    if (StringEqualsLiteral(typeLinearStr, "exnref")) {
-      *out = RefType::exn();
-      return true;
-    }
+  if (StringEqualsLiteral(typeLinearStr, "exnref")) {
+    *out = RefType::exn();
+    return true;
   }
   if (StringEqualsLiteral(typeLinearStr, "anyref")) {
     *out = RefType::any();

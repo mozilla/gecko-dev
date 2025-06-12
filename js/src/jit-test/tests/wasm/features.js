@@ -66,11 +66,6 @@ for (let [name, enabled, test] of releasedFeaturesMaybeDisabledAnyway) {
 let releasedFeatures = [
   ['threads', wasmThreadsEnabled(), `(module (memory 1 1 shared))`],
   [
-    'exnref',
-    wasmExnRefEnabled(),
-    `(module (func try_table end))`
-  ],
-  [
     'js-string-builtins',
     wasmJSStringBuiltinsEnabled(),
     `(module
