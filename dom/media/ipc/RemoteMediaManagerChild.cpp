@@ -279,13 +279,13 @@ bool RemoteMediaManagerChild::Supports(RemoteMediaIn aLocation,
         return aLocation == RemoteMediaIn::UtilityProcess_MFMediaEngineCDM ||
                aLocation == RemoteMediaIn::GpuProcess;
 #else
-        return trackSupport.contains(TrackSupport::Video);
+        return trackSupport.contains(TrackSupport::DecodeVideo);
 #endif
       }
-      return trackSupport.contains(TrackSupport::Video);
+      return trackSupport.contains(TrackSupport::DecodeVideo);
     }
     if (isAudio) {
-      return trackSupport.contains(TrackSupport::Audio);
+      return trackSupport.contains(TrackSupport::DecodeAudio);
     }
     MOZ_ASSERT_UNREACHABLE("Not audio and video?!");
     return false;
@@ -309,7 +309,7 @@ RemoteMediaManagerChild::CreateAudioDecoder(const CreateDecoderParams& aParams,
         NS_ERROR_DOM_MEDIA_CANCELED, __func__);
   }
 
-  if (!GetTrackSupport(aLocation).contains(TrackSupport::Audio)) {
+  if (!GetTrackSupport(aLocation).contains(TrackSupport::DecodeAudio)) {
     return PlatformDecoderModule::CreateDecoderPromise::CreateAndReject(
         MediaResult(NS_ERROR_DOM_MEDIA_CANCELED,
                     nsPrintfCString("%s doesn't support audio decoding",
@@ -393,7 +393,7 @@ RemoteMediaManagerChild::CreateVideoDecoder(const CreateDecoderParams& aParams,
         NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR, __func__);
   }
 
-  if (!GetTrackSupport(aLocation).contains(TrackSupport::Video)) {
+  if (!GetTrackSupport(aLocation).contains(TrackSupport::DecodeVideo)) {
     return PlatformDecoderModule::CreateDecoderPromise::CreateAndReject(
         MediaResult(NS_ERROR_DOM_MEDIA_CANCELED,
                     nsPrintfCString("%s doesn't support video decoding",
@@ -678,39 +678,40 @@ RemoteMediaManagerChild::LaunchUtilityProcessIfNeeded(RemoteMediaIn aLocation) {
 /* static */
 TrackSupportSet RemoteMediaManagerChild::GetTrackSupport(
     RemoteMediaIn aLocation) {
+  TrackSupportSet s{TrackSupport::None};
   switch (aLocation) {
-    case RemoteMediaIn::GpuProcess: {
-      return TrackSupportSet{TrackSupport::Video};
-    }
-    case RemoteMediaIn::RddProcess: {
-      TrackSupportSet s{TrackSupport::Video};
-      // Only use RDD for audio decoding if we don't have the utility process.
+    case RemoteMediaIn::GpuProcess:
+      s = TrackSupport::DecodeVideo;
+      break;
+    case RemoteMediaIn::RddProcess:
+      s = TrackSupport::DecodeVideo;
+      // Only use RDD for audio coding if we don't have the utility process.
       if (!StaticPrefs::media_utility_process_enabled()) {
-        s += TrackSupport::Audio;
+        s += TrackSupport::DecodeAudio;
       }
-      return s;
-    }
+      break;
     case RemoteMediaIn::UtilityProcess_Generic:
     case RemoteMediaIn::UtilityProcess_AppleMedia:
     case RemoteMediaIn::UtilityProcess_WMF:
-      return StaticPrefs::media_utility_process_enabled()
-                 ? TrackSupportSet{TrackSupport::Audio}
-                 : TrackSupportSet{TrackSupport::None};
-    case RemoteMediaIn::UtilityProcess_MFMediaEngineCDM: {
-      TrackSupportSet s{TrackSupport::None};
+      if (StaticPrefs::media_utility_process_enabled()) {
+        s = TrackSupport::DecodeAudio;
+      }
+      break;
+    case RemoteMediaIn::UtilityProcess_MFMediaEngineCDM:
 #ifdef MOZ_WMF_MEDIA_ENGINE
       // When we enable the media engine, it would need both tracks to
       // synchronize the a/v playback.
       if (StaticPrefs::media_wmf_media_engine_enabled()) {
-        s += TrackSupportSet{TrackSupport::Audio, TrackSupport::Video};
+        s = TrackSupportSet{TrackSupport::DecodeAudio,
+                            TrackSupport::DecodeVideo};
       }
 #endif
-      return s;
-    }
+      break;
     default:
       MOZ_ASSERT_UNREACHABLE("Undefined location!");
+      break;
   }
-  return TrackSupportSet{TrackSupport::None};
+  return s;
 }
 
 PRemoteDecoderChild* RemoteMediaManagerChild::AllocPRemoteDecoderChild(
