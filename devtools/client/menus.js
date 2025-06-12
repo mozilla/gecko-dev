@@ -136,8 +136,12 @@ exports.menuitems = [
 
       // If RDM is active, disable touch simulation events if they're enabled.
       // Similarly, enable them when the color picker is done picking.
-      if (ResponsiveUIManager.isActiveForTab(target.localTab)) {
-        const ui = ResponsiveUIManager.getResponsiveUIForTab(target.localTab);
+      if (
+        ResponsiveUIManager.isActiveForTab(commands.descriptorFront.localTab)
+      ) {
+        const ui = ResponsiveUIManager.getResponsiveUIForTab(
+          commands.descriptorFront.localTab
+        );
         await ui.responsiveFront.setElementPickerState(
           true,
           PICKER_TYPES.EYEDROPPER
