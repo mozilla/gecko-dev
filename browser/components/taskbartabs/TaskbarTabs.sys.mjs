@@ -3,76 +3,126 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const kWidgetId = "taskbar-tabs-button";
-const kEnabledPref = "browser.taskbarTabs.enabled";
+/**
+ * This file represents the entry point into the Taskbar Tabs system,
+ * initializing necessary subsystems before the export can be used. Code driving
+ * the Taskbar Tabs systems should interact with it through this interface.
+ */
 
-import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+import {
+  TaskbarTabsRegistry,
+  TaskbarTabsRegistryStorage,
+  kTaskbarTabsRegistryEvents,
+} from "resource:///modules/taskbartabs/TaskbarTabsRegistry.sys.mjs";
+import { TaskbarTabsWindowManager } from "resource:///modules/taskbartabs/TaskbarTabsWindowManager.sys.mjs";
+import { TaskbarTabsPin } from "resource:///modules/taskbartabs/TaskbarTabsPin.sys.mjs";
+import { TaskbarTabsUtils } from "resource:///modules/taskbartabs/TaskbarTabsUtils.sys.mjs";
 
-const kWebAppWindowFeatures =
-  "chrome,dialog=no,titlebar,close,toolbar,location,personalbar=no,status,menubar=no,resizable,minimizable,scrollbars";
+/**
+ * A Taskbar Tabs singleton which ensures the system has been initialized before
+ * it can be interacted with. Methods on this object pass through to the Taskbar
+ * Tabs registry or window manager.
+ */
+export const TaskbarTabs = new (class {
+  #ready;
+  #registry;
+  #windowManager;
 
-let lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
-  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-});
-
-export let TaskbarTabs = {
-  async init(window) {
-    if (
-      AppConstants.platform != "win" ||
-      !Services.prefs.getBoolPref(kEnabledPref, false) ||
-      window.document.documentElement.hasAttribute("taskbartab") ||
-      !window.toolbar.visible ||
-      lazy.PrivateBrowsingUtils.isWindowPrivate(window)
-    ) {
-      return;
-    }
-
-    let taskbarTabsButton = window.document.getElementById(kWidgetId);
-    taskbarTabsButton.addEventListener("click", this, true);
-
-    taskbarTabsButton.hidden = false;
-  },
-
-  async handleEvent(event) {
-    let gBrowser = event.view.gBrowser;
-
-    let win = Services.ww.openWindow(
-      null,
-      AppConstants.BROWSER_CHROME_URL,
-      "_blank",
-      kWebAppWindowFeatures,
-      this._generateArgs(gBrowser.selectedTab)
-    );
-
-    await new Promise(resolve => {
-      win.addEventListener("load", resolve, { once: true });
+  constructor() {
+    this.#ready = initRegistry().then(registry => {
+      this.#registry = registry;
+      this.#windowManager = initWindowManager(registry);
+      initPinManager(registry);
     });
-    await win.delayedStartupPromise;
-  },
+  }
 
-  /**
-   * Returns an array of args to pass into Services.ww.openWindow.
-   * The first element will be the tab to be opened, the second element
-   * will be a nsIWritablePropertyBag with a 'taskbartab' property
-   *
-   * The tab to be opened with the web app
-   *
-   * @param {MozTabbrowserTab} tab The tab we will open as a taskbar tab
-   *
-   * @returns {nsIMutableArray}
-   */
-  _generateArgs(tab) {
-    let extraOptions = Cc["@mozilla.org/hash-property-bag;1"].createInstance(
-      Ci.nsIWritablePropertyBag2
-    );
-    extraOptions.setPropertyAsBool("taskbartab", true);
+  async getTaskbarTab(...args) {
+    await this.#ready;
+    return this.#registry.getTaskbarTab(...args);
+  }
 
-    let args = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-    args.appendElement(tab);
-    args.appendElement(extraOptions);
-    args.appendElement(null);
+  async findOrCreateTaskbarTab(...args) {
+    await this.#ready;
+    return this.#registry.findOrCreateTaskbarTab(...args);
+  }
 
-    return args;
-  },
-};
+  async removeTaskbarTab(...args) {
+    await this.#ready;
+    return this.#registry.removeTaskbarTab(...args);
+  }
+
+  async openWindow(...args) {
+    await this.#ready;
+    return this.#windowManager.openWindow(...args);
+  }
+
+  async replaceTabWithWindow(...args) {
+    await this.#ready;
+    return this.#windowManager.replaceTabWithWindow(...args);
+  }
+
+  async ejectWindow(...args) {
+    await this.#ready;
+    return this.#windowManager.ejectWindow(...args);
+  }
+
+  async getCountForId(...args) {
+    await this.#ready;
+    return this.#windowManager.getCountForId(...args);
+  }
+})();
+
+/**
+ * Taskbar Tabs Registry initialization.
+ *
+ * @returns {TaskbarTabsRegistry} A registry after loading and hooking saving to persistent storage.
+ */
+async function initRegistry() {
+  const kRegistryFilename = "taskbartabs.json";
+  // Construct the path [Profile]/taskbartabs/taskbartabs.json.
+  let registryFile = TaskbarTabsUtils.getTaskbarTabsFolder();
+  registryFile.append(kRegistryFilename);
+
+  let init = {};
+  if (registryFile.exists()) {
+    init.loadFile = registryFile;
+  }
+
+  let registry = await TaskbarTabsRegistry.create(init);
+
+  // Initialize persistent storage.
+  let storage = new TaskbarTabsRegistryStorage(registry, registryFile);
+  registry.on(kTaskbarTabsRegistryEvents.created, () => {
+    storage.save();
+  });
+  registry.on(kTaskbarTabsRegistryEvents.removed, () => {
+    storage.save();
+  });
+
+  return registry;
+}
+
+/**
+ * Taskbar Tabs Window Manager initialization.
+ *
+ * @returns {TaskbarTabsWindowManager} The initialized Window Manager
+ */
+function initWindowManager() {
+  let wm = new TaskbarTabsWindowManager();
+
+  return wm;
+}
+
+/**
+ * Taskbar Tabs Pinning initialization.
+ *
+ * @param {TaskbarTabsRegistry} aRegistry - A registry to drive events to trigger pinning.
+ */
+function initPinManager(aRegistry) {
+  aRegistry.on(kTaskbarTabsRegistryEvents.created, (_, taskbarTab) => {
+    return TaskbarTabsPin.pinTaskbarTab(taskbarTab);
+  });
+  aRegistry.on(kTaskbarTabsRegistryEvents.removed, (_, taskbarTab) => {
+    return TaskbarTabsPin.unpinTaskbarTab(taskbarTab);
+  });
+}
