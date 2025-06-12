@@ -274,6 +274,21 @@ ipc::IPDLParamTraits<ArrayOfRemoteMediaRawData::RemoteMediaRawData>::Read(
 };
 
 bool ArrayOfRemoteAudioData::Fill(
+    const AudioData* aData, std::function<ShmemBuffer(size_t)>&& aAllocator) {
+  mSamples.AppendElement(RemoteAudioData{
+      MediaDataIPDL(aData->mOffset, aData->mTime, aData->mTimecode,
+                    aData->mDuration, aData->mKeyframe),
+      aData->mChannels, aData->mRate, uint32_t(aData->mChannelMap),
+      aData->mOriginalTime, aData->mTrimWindow, aData->mFrames,
+      aData->mDataOffset});
+  mBuffers = RemoteArrayOfByteBuffer(aData->mAudioData, aAllocator);
+  if (!mBuffers.IsValid()) {
+    return false;
+  }
+  return true;
+}
+
+bool ArrayOfRemoteAudioData::Fill(
     const nsTArray<RefPtr<AudioData>>& aData,
     std::function<ShmemBuffer(size_t)>&& aAllocator) {
   nsTArray<AlignedAudioBuffer> dataBuffers(aData.Length());
