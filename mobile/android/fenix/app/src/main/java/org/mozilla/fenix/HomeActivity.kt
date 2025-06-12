@@ -1283,7 +1283,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
     }
 
     private fun createBrowsingModeManager(initialMode: BrowsingMode): BrowsingModeManager {
-        return DefaultBrowsingModeManager(initialMode, components.settings) { newMode ->
+        return DefaultBrowsingModeManager(
+            initialMode = initialMode,
+            settings = components.settings,
+            appStore = components.appStore,
+        ) { newMode ->
             updateSecureWindowFlags(newMode)
             addPrivateHomepageTabIfNecessary(newMode)
             themeManager.currentTheme = newMode

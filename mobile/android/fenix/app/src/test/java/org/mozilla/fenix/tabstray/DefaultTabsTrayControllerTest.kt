@@ -1026,6 +1026,7 @@ class DefaultTabsTrayControllerTest {
             DefaultBrowsingModeManager(
                 initialMode = BrowsingMode.Private,
                 settings = settings,
+                appStore = appStore,
                 modeDidChange = mockk(relaxed = true),
             ),
         )
