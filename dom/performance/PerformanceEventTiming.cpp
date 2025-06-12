@@ -33,7 +33,7 @@ NS_IMPL_RELEASE_INHERITED(PerformanceEventTiming, PerformanceEntry)
 PerformanceEventTiming::PerformanceEventTiming(Performance* aPerformance,
                                                const nsAString& aName,
                                                const TimeStamp& aStartTime,
-                                               bool aIsCacelable,
+                                               bool aIsCancelable,
                                                EventMessage aMessage)
     : PerformanceEntry(aPerformance->GetParentObject(), aName, u"event"_ns),
       mPerformance(aPerformance),
@@ -42,7 +42,7 @@ PerformanceEventTiming::PerformanceEventTiming(Performance* aPerformance,
       mStartTime(
           aPerformance->GetDOMTiming()->TimeStampToDOMHighRes(aStartTime)),
       mDuration(0),
-      mCancelable(aIsCacelable),
+      mCancelable(aIsCancelable),
       mMessage(aMessage) {}
 
 PerformanceEventTiming::PerformanceEventTiming(

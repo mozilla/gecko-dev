@@ -114,7 +114,7 @@ class PerformanceEventTiming final
 
  private:
   PerformanceEventTiming(Performance* aPerformance, const nsAString& aName,
-                         const TimeStamp& aStartTime, bool aIsCacelable,
+                         const TimeStamp& aStartTime, bool aIsCancelable,
                          EventMessage aMessage);
 
   PerformanceEventTiming(const PerformanceEventTiming& aEventTimingEntry);
