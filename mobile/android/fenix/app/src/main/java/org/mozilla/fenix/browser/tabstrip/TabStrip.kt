@@ -119,7 +119,7 @@ fun TabStrip(
             isPossiblyPrivateMode = isPossiblyPrivateMode,
             addTab = onAddTabClick,
             toggleBrowsingMode = { isPrivate ->
-                toggleBrowsingMode(isPrivate, onPrivateModeToggleClick)
+                onPrivateModeToggleClick(BrowsingMode.fromBoolean(!isPrivate))
             },
             closeTab = { isPrivate, numberOfTabs ->
                 it.selectedTabId?.let { selectedTabId ->
@@ -140,7 +140,7 @@ fun TabStrip(
         state = state,
         onAddTabClick = onAddTabClick,
         onPrivateModeToggleClick = {
-            toggleBrowsingMode(state.isPrivateMode, onPrivateModeToggleClick)
+            onPrivateModeToggleClick(BrowsingMode.fromBoolean(!state.isPrivateMode))
         },
         onCloseTabClick = { tabId, isPrivate ->
             closeTab(
@@ -476,14 +476,6 @@ private fun closeTab(
     }
     tabsUseCases.removeTab(tabId)
     onCloseTabClick(isPrivate)
-}
-
-private fun toggleBrowsingMode(
-    isCurrentModePrivate: Boolean,
-    onPrivateModeToggleClick: (mode: BrowsingMode) -> Unit,
-) {
-    val newMode = BrowsingMode.fromBoolean(!isCurrentModePrivate)
-    onPrivateModeToggleClick(newMode)
 }
 
 private class TabUIStateParameterProvider : PreviewParameterProvider<TabStripState> {
