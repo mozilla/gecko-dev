@@ -5,10 +5,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/CommandEvent.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/MiscEvents.h"
 #include "prtime.h"
 
 namespace mozilla::dom {
+
+bool CommandEvent::IsCallerChromeOrCommandForEnabled(JSContext* aCx,
+                                                     JSObject* aGlobal) {
+  return nsContentUtils::ThreadsafeIsSystemCaller(aCx) ||
+         StaticPrefs::dom_element_commandfor_enabled();
+}
 
 CommandEvent::CommandEvent(EventTarget* aOwner, nsPresContext* aPresContext,
                            WidgetCommandEvent* aEvent)
