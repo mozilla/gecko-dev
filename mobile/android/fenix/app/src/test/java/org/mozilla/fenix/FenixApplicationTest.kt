@@ -59,6 +59,10 @@ class FenixApplicationTest {
         override fun queryProvider(): String? = null
     }
 
+    private val testLegacyDistributionProviderChecker = object : DistributionProviderChecker {
+        override fun queryProvider(): String? = null
+    }
+
     @Before
     fun setUp() {
         application = ApplicationProvider.getApplicationContext()
@@ -66,9 +70,10 @@ class FenixApplicationTest {
         mozillaProductDetector = mockk(relaxed = true)
         browserStore = BrowserStore()
         every { testContext.components.distributionIdManager } returns DistributionIdManager(
-            testContext,
-            DefaultDistributionBrowserStoreProvider(browserStore),
-            testDistributionProviderChecker,
+            context = testContext,
+            browserStoreProvider = DefaultDistributionBrowserStoreProvider(browserStore),
+            distributionProviderChecker = testDistributionProviderChecker,
+            legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
         )
     }
 

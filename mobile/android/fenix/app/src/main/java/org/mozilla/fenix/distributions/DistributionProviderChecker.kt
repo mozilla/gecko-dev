@@ -34,14 +34,17 @@ interface DistributionProviderChecker {
 private val logger = Logger(DistributionProviderChecker::class.simpleName)
 
 /**
- * Default implementation for DistributionProviderChecker
+ * Legacy implementation for DistributionProviderChecker
+ * Keeping this until we know for sure that removing it won't break already existing
+ * distribution deals.
  *
  * @param context application context used to get the packageManager and contentResolver
  */
-class DefaultDistributionProviderChecker(private val context: Context) : DistributionProviderChecker {
+class LegacyDistributionProviderChecker(private val context: Context) : DistributionProviderChecker {
+    private val classVersion = "Legacy"
 
     override fun queryProvider(): String? {
-        logger.info("1 - Starting check...")
+        logger.info("$classVersion - Starting check...")
         val adjustProviderIntent = Intent(ADJUST_CONTENT_PROVIDER_INTENT_ACTION)
         val contentProviders = context.packageManager.queryIntentContentProviders(adjustProviderIntent, 0)
         val contentResolver = context.contentResolver
@@ -49,10 +52,6 @@ class DefaultDistributionProviderChecker(private val context: Context) : Distrib
         for (resolveInfo in contentProviders) {
             val authority = resolveInfo.providerInfo.authority
             val uri = "content://$authority/trackers".toUri()
-
-            if (!authority.contains("google")) {
-                logger.info("1 - Authority found: $authority")
-            }
 
             val projection = arrayOf(PACKAGE_NAME_COLUMN, ENCRYPTED_DATA_COLUMN)
 
@@ -73,19 +72,22 @@ class DefaultDistributionProviderChecker(private val context: Context) : Distrib
     }
 
     private fun Cursor.getProvider(): String? {
-        logger.info("1 - Cursor available")
+        logger.info("$classVersion - Cursor available")
         while (moveToNext()) {
-            logger.info("1 - Checking next cursor...")
+            logger.info("$classVersion - Checking next cursor...")
             val packageNameColumnIndex = getColumnIndex(PACKAGE_NAME_COLUMN)
             val dataColumnIndex = getColumnIndex(ENCRYPTED_DATA_COLUMN)
 
             // Check if columns exist
             if (packageNameColumnIndex == -1 || dataColumnIndex == -1) {
-                logger.info("1 - missing columns, packageName: $packageNameColumnIndex; data: $dataColumnIndex")
+                logger.info(
+                    "$classVersion - missing columns, " +
+                        "packageName: $packageNameColumnIndex; data: $dataColumnIndex",
+                )
                 break
             }
 
-            logger.info("1 - packageName: ${getString(packageNameColumnIndex)}")
+            logger.info("$classVersion - packageName: ${getString(packageNameColumnIndex)}")
 
             val packageName = getString(packageNameColumnIndex) ?: break
 
@@ -93,15 +95,15 @@ class DefaultDistributionProviderChecker(private val context: Context) : Distrib
                 packageName == FIREFOX_BETA_PACKAGE_NAME ||
                 packageName == FIREFOX_NIGHTLY_PACKAGE_NAME
             ) {
-                logger.info("1 - data: ${getString(dataColumnIndex)}")
+                logger.info("$classVersion - data: ${getString(dataColumnIndex)}")
                 val data = getString(dataColumnIndex) ?: break
                 try {
                     val jsonObject = JSONObject(data)
                     val provider = jsonObject.getString("provider")
-                    logger.info("1 - provider found: $provider")
+                    logger.info("$classVersion - provider found: $provider")
                     return provider
                 } catch (e: JSONException) {
-                    logger.info("1 - JSON expection: $e")
+                    logger.info("$classVersion - JSON expection: $e")
                     break
                 }
             }
@@ -111,13 +113,15 @@ class DefaultDistributionProviderChecker(private val context: Context) : Distrib
 }
 
 /**
- * Second implementation for DistributionProviderChecker
+ * Default implementation for DistributionProviderChecker
  *
  * @param context application context used to get the packageManager and contentResolver
  */
-class SecondaryDistributionProviderChecker(private val context: Context) : DistributionProviderChecker {
+class DefaultDistributionProviderChecker(private val context: Context) : DistributionProviderChecker {
+    private val classVersion = "Default"
+
     override fun queryProvider(): String? {
-        logger.info("2 - Starting check...")
+        logger.info("$classVersion - Starting check...")
         val adjustProviderIntent = Intent(ADJUST_CONTENT_PROVIDER_INTENT_ACTION)
         val contentProviders = context.packageManager.queryIntentContentProviders(adjustProviderIntent, 0)
         val contentResolver = context.contentResolver
@@ -145,7 +149,7 @@ class SecondaryDistributionProviderChecker(private val context: Context) : Distr
     }
 
     private fun Cursor.getProvider(): String? {
-        logger.info("2 - Cursor available")
+        logger.info("$classVersion - Cursor available")
         while (moveToNext()) {
             val dataColumnIndex = getColumnIndex(ENCRYPTED_DATA_COLUMN)
 
@@ -158,79 +162,10 @@ class SecondaryDistributionProviderChecker(private val context: Context) : Distr
             try {
                 val jsonObject = JSONObject(data)
                 val provider = jsonObject.getString("provider")
-                logger.info("2 - Provider found: $provider")
+                logger.info("$classVersion - Provider found: $provider")
                 return provider
             } catch (e: JSONException) {
-                logger.info("2 - JSON expection: $e")
-                break
-            }
-        }
-        return null
-    }
-}
-
-/**
- * Third implementation for DistributionProviderChecker
- *
- * @param context application context used to get the packageManager and contentResolver
- */
-class ThirdDistributionProviderChecker(private val context: Context) : DistributionProviderChecker {
-    override fun queryProvider(): String? {
-        logger.info("3 - Starting check...")
-        val adjustProviderIntent = Intent(ADJUST_CONTENT_PROVIDER_INTENT_ACTION)
-        val contentProviders = context.packageManager.queryIntentContentProviders(adjustProviderIntent, 0)
-        val contentResolver = context.contentResolver
-
-        for (resolveInfo in contentProviders) {
-            val authority = resolveInfo.providerInfo.authority
-            val uri = "content://$authority/trackers".toUri()
-
-            val projection = arrayOf(PACKAGE_NAME_COLUMN, ENCRYPTED_DATA_COLUMN)
-
-            val contentResolverCursor = contentResolver.query(
-                uri,
-                projection,
-                null,
-                null,
-                null,
-            )
-
-            contentResolverCursor?.use { cursor ->
-                cursor.getProvider()?.let { return it }
-            }
-        }
-
-        return null
-    }
-
-    private fun Cursor.getProvider(): String? {
-        logger.info("3 - Cursor available")
-        while (moveToNext()) {
-            val dataColumnIndex = getColumnIndex(ENCRYPTED_DATA_COLUMN)
-
-            // Check if columns exist
-            if (dataColumnIndex == -1) {
-                break
-            }
-
-            val data = getString(dataColumnIndex) ?: break
-            try {
-                val jsonObject = JSONObject(data)
-                val provider = jsonObject.getString("provider")
-
-                logger.info("3 - data: $data")
-
-                val packageNameColumnIndex = getColumnIndex(PACKAGE_NAME_COLUMN)
-
-                if (packageNameColumnIndex == -1) {
-                    logger.info("3 - no package name column")
-                    return provider
-                }
-                logger.info("3 - package name: ${getString(packageNameColumnIndex)}")
-
-                return provider
-            } catch (e: JSONException) {
-                logger.info("3 - JSON exception: $e")
+                logger.info("$classVersion - JSON expection: $e")
                 break
             }
         }
