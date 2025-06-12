@@ -494,7 +494,14 @@ features:
           Whether or not to disable SHIP. SHIP is enabled when set to false. SHIP is disabled when
           set to true.
         type: Boolean
-        default: false
+        default: true
+    defaults:
+      - channel: nightly
+        value:
+          disabled: false
+      - channel: developer
+        value:
+          disabled: false
 
   fission:
     description: The feature that controls whether fission is enabled or not in Gecko.

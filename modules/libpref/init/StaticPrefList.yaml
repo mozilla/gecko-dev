@@ -5931,7 +5931,11 @@
 # over IPC from the child processes.
 - name: fission.disableSessionHistoryInParent
   type: bool
+#if defined(MOZ_WIDGET_ANDROID) && !defined(NIGHTLY_BUILD)
+  value: true
+#else
   value: false
+#endif
   mirror: once
   do_not_use_directly: true
 
