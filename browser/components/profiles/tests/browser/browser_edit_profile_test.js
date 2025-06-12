@@ -148,7 +148,7 @@ add_task(async function test_edit_profile_avatar() {
 
   // Before we load the edit page, set the profile's avatar to something other
   // than the 0th item.
-  profile.avatar = "flower";
+  await profile.setAvatar("flower");
   let expectedAvatar = "book";
 
   is(

@@ -171,7 +171,7 @@ add_task(async function test_new_profile_avatar() {
   let expectedAvatar = "briefcase";
   // Before we load the new page, set the profile's avatar to something other
   // than the expected item.
-  profile.avatar = "flower";
+  await profile.setAvatar("flower");
   await SelectableProfileService.updateProfile(profile);
 
   await BrowserTestUtils.withNewTab(

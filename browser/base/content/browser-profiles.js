@@ -104,11 +104,9 @@ var gProfiles = {
       "label",
       SelectableProfileService.currentProfile.name
     );
-    let avatar = SelectableProfileService.currentProfile.avatar;
-    profilesButton.setAttribute(
-      "image",
-      `chrome://browser/content/profiles/assets/16_${avatar}.svg`
-    );
+    let avatarURL =
+      await SelectableProfileService.currentProfile.getAvatarURL(16);
+    profilesButton.setAttribute("image", `${avatarURL}`);
   },
 
   /**
@@ -131,7 +129,7 @@ var gProfiles = {
       menuitem.setAttribute("label", profile.name);
       menuitem.style.setProperty("--menu-profiles-theme-bg", themeBg);
       menuitem.style.setProperty("--menu-profiles-theme-fg", themeFg);
-      menuitem.style.listStyleImage = `url(chrome://browser/content/profiles/assets/48_${profile.avatar}.svg)`;
+      menuitem.style.listStyleImage = `url(${await profile.getAvatarURL(48)})`;
       menuitem.classList.add("menuitem-iconic", "menuitem-iconic-profile");
 
       if (profile.id === currentProfile.id) {
@@ -325,8 +323,7 @@ var gProfiles = {
         themeFg
       );
 
-      let avatar = currentProfile.avatar;
-      profileIconEl.style.listStyleImage = `url("chrome://browser/content/profiles/assets/80_${avatar}.svg")`;
+      profileIconEl.style.listStyleImage = `url(${await currentProfile.getAvatarURL(80)})`;
     }
 
     let subtitle = PanelMultiView.getViewNode(document, "profiles-subtitle");
@@ -348,10 +345,7 @@ var gProfiles = {
       let { themeFg, themeBg } = profile.theme;
       button.style.setProperty("--appmenu-profiles-theme-bg", themeBg);
       button.style.setProperty("--appmenu-profiles-theme-fg", themeFg);
-      button.setAttribute(
-        "image",
-        `chrome://browser/content/profiles/assets/16_${profile.avatar}.svg`
-      );
+      button.setAttribute("image", `${await profile.getAvatarURL(16)}`);
 
       profilesList.appendChild(button);
     }
