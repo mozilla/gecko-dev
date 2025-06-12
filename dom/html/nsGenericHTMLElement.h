@@ -56,7 +56,7 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   using ContentEditableState = mozilla::ContentEditableState;
   using Element::Focus;
   using Element::SetTabIndex;
-  using InvokeAction = mozilla::dom::InvokeAction;
+  using Element::Command;
 
   explicit nsGenericHTMLElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
@@ -220,10 +220,10 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   void ForgetPreviouslyFocusedElementAfterHidingPopover();
   MOZ_CAN_RUN_SCRIPT void FocusPreviousElementAfterHidingPopover();
 
-  bool IsValidInvokeAction(mozilla::dom::InvokeAction aAction) const override;
+  bool IsValidCommandAction(Command aCommand) const override;
 
-  MOZ_CAN_RUN_SCRIPT bool HandleInvokeInternal(
-      Element* aInvoker, mozilla::dom::InvokeAction aAction,
+  MOZ_CAN_RUN_SCRIPT bool HandleCommandInternal(
+      Element* aSource, Command aCommand,
       ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT void FocusCandidate(Element*, bool aClearUpFocus);
@@ -1303,7 +1303,7 @@ class nsGenericHTMLFormControlElementWithState
   mozilla::dom::Element* GetInvokeTargetElement() const;
   void SetInvokeTargetElement(mozilla::dom::Element*);
   void GetInvokeAction(nsAString& aValue) const;
-  InvokeAction GetInvokeAction(nsAtom* aAtom) const;
+  Command GetInvokeAction(nsAtom* aAtom) const;
   void SetInvokeAction(const nsAString& aValue) {
     SetHTMLAttr(nsGkAtoms::invokeaction, aValue);
   }

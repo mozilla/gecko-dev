@@ -276,21 +276,6 @@ class TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString;
     ExplicitlySetAttrElements(nsGkAtoms::attr, aElements);                  \
   }
 
-// TODO(keithamus): Reference the spec link once merged.
-// https://github.com/whatwg/html/pull/9841/files#diff-41cf6794ba4200b839c53531555f0f3998df4cbb01a4d5cb0b94e3ca5e23947dR86024
-enum class InvokeAction : uint8_t {
-  Invalid,
-  Custom,
-  Auto,
-  TogglePopover,
-  ShowPopover,
-  HidePopover,
-  ShowModal,
-  Toggle,
-  Close,
-  Open,
-};
-
 class Element : public FragmentOrElement {
  public:
 #ifdef MOZILLA_INTERNAL_API
@@ -1171,8 +1156,23 @@ class Element : public FragmentOrElement {
     return FindAttributeDependence(aAttribute, aMaps, N);
   }
 
-  virtual bool IsValidInvokeAction(InvokeAction aAction) const {
-    return aAction == InvokeAction::Auto;
+
+  // https://html.spec.whatwg.org/#attr-button-command
+  enum class Command : uint8_t {
+    Invalid,
+    Custom,
+    Auto,
+    TogglePopover,
+    ShowPopover,
+    HidePopover,
+    ShowModal,
+    Toggle,
+    Close,
+    Open,
+  };
+
+  virtual bool IsValidCommandAction(Command aCommand) const {
+    return aCommand == Command::Auto;
   }
 
   /**
@@ -1183,9 +1183,9 @@ class Element : public FragmentOrElement {
    * indicate to sub-classes that this has been handled and no further steps
    * should be run.
    */
-  MOZ_CAN_RUN_SCRIPT virtual bool HandleInvokeInternal(Element* invoker,
-                                                       InvokeAction aAction,
-                                                       ErrorResult& aRv) {
+  MOZ_CAN_RUN_SCRIPT virtual bool HandleCommandInternal(Element* aSource,
+                                                        Command aCommand,
+                                                        ErrorResult& aRv) {
     return false;
   }
 
