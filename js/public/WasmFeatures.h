@@ -46,7 +46,7 @@
 #  define WASM_MEMORY_CONTROL_ENABLED 1
 #else
 #  define WASM_MEMORY_CONTROL_ENABLED 0
-#endif 
+#endif
 #ifdef ENABLE_WASM_JSPI
 #  define WASM_JSPI_ENABLED 1
 #else
@@ -62,23 +62,9 @@
 #else
 #  define WASM_BRANCH_HINTING_ENABLED 0
 #endif
-#ifdef ENABLE_WASM_JS_STRING_BUILTINS
-#  define WASM_JS_STRING_BUILTINS_ENABLED 1
-#else
-#  define WASM_JS_STRING_BUILTINS_ENABLED 0
-#endif
 
 // clang-format off
 #define JS_FOR_WASM_FEATURES(FEATURE)                                   \
-  FEATURE(                                                              \
-    /* capitalized name   */ JSStringBuiltins,                          \
-    /* lower case name    */ jsStringBuiltins,                          \
-    /* compile predicate  */ WASM_JS_STRING_BUILTINS_ENABLED,           \
-    /* compiler predicate */ AnyCompilerAvailable(cx),                  \
-    /* flag predicate     */ true,                                      \
-    /* flag force enable  */ false,                                     \
-    /* flag fuzz enable   */ true,                                      \
-    /* preference name    */ js_string_builtins)                        \
   FEATURE(                                                              \
     /* capitalized name   */ RelaxedSimd,                               \
     /* lower case name    */ v128Relaxed,                               \

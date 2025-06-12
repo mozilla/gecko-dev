@@ -750,28 +750,6 @@ def wasm_jspi(value, jit_enabled, simulator, no_experimental, target):
 set_config("ENABLE_WASM_JSPI", wasm_jspi)
 set_define("ENABLE_WASM_JSPI", wasm_jspi)
 
-# Support for WebAssembly JS String Builtins
-# ==========================================
-
-
-option(
-    "--disable-wasm-js-string-builtins",
-    default=True,
-    help="{Enable|Disable} WebAssembly JS String Builtins",
-)
-
-
-@depends("--disable-wasm-js-string-builtins")
-def wasm_js_string_builtins(value):
-    if not value:
-        return
-
-    return True
-
-
-set_config("ENABLE_WASM_JS_STRING_BUILTINS", wasm_js_string_builtins)
-set_define("ENABLE_WASM_JS_STRING_BUILTINS", wasm_js_string_builtins)
-
 # Support for WebAssembly shared memory and atomics.
 #
 # This affects the JS shell only.
