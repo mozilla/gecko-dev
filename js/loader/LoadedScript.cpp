@@ -377,11 +377,4 @@ void ModuleScript::SetErrorToRethrow(const JS::Value& aError) {
 void ModuleScript::SetForPreload(bool aValue) { mForPreload = aValue; }
 void ModuleScript::SetHadImportMap(bool aValue) { mHadImportMap = aValue; }
 
-void ModuleScript::SetDebuggerDataInitialized() {
-  MOZ_ASSERT(ModuleRecord());
-  MOZ_ASSERT(!mDebuggerDataInitialized);
-
-  mDebuggerDataInitialized = true;
-}
-
 }  // namespace JS::loader

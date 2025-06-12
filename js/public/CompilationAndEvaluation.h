@@ -201,13 +201,6 @@ extern JS_PUBLIC_API JSFunction* CompileFunctionUtf8(
     const char* const* argnames, const char* utf8, size_t length);
 
 /*
- * For a script compiled with the hideScriptFromDebugger option, expose the
- * script to the debugger by calling the debugger's onNewScript hook.
- */
-extern JS_PUBLIC_API void ExposeScriptToDebugger(JSContext* cx,
-                                                 Handle<JSScript*> script);
-
-/*
  * JSScripts have associated with them (via their ScriptSourceObjects) some
  * metadata used by the debugger. The following API functions are used to set
  * that metadata on scripts, functions and modules.

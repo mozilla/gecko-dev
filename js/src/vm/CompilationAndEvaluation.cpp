@@ -530,14 +530,6 @@ JS_PUBLIC_API JSFunction* JS::CompileFunctionUtf8(
   return CompileFunction(cx, envChain, options, name, nargs, argnames, srcBuf);
 }
 
-JS_PUBLIC_API void JS::ExposeScriptToDebugger(JSContext* cx,
-                                              HandleScript script) {
-  MOZ_ASSERT(cx);
-  MOZ_ASSERT(CurrentThreadCanAccessRuntime(cx->runtime()));
-
-  DebugAPI::onNewScript(cx, script);
-}
-
 JS_PUBLIC_API bool JS::UpdateDebugMetadata(
     JSContext* cx, Handle<JSScript*> script, const InstantiateOptions& options,
     HandleValue privateValue, HandleString elementAttributeName,
@@ -580,7 +572,7 @@ JS_PUBLIC_API bool JS::UpdateDebugMetadata(
   sso->setPrivate(cx->runtime(), privateValueStore);
 
   if (!options.hideScriptFromDebugger) {
-    JS::ExposeScriptToDebugger(cx, script);
+    DebugAPI::onNewScript(cx, script);
   }
 
   return true;

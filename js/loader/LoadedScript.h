@@ -395,7 +395,6 @@ class ModuleScript final : public LoadedScript {
   JS::Heap<JS::Value> mErrorToRethrow;
   bool mForPreload = false;
   bool mHadImportMap = false;
-  bool mDebuggerDataInitialized = false;
 
   ~ModuleScript();
 
@@ -427,7 +426,6 @@ class ModuleScript final : public LoadedScript {
   void SetErrorToRethrow(const JS::Value& aError);
   void SetForPreload(bool aValue);
   void SetHadImportMap(bool aValue);
-  void SetDebuggerDataInitialized();
 
   JSObject* ModuleRecord() const { return mModuleRecord; }
 
@@ -437,7 +435,6 @@ class ModuleScript final : public LoadedScript {
   bool HasErrorToRethrow() const { return !mErrorToRethrow.isUndefined(); }
   bool ForPreload() const { return mForPreload; }
   bool HadImportMap() const { return mHadImportMap; }
-  bool DebuggerDataInitialized() const { return mDebuggerDataInitialized; }
 
   void Shutdown();
 
