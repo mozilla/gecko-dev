@@ -2969,7 +2969,7 @@ bool nsGenericHTMLFormControlElementWithState::ParseAttribute(
       return true;
     }
 
-    if (StaticPrefs::dom_element_invokers_enabled()) {
+    if (StaticPrefs::dom_element_commandfor_enabled()) {
       if (aAttribute == nsGkAtoms::invokeaction) {
         aResult.ParseAtom(aValue);
         return true;
@@ -3064,7 +3064,7 @@ InvokeAction nsGenericHTMLFormControlElementWithState::GetInvokeAction(
 
 mozilla::dom::Element*
 nsGenericHTMLFormControlElementWithState::GetInvokeTargetElement() const {
-  if (StaticPrefs::dom_element_invokers_enabled()) {
+  if (StaticPrefs::dom_element_commandfor_enabled()) {
     return GetAttrAssociatedElement(nsGkAtoms::invoketarget);
   }
   return nullptr;
