@@ -7,7 +7,6 @@
 #include "mozilla/dom/HTMLButtonElement.h"
 
 #include "HTMLFormSubmissionConstants.h"
-#include "mozilla/dom/CommandEvent.h"
 #include "mozilla/dom/FormData.h"
 #include "mozilla/dom/HTMLButtonElementBinding.h"
 #include "nsAttrValueInlines.h"
@@ -140,17 +139,6 @@ bool HTMLButtonElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
     }
     if (aAttribute == nsGkAtoms::formenctype) {
       return aResult.ParseEnumValue(aValue, kFormEnctypeTable, false);
-    }
-
-    if (StaticPrefs::dom_element_commandfor_enabled()) {
-      if (aAttribute == nsGkAtoms::command) {
-        aResult.ParseAtom(aValue);
-        return true;
-      }
-      if (aAttribute == nsGkAtoms::commandfor) {
-        aResult.ParseAtom(aValue);
-        return true;
-      }
     }
   }
 
@@ -287,10 +275,10 @@ void HTMLButtonElement::ActivationBehavior(EventChainPostVisitor& aVisitor) {
       // https://html.spec.whatwg.org/multipage/form-elements.html#attr-button-type-button-state
       // NS_FORM_BUTTON_BUTTON do nothing.
     }
-    if (!GetCommandForElement()) {
+    if (!GetInvokeTargetElement()) {
       HandlePopoverTargetAction();
     } else {
-      HandleCommandForAction();
+      HandleInvokeTargetAction();
     }
   }
 
@@ -437,98 +425,6 @@ void HTMLButtonElement::UpdateValidityElementStates(bool aNotify) {
   } else {
     AddStatesSilently(ElementState::INVALID | ElementState::USER_INVALID);
   }
-}
-
-void HTMLButtonElement::HandleCommandForAction() {
-  RefPtr<Element> invokee = GetCommandForElement();
-
-  if (!invokee) {
-    return;
-  }
-
-  // 1. Let action be element's command attribute.
-  const nsAttrValue* attr = GetParsedAttr(nsGkAtoms::command);
-
-  nsAtom* actionRaw = attr ? attr->GetAtomValue() : nsGkAtoms::_empty;
-  Command action = GetCommand(actionRaw);
-
-  // 5.3. Otherwise, if the result of running invokee's corresponding is valid
-  // invoke action steps given action is not true, then return.
-  if (action != Command::Custom && !invokee->IsValidCommandAction(action)) {
-    return;
-  }
-
-  // 6. Let continue be the result of firing an event named invoke at invokee,
-  // using CommandEvent, with its action attribute initialized to action's
-  // value, its invoker attribute initialized to element, and its cancelable and
-  // composed attributes initialized to true.
-  CommandEventInit init;
-  actionRaw->ToString(init.mCommand);
-  init.mSource = this;
-  init.mCancelable = true;
-  init.mComposed = true;
-  RefPtr<Event> event = CommandEvent::Constructor(this, u"command"_ns, init);
-  event->SetTrusted(true);
-  event->SetTarget(invokee);
-
-  EventDispatcher::DispatchDOMEvent(invokee, nullptr, event, nullptr, nullptr);
-
-  // 7. If continue is false, then return.
-  // 8. If isCustom is true, then return.
-  if (action == Command::Custom || event->DefaultPrevented()) {
-    return;
-  }
-
-  invokee->HandleCommandInternal(this, action, IgnoreErrors());
-}
-
-void HTMLButtonElement::GetCommand(nsAString& aValue) const {
-  const nsAttrValue* attr = GetParsedAttr(nsGkAtoms::command);
-  if (attr) {
-    attr->GetAtomValue()->ToString(aValue);
-  }
-}
-
-Element::Command HTMLButtonElement::GetCommand(nsAtom* aAtom) const {
-  if (aAtom == nsGkAtoms::_empty) {
-    return Command::Auto;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::showpopover)) {
-    return Command::ShowPopover;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::hidepopover)) {
-    return Command::HidePopover;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::togglepopover)) {
-    return Command::TogglePopover;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::showmodal)) {
-    return Command::ShowModal;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::toggle)) {
-    return Command::Toggle;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::close)) {
-    return Command::Close;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::open)) {
-    return Command::Open;
-  }
-  if (nsContentUtils::ContainsChar(aAtom, '-')) {
-    return Command::Custom;
-  }
-  return Command::Invalid;
-}
-
-Element* HTMLButtonElement::GetCommandForElement() const {
-  if (StaticPrefs::dom_element_commandfor_enabled()) {
-    return GetAttrAssociatedElement(nsGkAtoms::commandfor);
-  }
-  return nullptr;
-}
-
-void HTMLButtonElement::SetCommandForElement(Element* aElement) {
-  ExplicitlySetAttrElement(nsGkAtoms::commandfor, aElement);
 }
 
 JSObject* HTMLButtonElement::WrapNode(JSContext* aCx,

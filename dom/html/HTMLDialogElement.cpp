@@ -565,24 +565,24 @@ void HTMLDialogElement::RunCancelDialogSteps() {
   }
 }
 
-bool HTMLDialogElement::IsValidCommandAction(Command aCommand) const {
-  return nsGenericHTMLElement::IsValidCommandAction(aCommand) ||
-         aCommand == Command::ShowModal || aCommand == Command::Close;
+bool HTMLDialogElement::IsValidInvokeAction(InvokeAction aAction) const {
+  return nsGenericHTMLElement::IsValidInvokeAction(aAction) ||
+         aAction == InvokeAction::ShowModal || aAction == InvokeAction::Close;
 }
 
-bool HTMLDialogElement::HandleCommandInternal(Element* aSource,
-                                              Command aCommand,
-                                              ErrorResult& aRv) {
-  if (nsGenericHTMLElement::HandleCommandInternal(aSource, aCommand, aRv)) {
+bool HTMLDialogElement::HandleInvokeInternal(Element* aInvoker,
+                                             InvokeAction aAction,
+                                             ErrorResult& aRv) {
+  if (nsGenericHTMLElement::HandleInvokeInternal(aInvoker, aAction, aRv)) {
     return true;
   }
 
-  MOZ_ASSERT(IsValidCommandAction(aCommand));
+  MOZ_ASSERT(IsValidInvokeAction(aAction));
 
   const bool actionMayClose =
-      aCommand == Command::Auto || aCommand == Command::Close;
+      aAction == InvokeAction::Auto || aAction == InvokeAction::Close;
   const bool actionMayOpen =
-      aCommand == Command::Auto || aCommand == Command::ShowModal;
+      aAction == InvokeAction::Auto || aAction == InvokeAction::ShowModal;
 
   if (actionMayClose && Open()) {
     Optional<nsAString> retValue;

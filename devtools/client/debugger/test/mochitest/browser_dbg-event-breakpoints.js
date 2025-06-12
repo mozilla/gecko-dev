@@ -5,7 +5,7 @@
 "use strict";
 
 add_task(async function () {
-  await pushPref("dom.element.commandfor.enabled", true);
+  await pushPref("dom.element.invokers.enabled", true);
   await pushPref("dom.events.textevent.enabled", true);
   await pushPref("dom.closewatcher.enabled", true);
 
@@ -76,7 +76,7 @@ add_task(async function () {
   await toggleEventBreakpoint(dbg, "Control", "event.control.focusin");
   await toggleEventBreakpoint(dbg, "Control", "event.control.focusout");
 
-  await toggleEventBreakpoint(dbg, "Control", "event.control.command");
+  await toggleEventBreakpoint(dbg, "Control", "event.control.invoke");
   invokeOnElement("#invoker", "click");
   await waitForPaused(dbg);
   await assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 77);

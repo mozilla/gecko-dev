@@ -4199,7 +4199,11 @@ void HTMLInputElement::ActivationBehavior(EventChainPostVisitor& aVisitor) {
       break;
   }  // switch
   if (IsButtonControl()) {
-    HandlePopoverTargetAction();
+    if (!GetInvokeTargetElement()) {
+      HandlePopoverTargetAction();
+    } else {
+      HandleInvokeTargetAction();
+    }
   }
 
   EndSubmitClick(aVisitor);

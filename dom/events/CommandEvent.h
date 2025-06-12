@@ -18,33 +18,17 @@ class CommandEvent : public Event {
   CommandEvent(EventTarget* aOwner, nsPresContext* aPresContext,
                WidgetCommandEvent* aEvent);
 
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(CommandEvent, Event)
+  NS_INLINE_DECL_REFCOUNTING_INHERITED(CommandEvent, Event)
 
   virtual JSObject* WrapObjectInternal(
       JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return CommandEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 
-  static already_AddRefed<CommandEvent> Constructor(
-      EventTarget* aOwner, const nsAString& aType,
-      const CommandEventInit& aEventInitDict);
-
-  static already_AddRefed<CommandEvent> Constructor(
-      const GlobalObject& aGlobal, const nsAString& aType,
-      const CommandEventInit& aEventInitDict);
-
-  void GetCommand(nsAString& aCommand) const;
-
-  Element* GetSource();
-
-  static bool IsCallerChromeOrCommandForEnabled(JSContext*, JSObject*);
+  void GetCommand(nsAString& aCommand);
 
  protected:
   ~CommandEvent() = default;
-
- private:
-  RefPtr<Element> mSource;
 };
 
 }  // namespace mozilla::dom

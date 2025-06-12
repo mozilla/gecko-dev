@@ -17,8 +17,6 @@ namespace mozilla::dom {
 
 class HTMLDialogElement final : public nsGenericHTMLElement {
  public:
-  using Element::Command;
-
   enum class ClosedBy : uint8_t {
     Auto,
     None,
@@ -88,10 +86,10 @@ class HTMLDialogElement final : public nsGenericHTMLElement {
 
   int32_t TabIndexDefault() override;
 
-  bool IsValidCommandAction(Command aCommand) const override;
-  MOZ_CAN_RUN_SCRIPT bool HandleCommandInternal(Element* aSource,
-                                                Command aCommand,
-                                                ErrorResult& aRv) override;
+  bool IsValidInvokeAction(InvokeAction aAction) const override;
+  MOZ_CAN_RUN_SCRIPT bool HandleInvokeInternal(Element* invoker,
+                                               InvokeAction aAction,
+                                               ErrorResult& aRv) override;
 
   nsString mRequestCloseReturnValue;
   nsString mReturnValue;

@@ -23,7 +23,6 @@ class HTMLSummaryElement;
 class HTMLDetailsElement final : public nsGenericHTMLElement {
  public:
   using NodeInfo = mozilla::dom::NodeInfo;
-  using Element::Command;
 
   explicit HTMLDetailsElement(already_AddRefed<NodeInfo>&& aNodeInfo);
 
@@ -60,10 +59,10 @@ class HTMLDetailsElement final : public nsGenericHTMLElement {
 
   void AsyncEventRunning(AsyncEventDispatcher* aEvent) override;
 
-  bool IsValidCommandAction(Command aCommand) const override;
-  MOZ_CAN_RUN_SCRIPT bool HandleCommandInternal(Element* aSource,
-                                                Command aCommand,
-                                                ErrorResult& aRv) override;
+  bool IsValidInvokeAction(InvokeAction aAction) const override;
+  MOZ_CAN_RUN_SCRIPT bool HandleInvokeInternal(Element* invoker,
+                                               InvokeAction aAction,
+                                               ErrorResult& aRv) override;
 
  protected:
   virtual ~HTMLDetailsElement();

@@ -72,8 +72,8 @@ function onScrollEnd() {
   console.log("scroll end");
 }
 
-document.getElementById("invokee").addEventListener("command", onCommand);
-function onCommand(event) {
+document.getElementById("invokee").addEventListener("invoke", onInvoke);
+function onInvoke(event) {
   console.log(event);
 }
 
