@@ -810,11 +810,6 @@ ClientEngine.prototype = {
           this.service.identity.hashedDeviceID(clientId);
       } catch (_) {}
 
-      Glean.syncClient.sendcommand.record({
-        command,
-        flow_id: telemetryExtra.flowID,
-        reason: telemetryExtra.reason,
-      });
       this.service.recordTelemetryEvent(
         "sendcommand",
         command,
@@ -856,10 +851,6 @@ ClientEngine.prototype = {
         let { command, args, flowID } = rawCommand;
         this._log.debug("Processing command " + command, args);
 
-        Glean.syncClient.processcommand.record({
-          command,
-          flow_id: flowID,
-        });
         this.service.recordTelemetryEvent(
           "processcommand",
           command,

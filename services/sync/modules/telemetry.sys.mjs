@@ -814,7 +814,6 @@ class SyncTelemetryImpl {
   _addMigrationRecord(type, info) {
     log.debug("Saw telemetry migration info", type, info);
     // Updates to this need to be documented in `sync-ping.rst`
-    // and considered in the metric definition of `syncs.migrations`.
     switch (type) {
       case "webext-storage":
         this.migrations.push({
@@ -874,36 +873,6 @@ class SyncTelemetryImpl {
       }).catch(err => {
         log.error("failed to submit ping", err);
       });
-
-      Glean.syncs.discarded.set(record.discarded);
-      Glean.syncs.hashedFxaUid.set(record.uid);
-      Glean.syncs.hashedDeviceId.set(record.deviceID);
-      Glean.syncs.sessionStartDate.set(record.sessionStartDate * 1000);
-      Glean.syncs.syncNodeType.set(record.syncNodeType);
-      // Glean object metrics forbid the use of e.g. 'type' (bug 1945220),
-      // so we can't use record.syncs directly.
-      let syncs = structuredClone(record.syncs);
-      for (let sync of syncs) {
-        if (!("devices" in sync)) {
-          continue;
-        }
-        for (let device of sync.devices) {
-          device.device_type = device.type;
-          delete device.type;
-        }
-      }
-      Glean.syncs.syncs.set(syncs);
-      if (numMigrations) {
-        // Glean object metrics forbid the use of e.g. 'type' (bug 1945220),
-        // so we can't use record.migrations directly.
-        let migrations = structuredClone(record.migrations);
-        for (let migration of migrations) {
-          migration.migration_type = migration.type;
-          delete migration.type;
-        }
-        Glean.syncs.migrations.set(migrations);
-      }
-      GleanPings.sync.submit(record.why);
       return true;
     }
     return false;

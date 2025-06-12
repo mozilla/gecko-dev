@@ -406,7 +406,6 @@ BookmarksEngine.prototype = {
         // If the last sync failed, we ran maintenance, and this sync succeeded,
         // maintenance likely fixed the issue.
         this._ranMaintenanceOnLastSync = false;
-        Glean.sync.maintenanceFixBookmarks.record();
         this.service.recordTelemetryEvent("maintenance", "fix", "bookmarks");
       }
     } catch (ex) {
@@ -440,7 +439,6 @@ BookmarksEngine.prototype = {
         );
         await lazy.PlacesDBUtils.maintenanceOnIdle();
         this._ranMaintenanceOnLastSync = true;
-        Glean.sync.maintenanceRunBookmarks.record();
         this.service.recordTelemetryEvent("maintenance", "run", "bookmarks");
       } else {
         this._ranMaintenanceOnLastSync = false;

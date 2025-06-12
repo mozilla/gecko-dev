@@ -51,11 +51,6 @@ Object.setPrototypeOf(
   FxAccountsClient.prototype
 );
 
-add_setup(function () {
-  do_get_profile(); // FOG requires a profile dir.
-  Services.fog.initializeFOG();
-});
-
 add_task(async function test_sendtab_isDeviceCompatible() {
   const sendTab = new SendTab(null, null);
   let device = { name: "My device" };
@@ -72,9 +67,6 @@ add_task(async function test_sendtab_isDeviceCompatible() {
 });
 
 add_task(async function test_sendtab_send() {
-  // Clear events from other test cases.
-  Services.fog.testResetFOG();
-
   const commands = {
     invoke: sinon.spy((cmd, device, payload) => {
       if (device.name == "Device 1") {
@@ -118,13 +110,6 @@ add_task(async function test_sendtab_send() {
       extra: { flowID: "1", streamID: expectedTelemetryStreamID },
     },
   ]);
-  const sendEvents = Glean.fxa.sendtabSent.testGetValue();
-  Assert.equal(sendEvents.length, 1);
-  Assert.deepEqual(sendEvents[0].extra, {
-    flow_id: "1",
-    hashed_device_id: "dev3-san",
-    stream_id: expectedTelemetryStreamID,
-  });
 });
 
 add_task(async function test_sendtab_send_rate_limit() {
@@ -187,9 +172,6 @@ add_task(async function test_sendtab_receive() {
     },
   };
 
-  // Clear events from other test cases.
-  Services.fog.testResetFOG();
-
   const fxai = FxaInternalMock();
   const sendTab = new SendTab(commands, fxai);
   sendTab._encrypt = bytes => {
@@ -232,29 +214,11 @@ add_task(async function test_sendtab_receive() {
       extra: { flowID: "1", streamID: "2", reason },
     },
   ]);
-  const sendEvents = Glean.fxa.sendtabSent.testGetValue();
-  Assert.equal(sendEvents.length, 1);
-  Assert.deepEqual(sendEvents[0].extra, {
-    flow_id: "1",
-    hashed_device_id: "devid-san",
-    stream_id: "2",
-  });
-  const recdEvents = Glean.fxa.sendtabReceived.testGetValue();
-  Assert.equal(recdEvents.length, 1);
-  Assert.deepEqual(recdEvents[0].extra, {
-    flow_id: "1",
-    hashed_device_id: "devid-san",
-    reason,
-    stream_id: "2",
-  });
 });
 
 // Test that a client which only sends the flowID in the envelope and not in the
 // encrypted body gets recorded without the flowID.
 add_task(async function test_sendtab_receive_old_client() {
-  // Clear events from other test cases.
-  Services.fog.testResetFOG();
-
   const fxai = FxaInternalMock();
   const sendTab = new SendTab(null, fxai);
   sendTab._decrypt = bytes => {
@@ -278,12 +242,6 @@ add_task(async function test_sendtab_receive_old_client() {
       extra: { flowID: undefined, streamID: undefined, reason },
     },
   ]);
-  const recdEvents = Glean.fxa.sendtabReceived.testGetValue();
-  Assert.equal(recdEvents.length, 1);
-  Assert.deepEqual(recdEvents[0].extra, {
-    hashed_device_id: "sender-id-san",
-    reason,
-  });
 });
 
 add_task(function test_commands_getReason() {
