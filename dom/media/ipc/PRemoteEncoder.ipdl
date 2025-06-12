@@ -1,0 +1,78 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include "mozilla/dom/MediaIPCUtils.h";
+include "mozilla/RemoteMediaDataEncoderChild.h";
+include "mozilla/RemoteMediaDataEncoderParent.h";
+
+include protocol PRemoteMediaManager;
+
+using mozilla::EncoderConfig from "EncoderConfig.h";
+using mozilla::MediaResult from "MediaResult.h";
+using mozilla::TrackInfo::TrackType from "MediaInfo.h";
+[RefCounted] using class mozilla::ArrayOfRemoteMediaRawData from "mozilla/RemoteMediaData.h";
+[RefCounted] using class mozilla::ArrayOfRemoteAudioData from "mozilla/RemoteMediaData.h";
+[RefCounted] using class mozilla::ArrayOfRemoteVideoData from "mozilla/RemoteMediaData.h";
+[RefCounted] using class mozilla::EncoderConfigurationChangeList from "PlatformEncoderModule.h";
+
+namespace mozilla {
+
+union EncodedInputIPDL
+{
+  nullable ArrayOfRemoteAudioData;
+  nullable ArrayOfRemoteVideoData;
+};
+
+struct EncodeInitCompletionIPDL
+{
+  nsCString description;
+  bool hardware;
+  nsCString hardwareReason;
+};
+
+union EncodeInitResultIPDL
+{
+  MediaResult;
+  EncodeInitCompletionIPDL;
+};
+
+struct EncodeCompletionIPDL
+{
+  nullable ArrayOfRemoteMediaRawData samples;
+  uint32_t ticketId;
+};
+
+union EncodeResultIPDL
+{
+  MediaResult;
+  EncodeCompletionIPDL;
+};
+
+// This protocol provides a way to use MediaDataEncoder across processes.
+// The parent side currently is only implemented to work with
+// RemoteEncoderModule.
+// The child side runs in the content process, and the parent side runs
+// in the RDD/utility/GPU processes. We run a separate IPDL thread for both
+// sides.
+[ChildImpl="RemoteMediaDataEncoderChild", ParentImpl="RemoteMediaDataEncoderParent"]
+async protocol PRemoteEncoder
+{
+  manager PRemoteMediaManager;
+parent:
+  async Construct() returns (MediaResult result);
+
+  async Init() returns (EncodeInitResultIPDL result);
+
+  async Encode(EncodedInputIPDL data) returns (EncodeResultIPDL result);
+  async Reconfigure(nullable EncoderConfigurationChangeList configurationChanges) returns (MediaResult error);
+  async Drain() returns (EncodeResultIPDL result);
+  async ReleaseTicket(uint32_t ticketId);
+  async Shutdown() returns (bool unused);
+  async SetBitrate(uint32_t aBitsPerSec) returns (nsresult rv);
+
+  async __delete__();
+};
+
+} // namespace mozilla

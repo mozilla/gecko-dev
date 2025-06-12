@@ -12,6 +12,7 @@
 
 include protocol PTexture;
 include protocol PRemoteDecoder;
+include protocol PRemoteEncoder;
 include LayersSurfaces;
 include PMediaDecoderParams;
 include "mozilla/dom/MediaIPCUtils.h";
@@ -23,6 +24,7 @@ using struct mozilla::layers::TextureFactoryIdentifier from "mozilla/layers/Comp
 using mozilla::CreateDecoderParams::OptionSet from "PlatformDecoderModule.h";
 using mozilla::DecoderDoctorDiagnostics from "DecoderDoctorDiagnostics.h";
 using mozilla::TrackingId from "PerformanceRecorder.h";
+using mozilla::EncoderConfig from "EncoderConfig.h";
 
 namespace mozilla {
 
@@ -42,6 +44,7 @@ union RemoteDecoderInfoIPDL
 sync protocol PRemoteMediaManager
 {
   manages PRemoteDecoder;
+  manages PRemoteEncoder;
 #ifdef MOZ_WMF_MEDIA_ENGINE
   manages PMFMediaEngine;
 #endif
@@ -61,6 +64,7 @@ parent:
                        TextureFactoryIdentifier? identifier,
                        uint64_t? mediaEngineId,
                        TrackingId? trackingId);
+  async PRemoteEncoder(EncoderConfig config);
 
   sync Readback(SurfaceDescriptorGPUVideo sd) returns (SurfaceDescriptor aResult);
 

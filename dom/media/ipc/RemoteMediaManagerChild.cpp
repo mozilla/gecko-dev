@@ -9,8 +9,10 @@
 #include "MP4Decoder.h"
 #include "PDMFactory.h"
 #include "PlatformDecoderModule.h"
+#include "PlatformEncoderModule.h"
 #include "RemoteAudioDecoder.h"
 #include "RemoteMediaDataDecoder.h"
+#include "RemoteMediaDataEncoderChild.h"
 #include "RemoteVideoDecoder.h"
 #include "VideoUtils.h"
 #include "mozilla/DataMutex.h"
@@ -486,6 +488,86 @@ RemoteMediaManagerChild::Construct(RefPtr<RemoteDecoderChild>&& aChild,
                 err, __func__);
           });
   return p;
+}
+
+/* static */ RefPtr<PlatformEncoderModule::CreateEncoderPromise>
+RemoteMediaManagerChild::InitializeEncoder(
+    RefPtr<RemoteMediaDataEncoderChild>&& aEncoder,
+    const EncoderConfig& aConfig) {
+  RemoteMediaIn location = aEncoder->GetLocation();
+
+  TrackSupport required;
+  if (aConfig.IsAudio()) {
+    required = TrackSupport::EncodeAudio;
+  } else if (aConfig.IsVideo()) {
+    required = TrackSupport::EncodeVideo;
+  } else {
+    return PlatformEncoderModule::CreateEncoderPromise::CreateAndReject(
+        MediaResult(NS_ERROR_DOM_MEDIA_CANCELED,
+                    nsPrintfCString("%s doesn't support encoding",
+                                    RemoteMediaInToStr(location))
+                        .get()),
+        __func__);
+  }
+
+  if (!GetTrackSupport(location).contains(required)) {
+    return PlatformEncoderModule::CreateEncoderPromise::CreateAndReject(
+        MediaResult(NS_ERROR_DOM_MEDIA_CANCELED,
+                    nsPrintfCString("%s doesn't support encoding",
+                                    RemoteMediaInToStr(location))
+                        .get()),
+        __func__);
+  }
+
+  MOZ_ASSERT(location != RemoteMediaIn::Unspecified);
+
+  RefPtr<GenericNonExclusivePromise> p;
+  if (location == RemoteMediaIn::UtilityProcess_Generic ||
+      location == RemoteMediaIn::UtilityProcess_AppleMedia ||
+      location == RemoteMediaIn::UtilityProcess_WMF) {
+    p = LaunchUtilityProcessIfNeeded(location);
+  } else if (location == RemoteMediaIn::GpuProcess) {
+    p = GenericNonExclusivePromise::CreateAndResolve(true, __func__);
+  } else if (location == RemoteMediaIn::RddProcess) {
+    p = LaunchRDDProcessIfNeeded();
+  } else {
+    p = GenericNonExclusivePromise::CreateAndReject(
+        NS_ERROR_DOM_MEDIA_DENIED_IN_NON_UTILITY, __func__);
+  }
+  LOG("Creating %s encoder type %d in %s",
+      aConfig.IsAudio() ? "audio" : "video", static_cast<int>(aConfig.mCodec),
+      RemoteMediaInToStr(location));
+
+  auto* managerThread = aEncoder->GetManagerThread();
+  return p->Then(
+      managerThread, __func__,
+      [encoder = std::move(aEncoder), aConfig](bool) {
+        auto* manager = GetSingleton(encoder->GetLocation());
+        if (!manager) {
+          LOG("Create encoder in %s failed, shutdown",
+              RemoteMediaInToStr(encoder->GetLocation()));
+          // We got shutdown.
+          return PlatformEncoderModule::CreateEncoderPromise::CreateAndReject(
+              MediaResult(NS_ERROR_DOM_MEDIA_CANCELED,
+                          "Remote manager not available"),
+              __func__);
+        }
+        if (!manager->SendPRemoteEncoderConstructor(encoder, aConfig)) {
+          LOG("Create encoder in %s failed, send failed",
+              RemoteMediaInToStr(encoder->GetLocation()));
+          return PlatformEncoderModule::CreateEncoderPromise::CreateAndReject(
+              MediaResult(NS_ERROR_NOT_AVAILABLE,
+                          "Failed to construct encoder actor"),
+              __func__);
+        }
+        return encoder->Construct();
+      },
+      [location](nsresult aResult) {
+        LOG("Create encoder in %s failed, cannot start process",
+            RemoteMediaInToStr(location));
+        return PlatformEncoderModule::CreateEncoderPromise::CreateAndReject(
+            MediaResult(aResult, "Couldn't start encode process"), __func__);
+      });
 }
 
 /* static */
