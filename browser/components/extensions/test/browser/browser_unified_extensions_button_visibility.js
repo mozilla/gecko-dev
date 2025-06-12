@@ -130,22 +130,6 @@ add_task(async function test_delay_hide_button_while_mouse_is_on_toolbar() {
   resetButtonVisibilityToDefault();
 });
 
-add_task(async function test_remove_from_toolbar_disabled_by_pref() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.unifiedExtensions.button.customizable", false]],
-  });
-  const contextMenu = await openChromeContextMenu(
-    "toolbar-context-menu",
-    "#unified-extensions-button"
-  );
-  const removeFromToolbar = contextMenu.querySelector(
-    ".customize-context-removeFromToolbar"
-  );
-  ok(removeFromToolbar.hasAttribute("disabled"), "removeFromToolbar disabled");
-  await closeChromeContextMenu(contextMenu.id, null);
-  await SpecialPowers.popPrefEnv();
-});
-
 add_task(async function test_hide_button_via_contextmenu() {
   Services.fog.testResetFOG();
   // Open another window, just to see that removal from the toolbar in one
@@ -258,24 +242,6 @@ add_task(async function test_menu_items_on_hidden_button() {
   await closeChromeContextMenu(contextMenu2.id);
 
   resetButtonVisibilityToDefault();
-});
-
-add_task(async function test_customization_disabled_by_pref() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.unifiedExtensions.button.customizable", false]],
-  });
-  await openCustomizationUI();
-  const contextMenu = await openChromeContextMenu(
-    "toolbar-context-menu",
-    "#wrapper-unified-extensions-button"
-  );
-  const item = document.getElementById(
-    "toolbar-context-always-show-extensions-button"
-  );
-  is(item.hidden, true, "Not expecting menu item to hide button");
-  await closeChromeContextMenu(contextMenu.id);
-  await closeCustomizationUI();
-  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_customization_option_hidden_if_not_customizing() {

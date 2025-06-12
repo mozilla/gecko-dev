@@ -26,15 +26,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
-// Whether the Extensions button can be hidden via UI. The button can be hidden
-// even with this pref set to false. TODO bug 1967773: Remove this pref.
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "gEnableCustomizableExtensionsButton",
-  "extensions.unifiedExtensions.button.customizable",
-  true
-);
-
 /**
  * Various events handlers to set the state of the toolbar-context-menu popup,
  * as well as to handle some commands from that popup.
@@ -428,18 +419,14 @@ export var ToolbarContextMenu = {
     const checkbox = popup.querySelector(
       "#toolbar-context-always-show-extensions-button"
     );
-    if (isCustomizingExtsButton && lazy.gEnableCustomizableExtensionsButton) {
+    if (isCustomizingExtsButton) {
       checkbox.hidden = false;
       if (gUnifiedExtensions.buttonAlwaysVisible) {
         checkbox.setAttribute("checked", "true");
       } else {
         checkbox.removeAttribute("checked");
       }
-    } else if (
-      isExtsButton &&
-      !gUnifiedExtensions.buttonAlwaysVisible &&
-      lazy.gEnableCustomizableExtensionsButton
-    ) {
+    } else if (isExtsButton && !gUnifiedExtensions.buttonAlwaysVisible) {
       // The button may be visible despite the user's preference, which could
       // remind the user of the button's existence. Offer an option to unhide
       // the button, in case the user is looking for a way to do so.
@@ -451,7 +438,7 @@ export var ToolbarContextMenu = {
 
     // removeFromToolbar is shown but disabled by default, via an earlier call
     // to ToolbarContextMenu.onViewToolbarsPopupShowing. Enable/hide if needed.
-    if (isExtsButton && lazy.gEnableCustomizableExtensionsButton) {
+    if (isExtsButton) {
       const removeFromToolbar = popup.querySelector(
         ".customize-context-removeFromToolbar"
       );
