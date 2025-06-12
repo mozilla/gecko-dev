@@ -968,7 +968,7 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
     : RootingContext(runtime ? &runtime->gc.nursery() : nullptr),
       runtime_(runtime),
       options_(this, options),
-      measuringExecutionTime_(this, false),
+      measuringExecutionTimeEnabled_(this, false),
       jitActivation(this, nullptr),
       isolate(this, nullptr),
       activation_(this, nullptr),

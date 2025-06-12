@@ -5059,6 +5059,11 @@ JS_PUBLIC_API js::StackFormat js::GetStackFormat(JSContext* cx) {
   return cx->runtime()->stackFormat();
 }
 
+JS_PUBLIC_API void JS::SetMeasuringExecutionTimeEnabled(JSContext* cx,
+                                                        bool value) {
+  cx->setMeasuringExecutionTimeEnabled(value);
+}
+
 JS_PUBLIC_API JS::JSTimers JS::GetJSTimers(JSContext* cx) {
   return cx->realm()->timers;
 }
