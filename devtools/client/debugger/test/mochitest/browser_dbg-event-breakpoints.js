@@ -76,7 +76,7 @@ add_task(async function () {
   await toggleEventBreakpoint(dbg, "Control", "event.control.focusin");
   await toggleEventBreakpoint(dbg, "Control", "event.control.focusout");
 
-  await toggleEventBreakpoint(dbg, "Control", "event.control.invoke");
+  await toggleEventBreakpoint(dbg, "Control", "event.control.command");
   invokeOnElement("#invoker", "click");
   await waitForPaused(dbg);
   await assertPausedAtSourceAndLine(dbg, eventBreakpointsSource.id, 77);
