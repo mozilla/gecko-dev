@@ -1,0 +1,27 @@
+Neuter RefCountedBase::CalledOnValidSequence
+
+This removes a dependency on sequence_checker.cc and sequence_checker_impl.cc.
+---
+ base/memory/ref_counted.cc | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/base/memory/ref_counted.cc b/base/memory/ref_counted.cc
+index 62fafbc45221..76b1e91e5d1c 100644
+--- a/base/memory/ref_counted.cc
++++ b/base/memory/ref_counted.cc
+@@ -82,8 +82,12 @@ void RefCountedThreadSafeBase::AddRefWithCheck() const {
+ 
+ #if DCHECK_IS_ON()
+ bool RefCountedBase::CalledOnValidSequence() const {
++#if defined(MOZ_ZUCCHINI)
++  return true;
++#else
+   return sequence_checker_.CalledOnValidSequence() ||
+          g_cross_thread_ref_count_access_allow_count.load() != 0;
++#endif  // defined(MOZ_ZUCCHINI)
+ }
+ #endif
+ 
+-- 
+2.42.0.windows.2
+

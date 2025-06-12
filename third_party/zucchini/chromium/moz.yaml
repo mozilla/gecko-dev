@@ -37,33 +37,83 @@ vendoring:
   individual-files-default-upstream: ""
   individual-files-default-destination: "{vendor_dir}/"
   individual-files-list:
+    - base/allocator/partition_allocator/partition_alloc_base/augmentations/compiler_specific.h
     - base/allocator/partition_allocator/partition_alloc_base/compiler_specific.h
+    - base/allocator/partition_allocator/partition_alloc_base/component_export.h
+    - base/allocator/partition_allocator/partition_alloc_base/cxx20_is_constant_evaluated.h
+    # base/allocator/partition_allocator/partition_alloc_base/debug/debugging_buildflags.h
+    - base/allocator/partition_allocator/partition_alloc_base/thread_annotations.h
+    - base/allocator/partition_allocator/partition_alloc_base/win/win_handle_types.h
+    - base/allocator/partition_allocator/partition_alloc_base/win/win_handle_types_list.inc
     # base/allocator/partition_allocator/partition_alloc_buildflags.h
+    - base/allocator/partition_allocator/partition_alloc_config.h
+    - base/allocator/partition_allocator/partition_alloc_forward.h
+    - base/allocator/partition_allocator/pointers/raw_ptr.h
     - base/allocator/partition_allocator/pointers/raw_ptr_exclusion.h
+    - base/allocator/partition_allocator/pointers/raw_ptr_noop_impl.h
+    - base/allocator/partition_allocator/pointers/raw_ref.h
+    - base/atomic_ref_count.h
+    - base/atomicops.h
+    - base/atomicops_internals_atomicword_compat.h
+    - base/atomicops_internals_portable.h
+    - base/auto_reset.h
     - base/base_export.h
     - base/check.cc
     - base/check.h
     - base/check_op.cc
     - base/check_op.h
     - base/compiler_specific.h
+    - base/containers/adapters.h
     - base/containers/checked_iterators.h
     - base/containers/contiguous_iterator.h
+    - base/containers/cxx20_erase.h
+    - base/containers/cxx20_erase_deque.h
+    - base/containers/cxx20_erase_forward_list.h
+    - base/containers/cxx20_erase_internal.h
+    - base/containers/cxx20_erase_list.h
+    - base/containers/cxx20_erase_map.h
+    - base/containers/cxx20_erase_set.h
+    - base/containers/cxx20_erase_string.h
+    - base/containers/cxx20_erase_unordered_map.h
+    - base/containers/cxx20_erase_unordered_set.h
+    - base/containers/cxx20_erase_vector.h
     - base/containers/span.h
     - base/containers/util.h
     - base/cxx20_is_constant_evaluated.h
     - base/cxx20_to_address.h
     - base/dcheck_is_on.h
     # base/debug/debugging_buildflags.h
+    # base/debug/stack_trace.h
+    - base/format_macros.h
+    - base/functional/bind.h
+    - base/functional/bind_internal.h
+    - base/functional/callback.h
     - base/functional/callback_forward.h
+    - base/functional/callback_internal.cc
+    - base/functional/callback_internal.h
+    - base/functional/callback_tags.h
+    - base/functional/disallow_unretained.h
+    - base/functional/function_ref.h
     - base/functional/identity.h
     - base/functional/invoke.h
+    - base/functional/unretained_traits.h
     - base/immediate_crash.h
     - base/location.cc
     - base/location.h
     # base/logging.cc
     - base/logging.h
     # base/logging_buildflags.h
+    - base/memory/raw_ptr.h
+    - base/memory/raw_ptr_asan_bound_arg_tracker.h
+    - base/memory/raw_ptr_asan_service.h
     - base/memory/raw_ptr_exclusion.h
+    - base/memory/raw_ref.h
+    - base/memory/raw_scoped_refptr_mismatch_checker.h
+    - base/memory/ref_counted.cc
+    - base/memory/ref_counted.h
+    - base/memory/safe_ref_traits.h
+    - base/memory/scoped_refptr.h
+    - base/memory/weak_ptr.h
     - base/no_destructor.h
     - base/notreached.h
     - base/numerics/checked_math.h
@@ -82,6 +132,9 @@ vendoring:
     - base/ranges/ranges.h
     - base/scoped_clear_last_error.h
     - base/scoped_clear_last_error_win.cc
+    - base/sequence_checker.h
+    - base/sequence_checker_impl.h
+    - base/sequence_token.h
     - base/strings/string_number_conversions.cc
     - base/strings/string_number_conversions.h
     - base/strings/string_number_conversions_internal.h
@@ -103,10 +156,16 @@ vendoring:
     - base/strings/utf_string_conversion_utils.h
     - base/strings/utf_string_conversions.cc
     - base/strings/utf_string_conversions.h
+    - base/synchronization/atomic_flag.h
+    - base/synchronization/lock.h
+    - base/synchronization/lock_impl.h
     - base/template_util.h
     - base/third_party/icu/icu_utf.h
     - base/third_party/icu/LICENSE
     - base/thread_annotations.h
+    - base/threading/platform_thread_ref.h
+    - base/threading/thread_checker_impl.h
+    - base/threading/thread_collision_warner.h
     - base/trace_event/base_tracing.h
     - base/trace_event/base_tracing_forward.h
     - base/trace_event/common/trace_event_common.h
@@ -115,16 +174,82 @@ vendoring:
     - base/trace_event/trace_event_stub.h
     # base/tracing_buildflags.h
     - base/types/always_false.h
+    - base/types/pass_key.h
     - base/types/supports_ostream_operator.h
     # base/values.h
+    - base/win/win_handle_types.h
+    - base/win/win_handle_types_list.inc
+    - base/win/windows_types.h
     - build/build_config.h
     - build/buildflag.h
     # build/chromeos_buildflags.h
+    - components/zucchini/abs32_utils.cc
+    - components/zucchini/abs32_utils.h
+    - components/zucchini/address_translator.cc
+    - components/zucchini/address_translator.h
+    - components/zucchini/algorithm.h
+    - components/zucchini/arm_utils.cc
+    - components/zucchini/arm_utils.h
+    - components/zucchini/buffer_sink.cc
+    - components/zucchini/buffer_sink.h
+    - components/zucchini/buffer_source.cc
+    - components/zucchini/buffer_source.h
+    - components/zucchini/buffer_view.h
+    # components/zucchini/buildflags.h
     - components/zucchini/crc32.cc
     - components/zucchini/crc32.h
+    - components/zucchini/disassembler.cc
+    - components/zucchini/disassembler.h
+    - components/zucchini/disassembler_elf.cc
+    - components/zucchini/disassembler_elf.h
+    - components/zucchini/disassembler_no_op.cc
+    - components/zucchini/disassembler_no_op.h
+    - components/zucchini/disassembler_win32.cc
+    - components/zucchini/disassembler_win32.h
+    - components/zucchini/element_detection.cc
+    - components/zucchini/element_detection.h
+    - components/zucchini/encoded_view.cc
+    - components/zucchini/encoded_view.h
+    - components/zucchini/equivalence_map.cc
+    - components/zucchini/equivalence_map.h
+    - components/zucchini/image_index.cc
+    - components/zucchini/image_index.h
+    - components/zucchini/image_utils.h
+    - components/zucchini/io_utils.cc
+    - components/zucchini/io_utils.h
+    - components/zucchini/patch_reader.cc
+    - components/zucchini/patch_reader.h
+    - components/zucchini/patch_utils.h
+    - components/zucchini/patch_writer.cc
+    - components/zucchini/patch_writer.h
+    - components/zucchini/reference_set.cc
+    - components/zucchini/reference_set.h
+    - components/zucchini/rel32_finder.cc
+    - components/zucchini/rel32_finder.h
+    - components/zucchini/rel32_utils.cc
+    - components/zucchini/rel32_utils.h
+    - components/zucchini/reloc_elf.cc
+    - components/zucchini/reloc_elf.h
+    - components/zucchini/reloc_win32.cc
+    - components/zucchini/reloc_win32.h
+    - components/zucchini/suffix_array.h
+    - components/zucchini/target_pool.cc
+    - components/zucchini/target_pool.h
+    - components/zucchini/targets_affinity.cc
+    - components/zucchini/targets_affinity.h
+    - components/zucchini/type_elf.h
+    - components/zucchini/type_win_pe.h
+    - components/zucchini/typed_value.h
+    - components/zucchini/version_info.h
+    - components/zucchini/zucchini.h
+    - components/zucchini/zucchini_apply.cc
+    - components/zucchini/zucchini_apply.h
     # components/zucchini/zucchini_main.temporary.cc
     - LICENSE
+    # third_party/abseil-cpp/absl/base/attributes.h
+    # third_party/abseil-cpp/absl/functional/function_ref.h
     # third_party/abseil-cpp/absl/types/optional.h
+    # third_party/abseil-cpp/absl/utility/utility.h
 
   # Apply patches that are taken from upstream first as these will not be
   # needed at some point, so we want subsequent patches to work after the
