@@ -66,9 +66,12 @@ async function cleanup(engine, server) {
   await cleanupEngine(engine);
 }
 
-add_task(async function setup() {
+add_setup(async function () {
   await generateNewKeys(Service.collectionKeys);
   await Service.engineManager.unregister("bookmarks");
+
+  do_get_profile; // FOG needs a profile dir
+  Services.fog.initializeFOG();
 
   Service.recordTelemetryEvent = (object, method, value, extra = undefined) => {
     recordedEvents.push({ object, method, value, extra });
@@ -184,6 +187,8 @@ add_bookmark_test(async function test_maintenance_after_failure(engine) {
       ],
       "Should record event for first maintenance run"
     );
+    Assert.equal(Glean.sync.maintenanceRunBookmarks.testGetValue().length, 1);
+    Services.fog.testResetFOG();
 
     _("Sync again, but ensure maintenance doesn't run");
     await Assert.rejects(
@@ -195,6 +200,8 @@ add_bookmark_test(async function test_maintenance_after_failure(engine) {
       [],
       "Should not record event if maintenance didn't run"
     );
+    Assert.equal(Glean.sync.maintenanceRunBookmarks.testGetValue(), null);
+    Services.fog.testResetFOG();
 
     _("Fast-forward last maintenance pref; ensure maintenance runs");
     Services.prefs.setIntPref(
@@ -217,6 +224,8 @@ add_bookmark_test(async function test_maintenance_after_failure(engine) {
       ],
       "Should record event for second maintenance run"
     );
+    Assert.equal(Glean.sync.maintenanceRunBookmarks.testGetValue().length, 1);
+    Services.fog.testResetFOG();
 
     _("Fix sync failure; ensure we report success after maintenance");
     engine._syncStartup = syncStartup;
@@ -233,6 +242,8 @@ add_bookmark_test(async function test_maintenance_after_failure(engine) {
       ],
       "Should record event for successful sync after second maintenance"
     );
+    Assert.equal(Glean.sync.maintenanceFixBookmarks.testGetValue().length, 1);
+    Services.fog.testResetFOG();
 
     await sync_engine_and_validate_telem(engine, false);
     checkRecordedEvents(
@@ -240,6 +251,8 @@ add_bookmark_test(async function test_maintenance_after_failure(engine) {
       [],
       "Should not record maintenance events after successful sync"
     );
+    Assert.equal(Glean.sync.maintenanceFixBookmarks.testGetValue(), null);
+    Services.fog.testResetFOG();
   } finally {
     await cleanup(engine, server);
   }
