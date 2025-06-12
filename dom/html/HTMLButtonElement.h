@@ -135,6 +135,16 @@ class HTMLButtonElement final : public nsGenericHTMLFormControlElementWithState,
   // via bindings.
   void SetCustomValidity(const nsAString& aError);
 
+  // Command & CommandFor
+  MOZ_CAN_RUN_SCRIPT void HandleInvokeTargetAction();
+  Element* GetInvokeTargetElement() const;
+  void SetInvokeTargetElement(Element*);
+  void GetInvokeAction(nsAString& aValue) const;
+  Element::Command GetInvokeAction(nsAtom* aAtom) const;
+  void SetInvokeAction(const nsAString& aValue) {
+    SetHTMLAttr(nsGkAtoms::invokeaction, aValue);
+  }
+
  protected:
   virtual ~HTMLButtonElement();
 

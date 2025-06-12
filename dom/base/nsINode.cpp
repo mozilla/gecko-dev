@@ -42,6 +42,7 @@
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/Exceptions.h"
 #include "mozilla/dom/Link.h"
+#include "mozilla/dom/HTMLButtonElement.h"
 #include "mozilla/dom/HTMLDialogElement.h"
 #include "mozilla/dom/HTMLDetailsElement.h"
 #include "mozilla/dom/HTMLImageElement.h"
@@ -3432,10 +3433,13 @@ nsGenericHTMLElement* nsINode::GetEffectiveInvokeTargetElement() const {
       !formControl->IsButtonControl()) {
     return nullptr;
   }
-  if (auto* popover = nsGenericHTMLElement::FromNodeOrNull(
-          formControl->GetInvokeTargetElement())) {
-    if (popover->GetPopoverAttributeState() != PopoverAttributeState::None) {
-      return popover;
+
+  if (const auto* buttonControl = HTMLButtonElement::FromNodeOrNull(this)) {
+    if (auto* popover = nsGenericHTMLElement::FromNodeOrNull(
+            buttonControl->GetInvokeTargetElement())) {
+      if (popover->GetPopoverAttributeState() != PopoverAttributeState::None) {
+        return popover;
+      }
     }
   }
   return nullptr;

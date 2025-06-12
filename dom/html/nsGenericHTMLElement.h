@@ -1299,21 +1299,10 @@ class nsGenericHTMLFormControlElementWithState
     SetHTMLAttr(nsGkAtoms::popovertargetaction, aValue);
   }
 
-  // InvokerElement
-  mozilla::dom::Element* GetInvokeTargetElement() const;
-  void SetInvokeTargetElement(mozilla::dom::Element*);
-  void GetInvokeAction(nsAString& aValue) const;
-  Command GetInvokeAction(nsAtom* aAtom) const;
-  void SetInvokeAction(const nsAString& aValue) {
-    SetHTMLAttr(nsGkAtoms::invokeaction, aValue);
-  }
-
   /**
    * https://html.spec.whatwg.org/#popover-target-attribute-activation-behavior
    */
   MOZ_CAN_RUN_SCRIPT void HandlePopoverTargetAction();
-
-  MOZ_CAN_RUN_SCRIPT void HandleInvokeTargetAction();
 
   /**
    * Get the presentation state for a piece of content, or create it if it does
