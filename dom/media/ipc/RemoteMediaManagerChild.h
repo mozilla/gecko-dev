@@ -6,6 +6,8 @@
 #ifndef include_dom_media_ipc_RemoteMediaManagerChild_h
 #define include_dom_media_ipc_RemoteMediaManagerChild_h
 
+#include <functional>
+
 #include "GPUVideoImage.h"
 #include "PDMFactory.h"
 #include "ipc/EnumSerializer.h"
@@ -93,11 +95,21 @@ class RemoteMediaManagerChild final
       Endpoint<PRemoteMediaManagerChild>&& aVideoManager);
   static void Shutdown();
 
+  // Helper method to handle IPDL promise rejections. This will allow the
+  // caller in the layers above to recover gracefully by recreating the encoder
+  // or decoder.
+  static void HandleRejectionError(
+      const RemoteMediaManagerChild* aDyingManager, RemoteMediaIn aLocation,
+      const mozilla::ipc::ResponseRejectReason& aReason,
+      std::function<void(const MediaResult&)>&& aCallback);
+
   // Run aTask (on the manager thread) when we next attempt to create a new
   // manager (even if creation fails). Intended to be called from ActorDestroy
   // when we get notified that the old manager is being destroyed. Can only be
   // called from the manager thread.
-  void RunWhenGPUProcessRecreated(already_AddRefed<Runnable> aTask);
+  static void RunWhenGPUProcessRecreated(
+      const RemoteMediaManagerChild* aDyingManager,
+      already_AddRefed<Runnable> aTask);
 
   RemoteMediaIn Location() const { return mLocation; }
 

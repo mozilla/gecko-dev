@@ -179,7 +179,8 @@ void RemoteMediaManagerChild::Shutdown() {
   }
 }
 
-void RemoteMediaManagerChild::RunWhenGPUProcessRecreated(
+/* static */ void RemoteMediaManagerChild::RunWhenGPUProcessRecreated(
+    const RemoteMediaManagerChild* aDyingManager,
     already_AddRefed<Runnable> aTask) {
   nsCOMPtr<nsISerialEventTarget> managerThread = GetManagerThread();
   if (!managerThread) {
@@ -190,7 +191,7 @@ void RemoteMediaManagerChild::RunWhenGPUProcessRecreated(
 
   // If we've already been recreated, then run the task immediately.
   auto* manager = GetSingleton(RemoteMediaIn::GpuProcess);
-  if (manager && manager != this && manager->CanSend()) {
+  if (manager && manager != aDyingManager && manager->CanSend()) {
     RefPtr<Runnable> task = aTask;
     task->Run();
   } else {
@@ -904,6 +905,46 @@ void RemoteMediaManagerChild::DeallocateSurfaceDescriptor(
           ref->SendDeallocateSurfaceDescriptorGPUVideo(sd);
         }
       })));
+}
+
+/* static */ void RemoteMediaManagerChild::HandleRejectionError(
+    const RemoteMediaManagerChild* aDyingManager, RemoteMediaIn aLocation,
+    const ipc::ResponseRejectReason& aReason,
+    std::function<void(const MediaResult&)>&& aCallback) {
+  // If the channel goes down and CanSend() returns false, the IPDL promise will
+  // be rejected with SendError rather than ActorDestroyed. Both means the same
+  // thing and we can consider that the parent has crashed. The child can no
+  // longer be used.
+
+  if (aLocation == RemoteMediaIn::GpuProcess) {
+    // The GPU process will get automatically restarted by the parent process.
+    // Once it has been restarted the ContentChild will receive the message and
+    // will call GetManager()->InitForGPUProcess.
+    // We defer reporting an error until we've recreated the RemoteDecoder
+    // manager so that it'll be safe for MediaFormatReader to recreate decoders
+    RunWhenGPUProcessRecreated(
+        aDyingManager,
+        NS_NewRunnableFunction(
+            "RemoteMediaManagerChild::HandleRejectionError",
+            [callback = std::move(aCallback)]() {
+              MediaResult error(
+                  NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR,
+                  __func__);
+              callback(error);
+            }));
+    return;
+  }
+
+  nsresult err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR;
+  if (aLocation == RemoteMediaIn::RddProcess) {
+    err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR;
+  } else if (aLocation == RemoteMediaIn::UtilityProcess_MFMediaEngineCDM) {
+    err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR;
+  }
+  // The RDD/utility process is restarted on demand and asynchronously, we can
+  // immediately inform the caller that a new en/decoder is needed. The process
+  // will then be restarted during the new en/decoder creation by
+  aCallback(MediaResult(err, __func__));
 }
 
 void RemoteMediaManagerChild::HandleFatalError(const char* aMsg) {

@@ -6,8 +6,6 @@
 #ifndef include_dom_media_ipc_RemoteDecoderChild_h
 #define include_dom_media_ipc_RemoteDecoderChild_h
 
-#include <functional>
-
 #include "mozilla/PRemoteDecoderChild.h"
 #include "mozilla/RemoteMediaManagerChild.h"
 #include "mozilla/ShmemRecycleAllocator.h"
@@ -71,10 +69,6 @@ class RemoteDecoderChild : public ShmemRecycleAllocator<RemoteDecoderChild>,
   MozPromiseHolder<MediaDataDecoder::DecodePromise> mDrainPromise;
   MozPromiseHolder<MediaDataDecoder::FlushPromise> mFlushPromise;
   MozPromiseHolder<mozilla::ShutdownPromise> mShutdownPromise;
-
-  void HandleRejectionError(
-      const ipc::ResponseRejectReason& aReason,
-      std::function<void(const MediaResult&)>&& aCallback);
 
   nsCString mHardwareAcceleratedReason;
   nsCString mDescription;
