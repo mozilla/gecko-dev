@@ -567,8 +567,7 @@ void HTMLDialogElement::RunCancelDialogSteps() {
 
 bool HTMLDialogElement::IsValidCommandAction(Command aCommand) const {
   return nsGenericHTMLElement::IsValidCommandAction(aCommand) ||
-         aCommand == Command::ShowModal ||
-         aCommand == Command::Close;
+         aCommand == Command::ShowModal || aCommand == Command::Close;
 }
 
 bool HTMLDialogElement::HandleCommandInternal(Element* aSource,

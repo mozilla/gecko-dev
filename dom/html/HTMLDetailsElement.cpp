@@ -156,8 +156,8 @@ JSObject* HTMLDetailsElement::WrapNode(JSContext* aCx,
 
 bool HTMLDetailsElement::IsValidCommandAction(Command aCommand) const {
   return nsGenericHTMLElement::IsValidCommandAction(aCommand) ||
-         aCommand == Command::Toggle ||
-         aCommand == Command::Close || aCommand == Command::Open;
+         aCommand == Command::Toggle || aCommand == Command::Close ||
+         aCommand == Command::Open;
 }
 
 bool HTMLDetailsElement::HandleCommandInternal(Element* aSource,
