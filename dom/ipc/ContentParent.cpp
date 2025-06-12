@@ -951,7 +951,6 @@ UniqueContentParentKeepAlive ContentParent::GetUsedBrowserProcess(
     }
     preallocated->mRemoteTypeIsolationPrincipal =
         CreateRemoteTypeIsolationPrincipal(aRemoteType);
-    preallocated->mActivateTS = TimeStamp::Now();
     preallocated->AddToPool(aContentParents);
 
     // rare, but will happen
@@ -1126,7 +1125,6 @@ RefPtr<ContentParent::LaunchPromise> ContentParent::WaitForLaunchAsync(
                   ("WaitForLaunchAsync: async, now launched, process id=%p, "
                    "childID=%" PRIu64,
                    self.get(), (uint64_t)self->ChildID()));
-          self->mActivateTS = TimeStamp::Now();
           return LaunchPromise::CreateAndResolve(std::move(self), __func__);
         }
 
@@ -1154,7 +1152,6 @@ bool ContentParent::WaitForLaunchSync(ProcessPriority aPriority) {
   bool launchSuccess = mSubprocess->WaitForProcessHandle();
   if (launchSuccess &&
       LaunchSubprocessResolve(/* aIsSync = */ true, aPriority)) {
-    mActivateTS = TimeStamp::Now();
     return true;
   }
   // In case of failure.
@@ -2575,7 +2572,6 @@ ContentParent::ContentParent(const nsACString& aRemoteType)
                                             IsFileContent(aRemoteType))),
       mLaunchTS(TimeStamp::Now()),
       mLaunchYieldTS(mLaunchTS),
-      mActivateTS(mLaunchTS),
       mIsAPreallocBlocker(false),
       mRemoteType(aRemoteType),
       mChildID(mSubprocess->GetChildID()),
