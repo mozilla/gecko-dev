@@ -338,3 +338,115 @@ addAccessibleTask(
     is(select.getAttributeValue("AXSelectedChildren").length, 0);
   }
 );
+
+addAccessibleTask(
+  `<div role="listbox" id="select" aria-label="Choose a number">
+    <div id="groupOne" role="grouping">
+      <div role="option" id="one" aria-selected="true">One</div>
+    </div>
+    <div id="groupTwo" role="grouping">
+      <div role="option" id="two" aria-selected="false">Two</div>
+    </div>
+    <div id="groupThree" role="grouping">
+      <div role="option" id="three" aria-selected="false">Three</div>
+    </div>
+  </div>`,
+  async function testGroupedListbox(browser, accDoc) {
+    let select = getNativeInterface(accDoc, "select");
+    let one = getNativeInterface(accDoc, "one");
+    let two = getNativeInterface(accDoc, "two");
+
+    // Check the listbox
+    is(
+      select.getAttributeValue("AXDescription"),
+      "Choose a number",
+      "Select titled correctly"
+    );
+    ok(
+      select.isAttributeSettable("AXSelectedChildren"),
+      "Select can have AXSelectedChildren set"
+    );
+    // Check the first option
+    is(
+      one.getAttributeValue("AXValue"),
+      "One",
+      "First option has correct value"
+    );
+    is(
+      one.getAttributeValue("AXSelected"),
+      1,
+      "The first option has selected state"
+    );
+    // Check the second option
+    is(
+      two.getAttributeValue("AXValue"),
+      "Two",
+      "Second option has correct value"
+    );
+    is(
+      two.getAttributeValue("AXSelected"),
+      0,
+      "The second option has no selected state"
+    );
+    // Check the relationship between the listbox and its selected children
+    is(
+      select.getAttributeValue("AXSelectedChildren").length,
+      1,
+      "Listbox has one selected child"
+    );
+    let selectedChild = select.getAttributeValue("AXSelectedChildren")[0];
+    is(
+      selectedChild.getAttributeValue("AXValue"),
+      "One",
+      "The first option is the selected child"
+    );
+
+    let evt = waitForMacEvent("AXSelectedChildrenChanged");
+    // Remove all selection.
+    await SpecialPowers.spawn(browser, [], () => {
+      content.document
+        .getElementById("one")
+        .setAttribute("aria-selected", "false");
+    });
+    await evt;
+    // Check the relationship between the listbox and its selected children
+    // after removing all selection.
+    is(
+      select.getAttributeValue("AXSelectedChildren").length,
+      0,
+      "Listbox has no selected child"
+    );
+    is(
+      one.getAttributeValue("AXSelected"),
+      0,
+      "The first option has no selected state"
+    );
+
+    evt = waitForMacEvent("AXSelectedChildrenChanged");
+    // Modify listbox so the second item is selected.
+    await SpecialPowers.spawn(browser, [], () => {
+      content.document
+        .getElementById("two")
+        .setAttribute("aria-selected", "true");
+    });
+    await evt;
+    // Check the relationship between the listbox and its selected children
+    // after selecting the second option.
+    is(
+      select.getAttributeValue("AXSelectedChildren").length,
+      1,
+      "Listbox has one selected child"
+    );
+    selectedChild = select.getAttributeValue("AXSelectedChildren")[0];
+    is(
+      selectedChild.getAttributeValue("AXValue"),
+      "Two",
+      "The second option is the selected child"
+    );
+    is(
+      two.getAttributeValue("AXSelected"),
+      1,
+      "The second option has selected state"
+    );
+  }
+);

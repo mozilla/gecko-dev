@@ -114,7 +114,7 @@ using namespace mozilla::a11y;
 @implementation mozListboxAccessible
 
 - (BOOL)moxIgnoreChild:(mozAccessible*)child {
-  if (!child || child->mRole == roles::GROUPING) {
+  if (!child || [[child moxRole] isEqualToString:@"AXGroup"]) {
     return YES;
   }
 
