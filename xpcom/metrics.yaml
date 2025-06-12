@@ -69,13 +69,14 @@ memory_phc:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1829127
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892149
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1969177
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1829127
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892149
     notification_emails:
       - memshrink-telemetry-alerts@mozilla.com
       - pbone@mozilla.com
-    expires: 142
+    expires: 152
     telemetry_mirror: MEMORY_PHC_SLOP
 
   slots_allocated:
@@ -93,13 +94,14 @@ memory_phc:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1829127
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892149
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1969177
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1829127
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892149
     notification_emails:
       - memshrink-telemetry-alerts@mozilla.com
       - pbone@mozilla.com
-    expires: 142
+    expires: 152
     telemetry_mirror: MEMORY_PHC_SLOTS_ALLOCATED
 
   slots_freed:
@@ -117,13 +119,14 @@ memory_phc:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1829127
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892149
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1969177
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1829127
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892149
     notification_emails:
       - memshrink-telemetry-alerts@mozilla.com
       - pbone@mozilla.com
-    expires: 142
+    expires: 152
     telemetry_mirror: MEMORY_PHC_SLOTS_FREED
 
 cycle_collector:
