@@ -14,9 +14,9 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
-  DoHConfigController: "resource://gre/modules/DoHConfig.sys.mjs",
+  DoHConfigController: "moz-src:///toolkit/components/doh/DoHConfig.sys.mjs",
   EnrollmentType: "resource://nimbus/ExperimentAPI.sys.mjs",
-  Heuristics: "resource://gre/modules/DoHHeuristics.sys.mjs",
+  Heuristics: "moz-src:///toolkit/components/doh/DoHHeuristics.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   Preferences: "resource://gre/modules/Preferences.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
@@ -589,7 +589,7 @@ export const DoHController = {
     // Importing the module here saves us from having to do it at startup, and
     // ensures tests have time to set prefs before the module initializes.
     let { TRRRacer } = ChromeUtils.importESModule(
-      "resource://gre/modules/TRRPerformance.sys.mjs"
+      "moz-src:///toolkit/components/doh/TRRPerformance.sys.mjs"
     );
     await new Promise(resolve => {
       let trrList =

@@ -42,7 +42,7 @@ category browser-first-window-ready resource:///modules/ProcessHangMonitor.sys.m
 category browser-first-window-ready resource://gre/modules/PageThumbs.sys.mjs PageThumbs.init
 category browser-first-window-ready resource://gre/modules/NewTabUtils.sys.mjs NewTabUtils.init
 category browser-first-window-ready resource:///modules/PageActions.sys.mjs PageActions.init
-category browser-first-window-ready resource://gre/modules/DoHController.sys.mjs DoHController.init
+category browser-first-window-ready moz-src:///toolkit/components/doh/DoHController.sys.mjs DoHController.init
 category browser-first-window-ready moz-src:///toolkit/profile/ProfilesDatastoreService.sys.mjs ProfilesDatastoreService.init
 category browser-first-window-ready resource:///modules/profiles/SelectableProfileService.sys.mjs SelectableProfileService.init
 category browser-first-window-ready moz-src:///browser/components/protections/ContentBlockingPrefs.sys.mjs ContentBlockingPrefs.init

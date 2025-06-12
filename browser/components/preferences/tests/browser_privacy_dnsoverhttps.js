@@ -11,8 +11,8 @@ const { EnterprisePolicyTesting, PoliciesPrefTracker } =
   );
 
 ChromeUtils.defineESModuleGetters(this, {
-  DoHConfigController: "resource://gre/modules/DoHConfig.sys.mjs",
-  DoHController: "resource://gre/modules/DoHController.sys.mjs",
+  DoHConfigController: "moz-src:///toolkit/components/doh/DoHConfig.sys.mjs",
+  DoHController: "moz-src:///toolkit/components/doh/DoHController.sys.mjs",
   DoHTestUtils: "resource://testing-common/DoHTestUtils.sys.mjs",
 });
 

@@ -35,7 +35,7 @@ add_task(setup);
 
 add_task(async function test_parentalControls() {
   let DoHHeuristics = ChromeUtils.importESModule(
-    "resource://gre/modules/DoHHeuristics.sys.mjs"
+    "moz-src:///toolkit/components/doh/DoHHeuristics.sys.mjs"
   );
 
   let parentalControls = DoHHeuristics.parentalControls;
@@ -81,7 +81,7 @@ add_task(async function test_parentalControls() {
 
 add_task(async function test_canary() {
   let DoHHeuristics = ChromeUtils.importESModule(
-    "resource://gre/modules/DoHHeuristics.sys.mjs"
+    "moz-src:///toolkit/components/doh/DoHHeuristics.sys.mjs"
   );
   const override = Cc["@mozilla.org/network/native-dns-override;1"].getService(
     Ci.nsINativeDNSResolverOverride

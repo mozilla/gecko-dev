@@ -5534,13 +5534,13 @@
       "resource://gre/modules/DelayedInit.sys.mjs": [
         "mobile/shared/modules/geckoview/DelayedInit.sys.mjs"
       ],
-      "resource://gre/modules/DoHConfig.sys.mjs": [
+      "moz-src:///toolkit/components/doh/DoHConfig.sys.mjs": [
         "toolkit/components/doh/DoHConfig.sys.mjs"
       ],
-      "resource://gre/modules/DoHController.sys.mjs": [
+      "moz-src:///toolkit/components/doh/DoHController.sys.mjs": [
         "toolkit/components/doh/DoHController.sys.mjs"
       ],
-      "resource://gre/modules/DoHHeuristics.sys.mjs": [
+      "moz-src:///toolkit/components/doh/DoHHeuristics.sys.mjs": [
         "toolkit/components/doh/DoHHeuristics.sys.mjs"
       ],
       "resource://gre/modules/DownloadCore.sys.mjs": [
@@ -6185,7 +6185,7 @@
       "resource://gre/modules/SyncedBookmarksMirror.sys.mjs": [
         "toolkit/components/places/SyncedBookmarksMirror.sys.mjs"
       ],
-      "resource://gre/modules/TRRPerformance.sys.mjs": [
+      "moz-src:///toolkit/components/doh/TRRPerformance.sys.mjs": [
         "toolkit/components/doh/TRRPerformance.sys.mjs"
       ],
       "resource://gre/modules/TaskScheduler.sys.mjs": [

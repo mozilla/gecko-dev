@@ -79,7 +79,7 @@ function setup() {
   );
 
   let TRRPerformance = ChromeUtils.importESModule(
-    "resource://gre/modules/TRRPerformance.sys.mjs"
+    "moz-src:///toolkit/components/doh/TRRPerformance.sys.mjs"
   );
 
   DNSLookup = TRRPerformance.DNSLookup;
