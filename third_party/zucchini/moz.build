@@ -24,6 +24,7 @@ SOURCES += [
     "/third_party/zucchini/chromium-shim/components/zucchini/zucchini_main.temporary.cc",
     "/third_party/zucchini/chromium/base/check.cc",
     "/third_party/zucchini/chromium/base/check_op.cc",
+    "/third_party/zucchini/chromium/base/command_line.cc",
     "/third_party/zucchini/chromium/base/files/file.cc",
     "/third_party/zucchini/chromium/base/files/file_path.cc",
     "/third_party/zucchini/chromium/base/files/file_tracing.cc",
@@ -69,8 +70,10 @@ SOURCES += [
     "/third_party/zucchini/chromium/components/zucchini/target_pool.cc",
     "/third_party/zucchini/chromium/components/zucchini/targets_affinity.cc",
     "/third_party/zucchini/chromium/components/zucchini/zucchini_apply.cc",
+    "/third_party/zucchini/chromium/components/zucchini/zucchini_commands.cc",
     "/third_party/zucchini/chromium/components/zucchini/zucchini_gen.cc",
     "/third_party/zucchini/chromium/components/zucchini/zucchini_integration.cc",
+    "/third_party/zucchini/chromium/components/zucchini/zucchini_tools.cc",
 ]
 
 if CONFIG["TARGET_OS"] == "WINNT":
@@ -89,6 +92,7 @@ if CONFIG["TARGET_OS"] == "WINNT":
     ]
 
     OS_LIBS += [
+        "shell32",
         "user32",
     ]
 

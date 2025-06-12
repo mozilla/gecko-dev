@@ -62,9 +62,12 @@ vendoring:
     - base/check.h
     - base/check_op.cc
     - base/check_op.h
+    - base/command_line.cc
+    - base/command_line.h
     - base/compiler_specific.h
     - base/containers/adapters.h
     - base/containers/checked_iterators.h
+    - base/containers/contains.h
     - base/containers/contiguous_iterator.h
     - base/containers/cxx20_erase.h
     - base/containers/cxx20_erase_deque.h
@@ -162,6 +165,9 @@ vendoring:
     - base/strings/string_number_conversions_win.h
     - base/strings/string_piece.h
     - base/strings/string_piece_forward.h
+    - base/strings/string_split.h
+    - base/strings/string_split_win.h
+    - base/strings/string_tokenizer.h
     - base/strings/string_util.cc
     - base/strings/string_util.h
     - base/strings/string_util_constants.cc
@@ -288,11 +294,15 @@ vendoring:
     - components/zucchini/zucchini.h
     - components/zucchini/zucchini_apply.cc
     - components/zucchini/zucchini_apply.h
+    - components/zucchini/zucchini_commands.cc
+    - components/zucchini/zucchini_commands.h
     - components/zucchini/zucchini_gen.cc
     - components/zucchini/zucchini_gen.h
     - components/zucchini/zucchini_integration.cc
     - components/zucchini/zucchini_integration.h
     # components/zucchini/zucchini_main.temporary.cc
+    - components/zucchini/zucchini_tools.cc
+    - components/zucchini/zucchini_tools.h
     - LICENSE
     # third_party/abseil-cpp/absl/base/attributes.h
     # third_party/abseil-cpp/absl/functional/function_ref.h
