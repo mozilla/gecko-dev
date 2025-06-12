@@ -511,8 +511,8 @@ MediaResult AppleVTEncoder::InitSession() {
                       interval, status));
   }
 
-  if (mConfig.mCodecSpecific) {
-    const H264Specific& specific = mConfig.mCodecSpecific->as<H264Specific>();
+  if (mConfig.mCodecSpecific.is<H264Specific>()) {
+    const H264Specific& specific = mConfig.mCodecSpecific.as<H264Specific>();
     if (!SetProfileLevel(specific.mProfile)) {
       return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                          RESULT_DETAIL("fail to configurate profile level:%d",
@@ -783,8 +783,8 @@ void AppleVTEncoder::OutputFrame(OSStatus aStatus, VTEncodeInfoFlags aFlags,
   }
 
   bool forceAvcc = false;
-  if (mConfig.mCodecSpecific->is<H264Specific>()) {
-    forceAvcc = mConfig.mCodecSpecific->as<H264Specific>().mFormat ==
+  if (mConfig.mCodecSpecific.is<H264Specific>()) {
+    forceAvcc = mConfig.mCodecSpecific.as<H264Specific>().mFormat ==
                 H264BitStreamFormat::AVC;
   }
   bool asAnnexB = !forceAvcc;

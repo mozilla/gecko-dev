@@ -193,16 +193,14 @@ already_AddRefed<IMFMediaType> CreateOutputType(EncoderConfig& aConfig) {
     return nullptr;
   }
 
-  if (aConfig.mCodecSpecific) {
-    if (aConfig.mCodecSpecific->is<H264Specific>()) {
-      MOZ_ASSERT(aConfig.mCodec == CodecType::H264);
-      hr = FAILED(type->SetUINT32(
-          MF_MT_MPEG2_PROFILE,
-          GetProfile(aConfig.mCodecSpecific->as<H264Specific>().mProfile)));
-      if (hr) {
-        WMF_ENC_LOG("Create output type set profile error: %lx", hr);
-        return nullptr;
-      }
+  if (aConfig.mCodecSpecific.is<H264Specific>()) {
+    MOZ_ASSERT(aConfig.mCodec == CodecType::H264);
+    hr = FAILED(type->SetUINT32(
+        MF_MT_MPEG2_PROFILE,
+        GetProfile(aConfig.mCodecSpecific.as<H264Specific>().mProfile)));
+    if (hr) {
+      WMF_ENC_LOG("Create output type set profile error: %lx", hr);
+      return nullptr;
     }
   }
 

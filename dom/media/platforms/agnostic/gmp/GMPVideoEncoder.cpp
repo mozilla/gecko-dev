@@ -174,8 +174,8 @@ void GMPVideoEncoder::InitComplete(GMPVideoEncoderProxy* aGMP,
       break;
   }
 
-  if (mConfig.mCodecSpecific) {
-    const H264Specific& specific = mConfig.mCodecSpecific->as<H264Specific>();
+  if (mConfig.mCodecSpecific.is<H264Specific>()) {
+    const H264Specific& specific = mConfig.mCodecSpecific.as<H264Specific>();
     codec.mProfile = ToGMPProfile(specific.mProfile);
     codec.mLevel = ToGMPLevel(specific.mLevel);
   }
@@ -390,8 +390,8 @@ void GMPVideoEncoder::Encoded(GMPVideoEncodedFrame* aEncodedFrame,
                 this, output->mKeyframe ? "key" : "", timestamp,
                 maybeTemporalLayerId);
 
-  if (mConfig.mCodecSpecific) {
-    const H264Specific& specific = mConfig.mCodecSpecific->as<H264Specific>();
+  if (mConfig.mCodecSpecific.is<H264Specific>()) {
+    const H264Specific& specific = mConfig.mCodecSpecific.as<H264Specific>();
     if (specific.mFormat == H264BitStreamFormat::AVC) {
       const uint8_t kExtraData[] = {
           1 /* version */,

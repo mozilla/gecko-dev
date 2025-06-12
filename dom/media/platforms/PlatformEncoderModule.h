@@ -24,7 +24,7 @@ namespace mozilla {
 
 class MediaDataEncoder;
 class MediaData;
-struct EncoderConfigurationChangeList;
+class EncoderConfigurationChangeList;
 
 class PlatformEncoderModule {
  public:
@@ -145,13 +145,16 @@ class MediaDataEncoder {
 template <typename T, typename Phantom>
 class StrongTypedef {
  public:
+  StrongTypedef() = default;
   explicit StrongTypedef(T const& value) : mValue(value) {}
   explicit StrongTypedef(T&& value) : mValue(std::move(value)) {}
   T& get() { return mValue; }
   T const& get() const { return mValue; }
 
  private:
-  T mValue;
+  T mValue{};
+
+  friend struct IPC::ParamTraits<StrongTypedef<T, Phantom>>;
 };
 
 // Dimensions of the video frames
@@ -192,7 +195,8 @@ using EncoderConfigurationItem =
 // A list of changes to an encoder configuration, that _might_ be able to change
 // on the fly. Not all encoder modules can adjust their configuration on the
 // fly.
-struct EncoderConfigurationChangeList {
+class EncoderConfigurationChangeList {
+ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(EncoderConfigurationChangeList)
   bool Empty() const { return mChanges.IsEmpty(); }
   template <typename T>

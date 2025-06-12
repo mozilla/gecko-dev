@@ -243,9 +243,9 @@ class AutoRelease final {
   java::Sample::GlobalRef mSample;
 };
 
-static bool IsAVCC(Maybe<EncoderConfig::CodecSpecific>& aCodecSpecific) {
-  return aCodecSpecific && aCodecSpecific->is<H264Specific>() &&
-         aCodecSpecific->as<H264Specific>().mFormat == H264BitStreamFormat::AVC;
+static bool IsAVCC(EncoderConfig::CodecSpecific& aCodecSpecific) {
+  return aCodecSpecific.is<H264Specific>() &&
+         aCodecSpecific.as<H264Specific>().mFormat == H264BitStreamFormat::AVC;
 }
 
 static RefPtr<MediaByteBuffer> ExtractCodecConfig(

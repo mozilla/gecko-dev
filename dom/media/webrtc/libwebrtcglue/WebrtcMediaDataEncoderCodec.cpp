@@ -257,14 +257,14 @@ already_AddRefed<MediaDataEncoder> WebrtcMediaDataEncoder::CreateEncoder(
   }
 
   CodecType type;
-  Maybe<EncoderConfig::CodecSpecific> specific;
+  EncoderConfig::CodecSpecific specific{void_t{}};
   switch (aCodecSettings->codecType) {
     case webrtc::VideoCodecType::kVideoCodecH264: {
       type = CodecType::H264;
       std::pair<H264_PROFILE, H264_LEVEL> profileLevel =
           ConvertProfileLevel(mFormatParams);
-      specific.emplace(H264Specific(profileLevel.first, profileLevel.second,
-                                    H264BitStreamFormat::ANNEXB));
+      specific.emplace<H264Specific>(profileLevel.first, profileLevel.second,
+                                     H264BitStreamFormat::ANNEXB);
       break;
     }
     case webrtc::VideoCodecType::kVideoCodecVP8: {
@@ -273,9 +273,9 @@ already_AddRefed<MediaDataEncoder> WebrtcMediaDataEncoder::CreateEncoder(
       const webrtc::VideoCodecComplexity complexity =
           aCodecSettings->GetVideoEncoderComplexity();
       const bool frameDropEnabled = aCodecSettings->GetFrameDropEnabled();
-      specific.emplace(VP8Specific(MapComplexity(complexity), false,
-                                   vp8.numberOfTemporalLayers, vp8.denoisingOn,
-                                   vp8.automaticResizeOn, frameDropEnabled));
+      specific.emplace<VP8Specific>(MapComplexity(complexity), false,
+                                    vp8.numberOfTemporalLayers, vp8.denoisingOn,
+                                    vp8.automaticResizeOn, frameDropEnabled);
       break;
     }
     case webrtc::VideoCodecType::kVideoCodecVP9: {
@@ -284,10 +284,10 @@ already_AddRefed<MediaDataEncoder> WebrtcMediaDataEncoder::CreateEncoder(
       const webrtc::VideoCodecComplexity complexity =
           aCodecSettings->GetVideoEncoderComplexity();
       const bool frameDropEnabled = aCodecSettings->GetFrameDropEnabled();
-      specific.emplace(VP9Specific(
+      specific.emplace<VP9Specific>(
           MapComplexity(complexity), false, vp9.numberOfTemporalLayers,
           vp9.denoisingOn, vp9.automaticResizeOn, frameDropEnabled,
-          vp9.adaptiveQpMode, vp9.numberOfSpatialLayers, vp9.flexibleMode));
+          vp9.adaptiveQpMode, vp9.numberOfSpatialLayers, vp9.flexibleMode);
       break;
     }
     default:

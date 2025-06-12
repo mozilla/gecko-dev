@@ -50,8 +50,8 @@ media::EncodeSupportSet GMPEncoderModule::Supports(
   if (aConfig.mHardwarePreference == HardwarePreference::RequireHardware) {
     return EncodeSupportSet{};
   }
-  if (aConfig.mCodecSpecific && aConfig.mCodecSpecific->is<H264Specific>()) {
-    const auto& codecSpecific = aConfig.mCodecSpecific->as<H264Specific>();
+  if (aConfig.mCodecSpecific.is<H264Specific>()) {
+    const auto& codecSpecific = aConfig.mCodecSpecific.as<H264Specific>();
     if (codecSpecific.mProfile != H264_PROFILE_UNKNOWN &&
         codecSpecific.mProfile != H264_PROFILE_BASE &&
         !HaveGMPFor("encode-video"_ns, {"moz-h264-advanced"_ns})) {

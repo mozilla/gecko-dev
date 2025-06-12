@@ -365,7 +365,7 @@ already_AddRefed<MediaRawData> WMFMediaDataEncoder::IMFSampleToMediaData(
 
 bool WMFMediaDataEncoder::IsAnnexB() const {
   MOZ_ASSERT(mConfig.mCodec == CodecType::H264);
-  return mConfig.mCodecSpecific->as<H264Specific>().mFormat ==
+  return mConfig.mCodecSpecific.as<H264Specific>().mFormat ==
          H264BitStreamFormat::ANNEXB;
 }
 

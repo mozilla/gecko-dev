@@ -62,7 +62,8 @@ nsCString EncoderConfig::ToString() const {
     rv.AppendPrintf(", ch: %" PRIu32 ", %" PRIu32 "Hz", mNumberOfChannels,
                     mSampleRate);
   }
-  rv.AppendPrintf("(w/%s codec specific)", mCodecSpecific ? "" : "o");
+  rv.AppendPrintf("(w/%s codec specific)",
+                  mCodecSpecific.is<void_t>() ? "o" : "");
   return rv;
 };
 

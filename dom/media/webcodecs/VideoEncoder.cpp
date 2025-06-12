@@ -216,7 +216,7 @@ EncoderConfig VideoEncoderConfigInternal::ToEncoderConfig() const {
   } else {
     MOZ_CRASH("The string should always contain a valid codec at this point.");
   }
-  Maybe<EncoderConfig::CodecSpecific> specific;
+  EncoderConfig::CodecSpecific specific{void_t{}};
   if (codecType == CodecType::H264) {
     uint8_t profile, constraints;
     H264_LEVEL level;
@@ -232,8 +232,8 @@ EncoderConfig VideoEncoderConfigInternal::ToEncoderConfig() const {
                                 H264CodecStringStrictness::Strict)) {
       if (profile == H264_PROFILE_BASE || profile == H264_PROFILE_MAIN ||
           profile == H264_PROFILE_EXTENDED || profile == H264_PROFILE_HIGH) {
-        specific.emplace(
-            H264Specific(static_cast<H264_PROFILE>(profile), level, format));
+        specific.emplace<H264Specific>(static_cast<H264_PROFILE>(profile),
+                                       level, format);
       }
     }
   }
@@ -263,7 +263,7 @@ EncoderConfig VideoEncoderConfigInternal::ToEncoderConfig() const {
       LOGE("Error extracting VPX codec details, non fatal");
     }
 #endif
-    specific.emplace(VP9Specific(
+    specific.emplace<VP9Specific>(
         VPXComplexity::Normal, /* Complexity */
         true,                  /* Resilience */
         numTemporalLayers,     /* Number of temporal layers */
@@ -273,7 +273,7 @@ EncoderConfig VideoEncoderConfigInternal::ToEncoderConfig() const {
         true,                  /* Adaptive Qp */
         1,                     /* Number of spatial layers */
         false                  /* Flexible */
-        ));
+    );
   }
   // For real-time usage, typically used in web conferencing, YUV420 is the most
   // common format and is set as the default. Otherwise, Gecko's preferred

@@ -148,14 +148,13 @@ nsString EncoderConfigurationChangeList::ToString() const {
 
 bool CanLikelyEncode(const EncoderConfig& aConfig) {
   if (aConfig.mCodec == CodecType::H264) {
-    if (!aConfig.mCodecSpecific ||
-        !aConfig.mCodecSpecific->is<H264Specific>()) {
+    if (!aConfig.mCodecSpecific.is<H264Specific>()) {
       LOGD(
           "Error: asking for support codec for h264 without h264 specific "
           "config.");
       return false;
     }
-    H264Specific specific = aConfig.mCodecSpecific->as<H264Specific>();
+    H264Specific specific = aConfig.mCodecSpecific.as<H264Specific>();
     int width = aConfig.mSize.width;
     int height = aConfig.mSize.height;
     if (width % 2 || !width) {
