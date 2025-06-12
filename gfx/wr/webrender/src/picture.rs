@@ -2699,13 +2699,10 @@ impl TileCacheInstance {
         let transform = mapper.get_transform();
         if !transform.is_2d_scale_translation() {
             let result = Err(ComplexTransform);
-            // If we aren't forcing, give up and return Err.
-            if !force {
-                return result;
-            }
-
-            // Log this but don't return an error.
-            self.report_promotion_failure(result, pic_coverage_rect, true);
+            // Unfortunately, ComplexTransform absolutely prevents proper
+				    // functioning of surface promotion. Treating this as a warning
+            // instead of an error will cause a crash in get_relative_scale_offset.
+            return result;
         }
 
         if self.slice_flags.contains(SliceFlags::IS_ATOMIC) {
