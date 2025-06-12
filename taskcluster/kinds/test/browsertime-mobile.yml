@@ -505,7 +505,7 @@ browsertime-benchmark-jetstream3:
     description: Raptor (browsertime) jetstream 3 benchmark test
     raptor:
         # Bug 1954124 not quite ready for Fenix and GVE
-        apps: [chrome-m, cstm-car-m]
+        apps: [chrome-m, cstm-car-m, fenix]
         subtests:
             - [jetstream3, js3]
     run-on-projects:

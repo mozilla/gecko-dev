@@ -47,9 +47,27 @@ module.exports = logTest(
         }
         await commands.measure.start(url);
 
+        // Wait up to 30s for the UI to fully intialize. In particular, for the
+        // status button to be ready.
         await commands.js.runAndWait(`
-      this.JetStream.start()
-    `);
+          return new Promise(resolve => {
+            let tries = 0;
+            // 300 * 100ms = 30 seconds
+            const maxTries = 300;
+            const waitForJetStreamUIReady = () => {
+              const status = document.getElementById("status");
+              if (status && typeof status.onclick === "function") {
+                JetStream.start();
+                resolve("Started JetStream after UI ready");
+              } else if (++tries > maxTries) {
+                resolve("Timed out waiting for JetStream UI readiness");
+              } else {
+                setTimeout(waitForJetStreamUIReady, 100);
+              }
+            };
+            waitForJetStreamUIReady();
+          });
+        `);
 
         let data_exists = null;
         let starttime = await commands.js.run(`return performance.now();`);

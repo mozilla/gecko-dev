@@ -1,12 +1,18 @@
 [default]
 alert_threshold = 2.0
-apps = "chrome-m, cstm-car-m"
+apps = "chrome-m, cstm-car-m, fenix"
 gecko_profile_interval = 1
 expose_browser_profiler = true
 lower_is_better = false
 owner = ":jandem and spidermonkey team"
 page_cycles = 1
 page_timeout = 2000000
+preferences = [
+  # Bug 1966162. Doxbee subtest hits the slow-script feature in fenix
+  # which currently kills the script. Relax behaviour for the benchmark
+  # since it isn't what we are interested in testing.
+  "dom.max_script_run_time=0",
+]
 subtest_lower_is_better = true
 subtest_unit = "ms"
 test_url = "http://<host>:<port>/"

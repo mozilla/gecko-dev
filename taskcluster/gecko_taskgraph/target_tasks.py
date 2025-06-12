@@ -700,9 +700,8 @@ def target_tasks_custom_car_perf_testing(full_task_graph, parameters, graph_conf
                     return False
                 if "jetstream2" in try_name:
                     return True
-                # Bug 1954124 - Don't run JS3 + Android on a cron yet.
                 if "jetstream3" in try_name:
-                    return False
+                    return True
                 # Bug 1898514 - Avoid tp6m or non-essential tp6 jobs in cron on non-a55 platform
                 # Bug 1961831 - Disable pageload tests temporarily during provider switch
                 if "tp6m" in try_name:
@@ -822,9 +821,8 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
                     return False
                 if "jetstream2" in try_name:
                     return True
-                # Bug 1954124 - Don't run JS3 + Android on a cron yet.
                 if "jetstream3" in try_name:
-                    return False
+                    return True
                 if "fenix" in try_name:
                     return False
                 if "speedometer" in try_name:

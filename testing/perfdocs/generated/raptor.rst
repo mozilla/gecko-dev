@@ -1137,6 +1137,37 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-jetstream3-fenix-jetstream3**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream3-fenix-jetstream3-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-android-hw-a55-14-0-aarch64/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-benchmark-jetstream3-fenix-jetstream3**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream3-fenix-jetstream3-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
 
 
    .. list-table:: **test-linux1804-64-clang-trunk-qr/opt**
@@ -1373,14 +1404,15 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    **Owner**: :jandem and spidermonkey team
 
    * **alert threshold**: 2.0
-   * **apps**: chrome-m, cstm-car-m
+   * **apps**: chrome-m, cstm-car-m, fenix
    * **expected**: pass
    * **expose browser profiler**: true
    * **gecko profile interval**: 1
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/jetstream3-mobile.toml#15>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/jetstream3-mobile.toml#21>`__
    * **lower is better**: false
    * **page cycles**: 1
    * **page timeout**: 2000000
+   * **preferences**: dom.max_script_run_time=0
    * **repository**: https://github.com/webkit/jetstream
    * **repository revision**: 901c95b90d74b544e2b8d6bac2a6b86ebe22b43a
    * **subtest lower is better**: true
@@ -1418,6 +1450,37 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
       * - **browsertime-benchmark-jetstream3-cstm-car-m-jetstream3-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream3-fenix-jetstream3**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream3-fenix-jetstream3-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+
+
+   .. list-table:: **test-android-hw-a55-14-0-aarch64/opt**
+      :widths: 30 15 15 15 15
+      :header-rows: 1
+
+      * - **Test Name**
+        - mozilla-central
+        - autoland
+        - mozilla-release
+        - mozilla-beta
+      * - **browsertime-benchmark-jetstream3-fenix-jetstream3**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-jetstream3-fenix-jetstream3-nofis**
         - ❌
         - ❌
         - ❌
