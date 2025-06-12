@@ -811,7 +811,7 @@ CK_PKCS11_FUNCTION_INFO(C_WaitForSlotEvent)
 );
 #endif
 
-#if defined(CK_PKCS11_3_0) && !defined(CK_PKCS11_2_0_ONLY)
+#if (defined(CK_PKCS11_3_0) || defined(CK_PKCS11_3_2)) && !defined(CK_PKCS11_2_0_ONLY)
 CK_PKCS11_FUNCTION_INFO(C_GetInterfaceList)
 #ifdef CK_NEED_ARG_LIST
 (
@@ -1041,4 +1041,126 @@ CK_PKCS11_FUNCTION_INFO(C_MessageVerifyFinal)
     CK_SESSION_HANDLE hSession);
 #endif
 
+#if defined(CK_PKCS11_3_2) && !defined(CK_PKCS11_3_0_ONLY)
+CK_PKCS11_FUNCTION_INFO(C_EncapsulateKey)
+#ifdef CK_NEED_ARG_LIST
+(
+    CK_SESSION_HANDLE hSession,
+    CK_MECHANISM_PTR pMechanism,
+    CK_OBJECT_HANDLE hPublicKey,
+    CK_ATTRIBUTE_PTR pTemplate,
+    CK_ULONG ulAttributeCount,
+    CK_BYTE_PTR pCiphertext,
+    CK_ULONG_PTR pulCiphertextLen,
+    CK_OBJECT_HANDLE_PTR phKey);
+#endif
+
+CK_PKCS11_FUNCTION_INFO(C_DecapsulateKey)
+#ifdef CK_NEED_ARG_LIST
+(
+    CK_SESSION_HANDLE hSession,
+    CK_MECHANISM_PTR pMechanism,
+    CK_OBJECT_HANDLE hPrivateKey,
+    CK_ATTRIBUTE_PTR pTemplate,
+    CK_ULONG ulAttributeCount,
+    CK_BYTE_PTR pCiphertext,
+    CK_ULONG ulCiphertextLen,
+    CK_OBJECT_HANDLE_PTR phKey);
+#endif
+
+CK_PKCS11_FUNCTION_INFO(C_VerifySignatureInit)
+#ifdef CK_NEED_ARG_LIST
+(
+    CK_SESSION_HANDLE hSession,
+    CK_MECHANISM_PTR pMechanism,
+    CK_OBJECT_HANDLE hKey,
+    CK_BYTE_PTR pSignature,
+    CK_ULONG ulSignatureLen);
+#endif
+
+CK_PKCS11_FUNCTION_INFO(C_VerifySignature)
+#ifdef CK_NEED_ARG_LIST
+(
+    CK_SESSION_HANDLE hSession,
+    CK_BYTE_PTR pData,
+    CK_ULONG ulDataLen);
+#endif
+
+CK_PKCS11_FUNCTION_INFO(C_VerifySignatureUpdate)
+#ifdef CK_NEED_ARG_LIST
+(
+    CK_SESSION_HANDLE hSession,
+    CK_BYTE_PTR pPart,
+    CK_ULONG ulPartLen);
+#endif
+
+CK_PKCS11_FUNCTION_INFO(C_VerifySignatureFinal)
+#ifdef CK_NEED_ARG_LIST
+(
+    CK_SESSION_HANDLE hSession);
+#endif
+
+CK_PKCS11_FUNCTION_INFO(C_GetSessionValidationFlags)
+#ifdef CK_NEED_ARG_LIST
+(
+    CK_SESSION_HANDLE hSession,
+    CK_SESSION_VALIDATION_FLAGS_TYPE type,
+    CK_FLAGS_PTR pFlags);
+#endif
+
+CK_PKCS11_FUNCTION_INFO(C_AsyncComplete)
+#ifdef CK_NEED_ARG_LIST
+(
+    CK_SESSION_HANDLE hSession,
+    CK_UTF8CHAR_PTR pFunctionName,
+    CK_ASYNC_DATA_PTR pResult);
+#endif
+
+CK_PKCS11_FUNCTION_INFO(C_AsyncGetID)
+#ifdef CK_NEED_ARG_LIST
+(
+    CK_SESSION_HANDLE hSession,
+    CK_UTF8CHAR_PTR pFunctionName,
+    CK_ULONG_PTR pulID);
+#endif
+
+CK_PKCS11_FUNCTION_INFO(C_AsyncJoin)
+#ifdef CK_NEED_ARG_LIST
+(
+    CK_SESSION_HANDLE hSession,
+    CK_UTF8CHAR_PTR pFunctionName,
+    CK_ULONG ulID,
+    CK_BYTE_PTR pData,
+    CK_ULONG ulData);
+#endif
+
+CK_PKCS11_FUNCTION_INFO(C_WrapKeyAuthenticated)
+#ifdef CK_NEED_ARG_LIST
+(
+    CK_SESSION_HANDLE hSession,
+    CK_MECHANISM_PTR pMechanism,
+    CK_OBJECT_HANDLE hWrappingKey,
+    CK_OBJECT_HANDLE hKey,
+    CK_BYTE_PTR pAssociatedData,
+    CK_ULONG ulAssociatedDataLen,
+    CK_BYTE_PTR pWrappedKey,
+    CK_ULONG_PTR pulWrappedKeyLen);
+#endif
+
+CK_PKCS11_FUNCTION_INFO(C_UnwrapKeyAuthenticated)
+#ifdef CK_NEED_ARG_LIST
+(
+    CK_SESSION_HANDLE hSession,
+    CK_MECHANISM_PTR pMechanism,
+    CK_OBJECT_HANDLE hUnwrappingKey,
+    CK_BYTE_PTR pWrappedKey,
+    CK_ULONG ulWrappedKeyLen,
+    CK_ATTRIBUTE_PTR pTemplate,
+    CK_ULONG ulAttributeCount,
+    CK_BYTE_PTR pAssociatedData,
+    CK_ULONG ulAssociatedDataLen,
+    CK_OBJECT_HANDLE_PTR phKey);
+#endif
+
+#endif
 #endif

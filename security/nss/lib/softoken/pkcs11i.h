@@ -840,19 +840,19 @@ extern void sftk_EncodeInteger(PRUint64 integer, CK_ULONG num_bits, CK_BBOOL lit
 /* ike and xcbc helpers */
 extern CK_RV sftk_ike_prf(CK_SESSION_HANDLE hSession,
                           const SFTKAttribute *inKey,
-                          const CK_NSS_IKE_PRF_DERIVE_PARAMS *params, SFTKObject *outKey);
+                          const CK_IKE_PRF_DERIVE_PARAMS *params, SFTKObject *outKey);
 extern CK_RV sftk_ike1_prf(CK_SESSION_HANDLE hSession,
                            const SFTKAttribute *inKey,
-                           const CK_NSS_IKE1_PRF_DERIVE_PARAMS *params, SFTKObject *outKey,
+                           const CK_IKE1_PRF_DERIVE_PARAMS *params, SFTKObject *outKey,
                            unsigned int keySize);
 extern CK_RV sftk_ike1_appendix_b_prf(CK_SESSION_HANDLE hSession,
                                       const SFTKAttribute *inKey,
-                                      const CK_NSS_IKE1_APP_B_PRF_DERIVE_PARAMS *params,
+                                      const CK_IKE1_EXTENDED_DERIVE_PARAMS *params,
                                       SFTKObject *outKey,
                                       unsigned int keySize);
 extern CK_RV sftk_ike_prf_plus(CK_SESSION_HANDLE hSession,
                                const SFTKAttribute *inKey,
-                               const CK_NSS_IKE_PRF_PLUS_DERIVE_PARAMS *params, SFTKObject *outKey,
+                               const CK_IKE2_PRF_PLUS_DERIVE_PARAMS *params, SFTKObject *outKey,
                                unsigned int keySize);
 extern CK_RV sftk_aes_xcbc_new_keys(CK_SESSION_HANDLE hSession,
                                     CK_OBJECT_HANDLE hKey, CK_OBJECT_HANDLE_PTR phKey,

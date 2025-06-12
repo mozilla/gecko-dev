@@ -1,6 +1,6 @@
 .. _mozilla_projects_nss_nss_3_101_3_release_notes:
 
-NSS 3.101_3 release notes
+NSS 3.101.3 release notes
 =========================
 
 `Introduction <#introduction>`__

@@ -25,6 +25,7 @@
 #include "secitem.h"
 #include "secport.h"
 #include "blapi.h"
+/* we need to use the deprecated mechanisms values for backward compatibility */
 #include "pkcs11.h"
 #include "pkcs11i.h"
 #include "pkcs1sig.h"
@@ -7529,8 +7530,8 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
     HASH_HashType hashType;
     CK_MECHANISM_TYPE hashMech;
     PRBool extractValue = PR_TRUE;
-    CK_NSS_IKE1_APP_B_PRF_DERIVE_PARAMS ikeAppB;
-    CK_NSS_IKE1_APP_B_PRF_DERIVE_PARAMS *pIkeAppB;
+    CK_IKE1_EXTENDED_DERIVE_PARAMS ikeAppB;
+    CK_IKE1_EXTENDED_DERIVE_PARAMS *pIkeAppB;
 
     CHECK_FORK();
 
@@ -7671,26 +7672,29 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
             break;
         }
         case CKM_NSS_IKE_PRF_DERIVE:
+        case CKM_IKE_PRF_DERIVE:
             if (pMechanism->ulParameterLen !=
-                sizeof(CK_NSS_IKE_PRF_DERIVE_PARAMS)) {
+                sizeof(CK_IKE_PRF_DERIVE_PARAMS)) {
                 crv = CKR_MECHANISM_PARAM_INVALID;
                 break;
             }
             crv = sftk_ike_prf(hSession, att,
-                               (CK_NSS_IKE_PRF_DERIVE_PARAMS *)pMechanism->pParameter, key);
+                               (CK_IKE_PRF_DERIVE_PARAMS *)pMechanism->pParameter, key);
             break;
         case CKM_NSS_IKE1_PRF_DERIVE:
+        case CKM_IKE1_PRF_DERIVE:
             if (pMechanism->ulParameterLen !=
-                sizeof(CK_NSS_IKE1_PRF_DERIVE_PARAMS)) {
+                sizeof(CK_IKE1_PRF_DERIVE_PARAMS)) {
                 crv = CKR_MECHANISM_PARAM_INVALID;
                 break;
             }
             crv = sftk_ike1_prf(hSession, att,
-                                (CK_NSS_IKE1_PRF_DERIVE_PARAMS *)pMechanism->pParameter,
+                                (CK_IKE1_PRF_DERIVE_PARAMS *)pMechanism->pParameter,
                                 key, keySize);
             break;
         case CKM_NSS_IKE1_APP_B_PRF_DERIVE:
-            pIkeAppB = (CK_NSS_IKE1_APP_B_PRF_DERIVE_PARAMS *)pMechanism->pParameter;
+        case CKM_IKE1_EXTENDED_DERIVE:
+            pIkeAppB = (CK_IKE1_EXTENDED_DERIVE_PARAMS *)pMechanism->pParameter;
             if (pMechanism->ulParameterLen ==
                 sizeof(CK_MECHANISM_TYPE)) {
                 ikeAppB.prfMechanism = *(CK_MECHANISM_TYPE *)pMechanism->pParameter;
@@ -7700,7 +7704,7 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                 ikeAppB.ulExtraDataLen = 0;
                 pIkeAppB = &ikeAppB;
             } else if (pMechanism->ulParameterLen !=
-                       sizeof(CK_NSS_IKE1_APP_B_PRF_DERIVE_PARAMS)) {
+                       sizeof(CK_IKE1_EXTENDED_DERIVE_PARAMS)) {
                 crv = CKR_MECHANISM_PARAM_INVALID;
                 break;
             }
@@ -7708,13 +7712,14 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
                                            keySize);
             break;
         case CKM_NSS_IKE_PRF_PLUS_DERIVE:
+        case CKM_IKE2_PRF_PLUS_DERIVE:
             if (pMechanism->ulParameterLen !=
-                sizeof(CK_NSS_IKE_PRF_PLUS_DERIVE_PARAMS)) {
+                sizeof(CK_IKE2_PRF_PLUS_DERIVE_PARAMS)) {
                 crv = CKR_MECHANISM_PARAM_INVALID;
                 break;
             }
             crv = sftk_ike_prf_plus(hSession, att,
-                                    (CK_NSS_IKE_PRF_PLUS_DERIVE_PARAMS *)pMechanism->pParameter,
+                                    (CK_IKE2_PRF_PLUS_DERIVE_PARAMS *)pMechanism->pParameter,
                                     key, keySize);
             break;
         /*

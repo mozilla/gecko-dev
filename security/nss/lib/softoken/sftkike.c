@@ -459,7 +459,7 @@ prf_final(prfContext *context, unsigned char *buf, unsigned int len)
  */
 CK_RV
 sftk_ike_prf(CK_SESSION_HANDLE hSession, const SFTKAttribute *inKey,
-             const CK_NSS_IKE_PRF_DERIVE_PARAMS *params, SFTKObject *outKey)
+             const CK_IKE_PRF_DERIVE_PARAMS *params, SFTKObject *outKey)
 {
     SFTKAttribute *newKeyValue = NULL;
     SFTKObject *newKeyObj = NULL;
@@ -582,7 +582,7 @@ fail:
  */
 CK_RV
 sftk_ike1_prf(CK_SESSION_HANDLE hSession, const SFTKAttribute *inKey,
-              const CK_NSS_IKE1_PRF_DERIVE_PARAMS *params, SFTKObject *outKey,
+              const CK_IKE1_PRF_DERIVE_PARAMS *params, SFTKObject *outKey,
               unsigned int keySize)
 {
     SFTKAttribute *gxyKeyValue = NULL;
@@ -709,7 +709,7 @@ fail:
  */
 CK_RV
 sftk_ike1_appendix_b_prf(CK_SESSION_HANDLE hSession, const SFTKAttribute *inKey,
-                         const CK_NSS_IKE1_APP_B_PRF_DERIVE_PARAMS *params,
+                         const CK_IKE1_EXTENDED_DERIVE_PARAMS *params,
                          SFTKObject *outKey, unsigned int keySize)
 {
     SFTKAttribute *gxyKeyValue = NULL;
@@ -870,7 +870,7 @@ fail:
 static CK_RV
 sftk_ike_prf_plus_raw(CK_SESSION_HANDLE hSession,
                       const unsigned char *inKeyData, CK_ULONG inKeyLen,
-                      const CK_NSS_IKE_PRF_PLUS_DERIVE_PARAMS *params,
+                      const CK_IKE2_PRF_PLUS_DERIVE_PARAMS *params,
                       unsigned char **outKeyDataPtr, unsigned int *outKeySizePtr,
                       unsigned int keySize)
 {
@@ -999,7 +999,7 @@ fail:
  */
 CK_RV
 sftk_ike_prf_plus(CK_SESSION_HANDLE hSession, const SFTKAttribute *inKey,
-                  const CK_NSS_IKE_PRF_PLUS_DERIVE_PARAMS *params, SFTKObject *outKey,
+                  const CK_IKE2_PRF_PLUS_DERIVE_PARAMS *params, SFTKObject *outKey,
                   unsigned int keySize)
 {
     unsigned char *outKeyData = NULL;
@@ -1347,7 +1347,7 @@ sftk_fips_IKE_PowerUpSelfTests(void)
     CK_RV crv;
     unsigned char *outKeyData = NULL;
     unsigned int outKeySize;
-    CK_NSS_IKE_PRF_PLUS_DERIVE_PARAMS ike_params;
+    CK_IKE2_PRF_PLUS_DERIVE_PARAMS ike_params;
 
     rv = prf_test(CKM_AES_XCBC_MAC,
                   ike_xcbc_known_key, sizeof(ike_xcbc_known_key),

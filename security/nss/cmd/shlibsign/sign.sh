@@ -29,8 +29,8 @@ WIN*)
         PATH=${ARG1}/lib:${ARG1}/bin:${ARG4}:${PATH}
     fi
     export PATH
-    echo "${2}"/shlibsign -v -i "${5}"
-    "${2}"/shlibsign -v -i "${5}"
+    echo "${2}"/shlibsign -v -C -i "${5}"
+    "${2}"/shlibsign -v -C -i "${5}"
     ;;
 *)
     LIBPATH=`(cd "${1}"/lib; pwd)`:`(cd "${4}"; pwd)`:$LIBPATH
@@ -45,7 +45,7 @@ WIN*)
     export LIBRARY_PATH
     ADDON_PATH=${1}/lib:${4}:$ADDON_PATH
     export ADDON_PATH
-    echo "${2}"/shlibsign -v -i "${5}"
-    "${2}"/shlibsign -v -i "${5}"
+    echo "${2}"/shlibsign -C -v -i "${5}"
+    "${2}"/shlibsign -C -v -i "${5}"
     ;;
 esac

@@ -19,6 +19,7 @@
  */
 #include "seccomon.h"
 #include "secitem.h"
+/* we need to use the deprecated mechanisms values for backward compatibility */
 #include "pkcs11.h"
 #include "pkcs11i.h"
 #include "softoken.h"
@@ -112,7 +113,7 @@ static PRIntervalTime loginWaitTime;
 
 /* build the crypto module table */
 static CK_FUNCTION_LIST_3_0 sftk_funcList = {
-    { CRYPTOKI_VERSION_MAJOR, CRYPTOKI_VERSION_MINOR },
+    { 3, 0 },
 
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_NEED_ARG_LIST
@@ -644,6 +645,10 @@ static const struct mechanismList mechanisms[] = {
     { CKM_NSS_HMAC_CONSTANT_TIME, { 0, 0, CKF_DIGEST }, PR_TRUE },
     { CKM_NSS_SSL3_MAC_CONSTANT_TIME, { 0, 0, CKF_DIGEST }, PR_TRUE },
     /* -------------------- IPSEC ----------------------- */
+    { CKM_IKE2_PRF_PLUS_DERIVE, { 8, 255 * 64, CKF_DERIVE }, PR_TRUE },
+    { CKM_IKE_PRF_DERIVE, { 8, 64, CKF_DERIVE }, PR_TRUE },
+    { CKM_IKE1_PRF_DERIVE, { 8, 64, CKF_DERIVE }, PR_TRUE },
+    { CKM_IKE1_EXTENDED_DERIVE, { 8, 255 * 64, CKF_DERIVE }, PR_TRUE },
     { CKM_NSS_IKE_PRF_PLUS_DERIVE, { 8, 255 * 64, CKF_DERIVE }, PR_TRUE },
     { CKM_NSS_IKE_PRF_DERIVE, { 8, 64, CKF_DERIVE }, PR_TRUE },
     { CKM_NSS_IKE1_PRF_DERIVE, { 8, 64, CKF_DERIVE }, PR_TRUE },

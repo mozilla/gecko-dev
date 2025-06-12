@@ -6995,10 +6995,10 @@ ikev1(char *reqfn)
     unsigned char skeyid_a_secret[HASH_LENGTH_MAX];
     unsigned char skeyid_e_secret[HASH_LENGTH_MAX];
 
-    CK_MECHANISM ike_mech = { CKM_NSS_IKE_PRF_DERIVE, NULL, 0 };
-    CK_MECHANISM ike1_mech = { CKM_NSS_IKE1_PRF_DERIVE, NULL, 0 };
-    CK_NSS_IKE_PRF_DERIVE_PARAMS ike_prf;
-    CK_NSS_IKE1_PRF_DERIVE_PARAMS ike1_prf;
+    CK_MECHANISM ike_mech = { CKM_IKE_PRF_DERIVE, NULL, 0 };
+    CK_MECHANISM ike1_mech = { CKM_IKE1_PRF_DERIVE, NULL, 0 };
+    CK_IKE_PRF_DERIVE_PARAMS ike_prf;
+    CK_IKE1_PRF_DERIVE_PARAMS ike1_prf;
     CK_RV crv;
 
     /* set up PKCS #11 parameters */
@@ -7385,10 +7385,10 @@ ikev1_psk(char *reqfn)
     unsigned char skeyid_a_secret[HASH_LENGTH_MAX];
     unsigned char skeyid_e_secret[HASH_LENGTH_MAX];
 
-    CK_MECHANISM ike_mech = { CKM_NSS_IKE_PRF_DERIVE, NULL, 0 };
-    CK_MECHANISM ike1_mech = { CKM_NSS_IKE1_PRF_DERIVE, NULL, 0 };
-    CK_NSS_IKE_PRF_DERIVE_PARAMS ike_prf;
-    CK_NSS_IKE1_PRF_DERIVE_PARAMS ike1_prf;
+    CK_MECHANISM ike_mech = { CKM_IKE_PRF_DERIVE, NULL, 0 };
+    CK_MECHANISM ike1_mech = { CKM_IKE1_PRF_DERIVE, NULL, 0 };
+    CK_IKE_PRF_DERIVE_PARAMS ike_prf;
+    CK_IKE1_PRF_DERIVE_PARAMS ike1_prf;
     CK_RV crv;
 
     /* set up PKCS #11 parameters */
@@ -7810,11 +7810,11 @@ ikev2(char *reqfn)
     CK_ATTRIBUTE dkm_child_template = { CKA_VALUE, NULL, 0 };
     unsigned char skeyseed_secret[HASH_LENGTH_MAX];
 
-    CK_MECHANISM ike_mech = { CKM_NSS_IKE_PRF_DERIVE, NULL, 0 };
-    CK_MECHANISM ike2_mech = { CKM_NSS_IKE_PRF_PLUS_DERIVE, NULL, 0 };
+    CK_MECHANISM ike_mech = { CKM_IKE_PRF_DERIVE, NULL, 0 };
+    CK_MECHANISM ike2_mech = { CKM_IKE2_PRF_PLUS_DERIVE, NULL, 0 };
     CK_MECHANISM subset_mech = { CKM_EXTRACT_KEY_FROM_KEY, NULL, 0 };
-    CK_NSS_IKE_PRF_DERIVE_PARAMS ike_prf;
-    CK_NSS_IKE_PRF_PLUS_DERIVE_PARAMS ike2_prf;
+    CK_IKE_PRF_DERIVE_PARAMS ike_prf;
+    CK_IKE2_PRF_PLUS_DERIVE_PARAMS ike2_prf;
     CK_EXTRACT_PARAMS subset_params;
     CK_RV crv;
 

@@ -11,6 +11,7 @@ Releases
    nss_3_112.rst
    nss_3_111.rst
    nss_3_110.rst
+   nss_3_101_4.rst
    nss_3_109.rst
    nss_3_108.rst
    nss_3_101_3.rst
@@ -88,8 +89,8 @@ Releases
    **NSS 3.112** is the latest version of NSS.
    Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_112_release_notes`
 
-   **NSS 3.101.3 (ESR)** is the latest ESR version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_101_3_release_notes`
+   **NSS 3.101.4 (ESR)** is the latest ESR version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_101_4_release_notes`
 
 .. container::
 

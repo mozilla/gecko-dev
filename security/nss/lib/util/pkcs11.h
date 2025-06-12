@@ -179,10 +179,13 @@ extern "C" {
 
 #define __PASTE(x, y) x##y
 
-#ifndef CK_PKCS11_3_0
+/* some applications use pkcs11f.h to build their own tables of functions.
+ * we make them explicitly state what functions they want. Now we set up to
+ * get all of them */
+#ifndef CK_PKCS11_3_2
 /* remember that we set it so we can unset it at the end */
-#define __NSS_CK_PKCS11_3_IMPLICIT 1
-#define CK_PKCS11_3_0 1
+#define __NSS_CK_PKCS11_3_2_IMPLICIT 1
+#define CK_PKCS11_3_2 1
 #endif
 
 /* ==============================================================
@@ -233,6 +236,17 @@ extern "C" {
     name;
 
 #include "pkcs11p.h"
+struct CK_FUNCTION_LIST_3_2 {
+
+    CK_VERSION version; /* PKCS #11 version */
+
+/* Pile all the function pointers into the CK_FUNCTION_LIST_3_0. */
+/* pkcs11f.h has all the information about the PKCS #11
+ * function prototypes. */
+#include "pkcs11f.h"
+};
+
+#define CK_PKCS11_3_0_ONLY 1
 struct CK_FUNCTION_LIST_3_0 {
 
     CK_VERSION version; /* PKCS #11 version */
@@ -242,6 +256,7 @@ struct CK_FUNCTION_LIST_3_0 {
  * function prototypes. */
 #include "pkcs11f.h"
 };
+#undef CK_PKCS11_3_0_ONLY
 
 #define CK_PKCS11_2_0_ONLY 1
 
@@ -260,11 +275,10 @@ struct CK_FUNCTION_LIST {
 #undef CK_PKCS11_FUNCTION_INFO
 #undef CK_PKCS11_2_0_ONLY
 
-#ifdef __NSS_CK_PKCS11_3_IMPLICIT
-#undef CK_PKCS11_3_0
-#undef __NSS_CK_PKCS11_3_IMPLICIT
+#ifdef __NSS_CK_PKCS11_3_2_IMPLICIT
+#undef CK_PKCS11_3_2
+#undef __NSS_CK_PKCS11_3_2_IMPLICIT
 #endif
-
 #undef __PASTE
 
 #ifdef __cplusplus

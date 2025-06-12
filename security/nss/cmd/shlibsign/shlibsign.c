@@ -55,14 +55,38 @@
 /* nss headers for definition of HASH_HashType */
 #include "hasht.h"
 
+/* other basic nss header */
+#include "secport.h"
 #include "basicutil.h"
 #include "secitem.h"
+#include "nssutil.h"
 
 CK_BBOOL cktrue = CK_TRUE;
 CK_BBOOL ckfalse = CK_FALSE;
+CK_OBJECT_CLASS secret_key_obj_class = CKO_SECRET_KEY;
 static PRBool verbose = PR_FALSE;
 static PRBool verify = PR_FALSE;
 static PRBool compat = PR_FALSE;
+
+typedef enum {
+    mode_default,
+    mode_fips,
+    mode_nonfips,
+} ModeTypes;
+
+static const char *
+getFunctionListName(ModeTypes mode)
+{
+    switch (mode) {
+        case mode_default:
+            return "C_GetFunctionList";
+        case mode_fips:
+            return "FC_GetFunctionList";
+        case mode_nonfips:
+            return "NSC_GetFunctionList";
+    }
+    return "C_GetFunctionList";
+}
 
 typedef struct HashTableStruct {
     char *name;
@@ -113,9 +137,9 @@ usage(const char *program_name)
                "type %s -H for more detail information.\n", program_name);
     PR_fprintf(debug_out,
                "Usage: %s [-v] [-V] [-o outfile] [-d dbdir] [-f pwfile]\n"
-               "          [-F] [-p pwd] -[P dbprefix ] [-t hash]"
-               "          [-D] [-k keysize] [-c] [-K key]"
-               "-i shared_library_name\n",
+               "          [-F|-C] [-p pwd] -[P dbprefix ] [-t hash]\n"
+               "          [-D] [-k keysize] [-c] [-K key]\n"
+               "          -i shared_library_name\n",
                program_name);
     PR_fprintf(debug_out, "Valid Hashes: ");
     for (i = 0; i < hashTableSize; i++) {
@@ -143,7 +167,8 @@ long_usage(const char *program_name)
     PR_fprintf(debug_out, "\t-c           Use compatible versions for old NSS\n");
     PR_fprintf(debug_out, "\t-P <prefix>  database prefix\n");
     PR_fprintf(debug_out, "\t-f <file>    password File : echo pw > file \n");
-    PR_fprintf(debug_out, "\t-F           FIPS mode\n");
+    PR_fprintf(debug_out, "\t-F           force FIPS mode\n");
+    PR_fprintf(debug_out, "\t-C           force Non-FIPS mode\n");
     PR_fprintf(debug_out, "\t-p <pwd>     password\n");
     PR_fprintf(debug_out, "\t-v           verbose output\n");
     PR_fprintf(debug_out, "\t-V           perform Verify operations\n");
@@ -155,6 +180,8 @@ long_usage(const char *program_name)
     PR_fprintf(debug_out, "\t      pre-existing libraries with generated ");
     PR_fprintf(debug_out, "checksum files\n");
     PR_fprintf(debug_out, "\t      and database in FIPS mode \n");
+    PR_fprintf(debug_out, "\n\n\tNote: -F and -C are mutually exclusive, ");
+    PR_fprintf(debug_out, "you can only include of of them.\n");
     PR_fprintf(debug_out, "Valid Hashes: ");
     for (i = 0; i < hashTableSize; i++) {
         PR_fprintf(debug_out, "%s%s", comma, hashTable[i].name);
@@ -179,6 +206,22 @@ mkoutput(const char *input)
     memcpy(output, input, in_len);
     memcpy(&output[in_len], SGN_SUFFIX, sizeof(SGN_SUFFIX));
     return output;
+}
+
+/*
+ * There are 3 error functions in this code:
+ *  print_error: just prints the string to stderr. Used in cases where
+ *               the error is discovered in this code rather than returned
+ *               from a library.
+ *  lperror: prints the error from NSPR or NSS code (including SECUTIL code).
+ *           it works like perror for NSPR and NSS.
+ *  pk11error: prints the error based on the pkcs #11 return code. it also
+ *             looks up the NSPR/NSS error code and prints it if it exists.
+ */
+static void
+print_error(const char *string)
+{
+    PR_fprintf(PR_STDERR, "%s\n", string);
 }
 
 static void
@@ -644,6 +687,14 @@ softokn_Init(CK_FUNCTION_LIST_PTR pFunctionList, const char *configDir,
     CK_C_INITIALIZE_ARGS initArgs;
     char *moduleSpec = NULL;
 
+    if (NSS_InitializePRErrorTable() != SECSuccess) {
+        /* this will output the NSPR eror number, and maybe the NSPR
+         * error string */
+        lperror("Couldn't initialize error table.");
+        print_error("Can not translate error codes to strings.");
+        /* failure to initialize this table isn't fatal */
+    }
+
     initArgs.CreateMutex = NULL;
     initArgs.DestroyMutex = NULL;
     initArgs.LockMutex = NULL;
@@ -1069,14 +1120,232 @@ shlibSignDSA(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
     return CKR_OK;
 }
 
+/* side effect, attrCount is incremented, returns zero on failure */
+#define SET_ATTR(attrCount, template, templateLen, _type, _value, _len) \
+    if (attrCount >= templateLen) {                                     \
+        return 0;                                                       \
+    }                                                                   \
+    template[attrCount].type = _type;                                   \
+    template[attrCount].pValue = _value;                                \
+    template[attrCount++].ulValueLen = _len;
+
+/* build a template. keyLengthptr and key are both optional */
+size_t
+buildHMACKeyTemplate(CK_ATTRIBUTE *template,
+                     size_t templateLength,
+                     const CK_BBOOL *sensitivePtr,
+                     const CK_KEY_TYPE *keyTypePtr,
+                     const CK_ULONG *keyLengthPtr,
+                     const SECItem *key)
+{
+    int attrCount = 0;
+    SET_ATTR(attrCount, template, templateLength,
+             CKA_TOKEN, &ckfalse, sizeof(ckfalse))
+    SET_ATTR(attrCount, template, templateLength,
+             CKA_PRIVATE, &ckfalse, sizeof(ckfalse))
+    SET_ATTR(attrCount, template, templateLength,
+             CKA_SENSITIVE, (void *)sensitivePtr, sizeof(*sensitivePtr))
+    SET_ATTR(attrCount, template, templateLength,
+             CKA_SIGN, &cktrue, sizeof(cktrue))
+    SET_ATTR(attrCount, template, templateLength,
+             CKA_EXTRACTABLE, &ckfalse, sizeof(ckfalse))
+    SET_ATTR(attrCount, template, templateLength,
+             CKA_KEY_TYPE, (void *)keyTypePtr, sizeof(*keyTypePtr))
+    if (keyLengthPtr) {
+        SET_ATTR(attrCount, template, templateLength,
+                 CKA_VALUE_LEN, (void *)keyLengthPtr, sizeof(*keyLengthPtr))
+    }
+    if (key) {
+        SET_ATTR(attrCount, template, templateLength,
+                 CKA_CLASS, &secret_key_obj_class, sizeof(secret_key_obj_class))
+        SET_ATTR(attrCount, template, templateLength,
+                 CKA_VALUE, (void *)key->data, key->len)
+    }
+    return attrCount;
+}
+
+/* helper functions to generate HMAC keys */
+CK_RV
+generateHMACKey(CK_FUNCTION_LIST_PTR pFunctionList,
+                CK_SESSION_HANDLE hRwSession, CK_MECHANISM_PTR keyGenMech,
+                CK_ULONG keyLength, CK_KEY_TYPE keyType, CK_BBOOL sensitive,
+                CK_OBJECT_HANDLE_PTR phHMACKey)
+{
+    CK_ATTRIBUTE hmacKeyTemplate[7];
+    size_t templateLen;
+
+    templateLen = buildHMACKeyTemplate(hmacKeyTemplate,
+                                       PR_ARRAY_SIZE(hmacKeyTemplate),
+                                       &sensitive, &keyType, &keyLength, NULL);
+    if (templateLen == 0) {
+        /* this can only happen if we didn't declear hmacKeyTemplate
+         * to be big enough... on debug builds crash with a useful
+         * Assert. otherwise just fail (won't work until the program
+         * is fixed). */
+        PORT_Assert(templateLen < PR_ARRAY_SIZE(hmacKeyTemplate));
+        return CKR_GENERAL_ERROR;
+    }
+    return pFunctionList->C_GenerateKey(hRwSession, keyGenMech,
+                                        hmacKeyTemplate, templateLen,
+                                        phHMACKey);
+}
+
+/* generate an hmac and and try to extract it */
+CK_RV
+generateAndExtractHMACKeyRaw(CK_FUNCTION_LIST_PTR pFunctionList,
+                             CK_SESSION_HANDLE hRwSession, CK_MECHANISM_PTR keyGenMech,
+                             CK_ULONG keyLength, CK_KEY_TYPE keyType,
+                             CK_ATTRIBUTE_PTR pHMACKeyValue,
+                             CK_OBJECT_HANDLE_PTR phHMACKey)
+{
+    CK_RV crv;
+    crv = generateHMACKey(pFunctionList, hRwSession, keyGenMech, keyLength,
+                          keyType, ckfalse, phHMACKey);
+    if (crv != CKR_OK) {
+        return crv;
+    }
+    crv = pFunctionList->C_GetAttributeValue(hRwSession, *phHMACKey,
+                                             pHMACKeyValue, 1);
+    if (crv != CKR_OK) {
+        pFunctionList->C_DestroyObject(hRwSession, *phHMACKey);
+        return crv;
+    }
+    return crv;
+}
+
+/* trick to import a key in FIPS mode.
+ * There are limitted times when this is legitimate,
+ * if you think you need this contact the crypto team
+ * before using it. Usually if you need this its because
+ * you are improperly handling FIPS CPS material which is
+ * not allowed */
+CK_RV
+fipsImportKey(CK_FUNCTION_LIST_PTR pFunctionList,
+              CK_SESSION_HANDLE hRwSession, const SECItem *pKeyItem,
+              CK_KEY_TYPE keyType, CK_SESSION_HANDLE_PTR phHMACKey)
+{
+    CK_OBJECT_HANDLE hTmpKey;
+    CK_MECHANISM deriveMech = { 0, NULL, 0 };
+    CK_MECHANISM hmacKeyGenMech = { 0, NULL, 0 };
+    CK_KEY_DERIVATION_STRING_DATA deriveParams = { 0 };
+    CK_ATTRIBUTE hmacKeyTemplate[7];
+    size_t templateLen;
+    /* put length in an appropriate size variable */
+    CK_ULONG keyLength = pKeyItem->len;
+    CK_RV crv;
+
+    templateLen = buildHMACKeyTemplate(hmacKeyTemplate,
+                                       PR_ARRAY_SIZE(hmacKeyTemplate),
+                                       &cktrue, &keyType, &keyLength, NULL);
+    if (templateLen == 0) {
+        /* this can only happen if we didn't declear hmacKeyTemplate
+         * to be big enough... on debug builds crash with a useful
+         * Assert. otherwise just fail (won't work until the program
+         * is fixed). */
+        PORT_Assert(templateLen < PR_ARRAY_SIZE(hmacKeyTemplate));
+        return CKR_GENERAL_ERROR;
+    }
+
+    deriveParams.pData = pKeyItem->data;
+    deriveParams.ulLen = pKeyItem->len;
+    deriveMech.mechanism = CKM_CONCATENATE_DATA_AND_BASE;
+    deriveMech.pParameter = (void *)&deriveParams;
+    deriveMech.ulParameterLen = sizeof(deriveParams);
+    hmacKeyGenMech.mechanism = CKM_GENERIC_SECRET_KEY_GEN;
+
+    /* generate a dummy key */
+    crv = generateHMACKey(pFunctionList, hRwSession, &hmacKeyGenMech,
+                          pKeyItem->len, keyType, cktrue, &hTmpKey);
+    if (crv != CKR_OK) {
+        return crv;
+    }
+    /* append the desired key to the front of the dummy key, and
+     * then truncate the dummy key */
+    crv = pFunctionList->C_DeriveKey(hRwSession, &deriveMech, hTmpKey,
+                                     hmacKeyTemplate,
+                                     templateLen,
+                                     phHMACKey);
+    /* done with the dummy key, delete it */
+    pFunctionList->C_DestroyObject(hRwSession, hTmpKey);
+    return crv;
+}
+
+/* generate an hmac key and extract it. If it fails, assume we are in
+ * FIPS mode and use generate random to generate a key and use fipsImport
+ * to import it */
+CK_RV
+generateAndExtractHMACKey(CK_FUNCTION_LIST_PTR pFunctionList,
+                          CK_SESSION_HANDLE hRwSession, CK_MECHANISM_PTR keyGenMech,
+                          CK_ULONG keyLength, CK_KEY_TYPE keyType,
+                          CK_ATTRIBUTE_PTR pHMACKeyValue,
+                          CK_OBJECT_HANDLE_PTR phHMACKey)
+{
+    SECItem keyItem;
+    CK_RV crv;
+
+    crv = generateAndExtractHMACKeyRaw(pFunctionList, hRwSession, keyGenMech,
+                                       keyLength, keyType, pHMACKeyValue,
+                                       phHMACKey);
+    if (crv == CKR_OK) {
+        return crv;
+    }
+    keyItem.data = pHMACKeyValue->pValue;
+    keyItem.len = keyLength;
+    crv = pFunctionList->C_GenerateRandom(hRwSession, keyItem.data,
+                                          keyItem.len);
+    if (crv != CKR_OK) {
+        return crv;
+    }
+    pHMACKeyValue->ulValueLen = keyLength;
+    return fipsImportKey(pFunctionList, hRwSession, &keyItem, keyType,
+                         phHMACKey);
+}
+
+/*
+ * import a user supplied key. If we fail, we are probably in FIPS mode,
+ * use fipsImport to import the key
+ */
+CK_RV
+importHMACKey(CK_FUNCTION_LIST_PTR pFunctionList,
+              CK_SESSION_HANDLE hRwSession, CK_OBJECT_HANDLE_PTR phHMACKey,
+              CK_KEY_TYPE keyType, const SECItem *keyItem)
+{
+    CK_ATTRIBUTE hmacKeyTemplate[8];
+    size_t templateLen;
+    CK_RV crv;
+
+    templateLen = buildHMACKeyTemplate(hmacKeyTemplate,
+                                       PR_ARRAY_SIZE(hmacKeyTemplate),
+                                       &ckfalse, &keyType, NULL, keyItem);
+    if (templateLen == 0) {
+        /* this can only happen if we didn't declear hmacKeyTemplate
+         * to be big enough... on debug builds crash with a useful
+         * Assert. otherwise just fail (won't work until the program
+         * is fixed). */
+        PORT_Assert(templateLen < PR_ARRAY_SIZE(hmacKeyTemplate));
+        return CKR_GENERAL_ERROR;
+    }
+
+    crv = pFunctionList->C_CreateObject(hRwSession,
+                                        hmacKeyTemplate,
+                                        templateLen,
+                                        phHMACKey);
+    if (crv != CKR_OK) {
+        crv = fipsImportKey(pFunctionList, hRwSession,
+                            keyItem, keyType, phHMACKey);
+        return crv;
+    }
+    return crv;
+}
+
 CK_RV
 shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
-              CK_SESSION_HANDLE hRwSession, int keySize, char *key, PRFileDesc *ifd,
-              PRFileDesc *ofd, const HashTable *hash)
+              CK_SESSION_HANDLE hRwSession, int keySize, char *key,
+              PRFileDesc *ifd, PRFileDesc *ofd, const HashTable *hash)
 {
     CK_MECHANISM hmacMech = { 0, NULL, 0 };
-    CK_MECHANISM hmacKeyGenMech = { 0, NULL, 0 };
-    CK_BYTE keyBuf[HASH_LENGTH_MAX];
+    /* init the HMAC KeyValue */
+    CK_BYTE keyBuf[HASH_LENGTH_MAX] = { 0 };
     CK_ULONG keyLen = 0;
     CK_BYTE sign[HASH_LENGTH_MAX];
     CK_ULONG signLen = 0;
@@ -1090,8 +1359,6 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
     int i;
 
     /*** HMAC Key ***/
-    CK_ATTRIBUTE hmacKeyTemplate[7];
-    CK_ATTRIBUTE hmacKeyValue;
     CK_OBJECT_HANDLE hHMACKey = CK_INVALID_HANDLE;
 
     if (hash == NULL) {
@@ -1103,70 +1370,54 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
     }
 
     if (key == NULL) {
-        hmacKeyTemplate[0].type = CKA_TOKEN;
-        hmacKeyTemplate[0].pValue = &ckfalse; /* session object */
-        hmacKeyTemplate[0].ulValueLen = sizeof(ckfalse);
-        hmacKeyTemplate[1].type = CKA_PRIVATE;
-        hmacKeyTemplate[1].pValue = &cktrue;
-        hmacKeyTemplate[1].ulValueLen = sizeof(cktrue);
-        hmacKeyTemplate[2].type = CKA_SENSITIVE;
-        hmacKeyTemplate[2].pValue = &ckfalse;
-        hmacKeyTemplate[2].ulValueLen = sizeof(cktrue);
-        hmacKeyTemplate[3].type = CKA_SIGN;
-        hmacKeyTemplate[3].pValue = &cktrue;
-        hmacKeyTemplate[3].ulValueLen = sizeof(cktrue);
-        hmacKeyTemplate[4].type = CKA_EXTRACTABLE;
-        hmacKeyTemplate[4].pValue = &ckfalse;
-        hmacKeyTemplate[4].ulValueLen = sizeof(ckfalse);
-        hmacKeyTemplate[5].type = CKA_VALUE_LEN;
-        hmacKeyTemplate[5].pValue = (void *)&hash->hashLength;
-        hmacKeyTemplate[5].ulValueLen = sizeof(hash->hashLength);
-        hmacKeyTemplate[6].type = CKA_KEY_TYPE;
-        hmacKeyTemplate[6].pValue = (void *)&hash->keyType;
-        hmacKeyTemplate[6].ulValueLen = sizeof(hash->keyType);
+        CK_ATTRIBUTE hmacKeyValue;
+        CK_MECHANISM hmacKeyGenMech = { 0, NULL, 0 };
         hmacKeyGenMech.mechanism = CKM_GENERIC_SECRET_KEY_GEN;
+        hmacKeyValue.type = CKA_VALUE;
+        hmacKeyValue.pValue = (CK_VOID_PTR)&keyBuf;
+        hmacKeyValue.ulValueLen = sizeof(keyBuf);
 
-        /* Generate a DSA key pair */
+        /* Generate a HMAC key */
         logIt("Generate an HMAC key ... \n");
-        crv = pFunctionList->C_GenerateKey(hRwSession, &hmacKeyGenMech,
-                                           hmacKeyTemplate,
-                                           PR_ARRAY_SIZE(hmacKeyTemplate),
-                                           &hHMACKey);
-    } else {
-        SECItem keyitem = { 0 };
-        if (SECU_HexString2SECItem(NULL, &keyitem, key) == NULL) {
-            pk11error("Reading HMAC key from commandline failed. Not a valid hex-key.", crv);
+        crv = generateAndExtractHMACKey(pFunctionList, hRwSession,
+                                        &hmacKeyGenMech,
+                                        hash->hashLength, hash->keyType,
+                                        &hmacKeyValue, &hHMACKey);
+        if (crv != CKR_OK) {
+            pk11error("HMAC key generation failed", crv);
             return crv;
         }
+        keyLen = hmacKeyValue.ulValueLen;
+    } else {
+        SECItem keyItem = { 0 };
+        if (SECU_HexString2SECItem(NULL, &keyItem, key) == NULL) {
+            lperror("Reading HMAC key from commandline failed."
+                    " Not a valid hex-key.");
+            return CKR_ATTRIBUTE_VALUE_INVALID;
+        }
 
-        CK_OBJECT_CLASS secret_key_obj_class = CKO_SECRET_KEY;
-        CK_ATTRIBUTE hmacKeyObject[] = {
-            {
-                .type = CKA_CLASS,
-                .pValue = &secret_key_obj_class,
-                .ulValueLen = sizeof(CK_OBJECT_CLASS),
-            },
-            {
-                .type = CKA_KEY_TYPE,
-                .pValue = (void *)&hash->keyType,
-                .ulValueLen = sizeof(hash->keyType),
-            },
-            {
-                .type = CKA_VALUE,
-                .pValue = keyitem.data,
-                .ulValueLen = keyitem.len,
-            },
-            {
-                .type = CKA_SIGN,
-                .pValue = &cktrue,
-                .ulValueLen = sizeof(cktrue),
-            },
-        };
+        if (keyItem.len != hash->hashLength) {
+            print_error("Supplied HMAC key does not match the HMAC hash length.");
+            return CKR_ATTRIBUTE_VALUE_INVALID;
+        }
+
         logIt("Using static HMAC key ... \n");
-        crv = pFunctionList->C_CreateObject(hRwSession,
-                                            hmacKeyObject,
-                                            PR_ARRAY_SIZE(hmacKeyObject),
-                                            &hHMACKey);
+        crv = importHMACKey(pFunctionList, hRwSession, &hHMACKey,
+                            hash->keyType, &keyItem);
+        if (crv != CKR_OK) {
+            pk11error("HMAC key import failed", crv);
+            return crv;
+        }
+        if (sizeof(keyBuf) < keyItem.len) {
+            /* this is a paranoia check. It really shouldn't happen because
+             * we already check for keyItem.len != hash->hashLength above,
+             * and keyBuf should be big enough for the largest hash length */
+            print_error("Input key is too large");
+            return CKR_HOST_MEMORY;
+        }
+        /* save the HMAC KeyValue */
+        PORT_Memcpy(keyBuf, keyItem.data, keyItem.len);
+        keyLen = keyItem.len;
     }
 
     if (crv != CKR_OK) {
@@ -1213,19 +1464,6 @@ shlibSignHMAC(CK_FUNCTION_LIST_PTR pFunctionList, CK_SLOT_ID slot,
                    signLen, hash->hashLength);
         return crv;
     }
-    /* get HMAC KeyValue */
-    memset(keyBuf, 0, sizeof(keyBuf));
-    hmacKeyValue.type = CKA_VALUE;
-    hmacKeyValue.pValue = (CK_VOID_PTR)&keyBuf;
-    hmacKeyValue.ulValueLen = sizeof(keyBuf);
-
-    crv = pFunctionList->C_GetAttributeValue(hRwSession, hHMACKey,
-                                             &hmacKeyValue, 1);
-    if (crv != CKR_OK && crv != CKR_ATTRIBUTE_TYPE_INVALID) {
-        pk11error("C_GetAttributeValue failed", crv);
-        return crv;
-    }
-    keyLen = hmacKeyValue.ulValueLen;
 
     if (verbose) {
         int j;
@@ -1294,8 +1532,8 @@ main(int argc, char **argv)
     const char *input_file = NULL; /* read/create encrypted data from here */
     char *output_file = NULL;      /* write new encrypted data here */
     unsigned int keySize = 0;
-    static PRBool FIPSMODE = PR_FALSE;
-    static PRBool useDSA = PR_FALSE;
+    ModeTypes mode = mode_default;
+    PRBool useDSA = PR_FALSE;
     PRBool successful = PR_FALSE;
     const HashTable *hash = NULL;
     char *key = NULL;
@@ -1322,7 +1560,7 @@ main(int argc, char **argv)
 
     program_name = strrchr(argv[0], '/');
     program_name = program_name ? (program_name + 1) : argv[0];
-    optstate = PL_CreateOptState(argc, argv, "i:o:f:Fd:hH?k:K:p:P:vVs:t:Dc");
+    optstate = PL_CreateOptState(argc, argv, "i:o:f:FCd:hH?k:K:p:P:vVs:t:Dc");
     if (optstate == NULL) {
         lperror("PL_CreateOptState failed");
         return 1;
@@ -1391,7 +1629,25 @@ main(int argc, char **argv)
                 break;
 
             case 'F':
-                FIPSMODE = PR_TRUE;
+                if (mode == mode_fips) {
+                    break; /* mode is already set to fips */
+                }
+                if (mode != mode_default) {
+                    PR_fprintf(PR_STDERR, "-C and -F are mutually exclusive\n");
+                    usage(program_name);
+                }
+                mode = mode_fips;
+                break;
+
+            case 'C':
+                if (mode == mode_nonfips) {
+                    break; /* mode is already set to nonfips */
+                }
+                if (mode != mode_default) {
+                    PR_fprintf(PR_STDERR, "-F and -C are mutually exclusive\n");
+                    usage(program_name);
+                }
+                mode = mode_nonfips;
                 break;
 
             case 'p':
@@ -1469,16 +1725,9 @@ main(int argc, char **argv)
     }
     PR_FreeLibraryName(libname);
 
-    if (FIPSMODE) {
-        /* FIPSMODE == FC_GetFunctionList */
-        /* library path must be set to an already signed softokn3/freebl */
-        pC_GetFunctionList = (CK_C_GetFunctionList)
-            PR_FindFunctionSymbol(lib, "FC_GetFunctionList");
-    } else {
-        /* NON FIPS mode  == C_GetFunctionList */
-        pC_GetFunctionList = (CK_C_GetFunctionList)
-            PR_FindFunctionSymbol(lib, "C_GetFunctionList");
-    }
+    pC_GetFunctionList = (CK_C_GetFunctionList)
+        PR_FindFunctionSymbol(lib, getFunctionListName(mode));
+
     assert(pC_GetFunctionList != NULL);
     if (!pC_GetFunctionList) {
         PR_fprintf(PR_STDERR, "getting function list failed");

@@ -248,7 +248,7 @@ fc_getAttribute(CK_ATTRIBUTE_PTR pTemplate,
 
 /* ------------- build the CK_CRYPTO_TABLE ------------------------- */
 static CK_FUNCTION_LIST_3_0 sftk_fipsTable = {
-    { CRYPTOKI_VERSION_MAJOR, CRYPTOKI_VERSION_MINOR },
+    { 3, 0 },
 
 #undef CK_NEED_ARG_LIST
 #undef CK_PKCS11_FUNCTION_INFO

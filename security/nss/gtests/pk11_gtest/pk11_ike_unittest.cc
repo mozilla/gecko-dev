@@ -55,13 +55,13 @@ class Pkcs11IkeTest : public ::testing::TestWithParam<
                            static_cast<unsigned int>(vec_prevkm.size())};
     SECItem gxykm_item = {siBuffer, vec_gxykm.data(),
                           static_cast<unsigned int>(vec_gxykm.size())};
-    CK_MECHANISM_TYPE derive_mech = CKM_NSS_IKE_PRF_DERIVE;
+    CK_MECHANISM_TYPE derive_mech = CKM_IKE_PRF_DERIVE;
     ScopedPK11SymKey gxy_key = nullptr;
     ScopedPK11SymKey prev_key = nullptr;
     ScopedPK11SymKey ikm = ImportKey(ikm_item);
 
     // IKE_PRF structure (used in cases 1, 2 and 3)
-    CK_NSS_IKE_PRF_DERIVE_PARAMS nss_ike_prf_params = {
+    CK_IKE_PRF_DERIVE_PARAMS ike_prf_params = {
         prf_mech,
         CK_FALSE,
         CK_FALSE,
@@ -72,72 +72,72 @@ class Pkcs11IkeTest : public ::testing::TestWithParam<
         CK_INVALID_HANDLE};
 
     // IKE_V1_PRF, used to derive session keys.
-    CK_NSS_IKE1_PRF_DERIVE_PARAMS nss_ike_v1_prf_params = {
+    CK_IKE1_PRF_DERIVE_PARAMS ike_v1_prf_params = {
         prf_mech,          false,
         CK_INVALID_HANDLE, CK_INVALID_HANDLE,
         vec_Ni.data(),     static_cast<CK_ULONG>(vec_Ni.size()),
         vec_Nr.data(),     static_cast<CK_ULONG>(vec_Nr.size()),
         vec.key_number};
 
-    // IKE_V1_APP_B, do quick mode (all session keys in one call).
-    CK_NSS_IKE1_APP_B_PRF_DERIVE_PARAMS nss_ike_app_b_prf_params_quick = {
+    // IKE_V1_EXTENDED, do quick mode (all session keys in one call).
+    CK_IKE1_EXTENDED_DERIVE_PARAMS ike1_extended_derive_params_quick = {
         prf_mech, CK_FALSE, CK_INVALID_HANDLE, vec_seed_data.data(),
         static_cast<CK_ULONG>(vec_seed_data.size())};
 
-    // IKE_V1_APP_B, used for long session keys in ike_v1
-    CK_MECHANISM_TYPE nss_ike_app_b_prf_params = prf_mech;
+    // IKE_V1_EXTENDED, used for long session keys in ike_v1
+    CK_MECHANISM_TYPE ike1_extended_derive_params = prf_mech;
 
-    // IKE_PRF_PLUS, used to generate session keys in ike v2
-    CK_NSS_IKE_PRF_PLUS_DERIVE_PARAMS nss_ike_prf_plus_params = {
+    // IKE_V2_PRF_PLUS, used to generate session keys in ike v2
+    CK_IKE2_PRF_PLUS_DERIVE_PARAMS ike2_prf_plus_params = {
         prf_mech, CK_FALSE, CK_INVALID_HANDLE, vec_seed_data.data(),
         static_cast<CK_ULONG>(vec_seed_data.size())};
 
-    SECItem params_item = {siBuffer, (unsigned char *)&nss_ike_prf_params,
-                           sizeof(nss_ike_prf_params)};
+    SECItem params_item = {siBuffer, (unsigned char *)&ike_prf_params,
+                           sizeof(ike_prf_params)};
 
     switch (vec.test_type) {
       case IkeTestType::ikeGxy:
-        nss_ike_prf_params.bDataAsKey = true;
+        ike_prf_params.bDataAsKey = true;
         break;
       case IkeTestType::ikeV1Psk:
         break;
       case IkeTestType::ikeV2Rekey:
-        nss_ike_prf_params.bRekey = true;
+        ike_prf_params.bRekey = true;
         gxy_key = ImportKey(gxykm_item);
-        nss_ike_prf_params.hNewKey = PK11_GetSymKeyHandle(gxy_key.get());
+        ike_prf_params.hNewKey = PK11_GetSymKeyHandle(gxy_key.get());
         break;
       case IkeTestType::ikeV1:
-        derive_mech = CKM_NSS_IKE1_PRF_DERIVE;
-        params_item.data = (unsigned char *)&nss_ike_v1_prf_params;
-        params_item.len = sizeof(nss_ike_v1_prf_params);
+        derive_mech = CKM_IKE1_PRF_DERIVE;
+        params_item.data = (unsigned char *)&ike_v1_prf_params;
+        params_item.len = sizeof(ike_v1_prf_params);
         gxy_key = ImportKey(gxykm_item);
-        nss_ike_v1_prf_params.hKeygxy = PK11_GetSymKeyHandle(gxy_key.get());
+        ike_v1_prf_params.hKeygxy = PK11_GetSymKeyHandle(gxy_key.get());
         if (prevkm_item.len != 0) {
           prev_key = ImportKey(prevkm_item);
-          nss_ike_v1_prf_params.bHasPrevKey = true;
-          nss_ike_v1_prf_params.hPrevKey = PK11_GetSymKeyHandle(prev_key.get());
+          ike_v1_prf_params.bHasPrevKey = true;
+          ike_v1_prf_params.hPrevKey = PK11_GetSymKeyHandle(prev_key.get());
         }
         break;
       case IkeTestType::ikeV1AppB:
-        derive_mech = CKM_NSS_IKE1_APP_B_PRF_DERIVE;
-        params_item.data = (unsigned char *)&nss_ike_app_b_prf_params;
-        params_item.len = sizeof(nss_ike_app_b_prf_params);
+        derive_mech = CKM_IKE1_EXTENDED_DERIVE;
+        params_item.data = (unsigned char *)&ike1_extended_derive_params;
+        params_item.len = sizeof(ike1_extended_derive_params);
         break;
       case IkeTestType::ikeV1AppBQuick:
-        derive_mech = CKM_NSS_IKE1_APP_B_PRF_DERIVE;
-        params_item.data = (unsigned char *)&nss_ike_app_b_prf_params_quick;
-        params_item.len = sizeof(nss_ike_app_b_prf_params_quick);
+        derive_mech = CKM_IKE1_EXTENDED_DERIVE;
+        params_item.data = (unsigned char *)&ike1_extended_derive_params_quick;
+        params_item.len = sizeof(ike1_extended_derive_params_quick);
         if (gxykm_item.len != 0) {
           gxy_key = ImportKey(gxykm_item);
-          nss_ike_app_b_prf_params_quick.bHasKeygxy = true;
-          nss_ike_app_b_prf_params_quick.hKeygxy =
+          ike1_extended_derive_params_quick.bHasKeygxy = true;
+          ike1_extended_derive_params_quick.hKeygxy =
               PK11_GetSymKeyHandle(gxy_key.get());
         }
         break;
       case IkeTestType::ikePlus:
-        derive_mech = CKM_NSS_IKE_PRF_PLUS_DERIVE;
-        params_item.data = (unsigned char *)&nss_ike_prf_plus_params;
-        params_item.len = sizeof(nss_ike_prf_plus_params);
+        derive_mech = CKM_IKE2_PRF_PLUS_DERIVE;
+        params_item.data = (unsigned char *)&ike2_prf_plus_params;
+        params_item.len = sizeof(ike2_prf_plus_params);
         break;
       default:
         ADD_FAILURE() << msg;

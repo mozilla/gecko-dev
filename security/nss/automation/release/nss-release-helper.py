@@ -290,7 +290,15 @@ def create_nss_release_archive():
         nsprrel = next(nspr_version_file).strip()
 
     nspr_tar = "nspr-" + nsprrel + ".tar.gz"
-    nsprtar_with_path = stagedir + "/v" + nsprrel + "/src/" + nspr_tar
+    nspr_dir = stagedir + "/v" + nsprrel + "/src/"
+    nsprtar_with_path = nspr_dir + nspr_tar
+
+    nspr_releases_url = "https://ftp.mozilla.org/pub/nspr/releases"
+    if (not os.path.exists(nsprtar_with_path)):
+        os.makedirs(nspr_dir,exist_ok=True)
+        check_call_noisy(['wget', f"{nspr_releases_url}/v{nsprrel}/src/nspr-{nsprrel}.tar.gz",
+                          f'--output-document={nsprtar_with_path}'])
+
     if (not os.path.exists(nsprtar_with_path)):
         exit_with_failure("cannot find nspr archive at expected location " + nsprtar_with_path)
 
@@ -317,6 +325,27 @@ def create_nss_release_archive():
     check_call("sha256sum " + nss_tar + " " + nss_nspr_tar + " > SHA256SUMS", shell=True)
     print("created directory " + nss_stagedir + " with files:")
     check_call_noisy(["ls", "-l"])
+
+    if 'y' not in input('Upload release tarball?[yN]'):
+        print("Release tarballs have NOT been uploaded")
+        exit(0)
+    os.chdir("../..")
+    gcp_proj="moz-fx-productdelivery-pr-38b5"
+    check_call_noisy(["gcloud", "auth", "login"])
+    check_call_noisy(
+        [
+            "gcloud",
+            "--project",
+            gcp_proj,
+            f"--impersonate-service-account=nss-team-prod@{gcp_proj}.iam.gserviceaccount.com",
+            "storage",
+            "cp",
+            "--recursive",
+            "--no-clobber",
+            nssreltag,
+            f"gs://{gcp_proj}-productdelivery/pub/security/nss/releases/",
+        ]
+    )
 
 
 o = OptionParser(usage="client.py [options] " + " | ".join([

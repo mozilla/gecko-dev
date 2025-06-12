@@ -458,9 +458,8 @@ intel_aes_gcmENC:
 
     vzeroupper
     push %rbp
-    push %rbx
+    movq %rsp, %rbp
 
-    movq %rsp, %rbp   
     sub  $128, %rsp
     andq $-16, %rsp
 
@@ -928,10 +927,8 @@ DATA_END:
    vmovdqu  T, 272(Gctx)
    vmovdqu  CTR, 288(Gctx)
 
-   movq   %rbp, %rsp
-
-   popq   %rbx
-   popq   %rbp
+   movq %rbp, %rsp
+   popq %rbp
    ret
    .size intel_aes_gcmENC, .-intel_aes_gcmENC
   
@@ -994,8 +991,7 @@ intel_aes_gcmDEC:
 .LbeginDec:
 
     pushq   %rbp
-    pushq   %rbx
-    movq    %rsp, %rbp   
+    movq    %rsp, %rbp
     sub     $128, %rsp
     andq    $-16, %rsp
     vmovdqu 288(Gctx), CTR
@@ -1293,10 +1289,8 @@ intel_aes_gcmDEC:
    vmovdqu  T, 272(Gctx)
    vmovdqu  CTR, 288(Gctx)
 
-   movq   %rbp, %rsp
-
-   popq   %rbx
-   popq   %rbp
+   movq %rbp, %rsp
+   popq %rbp
    ret
   .size intel_aes_gcmDEC, .-intel_aes_gcmDEC
 #########################
@@ -1308,6 +1302,8 @@ intel_aes_gcmDEC:
 .type GFMUL,@function
 .globl GFMUL
 GFMUL:  
+    pushq   %rbp
+    movq    %rsp, %rbp
     vpclmulqdq  $0x00, TMP0, T, TMP1
     vpclmulqdq  $0x11, TMP0, T, TMP4
 
@@ -1335,6 +1331,8 @@ GFMUL:
     vpxor       TMP3, TMP2, TMP1
 
     vpxor       TMP4, TMP1, T
+    movq %rbp, %rsp
+    popq %rbp
     ret
 .size GFMUL, .-GFMUL
 

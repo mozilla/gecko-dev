@@ -97,13 +97,13 @@ typedef struct HkdfTestVectorStr {
 } HkdfTestVector;
 
 enum class IkeTestType {
-  ikeGxy,         /* CKM_NSS_IKE_PRF_DERIVE case 1 */
-  ikeV1Psk,       /* CKM_NSS_IKE_PRF_DERIVE case 2 */
-  ikeV2Rekey,     /* CKM_NSS_IKE_PRF_DERIVE case 3 */
-  ikeV1,          /* CKM_NSS_IKE1_PRF_DERIVE */
-  ikeV1AppB,      /* CKM_NSS_IKE1_PRF_APP_B_DERIVE base mode */
-  ikeV1AppBQuick, /* CKM_NSS_IKE1_PRF_APP_B_DERIVE quick mode */
-  ikePlus         /* CKM_NSS_IKE_PRF_DERIVE */
+  ikeGxy,         /* CKM_IKE_PRF_DERIVE case 1 */
+  ikeV1Psk,       /* CKM_IKE_PRF_DERIVE case 2 */
+  ikeV2Rekey,     /* CKM_IKE_PRF_DERIVE case 3 */
+  ikeV1,          /* CKM_IKE1_PRF_DERIVE */
+  ikeV1AppB,      /* CKM_IKE1_PRF_EXTENDED_DERIVE base mode */
+  ikeV1AppBQuick, /* CKM_IKE1_PRF_EXTENDED_DERIVE quick mode */
+  ikePlus         /* CKM_IKE2_PRF_PLUS_DERIVE */
 };
 
 typedef struct IkeTestVectorStr {

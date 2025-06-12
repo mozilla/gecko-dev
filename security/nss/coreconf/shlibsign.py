@@ -24,7 +24,7 @@ def sign(lib_file):
         env['LD_LIBRARY_PATH'] = env['DYLD_LIBRARY_PATH'] = ld_lib_path
 
     dev_null = open(os.devnull, 'wb')
-    subprocess.check_call([os.path.join(bin_path, 'shlibsign'), '-v', '-i', lib_file], env=env, stdout=dev_null, stderr=dev_null)
+    subprocess.check_call([os.path.join(bin_path, 'shlibsign'), '-C', '-v', '-i', lib_file], env=env, stdout=dev_null, stderr=dev_null)
 
 if __name__ == '__main__':
     main()
