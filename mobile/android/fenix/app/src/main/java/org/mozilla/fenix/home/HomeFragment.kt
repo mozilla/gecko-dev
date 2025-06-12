@@ -18,7 +18,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
@@ -67,7 +68,7 @@ import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.feature.top.sites.TopSitesFeature
 import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
-import mozilla.components.lib.state.ext.observeAsState
+import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
@@ -280,7 +281,6 @@ class HomeFragment : Fragment() {
     ): View {
         // DO NOT ADD ANYTHING ABOVE THIS getProfilerTime CALL!
         val profilerStartTime = requireComponents.core.engine.profiler?.getProfilerTime()
-
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val activity = activity as HomeActivity
         val components = requireComponents
@@ -957,13 +957,19 @@ class HomeFragment : Fragment() {
             setContent {
                 FirefoxTheme {
                     val settings = LocalContext.current.settings()
-                    val appState by components.appStore.observeAsState(
-                        initialValue = components.appStore.state,
-                    ) { it }
+                    val appState = with(components.appStore) {
+                        remember {
+                            // Ignore AppState changes where only the browsing mode differs.
+                            // This avoids unnecessary recompositions triggered by theme/browsing mode transitions,
+                            // which are handled outside Compose via ThemeManager recreating the activity.
+                            // Without this, transient states can cause visual glitches (e.g., incorrect theme/frame)
+                            flow().distinctUntilChanged { old, new -> old.mode != new.mode }
+                        }.collectAsState(state)
+                    }
 
                     Homepage(
                         state = HomepageState.build(
-                            appState = appState,
+                            appState = appState.value,
                             settings = settings,
                             browsingModeManager = browsingModeManager,
                         ),
