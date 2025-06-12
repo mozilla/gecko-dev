@@ -303,8 +303,8 @@ BOOL nsCocoaUtils::ShouldRestoreStateDueToLaunchAtLogin() {
 
   CFStringRef lgnwPlistName = CFSTR("com.apple.loginwindow");
   CFStringRef saveStateKey = CFSTR("TALLogoutSavesState");
-  CFPropertyListRef lgnwPlist = (CFPropertyListRef)(::CFPreferencesCopyAppValue(
-      saveStateKey, lgnwPlistName));
+  auto lgnwPlist = CFTypeRefPtr<CFPropertyListRef>::WrapUnderCreateRule(
+      ::CFPreferencesCopyAppValue(saveStateKey, lgnwPlistName));
   // The .plist doesn't exist unless the user changed the "Reopen windows..."
   // preference. If it doesn't exist, restore by default (as this is the macOS
   // default).
@@ -313,7 +313,12 @@ BOOL nsCocoaUtils::ShouldRestoreStateDueToLaunchAtLogin() {
     return YES;
   }
 
-  if (CFBooleanRef shouldRestoreState = static_cast<CFBooleanRef>(lgnwPlist)) {
+  if (::CFGetTypeID(lgnwPlist.get()) != ::CFBooleanGetTypeID()) {
+    return YES;
+  }
+
+  if (CFBooleanRef shouldRestoreState =
+          static_cast<CFBooleanRef>(lgnwPlist.get())) {
     return ::CFBooleanGetValue(shouldRestoreState);
   }
 
