@@ -88,9 +88,9 @@ class CustomTabRobot {
         Log.i(TAG, "verifyOpenInBrowserButtonExists: Verified that the \"Open in Firefox\" button is displayed")
     }
 
-    fun verifyOpenInBrowserComposeButtonExists() {
+    fun verifyOpenInBrowserComposeButtonExists(composeTestRule: ComposeTestRule) {
         Log.i(TAG, "verifyOpenInBrowserComposeButtonExists: Trying to verify that the \"Open in Firefox\" button is displayed")
-        assertUIObjectExists(openInBrowserButtonFromRedesignedToolbar())
+        composeTestRule.openInBrowserButtonFromRedesignedToolbar().assertIsDisplayed()
         Log.i(TAG, "verifyOpenInBrowserComposeButtonExists: Verified that the \"Open in Firefox\" button is displayed")
     }
 
@@ -271,10 +271,13 @@ class CustomTabRobot {
             return BrowserRobot.Transition()
         }
 
-        fun clickOpenInBrowserButtonFromRedesignedToolbar(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+        fun clickOpenInBrowserButtonFromRedesignedToolbar(composeTestRule: ComposeTestRule, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
             Log.i(TAG, "clickOpenInBrowserButtonFromRedesignedToolbar: Trying to click the \"Open in Firefox\" button")
-            openInBrowserButtonFromRedesignedToolbar().click()
+            composeTestRule.openInBrowserButtonFromRedesignedToolbar().performClick()
             Log.i(TAG, "clickOpenInBrowserButtonFromRedesignedToolbar: Clicked the \"Open in Firefox\" button")
+            Log.i(TAG, "clickOpenInBrowserButtonFromRedesignedToolbar: Waiting for device to be idle to be idle")
+            mDevice.waitForIdle(waitingTime)
+            Log.i(TAG, "clickOpenInBrowserButtonFromRedesignedToolbar: Waited for device to be idle")
 
             BrowserRobot().interact()
             return BrowserRobot.Transition()
@@ -335,7 +338,7 @@ private fun findInPageButton() = onView(withText("Find in page"))
 
 private fun openInBrowserButton() = onView(withText("Open in $appName"))
 
-private fun openInBrowserButtonFromRedesignedToolbar() = itemWithDescription("Open in $appName")
+private fun ComposeTestRule.openInBrowserButtonFromRedesignedToolbar() = onNodeWithContentDescription("Open in $appName")
 
 private fun closeButton() = onView(withContentDescription("Return to previous app"))
 

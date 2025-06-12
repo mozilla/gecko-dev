@@ -256,7 +256,8 @@ class MainMenuTestCompose : TestSetup() {
         customTabScreen {
             verifyCustomTabCloseButton()
         }.openMainMenuFromRedesignedToolbar {
-        }.clickOpenInBrowserButtonFromRedesignedToolbar {
+        }.clickOpenInBrowserButtonFromRedesignedToolbar(composeTestRule) {
+            verifyPageContent(customTabPage.content)
             verifyTabCounter("1")
         }
     }
