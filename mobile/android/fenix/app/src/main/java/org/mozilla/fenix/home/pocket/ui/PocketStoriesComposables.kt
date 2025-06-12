@@ -554,7 +554,6 @@ fun PocketStoriesCategories(
                 SelectableChip(
                     text = category.name,
                     isSelected = selections.map { it.name }.contains(category.name),
-                    isSquare = true,
                     selectableChipColors = categoryColors,
                 ) {
                     onCategoryClick(category)

@@ -16,6 +16,8 @@
     <color name="fx_mobile_layer_color_accent">@color/photonViolet40</color>
     <!-- Selected tab -->
     <color name="fx_mobile_layer_color_accent_nonopaque">@color/photonViolet50A32</color>
+    <!-- Selected chip -->
+    <color name="fx_mobile_action_color_chip_selected">@color/photonViolet50A32</color>
     <!-- Selected tab -->
     <color name="fx_mobile_layer_color_accent_opaque">#423262</color>
     <color name="fx_mobile_layer_color_scrim">@color/photonDarkGrey90A95</color>

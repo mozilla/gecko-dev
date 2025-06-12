@@ -18,10 +18,12 @@
     <attr name="scrim" format="reference" />
 
     <!-- Action -->
-    <!-- Primary button, Snackbar, Floating action button, Chip selected -->
+    <!-- Primary button, Snackbar, Floating action button -->
     <attr name="actionPrimary" format="reference" />
     <!-- Primary button in a disabled state -->
     <attr name="actionPrimaryDisabled" format="reference" />
+    <!-- Chip selected -->
+    <attr name="actionChipSelected" format="reference" />
 
     <!-- Text -->
     <!-- Primary text -->

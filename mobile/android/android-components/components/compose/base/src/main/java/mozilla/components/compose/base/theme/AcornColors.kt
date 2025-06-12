@@ -44,6 +44,7 @@ class AcornColors(
     actionSuccess: Color,
     actionCritical: Color,
     actionInformation: Color,
+    actionChipSelected: Color,
     formDefault: Color,
     formSelected: Color,
     formSurface: Color,
@@ -243,6 +244,10 @@ class AcornColors(
 
     // Scroll indicator inactive
     var indicatorInactive by mutableStateOf(indicatorInactive)
+        private set
+
+    // Selected chip
+    var actionChipSelected by mutableStateOf(actionChipSelected)
         private set
 
     // Text
@@ -591,6 +596,7 @@ class AcornColors(
         iconActionPrimary: Color = this.iconActionPrimary,
         iconActionSecondary: Color = this.iconActionSecondary,
         iconActionTertiary: Color = this.iconActionTertiary,
+        actionChipSelected: Color = this.actionChipSelected,
         iconGradientStart: Color = this.iconGradientStart,
         iconGradientEnd: Color = this.iconGradientEnd,
         borderPrimary: Color = this.borderPrimary,
@@ -674,6 +680,7 @@ class AcornColors(
         iconActionPrimary = iconActionPrimary,
         iconActionSecondary = iconActionSecondary,
         iconActionTertiary = iconActionTertiary,
+        actionChipSelected = actionChipSelected,
         iconGradientStart = iconGradientStart,
         iconGradientEnd = iconGradientEnd,
         borderPrimary = borderPrimary,
@@ -761,6 +768,7 @@ val darkColorPalette = AcornColors(
     iconActionPrimary = PhotonColors.LightGrey05,
     iconActionSecondary = PhotonColors.LightGrey05,
     iconActionTertiary = PhotonColors.LightGrey05,
+    actionChipSelected = PhotonColors.Violet50A32,
     iconGradientStart = PhotonColors.Violet20,
     iconGradientEnd = PhotonColors.Blue20,
     borderPrimary = PhotonColors.DarkGrey05,
@@ -847,6 +855,7 @@ val lightColorPalette = AcornColors(
     iconActionPrimary = PhotonColors.LightGrey05,
     iconActionSecondary = PhotonColors.DarkGrey90,
     iconActionTertiary = PhotonColors.DarkGrey90,
+    actionChipSelected = PhotonColors.Violet50A32,
     iconGradientStart = PhotonColors.Violet50,
     iconGradientEnd = PhotonColors.Blue60,
     borderPrimary = PhotonColors.LightGrey30,

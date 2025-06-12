@@ -68,26 +68,27 @@ data class PocketState(
 
 @Composable
 private fun AppState.getSelectableChipColors(): SelectableChipColors {
-    var (selectedBackgroundColor, unselectedBackgroundColor, selectedTextColor, unselectedTextColor) =
+    var (selectedContainerColor, containerColor, selectedLabelColor, labelColor, borderColor) =
         SelectableChipColors.buildColors()
 
     wallpaperState.ComposeRunIfWallpaperCardColorsAreAvailable { cardColorLight, cardColorDark ->
-        selectedTextColor = FirefoxTheme.colors.textPrimary
-        unselectedTextColor = FirefoxTheme.colors.textInverted
+        selectedLabelColor = FirefoxTheme.colors.textPrimary
+        labelColor = FirefoxTheme.colors.textInverted
 
         if (isSystemInDarkTheme()) {
-            selectedBackgroundColor = cardColorDark
-            unselectedBackgroundColor = cardColorLight
+            selectedContainerColor = cardColorDark
+            containerColor = cardColorLight
         } else {
-            selectedBackgroundColor = cardColorLight
-            unselectedBackgroundColor = cardColorDark
+            selectedContainerColor = cardColorLight
+            containerColor = cardColorDark
         }
     }
 
     return SelectableChipColors(
-        selectedTextColor = selectedTextColor,
-        unselectedTextColor = unselectedTextColor,
-        selectedBackgroundColor = selectedBackgroundColor,
-        unselectedBackgroundColor = unselectedBackgroundColor,
+        selectedLabelColor = selectedLabelColor,
+        labelColor = labelColor,
+        selectedContainerColor = selectedContainerColor,
+        containerColor = containerColor,
+        borderColor = borderColor,
     )
 }

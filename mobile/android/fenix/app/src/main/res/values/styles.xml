@@ -62,6 +62,8 @@
         <item name="actionPrimary">@color/fx_mobile_action_color_primary</item>
         <!-- Primary button in a disabled state -->
         <item name="actionPrimaryDisabled">@color/fx_mobile_action_color_primary_disabled</item>
+        <!-- Selected chip -->
+        <item name="actionChipSelected">@color/fx_mobile_action_color_chip_selected</item>
 
         <!-- Text -->
         <!-- Primary text -->
@@ -262,7 +264,8 @@
         <item name="actionPrimary">@color/fx_mobile_private_action_color_primary</item>
         <!-- Primary button in a disabled state -->
         <item name="actionPrimaryDisabled">@color/fx_mobile_private_action_color_primary_disabled</item>
-
+        <!-- Selected chip -->
+        <item name="actionChipSelected">@color/fx_mobile_private_action_color_chip_selected</item>
         <!-- Text -->
         <!-- Primary text -->
         <item name="textPrimary">@color/fx_mobile_private_text_color_primary</item>

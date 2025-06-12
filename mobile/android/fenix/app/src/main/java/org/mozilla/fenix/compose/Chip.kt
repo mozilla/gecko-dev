@@ -6,67 +6,32 @@
 
 package org.mozilla.fenix.compose
 
-import android.content.res.Configuration
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ChipDefaults.chipColors
-import androidx.compose.material.ChipDefaults.filterChipColors
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.FilterChip
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults.filterChipColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
-
-/**
- * Default layout for a clickable chip.
- *
- * @param text [String] displayed in this chip.
- * @param modifier [Modifier] used to be applied to the layout of the chip.
- * @param isSquare Optional [Boolean] to control whether the Chip's corners are square or rounded.
- * @param backgroundColor Optional background [Color] for the chip.
- * @param textColor Optional text [Color] for the chip.
- * @param onClick Callback for when the user taps this chip.
- */
-@Composable
-private fun Chip(
-    text: String,
-    modifier: Modifier = Modifier,
-    isSquare: Boolean = false,
-    backgroundColor: Color = FirefoxTheme.colors.actionPrimary,
-    textColor: Color = FirefoxTheme.colors.textActionPrimary,
-    onClick: () -> Unit,
-) {
-    androidx.compose.material.Chip(
-        onClick = onClick,
-        modifier = modifier,
-        shape = if (isSquare) RoundedCornerShape(4.dp) else RoundedCornerShape(25.dp),
-        colors = chipColors(
-            backgroundColor = backgroundColor,
-        ),
-    ) {
-        Text(
-            text = text,
-            color = textColor,
-            style = FirefoxTheme.typography.body2,
-        )
-    }
-}
 
 /**
  * Default layout of a selectable chip.
  *
  * @param text [String] displayed in this chip.
  * @param isSelected Whether this should be shown as selected.
- * @param isSquare Optional [Boolean] to control whether the Chip's corners are square or rounded.
+ * @param modifier [Modifier] used to be applied to the layout of the chip.
  * @param selectableChipColors The color set defined by [SelectableChipColors] used to style the chip.
  * @param onClick Callback for when the user taps this chip.
  */
@@ -74,36 +39,57 @@ private fun Chip(
 fun SelectableChip(
     text: String,
     isSelected: Boolean,
-    isSquare: Boolean = false,
+    modifier: Modifier = Modifier,
     selectableChipColors: SelectableChipColors = SelectableChipColors.buildColors(),
     onClick: () -> Unit,
 ) {
     FilterChip(
         selected = isSelected,
+        modifier = modifier,
         onClick = onClick,
-        shape = if (isSquare) RoundedCornerShape(4.dp) else RoundedCornerShape(25.dp),
+        label = {
+            Text(
+                text = text,
+                color = FirefoxTheme.colors.textPrimary,
+                style = if (isSelected) FirefoxTheme.typography.headline8 else FirefoxTheme.typography.body2,
+            )
+        },
+        leadingIcon = if (isSelected) {
+            {
+                Icon(
+                    painter = painterResource(id = R.drawable.mozac_ic_checkmark_16),
+                    contentDescription = null,
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
+            }
+        } else {
+            null
+        },
         colors = selectableChipColors.toMaterialChipColors(),
-    ) {
-        Text(
-            text = text,
-            style = FirefoxTheme.typography.body2,
-        )
-    }
+        shape = RoundedCornerShape(16.dp),
+        border = if (isSelected) {
+            null
+        } else {
+            BorderStroke(width = 1.dp, color = selectableChipColors.borderColor)
+        },
+    )
 }
 
 /**
  * Wrapper for the color parameters of [SelectableChip].
  *
- * @property selectedBackgroundColor Background [Color] when the chip is selected.
- * @property unselectedBackgroundColor Background [Color] when the chip is not selected.
- * @property selectedTextColor Text [Color] when the chip is selected.
- * @property unselectedTextColor Text [Color] when the chip is not selected.
+ * @property selectedContainerColor Background [Color] when the chip is selected.
+ * @property containerColor Background [Color] when the chip is not selected.
+ * @property selectedLabelColor Text [Color] when the chip is selected.
+ * @property labelColor Text [Color] when the chip is not selected.
+ * @property borderColor Border [Color] for the chip.
  */
 data class SelectableChipColors(
-    val selectedBackgroundColor: Color,
-    val unselectedBackgroundColor: Color,
-    val selectedTextColor: Color,
-    val unselectedTextColor: Color,
+    val selectedContainerColor: Color,
+    val containerColor: Color,
+    val selectedLabelColor: Color,
+    val labelColor: Color,
+    val borderColor: Color,
 ) {
     companion object {
 
@@ -112,15 +98,17 @@ data class SelectableChipColors(
          */
         @Composable
         fun buildColors(
-            selectedBackgroundColor: Color = FirefoxTheme.colors.actionPrimary,
-            unselectedBackgroundColor: Color = FirefoxTheme.colors.actionTertiary,
-            selectedTextColor: Color = FirefoxTheme.colors.textActionPrimary,
-            unselectedTextColor: Color = FirefoxTheme.colors.textActionTertiary,
+            selectedContainerColor: Color = FirefoxTheme.colors.actionChipSelected,
+            containerColor: Color = FirefoxTheme.colors.layer1,
+            selectedLabelColor: Color = FirefoxTheme.colors.textPrimary,
+            labelColor: Color = FirefoxTheme.colors.textPrimary,
+            borderColor: Color = FirefoxTheme.colors.borderPrimary,
         ) = SelectableChipColors(
-            selectedBackgroundColor = selectedBackgroundColor,
-            unselectedBackgroundColor = unselectedBackgroundColor,
-            selectedTextColor = selectedTextColor,
-            unselectedTextColor = unselectedTextColor,
+            selectedContainerColor = selectedContainerColor,
+            containerColor = containerColor,
+            selectedLabelColor = selectedLabelColor,
+            labelColor = labelColor,
+            borderColor = borderColor,
         )
     }
 }
@@ -130,38 +118,14 @@ data class SelectableChipColors(
  */
 @Composable
 private fun SelectableChipColors.toMaterialChipColors() = filterChipColors(
-    selectedBackgroundColor = selectedBackgroundColor,
-    backgroundColor = unselectedBackgroundColor,
-    selectedContentColor = selectedTextColor,
-    contentColor = unselectedTextColor,
+    selectedContainerColor = selectedContainerColor,
+    containerColor = containerColor,
+    selectedLabelColor = selectedLabelColor,
+    labelColor = labelColor,
 )
 
 @Composable
 @PreviewLightDark
-private fun ChipPreview() {
-    FirefoxTheme {
-        Column(
-            modifier = Modifier
-                .background(FirefoxTheme.colors.layer1),
-            verticalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            Chip(
-                text = "Chirp",
-                onClick = {},
-            )
-
-            Chip(
-                text = "SquareChip",
-                isSquare = true,
-                onClick = {},
-            )
-        }
-    }
-}
-
-@Composable
-@Preview(name = "Selectable Chip", uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Preview(name = "Selectable Chip", uiMode = Configuration.UI_MODE_NIGHT_NO)
 private fun SelectableChipPreview() {
     FirefoxTheme {
         Row(
@@ -171,14 +135,13 @@ private fun SelectableChipPreview() {
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             SelectableChip(text = "ChirpOne", isSelected = false) {}
-            SelectableChip(text = "ChirpTwo", isSelected = true, isSquare = true) {}
+            SelectableChip(text = "ChirpTwo", isSelected = true) {}
         }
     }
 }
 
 @Composable
-@Preview(name = "Custom Colors", uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Preview(name = "Custom Colors", uiMode = Configuration.UI_MODE_NIGHT_NO)
+@PreviewLightDark
 private fun SelectableChipWithCustomColorsPreview() {
     FirefoxTheme {
         Row(
@@ -191,10 +154,11 @@ private fun SelectableChipWithCustomColorsPreview() {
                 text = "Yellow",
                 isSelected = false,
                 selectableChipColors = SelectableChipColors(
-                    selectedBackgroundColor = Color.Yellow,
-                    unselectedBackgroundColor = Color.DarkGray,
-                    selectedTextColor = Color.Black,
-                    unselectedTextColor = Color.Gray,
+                    selectedContainerColor = Color.Yellow,
+                    containerColor = Color.DarkGray,
+                    selectedLabelColor = Color.Black,
+                    labelColor = Color.Gray,
+                    borderColor = Color.Red,
                 ),
             ) {}
 
@@ -202,10 +166,11 @@ private fun SelectableChipWithCustomColorsPreview() {
                 text = "Cyan",
                 isSelected = true,
                 selectableChipColors = SelectableChipColors(
-                    selectedBackgroundColor = Color.Cyan,
-                    unselectedBackgroundColor = Color.DarkGray,
-                    selectedTextColor = Color.Red,
-                    unselectedTextColor = Color.Gray,
+                    selectedContainerColor = Color.Cyan,
+                    containerColor = Color.DarkGray,
+                    selectedLabelColor = Color.Red,
+                    labelColor = Color.Gray,
+                    borderColor = Color.Red,
                 ),
             ) {}
         }
