@@ -21,10 +21,10 @@ if not CONFIG["MOZ_DEBUG"]:
 
 SOURCES += [
     "/third_party/zucchini/chromium-shim/base/logging.cc",
-    "/third_party/zucchini/chromium-shim/components/zucchini/zucchini_main.temporary.cc",
     "/third_party/zucchini/chromium/base/check.cc",
     "/third_party/zucchini/chromium/base/check_op.cc",
     "/third_party/zucchini/chromium/base/command_line.cc",
+    "/third_party/zucchini/chromium/base/cpu.cc",
     "/third_party/zucchini/chromium/base/files/file.cc",
     "/third_party/zucchini/chromium/base/files/file_path.cc",
     "/third_party/zucchini/chromium/base/files/file_tracing.cc",
@@ -39,6 +39,8 @@ SOURCES += [
     "/third_party/zucchini/chromium/base/strings/stringprintf.cc",
     "/third_party/zucchini/chromium/base/strings/utf_ostream_operators.cc",
     "/third_party/zucchini/chromium/base/strings/utf_string_conversions.cc",
+    "/third_party/zucchini/chromium/base/third_party/nspr/prtime.cc",
+    "/third_party/zucchini/chromium/base/time/time.cc",
     "/third_party/zucchini/chromium/base/trace_event/trace_event_stub.cc",
     "/third_party/zucchini/chromium/components/zucchini/abs32_utils.cc",
     "/third_party/zucchini/chromium/components/zucchini/address_translator.cc",
@@ -59,6 +61,7 @@ SOURCES += [
     "/third_party/zucchini/chromium/components/zucchini/image_index.cc",
     "/third_party/zucchini/chromium/components/zucchini/imposed_ensemble_matcher.cc",
     "/third_party/zucchini/chromium/components/zucchini/io_utils.cc",
+    "/third_party/zucchini/chromium/components/zucchini/main_utils.cc",
     "/third_party/zucchini/chromium/components/zucchini/mapped_file.cc",
     "/third_party/zucchini/chromium/components/zucchini/patch_reader.cc",
     "/third_party/zucchini/chromium/components/zucchini/patch_writer.cc",
@@ -73,6 +76,7 @@ SOURCES += [
     "/third_party/zucchini/chromium/components/zucchini/zucchini_commands.cc",
     "/third_party/zucchini/chromium/components/zucchini/zucchini_gen.cc",
     "/third_party/zucchini/chromium/components/zucchini/zucchini_integration.cc",
+    "/third_party/zucchini/chromium/components/zucchini/zucchini_main.cc",
     "/third_party/zucchini/chromium/components/zucchini/zucchini_tools.cc",
 ]
 
@@ -84,7 +88,9 @@ if CONFIG["TARGET_OS"] == "WINNT":
         "/third_party/zucchini/chromium/base/scoped_clear_last_error_win.cc",
         "/third_party/zucchini/chromium/base/strings/strcat_win.cc",
         "/third_party/zucchini/chromium/base/strings/string_util_win.cc",
+        "/third_party/zucchini/chromium/base/synchronization/lock_impl_win.cc",
         "/third_party/zucchini/chromium/base/system/sys_info_win.cc",
+        "/third_party/zucchini/chromium/base/time/time_win.cc",
         "/third_party/zucchini/chromium/base/win/scoped_handle.cc",
         "/third_party/zucchini/chromium/base/win/win_util.cc",
         "/third_party/zucchini/chromium/base/win/windows_version.cc",
@@ -92,7 +98,9 @@ if CONFIG["TARGET_OS"] == "WINNT":
     ]
 
     OS_LIBS += [
+        "mincore",
         "shell32",
         "user32",
+        "winmm",
     ]
 

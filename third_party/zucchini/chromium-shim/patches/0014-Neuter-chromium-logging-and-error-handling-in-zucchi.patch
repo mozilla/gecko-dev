@@ -1,0 +1,56 @@
+Neuter chromium logging and error handling in zucchini_main.cc
+
+We define our own logging implementation and it does not need initialization.
+---
+ components/zucchini/zucchini_main.cc | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/components/zucchini/zucchini_main.cc b/components/zucchini/zucchini_main.cc
+index e16087ea27ed..f7f4e0831b9d 100644
+--- a/components/zucchini/zucchini_main.cc
++++ b/components/zucchini/zucchini_main.cc
+@@ -6,17 +6,22 @@
+ 
+ #include "base/command_line.h"
+ #include "base/logging.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/process/memory.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "build/build_config.h"
+ #include "components/zucchini/main_utils.h"
+ 
++#if !defined(MOZ_ZUCCHINI)
+ #if BUILDFLAG(IS_WIN)
+ #include "base/win/process_startup_helper.h"
+ #endif  // BUILDFLAG(IS_WIN)
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ namespace {
+ 
+ void InitLogging() {
++#if !defined(MOZ_ZUCCHINI)
+   logging::LoggingSettings settings;
+   settings.logging_dest =
+       logging::LOG_TO_SYSTEM_DEBUG_LOG | logging::LOG_TO_STDERR;
+@@ -25,15 +30,18 @@ void InitLogging() {
+   settings.delete_old = logging::APPEND_TO_OLD_LOG_FILE;
+   bool logging_res = logging::InitLogging(settings);
+   CHECK(logging_res);
++#endif  // !defined(MOZ_ZUCCHINI)
+ }
+ 
+ void InitErrorHandling(const base::CommandLine& command_line) {
++#if !defined(MOZ_ZUCCHINI)
+   base::EnableTerminationOnHeapCorruption();
+   base::EnableTerminationOnOutOfMemory();
+ #if BUILDFLAG(IS_WIN)
+   base::win::RegisterInvalidParamHandler();
+   base::win::SetupCRT(command_line);
+ #endif  // BUILDFLAG(IS_WIN)
++#endif  // !defined(MOZ_ZUCCHINI)
+ }
+ 
+ }  // namespace
+-- 
+2.42.0.windows.2
+

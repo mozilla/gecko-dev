@@ -22,7 +22,7 @@ namespace base {
 // AssertAcquired() method.
 class LOCKABLE BASE_EXPORT Lock {
  public:
-#if !DCHECK_IS_ON()
+#if defined(MOZ_ZUCCHINI) || !DCHECK_IS_ON()
   // Optimized wrapper implementation
   Lock() : lock_() {}
 
@@ -69,7 +69,7 @@ class LOCKABLE BASE_EXPORT Lock {
 
   void AssertAcquired() const ASSERT_EXCLUSIVE_LOCK();
   void AssertNotHeld() const;
-#endif  // DCHECK_IS_ON()
+#endif  // defined(MOZ_ZUCCHINI) || !DCHECK_IS_ON()
 
   // Whether Lock mitigates priority inversion when used from different thread
   // priorities.

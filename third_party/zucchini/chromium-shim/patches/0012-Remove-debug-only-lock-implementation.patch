@@ -1,0 +1,32 @@
+Remove debug-only lock implementation
+
+This removes a dependency on platform_thread.h through lock.cc.
+---
+ base/synchronization/lock.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/base/synchronization/lock.h b/base/synchronization/lock.h
+index 60ecf178c7e3..3fca44d3327e 100644
+--- a/base/synchronization/lock.h
++++ b/base/synchronization/lock.h
+@@ -22,7 +22,7 @@ namespace base {
+ // AssertAcquired() method.
+ class LOCKABLE BASE_EXPORT Lock {
+  public:
+-#if !DCHECK_IS_ON()
++#if defined(MOZ_ZUCCHINI) || !DCHECK_IS_ON()
+   // Optimized wrapper implementation
+   Lock() : lock_() {}
+ 
+@@ -69,7 +69,7 @@ class LOCKABLE BASE_EXPORT Lock {
+ 
+   void AssertAcquired() const ASSERT_EXCLUSIVE_LOCK();
+   void AssertNotHeld() const;
+-#endif  // DCHECK_IS_ON()
++#endif  // defined(MOZ_ZUCCHINI) || !DCHECK_IS_ON()
+ 
+   // Whether Lock mitigates priority inversion when used from different thread
+   // priorities.
+-- 
+2.42.0.windows.2
+

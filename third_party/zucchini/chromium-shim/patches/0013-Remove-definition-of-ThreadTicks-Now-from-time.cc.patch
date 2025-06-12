@@ -1,0 +1,69 @@
+Remove definition of ThreadTicks::Now from time.cc
+
+This removes a dependency platform_thread.h through time_win.cc.
+---
+ base/time/time.cc     | 4 ++++
+ base/time/time_win.cc | 4 ++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/base/time/time.cc b/base/time/time.cc
+index 723ece8a838b..1685885ec8e9 100644
+--- a/base/time/time.cc
++++ b/base/time/time.cc
+@@ -46,8 +46,10 @@ std::atomic<TimeTicksNowFunction> g_time_ticks_now_function{
+ std::atomic<LiveTicksNowFunction> g_live_ticks_now_function{
+     &subtle::LiveTicksNowIgnoringOverride};
+ 
++#if !defined(MOZ_ZUCCHINI)
+ std::atomic<ThreadTicksNowFunction> g_thread_ticks_now_function{
+     &subtle::ThreadTicksNowIgnoringOverride};
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ }  // namespace internal
+ 
+@@ -285,10 +287,12 @@ LiveTicks LiveTicksNowIgnoringOverride() {
+ // ThreadTicks ----------------------------------------------------------------
+ 
+ // static
++#if !defined(MOZ_ZUCCHINI)
+ ThreadTicks ThreadTicks::Now() {
+   return internal::g_thread_ticks_now_function.load(
+       std::memory_order_relaxed)();
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ std::ostream& operator<<(std::ostream& os, ThreadTicks thread_ticks) {
+   const TimeDelta as_time_delta = thread_ticks - ThreadTicks();
+diff --git a/base/time/time_win.cc b/base/time/time_win.cc
+index c6540592a5c1..60f71441575b 100644
+--- a/base/time/time_win.cc
++++ b/base/time/time_win.cc
+@@ -47,7 +47,9 @@
+ #include "base/cpu.h"
+ #include "base/notreached.h"
+ #include "base/synchronization/lock.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/threading/platform_thread.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "base/time/time_override.h"
+ #include "build/build_config.h"
+ 
+@@ -656,6 +658,7 @@ LiveTicks LiveTicksNowIgnoringOverride() {
+ 
+ // ThreadTicks ----------------------------------------------------------------
+ 
++#if !defined(MOZ_ZUCCHINI)
+ namespace subtle {
+ ThreadTicks ThreadTicksNowIgnoringOverride() {
+   return ThreadTicks::GetForThread(PlatformThread::CurrentHandle());
+@@ -697,6 +700,7 @@ ThreadTicks ThreadTicks::GetForThread(
+ 
+   return ThreadTicks(us);
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ // static
+ bool ThreadTicks::IsSupportedWin() {
+-- 
+2.42.0.windows.2
+

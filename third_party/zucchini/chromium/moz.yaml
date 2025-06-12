@@ -58,6 +58,7 @@ vendoring:
     - base/atomicops_internals_portable.h
     - base/auto_reset.h
     - base/base_export.h
+    - base/bit_cast.h
     - base/check.cc
     - base/check.h
     - base/check_op.cc
@@ -82,6 +83,8 @@ vendoring:
     - base/containers/cxx20_erase_vector.h
     - base/containers/span.h
     - base/containers/util.h
+    - base/cpu.cc
+    - base/cpu.h
     - base/cxx20_is_constant_evaluated.h
     - base/cxx20_to_address.h
     - base/dcheck_is_on.h
@@ -145,6 +148,7 @@ vendoring:
     - base/numerics/safe_math_arm_impl.h
     - base/numerics/safe_math_clang_gcc_impl.h
     - base/numerics/safe_math_shared_impl.h
+    - base/process/process_handle.h
     - base/ranges/algorithm.h
     - base/ranges/functional.h
     - base/ranges/ranges.h
@@ -186,17 +190,25 @@ vendoring:
     - base/synchronization/atomic_flag.h
     - base/synchronization/lock.h
     - base/synchronization/lock_impl.h
+    - base/synchronization/lock_impl_win.cc
     - base/system/sys_info.h
     - base/system/sys_info_win.cc
     - base/template_util.h
     - base/third_party/icu/icu_utf.h
     - base/third_party/icu/LICENSE
+    - base/third_party/nspr/LICENSE
+    - base/third_party/nspr/prtime.cc
+    - base/third_party/nspr/prtime.h
     - base/thread_annotations.h
+    - base/threading/platform_thread.h
     - base/threading/platform_thread_ref.h
     - base/threading/thread_checker_impl.h
     - base/threading/thread_collision_warner.h
     # base/threading/scoped_blocking_call.h
+    - base/time/time.cc
     - base/time/time.h
+    - base/time/time_override.h
+    - base/time/time_win.cc
     - base/trace_event/base_tracing.h
     - base/trace_event/base_tracing_forward.h
     - base/trace_event/common/trace_event_common.h
@@ -265,6 +277,8 @@ vendoring:
     - components/zucchini/imposed_ensemble_matcher.h
     - components/zucchini/io_utils.cc
     - components/zucchini/io_utils.h
+    - components/zucchini/main_utils.cc
+    - components/zucchini/main_utils.h
     - components/zucchini/mapped_file.cc
     - components/zucchini/mapped_file.h
     - components/zucchini/patch_reader.cc
@@ -300,7 +314,7 @@ vendoring:
     - components/zucchini/zucchini_gen.h
     - components/zucchini/zucchini_integration.cc
     - components/zucchini/zucchini_integration.h
-    # components/zucchini/zucchini_main.temporary.cc
+    - components/zucchini/zucchini_main.cc
     - components/zucchini/zucchini_tools.cc
     - components/zucchini/zucchini_tools.h
     - LICENSE
