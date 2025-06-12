@@ -66,7 +66,6 @@ import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.Favicon
 import org.mozilla.fenix.compose.HorizontalFadingEdgeBox
@@ -120,7 +119,7 @@ fun TabStrip(
             isPossiblyPrivateMode = isPossiblyPrivateMode,
             addTab = onAddTabClick,
             toggleBrowsingMode = { isPrivate ->
-                toggleBrowsingMode(isPrivate, onPrivateModeToggleClick, appStore)
+                toggleBrowsingMode(isPrivate, onPrivateModeToggleClick)
             },
             closeTab = { isPrivate, numberOfTabs ->
                 it.selectedTabId?.let { selectedTabId ->
@@ -141,7 +140,7 @@ fun TabStrip(
         state = state,
         onAddTabClick = onAddTabClick,
         onPrivateModeToggleClick = {
-            toggleBrowsingMode(state.isPrivateMode, onPrivateModeToggleClick, appStore)
+            toggleBrowsingMode(state.isPrivateMode, onPrivateModeToggleClick)
         },
         onCloseTabClick = { tabId, isPrivate ->
             closeTab(
@@ -479,19 +478,12 @@ private fun closeTab(
     onCloseTabClick(isPrivate)
 }
 
-/**
- * Invoking the callback is required so the caller can update the browsing mode in cases where
- * appStore.dispatch(AppAction.ModeChange(newMode)) is not enough. This bug is tracked here:
- * https://bugzilla.mozilla.org/show_bug.cgi?id=1923650
- */
 private fun toggleBrowsingMode(
     isCurrentModePrivate: Boolean,
     onPrivateModeToggleClick: (mode: BrowsingMode) -> Unit,
-    appStore: AppStore,
 ) {
     val newMode = BrowsingMode.fromBoolean(!isCurrentModePrivate)
     onPrivateModeToggleClick(newMode)
-    appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(newMode))
 }
 
 private class TabUIStateParameterProvider : PreviewParameterProvider<TabStripState> {

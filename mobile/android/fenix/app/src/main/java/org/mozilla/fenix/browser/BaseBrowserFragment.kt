@@ -482,8 +482,6 @@ abstract class BaseBrowserFragment :
         val store = context.components.core.store
         val activity = requireActivity() as HomeActivity
 
-        context.components.appStore.dispatch(AppAction.ModeChange(activity.browsingModeManager.mode))
-
         browserAnimator = BrowserAnimator(
             fragment = WeakReference(this),
             engineView = WeakReference(binding.engineView),
