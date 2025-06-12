@@ -1329,9 +1329,12 @@ class nsDisplayFramesetBorder final : public nsPaintedDisplayItem {
 
   // REVIEW: see old GetFrameForPoint
   // Receives events in its bounds
-  virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
-                       HitTestState* aState,
-                       nsTArray<nsIFrame*>* aOutFrames) override {
+  void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+               HitTestState* aState, nsTArray<nsIFrame*>* aOutFrames) override {
+    if (ShouldIgnoreForBackfaceHidden(aState)) {
+      return;
+    }
+
     aOutFrames->AppendElement(mFrame);
   }
   virtual void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;

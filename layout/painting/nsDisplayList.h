@@ -2380,6 +2380,12 @@ class nsDisplayItem {
 
     // Gathering all leaf items of a preserve3d context.
     bool mGatheringPreserves3DLeaves = false;
+
+    // True if we are handling items inside a preserve 3d context and the
+    // current transform has the backface visible. This is used if the current
+    // item has backface-visibility: hidden.
+    bool mTransformHasBackfaceVisible = false;
+
     // When hit-testing for visibility, we may hit an fully opaque item in a
     // nested display list. We want to stop at that point, without looking
     // further on other items.
@@ -2409,6 +2415,16 @@ class nsDisplayItem {
    */
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState, nsTArray<nsIFrame*>* aOutFrames) {}
+
+  /**
+   * Returns true if this item should not be hit because the HitTestState state
+   * indicates the current transform is showing the backface and this item has
+   * backface-visibility: hidden.
+   */
+  bool ShouldIgnoreForBackfaceHidden(HitTestState* aState) {
+    return aState->mTransformHasBackfaceVisible &&
+           In3DContextAndBackfaceIsHidden();
+  }
 
   virtual nsIFrame* StyleFrame() const { return mFrame; }
 
@@ -6638,6 +6654,10 @@ class nsDisplayText final : public nsPaintedDisplayItem {
 
   void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                HitTestState* aState, nsTArray<nsIFrame*>* aOutFrames) final {
+    if (ShouldIgnoreForBackfaceHidden(aState)) {
+      return;
+    }
+
     if (nsRect(ToReferenceFrame(), mFrame->GetSize()).Intersects(aRect)) {
       aOutFrames->AppendElement(mFrame);
     }

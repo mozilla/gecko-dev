@@ -2438,8 +2438,20 @@ void nsDisplayList::HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
       continue;
     }
 
+    const bool savedTransformHasBackfaceVisible =
+        aState->mTransformHasBackfaceVisible;
+    if (aState->mTransformHasBackfaceVisible &&
+        !item->Combines3DTransformWithAncestors()) {
+      // exiting a preserve 3d context, the transform is no longer applied to
+      // this item, so reset the tracking var
+      aState->mTransformHasBackfaceVisible = false;
+    }
     AutoTArray<nsIFrame*, 16> outFrames;
     item->HitTest(aBuilder, aRect, aState, &outFrames);
+    MOZ_ASSERT(!aState->mTransformHasBackfaceVisible ||
+               !item->In3DContextAndBackfaceIsHidden() ||
+               !outFrames.Contains(item->Frame()));
+    aState->mTransformHasBackfaceVisible = savedTransformHasBackfaceVisible;
 
     // For 3d transforms with preserve-3d we add hit frames into the temp list
     // so we can sort them later, otherwise we add them directly to the output
@@ -3434,6 +3446,10 @@ void nsDisplayBackgroundImage::HitTest(nsDisplayListBuilder* aBuilder,
                                        const nsRect& aRect,
                                        HitTestState* aState,
                                        nsTArray<nsIFrame*>* aOutFrames) {
+  if (ShouldIgnoreForBackfaceHidden(aState)) {
+    return;
+  }
+
   if (RoundedBorderIntersectsRect(mFrame, ToReferenceFrame(), aRect)) {
     aOutFrames->AppendElement(mFrame);
   }
@@ -3685,6 +3701,10 @@ void nsDisplayThemedBackground::HitTest(nsDisplayListBuilder* aBuilder,
                                         const nsRect& aRect,
                                         HitTestState* aState,
                                         nsTArray<nsIFrame*>* aOutFrames) {
+  if (ShouldIgnoreForBackfaceHidden(aState)) {
+    return;
+  }
+
   // Assume that any point in our background rect is a hit.
   if (mBackgroundRect.Intersects(aRect)) {
     aOutFrames->AppendElement(mFrame);
@@ -3985,6 +4005,10 @@ void nsDisplayBackgroundColor::HitTest(nsDisplayListBuilder* aBuilder,
                                        const nsRect& aRect,
                                        HitTestState* aState,
                                        nsTArray<nsIFrame*>* aOutFrames) {
+  if (ShouldIgnoreForBackfaceHidden(aState)) {
+    return;
+  }
+
   if (!RoundedBorderIntersectsRect(mFrame, ToReferenceFrame(), aRect)) {
     // aRect doesn't intersect our border-radius curve.
     return;
@@ -4090,6 +4114,10 @@ bool nsDisplayOutline::IsInvisibleInRect(const nsRect& aRect) const {
 void nsDisplayEventReceiver::HitTest(nsDisplayListBuilder* aBuilder,
                                      const nsRect& aRect, HitTestState* aState,
                                      nsTArray<nsIFrame*>* aOutFrames) {
+  if (ShouldIgnoreForBackfaceHidden(aState)) {
+    return;
+  }
+
   if (!RoundedBorderIntersectsRect(mFrame, ToReferenceFrame(), aRect)) {
     // aRect doesn't intersect our border-radius curve.
     return;
@@ -7193,7 +7221,15 @@ void nsDisplayTransform::HitTest(nsDisplayListBuilder* aBuilder,
   uint32_t originalFrameCount = aOutFrames.Length();
 #endif
 
+  const bool savedTransformHasBackfaceVisible =
+      aState->mTransformHasBackfaceVisible;
+  if (IsLeafOf3DContext()) {
+    aState->mTransformHasBackfaceVisible = matrix.IsBackfaceVisible();
+  }
   GetChildren()->HitTest(aBuilder, resultingRect, aState, aOutFrames);
+  if (IsLeafOf3DContext()) {
+    aState->mTransformHasBackfaceVisible = savedTransformHasBackfaceVisible;
+  }
 
   if (aState->mHitOccludingItem && !testingPoint && !mBounds.Contains(aRect)) {
     MOZ_ASSERT(aBuilder->HitTestIsForVisibility());
