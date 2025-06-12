@@ -25,13 +25,8 @@ export class _DSLinkMenu extends React.PureComponent {
         "OurSponsorsAndYourPrivacy",
       ];
     } else {
-      const saveToPocketOptions = this.props.pocket_button_enabled
-        ? ["CheckArchiveFromPocket", "CheckSavedToPocket"]
-        : [];
-
       TOP_STORIES_CONTEXT_MENU_OPTIONS = [
         "CheckBookmark",
-        ...saveToPocketOptions,
         "Separator",
         "OpenInNewWindow",
         "OpenInPrivateWindow",

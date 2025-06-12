@@ -89,8 +89,7 @@ const BUILT_IN_SECTIONS = ({ pocketNewtab }) => ({
     rowsPref: "section.topstories.rows",
     maxRows: 4,
     availableLinkMenuOptions: [
-      "CheckBookmarkOrArchive",
-      "CheckSavedToPocket",
+      "CheckBookmark",
       "Separator",
       "OpenInNewWindow",
       "OpenInPrivateWindow",
@@ -149,11 +148,10 @@ const BUILT_IN_SECTIONS = ({ pocketNewtab }) => ({
 
 export const SectionsManager = {
   ACTIONS_TO_PROXY: ["WEBEXT_CLICK", "WEBEXT_DISMISS"],
-  CONTEXT_MENU_PREFS: { CheckSavedToPocket: "extensions.pocket.enabled" },
+  CONTEXT_MENU_PREFS: {},
   CONTEXT_MENU_OPTIONS_FOR_HIGHLIGHT_TYPES: {
     history: [
       "CheckBookmark",
-      "CheckSavedToPocket",
       "Separator",
       "OpenInNewWindow",
       "OpenInPrivateWindow",
@@ -163,7 +161,6 @@ export const SectionsManager = {
     ],
     bookmark: [
       "CheckBookmark",
-      "CheckSavedToPocket",
       "Separator",
       "OpenInNewWindow",
       "OpenInPrivateWindow",
@@ -172,8 +169,6 @@ export const SectionsManager = {
       "DeleteUrl",
     ],
     pocket: [
-      "ArchiveFromPocket",
-      "CheckSavedToPocket",
       "Separator",
       "OpenInNewWindow",
       "OpenInPrivateWindow",

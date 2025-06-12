@@ -107,9 +107,6 @@ newtab-menu-dismiss = Dismiss
 newtab-menu-pin = Pin
 newtab-menu-unpin = Unpin
 newtab-menu-delete-history = Delete from History
-newtab-menu-save-to-pocket = Save to { -pocket-brand-name }
-newtab-menu-delete-pocket = Delete from { -pocket-brand-name }
-newtab-menu-archive-pocket = Archive in { -pocket-brand-name }
 newtab-menu-show-privacy-info = Our sponsors & your privacy
 newtab-menu-about-fakespot = About { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).

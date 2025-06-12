@@ -126,132 +126,6 @@ describe("<LinkMenu>", () => {
       options.find(o => o.id && o.id === "newtab-menu-bookmark")
     );
   });
-  it("should show Save to Pocket option for an unsaved Pocket item if CheckSavedToPocket in options list", () => {
-    wrapper = shallow(
-      <LinkMenu
-        site={{ url: "", bookmarkGuid: 0 }}
-        source={"HIGHLIGHTS"}
-        options={["CheckSavedToPocket"]}
-        dispatch={() => {}}
-      />
-    );
-    const { options } = wrapper.find(ContextMenu).props();
-    assert.isDefined(
-      options.find(o => o.id && o.id === "newtab-menu-save-to-pocket")
-    );
-  });
-  it("should show Delete from Pocket option for a saved Pocket item if CheckSavedToPocket in options list", () => {
-    wrapper = shallow(
-      <LinkMenu
-        site={{ url: "", pocket_id: 1234 }}
-        source={"HIGHLIGHTS"}
-        options={["CheckSavedToPocket"]}
-        dispatch={() => {}}
-      />
-    );
-    const { options } = wrapper.find(ContextMenu).props();
-    assert.isDefined(
-      options.find(o => o.id && o.id === "newtab-menu-delete-pocket")
-    );
-  });
-  it("should show Archive from Pocket option for a saved Pocket item if CheckBookmarkOrArchive", () => {
-    wrapper = shallow(
-      <LinkMenu
-        site={{ url: "", pocket_id: 1234 }}
-        source={"HIGHLIGHTS"}
-        options={["CheckBookmarkOrArchive"]}
-        dispatch={() => {}}
-      />
-    );
-    const { options } = wrapper.find(ContextMenu).props();
-    assert.isDefined(
-      options.find(o => o.id && o.id === "newtab-menu-archive-pocket")
-    );
-  });
-  it("should show Bookmark option for an unbookmarked site if CheckBookmarkOrArchive in options list and no pocket_id", () => {
-    wrapper = shallow(
-      <LinkMenu
-        site={{ url: "" }}
-        source={"HIGHLIGHTS"}
-        options={["CheckBookmarkOrArchive"]}
-        dispatch={() => {}}
-      />
-    );
-    const { options } = wrapper.find(ContextMenu).props();
-    assert.isDefined(
-      options.find(o => o.id && o.id === "newtab-menu-bookmark")
-    );
-  });
-  it("should show Unbookmark option for a bookmarked site if CheckBookmarkOrArchive in options list and no pocket_id", () => {
-    wrapper = shallow(
-      <LinkMenu
-        site={{ url: "", bookmarkGuid: 1234 }}
-        source={"HIGHLIGHTS"}
-        options={["CheckBookmarkOrArchive"]}
-        dispatch={() => {}}
-      />
-    );
-    const { options } = wrapper.find(ContextMenu).props();
-    assert.isDefined(
-      options.find(o => o.id && o.id === "newtab-menu-remove-bookmark")
-    );
-  });
-  it("should show Archive from Pocket option for a saved Pocket item if CheckArchiveFromPocket", () => {
-    wrapper = shallow(
-      <LinkMenu
-        site={{ url: "", pocket_id: 1234 }}
-        source={"TOP_STORIES"}
-        options={["CheckArchiveFromPocket"]}
-        dispatch={() => {}}
-      />
-    );
-    const { options } = wrapper.find(ContextMenu).props();
-    assert.isDefined(
-      options.find(o => o.id && o.id === "newtab-menu-archive-pocket")
-    );
-  });
-  it("should show empty from no Pocket option for no saved Pocket item if CheckArchiveFromPocket", () => {
-    wrapper = shallow(
-      <LinkMenu
-        site={{ url: "" }}
-        source={"TOP_STORIES"}
-        options={["CheckArchiveFromPocket"]}
-        dispatch={() => {}}
-      />
-    );
-    const { options } = wrapper.find(ContextMenu).props();
-    assert.isUndefined(
-      options.find(o => o.id && o.id === "newtab-menu-archive-pocket")
-    );
-  });
-  it("should show Delete from Pocket option for a saved Pocket item if CheckDeleteFromPocket", () => {
-    wrapper = shallow(
-      <LinkMenu
-        site={{ url: "", pocket_id: 1234 }}
-        source={"TOP_STORIES"}
-        options={["CheckDeleteFromPocket"]}
-        dispatch={() => {}}
-      />
-    );
-    const { options } = wrapper.find(ContextMenu).props();
-    assert.isDefined(
-      options.find(o => o.id && o.id === "newtab-menu-delete-pocket")
-    );
-  });
-  it("should show empty from Pocket option for no saved Pocket item if CheckDeleteFromPocket", () => {
-    wrapper = shallow(
-      <LinkMenu
-        site={{ url: "" }}
-        source={"TOP_STORIES"}
-        options={["CheckDeleteFromPocket"]}
-        dispatch={() => {}}
-      />
-    );
-    const { options } = wrapper.find(ContextMenu).props();
-    assert.isUndefined(
-      options.find(o => o.id && o.id === "newtab-menu-archive-pocket")
-    );
-  });
   it("should show Open File option for a downloaded item", () => {
     wrapper = shallow(
       <LinkMenu
@@ -391,9 +265,6 @@ describe("<LinkMenu>", () => {
       "DeleteUrl",
       "PinTopSite",
       "UnpinTopSite",
-      "SaveToPocket",
-      "DeleteFromPocket",
-      "ArchiveFromPocket",
       "WebExtDismiss",
     ];
     const expectedActionData = {
@@ -457,11 +328,6 @@ describe("<LinkMenu>", () => {
       },
       "newtab-menu-pin": { site: FAKE_SITE, index: FAKE_INDEX },
       "newtab-menu-unpin": { site: { url: FAKE_SITE.url } },
-      "newtab-menu-save-to-pocket": {
-        site: { url: FAKE_SITE.url, title: FAKE_SITE.title },
-      },
-      "newtab-menu-delete-pocket": { pocket_id: "1234" },
-      "newtab-menu-archive-pocket": { pocket_id: "1234" },
       "newtab-menu-show-file": { url: FAKE_SITE.url },
       "newtab-menu-copy-download-link": { url: FAKE_SITE.url },
       "newtab-menu-go-to-download-page": { url: FAKE_SITE.referrer },

@@ -306,46 +306,6 @@ export const LinkMenuOptions = {
     }),
     userEvent: "UNPIN",
   }),
-  SaveToPocket: (site, index, eventSource = "CARDGRID") => ({
-    id: "newtab-menu-save-to-pocket",
-    icon: "pocket-save",
-    action: ac.AlsoToMain({
-      type: at.SAVE_TO_POCKET,
-      data: {
-        site: { url: site.url, title: site.title },
-      },
-    }),
-    impression: ac.ImpressionStats({
-      source: eventSource,
-      pocket: 0,
-      tiles: [
-        {
-          id: site.guid,
-          pos: index,
-          ...(site.shim && site.shim.save ? { shim: site.shim.save } : {}),
-        },
-      ],
-    }),
-    userEvent: "SAVE_TO_POCKET",
-  }),
-  DeleteFromPocket: site => ({
-    id: "newtab-menu-delete-pocket",
-    icon: "pocket-delete",
-    action: ac.AlsoToMain({
-      type: at.DELETE_FROM_POCKET,
-      data: { pocket_id: site.pocket_id },
-    }),
-    userEvent: "DELETE_FROM_POCKET",
-  }),
-  ArchiveFromPocket: site => ({
-    id: "newtab-menu-archive-pocket",
-    icon: "pocket-archive",
-    action: ac.AlsoToMain({
-      type: at.ARCHIVE_FROM_POCKET,
-      data: { pocket_id: site.pocket_id },
-    }),
-    userEvent: "ARCHIVE_FROM_POCKET",
-  }),
   EditTopSite: (site, index) => ({
     id: "newtab-menu-edit-topsites",
     icon: "edit",
@@ -362,22 +322,6 @@ export const LinkMenuOptions = {
     site.isPinned
       ? LinkMenuOptions.UnpinTopSite(site)
       : LinkMenuOptions.PinTopSite(site, index),
-  CheckSavedToPocket: (site, index, source) =>
-    site.pocket_id
-      ? LinkMenuOptions.DeleteFromPocket(site)
-      : LinkMenuOptions.SaveToPocket(site, index, source),
-  CheckBookmarkOrArchive: site =>
-    site.pocket_id
-      ? LinkMenuOptions.ArchiveFromPocket(site)
-      : LinkMenuOptions.CheckBookmark(site),
-  CheckArchiveFromPocket: site =>
-    site.pocket_id
-      ? LinkMenuOptions.ArchiveFromPocket(site)
-      : LinkMenuOptions.EmptyItem(),
-  CheckDeleteFromPocket: site =>
-    site.pocket_id
-      ? LinkMenuOptions.DeleteFromPocket(site)
-      : LinkMenuOptions.EmptyItem(),
   OpenInPrivateWindow: (site, index, eventSource, isEnabled) =>
     isEnabled ? _OpenInPrivateWindow(site) : LinkMenuOptions.EmptyItem(),
   ChangeWeatherLocation: () => ({

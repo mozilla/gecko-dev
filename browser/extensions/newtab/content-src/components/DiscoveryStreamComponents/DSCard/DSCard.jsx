@@ -742,7 +742,6 @@ export class _DSCard extends React.PureComponent {
     }
 
     const {
-      pocketButtonEnabled,
       hideDescriptions,
       compactImages,
       imageGradient,
@@ -960,8 +959,6 @@ export class _DSCard extends React.PureComponent {
                 showPrivacyInfo={!!this.props.flightId}
                 onMenuUpdate={this.onMenuUpdate}
                 onMenuShow={this.onMenuShow}
-                saveToPocketCard={saveToPocketCard}
-                pocket_button_enabled={pocketButtonEnabled}
                 isRecentSave={isRecentSave}
                 recommendation_id={this.props.recommendation_id}
                 tile_id={this.props.id}
