@@ -31,23 +31,6 @@ process:
     expires: never
     telemetry_mirror: CHILD_PROCESS_LAUNCH_MS
 
-  lifetime:
-    type: timing_distribution
-    description: >
-      Average lifetime of a content process in seconds
-
-      This metric was generated to correspond to the Legacy Telemetry
-      exponential histogram PROCESS_LIFETIME.
-    time_unit: second
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1897060
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1897060
-    notification_emails:
-      - pbone@mozilla.com
-    expires: 142
-    telemetry_mirror: PROCESS_LIFETIME
-
 ipc:
   transaction_cancel:
     type: labeled_counter
