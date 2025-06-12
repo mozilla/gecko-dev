@@ -500,7 +500,7 @@ class BrowserFragmentTest {
             feltPrivateBrowsingEnabled = false,
         )
 
-        verify(exactly = 1) { browserFragment.addLeadingAction(any(), any(), any()) }
+        verify(exactly = 1) { browserFragment.addLeadingAction(any(), any()) }
         verify(exactly = 0) { browserFragment.addTabletActions(any()) }
         verify(exactly = 0) { browserFragment.addNavigationActions(any()) }
 
@@ -520,7 +520,7 @@ class BrowserFragmentTest {
             feltPrivateBrowsingEnabled = false,
         )
 
-        verify(exactly = 1) { browserFragment.addLeadingAction(any(), any(), any()) }
+        verify(exactly = 1) { browserFragment.addLeadingAction(any(), any()) }
         verify(exactly = 0) { browserFragment.addTabletActions(any()) }
         verify(exactly = 0) { browserFragment.addNavigationActions(any()) }
 
@@ -542,7 +542,7 @@ class BrowserFragmentTest {
         )
 
         verifyOrder {
-            browserFragment.addLeadingAction(any(), any(), any())
+            browserFragment.addLeadingAction(any(), any())
             browserFragment.addNavigationActions(any())
         }
 
@@ -564,7 +564,6 @@ class BrowserFragmentTest {
             feltPrivateBrowsingEnabled = false,
         )
 
-        verify(exactly = 0) { browserFragment.removeLeadingAction() }
         verify(exactly = 0) { browserFragment.removeNavigationActions() }
 
         unmockThemeManagerAndAppCompatResources()
@@ -585,7 +584,7 @@ class BrowserFragmentTest {
             feltPrivateBrowsingEnabled = false,
         )
 
-        verify(exactly = 1) { browserFragment.addLeadingAction(any(), any(), any()) }
+        verify(exactly = 1) { browserFragment.addLeadingAction(any(), any()) }
         verify(exactly = 1) { browserFragment.addNavigationActions(any()) }
 
         unmockThemeManagerAndAppCompatResources()

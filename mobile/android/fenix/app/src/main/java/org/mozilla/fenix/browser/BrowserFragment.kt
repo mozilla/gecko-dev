@@ -337,7 +337,6 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun addLeadingAction(
         context: Context,
-        showHomeButton: Boolean,
         showEraseButton: Boolean,
     ) {
         if (leadingAction != null) return
@@ -352,7 +351,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                 iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
                 listener = browserToolbarInteractor::onEraseButtonClicked,
             )
-        } else if (showHomeButton) {
+        } else {
             BrowserToolbar.Button(
                 imageDrawable = AppCompatResources.getDrawable(
                     context,
@@ -362,21 +361,11 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                 iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
                 listener = browserToolbarInteractor::onHomeButtonClicked,
             )
-        } else {
-            null
         }
 
         leadingAction?.let {
             (_browserToolbarView as? BrowserToolbarView)?.toolbar?.addNavigationAction(it)
         }
-    }
-
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun removeLeadingAction() {
-        leadingAction?.let {
-            (_browserToolbarView as? BrowserToolbarView)?.toolbar?.removeNavigationAction(it)
-        }
-        leadingAction = null
     }
 
     /**
@@ -394,7 +383,6 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         feltPrivateBrowsingEnabled: Boolean,
     ) {
         updateAddressBarLeadingAction(
-            redesignEnabled = false,
             isLandscape = isLandscape,
             isPrivate = isPrivate,
             isTablet = isTablet,
@@ -407,37 +395,18 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
 
     @VisibleForTesting
     internal fun updateAddressBarLeadingAction(
-        redesignEnabled: Boolean,
         isLandscape: Boolean,
         isTablet: Boolean,
         isPrivate: Boolean,
         feltPrivateBrowsingEnabled: Boolean,
         context: Context,
     ) {
-        val showHomeButton = !redesignEnabled
         val showEraseButton = feltPrivateBrowsingEnabled && isPrivate && (isLandscape || isTablet)
 
-        if (showHomeButton || showEraseButton) {
-            addLeadingAction(
-                context = context,
-                showHomeButton = showHomeButton,
-                showEraseButton = showEraseButton,
-            )
-        } else {
-            removeLeadingAction()
-        }
-    }
-
-    @VisibleForTesting
-    internal fun updateAddressBarNavigationActions(
-        context: Context,
-        isWindowSizeSmall: Boolean,
-    ) {
-        if (!isWindowSizeSmall) {
-            addNavigationActions(context)
-        } else {
-            removeNavigationActions()
-        }
+        addLeadingAction(
+            context = context,
+            showEraseButton = showEraseButton,
+        )
     }
 
     override fun onUpdateToolbarForConfigurationChange(toolbar: FenixBrowserToolbarView) {

@@ -148,19 +148,6 @@ class CustomTabsIntegration(
     override fun onBackPressed() = feature.onBackPressed()
 
     @VisibleForTesting
-    internal fun updateAddressBarNavigationActions(
-        context: Context,
-        isWindowSizeSmall: Boolean,
-    ) {
-        if (!isWindowSizeSmall) {
-            addNavigationActions(context)
-            browserToolbar.invalidateActions()
-        } else {
-            removeNavigationActions()
-        }
-    }
-
-    @VisibleForTesting
     internal fun addNavigationActions(context: Context) {
         val enableTint = feature.iconColor
         val disableTint = ColorUtils.setAlphaComponent(

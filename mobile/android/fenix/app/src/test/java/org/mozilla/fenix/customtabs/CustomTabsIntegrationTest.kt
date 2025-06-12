@@ -164,56 +164,6 @@ class CustomTabsIntegrationTest {
         verify(exactly = 2) { toolbar.removeNavigationAction(any()) }
     }
 
-    @Test
-    fun `GIVEN isLandscape is true WHEN updateAddressBarNavigationActions is called THEN navigation buttons are added`() {
-        val toolbar: BrowserToolbar = mockk(relaxed = true)
-        val integration = spyk(getIntegration(toolbar))
-
-        assertNull(integration.forwardAction)
-        assertNull(integration.backAction)
-
-        integration.updateAddressBarNavigationActions(testContext, isWindowSizeSmall = false)
-
-        assertNotNull(integration.forwardAction)
-        assertNotNull(integration.backAction)
-        verify { integration.addNavigationActions(any()) }
-        verify(exactly = 2) { toolbar.addNavigationAction(any()) }
-    }
-
-    @Test
-    fun `GIVEN isTablet is true WHEN updateAddressBarNavigationActions is called THEN navigation buttons are added`() {
-        val toolbar: BrowserToolbar = mockk(relaxed = true)
-        val integration = spyk(getIntegration(toolbar))
-
-        assertNull(integration.forwardAction)
-        assertNull(integration.backAction)
-
-        integration.updateAddressBarNavigationActions(testContext, isWindowSizeSmall = false)
-
-        assertNotNull(integration.forwardAction)
-        assertNotNull(integration.backAction)
-        verify { integration.addNavigationActions(any()) }
-        verify(exactly = 2) { toolbar.addNavigationAction(any()) }
-    }
-
-    @Test
-    fun `GIVEN isTablet and isLandscape are false WHEN updateAddressBarNavigationActions is called THEN navigation buttons are removed`() {
-        val integration = spyk(getIntegration()).apply {
-            forwardAction = mockk()
-            backAction = mockk()
-        }
-
-        assertNotNull(integration.forwardAction)
-        assertNotNull(integration.backAction)
-
-        integration.updateAddressBarNavigationActions(testContext, isWindowSizeSmall = true)
-
-        assertNull(integration.forwardAction)
-        assertNull(integration.backAction)
-        verify { integration.removeNavigationActions() }
-        verify(exactly = 2) { toolbar.removeNavigationAction(any()) }
-    }
-
     private fun getIntegration(
         toolbar: BrowserToolbar = this.toolbar,
     ): CustomTabsIntegration {
