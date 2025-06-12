@@ -11,6 +11,12 @@ loadScripts(
   { name: "states.js", dir: MOCHITESTS_DIR }
 );
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Verify that the value of a slider input can be incremented/decremented
  * Test input[type=range]

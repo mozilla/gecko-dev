@@ -66,6 +66,12 @@ function testBoundsWithOffset(browser, iframeDocAcc, id, domElmBounds, offset) {
   return boundsAreEquivalent;
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 addAccessibleTask(
   `<div id='${ELEM_ID}'>hello world</div>`,
   async function (browser, iframeDocAcc) {
