@@ -288,65 +288,23 @@ impl<'a, E: TElement + 'a> Default for ToInvalidate<'a, E> {
     }
 }
 
-fn dependencies_can_collapse(a: &Dependency, b: &Dependency) -> bool {
-    // We want to detect identical dependencies that occur at different
-    // compounds but has the identical compound in the same selector,
-    // e.g. :has(.item .item).
-
-    // If they trigger different invalidations, they shouldn't be collapsed.
+fn dependency_selectors_match(a: &Dependency, b: &Dependency) -> bool {
     if a.invalidation_kind() != b.invalidation_kind() {
         return false;
     }
-
-    // Not in the same selector, trivially skipped.
     if SelectorKey::new(&a.selector) != SelectorKey::new(&b.selector) {
         return false;
     }
-
-    // Check that this is in the same nesting.
-    // TODO(dshin): @scope probably brings more subtleties...
     let mut a_parent = a.parent.as_ref();
     let mut b_parent = b.parent.as_ref();
     while let (Some(a_p), Some(b_p)) = (a_parent, b_parent) {
-        // This is a bit subtle - but we don't need to do the checks we do at higher levels.
-        // Cases like `:is(.item .foo) :is(.item .foo)` where `.item` invalidates would
-        // point to different dependencies, pointing to the same outer selector, but
-        // differing in selector offset.
         if SelectorKey::new(&a_p.selector) != SelectorKey::new(&b_p.selector) {
             return false;
         }
         a_parent = a_p.parent.as_ref();
         b_parent = b_p.parent.as_ref();
     }
-    if a_parent.is_some() || b_parent.is_some() {
-        return false;
-    }
-
-    // Ok, now, do the compounds actually match?
-    // This can get expensive quickly, but we're assuming that:
-    //
-    //   * In most cases, authors don't generally duplicate compounds in a selector, so
-    //     this fails quickly
-    //   * In cases where compounds are duplicated, reducing the number of invalidations
-    //     has a payoff that offsets the comparison cost
-    //
-    // Note, `.a.b` != `.b.a` - doesn't affect correctness, though.
-    // TODO(dshin): Caching this may be worth it as well?
-    let mut a_iter = a.selector.iter_from(a.selector_offset);
-    let mut b_iter = b.selector.iter_from(b.selector_offset);
-    loop {
-        let a_component = a_iter.next();
-        let b_component = b_iter.next();
-
-        if a_component != b_component {
-            return false;
-        }
-        let Some(component) = a_component else { return true };
-        if component.has_indexed_selector_in_subject() {
-            // The element's positioning matters, so can't collapse.
-            return false;
-        }
-    }
+    a_parent.is_none() && b_parent.is_none()
 }
 
 impl<'a, E> RelativeSelectorDependencyCollector<'a, E>
@@ -371,11 +329,10 @@ where
         match self
             .invalidations
             .iter_mut()
-            .find(|(_, _, d)| dependencies_can_collapse(dependency, d))
+            .find(|(_, _, d)| dependency_selectors_match(dependency, d))
         {
             Some((e, h, d)) => {
-                // This dependency should invalidate the same way - Collapse the invalidation
-                // to a more general case so we don't do duplicate work.
+                // Just keep one.
                 if d.selector_offset > dependency.selector_offset {
                     (*e, *h, *d) = (element, host, dependency);
                 }
