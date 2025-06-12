@@ -1,0 +1,151 @@
+Only define DeleteFile from file_util_win.cc
+
+We do not need the other functions defined in this file.
+---
+ base/files/file_util_win.cc | 21 +++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/base/files/file_util_win.cc b/base/files/file_util_win.cc
+index d7b5fb20aeb3..6a7792a000e0 100644
+--- a/base/files/file_util_win.cc
++++ b/base/files/file_util_win.cc
+@@ -6,6 +6,7 @@
+ 
+ #include <windows.h>
+ 
++#if !defined(MOZ_ZUCCHINI)
+ #include <io.h>
+ #include <psapi.h>
+ #include <shellapi.h>
+@@ -27,7 +28,9 @@
+ #include "base/feature_list.h"
+ #include "base/features.h"
+ #include "base/files/file_enumerator.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "base/files/file_path.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/files/memory_mapped_file.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback.h"
+@@ -46,7 +49,9 @@
+ #include "base/task/bind_post_task.h"
+ #include "base/task/sequenced_task_runner.h"
+ #include "base/task/thread_pool.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "base/threading/scoped_blocking_call.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/threading/scoped_thread_priority.h"
+ #include "base/time/time.h"
+ #include "base/uuid.h"
+@@ -55,16 +60,19 @@
+ #include "base/win/sid.h"
+ #include "base/win/windows_types.h"
+ #include "base/win/windows_version.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ namespace base {
+ 
+ namespace {
+ 
++#if !defined(MOZ_ZUCCHINI)
+ int g_extra_allowed_path_for_no_execute = 0;
+ 
+ const DWORD kFileShareAll =
+     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
+ const wchar_t kDefaultTempDirPrefix[] = L"ChromiumTemp";
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ // Returns the Win32 last error code or ERROR_SUCCESS if the last error code is
+ // ERROR_FILE_NOT_FOUND or ERROR_PATH_NOT_FOUND. This is useful in cases where
+@@ -78,6 +86,7 @@ DWORD ReturnLastErrorOrSuccessOnNotFound() {
+              : error_code;
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ // Deletes all files and directories in a path.
+ // Returns ERROR_SUCCESS on success or the Windows error code corresponding to
+ // the first error encountered. ERROR_FILE_NOT_FOUND and ERROR_PATH_NOT_FOUND
+@@ -254,6 +263,7 @@ bool DoCopyDirectory(const FilePath& from_path,
+ 
+   return success;
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ // Returns ERROR_SUCCESS on success, or a Windows error code on failure.
+ DWORD DoDeleteFile(const FilePath& path, bool recursive) {
+@@ -265,6 +275,7 @@ DWORD DoDeleteFile(const FilePath& path, bool recursive) {
+   if (path.value().length() >= MAX_PATH)
+     return ERROR_BAD_PATHNAME;
+ 
++#if !defined(MOZ_ZUCCHINI)
+   // Handle any path with wildcards.
+   if (path.BaseName().value().find_first_of(FILE_PATH_LITERAL("*?")) !=
+       FilePath::StringType::npos) {
+@@ -274,6 +285,7 @@ DWORD DoDeleteFile(const FilePath& path, bool recursive) {
+     DCHECK_NE(static_cast<LONG>(error_code), ERROR_PATH_NOT_FOUND);
+     return error_code;
+   }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+   // Report success if the file or path does not exist.
+   const DWORD attr = ::GetFileAttributes(path.value().c_str());
+@@ -295,6 +307,7 @@ DWORD DoDeleteFile(const FilePath& path, bool recursive) {
+                : ReturnLastErrorOrSuccessOnNotFound();
+   }
+ 
++#if !defined(MOZ_ZUCCHINI)
+   if (recursive) {
+     const DWORD error_code =
+         DeleteFileRecursive(path, FILE_PATH_LITERAL("*"), true);
+@@ -303,6 +316,7 @@ DWORD DoDeleteFile(const FilePath& path, bool recursive) {
+     if (error_code != ERROR_SUCCESS)
+       return error_code;
+   }
++#endif  // !defined(MOZ_ZUCCHINI)
+   return ::RemoveDirectory(path.value().c_str())
+              ? ERROR_SUCCESS
+              : ReturnLastErrorOrSuccessOnNotFound();
+@@ -320,6 +334,7 @@ bool DeleteFileOrSetLastError(const FilePath& path, bool recursive) {
+   return false;
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ constexpr int kMaxDeleteAttempts = 9;
+ 
+ void DeleteFileWithRetry(const FilePath& path,
+@@ -422,9 +437,11 @@ bool IsPathSafeToSetAclOn(const FilePath& path) {
+ 
+   return false;
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ }  // namespace
+ 
++#if !defined(MOZ_ZUCCHINI)
+ OnceClosure GetDeleteFileCallback(const FilePath& path,
+                                   OnceCallback<void(bool)> reply_callback) {
+   return GetDeleteFileCallbackInternal(path, /*recursive=*/false,
+@@ -445,11 +462,13 @@ FilePath MakeAbsoluteFilePath(const FilePath& input) {
+     return FilePath();
+   return FilePath(file_path);
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ bool DeleteFile(const FilePath& path) {
+   return DeleteFileOrSetLastError(path, /*recursive=*/false);
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ bool DeletePathRecursively(const FilePath& path) {
+   return DeleteFileOrSetLastError(path, /*recursive=*/true);
+ }
+@@ -1257,4 +1276,6 @@ bool CopyAndDeleteDirectory(const FilePath& from_path,
+ }
+ 
+ }  // namespace internal
++#endif  // !defined(MOZ_ZUCCHINI)
++
+ }  // namespace base
+-- 
+2.42.0.windows.2
+

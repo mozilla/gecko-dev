@@ -1,0 +1,125 @@
+Limit dependencies in file.{cc,h} and file_win.cc
+
+We do not need FLAG_WIN_NO_EXECUTE, nor timer- and histogram-related code.
+This removes a dependency on security_util.{cc,h} through PreventExecuteMapping.
+---
+ base/files/file.cc     | 4 ++++
+ base/files/file.h      | 4 ++++
+ base/files/file_win.cc | 8 ++++++++
+ 3 files changed, 16 insertions(+)
+
+diff --git a/base/files/file.cc b/base/files/file.cc
+index ae486b403a8c..271c9eb570f1 100644
+--- a/base/files/file.cc
++++ b/base/files/file.cc
+@@ -9,10 +9,14 @@
+ #include "base/check_op.h"
+ #include "base/files/file_path.h"
+ #include "base/files/file_tracing.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/metrics/histogram.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "base/notreached.h"
+ #include "base/numerics/safe_conversions.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/timer/elapsed_timer.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "base/trace_event/base_tracing.h"
+ #include "build/build_config.h"
+ 
+diff --git a/base/files/file.h b/base/files/file.h
+index 1e0b440c920c..c923b06bd8ae 100644
+--- a/base/files/file.h
++++ b/base/files/file.h
+@@ -71,10 +71,12 @@ class BASE_EXPORT File {
+     FLAG_CAN_DELETE_ON_CLOSE = 1 << 20,  // Requests permission to delete a file
+                                          // via DeleteOnClose() (Windows only).
+                                          // See DeleteOnClose() for details.
++#if !defined(MOZ_ZUCCHINI)
+     FLAG_WIN_NO_EXECUTE =
+         1 << 21,  // Windows only. Marks the file with a deny ACE that prevents
+                   // opening the file with EXECUTE access. Cannot be used with
+                   // FILE_WIN_EXECUTE flag. See also PreventExecuteMapping.
++#endif  // !defined(MOZ_ZUCCHINI)
+   };
+ 
+   // This enum has been recorded in multiple histograms using PlatformFileError
+@@ -380,6 +382,7 @@ class BASE_EXPORT File {
+   static int Lstat(const char* path, stat_wrapper_t* sb);
+ #endif
+ 
++#if !defined(MOZ_ZUCCHINI)
+   // This function can be used to augment `flags` with the correct flags
+   // required to create a File that can be safely passed to an untrusted
+   // process. It must be called if the File is intended to be transferred to an
+@@ -393,6 +396,7 @@ class BASE_EXPORT File {
+     }
+     return flags;
+   }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+  private:
+   friend class FileTracing::ScopedTrace;
+diff --git a/base/files/file_win.cc b/base/files/file_win.cc
+index 71c4a2566a5a..6763dadd6426 100644
+--- a/base/files/file_win.cc
++++ b/base/files/file_win.cc
+@@ -10,9 +10,11 @@
+ #include <tuple>
+ 
+ #include "base/check_op.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/files/file_util.h"
+ #include "base/immediate_crash.h"
+ #include "base/metrics/histogram_functions.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "base/notreached.h"
+ #include "base/strings/string_util.h"
+ #include "base/threading/scoped_blocking_call.h"
+@@ -212,6 +214,7 @@ bool File::SetLength(int64_t length) {
+            FALSE));
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ bool File::SetTimes(Time last_access_time, Time last_modified_time) {
+   ScopedBlockingCall scoped_blocking_call(FROM_HERE, BlockingType::MAY_BLOCK);
+   DCHECK(IsValid());
+@@ -248,6 +251,7 @@ bool File::GetInfo(Info* info) {
+   info->creation_time = Time::FromFileTime(file_info.ftCreationTime);
+   return true;
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ namespace {
+ 
+@@ -415,9 +419,11 @@ void File::DoInitialize(const FilePath& path, uint32_t flags) {
+   if (flags & FLAG_WRITE_ATTRIBUTES)
+     access |= FILE_WRITE_ATTRIBUTES;
+   if (flags & FLAG_WIN_EXECUTE) {
++#if !defined(MOZ_ZUCCHINI)
+     // Specifying both FLAG_WIN_EXECUTE and FLAG_WIN_NO_EXECUTE would
+     // constitute a security risk, so deny the access here.
+     CHECK_EQ(flags & FLAG_WIN_NO_EXECUTE, 0U);
++#endif  // !defined(MOZ_ZUCCHINI)
+     access |= GENERIC_EXECUTE;
+   }
+   if (flags & FLAG_CAN_DELETE_ON_CLOSE)
+@@ -454,6 +460,7 @@ void File::DoInitialize(const FilePath& path, uint32_t flags) {
+       created_ = (ERROR_ALREADY_EXISTS != GetLastError());
+     else if (flags & (FLAG_CREATE_ALWAYS | FLAG_CREATE))
+       created_ = true;
++#if !defined(MOZ_ZUCCHINI)
+     if (flags & FLAG_WIN_NO_EXECUTE) {
+       // These two DCHECKs make sure that no callers are trying to remove
+       // execute permission from a file that might need to be mapped executable
+@@ -472,6 +479,7 @@ void File::DoInitialize(const FilePath& path, uint32_t flags) {
+       // occurring or about to occur.
+       std::ignore = PreventExecuteMapping(path);
+     }
++#endif  // defined(MOZ_ZUCCHINI)
+   } else {
+     error_details_ = GetLastFileError();
+   }
+-- 
+2.42.0.windows.2
+

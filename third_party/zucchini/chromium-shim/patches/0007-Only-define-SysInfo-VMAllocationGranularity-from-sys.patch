@@ -1,0 +1,311 @@
+Only define SysInfo::VMAllocationGranularity() from sys_info_win.{cc,h}
+
+We do not need the other methods defined in these files.
+---
+ base/system/sys_info.h      |  8 ++++++++
+ base/system/sys_info_win.cc | 10 ++++++++++
+ base/win/windows_version.cc | 18 ++++++++++++++++++
+ base/win/windows_version.h  | 14 ++++++++++++++
+ 4 files changed, 50 insertions(+)
+
+diff --git a/base/system/sys_info.h b/base/system/sys_info.h
+index b8295c7cf2aa..8cc1179a5e49 100644
+--- a/base/system/sys_info.h
++++ b/base/system/sys_info.h
+@@ -12,6 +12,7 @@
+ #include <string>
+ 
+ #include "base/base_export.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/functional/callback_forward.h"
+ #include "base/gtest_prod_util.h"
+ #include "base/metrics/field_trial_params.h"
+@@ -22,9 +23,11 @@
+ #if BUILDFLAG(IS_MAC)
+ #include "base/feature_list.h"
+ #endif
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ namespace base {
+ 
++#if !defined(MOZ_ZUCCHINI)
+ #if BUILDFLAG(IS_MAC)
+ // When enabled, NumberOfProcessors() returns the number of physical processors
+ // instead of the number of logical processors if CPU security mitigations are
+@@ -48,9 +51,11 @@ class ScopedAmountOfPhysicalMemoryOverride;
+ 
+ class FilePath;
+ struct SystemMemoryInfoKB;
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ class BASE_EXPORT SysInfo {
+  public:
++ #if !defined(MOZ_ZUCCHINI)
+   // Returns the number of processors/cores available for the current
+   // application. This is typically the number of logical cores installed on the
+   // system, but could instead be the number of physical cores when
+@@ -160,11 +165,13 @@ class BASE_EXPORT SysInfo {
+   // an empty string is returned.
+   // More detailed info can be obtained from base/cpu.h.
+   static std::string CPUModelName();
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+   // Return the smallest amount of memory (in bytes) which the VM system will
+   // allocate.
+   static size_t VMAllocationGranularity();
+ 
++#if !defined(MOZ_ZUCCHINI)
+ #if BUILDFLAG(IS_CHROMEOS)
+   // Set |value| and return true if LsbRelease contains information about |key|.
+   static bool GetLsbReleaseValue(const std::string& key, std::string* value);
+@@ -286,6 +293,7 @@ class BASE_EXPORT SysInfo {
+   static absl::optional<uint64_t> SetAmountOfPhysicalMemoryMbForTesting(
+       uint64_t amount_of_memory_mb);
+   static void ClearAmountOfPhysicalMemoryMbForTesting();
++#endif  // !defined(MOZ_ZUCCHINI)
+ };
+ 
+ }  // namespace base
+diff --git a/base/system/sys_info_win.cc b/base/system/sys_info_win.cc
+index 68626967de31..c924275f194f 100644
+--- a/base/system/sys_info_win.cc
++++ b/base/system/sys_info_win.cc
+@@ -8,6 +8,7 @@
+ #include <stdint.h>
+ #include <windows.h>
+ 
++#if !defined(MOZ_ZUCCHINI)
+ #include <algorithm>
+ #include <bit>
+ #include <limits>
+@@ -25,9 +26,13 @@
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/threading/scoped_blocking_call.h"
+ #include "base/win/registry.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "base/win/windows_version.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "third_party/abseil-cpp/absl/container/inlined_vector.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
++#if !defined(MOZ_ZUCCHINI)
+ namespace {
+ 
+ // Returns the power efficiency levels of physical cores or empty vector on
+@@ -143,9 +148,11 @@ bool GetDiskSpaceInfo(const base::FilePath& path,
+ }
+ 
+ }  // namespace
++#endif // !defined(MOZ_ZUCCHINI)
+ 
+ namespace base {
+ 
++#if !defined(MOZ_ZUCCHINI)
+ // static
+ int SysInfo::NumberOfProcessors() {
+   return win::OSInfo::GetInstance()->processors();
+@@ -261,12 +268,14 @@ std::string SysInfo::OperatingSystemArchitecture() {
+ std::string SysInfo::CPUModelName() {
+   return win::OSInfo::GetInstance()->processor_model_name();
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ // static
+ size_t SysInfo::VMAllocationGranularity() {
+   return win::OSInfo::GetInstance()->allocation_granularity();
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ // static
+ void SysInfo::OperatingSystemVersionNumbers(int32_t* major_version,
+                                             int32_t* minor_version,
+@@ -316,5 +325,6 @@ SysInfo::HardwareInfo SysInfo::GetHardwareInfoSync() {
+ std::string SysInfo::HardwareModelName() {
+   return ReadHardwareInfoFromRegistry(L"SystemProductName");
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ }  // namespace base
+diff --git a/base/win/windows_version.cc b/base/win/windows_version.cc
+index 04bd7ae042b3..a7eb64ee802f 100644
+--- a/base/win/windows_version.cc
++++ b/base/win/windows_version.cc
+@@ -6,6 +6,7 @@
+ 
+ #include <windows.h>
+ 
++#if !defined(MOZ_ZUCCHINI)
+ #include <memory>
+ #include <tuple>
+ #include <utility>
+@@ -21,6 +22,7 @@
+ #include "base/threading/thread_restrictions.h"
+ #include "base/win/registry.h"
+ #include "build/build_config.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ #if !defined(__clang__) && _MSC_FULL_VER < 191125507
+ #error VS 2017 Update 3.2 or higher is required
+@@ -35,6 +37,7 @@ namespace win {
+ 
+ namespace {
+ 
++#if !defined(MOZ_ZUCCHINI)
+ // The values under the CurrentVersion registry hive are mirrored under
+ // the corresponding Wow6432 hive.
+ constexpr wchar_t kRegKeyWindowsNTCurrentVersion[] =
+@@ -62,6 +65,7 @@ std::pair<int, std::string> GetVersionData() {
+ 
+   return std::make_pair(static_cast<int>(ubr), WideToUTF8(release_id));
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ const _SYSTEM_INFO& GetSystemInfoStorage() {
+   static const _SYSTEM_INFO system_info = [] {
+@@ -79,6 +83,9 @@ OSInfo** OSInfo::GetInstanceStorage() {
+   // Note: we don't use the Singleton class because it depends on AtExitManager,
+   // and it's convenient for other modules to use this class without it.
+   static OSInfo* info = []() {
++#if defined(MOZ_ZUCCHINI)
++    return new OSInfo(GetSystemInfoStorage());
++#else
+     _OSVERSIONINFOEXW version_info = {sizeof(version_info)};
+ 
+ #pragma clang diagnostic push
+@@ -98,6 +105,7 @@ OSInfo** OSInfo::GetInstanceStorage() {
+                      0, 0, &os_type);
+ 
+     return new OSInfo(version_info, GetSystemInfoStorage(), os_type);
++#endif  // defined(MOZ_ZUCCHINI)
+   }();
+ 
+   return &info;
+@@ -108,6 +116,7 @@ OSInfo* OSInfo::GetInstance() {
+   return *GetInstanceStorage();
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ // static
+ OSInfo::WindowsArchitecture OSInfo::GetArchitecture() {
+   switch (GetSystemInfoStorage().wProcessorArchitecture) {
+@@ -153,7 +162,13 @@ bool OSInfo::IsRunningEmulatedOnArm64() {
+   return false;
+ #endif
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
++#if defined(MOZ_ZUCCHINI)
++OSInfo::OSInfo(const _SYSTEM_INFO& system_info) {
++  allocation_granularity_ = system_info.dwAllocationGranularity;
++}
++#else
+ OSInfo::OSInfo(const _OSVERSIONINFOEXW& version_info,
+                const _SYSTEM_INFO& system_info,
+                DWORD os_type)
+@@ -243,9 +258,11 @@ OSInfo::OSInfo(const _OSVERSIONINFOEXW& version_info,
+     version_type_ = SUITE_HOME;
+   }
+ }
++#endif  // defined(MOZ_ZUCCHINI)
+ 
+ OSInfo::~OSInfo() = default;
+ 
++#if !defined(MOZ_ZUCCHINI)
+ Version OSInfo::Kernel32Version() {
+   static const Version kernel32_version =
+       MajorMinorBuildToVersion(Kernel32BaseVersion().components()[0],
+@@ -488,6 +505,7 @@ void OSInfo::InitializeWowStatusValuesForProcess(HANDLE process_handle) {
+   wow_process_machine_ = GetWowProcessMachineArchitecture(process_machine);
+   wow_native_machine_ = GetWowNativeMachineArchitecture(native_machine);
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ }  // namespace win
+ }  // namespace base
+diff --git a/base/win/windows_version.h b/base/win/windows_version.h
+index 145ff47f7740..41a7496d5d7d 100644
+--- a/base/win/windows_version.h
++++ b/base/win/windows_version.h
+@@ -119,11 +119,13 @@ class BASE_EXPORT OSInfo {
+   // running emulated on ARM64.
+   static bool IsRunningEmulatedOnArm64();
+ 
++#if !defined(MOZ_ZUCCHINI)
+   // Returns the OS Version as returned from a call to GetVersionEx().
+   const Version& version() const { return version_; }
+ 
+   // Returns detailed version info containing major, minor, build and patch.
+   const VersionNumber& version_number() const { return version_number_; }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+   // The Kernel32* set of functions return the OS version as determined by a
+   // call to VerQueryValue() on kernel32.dll. This avoids any running App Compat
+@@ -141,6 +143,7 @@ class BASE_EXPORT OSInfo {
+       const;                     // Chrome AMD64 build on an ARM64 host machine.
+   bool IsWowX86OnOther() const;  // Chrome x86 on some other x64 host machine.
+ 
++  #if !defined(MOZ_ZUCCHINI)
+   // Functions to determine Version Type (e.g. Enterprise/Home) and Service Pack
+   // value. See above for definitions of these values.
+   const VersionType& version_type() const { return version_type_; }
+@@ -149,6 +152,7 @@ class BASE_EXPORT OSInfo {
+ 
+   // Returns the number of processors on the system.
+   const int& processors() const { return processors_; }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+   // Returns the allocation granularity. See
+   // https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-system_info.
+@@ -156,11 +160,13 @@ class BASE_EXPORT OSInfo {
+     return allocation_granularity_;
+   }
+ 
++#if !defined(MOZ_ZUCCHINI)
+   // Processor name as read from registry.
+   std::string processor_model_name();
+ 
+   // Returns the "ReleaseId" (Windows 10 release number) from the registry.
+   const std::string& release_id() const { return release_id_; }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+  private:
+   friend class base::test::ScopedOSInfoOverride;
+@@ -189,9 +195,13 @@ class BASE_EXPORT OSInfo {
+   // can override it in tests.
+   static OSInfo** GetInstanceStorage();
+ 
++#if defined(MOZ_ZUCCHINI)
++  OSInfo(const _SYSTEM_INFO& system_info);
++#else
+   OSInfo(const _OSVERSIONINFOEXW& version_info,
+          const _SYSTEM_INFO& system_info,
+          DWORD os_type);
++#endif  // defined(MOZ_ZUCCHINI)
+   ~OSInfo();
+ 
+   // Returns a Version value for a given OS version tuple.
+@@ -210,6 +220,7 @@ class BASE_EXPORT OSInfo {
+ 
+   void InitializeWowStatusValuesForProcess(HANDLE process_handle);
+ 
++#if !defined(MOZ_ZUCCHINI)
+   Version version_;
+   VersionNumber version_number_;
+   VersionType version_type_;
+@@ -230,10 +241,13 @@ class BASE_EXPORT OSInfo {
+   // is empty.
+   std::string service_pack_str_;
+   int processors_;
++#endif  // !defined(MOZ_ZUCCHINI)
+   size_t allocation_granularity_;
++#if !defined(MOZ_ZUCCHINI)
+   WowProcessMachine wow_process_machine_;
+   WowNativeMachine wow_native_machine_;
+   std::string processor_model_name_;
++#endif  // !defined(MOZ_ZUCCHINI)
+ };
+ 
+ // Because this is by far the most commonly-requested value from the above
+-- 
+2.42.0.windows.2
+

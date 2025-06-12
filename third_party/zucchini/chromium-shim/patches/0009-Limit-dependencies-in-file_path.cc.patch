@@ -1,0 +1,63 @@
+Limit dependencies in file_path.cc
+
+This removes a dependency on safe_base_name.h, pickle.h and sys_string_conversions.h.
+---
+ base/files/file_path.cc | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/base/files/file_path.cc b/base/files/file_path.cc
+index 71ca2666bb97..8b840a62b2f4 100644
+--- a/base/files/file_path.cc
++++ b/base/files/file_path.cc
+@@ -9,14 +9,20 @@
+ #include <algorithm>
+ 
+ #include "base/check_op.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/files/safe_base_name.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "base/numerics/safe_conversions.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/pickle.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "base/ranges/algorithm.h"
+ #include "base/strings/strcat.h"
+ #include "base/strings/string_piece.h"
+ #include "base/strings/string_util.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/strings/sys_string_conversions.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/trace_event/base_tracing.h"
+ 
+@@ -561,9 +567,11 @@ FilePath FilePath::Append(const FilePath& component) const {
+   return Append(component.value());
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ FilePath FilePath::Append(const SafeBaseName& component) const {
+   return Append(component.path().value());
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ FilePath FilePath::AppendASCII(StringPiece component) const {
+   DCHECK(base::IsStringASCII(component));
+@@ -723,6 +731,7 @@ FilePath FilePath::FromUTF16Unsafe(StringPiece16 utf16) {
+ 
+ #endif  // BUILDFLAG(IS_WIN)
+ 
++#if !defined(MOZ_ZUCCHINI)
+ void FilePath::WriteToPickle(Pickle* pickle) const {
+ #if BUILDFLAG(IS_WIN)
+   pickle->WriteString16(AsStringPiece16(path_));
+@@ -751,6 +760,7 @@ bool FilePath::ReadFromPickle(PickleIterator* iter) {
+ 
+   return true;
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ #if BUILDFLAG(IS_WIN)
+ // Windows specific implementation of file string comparisons.
+-- 
+2.42.0.windows.2
+

@@ -1,0 +1,59 @@
+Only define IsUser32AndGdi32Available from win_util.cc
+
+We do not need the other functions defined in this file.
+---
+ base/win/win_util.cc | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/base/win/win_util.cc b/base/win/win_util.cc
+index 0d81e7c0a268..0fde68c6b40b 100644
+--- a/base/win/win_util.cc
++++ b/base/win/win_util.cc
+@@ -36,6 +36,7 @@
+ #include <memory>
+ #include <utility>
+ 
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/base_switches.h"
+ #include "base/command_line.h"
+ #include "base/files/file_path.h"
+@@ -61,10 +62,12 @@
+ #include "base/win/static_constants.h"
+ #include "base/win/windows_version.h"
+ #include "third_party/abseil-cpp/absl/types/optional.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ namespace base {
+ namespace win {
+ 
++#if !defined(MOZ_ZUCCHINI)
+ namespace {
+ 
+ // Sets the value of |property_key| to |property_value| in |property_store|.
+@@ -602,6 +605,7 @@ bool IsDeviceRegisteredWithManagement() {
+ bool IsJoinedToAzureAD() {
+   return *GetAzureADJoinStateStorage();
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ bool IsUser32AndGdi32Available() {
+   static auto is_user32_and_gdi32_available = []() {
+@@ -618,6 +622,7 @@ bool IsUser32AndGdi32Available() {
+   return is_user32_and_gdi32_available;
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ bool GetLoadedModulesSnapshot(HANDLE process, std::vector<HMODULE>* snapshot) {
+   DCHECK(snapshot);
+   DCHECK_EQ(0u, snapshot->size());
+@@ -829,6 +834,7 @@ ScopedAzureADJoinStateForTesting::ScopedAzureADJoinStateForTesting(bool state)
+ ScopedAzureADJoinStateForTesting::~ScopedAzureADJoinStateForTesting() {
+   *GetAzureADJoinStateStorage() = initial_state_;
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ }  // namespace win
+ }  // namespace base
+-- 
+2.42.0.windows.2
+

@@ -1,0 +1,118 @@
+Limit dependencies in memory_mapped_file.{cc,h} and memory_mapped_file_win.cc
+
+We do not need READ_CODE_IMAGE.
+This removes a dependency on pe_image.{cc,h}.
+---
+ base/files/memory_mapped_file.cc     | 4 ++++
+ base/files/memory_mapped_file.h      | 2 ++
+ base/files/memory_mapped_file_win.cc | 8 ++++++++
+ 3 files changed, 14 insertions(+)
+
+diff --git a/base/files/memory_mapped_file.cc b/base/files/memory_mapped_file.cc
+index 132c3a98240f..a62cdacd29a9 100644
+--- a/base/files/memory_mapped_file.cc
++++ b/base/files/memory_mapped_file.cc
+@@ -48,12 +48,14 @@ bool MemoryMappedFile::Initialize(const FilePath& file_name, Access access) {
+       // Can't open with "extend" because no maximum size is known.
+       NOTREACHED();
+       break;
++#if !defined(MOZ_ZUCCHINI)
+ #if BUILDFLAG(IS_WIN)
+     case READ_CODE_IMAGE:
+       flags |= File::FLAG_OPEN | File::FLAG_READ |
+                File::FLAG_WIN_EXCLUSIVE_WRITE | File::FLAG_WIN_EXECUTE;
+       break;
+ #endif
++#endif  // !defined(MOZ_ZUCCHINI)
+   }
+   file_.Initialize(file_name, flags);
+ 
+@@ -98,6 +100,7 @@ bool MemoryMappedFile::Initialize(File file,
+         return false;
+       }
+       break;
++#if !defined(MOZ_ZUCCHINI)
+ #if BUILDFLAG(IS_WIN)
+     case READ_CODE_IMAGE:
+       // Can't open with "READ_CODE_IMAGE", not supported outside Windows
+@@ -105,6 +108,7 @@ bool MemoryMappedFile::Initialize(File file,
+       NOTREACHED();
+       break;
+ #endif
++#endif  // !defined(MOZ_ZUCCHINI)
+   }
+ 
+   if (IsValid())
+diff --git a/base/files/memory_mapped_file.h b/base/files/memory_mapped_file.h
+index d099ce42ba60..542403c713af 100644
+--- a/base/files/memory_mapped_file.h
++++ b/base/files/memory_mapped_file.h
+@@ -47,6 +47,7 @@ class BASE_EXPORT MemoryMappedFile {
+     // in the process address space.
+     READ_WRITE_EXTEND,
+ 
++#if !defined(MOZ_ZUCCHINI)
+ #if BUILDFLAG(IS_WIN)
+     // This provides read access, but as executable code used for prefetching
+     // DLLs into RAM to avoid inefficient hard fault patterns such as during
+@@ -54,6 +55,7 @@ class BASE_EXPORT MemoryMappedFile {
+     // the file is read into memory (if needed).
+     READ_CODE_IMAGE,
+ #endif
++#endif  // !defined(MOZ_ZUCCHINI)
+   };
+ 
+   // The default constructor sets all members to invalid/null values.
+diff --git a/base/files/memory_mapped_file_win.cc b/base/files/memory_mapped_file_win.cc
+index 7169fba5a685..9943773bec40 100644
+--- a/base/files/memory_mapped_file_win.cc
++++ b/base/files/memory_mapped_file_win.cc
+@@ -14,7 +14,9 @@
+ #include "base/logging.h"
+ #include "base/numerics/checked_math.h"
+ #include "base/threading/scoped_blocking_call.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/win/pe_image.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ #include <windows.h>
+ #include <winnt.h>  // NOLINT(build/include_order)
+@@ -23,6 +25,7 @@ namespace base {
+ 
+ MemoryMappedFile::MemoryMappedFile() = default;
+ 
++#if !defined(MOZ_ZUCCHINI)
+ bool MemoryMappedFile::MapImageToMemory(Access access) {
+   ScopedBlockingCall scoped_blocking_call(FROM_HERE, BlockingType::MAY_BLOCK);
+ 
+@@ -51,13 +54,16 @@ bool MemoryMappedFile::MapImageToMemory(Access access) {
+ 
+   return true;
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ bool MemoryMappedFile::MapFileRegionToMemory(
+     const MemoryMappedFile::Region& region,
+     Access access) {
+   ScopedBlockingCall scoped_blocking_call(FROM_HERE, BlockingType::MAY_BLOCK);
+ 
++#if !defined(MOZ_ZUCCHINI)
+   DCHECK(access != READ_CODE_IMAGE || region == Region::kWholeFile);
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+   if (!file_.IsValid())
+     return false;
+@@ -75,8 +81,10 @@ bool MemoryMappedFile::MapFileRegionToMemory(
+       flags |= PAGE_READWRITE;
+       size.QuadPart = region.size;
+       break;
++#if !defined(MOZ_ZUCCHINI)
+     case READ_CODE_IMAGE:
+       return MapImageToMemory(access);
++#endif  // !defined(MOZ_ZUCCHINI)
+   }
+ 
+   file_mapping_.Set(::CreateFileMapping(file_.GetPlatformFile(), NULL, flags,
+-- 
+2.42.0.windows.2
+
