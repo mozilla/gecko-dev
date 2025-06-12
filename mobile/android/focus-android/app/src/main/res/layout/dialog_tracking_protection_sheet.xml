@@ -28,11 +28,13 @@
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/site_title"
             style="@style/PanelTitle"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="20dp"
+            android:breakStrategy="simple"
             app:layout_constraintBottom_toBottomOf="@id/site_favicon"
             app:layout_constraintStart_toEndOf="@id/site_favicon"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/site_favicon"
             tools:text="url.com" />
 
