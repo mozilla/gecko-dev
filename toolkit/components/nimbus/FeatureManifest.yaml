@@ -4918,3 +4918,16 @@ deletePrivate:
         branch: default
         pref: browser.download.enableDeletePrivate
       description: Whether the setting for deleting files downloaded in private browsing is available to the user
+
+ipProtection:
+  description: Prefs to control IP Protection feature
+  owner: fchasen@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.ipProtection.enabled
+      description: >-
+        Enables the IP Protection feature.
