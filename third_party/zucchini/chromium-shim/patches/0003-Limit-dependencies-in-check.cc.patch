@@ -1,0 +1,111 @@
+Limit dependencies in check.cc
+
+We do not need DumpWithoutCrashing nor RawCheckFailure.
+We hardcode base::features::kNotReachedIsFatal to be false.
+---
+ base/check.cc | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/base/check.cc b/base/check.cc
+index e2fd6f5e72d0..ec3d97226d92 100644
+--- a/base/check.cc
++++ b/base/check.cc
+@@ -5,23 +5,30 @@
+ #include "base/check.h"
+ 
+ #include "base/check_op.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/debug/alias.h"
++#endif   // !defined(MOZ_ZUCCHINI)
+ #include "base/debug/debugging_buildflags.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/debug/dump_without_crashing.h"
+ #include "base/feature_list.h"
+ #include "base/features.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "base/logging.h"
+ #include "base/thread_annotations.h"
+ #include "build/build_config.h"
+ 
++#if !defined(MOZ_ZUCCHINI)
+ #if !BUILDFLAG(IS_NACL)
+ #include "base/debug/crash_logging.h"
+ #endif  // !BUILDFLAG(IS_NACL)
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ namespace logging {
+ 
+ namespace {
+ 
++#if !defined(MOZ_ZUCCHINI)
+ void DumpWithoutCrashing(LogMessage* log_message,
+                          const base::Location& location) {
+   // Copy the LogMessage message to stack memory to make sure it can be
+@@ -35,32 +42,39 @@ void DumpWithoutCrashing(LogMessage* log_message,
+   // repeat reports for the same bug.
+   base::debug::DumpWithoutCrashing(location, base::Days(30));
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ void NotReachedDumpWithoutCrashing(LogMessage* log_message,
+                                    const base::Location& location) {
++#if !defined(MOZ_ZUCCHINI)
+ #if !BUILDFLAG(IS_NACL)
+   SCOPED_CRASH_KEY_STRING1024("Logging", "NOTREACHED_MESSAGE",
+                               log_message->BuildCrashString());
+ #endif  // !BUILDFLAG(IS_NACL)
+   DumpWithoutCrashing(log_message, location);
++#endif  // !defined(MOZ_ZUCCHINI)
+ }
+ 
+ void DCheckDumpWithoutCrashing(LogMessage* log_message,
+                                const base::Location& location) {
++#if !defined(MOZ_ZUCCHINI)
+ #if !BUILDFLAG(IS_NACL)
+   SCOPED_CRASH_KEY_STRING1024("Logging", "DCHECK_MESSAGE",
+                               log_message->BuildCrashString());
+ #endif  // !BUILDFLAG(IS_NACL)
+   DumpWithoutCrashing(log_message, location);
++#endif  // !defined(MOZ_ZUCCHINI)
+ }
+ 
+ void DumpWillBeCheckDumpWithoutCrashing(LogMessage* log_message,
+                                         const base::Location& location) {
++#if !defined(MOZ_ZUCCHINI)
+ #if !BUILDFLAG(IS_NACL)
+   SCOPED_CRASH_KEY_STRING1024("Logging", "DUMP_WILL_BE_CHECK_MESSAGE",
+                               log_message->BuildCrashString());
+ #endif  // !BUILDFLAG(IS_NACL)
+   DumpWithoutCrashing(log_message, location);
++#endif  // !defined(MOZ_ZUCCHINI)
+ }
+ 
+ class NotReachedLogMessage : public LogMessage {
+@@ -278,10 +292,12 @@ CheckError::~CheckError() {
+ NotReachedError NotReachedError::NotReached(const base::Location& location) {
+   const LogSeverity severity = []() {
+     // NOTREACHED() instances may be hit before base::FeatureList is enabled.
++#if !defined(MOZ_ZUCCHINI)
+     if (base::FeatureList::GetInstance() &&
+         base::FeatureList::IsEnabled(base::features::kNotReachedIsFatal)) {
+       return LOGGING_FATAL;
+     }
++#endif  // !defined(MOZ_ZUCCHINI)
+     return DCHECK_IS_ON() ? LOGGING_DCHECK : LOGGING_ERROR;
+   }();
+   auto* const log_message = new NotReachedLogMessage(location, severity);
+@@ -321,9 +337,11 @@ NotReachedNoreturnError::~NotReachedNoreturnError() {
+   base::ImmediateCrash();
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ void RawCheckFailure(const char* message) {
+   RawLog(LOGGING_FATAL, message);
+   __builtin_unreachable();
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ }  // namespace logging
+-- 
+2.42.0.windows.2
+

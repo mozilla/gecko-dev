@@ -62,6 +62,10 @@ if CONFIG["MOZ_UPDATER"] and CONFIG["OS_TARGET"] != "Android":
         "/toolkit/mozapps/update/updater/bspatch",
         "/other-licenses/bsdiff",
     ]
+    if CONFIG["MOZ_ZUCCHINI"]:
+        DIRS += [
+            "/third_party/zucchini",
+        ]
 
 # Gecko/Core components.
 

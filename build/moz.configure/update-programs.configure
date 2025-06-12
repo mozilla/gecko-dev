@@ -264,3 +264,20 @@ option(
 )
 
 set_config("MOZ_NOTIFICATION_SERVER", True, when="--enable-notification-server")
+
+# Zucchini support (in progress, Windows-only)
+# ============================================
+
+with only_when(
+    depends("--enable-updater", target)(
+        lambda updater, target: updater and target.os != "Android"
+    )
+):
+    option(
+        "--enable-zucchini",
+        when=depends(target)(lambda target: target.os == "WINNT"),
+        help="Enable zucchini support",
+    )
+
+set_config("MOZ_ZUCCHINI", True, when="--enable-zucchini")
+set_define("MOZ_ZUCCHINI", True, when="--enable-zucchini")

@@ -1,0 +1,93 @@
+Remove dependency on double-conversion
+
+We do not need string-to-double and double-to-string conversions.
+---
+ base/strings/string_number_conversions.cc         | 4 ++++
+ base/strings/string_number_conversions_internal.h | 6 ++++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/base/strings/string_number_conversions.cc b/base/strings/string_number_conversions.cc
+index cde0c650f9a8..0b8a76e974cd 100644
+--- a/base/strings/string_number_conversions.cc
++++ b/base/strings/string_number_conversions.cc
+@@ -62,6 +62,7 @@ std::u16string NumberToString16(unsigned long long value) {
+   return internal::IntToStringT<std::u16string>(value);
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ std::string NumberToString(double value) {
+   return internal::DoubleToStringT<std::string>(value);
+ }
+@@ -69,6 +70,7 @@ std::string NumberToString(double value) {
+ std::u16string NumberToString16(double value) {
+   return internal::DoubleToStringT<std::u16string>(value);
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ bool StringToInt(StringPiece input, int* output) {
+   return internal::StringToIntImpl(input, *output);
+@@ -110,6 +112,7 @@ bool StringToSizeT(StringPiece16 input, size_t* output) {
+   return internal::StringToIntImpl(input, *output);
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ bool StringToDouble(StringPiece input, double* output) {
+   return internal::StringToDoubleImpl(input, input.data(), *output);
+ }
+@@ -118,6 +121,7 @@ bool StringToDouble(StringPiece16 input, double* output) {
+   return internal::StringToDoubleImpl(
+       input, reinterpret_cast<const uint16_t*>(input.data()), *output);
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ std::string HexEncode(const void* bytes, size_t size) {
+   static const char kHexChars[] = "0123456789ABCDEF";
+diff --git a/base/strings/string_number_conversions_internal.h b/base/strings/string_number_conversions_internal.h
+index 3642ec2cc9e9..7d84f2a9bc09 100644
+--- a/base/strings/string_number_conversions_internal.h
++++ b/base/strings/string_number_conversions_internal.h
+@@ -14,7 +14,9 @@
+ #include "base/logging.h"
+ #include "base/numerics/safe_math.h"
+ #include "base/strings/string_util.h"
++#if !defined(MOZ_ZUCCHINI)
+ #include "base/third_party/double_conversion/double-conversion/double-conversion.h"
++#endif  // !defined(MOZ_ZUCCHINI)
+ #include "third_party/abseil-cpp/absl/types/optional.h"
+ 
+ namespace base {
+@@ -198,6 +200,7 @@ bool HexStringToIntImpl(T input, VALUE& output) {
+   return result.valid;
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ static const double_conversion::DoubleToStringConverter*
+ GetDoubleToStringConverter() {
+   static double_conversion::DoubleToStringConverter converter(
+@@ -205,6 +208,7 @@ GetDoubleToStringConverter() {
+       nullptr, nullptr, 'e', -6, 12, 0, 0);
+   return &converter;
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ // Converts a given (data, size) pair to a desired string type. For
+ // performance reasons, this dispatches to a different constructor if the
+@@ -219,6 +223,7 @@ StringT ToString(const CharT* data, size_t size) {
+   return StringT(data, data + size);
+ }
+ 
++#if !defined(MOZ_ZUCCHINI)
+ template <typename StringT>
+ StringT DoubleToStringT(double value) {
+   char buffer[32];
+@@ -253,6 +258,7 @@ bool StringToDoubleImpl(STRING input, const CHAR* data, double& output) {
+          static_cast<size_t>(processed_characters_count) == input.size() &&
+          !IsWhitespace(input[0]);
+ }
++#endif  // !defined(MOZ_ZUCCHINI)
+ 
+ template <typename Char, typename OutIter>
+ static bool HexStringToByteContainer(StringPiece input, OutIter output) {
+-- 
+2.42.0.windows.2
+

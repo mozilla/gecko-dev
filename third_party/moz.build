@@ -108,3 +108,6 @@ with Files("build_overrides/**"):
 
 with Files("fmt"):
     BUG_COMPONENT = ("Core", "MFBT")
+
+with Files("zucchini/**"):
+    BUG_COMPONENT = ("Toolkit", "Application Update")

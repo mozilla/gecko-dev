@@ -1,0 +1,134 @@
+schema: 1
+
+bugzilla:
+  product: "Toolkit"
+  component: "Application Update"
+
+origin:
+  name: Zucchini
+  description: A binary diffing algorithm from the Chromium project.
+
+  url: https://chromium.googlesource.com/chromium/src/
+
+  # Below is the first chromium commit that breaks C++17 compatiblity in
+  # Chromium base:
+  #
+  #   d64d543bc2ff2e343fabe6b9d83963501131d802 (Tue Aug 01 17:08:26 2023)
+  #
+  #   Land intentional C++20 use in base/.
+  #
+  #   This smoketests that nothing breaks in advance of announcing C++20
+  #   availability.
+  #
+  # We work from the parent of this commit, and cherry-pick more recent
+  # zucchini patches if relevant.
+  release: b6d2f6e088c83d18a5988ca565608bc5b1dd2440 (Tue Aug 01 17:07:53 2023).
+  revision: b6d2f6e088c83d18a5988ca565608bc5b1dd2440
+
+  license: BSD-3-Clause
+
+vendoring:
+  url: https://chromium.googlesource.com/chromium/src/
+  source-hosting: googlesource
+  flavor: individual-files
+  tracking: commit
+
+  # Files that are listed but commented out are defined chromium-shim/
+  individual-files-default-upstream: ""
+  individual-files-default-destination: "{vendor_dir}/"
+  individual-files-list:
+    - base/allocator/partition_allocator/partition_alloc_base/compiler_specific.h
+    # base/allocator/partition_allocator/partition_alloc_buildflags.h
+    - base/allocator/partition_allocator/pointers/raw_ptr_exclusion.h
+    - base/base_export.h
+    - base/check.cc
+    - base/check.h
+    - base/check_op.cc
+    - base/check_op.h
+    - base/compiler_specific.h
+    - base/containers/checked_iterators.h
+    - base/containers/contiguous_iterator.h
+    - base/containers/span.h
+    - base/containers/util.h
+    - base/cxx20_is_constant_evaluated.h
+    - base/cxx20_to_address.h
+    - base/dcheck_is_on.h
+    # base/debug/debugging_buildflags.h
+    - base/functional/callback_forward.h
+    - base/functional/identity.h
+    - base/functional/invoke.h
+    - base/immediate_crash.h
+    - base/location.cc
+    - base/location.h
+    # base/logging.cc
+    - base/logging.h
+    # base/logging_buildflags.h
+    - base/memory/raw_ptr_exclusion.h
+    - base/no_destructor.h
+    - base/notreached.h
+    - base/numerics/checked_math.h
+    - base/numerics/checked_math_impl.h
+    - base/numerics/clamped_math.h
+    - base/numerics/clamped_math_impl.h
+    - base/numerics/safe_conversions.h
+    - base/numerics/safe_conversions_arm_impl.h
+    - base/numerics/safe_conversions_impl.h
+    - base/numerics/safe_math.h
+    - base/numerics/safe_math_arm_impl.h
+    - base/numerics/safe_math_clang_gcc_impl.h
+    - base/numerics/safe_math_shared_impl.h
+    - base/ranges/algorithm.h
+    - base/ranges/functional.h
+    - base/ranges/ranges.h
+    - base/scoped_clear_last_error.h
+    - base/scoped_clear_last_error_win.cc
+    - base/strings/string_number_conversions.cc
+    - base/strings/string_number_conversions.h
+    - base/strings/string_number_conversions_internal.h
+    - base/strings/string_number_conversions_win.h
+    - base/strings/string_piece.h
+    - base/strings/string_piece_forward.h
+    - base/strings/string_util.cc
+    - base/strings/string_util.h
+    - base/strings/string_util_constants.cc
+    - base/strings/string_util_impl_helpers.h
+    - base/strings/string_util_internal.h
+    - base/strings/string_util_win.cc
+    - base/strings/string_util_win.h
+    - base/strings/stringprintf.cc
+    - base/strings/stringprintf.h
+    - base/strings/to_string.h
+    - base/strings/utf_ostream_operators.cc
+    - base/strings/utf_ostream_operators.h
+    - base/strings/utf_string_conversion_utils.h
+    - base/strings/utf_string_conversions.cc
+    - base/strings/utf_string_conversions.h
+    - base/template_util.h
+    - base/third_party/icu/icu_utf.h
+    - base/third_party/icu/LICENSE
+    - base/thread_annotations.h
+    - base/trace_event/base_tracing.h
+    - base/trace_event/base_tracing_forward.h
+    - base/trace_event/common/trace_event_common.h
+    - base/trace_event/memory_allocator_dump_guid.h
+    - base/trace_event/trace_event_stub.cc
+    - base/trace_event/trace_event_stub.h
+    # base/tracing_buildflags.h
+    - base/types/always_false.h
+    - base/types/supports_ostream_operator.h
+    # base/values.h
+    - build/build_config.h
+    - build/buildflag.h
+    # build/chromeos_buildflags.h
+    - components/zucchini/crc32.cc
+    - components/zucchini/crc32.h
+    # components/zucchini/zucchini_main.temporary.cc
+    - LICENSE
+    # third_party/abseil-cpp/absl/types/optional.h
+
+  # Apply patches that are taken from upstream first as these will not be
+  # needed at some point, so we want subsequent patches to work after the
+  # upstream fix.
+  patches:
+    - ../chromium-shim/patches/upstream/*.patch
+    - ../chromium-shim/patches/*.patch
