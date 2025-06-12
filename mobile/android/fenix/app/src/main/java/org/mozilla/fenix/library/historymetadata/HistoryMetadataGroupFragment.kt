@@ -7,6 +7,7 @@ package org.mozilla.fenix.library.historymetadata
 import android.app.Dialog
 import android.content.Context
 import android.content.DialogInterface
+import android.content.Intent
 import android.os.Bundle
 import android.text.SpannableString
 import android.view.LayoutInflater
@@ -15,6 +16,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.DialogFragment
@@ -47,6 +49,8 @@ import org.mozilla.fenix.library.historymetadata.controller.DefaultHistoryMetada
 import org.mozilla.fenix.library.historymetadata.interactor.DefaultHistoryMetadataGroupInteractor
 import org.mozilla.fenix.library.historymetadata.interactor.HistoryMetadataGroupInteractor
 import org.mozilla.fenix.library.historymetadata.view.HistoryMetadataGroupView
+import org.mozilla.fenix.lifecycle.registerForVerification
+import org.mozilla.fenix.lifecycle.verifyUser
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.utils.allowUndo
 
@@ -67,6 +71,8 @@ class HistoryMetadataGroupFragment :
     private val binding get() = _binding!!
 
     private val args by navArgs<HistoryMetadataGroupFragmentArgs>()
+    private var verificationResultLauncher: ActivityResultLauncher<Intent> =
+        registerForVerification(onVerified = ::openHistoryInPrivate)
 
     override val selectedItems: Set<History.Metadata>
         get() = historyMetadataGroupStore.state.items.filter { it.selected }.toSet()
@@ -184,16 +190,7 @@ class HistoryMetadataGroupFragment :
                 true
             }
             R.id.open_history_in_private_tabs_multi_select -> {
-                openItemsInNewTab(private = true) { selectedItem ->
-                    selectedItem.url
-                }
-
-                (activity as HomeActivity).apply {
-                    browsingModeManager.mode = BrowsingMode.Private
-                    supportActionBar?.hide()
-                }
-
-                showTabTray(openInPrivate = true)
+                handleOpenHistoryInPrivateTabsMultiSelectMenuItem()
                 true
             }
             R.id.history_delete -> {
@@ -203,6 +200,32 @@ class HistoryMetadataGroupFragment :
             // other options are not handled by this menu provider
             else -> false
         }
+    }
+
+    private fun handleOpenHistoryInPrivateTabsMultiSelectMenuItem() {
+        if (requireComponents.appStore.state.isPrivateScreenLocked) {
+            verifyUser(
+                fallbackVerification = verificationResultLauncher,
+                onVerified = {
+                    openHistoryInPrivate()
+                },
+            )
+        } else {
+            openHistoryInPrivate()
+        }
+    }
+
+    private fun openHistoryInPrivate() {
+        openItemsInNewTab(private = true) { selectedItem ->
+            selectedItem.url
+        }
+
+        (activity as HomeActivity).apply {
+            browsingModeManager.mode = BrowsingMode.Private
+            supportActionBar?.hide()
+        }
+
+        showTabTray(openInPrivate = true)
     }
 
     private fun deleteSnackbar(
