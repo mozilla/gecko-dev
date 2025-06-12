@@ -3416,15 +3416,17 @@ QuotaManager::GetOrCreateTemporaryOriginDirectory(
           return std::make_pair(timestamp, persisted);
         });
 
+    FullOriginMetadata fullOriginMetadata{
+        aOriginMetadata, OriginStateMetadata{timestamp, persisted}};
+
     // Usually, infallible operations are placed after fallible ones. However,
     // since we lack atomic support for creating the origin directory along
     // with its metadata, we need to add the origin to cached origins right
     // after directory creation.
-    AddTemporaryOrigin(FullOriginMetadata{
-        aOriginMetadata, OriginStateMetadata{timestamp, persisted}});
+    AddTemporaryOrigin(fullOriginMetadata);
 
-    QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(*directory, timestamp,
-                                                  persisted, aOriginMetadata)));
+    QM_TRY(MOZ_TO_RESULT(
+        CreateDirectoryMetadata2(*directory, fullOriginMetadata)));
   }
 
   return std::move(directory);
@@ -3438,8 +3440,7 @@ Result<Ok, nsresult> QuotaManager::EnsureTemporaryOriginDirectoryCreated(
 
 // static
 nsresult QuotaManager::CreateDirectoryMetadata2(
-    nsIFile& aDirectory, int64_t aTimestamp, bool aPersisted,
-    const OriginMetadata& aOriginMetadata) {
+    nsIFile& aDirectory, const FullOriginMetadata& aFullOriginMetadata) {
   AssertIsOnIOThread();
 
   QM_TRY(ArtificialFailure(
@@ -3455,27 +3456,28 @@ nsresult QuotaManager::CreateDirectoryMetadata2(
                  GetBinaryOutputStream(*file, FileFlag::Truncate));
   MOZ_ASSERT(stream);
 
-  QM_TRY(MOZ_TO_RESULT(WriteDirectoryMetadataHeader(
-      *stream, OriginStateMetadata{aTimestamp, aPersisted})));
+  QM_TRY(MOZ_TO_RESULT(
+      WriteDirectoryMetadataHeader(*stream, aFullOriginMetadata)));
 
   // Legacy field, previously used for suffix. The value is no longer used, but
   // we continue writing the correct suffix value to preserve compatibility
   // with older builds that may still expect it.
-  QM_TRY(MOZ_TO_RESULT(stream->WriteStringZ(aOriginMetadata.mSuffix.get())));
+  QM_TRY(
+      MOZ_TO_RESULT(stream->WriteStringZ(aFullOriginMetadata.mSuffix.get())));
 
   // Legacy field, previously used for group. The value is no longer used, but
   // we continue writing the correct group value to preserve compatibility with
   // older builds that may still expect it.
-  QM_TRY(MOZ_TO_RESULT(stream->WriteStringZ(aOriginMetadata.mGroup.get())));
+  QM_TRY(MOZ_TO_RESULT(stream->WriteStringZ(aFullOriginMetadata.mGroup.get())));
 
   QM_TRY(MOZ_TO_RESULT(
-      stream->WriteStringZ(aOriginMetadata.mStorageOrigin.get())));
+      stream->WriteStringZ(aFullOriginMetadata.mStorageOrigin.get())));
 
   // Legacy field, previously used for isPrivate (and before that, for isApp).
   // The value is no longer used, but we continue writing the correct isPrivate
   // value (true or false) to preserve compatibility with older builds that may
   // still expect it.
-  QM_TRY(MOZ_TO_RESULT(stream->WriteBoolean(aOriginMetadata.mIsPrivate)));
+  QM_TRY(MOZ_TO_RESULT(stream->WriteBoolean(aFullOriginMetadata.mIsPrivate)));
 
   QM_TRY(MOZ_TO_RESULT(stream->Flush()));
 
@@ -3599,9 +3601,8 @@ Result<FullOriginMetadata, nsresult> QuotaManager::LoadFullOriginMetadata(
   if (groupUpdated || lastAccessTimeUpdated) {
     // Only overwriting .metadata-v2 (used to overwrite .metadata too) to reduce
     // I/O.
-    QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(
-        *aDirectory, fullOriginMetadata.mLastAccessTime,
-        fullOriginMetadata.mPersisted, fullOriginMetadata)));
+    QM_TRY(MOZ_TO_RESULT(
+        CreateDirectoryMetadata2(*aDirectory, fullOriginMetadata)));
   }
 
   return fullOriginMetadata;
@@ -6090,9 +6091,11 @@ QuotaManager::EnsurePersistentOriginIsInitializedInternal(
             const int64_t timestamp = PR_Now();
 
             // Only creating .metadata-v2 to reduce IO.
-            QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(*directory, timestamp,
-                                                          /* aPersisted */ true,
-                                                          aOriginMetadata)));
+            QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(
+                *directory,
+                FullOriginMetadata{
+                    aOriginMetadata,
+                    OriginStateMetadata{timestamp, /* aPersisted */ true}})));
 
             return timestamp;
           }
@@ -6288,9 +6291,11 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
       AddTemporaryOrigin(fullOriginMetadata);
 
       // Only creating .metadata-v2 to reduce IO.
-      QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(*directory, timestamp,
-                                                    /* aPersisted */ false,
-                                                    aOriginMetadata)));
+      QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(
+          *directory,
+          FullOriginMetadata{
+              aOriginMetadata,
+              OriginStateMetadata{timestamp, /* aPersisted */ false}})));
 
       // Don't need to traverse the directory, since it's empty.
       InitQuotaForOrigin(fullOriginMetadata, ClientUsageArray(),
@@ -9499,8 +9504,10 @@ nsresult RestoreDirectoryMetadata2Helper::ProcessOriginDirectory(
 
   // We don't have any approach to restore aPersisted, so reset it to false.
   QM_TRY(MOZ_TO_RESULT(QuotaManager::CreateDirectoryMetadata2(
-      *aOriginProps.mDirectory, aOriginProps.mTimestamp,
-      /* aPersisted */ false, aOriginProps.mOriginMetadata)));
+      *aOriginProps.mDirectory,
+      FullOriginMetadata{aOriginProps.mOriginMetadata,
+                         OriginStateMetadata{aOriginProps.mTimestamp,
+                                             /* aPersisted */ false}})));
 
   return NS_OK;
 }

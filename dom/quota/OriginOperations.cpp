@@ -3550,7 +3550,10 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
     }
 
     QM_TRY(MOZ_TO_RESULT(QuotaManager::CreateDirectoryMetadata2(
-        *directory, timestamp, /* aPersisted */ true, originMetadata)));
+        *directory,
+        FullOriginMetadata{
+            originMetadata,
+            OriginStateMetadata{timestamp, /* aPersisted */ true}})));
 
     // Update or create OriginInfo too if temporary storage was already
     // initialized.

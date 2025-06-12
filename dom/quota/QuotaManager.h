@@ -287,8 +287,7 @@ class QuotaManager final : public BackgroundThreadObject {
       const OriginMetadata& aOriginMetadata);
 
   static nsresult CreateDirectoryMetadata2(
-      nsIFile& aDirectory, int64_t aTimestamp, bool aPersisted,
-      const OriginMetadata& aOriginMetadata);
+      nsIFile& aDirectory, const FullOriginMetadata& aFullOriginMetadata);
 
   nsresult RestoreDirectoryMetadata2(nsIFile* aDirectory);
 
