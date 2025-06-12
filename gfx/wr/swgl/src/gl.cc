@@ -2165,6 +2165,10 @@ void VertexAttribDivisor(GLuint index, GLuint divisor) {
 
 void BufferData(GLenum target, GLsizeiptr size, void* data,
                 UNUSED GLenum usage) {
+  if (size < 0) {
+    assert(0);
+    return;
+  }
   Buffer& b = ctx->buffers[ctx->get_binding(target)];
   if (size != b.size) {
     if (!b.allocate(size)) {
@@ -2179,9 +2183,13 @@ void BufferData(GLenum target, GLsizeiptr size, void* data,
 
 void BufferSubData(GLenum target, GLintptr offset, GLsizeiptr size,
                    void* data) {
+  if (offset < 0 || size < 0) {
+    assert(0);
+    return;
+  }
   Buffer& b = ctx->buffers[ctx->get_binding(target)];
-  assert(offset + size <= b.size);
-  if (data && b.buf && offset + size <= b.size) {
+  assert(offset < b.size && size <= b.size - offset);
+  if (data && b.buf && offset < b.size && size <= b.size - offset) {
     memcpy(&b.buf[offset], data, size);
   }
 }
@@ -2194,7 +2202,8 @@ void* MapBuffer(GLenum target, UNUSED GLbitfield access) {
 void* MapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length,
                      UNUSED GLbitfield access) {
   Buffer& b = ctx->buffers[ctx->get_binding(target)];
-  if (b.buf && offset >= 0 && length > 0 && offset + length <= b.size) {
+  if (b.buf && offset >= 0 && length > 0 && offset < b.size &&
+      length <= b.size - offset) {
     return b.buf + offset;
   }
   return nullptr;
@@ -2805,9 +2814,18 @@ void CopyImageSubData(GLuint srcName, GLenum srcTarget, UNUSED GLint srcLevel,
   int src_stride = srctex.stride();
   int dest_stride = dsttex.stride();
   char* dest = dsttex.sample_ptr(dstX, dstY);
-  char* src = srctex.sample_ptr(srcX, srcY);
+  const char* src = srctex.sample_ptr(srcX, srcY);
   for (int y = 0; y < srcHeight; y++) {
-    memcpy(dest, src, srcWidth * bpp);
+    char* dst_ptr = dest;
+    const char* src_ptr = src;
+    size_t len = size_t(srcWidth) * bpp;
+    if (clip_ptrs_against_bounds(dst_ptr, dsttex.buf, dsttex.end_ptr(), src_ptr,
+                                 srctex.buf, srctex.end_ptr(), len) > 0) {
+      break;
+    }
+    if (len) {
+      memcpy(dst_ptr, src_ptr, len);
+    }
     dest += dest_stride;
     src += src_stride;
   }
