@@ -1269,10 +1269,8 @@ struct BaseCompiler final {
                    RegI32 temp);
   void load(MemoryAccessDesc* access, AccessCheck* check, RegPtr instance,
             RegPtr memoryBase, RegI32 ptr, AnyReg dest, RegI32 temp);
-#ifdef ENABLE_WASM_MEMORY64
   void load(MemoryAccessDesc* access, AccessCheck* check, RegPtr instance,
             RegPtr memoryBase, RegI64 ptr, AnyReg dest, RegI64 temp);
-#endif
 
   template <typename RegType>
   void doLoadCommon(MemoryAccessDesc* access, AccessCheck check, ValType type);
@@ -1286,10 +1284,8 @@ struct BaseCompiler final {
                     RegI32 temp);
   void store(MemoryAccessDesc* access, AccessCheck* check, RegPtr instance,
              RegPtr memoryBase, RegI32 ptr, AnyReg src, RegI32 temp);
-#ifdef ENABLE_WASM_MEMORY64
   void store(MemoryAccessDesc* access, AccessCheck* check, RegPtr instance,
              RegPtr memoryBase, RegI64 ptr, AnyReg src, RegI64 temp);
-#endif
 
   template <typename RegType>
   void doStoreCommon(MemoryAccessDesc* access, AccessCheck check,
