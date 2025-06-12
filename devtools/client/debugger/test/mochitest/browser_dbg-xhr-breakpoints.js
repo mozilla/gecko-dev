@@ -175,6 +175,22 @@ add_task(async function () {
     0,
     "Check that there are no persisted XHR breakpoints"
   );
+
+  info("Trying adding a breakpoint with an empty path");
+  const plusIcon = findElementWithSelector(dbg, ".xhr-breakpoints-pane .plus");
+  if (plusIcon) {
+    plusIcon.click();
+  }
+  findElementWithSelector(dbg, ".xhr-input-url").value = "";
+  findElementWithSelector(dbg, ".xhr-input-method").value = "get";
+
+  pressKey(dbg, "Enter");
+  persistedXHRBreakpoints = await asyncStore.xhrBreakpoints;
+  is(
+    persistedXHRBreakpoints.length,
+    0,
+    "No breakpoint should be added when the path is empty"
+  );
 });
 
 async function addXHRBreakpoint(dbg, text, method) {
