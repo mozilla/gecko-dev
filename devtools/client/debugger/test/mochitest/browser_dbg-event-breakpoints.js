@@ -5,7 +5,7 @@
 "use strict";
 
 add_task(async function () {
-  await pushPref("dom.element.invokers.enabled", true);
+  await pushPref("dom.element.commandfor.enabled", true);
   await pushPref("dom.events.textevent.enabled", true);
   await pushPref("dom.closewatcher.enabled", true);
 

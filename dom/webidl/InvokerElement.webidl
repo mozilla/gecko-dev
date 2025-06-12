@@ -8,6 +8,6 @@
  */
 
 interface mixin InvokerElement {
-  [Pref="dom.element.invokers.enabled", CEReactions] attribute Element? invokeTargetElement;
-  [Pref="dom.element.invokers.enabled", CEReactions] attribute DOMString invokeAction;
+  [Pref="dom.element.commandfor.enabled", CEReactions] attribute Element? invokeTargetElement;
+  [Pref="dom.element.commandfor.enabled", CEReactions] attribute DOMString invokeAction;
 };
