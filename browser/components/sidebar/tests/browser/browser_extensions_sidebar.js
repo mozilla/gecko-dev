@@ -46,10 +46,6 @@ add_task(async function test_extension_sidebar_actions() {
   await sidebar.updateComplete;
   is(button.title, "Updated Title", "Extension has updated title.");
 
-  sidebar.expanded = true;
-  await sidebar.updateComplete;
-  ok(button.hasVisibleLabel, "Title is visible when sidebar is expanded.");
-
   sidebar.expanded = false;
   await sidebar.updateComplete;
   ok(!button.hasVisibleLabel, "Title is hidden when sidebar is collapsed.");

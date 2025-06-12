@@ -1425,6 +1425,7 @@ tab-group {
 
   &[visible] {
     display: flex;
+    flex-grow: 1;
   }
 }
 

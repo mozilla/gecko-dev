@@ -1046,8 +1046,8 @@ navbar-accessible =
 navbar-downloads =
     .label = Downloads
 
-navbar-overflow =
-    .tooltiptext = More tools…
+navbar-overflow-2 =
+    .tooltiptext = More tools
 
 # Variables:
 #   $shortcut (String): keyboard shortcut to print the page

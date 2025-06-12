@@ -25,6 +25,9 @@
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media -moz-pref("sidebar.verticalTabs") {
+    display: flex;
+    flex-direction: column;
+
     :host([expanded]) & {
       /* TODO: Should this be some other pixel value between 5/6? Need to be careful of Linux where font size is larger */
       --tab-pinned-horizontal-count: 5;
@@ -38,12 +41,36 @@
   }
 }
 
+#sidebar-tools-and-extensions-splitter {
+  display: block;
+  border-top: var(--tabstrip-inner-border);
+  margin-inline: var(--tab-inner-inline-margin);
+  margin-block-end: var(--space-small);
+  min-height: 2px;
+
+  &:hover {
+    background-color: var(--focus-outline-color);
+    border-radius: var(--border-radius-medium);
+  }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media not -moz-pref("sidebar.visibility", "expand-on-hover") {
+    /* We need these rules to apply at all times when the sidebar.visibility
+    pref is not set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+    has not been added to root. There are certain scenarios when that attribute is temporarily
+    removed from root such as when toggling the sidebar to expand with the toolbar button. */
+    :host([expanded]) & {
+      border-color: transparent;
+    }
+  }
+}
+
 .actions-list {
   display: flex;
   flex-direction: column;
   align-items: start;
   max-width: 100%;
-  overflow-x: hidden;
+  overflow: hidden;
 
   > moz-button {
     --button-icon-fill: var(--toolbarbutton-icon-fill);
@@ -70,18 +97,27 @@
   }
 }
 
+:host([sidebar-positionend]) .more-tools-button::part(button) {
+  transform: scaleX(-1);
+}
+
 .tools-and-extensions[orientation="horizontal"] {
   :host([expanded]) & {
     display: flex;
     flex-wrap: wrap-reverse;
     flex-direction: row;
     justify-content: flex-start;
+    align-content: flex-start;
     gap: var(--space-xxsmall);
     padding-inline: var(--space-medium);
     padding-block-end: var(--space-small);
 
     .tools-overflow {
       width: unset;
+    }
+
+    :host(:not([sidebar-ongoing-animations])) &[overflowing="true"] {
+      padding-block: 0;
     }
   }
 }
@@ -97,26 +133,9 @@
   }
 }
 
-.expanded-button {
-  width: 100%;
-
-  &::part(button) {
-    font-size: var(--font-size-large);
-    font-weight: var(--font-weight);
-    justify-content: flex-start;
-    padding-inline: calc((var(--button-size-icon) - var(--icon-size-default)) / 2 - var(--border-width));
-  }
-
-  &::part(moz-button-label) {
-    opacity: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
 .tools-and-extensions {
   align-self: start;
+  width: 100%;
 }
 
 .bottom-actions {

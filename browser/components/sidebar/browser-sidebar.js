@@ -1190,6 +1190,7 @@ var SidebarController = {
     }
     this._ongoingAnimations = animations;
     this.sidebarContainer.toggleAttribute("sidebar-ongoing-animations", true);
+    this.sidebarMain.toggleAttribute("sidebar-ongoing-animations", true);
     this._box.toggleAttribute("sidebar-ongoing-animations", true);
     tabbox.toggleAttribute("sidebar-ongoing-animations", true);
     await Promise.allSettled(animations.map(a => a.finished));
@@ -2121,6 +2122,10 @@ var SidebarController = {
       }
       document.addEventListener("popupshown", this);
       document.addEventListener("popuphidden", this);
+      // Reset user-preferred height
+      this.sidebarMain.buttonGroup.style.height = this._state.launcherExpanded
+        ? ""
+        : "0";
     } else {
       MousePosTracker.removeListener(this);
       if (!this.mouseOverTask?.isFinalized) {
@@ -2128,6 +2133,22 @@ var SidebarController = {
       }
       document.removeEventListener("popupshown", this);
       document.removeEventListener("popuphidden", this);
+      // Add back user-preferred height if defined
+      if (
+        this._state.launcherExpanded &&
+        this._state.expandedToolsHeight !== undefined &&
+        this.sidebarMain.buttonGroup
+      ) {
+        this.sidebarMain.buttonGroup.style.height =
+          this._state.expandedToolsHeight;
+      } else if (
+        !this._state.launcherExpanded &&
+        this._state.collapsedToolsHeight !== undefined &&
+        this.sidebarMain.buttonGroup
+      ) {
+        this.sidebarMain.buttonGroup.style.height =
+          this._state.collapsedToolsHeight;
+      }
     }
 
     document.documentElement.toggleAttribute(
@@ -2304,6 +2325,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
         SidebarController._disablePinnedTabsDragging();
       }
       SidebarController._state.updatePinnedTabsHeight();
+      SidebarController._state.updateToolsHeight();
     }
   }
 );

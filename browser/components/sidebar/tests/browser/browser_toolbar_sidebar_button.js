@@ -383,10 +383,11 @@ add_task(async function test_states_for_hide_sidebar_vertical() {
   await SidebarController.waitUntilStable();
 
   info("Don't collapse the sidebar by loading a tool.");
-  const toolButton = sidebarMain.toolButtons[0];
+  const toolButton = sidebarMain.toolButtons[1];
   EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
 
   await checkStates({ hidden: false, expanded: true });
+
   ok(SidebarController.isOpen, "Panel is open.");
 
   info("Close a panel using the toolbar button.");

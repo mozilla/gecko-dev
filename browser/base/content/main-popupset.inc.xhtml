@@ -125,6 +125,19 @@
 
   <tabgroup-menu id="tab-group-editor"></tabgroup-menu>
 
+  <!-- Starting point for sidebar tools overflow -->
+  <panel id="sidebar-tools-overflow"
+       class="panel-no-padding"
+       role="group"
+       type="arrow"
+       noautofocus="true">
+    <html:button-group id="tools-overflow-list"
+      class="tools-and-extensions actions-list overflow-list"
+      orientation="vertical"
+      role="tablist">
+    </html:button-group>
+  </panel>
+
   <panel is="autocomplete-richlistbox-popup"
          type="autocomplete-richlistbox"
          id="PopupAutoComplete"

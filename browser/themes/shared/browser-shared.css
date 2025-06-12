@@ -726,6 +726,37 @@ menupopup::part(drop-indicator) {
   white-space: pre-line;
 }
 
+#sidebar-tools-overflow {
+  margin-inline: var(--space-large);
+  width: 17.5em;
+
+  #tools-overflow-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xsmall);
+    padding: var(--space-xsmall);
+    width: 100%;
+
+    .expanded-button {
+      width: 100%;
+
+      &::part(button) {
+        font-size: var(--font-size-large);
+        font-weight: var(--font-weight);
+        justify-content: flex-start;
+        padding-inline: calc((var(--button-size-icon) - var(--icon-size-default)) / 2 - var(--border-width));
+      }
+
+      &::part(moz-button-label) {
+        opacity: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+}
+
 /* Contextual Feature Recommendation popup-notification */
 
 #cfr-notification-header {

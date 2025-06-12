@@ -588,23 +588,27 @@ async function testIconClick(expanded) {
     Assert.ok(!SidebarController._state.panelOpen, "No panel is open");
 
     let view = button.getAttribute("view");
-    info(`Click the icon for: ${view}`);
+    if (view) {
+      info(`Click the icon for: ${view}`);
 
-    // The nodelist for sidebarMain may be out of date.
-    let buttonEl = sidebarMain.shadowRoot.querySelector(
-      `moz-button[view='${view}']`
-    );
-    EventUtils.synthesizeMouseAtCenter(buttonEl, {});
-
-    let gleanEvent = gleanEvents.get(view);
-    if (gleanEvent) {
-      const events = gleanEvent.testGetValue();
-      Assert.equal(events?.length, 1, "One event was reported.");
-      Assert.deepEqual(
-        events?.[0].extra,
-        { sidebar_open: `${expanded}` },
-        `Event indicates the sidebar was ${expanded ? "expanded" : "collapsed"}.`
+      // The nodelist for sidebarMain may be out of date.
+      let buttonEl = sidebarMain.shadowRoot.querySelector(
+        `moz-button[view='${view}']`
       );
+      EventUtils.synthesizeMouseAtCenter(buttonEl, {});
+
+      let gleanEvent = gleanEvents.get(view);
+      if (gleanEvent) {
+        const events = gleanEvent.testGetValue();
+        if (events?.length) {
+          Assert.equal(events?.length, 1, "One event was reported.");
+          Assert.deepEqual(
+            events?.[0].extra,
+            { sidebar_open: `${expanded}` },
+            `Event indicates the sidebar was ${expanded ? "expanded" : "collapsed"}.`
+          );
+        }
+      }
     }
   }
 

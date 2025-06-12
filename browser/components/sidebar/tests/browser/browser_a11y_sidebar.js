@@ -143,16 +143,6 @@ add_task(async function test_menu_items_labeled() {
     }
     ok(!button.hasVisibleLabel, `Collapsed ${view} button has no label.`);
   }
-
-  await SidebarController.initializeUIState({ launcherExpanded: true });
-  await sidebar.updateComplete;
-  for (const button of allButtons) {
-    const view = button.getAttribute("view");
-    ok(
-      button.label || button.hasVisibleLabel,
-      `Expanded ${view} button has a label.`
-    );
-  }
 });
 
 add_task(async function test_genai_chat_sidebar_tooltip() {

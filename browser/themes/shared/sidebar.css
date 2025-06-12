@@ -239,6 +239,10 @@ sidebar-main,
 #sidebar-main {
   /* Prevent overflow during sidebar animation when the sidebar is reordered */
   overflow: clip;
+
+  &[sidebar-ongoing-animations] > sidebar-main::part(overflow-button) {
+    display: none;
+  }
 }
 
 /* Expand on hover */
