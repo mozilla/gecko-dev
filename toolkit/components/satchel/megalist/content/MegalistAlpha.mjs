@@ -9,6 +9,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
+  LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
 });
 
 // Directly import moz-button here, otherwise, moz-button will be loaded and upgraded on DOMContentLoaded, after MegalistAlpha is first updated.
@@ -135,16 +136,27 @@ export class MegalistAlpha extends MozLitElement {
     this.#recordToolbarAction(gleanAction, "toolbar");
   }
 
-  #onCancelLoginForm() {
-    switch (this.viewMode) {
-      case VIEW_MODES.EDIT:
-        this.#sendCommand("DiscardChanges", {
-          value: { passwordIndex: this.selectedRecord.password.lineIndex },
-        });
-        return;
-      default:
-        this.viewMode = VIEW_MODES.LIST;
+  #hasPendingChange(loginForm) {
+    return !lazy.LoginHelper.doLoginsMatch(
+      {
+        username: this.selectedRecord.username.value,
+        password: this.selectedRecord.password.value,
+        origin: this.selectedRecord.origin.href,
+      },
+      loginForm,
+      {}
+    );
+  }
+
+  #onCancelLoginForm(loginForm) {
+    if (this.viewMode == VIEW_MODES.EDIT && this.#hasPendingChange(loginForm)) {
+      this.#sendCommand("DiscardChanges", {
+        value: { passwordIndex: this.selectedRecord.password.lineIndex },
+      });
+      return;
     }
+
+    this.viewMode = VIEW_MODES.LIST;
   }
 
   #openMenu(e) {
@@ -512,7 +524,7 @@ export class MegalistAlpha extends MozLitElement {
               this.selectedRecord.password.concealed,
               this.selectedRecord.password.lineIndex
             )}
-          .onClose=${() => this.#onCancelLoginForm()}
+          .onClose=${loginForm => this.#onCancelLoginForm(loginForm)}
           .onSaveClick=${loginForm => {
             loginForm.guid = this.selectedRecord.origin.guid;
             this.#sendCommand("UpdateLogin", {

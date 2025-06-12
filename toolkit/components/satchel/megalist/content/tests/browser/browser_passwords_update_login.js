@@ -150,6 +150,10 @@ add_task(async function test_update_login_discard_changes() {
 
   info("Cancelling form.");
   const loginForm = megalist.querySelector("login-form");
+
+  // Only show the discard changes notification if the login form has been modified.
+  setInputValue(loginForm, "login-username-field", login.username + "added");
+
   const cancelButton = loginForm.shadowRoot.querySelector(
     "moz-button[data-l10n-id=login-item-cancel-button]"
   );
@@ -223,6 +227,57 @@ add_task(async function test_update_login_discard_changes() {
     return !SidebarController.isOpen;
   }, "Sidebar did not close.");
   ok(!SidebarController.isOpen, "Sidebar closed");
+
+  LoginTestUtils.clearData();
+});
+
+add_task(async function test_update_login_without_changes() {
+  const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
+  if (!canTestOSAuth) {
+    return;
+  }
+
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
+  const login = TEST_LOGIN_1;
+  await LoginTestUtils.addLogin(login);
+
+  const megalist = await openPasswordsSidebar();
+  await checkAllLoginsRendered(megalist);
+
+  const passwordCard = megalist.querySelector("password-card");
+  await waitForReauth(() => passwordCard.editBtn.click());
+  await BrowserTestUtils.waitForCondition(
+    () => megalist.querySelector("login-form"),
+    "Login form failed to render"
+  );
+
+  info("Cancelling form.");
+  const loginForm = megalist.querySelector("login-form");
+  const cancelButton = loginForm.shadowRoot.querySelector(
+    "moz-button[data-l10n-id=login-item-cancel-button]"
+  );
+  cancelButton.buttonEl.click();
+  await ensureNoNotifications(megalist, "discard-changes");
+
+  await checkAllLoginsRendered(megalist);
+  ok(true, "List view of logins is shown again");
+
+  /* TODO: Fix this in Bug 1946726
+  info("Try closing sidebar while editing a login");
+  await waitForReauth(() => passwordCard.editBtn.click());
+  await BrowserTestUtils.waitForCondition(
+    () => megalist.querySelector("login-form"),
+    "Login form failed to render"
+  );
+  SidebarController.hide();
+
+  await BrowserTestUtils.waitForCondition(() => {
+    return !SidebarController.isOpen;
+  }, "Sidebar did not close.");
+  ok(!SidebarController.isOpen, "Sidebar closed");
+  */
 
   LoginTestUtils.clearData();
 });

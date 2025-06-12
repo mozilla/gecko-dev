@@ -155,6 +155,19 @@ async function addLocalOriginLogin() {
   });
 }
 
+async function ensureNoNotifications(megalist, notificationId) {
+  info(`Ensure no notification with id ${notificationId} is rendered.`);
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  const notifMsgBars = Array.from(
+    megalist.querySelectorAll("notification-message-bar")
+  );
+  const notification = notifMsgBars?.find(
+    notifMsgBar => notifMsgBar.notification.id === notificationId
+  );
+  ok(!notification, `Notification with id ${notificationId} should not exist.`);
+}
+
 function waitForNotification(megalist, notificationId) {
   info(`Wait for notification with id ${notificationId}.`);
   const notifcationPromise = BrowserTestUtils.waitForCondition(() => {

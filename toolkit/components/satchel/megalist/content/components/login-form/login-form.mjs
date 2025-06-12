@@ -86,6 +86,17 @@ export class LoginForm extends MozLitElement {
     }
   }
 
+  onCancel(e) {
+    e.preventDefault();
+
+    const loginForm = {
+      origin: this.originValue || this.originField.input.value,
+      username: this.usernameField.input.value.trim(),
+      password: this.passwordField.value,
+    };
+    this.onClose(loginForm);
+  }
+
   onSubmit(e) {
     e.preventDefault();
 
@@ -245,7 +256,7 @@ export class LoginForm extends MozLitElement {
             <moz-button-group>
               <moz-button
                 data-l10n-id="login-item-cancel-button"
-                @click=${this.onClose}
+                @click=${this.onCancel}
               ></moz-button>
               <moz-button
                 data-l10n-id="login-item-save-new-button"
