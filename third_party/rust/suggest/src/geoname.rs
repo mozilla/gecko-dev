@@ -493,10 +493,15 @@ impl SuggestDao<'_> {
                         AND g.country_code = :country
                     )
                     -- The row matches one of the geoname's admin divisions
-                    OR (g.feature_code = 'ADM1' AND g.admin1_code = :admin1)
-                    OR (g.feature_code = 'ADM2' AND g.admin2_code = :admin2)
-                    OR (g.feature_code = 'ADM3' AND g.admin3_code = :admin3)
-                    OR (g.feature_code = 'ADM4' AND g.admin4_code = :admin4)
+                    OR (
+                        g.country_code = :country
+                        AND (
+                            (g.feature_code = 'ADM1' AND g.admin1_code = :admin1)
+                            OR (g.feature_code = 'ADM2' AND g.admin2_code = :admin2)
+                            OR (g.feature_code = 'ADM3' AND g.admin3_code = :admin3)
+                            OR (g.feature_code = 'ADM4' AND g.admin4_code = :admin4)
+                        )
+                    )
                 )
             ORDER BY
                 -- Group rows for the same geoname together
@@ -1264,6 +1269,19 @@ pub(crate) mod tests {
                 "longitude": "-2.97794",
             },
 
+            // Germany
+            {
+                "id": 2921044,
+                "name": "Federal Republic of Germany",
+                "feature_class": "A",
+                "feature_code": "PCLI",
+                "country": "DE",
+                "admin1": "00",
+                "population": 82927922,
+                "latitude": "51.5",
+                "longitude": "10.5",
+            },
+
             // Gößnitz, DE (has non-basic-Latin chars and an `ascii_name`)
             {
                 "id": 2918770,
@@ -1279,6 +1297,36 @@ pub(crate) mod tests {
                 "population": 4104,
                 "latitude": "50.88902",
                 "longitude": "12.43292",
+            },
+
+            // Rheinland-Pfalz (similar to ON, Canada: both are admin1's and
+            // both have the same admin1 code)
+            {
+                "id": 2847618,
+                "name": "Rheinland-Pfalz",
+                "feature_class": "A",
+                "feature_code": "ADM1",
+                "country": "DE",
+                "admin1": "08",
+                "population": 4093903,
+                "latitude": "49.66667",
+                "longitude": "7.5",
+            },
+
+            // Mainz, DE (city in Rheinland-Pfalz)
+            {
+                "id": 2874225,
+                "name": "Mainz",
+                "feature_class": "P",
+                "feature_code": "PPLA",
+                "country": "DE",
+                "admin1": "08",
+                "admin2": "00",
+                "admin3": "07315",
+                "admin4": "07315000",
+                "population": 217123,
+                "latitude": "49.98419",
+                "longitude": "8.2791",
             },
         ])
     }
@@ -1770,6 +1818,21 @@ pub(crate) mod tests {
         }
     }
 
+    pub(crate) fn germany() -> Geoname {
+        Geoname {
+            geoname_id: 2921044,
+            geoname_type: GeonameType::Country,
+            name: "Federal Republic of Germany".to_string(),
+            feature_class: "A".to_string(),
+            feature_code: "PCLI".to_string(),
+            country_code: "DE".to_string(),
+            admin_division_codes: [(1, "00".to_string())].into(),
+            population: 82927922,
+            latitude: "51.5".to_string(),
+            longitude: "10.5".to_string(),
+        }
+    }
+
     pub(crate) fn goessnitz() -> Geoname {
         Geoname {
             geoname_id: 2918770,
@@ -1791,6 +1854,42 @@ pub(crate) mod tests {
         }
     }
 
+    pub(crate) fn rheinland_pfalz() -> Geoname {
+        Geoname {
+            geoname_id: 2847618,
+            geoname_type: GeonameType::AdminDivision { level: 1 },
+            name: "Rheinland-Pfalz".to_string(),
+            feature_class: "A".to_string(),
+            feature_code: "ADM1".to_string(),
+            country_code: "DE".to_string(),
+            admin_division_codes: [(1, "08".to_string())].into(),
+            population: 4093903,
+            latitude: "49.66667".to_string(),
+            longitude: "7.5".to_string(),
+        }
+    }
+
+    pub(crate) fn mainz() -> Geoname {
+        Geoname {
+            geoname_id: 2874225,
+            geoname_type: GeonameType::City,
+            name: "Mainz".to_string(),
+            feature_class: "P".to_string(),
+            feature_code: "PPLA".to_string(),
+            country_code: "DE".to_string(),
+            admin_division_codes: [
+                (1, "08".to_string()),
+                (2, "00".to_string()),
+                (3, "07315".to_string()),
+                (4, "07315000".to_string()),
+            ]
+            .into(),
+            population: 217123,
+            latitude: "49.98419".to_string(),
+            longitude: "8.2791".to_string(),
+        }
+    }
+
     #[test]
     fn is_related_to() -> anyhow::Result<()> {
         // The geonames in each vec should be pairwise related.
@@ -1799,6 +1898,7 @@ pub(crate) mod tests {
             vec![waterloo_al(), al(), us()],
             vec![waterloo_on(), on(), canada()],
             vec![liverpool_city(), liverpool_metro(), england(), uk()],
+            vec![mainz(), rheinland_pfalz(), germany()],
         ];
         for geonames in tests {
             for g in &geonames {
@@ -1844,6 +1944,13 @@ pub(crate) mod tests {
             vec![england(), us(), canada()],
             vec![al(), ia(), on(), england()],
             vec![us(), canada(), uk()],
+            // ON, Canada and Rheinland-Pfalz are both admin1's and both have
+            // the same admin1 code, but they're not related
+            vec![on(), rheinland_pfalz()],
+            // Mainz is a city in Rheinland-Pfalz
+            vec![on(), mainz()],
+            // Waterloo, ON is a city in ON
+            vec![rheinland_pfalz(), waterloo_on()],
         ];
         for geonames in tests {
             for a_and_b in geonames.iter().permutations(2) {
@@ -1936,14 +2043,14 @@ pub(crate) mod tests {
                     abbreviation: Some("NY".to_string()),
                 },
                 country: Some(AlternateNames {
-                    primary: "United States".to_string(),
+                    primary: us().name,
                     localized: Some("United States".to_string()),
                     abbreviation: Some("US".to_string()),
                 }),
                 admin_divisions: [(
                     1,
                     AlternateNames {
-                        primary: ny_state().name.clone(),
+                        primary: ny_state().name,
                         localized: Some("New York".to_string()),
                         abbreviation: Some("NY".to_string()),
                     },
@@ -1966,7 +2073,7 @@ pub(crate) mod tests {
                 admin_divisions: [(
                     1,
                     AlternateNames {
-                        primary: on().name.clone(),
+                        primary: on().name,
                         localized: Some("Ontario".to_string()),
                         abbreviation: Some("ON".to_string()),
                     },
@@ -1980,7 +2087,7 @@ pub(crate) mod tests {
                     abbreviation: None,
                 },
                 country: Some(AlternateNames {
-                    primary: "United Kingdom of Great Britain and Northern Ireland".to_string(),
+                    primary: uk().name,
                     localized: Some("United Kingdom".to_string()),
                     abbreviation: Some("UK".to_string()),
                 }),
@@ -1988,7 +2095,7 @@ pub(crate) mod tests {
                     (
                         1,
                         AlternateNames {
-                            primary: england().name.clone(),
+                            primary: england().name,
                             localized: Some("England".to_string()),
                             abbreviation: None,
                         },
@@ -1996,12 +2103,33 @@ pub(crate) mod tests {
                     (
                         2,
                         AlternateNames {
-                            primary: liverpool_metro().name.clone(),
+                            primary: liverpool_metro().name,
                             localized: Some("Liverpool".to_string()),
                             abbreviation: Some("LIV".to_string()),
                         },
                     ),
                 ]
+                .into(),
+            }),
+            Test::new(mainz(), |g| GeonameAlternates {
+                geoname: AlternateNames {
+                    primary: g.name.clone(),
+                    localized: Some(g.name.clone()),
+                    abbreviation: None,
+                },
+                country: Some(AlternateNames {
+                    primary: germany().name,
+                    localized: Some(germany().name),
+                    abbreviation: None,
+                }),
+                admin_divisions: [(
+                    1,
+                    AlternateNames {
+                        primary: rheinland_pfalz().name,
+                        localized: Some(rheinland_pfalz().name),
+                        abbreviation: None,
+                    },
+                )]
                 .into(),
             }),
             Test::new(punctuation_city(0), |g| GeonameAlternates {
