@@ -29,6 +29,7 @@ import org.mozilla.geckoview.GeckoSession.GeckoPrintException.ERROR_NO_ACTIVITY_
 import org.mozilla.geckoview.GeckoSession.GeckoPrintException.ERROR_NO_PRINT_DELEGATE
 import org.mozilla.geckoview.GeckoSession.GeckoPrintException.ERROR_PRINT_SETTINGS_SERVICE_NOT_AVAILABLE
 import org.mozilla.geckoview.GeckoSession.GeckoPrintException.ERROR_UNABLE_TO_CREATE_PRINT_SETTINGS
+import org.mozilla.geckoview.GeckoSession.GeckoPrintException.ERROR_UNABLE_TO_PROCESS_DOCUMENT
 import org.mozilla.geckoview.GeckoSession.GeckoPrintException.ERROR_UNABLE_TO_RETRIEVE_CANONICAL_BROWSING_CONTEXT
 import java.io.IOException
 
@@ -113,6 +114,7 @@ class SaveToPDFMiddleware(
                 ERROR_NO_ACTIVITY_CONTEXT_DELEGATE -> failureMsg = "no_activity_context_delegate"
                 ERROR_NO_ACTIVITY_CONTEXT -> failureMsg = "no_activity_context"
                 ERROR_NO_PRINT_DELEGATE -> failureMsg = "no_print_delegate"
+                ERROR_UNABLE_TO_PROCESS_DOCUMENT -> failureMsg = "unable_to_process_document"
             }
         }
         if (exception is IOException) {

@@ -8054,6 +8054,9 @@ public class GeckoSession {
     /** An error happened while trying to find the print delegate */
     public static final int ERROR_NO_PRINT_DELEGATE = -6;
 
+    /** An error happened while trying to process the document for printing */
+    public static final int ERROR_UNABLE_TO_PROCESS_DOCUMENT = -7;
+
     @Retention(RetentionPolicy.SOURCE)
     @IntDef(
         value = {
@@ -8062,7 +8065,8 @@ public class GeckoSession {
           ERROR_UNABLE_TO_RETRIEVE_CANONICAL_BROWSING_CONTEXT,
           ERROR_NO_ACTIVITY_CONTEXT_DELEGATE,
           ERROR_NO_ACTIVITY_CONTEXT,
-          ERROR_NO_PRINT_DELEGATE
+          ERROR_NO_PRINT_DELEGATE,
+          ERROR_UNABLE_TO_PROCESS_DOCUMENT
         })
     public @interface Codes {}
 

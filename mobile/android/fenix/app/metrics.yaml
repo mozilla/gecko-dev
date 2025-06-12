@@ -676,10 +676,11 @@ events:
           An error occurred while setting up for saving a PDF.
           Default option is unknown, other options are no_settings_service, no_settings,
           no_canonical_context, no_activity_context_delegate, no_activity_context,
-          no_print_delegate, and io_error.
+          no_print_delegate, unable_to_process_document and io_error.
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/27635
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1829213
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963827
     data_reviews:
       - https://github.com/mozilla-mobile/fenix/pull/27661#issuecomment-1300505370
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1829213#c4
@@ -732,9 +733,10 @@ events:
           An error occurred while setting up for printing.
           Default option is unknown, other options are no_settings_service, no_settings,
           no_canonical_context, no_activity_context_delegate, no_activity_context,
-          no_print_delegate, and io_error.
+          no_print_delegate, unable_to_process_document and io_error.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1837517
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963827
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1837517#c3
       - https://github.com/mozilla-mobile/firefox-android/pull/4039

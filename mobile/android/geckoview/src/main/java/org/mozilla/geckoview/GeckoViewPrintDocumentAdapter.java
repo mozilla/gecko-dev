@@ -6,6 +6,7 @@
 package org.mozilla.geckoview;
 
 import android.content.Context;
+import android.graphics.pdf.PdfRenderer;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
@@ -25,10 +26,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.geckoview.GeckoSession.GeckoPrintException;
 
 public class GeckoViewPrintDocumentAdapter extends PrintDocumentAdapter {
   private static final String LOGTAG = "GVPrintDocumentAdapter";
   private static final String PRINT_NAME_DEFAULT = "Document";
+  private boolean mPrintError;
   private String mPrintName = PRINT_NAME_DEFAULT;
   private File mPdfFile;
   private GeckoResult<File> mGeneratedPdfFile;
@@ -63,6 +66,7 @@ public class GeckoViewPrintDocumentAdapter extends PrintDocumentAdapter {
     this.mDoDeleteTmpPdf = true;
     this.mGeneratedPdfFile = pdfInputStreamToFile(pdfInputStream, context);
     this.mPrintDialogFinish = printDialogFinish;
+    this.mPrintError = false;
   }
 
   /**
@@ -86,16 +90,17 @@ public class GeckoViewPrintDocumentAdapter extends PrintDocumentAdapter {
    *
    * @param pdfInputStream - InputStream containing a PDF
    * @param context context that should be used for making a temporary file
-   * @return temporary PDF file
+   * @return temporary PDF file or null if the PDF is detected as malformed or due to IOError
    */
   @AnyThread
   public static @Nullable File makeTempPdfFile(
       @NonNull final InputStream pdfInputStream, @NonNull final Context context) {
-    File file = null;
+    final File file;
     try {
       file = File.createTempFile("temp", ".pdf", context.getCacheDir());
     } catch (final IOException ioe) {
       Log.e(LOGTAG, "Could not make a file in the cache dir: ", ioe);
+      return null;
     }
     final int bufferSize = 8192;
     final byte[] buffer = new byte[bufferSize];
@@ -106,6 +111,19 @@ public class GeckoViewPrintDocumentAdapter extends PrintDocumentAdapter {
       }
     } catch (final IOException ioe) {
       Log.e(LOGTAG, "Writing temporary PDF file failed: ", ioe);
+      return null;
+    }
+    try {
+      // The following is to verify that there is at least 1 page that can be rendered
+      final ParcelFileDescriptor pfd =
+          ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
+      final PdfRenderer renderer = new PdfRenderer(pfd);
+      if (renderer.getPageCount() > 0) {
+        return file;
+      }
+    } catch (final Exception e) {
+      file.delete();
+      return null;
     }
     return file;
   }
@@ -115,14 +133,22 @@ public class GeckoViewPrintDocumentAdapter extends PrintDocumentAdapter {
    *
    * @param pdfInputStream - InputStream containing a PDF
    * @param context context that should be used for making a temporary file
-   * @return gecko result with the file
+   * @return gecko result with the file or null if makeTempPdfFile fails
    */
   private @NonNull GeckoResult<File> pdfInputStreamToFile(
       final @NonNull InputStream pdfInputStream, final @NonNull Context context) {
     final GeckoResult<File> result = new GeckoResult<>();
     ThreadUtils.postToBackgroundThread(
         () -> {
-          result.complete(makeTempPdfFile(pdfInputStream, context));
+          final File tempFile = makeTempPdfFile(pdfInputStream, context);
+          if (tempFile == null) {
+            result.complete(null);
+            mPrintError = true;
+            mPrintDialogFinish.completeExceptionally(
+                new GeckoPrintException(GeckoPrintException.ERROR_UNABLE_TO_PROCESS_DOCUMENT));
+            return;
+          }
+          result.complete(tempFile);
         });
     return result;
   }
@@ -157,6 +183,10 @@ public class GeckoViewPrintDocumentAdapter extends PrintDocumentAdapter {
       final @Nullable File pdfFile,
       final @NonNull ParcelFileDescriptor parcelFileDescriptor,
       final @NonNull WriteResultCallback writeResultCallback) {
+    if (mPrintError) {
+      writeResultCallback.onWriteFailed(null);
+      return;
+    }
     InputStream input = null;
     OutputStream output = null;
     try {
@@ -195,7 +225,7 @@ public class GeckoViewPrintDocumentAdapter extends PrintDocumentAdapter {
             mGeneratedPdfFile.then(
                 file -> {
                   if (mPrintName == PRINT_NAME_DEFAULT) {
-                    mPrintName = file.getName();
+                    if (file != null) mPrintName = file.getName();
                   }
                   onWritePdf(file, parcelFileDescriptor, writeResultCallback);
                   return null;
@@ -217,7 +247,7 @@ public class GeckoViewPrintDocumentAdapter extends PrintDocumentAdapter {
         if (mGeneratedPdfFile != null) {
           mGeneratedPdfFile.then(
               file -> {
-                file.delete();
+                if (file != null) file.delete();
                 return null;
               });
         }
@@ -226,7 +256,7 @@ public class GeckoViewPrintDocumentAdapter extends PrintDocumentAdapter {
       // Silence the exception. We only want to delete a real file. We don't
       // care if the file doesn't exist.
     }
-    if (this.mPrintDialogFinish != null) {
+    if (this.mPrintDialogFinish != null && !this.mPrintError) {
       mPrintDialogFinish.complete(true);
     }
   }
