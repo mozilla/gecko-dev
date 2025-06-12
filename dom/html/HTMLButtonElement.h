@@ -136,13 +136,13 @@ class HTMLButtonElement final : public nsGenericHTMLFormControlElementWithState,
   void SetCustomValidity(const nsAString& aError);
 
   // Command & CommandFor
-  MOZ_CAN_RUN_SCRIPT void HandleInvokeTargetAction();
-  Element* GetInvokeTargetElement() const;
-  void SetInvokeTargetElement(Element*);
-  void GetInvokeAction(nsAString& aValue) const;
-  Element::Command GetInvokeAction(nsAtom* aAtom) const;
-  void SetInvokeAction(const nsAString& aValue) {
-    SetHTMLAttr(nsGkAtoms::invokeaction, aValue);
+  MOZ_CAN_RUN_SCRIPT void HandleCommandForAction();
+  Element* GetCommandForElement() const;
+  void SetCommandForElement(Element*);
+  void GetCommand(nsAString& aValue) const;
+  Element::Command GetCommand(nsAtom* aAtom) const;
+  void SetCommand(const nsAString& aValue) {
+    SetHTMLAttr(nsGkAtoms::command, aValue);
   }
 
  protected:

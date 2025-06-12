@@ -145,7 +145,7 @@ const TEST_DATA = [
     selector: "#invoker",
     attributes: [
       {
-        attributeName: "invoketarget",
+        attributeName: "commandfor",
         links: [{ type: "idref", value: "invokee" }],
       },
     ],
