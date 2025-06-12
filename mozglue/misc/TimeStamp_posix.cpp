@@ -159,12 +159,10 @@ double BaseTimeDurationPlatformUtils::ToSecondsSigDigits(int64_t aTicks) {
 int64_t BaseTimeDurationPlatformUtils::TicksFromMilliseconds(
     double aMilliseconds) {
   double result = aMilliseconds * kNsPerMsd;
-  // NOTE: this MUST be a >= test, because int64_t(double(INT64_MAX))
-  // overflows and gives INT64_MIN.
-  if (result >= double(INT64_MAX)) {
+  if (result > double(INT64_MAX)) {
     return INT64_MAX;
   }
-  if (result <= INT64_MIN) {
+  if (result < INT64_MIN) {
     return INT64_MIN;
   }
 

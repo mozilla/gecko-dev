@@ -96,11 +96,9 @@ int64_t BaseTimeDurationPlatformUtils::TicksFromMilliseconds(
     double aMilliseconds) {
   MOZ_ASSERT(gInitialized, "calling TimeDuration too early");
   double result = (aMilliseconds * kNsPerMsd) / sNsPerTick;
-  // NOTE: this MUST be a >= test, because int64_t(double(INT64_MAX))
-  // overflows and gives INT64_MIN.
-  if (result >= double(INT64_MAX)) {
+  if (result > double(INT64_MAX)) {
     return INT64_MAX;
-  } else if (result <= double(INT64_MIN)) {
+  } else if (result < double(INT64_MIN)) {
     return INT64_MIN;
   }
 
