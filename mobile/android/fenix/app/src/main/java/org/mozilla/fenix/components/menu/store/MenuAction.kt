@@ -201,16 +201,6 @@ sealed class MenuAction : Action {
     data object RequestMobileSite : MenuAction()
 
     /**
-     * [MenuAction] dispatched when the save menu item is clicked.
-     */
-    data object SaveMenuClicked : MenuAction()
-
-    /**
-     * [MenuAction] dispatched when the tools menu item is clicked.
-     */
-    data object ToolsMenuClicked : MenuAction()
-
-    /**
      * [MenuAction] dispatched to show the menu CFR.
      */
     data object OnCFRShown : MenuAction()

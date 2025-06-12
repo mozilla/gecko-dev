@@ -62,20 +62,16 @@ import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
 import mozilla.components.support.utils.ext.isLandscape
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
-import org.mozilla.fenix.Config
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.components.menu.compose.Addons
 import org.mozilla.fenix.components.menu.compose.CustomTabMenu
-import org.mozilla.fenix.components.menu.compose.ExtensionsSubmenu
 import org.mozilla.fenix.components.menu.compose.MainMenu
 import org.mozilla.fenix.components.menu.compose.MenuCFRState
 import org.mozilla.fenix.components.menu.compose.MenuDialogBottomSheet
 import org.mozilla.fenix.components.menu.compose.MoreSettingsSubmenu
-import org.mozilla.fenix.components.menu.compose.SaveSubmenu
-import org.mozilla.fenix.components.menu.compose.ToolsSubmenu
 import org.mozilla.fenix.components.menu.middleware.MenuDialogMiddleware
 import org.mozilla.fenix.components.menu.middleware.MenuNavigationMiddleware
 import org.mozilla.fenix.components.menu.middleware.MenuTelemetryMiddleware
@@ -340,7 +336,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val isWebCompatEnabled by store.observeAsState(store.state.isWebCompatEnabled) {
                         it.isWebCompatEnabled
                     }
-                    val isReaderable = selectedTab?.readerState?.readerable ?: false
                     val supportedLanguages = components.core.store.state.translationEngine.supportedLanguages
                     val translateLanguageCode = selectedTab?.translationsState?.translationEngineState
                         ?.requestedTranslationPair?.toLanguage
@@ -381,22 +376,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         state.extensionMenuState.addonInstallationInProgress
                     }
 
-                    val updateManageExtensionsMenuItemVisibility by store.observeAsState(
-                        initialValue = false,
-                    ) { state ->
-                        state.extensionMenuState.shouldShowManageExtensionsMenuItem
-                    }
-
                     val browserWebExtensionMenuItem by store.observeAsState(initialValue = emptyList()) { state ->
                         state.extensionMenuState.browserWebExtensionMenuItem
-                    }
-
-                    val showExtensionsOnboarding by store.observeAsState(initialValue = false) { state ->
-                        state.extensionMenuState.showExtensionsOnboarding
-                    }
-
-                    val showDisabledExtensionsOnboarding by store.observeAsState(initialValue = false) { state ->
-                        state.extensionMenuState.showDisabledExtensionsOnboarding
                     }
 
                     val availableAddons by store.observeAsState(initialValue = emptyList()) { state ->
@@ -442,7 +423,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         },
                     )
 
-                    var contentState: Route by remember { mutableStateOf(initRoute) }
+                    val contentState: Route by remember { mutableStateOf(initRoute) }
 
                     var shouldShowDefaultBrowserBanner by
                     remember { mutableStateOf(settings.shouldShowDefaultBrowserBanner) }
@@ -450,18 +431,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     var showBanner = shouldShowDefaultBrowserBanner && !defaultBrowser
 
                     BackHandler {
-                        when (contentState) {
-                            Route.ToolsMenu,
-                            Route.SaveMenu,
-                            Route.ExtensionsMenu,
-                            -> {
-                                contentState = Route.MainMenu
-                            }
-
-                            else -> {
-                                this@MenuDialogFragment.dismissAllowingStateLoss()
-                            }
-                        }
+                        this@MenuDialogFragment.dismissAllowingStateLoss()
                     }
 
                     AnimatedContent(
@@ -528,8 +498,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isDesktopMode = isDesktopMode,
                                     isPdf = isPdf,
                                     isReaderViewActive = isReaderViewActive,
-                                    isTranslationSupported = isTranslationSupported,
-                                    isWebCompatReporterSupported = isWebCompatReporterSupported,
                                     extensionsMenuItemDescription = getExtensionsMenuItemDescription(
                                         isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                         allWebExtensionsDisabled = allWebExtensionsDisabled,
@@ -570,14 +538,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     },
                                     onFindInPageMenuClick = {
                                         store.dispatch(MenuAction.FindInPage)
-                                    },
-                                    onToolsMenuClick = {
-                                        store.dispatch(MenuAction.ToolsMenuClicked)
-                                        contentState = Route.ToolsMenu
-                                    },
-                                    onSaveMenuClick = {
-                                        store.dispatch(MenuAction.SaveMenuClicked)
-                                        contentState = Route.SaveMenu
                                     },
                                     onBannerClick = {
                                         (context as? Activity)?.openSetDefaultBrowserOption()
@@ -770,153 +730,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     },
                                     onShareMenuClick = {
                                         store.dispatch(MenuAction.Navigate.Share)
-                                    },
-                                )
-                            }
-
-                            Route.ToolsMenu -> {
-                                val appLinksRedirect = if (selectedTab?.content?.url != null) {
-                                    appLinksUseCases.appLinkRedirect(selectedTab.content.url)
-                                } else {
-                                    null
-                                }
-
-                                handlebarContentDescription =
-                                    context.getString(R.string.browser_tools_menu_handlebar_content_description)
-
-                                ToolsSubmenu(
-                                    isPdf = isPdf,
-                                    isWebCompatEnabled = isWebCompatEnabled,
-                                    isWebCompatReporterSupported = isWebCompatReporterSupported,
-                                    isReaderable = isReaderable,
-                                    isReaderViewActive = isReaderViewActive,
-                                    isOpenInRegularTabSupported = selectedTab?.let { session ->
-                                        // This feature is gated behind Nightly for the time being.
-                                        Config.channel.isNightlyOrDebug &&
-                                            // and is only visible in private tabs.
-                                            session.content.private
-                                    } ?: false,
-                                    hasExternalApp = appLinksRedirect?.hasExternalApp() ?: false,
-                                    externalAppName = appLinksRedirect?.appName ?: "",
-                                    isTranslated = selectedTab?.translationsState?.isTranslated
-                                        ?: false,
-                                    isTranslationSupported = isTranslationSupported,
-                                    translatedLanguage = if (
-                                        translateLanguageCode != null && supportedLanguages != null
-                                    ) {
-                                        TranslationSupport(
-                                            fromLanguages = supportedLanguages.fromLanguages,
-                                            toLanguages = supportedLanguages.toLanguages,
-                                        ).findLanguage(translateLanguageCode)?.localizedDisplayName
-                                            ?: ""
-                                    } else {
-                                        ""
-                                    },
-                                    onBackButtonClick = {
-                                        contentState = Route.MainMenu
-                                    },
-                                    onReaderViewMenuClick = {
-                                        store.dispatch(MenuAction.ToggleReaderView)
-                                    },
-                                    onTranslatePageMenuClick = {
-                                        selectedTab?.let {
-                                            store.dispatch(MenuAction.Navigate.Translate)
-                                        }
-                                    },
-                                    onPrintMenuClick = {
-                                        printContentUseCase()
-                                        dismiss()
-                                    },
-                                    onShareMenuClick = {
-                                        selectedTab?.let {
-                                            store.dispatch(MenuAction.Navigate.Share)
-                                        }
-                                    },
-                                    onOpenInAppMenuClick = {
-                                        store.dispatch(MenuAction.OpenInApp)
-                                    },
-                                    onWebCompatReporterClick = {
-                                        store.dispatch(MenuAction.Navigate.WebCompatReporter)
-                                    },
-                                    onOpenInRegularTabClick = {
-                                        store.dispatch(MenuAction.OpenInRegularTab)
-                                    },
-                                )
-                            }
-
-                            Route.SaveMenu -> {
-                                handlebarContentDescription =
-                                    context.getString(R.string.browser_save_menu_handlebar_content_description)
-
-                                SaveSubmenu(
-                                    isPinned = isPinned,
-                                    isInstallable = webAppUseCases.isInstallable(),
-                                    onBackButtonClick = {
-                                        contentState = Route.MainMenu
-                                    },
-                                    onShortcutsMenuClick = {
-                                        if (!isPinned) {
-                                            store.dispatch(MenuAction.AddShortcut)
-                                        } else {
-                                            store.dispatch(MenuAction.RemoveShortcut)
-                                        }
-                                    },
-                                    onAddToHomeScreenMenuClick = {
-                                        store.dispatch(MenuAction.Navigate.AddToHomeScreen)
-                                    },
-                                    onSaveToCollectionMenuClick = {
-                                        store.dispatch(
-                                            MenuAction.Navigate.SaveToCollection(
-                                                hasCollection = tabCollectionStorage.cachedTabCollections.isNotEmpty(),
-                                            ),
-                                        )
-                                    },
-                                    onSaveAsPDFMenuClick = {
-                                        saveToPdfUseCase()
-                                        dismiss()
-                                    },
-                                )
-                            }
-
-                            Route.ExtensionsMenu -> {
-                                handlebarContentDescription =
-                                    context.getString(R.string.browser_extensions_menu_handlebar_content_description)
-
-                                ExtensionsSubmenu(
-                                    recommendedAddons = recommendedAddons,
-                                    addonInstallationInProgress = addonInstallationInProgress,
-                                    showExtensionsOnboarding = showExtensionsOnboarding,
-                                    showDisabledExtensionsOnboarding = showDisabledExtensionsOnboarding,
-                                    showManageExtensions = updateManageExtensionsMenuItemVisibility,
-                                    webExtensionMenuItems = browserWebExtensionMenuItem,
-                                    onBackButtonClick = {
-                                        contentState = Route.MainMenu
-                                    },
-                                    onExtensionsLearnMoreClick = {
-                                        store.dispatch(MenuAction.Navigate.ExtensionsLearnMore)
-                                    },
-                                    onManageExtensionsMenuClick = {
-                                        view?.slideDown {
-                                            store.dispatch(MenuAction.Navigate.ManageExtensions)
-                                        }
-                                    },
-                                    onAddonClick = { addon ->
-                                        view?.slideDown {
-                                            store.dispatch(MenuAction.Navigate.AddonDetails(addon = addon))
-                                        }
-                                    },
-                                    onInstallAddonClick = { addon ->
-                                        store.dispatch(MenuAction.InstallAddon(addon = addon))
-                                    },
-                                    onDiscoverMoreExtensionsMenuClick = {
-                                        store.dispatch(MenuAction.Navigate.DiscoverMoreExtensions)
-                                    },
-                                    webExtensionMenuItemClick = {
-                                        Events.browserMenuAction.record(
-                                            Events.BrowserMenuActionExtra(
-                                                item = "web_extension_browser_action_clicked",
-                                            ),
-                                        )
                                     },
                                 )
                             }

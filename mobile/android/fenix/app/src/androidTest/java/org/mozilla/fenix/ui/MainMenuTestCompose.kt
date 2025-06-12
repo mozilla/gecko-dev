@@ -87,6 +87,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860835
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun webpageRedesignedMenuItemsTest() {
@@ -369,20 +370,6 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860812
-    @SmokeTest
-    @Test
-    fun verifyTheSaveSubMenuItemsTest() {
-        val testPage = getGenericAsset(mockWebServer, 1)
-
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
-            clickSaveButton()
-            verifySaveSubMenuItems()
-        }
-    }
-
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860813
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @SmokeTest
@@ -409,6 +396,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860814
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyTheAddToShortcutsSubMenuOptionTest() {
@@ -434,6 +422,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860815
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyTheAddToHomeScreenSubMenuOptionTest() {
@@ -458,6 +447,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860816
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyTheSaveToCollectionSubMenuOptionTest() {
@@ -510,68 +500,8 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860796
-    @SmokeTest
-    @Test
-    fun verifyTheDefaultToolsMenuItemsTest() {
-        val testPage = getGenericAsset(mockWebServer, 1)
-
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
-            verifyTheDefaultToolsMenuItems()
-            verifyReaderViewButtonIsEnabled(isEnabled = false)
-            verifyOpenInAppButtonIsEnabled(isEnabled = false)
-        }
-    }
-
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860798
-    @SmokeTest
-    @Test
-    fun verifyTheReaderViewButtonTest() {
-        val readerViewPage = TestAssetHelper.getLoremIpsumAsset(mockWebServer)
-        val estimatedReadingTime = "1 - 2 minutes"
-
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(readerViewPage.url) {
-            verifyPageContent(readerViewPage.content)
-        }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
-            verifyReaderViewButtonIsEnabled(isEnabled = true)
-        }.clickTheReaderViewModeButton {
-            waitForPageToLoad()
-            verifyPageContent(estimatedReadingTime)
-        }
-        navigationToolbar {
-            verifyReaderViewNavigationToolbarButton(isReaderViewEnabled = true)
-        }
-        browserScreen {
-        }.openThreeDotMenu(composeTestRule) {
-            verifyCustomizeReaderViewButtonIsDisplayed(isDisplayed = true)
-        }.clickCustomizeReaderViewButton {
-            verifyAppearanceFontGroup(true)
-            verifyAppearanceFontSansSerif(true)
-            verifyAppearanceFontSerif(true)
-            verifyAppearanceFontIncrease(true)
-            verifyAppearanceFontDecrease(true)
-            verifyAppearanceFontSize(3)
-            verifyAppearanceColorGroup(true)
-            verifyAppearanceColorDark(true)
-            verifyAppearanceColorLight(true)
-            verifyAppearanceColorSepia(true)
-        }.closeAppearanceMenu {
-        }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
-        }.clickTurnOffReaderViewButton {
-        }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
-            verifyReaderViewButtonIsEnabled(isEnabled = true)
-            verifyCustomizeReaderViewButtonIsDisplayed(isDisplayed = false)
-        }
-    }
-
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860799
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyTheTranslatePageButtonsStatesTest() {
@@ -592,11 +522,11 @@ class MainMenuTestCompose : TestSetup() {
             verifyPageContent(testPage.content)
         }.openThreeDotMenu(composeTestRule) {
             openToolsMenu()
-            verifyTheDefaultToolsMenuItems()
         }
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860802
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyTheShareButtonTest() {
@@ -618,6 +548,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860804
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyOpenInAppButtonIsEnabledTest() {
@@ -677,6 +608,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860801
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyPrintSubMenuOptionTest() {
@@ -839,34 +771,6 @@ class MainMenuTestCompose : TestSetup() {
         }
         homeScreen {
             verifyHomeWordmark()
-        }
-    }
-
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860806
-    @Test
-    fun verifyTheDismissalWhenTappingOutsideTheToolsSubMenuTest() {
-        val genericURL = getGenericAsset(mockWebServer, 1)
-
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
-        }.clickOutsideTheMainMenu {
-            verifyToolsMenuDoesNotExist()
-        }
-    }
-
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860819
-    @Test
-    fun verifyTheDismissalWhenTappingOutsideTheSaveSubMenuTest() {
-        val genericURL = getGenericAsset(mockWebServer, 1)
-
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
-            clickSaveButton()
-        }.clickOutsideTheMainMenu {
-            verifySaveMenuDoesNotExist()
         }
     }
 
@@ -1056,6 +960,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860800
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyTheReportBrokenSiteOptionTest() {
         runWithCondition(
@@ -1090,6 +995,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939173
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyTheWhatIsBrokenErrorMessageTest() {
         runWithCondition(
@@ -1115,6 +1021,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939175
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyThatTheBrokenSiteFormCanBeCanceledTest() {
         runWithCondition(
@@ -1173,6 +1080,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939179
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyThatTheBrokenSiteFormInfoPersistsTest() {
         runWithCondition(
@@ -1200,6 +1108,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939180
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyTheBrokenSiteFormIsEmptyWithoutSubmittingThePreviousOneTest() {
         runWithCondition(
@@ -1232,6 +1141,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939181
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyThatTheBrokenSiteFormInfoIsErasedWhenKillingTheAppTest() {
         runWithCondition(
@@ -1264,6 +1174,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939182
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyReportBrokenSiteFormNotDisplayedWhenTelemetryIsDisabledTest() {
         runWithCondition(

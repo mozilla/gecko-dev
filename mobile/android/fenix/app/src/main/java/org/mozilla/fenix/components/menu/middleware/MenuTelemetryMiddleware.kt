@@ -63,18 +63,6 @@ class MenuTelemetryMiddleware(
                 ),
             )
 
-            MenuAction.SaveMenuClicked -> Events.browserMenuAction.record(
-                Events.BrowserMenuActionExtra(
-                    item = "save_submenu",
-                ),
-            )
-
-            MenuAction.ToolsMenuClicked -> Events.browserMenuAction.record(
-                Events.BrowserMenuActionExtra(
-                    item = "tools_submenu",
-                ),
-            )
-
             MenuAction.Navigate.AddToHomeScreen -> Events.browserMenuAction.record(
                 Events.BrowserMenuActionExtra(
                     item = "add_to_homescreen",
