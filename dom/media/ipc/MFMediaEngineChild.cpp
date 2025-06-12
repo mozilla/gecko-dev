@@ -257,7 +257,7 @@ void MFMediaEngineChild::IPDLActorDestroyed() {
   AssertOnManagerThread();
   if (!mShutdown) {
     CLOG("Destroyed actor without shutdown, remote process has crashed!");
-    mOwner->NotifyError(NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR);
+    mOwner->NotifyError(NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_MF_CDM_ERR);
   }
   mIPDLSelfRef = nullptr;
 }

@@ -474,14 +474,13 @@ RemoteMediaManagerChild::Construct(RefPtr<RemoteDecoderChild>&& aChild,
           },
           [aLocation](const mozilla::ipc::ResponseRejectReason& aReason) {
             // The parent has died.
-            nsresult err =
-                NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR;
+            nsresult err = NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_UTILITY_ERR;
             if (aLocation == RemoteMediaIn::GpuProcess ||
                 aLocation == RemoteMediaIn::RddProcess) {
-              err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR;
+              err = NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_RDD_OR_GPU_ERR;
             } else if (aLocation ==
                        RemoteMediaIn::UtilityProcess_MFMediaEngineCDM) {
-              err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR;
+              err = NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_MF_CDM_ERR;
             }
             return PlatformDecoderModule::CreateDecoderPromise::CreateAndReject(
                 err, __func__);
@@ -928,18 +927,17 @@ void RemoteMediaManagerChild::DeallocateSurfaceDescriptor(
             "RemoteMediaManagerChild::HandleRejectionError",
             [callback = std::move(aCallback)]() {
               MediaResult error(
-                  NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR,
-                  __func__);
+                  NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_RDD_OR_GPU_ERR, __func__);
               callback(error);
             }));
     return;
   }
 
-  nsresult err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR;
+  nsresult err = NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_UTILITY_ERR;
   if (aLocation == RemoteMediaIn::RddProcess) {
-    err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR;
+    err = NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_RDD_OR_GPU_ERR;
   } else if (aLocation == RemoteMediaIn::UtilityProcess_MFMediaEngineCDM) {
-    err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR;
+    err = NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_MF_CDM_ERR;
   }
   // The RDD/utility process is restarted on demand and asynchronously, we can
   // immediately inform the caller that a new en/decoder is needed. The process

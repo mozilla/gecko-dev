@@ -2572,11 +2572,11 @@ void MediaFormatReader::Update(TrackType aTrack) {
         firstFrameDecodingFailedWithHardware;
     // Limit number of process restarts after crash
     if ((decoder.mError.ref() ==
-             NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR &&
+             NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_RDD_OR_GPU_ERR &&
          decoder.mNumOfConsecutiveRDDOrGPUCrashes++ <
              decoder.mMaxConsecutiveRDDOrGPUCrashes) ||
         (decoder.mError.ref() ==
-             NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR &&
+             NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_UTILITY_ERR &&
          decoder.mNumOfConsecutiveUtilityCrashes++ <
              decoder.mMaxConsecutiveUtilityCrashes)) {
       needsNewDecoder = true;
@@ -2584,8 +2584,7 @@ void MediaFormatReader::Update(TrackType aTrack) {
     // For MF CDM crash, it needs to be handled differently. We need to shutdown
     // current decoder and report that error to the state machine in order to
     // let it to determine if playback can keep going or not.
-    if (decoder.mError.ref() ==
-        NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR) {
+    if (decoder.mError.ref() == NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_MF_CDM_ERR) {
       LOG("Error: notify MF CDM crash and shutdown %s decoder",
           TrackTypeToStr(aTrack));
       ShutdownDecoder(aTrack);
@@ -2605,7 +2604,7 @@ void MediaFormatReader::Update(TrackType aTrack) {
     }
     // RDD process crashed on Linux, give it another try without HW decoder.
     if (decoder.mError.ref() ==
-        NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR) {
+        NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_RDD_OR_GPU_ERR) {
       LOG("Error: %s remote decoder crashed, disable HW acceleration",
           TrackTypeToStr(aTrack));
       decoder.mHardwareDecodingDisabled = true;
@@ -2614,9 +2613,8 @@ void MediaFormatReader::Update(TrackType aTrack) {
     // We don't want to expose crash error so switch to
     // NS_ERROR_DOM_MEDIA_DECODE_ERR.
     if (decoder.mError.ref() ==
-            NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR ||
-        decoder.mError.ref() ==
-            NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR) {
+            NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_RDD_OR_GPU_ERR ||
+        decoder.mError.ref() == NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_UTILITY_ERR) {
       decoder.mError = Some(MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR,
                                         RESULT_DETAIL("Unable to decode")));
     }

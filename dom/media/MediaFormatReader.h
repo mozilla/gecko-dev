@@ -511,24 +511,21 @@ class MediaFormatReader final
         // it as fatal.
         return false;
       }
-      if (mError.ref() ==
-          NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR) {
+      if (mError.ref() == NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_RDD_OR_GPU_ERR) {
         // Allow RDD crashes to be non-fatal, but give up
         // if we have too many, or if warnings should be treated as errors.
         return mNumOfConsecutiveRDDOrGPUCrashes >
                    mMaxConsecutiveRDDOrGPUCrashes ||
                StaticPrefs::media_playback_warnings_as_errors();
       }
-      if (mError.ref() ==
-          NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR) {
+      if (mError.ref() == NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_UTILITY_ERR) {
         bool tooManyConsecutiveCrashes =
             mNumOfConsecutiveUtilityCrashes > mMaxConsecutiveUtilityCrashes;
         // TODO: Telemetry?
         return tooManyConsecutiveCrashes ||
                StaticPrefs::media_playback_warnings_as_errors();
       }
-      if (mError.ref() ==
-          NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR) {
+      if (mError.ref() == NS_ERROR_DOM_MEDIA_REMOTE_CRASHED_MF_CDM_ERR) {
         return false;
       }
       // All other error types are fatal
