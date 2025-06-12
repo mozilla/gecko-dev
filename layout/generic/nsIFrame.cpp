@@ -11191,7 +11191,9 @@ static nsIFrame* GetCorrectedParent(const nsIFrame* aFrame) {
   // For a table caption we want the _inner_ table frame (unless it's anonymous)
   // as the style parent.
   if (aFrame->IsTableCaption()) {
-    nsIFrame* innerTable = parent->PrincipalChildList().FirstChild();
+    MOZ_ASSERT(parent->IsTableWrapperFrame());
+    nsTableFrame* innerTable =
+        static_cast<const nsTableWrapperFrame*>(parent)->InnerTableFrame();
     if (!innerTable->Style()->IsAnonBox()) {
       return innerTable;
     }
@@ -11202,8 +11204,10 @@ static nsIFrame* GetCorrectedParent(const nsIFrame* aFrame) {
   // know its parent. So get the pseudo of the inner in that case.
   auto pseudo = aFrame->Style()->GetPseudoType();
   if (pseudo == PseudoStyleType::tableWrapper) {
-    pseudo =
-        aFrame->PrincipalChildList().FirstChild()->Style()->GetPseudoType();
+    MOZ_ASSERT(aFrame->IsTableWrapperFrame());
+    nsTableFrame* innerTable =
+        static_cast<const nsTableWrapperFrame*>(aFrame)->InnerTableFrame();
+    pseudo = innerTable->Style()->GetPseudoType();
   }
 
   // Prevent a NAC pseudo-element from inheriting from its NAC parent, and
