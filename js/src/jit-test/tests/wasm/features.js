@@ -66,11 +66,6 @@ for (let [name, enabled, test] of releasedFeaturesMaybeDisabledAnyway) {
 let releasedFeatures = [
   ['threads', wasmThreadsEnabled(), `(module (memory 1 1 shared))`],
   [
-    'multi-memory',
-    wasmMultiMemoryEnabled(),
-    `(module (memory 0) (memory 0))`,
-  ],
-  [
     'exnref',
     wasmExnRefEnabled(),
     `(module (func try_table end))`
