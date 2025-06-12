@@ -926,7 +926,7 @@ where
                 // to go outside our selector and carry on invalidating.
                 let mut cur_dependency = invalidation.dependency;
                 loop {
-                    cur_dependency = match cur_dependency.parent {
+                    cur_dependency = match cur_dependency.next {
                         None => {
                             return SingleInvalidationResult {
                                 invalidated_self: true,

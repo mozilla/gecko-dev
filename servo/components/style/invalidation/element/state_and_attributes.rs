@@ -548,10 +548,10 @@ where
 
         let invalidation_kind = dependency.normal_invalidation_kind();
         if matches!(invalidation_kind, NormalDependencyInvalidationKind::Element) {
-            if let Some(ref parent) = dependency.parent {
+            if let Some(ref next) = dependency.next {
                 // We know something changed in the inner selector, go outwards
                 // now.
-                self.scan_dependency(parent);
+                self.scan_dependency(next);
             } else {
                 self.invalidates_self = true;
             }
