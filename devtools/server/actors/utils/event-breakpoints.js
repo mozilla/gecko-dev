@@ -163,8 +163,8 @@ const AVAILABLE_BREAKPOINTS = [
       // The condition should be removed when "dom.element.commandfor.enabled" is removed
       generalEvent(
         "control",
-        "invoke",
-        global => global && "InvokeEvent" in global
+        "command",
+        global => global && "CommandEvent" in global
       ),
       generalEvent("control", "reset"),
       generalEvent("control", "resize"),

@@ -7,8 +7,16 @@
 // https://html.spec.whatwg.org/multipage/interaction.html#the-commandevent-interface
 [Exposed=Window,Func="mozilla::dom::CommandEvent::IsCallerChromeOrCommandForEnabled"]
 interface CommandEvent : Event {
-  // TODO(keithamus): Spec is `DOMString` but internal CommandEvent is `DOMString?`
-  readonly attribute DOMString? command;
+  [Pref="dom.element.commandfor.enabled"]
+  constructor(DOMString type, optional CommandEventInit eventInitDict = {});
 
-  // TODO(keithamus): Add remaining interface (source, constructor) from spec CommandEvent
+  readonly attribute DOMString command;
+
+  [Pref="dom.element.commandfor.enabled"]
+  readonly attribute Element? source;
+};
+
+dictionary CommandEventInit : EventInit {
+    Element? source = null;
+    DOMString command = "";
 };

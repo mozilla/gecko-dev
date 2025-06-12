@@ -11,10 +11,50 @@
 
 namespace mozilla::dom {
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(CommandEvent)
+
+NS_IMPL_ADDREF_INHERITED(CommandEvent, Event)
+NS_IMPL_RELEASE_INHERITED(CommandEvent, Event)
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(CommandEvent, Event)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSource)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(CommandEvent, Event)
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(CommandEvent, Event)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSource)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CommandEvent)
+NS_INTERFACE_MAP_END_INHERITING(Event)
+
 bool CommandEvent::IsCallerChromeOrCommandForEnabled(JSContext* aCx,
                                                      JSObject* aGlobal) {
   return nsContentUtils::ThreadsafeIsSystemCaller(aCx) ||
          StaticPrefs::dom_element_commandfor_enabled();
+}
+
+already_AddRefed<CommandEvent> CommandEvent::Constructor(
+    const GlobalObject& aGlobal, const nsAString& aType,
+    const CommandEventInit& aEventInitDict) {
+  nsCOMPtr<mozilla::dom::EventTarget> owner =
+      do_QueryInterface(aGlobal.GetAsSupports());
+  return Constructor(owner, aType, aEventInitDict);
+}
+
+already_AddRefed<CommandEvent> CommandEvent::Constructor(
+    mozilla::dom::EventTarget* aOwner, const nsAString& aType,
+    const CommandEventInit& aEventInitDict) {
+  RefPtr<CommandEvent> e = new CommandEvent(aOwner, nullptr, nullptr);
+  bool trusted = e->Init(aOwner);
+  e->InitEvent(aType, aEventInitDict.mBubbles, aEventInitDict.mCancelable);
+  e->mEvent->AsCommandEvent()->mCommand = NS_Atomize(aEventInitDict.mCommand);
+  e->mSource = aEventInitDict.mSource;
+  e->SetTrusted(trusted);
+  e->SetComposed(aEventInitDict.mComposed);
+  return e.forget();
 }
 
 CommandEvent::CommandEvent(EventTarget* aOwner, nsPresContext* aPresContext,
@@ -27,13 +67,28 @@ CommandEvent::CommandEvent(EventTarget* aOwner, nsPresContext* aPresContext,
   }
 }
 
-void CommandEvent::GetCommand(nsAString& aCommand) {
+void CommandEvent::GetCommand(nsAString& aCommand) const {
   nsAtom* command = mEvent->AsCommandEvent()->mCommand;
   if (command) {
     command->ToString(aCommand);
   } else {
     aCommand.Truncate();
   }
+}
+
+Element* CommandEvent::GetSource() {
+  EventTarget* currentTarget = GetCurrentTarget();
+  if (currentTarget) {
+    nsINode* currentTargetNode = currentTarget->GetAsNode();
+    if (!currentTargetNode) {
+      return nullptr;
+    }
+    nsINode* retargeted = nsContentUtils::Retarget(
+        static_cast<nsINode*>(mSource), currentTargetNode);
+    return retargeted ? retargeted->AsElement() : nullptr;
+  }
+  MOZ_ASSERT(!mEvent->mFlags.mIsBeingDispatched);
+  return mSource;
 }
 
 }  // namespace mozilla::dom
