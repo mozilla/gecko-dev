@@ -150,58 +150,124 @@ add_task(async function test_required_permissions_removed() {
 // This tests that settings are removed if a granted permission is removed.
 // We use two settings APIs to make sure the one we keep permission to is not
 // removed inadvertantly.
-add_task(async function test_granted_permissions_removed() {
-  function cacheIsEnabled() {
-    return (
-      Services.prefs.getBoolPref("browser.cache.disk.enable") &&
-      Services.prefs.getBoolPref("browser.cache.memory.enable")
+add_task(
+  {
+    pref_set: [["extensions.dataCollectionPermissions.enabled", true]],
+  },
+  async function test_granted_permissions_removed() {
+    function cacheIsEnabled() {
+      return (
+        Services.prefs.getBoolPref("browser.cache.disk.enable") &&
+        Services.prefs.getBoolPref("browser.cache.memory.enable")
+      );
+    }
+
+    let extData = {
+      async background() {
+        browser.test.onMessage.addListener(async (msg, args) => {
+          let result;
+          if (msg === "permissions-request") {
+            await browser.permissions.request({
+              permissions: args.permissions,
+              origins: [],
+              data_collection: args.data_collection,
+            });
+            if (browser.browserSettings) {
+              browser.browserSettings.cacheEnabled.set({ value: false });
+            }
+            browser.privacy.services.passwordSavingEnabled.set({
+              value: false,
+            });
+          } else if (msg === "permissions-getAll") {
+            result = await browser.permissions.getAll();
+          } else {
+            browser.test.fail(`Got unexpected test message ${msg}`);
+          }
+          browser.test.sendMessage(`${msg}:done`, result);
+        });
+      },
+      // "tabs" is never granted, it is included to exercise the removal code
+      // that called during the upgrade.
+      manifest: {
+        version: "1.0",
+        browser_specific_settings: {
+          gecko: {
+            id: "pref-test@test",
+            data_collection_permissions: {
+              optional: ["technicalAndInteraction", "locationInfo"],
+            },
+          },
+        },
+        optional_permissions: [
+          "tabs",
+          "browserSettings",
+          "privacy",
+          "http://test.com/*",
+        ],
+      },
+      useAddonManager: "permanent",
+    };
+    let extension = ExtensionTestUtils.loadExtension(extData);
+    ok(
+      Services.prefs.getBoolPref("signon.rememberSignons"),
+      "privacy setting intial value as expected"
     );
-  }
+    await extension.startup();
+    Assert.equal(
+      extension.extension.version,
+      "1.0",
+      "Got the expected extension version before upgrade"
+    );
 
-  let extData = {
-    async background() {
-      browser.test.onMessage.addListener(async msg => {
-        await browser.permissions.request({ permissions: msg.permissions });
-        if (browser.browserSettings) {
-          browser.browserSettings.cacheEnabled.set({ value: false });
-        }
-        browser.privacy.services.passwordSavingEnabled.set({ value: false });
-        browser.test.sendMessage("done");
+    await withHandlingUserInput(extension, async () => {
+      extension.sendMessage("permissions-request", {
+        permissions: ["browserSettings", "privacy"],
+        data_collection: ["technicalAndInteraction", "locationInfo"],
       });
-    },
-    // "tabs" is never granted, it is included to exercise the removal code
-    // that called during the upgrade.
-    manifest: {
-      browser_specific_settings: { gecko: { id: "pref-test@test" } },
-      optional_permissions: [
-        "tabs",
-        "browserSettings",
-        "privacy",
-        "http://test.com/*",
-      ],
-    },
-    useAddonManager: "permanent",
-  };
-  let extension = ExtensionTestUtils.loadExtension(extData);
-  ok(
-    Services.prefs.getBoolPref("signon.rememberSignons"),
-    "privacy setting intial value as expected"
-  );
-  await extension.startup();
-  await withHandlingUserInput(extension, async () => {
-    extension.sendMessage({ permissions: ["browserSettings", "privacy"] });
-    await extension.awaitMessage("done");
-  });
-  ok(!cacheIsEnabled(), "setting is set after startup");
+      await extension.awaitMessage("permissions-request:done");
+    });
+    ok(!cacheIsEnabled(), "setting is set after startup");
 
-  extData.manifest.permissions = ["privacy"];
-  delete extData.manifest.optional_permissions;
-  await extension.upgrade(extData);
-  ok(cacheIsEnabled(), "setting is reset after upgrade");
-  ok(
-    !Services.prefs.getBoolPref("signon.rememberSignons"),
-    "privacy setting is still set after upgrade"
-  );
+    extension.sendMessage("permissions-getAll");
+    Assert.deepEqual(
+      await extension.awaitMessage("permissions-getAll:done"),
+      {
+        origins: [],
+        permissions: ["browserSettings", "privacy"],
+        data_collection: ["technicalAndInteraction", "locationInfo"],
+      },
+      "got the expected granted permissions"
+    );
 
-  await extension.unload();
-});
+    extData.manifest.version = "2.0";
+    extData.manifest.permissions = ["privacy"];
+    extData.manifest.browser_specific_settings.gecko.data_collection_permissions.required =
+      ["locationInfo"];
+    delete extData.manifest.optional_permissions;
+    delete extData.manifest.browser_specific_settings.gecko
+      .data_collection_permissions.optional;
+    await extension.upgrade(extData);
+    Assert.equal(
+      extension.extension.version,
+      "2.0",
+      "Got the expected extension version after upgrade"
+    );
+
+    ok(cacheIsEnabled(), "setting is reset after upgrade");
+    ok(
+      !Services.prefs.getBoolPref("signon.rememberSignons"),
+      "privacy setting is still set after upgrade"
+    );
+    extension.sendMessage("permissions-getAll");
+    Assert.deepEqual(
+      await extension.awaitMessage("permissions-getAll:done"),
+      {
+        origins: [],
+        permissions: ["privacy"],
+        data_collection: ["locationInfo"],
+      },
+      "got the expected granted permissions after upgrade"
+    );
+    await extension.unload();
+  }
+);
