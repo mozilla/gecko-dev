@@ -894,9 +894,6 @@ CookieCommons::CheckGlobalAndRetrieveCookiePrincipals(
         workerPrivate->StorageAccess() == StorageAccess::eAllow;
 
     if (isCHIPS && workerHasStorageAccess) {
-      // Assert that the cookie principal is unpartitioned.
-      MOZ_ASSERT(
-          cookiePrincipal->OriginAttributesRef().mPartitionKey.IsEmpty());
       // Only retrieve the partitioned originAttributes if the partitionKey is
       // set. The partitionKey could be empty for partitionKey in partitioned
       // originAttributes if the aWorker is for privilege context, such as the
@@ -962,9 +959,6 @@ CookieCommons::CheckGlobalAndRetrieveCookiePrincipals(
     }
 
     if (isCHIPS && documentHasStorageAccess) {
-      // Assert that the cookie principal is unpartitioned.
-      MOZ_ASSERT(
-          cookiePrincipal->OriginAttributesRef().mPartitionKey.IsEmpty());
       // Only append the partitioned originAttributes if the partitionKey is
       // set. The partitionKey could be empty for partitionKey in partitioned
       // originAttributes if the aDocument is for privilege context, such as the
