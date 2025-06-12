@@ -2,32 +2,32 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
-win64-ffmpeg-4.4.1:
+win64-ffmpeg-7.1:
     description: 'Win64 ffmpeg'
     fetch:
         type: static-url
-        # url: https://github.com/GyanD/codexffmpeg/releases/tag/4.4.1
-        url: https://github.com/mozilla/perf-automation/releases/download/FFMPEG-v4.4.1/ffmpeg-4.4.1-full_build.zip
-        sha256: f0f407041f82905c310b79f4f76973815700d1e438a10c3cbce66a345ff4f457
-        size: 134760541
+        # https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2025-06-04-13-04
+        url: https://github.com/mozilla/perf-automation/releases/download/FFMPEG-v7.1/ffmpeg-n7.1-latest-win64-gpl-shared-7.1.zip
+        sha256: 7301589e262a43bc66243c6b3bbfe7a18664935fc9daf67a5408cfbcff87827c
+        size: 66922898
 
-linux64-ffmpeg-4.4.1:
+linux64-ffmpeg-7.1:
     description: 'Linux64 ffmpeg'
     fetch:
         type: static-url
         # url: https://www.johnvansickle.com/ffmpeg/old-releases/
-        url: https://github.com/mozilla/perf-automation/releases/download/FFMPEG-v4.4.1/ffmpeg-4.4.1-i686-static.tar.xz
-        sha256: 1f38d1c99b6eb3d36f709a481f5a5526448567a800ee9cddcfe4be54f8b68e62
-        size: 17592088
+        url: https://github.com/mozilla/perf-automation/releases/download/FFMPEG-v7.1/ffmpeg-master-latest-linux64-gpl-shared.tar.xz
+        sha256: aae24fc220344661e923b4d0ff02dd532080906b4369fe43fab51751f78b8822
+        size: 53291516
 
-mac64-ffmpeg-4.4.1:
+mac64-ffmpeg-7.1:
     description: 'Mac64 ffmpeg'
     fetch:
         type: static-url
         # url: https://evermeet.cx/pub/ffmpeg/
-        url: https://github.com/mozilla/perf-automation/releases/download/FFMPEG-v4.4.1/ffmpeg-macos.zip
-        sha256: 9d07411bce176f56314cc5624f5df51f9cffa76a59e3e81abe2175d4ebaf87ae
-        size: 49100208
+        url: https://github.com/mozilla/perf-automation/releases/download/FFMPEG-v7.1/ffmpeg-7.1.zip
+        sha256: 99205633728eeb6bbd9ac85014e042c87924b38dbdf1813960f01b37346374a8
+        size: 79123920
 
 linux64-chromedriver:
     description: 'Linux64 chromedriver'

@@ -73,9 +73,9 @@ RaptorErrorList = (
 # the users locally cached ffmpeg binary from from when the user
 # ran `./mach browsertime --setup`
 FFMPEG_LOCAL_CACHE = {
-    "mac": "ffmpeg-macos",
-    "linux": "ffmpeg-4.4.1-i686-static",
-    "win": "ffmpeg-4.4.1-full_build",
+    "mac": "ffmpeg-7.1",
+    "linux": "ffmpeg-master-latest-linux64-gpl-shared",
+    "win": "ffmpeg-n7.1-latest-win64-gpl-shared-7.1",
 }
 
 
