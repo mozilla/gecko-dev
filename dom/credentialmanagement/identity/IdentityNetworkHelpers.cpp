@@ -42,7 +42,6 @@ IdentityNetworkHelpers::FetchWellKnownHelper(
         result->Resolve(value, __func__);
       },
       [result](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult&) {
-
         result->Reject(Promise::TryExtractNSResultFromRejectionValue(aValue),
                        __func__);
       });
