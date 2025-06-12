@@ -1665,8 +1665,14 @@
   <string name="webcompat_reporter_reason_media2">Videoen spelar ikkje eller vert ikkje lasta inn</string>
   <!-- Broken site reason text for missing content -->
   <string name="webcompat_reporter_reason_content2">Manglande innhald</string>
+  <!-- Broken site reason text for can’t sign in or register -->
+  <string name="webcompat_reporter_reason_account2">Kan ikkje logge inn eller registrere meg</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Annonseblokkering</string>
+  <!-- Broken site reason text for site asked to turn off ad blocker -->
+  <string name="webcompat_reporter_reason_turn_off_adblocker">Nettstaden ba om å slå av annonseblokkering</string>
+  <!-- Broken site reason text for browser isn’t supported or blocked -->
+  <string name="webcompat_reporter_reason_notsupported">Nettlesaren er ikkje støtta eller blokkert</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">Noko anna</string>
   <!--
@@ -3480,6 +3486,8 @@
   <string name="debug_drawer_override_current_region_label">Overstyr gjeldande region</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">Overstyr heime- og gjeldande region</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Overstyr heimeregion permanent</string>
   <!--
     Messages explaining how to exit fullscreen mode
 

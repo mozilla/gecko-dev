@@ -2063,7 +2063,7 @@
   <!-- Text shown in snackbar for the "retry" action that the user has after sharing tabs failed -->
   <string name="sync_sent_tab_error_snackbar_action">POKUŠAJ PONOVO</string>
   <!-- Title of QR Pairing Fragment -->
-  <string name="sync_scan_code">Skeniraj kȏd</string>
+  <string name="sync_scan_code">Snimi kod</string>
   <!-- Instructions on how to access pairing -->
   <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Na računalu otvori Firefox i idi na <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
