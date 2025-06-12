@@ -261,10 +261,11 @@ interface Engine : WebExtensionRuntime, TranslationsRuntime, BrowserPreferencesR
      *
      * @param webNotification [Parcelable] representing a web notification.
      * If the `Parcelable` is not a web notification this method will be no-op.
+     * @param action The action name if an action button is clicked, otherwise null.
      *
      * @see <a href="https://developer.mozilla.org/en-US/docs/Web/API/Notification">MDN Notification docs</a>
      */
-    fun handleWebNotificationClick(webNotification: Parcelable): Unit =
+    fun handleWebNotificationClick(webNotification: Parcelable, action: String?): Unit =
         throw UnsupportedOperationException("Web notification clicks not yet supported in this engine")
 
     /**

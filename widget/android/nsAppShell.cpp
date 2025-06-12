@@ -323,14 +323,14 @@ class GeckoAppShellSupport final
 
   static void NotifyAlertListener(jni::String::Param aName,
                                   jni::String::Param aTopic,
-                                  jni::String::Param aCookie) {
-    if (!aName || !aTopic || !aCookie) {
+                                  jni::String::Param aAction) {
+    if (!aName || !aTopic) {
       return;
     }
 
-    widget::AndroidAlerts::NotifyListener(aName->ToString(),
-                                          aTopic->ToCString().get(),
-                                          aCookie->ToString().get());
+    widget::AndroidAlerts::NotifyListener(
+        aName->ToString(), aTopic->ToCString().get(),
+        aAction ? Some(aAction->ToString()) : Nothing());
   }
 
   static bool IsParentProcess() { return XRE_IsParentProcess(); }

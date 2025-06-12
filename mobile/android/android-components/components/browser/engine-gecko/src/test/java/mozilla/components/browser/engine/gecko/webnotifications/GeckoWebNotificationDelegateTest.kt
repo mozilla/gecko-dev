@@ -14,6 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito.verify
 import org.mozilla.geckoview.WebNotification as GeckoViewWebNotification
+import org.mozilla.geckoview.WebNotificationAction as GeckoViewWebNotificationAction
 
 class GeckoWebNotificationDelegateTest {
 
@@ -30,6 +31,7 @@ class GeckoWebNotificationDelegateTest {
             requireInteraction = true,
             source = "source",
             privateBrowsing = true,
+            actions = arrayOf(GeckoViewWebNotificationAction("foo", "bar")),
         )
         val geckoWebNotificationDelegate = GeckoWebNotificationDelegate(webNotificationDelegate)
 
@@ -48,6 +50,8 @@ class GeckoWebNotificationDelegateTest {
         assertEquals(notification.requireInteraction, geckoViewWebNotification.requireInteraction)
         assertFalse(notification.triggeredByWebExtension)
         assertTrue(notification.privateBrowsing)
+        assertEquals(notification.actions[0].name, geckoViewWebNotification.actions[0].name)
+        assertEquals(notification.actions[0].title, geckoViewWebNotification.actions[0].title)
     }
 
     @Test
@@ -63,6 +67,7 @@ class GeckoWebNotificationDelegateTest {
             requireInteraction = true,
             source = "source",
             privateBrowsing = false,
+            actions = arrayOf(GeckoViewWebNotificationAction("foo", "bar")),
         )
         val geckoWebNotificationDelegate = GeckoWebNotificationDelegate(webNotificationDelegate)
 
@@ -80,6 +85,8 @@ class GeckoWebNotificationDelegateTest {
         assertEquals(notification.lang, geckoViewWebNotification.lang)
         assertEquals(notification.requireInteraction, geckoViewWebNotification.requireInteraction)
         assertEquals(notification.privateBrowsing, geckoViewWebNotification.privateBrowsing)
+        assertEquals(notification.actions[0].name, geckoViewWebNotification.actions[0].name)
+        assertEquals(notification.actions[0].title, geckoViewWebNotification.actions[0].title)
     }
 
     @Test
@@ -95,6 +102,7 @@ class GeckoWebNotificationDelegateTest {
             requireInteraction = true,
             source = null,
             privateBrowsing = true,
+            actions = arrayOf(GeckoViewWebNotificationAction("foo", "bar")),
         )
         val geckoWebNotificationDelegate = GeckoWebNotificationDelegate(webNotificationDelegate)
 
@@ -113,5 +121,7 @@ class GeckoWebNotificationDelegateTest {
         assertEquals(notification.requireInteraction, geckoViewWebNotification.requireInteraction)
         assertTrue(notification.triggeredByWebExtension)
         assertTrue(notification.privateBrowsing)
+        assertEquals(notification.actions[0].name, geckoViewWebNotification.actions[0].name)
+        assertEquals(notification.actions[0].title, geckoViewWebNotification.actions[0].title)
     }
 }

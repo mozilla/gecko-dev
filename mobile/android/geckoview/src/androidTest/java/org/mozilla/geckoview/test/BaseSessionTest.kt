@@ -99,6 +99,7 @@ open class BaseSessionTest(
         const val PUSH_HTML_PATH = "/assets/www/push/push.html"
         const val OPEN_WINDOW_PATH = "/assets/www/worker/open_window.html"
         const val OPEN_WINDOW_TARGET_PATH = "/assets/www/worker/open_window_target.html"
+        const val CLICK_ACTION_PATH = "/assets/www/worker/click-action.html"
         const val DATA_URI_PATH = "/assets/www/data_uri.html"
         const val IFRAME_UNKNOWN_PROTOCOL = "/assets/www/iframe_unknown_protocol.html"
         const val MEDIA_SESSION_DOM1_PATH = "/assets/www/media_session_dom1.html"

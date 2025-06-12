@@ -7,6 +7,7 @@ package mozilla.components.browser.engine.gecko.webnotifications
 import mozilla.components.support.test.mock
 import mozilla.components.test.ReflectionUtils
 import org.mozilla.geckoview.WebNotification
+import org.mozilla.geckoview.WebNotificationAction
 
 fun mockWebNotification(
     tag: String,
@@ -20,6 +21,7 @@ fun mockWebNotification(
     source: String? = null,
     silent: Boolean = false,
     privateBrowsing: Boolean = false,
+    actions: Array<WebNotificationAction> = arrayOf(),
 ): WebNotification {
     val webNotification: WebNotification = mock()
     ReflectionUtils.setField(webNotification, "title", title)
@@ -33,5 +35,6 @@ fun mockWebNotification(
     ReflectionUtils.setField(webNotification, "silent", silent)
     ReflectionUtils.setField(webNotification, "vibrate", vibrate)
     ReflectionUtils.setField(webNotification, "privateBrowsing", privateBrowsing)
+    ReflectionUtils.setField(webNotification, "actions", actions)
     return webNotification
 }

@@ -46,6 +46,19 @@ class WebNotificationIntentProcessorTest {
 
         processor.process(intent)
 
-        verify(engine).handleWebNotificationClick(notification)
+        verify(engine).handleWebNotificationClick(notification, action = null)
+    }
+
+    @Test
+    fun `GIVEN an Intent WHEN it contains a parcelable with our private key and action THEN delegate the engine to handle it`() {
+        val notification = mock<Parcelable>()
+        val intent = Intent().apply {
+            putExtra(NativeNotificationBridge.EXTRA_ON_CLICK, notification)
+            action = "foo"
+        }
+
+        processor.process(intent)
+
+        verify(engine).handleWebNotificationClick(notification, action = "foo")
     }
 }
