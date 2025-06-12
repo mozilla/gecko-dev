@@ -90,4 +90,104 @@ add_task(async function () {
   // As the logValue is evaled within an array `[${logValue}]`,
   // the exception message is a bit cryptic...
   await hasConsoleMessage(dbg, "expected expression, got ']'");
+
+  await dbg.actions.removeAllBreakpoints();
+
+  await resume(dbg);
+  info("About to set log point");
+
+  await selectSource(dbg, "script-switching-01.js");
+
+  await setLogPoint(dbg, 8, "'stacktrace test'", true);
+
+  invokeInTab("logPointTest");
+  info("logPointTest invoked in tab");
+  await waitForPaused(dbg);
+  await resume(dbg);
+
+  info("Checking for any console messages");
+  await hasConsoleMessage(dbg, "stacktrace test");
+
+  const [stacktraceMsg] = await findConsoleMessages(
+    dbg.toolbox,
+    "stacktrace test"
+  );
+  const stacktraceFrames = await waitFor(() =>
+    stacktraceMsg.querySelector(".frames")
+  );
+
+  const frameNodes = stacktraceFrames.querySelectorAll(".frame");
+  info(`Found ${frameNodes.length} frames in the stacktrace`);
+
+  is(
+    frameNodes.length,
+    2,
+    "The message does have the expected number of frames in the stacktrace"
+  );
+  ok(
+    frameNodes[0].textContent.includes("script-switching-01.js:6"),
+    "First frame should be from line 6"
+  );
+  ok(
+    frameNodes[1].textContent.includes("script-switching-01.js:12"),
+    "Second frame should be from line 12"
+  );
+
+  // reopen the panel
+  info("Reopening the panel to test the checkbox");
+  await selectSource(dbg, "script-switching-01.js");
+
+  rightClickElement(dbg, "gutterElement", 8);
+  await waitForContextMenu(dbg);
+  selectDebuggerContextMenuItem(
+    dbg,
+    `${selectors.addLogItem},${selectors.editLogItem}`
+  );
+  await waitForConditionalPanelFocus(dbg);
+
+  info("Updating the log point input value");
+  type(dbg, "'logpoint without stacktrace'");
+  // wait for a bit so codemirror is able to process the input
+  await wait(1000);
+
+  //make sure that the checkbox is checked
+  const stacktraceCheckbox = dbg.win.document.querySelector("#showStacktrace");
+  ok(
+    stacktraceCheckbox.checked,
+    "Checkbox is still checked when reopening the logpoint panel"
+  );
+
+  // uncheck the checkbox
+  info("Click the checkbox to uncheck it");
+  stacktraceCheckbox.click();
+  info("Checkbox clicked to uncheck it");
+  await waitFor(() => {
+    return !stacktraceCheckbox.checked;
+  });
+
+  ok(true, "Checkbox is unchecked after clicking");
+
+  const saveButton = dbg.win.document.getElementById("save-logpoint");
+  const onBreakpointSet = waitForDispatch(dbg.store, "SET_BREAKPOINT");
+  saveButton.click();
+  await onBreakpointSet;
+
+  info("Call logPointTest to hit the logpoint");
+  invokeInTab("logPointTest");
+  // the functions has a debugger statement, so wait for pause and resume
+  await waitForPaused(dbg);
+  await resume(dbg);
+
+  await hasConsoleMessage(dbg, "logpoint without stacktrace");
+  const [logpointMsg] = await findConsoleMessages(
+    dbg.toolbox,
+    "logpoint without stacktrace"
+  );
+  // Wait for a bit so stacktrace would be rendered
+  await wait(1000);
+  is(
+    logpointMsg.querySelector(".frames"),
+    null,
+    "There is no stacktrace for the logpoint without stacktrace"
+  );
 });

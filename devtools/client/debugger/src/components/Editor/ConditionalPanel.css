@@ -5,19 +5,24 @@
 /* CodeMirror 6 block widgets can't have margin, so we put a padding on a container element */
 .conditional-breakpoint-panel-container {
   padding-block: 1em;
+  /* we want the conditional breakpoint/log point panel to be to the right of the gutter… */
+  left: var(--cm-gutter-width, 0);
+  /* and to stick horizontally to it so it appears "fixed" … */
+  position: sticky;
+  /* finally, we need to set it's width as the scroller width minus the gutter width so
+           it takes the whole horizontal visual space */
+  width: calc(var(--cm-editor-scroller-width, 100%) - var(--cm-gutter-width, 0) - /* gutter border */ 1px);
 }
 
 .conditional-breakpoint-panel {
   cursor: initial;
   position: relative;
-  display: flex;
-  align-items: center;
   background: var(--theme-toolbar-background);
   border-top: 1px solid var(--theme-splitter-color);
   border-bottom: 1px solid var(--theme-splitter-color);
 }
 
-.conditional-breakpoint-panel:focus-within {
+.conditional-breakpoint-panel .input-container:focus-within {
   outline: var(--theme-focus-outline);
   outline-offset: -2px;
   box-shadow: var(--theme-outline-box-shadow);
@@ -33,6 +38,50 @@
   width: 30px;
   align-self: baseline;
   margin-top: 3px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.conditional-breakpoint-panel .input-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 3px;
+  position: relative;
+}
+.conditional-breakpoint-panel button[type="submit"] {
+  background-color: var(--blue-60);
+  color: white;
+
+  &:hover {
+    background-color: var(--blue-70);
+    color: white;
+  }
+}
+
+/* This is the panel "footer", with the "Show stacktrace" checkbox and Create/Cancel button
+ */
+.conditional-breakpoint-panel-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  border-top: 1px solid var(--theme-splitter-color);
+  gap: 8px 20px;
+}
+
+.conditional-breakpoint-panel-buttons {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.conditional-breakpoint-panel-checkbox-label {
+  display: flex;
+  align-items: center;
 }
 
 .conditional-breakpoint-panel.log-point .prompt {

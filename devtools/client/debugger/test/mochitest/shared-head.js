@@ -3270,23 +3270,36 @@ async function clickOnSourceMapMenuItem(dbg, className) {
   menuItem.click();
 }
 
-async function setLogPoint(dbg, index, value) {
+async function setLogPoint(dbg, index, value, showStacktrace = false) {
   // Wait a bit for CM6 to complete any updates so the log panel
   // does not lose focus after the it has been opened
   await waitForDocumentLoadComplete(dbg);
   rightClickElement(dbg, "gutterElement", index);
   await waitForContextMenu(dbg);
+
   selectDebuggerContextMenuItem(
     dbg,
     `${selectors.addLogItem},${selectors.editLogItem}`
   );
   await waitForConditionalPanelFocus(dbg);
+
+  const { document } = dbg.win;
+
+  if (showStacktrace) {
+    const checkbox = document.querySelector("#showStacktrace");
+    checkbox.click();
+    ok(checkbox.checked, "Stacktrace checkbox is checked");
+  }
+
   if (value) {
     const onBreakpointSet = waitForDispatch(dbg.store, "SET_BREAKPOINT");
     await typeInPanel(dbg, value, true);
+    info("Wait for breakpoint set");
     await onBreakpointSet;
+    ok(true, "breakpoint set");
   }
 }
+
 /**
  * Opens the project search panel
  *

@@ -139,7 +139,8 @@ function ConsoleApiCall(props) {
   }
 
   const collapsible =
-    isGroupType(type) || (type === "error" && Array.isArray(stacktrace));
+    isGroupType(type) ||
+    ((type === "error" || type === "logPoint") && Array.isArray(stacktrace));
   const topLevelClasses = ["cm-s-mozilla"];
 
   return Message({

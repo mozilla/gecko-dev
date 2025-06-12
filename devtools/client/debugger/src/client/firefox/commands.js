@@ -214,6 +214,7 @@ async function setBreakpoint(location, options) {
   const serverOptions = {
     condition: options.condition,
     logValue: options.logValue,
+    showStacktrace: options.showStacktrace,
   };
   const hasWatcherSupport = commands.targetCommand.hasTargetWatcherSupport();
   if (!hasWatcherSupport) {

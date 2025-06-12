@@ -22,6 +22,10 @@
   border-inline-start: 1px solid var(--theme-splitter-color);
 }
 
+.source-header .toggle-button.start {
+  width: var(--cm-gutter-width);
+}
+
 .source-tabs {
   flex: auto;
   align-self: flex-start;

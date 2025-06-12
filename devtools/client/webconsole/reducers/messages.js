@@ -288,7 +288,7 @@ function addMessage(newMessage, state, filtersState, prefsState, uiState) {
   }
   state.mutableMessagesById.set(addedMessage.id, addedMessage);
 
-  if (newMessage.type === "trace") {
+  if (newMessage.type === "trace" || newMessage.type === "logPoint") {
     // We want the stacktrace to be open by default.
     state.messagesUiById.push(newMessage.id);
   } else if (isGroupType(newMessage.type)) {
