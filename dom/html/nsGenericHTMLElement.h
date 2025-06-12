@@ -54,9 +54,9 @@ using nsGenericHTMLElementBase = nsStyledElement;
 class nsGenericHTMLElement : public nsGenericHTMLElementBase {
  public:
   using ContentEditableState = mozilla::ContentEditableState;
+  using Element::Command;
   using Element::Focus;
   using Element::SetTabIndex;
-  using Element::Command;
 
   explicit nsGenericHTMLElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
@@ -222,9 +222,9 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
 
   bool IsValidCommandAction(Command aCommand) const override;
 
-  MOZ_CAN_RUN_SCRIPT bool HandleCommandInternal(
-      Element* aSource, Command aCommand,
-      ErrorResult& aRv) override;
+  MOZ_CAN_RUN_SCRIPT bool HandleCommandInternal(Element* aSource,
+                                                Command aCommand,
+                                                ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT void FocusCandidate(Element*, bool aClearUpFocus);
 

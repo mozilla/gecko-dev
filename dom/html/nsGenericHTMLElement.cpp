@@ -3014,8 +3014,7 @@ void nsGenericHTMLFormControlElementWithState::HandlePopoverTargetAction() {
 bool nsGenericHTMLElement::IsValidCommandAction(Command aCommand) const {
   return Element::IsValidCommandAction(aCommand) ||
          aCommand == Command::ShowPopover ||
-         aCommand == Command::TogglePopover ||
-         aCommand == Command::HidePopover;
+         aCommand == Command::TogglePopover || aCommand == Command::HidePopover;
 }
 
 MOZ_CAN_RUN_SCRIPT bool nsGenericHTMLElement::HandleCommandInternal(

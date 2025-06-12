@@ -1156,7 +1156,6 @@ class Element : public FragmentOrElement {
     return FindAttributeDependence(aAttribute, aMaps, N);
   }
 
-
   // https://html.spec.whatwg.org/#attr-button-command
   enum class Command : uint8_t {
     Invalid,
