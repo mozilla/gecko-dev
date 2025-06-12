@@ -4836,11 +4836,11 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
           envBytes_->shrinkTo(codeSection_.start);
         }
 
-        if (codeSection_.size > MaxCodeSectionBytes) {
+        if (codeSection_.size() > MaxCodeSectionBytes) {
           return rejectAndDestroyBeforeHelperThreadStarted(StreamOOMCode);
         }
 
-        if (!codeBytes_->vector.resize(codeSection_.size)) {
+        if (!codeBytes_->vector.resize(codeSection_.size())) {
           return rejectAndDestroyBeforeHelperThreadStarted(StreamOOMCode);
         }
 
