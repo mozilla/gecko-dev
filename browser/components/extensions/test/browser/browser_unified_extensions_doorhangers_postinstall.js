@@ -164,7 +164,17 @@ add_task(async function test_pin_browser_action_default_area_tabstrip() {
 // area ("menupanel" internally) in that case, as seen at
 // https://searchfox.org/mozilla-central/rev/c18faaae88/toolkit/components/extensions/ExtensionActions.sys.mjs#518-519,523-524,529
 add_task(async function test_pin_browser_action_tabstrip_vertical_tabs() {
-  await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", true]] });
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.verticalTabs", true],
+      // Although the behavior of interest is toggled via sidebar.verticalTabs,
+      // we also need to set sidebar.revamp=true, because enabling verticalTabs
+      // also sets revamp=true. By tracking the current value of revamp here,
+      // we ensure that the pref is reset to its previous value in popPrefEnv.
+      // Not doing this can cause random test failures, see bug 1967959.
+      ["sidebar.revamp", true],
+    ],
+  });
   await testAddonPostInstall({
     extensionData: {
       manifest: {
@@ -181,7 +191,7 @@ add_task(async function test_pin_browser_action_tabstrip_vertical_tabs() {
     },
   });
   await SpecialPowers.popPrefEnv();
-}).skip(); // TODO bug 1967959: Re-enable after fixing issue in unrelated test.
+});
 
 add_task(async function test_private_browsing_no_checkbox_without_perm() {
   const win = await BrowserTestUtils.openNewBrowserWindow({ private: true });

@@ -268,8 +268,11 @@ async function withWindowOverflowed(
         return this._deferred.promise;
       },
 
-      onWidgetOverflow() {
+      onWidgetOverflow(widget) {
         this._remainingOverflowables--;
+        info(
+          `onWidgetOverflow: ${this._remainingOverflowables} remaining after ${widget.id}`
+        );
         if (!this._remainingOverflowables) {
           this._deferred.resolve();
         }
@@ -281,6 +284,7 @@ async function withWindowOverflowed(
       `Resizing to overflow window width (current width: ${win.innerWidth})`
     );
     await ensureWindowInnerDimensions(win, OVERFLOW_WINDOW_WIDTH_PX, null);
+    info("Waiting for widget to overflow");
     await widgetOverflowListener.promise;
     CustomizableUI.removeListener(widgetOverflowListener);
 
