@@ -13,6 +13,7 @@ internal object MenuDialogTestTag {
     const val EXTENSIONS = "$MAIN_MENU.extensions"
     const val TOOLS = "$MAIN_MENU.tools"
     const val SAVE = "$MAIN_MENU.save"
+    const val SHARE = "$MAIN_MENU.share"
 
     const val RECOMMENDED_ADDON_ITEM = "recommended.addon.item"
     const val RECOMMENDED_ADDON_ITEM_TITLE = "$RECOMMENDED_ADDON_ITEM.title"

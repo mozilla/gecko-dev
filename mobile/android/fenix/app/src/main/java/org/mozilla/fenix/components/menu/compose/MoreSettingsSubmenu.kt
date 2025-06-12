@@ -50,7 +50,7 @@ internal fun MoreSettingsSubmenu(
 
         if (isWebCompatReporterSupported) {
             MenuItem(
-                label = stringResource(id = R.string.browser_menu_webcompat_reporter),
+                label = stringResource(id = R.string.browser_menu_webcompat_reporter_2),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_lightbulb_24),
                 state = if (isWebCompatEnabled) MenuItemState.ENABLED else MenuItemState.DISABLED,
                 onClick = onWebCompatReporterClick,
@@ -64,16 +64,16 @@ internal fun MoreSettingsSubmenu(
 
         MenuItem(
             label = if (isInstallable) {
-                stringResource(id = R.string.browser_menu_add_app_to_homescreen_2)
+                stringResource(id = R.string.browser_menu_add_app_to_homescreen)
             } else {
-                stringResource(id = R.string.browser_menu_add_to_homescreen_2)
+                stringResource(id = R.string.browser_menu_add_to_homescreen)
             },
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_add_to_homescreen_24),
             onClick = onAddToHomeScreenMenuClick,
         )
 
         MenuItem(
-            label = stringResource(id = R.string.browser_menu_save_to_collection),
+            label = stringResource(id = R.string.browser_menu_save_to_collection_2),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_collection_24),
             onClick = onSaveToCollectionMenuClick,
         )
@@ -98,13 +98,13 @@ internal fun MoreSettingsSubmenu(
         }
 
         MenuItem(
-            label = stringResource(id = R.string.browser_menu_save_as_pdf),
+            label = stringResource(id = R.string.browser_menu_save_as_pdf_2),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_save_file_24),
             onClick = onSaveAsPDFMenuClick,
         )
 
         MenuItem(
-            label = stringResource(id = R.string.browser_menu_print),
+            label = stringResource(id = R.string.browser_menu_print_2),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_print_24),
             onClick = onPrintMenuClick,
         )
@@ -132,7 +132,7 @@ private fun TranslationMenuItem(
         }
     } else {
         MenuItem(
-            label = stringResource(id = R.string.browser_menu_translate_page),
+            label = stringResource(id = R.string.browser_menu_translate_page_2),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_translate_24),
             state = if (isReaderViewActive || translationInfo.isPdf) MenuItemState.DISABLED else MenuItemState.ENABLED,
             onClick = translationInfo.onTranslatePageMenuClick,

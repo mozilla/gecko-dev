@@ -493,7 +493,7 @@ private fun ToolsAndActionsMenuGroup(
         }
 
         MenuItem(
-            label = stringResource(id = R.string.browser_menu_find_in_page_2),
+            label = stringResource(id = R.string.browser_menu_find_in_page),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_search_24),
             onClick = onFindInPageMenuClick,
         )
@@ -717,7 +717,7 @@ internal fun MozillaAccountMenuItem(
     when (accountState) {
         NotAuthenticated -> {
             label = stringResource(id = R.string.browser_menu_sign_in)
-            description = stringResource(id = R.string.browser_menu_sign_in_caption)
+            description = stringResource(id = R.string.browser_menu_sign_in_caption_2)
         }
 
         AuthenticationProblem -> {

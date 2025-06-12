@@ -8,14 +8,19 @@ import android.app.PendingIntent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import mozilla.components.browser.state.state.CustomTabMenuItem
 import mozilla.components.compose.base.Divider
 import org.mozilla.fenix.R
+import org.mozilla.fenix.components.menu.MenuDialogTestTag.SHARE
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
@@ -33,6 +38,7 @@ import org.mozilla.fenix.theme.Theme
  * @param onOpenInFirefoxMenuClick Invoked when the user clicks on the open in browser menu item.
  * @param onShareMenuClick Invoked when the user clicks on the share menu item.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Suppress("LongParameterList")
 @Composable
 internal fun CustomTabMenu(
@@ -74,7 +80,7 @@ internal fun CustomTabMenu(
             Divider(color = FirefoxTheme.colors.borderSecondary)
 
             MenuItem(
-                label = stringResource(id = R.string.browser_menu_find_in_page_2),
+                label = stringResource(id = R.string.browser_menu_find_in_page),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_search_24),
                 onClick = onFindInPageMenuClick,
             )
@@ -98,7 +104,11 @@ internal fun CustomTabMenu(
             Divider(color = FirefoxTheme.colors.borderSecondary)
 
             MenuItem(
-                label = stringResource(id = R.string.browser_menu_share_2),
+                modifier = Modifier.semantics {
+                    testTag = SHARE
+                    testTagsAsResourceId = true
+                },
+                label = stringResource(id = R.string.browser_menu_share),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_share_android_24),
                 onClick = onShareMenuClick,
             )

@@ -85,7 +85,7 @@ internal fun ToolsSubmenu(
                 Divider(color = FirefoxTheme.colors.borderSecondary)
 
                 MenuItem(
-                    label = stringResource(id = R.string.browser_menu_webcompat_reporter),
+                    label = stringResource(id = R.string.browser_menu_webcompat_reporter_2),
                     beforeIconPainter = painterResource(id = R.drawable.mozac_ic_lightbulb_24),
                     state = if (isWebCompatEnabled) MenuItemState.ENABLED else MenuItemState.DISABLED,
                     onClick = onWebCompatReporterClick,
@@ -95,7 +95,7 @@ internal fun ToolsSubmenu(
 
         MenuGroup {
             MenuItem(
-                label = stringResource(id = R.string.browser_menu_print),
+                label = stringResource(id = R.string.browser_menu_print_2),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_print_24),
                 onClick = onPrintMenuClick,
             )
@@ -103,7 +103,7 @@ internal fun ToolsSubmenu(
             Divider(color = FirefoxTheme.colors.borderSecondary)
 
             MenuItem(
-                label = stringResource(id = R.string.browser_menu_share_2),
+                label = stringResource(id = R.string.browser_menu_share),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_share_android_24),
                 onClick = onShareMenuClick,
             )
@@ -175,7 +175,7 @@ private fun TranslationMenuItem(
         )
     } else {
         MenuItem(
-            label = stringResource(id = R.string.browser_menu_translate_page),
+            label = stringResource(id = R.string.browser_menu_translations),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_translate_24),
             state = if (isReaderViewActive || isPdf) MenuItemState.DISABLED else MenuItemState.ENABLED,
             onClick = onClick,

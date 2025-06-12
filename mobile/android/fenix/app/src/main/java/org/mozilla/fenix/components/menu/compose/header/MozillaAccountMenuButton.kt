@@ -85,7 +85,7 @@ internal fun MozillaAccountMenuButton(
                     )
 
                     Text(
-                        text = stringResource(id = R.string.browser_menu_sign_in_caption),
+                        text = stringResource(id = R.string.browser_menu_sign_in_caption_2),
                         color = FirefoxTheme.colors.textSecondary,
                         maxLines = 2,
                         style = FirefoxTheme.typography.caption.merge(

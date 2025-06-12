@@ -21,6 +21,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiSelector
 import org.mozilla.fenix.R
+import org.mozilla.fenix.components.menu.MenuDialogTestTag.SHARE
 import org.mozilla.fenix.helpers.Constants.LONG_CLICK_DURATION
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
@@ -185,9 +186,9 @@ class CustomTabRobot {
     fun verifyRedesignedCustomTabsMainMenuItemsExist(customMenuItem: String, exist: Boolean, waitingTime: Long = TestAssetHelper.waitingTime) =
         assertUIObjectExists(
             itemWithDescription(getStringResource(R.string.browser_menu_switch_to_desktop_site)),
-            itemWithDescription(getStringResource(R.string.browser_menu_find_in_page_2)),
+            itemWithDescription(getStringResource(R.string.browser_menu_find_in_page)),
             itemWithDescriptionAndIndex("Open in $appName", 2),
-            itemWithDescription(getStringResource(R.string.browser_menu_share_2)),
+            itemWithResId(SHARE),
             itemContainingText(customMenuItem),
             exists = exist,
             waitingTime = waitingTime,
@@ -291,7 +292,7 @@ class CustomTabRobot {
 
         fun clickShareButtonFromRedesignedMenu(interact: ShareOverlayRobot.() -> Unit): ShareOverlayRobot.Transition {
             Log.i(TAG, "clickShareButtonFromRedesignedMenu: Trying to click the main menu share button")
-            itemWithDescription(getStringResource(R.string.browser_menu_share_2)).click()
+            itemWithDescription(getStringResource(R.string.browser_menu_share)).click()
             Log.i(TAG, "clickShareButtonFromRedesignedMenu: Clicked the main menu share button")
 
             ShareOverlayRobot().interact()
@@ -348,4 +349,4 @@ private fun ComposeTestRule.desktopSiteButton() = onNodeWithContentDescription(g
 
 private fun ComposeTestRule.mobileSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_switch_to_mobile_site))
 
-private fun ComposeTestRule.findInPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_find_in_page_2))
+private fun ComposeTestRule.findInPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_find_in_page))

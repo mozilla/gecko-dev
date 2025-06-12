@@ -584,7 +584,7 @@ private fun ComposeTestRule.refreshButton() = onNodeWithText("Refresh")
 
 private fun ComposeTestRule.shareButton() = onNodeWithText("Share")
 
-private fun ComposeTestRule.signInButton() = onNodeWithContentDescription("Sign inSync passwords, tabs, and more")
+private fun ComposeTestRule.signInButton() = onNodeWithContentDescription("Sign inSync bookmarks, passwords, tabs, and more")
 
 private fun ComposeTestRule.customizeHomeButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_customize_home_1))
 
@@ -612,7 +612,7 @@ private fun ComposeTestRule.quitFirefoxButton() = onNodeWithContentDescription("
 
 // Page main menu items
 
-private fun ComposeTestRule.findInPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_find_in_page_2))
+private fun ComposeTestRule.findInPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_find_in_page))
 
 private fun ComposeTestRule.toolsMenuButton() = onNodeWithTag("mainMenu.tools")
 
@@ -634,23 +634,23 @@ private fun ComposeTestRule.addToShortcutsButton() = onNodeWithContentDescriptio
 
 private fun ComposeTestRule.removeFromShortcutsButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_remove_from_shortcuts))
 
-private fun ComposeTestRule.addToHomeScreenButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_add_to_homescreen_2))
+private fun ComposeTestRule.addToHomeScreenButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_add_to_homescreen))
 
-private fun ComposeTestRule.saveToCollectionButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_save_to_collection))
+private fun ComposeTestRule.saveToCollectionButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_save_to_collection_2))
 
-private fun ComposeTestRule.saveAsPDFButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_save_as_pdf))
+private fun ComposeTestRule.saveAsPDFButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_save_as_pdf_2))
 
 // Tools menu items
 
 private fun ComposeTestRule.toolsMenuHeader() = onNodeWithText("Tools")
 
-private fun ComposeTestRule.translatePageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_translate_page))
+private fun ComposeTestRule.translatePageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_translations))
 
 private fun ComposeTestRule.translatedToButton(language: String) = onNodeWithContentDescription(getStringResource(R.string.browser_menu_translated_to, language))
 
-private fun ComposeTestRule.reportBrokenSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_webcompat_reporter))
+private fun ComposeTestRule.reportBrokenSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_webcompat_reporter_2))
 
-private fun ComposeTestRule.printContentButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_print))
+private fun ComposeTestRule.printContentButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_print_2))
 
 private fun ComposeTestRule.turnOnReaderViewButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_turn_on_reader_view))
 
@@ -658,7 +658,7 @@ private fun ComposeTestRule.turnOffReaderViewButton() = onNodeWithContentDescrip
 
 private fun ComposeTestRule.customizeReaderViewButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_customize_reader_view_2))
 
-private fun ComposeTestRule.toolsShareButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_share_2))
+private fun ComposeTestRule.toolsShareButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_share))
 
 private fun ComposeTestRule.defaultOpenInAppButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_open_app_link))
 
