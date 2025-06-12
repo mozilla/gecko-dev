@@ -3030,36 +3030,36 @@ void nsGenericHTMLFormControlElementWithState::GetInvokeAction(
   }
 }
 
-InvokeAction nsGenericHTMLFormControlElementWithState::GetInvokeAction(
+Element::Command nsGenericHTMLFormControlElementWithState::GetInvokeAction(
     nsAtom* aAtom) const {
   if (aAtom == nsGkAtoms::_empty) {
-    return InvokeAction::Auto;
+    return Command::Auto;
   }
   if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::showpopover)) {
-    return InvokeAction::ShowPopover;
+    return Command::ShowPopover;
   }
   if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::hidepopover)) {
-    return InvokeAction::HidePopover;
+    return Command::HidePopover;
   }
   if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::togglepopover)) {
-    return InvokeAction::TogglePopover;
+    return Command::TogglePopover;
   }
   if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::showmodal)) {
-    return InvokeAction::ShowModal;
+    return Command::ShowModal;
   }
   if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::toggle)) {
-    return InvokeAction::Toggle;
+    return Command::Toggle;
   }
   if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::close)) {
-    return InvokeAction::Close;
+    return Command::Close;
   }
   if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::open)) {
-    return InvokeAction::Open;
+    return Command::Open;
   }
   if (nsContentUtils::ContainsChar(aAtom, '-')) {
-    return InvokeAction::Custom;
+    return Command::Custom;
   }
-  return InvokeAction::Invalid;
+  return Command::Invalid;
 }
 
 mozilla::dom::Element*
@@ -3086,11 +3086,12 @@ void nsGenericHTMLFormControlElementWithState::HandleInvokeTargetAction() {
   const nsAttrValue* attr = GetParsedAttr(nsGkAtoms::invokeaction);
 
   nsAtom* actionRaw = attr ? attr->GetAtomValue() : nsGkAtoms::_empty;
-  InvokeAction action = GetInvokeAction(actionRaw);
+  Command action = GetInvokeAction(actionRaw);
 
   // 5.3. Otherwise, if the result of running invokee's corresponding is valid
   // invoke action steps given action is not true, then return.
-  if (action != InvokeAction::Custom && !invokee->IsValidInvokeAction(action)) {
+  if (action != Command::Custom &&
+      !invokee->IsValidCommandAction(action)) {
     return;
   }
 
@@ -3111,23 +3112,23 @@ void nsGenericHTMLFormControlElementWithState::HandleInvokeTargetAction() {
 
   // 7. If continue is false, then return.
   // 8. If isCustom is true, then return.
-  if (action == InvokeAction::Custom || event->DefaultPrevented()) {
+  if (action == Command::Custom || event->DefaultPrevented()) {
     return;
   }
 
-  invokee->HandleInvokeInternal(this, action, IgnoreErrors());
+  invokee->HandleCommandInternal(this, action, IgnoreErrors());
 }
 
-bool nsGenericHTMLElement::IsValidInvokeAction(InvokeAction aAction) const {
-  return Element::IsValidInvokeAction(aAction) ||
-         aAction == InvokeAction::ShowPopover ||
-         aAction == InvokeAction::TogglePopover ||
-         aAction == InvokeAction::HidePopover;
+bool nsGenericHTMLElement::IsValidCommandAction(Command aCommand) const {
+  return Element::IsValidCommandAction(aCommand) ||
+         aCommand == Command::ShowPopover ||
+         aCommand == Command::TogglePopover ||
+         aCommand == Command::HidePopover;
 }
 
-MOZ_CAN_RUN_SCRIPT bool nsGenericHTMLElement::HandleInvokeInternal(
-    Element* aInvoker, InvokeAction aAction, ErrorResult& aRv) {
-  if (Element::HandleInvokeInternal(aInvoker, aAction, aRv)) {
+MOZ_CAN_RUN_SCRIPT bool nsGenericHTMLElement::HandleCommandInternal(
+    Element* aSource, Command aCommand, ErrorResult& aRv) {
+  if (Element::HandleCommandInternal(aSource, aCommand, aRv)) {
     return true;
   }
 
@@ -3138,15 +3139,15 @@ MOZ_CAN_RUN_SCRIPT bool nsGenericHTMLElement::HandleInvokeInternal(
     return false;
   }
 
-  const bool canShow = aAction == InvokeAction::Auto ||
-                       aAction == InvokeAction::TogglePopover ||
-                       aAction == InvokeAction::ShowPopover;
-  const bool canHide = aAction == InvokeAction::Auto ||
-                       aAction == InvokeAction::TogglePopover ||
-                       aAction == InvokeAction::HidePopover;
+  const bool canShow = aCommand == Command::Auto ||
+                       aCommand == Command::TogglePopover ||
+                       aCommand == Command::ShowPopover;
+  const bool canHide = aCommand == Command::Auto ||
+                       aCommand == Command::TogglePopover ||
+                       aCommand == Command::HidePopover;
 
   if (canShow && !IsPopoverOpen()) {
-    ShowPopoverInternal(aInvoker, aRv);
+    ShowPopoverInternal(aSource, aRv);
     return true;
   }
 

@@ -154,28 +154,28 @@ JSObject* HTMLDetailsElement::WrapNode(JSContext* aCx,
   return HTMLDetailsElement_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-bool HTMLDetailsElement::IsValidInvokeAction(InvokeAction aAction) const {
-  return nsGenericHTMLElement::IsValidInvokeAction(aAction) ||
-         aAction == InvokeAction::Toggle || aAction == InvokeAction::Close ||
-         aAction == InvokeAction::Open;
+bool HTMLDetailsElement::IsValidCommandAction(Command aCommand) const {
+  return nsGenericHTMLElement::IsValidCommandAction(aCommand) ||
+         aCommand == Command::Toggle ||
+         aCommand == Command::Close || aCommand == Command::Open;
 }
 
-bool HTMLDetailsElement::HandleInvokeInternal(Element* aInvoker,
-                                              InvokeAction aAction,
-                                              ErrorResult& aRv) {
-  if (nsGenericHTMLElement::HandleInvokeInternal(aInvoker, aAction, aRv)) {
+bool HTMLDetailsElement::HandleCommandInternal(Element* aSource,
+                                               Command aCommand,
+                                               ErrorResult& aRv) {
+  if (nsGenericHTMLElement::HandleCommandInternal(aSource, aCommand, aRv)) {
     return true;
   }
 
-  if (aAction == InvokeAction::Auto || aAction == InvokeAction::Toggle) {
+  if (aCommand == Command::Auto || aCommand == Command::Toggle) {
     ToggleOpen();
     return true;
-  } else if (aAction == InvokeAction::Close) {
+  } else if (aCommand == Command::Close) {
     if (Open()) {
       SetOpen(false, IgnoreErrors());
     }
     return true;
-  } else if (aAction == InvokeAction::Open) {
+  } else if (aCommand == Command::Open) {
     if (!Open()) {
       SetOpen(true, IgnoreErrors());
     }
