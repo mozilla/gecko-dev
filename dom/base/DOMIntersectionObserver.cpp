@@ -780,6 +780,12 @@ IntersectionOutput DOMIntersectionObserver::Intersect(
   nsRect rootBounds = aInput.mRootRect;
   if (isSimilarOrigin) {
     rootBounds.Inflate(aInput.mRootMargin);
+
+    // Implicit roots should apply the scrollMargin as well:
+    if (aInput.mIsImplicitRoot) {
+      rootBounds.Inflate(
+          ResolveMargin(aInput.mScrollMargin, aInput.mRootRect.Size()));
+    }
   }
 
   // 2.4. Set targetRect to the DOMRectReadOnly obtained by running the
