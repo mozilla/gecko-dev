@@ -1,0 +1,19 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+:host {
+  position: relative;
+  display: block;
+}
+
+.indicator {
+  height: 2px;
+  background-color: var(--color-accent-primary);
+  pointer-events: none;
+  margin-block: -1px;
+  width: 4em;
+  position: absolute;
+  z-index: 1;
+  top: 0;
+}

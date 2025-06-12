@@ -70,6 +70,8 @@ skip-if = [
 
 ["test_moz_radio_group.html"]
 
+["test_moz_reorderable_list.html"]
+
 ["test_moz_select.html"]
 
 ["test_moz_support_link.html"]

@@ -875,6 +875,10 @@
             "moz-radio-group",
             "chrome://global/content/elements/moz-radio-group.mjs",
           ],
+          [
+            "moz-reorderable-list",
+            "chrome://global/content/elements/moz-reorderable-list.mjs",
+          ],
           ["moz-select", "chrome://global/content/elements/moz-select.mjs"],
           [
             "moz-support-link",
