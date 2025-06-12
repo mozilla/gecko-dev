@@ -2210,6 +2210,13 @@ long nsContentSecurityUtils::ClassifyDownload(nsIChannel* aChannel) {
   MOZ_ASSERT(aChannel, "IsDownloadAllowed without channel?");
 
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
+  if ((loadInfo->GetTriggeringSandboxFlags() & SANDBOXED_ALLOW_DOWNLOADS) ||
+      (loadInfo->GetSandboxFlags() & SANDBOXED_ALLOW_DOWNLOADS)) {
+    if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel)) {
+      LogMessageToConsole(httpChannel, "IframeSandboxBlockedDownload");
+    }
+    return nsITransfer::DOWNLOAD_FORBIDDEN;
+  }
 
   nsCOMPtr<nsIURI> contentLocation;
   aChannel->GetURI(getter_AddRefs(contentLocation));
@@ -2242,27 +2249,11 @@ long nsContentSecurityUtils::ClassifyDownload(nsIChannel* aChannel) {
 
   if (StaticPrefs::dom_block_download_insecure() &&
       decission != nsIContentPolicy::ACCEPT) {
-    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
-    if (httpChannel) {
+    if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel)) {
       LogMessageToConsole(httpChannel, "MixedContentBlockedDownload");
     }
     return nsITransfer::DOWNLOAD_POTENTIALLY_UNSAFE;
   }
 
-  if (loadInfo->TriggeringPrincipal()->IsSystemPrincipal()) {
-    return nsITransfer::DOWNLOAD_ACCEPTABLE;
-  }
-
-  uint32_t triggeringFlags = loadInfo->GetTriggeringSandboxFlags();
-  uint32_t currentflags = loadInfo->GetSandboxFlags();
-
-  if ((triggeringFlags & SANDBOXED_ALLOW_DOWNLOADS) ||
-      (currentflags & SANDBOXED_ALLOW_DOWNLOADS)) {
-    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
-    if (httpChannel) {
-      LogMessageToConsole(httpChannel, "IframeSandboxBlockedDownload");
-    }
-    return nsITransfer::DOWNLOAD_FORBIDDEN;
-  }
   return nsITransfer::DOWNLOAD_ACCEPTABLE;
 }
