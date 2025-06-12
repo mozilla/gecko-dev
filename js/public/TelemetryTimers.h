@@ -19,10 +19,14 @@ namespace JS {
 struct JSTimers {
   mozilla::TimeDuration executionTime;       // Total time spent executing
   mozilla::TimeDuration delazificationTime;  // Total time spent delazifying
+  mozilla::TimeDuration xdrEncodingTime;     // Total time spent XDR encoding
+  mozilla::TimeDuration gcTime;              // Total time spent in GC
+  mozilla::TimeDuration
+      protectTime;  // Total time spent protecting JIT executable memory
+  mozilla::TimeDuration
+      baselineCompileTime;  // Total time spent in baseline compiler
 };
 
-extern JS_PUBLIC_API void SetMeasuringExecutionTimeEnabled(JSContext* cx,
-                                                           bool value);
 extern JS_PUBLIC_API JSTimers GetJSTimers(JSContext* cx);
 
 }  // namespace JS

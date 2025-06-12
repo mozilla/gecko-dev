@@ -4734,6 +4734,13 @@ struct MOZ_RAII AutoSetZoneSliceThresholds {
 
 void GCRuntime::collect(bool nonincrementalByAPI, const SliceBudget& budget,
                         JS::GCReason reason) {
+  TimeStamp startTime = TimeStamp::Now();
+  auto timer = MakeScopeExit([&] {
+    if (Realm* realm = rt->mainContextFromOwnThread()->realm()) {
+      realm->timers.gcTime += TimeStamp::Now() - startTime;
+    }
+  });
+
   auto clearGCOptions = MakeScopeExit([&] {
     if (!isIncrementalGCInProgress()) {
       maybeGcOptions = Nothing();

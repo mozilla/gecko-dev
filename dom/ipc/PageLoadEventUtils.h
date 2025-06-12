@@ -36,7 +36,6 @@ struct ParamTraits<mozilla::glean::perf::PageLoadExtra> {
     WriteParam(aWriter, aParam.fcpTime);
     WriteParam(aWriter, aParam.lcpTime);
     WriteParam(aWriter, aParam.jsExecTime);
-    WriteParam(aWriter, aParam.delazifyTime);
     WriteParam(aWriter, aParam.loadTime);
     WriteParam(aWriter, aParam.loadType);
     WriteParam(aWriter, aParam.timeToRequestStart);
@@ -55,7 +54,6 @@ struct ParamTraits<mozilla::glean::perf::PageLoadExtra> {
     return ReadParam(aReader, &aResult->fcpTime) &&
            ReadParam(aReader, &aResult->lcpTime) &&
            ReadParam(aReader, &aResult->jsExecTime) &&
-           ReadParam(aReader, &aResult->delazifyTime) &&
            ReadParam(aReader, &aResult->loadTime) &&
            ReadParam(aReader, &aResult->loadType) &&
            ReadParam(aReader, &aResult->timeToRequestStart) &&
