@@ -53,6 +53,6 @@ class DefaultBrowsingModeManager(
             field = value
             modeDidChange(value)
             settings.lastKnownMode = value
-            appStore.dispatch(AppAction.ModeChange(mode = value))
+            appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(mode = value))
         }
 }

@@ -1039,7 +1039,7 @@ class DefaultTabsTrayControllerTest {
 
             assertEquals(privateTab.id, browserStore.state.selectedTabId)
             assertEquals(true, browsingModeManager.mode.isPrivate)
-            verify { appStore.dispatch(AppAction.ModeChange(BrowsingMode.Private)) }
+            verify { appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(BrowsingMode.Private)) }
 
             controller.handleTabDeletion("privateTab")
             browserStore.dispatch(TabListAction.SelectTabAction(normalTab.id)).joinBlocking()
@@ -1047,7 +1047,7 @@ class DefaultTabsTrayControllerTest {
 
             assertEquals(normalTab.id, browserStore.state.selectedTabId)
             assertEquals(false, browsingModeManager.mode.isPrivate)
-            verify { appStore.dispatch(AppAction.ModeChange(BrowsingMode.Normal)) }
+            verify { appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(BrowsingMode.Normal)) }
         } finally {
             unmockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
         }

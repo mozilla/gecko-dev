@@ -491,7 +491,7 @@ private fun toggleBrowsingMode(
 ) {
     val newMode = BrowsingMode.fromBoolean(!isCurrentModePrivate)
     onPrivateModeToggleClick(newMode)
-    appStore.dispatch(AppAction.ModeChange(newMode))
+    appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(newMode))
 }
 
 private class TabUIStateParameterProvider : PreviewParameterProvider<TabStripState> {

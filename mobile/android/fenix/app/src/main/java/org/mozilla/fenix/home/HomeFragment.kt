@@ -292,7 +292,7 @@ class HomeFragment : Fragment() {
             orientation = requireContext().resources.configuration.orientation,
         )
 
-        components.appStore.dispatch(AppAction.ModeChange(browsingModeManager.mode))
+        components.appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(browsingModeManager.mode))
 
         lifecycleScope.launch(IO) {
             val settings = requireContext().settings()

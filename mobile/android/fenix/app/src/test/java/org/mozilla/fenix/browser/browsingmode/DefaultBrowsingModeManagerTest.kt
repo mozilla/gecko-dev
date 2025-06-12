@@ -79,6 +79,6 @@ class DefaultBrowsingModeManagerTest {
         manager.mode = BrowsingMode.Private
 
         assertEquals(BrowsingMode.Private, manager.mode)
-        verify(exactly = 1) { appStore.dispatch(AppAction.ModeChange(mode = manager.mode)) }
+        verify(exactly = 1) { appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(mode = manager.mode)) }
     }
 }

@@ -579,7 +579,7 @@ class DefaultTabsTrayController(
                 tabsUseCases.selectTab(tab.id)
                 val mode = BrowsingMode.fromBoolean(tab.content.private)
                 browsingModeManager.mode = mode
-                appStore.dispatch(AppAction.ModeChange(mode))
+                appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(mode))
                 handleNavigateToBrowser()
             }
             tab.id in selected.map { it.id } -> handleTabUnselected(tab)

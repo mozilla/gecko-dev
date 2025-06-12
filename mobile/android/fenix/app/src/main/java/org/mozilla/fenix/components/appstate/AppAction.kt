@@ -83,7 +83,11 @@ sealed class AppAction : Action {
         AppAction()
 
     data class CollectionsChange(val collections: List<TabCollection>) : AppAction()
-    data class ModeChange(val mode: BrowsingMode) : AppAction()
+
+    /**
+     * Action dispatched when the browsing mode changes inside the BrowsingModeManager.
+     */
+    data class BrowsingModeManagerModeChanged(val mode: BrowsingMode) : AppAction()
     data class TopSitesChange(val topSites: List<TopSite>) : AppAction()
     data class RecentTabsChange(val recentTabs: List<RecentTab>) : AppAction()
     data class RemoveRecentTab(val recentTab: RecentTab) : AppAction()
