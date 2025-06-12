@@ -10,7 +10,7 @@
 #include "mozilla/StaticString.h"
 #include "mozilla/WMFCDMProxyCallback.h"
 #include "nsString.h"
-#include "RemoteDecoderManagerChild.h"
+#include "RemoteMediaManagerChild.h"
 
 namespace mozilla {
 
@@ -72,7 +72,7 @@ namespace mozilla {
 
 MFCDMChild::MFCDMChild(const nsAString& aKeySystem)
     : mKeySystem(aKeySystem),
-      mManagerThread(RemoteDecoderManagerChild::GetManagerThread()),
+      mManagerThread(RemoteMediaManagerChild::GetManagerThread()),
       mState(NS_ERROR_NOT_INITIALIZED),
       mShutdown(false) {}
 
@@ -94,15 +94,15 @@ void MFCDMChild::EnsureRemote() {
   mRemotePromise = mRemotePromiseHolder.Ensure(__func__);
 
   RefPtr<MFCDMChild> self = this;
-  RemoteDecoderManagerChild::LaunchUtilityProcessIfNeeded(
-      RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM)
+  RemoteMediaManagerChild::LaunchUtilityProcessIfNeeded(
+      RemoteMediaIn::UtilityProcess_MFMediaEngineCDM)
       ->Then(
           mManagerThread, __func__,
           [self, this](bool) {
             mRemoteRequest.Complete();
-            RefPtr<RemoteDecoderManagerChild> manager =
-                RemoteDecoderManagerChild::GetSingleton(
-                    RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM);
+            RefPtr<RemoteMediaManagerChild> manager =
+                RemoteMediaManagerChild::GetSingleton(
+                    RemoteMediaIn::UtilityProcess_MFMediaEngineCDM);
             if (!manager || !manager->CanSend()) {
               LOG("manager not exists or can't send");
               mState = NS_ERROR_NOT_AVAILABLE;

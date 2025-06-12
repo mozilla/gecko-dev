@@ -5,13 +5,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "RemoteDecoderParent.h"
 
-#include "RemoteDecoderManagerParent.h"
+#include "RemoteMediaManagerParent.h"
 #include "mozilla/Unused.h"
 
 namespace mozilla {
 
 RemoteDecoderParent::RemoteDecoderParent(
-    RemoteDecoderManagerParent* aParent,
+    RemoteMediaManagerParent* aParent,
     const CreateDecoderParams::OptionSet& aOptions,
     nsISerialEventTarget* aManagerThread, TaskQueue* aDecodeTaskQueue,
     const Maybe<uint64_t>& aMediaEngineId, Maybe<TrackingId> aTrackingId)

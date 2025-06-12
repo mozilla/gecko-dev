@@ -9,7 +9,7 @@
 #include "GPUVideoImage.h"
 #include "mozilla/PRemoteDecoderChild.h"
 #include "mozilla/RemoteDecodeUtils.h"
-#include "mozilla/RemoteDecoderManagerChild.h"
+#include "mozilla/RemoteMediaManagerChild.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/VideoBridgeUtils.h"
 
@@ -140,7 +140,7 @@ already_AddRefed<layers::Image> RemoteImageHolder::TransferToImage(
 }
 
 RemoteImageHolder::~RemoteImageHolder() {
-  // GPU Images are held by the RemoteDecoderManagerParent, we didn't get to use
+  // GPU Images are held by the RemoteMediaManagerParent, we didn't get to use
   // this image holder (the decoder could have been flushed). We don't need to
   // worry about Shmem based image as the Shmem will be automatically re-used
   // once the decoder is used again.
@@ -183,8 +183,8 @@ RemoteImageHolder::~RemoteImageHolder() {
   }
 
   if (!aResult->IsEmpty()) {
-    aResult->mManager = RemoteDecoderManagerChild::GetSingleton(
-        GetRemoteDecodeInFromVideoBridgeSource(aResult->mSource));
+    aResult->mManager = RemoteMediaManagerChild::GetSingleton(
+        GetRemoteMediaInFromVideoBridgeSource(aResult->mSource));
   }
   return true;
 }

@@ -6,7 +6,7 @@
 #define DOM_MEDIA_IPC_REMOTEDECODEUTILS_H_
 
 #include "mozilla/Logging.h"
-#include "mozilla/RemoteDecoderManagerChild.h"
+#include "mozilla/RemoteMediaManagerChild.h"
 #include "mozilla/ipc/UtilityProcessSandboxing.h"
 
 namespace mozilla {
@@ -17,14 +17,14 @@ inline LazyLogModule gRemoteDecodeLog{"RemoteDecode"};
 // called on the utility process.
 ipc::SandboxingKind GetCurrentSandboxingKind();
 
-ipc::SandboxingKind GetSandboxingKindFromLocation(RemoteDecodeIn aLocation);
+ipc::SandboxingKind GetSandboxingKindFromLocation(RemoteMediaIn aLocation);
 
-RemoteDecodeIn GetRemoteDecodeInFromKind(ipc::SandboxingKind aKind);
+RemoteMediaIn GetRemoteMediaInFromKind(ipc::SandboxingKind aKind);
 
-RemoteDecodeIn GetRemoteDecodeInFromVideoBridgeSource(
+RemoteMediaIn GetRemoteMediaInFromVideoBridgeSource(
     layers::VideoBridgeSource aSource);
 
-const char* RemoteDecodeInToStr(RemoteDecodeIn aLocation);
+const char* RemoteMediaInToStr(RemoteMediaIn aLocation);
 
 }  // namespace mozilla
 

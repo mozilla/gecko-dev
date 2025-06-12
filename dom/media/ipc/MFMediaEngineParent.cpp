@@ -18,7 +18,7 @@
 #include "MFMediaEngineUtils.h"
 #include "MFMediaEngineStream.h"
 #include "MFMediaSource.h"
-#include "RemoteDecoderManagerParent.h"
+#include "RemoteMediaManagerParent.h"
 #include "WMF.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/RemoteDecodeUtils.h"
@@ -66,7 +66,7 @@ MFMediaEngineParent* MFMediaEngineParent::GetMediaEngineById(uint64_t aId) {
   return sMediaEngines->Get(aId);
 }
 
-MFMediaEngineParent::MFMediaEngineParent(RemoteDecoderManagerParent* aManager,
+MFMediaEngineParent::MFMediaEngineParent(RemoteMediaManagerParent* aManager,
                                          nsISerialEventTarget* aManagerThread)
     : mMediaEngineId(++sMediaEngineIdx),
       mManager(aManager),

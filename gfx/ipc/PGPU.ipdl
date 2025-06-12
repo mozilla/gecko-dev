@@ -17,7 +17,7 @@ include protocol PVRManager;
 include protocol PVideoBridge;
 include protocol PVsyncBridge;
 include protocol PUiCompositorController;
-include protocol PRemoteDecoderManager;
+include protocol PRemoteMediaManager;
 
 #if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
 include protocol PSandboxTesting;
@@ -90,7 +90,7 @@ parent:
   async NewContentCompositorManager(Endpoint<PCompositorManagerParent> endpoint, ContentParentId childId, uint32_t aNamespace);
   async NewContentImageBridge(Endpoint<PImageBridgeParent> endpoint, ContentParentId childId);
   async NewContentVRManager(Endpoint<PVRManagerParent> endpoint, ContentParentId childId);
-  async NewContentRemoteDecoderManager(Endpoint<PRemoteDecoderManagerParent> endpoint, ContentParentId childId);
+  async NewContentRemoteMediaManager(Endpoint<PRemoteMediaManagerParent> endpoint, ContentParentId childId);
 
   // Called to notify the GPU process of who owns a layersId.
   sync AddLayerTreeIdMapping(LayerTreeIdMapping mapping);

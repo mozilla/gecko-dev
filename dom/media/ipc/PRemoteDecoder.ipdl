@@ -5,7 +5,7 @@
 
 include "mozilla/dom/MediaIPCUtils.h";
 
-include protocol PRemoteDecoderManager;
+include protocol PRemoteMediaManager;
 
 using mozilla::MediaDataDecoder::ConversionRequired from "PlatformDecoderModule.h";
 using mozilla::TrackInfo::TrackType from "MediaInfo.h";
@@ -58,7 +58,7 @@ union DecodeResultIPDL
 [ManualDealloc]
 async protocol PRemoteDecoder
 {
-  manager PRemoteDecoderManager;
+  manager PRemoteMediaManager;
 parent:
   async Construct() returns (MediaResult result);
 

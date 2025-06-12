@@ -11,7 +11,7 @@
 
 namespace mozilla {
 
-class RemoteDecoderManagerParent;
+class RemoteMediaManagerParent;
 using mozilla::ipc::IPCResult;
 
 class RemoteDecoderParent : public ShmemRecycleAllocator<RemoteDecoderParent>,
@@ -23,7 +23,7 @@ class RemoteDecoderParent : public ShmemRecycleAllocator<RemoteDecoderParent>,
   // that reference us.
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RemoteDecoderParent)
 
-  RemoteDecoderParent(RemoteDecoderManagerParent* aParent,
+  RemoteDecoderParent(RemoteMediaManagerParent* aParent,
                       const CreateDecoderParams::OptionSet& aOptions,
                       nsISerialEventTarget* aManagerThread,
                       TaskQueue* aDecodeTaskQueue,
@@ -52,7 +52,7 @@ class RemoteDecoderParent : public ShmemRecycleAllocator<RemoteDecoderParent>,
   virtual MediaResult ProcessDecodedData(MediaDataDecoder::DecodedData&& aData,
                                          DecodedOutputIPDL& aDecodedData) = 0;
 
-  const RefPtr<RemoteDecoderManagerParent> mParent;
+  const RefPtr<RemoteMediaManagerParent> mParent;
   const CreateDecoderParams::OptionSet mOptions;
   const RefPtr<TaskQueue> mDecodeTaskQueue;
   RefPtr<MediaDataDecoder> mDecoder;

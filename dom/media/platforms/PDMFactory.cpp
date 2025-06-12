@@ -23,7 +23,7 @@
 #include "VideoUtils.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/RemoteDecodeUtils.h"
-#include "mozilla/RemoteDecoderManagerChild.h"
+#include "mozilla/RemoteMediaManagerChild.h"
 #include "mozilla/RemoteDecoderModule.h"
 #include "mozilla/SharedThreadPool.h"
 #include "mozilla/StaticMutex.h"
@@ -168,7 +168,7 @@ class PDMInitializer final {
     }
 #endif  // !defined(MOZ_WIDGET_ANDROID)
 
-    RemoteDecoderManagerChild::Init();
+    RemoteMediaManagerChild::Init();
   }
 
   static void InitDefaultPDMs() {
@@ -629,30 +629,30 @@ void PDMFactory::CreateUtilityPDMs() {
 
 void PDMFactory::CreateContentPDMs() {
   if (StaticPrefs::media_gpu_process_decoder()) {
-    StartupPDM(RemoteDecoderModule::Create(RemoteDecodeIn::GpuProcess));
+    StartupPDM(RemoteDecoderModule::Create(RemoteMediaIn::GpuProcess));
   }
 
   if (StaticPrefs::media_rdd_process_enabled()) {
-    StartupPDM(RemoteDecoderModule::Create(RemoteDecodeIn::RddProcess));
+    StartupPDM(RemoteDecoderModule::Create(RemoteMediaIn::RddProcess));
   }
 
   if (StaticPrefs::media_utility_process_enabled()) {
 #ifdef MOZ_APPLEMEDIA
     StartupPDM(
-        RemoteDecoderModule::Create(RemoteDecodeIn::UtilityProcess_AppleMedia));
+        RemoteDecoderModule::Create(RemoteMediaIn::UtilityProcess_AppleMedia));
 #endif
 #ifdef XP_WIN
-    StartupPDM(RemoteDecoderModule::Create(RemoteDecodeIn::UtilityProcess_WMF));
+    StartupPDM(RemoteDecoderModule::Create(RemoteMediaIn::UtilityProcess_WMF));
 #endif
     // WMF and AppleMedia should be created before Generic because the order
     // affects what decoder module would be chose first.
     StartupPDM(
-        RemoteDecoderModule::Create(RemoteDecodeIn::UtilityProcess_Generic));
+        RemoteDecoderModule::Create(RemoteMediaIn::UtilityProcess_Generic));
   }
 #ifdef MOZ_WMF_MEDIA_ENGINE
   if (StaticPrefs::media_wmf_media_engine_enabled()) {
     StartupPDM(RemoteDecoderModule::Create(
-        RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM));
+        RemoteMediaIn::UtilityProcess_MFMediaEngineCDM));
   }
 #endif
 
@@ -810,7 +810,7 @@ void PDMFactory::SetCDMProxy(CDMProxy* aProxy) {
        aProxy->IsHardwareDecryptionSupported()) ||
       IsWMFClearKeySystemAndSupported(aProxy->KeySystem())) {
     mEMEPDM = RemoteDecoderModule::Create(
-        RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM);
+        RemoteMediaIn::UtilityProcess_MFMediaEngineCDM);
     return;
   }
 #endif
@@ -856,9 +856,9 @@ media::MediaCodecsSupported PDMFactory::Supported(bool aForceRefresh) {
 /* static */
 DecodeSupportSet PDMFactory::SupportsMimeType(
     const nsACString& aMimeType, const MediaCodecsSupported& aSupported,
-    RemoteDecodeIn aLocation) {
+    RemoteMediaIn aLocation) {
   const TrackSupportSet supports =
-      RemoteDecoderManagerChild::GetTrackSupport(aLocation);
+      RemoteMediaManagerChild::GetTrackSupport(aLocation);
 
   if (supports.contains(TrackSupport::Video)) {
     if (MP4Decoder::IsH264(aMimeType)) {

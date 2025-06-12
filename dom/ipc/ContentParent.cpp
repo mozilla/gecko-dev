@@ -424,7 +424,7 @@ namespace dom {
 
 LazyLogModule gProcessLog("Process");
 
-MOZ_RUNINIT static std::map<RemoteDecodeIn, media::MediaCodecsSupported>
+MOZ_RUNINIT static std::map<RemoteMediaIn, media::MediaCodecsSupported>
     sCodecsSupported;
 
 /* static */
@@ -1516,7 +1516,7 @@ void ContentParent::BroadcastThemeUpdate(widget::ThemeChangeKind aKind) {
 
 /*static */
 void ContentParent::BroadcastMediaCodecsSupportedUpdate(
-    RemoteDecodeIn aLocation, const media::MediaCodecsSupported& aSupported) {
+    RemoteMediaIn aLocation, const media::MediaCodecsSupported& aSupported) {
   // Update processes and print the support info from the given location.
   sCodecsSupported[aLocation] = aSupported;
   for (auto* cp : AllProcesses(eAll)) {
@@ -1525,7 +1525,7 @@ void ContentParent::BroadcastMediaCodecsSupportedUpdate(
   nsCString supportString;
   media::MCSInfo::GetMediaCodecsSupportedString(supportString, aSupported);
   LOGPDM("Broadcast support from '%s', support=%s",
-         RemoteDecodeInToStr(aLocation), supportString.get());
+         RemoteMediaInToStr(aLocation), supportString.get());
 
   // Merge incoming support with existing support list from other locations
   media::MCSInfo::AddSupport(aSupported);
@@ -2912,7 +2912,7 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
   Endpoint<PCompositorManagerChild> compositor;
   Endpoint<PImageBridgeChild> imageBridge;
   Endpoint<PVRManagerChild> vrBridge;
-  Endpoint<PRemoteDecoderManagerChild> videoManager;
+  Endpoint<PRemoteMediaManagerChild> videoManager;
   AutoTArray<uint32_t, 3> namespaces;
 
   if (!gpm->CreateContentBridges(OtherEndpointProcInfo(), &compositor,
@@ -3098,7 +3098,7 @@ void ContentParent::OnCompositorUnexpectedShutdown() {
   Endpoint<PCompositorManagerChild> compositor;
   Endpoint<PImageBridgeChild> imageBridge;
   Endpoint<PVRManagerChild> vrBridge;
-  Endpoint<PRemoteDecoderManagerChild> videoManager;
+  Endpoint<PRemoteMediaManagerChild> videoManager;
   AutoTArray<uint32_t, 3> namespaces;
 
   if (!gpm->CreateContentBridges(OtherEndpointProcInfo(), &compositor,

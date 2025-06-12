@@ -5,7 +5,7 @@
 #include "MFMediaEngineChild.h"
 
 #include "MFMediaEngineUtils.h"
-#include "RemoteDecoderManagerChild.h"
+#include "RemoteMediaManagerChild.h"
 
 #ifdef MOZ_WMF_CDM
 #  include "WMFCDMProxy.h"
@@ -33,7 +33,7 @@ using media::TimeUnit;
 MFMediaEngineChild::MFMediaEngineChild(MFMediaEngineWrapper* aOwner,
                                        FrameStatistics* aFrameStats)
     : mOwner(aOwner),
-      mManagerThread(RemoteDecoderManagerChild::GetManagerThread()),
+      mManagerThread(RemoteMediaManagerChild::GetManagerThread()),
       mMediaEngineId(0 /* invalid id, will be initialized later */),
       mFrameStats(WrapNotNull(aFrameStats)) {
   if (mFrameStats->GetPresentedFrames() > 0) {
@@ -58,14 +58,14 @@ RefPtr<GenericNonExclusivePromise> MFMediaEngineChild::Init(
 
   MOZ_ASSERT(mMediaEngineId == 0);
   RefPtr<MFMediaEngineChild> self = this;
-  RemoteDecoderManagerChild::LaunchUtilityProcessIfNeeded(
-      RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM)
+  RemoteMediaManagerChild::LaunchUtilityProcessIfNeeded(
+      RemoteMediaIn::UtilityProcess_MFMediaEngineCDM)
       ->Then(
           mManagerThread, __func__,
           [self, this, flag = aFlags, info = aInfo](bool) {
-            RefPtr<RemoteDecoderManagerChild> manager =
-                RemoteDecoderManagerChild::GetSingleton(
-                    RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM);
+            RefPtr<RemoteMediaManagerChild> manager =
+                RemoteMediaManagerChild::GetSingleton(
+                    RemoteMediaIn::UtilityProcess_MFMediaEngineCDM);
             if (!manager || !manager->CanSend()) {
               CLOG("Manager not exists or can't send");
               mInitPromiseHolder.RejectIfExists(NS_ERROR_FAILURE, __func__);

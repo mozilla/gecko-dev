@@ -59,7 +59,7 @@
 #include "mozilla/layers/WebRenderBridgeChild.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
-#include "mozilla/RemoteDecoderManagerChild.h"
+#include "mozilla/RemoteMediaManagerChild.h"
 #include "mozilla/KeySystemConfig.h"
 #include "mozilla/WheelHandlingHelper.h"
 #include "nsIRFPTargetSetIDL.h"

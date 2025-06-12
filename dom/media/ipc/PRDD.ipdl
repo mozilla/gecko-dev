@@ -9,7 +9,7 @@ include MemoryReportTypes;
 include PrefsTypes;
 
 include protocol PProfiler;
-include protocol PRemoteDecoderManager;
+include protocol PRemoteMediaManager;
 include protocol PVideoBridge;
 
 #if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
@@ -53,8 +53,8 @@ parent:
 
   async InitProfiler(Endpoint<PProfilerChild> endpoint);
 
-  async NewContentRemoteDecoderManager(
-            Endpoint<PRemoteDecoderManagerParent> endpoint, ContentParentId childId);
+  async NewContentRemoteMediaManager(
+            Endpoint<PRemoteMediaManagerParent> endpoint, ContentParentId childId);
 
   async RequestMemoryReport(uint32_t generation,
                             bool anonymize,

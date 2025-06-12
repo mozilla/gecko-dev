@@ -6,7 +6,7 @@
 #ifndef include_dom_media_ipc_RemoteVideoDecoderChild_h
 #define include_dom_media_ipc_RemoteVideoDecoderChild_h
 #include "RemoteDecoderChild.h"
-#include "RemoteDecoderManagerChild.h"
+#include "RemoteMediaManagerChild.h"
 #include "RemoteDecoderParent.h"
 
 namespace mozilla::layers {
@@ -34,7 +34,7 @@ using mozilla::ipc::IPCResult;
 
 class RemoteVideoDecoderChild : public RemoteDecoderChild {
  public:
-  explicit RemoteVideoDecoderChild(RemoteDecodeIn aLocation);
+  explicit RemoteVideoDecoderChild(RemoteMediaIn aLocation);
 
   MOZ_IS_CLASS_INIT MediaResult
   InitIPDL(const VideoInfo& aVideoInfo, float aFramerate,
@@ -52,7 +52,7 @@ class RemoteVideoDecoderChild : public RemoteDecoderChild {
 class RemoteVideoDecoderParent final : public RemoteDecoderParent {
  public:
   RemoteVideoDecoderParent(
-      RemoteDecoderManagerParent* aParent, const VideoInfo& aVideoInfo,
+      RemoteMediaManagerParent* aParent, const VideoInfo& aVideoInfo,
       float aFramerate, const CreateDecoderParams::OptionSet& aOptions,
       const Maybe<layers::TextureFactoryIdentifier>& aIdentifier,
       nsISerialEventTarget* aManagerThread, TaskQueue* aDecodeTaskQueue,

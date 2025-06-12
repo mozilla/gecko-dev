@@ -6,7 +6,7 @@
 #ifndef _include_dom_media_ipc_RDDProcessManager_h_
 #define _include_dom_media_ipc_RDDProcessManager_h_
 #include "mozilla/MozPromise.h"
-#include "mozilla/PRemoteDecoderManagerChild.h"
+#include "mozilla/PRemoteMediaManagerChild.h"
 #include "mozilla/RDDProcessHost.h"
 #include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/ipc/TaskFactory.h"
@@ -33,11 +33,11 @@ class RDDProcessManager final : public RDDProcessHost::Listener {
   ~RDDProcessManager();
 
   using EnsureRDDPromise =
-      MozPromise<ipc::Endpoint<PRemoteDecoderManagerChild>, nsresult, true>;
+      MozPromise<ipc::Endpoint<PRemoteMediaManagerChild>, nsresult, true>;
   // Launch a new RDD process asynchronously
   RefPtr<GenericNonExclusivePromise> LaunchRDDProcess();
   // If not using a RDD process, launch a new RDD process asynchronously and
-  // create a RemoteDecoderManager bridge
+  // create a RemoteMediaManager bridge
   RefPtr<EnsureRDDPromise> EnsureRDDProcessAndCreateBridge(
       ipc::EndpointProcInfo aOtherProcess, dom::ContentParentId aParentId);
 
@@ -106,7 +106,7 @@ class RDDProcessManager final : public RDDProcessHost::Listener {
 
   bool CreateContentBridge(
       ipc::EndpointProcInfo aOtherProcess, dom::ContentParentId aParentId,
-      ipc::Endpoint<PRemoteDecoderManagerChild>* aOutRemoteDecoderManager);
+      ipc::Endpoint<PRemoteMediaManagerChild>* aOutRemoteMediaManager);
 
   const RefPtr<Observer> mObserver;
   ipc::TaskFactory<RDDProcessManager> mTaskFactory;

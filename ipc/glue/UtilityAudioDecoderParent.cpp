@@ -10,7 +10,7 @@
 #include "nsDebugImpl.h"
 
 #include "MediaCodecsSupport.h"
-#include "mozilla/RemoteDecoderManagerParent.h"
+#include "mozilla/RemoteMediaManagerParent.h"
 
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
 #  include "WMF.h"
@@ -123,7 +123,7 @@ void UtilityAudioDecoderParent::Start(
 #endif
 
   auto supported = media::MCSInfo::GetSupportFromFactory();
-  Unused << SendUpdateMediaCodecsSupported(GetRemoteDecodeInFromKind(mKind),
+  Unused << SendUpdateMediaCodecsSupported(GetRemoteMediaInFromKind(mKind),
                                            supported);
   PROFILER_MARKER_UNTYPED("UtilityAudioDecoderParent::Start", IPC,
                           MarkerOptions(MarkerTiming::IntervalUntilNowFrom(
@@ -131,12 +131,12 @@ void UtilityAudioDecoderParent::Start(
 }
 
 mozilla::ipc::IPCResult
-UtilityAudioDecoderParent::RecvNewContentRemoteDecoderManager(
-    Endpoint<PRemoteDecoderManagerParent>&& aEndpoint,
+UtilityAudioDecoderParent::RecvNewContentRemoteMediaManager(
+    Endpoint<PRemoteMediaManagerParent>&& aEndpoint,
     const ContentParentId& aParentId) {
   MOZ_ASSERT(NS_IsMainThread());
-  if (!RemoteDecoderManagerParent::CreateForContent(std::move(aEndpoint),
-                                                    aParentId)) {
+  if (!RemoteMediaManagerParent::CreateForContent(std::move(aEndpoint),
+                                                  aParentId)) {
     return IPC_FAIL_NO_REASON(this);
   }
   return IPC_OK();
@@ -147,7 +147,7 @@ mozilla::ipc::IPCResult UtilityAudioDecoderParent::RecvInitVideoBridge(
     Endpoint<PVideoBridgeChild>&& aEndpoint,
     const ContentDeviceData& aContentDeviceData) {
   MOZ_ASSERT(mKind == SandboxingKind::MF_MEDIA_ENGINE_CDM);
-  if (!RemoteDecoderManagerParent::CreateVideoBridgeToOtherProcess(
+  if (!RemoteMediaManagerParent::CreateVideoBridgeToOtherProcess(
           std::move(aEndpoint))) {
     return IPC_FAIL_NO_REASON(this);
   }
@@ -176,7 +176,7 @@ IPCResult UtilityAudioDecoderParent::RecvUpdateVar(
   MOZ_ASSERT(mKind == SandboxingKind::MF_MEDIA_ENGINE_CDM);
   auto scopeExit = MakeScopeExit(
       [self = RefPtr<UtilityAudioDecoderParent>{this},
-       location = GetRemoteDecodeInFromKind(mKind),
+       location = GetRemoteMediaInFromKind(mKind),
        couldUseHWDecoder = gfx::gfxVars::CanUseHardwareVideoDecoding()] {
         if (couldUseHWDecoder != gfx::gfxVars::CanUseHardwareVideoDecoding()) {
           // The capabilities of the system may have changed, force a refresh by

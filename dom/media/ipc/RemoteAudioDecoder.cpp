@@ -7,14 +7,14 @@
 
 #include "MediaDataDecoderProxy.h"
 #include "PDMFactory.h"
-#include "RemoteDecoderManagerChild.h"
-#include "RemoteDecoderManagerParent.h"
+#include "RemoteMediaManagerChild.h"
+#include "RemoteMediaManagerParent.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/StaticPrefs_media.h"
 
 namespace mozilla {
 
-RemoteAudioDecoderChild::RemoteAudioDecoderChild(RemoteDecodeIn aLocation)
+RemoteAudioDecoderChild::RemoteAudioDecoderChild(RemoteMediaIn aLocation)
     : RemoteDecoderChild(aLocation) {}
 
 MediaResult RemoteAudioDecoderChild::ProcessOutput(
@@ -39,20 +39,20 @@ MediaResult RemoteAudioDecoderChild::ProcessOutput(
 MediaResult RemoteAudioDecoderChild::InitIPDL(
     const AudioInfo& aAudioInfo, const CreateDecoderParams::OptionSet& aOptions,
     const Maybe<uint64_t>& aMediaEngineId) {
-  RefPtr<RemoteDecoderManagerChild> manager =
-      RemoteDecoderManagerChild::GetSingleton(mLocation);
+  RefPtr<RemoteMediaManagerChild> manager =
+      RemoteMediaManagerChild::GetSingleton(mLocation);
 
-  // The manager isn't available because RemoteDecoderManagerChild has been
+  // The manager isn't available because RemoteMediaManagerChild has been
   // initialized with null end points and we don't want to decode video on RDD
   // process anymore. Return false here so that we can fallback to other PDMs.
   if (!manager) {
     return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                       RESULT_DETAIL("RemoteDecoderManager is not available."));
+                       RESULT_DETAIL("RemoteMediaManager is not available."));
   }
 
   if (!manager->CanSend()) {
     return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                       RESULT_DETAIL("RemoteDecoderManager unable to send."));
+                       RESULT_DETAIL("RemoteMediaManager unable to send."));
   }
 
   mIPDLSelfRef = this;
@@ -62,7 +62,7 @@ MediaResult RemoteAudioDecoderChild::InitIPDL(
 }
 
 RemoteAudioDecoderParent::RemoteAudioDecoderParent(
-    RemoteDecoderManagerParent* aParent, const AudioInfo& aAudioInfo,
+    RemoteMediaManagerParent* aParent, const AudioInfo& aAudioInfo,
     const CreateDecoderParams::OptionSet& aOptions,
     nsISerialEventTarget* aManagerThread, TaskQueue* aDecodeTaskQueue,
     Maybe<uint64_t> aMediaEngineId)

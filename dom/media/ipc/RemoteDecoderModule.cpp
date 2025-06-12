@@ -9,7 +9,7 @@
 #  include "AOMDecoder.h"
 #endif
 #include "RemoteAudioDecoder.h"
-#include "RemoteDecoderManagerChild.h"
+#include "RemoteMediaManagerChild.h"
 #include "RemoteMediaDataDecoder.h"
 #include "RemoteVideoDecoder.h"
 #include "VideoUtils.h"
@@ -22,7 +22,7 @@ using namespace ipc;
 using namespace layers;
 
 already_AddRefed<PlatformDecoderModule> RemoteDecoderModule::Create(
-    RemoteDecodeIn aLocation) {
+    RemoteMediaIn aLocation) {
   MOZ_ASSERT(!XRE_IsGPUProcess() && !XRE_IsRDDProcess(),
              "Should not be created in GPU or RDD process.");
   if (!XRE_IsContentProcess()) {
@@ -33,7 +33,7 @@ already_AddRefed<PlatformDecoderModule> RemoteDecoderModule::Create(
   return MakeAndAddRef<RemoteDecoderModule>(aLocation);
 }
 
-RemoteDecoderModule::RemoteDecoderModule(RemoteDecodeIn aLocation)
+RemoteDecoderModule::RemoteDecoderModule(RemoteMediaIn aLocation)
     : mLocation(aLocation) {}
 
 media::DecodeSupportSet RemoteDecoderModule::SupportsMimeType(
@@ -45,16 +45,16 @@ media::DecodeSupportSet RemoteDecoderModule::Supports(
     const SupportDecoderParams& aParams,
     DecoderDoctorDiagnostics* aDiagnostics) const {
   bool supports =
-      RemoteDecoderManagerChild::Supports(mLocation, aParams, aDiagnostics);
+      RemoteMediaManagerChild::Supports(mLocation, aParams, aDiagnostics);
   // This should only be supported by mf media engine cdm process.
   if (aParams.mMediaEngineId &&
-      mLocation != RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM) {
+      mLocation != RemoteMediaIn::UtilityProcess_MFMediaEngineCDM) {
     supports = false;
   }
-  MOZ_LOG(sPDMLog, LogLevel::Debug,
-          ("Sandbox %s decoder %s requested type %s",
-           RemoteDecodeInToStr(mLocation), supports ? "supports" : "rejects",
-           aParams.MimeType().get()));
+  MOZ_LOG(
+      sPDMLog, LogLevel::Debug,
+      ("Sandbox %s decoder %s requested type %s", RemoteMediaInToStr(mLocation),
+       supports ? "supports" : "rejects", aParams.MimeType().get()));
   if (supports) {
     // TODO: Note that we do not yet distinguish between SW/HW decode support.
     //       Will be done in bug 1754239.
@@ -74,11 +74,11 @@ RemoteDecoderModule::AsyncCreateDecoder(const CreateDecoderParams& aParams) {
         IsDefaultPlaybackDeviceMono()) {
       CreateDecoderParams params = aParams;
       params.mOptions += CreateDecoderParams::Option::DefaultPlaybackDeviceMono;
-      return RemoteDecoderManagerChild::CreateAudioDecoder(params, mLocation);
+      return RemoteMediaManagerChild::CreateAudioDecoder(params, mLocation);
     }
-    return RemoteDecoderManagerChild::CreateAudioDecoder(aParams, mLocation);
+    return RemoteMediaManagerChild::CreateAudioDecoder(aParams, mLocation);
   }
-  return RemoteDecoderManagerChild::CreateVideoDecoder(aParams, mLocation);
+  return RemoteMediaManagerChild::CreateVideoDecoder(aParams, mLocation);
 }
 
 }  // namespace mozilla

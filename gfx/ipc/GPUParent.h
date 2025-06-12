@@ -86,8 +86,8 @@ class GPUParent final : public PGPUParent {
       const ContentParentId& aChildId);
   mozilla::ipc::IPCResult RecvNewContentVRManager(
       Endpoint<PVRManagerParent>&& aEndpoint, const ContentParentId& aChildId);
-  mozilla::ipc::IPCResult RecvNewContentRemoteDecoderManager(
-      Endpoint<PRemoteDecoderManagerParent>&& aEndpoint,
+  mozilla::ipc::IPCResult RecvNewContentRemoteMediaManager(
+      Endpoint<PRemoteMediaManagerParent>&& aEndpoint,
       const ContentParentId& aChildId);
   mozilla::ipc::IPCResult RecvGetDeviceStatus(GPUDeviceData* aOutStatus);
   mozilla::ipc::IPCResult RecvSimulateDeviceReset();

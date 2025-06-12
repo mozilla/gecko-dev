@@ -35,7 +35,7 @@
 #include "mozilla/PerfStats.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ProcessHangMonitorIPC.h"
-#include "mozilla/RemoteDecoderManagerChild.h"
+#include "mozilla/RemoteMediaManagerChild.h"
 #include "mozilla/RemoteLazyInputStreamChild.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/ScopeExit.h"
@@ -1432,9 +1432,9 @@ void ContentChild::InitXPCOM(
 
   GfxInfoBase::SetFeatureStatus(std::move(aXPCOMInit.gfxFeatureStatus()));
 
-  // Initialize the RemoteDecoderManager thread and its associated PBackground
+  // Initialize the RemoteMediaManager thread and its associated PBackground
   // channel.
-  RemoteDecoderManagerChild::Init();
+  RemoteMediaManagerChild::Init();
 
   Preferences::RegisterCallbackAndCall(&OnFissionBlocklistPrefChange,
                                        kFissionEnforceBlockList);
@@ -1569,7 +1569,7 @@ mozilla::ipc::IPCResult ContentChild::RecvInitRendering(
     Endpoint<PCompositorManagerChild>&& aCompositor,
     Endpoint<PImageBridgeChild>&& aImageBridge,
     Endpoint<PVRManagerChild>&& aVRBridge,
-    Endpoint<PRemoteDecoderManagerChild>&& aVideoManager,
+    Endpoint<PRemoteMediaManagerChild>&& aVideoManager,
     nsTArray<uint32_t>&& namespaces) {
   MOZ_ASSERT(namespaces.Length() == 3);
 
@@ -1593,7 +1593,7 @@ mozilla::ipc::IPCResult ContentChild::RecvInitRendering(
   if (!gfx::VRManagerChild::InitForContent(std::move(aVRBridge))) {
     return GetResultForRenderingInitFailure(aVRBridge.OtherChildID());
   }
-  RemoteDecoderManagerChild::InitForGPUProcess(std::move(aVideoManager));
+  RemoteMediaManagerChild::InitForGPUProcess(std::move(aVideoManager));
 
 #if defined(XP_MACOSX) && !defined(MOZ_SANDBOX)
   // Close all current connections to the WindowServer. This ensures that the
@@ -1611,7 +1611,7 @@ mozilla::ipc::IPCResult ContentChild::RecvReinitRendering(
     Endpoint<PCompositorManagerChild>&& aCompositor,
     Endpoint<PImageBridgeChild>&& aImageBridge,
     Endpoint<PVRManagerChild>&& aVRBridge,
-    Endpoint<PRemoteDecoderManagerChild>&& aVideoManager,
+    Endpoint<PRemoteMediaManagerChild>&& aVideoManager,
     nsTArray<uint32_t>&& namespaces) {
   MOZ_ASSERT(namespaces.Length() == 3);
   nsTArray<RefPtr<BrowserChild>> tabs = BrowserChild::GetAll();
@@ -1649,7 +1649,7 @@ mozilla::ipc::IPCResult ContentChild::RecvReinitRendering(
                                      nullptr);
   }
 
-  RemoteDecoderManagerChild::InitForGPUProcess(std::move(aVideoManager));
+  RemoteMediaManagerChild::InitForGPUProcess(std::move(aVideoManager));
   return IPC_OK();
 }
 
@@ -4589,8 +4589,8 @@ IPCResult ContentChild::RecvFlushFOGData(FlushFOGDataResolver&& aResolver) {
 }
 
 IPCResult ContentChild::RecvUpdateMediaCodecsSupported(
-    RemoteDecodeIn aLocation, const media::MediaCodecsSupported& aSupported) {
-  RemoteDecoderManagerChild::SetSupported(aLocation, aSupported);
+    RemoteMediaIn aLocation, const media::MediaCodecsSupported& aSupported) {
+  RemoteMediaManagerChild::SetSupported(aLocation, aSupported);
 
   return IPC_OK();
 }

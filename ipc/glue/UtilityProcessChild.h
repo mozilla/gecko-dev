@@ -14,7 +14,7 @@
 #if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
 #  include "mozilla/PSandboxTestingChild.h"
 #endif
-#include "mozilla/PRemoteDecoderManagerParent.h"
+#include "mozilla/PRemoteMediaManagerParent.h"
 #include "mozilla/ipc/AsyncBlockers.h"
 #include "mozilla/dom/JSOracleChild.h"
 #include "mozilla/ProfilerMarkers.h"

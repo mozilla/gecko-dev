@@ -18,8 +18,8 @@
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_layers.h"
 #include "mozilla/StaticPrefs_media.h"
-#include "mozilla/RemoteDecoderManagerChild.h"
-#include "mozilla/RemoteDecoderManagerParent.h"
+#include "mozilla/RemoteMediaManagerChild.h"
+#include "mozilla/RemoteMediaManagerParent.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/GPUChild.h"
@@ -1299,7 +1299,7 @@ bool GPUProcessManager::CreateContentBridges(
     ipc::Endpoint<PCompositorManagerChild>* aOutCompositor,
     ipc::Endpoint<PImageBridgeChild>* aOutImageBridge,
     ipc::Endpoint<PVRManagerChild>* aOutVRBridge,
-    ipc::Endpoint<PRemoteDecoderManagerChild>* aOutVideoManager,
+    ipc::Endpoint<PRemoteMediaManagerChild>* aOutVideoManager,
     dom::ContentParentId aChildId, nsTArray<uint32_t>* aNamespaces) {
   const uint32_t cmNamespace = AllocateNamespace();
   if (!CreateContentCompositorManager(aOtherProcess, aChildId, cmNamespace,
@@ -1310,7 +1310,7 @@ bool GPUProcessManager::CreateContentBridges(
   }
   // VideoDeocderManager is only supported in the GPU process, so we allow this
   // to be fallible.
-  CreateContentRemoteDecoderManager(aOtherProcess, aChildId, aOutVideoManager);
+  CreateContentRemoteMediaManager(aOtherProcess, aChildId, aOutVideoManager);
   // Allocates 3 namespaces(for CompositorManagerChild, CompositorBridgeChild
   // and ImageBridgeChild)
   aNamespaces->AppendElement(cmNamespace);
@@ -1442,9 +1442,9 @@ bool GPUProcessManager::CreateContentVRManager(
   return true;
 }
 
-void GPUProcessManager::CreateContentRemoteDecoderManager(
+void GPUProcessManager::CreateContentRemoteMediaManager(
     ipc::EndpointProcInfo aOtherProcess, dom::ContentParentId aChildId,
-    ipc::Endpoint<PRemoteDecoderManagerChild>* aOutEndpoint) {
+    ipc::Endpoint<PRemoteMediaManagerChild>* aOutEndpoint) {
   nsresult rv = EnsureGPUReady();
   if (NS_WARN_IF(rv == NS_ERROR_ILLEGAL_DURING_SHUTDOWN)) {
     return;
@@ -1455,20 +1455,19 @@ void GPUProcessManager::CreateContentRemoteDecoderManager(
     return;
   }
 
-  ipc::Endpoint<PRemoteDecoderManagerParent> parentPipe;
-  ipc::Endpoint<PRemoteDecoderManagerChild> childPipe;
+  ipc::Endpoint<PRemoteMediaManagerParent> parentPipe;
+  ipc::Endpoint<PRemoteMediaManagerChild> childPipe;
 
-  rv = PRemoteDecoderManager::CreateEndpoints(
-      mGPUChild->OtherEndpointProcInfo(), aOtherProcess, &parentPipe,
-      &childPipe);
+  rv = PRemoteMediaManager::CreateEndpoints(mGPUChild->OtherEndpointProcInfo(),
+                                            aOtherProcess, &parentPipe,
+                                            &childPipe);
   if (NS_FAILED(rv)) {
     gfxCriticalNote << "Could not create content video decoder: "
                     << hexa(int(rv));
     return;
   }
 
-  mGPUChild->SendNewContentRemoteDecoderManager(std::move(parentPipe),
-                                                aChildId);
+  mGPUChild->SendNewContentRemoteMediaManager(std::move(parentPipe), aChildId);
 
   *aOutEndpoint = std::move(childPipe);
 }

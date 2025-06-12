@@ -4,7 +4,7 @@
 
 include "MFCDMSerializers.h";
 
-include protocol PRemoteDecoderManager;
+include protocol PRemoteMediaManager;
 
 using mozilla::KeySystemConfig::Requirement from "mozilla/KeySystemConfig.h";
 using mozilla::KeySystemConfig::SessionType from "mozilla/KeySystemConfig.h";
@@ -106,7 +106,7 @@ struct MFCDMCapabilitiesRequest {
 [ManualDealloc]
 async protocol PMFCDM
 {
-  manager PRemoteDecoderManager;
+  manager PRemoteMediaManager;
 parent:
   async GetCapabilities(MFCDMCapabilitiesRequest request) returns (MFCDMCapabilitiesResult result);
   async Init(MFCDMInitParamsIPDL params) returns (MFCDMInitResult result);

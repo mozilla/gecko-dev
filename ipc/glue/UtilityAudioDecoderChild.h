@@ -53,7 +53,7 @@ class UtilityAudioDecoderChild final : public PUtilityAudioDecoderChild
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(UtilityAudioDecoderChild, override);
   mozilla::ipc::IPCResult RecvUpdateMediaCodecsSupported(
-      const RemoteDecodeIn& aLocation,
+      const RemoteMediaIn& aLocation,
       const media::MediaCodecsSupported& aSupported);
 
   UtilityActorName GetActorName() { return GetAudioActorName(mSandbox); }

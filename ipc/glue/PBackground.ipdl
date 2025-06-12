@@ -45,7 +45,7 @@ include protocol PServiceWorkerManager;
 include protocol PServiceWorkerRegistration;
 include protocol PUDPSocket;
 include protocol PVsync;
-include protocol PRemoteDecoderManager;
+include protocol PRemoteMediaManager;
 include protocol PWebTransport;
 include protocol PFetch;
 include protocol PNotification;
@@ -73,7 +73,7 @@ using mozilla::dom::cache::Namespace
 
 using class mozilla::dom::SSCacheCopy from "mozilla/dom/PBackgroundSessionStorageCache.h";
 
-using mozilla::RemoteDecodeIn from "mozilla/RemoteDecoderManagerChild.h";
+using mozilla::RemoteMediaIn from "mozilla/RemoteMediaManagerChild.h";
 
 using mozilla::camera::CamerasAccessStatus from "mozilla/media/CamerasTypes.h";
 
@@ -287,10 +287,10 @@ parent:
   async PIdleScheduler();
 
   async EnsureRDDProcessAndCreateBridge()
-      returns (nsresult rv, Endpoint<PRemoteDecoderManagerChild> aEndpoint);
+      returns (nsresult rv, Endpoint<PRemoteMediaManagerChild> aEndpoint);
 
-  async EnsureUtilityProcessAndCreateBridge(RemoteDecodeIn aLocation)
-      returns (nsresult rv, Endpoint<PRemoteDecoderManagerChild> aEndpoint);
+  async EnsureUtilityProcessAndCreateBridge(RemoteMediaIn aLocation)
+      returns (nsresult rv, Endpoint<PRemoteMediaManagerChild> aEndpoint);
 
   async PLockManager(nsIPrincipal aPrincipalInfo, nsID? aClientId);
 

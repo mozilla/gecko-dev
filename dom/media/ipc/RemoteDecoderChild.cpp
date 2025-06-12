@@ -5,19 +5,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "RemoteDecoderChild.h"
 
-#include "RemoteDecoderManagerChild.h"
+#include "RemoteMediaManagerChild.h"
 
 #include "mozilla/RemoteDecodeUtils.h"
 
 namespace mozilla {
 
-RemoteDecoderChild::RemoteDecoderChild(RemoteDecodeIn aLocation)
+RemoteDecoderChild::RemoteDecoderChild(RemoteMediaIn aLocation)
     : ShmemRecycleAllocator(this),
       mLocation(aLocation),
       mThread(GetCurrentSerialEventTarget()) {
   MOZ_DIAGNOSTIC_ASSERT(
-      RemoteDecoderManagerChild::GetManagerThread() &&
-          RemoteDecoderManagerChild::GetManagerThread()->IsOnCurrentThread(),
+      RemoteMediaManagerChild::GetManagerThread() &&
+          RemoteMediaManagerChild::GetManagerThread()->IsOnCurrentThread(),
       "Must be created on the manager thread");
 }
 
@@ -33,7 +33,7 @@ void RemoteDecoderChild::HandleRejectionError(
   //
 
   // The GPU/RDD process crashed.
-  if (mLocation == RemoteDecodeIn::GpuProcess) {
+  if (mLocation == RemoteMediaIn::GpuProcess) {
     // The GPU process will get automatically restarted by the parent process.
     // Once it has been restarted the ContentChild will receive the message and
     // will call GetManager()->InitForGPUProcess.
@@ -52,10 +52,10 @@ void RemoteDecoderChild::HandleRejectionError(
   }
 
   nsresult err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR;
-  if (mLocation == RemoteDecodeIn::GpuProcess ||
-      mLocation == RemoteDecodeIn::RddProcess) {
+  if (mLocation == RemoteMediaIn::GpuProcess ||
+      mLocation == RemoteMediaIn::RddProcess) {
     err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR;
-  } else if (mLocation == RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM) {
+  } else if (mLocation == RemoteMediaIn::UtilityProcess_MFMediaEngineCDM) {
     err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR;
   }
   // The RDD process is restarted on demand and asynchronously, we can
@@ -106,7 +106,7 @@ RefPtr<MediaDataDecoder::InitPromise> RemoteDecoderChild::Init() {
             const auto& initResponse = aResponse.get_InitCompletionIPDL();
             mDescription = initResponse.decoderDescription();
             mDescription.Append(" (");
-            mDescription.Append(RemoteDecodeInToStr(GetManager()->Location()));
+            mDescription.Append(RemoteMediaInToStr(GetManager()->Location()));
             mDescription.Append(" remote)");
 
             mProcessName = initResponse.decoderProcessName();
@@ -139,10 +139,10 @@ RefPtr<MediaDataDecoder::DecodePromise> RemoteDecoderChild::Decode(
 
   if (mRemoteDecoderCrashed) {
     nsresult err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_UTILITY_ERR;
-    if (mLocation == RemoteDecodeIn::GpuProcess ||
-        mLocation == RemoteDecodeIn::RddProcess) {
+    if (mLocation == RemoteMediaIn::GpuProcess ||
+        mLocation == RemoteMediaIn::RddProcess) {
       err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_RDD_OR_GPU_ERR;
-    } else if (mLocation == RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM) {
+    } else if (mLocation == RemoteMediaIn::UtilityProcess_MFMediaEngineCDM) {
       err = NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR;
     }
     return MediaDataDecoder::DecodePromise::CreateAndReject(err, __func__);
@@ -312,11 +312,11 @@ void RemoteDecoderChild::AssertOnManagerThread() const {
   MOZ_ASSERT(mThread->IsOnCurrentThread());
 }
 
-RemoteDecoderManagerChild* RemoteDecoderChild::GetManager() {
+RemoteMediaManagerChild* RemoteDecoderChild::GetManager() {
   if (!CanSend()) {
     return nullptr;
   }
-  return static_cast<RemoteDecoderManagerChild*>(Manager());
+  return static_cast<RemoteMediaManagerChild*>(Manager());
 }
 
 }  // namespace mozilla

@@ -4,12 +4,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include GraphicsMessages;
-include protocol PRemoteDecoderManager;
+include protocol PRemoteMediaManager;
 include protocol PVideoBridge;
 
 using mozilla::dom::ContentParentId from "mozilla/dom/ipc/IdType.h";
 using mozilla::media::MediaCodecsSupported from "MediaCodecsSupport.h";
-using mozilla::RemoteDecodeIn from "mozilla/RemoteDecoderManagerChild.h";
+using mozilla::RemoteMediaIn from "mozilla/RemoteMediaManagerChild.h";
 
 #ifdef MOZ_WMF_CDM
 using mozilla::MFCDMCapabilitiesIPDL from "mozilla/PMFCDM.h";
@@ -25,8 +25,8 @@ namespace ipc {
 protocol PUtilityAudioDecoder
 {
 parent:
-  async NewContentRemoteDecoderManager(
-            Endpoint<PRemoteDecoderManagerParent> endpoint, ContentParentId parentId);
+  async NewContentRemoteMediaManager(
+            Endpoint<PRemoteMediaManagerParent> endpoint, ContentParentId parentId);
 
 #ifdef MOZ_WMF_MEDIA_ENGINE
   async InitVideoBridge(Endpoint<PVideoBridgeChild> endpoint,
@@ -42,7 +42,7 @@ parent:
 #endif
 
 child:
-  async UpdateMediaCodecsSupported(RemoteDecodeIn aLocation,
+  async UpdateMediaCodecsSupported(RemoteMediaIn aLocation,
                                    MediaCodecsSupported aSupported);
 
 #ifdef MOZ_WMF_MEDIA_ENGINE

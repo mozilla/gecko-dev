@@ -6,7 +6,7 @@
 #ifndef _include_ipc_glue_UtilityAudioDecoderParent_h_
 #define _include_ipc_glue_UtilityAudioDecoderParent_h_
 
-#include "mozilla/PRemoteDecoderManagerParent.h"
+#include "mozilla/PRemoteMediaManagerParent.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/UniquePtr.h"
 
@@ -33,8 +33,8 @@ class UtilityAudioDecoderParent final : public PUtilityAudioDecoderParent {
 
   void Start(Endpoint<PUtilityAudioDecoderParent>&& aEndpoint);
 
-  mozilla::ipc::IPCResult RecvNewContentRemoteDecoderManager(
-      Endpoint<PRemoteDecoderManagerParent>&& aEndpoint,
+  mozilla::ipc::IPCResult RecvNewContentRemoteMediaManager(
+      Endpoint<PRemoteMediaManagerParent>&& aEndpoint,
       const ContentParentId& aParentId);
 
 #ifdef MOZ_WMF_MEDIA_ENGINE

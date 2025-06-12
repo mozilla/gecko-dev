@@ -30,7 +30,7 @@
 #  include "mozilla/gfx/DeviceManagerDx.h"
 #endif
 #include "mozilla/HangDetails.h"
-#include "mozilla/RemoteDecoderManagerChild.h"  // For RemoteDecodeIn
+#include "mozilla/RemoteMediaManagerChild.h"  // For RemoteMediaIn
 #include "mozilla/Unused.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/layers/APZInputBridgeChild.h"
@@ -391,10 +391,10 @@ mozilla::ipc::IPCResult GPUChild::RecvUpdateMediaCodecsSupported(
     trimedSupported -= mozilla::media::MediaCodecsSupport::HEVCHardwareDecode;
   }
   dom::ContentParent::BroadcastMediaCodecsSupportedUpdate(
-      RemoteDecodeIn::GpuProcess, trimedSupported);
+      RemoteMediaIn::GpuProcess, trimedSupported);
 #else
   dom::ContentParent::BroadcastMediaCodecsSupportedUpdate(
-      RemoteDecodeIn::GpuProcess, aSupported);
+      RemoteMediaIn::GpuProcess, aSupported);
 #endif
   return IPC_OK();
 }

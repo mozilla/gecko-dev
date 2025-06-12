@@ -30,8 +30,8 @@
 #include "mozilla/PerfStats.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ProcessPriorityManager.h"
-#include "mozilla/RemoteDecoderManagerChild.h"
-#include "mozilla/RemoteDecoderManagerParent.h"
+#include "mozilla/RemoteMediaManagerChild.h"
+#include "mozilla/RemoteMediaManagerParent.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_media.h"
@@ -632,11 +632,11 @@ mozilla::ipc::IPCResult GPUParent::RecvNewContentVRManager(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult GPUParent::RecvNewContentRemoteDecoderManager(
-    Endpoint<PRemoteDecoderManagerParent>&& aEndpoint,
+mozilla::ipc::IPCResult GPUParent::RecvNewContentRemoteMediaManager(
+    Endpoint<PRemoteMediaManagerParent>&& aEndpoint,
     const ContentParentId& aChildId) {
-  if (!RemoteDecoderManagerParent::CreateForContent(std::move(aEndpoint),
-                                                    aChildId)) {
+  if (!RemoteMediaManagerParent::CreateForContent(std::move(aEndpoint),
+                                                  aChildId)) {
     return IPC_FAIL_NO_REASON(this);
   }
   return IPC_OK();
@@ -749,7 +749,7 @@ void GPUParent::ActorDestroy(ActorDestroyReason aWhy) {
   ProcessChild::QuickExit();
 #endif
 
-  // Wait until all RemoteDecoderManagerParent have closed.
+  // Wait until all RemoteMediaManagerParent have closed.
   mShutdownBlockers.WaitUntilClear(10 * 1000 /* 10s timeout*/)
       ->Then(GetCurrentSerialEventTarget(), __func__, [self = RefPtr{this}]() {
         if (self->mProfilerController) {

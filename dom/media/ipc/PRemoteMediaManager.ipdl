@@ -39,7 +39,7 @@ union RemoteDecoderInfoIPDL
 };
 
 [NeedsOtherPid, ParentProc=any, ChildProc=anydom]
-sync protocol PRemoteDecoderManager
+sync protocol PRemoteMediaManager
 {
   manages PRemoteDecoder;
 #ifdef MOZ_WMF_MEDIA_ENGINE

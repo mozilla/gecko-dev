@@ -4,7 +4,7 @@
 
 include "mozilla/dom/MediaIPCUtils.h";
 
-include protocol PRemoteDecoderManager;
+include protocol PRemoteMediaManager;
 
 using mozilla::AudioInfo from "MediaInfo.h";
 using mozilla::VideoInfo from "MediaInfo.h";
@@ -37,7 +37,7 @@ struct StatisticData
 [ManualDealloc]
 async protocol PMFMediaEngine
 {
-  manager PRemoteDecoderManager;
+  manager PRemoteMediaManager;
 parent:
   // Return 0 if media engine can't be created.
   async InitMediaEngine(MediaEngineInfoIPDL info) returns (uint64_t id);

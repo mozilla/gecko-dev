@@ -3,7 +3,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "RemoteDecoderManagerParent.h"
+#include "RemoteMediaManagerParent.h"
 
 #if XP_WIN
 #  include <objbase.h>
@@ -42,11 +42,11 @@ using namespace ipc;
 using namespace layers;
 using namespace gfx;
 
-StaticRefPtr<TaskQueue> sRemoteDecoderManagerParentThread;
+StaticRefPtr<TaskQueue> sRemoteMediaManagerParentThread;
 
-void RemoteDecoderManagerParent::StoreImage(
-    const SurfaceDescriptorGPUVideo& aSD, Image* aImage,
-    TextureClient* aTexture) {
+void RemoteMediaManagerParent::StoreImage(const SurfaceDescriptorGPUVideo& aSD,
+                                          Image* aImage,
+                                          TextureClient* aTexture) {
   MOZ_ASSERT(OnManagerThread());
   mImageMap[static_cast<SurfaceDescriptorRemoteDecoder>(aSD).handle()] = aImage;
   mTextureMap[static_cast<SurfaceDescriptorRemoteDecoder>(aSD).handle()] =
@@ -65,17 +65,17 @@ class RemoteDecoderManagerThreadShutdownObserver : public nsIObserver {
                      const char16_t* aData) override {
     MOZ_ASSERT(strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0);
 
-    RemoteDecoderManagerParent::ShutdownVideoBridge();
-    RemoteDecoderManagerParent::ShutdownThreads();
+    RemoteMediaManagerParent::ShutdownVideoBridge();
+    RemoteMediaManagerParent::ShutdownThreads();
     return NS_OK;
   }
 };
 NS_IMPL_ISUPPORTS(RemoteDecoderManagerThreadShutdownObserver, nsIObserver);
 
-bool RemoteDecoderManagerParent::StartupThreads() {
+bool RemoteMediaManagerParent::StartupThreads() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (sRemoteDecoderManagerParentThread) {
+  if (sRemoteMediaManagerParentThread) {
     return true;
   }
 
@@ -84,12 +84,12 @@ bool RemoteDecoderManagerParent::StartupThreads() {
     return false;
   }
 
-  sRemoteDecoderManagerParentThread = TaskQueue::Create(
+  sRemoteMediaManagerParentThread = TaskQueue::Create(
       GetMediaThreadPool(MediaThreadType::SUPERVISOR), "RemVidParent");
   if (XRE_IsGPUProcess()) {
     MOZ_ALWAYS_SUCCEEDS(
-        sRemoteDecoderManagerParentThread->Dispatch(NS_NewRunnableFunction(
-            "RemoteDecoderManagerParent::StartupThreads",
+        sRemoteMediaManagerParentThread->Dispatch(NS_NewRunnableFunction(
+            "RemoteMediaManagerParent::StartupThreads",
             []() { layers::VideoBridgeChild::StartupForGPUProcess(); })));
   }
 
@@ -98,27 +98,27 @@ bool RemoteDecoderManagerParent::StartupThreads() {
   return true;
 }
 
-void RemoteDecoderManagerParent::ShutdownThreads() {
-  sRemoteDecoderManagerParentThread->BeginShutdown();
-  sRemoteDecoderManagerParentThread->AwaitShutdownAndIdle();
-  sRemoteDecoderManagerParentThread = nullptr;
+void RemoteMediaManagerParent::ShutdownThreads() {
+  sRemoteMediaManagerParentThread->BeginShutdown();
+  sRemoteMediaManagerParentThread->AwaitShutdownAndIdle();
+  sRemoteMediaManagerParentThread = nullptr;
 }
 
 /* static */
-void RemoteDecoderManagerParent::ShutdownVideoBridge() {
-  if (sRemoteDecoderManagerParentThread) {
-    RefPtr<Runnable> task = NS_NewRunnableFunction(
-        "RemoteDecoderManagerParent::ShutdownVideoBridge",
-        []() { VideoBridgeChild::Shutdown(); });
-    SyncRunnable::DispatchToThread(sRemoteDecoderManagerParentThread, task);
+void RemoteMediaManagerParent::ShutdownVideoBridge() {
+  if (sRemoteMediaManagerParentThread) {
+    RefPtr<Runnable> task =
+        NS_NewRunnableFunction("RemoteMediaManagerParent::ShutdownVideoBridge",
+                               []() { VideoBridgeChild::Shutdown(); });
+    SyncRunnable::DispatchToThread(sRemoteMediaManagerParentThread, task);
   }
 }
 
-bool RemoteDecoderManagerParent::OnManagerThread() {
-  return sRemoteDecoderManagerParentThread->IsOnCurrentThread();
+bool RemoteMediaManagerParent::OnManagerThread() {
+  return sRemoteMediaManagerParentThread->IsOnCurrentThread();
 }
 
-PDMFactory& RemoteDecoderManagerParent::EnsurePDMFactory() {
+PDMFactory& RemoteMediaManagerParent::EnsurePDMFactory() {
   MOZ_ASSERT(OnManagerThread());
   if (!mPDMFactory) {
     mPDMFactory = MakeRefPtr<PDMFactory>();
@@ -126,8 +126,8 @@ PDMFactory& RemoteDecoderManagerParent::EnsurePDMFactory() {
   return *mPDMFactory;
 }
 
-bool RemoteDecoderManagerParent::CreateForContent(
-    Endpoint<PRemoteDecoderManagerParent>&& aEndpoint,
+bool RemoteMediaManagerParent::CreateForContent(
+    Endpoint<PRemoteMediaManagerParent>&& aEndpoint,
     dom::ContentParentId aChildId) {
   MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_RDD ||
              XRE_GetProcessType() == GeckoProcessType_Utility ||
@@ -138,19 +138,18 @@ bool RemoteDecoderManagerParent::CreateForContent(
     return false;
   }
 
-  RefPtr<RemoteDecoderManagerParent> parent = new RemoteDecoderManagerParent(
-      sRemoteDecoderManagerParentThread, aChildId);
+  RefPtr<RemoteMediaManagerParent> parent =
+      new RemoteMediaManagerParent(sRemoteMediaManagerParentThread, aChildId);
 
   RefPtr<Runnable> task =
-      NewRunnableMethod<Endpoint<PRemoteDecoderManagerParent>&&>(
-          "dom::RemoteDecoderManagerParent::Open", parent,
-          &RemoteDecoderManagerParent::Open, std::move(aEndpoint));
-  MOZ_ALWAYS_SUCCEEDS(
-      sRemoteDecoderManagerParentThread->Dispatch(task.forget()));
+      NewRunnableMethod<Endpoint<PRemoteMediaManagerParent>&&>(
+          "dom::RemoteMediaManagerParent::Open", parent,
+          &RemoteMediaManagerParent::Open, std::move(aEndpoint));
+  MOZ_ALWAYS_SUCCEEDS(sRemoteMediaManagerParentThread->Dispatch(task.forget()));
   return true;
 }
 
-bool RemoteDecoderManagerParent::CreateVideoBridgeToOtherProcess(
+bool RemoteMediaManagerParent::CreateVideoBridgeToOtherProcess(
     Endpoint<PVideoBridgeChild>&& aEndpoint) {
   LOG("Create video bridge");
   // We never want to decode in the GPU process, but output
@@ -171,15 +170,14 @@ bool RemoteDecoderManagerParent::CreateVideoBridgeToOtherProcess(
   RefPtr<Runnable> task =
       NewRunnableFunction("gfx::VideoBridgeChild::Open",
                           &VideoBridgeChild::Open, std::move(aEndpoint));
-  MOZ_ALWAYS_SUCCEEDS(
-      sRemoteDecoderManagerParentThread->Dispatch(task.forget()));
+  MOZ_ALWAYS_SUCCEEDS(sRemoteMediaManagerParentThread->Dispatch(task.forget()));
   return true;
 }
 
-RemoteDecoderManagerParent::RemoteDecoderManagerParent(
+RemoteMediaManagerParent::RemoteMediaManagerParent(
     nsISerialEventTarget* aThread, dom::ContentParentId aContentId)
     : mThread(aThread), mContentId(aContentId) {
-  MOZ_COUNT_CTOR(RemoteDecoderManagerParent);
+  MOZ_COUNT_CTOR(RemoteMediaManagerParent);
   auto& registrar =
       XRE_IsGPUProcess() ? GPUParent::GetSingleton()->AsyncShutdownService()
       : XRE_IsUtilityProcess()
@@ -188,8 +186,8 @@ RemoteDecoderManagerParent::RemoteDecoderManagerParent(
   registrar.Register(this);
 }
 
-RemoteDecoderManagerParent::~RemoteDecoderManagerParent() {
-  MOZ_COUNT_DTOR(RemoteDecoderManagerParent);
+RemoteMediaManagerParent::~RemoteMediaManagerParent() {
+  MOZ_COUNT_DTOR(RemoteMediaManagerParent);
   auto& registrar =
       XRE_IsGPUProcess() ? GPUParent::GetSingleton()->AsyncShutdownService()
       : XRE_IsUtilityProcess()
@@ -198,12 +196,12 @@ RemoteDecoderManagerParent::~RemoteDecoderManagerParent() {
   registrar.Deregister(this);
 }
 
-void RemoteDecoderManagerParent::ActorDestroy(
+void RemoteMediaManagerParent::ActorDestroy(
     mozilla::ipc::IProtocol::ActorDestroyReason) {
   mThread = nullptr;
 }
 
-PRemoteDecoderParent* RemoteDecoderManagerParent::AllocPRemoteDecoderParent(
+PRemoteDecoderParent* RemoteMediaManagerParent::AllocPRemoteDecoderParent(
     const RemoteDecoderInfoIPDL& aRemoteDecoderInfo,
     const CreateDecoderParams::OptionSet& aOptions,
     const Maybe<layers::TextureFactoryIdentifier>& aIdentifier,
@@ -219,36 +217,36 @@ PRemoteDecoderParent* RemoteDecoderManagerParent::AllocPRemoteDecoderParent(
         aRemoteDecoderInfo.get_VideoDecoderInfoIPDL();
     return new RemoteVideoDecoderParent(
         this, decoderInfo.videoInfo(), decoderInfo.framerate(), aOptions,
-        aIdentifier, sRemoteDecoderManagerParentThread, decodeTaskQueue,
+        aIdentifier, sRemoteMediaManagerParentThread, decodeTaskQueue,
         aMediaEngineId, aTrackingId);
   }
 
   if (aRemoteDecoderInfo.type() == RemoteDecoderInfoIPDL::TAudioInfo) {
     return new RemoteAudioDecoderParent(
         this, aRemoteDecoderInfo.get_AudioInfo(), aOptions,
-        sRemoteDecoderManagerParentThread, decodeTaskQueue, aMediaEngineId);
+        sRemoteMediaManagerParentThread, decodeTaskQueue, aMediaEngineId);
   }
 
   MOZ_CRASH("unrecognized type of RemoteDecoderInfoIPDL union");
   return nullptr;
 }
 
-bool RemoteDecoderManagerParent::DeallocPRemoteDecoderParent(
+bool RemoteMediaManagerParent::DeallocPRemoteDecoderParent(
     PRemoteDecoderParent* actor) {
   RemoteDecoderParent* parent = static_cast<RemoteDecoderParent*>(actor);
   parent->Destroy();
   return true;
 }
 
-PMFMediaEngineParent* RemoteDecoderManagerParent::AllocPMFMediaEngineParent() {
+PMFMediaEngineParent* RemoteMediaManagerParent::AllocPMFMediaEngineParent() {
 #ifdef MOZ_WMF_MEDIA_ENGINE
-  return new MFMediaEngineParent(this, sRemoteDecoderManagerParentThread);
+  return new MFMediaEngineParent(this, sRemoteMediaManagerParentThread);
 #else
   return nullptr;
 #endif
 }
 
-bool RemoteDecoderManagerParent::DeallocPMFMediaEngineParent(
+bool RemoteMediaManagerParent::DeallocPMFMediaEngineParent(
     PMFMediaEngineParent* actor) {
 #ifdef MOZ_WMF_MEDIA_ENGINE
   MFMediaEngineParent* parent = static_cast<MFMediaEngineParent*>(actor);
@@ -257,31 +255,31 @@ bool RemoteDecoderManagerParent::DeallocPMFMediaEngineParent(
   return true;
 }
 
-PMFCDMParent* RemoteDecoderManagerParent::AllocPMFCDMParent(
+PMFCDMParent* RemoteMediaManagerParent::AllocPMFCDMParent(
     const nsAString& aKeySystem) {
 #ifdef MOZ_WMF_CDM
-  return new MFCDMParent(aKeySystem, this, sRemoteDecoderManagerParentThread);
+  return new MFCDMParent(aKeySystem, this, sRemoteMediaManagerParentThread);
 #else
   return nullptr;
 #endif
 }
 
-bool RemoteDecoderManagerParent::DeallocPMFCDMParent(PMFCDMParent* actor) {
+bool RemoteMediaManagerParent::DeallocPMFCDMParent(PMFCDMParent* actor) {
 #ifdef MOZ_WMF_CDM
   static_cast<MFCDMParent*>(actor)->Destroy();
 #endif
   return true;
 }
 
-void RemoteDecoderManagerParent::Open(
-    Endpoint<PRemoteDecoderManagerParent>&& aEndpoint) {
+void RemoteMediaManagerParent::Open(
+    Endpoint<PRemoteMediaManagerParent>&& aEndpoint) {
   if (!aEndpoint.Bind(this)) {
     // We can't recover from this.
-    MOZ_CRASH("Failed to bind RemoteDecoderManagerParent to endpoint");
+    MOZ_CRASH("Failed to bind RemoteMediaManagerParent to endpoint");
   }
 }
 
-mozilla::ipc::IPCResult RemoteDecoderManagerParent::RecvReadback(
+mozilla::ipc::IPCResult RemoteMediaManagerParent::RecvReadback(
     const SurfaceDescriptorGPUVideo& aSD, SurfaceDescriptor* aResult) {
   const SurfaceDescriptorRemoteDecoder& sd = aSD;
   RefPtr<Image> image = mImageMap[sd.handle()];
@@ -314,7 +312,7 @@ mozilla::ipc::IPCResult RemoteDecoderManagerParent::RecvReadback(
 }
 
 mozilla::ipc::IPCResult
-RemoteDecoderManagerParent::RecvDeallocateSurfaceDescriptorGPUVideo(
+RemoteMediaManagerParent::RecvDeallocateSurfaceDescriptorGPUVideo(
     const SurfaceDescriptorGPUVideo& aSD) {
   MOZ_ASSERT(OnManagerThread());
   const SurfaceDescriptorRemoteDecoder& sd = aSD;
@@ -323,12 +321,12 @@ RemoteDecoderManagerParent::RecvDeallocateSurfaceDescriptorGPUVideo(
   return IPC_OK();
 }
 
-void RemoteDecoderManagerParent::DeallocateSurfaceDescriptor(
+void RemoteMediaManagerParent::DeallocateSurfaceDescriptor(
     const SurfaceDescriptorGPUVideo& aSD) {
   if (!OnManagerThread()) {
     MOZ_ALWAYS_SUCCEEDS(
-        sRemoteDecoderManagerParentThread->Dispatch(NS_NewRunnableFunction(
-            "RemoteDecoderManagerParent::DeallocateSurfaceDescriptor",
+        sRemoteMediaManagerParentThread->Dispatch(NS_NewRunnableFunction(
+            "RemoteMediaManagerParent::DeallocateSurfaceDescriptor",
             [ref = RefPtr{this}, sd = aSD]() {
               ref->RecvDeallocateSurfaceDescriptorGPUVideo(sd);
             })));

@@ -9,7 +9,7 @@
 
 namespace mozilla {
 
-enum class RemoteDecodeIn;
+enum class RemoteMediaIn;
 
 // A decoder module that proxies decoding to either GPU or RDD process.
 class RemoteDecoderModule : public PlatformDecoderModule {
@@ -18,7 +18,7 @@ class RemoteDecoderModule : public PlatformDecoderModule {
 
  public:
   static already_AddRefed<PlatformDecoderModule> Create(
-      RemoteDecodeIn aLocation);
+      RemoteMediaIn aLocation);
 
   media::DecodeSupportSet SupportsMimeType(
       const nsACString& aMimeType,
@@ -42,9 +42,9 @@ class RemoteDecoderModule : public PlatformDecoderModule {
   }
 
  private:
-  explicit RemoteDecoderModule(RemoteDecodeIn aLocation);
+  explicit RemoteDecoderModule(RemoteMediaIn aLocation);
 
-  const RemoteDecodeIn mLocation;
+  const RemoteMediaIn mLocation;
 };
 
 }  // namespace mozilla
