@@ -2275,8 +2275,9 @@ void DocumentLoadListener::TriggerRedirectToRealChannel(
       ("DocumentLoadListener::TriggerRedirectToRealChannel [this=%p] "
        "aDestinationBrowsingContext=%" PRIx64 " aDestinationProcess=%" PRId64,
        this, aDestinationBrowsingContext->Id(),
-       aDestinationProcess ? int64_t((*aDestinationProcess)->ChildID())
-                           : int64_t(-1)));
+       aDestinationProcess.valueOr(nullptr)
+           ? int64_t((*aDestinationProcess)->ChildID())
+           : int64_t(-1)));
   MOZ_ASSERT(aDestinationBrowsingContext);
 
   // This initiates replacing the current DocumentChannel with a
