@@ -7,6 +7,7 @@ package org.mozilla.fenix.components.menu.compose
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -60,43 +62,52 @@ fun DefaultBrowserBanner(
         Row(
             modifier = Modifier
                 .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Row(
-                modifier = Modifier.clickable(onClick = onClick),
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Bottom),
+                contentAlignment = Alignment.BottomStart,
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.firefox_as_default_banner_illustration),
                     contentDescription = null,
                 )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    Text(
-                        text = stringResource(
-                            id = R.string.browser_menu_default_banner_title,
-                            appName,
-                        ),
-                        style = FirefoxTheme.typography.subtitle1,
-                        color = FirefoxTheme.colors.textPrimary,
-                    )
-                    Text(
-                        text = stringResource(id = R.string.browser_menu_default_banner_subtitle),
-                        style = FirefoxTheme.typography.caption,
-                        color = FirefoxTheme.colors.textSecondary,
-                    )
-                }
             }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 4.dp)
+                    .align(Alignment.CenterVertically),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = stringResource(id = R.string.browser_menu_default_banner_title, appName),
+                    style = FirefoxTheme.typography.body1,
+                    color = FirefoxTheme.colors.textPrimary,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 3,
+                )
+                Text(
+                    text = stringResource(id = R.string.browser_menu_default_banner_subtitle),
+                    style = FirefoxTheme.typography.caption,
+                    color = FirefoxTheme.colors.textSecondary,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 3,
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
 
             Icon(
                 painter = painterResource(id = R.drawable.mozac_ic_cross_24),
                 contentDescription = stringResource(id = R.string.browser_menu_default_banner_dismiss),
                 modifier = Modifier
-                    .padding(end = 10.dp)
-                    .size(24.dp)
+                    .padding(top = 12.dp, end = 18.dp)
+                    .size(20.dp)
                     .clickable(onClick = onDismiss),
                 tint = FirefoxTheme.colors.iconSecondary,
             )
