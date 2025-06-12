@@ -279,22 +279,6 @@ captcha_detection:
     data_sensitivity:
       - interaction
 
-  arkoselabs_ps:
-    type: counter
-    description: >
-      How many times the ArkoseLabs challenge was shown.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D226021#7994299
-    notification_emails:
-      - tritter@mozilla.com
-    send_in_pings:
-      - captcha-detection
-    expires: never
-    data_sensitivity:
-      - interaction
-
   arkoselabs_pc:
     type: counter
     description: >
@@ -580,22 +564,6 @@ captcha_detection:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=XXXXXX
-    notification_emails:
-      - tritter@mozilla.com
-    send_in_pings:
-      - captcha-detection
-    expires: never
-    data_sensitivity:
-      - interaction
-
-  arkoselabs_ps_pbm:
-    type: counter
-    description: >
-      How many times the ArkoseLabs challenge was shown.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1913421
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D226021#7994299
     notification_emails:
       - tritter@mozilla.com
     send_in_pings:

@@ -20,11 +20,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 /**
- * Holds the state of each tab.
+ * Holds the state of captchas for each top document.
+ * Currently, only used by google reCAPTCHA v2 and hCaptcha.
  * The state is an object with the following structure:
- * [key: tabId]: typeof ReturnType<TabState.#defaultValue()>
+ * [key: topBrowsingContextId]: typeof ReturnType<TopDocState.#defaultValue()>
  */
-class TabState {
+class DocCaptchaState {
   #state;
 
   constructor() {
@@ -32,11 +33,11 @@ class TabState {
   }
 
   /**
-   * @param {number} tabId - The tab id.
-   * @returns {Map<any, any>} - The state of the tab.
+   * @param {number} topId - The top bc id.
+   * @returns {Map<any, any>} - The state of the top bc.
    */
-  get(tabId) {
-    return this.#state.get(tabId);
+  get(topId) {
+    return this.#state.get(topId);
   }
 
   static #defaultValue() {
@@ -44,25 +45,25 @@ class TabState {
   }
 
   /**
-   * @param {number} tabId - The tab id.
-   * @param {(state: ReturnType<TabState['get']>) => void} updateFunction - The function to update the state.
+   * @param {number} topId - The top bc id.
+   * @param {(state: ReturnType<DocCaptchaState['get']>) => void} updateFunction - The function to update the state.
    */
-  update(tabId, updateFunction) {
-    if (!this.#state.has(tabId)) {
-      this.#state.set(tabId, TabState.#defaultValue());
+  update(topId, updateFunction) {
+    if (!this.#state.has(topId)) {
+      this.#state.set(topId, DocCaptchaState.#defaultValue());
     }
-    updateFunction(this.#state.get(tabId));
+    updateFunction(this.#state.get(topId));
   }
 
   /**
-   * @param {number} tabId - The tab id.
+   * @param {number} topId - The top doc id.
    */
-  clear(tabId) {
-    this.#state.delete(tabId);
+  clear(topId) {
+    this.#state.delete(topId);
   }
 }
 
-const tabState = new TabState();
+const docState = new DocCaptchaState();
 
 /**
  * This actor parent is responsible for recording the state of captchas
@@ -78,17 +79,18 @@ class CaptchaDetectionParent extends JSWindowActorParent {
   actorDestroy() {
     lazy.console.debug("actorDestroy()");
 
-    if (this.#responseObserver) {
-      this.#responseObserver.unregister();
-    }
+    this.#onPageHidden();
   }
 
   /** @type {CaptchaStateUpdateFunction} */
-  #updateGRecaptchaV2State({ tabId, isPBM, state: { type, changes } }) {
+  #updateGRecaptchaV2State({ changes, type }) {
     lazy.console.debug("updateGRecaptchaV2State", changes);
 
+    const topId = this.#topInnerWindowId;
+    const isPBM = this.browsingContext.usePrivateBrowsing;
+
     if (changes === "ImagesShown") {
-      tabState.update(tabId, state => {
+      docState.update(topId, state => {
         state.set(type + changes, true);
       });
 
@@ -99,28 +101,29 @@ class CaptchaDetectionParent extends JSWindowActorParent {
       const shownMetric = "googleRecaptchaV2Ps" + (isPBM ? "Pbm" : "");
       Glean.captchaDetection[shownMetric].add(1);
     } else if (changes === "GotCheckmark") {
-      const autoCompleted = !tabState.get(tabId)?.has(type + "ImagesShown");
-      lazy.console.debug(
-        "GotCheckmark" +
-          (autoCompleted ? " (auto-completed)" : " (manually-completed)")
-      );
+      const autoCompleted = !docState.get(topId)?.has(type + "ImagesShown");
       const resultMetric =
         "googleRecaptchaV2" +
         (autoCompleted ? "Ac" : "Pc") +
         (isPBM ? "Pbm" : "");
       Glean.captchaDetection[resultMetric].add(1);
+      lazy.console.debug("Incremented metric", resultMetric);
+      docState.clear(topId);
       this.#onMetricSet();
     }
   }
 
   /** @type {CaptchaStateUpdateFunction} */
-  #recordCFTurnstileResult({ isPBM, state: { result } }) {
+  #recordCFTurnstileResult({ result }) {
     lazy.console.debug("recordCFTurnstileResult", result);
+
+    const isPBM = this.browsingContext.usePrivateBrowsing;
     const resultMetric =
       "cloudflareTurnstile" +
       (result === "Succeeded" ? "Cc" : "Cf") +
       (isPBM ? "Pbm" : "");
     Glean.captchaDetection[resultMetric].add(1);
+    lazy.console.debug("Incremented metric", resultMetric);
     this.#onMetricSet();
   }
 
@@ -147,30 +150,42 @@ class CaptchaDetectionParent extends JSWindowActorParent {
   }
 
   /** @type {CaptchaStateUpdateFunction} */
-  #recordDatadomeEvent({ isPBM, state: { event, ...payload } }) {
-    lazy.console.debug("recordDatadomeEvent", event, payload);
-    const suffix = isPBM ? "Pbm" : "";
+  #recordDatadomeEvent({ event, ...payload }) {
+    lazy.console.debug("recordDatadomeEvent", { event, payload });
+
+    const suffix = this.browsingContext.usePrivateBrowsing ? "Pbm" : "";
+    let metricName = "datadome";
     if (event === "load") {
       if (payload.captchaShown) {
-        Glean.captchaDetection["datadomePs" + suffix].add(1);
+        metricName += "Ps";
       } else if (payload.blocked) {
-        Glean.captchaDetection["datadomeBl" + suffix].add(1);
+        metricName += "Bl";
       }
     } else if (event === "passed") {
-      Glean.captchaDetection["datadomePc" + suffix].add(1);
+      metricName += "Pc";
+    } else {
+      lazy.console.error("Unknown Datadome event", event);
+      return;
     }
+
+    metricName += suffix;
+    Glean.captchaDetection[metricName].add(1);
+    lazy.console.debug("Incremented metric", metricName);
 
     this.#onMetricSet(0);
   }
 
   /** @type {CaptchaStateUpdateFunction} */
-  #recordHCaptchaState({ isPBM, tabId, state: { type, changes } }) {
+  #recordHCaptchaState({ changes, type }) {
     lazy.console.debug("recordHCaptchaEvent", changes);
+
+    const topId = this.#topInnerWindowId;
+    const isPBM = this.browsingContext.usePrivateBrowsing;
 
     if (changes === "shown") {
       // I don't think HCaptcha supports auto-completion, but we act
       // as if it does just in case.
-      tabState.update(tabId, state => {
+      docState.update(topId, state => {
         state.set(type + changes, true);
       });
 
@@ -180,38 +195,40 @@ class CaptchaDetectionParent extends JSWindowActorParent {
       // received, or when the daily maybeSubmitPing is called.
       const shownMetric = "hcaptchaPs" + (isPBM ? "Pbm" : "");
       Glean.captchaDetection[shownMetric].add(1);
+      lazy.console.debug("Incremented metric", shownMetric);
     } else if (changes === "passed") {
-      const autoCompleted = !tabState.get(tabId)?.has(type + "shown");
+      const autoCompleted = !docState.get(topId)?.has(type + "shown");
       const resultMetric =
         "hcaptcha" + (autoCompleted ? "Ac" : "Pc") + (isPBM ? "Pbm" : "");
       Glean.captchaDetection[resultMetric].add(1);
+      lazy.console.debug("Incremented metric", resultMetric);
+      docState.clear(topId);
       this.#onMetricSet();
     }
   }
 
   /** @type {CaptchaStateUpdateFunction} */
-  #recordArkoseLabsEvent({
-    isPBM,
-    state: { event, solved, solutionsSubmitted },
-  }) {
-    if (event === "shown") {
-      // We don't call maybeSubmitPing here because we might end up
-      // submitting the ping without the "completed" event.
-      // maybeSubmitPing will be called when "completed" event is
-      // received, or when the daily maybeSubmitPing is called.
-      const shownMetric = "arkoselabsPs" + (isPBM ? "Pbm" : "");
-      Glean.captchaDetection[shownMetric].add(1);
-    } else if (event === "completed") {
-      const suffix = isPBM ? "Pbm" : "";
-      const resultMetric = "arkoselabs" + (solved ? "Pc" : "Pf") + suffix;
-      Glean.captchaDetection[resultMetric].add(1);
+  #recordArkoseLabsEvent({ event, solved, solutionsSubmitted }) {
+    lazy.console.debug("recordArkoseLabsEvent", {
+      event,
+      solved,
+      solutionsSubmitted,
+    });
 
-      const solutionsRequiredMetric =
-        Glean.captchaDetection["arkoselabsSolutionsRequired" + suffix];
-      solutionsRequiredMetric.accumulateSingleSample(solutionsSubmitted);
+    const isPBM = this.browsingContext.usePrivateBrowsing;
 
-      this.#onMetricSet();
-    }
+    const suffix = isPBM ? "Pbm" : "";
+    const resultMetric = "arkoselabs" + (solved ? "Pc" : "Pf") + suffix;
+    Glean.captchaDetection[resultMetric].add(1);
+    lazy.console.debug("Incremented metric", resultMetric);
+
+    const metricName = "arkoselabsSolutionsRequired" + suffix;
+    Glean.captchaDetection[metricName].accumulateSingleSample(
+      solutionsSubmitted
+    );
+    lazy.console.debug("Sampled", metricName, "with", solutionsSubmitted);
+
+    this.#onMetricSet();
   }
 
   async #arkoseLabsInit() {
@@ -259,17 +276,14 @@ class CaptchaDetectionParent extends JSWindowActorParent {
         }
 
         solutionsSubmitted++;
-        if (body.solved === null) {
+        if (typeof body.solved !== "boolean") {
           return;
         }
 
         this.#recordArkoseLabsEvent({
-          isPBM: this.browsingContext.usePrivateBrowsing,
-          state: {
-            event: "completed",
-            solved: body.solved,
-            solutionsSubmitted,
-          },
+          event: "completed",
+          solved: body.solved,
+          solutionsSubmitted,
         });
 
         solutionsSubmitted = 0;
@@ -278,8 +292,12 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     this.#responseObserver.register();
   }
 
-  #onTabClosed(tabId) {
-    tabState.clear(tabId);
+  get #topInnerWindowId() {
+    return this.browsingContext.topWindowContext.innerWindowId;
+  }
+
+  #onPageHidden() {
+    docState.clear(this.#topInnerWindowId);
 
     if (this.#responseObserver) {
       this.#responseObserver.unregister();
@@ -330,7 +348,9 @@ class CaptchaDetectionParent extends JSWindowActorParent {
     await actor.sendQuery("Testing:MetricIsSet");
   }
 
-  recordCaptchaHandlerConstructed({ isPBM, type }) {
+  recordCaptchaHandlerConstructed({ type }) {
+    lazy.console.debug("recordCaptchaHandlerConstructed", type);
+
     let metric = "";
     switch (type) {
       case "g-recaptcha-v2":
@@ -349,8 +369,9 @@ class CaptchaDetectionParent extends JSWindowActorParent {
         metric = "arkoselabsOc";
         break;
     }
-    metric += isPBM ? "Pbm" : "";
+    metric += this.browsingContext.usePrivateBrowsing ? "Pbm" : "";
     Glean.captchaDetection[metric].add(1);
+    lazy.console.debug("Incremented metric", metric);
   }
 
   async receiveMessage(message) {
@@ -358,7 +379,7 @@ class CaptchaDetectionParent extends JSWindowActorParent {
 
     switch (message.name) {
       case "CaptchaState:Update":
-        switch (message.data.state.type) {
+        switch (message.data.type) {
           case "g-recaptcha-v2":
             this.#updateGRecaptchaV2State(message.data);
             break;
@@ -376,17 +397,14 @@ class CaptchaDetectionParent extends JSWindowActorParent {
       case "CaptchaHandler:Constructed":
         // message.name === "CaptchaHandler:Constructed"
         // => message.data = {
-        //   isPBM: bool,
         //   type: string,
         // }
         this.recordCaptchaHandlerConstructed(message.data);
         break;
-      case "TabState:Closed":
+      case "Page:Hide":
         // message.name === "TabState:Closed"
-        // => message.data = {
-        //   tabId: number,
-        // }
-        this.#onTabClosed(message.data.tabId);
+        // => message.data = undefined
+        this.#onPageHidden();
         break;
       case "CaptchaDetection:Init":
         // message.name === "CaptchaDetection:Init"
@@ -422,10 +440,8 @@ export {
 
 /**
  * @typedef CaptchaStateUpdateMessageData
- * @property {number} tabId - The tab id.
- * @property {boolean} isPBM - Whether the tab is in PBM.
- * @property {object} state - The state of the captcha.
- * @property {string} state.type - The type of the captcha.
+ * @type {object}
+ * @property {string} type - The type of the captcha.
  *
  * @typedef {(message: CaptchaStateUpdateMessageData) => void} CaptchaStateUpdateFunction
  */

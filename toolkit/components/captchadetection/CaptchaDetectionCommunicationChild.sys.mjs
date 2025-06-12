@@ -18,7 +18,6 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
 export class CaptchaDetectionCommunicationChild extends JSWindowActorChild {
   actorCreated() {
     lazy.console.debug("actorCreated()");
-    this.tabId = this.docShell.browserChild.tabId;
     this.addedMessageListener = false;
   }
 
@@ -52,23 +51,15 @@ export class CaptchaDetectionCommunicationChild extends JSWindowActorChild {
 
       if (data.eventType === "load" && data.hasOwnProperty("responseType")) {
         this.sendAsyncMessage("CaptchaState:Update", {
-          tabId: this.tabId,
-          isPBM: this.browsingContext.usePrivateBrowsing,
-          state: {
-            type: "datadome",
-            event: "load",
-            captchaShown: data.responseType === "captcha",
-            blocked: data.responseType === "hardblock",
-          },
+          type: "datadome",
+          event: "load",
+          captchaShown: data.responseType === "captcha",
+          blocked: data.responseType === "hardblock",
         });
       } else if (data.eventType === "passed") {
         this.sendAsyncMessage("CaptchaState:Update", {
-          tabId: this.tabId,
-          isPBM: this.browsingContext.usePrivateBrowsing,
-          state: {
-            type: "datadome",
-            event: "passed",
-          },
+          type: "datadome",
+          event: "passed",
         });
       }
     });
