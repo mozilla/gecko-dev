@@ -183,6 +183,7 @@
 #include "mozilla/dom/VRDisplayEventBinding.h"
 #include "mozilla/dom/VREventObserver.h"
 #include "mozilla/dom/VisualViewport.h"
+#include "mozilla/dom/WebIdentityHandler.h"
 #include "mozilla/dom/WebIDLGlobalNameHash.h"
 #include "mozilla/dom/WindowBinding.h"
 #include "mozilla/dom/WindowContext.h"
@@ -1443,6 +1444,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDocumentCsp)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBrowserChild)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDoc)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWebIdentityHandler)
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mIdleRequestExecutor)
   for (IdleRequest* request : tmp->mIdleRequestCallbacks) {
@@ -7772,6 +7774,18 @@ bool nsPIDOMWindowInner::UsingStorageAccess() {
   }
 
   return wc->GetUsingStorageAccess();
+}
+
+WebIdentityHandler* nsPIDOMWindowInner::GetOrCreateWebIdentityHandler() {
+  if (mWebIdentityHandler) {
+    return mWebIdentityHandler;
+  }
+  mWebIdentityHandler = new WebIdentityHandler(this);
+  bool success = mWebIdentityHandler->MaybeCreateActor();
+  if (!success) {
+    mWebIdentityHandler = nullptr;
+  }
+  return mWebIdentityHandler;
 }
 
 CloseWatcherManager* nsPIDOMWindowInner::EnsureCloseWatcherManager() {

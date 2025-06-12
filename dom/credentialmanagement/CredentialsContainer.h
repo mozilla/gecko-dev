@@ -47,7 +47,6 @@ class CredentialsContainer final : public nsISupports, public nsWrapperCache {
 
   nsCOMPtr<nsPIDOMWindowInner> mParent;
   RefPtr<WebAuthnHandler> mWebAuthnHandler;
-  bool mActiveIdentityRequest;
 };
 
 }  // namespace mozilla::dom
