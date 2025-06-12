@@ -578,7 +578,6 @@ NS_IMETHODIMP nsClipboard::SetNativeClipboardData(
 }
 
 //-------------------------------------------------------------------------
-/* static */
 nsresult nsClipboard::GetGlobalData(HGLOBAL aHGBL, void** aData,
                                     uint32_t* aLen) {
   MOZ_CLIPBOARD_LOG("%s", __FUNCTION__);
@@ -701,37 +700,6 @@ HRESULT nsClipboard::FillSTGMedium(IDataObject* aDataObject, UINT aFormat,
 }
 
 //-------------------------------------------------------------------------
-// Get the data out of the global data handle. The size we
-// return should be the size returned from GetGlobalData(), since the
-// string returned from Windows may have nulls inserted -- it may not
-// even be null-terminated.  This does not agree with the documentation of
-// CF_TEXT/CF_UNICODETEXT but it is reality.  GetGlobalData
-// adds bytes for null termination to the buffer but they are not considered
-// in the returned byte count.  We check and skip bytes based on the policy
-// described below.  See also GetGlobalData.
-template <typename CharType>
-static nsresult GetCharDataFromGlobalData(STGMEDIUM& aStm, CharType** aData,
-                                          uint32_t* aByteLen) {
-  uint32_t nBytes = 0;
-  MOZ_TRY(nsClipboard::GetGlobalData(aStm.hGlobal,
-                                     reinterpret_cast<void**>(aData), &nBytes));
-  auto nChars = nBytes / sizeof(CharType);
-
-  // Word sometimes adds a null, then a LF (0x0a), to the end of strings.
-  // Special case their removal.
-  if (nChars > 1 && (*aData)[nChars - 2] == CharType(0) &&
-      (*aData)[nChars - 1] == CharType(0xa)) {
-    nChars -= 2;
-  }
-  // Remove any nulls that appear at the end of the string.
-  CharType* afterLastChar = *aData + nChars;
-  auto it = std::find_if(std::reverse_iterator(afterLastChar),
-                         std::reverse_iterator(*aData),
-                         [](CharType ch) { return ch != CharType(0); });
-  *aByteLen = std::distance(*aData, it.base()) * sizeof(CharType);
-  return NS_OK;
-}
-
 // If aFormat is CF_DIBV5, aMIMEImageFormat must be a type for which we have
 // an image encoder (e.g. image/png).
 // For other values of aFormat, it is OK to pass null for aMIMEImageFormat.
@@ -796,13 +764,31 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
   // compile-time-constant format indicators:
   switch (fe.cfFormat) {
     case CF_TEXT: {
-      return GetCharDataFromGlobalData(stm, reinterpret_cast<char**>(aData),
-                                       aLen);
+      // Get the data out of the global data handle. The size we
+      // return should not include the null because the other
+      // platforms don't use nulls, so just return the length we get
+      // back from strlen(), since we know CF_TEXT is null
+      // terminated. Recall that GetGlobalData() returns the size of
+      // the allocated buffer, not the size of the data (on 98, these
+      // are not the same) so we can't use that.
+      uint32_t allocLen = 0;
+      MOZ_TRY(GetGlobalData(stm.hGlobal, aData, &allocLen));
+      *aLen = strlen(reinterpret_cast<char*>(*aData));
+      return NS_OK;
     }
 
     case CF_UNICODETEXT: {
-      return GetCharDataFromGlobalData(stm, reinterpret_cast<char16_t**>(aData),
-                                       aLen);
+      // Get the data out of the global data handle. The size we
+      // return should not include the null because the other
+      // platforms don't use nulls, so just return the length we get
+      // back from strlen(), since we know CF_UNICODETEXT is null
+      // terminated. Recall that GetGlobalData() returns the size of
+      // the allocated buffer, not the size of the data (on 98, these
+      // are not the same) so we can't use that.
+      uint32_t allocLen = 0;
+      MOZ_TRY(GetGlobalData(stm.hGlobal, aData, &allocLen));
+      *aLen = NS_strlen(reinterpret_cast<char16_t*>(*aData)) * 2;
+      return NS_OK;
     }
 
     case CF_DIBV5: {
