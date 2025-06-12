@@ -11237,6 +11237,20 @@
   value: false
   mirror: always
 
+# Specifies whether the PEMFactory can create PEMs for remote audio encoding
+# in the RDD or utility processes.
+- name: media.use-remote-encoder.audio
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+# Specifies whether the PEMFactory can create PEMs for remote video encoding
+# in the RDD or GPU process.
+- name: media.use-remote-encoder.video
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 - name: media.gpu-process-decoder
   type: RelaxedAtomicBool
 #if defined(XP_WIN)

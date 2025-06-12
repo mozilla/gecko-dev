@@ -69,6 +69,8 @@ class RemoteMediaManagerChild final
   static RefPtr<PlatformDecoderModule::CreateDecoderPromise> CreateVideoDecoder(
       const CreateDecoderParams& aParams, RemoteMediaIn aLocation);
 
+  static media::EncodeSupportSet Supports(RemoteMediaIn aLocation,
+                                          CodecType aCodec);
   static RefPtr<PlatformEncoderModule::CreateEncoderPromise> InitializeEncoder(
       RefPtr<RemoteMediaDataEncoderChild>&& aEncoder,
       const EncoderConfig& aConfig);

@@ -52,8 +52,9 @@ class PlatformEncoderModule {
   virtual const char* GetName() const = 0;
 
   // Asychronously create an encoder
-  RefPtr<PlatformEncoderModule::CreateEncoderPromise> AsyncCreateEncoder(
-      const EncoderConfig& aEncoderConfig, const RefPtr<TaskQueue>& aTaskQueue);
+  virtual RefPtr<PlatformEncoderModule::CreateEncoderPromise>
+  AsyncCreateEncoder(const EncoderConfig& aEncoderConfig,
+                     const RefPtr<TaskQueue>& aTaskQueue);
 
  protected:
   PlatformEncoderModule() = default;

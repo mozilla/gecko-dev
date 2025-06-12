@@ -26,6 +26,9 @@ template <int V>
 /* static */ void FFmpegEncoderModule<V>::Init(FFmpegLibWrapper* aLib) {
 #if defined(MOZ_USE_HWDECODE)
 #  if defined(XP_WIN) && !defined(MOZ_FFVPX_AUDIOONLY)
+  if (XRE_IsContentProcess() || XRE_IsParentProcess()) {
+    return;
+  }
   static constexpr AVCodecID kCodecIDs[] = {
       AV_CODEC_ID_AV1,
       AV_CODEC_ID_VP9,
@@ -51,6 +54,9 @@ template <int V>
     }
   }
 #  elif MOZ_WIDGET_GTK
+  if (XRE_IsContentProcess()) {
+    return;
+  }
   // UseXXXHWEncode are already set in gfxPlatform at the startup.
 #    define ADD_HW_CODEC(codec)                          \
       if (gfx::gfxVars::Use##codec##HwEncode()) {        \

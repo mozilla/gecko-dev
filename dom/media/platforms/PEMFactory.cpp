@@ -28,6 +28,8 @@
 
 #include "GMPEncoderModule.h"
 
+#include "mozilla/RemoteEncoderModule.h"
+
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/gfx/gfxVars.h"
@@ -75,8 +77,180 @@ static CodecType MediaCodecToCodecType(MediaCodec aCodec) {
   }
 }
 
-PEMFactory::PEMFactory() {
-  gfx::gfxVars::Initialize();
+void PEMFactory::InitRddPEMs() {
+#ifdef MOZ_APPLEMEDIA
+  if (StaticPrefs::media_use_remote_encoder_video() &&
+      StaticPrefs::media_rdd_applemedia_enabled()) {
+    RefPtr<PlatformEncoderModule> m(new AppleEncoderModule());
+    mCurrentPEMs.AppendElement(m);
+  }
+#endif
+
+#ifdef XP_WIN
+  if (StaticPrefs::media_use_remote_encoder_video() &&
+      StaticPrefs::media_wmf_enabled() &&
+      StaticPrefs::media_rdd_wmf_enabled()) {
+    mCurrentPEMs.AppendElement(new WMFEncoderModule());
+  }
+#endif
+
+#ifdef MOZ_FFVPX_AUDIOONLY
+  if (StaticPrefs::media_use_remote_encoder_audio() &&
+      StaticPrefs::media_ffmpeg_encoder_enabled() &&
+      !StaticPrefs::media_utility_process_enabled() &&
+      StaticPrefs::media_rdd_ffvpx_enabled())
+#else
+  if (((StaticPrefs::media_use_remote_encoder_audio() &&
+        !StaticPrefs::media_utility_process_enabled()) ||
+       StaticPrefs::media_use_remote_encoder_video()) &&
+      StaticPrefs::media_ffmpeg_encoder_enabled() &&
+      StaticPrefs::media_rdd_ffvpx_enabled())
+#endif
+  {
+    if (RefPtr<PlatformEncoderModule> pem =
+            FFVPXRuntimeLinker::CreateEncoder()) {
+      mCurrentPEMs.AppendElement(pem);
+    }
+  }
+
+#ifdef MOZ_FFMPEG
+#  ifdef MOZ_FFVPX_AUDIOONLY
+  if (StaticPrefs::media_use_remote_encoder_audio() &&
+      StaticPrefs::media_ffmpeg_encoder_enabled() &&
+      !StaticPrefs::media_utility_process_enabled() &&
+      StaticPrefs::media_rdd_ffmpeg_enabled())
+#  else
+  if (((StaticPrefs::media_use_remote_encoder_audio() &&
+        !StaticPrefs::media_utility_process_enabled()) ||
+       StaticPrefs::media_use_remote_encoder_video()) &&
+      StaticPrefs::media_ffmpeg_encoder_enabled() &&
+      StaticPrefs::media_rdd_ffmpeg_enabled())
+#  endif
+  {
+    if (StaticPrefs::media_ffmpeg_enabled()) {
+      if (RefPtr<PlatformEncoderModule> pem =
+              FFmpegRuntimeLinker::CreateEncoder()) {
+        mCurrentPEMs.AppendElement(pem);
+      }
+    }
+  }
+#endif
+}
+
+void PEMFactory::InitUtilityPEMs() {
+  if (StaticPrefs::media_use_remote_encoder_audio() &&
+      StaticPrefs::media_ffmpeg_encoder_enabled() &&
+      StaticPrefs::media_utility_ffvpx_enabled()) {
+    if (RefPtr<PlatformEncoderModule> pem =
+            FFVPXRuntimeLinker::CreateEncoder()) {
+      mCurrentPEMs.AppendElement(pem);
+    }
+  }
+
+#ifdef MOZ_FFMPEG
+  if (StaticPrefs::media_use_remote_encoder_audio() &&
+      StaticPrefs::media_ffmpeg_enabled() &&
+      StaticPrefs::media_utility_ffmpeg_enabled()) {
+    if (RefPtr<PlatformEncoderModule> pem =
+            FFmpegRuntimeLinker::CreateEncoder()) {
+      mCurrentPEMs.AppendElement(pem);
+    }
+  }
+#endif
+}
+
+void PEMFactory::InitContentPEMs() {
+  if ((StaticPrefs::media_use_remote_encoder_video() ||
+       StaticPrefs::media_use_remote_encoder_audio()) &&
+      StaticPrefs::media_rdd_process_enabled()) {
+    if (RefPtr<PlatformEncoderModule> pem =
+            RemoteEncoderModule::Create(RemoteMediaIn::RddProcess)) {
+      mCurrentPEMs.AppendElement(std::move(pem));
+    }
+  }
+
+  if (StaticPrefs::media_use_remote_encoder_audio() &&
+      StaticPrefs::media_utility_process_enabled()) {
+#ifdef MOZ_APPLEMEDIA
+    if (RefPtr<PlatformEncoderModule> pem = RemoteEncoderModule::Create(
+            RemoteMediaIn::UtilityProcess_AppleMedia)) {
+      mCurrentPEMs.AppendElement(std::move(pem));
+    }
+#endif
+
+#ifdef XP_WIN
+    if (RefPtr<PlatformEncoderModule> pem =
+            RemoteEncoderModule::Create(RemoteMediaIn::UtilityProcess_WMF)) {
+      mCurrentPEMs.AppendElement(std::move(pem));
+    }
+#endif
+
+    if (RefPtr<PlatformEncoderModule> pem = RemoteEncoderModule::Create(
+            RemoteMediaIn::UtilityProcess_Generic)) {
+      mCurrentPEMs.AppendElement(std::move(pem));
+    }
+  }
+
+  if (!StaticPrefs::media_use_remote_encoder_video()) {
+#ifdef MOZ_APPLEMEDIA
+    RefPtr<PlatformEncoderModule> m(new AppleEncoderModule());
+    mCurrentPEMs.AppendElement(m);
+#endif
+
+#ifdef MOZ_WIDGET_ANDROID
+    mCurrentPEMs.AppendElement(new AndroidEncoderModule());
+#endif
+
+#ifdef XP_WIN
+    mCurrentPEMs.AppendElement(new WMFEncoderModule());
+#endif
+  }
+
+#ifdef MOZ_FFVPX_AUDIOONLY
+  if (!StaticPrefs::media_use_remote_encoder_audio() &&
+      StaticPrefs::media_ffmpeg_encoder_enabled())
+#else
+  if ((!StaticPrefs::media_use_remote_encoder_audio() ||
+       !StaticPrefs::media_use_remote_encoder_video()) &&
+      StaticPrefs::media_ffmpeg_encoder_enabled())
+#endif
+  {
+    if (RefPtr<PlatformEncoderModule> pem =
+            FFVPXRuntimeLinker::CreateEncoder()) {
+      mCurrentPEMs.AppendElement(pem);
+    }
+  }
+
+#ifdef MOZ_FFMPEG
+#  ifdef MOZ_FFVPX_AUDIOONLY
+  if (!StaticPrefs::media_use_remote_encoder_audio() &&
+      StaticPrefs::media_ffmpeg_enabled() &&
+      StaticPrefs::media_ffmpeg_encoder_enabled())
+#  else
+  if ((!StaticPrefs::media_use_remote_encoder_audio() ||
+       !StaticPrefs::media_use_remote_encoder_video()) &&
+      StaticPrefs::media_ffmpeg_enabled() &&
+      StaticPrefs::media_ffmpeg_encoder_enabled())
+#  endif
+  {
+    if (RefPtr<PlatformEncoderModule> pem =
+            FFmpegRuntimeLinker::CreateEncoder()) {
+      mCurrentPEMs.AppendElement(pem);
+    }
+  }
+#endif
+
+  if (StaticPrefs::media_gmp_encoder_enabled()) {
+    auto pem = MakeRefPtr<GMPEncoderModule>();
+    if (StaticPrefs::media_gmp_encoder_preferred()) {
+      mCurrentPEMs.InsertElementAt(0, std::move(pem));
+    } else {
+      mCurrentPEMs.AppendElement(std::move(pem));
+    }
+  }
+}
+
+void PEMFactory::InitDefaultPEMs() {
 #ifdef MOZ_APPLEMEDIA
   RefPtr<PlatformEncoderModule> m(new AppleEncoderModule());
   mCurrentPEMs.AppendElement(m);
@@ -114,6 +288,20 @@ PEMFactory::PEMFactory() {
     } else {
       mCurrentPEMs.AppendElement(std::move(pem));
     }
+  }
+}
+
+PEMFactory::PEMFactory() {
+  gfx::gfxVars::Initialize();
+
+  if (XRE_IsRDDProcess()) {
+    InitRddPEMs();
+  } else if (XRE_IsUtilityProcess()) {
+    InitUtilityPEMs();
+  } else if (XRE_IsContentProcess()) {
+    InitContentPEMs();
+  } else {
+    InitDefaultPEMs();
   }
 }
 
@@ -267,6 +455,57 @@ MediaCodecsSupported PEMFactory::Supported(bool aForceRefresh) {
   }
 
   return supported;
+}
+
+/* static */
+media::EncodeSupportSet PEMFactory::SupportsCodec(
+    CodecType aCodec, const MediaCodecsSupported& aSupported,
+    RemoteMediaIn aLocation) {
+  const TrackSupportSet supports =
+      RemoteMediaManagerChild::GetTrackSupport(aLocation);
+
+  if (supports.contains(TrackSupport::EncodeVideo)) {
+    switch (aCodec) {
+      case CodecType::H264:
+        return media::MCSInfo::GetEncodeSupportSet(MediaCodec::H264,
+                                                   aSupported);
+      case CodecType::H265:
+        return media::MCSInfo::GetEncodeSupportSet(MediaCodec::HEVC,
+                                                   aSupported);
+      case CodecType::VP8:
+        return media::MCSInfo::GetEncodeSupportSet(MediaCodec::VP8, aSupported);
+      case CodecType::VP9:
+        return media::MCSInfo::GetEncodeSupportSet(MediaCodec::VP9, aSupported);
+#ifdef MOZ_AV1
+      case CodecType::AV1:
+        return media::MCSInfo::GetEncodeSupportSet(MediaCodec::AV1, aSupported);
+#endif
+      default:
+        break;
+    }
+  }
+
+  if (supports.contains(TrackSupport::EncodeAudio)) {
+    switch (aCodec) {
+      case CodecType::Opus:
+        return media::MCSInfo::GetEncodeSupportSet(MediaCodec::Opus,
+                                                   aSupported);
+      case CodecType::Vorbis:
+        return media::MCSInfo::GetEncodeSupportSet(MediaCodec::Vorbis,
+                                                   aSupported);
+      case CodecType::Flac:
+        return media::MCSInfo::GetEncodeSupportSet(MediaCodec::FLAC,
+                                                   aSupported);
+      case CodecType::AAC:
+        return media::MCSInfo::GetEncodeSupportSet(MediaCodec::AAC, aSupported);
+      case CodecType::PCM:
+      case CodecType::G722:
+      default:
+        break;
+    }
+  }
+
+  return media::EncodeSupportSet{};
 }
 
 }  // namespace mozilla

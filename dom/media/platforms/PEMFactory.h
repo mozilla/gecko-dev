@@ -42,6 +42,11 @@ class PEMFactory final {
       RemoteMediaIn aLocation);
 
  private:
+  void InitRddPEMs();
+  void InitUtilityPEMs();
+  void InitContentPEMs();
+  void InitDefaultPEMs();
+
   RefPtr<PlatformEncoderModule::CreateEncoderPromise>
   CheckAndMaybeCreateEncoder(const EncoderConfig& aConfig, uint32_t aIndex,
                              const RefPtr<TaskQueue>& aTaskQueue);

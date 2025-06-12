@@ -8,6 +8,7 @@
 #include "ErrorList.h"
 #include "MP4Decoder.h"
 #include "PDMFactory.h"
+#include "PEMFactory.h"
 #include "PlatformDecoderModule.h"
 #include "PlatformEncoderModule.h"
 #include "RemoteAudioDecoder.h"
@@ -48,6 +49,9 @@ namespace mozilla {
 
 using namespace layers;
 using namespace gfx;
+
+using media::EncodeSupport;
+using media::EncodeSupportSet;
 
 // Used so that we only ever attempt to check if the RDD/GPU/Utility processes
 // should be launched serially. Protects sLaunchPromise
@@ -490,6 +494,76 @@ RemoteMediaManagerChild::Construct(RefPtr<RemoteDecoderChild>&& aChild,
   return p;
 }
 
+/* static */
+EncodeSupportSet RemoteMediaManagerChild::Supports(RemoteMediaIn aLocation,
+                                                   CodecType aCodec) {
+  Maybe<media::MediaCodecsSupported> supported;
+  switch (aLocation) {
+    case RemoteMediaIn::GpuProcess:
+    case RemoteMediaIn::RddProcess:
+    case RemoteMediaIn::UtilityProcess_AppleMedia:
+    case RemoteMediaIn::UtilityProcess_Generic:
+    case RemoteMediaIn::UtilityProcess_WMF:
+    case RemoteMediaIn::UtilityProcess_MFMediaEngineCDM: {
+      StaticMutexAutoLock lock(sProcessSupportedMutex);
+      supported = sProcessSupported[aLocation];
+      break;
+    }
+    default:
+      return EncodeSupportSet{};
+  }
+  if (!supported) {
+    // We haven't received the correct information yet from either the GPU or
+    // the RDD process nor the Utility process.
+    if (aLocation == RemoteMediaIn::UtilityProcess_Generic ||
+        aLocation == RemoteMediaIn::UtilityProcess_AppleMedia ||
+        aLocation == RemoteMediaIn::UtilityProcess_WMF ||
+        aLocation == RemoteMediaIn::UtilityProcess_MFMediaEngineCDM) {
+      LaunchUtilityProcessIfNeeded(aLocation);
+    }
+    if (aLocation == RemoteMediaIn::RddProcess) {
+      // Ensure the RDD process got started.
+      // TODO: This can be removed once bug 1684991 is fixed.
+      LaunchRDDProcessIfNeeded();
+    }
+
+    // Assume the format is supported to prevent false negative, if the remote
+    // process supports that specific track type.
+    const bool isVideo =
+        aCodec > CodecType::_BeginVideo_ && aCodec < CodecType::_EndVideo_;
+    const bool isAudio =
+        aCodec > CodecType::_BeginAudio_ && aCodec < CodecType::_EndAudio_;
+    const auto trackSupport = GetTrackSupport(aLocation);
+    if (isVideo) {
+      // Special condition for HEVC, which can only be supported in specific
+      // process. As HEVC support is still a experimental feature, we don't want
+      // to report support for it arbitrarily.
+      bool supported = trackSupport.contains(TrackSupport::EncodeVideo);
+      if (aCodec == CodecType::H265) {
+        if (!StaticPrefs::media_hevc_enabled()) {
+          return EncodeSupportSet{};
+        }
+#if defined(XP_WIN)
+        supported = aLocation == RemoteMediaIn::GpuProcess;
+#endif
+      }
+      return supported ? EncodeSupportSet{EncodeSupport::SoftwareEncode}
+                       : EncodeSupportSet{};
+    }
+    if (isAudio) {
+      return trackSupport.contains(TrackSupport::EncodeAudio)
+                 ? EncodeSupportSet{EncodeSupport::SoftwareEncode}
+                 : EncodeSupportSet{};
+    }
+    MOZ_ASSERT_UNREACHABLE("Not audio and video?!");
+    return EncodeSupportSet{};
+  }
+
+  // We can ignore the rest of EncoderConfig for now as creation of the encoder
+  // will actually fail later and fallback PEMs will be tested on later.
+  return PEMFactory::SupportsCodec(aCodec, *supported, aLocation);
+}
+
 /* static */ RefPtr<PlatformEncoderModule::CreateEncoderPromise>
 RemoteMediaManagerChild::InitializeEncoder(
     RefPtr<RemoteMediaDataEncoderChild>&& aEncoder,
@@ -764,12 +838,21 @@ TrackSupportSet RemoteMediaManagerChild::GetTrackSupport(
   switch (aLocation) {
     case RemoteMediaIn::GpuProcess:
       s = TrackSupport::DecodeVideo;
+      if (StaticPrefs::media_use_remote_encoder_video()) {
+        s += TrackSupport::EncodeVideo;
+      }
       break;
     case RemoteMediaIn::RddProcess:
       s = TrackSupport::DecodeVideo;
+      if (StaticPrefs::media_use_remote_encoder_video()) {
+        s += TrackSupport::EncodeVideo;
+      }
       // Only use RDD for audio coding if we don't have the utility process.
       if (!StaticPrefs::media_utility_process_enabled()) {
         s += TrackSupport::DecodeAudio;
+        if (StaticPrefs::media_use_remote_encoder_audio()) {
+          s += TrackSupport::EncodeAudio;
+        }
       }
       break;
     case RemoteMediaIn::UtilityProcess_Generic:
@@ -777,6 +860,9 @@ TrackSupportSet RemoteMediaManagerChild::GetTrackSupport(
     case RemoteMediaIn::UtilityProcess_WMF:
       if (StaticPrefs::media_utility_process_enabled()) {
         s = TrackSupport::DecodeAudio;
+        if (StaticPrefs::media_use_remote_encoder_audio()) {
+          s += TrackSupport::EncodeAudio;
+        }
       }
       break;
     case RemoteMediaIn::UtilityProcess_MFMediaEngineCDM:
