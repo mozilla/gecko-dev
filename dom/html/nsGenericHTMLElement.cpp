@@ -2968,17 +2968,6 @@ bool nsGenericHTMLFormControlElementWithState::ParseAttribute(
       aResult.ParseAtom(aValue);
       return true;
     }
-
-    if (StaticPrefs::dom_element_commandfor_enabled()) {
-      if (aAttribute == nsGkAtoms::invokeaction) {
-        aResult.ParseAtom(aValue);
-        return true;
-      }
-      if (aAttribute == nsGkAtoms::invoketarget) {
-        aResult.ParseAtom(aValue);
-        return true;
-      }
-    }
   }
 
   return nsGenericHTMLFormControlElement::ParseAttribute(
@@ -3036,7 +3025,7 @@ MOZ_CAN_RUN_SCRIPT bool nsGenericHTMLElement::HandleCommandInternal(
   }
 
   // If the element is a `popover` then we may want to handle the
-  // invokeaction...
+  // command...
   auto popoverState = GetPopoverAttributeState();
   if (popoverState == PopoverAttributeState::None) {
     return false;

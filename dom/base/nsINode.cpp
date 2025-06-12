@@ -3436,7 +3436,7 @@ nsGenericHTMLElement* nsINode::GetEffectiveInvokeTargetElement() const {
 
   if (const auto* buttonControl = HTMLButtonElement::FromNodeOrNull(this)) {
     if (auto* popover = nsGenericHTMLElement::FromNodeOrNull(
-            buttonControl->GetInvokeTargetElement())) {
+            buttonControl->GetCommandForElement())) {
       if (popover->GetPopoverAttributeState() != PopoverAttributeState::None) {
         return popover;
       }
