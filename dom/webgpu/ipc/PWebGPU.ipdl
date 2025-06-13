@@ -92,6 +92,7 @@ parent:
 
   async DevicePushErrorScope(RawId selfId, GPUErrorFilter aFilter);
   async DevicePopErrorScope(RawId selfId) returns (PopErrorScopeResult result);
+  async ReportError(RawId selfId, GPUErrorFilter aType, nsCString message);
 
 child:
   async UncapturedError(RawId? aDeviceId, nsCString message);

@@ -126,6 +126,8 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   ipc::IPCResult RecvDevicePushErrorScope(RawId aDeviceId, dom::GPUErrorFilter);
   ipc::IPCResult RecvDevicePopErrorScope(
       RawId aDeviceId, DevicePopErrorScopeResolver&& aResolver);
+  ipc::IPCResult RecvReportError(RawId aDeviceId, GPUErrorFilter aType,
+                                 const nsCString& aMessage);
 
   ipc::IPCResult GetFrontBufferSnapshot(
       IProtocol* aProtocol, const layers::RemoteTextureOwnerId& aOwnerId,
