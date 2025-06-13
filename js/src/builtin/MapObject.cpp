@@ -117,9 +117,7 @@ bool HashableValue::equals(const HashableValue& other) const {
 #ifdef DEBUG
   bool same;
   JSContext* cx = TlsContext.get();
-  RootedValue valueRoot(cx, value);
-  RootedValue otherRoot(cx, other.value);
-  MOZ_ASSERT(SameValueZero(cx, valueRoot, otherRoot, &same));
+  MOZ_ASSERT(SameValueZero(cx, value, other.value, &same));
   MOZ_ASSERT(same == b);
 #endif
   return b;

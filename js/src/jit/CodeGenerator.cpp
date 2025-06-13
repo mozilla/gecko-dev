@@ -12963,7 +12963,7 @@ void CodeGenerator::visitSameValue(LSameValue* lir) {
   ValueOperand rhs = ToValue(lir->right());
   Register output = ToRegister(lir->output());
 
-  using Fn = bool (*)(JSContext*, HandleValue, HandleValue, bool*);
+  using Fn = bool (*)(JSContext*, const Value&, const Value&, bool*);
   OutOfLineCode* ool =
       oolCallVM<Fn, SameValue>(lir, ArgList(lhs, rhs), StoreRegisterTo(output));
 

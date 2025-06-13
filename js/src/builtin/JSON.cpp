@@ -1723,8 +1723,7 @@ static bool InternalizeJSONProperty(JSContext* cx, HandleObject holder,
     // https://tc39.es/proposal-json-parse-with-source/#sec-internalizejsonproperty
     if (parseRecord) {
       bool sameVal = false;
-      Rooted<Value> parsedValue(cx, parseRecord->getValue());
-      if (!SameValue(cx, parsedValue, val, &sameVal)) {
+      if (!SameValue(cx, parseRecord->getValue(), val, &sameVal)) {
         return false;
       }
       if (parseRecord->hasValue() && sameVal) {

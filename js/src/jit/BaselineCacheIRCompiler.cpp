@@ -838,7 +838,7 @@ bool BaselineCacheIRCompiler::emitSameValueResult(ValOperandId lhsId,
     masm.pushValue(lhs);
     masm.pushValue(rhs);
 
-    using Fn = bool (*)(JSContext*, HandleValue, HandleValue, bool*);
+    using Fn = bool (*)(JSContext*, const Value&, const Value&, bool*);
     callVM<Fn, SameValue>(masm);
 
     stubFrame.leave(masm);

@@ -6977,14 +6977,7 @@ PBIResult PortableBaselineInterpret(
         JSOp op = JSOp(*pc);
         uint16_t operand = GET_UINT16(pc);
         {
-          ReservedRooted<JS::Value> val(&state.value0, VIRTPOP().asValue());
-          bool result;
-          {
-            PUSH_EXIT_FRAME();
-            if (!js::ConstantStrictEqual(cx, val, operand, &result)) {
-              GOTO_ERROR();
-            }
-          }
+          bool result = js::ConstantStrictEqual(VIRTPOP().asValue(), operand);
           VIRTPUSH(StackVal(
               BooleanValue(op == JSOp::StrictConstantEq ? result : !result)));
         }

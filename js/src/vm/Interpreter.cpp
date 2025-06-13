@@ -2561,8 +2561,8 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
 
 #define STRICT_EQUALITY_OP(OP, COND)                  \
   JS_BEGIN_MACRO                                      \
-    HandleValue lval = REGS.stackHandleAt(-2);        \
-    HandleValue rval = REGS.stackHandleAt(-1);        \
+    const Value& lval = REGS.sp[-2];                  \
+    const Value& rval = REGS.sp[-1];                  \
     bool equal;                                       \
     if (!js::StrictlyEqual(cx, lval, rval, &equal)) { \
       goto error;                                     \
@@ -2588,21 +2588,15 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
 #undef STRICT_EQUALITY_OP
 
     CASE(StrictConstantEq) {
-      JS::Handle<JS::Value> value = REGS.stackHandleAt(-1);
-      bool equal;
-      if (!js::ConstantStrictEqual(cx, value, GET_UINT16(REGS.pc), &equal)) {
-        goto error;
-      }
+      const Value& value = REGS.sp[-1];
+      bool equal = js::ConstantStrictEqual(value, GET_UINT16(REGS.pc));
       REGS.sp[-1].setBoolean(equal);
     }
     END_CASE(StrictConstantEq)
 
     CASE(StrictConstantNe) {
-      JS::Handle<JS::Value> value = REGS.stackHandleAt(-1);
-      bool equal;
-      if (!js::ConstantStrictEqual(cx, value, GET_UINT16(REGS.pc), &equal)) {
-        goto error;
-      }
+      const Value& value = REGS.sp[-1];
+      bool equal = js::ConstantStrictEqual(value, GET_UINT16(REGS.pc));
       REGS.sp[-1].setBoolean(!equal);
     }
     END_CASE(StrictConstantNe)
