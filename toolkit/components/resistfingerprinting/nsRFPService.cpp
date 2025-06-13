@@ -2234,10 +2234,7 @@ nsRFPService::SetFingerprintingOverrides(
                                      ? sEnabledFingerprintingProtectionsBase
                                      : sEnabledFingerprintingProtections;
     RFPTargetSet targets = nsRFPService::CreateOverridesFromText(
-        NS_ConvertUTF8toUTF16(overridesText),
-        mFingerprintingOverrides.Contains(domainKey)
-            ? mFingerprintingOverrides.Get(domainKey)
-            : baseOverrides);
+        NS_ConvertUTF8toUTF16(overridesText), baseOverrides);
 
     // The newly added one will replace the existing one for the given domain
     // key.

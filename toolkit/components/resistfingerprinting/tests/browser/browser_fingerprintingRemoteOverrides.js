@@ -489,14 +489,14 @@ add_task(async function test_pref_override_remote_settings2() {
   // Verify if the flags are matching to the pref settings.
   is(
     overrides & TARGET_PointerEvents,
-    TARGET_PointerEvents,
-    "The override addition value should have TARGET_PointerEvents."
+    0,
+    "The override addition value should not have TARGET_PointerEvents."
   );
 
   is(
     overrides & TARGET_Gamepad,
-    TARGET_Gamepad,
-    "The override addition value should have TARGET_Gamepad."
+    0,
+    "The override addition value should not have TARGET_Gamepad."
   );
 
   is(
