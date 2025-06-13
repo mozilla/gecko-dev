@@ -825,7 +825,8 @@ static bool intrinsic_IsSuspendedGenerator(JSContext* cx, unsigned argc,
   }
 
   GeneratorObject& genObj = args[0].toObject().as<GeneratorObject>();
-  args.rval().setBoolean(!genObj.isClosed() && genObj.isSuspended());
+  MOZ_ASSERT_IF(genObj.isSuspended(), !genObj.isClosed());
+  args.rval().setBoolean(genObj.isSuspended());
   return true;
 }
 

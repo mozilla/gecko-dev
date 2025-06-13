@@ -284,9 +284,53 @@ function IteratorHelperReturn() {
 
   // Step 3. (Implicit)
 
-  // Steps 4-6.
+  // Step 4 (Partial). If O.[[GeneratorState]] is suspended-start, then
+  //
+  // Retrieve the current resume index before calling GeneratorReturn.
   var generator = UnsafeGetReservedSlot(O, ITERATOR_HELPER_GENERATOR_SLOT);
-  return callFunction(GeneratorReturn, generator, undefined);
+  var resumeIndex = UnsafeGetReservedSlot(generator, GENERATOR_RESUME_INDEX_SLOT);
+  assert(
+    resumeIndex === undefined ||
+      resumeIndex === null ||
+      typeof resumeIndex === "number",
+    "unexpected resumeIndex value"
+  );
+
+  // If the generator was suspended at the initial yield, then the generator
+  // state is "suspended-start".
+  var isSuspendedStart = resumeIndex === GENERATOR_RESUME_INDEX_INITIAL_YIELD;
+  assert(
+    !isSuspendedStart || IsSuspendedGenerator(generator),
+    "unexpected 'suspended-start' state for non-suspended generator"
+  );
+
+  // Step 4.a. Set O.[[GeneratorState]] to completed.
+  // Step 4.b. NOTE: (elided)
+  // Step 4.d. Return CreateIteratorResultObject(undefined, true).
+  // Step 5. Let C be ReturnCompletion(undefined).
+  // Step 6. Return ? GeneratorResumeAbrupt(O, C, "Iterator Helper").
+  var result = callFunction(GeneratorReturn, generator, undefined);
+
+  // Step 4 (Cont'ed). If O.[[GeneratorState]] is suspended-start, then
+  //
+  // Performed after GeneratorReturn, so even if IteratorClose throws an error,
+  // it's not possible to re-enter the generator.
+  if (isSuspendedStart) {
+    var underlyingIterator = UnsafeGetReservedSlot(O, ITERATOR_HELPER_UNDERLYING_ITERATOR_SLOT);
+    assert(
+      underlyingIterator === undefined || IsObject(underlyingIterator),
+      "underlyingIterator is undefined or an object"
+    );
+
+    // Step 4.c. Perform ? IteratorClose(O.[[UnderlyingIterator]], NormalCompletion(unused)).
+    //
+    // NB: |underlyingIterator| can be `undefined` for IteratorConcat.
+    if (IsObject(underlyingIterator)) {
+      IteratorClose(underlyingIterator);
+    }
+  }
+
+  return result;
 }
 
 // Lazy %Iterator.prototype% methods
@@ -301,11 +345,8 @@ function IteratorHelperReturn() {
 //
 // Each prelude method initializes and returns a new IteratorHelper object.
 // As part of this initialization process, the appropriate generator function
-// is called, followed by GeneratorNext being called on returned generator
-// instance in order to move it to its first yield point. This is done so that
-// if the `return` method is called on the IteratorHelper before `next` has been
-// called, we can catch them in the try and use the finally block to close the
-// underlying iterator.
+// is called and stored in the IteratorHelper object, alongside the underlying
+// iterator object.
 
 /**
  * Iterator.prototype.map ( mapper )
@@ -341,9 +382,11 @@ function IteratorMap(mapper) {
     ITERATOR_HELPER_GENERATOR_SLOT,
     generator
   );
-
-  // Stop at the initial yield point.
-  callFunction(GeneratorNext, generator);
+  UnsafeSetReservedSlot(
+    result,
+    ITERATOR_HELPER_UNDERLYING_ITERATOR_SLOT,
+    iterator
+  );
 
   // Step 9.
   return result;
@@ -358,21 +401,6 @@ function IteratorMap(mapper) {
  * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function* IteratorMapGenerator(iterator, nextMethod, mapper) {
-  var isReturnCompletion = true;
-  try {
-    // Initial yield point to handle closing the iterator before the for-of
-    // loop has been entered for the first time.
-    yield;
-
-    // Not a Return completion when execution continues normally after |yield|.
-    isReturnCompletion = false;
-  } finally {
-    // Call IteratorClose on a Return completion.
-    if (isReturnCompletion) {
-      IteratorClose(iterator);
-    }
-  }
-
   // Step 6.a.
   var counter = 0;
 
@@ -429,9 +457,11 @@ function IteratorFilter(predicate) {
     ITERATOR_HELPER_GENERATOR_SLOT,
     generator
   );
-
-  // Stop at the initial yield point.
-  callFunction(GeneratorNext, generator);
+  UnsafeSetReservedSlot(
+    result,
+    ITERATOR_HELPER_UNDERLYING_ITERATOR_SLOT,
+    iterator
+  );
 
   // Step 9.
   return result;
@@ -446,21 +476,6 @@ function IteratorFilter(predicate) {
  * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function* IteratorFilterGenerator(iterator, nextMethod, predicate) {
-  var isReturnCompletion = true;
-  try {
-    // Initial yield point to handle closing the iterator before the for-of
-    // loop has been entered for the first time.
-    yield;
-
-    // Not a Return completion when execution continues normally after |yield|.
-    isReturnCompletion = false;
-  } finally {
-    // Call IteratorClose on a Return completion.
-    if (isReturnCompletion) {
-      IteratorClose(iterator);
-    }
-  }
-
   // Step 6.a.
   var counter = 0;
 
@@ -532,9 +547,11 @@ function IteratorTake(limit) {
     ITERATOR_HELPER_GENERATOR_SLOT,
     generator
   );
-
-  // Stop at the initial yield point.
-  callFunction(GeneratorNext, generator);
+  UnsafeSetReservedSlot(
+    result,
+    ITERATOR_HELPER_UNDERLYING_ITERATOR_SLOT,
+    iterator
+  );
 
   // Step 13.
   return result;
@@ -549,21 +566,6 @@ function IteratorTake(limit) {
  * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function* IteratorTakeGenerator(iterator, nextMethod, remaining) {
-  var isReturnCompletion = true;
-  try {
-    // Initial yield point to handle closing the iterator before the for-of
-    // loop has been entered for the first time.
-    yield;
-
-    // Not a Return completion when execution continues normally after |yield|.
-    isReturnCompletion = false;
-  } finally {
-    // Call IteratorClose on a Return completion.
-    if (isReturnCompletion) {
-      IteratorClose(iterator);
-    }
-  }
-
   // Step 8.a. (Implicit)
 
   // Step 8.b.i. (Reordered before for-of loop entry)
@@ -635,9 +637,11 @@ function IteratorDrop(limit) {
     ITERATOR_HELPER_GENERATOR_SLOT,
     generator
   );
-
-  // Stop at the initial yield point.
-  callFunction(GeneratorNext, generator);
+  UnsafeSetReservedSlot(
+    result,
+    ITERATOR_HELPER_UNDERLYING_ITERATOR_SLOT,
+    iterator
+  );
 
   // Step 13.
   return result;
@@ -652,21 +656,6 @@ function IteratorDrop(limit) {
  * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function* IteratorDropGenerator(iterator, nextMethod, remaining) {
-  var isReturnCompletion = true;
-  try {
-    // Initial yield point to handle closing the iterator before the for-of
-    // loop has been entered for the first time.
-    yield;
-
-    // Not a Return completion when execution continues normally after |yield|.
-    isReturnCompletion = false;
-  } finally {
-    // Call IteratorClose on a Return completion.
-    if (isReturnCompletion) {
-      IteratorClose(iterator);
-    }
-  }
-
   // Step 10.a. (Implicit)
 
   // Steps 10.b-c.
@@ -718,9 +707,11 @@ function IteratorFlatMap(mapper) {
     ITERATOR_HELPER_GENERATOR_SLOT,
     generator
   );
-
-  // Stop at the initial yield point.
-  callFunction(GeneratorNext, generator);
+  UnsafeSetReservedSlot(
+    result,
+    ITERATOR_HELPER_UNDERLYING_ITERATOR_SLOT,
+    iterator
+  );
 
   // Step 9.
   return result;
@@ -735,21 +726,6 @@ function IteratorFlatMap(mapper) {
  * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function* IteratorFlatMapGenerator(iterator, nextMethod, mapper) {
-  var isReturnCompletion = true;
-  try {
-    // Initial yield point to handle closing the iterator before the for-of
-    // loop has been entered for the first time.
-    yield;
-
-    // Not a Return completion when execution continues normally after |yield|.
-    isReturnCompletion = false;
-  } finally {
-    // Call IteratorClose on a Return completion.
-    if (isReturnCompletion) {
-      IteratorClose(iterator);
-    }
-  }
-
   // Step 6.a.
   var counter = 0;
 
@@ -1082,6 +1058,8 @@ function IteratorConcat() {
     ITERATOR_HELPER_GENERATOR_SLOT,
     generator
   );
+  // ITERATOR_HELPER_UNDERLYING_ITERATOR_SLOT is unused because IteratorConcat
+  // doesn't have an underlying iterator.
 
   // Step 6.
   return result;

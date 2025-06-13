@@ -2162,6 +2162,9 @@ bool BytecodeEmitter::emitYieldOp(JSOp op) {
     return false;
   }
 
+  // InitialYield is always the first yield node.
+  MOZ_ASSERT_IF(op == JSOp::InitialYield, bytecodeSection().numYields() == 0);
+
   if (op == JSOp::InitialYield || op == JSOp::Yield) {
     bytecodeSection().addNumYields();
   }
@@ -2170,6 +2173,11 @@ bool BytecodeEmitter::emitYieldOp(JSOp op) {
   if (!allocateResumeIndex(bytecodeSection().offset(), &resumeIndex)) {
     return false;
   }
+
+  // InitialYield is the first resumable instruction.
+  MOZ_ASSERT_IF(
+      op == JSOp::InitialYield,
+      resumeIndex == AbstractGeneratorObject::RESUME_INDEX_INITIAL_YIELD);
 
   SET_RESUMEINDEX(bytecodeSection().code(off), resumeIndex);
 
