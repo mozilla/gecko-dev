@@ -165,35 +165,6 @@ struct TextMarker : public BaseMarkerType<TextMarker> {
   }
 };
 
-struct TextStackMarker : public BaseMarkerType<TextStackMarker> {
-  static constexpr const char* Name = "TextStack";
-  // It's not possible to add a single meaningful description to this marker
-  // type since it can be used by various different markers.
-  static constexpr const char* Description = nullptr;
-
-  static constexpr bool StoreName = true;
-
-  using MS = MarkerSchema;
-  static constexpr MS::PayloadField PayloadFields[] =
-      // XXX - This is confusingly labeled 'name'. We probably want to fix that.
-      {{"name", MS::InputType::CString, "Details", MS::Format::String,
-        MS::PayloadFlags::Searchable}};
-
-  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
-                                               MS::Location::MarkerTable};
-
-  static constexpr bool IsStackBased = true;
-
-  static constexpr const char* ChartLabel = "{marker.data.name}";
-  static constexpr const char* TableLabel =
-      "{marker.name} - {marker.data.name}";
-
-  static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
-                                   const ProfilerString8View& aText) {
-    aWriter.StringProperty("name", aText);
-  }
-};
-
 // Keep this struct in sync with the `gecko_profiler::marker::Tracing` Rust
 // counterpart.
 struct Tracing : public BaseMarkerType<Tracing> {
@@ -220,35 +191,6 @@ struct Tracing : public BaseMarkerType<Tracing> {
     }
   }
 };
-
-// This is the simplest stack based marker
-struct StackMarker : public BaseMarkerType<StackMarker> {
-  static constexpr const char* Name = "StackMarker";
-  // It's not possible to add a single meaningful description to this marker
-  // type since it can be used by various different markers.
-  static constexpr const char* Description = nullptr;
-
-  static constexpr bool StoreName = true;
-
-  using MS = MarkerSchema;
-  static constexpr MS::PayloadField PayloadFields[] = {
-      {"category", MS::InputType::CString, "Type", MS::Format::String,
-       MS::PayloadFlags::Searchable}};
-
-  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
-                                               MS::Location::MarkerTable,
-                                               MS::Location::TimelineOverview};
-
-  static constexpr bool IsStackBased = true;
-
-  static void StreamJSONMarkerData(SpliceableJSONWriter& aWriter,
-                                   const ProfilerString8View& aCategory) {
-    if (aCategory.Length() != 0) {
-      aWriter.StringProperty("category", aCategory);
-    }
-  }
-};
-
 }  // namespace mozilla::baseprofiler::markers
 
 // Add a text marker. This macro is safe to use even if MOZ_GECKO_PROFILER is
