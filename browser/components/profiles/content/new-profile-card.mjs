@@ -31,10 +31,6 @@ export class NewProfileCard extends EditProfileCard {
     this.profiles = profiles;
     this.themes = themes;
 
-    if (this.profile.hasCustomAvatar) {
-      super.createAvatarURL();
-    }
-
     await Promise.all([
       this.setInitialInput(),
       this.setRandomTheme(isInAutomation),
