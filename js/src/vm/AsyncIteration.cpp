@@ -996,7 +996,7 @@ static bool AsyncIteratorDispose(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Step 1. Let O be the this value.
-  JS::Rooted<JS::Value> O(cx, args.thisv());
+  JS::Handle<JS::Value> O = args.thisv();
 
   // Step 2. Let promiseCapability be ! NewPromiseCapability(%Promise%).
   JS::Rooted<PromiseObject*> promise(cx,

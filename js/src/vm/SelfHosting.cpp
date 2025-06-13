@@ -396,8 +396,8 @@ static bool intrinsic_CreateSuppressedError(JSContext* cx, unsigned argc,
   CallArgs args = CallArgsFromVp(argc, vp);
   MOZ_ASSERT(args.length() == 2);
 
-  JS::Rooted<JS::Value> error(cx, args[0]);
-  JS::Rooted<JS::Value> suppressed(cx, args[1]);
+  JS::Handle<JS::Value> error = args[0];
+  JS::Handle<JS::Value> suppressed = args[1];
 
   ErrorObject* suppressedError = CreateSuppressedError(cx, error, suppressed);
   if (!suppressedError) {

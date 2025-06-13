@@ -2106,7 +2106,7 @@ JSFunction* js::DefineFunction(
 
 void js::ReportIncompatibleMethod(JSContext* cx, const CallArgs& args,
                                   const JSClass* clasp) {
-  RootedValue thisv(cx, args.thisv());
+  HandleValue thisv = args.thisv();
 
 #ifdef DEBUG
   switch (thisv.type()) {

@@ -1638,7 +1638,7 @@ bool js::SyncDisposalClosure(JSContext* cx, unsigned argc, JS::Value* vp) {
       cx, callee->getExtendedSlot(uint8_t(SyncDisposalClosureSlots::Method)));
 
   // Step 1.b.ii.1.a. Let O be the this value.
-  JS::Rooted<JS::Value> O(cx, args.thisv());
+  JS::Handle<JS::Value> O = args.thisv();
 
   // Step 1.b.ii.1.b. Let promiseCapability be !
   // NewPromiseCapability(%Promise%).

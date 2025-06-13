@@ -113,8 +113,7 @@ bool ArrayBufferViewObject::ensureNonInline(
 ArrayBufferObjectMaybeShared* ArrayBufferViewObject::ensureBufferObject(
     JSContext* cx, Handle<ArrayBufferViewObject*> thisObject) {
   if (thisObject->is<TypedArrayObject>()) {
-    Rooted<TypedArrayObject*> typedArray(cx,
-                                         &thisObject->as<TypedArrayObject>());
+    auto typedArray = HandleObject(thisObject).as<TypedArrayObject>();
     if (!TypedArrayObject::ensureHasBuffer(cx, typedArray)) {
       return nullptr;
     }

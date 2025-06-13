@@ -5106,7 +5106,7 @@ static bool Promise_static_try(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // 1. Let C be the this value.
-  RootedValue cVal(cx, args.thisv());
+  HandleValue cVal = args.thisv();
 
   // 2. If C is not an Object, throw a TypeError exception.
   if (!cVal.isObject()) {
@@ -5184,7 +5184,7 @@ static bool Promise_static_withResolvers(JSContext* cx, unsigned argc,
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Step 1. Let C be the this value.
-  RootedValue cVal(cx, args.thisv());
+  HandleValue cVal = args.thisv();
 
   // Step 2. Let promiseCapability be ? NewPromiseCapability(C).
   if (!cVal.isObject()) {
