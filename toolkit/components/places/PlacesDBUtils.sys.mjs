@@ -1285,7 +1285,10 @@ export var PlacesDBUtils = {
           )[0].getResultByIndex(0);
         }
       } catch (ex) {
-        console.error(ex);
+        console.error(
+          "Error raised while gathering stats on the Places database: ",
+          ex
+        );
       }
       data.push(Object.assign(value, { entity, count }));
     }
