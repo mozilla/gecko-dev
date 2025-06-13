@@ -302,6 +302,34 @@ def android_flags(extra_toolchain_flags):
     )
 
 
+@depends(host, ndk)
+@imports(_from="os", _import="listdir")
+@imports(_from="os.path", _import="isfile")
+@imports(_from="os.path", _import="isdir")
+def android_system_headers(host, ndk):
+    if not ndk:
+        return
+    host_kernel = "windows" if host.kernel == "WINNT" else host.kernel.lower()
+    android_fmt = "toolchains/llvm/prebuilt/{}-{}/sysroot/usr/include/android"
+    android_includes = os.path.join(ndk, android_fmt.format(host_kernel, host.cpu))
+
+    if (
+        not isdir(android_includes)
+        and host.kernel == "Darwin"
+        and host.cpu == "aarch64"
+    ):
+        android_includes = os.path.join(ndk, android_fmt.format(host_kernel, "x86_64"))
+
+    return [
+        f"android/{header}"
+        for header in listdir(android_includes)
+        if isfile(os.path.join(android_includes, header))
+    ]
+
+
+set_config("ANDROID_SYSTEM_HEADERS", android_system_headers)
+
+
 @depends(extra_toolchain_flags)
 def bindgen_cflags_android(toolchain_flags):
     return toolchain_flags
