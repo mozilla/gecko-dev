@@ -2,7 +2,7 @@
 name = "mozilla-third-party-python-vendor-dir"
 version = "0.1.0"
 description = "This file is used to resolve the full list of dependencies that will be vendored."
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     # Pin `aiohttp` here so the version is modern enough for `auth0-python` in `try.txt`.
     "aiohttp==3.10.11",

@@ -1,4 +1,4 @@
-requires-python:>=3.8
+requires-python:>=3.9
 pypi:tcfetch==0.4.0
 pypi:wpt-interop==0.2.0
 vendored:testing/web-platform/tests/tools/third_party/h2/src

@@ -13,11 +13,13 @@
 
 import sys
 
+MINIMUM_MINOR_VERSION = 9
+
 major, minor = sys.version_info[:2]
-if (major < 3) or (major == 3 and minor < 8):
+if (major < 3) or (major == 3 and minor < MINIMUM_MINOR_VERSION):
     print(
-        "Bootstrap currently only runs on Python 3.8+."
-        "Please try re-running with python3.8+."
+        f"Bootstrap currently only runs on Python 3.{MINIMUM_MINOR_VERSION}+."
+        f"Please try re-running with python3.{MINIMUM_MINOR_VERSION}+."
     )
     sys.exit(1)
 
