@@ -1,0 +1,86 @@
+[project]
+name = "MarkupSafe"
+version = "3.0.2"
+description = "Safely add untrusted strings to HTML/XML markup."
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+maintainers = [{ name = "Pallets", email = "contact@palletsprojects.com" }]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Text Processing :: Markup :: HTML",
+    "Typing :: Typed",
+]
+requires-python = ">=3.9"
+
+[project.urls]
+Donate = "https://palletsprojects.com/donate"
+Documentation = "https://markupsafe.palletsprojects.com/"
+Changes = "https://markupsafe.palletsprojects.com/changes/"
+Source = "https://github.com/pallets/markupsafe/"
+Chat = "https://discord.gg/pallets"
+
+[build-system]
+requires = ["setuptools>=70.1"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "error",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["markupsafe", "tests"]
+
+[tool.coverage.paths]
+source = ["src", "*/site-packages"]
+
+[tool.mypy]
+python_version = "3.9"
+files = ["src/markupsafe", "tests"]
+show_error_codes = true
+pretty = true
+strict = true
+
+[[tool.mypy.overrides]]
+module = [
+    "argcomplete.*",
+]
+ignore_missing_imports = true
+
+[tool.pyright]
+pythonVersion = "3.9"
+include = ["src/markupsafe", "tests"]
+typeCheckingMode = "basic"
+
+[tool.ruff]
+src = ["src"]
+fix = true
+show-fixes = true
+output-format = "full"
+
+[tool.ruff.lint]
+select = [
+    "B",  # flake8-bugbear
+    "E",  # pycodestyle error
+    "F",  # pyflakes
+    "I",  # isort
+    "UP",  # pyupgrade
+    "W",  # pycodestyle warning
+]
+
+[tool.ruff.lint.isort]
+force-single-line = true
+order-by-type = false
+
+[tool.gha-update]
+tag-only = [
+    "slsa-framework/slsa-github-generator",
+]

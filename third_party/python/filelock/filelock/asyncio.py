@@ -1,4 +1,4 @@
-"""An asyncio-based implementation of the file lock."""  # noqa: A005
+"""An asyncio-based implementation of the file lock."""
 
 from __future__ import annotations
 
@@ -95,7 +95,7 @@ class AsyncFileLockMeta(FileLockMeta):
             run_in_executor=run_in_executor,
             executor=executor,
         )
-        return cast(BaseAsyncFileLock, instance)
+        return cast("BaseAsyncFileLock", instance)
 
 
 class BaseAsyncFileLock(BaseFileLock, metaclass=AsyncFileLockMeta):

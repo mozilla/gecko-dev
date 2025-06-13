@@ -19,8 +19,8 @@ if TYPE_CHECKING:
     under_cached_property = under_cached_property_py
 elif not NO_EXTENSIONS:  # pragma: no branch
     try:
-        from ._helpers_c import cached_property as cached_property_c  # type: ignore[attr-defined, unused-ignore] # noqa: E501
-        from ._helpers_c import under_cached_property as under_cached_property_c  # type: ignore[attr-defined, unused-ignore] # noqa: E501
+        from ._helpers_c import cached_property as cached_property_c  # type: ignore[attr-defined, unused-ignore]
+        from ._helpers_c import under_cached_property as under_cached_property_c  # type: ignore[attr-defined, unused-ignore]
 
         cached_property = cached_property_c
         under_cached_property = under_cached_property_c

@@ -1,5 +1,8 @@
 import asyncio
 import contextlib
+
+# PY3.9: Import Callable from typing until we drop Python 3.9 support
+# https://github.com/python/cpython/issues/87131
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -15,6 +18,8 @@ from typing import (
 )
 
 _T = TypeVar("_T")
+
+RE_RAISE_EXCEPTIONS = (SystemExit, KeyboardInterrupt)
 
 
 def _set_result(wait_next: "asyncio.Future[None]") -> None:
@@ -125,7 +130,7 @@ async def staggered_race(
         """
         try:
             result = await coro_fn()
-        except (SystemExit, KeyboardInterrupt):
+        except RE_RAISE_EXCEPTIONS:
             raise
         except BaseException as e:
             exceptions[this_index] = e
@@ -156,9 +161,9 @@ async def staggered_race(
                 # so we have no winner and all coroutines failed.
                 break
 
-            while tasks:
+            while tasks or start_next:
                 done = await _wait_one(
-                    [*tasks, start_next] if start_next else tasks, loop
+                    (*tasks, start_next) if start_next else tasks, loop
                 )
                 if done is start_next:
                     # The current task has failed or the timer has expired

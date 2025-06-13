@@ -1,13 +1,5 @@
-# cython: language_level=3
-import sys
-import types
-
-if sys.version_info >= (3, 9):
-    GenericAlias = types.GenericAlias
-else:
-
-    def GenericAlias(cls):
-        return cls
+# cython: language_level=3, freethreading_compatible=True
+from types import GenericAlias
 
 
 cdef _sentinel = object()
@@ -21,7 +13,7 @@ cdef class under_cached_property:
 
     """
 
-    cdef object wrapped
+    cdef readonly object wrapped
     cdef object name
 
     def __init__(self, wrapped):
@@ -45,6 +37,8 @@ cdef class under_cached_property:
     def __set__(self, inst, value):
         raise AttributeError("cached property is read-only")
 
+    __class_getitem__ = classmethod(GenericAlias)
+
 
 cdef class cached_property:
     """Use as a class method decorator.  It operates almost exactly like
@@ -55,16 +49,16 @@ cdef class cached_property:
 
     """
 
-    cdef object wrapped
+    cdef readonly object func
     cdef object name
 
-    def __init__(self, wrapped):
-        self.wrapped = wrapped
+    def __init__(self, func):
+        self.func = func
         self.name = None
 
     @property
     def __doc__(self):
-        return self.wrapped.__doc__
+        return self.func.__doc__
 
     def __set_name__(self, owner, name):
         if self.name is None:
@@ -85,7 +79,7 @@ cdef class cached_property:
         cdef dict cache = inst.__dict__
         val = cache.get(self.name, _sentinel)
         if val is _sentinel:
-            val = self.wrapped(inst)
+            val = self.func(inst)
             cache[self.name] = val
         return val
 

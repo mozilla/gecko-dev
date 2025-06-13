@@ -478,7 +478,7 @@ def dash_to_underscore(obj):
             {
                 Required("data"): str,
                 Required("content-type"): str,
-                Required("destinations"): [str],
+                Required("destinations"): [taskref_or_string],
             },
         ],
         Optional("dry-run"): bool,

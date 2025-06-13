@@ -26,7 +26,9 @@ if sys.platform == "win32":  # pragma: win32 cover
 else:  # pragma: win32 no cover
     try:
         import fcntl
-    except ImportError:
+
+        _ = (fcntl.flock, fcntl.LOCK_EX, fcntl.LOCK_NB, fcntl.LOCK_UN)
+    except (ImportError, AttributeError):
         pass
     else:
         has_fcntl = True
@@ -56,7 +58,7 @@ else:  # pragma: win32 no cover
             # Do not remove the lockfile:
             #   https://github.com/tox-dev/py-filelock/issues/31
             #   https://stackoverflow.com/questions/17708885/flock-removing-locked-file-without-race-condition
-            fd = cast(int, self._context.lock_file_fd)
+            fd = cast("int", self._context.lock_file_fd)
             self._context.lock_file_fd = None
             fcntl.flock(fd, fcntl.LOCK_UN)
             os.close(fd)

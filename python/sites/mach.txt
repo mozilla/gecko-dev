@@ -65,7 +65,6 @@ pypi-optional:orjson>=3.10.15:json operations will be slower in various tools
 pypi-optional:psutil>=5.4.2,<=5.9.4:telemetry will be missing some data
 pypi-optional:zstandard>=0.11.1,<=0.23.0:zstd archives will not be possible to extract
 vendored-fallback:pyyaml:third_party/python/pyyaml/lib/:faster native loading is disabled
-vendored:third_party/python/MarkupSafe/src
 vendored:third_party/python/ansicon
 vendored:third_party/python/appdirs
 vendored:third_party/python/attrs
@@ -83,17 +82,16 @@ vendored:third_party/python/filelock
 vendored:third_party/python/glean_parser
 vendored:third_party/python/idna
 vendored:third_party/python/importlib_metadata
-vendored:third_party/python/importlib_resources
 vendored:third_party/python/jinja2
 vendored:third_party/python/jinxed
 vendored:third_party/python/jsmin
 vendored:third_party/python/jsonschema
 vendored:third_party/python/looseversion
+vendored:third_party/python/markupsafe/src
 vendored:third_party/python/mozilla_version
 vendored:third_party/python/packaging
 vendored:third_party/python/pip
 vendored:third_party/python/pip_tools
-vendored:third_party/python/pkgutil_resolve_name
 vendored:third_party/python/platformdirs
 vendored:third_party/python/pyproject_hooks
 vendored:third_party/python/pyrsistent
