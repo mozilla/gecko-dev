@@ -697,17 +697,18 @@ void mozilla::intl::Locale::PerformComplexRegionMappings() {
   }
 }
 
-static const char* ToCharPointer(const char* str) {
-  return str;
+static auto ToSpan(const mozilla::Span<const char>& aSpan) {
+  return aSpan;
 }
 
-static const char* ToCharPointer(const mozilla::intl::UniqueChars& str) {
-  return str.get();
+template <size_t N>
+static auto ToSpan(const mozilla::intl::LanguageTagSubtag<N>& aSubtag) {
+  return aSubtag.Span();
 }
 
 template <typename T, typename U = T>
 static bool IsLessThan(const T& a, const U& b) {
-  return strcmp(ToCharPointer(a), ToCharPointer(b)) < 0;
+  return ToSpan(a) < ToSpan(b);
 }
 
 // Mappings from variant subtags to preferred values.
@@ -722,48 +723,48 @@ bool mozilla::intl::Locale::PerformVariantMappings() {
     mVariants.erase(mVariants.begin() + index);
   };
 
-  auto insertVariantSortedIfNotPresent = [&](const char* variant) {
+  auto insertVariantSortedIfNotPresent = [&](mozilla::Span<const char> variant) {
     auto* p = std::lower_bound(
         mVariants.begin(), mVariants.end(), variant,
         IsLessThan<decltype(mVariants)::ElementType, decltype(variant)>);
 
     // Don't insert the replacement when already present.
-    if (p != mVariants.end() && strcmp(p->get(), variant) == 0) {
+    if (p != mVariants.end() && p->Span() == variant) {
       return true;
     }
 
     // Insert the preferred variant in sort order.
-    auto preferred = DuplicateStringToUniqueChars(variant);
-    return !!mVariants.insert(p, std::move(preferred));
+    auto preferred = mozilla::intl::VariantSubtag{variant};
+    return !!mVariants.insert(p, preferred);
   };
 
   for (size_t i = 0; i < mVariants.length();) {
-    const char* variant = mVariants[i].get();
-    MOZ_ASSERT(IsCanonicallyCasedVariantTag(mozilla::MakeStringSpan(variant)));
+    const auto& variant = mVariants[i];
+    MOZ_ASSERT(IsCanonicallyCasedVariantTag(variant.Span()));
 
-    if (strcmp(variant, "arevela") == 0 ||
-        strcmp(variant, "arevmda") == 0 ||
-        strcmp(variant, "bokmal") == 0 ||
-        strcmp(variant, "hakka") == 0 ||
-        strcmp(variant, "lojban") == 0 ||
-        strcmp(variant, "nynorsk") == 0 ||
-        strcmp(variant, "saaho") == 0 ||
-        strcmp(variant, "xiang") == 0) {
+    if (variant.Span() == mozilla::MakeStringSpan("arevela") ||
+        variant.Span() == mozilla::MakeStringSpan("arevmda") ||
+        variant.Span() == mozilla::MakeStringSpan("bokmal") ||
+        variant.Span() == mozilla::MakeStringSpan("hakka") ||
+        variant.Span() == mozilla::MakeStringSpan("lojban") ||
+        variant.Span() == mozilla::MakeStringSpan("nynorsk") ||
+        variant.Span() == mozilla::MakeStringSpan("saaho") ||
+        variant.Span() == mozilla::MakeStringSpan("xiang")) {
       removeVariantAt(i);
     }
-    else if (strcmp(variant, "aaland") == 0) {
+    else if (variant.Span() == mozilla::MakeStringSpan("aaland")) {
       removeVariantAt(i);
       SetRegion("AX");
     }
-    else if (strcmp(variant, "heploc") == 0) {
+    else if (variant.Span() == mozilla::MakeStringSpan("heploc")) {
       removeVariantAt(i);
-      if (!insertVariantSortedIfNotPresent("alalc97")) {
+      if (!insertVariantSortedIfNotPresent(mozilla::MakeStringSpan("alalc97"))) {
         return false;
       }
     }
-    else if (strcmp(variant, "polytoni") == 0) {
+    else if (variant.Span() == mozilla::MakeStringSpan("polytoni")) {
       removeVariantAt(i);
-      if (!insertVariantSortedIfNotPresent("polyton")) {
+      if (!insertVariantSortedIfNotPresent(mozilla::MakeStringSpan("polyton"))) {
         return false;
       }
     }
@@ -802,30 +803,30 @@ bool mozilla::intl::Locale::UpdateLegacyMappings() {
   MOZ_ASSERT(std::is_sorted(mVariants.begin(), mVariants.end(),
                             IsLessThan<decltype(mVariants)::ElementType>));
 
-  auto findVariant = [this](const char* variant) {
+  auto findVariant = [this](mozilla::Span<const char> variant) {
     auto* p = std::lower_bound(mVariants.begin(), mVariants.end(), variant,
                                IsLessThan<decltype(mVariants)::ElementType,
                                           decltype(variant)>);
 
-    if (p != mVariants.end() && strcmp(p->get(), variant) == 0) {
+    if (p != mVariants.end() && p->Span() == variant) {
       return p;
     }
     return static_cast<decltype(p)>(nullptr);
   };
 
-  auto insertVariantSortedIfNotPresent = [&](const char* variant) {
+  auto insertVariantSortedIfNotPresent = [&](mozilla::Span<const char> variant) {
     auto* p = std::lower_bound(mVariants.begin(), mVariants.end(), variant,
                                IsLessThan<decltype(mVariants)::ElementType,
                                           decltype(variant)>);
 
     // Don't insert the replacement when already present.
-    if (p != mVariants.end() && strcmp(p->get(), variant) == 0) {
+    if (p != mVariants.end() && p->Span() == variant) {
       return true;
     }
 
     // Insert the preferred variant in sort order.
-    auto preferred = DuplicateStringToUniqueChars(variant);
-    return !!mVariants.insert(p, std::move(preferred));
+    auto preferred = mozilla::intl::VariantSubtag{variant};
+    return !!mVariants.insert(p, preferred);
   };
 
   auto removeVariant = [&](auto* p) {
@@ -843,11 +844,11 @@ bool mozilla::intl::Locale::UpdateLegacyMappings() {
   };
 
   if (mVariants.length() >= 2) {
-    if (auto* hepburn = findVariant("hepburn")) {
-      if (auto* heploc = findVariant("heploc")) {
+    if (auto* hepburn = findVariant(mozilla::MakeStringSpan("hepburn"))) {
+      if (auto* heploc = findVariant(mozilla::MakeStringSpan("heploc"))) {
         removeVariants(hepburn, heploc);
 
-        if (!insertVariantSortedIfNotPresent("alalc97")) {
+        if (!insertVariantSortedIfNotPresent(mozilla::MakeStringSpan("alalc97"))) {
           return false;
         }
       }
@@ -861,7 +862,7 @@ bool mozilla::intl::Locale::UpdateLegacyMappings() {
   }
   else if (Language().EqualTo("aa") ||
            Language().EqualTo("aar")) {
-    if (auto* saaho = findVariant("saaho")) {
+    if (auto* saaho = findVariant(mozilla::MakeStringSpan("saaho"))) {
       removeVariant(saaho);
       SetLanguage("ssy");
     }
@@ -869,19 +870,19 @@ bool mozilla::intl::Locale::UpdateLegacyMappings() {
   else if (Language().EqualTo("arm") ||
            Language().EqualTo("hy") ||
            Language().EqualTo("hye")) {
-    if (auto* arevmda = findVariant("arevmda")) {
+    if (auto* arevmda = findVariant(mozilla::MakeStringSpan("arevmda"))) {
       removeVariant(arevmda);
       SetLanguage("hyw");
     }
   }
   else if (Language().EqualTo("art")) {
-    if (auto* lojban = findVariant("lojban")) {
+    if (auto* lojban = findVariant(mozilla::MakeStringSpan("lojban"))) {
       removeVariant(lojban);
       SetLanguage("jbo");
     }
   }
   else if (Language().EqualTo("cel")) {
-    if (auto* gaulish = findVariant("gaulish")) {
+    if (auto* gaulish = findVariant(mozilla::MakeStringSpan("gaulish"))) {
       removeVariant(gaulish);
       SetLanguage("xtg");
     }
@@ -890,40 +891,40 @@ bool mozilla::intl::Locale::UpdateLegacyMappings() {
            Language().EqualTo("cmn") ||
            Language().EqualTo("zh") ||
            Language().EqualTo("zho")) {
-    if (auto* guoyu = findVariant("guoyu")) {
-      if (auto* hakka = findVariant("hakka")) {
+    if (auto* guoyu = findVariant(mozilla::MakeStringSpan("guoyu"))) {
+      if (auto* hakka = findVariant(mozilla::MakeStringSpan("hakka"))) {
         removeVariants(guoyu, hakka);
         SetLanguage("hak");
         return true;
       }
     }
-    if (auto* guoyu = findVariant("guoyu")) {
-      if (auto* xiang = findVariant("xiang")) {
+    if (auto* guoyu = findVariant(mozilla::MakeStringSpan("guoyu"))) {
+      if (auto* xiang = findVariant(mozilla::MakeStringSpan("xiang"))) {
         removeVariants(guoyu, xiang);
         SetLanguage("hsn");
         return true;
       }
     }
-    if (auto* guoyu = findVariant("guoyu")) {
+    if (auto* guoyu = findVariant(mozilla::MakeStringSpan("guoyu"))) {
       removeVariant(guoyu);
       SetLanguage("zh");
     }
-    else if (auto* hakka = findVariant("hakka")) {
+    else if (auto* hakka = findVariant(mozilla::MakeStringSpan("hakka"))) {
       removeVariant(hakka);
       SetLanguage("hak");
     }
-    else if (auto* xiang = findVariant("xiang")) {
+    else if (auto* xiang = findVariant(mozilla::MakeStringSpan("xiang"))) {
       removeVariant(xiang);
       SetLanguage("hsn");
     }
   }
   else if (Language().EqualTo("no") ||
            Language().EqualTo("nor")) {
-    if (auto* bokmal = findVariant("bokmal")) {
+    if (auto* bokmal = findVariant(mozilla::MakeStringSpan("bokmal"))) {
       removeVariant(bokmal);
       SetLanguage("nb");
     }
-    else if (auto* nynorsk = findVariant("nynorsk")) {
+    else if (auto* nynorsk = findVariant(mozilla::MakeStringSpan("nynorsk"))) {
       removeVariant(nynorsk);
       SetLanguage("nn");
     }
