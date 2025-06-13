@@ -1346,6 +1346,58 @@ topsites:
     send_in_pings:
       - newtab
 
+  add:
+    type: event
+    description: >
+      Recorded when a topsite tile is added
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968053
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968053
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - sdowne@mozilla.com
+      - achurchwell@mozilla.com
+    expires: never
+    extra_keys:
+      advertiser_name: *advertiser_name
+      tile_id: *tile_id
+      newtab_visit_id: *newtab_visit_id
+      is_sponsored: *is_sponsored
+      position: *topsite_position
+    send_in_pings:
+      - newtab
+
+  edit:
+    type: event
+    description: >
+      Recorded when a topsite tile is edited
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968053
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968053
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - sdowne@mozilla.com
+      - achurchwell@mozilla.com
+    expires: never
+    extra_keys:
+      advertiser_name: *advertiser_name
+      tile_id: *tile_id
+      newtab_visit_id: *newtab_visit_id
+      is_sponsored: *is_sponsored
+      position: *topsite_position
+      has_title_changed: &has_title_changed
+        description: Whether the topsite title was changed.
+        type: boolean
+      has_url_changed: &has_url_changed
+        description: Whether the topsite URL was changed.
+        type: boolean
+    send_in_pings:
+      - newtab
+
   show_privacy_click:
     type: event
     description: >

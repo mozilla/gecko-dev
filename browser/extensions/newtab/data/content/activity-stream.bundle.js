@@ -260,6 +260,7 @@ for (const type of [
   "TOPIC_SELECTION_USER_DISMISS",
   "TOPIC_SELECTION_USER_OPEN",
   "TOPIC_SELECTION_USER_SAVE",
+  "TOP_SITES_ADD",
   "TOP_SITES_CANCEL_EDIT",
   "TOP_SITES_CLOSE_SEARCH_SHORTCUTS_MODAL",
   "TOP_SITES_EDIT",
@@ -9843,7 +9844,9 @@ class TopSiteForm extends (external_React_default()).PureComponent {
       url: site ? site.url : "",
       validationError: false,
       customScreenshotUrl: site ? site.customScreenshotURL : "",
-      showCustomScreenshotForm: site ? site.customScreenshotURL : false
+      showCustomScreenshotForm: site ? site.customScreenshotURL : false,
+      hasURLChanged: false,
+      hasTitleChanged: false
     };
     this.onClearScreenshotInput = this.onClearScreenshotInput.bind(this);
     this.onLabelChange = this.onLabelChange.bind(this);
@@ -9858,13 +9861,15 @@ class TopSiteForm extends (external_React_default()).PureComponent {
   }
   onLabelChange(event) {
     this.setState({
-      label: event.target.value
+      label: event.target.value,
+      hasTitleChanged: true
     });
   }
   onUrlChange(event) {
     this.setState({
       url: event.target.value,
-      validationError: false
+      validationError: false,
+      hasURLChanged: true
     });
   }
   onClearUrlClick() {
@@ -9906,6 +9911,7 @@ class TopSiteForm extends (external_React_default()).PureComponent {
       const {
         index
       } = this.props;
+      const isEdit = !!this.props.site;
       if (this.state.label !== "") {
         site.label = this.state.label;
       }
@@ -9922,11 +9928,21 @@ class TopSiteForm extends (external_React_default()).PureComponent {
           index
         }
       }));
-      this.props.dispatch(actionCreators.UserEvent({
-        source: TOP_SITES_SOURCE,
-        event: "TOP_SITES_EDIT",
-        action_position: index
-      }));
+      if (isEdit) {
+        this.props.dispatch(actionCreators.UserEvent({
+          source: TOP_SITES_SOURCE,
+          event: "TOP_SITES_EDIT",
+          action_position: index,
+          hasTitleChanged: this.state.hasTitleChanged,
+          hasURLChanged: this.state.hasURLChanged
+        }));
+      } else if (!isEdit) {
+        this.props.dispatch(actionCreators.UserEvent({
+          source: TOP_SITES_SOURCE,
+          event: "TOP_SITES_ADD",
+          action_position: index
+        }));
+      }
       this.props.onClose();
     }
   }

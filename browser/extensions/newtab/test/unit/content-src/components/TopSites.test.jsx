@@ -1180,7 +1180,7 @@ describe("<TopSiteForm>", () => {
         data: {
           action_position: -1,
           source: "TOP_SITES",
-          event: "TOP_SITES_EDIT",
+          event: "TOP_SITES_ADD",
         },
         meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
         type: at.TELEMETRY_USER_EVENT,
@@ -1282,6 +1282,8 @@ describe("<TopSiteForm>", () => {
           action_position: 7,
           source: "TOP_SITES",
           event: "TOP_SITES_EDIT",
+          hasTitleChanged: false,
+          hasURLChanged: false,
         },
         meta: { from: "ActivityStream:Content", to: "ActivityStream:Main" },
         type: at.TELEMETRY_USER_EVENT,
