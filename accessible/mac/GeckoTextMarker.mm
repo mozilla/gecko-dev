@@ -89,8 +89,8 @@ GeckoTextMarker GeckoTextMarker::MarkerFromIndex(Accessible* aRoot,
   // so we can find the segment the index lives in.
   for (TextLeafRange segment : range) {
     if (segment.Start().mAcc->IsMenuPopup() &&
-        (segment.Start().mAcc->State() & states::COLLAPSED)) {
-      // XXX: Menu collapsed XUL menu popups are in our tree and we need to skip
+        (segment.Start().mAcc->State() & states::INVISIBLE)) {
+      // XXX: Invisible XUL menu popups are in our tree and we need to skip
       // them.
       continue;
     }
@@ -400,8 +400,8 @@ NSString* GeckoTextMarkerRange::Text() const {
   for (TextLeafRange segment : range) {
     TextLeafPoint start = segment.Start();
     if (start.mAcc->IsMenuPopup() &&
-        (start.mAcc->State() & states::COLLAPSED)) {
-      // XXX: Menu collapsed XUL menu popups are in our tree and we need to skip
+        (start.mAcc->State() & states::INVISIBLE)) {
+      // XXX: Invisible XUL menu popups are in our tree and we need to skip
       // them.
       continue;
     }
@@ -474,8 +474,8 @@ NSAttributedString* GeckoTextMarkerRange::AttributedText() const {
       attributesNext = stop;
     }
     if (start.mAcc->IsMenuPopup() &&
-        (start.mAcc->State() & states::COLLAPSED)) {
-      // XXX: Menu collapsed XUL menu popups are in our tree and we need to skip
+        (start.mAcc->State() & states::INVISIBLE)) {
+      // XXX: Invisible XUL menu popups are in our tree and we need to skip
       // them.
       start = attributesNext;
       continue;

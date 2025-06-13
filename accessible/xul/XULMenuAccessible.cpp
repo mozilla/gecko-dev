@@ -354,11 +354,9 @@ uint64_t XULMenupopupAccessible::NativeState() const {
 
   if (state & states::INVISIBLE) {
     state |= states::OFFSCREEN;
-  } else {
-    state |= states::EXPANDED;
   }
 
-  return state | states::EXPANDABLE;
+  return state;
 }
 
 ENameValueFlag XULMenupopupAccessible::NativeName(nsString& aName) const {
