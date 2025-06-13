@@ -2308,7 +2308,7 @@ Toolbox.prototype = {
    *        One of devtools/shared/picker-constants
    */
   async tellRDMAboutPickerState(state, pickerType) {
-    const { localTab } = this.target;
+    const { localTab } = this.commands.descriptorFront;
 
     if (!ResponsiveUIManager.isActiveForTab(localTab)) {
       return;
