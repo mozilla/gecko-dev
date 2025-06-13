@@ -1495,8 +1495,8 @@ SharedShape* SharedShape::getInitialShape(JSContext* cx, const JSClass* clasp,
     return nullptr;
   }
 
-  Rooted<SharedShape*> shape(
-      cx, SharedShape::new_(cx, nbase, objectFlags, nfixed, nullptr, 0));
+  SharedShape* shape =
+      SharedShape::new_(cx, nbase, objectFlags, nfixed, nullptr, 0);
   if (!shape) {
     return nullptr;
   }
@@ -1543,8 +1543,8 @@ SharedShape* SharedShape::getPropMapShape(
   }
 
   Rooted<BaseShape*> baseRoot(cx, base);
-  Rooted<SharedShape*> shape(
-      cx, SharedShape::new_(cx, baseRoot, objectFlags, nfixed, map, mapLength));
+  SharedShape* shape =
+      SharedShape::new_(cx, baseRoot, objectFlags, nfixed, map, mapLength);
   if (!shape) {
     return nullptr;
   }
