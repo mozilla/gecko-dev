@@ -87,14 +87,6 @@ class TrackingProtectionPanelInteractorTest {
         every { fragment.context } returns context
         every { context.components.useCases.trackingProtectionUseCases } returns trackingProtectionUseCases
         every { context.components.appStore.state.isPrivateScreenLocked } returns true
-
-        val onComplete = slot<(Boolean) -> Unit>()
-        every {
-            trackingProtectionUseCases.containsException.invoke(
-                "testID",
-                capture(onComplete),
-            )
-        }.answers { onComplete.captured.invoke(true) }
     }
 
     @Test
@@ -141,7 +133,7 @@ class TrackingProtectionPanelInteractorTest {
         every { context.settings().shouldUseCookieBannerPrivateMode } returns false
         val directionsSlot = slot<NavDirections>()
 
-        interactor.onBackPressed()
+        interactor.handleNavigationAfterCheck(tab, true)
 
         coVerify {
             navController.popBackStack()
