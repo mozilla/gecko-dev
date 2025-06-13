@@ -2335,6 +2335,19 @@ void nsLookAndFeel::PerThemeData::Init() {
   if (!NS_GET_A(mButtonActive.mBg)) {
     mButtonActive.mBg = mWindow.mBg;
   }
+  // Borders in Yaru / Adwaita have relatively little contrast, and are rather
+  // neutral themes, so our stand-in ones work fine.
+#define MAYBE_OVERRIDE_BUTTON_BORDER(field_, color_)                        \
+  if (mFamily == ThemeFamily::Adwaita || mFamily == ThemeFamily::Yaru ||    \
+      !NS_GET_A((field_).mBorder)) {                                        \
+    (field_).mBorder = nsXPLookAndFeel::GetStandinForNativeColor(           \
+        ColorID::color_, mIsDark ? ColorScheme::Dark : ColorScheme::Light); \
+  }
+  MAYBE_OVERRIDE_BUTTON_BORDER(mButton, Buttonborder)
+  MAYBE_OVERRIDE_BUTTON_BORDER(mButtonHover, MozButtonhoverborder)
+  MAYBE_OVERRIDE_BUTTON_BORDER(mButtonActive, MozButtonactiveborder)
+  MAYBE_OVERRIDE_BUTTON_BORDER(mButtonDisabled, MozButtondisabledborder)
+#undef MAYBE_OVERRIDE_BUTTON_BORDER
 
   // Column header colors
   style = GetStyleContext(MOZ_GTK_TREE_HEADER_CELL);
