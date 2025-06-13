@@ -31,11 +31,13 @@ addAccessibleTask(
       "Correct aria-current for #two"
     );
 
+    let attrChanged = waitForEvent(EVENT_OBJECT_ATTRIBUTE_CHANGED, "one");
     await SpecialPowers.spawn(browser, [], () => {
       content.document
         .getElementById("one")
         .setAttribute("aria-current", "step");
     });
+    await attrChanged;
 
     is(
       one.getAttributeValue("AXARIACurrent"),
