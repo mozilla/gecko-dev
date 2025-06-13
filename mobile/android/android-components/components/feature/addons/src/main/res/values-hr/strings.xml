@@ -167,7 +167,7 @@
   <!-- The title of the "crash" notification in the extensions manager -->
   <string name="mozac_feature_extensions_manager_notification_title_text">Dodaci su privremeno onemogućeni</string>
   <!-- The content of the "crash" notification in the extensions manager -->
-  <string name="mozac_feature_extensions_manager_notification_content_text">Jedan ili više dodataka prestalo je raditi, što čini vaš sustav nestabilnim.</string>
+  <string name="mozac_feature_extensions_manager_notification_content_text">Jedno ili više proširenja su prestala raditi te su prouzročili nestabilnost sustava.</string>
   <!-- Button to re-enable the extensions in the "crash" notification -->
   <string name="mozac_feature_extensions_manager_notification_restart_button">Ponovno pokrenite dodatke</string>
   <!-- Button in the extensions manager that opens AMO in a tab -->

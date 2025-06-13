@@ -17,7 +17,7 @@
   <!-- Label of button in save to collection dialog for selecting a current collection -->
   <string name="tab_tray_select_collection">o wile e kulupu</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="about_content">%1$s li tan kulupu Mozilla.</string>
+  <string name="about_content">ilo %1$s li tan kulupu Mozilla.</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">o tawa lipu wile</string>
   <!-- Text for the negative action button -->

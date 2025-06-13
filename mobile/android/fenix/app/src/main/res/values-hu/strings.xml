@@ -403,6 +403,11 @@
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">Kilépés ebből: %1$s</string>
   <!--
+    Content description for a banner within the menu which prompt the user to make this app their default browser.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_default_banner_title">A %1$s alapértelmezetté tétele</string>
+  <!--
     Menu "contextual feature recommendation" (CFR)
 
     Text for the title in the contextual feature recommendation popup promoting the menu feature.
