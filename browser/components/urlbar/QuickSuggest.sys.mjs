@@ -22,10 +22,12 @@ const SETTINGS_UI = Object.freeze({
   OFFLINE_ONLY: 2,
 });
 
+const EN_LOCALES = ["en-CA", "en-GB", "en-US", "en-ZA"];
+
 /**
  * @typedef {[string[], boolean|number]} RegionLocaleDefault
- *   The first element is an array of locale prefixes (e.g. "en"), the second is
- *   the value of the preference.
+ *   The first element is an array of locales (e.g. "en-US"), the second is the
+ *   value of the preference.
  */
 
 /**
@@ -35,11 +37,11 @@ const SETTINGS_UI = Object.freeze({
  *   subfeatures will be enabled. If the pref should be initialized on the
  *   default branch depending on the user's home region and locale, then this
  *   should be set to an object where each entry maps a region name to a tuple
- *   `[localePrefixes, prefValue]`. `localePrefixes` is an array of strings and
- *   `prefValue` is the value that should be set when the region and locale
- *   prefixes match the user's region and locale. If the user's region and
- *   locale do not match any of the entries in `defaultValues`, then the pref
- *   will retain its default value as defined in `firefox.js`.
+ *   `[locales, prefValue]`. `locales` is an array of strings and `prefValue` is
+ *   the value that should be set when the region and locale match the user's
+ *   region and locale. If the user's region and locale do not match any of the
+ *   entries in `defaultValues`, then the pref will retain its default value as
+ *   defined in `firefox.js`.
  * @property {string} [nimbusVariableIfExposedInUi]
  *   If the pref is exposed in the settings UI and it's a fallback for a Nimbus
  *   variable, then this should be set to the variable's name. See point 3 in
@@ -64,63 +66,78 @@ const SUGGEST_PREFS = Object.freeze({
   },
   "quicksuggest.enabled": {
     defaultValues: {
-      GB: [["en"], true],
-      US: [["en"], true],
+      DE: [["de"], true],
+      FR: [["fr"], true],
+      GB: [EN_LOCALES, true],
+      IT: [["it"], true],
+      US: [EN_LOCALES, true],
     },
   },
   "quicksuggest.settingsUi": {
     defaultValues: {
-      GB: [["en"], SETTINGS_UI.OFFLINE_ONLY],
-      US: [["en"], SETTINGS_UI.FULL],
+      DE: [["de"], SETTINGS_UI.OFFLINE_ONLY],
+      FR: [["fr"], SETTINGS_UI.OFFLINE_ONLY],
+      GB: [EN_LOCALES, SETTINGS_UI.OFFLINE_ONLY],
+      IT: [["it"], SETTINGS_UI.OFFLINE_ONLY],
+      US: [EN_LOCALES, SETTINGS_UI.FULL],
     },
   },
   "suggest.quicksuggest.nonsponsored": {
     nimbusVariableIfExposedInUi: "quickSuggestNonSponsoredEnabled",
     defaultValues: {
-      GB: [["en"], true],
-      US: [["en"], true],
+      DE: [["de"], true],
+      FR: [["fr"], true],
+      GB: [EN_LOCALES, true],
+      IT: [["it"], true],
+      US: [EN_LOCALES, true],
     },
   },
   "suggest.quicksuggest.sponsored": {
     nimbusVariableIfExposedInUi: "quickSuggestSponsoredEnabled",
     defaultValues: {
-      GB: [["en"], true],
-      US: [["en"], true],
+      DE: [["de"], true],
+      FR: [["fr"], true],
+      GB: [EN_LOCALES, true],
+      IT: [["it"], true],
+      US: [EN_LOCALES, true],
     },
   },
 
   // Prefs related to individual features
   "addons.featureGate": {
     defaultValues: {
-      US: [["en"], true],
+      US: [EN_LOCALES, true],
     },
   },
   "amp.featureGate": {
     defaultValues: {
-      GB: [["en"], true],
-      US: [["en"], true],
+      GB: [EN_LOCALES, true],
+      US: [EN_LOCALES, true],
     },
   },
   "mdn.featureGate": {
     defaultValues: {
-      US: [["en"], true],
+      US: [EN_LOCALES, true],
     },
   },
   "weather.featureGate": {
     defaultValues: {
-      GB: [["en"], true],
-      US: [["en"], true],
+      DE: [["de"], true],
+      FR: [["fr"], true],
+      GB: [EN_LOCALES, true],
+      IT: [["it"], true],
+      US: [EN_LOCALES, true],
     },
   },
   "wikipedia.featureGate": {
     defaultValues: {
-      GB: [["en"], true],
-      US: [["en"], true],
+      GB: [EN_LOCALES, true],
+      US: [EN_LOCALES, true],
     },
   },
   "yelp.featureGate": {
     defaultValues: {
-      US: [["en"], true],
+      US: [EN_LOCALES, true],
     },
   },
 });
@@ -579,8 +596,8 @@ class _QuickSuggest {
       Object.entries(SUGGEST_PREFS)
         .map(([prefName, { defaultValues }]) => {
           if (defaultValues?.hasOwnProperty(region)) {
-            let [localePrefixes, prefValue] = defaultValues[region];
-            if (localePrefixes.some(p => locale.startsWith(p))) {
+            let [enablingLocales, prefValue] = defaultValues[region];
+            if (enablingLocales.includes(locale)) {
               return [prefName, prefValue];
             }
           }
@@ -786,7 +803,7 @@ class _QuickSuggest {
     }
 
     // 3. Set default-branch values for prefs that are both exposed in the
-    // settings UI and configurable via Nimbus.
+    //    settings UI and configurable via Nimbus.
     this.#syncNimbusVariablesToUiPrefs();
 
     // 4. Migrate prefs across app versions.
