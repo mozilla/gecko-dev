@@ -137,7 +137,6 @@ public class GeckoThread extends Thread {
   @WrapForJNI private static MessageQueue msgQueue;
   @WrapForJNI private static int uiThreadId;
 
-  private static TelemetryUtils.Timer sInitTimer;
   private static LinkedList<StateGeckoResult> sStateListeners = new LinkedList<>();
 
   // Main process parameters
@@ -282,8 +281,6 @@ public class GeckoThread extends Thread {
     if (mInitialized) {
       return false;
     }
-
-    sInitTimer = new TelemetryUtils.UptimeTimer("GV_STARTUP_RUNTIME_MS");
 
     mInitInfo = info;
     mInitialized = true;
@@ -730,12 +727,6 @@ public class GeckoThread extends Thread {
     final boolean result = sNativeQueue.checkAndSetState(expectedState, newState);
     if (result) {
       Log.d(LOGTAG, "State changed to " + newState);
-
-      if (sInitTimer != null && isRunning()) {
-        sInitTimer.stop();
-        sInitTimer = null;
-      }
-
       notifyStateListeners();
     }
     return result;

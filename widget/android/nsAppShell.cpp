@@ -76,7 +76,6 @@
 #include "ImageDecoderSupport.h"
 #include "JavaBuiltins.h"
 #include "ScreenHelperAndroid.h"
-#include "Telemetry.h"
 #include "WebExecutorSupport.h"
 #include "Base64UtilsSupport.h"
 
@@ -428,7 +427,6 @@ nsAppShell::nsAppShell()
       GeckoThreadSupport::Init();
       GeckoAppShellSupport::Init();
       XPCOMEventTargetWrapper::Init();
-      mozilla::widget::Telemetry::Init();
 
       if (XRE_IsGPUProcess()) {
         mozilla::gl::AndroidSurfaceTexture::Init();
@@ -453,7 +451,6 @@ nsAppShell::nsAppShell()
     mozilla::GeckoNetworkManager::Init();
     mozilla::GeckoProcessManager::Init();
     mozilla::GeckoSystemStateListener::Init();
-    mozilla::widget::Telemetry::Init();
     mozilla::widget::ImageDecoderSupport::Init();
     mozilla::widget::WebExecutorSupport::Init();
     mozilla::widget::Base64UtilsSupport::Init();

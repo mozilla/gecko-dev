@@ -23,7 +23,6 @@ import org.mozilla.gecko.GeckoNetworkManager;
 import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.IGeckoEditableChild;
 import org.mozilla.gecko.IGeckoEditableParent;
-import org.mozilla.gecko.TelemetryUtils;
 import org.mozilla.gecko.annotation.WrapForJNI;
 import org.mozilla.gecko.gfx.CompositorSurfaceManager;
 import org.mozilla.gecko.gfx.ISurfaceAllocator;
@@ -413,10 +412,6 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
   }
 
   private static final class ContentConnection extends ChildConnection {
-    private static final String TELEMETRY_PROCESS_LIFETIME_HISTOGRAM_NAME =
-        "GV_CONTENT_PROCESS_LIFETIME_MS";
-
-    private TelemetryUtils.UptimeTimer mLifetimeTimer = null;
 
     public ContentConnection(
         @NonNull final ServiceAllocator allocator, @NonNull final PriorityLevel initialPriority) {
@@ -425,17 +420,11 @@ public final class GeckoProcessManager extends IProcessManager.Stub {
 
     @Override
     protected void onBinderConnected(final IBinder service) {
-      mLifetimeTimer = new TelemetryUtils.UptimeTimer(TELEMETRY_PROCESS_LIFETIME_HISTOGRAM_NAME);
       super.onBinderConnected(service);
     }
 
     @Override
     protected void onReleaseResources() {
-      if (mLifetimeTimer != null) {
-        mLifetimeTimer.stop();
-        mLifetimeTimer = null;
-      }
-
       super.onReleaseResources();
     }
   }

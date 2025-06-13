@@ -79,7 +79,6 @@ classes_with_WrapForJNI = [
     "SurfaceAllocator",
     "SurfaceControlManager",
     "SurfaceTextureListener",
-    "TelemetryUtils",
     "WebAuthnTokenManager",
     "WebAuthnUtils",
     "WebMessage",
