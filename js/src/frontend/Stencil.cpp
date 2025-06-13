@@ -2828,11 +2828,9 @@ JSFunction* CompilationStencil::instantiateSelfHostedLazyFunction(
 
   RootedObject env(cx, &cx->global()->lexicalEnvironment());
 
-  RootedFunction fun(
-      cx,
-      NewFunctionWithProto(cx, nullptr, scriptExtra[index].nargs,
-                           scriptData[index].functionFlags, env, funName, proto,
-                           gc::AllocKind::FUNCTION_EXTENDED, TenuredObject));
+  JSFunction* fun = NewFunctionWithProto(
+      cx, nullptr, scriptExtra[index].nargs, scriptData[index].functionFlags,
+      env, funName, proto, gc::AllocKind::FUNCTION_EXTENDED, TenuredObject);
   if (!fun) {
     return nullptr;
   }

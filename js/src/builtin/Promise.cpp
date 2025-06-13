@@ -5415,18 +5415,18 @@ static bool PromiseThenNewPromiseCapability(
     return false;
   }
 
-  RootedObject unwrappedPromise(cx, promiseObj);
+  JSObject* unwrappedPromise = promiseObj;
   if (IsWrapper(promiseObj)) {
     unwrappedPromise = UncheckedUnwrap(promiseObj);
   }
-  RootedObject unwrappedNewPromise(cx, resultCapability.promise());
+  JSObject* unwrappedNewPromise = resultCapability.promise();
   if (IsWrapper(resultCapability.promise())) {
     unwrappedNewPromise = UncheckedUnwrap(resultCapability.promise());
   }
   if (unwrappedPromise->is<PromiseObject>() &&
       unwrappedNewPromise->is<PromiseObject>()) {
     unwrappedNewPromise->as<PromiseObject>().copyUserInteractionFlagsFrom(
-        *unwrappedPromise.as<PromiseObject>());
+        unwrappedPromise->as<PromiseObject>());
   }
 
   return true;

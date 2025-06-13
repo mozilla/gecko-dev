@@ -964,8 +964,7 @@ ModuleObject* ModuleObject::create(JSContext* cx) {
     return nullptr;
   }
 
-  Rooted<ModuleObject*> self(
-      cx, NewObjectWithGivenProto<ModuleObject>(cx, nullptr));
+  ModuleObject* self = NewObjectWithGivenProto<ModuleObject>(cx, nullptr);
   if (!self) {
     return nullptr;
   }
@@ -985,8 +984,7 @@ ModuleObject* ModuleObject::createSynthetic(
     return nullptr;
   }
 
-  Rooted<ModuleObject*> self(
-      cx, NewObjectWithGivenProto<ModuleObject>(cx, nullptr));
+  ModuleObject* self = NewObjectWithGivenProto<ModuleObject>(cx, nullptr);
   if (!self) {
     return nullptr;
   }

@@ -138,14 +138,13 @@ bool TypedArrayObject::ensureHasBuffer(JSContext* cx,
   MOZ_ASSERT(typedArray->is<FixedLengthTypedArrayObject>(),
              "Resizable and immutable TypedArrays always use an ArrayBuffer");
 
-  Rooted<FixedLengthTypedArrayObject*> tarray(
-      cx, &typedArray->as<FixedLengthTypedArrayObject>());
+  auto tarray = HandleObject(typedArray).as<FixedLengthTypedArrayObject>();
 
   size_t byteLength = tarray->byteLength();
 
   AutoRealm ar(cx, tarray);
-  Rooted<ArrayBufferObject*> buffer(
-      cx, ArrayBufferObject::createZeroed(cx, tarray->byteLength()));
+  ArrayBufferObject* buffer =
+      ArrayBufferObject::createZeroed(cx, tarray->byteLength());
   if (!buffer) {
     return false;
   }

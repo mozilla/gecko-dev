@@ -2096,8 +2096,7 @@ JS_PUBLIC_API bool JSPropertySpec::getValue(JSContext* cx,
 
   switch (u.value.type) {
     case ValueWrapper::Type::String: {
-      Rooted<JSAtom*> atom(cx,
-                           Atomize(cx, u.value.string, strlen(u.value.string)));
+      JSAtom* atom = Atomize(cx, u.value.string, strlen(u.value.string));
       if (!atom) {
         return false;
       }

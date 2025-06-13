@@ -791,8 +791,7 @@ bool ScriptSourceObject::initFromOptions(
     return false;
   }
 
-  RootedValue introductionScript(cx);
-  source->setReservedSlot(INTRODUCTION_SCRIPT_SLOT, introductionScript);
+  source->setReservedSlot(INTRODUCTION_SCRIPT_SLOT, UndefinedValue());
 
   return true;
 }

@@ -254,7 +254,7 @@ JitCode* BaselineCacheIRCompiler::compile() {
   }
 
   Linker linker(masm);
-  Rooted<JitCode*> newStubCode(cx_, linker.newCode(cx_, CodeKind::Baseline));
+  JitCode* newStubCode = linker.newCode(cx_, CodeKind::Baseline);
   if (!newStubCode) {
     cx_->recoverFromOutOfMemory();
     return nullptr;
@@ -2279,7 +2279,6 @@ bool js::jit::TryFoldingStubs(JSContext* cx, ICFallbackStub* fallback,
 
   uint32_t numActive = 0;
   Maybe<uint32_t> foldableFieldOffset;
-  RootedValue shape(cx);
   RootedValueVector shapeList(cx);
 
   // Try to add a shape to the list. Can fail on OOM or for cross-realm shapes.

@@ -859,8 +859,8 @@ GlobalObject::getOrCreateFinalizationRegistryData() {
 /* static */
 bool GlobalObject::createIntrinsicsHolder(JSContext* cx,
                                           Handle<GlobalObject*> global) {
-  Rooted<NativeObject*> intrinsicsHolder(
-      cx, NewPlainObjectWithProto(cx, nullptr, TenuredObject));
+  NativeObject* intrinsicsHolder =
+      NewPlainObjectWithProto(cx, nullptr, TenuredObject);
   if (!intrinsicsHolder) {
     return false;
   }
@@ -877,7 +877,7 @@ bool GlobalObject::getSelfHostedFunction(JSContext* cx,
                                          Handle<JSAtom*> name, unsigned nargs,
                                          MutableHandleValue funVal) {
   if (global->maybeGetIntrinsicValue(selfHostedName, funVal.address(), cx)) {
-    RootedFunction fun(cx, &funVal.toObject().as<JSFunction>());
+    JSFunction* fun = &funVal.toObject().as<JSFunction>();
     if (fun->fullExplicitName() == name) {
       return true;
     }

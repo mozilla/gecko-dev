@@ -2370,7 +2370,7 @@ bool jit::IonCompileScriptForBaselineOSR(JSContext* cx, BaselineFrame* frame,
     return false;
   }
 
-  RootedScript script(cx, frame->script());
+  JSScript* script = frame->script();
   if (!script->hasIonScript() || script->ionScript()->osrPc() != pc ||
       frame->isDebuggee()) {
     return true;

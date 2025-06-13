@@ -185,7 +185,7 @@ bool js::CreateRegExpMatchResult(JSContext* cx, HandleRegExpShared re,
         indices->setDenseInitializedLength(i + 1);
         indices->initDenseElement(i, UndefinedValue());
       } else {
-        Rooted<ArrayObject*> indexPair(cx, NewDenseFullyAllocatedArray(cx, 2));
+        ArrayObject* indexPair = NewDenseFullyAllocatedArray(cx, 2);
         if (!indexPair) {
           return false;
         }
@@ -2554,7 +2554,7 @@ bool js::intrinsic_GetStringDataProperty(JSContext* cx, unsigned argc,
   CallArgs args = CallArgsFromVp(argc, vp);
   MOZ_ASSERT(args.length() == 2);
 
-  RootedObject obj(cx, &args[0].toObject());
+  JSObject* obj = &args[0].toObject();
   if (!obj->is<NativeObject>()) {
     // The object is already checked to be native in GetElemBaseForLambda,
     // but it can be swapped to another class that is non-native.
@@ -2562,6 +2562,9 @@ bool js::intrinsic_GetStringDataProperty(JSContext* cx, unsigned argc,
     args.rval().setUndefined();
     return true;
   }
+
+  // No need to root |obj| because |AtomizeString| can't GC.
+  JS::AutoCheckCannotGC nogc;
 
   JSAtom* atom = AtomizeString(cx, args[1].toString());
   if (!atom) {

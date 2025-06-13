@@ -819,16 +819,10 @@ static JSObject* CreateFunctionConstructor(JSContext* cx, JSProtoKey key) {
   Rooted<GlobalObject*> global(cx, cx->global());
   RootedObject functionProto(cx, &global->getPrototype(JSProto_Function));
 
-  RootedObject functionCtor(
-      cx, NewFunctionWithProto(
-              cx, Function, 1, FunctionFlags::NATIVE_CTOR, nullptr,
-              Handle<PropertyName*>(cx->names().Function), functionProto,
-              gc::AllocKind::FUNCTION, TenuredObject));
-  if (!functionCtor) {
-    return nullptr;
-  }
-
-  return functionCtor;
+  return NewFunctionWithProto(
+      cx, Function, 1, FunctionFlags::NATIVE_CTOR, nullptr,
+      Handle<PropertyName*>(cx->names().Function), functionProto,
+      gc::AllocKind::FUNCTION, TenuredObject);
 }
 
 static bool FunctionPrototype(JSContext* cx, unsigned argc, Value* vp) {
@@ -1705,7 +1699,7 @@ static bool NewFunctionEnvironmentIsWellFormed(JSContext* cx,
   // scope proxy. All other cases of polluting global scope behavior are
   // handled by EnvironmentObjects (viz. non-syntactic DynamicWithObject and
   // NonSyntacticVariablesObject).
-  RootedObject terminatingEnv(cx, SkipEnvironmentObjects(env));
+  JSObject* terminatingEnv = SkipEnvironmentObjects(env);
   return !terminatingEnv || terminatingEnv == cx->global() ||
          terminatingEnv->is<DebugEnvironmentProxy>();
 }

@@ -297,8 +297,8 @@ bool MapIteratorObject::next(MapIteratorObject* mapIterator,
 
 /* static */
 JSObject* MapIteratorObject::createResultPair(JSContext* cx) {
-  Rooted<ArrayObject*> resultPairObj(
-      cx, NewDenseFullyAllocatedArray(cx, 2, TenuredObject));
+  ArrayObject* resultPairObj =
+      NewDenseFullyAllocatedArray(cx, 2, TenuredObject);
   if (!resultPairObj) {
     return nullptr;
   }
@@ -1218,8 +1218,7 @@ bool SetIteratorObject::next(SetIteratorObject* setIterator,
 
 /* static */
 JSObject* SetIteratorObject::createResult(JSContext* cx) {
-  Rooted<ArrayObject*> resultObj(
-      cx, NewDenseFullyAllocatedArray(cx, 1, TenuredObject));
+  ArrayObject* resultObj = NewDenseFullyAllocatedArray(cx, 1, TenuredObject);
   if (!resultObj) {
     return nullptr;
   }

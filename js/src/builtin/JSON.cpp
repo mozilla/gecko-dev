@@ -652,7 +652,7 @@ static bool SerializeJSONArray(JSContext* cx, HandleObject obj,
          */
         MOZ_ASSERT(obj->is<ArrayObject>());
         MOZ_ASSERT(obj->is<NativeObject>());
-        Rooted<NativeObject*> nativeObj(cx, &obj->as<NativeObject>());
+        auto* nativeObj = &obj->as<NativeObject>();
         if (i <= PropertyKey::IntMax) {
           MOZ_ASSERT(
               nativeObj->containsDenseElement(i) != nativeObj->isIndexed(),

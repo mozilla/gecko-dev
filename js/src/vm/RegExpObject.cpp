@@ -204,7 +204,7 @@ RegExpObject* RegExpObject::createSyntaxChecked(JSContext* cx,
                                                 Handle<JSAtom*> source,
                                                 RegExpFlags flags,
                                                 NewObjectKind newKind) {
-  Rooted<RegExpObject*> regexp(cx, RegExpAlloc(cx, newKind));
+  RegExpObject* regexp = RegExpAlloc(cx, newKind);
   if (!regexp) {
     return nullptr;
   }

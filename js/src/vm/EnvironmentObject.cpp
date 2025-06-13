@@ -1122,8 +1122,8 @@ BlockLexicalEnvironmentObject* BlockLexicalEnvironmentObject::clone(
     JSContext* cx, Handle<BlockLexicalEnvironmentObject*> env) {
   Rooted<LexicalScope*> scope(cx, &env->scope());
   RootedObject enclosing(cx, &env->enclosingEnvironment());
-  Rooted<BlockLexicalEnvironmentObject*> copy(
-      cx, create(cx, scope, enclosing, gc::Heap::Default));
+  BlockLexicalEnvironmentObject* copy =
+      create(cx, scope, enclosing, gc::Heap::Default);
   if (!copy) {
     return nullptr;
   }
