@@ -110,16 +110,8 @@
       };
     }
 
-    #lastGroup;
     connectedCallback() {
-      this.#updateOnTabGrouped();
-      this.#lastGroup = this.group;
-
       this.initialize();
-    }
-
-    disconnectedCallback() {
-      this.#updateOnTabUngrouped();
     }
 
     initialize() {
@@ -142,8 +134,8 @@
       labelContainer.addEventListener("underflow", this);
 
       // Tabs in the tab strip default to being at the top level (level 1)
-      // Tabs in tab groups are one level down (level 2); this tab will
-      // update its value when it moves in and out of tab groups.
+      // Tabs in tab groups are one level down (level 2); tab groups will
+      // update this value when tabs move in and out of tab groups.
       this.setAttribute("aria-level", 1);
     }
 
@@ -725,45 +717,6 @@
 
     on_underflow(event) {
       event.currentTarget.removeAttribute("textoverflow");
-    }
-
-    #updateOnTabGrouped() {
-      if (this.group && this.#lastGroup != this.group) {
-        // Trigger TabGrouped on the tab group, not the tab itself. This is a
-        // bit unorthodox, but fixes bug1964152 where tab group events are not
-        // fired correctly when tabs change windows (because the tab is
-        // detached from the DOM at time of the event).
-        this.group.dispatchEvent(
-          new CustomEvent("TabGrouped", {
-            bubbles: true,
-            detail: this,
-          })
-        );
-        this.setAttribute("aria-level", 2);
-      }
-    }
-
-    #updateOnTabUngrouped() {
-      if (this.#lastGroup && this.#lastGroup != this.group) {
-        // Trigger TabUngrouped on the tab group, not the tab itself. This is a
-        // bit unorthodox, but fixes bug1964152 where tab group events are not
-        // fired correctly when tabs change windows (because the tab is
-        // detached from the DOM at time of the event).
-        this.#lastGroup.dispatchEvent(
-          new CustomEvent("TabUngrouped", {
-            bubbles: true,
-            detail: this,
-          })
-        );
-        // Tab could have moved to be ungrouped (level 1)
-        // or to a different group (level 2).
-        this.setAttribute("aria-level", this.group ? 2 : 1);
-        // `posinset` and `setsize` only need to be set explicitly
-        // on grouped tabs so that a11y tools can tell users that a
-        // given tab is "2 of 7" in the group, for example.
-        this.removeAttribute("aria-posinset");
-        this.removeAttribute("aria-setsize");
-      }
     }
   }
 
