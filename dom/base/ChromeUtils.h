@@ -201,6 +201,10 @@ class ChromeUtils {
                                  const dom::ClearResourceCacheOptions& aOptions,
                                  ErrorResult& aRv);
 
+  static void ClearBfcacheByPrincipal(GlobalObject& aGlobal,
+                                      nsIPrincipal* aPrincipal,
+                                      ErrorResult& aRv);
+
   static void SetPerfStatsCollectionMask(GlobalObject& aGlobal, uint64_t aMask);
 
   static already_AddRefed<Promise> CollectPerfStats(GlobalObject& aGlobal,

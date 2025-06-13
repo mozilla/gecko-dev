@@ -163,10 +163,10 @@ void ClearSiteData::ClearDataFromChannel(nsIHttpChannel* aChannel) {
     return;
   }
 
-  nsCOMPtr<nsIPrincipal> principal;
+  nsCOMPtr<nsIPrincipal> storagePrincipal;
   rv = ssm->GetChannelResultStoragePrincipal(aChannel,
-                                             getter_AddRefs(principal));
-  if (NS_WARN_IF(NS_FAILED(rv) || !principal)) {
+                                             getter_AddRefs(storagePrincipal));
+  if (NS_WARN_IF(NS_FAILED(rv) || !storagePrincipal)) {
     return;
   }
 
@@ -179,7 +179,7 @@ void ClearSiteData::ClearDataFromChannel(nsIHttpChannel* aChannel) {
     return;
   }
 
-  bool secure = principal->GetIsOriginPotentiallyTrustworthy();
+  bool secure = storagePrincipal->GetIsOriginPotentiallyTrustworthy();
   if (NS_WARN_IF(NS_FAILED(rv)) || !secure) {
     return;
   }
@@ -224,12 +224,14 @@ void ClearSiteData::ClearDataFromChannel(nsIHttpChannel* aChannel) {
                   nsIClearDataService::CLEAR_FINGERPRINTING_PROTECTION_STATE;
   }
 
-  int numClearCalls = (cleanFlags != 0) + (cleanNetworkFlags != 0);
+  // for each `DeleteDataFromPrincipal` we need to wait for one callback.
+  // cleanFlags elicits once callback.
+  uint32_t numClearCalls = (cleanFlags != 0) + (cleanNetworkFlags != 0);
 
   if (numClearCalls > 0) {
-    nsCOMPtr<nsIClearDataService> csd =
+    nsCOMPtr<nsIClearDataService> cds =
         do_GetService("@mozilla.org/clear-data-service;1");
-    MOZ_ASSERT(csd);
+    MOZ_ASSERT(cds);
 
     RefPtr<PendingCleanupHolder> holder = new PendingCleanupHolder(aChannel);
     rv = holder->Start(numClearCalls);
@@ -238,8 +240,8 @@ void ClearSiteData::ClearDataFromChannel(nsIHttpChannel* aChannel) {
     }
 
     if (cleanFlags != 0) {
-      rv = csd->DeleteDataFromPrincipal(principal, false /* user request */,
-                                        cleanFlags, holder);
+      rv = cds->DeleteDataFromPrincipal(
+          storagePrincipal, false /* user request */, cleanFlags, holder);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         // the channel gets resumed when the holder is no longer in scope.
         // Therefore returning without calling OnDataDeleted twice doesn't
@@ -250,7 +252,7 @@ void ClearSiteData::ClearDataFromChannel(nsIHttpChannel* aChannel) {
     }
 
     if (cleanNetworkFlags != 0) {
-      rv = csd->DeleteDataFromPrincipal(partitionedPrincipal,
+      rv = cds->DeleteDataFromPrincipal(partitionedPrincipal,
                                         false /* user request */,
                                         cleanNetworkFlags, holder);
       if (NS_WARN_IF(NS_FAILED(rv))) {
