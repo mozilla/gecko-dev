@@ -42,16 +42,24 @@ export class _CustomizeMenu extends React.PureComponent {
           appear={true}
         >
           <button
-            className="icon icon-settings personalize-button"
+            className="personalize-button"
+            data-l10n-id="newtab-customize-panel-icon-button"
             onClick={() => this.props.onOpen()}
             onKeyDown={e => {
               if (e.key === "Enter") {
                 this.props.onOpen();
               }
             }}
-            data-l10n-id="newtab-personalize-settings-icon-label"
             ref={c => (this.openButton = c)}
-          />
+          >
+            <div>
+              <img
+                role="presentation"
+                src="chrome://global/skin/icons/edit-outline.svg"
+              />
+            </div>
+            <label data-l10n-id="newtab-customize-panel-icon-button-label" />
+          </button>
         </CSSTransition>
         <CSSTransition
           timeout={250}

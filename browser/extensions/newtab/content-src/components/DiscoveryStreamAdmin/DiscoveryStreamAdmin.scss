@@ -3,7 +3,7 @@
 .discoverystream-admin-toggle {
   position: fixed;
   // Adjust spacing for DevTools wrench icon to avoid overlapping the customize button
-  inset-block-start: calc(var(--button-size-icon) + var(--space-xxlarge));
+  inset-block-start: calc(var(--button-size-icon) + var(--space-xxlarge) + var(--space-small));
   inset-inline-end: var(--space-xlarge);
   border: 0;
   background: none;
@@ -11,8 +11,11 @@
   border-radius: var(--border-radius-small);
 
   .icon-devtools {
+    background-color: var(--button-background-color, rgba(21, 20, 26, 7%));
     background-image: url('chrome://global/skin/icons/developer.svg');
-    padding: var(--space-large);
+    background-size: var(--icon-size-medium);
+    box-shadow: 0 0.8px 1.6px 0 rgba(58, 57, 68, 20%);
+    padding: calc(5 * var(--space-xsmall));
   }
 
   &:dir(rtl) {
@@ -292,7 +295,6 @@
 
   .icon {
     display: inline-table;
-    cursor: pointer;
     width: 18px;
     height: 18px;
   }

@@ -28,17 +28,30 @@
 // Adjust spacing for DevTools wrench icon in variant B to avoid overlapping the customize button
 .layout-variant-b + .discoverystream-admin-toggle {
   inset-block-start: auto;
-  inset-block-end: calc(var(--button-size-icon) + var(--space-xxlarge));
+  inset-block-end: calc(var(--button-size-icon) + var(--space-xxlarge) + var(--space-small));
 }
 
 .personalize-button {
+  // Throw these values for the button animation into variables
+  // so they're not recalculated all the time
+  --button-collapsed-width: calc(var(--size-item-small) + var(--size-item-medium));
+  --button-full-width: calc(2 * var(--button-collapsed-width));
+  --label-shift-by-value: calc(-1 * var(--space-small));
+
   border: 0;
   border-radius: var(--border-radius-small);
-  background-color: transparent;
-  padding: var(--space-large);
+  background-color: var(--button-background-color, rgba(21, 20, 26, 7%));
+  box-shadow: 0 0.8px 1.6px 0 rgba(58, 57, 68, 20%);
+  padding: calc(5 * var(--space-xxsmall));
   position: relative;
-  background-size: var(--icon-size-default);
+  background-size: var(--icon-size-medium);
   background-position: center;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  width: var(--button-collapsed-width);
+  min-width: var(--button-collapsed-width);
+  transition: all 0.5s ease-in-out;
 
   // Contrast fix for users who have wallpapers set
   &:not(:hover, :active) {
@@ -59,6 +72,52 @@
 
   &.personalize-animate-exit-done {
     visibility: hidden;
+  }
+
+  > div {
+    width: var(--icon-size-medium);
+    height: var(--icon-size-medium);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    > img {
+      -moz-context-properties: fill;
+      display: inline-block;
+      color: var(--icon-color);
+      fill: currentColor;
+      height: 100%;
+      object-fit: contain;
+      vertical-align: middle;
+      width: 100%;
+    }
+  }
+
+  > label {
+    margin-inline-start: 0;
+    opacity: 0;
+    transform: translateX(var(--label-shift-by-value));
+    white-space: nowrap;
+    transition:
+      opacity 0.5s ease-in-out,
+      margin 0.5s ease-in-out,
+      transform 0.5s ease-in-out;
+  }
+}
+
+.personalize-button:hover,
+.personalize-button:focus {
+  width: fit-content;
+  // Animate the appearance of the button label on the min-width,
+  // as we need to cater for localised strings
+  min-width: var(--button-full-width);
+
+  > label {
+    opacity: 1;
+    transform: translateX(0);
+    margin-inline-start: var(--space-small);
+    transition-duration: 0.2s;
   }
 }
 
