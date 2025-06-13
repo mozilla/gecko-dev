@@ -19,7 +19,7 @@ default:
     run:
         using: run-task
         cwd: '{checkout}'
-        command: ./mach wpt-unittest -e py38
+        command: ./mach wpt-unittest -e py39
     when:
         files-changed:
             - 'testing/web-platform/tests/tools/**'
