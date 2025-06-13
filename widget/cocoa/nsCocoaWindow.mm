@@ -840,6 +840,8 @@ void nsCocoaWindow::PaintWindowInContentLayer() {
 }
 
 void nsCocoaWindow::HandleMainThreadCATransaction() {
+  AUTO_PROFILER_TRACING_MARKER("Paint", "HandleMainThreadCATransaction",
+                               GRAPHICS);
   WillPaintWindow();
 
   if (GetWindowRenderer()->GetBackendType() == LayersBackend::LAYERS_NONE) {
