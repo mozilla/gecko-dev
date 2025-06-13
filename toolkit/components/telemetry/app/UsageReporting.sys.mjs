@@ -75,6 +75,24 @@ export var UsageReporting = {
       Glean.usage.osVersion.set(os.version);
       if (os.isWindows) {
         Glean.usage.windowsBuildNumber.set(os.windowsBuildNumber);
+        try {
+          let wrk = Cc["@mozilla.org/windows-registry-key;1"].createInstance(
+            Ci.nsIWindowsRegKey
+          );
+          wrk.open(
+            wrk.ROOT_KEY_CURRENT_USER,
+            "Software\\Microsoft\\Windows\\CurrentVersion\\AppListBackup",
+            wrk.ACCESS_ALL
+          );
+          Glean.usage.windowsBackupEnabled.set(
+            wrk.readIntValue("IsBackupEnabledAndMSAAttached") != 0
+          );
+          wrk.close();
+        } catch (err) {
+          this._log.info(
+            `${SLUG}: Unable to detect Windows Backup state: ${err}`
+          );
+        }
       }
       Glean.usage.appBuild.set(Services.appinfo.appBuildID);
       Glean.usage.appDisplayVersion.set(lazy.ClientEnvironmentBase.version);
