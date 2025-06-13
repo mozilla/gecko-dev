@@ -8,6 +8,7 @@ kind-dependencies:
     - toolchain
 
 transforms:
+    - gecko_taskgraph.transforms.update_test:transforms
     - gecko_taskgraph.transforms.job:transforms
     - gecko_taskgraph.transforms.task:transforms
 
@@ -15,57 +16,46 @@ task-defaults:
     treeherder:
         kind: other
         tier: 2
+        symbol: update-test(firefox)
     worker:
         max-run-time: 10800
-        artifacts: []
+    run-on-projects: []
+    index:
+        product: firefox
+    run:
+        using: run-task
+        command: >-
+            ./mach update-test --test-type Background;
 
 tasks:
-    windows2012-64-firefox:
-        worker-type: win11-64-24h2-source
-        description: Test updates on Win64
-        run-on-projects: []
-        treeherder:
-            symbol: update-test(firefox)
-            platform: windows2012-64/opt
-        index:
-            product: firefox
-            job-name: update-test-win64
-        run:
-            using: run-task
-            cwd: "{checkout}"
-            command: >-
-                ./mach update-test --test_type Base;
-                ./mach update-test --test_type Background;
-
-    macosx64-firefox:
-        worker-type: t-osx-1500-m4
-        description: Test updates on macOS
-        run-on-projects: []
-        treeherder:
-            symbol: update-test(firefox)
-            platform: macosx/opt
-        index:
-            product: firefox
-            job-name: update-test-macOS
-        run:
-            using: run-task
-            cwd: "{checkout}"
-            command: >-
-                ./mach update-test --test_type Base;
-                ./mach update-test --test_type Background;
-
-    linux64-firefox:
-        worker-type: t-linux-xlarge-source
+    update-test:
         worker:
-            docker-image: {in-tree: ubuntu2404-test}
-        description: Test updates on Linux
-        run-on-projects: []
-        treeherder:
-            symbol: update-test(firefox)
-            platform: linux64/opt
+            artifacts:
+                - type: directory
+                  path: update-test
+                  name: public/update-test
+            env:
+                UPLOAD_DIR: .
+                VERSION_LOG_FILENAME: update-test-version-info.log
+        os:
+            - win11-64-24h2-source
+            - win10-64-2009
+            - t-osx-1500-m4
+            - t-osx-1400-r8
+            - t-osx-1015-r8
+
+    update-test-linux-docker:
+        worker-type: t-linux-docker
+        worker:
+            artifacts:
+                - type: directory
+                  path: /builds/worker/artifacts/update-test
+                  name: public/update-test
+            env:
+                UPLOAD_DIR: /builds/worker/artifacts
+                VERSION_LOG_FILENAME: update-test-version-info.log
         run:
-            using: run-task
-            cwd: "{checkout}"
             command: >-
-                . $HOME/scripts/xvfb.sh && start_xvfb '1600x1200x24' 0 && ./mach update-test --test_type Base;
-                ./mach update-test --test_type Background;
+                . $HOME/scripts/xvfb.sh && start_xvfb '1600x1200x24' 0 && ./mach update-test --test-type Background;
+        os:
+            - ubuntu2404-test
