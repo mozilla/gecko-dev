@@ -316,6 +316,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = It waar
     .description = De waarsferwachting fan hjoed yn ien eachopslach
+newtab-custom-trending-search-toggle =
+    .label = Trending sykopdrachten
+    .description = Populêre en faak sochte ûnderwerpen
 newtab-custom-close-button = Slute
 newtab-custom-settings = Mear ynstellingen beheare
 
@@ -563,3 +566,14 @@ newtab-report-cancel = Annulearje
 newtab-report-submit = Yntsjinje
 newtab-toast-thanks-for-reporting =
     .message = Tank foar it melden.
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Trending op Google
+newtab-trending-searches-show-trending =
+    .title = Trending sykopdrachten toane
+newtab-trending-searches-hide-trending =
+    .title = Trending sykopdrachten ferstopje
+newtab-trending-searches-learn-more = Mear ynfo
+newtab-trending-searches-dismiss = Trending sykopdrachten ferstopje

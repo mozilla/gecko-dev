@@ -318,6 +318,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Wjedro
     .description = Dźensniša wjedrowa předpowědź na jedyn pohlad
+newtab-custom-trending-search-toggle =
+    .label = Woblubowane pytanja
+    .description = Popularne a husto pytane temy
 newtab-custom-close-button = Začinić
 newtab-custom-settings = Dalše nastajenja rjadować
 
@@ -565,3 +568,14 @@ newtab-report-cancel = Přetorhnyć
 newtab-report-submit = Wotpósłać
 newtab-toast-thanks-for-reporting =
     .message = Wulki dźak, zo sće to zdźělił.
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Woblubowane temy na Google
+newtab-trending-searches-show-trending =
+    .title = Woblubowane pytanja pokazać
+newtab-trending-searches-hide-trending =
+    .title = Woblubowane pytanja schować
+newtab-trending-searches-learn-more = Dalše informacije
+newtab-trending-searches-dismiss = Woblubowane pytanja schować

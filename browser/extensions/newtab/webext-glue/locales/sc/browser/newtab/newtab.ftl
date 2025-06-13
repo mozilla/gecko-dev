@@ -519,3 +519,6 @@ newtab-report-cancel = Annulla
 newtab-report-submit = Imbia
 newtab-toast-thanks-for-reporting =
     .message = Gràtzias de sa sinnalatzione.
+
+## Strings for trending searches
+

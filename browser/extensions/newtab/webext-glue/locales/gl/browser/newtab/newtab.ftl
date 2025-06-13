@@ -430,3 +430,6 @@ newtab-section-mangage-topics-blocked-topics-empty-state = Aínda non bloqueache
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

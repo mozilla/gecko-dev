@@ -233,3 +233,6 @@ newtab-error-fallback-refresh-link = Porlōdej lopu, kab paraudzēt par jaunu.
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

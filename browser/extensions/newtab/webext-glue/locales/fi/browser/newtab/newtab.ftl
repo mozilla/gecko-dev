@@ -563,3 +563,6 @@ newtab-report-cancel = Peruuta
 newtab-report-submit = Lähetä
 newtab-toast-thanks-for-reporting =
     .message = Kiitos, että ilmoitit tästä.
+
+## Strings for trending searches
+

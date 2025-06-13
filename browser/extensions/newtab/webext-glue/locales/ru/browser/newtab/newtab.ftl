@@ -317,6 +317,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Погода
     .description = Краткий прогноз на сегодня
+newtab-custom-trending-search-toggle =
+    .label = Популярные поисковые запросы
+    .description = Популярные и часто запрашиваемые темы
 newtab-custom-close-button = Закрыть
 newtab-custom-settings = Управление дополнительными настройками
 
@@ -564,3 +567,14 @@ newtab-report-cancel = Отмена
 newtab-report-submit = Отправить
 newtab-toast-thanks-for-reporting =
     .message = Благодарим за сообщение.
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Популярные в Google
+newtab-trending-searches-show-trending =
+    .title = Показать популярные поисковые запросы
+newtab-trending-searches-hide-trending =
+    .title = Скрыть популярные поисковые запросы
+newtab-trending-searches-learn-more = Узнать больше
+newtab-trending-searches-dismiss = Скрыть популярные поисковые запросы

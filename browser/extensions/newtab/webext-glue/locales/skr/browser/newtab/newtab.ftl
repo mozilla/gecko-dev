@@ -465,3 +465,6 @@ newtab-topic-selection-button-pick-interests = آپݨیاں دلچسپیاں �
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

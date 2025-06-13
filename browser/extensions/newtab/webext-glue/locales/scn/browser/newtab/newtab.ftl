@@ -246,3 +246,6 @@ newtab-error-fallback-refresh-link = Attualizza sta pàggina pi pruvari arrè.
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

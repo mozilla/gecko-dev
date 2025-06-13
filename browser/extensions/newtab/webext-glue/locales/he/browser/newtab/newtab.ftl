@@ -310,6 +310,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = מזג אוויר
     .description = התחזית של היום
+newtab-custom-trending-search-toggle =
+    .label = חיפושים פופולריים
+    .description = נושאים נפוצים ובחיפוש תדיר
 newtab-custom-close-button = סגירה
 newtab-custom-settings = ניהול הגדרות נוספות
 
@@ -557,3 +560,14 @@ newtab-report-cancel = ביטול
 newtab-report-submit = שליחה
 newtab-toast-thanks-for-reporting =
     .message = תודה שדיווחת על זה.
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = פופולרי ב־Google
+newtab-trending-searches-show-trending =
+    .title = הצגת חיפושים פופולריים
+newtab-trending-searches-hide-trending =
+    .title = הסתרת חיפושים פופולריים
+newtab-trending-searches-learn-more = מידע נוסף
+newtab-trending-searches-dismiss = הסתרת חיפושים פופולריים

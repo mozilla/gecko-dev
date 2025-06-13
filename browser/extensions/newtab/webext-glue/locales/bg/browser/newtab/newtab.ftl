@@ -439,3 +439,6 @@ newtab-custom-wallpaper-cta = Опитайте
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

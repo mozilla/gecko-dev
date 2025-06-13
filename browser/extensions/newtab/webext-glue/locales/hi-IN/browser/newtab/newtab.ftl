@@ -271,3 +271,6 @@ feature-highlight-wallpaper =
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

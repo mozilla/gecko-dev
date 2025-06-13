@@ -528,3 +528,6 @@ newtab-section-mangage-topics-blocked-topics-empty-state = Du har ikke blokkert 
 newtab-report-submit = Send
 newtab-toast-thanks-for-reporting =
     .message = Takk for at du rapporterte dette.
+
+## Strings for trending searches
+

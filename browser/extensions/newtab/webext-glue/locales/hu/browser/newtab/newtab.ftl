@@ -316,6 +316,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Időjárás
     .description = A mai előrejelzés egy pillantásra
+newtab-custom-trending-search-toggle =
+    .label = Felkapott keresések
+    .description = Népszerű és gyakran keresett témák
 newtab-custom-close-button = Bezárás
 newtab-custom-settings = További beállítások kezelése
 
@@ -563,3 +566,14 @@ newtab-report-cancel = Mégse
 newtab-report-submit = Elküldés
 newtab-toast-thanks-for-reporting =
     .message = Köszönjük, hogy bejelentette.
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Felkapott a Google-ön
+newtab-trending-searches-show-trending =
+    .title = Felkapott keresések megjelenítése
+newtab-trending-searches-hide-trending =
+    .title = Felkapott keresések elrejtése
+newtab-trending-searches-learn-more = További tudnivalók
+newtab-trending-searches-dismiss = Felkapott keresések elrejtése

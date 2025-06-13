@@ -288,3 +288,6 @@ newtab-custom-settings = Tetiñu kue´e da kei´i
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

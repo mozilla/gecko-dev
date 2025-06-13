@@ -535,3 +535,6 @@ newtab-report-ads-reason-inappropriate =
     .label = Tidak pantas
 newtab-report-cancel = Batal
 newtab-report-submit = Kirim
+
+## Strings for trending searches
+

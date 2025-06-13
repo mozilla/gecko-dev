@@ -559,3 +559,6 @@ newtab-report-cancel = Nuligi
 newtab-report-submit = Sendi
 newtab-toast-thanks-for-reporting =
     .message = Dankon pro via raporto.
+
+## Strings for trending searches
+

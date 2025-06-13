@@ -255,3 +255,6 @@ newtab-error-fallback-refresh-link = Wultin hello ngoo ngam ennditde.
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

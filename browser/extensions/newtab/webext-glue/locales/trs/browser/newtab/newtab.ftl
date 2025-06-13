@@ -237,3 +237,6 @@ newtab-error-fallback-refresh-link = Nagi'iaj nakà pagina nī garahue ñut
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

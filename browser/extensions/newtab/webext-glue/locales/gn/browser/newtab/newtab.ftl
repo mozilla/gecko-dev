@@ -315,6 +315,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Arapytu
     .description = Ko árape g̃uara ára
+newtab-custom-trending-search-toggle =
+    .label = Jeheka ojejapovéva
+    .description = Umi téma ojeguerohory ha ojehekavéva
 newtab-custom-close-button = Mboty
 newtab-custom-settings = Eñangareko hetave ñembohekóre
 
@@ -562,3 +565,14 @@ newtab-report-cancel = Heja
 newtab-report-submit = Mondo
 newtab-toast-thanks-for-reporting =
     .message = Aguyje emomarandu haguére.
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Google-pe ojehekavéva
+newtab-trending-searches-show-trending =
+    .title = Ehechauka jeheka ojejapovéva
+newtab-trending-searches-hide-trending =
+    .title = Eñomi jeheka ojejapovéva
+newtab-trending-searches-learn-more = Eikuaave
+newtab-trending-searches-dismiss = Eñomi jeheka ojejapovéva

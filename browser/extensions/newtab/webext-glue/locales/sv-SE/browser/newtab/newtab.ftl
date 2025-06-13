@@ -316,6 +316,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Väder
     .description = Dagens prognos i korthet
+newtab-custom-trending-search-toggle =
+    .label = Trendiga sökningar
+    .description = Populära och ofta sökta ämnen
 newtab-custom-close-button = Stäng
 newtab-custom-settings = Hantera fler inställningar
 
@@ -563,3 +566,14 @@ newtab-report-cancel = Avbryt
 newtab-report-submit = Skicka in
 newtab-toast-thanks-for-reporting =
     .message = Tack för att du rapporterade detta.
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Trender på Google
+newtab-trending-searches-show-trending =
+    .title = Visa trendiga sökningar
+newtab-trending-searches-hide-trending =
+    .title = Dölj trendiga sökningar
+newtab-trending-searches-learn-more = Läs mer
+newtab-trending-searches-dismiss = Dölj trendiga sökningar

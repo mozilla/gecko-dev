@@ -238,3 +238,6 @@ newtab-error-fallback-refresh-link = B'an tuch u u'uje' as la q'aavisa unpajte.
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

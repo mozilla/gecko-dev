@@ -321,6 +321,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Y Tywydd
     .description = Cipolwg ar ragolygon tywydd heddiw
+newtab-custom-trending-search-toggle =
+    .label = Tueddiadau chwilio
+    .description = Pynciau chwilio aml a phoblogaidd
 newtab-custom-close-button = Cau
 newtab-custom-settings = Rheoli rhagor o osodiadau
 
@@ -568,3 +571,14 @@ newtab-report-cancel = Diddymu
 newtab-report-submit = Cyflwyno
 newtab-toast-thanks-for-reporting =
     .message = Diolch am adrodd ar hwn.
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Y tuedd ar Google
+newtab-trending-searches-show-trending =
+    .title = Dangos y tuedd chwilio
+newtab-trending-searches-hide-trending =
+    .title = Cuddio'r tuedd chwilio
+newtab-trending-searches-learn-more = Dysgu rhagor
+newtab-trending-searches-dismiss = Cuddio'r tuedd chwilio

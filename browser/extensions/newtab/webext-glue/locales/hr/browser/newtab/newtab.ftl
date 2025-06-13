@@ -317,6 +317,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Vrijeme
     .description = Današnja prognoza
+newtab-custom-trending-search-toggle =
+    .label = Popularne pretrage
+    .description = Popularne i često tražene teme
 newtab-custom-close-button = Zatvori
 newtab-custom-settings = Upravljaj dodatnim postavkama
 
@@ -564,3 +567,14 @@ newtab-report-cancel = Odustani
 newtab-report-submit = Pošalji
 newtab-toast-thanks-for-reporting =
     .message = Hvala na prijavi!
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Popularne teme na Google tražilici
+newtab-trending-searches-show-trending =
+    .title = Prikaži popularne pretrage
+newtab-trending-searches-hide-trending =
+    .title = Sakrij popularne pretrage
+newtab-trending-searches-learn-more = Saznaj više
+newtab-trending-searches-dismiss = Sakrij popularne pretrage

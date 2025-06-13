@@ -550,3 +550,6 @@ newtab-report-content-spam-misleading =
     .label = Spam u engianus
 newtab-report-cancel = Interrumper
 newtab-report-submit = Trametter
+
+## Strings for trending searches
+

@@ -222,3 +222,6 @@ newtab-error-fallback-refresh-link = Muat semula halaman untuk cuba lagi.
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

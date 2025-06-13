@@ -249,3 +249,6 @@ newtab-error-fallback-refresh-link = پەڕە نوێبکەرەوە بۆ هەوڵ
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

@@ -564,3 +564,6 @@ newtab-report-cancel = Скасаваць
 newtab-report-submit = Даслаць
 newtab-toast-thanks-for-reporting =
     .message = Дзякуй, што паведамілі пра гэта.
+
+## Strings for trending searches
+

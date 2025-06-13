@@ -221,3 +221,6 @@ newtab-error-fallback-refresh-link = ផ្ទុកទំព័រឡើងវ�
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

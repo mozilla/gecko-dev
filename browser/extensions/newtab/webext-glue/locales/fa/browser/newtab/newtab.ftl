@@ -358,3 +358,6 @@ newtab-topic-selection-button-maybe-later = شاید بعداً
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

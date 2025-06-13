@@ -320,3 +320,6 @@ newtab-custom-settings = Stiùirich barrachd roghainnean
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

@@ -562,3 +562,6 @@ newtab-report-cancel = Hủy bỏ
 newtab-report-submit = Gửi
 newtab-toast-thanks-for-reporting =
     .message = Cảm ơn bạn đã báo cáo điều này.
+
+## Strings for trending searches
+

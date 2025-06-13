@@ -284,3 +284,6 @@ newtab-custom-settings = Boshqa sozlamalarni boshqarish
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

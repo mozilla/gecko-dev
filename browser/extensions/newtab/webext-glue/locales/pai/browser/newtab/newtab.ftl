@@ -134,3 +134,6 @@ newtab-pocket-learn-more = Terabum ŕpo
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

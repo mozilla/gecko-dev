@@ -242,3 +242,6 @@ newtab-custom-close-button = Lor
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

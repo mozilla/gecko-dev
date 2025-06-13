@@ -469,3 +469,6 @@ newtab-topic-selection-button-pick-interests = Одаберите ваша ин�
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

@@ -312,6 +312,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Tempo
     .description = Visão geral da previsão para hoje
+newtab-custom-trending-search-toggle =
+    .label = Pesquisas em alta
+    .description = Tópicos populares e pesquisados com frequência
 newtab-custom-close-button = Fechar
 newtab-custom-settings = Gerenciar mais configurações
 
@@ -559,3 +562,14 @@ newtab-report-cancel = Cancelar
 newtab-report-submit = Enviar
 newtab-toast-thanks-for-reporting =
     .message = Obrigado por informar isto.
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Em alta no Google
+newtab-trending-searches-show-trending =
+    .title = Mostrar pesquisas em alta
+newtab-trending-searches-hide-trending =
+    .title = Ocultar pesquisas em alta
+newtab-trending-searches-learn-more = Saiba mais
+newtab-trending-searches-dismiss = Ocultar pesquisas em alta

@@ -272,3 +272,6 @@ newtab-custom-settings = مزید سیٹنگز کو نظم کریں
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

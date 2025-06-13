@@ -562,3 +562,6 @@ newtab-report-cancel = ยกเลิก
 newtab-report-submit = ส่ง
 newtab-toast-thanks-for-reporting =
     .message = ขอบคุณที่รายงานสิ่งนี้
+
+## Strings for trending searches
+

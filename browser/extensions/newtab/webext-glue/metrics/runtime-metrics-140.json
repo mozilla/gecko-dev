@@ -1,6 +1,72 @@
 {
   "metrics": {
+    "newtab": {
+      "trending_search_dismiss": {
+        "description": "recorded when a user either collapses or dismisses the trending search widget\n",
+        "disabled": false,
+        "extraArgs": {
+          "allowed_extra_keys": ["newtab_visit_id", "variant"]
+        },
+        "lifetime": "ping",
+        "pings": ["newtab"],
+        "type": "event"
+      },
+      "trending_search_impression": {
+        "description": "records an impression when a trending search widget is visible to the user\n",
+        "disabled": false,
+        "extraArgs": {
+          "allowed_extra_keys": ["newtab_visit_id", "variant"]
+        },
+        "lifetime": "ping",
+        "pings": ["newtab"],
+        "type": "event"
+      },
+      "trending_search_suggestion_open": {
+        "description": "recorded when a user opens a suggested search link\n",
+        "disabled": false,
+        "extraArgs": {
+          "allowed_extra_keys": ["newtab_visit_id", "variant"]
+        },
+        "lifetime": "ping",
+        "pings": ["newtab"],
+        "type": "event"
+      }
+    },
     "topsites": {
+      "add": {
+        "description": "Recorded when a topsite tile is added\n",
+        "disabled": false,
+        "extraArgs": {
+          "allowed_extra_keys": [
+            "advertiser_name",
+            "is_sponsored",
+            "newtab_visit_id",
+            "position",
+            "tile_id"
+          ]
+        },
+        "lifetime": "ping",
+        "pings": ["newtab"],
+        "type": "event"
+      },
+      "edit": {
+        "description": "Recorded when a topsite tile is edited\n",
+        "disabled": false,
+        "extraArgs": {
+          "allowed_extra_keys": [
+            "advertiser_name",
+            "has_title_changed",
+            "has_url_changed",
+            "is_sponsored",
+            "newtab_visit_id",
+            "position",
+            "tile_id"
+          ]
+        },
+        "lifetime": "ping",
+        "pings": ["newtab"],
+        "type": "event"
+      },
       "pin": {
         "description": "Recorded when a topsite tile is pinned.\n",
         "disabled": false,

@@ -564,3 +564,6 @@ newtab-report-cancel = Otkaži
 newtab-report-submit = Pošalji
 newtab-toast-thanks-for-reporting =
     .message = Hvala vam što ste ovo prijavili.
+
+## Strings for trending searches
+

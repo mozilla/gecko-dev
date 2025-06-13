@@ -313,3 +313,6 @@ newtab-custom-settings = Կառավարէք աւելի շատ կարգաւորո
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

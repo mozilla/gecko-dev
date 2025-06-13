@@ -208,3 +208,6 @@ newtab-pocket-cta-button = Nduku { -pocket-brand-name }
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

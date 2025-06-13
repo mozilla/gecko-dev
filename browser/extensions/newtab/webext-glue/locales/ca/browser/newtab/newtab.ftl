@@ -437,3 +437,6 @@ newtab-topic-selection-button-maybe-later = Potser més tard
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

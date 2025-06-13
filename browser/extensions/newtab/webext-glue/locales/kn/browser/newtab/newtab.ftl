@@ -200,3 +200,6 @@ newtab-pocket-cta-button = { -pocket-brand-name } ಪಡೆಯಿರಿ
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

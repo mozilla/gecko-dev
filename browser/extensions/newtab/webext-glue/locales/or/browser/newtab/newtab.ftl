@@ -230,3 +230,6 @@ newtab-custom-close-button = ବନ୍ଦ କରନ୍ତୁ
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

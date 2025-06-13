@@ -563,3 +563,6 @@ newtab-report-cancel = Cancel
 newtab-report-submit = Submit
 newtab-toast-thanks-for-reporting =
     .message = Thank you for reporting this.
+
+## Strings for trending searches
+

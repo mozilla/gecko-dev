@@ -461,3 +461,6 @@ newtab-report-content-spam-misleading =
     .label = പാഴുള്ളടക്കം അല്ലെങ്കിൽ തെറ്റിദ്ധരിപ്പിക്കുന്നതു്.
 newtab-report-cancel = റദ്ദാക്കുക
 newtab-report-submit = സമൎപ്പിക്കുക
+
+## Strings for trending searches
+

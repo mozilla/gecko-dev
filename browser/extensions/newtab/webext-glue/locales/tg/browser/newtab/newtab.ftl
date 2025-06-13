@@ -314,6 +314,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Обу ҳаво
     .description = Ҳолати обу ҳаво барои имрӯз
+newtab-custom-trending-search-toggle =
+    .label = Ҷустуҷӯҳои ҳавасангез
+    .description = Мавзуъҳои маъмул ва ҷустуҷӯшавандаи такрорӣ
 newtab-custom-close-button = Пӯшидан
 newtab-custom-settings = Идоракунии танзимоти бештар
 
@@ -561,3 +564,14 @@ newtab-report-cancel = Бекор кардан
 newtab-report-submit = Пешниҳод кардан
 newtab-toast-thanks-for-reporting =
     .message = Ташаккур барои гузориши шумо дар бораи ин масъала.
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Ҳавасангез дар «Google»
+newtab-trending-searches-show-trending =
+    .title = Намоиш додани ҷустуҷӯҳои ҳавасангез
+newtab-trending-searches-hide-trending =
+    .title = Пинҳон кардани ҷустуҷӯҳои ҳавасангез
+newtab-trending-searches-learn-more = Маълумоти бештар
+newtab-trending-searches-dismiss = Пинҳон кардани ҷустуҷӯҳои ҳавасангез

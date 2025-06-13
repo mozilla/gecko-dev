@@ -438,3 +438,6 @@ newtab-custom-wallpaper-cta = Esaeañ
 
 newtab-report-cancel = Nullañ
 newtab-report-submit = Kas
+
+## Strings for trending searches
+

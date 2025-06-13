@@ -339,3 +339,6 @@ newtab-topic-selection-button-pick-interests = మీ ఆసక్తులన�
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

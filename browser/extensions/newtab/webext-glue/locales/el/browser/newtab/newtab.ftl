@@ -563,3 +563,12 @@ newtab-report-cancel = Ακύρωση
 newtab-report-submit = Υποβολή
 newtab-toast-thanks-for-reporting =
     .message = Ευχαριστούμε για την αναφορά σας.
+
+## Strings for trending searches
+
+newtab-trending-searches-show-trending =
+    .title = Εμφάνιση δημοφιλών αναζητήσεων
+newtab-trending-searches-hide-trending =
+    .title = Απόκρυψη δημοφιλών αναζητήσεων
+newtab-trending-searches-learn-more = Μάθετε περισσότερα
+newtab-trending-searches-dismiss = Απόκρυψη δημοφιλών αναζητήσεων

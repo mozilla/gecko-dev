@@ -267,3 +267,6 @@ newtab-custom-close-button = বন্ধ কৰক
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

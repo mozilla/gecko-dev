@@ -560,3 +560,6 @@ newtab-report-cancel = Zrušiť
 newtab-report-submit = Odoslať
 newtab-toast-thanks-for-reporting =
     .message = Ďakujeme za nahlásenie.
+
+## Strings for trending searches
+

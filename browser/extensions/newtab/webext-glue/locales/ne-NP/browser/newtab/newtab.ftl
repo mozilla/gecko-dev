@@ -206,3 +206,6 @@ newtab-error-fallback-refresh-link = पुनः प्रयास गर्�
 
 ## Strings for reporting ads and content
 
+
+## Strings for trending searches
+

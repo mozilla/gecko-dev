@@ -456,3 +456,6 @@ newtab-report-content-wrong-category =
     .label = Yir taggayt
 newtab-report-cancel = Sefsex
 newtab-report-submit = Azen
+
+## Strings for trending searches
+

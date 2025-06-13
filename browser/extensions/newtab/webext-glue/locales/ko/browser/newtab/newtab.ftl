@@ -315,6 +315,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = 날씨
     .description = 오늘의 일기예보를 한눈에 보기
+newtab-custom-trending-search-toggle =
+    .label = 인기 검색어
+    .description = 인기 있고 자주 검색되는 주제
 newtab-custom-close-button = 닫기
 newtab-custom-settings = 추가 설정
 
@@ -562,3 +565,14 @@ newtab-report-cancel = 취소
 newtab-report-submit = 보내기
 newtab-toast-thanks-for-reporting =
     .message = 신고해 주셔서 감사합니다.
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Google 트렌드
+newtab-trending-searches-show-trending =
+    .title = 인기 검색어 표시
+newtab-trending-searches-hide-trending =
+    .title = 인기 검색어 숨기기
+newtab-trending-searches-learn-more = 더 알아보기
+newtab-trending-searches-dismiss = 인기 검색어 숨기기
