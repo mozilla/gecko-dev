@@ -1889,7 +1889,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     var shouldShowMenuCFR by booleanPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_menu_cfr),
-        default = true,
+        default = false,
     )
 
     /**
