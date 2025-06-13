@@ -113,6 +113,7 @@ skip-if = [
 ["test_videocontrols_standalone.html"]
 skip-if = [
   "os == 'android'", # bug 1075573
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1804621
 ]
 
 ["test_videocontrols_video_direction.html"]

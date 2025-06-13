@@ -132,6 +132,9 @@ skip-if = [
 skip-if = ["os == 'android'"]
 
 ["test_bug386782.html"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1912735
+]
 
 ["test_bug430624.html"]
 

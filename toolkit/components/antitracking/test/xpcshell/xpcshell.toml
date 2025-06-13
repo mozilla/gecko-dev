@@ -13,6 +13,7 @@ skip-if = ["socketprocess_networking"] # Bug 1759035
 run-sequentially = "very high failure rate in parallel"
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1760085
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && ccov && socketprocess_networking && !fission", # Bug 1760085
   "win10_2009", # Bug 1718292
   "win11_2009", # Bug 1797751
 ]

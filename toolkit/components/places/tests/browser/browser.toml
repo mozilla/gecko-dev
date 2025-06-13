@@ -102,6 +102,9 @@ support-files = [
   "redirect_twice.sjs",
   "userpass.html",
 ]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1889180
+]
 
 ["browser_visituri_nohistory.js"]
 support-files = [

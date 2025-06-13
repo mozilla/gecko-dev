@@ -126,6 +126,7 @@ skip-if = [
 
 ["test_group_pointerevents.html"]
 skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1776964
   "win10_2009", # Bug 1404836
   "win11_2009", # Bug 1404836
   "os == 'win' && os_version == '11.26100' && processor == 'x86'", # Bug 1404836
@@ -167,9 +168,15 @@ skip-if = ["display == 'wayland' && os_version == '22.04'"]  # Bug 1857059
 ["test_group_touchevents-4.html"]
 
 ["test_group_touchevents-5.html"]
-skip-if = ["display == 'wayland' && os_version == '22.04'"]  # Bug 1857059
+skip-if = [
+  "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1776965
+]
 
 ["test_group_touchevents-6.html"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1915078
+]
 
 ["test_group_touchevents.html"]
 

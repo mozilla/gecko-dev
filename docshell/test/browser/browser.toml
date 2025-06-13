@@ -95,12 +95,9 @@ skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1607713
 ["browser_bfcache_copycommand.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1730593
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks && swgl", # Bug 1730593
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1730593
   "win11_2009", # Bug 1775931
 ]
-
-["browser_browsingContext_iframeWebProgress.js"]
-support-files = ["file_browsingContext_iframeWebProgress.html"]
 
 ["browser_browsingContext-01.js"]
 https_first_disabled = true
@@ -117,6 +114,9 @@ https_first_disabled = true
 ["browser_browsingContext-webProgress.js"]
 skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1721261
 https_first_disabled = true
+
+["browser_browsingContext_iframeWebProgress.js"]
+support-files = ["file_browsingContext_iframeWebProgress.html"]
 
 ["browser_browsing_context_attached.js"]
 https_first_disabled = true
@@ -166,6 +166,7 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1933429
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1933429
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1933429
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan", # Bug 1933429
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && asan", # Bug 1933429
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1933429
 ]

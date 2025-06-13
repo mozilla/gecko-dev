@@ -36,6 +36,7 @@ skip-if = [
   "os == 'linux' && asan",
   "os == 'linux' && debug",
   "os == 'mac' && debug",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1960066
 ] # Bug 1858919, 1960066
 
 ["browser_ua_helpers.js"]

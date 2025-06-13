@@ -220,7 +220,7 @@ subsuite = "gpu"
 
 ["test_canvas_focusring.html"]
 skip-if = [
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http2",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug",
 ]
 
 ["test_canvas_font_setter.html"]

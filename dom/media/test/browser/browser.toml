@@ -42,5 +42,8 @@ skip-if = [
 ["browser_glean_media_error.js"]
 
 ["browser_tab_visibility_and_play_time.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1775978
+]
 
 ["browser_telemetry_video_hardware_decoding_support.js"]

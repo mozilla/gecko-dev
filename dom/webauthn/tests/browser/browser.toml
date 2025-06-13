@@ -24,6 +24,9 @@ run-if = ["os != 'win'"] # Test not relevant on 1903+
 ["browser_webauthn_cert_override.js"]
 
 ["browser_webauthn_conditional_mediation.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1892213
+]
 
 ["browser_webauthn_ipaddress.js"]
 

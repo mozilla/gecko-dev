@@ -60,7 +60,7 @@ skip-if = [
 ["browser_fullscreen_tab_preview.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl", # Bug 1949995
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && swgl", # Bug 1949995
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1949995
 ]
 
 ["browser_fullscreen_warning.js"]

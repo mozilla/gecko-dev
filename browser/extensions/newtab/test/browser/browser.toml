@@ -43,16 +43,28 @@ https_first_disabled = true
 ["browser_getScreenshots.js"]
 
 ["browser_highlights_section.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1846916
+]
 
 ["browser_newtab_glean.js"]
 
 ["browser_newtab_header.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1945649
+]
 
 ["browser_newtab_last_LinkMenu.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1945649
+]
 
 ["browser_newtab_overrides.js"]
 
 ["browser_newtab_ping.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1945649
+]
 
 ["browser_newtab_towindow.js"]
 

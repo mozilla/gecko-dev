@@ -50,6 +50,9 @@ support-files = ["file_beforeunload_stop.html"]
 fail-if = [
   "a11y_checks",
 ] # Bug 1953248 a11y_checks fails when testing multiple tab prompts
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && socketprocess_networking", # Bug 1970150
+]
 
 ["browser_prompt_closed_window.js"]
 

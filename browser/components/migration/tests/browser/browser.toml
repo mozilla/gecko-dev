@@ -24,6 +24,7 @@ run-if = ["os == 'win'"]
 ["browser_entrypoint_telemetry.js"]
 
 ["browser_extension_migration.js"]
+skip-if = ["a11y_checks"] # Bug 1858037 to investigate intermittent a11y_checks results (fails on Try, passes on Autoland)
 
 ["browser_file_migration.js"]
 skip-if = ["a11y_checks"] # Bug 1858037 to investigate intermittent a11y_checks results (fails on Try, passes on Autoland)

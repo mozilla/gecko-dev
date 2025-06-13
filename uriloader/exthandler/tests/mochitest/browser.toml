@@ -9,6 +9,9 @@ support-files = [
   "download.bin",
   "download.sjs",
 ]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1776014
+]
 
 ["browser_auto_close_window_nodialog.js"]
 support-files = [

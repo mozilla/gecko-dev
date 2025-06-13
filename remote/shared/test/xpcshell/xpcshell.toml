@@ -22,5 +22,8 @@ head = "head.js"
 ["test_Stack.js"]
 
 ["test_Sync.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1970358
+]
 
 ["test_UUID.js"]

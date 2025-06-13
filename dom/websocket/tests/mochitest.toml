@@ -28,6 +28,9 @@ support-files = [
 
 ["test_event_listener_leaks.html"]
 support-files = ["file_websocket_bigBlob_wsh.py"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1879751
+]
 
 ["test_websocket1.html"]
 

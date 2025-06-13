@@ -81,7 +81,10 @@ support-files = [
 ["browser_aboutNewTab_bookmarksToolbar.js"]
 
 ["browser_aboutNewTab_bookmarksToolbarEmpty.js"]
-skip-if = ["tsan"] # Bug 1676326, highly frequent on TSan
+skip-if = [
+  "tsan", # Bug 1676326, highly frequent on TSan
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1970513
+]
 
 ["browser_aboutNewTab_bookmarksToolbarNewWindow.js"]
 

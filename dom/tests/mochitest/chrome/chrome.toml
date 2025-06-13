@@ -73,6 +73,9 @@ tags = "openwindow"
 ["test_first_focusable_in_scope.xhtml"]
 
 ["test_focus.xhtml"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1828622
+]
 
 ["test_focus_dialog.xhtml"]
 

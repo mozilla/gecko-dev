@@ -149,7 +149,7 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1781497
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1781497
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1781497
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'",
 ]
 
 ["browser_storage_indexeddb_overflow.js"]
@@ -169,6 +169,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_storage_localstorage_tall_content.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1970057
+]
 
 ["browser_storage_overflow.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled

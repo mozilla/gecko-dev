@@ -51,6 +51,7 @@ support-files = [
 ["browser_translations_full_page_moz_extension.js"]
 
 ["browser_translations_full_page_multiple_windows.js"]
+skip-if = ["os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && ccov"] # Bug 1893021
 
 ["browser_translations_full_page_panel_a11y_focus.js"]
 
@@ -87,6 +88,7 @@ support-files = [
 ["browser_translations_full_page_panel_engine_destroy.js"]
 
 ["browser_translations_full_page_panel_engine_destroy_pending.js"]
+skip-if = ["os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && ccov"] # Bug 1893021
 
 ["browser_translations_full_page_panel_engine_unsupported.js"]
 

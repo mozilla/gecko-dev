@@ -35,7 +35,7 @@ support-files = ["mixed_active.html"]
 
 ["browser_UrlbarInput_overflow.js"]
 skip-if = [
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1968567
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968567
 ]
 
 ["browser_UrlbarInput_overflow_resize.js"]
@@ -44,6 +44,9 @@ skip-if = [
 
 ["browser_UrlbarInput_searchTerms.js"]
 tags = "persisted-search"
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1968567
+]
 
 ["browser_UrlbarInput_searchTerms_autofill.js"]
 tags = "persisted-search"

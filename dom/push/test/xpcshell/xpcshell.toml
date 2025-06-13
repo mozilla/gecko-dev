@@ -96,6 +96,9 @@ run-sequentially = "This will delete all existing push subscriptions."
 ["test_unregister_error.js"]
 
 ["test_unregister_invalid_json.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && ccov", # Bug 1966067
+]
 
 ["test_unregister_not_found.js"]
 

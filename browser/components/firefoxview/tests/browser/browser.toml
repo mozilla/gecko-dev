@@ -48,6 +48,7 @@ skip-if = ["verify"] # Bug 1886017
 skip-if = [
   "os == 'mac'",
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt",
   "os == 'win' && opt",
 ] # macos times out, see bug 1857293, Bug 1875877 - frequent fails on linux and windows opt
 

@@ -19,6 +19,9 @@ support-files = [
 ["test_list.html"]
 
 ["test_list_keyboard.html"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1965131
+]
 
 ["test_notification_box_01.html"]
 

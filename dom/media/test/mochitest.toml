@@ -902,7 +902,7 @@ skip-if = ["os == 'android'"] # Android has black frames issue.
 scheme = "https"
 skip-if = [
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug", # Bug 1961557
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan && !fission",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && !fission",
 ]
 
 ["test_temporary_file_blob_video_plays.html"]

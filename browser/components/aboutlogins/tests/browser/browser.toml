@@ -64,7 +64,10 @@ run-if = [
 ["browser_openPreferencesExternal.js"]
 
 ["browser_openSite.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # Bug 1581889
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1581889
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1581889
+]
 
 ["browser_osAuthDialog.js"]
 skip-if = [

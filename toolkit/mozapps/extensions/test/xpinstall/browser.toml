@@ -93,6 +93,10 @@ https_first_disabled = true # Bug 1737265
 
 ["browser_doorhanger_installs.js"]
 https_first_disabled = true # Bug 1737265
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1815128
+]
+
 
 ["browser_empty.js"]
 

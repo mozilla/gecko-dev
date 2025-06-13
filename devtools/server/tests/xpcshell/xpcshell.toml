@@ -166,6 +166,7 @@ run-if = ["false"] # tests for breakpoint actors are obsolete bug 1524374
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1813406
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1612707
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan", # Bug 1612707
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1612707
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && ccov", # Bug 1612707
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1813406

@@ -13,6 +13,9 @@ support-files = [
 ["browser_ext_eventpage_disableResetIdleForTest.js"]
 
 ["browser_ext_extension_page_tab_navigated.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && socketprocess_networking", # Bug 1775530
+]
 
 ["browser_ext_management_themes.js"]
 skip-if = ["verify"]

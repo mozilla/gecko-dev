@@ -296,6 +296,7 @@ skip-if = [
   "win11_2009 && !debug && socketprocess_networking", #  Bug 1777016
   "os == 'android'", # Bug 1475887 (API not supported on android yet)
   "tsan", # Bug 1612707
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1777016
 ]
 
 ["test_ext_idle.html"]
@@ -311,6 +312,11 @@ skip-if = [
 skip-if = ["os == 'android'"] # Bug 1513544 (GeckoView is missing the windows API and ability to open private tabs)
 
 ["test_ext_listener_proxies.html"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http2", # Bug 1781605
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1781605
+]
+
 
 ["test_ext_new_tab_processType.html"]
 skip-if = [

@@ -172,6 +172,9 @@ tags = "bleedover"
 
 ["browser_ext_contextMenus.js"]
 support-files = [ "!/browser/components/places/tests/browser/head.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1971622
+]
 
 ["browser_ext_contextMenus_bookmarks.js"]
 support-files = [ "!/browser/components/places/tests/browser/head.js"]
@@ -660,9 +663,7 @@ skip-if = [
 ["browser_ext_url_overrides_newtab.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04'", # Bug 1651261
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan && swgl", # Bug 1651261
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan && swgl", # Bug 1651261
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1651261
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1651261
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869793
   "os == 'win' && os_version == '11.26100' && processor == 'x86' && debug", # Bug 1797751
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1797751

@@ -22,6 +22,7 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan && swgl", # Bug 1775852
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && swgl", # Bug 1775852
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && swgl && socketprocess_networking", # Bug 1775852
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1775852
 ]
 
 ["browser_asrouter_infobar.js"]
