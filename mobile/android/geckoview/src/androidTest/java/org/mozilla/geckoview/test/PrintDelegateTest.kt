@@ -20,9 +20,7 @@ import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import org.hamcrest.CoreMatchers.containsString
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -38,7 +36,6 @@ import org.mozilla.geckoview.GeckoView.ActivityContextDelegate
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.NullDelegate
-import java.io.ByteArrayInputStream
 import kotlin.math.roundToInt
 
 @RunWith(AndroidJUnit4::class)
@@ -160,25 +157,6 @@ class PrintDelegateTest : BaseSessionTest() {
                 "Android print opened and rendered.",
                 sessionRule.waitForResult(centerPixel) == orange,
             )
-        }
-    }
-
-    @NullDelegate(Autofill.Delegate::class)
-    @Test
-    fun printMalformedPdfDoesNotCrash() {
-        activityRule.scenario.onActivity { activity ->
-            mainSession.printDelegate = activity.view.printDelegate
-            val inputStream = ByteArrayInputStream("Not-A-PDF".toByteArray())
-            try {
-                sessionRule.waitForResult(mainSession.printDelegate!!.onPrintWithStatus(inputStream)!!)
-                fail("Should not complete requests on an invalid input stream.")
-            } catch (e: Exception) {
-                assertEquals(
-                    "Unable to print, as expected.",
-                    GeckoPrintException.ERROR_UNABLE_TO_PROCESS_DOCUMENT,
-                    (e.cause as GeckoPrintException).code,
-                )
-            }
         }
     }
 

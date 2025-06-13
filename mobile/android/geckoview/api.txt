@@ -1299,7 +1299,6 @@ package org.mozilla.geckoview {
     field public static final int ERROR_NO_PRINT_DELEGATE = -6;
     field public static final int ERROR_PRINT_SETTINGS_SERVICE_NOT_AVAILABLE = -1;
     field public static final int ERROR_UNABLE_TO_CREATE_PRINT_SETTINGS = -2;
-    field public static final int ERROR_UNABLE_TO_PROCESS_DOCUMENT = -7;
     field public static final int ERROR_UNABLE_TO_RETRIEVE_CANONICAL_BROWSING_CONTEXT = -3;
     field public final int code;
   }

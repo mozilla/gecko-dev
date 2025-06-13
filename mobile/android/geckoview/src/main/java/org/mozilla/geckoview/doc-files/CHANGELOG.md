@@ -25,7 +25,6 @@ exclude: true
 - Added option on [`GeckoPreferenceController`][140.1] to [`get multiple preference`][141.12] values at once.
 - Added [`WebNotificationAction`][141.13] that represents action buttons of notifications.
 - Added [`WebNotification.actions`][141.14] and a new function signature with `action` to [`WebNotification.click()`][141.15] to indicate action click.
-- Changed the methods in [`GeckoViewPrintDocumentAdapter`] to verify PDFs before sending it to android.
 
 [141.1]: {{javadoc_uri}}/ProfilerController.html
 [141.2]: {{javadoc_uri}}/GeckoRuntime.html#getProfilerController()
@@ -1773,4 +1772,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 36bc0adb28d6d81b941b01e7e7b6e1a9fb329592
+[api-version]: 3b27cb8003ccc87fe59e9f0fa3eead0f2f7b5f79
