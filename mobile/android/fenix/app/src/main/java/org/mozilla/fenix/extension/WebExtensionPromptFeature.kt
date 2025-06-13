@@ -133,6 +133,7 @@ class WebExtensionPromptFeature(
             promptRequest = promptRequest,
             permissions = promptRequest.permissions,
             origins = promptRequest.origins,
+            dataCollectionPermissions = promptRequest.dataCollectionPermissions,
         )
     }
 
@@ -261,6 +262,7 @@ class WebExtensionPromptFeature(
         forOptionalPermissions: Boolean = false,
         permissions: List<String> = emptyList(),
         origins: List<String> = emptyList(),
+        dataCollectionPermissions: List<String> = emptyList(),
     ) {
         if (isInstallationInProgress || hasExistingPermissionDialogFragment()) {
             return
@@ -271,6 +273,7 @@ class WebExtensionPromptFeature(
             forOptionalPermissions = forOptionalPermissions,
             permissions = permissions,
             origins = origins,
+            dataCollectionPermissions = dataCollectionPermissions,
             promptsStyling = AddonDialogFragment.PromptsStyling(
                 gravity = Gravity.BOTTOM,
                 shouldWidthMatchParent = true,

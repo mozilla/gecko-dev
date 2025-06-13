@@ -1,23 +1,32 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp"
+    android:paddingTop="4dp"
+    android:layout_marginTop="4dp">
+
     <TextView
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:id="@+id/permission_required_item"
-        android:layout_width="match_parent"
+        android:id="@+id/bullet"
+        android:layout_width="20dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp"
-        android:paddingTop="8dp"
-        android:layout_marginTop="4dp"
+        android:text="•"
+        android:textAlignment="center"
         android:textColor="?android:attr/textColorPrimary"
-        android:gravity="center_vertical"
-        android:drawablePadding="8dp"
-        app:drawableStartCompat="@drawable/mozac_ic_checkmark_24"
-        app:drawableTint="?android:attr/textColorPrimary"
-        tools:drawableStart="@drawable/mozac_ic_checkmark_24"
-        tools:drawableTint="?android:attr/textColorPrimary"
-        tools:text="Access your data for all websites." />
+        tools:ignore="HardcodedText,RtlSymmetry"
+        android:importantForAccessibility="no" />
+
+    <TextView
+        android:id="@+id/permission_required_item"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:textColor="?android:attr/textColorPrimary"
+        tools:text="Access your data for absolutely all websites. No seriously. This should be a long string." />
+</LinearLayout>

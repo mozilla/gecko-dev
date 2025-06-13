@@ -439,6 +439,7 @@ class WebExtensionPromptFeatureTest {
             forOptionalPermissions = false,
             permissions = listOf("tabs"),
             origins = emptyList(),
+            dataCollectionPermissions = emptyList(),
             onLearnMoreClicked = {
                 onLinkClicked(expectedUrl, false)
             },

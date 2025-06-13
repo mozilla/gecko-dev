@@ -79,12 +79,13 @@ class SettingsSubMenuAddonsManagerRobot {
 
     fun verifyAddonPermissionPrompt(addonName: String) {
         waitForAddonsDownloadOverlayToBeGone()
-        mDevice.waitNotNull(Until.findObject(By.text("Add $addonName?")), waitingTime)
+        mDevice.waitNotNull(Until.findObject(By.text("Add $addonName")), waitingTime)
         Log.i(TAG, "verifyAddonPermissionPrompt: Trying to verify that the add-ons permission prompt items are displayed")
         onView(
             allOf(
-                withText("Add $addonName?"),
-                hasSibling(withText(containsString("It requires your permission to:"))),
+                withText("Add $addonName"),
+                hasSibling(withText(containsString("Required permissions:"))),
+                hasSibling(withText("Allow extension to run in private browsing")),
             ),
         )
             .inRoot(isDialog())
@@ -95,7 +96,6 @@ class SettingsSubMenuAddonsManagerRobot {
                 withText("Add"),
                 hasSibling(withText("Cancel")),
                 hasSibling(withText("Learn more")),
-                hasSibling(withText("Allow in private browsing")),
             ),
         )
             .inRoot(isDialog())
@@ -241,7 +241,7 @@ class SettingsSubMenuAddonsManagerRobot {
     }
 
     fun selectAllowInPrivateBrowsing() {
-        assertUIObjectExists(itemWithText("Allow in private browsing"), waitingTime = waitingTimeLong)
+        assertUIObjectExists(itemWithText("Allow extension to run in private browsing"), waitingTime = waitingTimeLong)
         Log.i(TAG, "selectAllowInPrivateBrowsing: Trying to click the \"Allow in private browsing\" check box")
         onView(withId(R.id.allow_in_private_browsing)).click()
         Log.i(TAG, "selectAllowInPrivateBrowsing: Clicked the \"Allow in private browsing\" check box")

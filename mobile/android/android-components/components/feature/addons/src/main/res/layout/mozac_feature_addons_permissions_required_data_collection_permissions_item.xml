@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="16dp"
+    android:paddingStart="0dp"
+    android:paddingEnd="0dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textColor="?android:attr/textColorPrimary"
+        android:text="@string/mozac_feature_addons_permissions_dialog_heading_required_data_collection" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="4dp"
+        android:layout_marginTop="4dp">
+
+        <TextView
+            android:id="@+id/bullet"
+            android:layout_width="20dp"
+            android:layout_height="wrap_content"
+            android:text="•"
+            android:textAlignment="center"
+            android:textColor="?android:attr/textColorPrimary"
+            tools:ignore="HardcodedText,RtlSymmetry"
+            android:importantForAccessibility="no" />
+
+        <TextView
+            android:id="@+id/required_data_collection_permissions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:textColor="?android:attr/textColorPrimary"
+            tools:text="The developer says this extension collects: location, health information." />
+    </LinearLayout>
+
+</LinearLayout>

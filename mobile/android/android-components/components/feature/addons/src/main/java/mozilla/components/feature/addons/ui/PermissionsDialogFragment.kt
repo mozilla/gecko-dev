@@ -10,6 +10,8 @@ import android.content.DialogInterface
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.drawable.GradientDrawable
+import android.icu.text.ListFormatter
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -32,6 +34,7 @@ import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.ext.getParcelableCompat
+import java.util.Locale
 
 internal const val KEY_ADDON = "KEY_ADDON"
 private const val KEY_DIALOG_GRAVITY = "KEY_DIALOG_GRAVITY"
@@ -45,6 +48,7 @@ private const val KEY_LEARN_MORE_LINK_TEXT_COLOR = "KEY_LEARN_MORE_LINK_TEXT_COL
 private const val KEY_FOR_OPTIONAL_PERMISSIONS = "KEY_FOR_OPTIONAL_PERMISSIONS"
 internal const val KEY_PERMISSIONS = "KEY_PERMISSIONS"
 internal const val KEY_ORIGINS = "KEY_ORIGINS"
+internal const val KEY_DATA_COLLECTION_PERMISSIONS = "KEY_DATA_COLLECTION_PERMISSIONS"
 private const val DEFAULT_VALUE = Int.MAX_VALUE
 
 /**
@@ -134,6 +138,12 @@ class PermissionsDialogFragment : AddonDialogFragment() {
 
     internal val permissions get() = requireNotNull(safeArguments.getStringArray(KEY_PERMISSIONS))
     internal val origins get() = requireNotNull(safeArguments.getStringArray(KEY_ORIGINS))
+    internal val dataCollectionPermissions
+        get() = requireNotNull(
+            safeArguments.getStringArray(
+                KEY_DATA_COLLECTION_PERMISSIONS,
+            ),
+        )
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val sheetDialog = Dialog(requireContext())
@@ -193,7 +203,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
             if (forOptionalPermissions) {
                 R.string.mozac_feature_addons_optional_permissions_dialog_title
             } else {
-                R.string.mozac_feature_addons_permissions_dialog_title
+                R.string.mozac_feature_addons_permissions_dialog_title_2
             },
             addon.translateName(requireContext()),
         )
@@ -223,11 +233,13 @@ class PermissionsDialogFragment : AddonDialogFragment() {
         val isUserScriptsPermission = permissions.size == 1 && permissions[0] == "userScripts"
 
         val listPermissions = buildPermissionsList(allUrlsPermissionFound)
-        rootView.findViewById<TextView>(R.id.optional_or_required_text).text =
-            buildOptionalOrRequiredText(
-                listPermissions.isNotEmpty() ||
-                    displayDomainList.isNotEmpty(),
-            )
+        val requiredPermissionsTitle = rootView.findViewById<TextView>(R.id.optional_or_required_text)
+        if (listPermissions.isNotEmpty() || displayDomainList.isNotEmpty()) {
+            requiredPermissionsTitle.isVisible = true
+            requiredPermissionsTitle.text = buildOptionalOrRequiredText()
+        } else {
+            requiredPermissionsTitle.isVisible = false
+        }
 
         val learnMoreLink = rootView.findViewById<TextView>(R.id.learn_more_link)
         learnMoreLink.paintFlags = Paint.UNDERLINE_TEXT_FLAG
@@ -235,6 +247,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
         val permissionsRecyclerView = rootView.findViewById<RecyclerView>(R.id.permissions)
         val positiveButton = rootView.findViewById<Button>(R.id.allow_button)
         val negativeButton = rootView.findViewById<Button>(R.id.deny_button)
+        val optionalsSettingsTitle = rootView.findViewById<TextView>(R.id.optional_settings_title)
         val allowedInPrivateBrowsing =
             rootView.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
 
@@ -243,6 +256,9 @@ class PermissionsDialogFragment : AddonDialogFragment() {
             extraPermissionWarning = requireContext()
                 .getString(R.string.mozac_feature_addons_permissions_user_scripts_extra_warning)
         }
+
+        val requiredDataCollectionPermissionText =
+            buildRequiredDataCollectionPermissionsText(dataCollectionPermissions.toList())
 
         permissionsRecyclerView.adapter = RequiredPermissionsAdapter(
             permissions = listPermissions,
@@ -257,6 +273,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
                     displayDomainList.size,
                 ),
             extraPermissionWarning = extraPermissionWarning,
+            requiredDataCollectionPermissionText = requiredDataCollectionPermissionText,
         )
         permissionsRecyclerView.layoutManager = LinearLayoutManager(context)
 
@@ -270,6 +287,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
         if (addon.incognito == Addon.Incognito.NOT_ALLOWED ||
             forOptionalPermissions
         ) {
+            optionalsSettingsTitle.isVisible = false
             allowedInPrivateBrowsing.isVisible = false
         }
 
@@ -345,14 +363,50 @@ class PermissionsDialogFragment : AddonDialogFragment() {
     }
 
     @VisibleForTesting
-    internal fun buildOptionalOrRequiredText(hasPermissions: Boolean): String {
-        if (!hasPermissions) {
-            return ""
+    internal fun buildRequiredDataCollectionPermissionsText(permissions: List<String>): String? {
+        if (permissions.isEmpty()) {
+            return null
         }
+
+        if (permissions.size == 1 && permissions.contains("none")) {
+            return requireContext().getString(
+                R.string.mozac_feature_addons_permissions_none_required_data_collection_description,
+            )
+        }
+
+        val localizedPermissions = Addon.localizeDataCollectionPermissions(permissions, requireContext())
+        val formattedList = formatLocalizedDataCollectionPermissions(localizedPermissions)
+
+        return requireContext().getString(
+            R.string.mozac_feature_addons_permissions_required_data_collection_description,
+            formattedList,
+        )
+    }
+
+    @VisibleForTesting
+    internal fun formatLocalizedDataCollectionPermissions(localizedPermissions: List<String>): String? {
+        val formattedList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ListFormatter.getInstance(Locale.getDefault(), ListFormatter.Type.AND, ListFormatter.Width.NARROW)
+                .format(localizedPermissions)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Unfortunately, this is going to use `ListFormatter.Type.AND` and `ListFormatter.Width.WIDE`,
+            // which results in the following formatted list in English: `x, y and z` instead of `x, y, z`
+            // (which is what we want).
+            //
+            // It's probably better to use a list formatter than the "join string with a comma" fallback...
+            ListFormatter.getInstance(Locale.getDefault()).format(localizedPermissions)
+        } else {
+            localizedPermissions.joinToString(", ")
+        }
+        return formattedList
+    }
+
+    @VisibleForTesting
+    internal fun buildOptionalOrRequiredText(): String {
         val optionalOrRequiredText = if (forOptionalPermissions) {
             getString(R.string.mozac_feature_addons_optional_permissions_dialog_subtitle)
         } else {
-            getString(R.string.mozac_feature_addons_permissions_dialog_subtitle)
+            getString(R.string.mozac_feature_addons_permissions_dialog_heading_required_permissions)
         }
 
         return optionalOrRequiredText
@@ -412,6 +466,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
             addon: Addon,
             permissions: List<String>,
             origins: List<String>,
+            dataCollectionPermissions: List<String>,
             forOptionalPermissions: Boolean = false,
             promptsStyling: PromptsStyling? = PromptsStyling(
                 gravity = Gravity.BOTTOM,
@@ -429,6 +484,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
                 putBoolean(KEY_FOR_OPTIONAL_PERMISSIONS, forOptionalPermissions)
                 putStringArray(KEY_PERMISSIONS, permissions.toTypedArray())
                 putStringArray(KEY_ORIGINS, origins.toTypedArray())
+                putStringArray(KEY_DATA_COLLECTION_PERMISSIONS, dataCollectionPermissions.toTypedArray())
 
                 promptsStyling?.gravity?.apply {
                     putInt(KEY_DIALOG_GRAVITY, this)

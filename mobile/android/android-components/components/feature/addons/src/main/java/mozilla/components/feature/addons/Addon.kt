@@ -349,6 +349,26 @@ data class Addon(
         )
 
         /**
+         * A map of data collection permissions to short translation string ids. This should be
+         * kept in sync with `DATA_COLLECTION_PERMISSIONS` in `ExtensionPermissionMessages.sys.mjs`.
+         */
+        @Suppress("MaxLineLength")
+        private val dataCollectionPermissionToTranslation = mapOf(
+            "authenticationInfo" to R.string.mozac_feature_addons_permissions_data_collection_authenticationInfo_short_description,
+            "bookmarksInfo" to R.string.mozac_feature_addons_permissions_data_collection_bookmarksInfo_short_description,
+            "browsingActivity" to R.string.mozac_feature_addons_permissions_data_collection_browsingActivity_short_description,
+            "financialAndPaymentInfo" to R.string.mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_short_description,
+            "healthInfo" to R.string.mozac_feature_addons_permissions_data_collection_healthInfo_short_description,
+            "locationInfo" to R.string.mozac_feature_addons_permissions_data_collection_locationInfo_short_description,
+            "personalCommunications" to R.string.mozac_feature_addons_permissions_data_collection_personalCommunications_short_description,
+            "personallyIdentifyingInfo" to R.string.mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_short_description,
+            "searchTerms" to R.string.mozac_feature_addons_permissions_data_collection_searchTerms_short_description,
+            "technicalAndInteraction" to R.string.mozac_feature_addons_permissions_data_collection_technicalAndInteraction_short_description,
+            "websiteActivity" to R.string.mozac_feature_addons_permissions_data_collection_websiteActivity_short_description,
+            "websiteContent" to R.string.mozac_feature_addons_permissions_data_collection_websiteContent_short_description,
+        )
+
+        /**
          * Takes a list of [permissions] and returns a list of id resources per each item.
          * @param permissions The list of permissions to be localized. Valid permissions can be found in
          * https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/permissions#API_permissions
@@ -370,6 +390,14 @@ data class Addon(
             }
 
             return localizedNormalPermissions + localizedUrlAccessPermissions
+        }
+
+        /**
+         * Takes a list of data collection [permissions] and returns a list of localized strings.
+         * @param permissions The list of data collection permissions to be localized.
+         */
+        fun localizeDataCollectionPermissions(permissions: List<String>, context: Context): List<String> {
+            return permissions.mapNotNull { dataCollectionPermissionToTranslation[it] }.map { context.getString(it) }
         }
 
         /**

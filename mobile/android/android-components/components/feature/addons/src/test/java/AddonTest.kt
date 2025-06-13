@@ -611,4 +611,33 @@ class AddonTest {
         assertFalse(addon.isSoftBlocked())
         assertTrue(softBlockedAddon.isSoftBlocked())
     }
+
+    @Test
+    fun `localizeDataCollectionPermissions - should return a localized string for each data collection permission`() {
+        listOf(
+            "authenticationInfo",
+            "bookmarksInfo",
+            "browsingActivity",
+            "financialAndPaymentInfo",
+            "healthInfo",
+            "locationInfo",
+            "personalCommunications",
+            "personallyIdentifyingInfo",
+            "searchTerms",
+            "technicalAndInteraction",
+            "websiteActivity",
+            "websiteContent",
+        ).map { permission ->
+            val list = Addon.localizeDataCollectionPermissions(listOf(permission), testContext)
+            assertTrue("expected a localized string for $permission", list.size == 1)
+        }
+
+        assertTrue(
+            "expected non existing entries to be filtered out",
+            Addon.localizeDataCollectionPermissions(
+                listOf("nonExisting", "healthInfo", "locationInfo"),
+                testContext,
+            ).size == 2,
+        )
+    }
 }

@@ -10,12 +10,13 @@
     <androidx.core.widget.NestedScrollView
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:paddingBottom="125dp"
+        android:paddingBottom="80dp"
         android:clipToPadding="false">
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingBottom="16dp"
             android:background="?android:windowBackground"
             android:orientation="vertical">
 
@@ -45,7 +46,7 @@
                 android:paddingEnd="5dp"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="16sp"
-                tools:text="Add Ublock Origin?"
+                tools:text="Add Ublock Origin"
                 tools:textColor="#000000" />
 
             <TextView
@@ -59,8 +60,9 @@
                 android:paddingStart="5dp"
                 android:paddingTop="4dp"
                 android:paddingEnd="5dp"
+                android:textStyle="bold"
                 android:textColor="?android:attr/textColorPrimary"
-                tools:text="It requires your permission to:" />
+                tools:text="Required permissions:" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/permissions"
@@ -73,45 +75,66 @@
                 android:paddingStart="5dp"
                 android:paddingEnd="5dp"
                 android:paddingTop="4dp"
-                android:paddingBottom="16dp"
                 android:visibility="visible" />
+
+            <TextView
+                android:id="@+id/optional_settings_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/permissions"
+                android:layout_alignStart="@id/permissions"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="16dp"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:textStyle="bold"
+                android:textColor="?android:attr/textColorPrimary"
+                android:text="@string/mozac_feature_addons_permissions_dialog_heading_optional_settings" />
+
+            <androidx.appcompat.widget.AppCompatCheckBox
+                android:id="@+id/allow_in_private_browsing"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/optional_settings_title"
+                android:layout_alignStart="@id/optional_settings_title"
+                android:layout_alignEnd="@id/optional_settings_title"
+                android:layout_gravity="center"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:paddingTop="4dp"
+                android:text="@string/mozac_feature_addons_settings_allow_in_private_browsing_2"
+                android:textColor="?android:attr/textColorPrimary"
+                android:gravity="center_vertical"
+                android:drawablePadding="8dp" />
 
         </RelativeLayout>
     </androidx.core.widget.NestedScrollView>
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="125dp"
+        android:layout_height="80dp"
         android:layout_gravity="bottom"
         android:background="?android:windowBackground"
         android:elevation="12dp"
-        android:paddingStart="48dp"
+        android:paddingStart="16dp"
         android:paddingEnd="16dp">
-
-        <androidx.appcompat.widget.AppCompatCheckBox
-            android:id="@+id/allow_in_private_browsing"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:paddingStart="5dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="5dp"
-            android:text="@string/mozac_feature_addons_settings_allow_in_private_browsing"
-            android:textColor="?android:attr/textColorPrimary" />
 
         <TextView
             android:id="@+id/learn_more_link"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/allow_in_private_browsing"
             android:layout_marginTop="30dp"
+            android:layout_marginStart="8dp"
+            android:layout_toStartOf="@id/deny_button"
+            android:textAlignment="textStart"
             android:text="@string/mozac_feature_addons_permissions_dialog_learn_more" />
 
         <Button
             android:id="@+id/deny_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/allow_in_private_browsing"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="16dp"
             android:layout_toStartOf="@id/allow_button"
@@ -123,7 +146,6 @@
             android:id="@+id/allow_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/allow_in_private_browsing"
             android:layout_alignParentEnd="true"
             android:layout_marginStart="12dp"
             android:layout_marginEnd="8dp"

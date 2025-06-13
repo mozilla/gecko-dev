@@ -79,12 +79,42 @@
     <string name="mozac_feature_addons_permissions_user_scripts_description">Allow unverified third-party scripts to access your data</string>
     <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
     <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Unverified scripts can pose security and privacy risks. Only run scripts from extensions or sources you trust.</string>
+    <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+    <string name="mozac_feature_addons_permissions_required_data_collection_description">The developer says this extension collects: %1$s.</string>
+    <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
+    <string name="mozac_feature_addons_permissions_none_required_data_collection_description">The developer says this extension doesn’t require data collection.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Extend developer tools to access your data in open tabs</string>
     <!-- Description for text button that expands the list of domain permissions -->
     <string name="mozac_feature_addons_permissions_show_all_sites">Show all sites</string>
     <!-- Description for text button that hides the majority of the list of domain permissions -->
     <string name="mozac_feature_addons_permissions_show_fewer_sites">Show fewer sites</string>
+
+    <!-- Short description for the authenticationInfo data collection permission -->
+    <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_short_description">authentication information</string>
+    <!-- Short description for the bookmarksInfo data collection permission -->
+    <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_short_description">bookmarks</string>
+    <!-- Short description for the browsingActivity data collection permission -->
+    <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_short_description">browsing activity</string>
+    <!-- Short description for the financialAndPaymentInfo data collection permission -->
+    <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_short_description">financial and payment information</string>
+    <!-- Short description for the healthInfo data collection permission -->
+    <string name="mozac_feature_addons_permissions_data_collection_healthInfo_short_description">health information</string>
+    <!-- Short description for the locationInfo data collection permission -->
+    <string name="mozac_feature_addons_permissions_data_collection_locationInfo_short_description">location</string>
+    <!-- Short description for the personalCommunications data collection permission -->
+    <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_short_description">personal communications</string>
+    <!-- Short description for the personallyIdentifyingInfo data collection permission -->
+    <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_short_description">personally identifying information</string>
+    <!-- Short description for the searchTerms data collection permission -->
+    <string name="mozac_feature_addons_permissions_data_collection_searchTerms_short_description">search terms</string>
+    <!-- Short description for the technicalAndInteraction data collection permission -->
+    <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_short_description">technical and interaction data</string>
+    <!-- Short description for the websiteActivity data collection permission -->
+    <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">website activity</string>
+    <!-- Short description for the websiteContent data collection permission -->
+    <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">website content</string>
+
     <!-- The version on of add-on. -->
     <string name="mozac_feature_addons_version">Version</string>
     <!-- The author of an add-on. -->
@@ -104,7 +134,9 @@
     <!-- Indicates the add-on is enabled. -->
     <string name="mozac_feature_addons_settings_on">On</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
-    <string name="mozac_feature_addons_settings_allow_in_private_browsing">Allow in private browsing</string>
+    <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">Allow in private browsing</string>
+    <!-- Indicates the add-on is allowed in private browsing mode. -->
+    <string name="mozac_feature_addons_settings_allow_in_private_browsing_2">Allow extension to run in private browsing</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
     <string name="mozac_feature_addons_settings_run_in_private_browsing">Run in private browsing</string>
     <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -130,11 +162,19 @@
     <!-- This is a button to report an add-on. -->
     <string name="mozac_feature_addons_report">Report</string>
     <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_permissions_dialog_title">Add %1$s?</string>
+    <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">Add %1$s?</string>
+    <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_permissions_dialog_title_2">Add %1$s</string>
     <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s requests additional permissions.</string>
     <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-    <string name="mozac_feature_addons_permissions_dialog_subtitle">It requires your permission to:</string>
+    <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">It requires your permission to:</string>
+    <!-- Heading for the data collection permissions section in the add-on install dialog. -->
+    <string name="mozac_feature_addons_permissions_dialog_heading_required_permissions">Required permissions:</string>
+    <!-- Heading for the data collection permissions section in the add-on install dialog. -->
+    <string name="mozac_feature_addons_permissions_dialog_heading_required_data_collection">Required data collection:</string>
+    <!-- Heading for the optional settings section in the add-on install dialog. -->
+    <string name="mozac_feature_addons_permissions_dialog_heading_optional_settings">Optional settings:</string>
     <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
     <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">It wants to:</string>
     <!-- This is a button to add (install) an add-on . -->
