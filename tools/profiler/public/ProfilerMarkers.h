@@ -343,7 +343,7 @@ class MOZ_RAII AutoProfilerTextMarker {
       AUTO_PROFILER_STATS(AUTO_PROFILER_MARKER_TEXT);
       profiler_add_marker(
           mozilla::ProfilerString8View::WrapNullTerminatedString(mMarkerName),
-          mCategory, std::move(mOptions), geckoprofiler::markers::TextMarker{},
+          mCategory, std::move(mOptions), mozilla::baseprofiler::markers::TextStackMarker{},
           mText);
     }
   }
@@ -410,7 +410,7 @@ class AutoProfilerFmtMarker {
       AUTO_PROFILER_STATS(AUTO_PROFILER_MARKER_TEXT);
       profiler_add_marker(
           mozilla::ProfilerString8View::WrapNullTerminatedString(mMarkerName),
-          mCategory, std::move(mOptions), geckoprofiler::markers::TextMarker{},
+          mCategory, std::move(mOptions), mozilla::baseprofiler::markers::TextStackMarker{},
           mozilla::ProfilerString8View::WrapNullTerminatedString(mFormatted));
     }
   }
@@ -444,7 +444,7 @@ class MOZ_RAII AutoProfilerTracing {
         mCategoryPair,
         {mozilla::MarkerTiming::IntervalStart(),
          mozilla::MarkerInnerWindowId(mInnerWindowID)},
-        geckoprofiler::markers::Tracing{},
+        mozilla::baseprofiler::markers::StackMarker{},
         mozilla::ProfilerString8View::WrapNullTerminatedString(
             mCategoryString));
   }
@@ -464,7 +464,7 @@ class MOZ_RAII AutoProfilerTracing {
         {mozilla::MarkerTiming::IntervalStart(),
          mozilla::MarkerInnerWindowId(mInnerWindowID),
          mozilla::MarkerStack::TakeBacktrace(std::move(aBacktrace))},
-        geckoprofiler::markers::Tracing{},
+        mozilla::baseprofiler::markers::StackMarker{},
         mozilla::ProfilerString8View::WrapNullTerminatedString(
             mCategoryString));
   }
@@ -475,7 +475,7 @@ class MOZ_RAII AutoProfilerTracing {
         mCategoryPair,
         {mozilla::MarkerTiming::IntervalEnd(),
          mozilla::MarkerInnerWindowId(mInnerWindowID)},
-        geckoprofiler::markers::Tracing{},
+        mozilla::baseprofiler::markers::StackMarker{},
         mozilla::ProfilerString8View::WrapNullTerminatedString(
             mCategoryString));
   }

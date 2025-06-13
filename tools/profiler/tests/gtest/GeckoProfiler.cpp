@@ -3014,14 +3014,14 @@ TEST(GeckoProfiler, Markers)
                   switch (state) {
                     case S_tracing_auto_tracing_start:
                       state = State(S_tracing_auto_tracing_start + 1);
-                      EXPECT_EQ(typeString, "tracing");
+                      EXPECT_EQ(typeString, "StackMarker");
                       EXPECT_TIMING_START;
                       EXPECT_EQ_JSON(payload["category"], String, "C");
                       EXPECT_TRUE(payload["stack"].isNull());
                       break;
                     case S_tracing_auto_tracing_end:
                       state = State(S_tracing_auto_tracing_end + 1);
-                      EXPECT_EQ(typeString, "tracing");
+                      EXPECT_EQ(typeString, "StackMarker");
                       EXPECT_TIMING_END;
                       EXPECT_EQ_JSON(payload["category"], String, "C");
                       ASSERT_TRUE(payload["stack"].isNull());
