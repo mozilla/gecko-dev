@@ -2210,8 +2210,8 @@ long nsContentSecurityUtils::ClassifyDownload(nsIChannel* aChannel) {
   MOZ_ASSERT(aChannel, "IsDownloadAllowed without channel?");
 
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-  if ((loadInfo->GetTriggeringSandboxFlags() & SANDBOXED_ALLOW_DOWNLOADS) ||
-      (loadInfo->GetSandboxFlags() & SANDBOXED_ALLOW_DOWNLOADS)) {
+  if ((loadInfo->GetTriggeringSandboxFlags() & SANDBOXED_DOWNLOADS) ||
+      (loadInfo->GetSandboxFlags() & SANDBOXED_DOWNLOADS)) {
     if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel)) {
       LogMessageToConsole(httpChannel, "IframeSandboxBlockedDownload");
     }
