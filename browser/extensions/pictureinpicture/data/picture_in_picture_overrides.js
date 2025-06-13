@@ -289,9 +289,27 @@ let AVAILABLE_PIP_OVERRIDES;
       "https://*.netflix.com/search*": { policy: TOGGLE_POLICIES.HIDDEN },
     },
 
+    nowtv: {
+      "https://*.nowtv.it/*": {
+        videoWrapperScriptPath: "video-wrappers/peacocktv.js",
+      },
+      "https://*.nowtv.com/*": {
+        videoWrapperScriptPath: "video-wrappers/peacocktv.js",
+      },
+      "https://*.nowtv.de/*": {
+        videoWrapperScriptPath: "video-wrappers/peacocktv.js",
+      },
+    },
+
     nytimes: {
       "https://*.nytimes.com/*": {
         videoWrapperScriptPath: "video-wrappers/nytimes.js",
+      },
+    },
+
+    peacock: {
+      "https://*.peacocktv.com/*": {
+        videoWrapperScriptPath: "video-wrappers/peacocktv.js",
       },
     },
 
@@ -343,6 +361,18 @@ let AVAILABLE_PIP_OVERRIDES;
     rte: {
       "https://www.rte.ie/player/*": {
         videoWrapperScriptPath: "video-wrappers/hotstar.js",
+      },
+    },
+
+    showmax: {
+      "https://*.showmax.com/*": {
+        videoWrapperScriptPath: "video-wrappers/peacocktv.js",
+      },
+    },
+
+    skyshowtime: {
+      "https://*.skyshowtime.com/*": {
+        videoWrapperScriptPath: "video-wrappers/peacocktv.js",
       },
     },
 
