@@ -1304,6 +1304,57 @@ static bool Locale_region(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod<IsLocale, Locale_region>(cx, args);
 }
 
+// get Intl.Locale.prototype.variants
+static bool Locale_variants(JSContext* cx, const CallArgs& args) {
+  MOZ_ASSERT(IsLocale(args.thisv()));
+
+  // Step 3.
+  auto* locale = &args.thisv().toObject().as<LocaleObject>();
+  JSLinearString* baseName = locale->baseName()->ensureLinear(cx);
+  if (!baseName) {
+    return false;
+  }
+
+  auto parts = BaseNameParts(baseName);
+
+  // Variants are the trailing subtags in the base-name. Find which subtag
+  // precedes the variants.
+  auto precedingSubtag = parts.region   ? *parts.region
+                         : parts.script ? *parts.script
+                                        : parts.language;
+
+  // Index of the next subtag, including the leading '-' character.
+  size_t index = precedingSubtag.index + precedingSubtag.length;
+
+  // Length of the variant subtags, including the leading '-' character.
+  size_t length = baseName->length() - index;
+
+  // No variant subtags present when |length| is zero.
+  if (length == 0) {
+    args.rval().setUndefined();
+    return true;
+  }
+  MOZ_ASSERT(baseName->latin1OrTwoByteChar(index) == '-',
+             "missing '-' separator after precedingSubtag");
+  MOZ_ASSERT(length >= 4 + 1,
+             "variant subtag is at least four characters long");
+
+  JSString* str = NewDependentString(cx, baseName, index + 1, length - 1);
+  if (!str) {
+    return false;
+  }
+
+  args.rval().setString(str);
+  return true;
+}
+
+// get Intl.Locale.prototype.variants
+static bool Locale_variants(JSContext* cx, unsigned argc, Value* vp) {
+  // Steps 1-2.
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<IsLocale, Locale_variants>(cx, args);
+}
+
 static bool Locale_toSource(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   args.rval().setString(cx->names().Locale);
@@ -1329,6 +1380,7 @@ static const JSPropertySpec locale_properties[] = {
     JS_PSG("language", Locale_language, 0),
     JS_PSG("script", Locale_script, 0),
     JS_PSG("region", Locale_region, 0),
+    JS_PSG("variants", Locale_variants, 0),
     JS_STRING_SYM_PS(toStringTag, "Intl.Locale", JSPROP_READONLY),
     JS_PS_END,
 };

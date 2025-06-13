@@ -2,7 +2,7 @@
 
 var g = newGlobal();
 
-var tag = "de-Latn-AT-u-ca-gregory-nu-latn-co-phonebk-kf-false-kn-hc-h23";
+var tag = "de-Latn-AT-1996-u-ca-gregory-nu-latn-co-phonebk-kf-false-kn-hc-h23";
 var locale = new Intl.Locale(tag);
 var ccwLocale = new g.Intl.Locale(tag);
 
