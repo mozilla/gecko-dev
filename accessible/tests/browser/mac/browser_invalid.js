@@ -20,7 +20,7 @@ addAccessibleTask(
     // Check initial AXInvalid values are correct
     let box = getNativeInterface(accDoc, "box");
     // XXX: bug 1967000
-    untilCacheOk(() => {
+    await untilCacheOk(() => {
       return box.getAttributeValue("AXInvalid") == "true";
     }, "Correct invalid value for box");
 
@@ -31,7 +31,7 @@ addAccessibleTask(
     });
     await stateChanged;
 
-    untilCacheOk(() => {
+    await untilCacheOk(() => {
       return box.getAttributeValue("AXInvalid") == "false";
     }, "Correct invalid value after required attr removed");
 
@@ -44,7 +44,7 @@ addAccessibleTask(
     });
     await stateChanged;
 
-    untilCacheOk(() => {
+    await untilCacheOk(() => {
       return box.getAttributeValue("AXInvalid") == "true";
     }, "Correct invalid value after aria-invalid attr set to true");
   }
