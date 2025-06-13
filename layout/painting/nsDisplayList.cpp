@@ -3080,6 +3080,10 @@ static nsDisplayBackgroundColor* CreateBackgroundColor(
 
 static void DealWithWindowsAppearanceHacks(nsIFrame* aFrame,
                                            nsDisplayListBuilder* aBuilder) {
+  if (!XRE_IsParentProcess()) {
+    return;
+  }
+
   const auto& disp = *aFrame->StyleDisplay();
 
   // We use default appearance rather than effective appearance because we want
