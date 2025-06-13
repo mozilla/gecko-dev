@@ -504,7 +504,7 @@ static MOZ_ALWAYS_INLINE double CanonicalizeNaN(double d) {
  *   conditional move (not speculated) to zero the payload register if the type
  *   doesn't match.
  */
-class alignas(8) Value {
+class Value {
  private:
   uint64_t asBits_;
 
@@ -1061,7 +1061,7 @@ class alignas(8) Value {
   void dumpFields(js::JSONPrinter& json) const;
   void dumpStringContent(js::GenericPrinter& out) const;
 #endif
-} JS_HAZ_GC_POINTER MOZ_NON_PARAM;
+} JS_HAZ_GC_POINTER;
 
 static_assert(sizeof(Value) == 8,
               "Value size must leave three tag bits, be a binary power, and "
