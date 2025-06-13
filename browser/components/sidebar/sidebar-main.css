@@ -68,6 +68,7 @@
 .actions-list {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   align-items: start;
   max-width: 100%;
   overflow: hidden;
@@ -111,6 +112,15 @@
     gap: var(--space-xxsmall);
     padding-inline: var(--space-medium);
     padding-block-end: var(--space-small);
+
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media -moz-pref("sidebar.visibility", "expand-on-hover") {
+      /* We need these rules to apply at all times when the sidebar.visibility
+      pref is set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
+      has not been added to root. There are certain scenarios when that attribute is temporarily
+      removed from root such as when toggling the sidebar to expand with the toolbar button. */
+      margin-block-start: var(--space-small);
+    }
 
     .tools-overflow {
       width: unset;
