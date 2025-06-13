@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import contextlib
 import re
 from dataclasses import dataclass
-from typing import Dict, Iterator, NoReturn, Optional, Tuple, Union
+from typing import Iterator, NoReturn
 
 from .specifiers import Specifier
 
@@ -21,7 +23,7 @@ class ParserSyntaxError(Exception):
         message: str,
         *,
         source: str,
-        span: Tuple[int, int],
+        span: tuple[int, int],
     ) -> None:
         self.span = span
         self.message = message
@@ -34,7 +36,7 @@ class ParserSyntaxError(Exception):
         return "\n    ".join([self.message, self.source, marker])
 
 
-DEFAULT_RULES: "Dict[str, Union[str, re.Pattern[str]]]" = {
+DEFAULT_RULES: dict[str, str | re.Pattern[str]] = {
     "LEFT_PARENTHESIS": r"\(",
     "RIGHT_PARENTHESIS": r"\)",
     "LEFT_BRACKET": r"\[",
@@ -66,7 +68,8 @@ DEFAULT_RULES: "Dict[str, Union[str, re.Pattern[str]]]" = {
                 |platform[._](version|machine|python_implementation)
                 |python_implementation
                 |implementation_(name|version)
-                |extra
+                |extras?
+                |dependency_groups
             )\b
         """,
         re.VERBOSE,
@@ -96,13 +99,13 @@ class Tokenizer:
         self,
         source: str,
         *,
-        rules: "Dict[str, Union[str, re.Pattern[str]]]",
+        rules: dict[str, str | re.Pattern[str]],
     ) -> None:
         self.source = source
-        self.rules: Dict[str, re.Pattern[str]] = {
+        self.rules: dict[str, re.Pattern[str]] = {
             name: re.compile(pattern) for name, pattern in rules.items()
         }
-        self.next_token: Optional[Token] = None
+        self.next_token: Token | None = None
         self.position = 0
 
     def consume(self, name: str) -> None:
@@ -117,9 +120,9 @@ class Tokenizer:
         another check. If `peek` is set to `True`, the token is not loaded and
         would need to be checked again.
         """
-        assert (
-            self.next_token is None
-        ), f"Cannot check for {name!r}, already have {self.next_token!r}"
+        assert self.next_token is None, (
+            f"Cannot check for {name!r}, already have {self.next_token!r}"
+        )
         assert name in self.rules, f"Unknown token name: {name!r}"
 
         expression = self.rules[name]
@@ -154,8 +157,8 @@ class Tokenizer:
         self,
         message: str,
         *,
-        span_start: Optional[int] = None,
-        span_end: Optional[int] = None,
+        span_start: int | None = None,
+        span_end: int | None = None,
     ) -> NoReturn:
         """Raise ParserSyntaxError at the given position."""
         span = (

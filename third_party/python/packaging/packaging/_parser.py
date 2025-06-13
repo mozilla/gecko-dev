@@ -1,11 +1,13 @@
 """Handwritten parser of dependency specifiers.
 
-The docstring for each __parse_* function contains ENBF-inspired grammar representing
+The docstring for each __parse_* function contains EBNF-inspired grammar representing
 the implementation.
 """
 
+from __future__ import annotations
+
 import ast
-from typing import Any, List, NamedTuple, Optional, Tuple, Union
+from typing import NamedTuple, Sequence, Tuple, Union
 
 from ._tokenizer import DEFAULT_RULES, Tokenizer
 
@@ -41,20 +43,16 @@ class Op(Node):
 
 MarkerVar = Union[Variable, Value]
 MarkerItem = Tuple[MarkerVar, Op, MarkerVar]
-# MarkerAtom = Union[MarkerItem, List["MarkerAtom"]]
-# MarkerList = List[Union["MarkerList", MarkerAtom, str]]
-# mypy does not support recursive type definition
-# https://github.com/python/mypy/issues/731
-MarkerAtom = Any
-MarkerList = List[Any]
+MarkerAtom = Union[MarkerItem, Sequence["MarkerAtom"]]
+MarkerList = Sequence[Union["MarkerList", MarkerAtom, str]]
 
 
 class ParsedRequirement(NamedTuple):
     name: str
     url: str
-    extras: List[str]
+    extras: list[str]
     specifier: str
-    marker: Optional[MarkerList]
+    marker: MarkerList | None
 
 
 # --------------------------------------------------------------------------------------
@@ -87,7 +85,7 @@ def _parse_requirement(tokenizer: Tokenizer) -> ParsedRequirement:
 
 def _parse_requirement_details(
     tokenizer: Tokenizer,
-) -> Tuple[str, str, Optional[MarkerList]]:
+) -> tuple[str, str, MarkerList | None]:
     """
     requirement_details = AT URL (WS requirement_marker?)?
                         | specifier WS? (requirement_marker)?
@@ -156,7 +154,7 @@ def _parse_requirement_marker(
     return marker
 
 
-def _parse_extras(tokenizer: Tokenizer) -> List[str]:
+def _parse_extras(tokenizer: Tokenizer) -> list[str]:
     """
     extras = (LEFT_BRACKET wsp* extras_list? wsp* RIGHT_BRACKET)?
     """
@@ -175,11 +173,11 @@ def _parse_extras(tokenizer: Tokenizer) -> List[str]:
     return extras
 
 
-def _parse_extras_list(tokenizer: Tokenizer) -> List[str]:
+def _parse_extras_list(tokenizer: Tokenizer) -> list[str]:
     """
     extras_list = identifier (wsp* ',' wsp* identifier)*
     """
-    extras: List[str] = []
+    extras: list[str] = []
 
     if not tokenizer.check("IDENTIFIER"):
         return extras
@@ -252,7 +250,13 @@ def _parse_version_many(tokenizer: Tokenizer) -> str:
 # Recursive descent parser for marker expression
 # --------------------------------------------------------------------------------------
 def parse_marker(source: str) -> MarkerList:
-    return _parse_marker(Tokenizer(source, rules=DEFAULT_RULES))
+    return _parse_full_marker(Tokenizer(source, rules=DEFAULT_RULES))
+
+
+def _parse_full_marker(tokenizer: Tokenizer) -> MarkerList:
+    retval = _parse_marker(tokenizer)
+    tokenizer.expect("END", expected="end of marker expression")
+    return retval
 
 
 def _parse_marker(tokenizer: Tokenizer) -> MarkerList:
@@ -318,10 +322,7 @@ def _parse_marker_var(tokenizer: Tokenizer) -> MarkerVar:
 
 
 def process_env_var(env_var: str) -> Variable:
-    if (
-        env_var == "platform_python_implementation"
-        or env_var == "python_implementation"
-    ):
+    if env_var in ("platform_python_implementation", "python_implementation"):
         return Variable("platform_python_implementation")
     else:
         return Variable(env_var)
@@ -348,6 +349,5 @@ def _parse_marker_op(tokenizer: Tokenizer) -> Op:
         return Op(tokenizer.read().text)
     else:
         return tokenizer.raise_syntax_error(
-            "Expected marker operator, one of "
-            "<=, <, !=, ==, >=, >, ~=, ===, in, not in"
+            "Expected marker operator, one of <=, <, !=, ==, >=, >, ~=, ===, in, not in"
         )

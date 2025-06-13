@@ -1,9 +1,9 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: packaging
-Version: 23.1
+Version: 25.0
 Summary: Core utilities for Python packages
 Author-email: Donald Stufft <donald@stufft.io>
-Requires-Python: >=3.7
+Requires-Python: >=3.8
 Description-Content-Type: text/x-rst
 Classifier: Development Status :: 5 - Production/Stable
 Classifier: Intended Audience :: Developers
@@ -12,14 +12,18 @@ Classifier: License :: OSI Approved :: BSD License
 Classifier: Programming Language :: Python
 Classifier: Programming Language :: Python :: 3
 Classifier: Programming Language :: Python :: 3 :: Only
-Classifier: Programming Language :: Python :: 3.7
 Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3.9
 Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
 Classifier: Programming Language :: Python :: Implementation :: CPython
 Classifier: Programming Language :: Python :: Implementation :: PyPy
 Classifier: Typing :: Typed
+License-File: LICENSE
+License-File: LICENSE.APACHE
+License-File: LICENSE.BSD
 Project-URL: Documentation, https://packaging.pypa.io/
 Project-URL: Source, https://github.com/pypa/packaging
 
@@ -58,6 +62,8 @@ Installation
 Use ``pip`` to install these utilities::
 
     pip install packaging
+
+The ``packaging`` library uses calendar-based versioning (``YY.N``).
 
 Discussion
 ----------
