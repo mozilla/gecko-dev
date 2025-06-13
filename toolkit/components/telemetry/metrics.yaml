@@ -870,22 +870,6 @@ usage:
       - loines@mozilla.com
     expires: never
     unit: build_number
-  windows_backup_enabled:
-    type: boolean
-    lifetime: application
-    send_in_pings:
-      - usage-reporting
-    description: |
-      Tracks if Windows Backup is enabled and configured to back up applications.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968600
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968600
-    data_sensitivity:
-      - technical
-    notification_emails:
-      - install-update@mozilla.com
-    expires: never
   app_build:
     type: string
     lifetime: application
