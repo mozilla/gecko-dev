@@ -247,7 +247,6 @@ tags = "vertical-tabs"
 tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_reorder.js"]
-skip-if = ["os == 'win'"] # Bug 1972003, only fails on Windows on try, not locally or when tested manually
 tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_unload.js"]
