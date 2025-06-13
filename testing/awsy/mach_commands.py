@@ -8,7 +8,6 @@ import os
 import sys
 
 import mozinfo
-import six
 from mach.decorators import Command, CommandArgument, CommandArgumentGroup
 from mozbuild.base import BinaryNotFoundException
 from mozbuild.base import MachCommandConditions as conditions
@@ -96,7 +95,7 @@ def run_awsy(command_context, tests, binary=None, **kwargs):
     else:
         kwargs["testvars"] = [runtime_testvars_path]
 
-    runtime_testvars_file = open(runtime_testvars_path, "wb" if six.PY2 else "w")
+    runtime_testvars_file = open(runtime_testvars_path, "w")
     runtime_testvars_file.write(json.dumps(runtime_testvars, indent=2))
     runtime_testvars_file.close()
 
