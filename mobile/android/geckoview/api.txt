@@ -2764,9 +2764,11 @@ package org.mozilla.geckoview {
   }
 
   public static class WebExtension.PermissionPromptResponse {
-    ctor public PermissionPromptResponse(@Nullable Boolean, @Nullable Boolean);
+    ctor @Deprecated @DeprecationSchedule(id="web-extension-permission-prompt-response",version=143) public PermissionPromptResponse(@Nullable Boolean, @Nullable Boolean);
+    ctor public PermissionPromptResponse(Boolean, Boolean, Boolean);
     field @Nullable public final Boolean isPermissionsGranted;
     field @Nullable public final Boolean isPrivateModeGranted;
+    field @Nullable public final Boolean isTechnicalAndInteractionDataGranted;
   }
 
   @UiThread public static class WebExtension.Port {

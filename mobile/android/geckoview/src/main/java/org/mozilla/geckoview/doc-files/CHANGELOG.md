@@ -25,6 +25,7 @@ exclude: true
 - Added option on [`GeckoPreferenceController`][140.1] to [`get multiple preference`][141.12] values at once.
 - Added [`WebNotificationAction`][141.13] that represents action buttons of notifications.
 - Added [`WebNotification.actions`][141.14] and a new function signature with `action` to [`WebNotification.click()`][141.15] to indicate action click.
+- Added support for special "technical and interaction" data collection permission ([bug 1964992]({{bugilla}}1964992))
 
 [141.1]: {{javadoc_uri}}/ProfilerController.html
 [141.2]: {{javadoc_uri}}/GeckoRuntime.html#getProfilerController()
@@ -1772,4 +1773,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 3b27cb8003ccc87fe59e9f0fa3eead0f2f7b5f79
+[api-version]: b39eec444862b51a7ef0dd0a62c73711a566df3c

@@ -3014,17 +3014,38 @@ public class WebExtension {
     /** Whether the user granted access in private mode or not. */
     @Nullable public final Boolean isPrivateModeGranted;
 
+    /** Whether the user granted access to technical and interaction data collection. */
+    @Nullable public final Boolean isTechnicalAndInteractionDataGranted;
+
     /**
      * Creates a new PermissionPromptResponse with the given fields.
      *
      * @param isPermissionsGranted Whether the user granted permissions or not.
      * @param isPrivateModeGranted Whether the user granted access in private mode or not.
      */
+    @Deprecated
+    @DeprecationSchedule(id = "web-extension-permission-prompt-response", version = 143)
     public PermissionPromptResponse(
         final @Nullable Boolean isPermissionsGranted,
         final @Nullable Boolean isPrivateModeGranted) {
+      this(isPermissionsGranted, isPrivateModeGranted, false);
+    }
+
+    /**
+     * Creates a new PermissionPromptResponse with the given fields.
+     *
+     * @param isPermissionsGranted Whether the user granted permissions or not.
+     * @param isPrivateModeGranted Whether the user granted access in private mode or not.
+     * @param isTechnicalAndInteractionDataGranted Whether the user granted access to technical and
+     *     interaction data collection.
+     */
+    public PermissionPromptResponse(
+        final Boolean isPermissionsGranted,
+        final Boolean isPrivateModeGranted,
+        final Boolean isTechnicalAndInteractionDataGranted) {
       this.isPermissionsGranted = isPermissionsGranted;
       this.isPrivateModeGranted = isPrivateModeGranted;
+      this.isTechnicalAndInteractionDataGranted = isTechnicalAndInteractionDataGranted;
     }
   }
 }

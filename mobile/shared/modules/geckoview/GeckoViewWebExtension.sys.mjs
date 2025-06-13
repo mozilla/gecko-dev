@@ -9,6 +9,14 @@ const PRIVATE_BROWSING_PERM_NAME = "internal:privateBrowsingAllowed";
 const PRIVATE_BROWSING_PERMS = {
   permissions: [PRIVATE_BROWSING_PERM_NAME],
   origins: [],
+  data_collection: [],
+};
+
+const TECHNICAL_AND_INTERACTION_DATA_PERM_NAME = "technicalAndInteraction";
+const TECHNICAL_AND_INTERACTION_DATA_PERMS = {
+  permissions: [],
+  origins: [],
+  data_collection: [TECHNICAL_AND_INTERACTION_DATA_PERM_NAME],
 };
 
 const lazy = {};
@@ -542,6 +550,11 @@ class ExtensionPromptObserver {
     const { sourceURI } = aInstall;
     const { permissions } = aInfo;
 
+    const hasTechnicalAndInteractionDataPerm =
+      permissions.data_collection.includes(
+        TECHNICAL_AND_INTERACTION_DATA_PERM_NAME
+      );
+
     const extension = await exportExtension(aAddon, sourceURI);
     const response = await lazy.EventDispatcher.instance.sendRequestForResult({
       type: "GeckoView:WebExtension:InstallPrompt",
@@ -560,6 +573,21 @@ class ExtensionPromptObserver {
           PRIVATE_BROWSING_PERMS
         );
       }
+
+      if (hasTechnicalAndInteractionDataPerm) {
+        if (response.isTechnicalAndInteractionDataGranted) {
+          await lazy.ExtensionPermissions.add(
+            aAddon.id,
+            TECHNICAL_AND_INTERACTION_DATA_PERMS
+          );
+        } else {
+          await lazy.ExtensionPermissions.remove(
+            aAddon.id,
+            TECHNICAL_AND_INTERACTION_DATA_PERMS
+          );
+        }
+      }
+
       aInfo.resolve();
     } else {
       aInfo.reject();

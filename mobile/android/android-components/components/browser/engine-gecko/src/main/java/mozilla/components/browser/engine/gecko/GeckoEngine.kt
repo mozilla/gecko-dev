@@ -381,6 +381,7 @@ class GeckoEngine(
                         NativePermissionPromptResponse(
                             data.isPermissionsGranted,
                             data.isPrivateModeGranted,
+                            false, // isTechnicalAndInteractionDataGranted
                         ),
                     )
                 }

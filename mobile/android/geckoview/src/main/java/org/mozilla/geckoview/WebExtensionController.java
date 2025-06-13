@@ -1226,9 +1226,12 @@ public class WebExtensionController {
     callback.resolveTo(
         promptResponse.map(
             userResponse -> {
-              final GeckoBundle response = new GeckoBundle(2);
+              final GeckoBundle response = new GeckoBundle(3);
               response.putBoolean("allow", userResponse.isPermissionsGranted);
               response.putBoolean("privateBrowsingAllowed", userResponse.isPrivateModeGranted);
+              response.putBoolean(
+                  "isTechnicalAndInteractionDataGranted",
+                  userResponse.isTechnicalAndInteractionDataGranted);
               return response;
             }));
   }
