@@ -7027,8 +7027,7 @@ bool nsDisplayTransform::MayBeAnimated(nsDisplayListBuilder* aBuilder) const {
 
 nsRect nsDisplayTransform::TransformUntransformedBounds(
     nsDisplayListBuilder* aBuilder, const Matrix4x4Flagged& aMatrix) const {
-  bool snap;
-  const nsRect untransformedBounds = GetUntransformedBounds(aBuilder, &snap);
+  const nsRect untransformedBounds = GetUntransformedBounds(aBuilder);
   // GetTransform always operates in dev pixels.
   const float factor = mFrame->PresContext()->AppUnitsPerDevPixel();
   return nsLayoutUtils::MatrixTransformRect(untransformedBounds, aMatrix,
@@ -7311,12 +7310,12 @@ nsRegion nsDisplayTransform::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
 
   nsRegion result;
 
-  bool tmpSnap;
-  const nsRect bounds = GetUntransformedBounds(aBuilder, &tmpSnap);
+  const nsRect bounds = GetUntransformedBounds(aBuilder);
   const nsRegion opaque =
       ::mozilla::GetOpaqueRegion(aBuilder, GetChildren(), bounds);
 
   if (opaque.Contains(untransformedVisible)) {
+    bool tmpSnap;
     result = GetBuildingRect().Intersect(GetBounds(aBuilder, &tmpSnap));
   }
   return result;
@@ -7415,8 +7414,7 @@ bool nsDisplayTransform::UntransformRect(nsDisplayListBuilder* aBuilder,
                     NSAppUnitsToFloatPixels(aRect.width, factor),
                     NSAppUnitsToFloatPixels(aRect.height, factor));
 
-  bool snap;
-  nsRect childBounds = GetUntransformedBounds(aBuilder, &snap);
+  nsRect childBounds = GetUntransformedBounds(aBuilder);
   RectDouble childGfxBounds(
       NSAppUnitsToFloatPixels(childBounds.x, factor),
       NSAppUnitsToFloatPixels(childBounds.y, factor),

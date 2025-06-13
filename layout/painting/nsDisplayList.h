@@ -2453,9 +2453,9 @@ class nsDisplayItem {
   /**
    * Returns the untransformed bounds of this display item.
    */
-  virtual nsRect GetUntransformedBounds(nsDisplayListBuilder* aBuilder,
-                                        bool* aSnap) const {
-    return GetBounds(aBuilder, aSnap);
+  virtual nsRect GetUntransformedBounds(nsDisplayListBuilder* aBuilder) const {
+    bool unused;
+    return GetBounds(aBuilder, &unused);
   }
 
   virtual nsRegion GetTightBounds(nsDisplayListBuilder* aBuilder,
@@ -6225,9 +6225,7 @@ class nsDisplayTransform final : public nsPaintedDisplayItem {
 
   RetainedDisplayList* GetChildren() const override { return &mChildren; }
 
-  nsRect GetUntransformedBounds(nsDisplayListBuilder* aBuilder,
-                                bool* aSnap) const override {
-    *aSnap = false;
+  nsRect GetUntransformedBounds(nsDisplayListBuilder* aBuilder) const override {
     return mChildBounds;
   }
 
