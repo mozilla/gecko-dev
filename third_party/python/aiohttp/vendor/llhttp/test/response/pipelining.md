@@ -21,6 +21,8 @@ CCCC
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -34,6 +36,8 @@ off=38 len=3 span[body]="AAA"
 off=41 message complete
 off=43 reset
 off=43 message begin
+off=43 len=4 span[protocol]="HTTP"
+off=47 protocol complete
 off=48 len=3 span[version]="1.1"
 off=51 version complete
 off=56 len=7 span[status]="Created"
@@ -47,6 +51,8 @@ off=86 len=4 span[body]="BBBB"
 off=90 message complete
 off=92 reset
 off=92 message begin
+off=92 len=4 span[protocol]="HTTP"
+off=96 protocol complete
 off=97 len=3 span[version]="1.1"
 off=100 version complete
 off=105 len=8 span[status]="Accepted"

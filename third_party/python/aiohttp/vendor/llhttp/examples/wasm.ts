@@ -7,7 +7,7 @@
  */
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import * as constants from '../build/wasm/constants';
+import constants from '../build/wasm/constants';
 
 const bin = readFileSync(resolve(__dirname, '../build/wasm/llhttp.wasm'));
 const mod = new WebAssembly.Module(bin);
@@ -114,7 +114,7 @@ const inst = new WebAssembly.Instance(mod, {
   },
 });
 
-const memory = inst.exports.memory as any;
+const memory = inst.exports.memory as WebAssembly.Memory;
 const alloc = inst.exports.llhttp_alloc as CallableFunction;
 const malloc = inst.exports.malloc as CallableFunction;
 const execute = inst.exports.llhttp_execute as CallableFunction;
@@ -171,12 +171,14 @@ class HTTPParser {
     return 0;
   }
 
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   [kOnHeaders](rawHeaders: [string]) {}
 
   [kOnHeadersComplete](versionMajor: number, versionMinor: number, rawHeaders: [string], method: string,
     url: string, statusCode: number, statusMessage: string, upgrade: boolean, shouldKeepAlive: boolean) {
     return 0;
   }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   [kOnBody](body: Buffer) {
     this[kBody] = body;

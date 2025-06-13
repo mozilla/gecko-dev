@@ -3,14 +3,17 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: daily
+      interval: weekly
+    open-pull-requests-limit: !!int ${{secrets.OPEN_PR_LIMIT}}
 
   - package-ecosystem: docker
     directory: /
     schedule:
-      interval: daily
+      interval: weekly
+    open-pull-requests-limit: !!int ${{secrets.OPEN_PR_LIMIT}}
 
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: daily
+      interval: weekly
+    open-pull-requests-limit: !!int ${{secrets.OPEN_PR_LIMIT}}

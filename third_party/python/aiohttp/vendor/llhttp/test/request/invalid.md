@@ -17,7 +17,9 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=18 span[url]="/music/sweet/music"
 off=23 url complete
-off=27 error code=8 reason="Expected SOURCE method for ICE/x.x request"
+off=23 len=3 span[protocol]="ICE"
+off=26 protocol complete
+off=26 error code=8 reason="Expected SOURCE method for ICE/x.x request"
 ```
 
 ### ICE protocol, but not really
@@ -36,7 +38,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=18 span[url]="/music/sweet/music"
 off=23 url complete
-off=24 error code=8 reason="Expected HTTP/"
+off=23 len=1 span[protocol]="I"
+off=24 error code=8 reason="Expected HTTP/, RTSP/ or ICE/"
 ```
 
 ### RTSP protocol and PUT method
@@ -55,7 +58,9 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=18 span[url]="/music/sweet/music"
 off=23 url complete
-off=28 error code=8 reason="Invalid method for RTSP/x.x request"
+off=23 len=4 span[protocol]="RTSP"
+off=27 protocol complete
+off=27 error code=8 reason="Invalid method for RTSP/x.x request"
 ```
 
 ### HTTP protocol and ANNOUNCE method
@@ -74,7 +79,9 @@ off=0 len=8 span[method]="ANNOUNCE"
 off=8 method complete
 off=9 len=18 span[url]="/music/sweet/music"
 off=28 url complete
-off=33 error code=8 reason="Invalid method for HTTP/x.x request"
+off=28 len=4 span[protocol]="HTTP"
+off=32 protocol complete
+off=32 error code=8 reason="Invalid method for HTTP/x.x request"
 ```
 
 ### Headers separated by CR
@@ -93,6 +100,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 len=3 span[header_field]="Foo"
@@ -121,6 +130,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=1 span[url]="/"
 off=7 url complete
+off=7 len=4 span[protocol]="HTTP"
+off=11 protocol complete
 off=12 len=3 span[version]="1.1"
 off=15 version complete
 off=17 len=4 span[header_field]="Host"
@@ -151,6 +162,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 len=10 span[header_field]="Connection"
@@ -183,6 +196,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 len=10 span[header_field]="Connection"
@@ -219,6 +234,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=1 span[url]="/"
 off=7 url complete
+off=7 len=4 span[protocol]="HTTP"
+off=11 protocol complete
 off=12 len=3 span[version]="1.1"
 off=15 version complete
 off=17 len=10 span[header_field]="Connection"
@@ -254,6 +271,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=1 span[url]="/"
 off=7 url complete
+off=7 len=4 span[protocol]="HTTP"
+off=11 protocol complete
 off=12 len=3 span[version]="1.1"
 off=15 version complete
 off=17 len=4 span[header_field]="Host"
@@ -281,6 +300,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=18 error code=10 reason="Invalid header token"
@@ -302,6 +323,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=19 error code=10 reason="Invalid header token"
@@ -323,6 +346,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 error code=10 reason="Invalid header token"
@@ -361,6 +386,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=20 error code=10 reason="Invalid header token"
@@ -384,6 +411,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 len=4 span[header_field]="Host"
@@ -411,6 +440,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 len=4 span[header_field]="Host"
@@ -442,6 +473,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 len=4 span[header_field]="Host"
@@ -467,6 +500,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="5.6"
 off=14 error code=9 reason="Invalid HTTP version"
 ```
@@ -485,6 +520,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=17 error code=30 reason="Unexpected space after start line"
@@ -521,6 +558,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=1 span[url]="/"
 off=7 url complete
+off=7 len=4 span[protocol]="HTTP"
+off=11 protocol complete
 off=12 len=3 span[version]="1.1"
 off=15 version complete
 off=16 error code=9 reason="Expected CRLF after version"
@@ -556,6 +595,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=1 span[url]="/"
 off=7 url complete
+off=7 len=4 span[protocol]="HTTP"
+off=11 protocol complete
 off=12 len=3 span[version]="1.1"
 off=15 version complete
 off=16 len=17 span[header_field]="Transfer-Encoding"
@@ -628,6 +669,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=6 span[url]="/hello"
 off=12 url complete
+off=12 len=4 span[protocol]="HTTP"
+off=16 protocol complete
 off=17 len=3 span[version]="1.1"
 off=20 version complete
 off=22 len=4 span[header_field]="Host"
@@ -662,6 +705,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=6 span[url]="/hello"
 off=12 url complete
+off=12 len=4 span[protocol]="HTTP"
+off=16 protocol complete
 off=17 len=3 span[version]="1.1"
 off=20 version complete
 off=22 len=4 span[header_field]="Host"
@@ -681,6 +726,8 @@ off=72 len=3 span[method]="GET"
 off=75 method complete
 off=76 len=4 span[url]="/bye"
 off=81 url complete
+off=81 len=4 span[protocol]="HTTP"
+off=85 protocol complete
 off=86 len=3 span[version]="1.1"
 off=89 version complete
 off=91 len=4 span[header_field]="Host"

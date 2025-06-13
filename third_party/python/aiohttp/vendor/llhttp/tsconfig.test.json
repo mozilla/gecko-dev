@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["bench/**/*.ts", "bin/**/*.ts", "src/**/*.ts", "test/**/*.ts", "eslint.config.mjs"],
+}

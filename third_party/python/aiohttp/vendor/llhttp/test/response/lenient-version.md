@@ -12,6 +12,8 @@ HTTP/5.6 200 OK
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="5.6"
 off=8 version complete
 off=13 len=2 span[status]="OK"

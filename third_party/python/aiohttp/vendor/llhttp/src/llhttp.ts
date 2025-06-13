@@ -1,7 +1,19 @@
-import * as constants from './llhttp/constants';
+import constants from './llhttp/constants';
 
-export { constants };
+import { HTTP } from './llhttp/http';
+import { URL } from './llhttp/url';
+import { CHeaders } from './llhttp/c-headers';
 
-export { HTTP } from './llhttp/http';
-export { URL } from './llhttp/url';
-export { CHeaders } from './llhttp/c-headers';
+export { 
+  constants,
+  HTTP,
+  URL,
+  CHeaders,
+};
+
+export default {
+  constants,
+  HTTP,
+  URL,
+  CHeaders,
+}

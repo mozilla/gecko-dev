@@ -1,6 +1,16 @@
 {
-  "extends": "./tsconfig.base.json",
-  "include": [
-    "src/**/*.ts"
-  ]
+  "compilerOptions": {
+    "lib": ["es2023"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es2022",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./lib",
+    "declaration": true,
+    "pretty": true,
+    "sourceMap": true,
+  },
+  "include": ["src/**/*.ts"],
 }

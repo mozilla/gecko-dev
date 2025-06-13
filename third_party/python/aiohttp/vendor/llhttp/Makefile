@@ -55,7 +55,7 @@ release: clean generate
 	sed s/_RELEASE_/$(RELEASE)/ CMakeLists.txt > release/CMakeLists.txt
 	cp -rf libllhttp.pc.in release/
 	cp -rf README.md release/
-	cp -rf LICENSE-MIT release/
+	cp -rf LICENSE release/
 
 github-release:
 	@echo "${RELEASE_V}" | grep -q -E "^v" || { echo "Please make sure version starts with \"v\"."; exit 1; }
@@ -74,7 +74,7 @@ postversion: release
 	git checkout release --
 	cp -rf release/* ./
 	rm -rf release
-	git add include src *.gyp *.gypi CMakeLists.txt README.md LICENSE-MIT libllhttp.pc.in
+	git add include src *.gyp *.gypi CMakeLists.txt README.md LICENSE libllhttp.pc.in
 	git commit -a -m "release: $(RELEASE)"
 	git tag "release/v$(RELEASE)"
 	git push && git push --tags

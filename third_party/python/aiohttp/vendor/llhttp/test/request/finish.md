@@ -18,6 +18,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=18 headers complete method=1 v=1/1 flags=0 content_length=0
@@ -40,6 +42,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 len=14 span[header_field]="Content-Length"
@@ -62,6 +66,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 len=12 span[header_field]="Content-Leng"

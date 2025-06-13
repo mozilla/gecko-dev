@@ -31,6 +31,8 @@ Connection: close
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -95,6 +97,8 @@ OK
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -131,6 +135,8 @@ Content-Length: 456
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -144,6 +150,8 @@ off=40 skip body
 off=40 message complete
 off=40 reset
 off=40 message begin
+off=40 len=4 span[protocol]="HTTP"
+off=44 protocol complete
 off=45 len=3 span[version]="1.1"
 off=48 version complete
 off=53 len=2 span[status]="OK"

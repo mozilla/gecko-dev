@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build libllhttp.a
+  ci:
+    name: Build, Test and Lint
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -29,90 +29,42 @@ jobs:
           # Scoop modifies the PATH so we make the modified PATH global.
           echo $env:PATH >> $env:GITHUB_PATH
 
-      - name: Fetch code
-        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20.18.0
+
+      - name: Setup Docker
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+        if: runner.os == 'Linux'
+
+      - name: Fetch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 1
 
       # Skip macOS & Windows, cache there is slower
       - name: Restore node_modules cache for Linux
-        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
-        if: runner.os == 'Linux'
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: npm ci
 
       - name: Build libllhttp.a
         shell: bash
         run: |
           make build/libllhttp.a
 
-  test:
-    name: Run tests
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - macos-latest
-          - ubuntu-latest
-          - windows-latest
-    steps:
-      - name: Install clang for Windows
-        if: runner.os == 'Windows'
-        run: |
-          iwr -useb get.scoop.sh -outfile 'install.ps1'
-          .\install.ps1 -RunAsAdmin
-          scoop install llvm --global
-
-          # Scoop modifies the PATH so we make the modified PATH global.
-          echo $env:PATH >> $env:GITHUB_PATH
-
-      - name: Fetch code
-        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
-        with:
-          fetch-depth: 1
-
-      # Skip macOS & Windows, cache there is slower
-      - name: Restore node_modules cache for Linux
-        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
+      - name: Build WebAssembly
+        run: npm run build-wasm
         if: runner.os == 'Linux'
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      # Custom script, because progress looks not good in CI
       - name: Run tests
         run: npm run test
 
-  lint:
-    name: Run ESLint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Fetch code
-        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
-        with:
-          fetch-depth: 1
-
-      - name: Restore node_modules cache
-        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Run lint command
+      - name: Lint Code
         run: npm run lint
+        if: runner.os == 'Linux'

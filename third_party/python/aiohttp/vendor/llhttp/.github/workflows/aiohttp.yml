@@ -21,15 +21,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout aiohttp
-      uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
         repository: aio-libs/aiohttp
     - name: Checkout llhttp
-      uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
         path: vendor/llhttp
     - name: Restore node_modules cache
-      uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
+      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
         path: vendor/llhttp/.npm
         key: ubuntu-latest-node-${{ hashFiles('vendor/llhttp/**/package-lock.json') }}
@@ -41,7 +41,7 @@ jobs:
       run: make
       working-directory: vendor/llhttp
     - name: Setup Python
-      uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+      uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
       with:
         python-version: 3.x
         cache: 'pip'
@@ -59,6 +59,7 @@ jobs:
     - name: Run dev_mode tests
       env:
         COLOR: yes
+        PYTHONDEVMODE: 1
       run: >-
         PATH="${HOME}/.local/bin:${PATH}"
-        python -X dev -m pytest -m dev_mode tests/test_http_parser.py tests/test_web_functional.py
+        pytest -m dev_mode tests/test_http_parser.py tests/test_web_functional.py

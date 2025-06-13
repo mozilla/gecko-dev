@@ -225,6 +225,28 @@ int llhttp__on_message_complete(llparse_t* s, const char* p, const char* endp) {
 }
 
 
+int llhttp__on_protocol(llparse_t* s, const char* p, const char* endp) {
+  if (llparse__in_bench)
+    return 0;
+
+  return llparse__print_span("protocol", p, endp);
+}
+
+
+int llhttp__on_protocol_complete(llparse_t* s, const char* p, const char* endp) {
+  if (llparse__in_bench)
+    return 0;
+
+  llparse__print(p, endp, "protocol complete");
+
+  #ifdef LLHTTP__TEST_PAUSE_ON_PROTOCOL_COMPLETE
+    return LLPARSE__ERROR_PAUSE;
+  #else
+    return 0;
+  #endif
+}
+
+
 int llhttp__on_status(llparse_t* s, const char* p, const char* endp) {
   if (llparse__in_bench)
     return 0;

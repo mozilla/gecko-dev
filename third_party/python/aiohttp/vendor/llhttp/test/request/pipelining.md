@@ -25,6 +25,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=4 span[url]="/aaa"
 off=10 url complete
+off=10 len=4 span[protocol]="HTTP"
+off=14 protocol complete
 off=15 len=3 span[version]="1.1"
 off=18 version complete
 off=20 len=14 span[header_field]="Content-Length"
@@ -40,6 +42,8 @@ off=46 len=3 span[method]="PUT"
 off=49 method complete
 off=50 len=4 span[url]="/bbb"
 off=55 url complete
+off=55 len=4 span[protocol]="HTTP"
+off=59 protocol complete
 off=60 len=3 span[version]="1.1"
 off=63 version complete
 off=65 len=14 span[header_field]="Content-Length"
@@ -55,6 +59,8 @@ off=92 len=5 span[method]="PATCH"
 off=97 method complete
 off=98 len=4 span[url]="/ccc"
 off=103 url complete
+off=103 len=4 span[protocol]="HTTP"
+off=107 protocol complete
 off=108 len=3 span[version]="1.1"
 off=111 version complete
 off=113 len=14 span[header_field]="Content-Length"

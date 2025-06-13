@@ -19,6 +19,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=7 span[header_field]="Header1"
@@ -49,6 +51,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=7 span[header_field]="Header1"
@@ -63,6 +67,8 @@ off=38 len=3 span[method]="GET"
 off=41 method complete
 off=42 len=4 span[url]="/url"
 off=47 url complete
+off=47 len=4 span[protocol]="HTTP"
+off=51 protocol complete
 off=52 len=3 span[version]="1.1"
 off=55 version complete
 off=57 len=7 span[header_field]="Header1"
@@ -90,6 +96,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=7 span[header_field]="Header1"
@@ -119,6 +127,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=1 span[url]="/"
 off=7 url complete
+off=7 len=4 span[protocol]="HTTP"
+off=11 protocol complete
 off=12 len=3 span[version]="1.1"
 off=15 version complete
 off=17 len=10 span[header_field]="Connection"

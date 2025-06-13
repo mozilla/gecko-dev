@@ -1,12 +1,12 @@
-import * as fs from 'fs';
+import fs from 'fs';
 import { ICompilerResult, LLParse } from 'llparse';
 import { Dot } from 'llparse-dot';
 import {
   Fixture, FixtureResult, IFixtureBuildOptions,
 } from 'llparse-test-fixture';
-import * as path from 'path';
+import path from 'path';
 
-import * as llhttp from '../../src/llhttp';
+import llhttp from '../../src/llhttp';
 
 export type Node = Parameters<LLParse['build']>['0'];
 
@@ -58,7 +58,7 @@ const CHEADERS_FILE = path.join(BUILD_DIR, 'cheaders.h');
 const cheaders = new llhttp.CHeaders().build();
 try {
   fs.mkdirSync(BUILD_DIR);
-} catch (e) {
+} catch {
   // no-op
 }
 fs.writeFileSync(CHEADERS_FILE, cheaders);
@@ -75,7 +75,7 @@ const fixtures = new Fixture({
   maxParallel: process.env.LLPARSE_DEBUG ? 1 : undefined,
 });
 
-const cache: Map<Node, ICompilerResult> = new Map();
+const cache = new Map<Node, ICompilerResult>();
 
 export async function build(
   llparse: LLParse, node: Node, outFile: string,

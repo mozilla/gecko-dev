@@ -1,20 +1,19 @@
-aiohappyeyeballs>=2.3.0
+aiohappyeyeballs>=2.5.0
 aiosignal>=1.1.2
 attrs>=17.3.0
 frozenlist>=1.1.1
 multidict<7.0,>=4.5
-yarl<2.0,>=1.12.0
+propcache>=0.2.0
+yarl<2.0,>=1.17.0
 
 [:python_version < "3.11"]
 async-timeout<6.0,>=4.0
 
 [speedups]
+aiodns>=3.3.0
 
 [speedups:platform_python_implementation != "CPython"]
 brotlicffi
 
 [speedups:platform_python_implementation == "CPython"]
 Brotli
-
-[speedups:sys_platform == "linux" or sys_platform == "darwin"]
-aiodns>=3.2.0

@@ -1,6 +1,6 @@
 {
   "name": "llhttp",
-  "version": "9.2.1",
+  "version": "9.3.0",
   "description": "HTTP parser in LLVM IR",
   "main": "lib/llhttp.js",
   "types": "lib/llhttp.d.ts",
@@ -9,17 +9,17 @@
     "src"
   ],
   "scripts": {
-    "bench": "ts-node bench/",
-    "build": "ts-node bin/generate.ts",
+    "bench": "node --import tsx bench/index.ts",
+    "build": "node --import tsx bin/generate.ts",
     "build-ts": "tsc",
     "prebuild-wasm": "npm run wasm -- --prebuild && npm run wasm -- --setup",
     "build-wasm": "npm run wasm -- --docker",
-    "wasm": "ts-node bin/build_wasm.ts",
+    "wasm": "node --import tsx bin/build_wasm.ts",
     "clean": "rm -rf lib && rm -rf test/tmp",
     "prepare": "npm run clean && npm run build-ts",
-    "test": "node -r ts-node/register/type-check ./test/md-test.ts",
-    "lint": "eslint -c eslint.json bin/*.ts src/*.ts src/**/*.ts test/*.ts test/**/*.ts",
-    "lint-fix": "eslint --fix -c eslint.json bin/*.ts src/*.ts src/**/*.ts test/*.ts test/**/*.ts",
+    "test": "node --import tsx ./test/md-test.ts",
+    "lint": "eslint",
+    "lint-fix": "eslint --fix",
     "postversion": "RELEASE=`node -e \"process.stdout.write(require('./package').version)\"` make -B postversion",
     "github-release": "RELEASE_V=`node -e \"process.stdout.write('v' + require('./package').version)\"` make github-release"
   },
@@ -40,18 +40,18 @@
   },
   "homepage": "https://github.com/nodejs/llhttp#readme",
   "devDependencies": {
-    "@stylistic/eslint-plugin": "^1.5.4",
-    "@types/node": "^20.11.10",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^6.20.0",
-    "eslint": "^8.56.0",
+    "@eslint/js": "^9.18.0",
+    "@stylistic/eslint-plugin": "^4.1.0",
+    "@types/node": "^22.10.5",
+    "eslint": "^9.18.0",
     "llparse-dot": "^1.0.1",
-    "llparse-test-fixture": "^5.0.1",
+    "llparse-test-fixture": "^5.0.2",
     "mdgator": "^1.1.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.19.1"
   },
   "dependencies": {
-    "llparse": "^7.1.1"
+    "llparse": "^7.3.0"
   }
 }

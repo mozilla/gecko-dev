@@ -22,6 +22,8 @@ and this is the second one
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -51,6 +53,8 @@ World
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -81,6 +85,8 @@ World
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -120,6 +126,8 @@ OK
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -165,6 +173,8 @@ hello
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -216,6 +226,8 @@ aa
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -250,6 +262,8 @@ aa
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -285,6 +299,8 @@ hello
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -344,6 +360,8 @@ hello
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"
@@ -385,6 +403,8 @@ World
 
 ```log
 off=0 message begin
+off=0 len=4 span[protocol]="HTTP"
+off=4 protocol complete
 off=5 len=3 span[version]="1.1"
 off=8 version complete
 off=13 len=2 span[status]="OK"

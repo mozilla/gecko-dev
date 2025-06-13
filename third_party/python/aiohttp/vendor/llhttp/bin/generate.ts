@@ -6,7 +6,7 @@ import { dirname, resolve } from 'path';
 import { CHeaders, HTTP } from '../src/llhttp';
 
 // https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
-// eslint-disable-next-line max-len
+// eslint-disable-next-line @stylistic/max-len
 const semverRE = /^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 
 const C_FILE = resolve(__dirname, '../build/c/llhttp.c');

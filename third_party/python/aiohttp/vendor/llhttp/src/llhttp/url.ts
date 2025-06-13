@@ -1,11 +1,11 @@
-import { LLParse, source } from 'llparse';
+import { type LLParse, source } from 'llparse';
 
 import Match = source.node.Match;
 import Node = source.node.Node;
 
 import {
   ALPHA,
-  CharList,
+  type CharList,
   ERROR,
   URL_CHAR,
   USERINFO_CHARS,
@@ -31,7 +31,7 @@ export class URL {
   private readonly errorInvalid: Node;
   private readonly URL_CHAR: CharList;
 
-  constructor(private readonly llparse: LLParse, separateSpans: boolean = false) {
+  constructor(private readonly llparse: LLParse, separateSpans = false) {
     const p = this.llparse;
 
     this.errorInvalid = p.error(ERROR.INVALID_URL, 'Invalid characters in url');

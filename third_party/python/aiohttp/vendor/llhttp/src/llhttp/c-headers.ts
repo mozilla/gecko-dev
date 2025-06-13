@@ -1,4 +1,5 @@
-import * as constants from './constants';
+import constants from './constants';
+import type { IntDict } from './constants';
 import { enumToMap } from './utils';
 
 type Encoding = 'none' | 'hex';
@@ -64,7 +65,7 @@ export class CHeaders {
     return res;
   }
 
-  private buildEnum(name: string, prefix: string, map: constants.IntDict,
+  private buildEnum(name: string, prefix: string, map: IntDict,
                     encoding: Encoding = 'none'): string {
     let res = '';
 
@@ -92,12 +93,12 @@ export class CHeaders {
     return res;
   }
 
-  private buildMap(name: string, map: constants.IntDict): string {
+  private buildMap(name: string, map: IntDict): string {
     let res = '';
 
     res += `#define ${name}_MAP(XX) \\\n`;
     for (const [ key, value ] of Object.entries(map)) {
-      res += `  XX(${value!}, ${key.replace(/-/g, '')}, ${key}) \\\n`;
+      res += `  XX(${value}, ${key.replace(/-/g, '')}, ${key}) \\\n`;
     }
     res += '\n';
 

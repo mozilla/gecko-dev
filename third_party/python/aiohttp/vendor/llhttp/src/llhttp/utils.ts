@@ -1,9 +1,9 @@
-import { IntDict } from './constants';
+import type { IntDict } from './constants';
 
 export function enumToMap(
   obj: IntDict,
-  filter: ReadonlyArray<number> = [],
-  exceptions: ReadonlyArray<number> = [],
+  filter: readonly number[] = [],
+  exceptions: readonly number[] = [],
 ): IntDict {
   const emptyFilter = (filter?.length ?? 0) === 0;
   const emptyExceptions = (exceptions?.length ?? 0) === 0;

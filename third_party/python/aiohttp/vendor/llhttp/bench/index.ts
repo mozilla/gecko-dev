@@ -1,4 +1,6 @@
-import * as assert from "assert";
+/* eslint-disable @stylistic/max-len */
+
+import assert from "assert";
 import { spawnSync } from "child_process";
 import { existsSync } from "fs";
 import { resolve } from "path";
@@ -54,18 +56,18 @@ if (process.argv[2] === "loop") {
   const request = httpRequests[reqName]!;
   
   assert(request, `Unknown request name: "${reqName}"`);
-  spawnSync(httpExecutable, ["loop", request], { stdio: "inherit" });
+  spawnSync(httpExecutable, [ "loop", request ], { stdio: "inherit" });
   process.exit(0);
 }
 
 if (!process.argv[2] || process.argv[2] === "url") {
   console.log("url (C)");
-  spawnSync(urlExecutable, ["bench", urlRequest], { stdio: "inherit" });
+  spawnSync(urlExecutable, [ "bench", urlRequest ], { stdio: "inherit" });
 }
 
 if (!process.argv[2] || process.argv[2] === "http") {
-  for (const [name, request] of Object.entries(httpRequests)) {
+  for (const [ name, request ] of Object.entries(httpRequests)) {
     console.log('http: "%s" (C)', name);
-    spawnSync(httpExecutable, ["bench", request], { stdio: "inherit" });
+    spawnSync(httpExecutable, [ "bench", request ], { stdio: "inherit" });
   }
 }

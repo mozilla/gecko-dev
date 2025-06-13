@@ -16,6 +16,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=33 span[url]="/with_"lovely"_quotes?foo=\"bar\""
 off=38 url complete
+off=38 len=4 span[protocol]="HTTP"
+off=42 protocol complete
 off=43 len=3 span[version]="1.1"
 off=46 version complete
 off=50 headers complete method=1 v=1/1 flags=0 content_length=0
@@ -39,6 +41,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=21 span[url]="/test.cgi?foo=bar?baz"
 off=26 url complete
+off=26 len=4 span[protocol]="HTTP"
+off=30 protocol complete
 off=31 len=3 span[version]="1.1"
 off=34 version complete
 off=38 headers complete method=1 v=1/1 flags=0 content_length=0
@@ -60,6 +64,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=29 span[url]="http://hypnotoad.org?hail=all"
 off=34 url complete
+off=34 len=4 span[protocol]="HTTP"
+off=38 protocol complete
 off=39 len=3 span[version]="1.1"
 off=42 version complete
 off=46 headers complete method=1 v=1/1 flags=0 content_length=0
@@ -81,6 +87,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=34 span[url]="http://hypnotoad.org:1234?hail=all"
 off=39 url complete
+off=39 len=4 span[protocol]="HTTP"
+off=43 protocol complete
 off=44 len=3 span[version]="1.1"
 off=47 version complete
 off=51 headers complete method=1 v=1/1 flags=0 content_length=0
@@ -106,6 +114,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=17 span[url]="/test.cgi?query=|"
 off=22 url complete
+off=22 len=4 span[protocol]="HTTP"
+off=26 protocol complete
 off=27 len=3 span[version]="1.1"
 off=30 version complete
 off=34 headers complete method=1 v=1/1 flags=0 content_length=0
@@ -127,6 +137,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=25 span[url]="http://hypnotoad.org:1234"
 off=30 url complete
+off=30 len=4 span[protocol]="HTTP"
+off=34 protocol complete
 off=35 len=3 span[version]="1.1"
 off=38 version complete
 off=42 headers complete method=1 v=1/1 flags=0 content_length=0
@@ -165,6 +177,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=40 span[url]="/forums/1/topics/2375?page=1#posts-17408"
 off=45 url complete
+off=45 len=4 span[protocol]="HTTP"
+off=49 protocol complete
 off=50 len=3 span[version]="1.1"
 off=53 version complete
 off=57 headers complete method=1 v=1/1 flags=0 content_length=0
@@ -188,6 +202,8 @@ off=0 len=7 span[method]="CONNECT"
 off=7 method complete
 off=8 len=23 span[url]="home_0.netscape.com:443"
 off=32 url complete
+off=32 len=4 span[protocol]="HTTP"
+off=36 protocol complete
 off=37 len=3 span[version]="1.0"
 off=40 version complete
 off=42 len=10 span[header_field]="User-agent"
@@ -218,6 +234,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=41 span[url]="http://a%12:b!&*$@hypnotoad.org:1234/toto"
 off=46 url complete
+off=46 len=4 span[protocol]="HTTP"
+off=50 protocol complete
 off=51 len=3 span[version]="1.1"
 off=54 version complete
 off=58 headers complete method=1 v=1/1 flags=0 content_length=0
@@ -239,5 +257,6 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=4 span[url]="/foo"
 off=9 url complete
-off=9 error code=8 reason="Expected HTTP/"
+off=9 len=0 span[protocol]=""
+off=9 error code=8 reason="Expected HTTP/, RTSP/ or ICE/"
 ```

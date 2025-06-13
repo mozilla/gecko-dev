@@ -19,6 +19,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=17 span[header_field]="Transfer-Encoding"
@@ -48,6 +50,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=17 span[header_field]="Transfer-Encoding"
@@ -83,6 +87,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=17 span[header_field]="Transfer-Encoding"
@@ -118,6 +124,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=27 span[url]="/post_chunked_all_your_base"
 off=33 url complete
+off=33 len=4 span[protocol]="HTTP"
+off=37 protocol complete
 off=38 len=3 span[version]="1.1"
 off=41 version complete
 off=43 len=17 span[header_field]="Transfer-Encoding"
@@ -155,6 +163,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=25 span[url]="/two_chunks_mult_zero_end"
 off=31 url complete
+off=31 len=4 span[protocol]="HTTP"
+off=35 protocol complete
 off=36 len=3 span[version]="1.1"
 off=39 version complete
 off=41 len=17 span[header_field]="Transfer-Encoding"
@@ -197,6 +207,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=27 span[url]="/chunked_w_trailing_headers"
 off=33 url complete
+off=33 len=4 span[protocol]="HTTP"
+off=37 protocol complete
 off=38 len=3 span[version]="1.1"
 off=41 version complete
 off=43 len=17 span[header_field]="Transfer-Encoding"
@@ -244,6 +256,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=32 span[url]="/chunked_w_unicorns_after_length"
 off=38 url complete
+off=38 len=4 span[protocol]="HTTP"
+off=42 protocol complete
 off=43 len=3 span[version]="1.1"
 off=46 version complete
 off=48 len=17 span[header_field]="Transfer-Encoding"
@@ -295,6 +309,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=32 span[url]="/chunked_w_unicorns_after_length"
 off=38 url complete
+off=38 len=4 span[protocol]="HTTP"
+off=42 protocol complete
 off=43 len=3 span[version]="1.1"
 off=46 version complete
 off=48 len=4 span[header_field]="Host"
@@ -330,6 +346,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=32 span[url]="/chunked_w_unicorns_after_length"
 off=38 url complete
+off=38 len=4 span[protocol]="HTTP"
+off=42 protocol complete
 off=43 len=3 span[version]="1.1"
 off=46 version complete
 off=48 len=4 span[header_field]="Host"
@@ -366,6 +384,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=32 span[url]="/chunked_w_unicorns_after_length"
 off=38 url complete
+off=38 len=4 span[protocol]="HTTP"
+off=42 protocol complete
 off=43 len=3 span[version]="1.1"
 off=46 version complete
 off=48 len=17 span[header_field]="Transfer-Encoding"
@@ -422,6 +442,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=32 span[url]="/chunked_w_unicorns_after_length"
 off=38 url complete
+off=38 len=4 span[protocol]="HTTP"
+off=42 protocol complete
 off=43 len=3 span[version]="1.1"
 off=46 version complete
 off=48 len=17 span[header_field]="Transfer-Encoding"
@@ -458,6 +480,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=17 span[header_field]="Transfer-Encoding"
@@ -486,6 +510,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=38 span[url]="/post_identity_body_world?q=search#hey"
 off=44 url complete
+off=44 len=4 span[protocol]="HTTP"
+off=48 protocol complete
 off=49 len=3 span[version]="1.1"
 off=52 version complete
 off=54 len=6 span[header_field]="Accept"
@@ -525,6 +551,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=38 span[url]="/post_identity_body_world?q=search#hey"
 off=44 url complete
+off=44 len=4 span[protocol]="HTTP"
+off=48 protocol complete
 off=49 len=3 span[version]="1.1"
 off=52 version complete
 off=54 len=6 span[header_field]="Accept"
@@ -565,6 +593,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=1 span[url]="/"
 off=7 url complete
+off=7 len=4 span[protocol]="HTTP"
+off=11 protocol complete
 off=12 len=3 span[version]="1.1"
 off=15 version complete
 off=17 len=4 span[header_field]="Host"
@@ -597,6 +627,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=38 span[url]="/post_identity_body_world?q=search#hey"
 off=44 url complete
+off=44 len=4 span[protocol]="HTTP"
+off=48 protocol complete
 off=49 len=3 span[version]="1.1"
 off=52 version complete
 off=54 len=6 span[header_field]="Accept"
@@ -627,6 +659,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=38 span[url]="/post_identity_body_world?q=search#hey"
 off=44 url complete
+off=44 len=4 span[protocol]="HTTP"
+off=48 protocol complete
 off=49 len=3 span[version]="1.1"
 off=52 version complete
 off=54 len=6 span[header_field]="Accept"
@@ -660,6 +694,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=38 span[url]="/post_identity_body_world?q=search#hey"
 off=44 url complete
+off=44 len=4 span[protocol]="HTTP"
+off=48 protocol complete
 off=49 len=3 span[version]="1.1"
 off=52 version complete
 off=54 len=6 span[header_field]="Accept"
@@ -692,6 +728,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=38 span[url]="/post_identity_body_world?q=search#hey"
 off=44 url complete
+off=44 len=4 span[protocol]="HTTP"
+off=48 protocol complete
 off=49 len=3 span[version]="1.1"
 off=52 version complete
 off=54 len=6 span[header_field]="Accept"
@@ -731,6 +769,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=38 span[url]="/post_identity_body_world?q=search#hey"
 off=44 url complete
+off=44 len=4 span[protocol]="HTTP"
+off=48 protocol complete
 off=49 len=3 span[version]="1.1"
 off=52 version complete
 off=54 len=6 span[header_field]="Accept"
@@ -772,6 +812,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=38 span[url]="/post_identity_body_world?q=search#hey"
 off=44 url complete
+off=44 len=4 span[protocol]="HTTP"
+off=48 protocol complete
 off=49 len=3 span[version]="1.1"
 off=52 version complete
 off=54 len=6 span[header_field]="Accept"
@@ -816,6 +858,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=38 span[url]="/post_identity_body_world?q=search#hey"
 off=44 url complete
+off=44 len=4 span[protocol]="HTTP"
+off=48 protocol complete
 off=49 len=3 span[version]="1.1"
 off=52 version complete
 off=54 len=6 span[header_field]="Accept"
@@ -849,6 +893,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=17 span[header_field]="Transfer-Encoding"
@@ -881,6 +927,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=17 span[header_field]="Transfer-Encoding"
@@ -912,6 +960,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=17 span[header_field]="Transfer-Encoding"
@@ -952,6 +1002,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 len=4 span[header_field]="Host"
@@ -999,6 +1051,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 len=4 span[header_field]="Host"
@@ -1061,6 +1115,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 len=4 span[header_field]="Host"
@@ -1102,6 +1158,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=1 span[url]="/"
 off=6 url complete
+off=6 len=4 span[protocol]="HTTP"
+off=10 protocol complete
 off=11 len=3 span[version]="1.1"
 off=14 version complete
 off=16 len=4 span[header_field]="Host"
@@ -1142,6 +1200,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=17 span[header_field]="Transfer-Encoding"
@@ -1171,6 +1231,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=17 span[header_field]="Transfer-Encoding"

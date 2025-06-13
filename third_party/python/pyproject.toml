@@ -5,7 +5,7 @@ description = "This file is used to resolve the full list of dependencies that w
 requires-python = ">=3.9"
 dependencies = [
     # Pin `aiohttp` here so the version is modern enough for `auth0-python` in `try.txt`.
-    "aiohttp==3.10.11",
+    "aiohttp~=3.12",
     "appdirs==1.4.4",
     "attrs==23.1.0",
     "blessed==1.19.1",

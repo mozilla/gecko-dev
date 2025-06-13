@@ -17,6 +17,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=14 span[header_field]="Content-Length"
@@ -53,6 +55,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=14 span[header_field]="Content-Length"
@@ -83,6 +87,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=14 span[header_field]="Content-Length"
@@ -107,6 +113,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=14 span[header_field]="Content-Length"
@@ -135,6 +143,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=14 span[header_field]="Content-Length"
@@ -164,6 +174,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=10 span[header_field]="Connection"
@@ -192,6 +204,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=10 span[header_field]="Connection"
@@ -229,6 +243,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=14 span[header_field]="Content-Length"
@@ -258,6 +274,8 @@ off=0 len=3 span[method]="GET"
 off=3 method complete
 off=4 len=36 span[url]="/get_funky_content_length_body_hello"
 off=41 url complete
+off=41 len=4 span[protocol]="HTTP"
+off=45 protocol complete
 off=46 len=3 span[version]="1.0"
 off=49 version complete
 off=51 len=14 span[header_field]="conTENT-Length"
@@ -285,6 +303,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=1 span[url]="/"
 off=7 url complete
+off=7 len=4 span[protocol]="HTTP"
+off=11 protocol complete
 off=12 len=3 span[version]="1.1"
 off=15 version complete
 off=17 len=14 span[header_field]="Content-Length"
@@ -310,6 +330,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=1 span[url]="/"
 off=7 url complete
+off=7 len=4 span[protocol]="HTTP"
+off=11 protocol complete
 off=12 len=3 span[version]="1.1"
 off=15 version complete
 off=17 len=14 span[header_field]="Content-Length"
@@ -334,6 +356,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=1 span[url]="/"
 off=7 url complete
+off=7 len=4 span[protocol]="HTTP"
+off=11 protocol complete
 off=12 len=3 span[version]="1.1"
 off=15 version complete
 off=17 len=14 span[header_field]="Content-Length"
@@ -358,6 +382,8 @@ off=0 len=4 span[method]="POST"
 off=4 method complete
 off=5 len=1 span[url]="/"
 off=7 url complete
+off=7 len=4 span[protocol]="HTTP"
+off=11 protocol complete
 off=12 len=3 span[version]="1.1"
 off=15 version complete
 off=17 len=14 span[header_field]="Content-Length"
@@ -381,6 +407,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=26 error code=10 reason="Invalid header token"
@@ -405,6 +433,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=14 span[header_field]="Content-Length"
@@ -420,6 +450,8 @@ off=42 len=4 span[method]="POST"
 off=46 method complete
 off=47 len=4 span[url]="/url"
 off=52 url complete
+off=52 len=4 span[protocol]="HTTP"
+off=56 protocol complete
 off=57 len=3 span[version]="1.1"
 off=60 version complete
 off=62 len=14 span[header_field]="Content-Length"
@@ -446,6 +478,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=14 span[header_field]="Content-Length"
@@ -470,6 +504,8 @@ off=0 len=3 span[method]="PUT"
 off=3 method complete
 off=4 len=4 span[url]="/url"
 off=9 url complete
+off=9 len=4 span[protocol]="HTTP"
+off=13 protocol complete
 off=14 len=3 span[version]="1.1"
 off=17 version complete
 off=19 len=14 span[header_field]="Content-Length"
