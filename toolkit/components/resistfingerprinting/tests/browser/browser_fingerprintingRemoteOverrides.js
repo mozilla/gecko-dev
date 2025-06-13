@@ -446,6 +446,68 @@ add_task(async function test_pref_override_remote_settings() {
   db.clear();
 });
 
+// Verify if the pref overrides the remote settings (again).
+add_task(async function test_pref_override_remote_settings2() {
+  // Add initial empty record.
+  let db = RemoteSettings(COLLECTION_NAME).db;
+  await db.importChanges({}, Date.now(), []);
+
+  // Trigger a remote settings sync.
+  await addRemoteOverrides([
+    {
+      id: "1",
+      last_modified: 1000000000000001,
+      overrides: "+PointerEvents,+Gamepad",
+      firstPartyDomain: "example.org",
+    },
+  ]);
+
+  // Then, setting the pref.
+  const promise = promiseObserver("fpp-test:set-overrides-finishes");
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [
+        "privacy.fingerprintingProtection.granularOverrides",
+        JSON.stringify([
+          {
+            id: "1",
+            last_modified: 1000000000000001,
+            overrides: "+WindowOuterSize",
+            firstPartyDomain: "example.org",
+          },
+        ]),
+      ],
+    ],
+  });
+  await promise;
+
+  // Get the addition and subtraction flags for the domain.
+  let overrides = extractLow32Bits(
+    Services.rfp.getFingerprintingOverrides("example.org,0").low
+  );
+
+  // Verify if the flags are matching to the pref settings.
+  is(
+    overrides & TARGET_PointerEvents,
+    TARGET_PointerEvents,
+    "The override addition value should have TARGET_PointerEvents."
+  );
+
+  is(
+    overrides & TARGET_Gamepad,
+    TARGET_Gamepad,
+    "The override addition value should have TARGET_Gamepad."
+  );
+
+  is(
+    overrides & TARGET_WindowOuterSize,
+    TARGET_WindowOuterSize,
+    "The override addition value should have TARGET_WindowOuterSize."
+  );
+
+  db.clear();
+});
+
 // Bug 1873682 - Verify that a third-party beacon request won't hit the
 // assertion in nsRFPService::GetOverriddenFingerprintingSettingsForChannel().
 add_task(async function test_beacon_request() {
