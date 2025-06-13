@@ -145,10 +145,10 @@ export let RemotePageAccessManager = {
       RPMSendQuery: [
         "Profiles:GetEditProfileContent",
         "Profiles:UpdateProfileTheme",
-        "Profiles:UpdateProfileAvatar",
       ],
       RPMSendAsyncMessage: [
         "Profiles:UpdateProfileName",
+        "Profiles:UpdateProfileAvatar",
         "Profiles:OpenDeletePage",
         "Profiles:CloseProfileTab",
         "Profiles:MoreThemes",
@@ -160,10 +160,10 @@ export let RemotePageAccessManager = {
       RPMSendQuery: [
         "Profiles:GetNewProfileContent",
         "Profiles:UpdateProfileTheme",
-        "Profiles:UpdateProfileAvatar",
       ],
       RPMSendAsyncMessage: [
         "Profiles:UpdateProfileName",
+        "Profiles:UpdateProfileAvatar",
         "Profiles:DeleteProfile",
         "Profiles:CloseProfileTab",
         "Profiles:MoreThemes",

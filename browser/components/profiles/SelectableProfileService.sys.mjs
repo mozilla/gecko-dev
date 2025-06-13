@@ -55,7 +55,7 @@ const COMMAND_LINE_ACTIVATE = "profiles-activate";
 
 const gSupportsBadging = "nsIMacDockSupport" in Ci || "nsIWinTaskbar" in Ci;
 
-function loadBuiltInAvatarImage(uri, channel) {
+function loadImage(url) {
   return new Promise((resolve, reject) => {
     let imageTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);
     let imageContainer;
@@ -67,8 +67,15 @@ function loadBuiltInAvatarImage(uri, channel) {
     });
 
     imageTools.decodeImageFromChannelAsync(
-      uri,
-      channel,
+      url,
+      Services.io.newChannelFromURI(
+        url,
+        null,
+        Services.scriptSecurityManager.getSystemPrincipal(),
+        null, // aTriggeringPrincipal
+        Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
+        Ci.nsIContentPolicy.TYPE_IMAGE
+      ),
       (image, status) => {
         if (!Components.isSuccessCode(status)) {
           reject(new Components.Exception("Image loading failed", status));
@@ -79,66 +86,6 @@ function loadBuiltInAvatarImage(uri, channel) {
       observer
     );
   });
-}
-
-async function getCustomAvatarImageType(blob, channel) {
-  let octets = await new Promise((resolve, reject) => {
-    let reader = new FileReader();
-    reader.addEventListener("load", () => {
-      resolve(Array.from(reader.result).map(c => c.charCodeAt(0)));
-    });
-    reader.addEventListener("error", reject);
-    reader.readAsBinaryString(blob);
-  });
-
-  let sniffer = Cc["@mozilla.org/image/loader;1"].createInstance(
-    Ci.nsIContentSniffer
-  );
-  let type = sniffer.getMIMETypeFromContent(channel, octets, octets.length);
-
-  return type;
-}
-
-async function loadCustomAvatarImage(profile, channel) {
-  let blob = await profile.getAvatarFile();
-
-  const imageTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);
-  let type = await getCustomAvatarImageType(blob, channel);
-
-  let buffer = await blob.arrayBuffer();
-  const image = imageTools.decodeImageFromArrayBuffer(buffer, type);
-
-  return image;
-}
-
-async function loadImage(profile) {
-  let uri;
-
-  if (SelectableProfileService.currentProfile.hasCustomAvatar) {
-    const file = await IOUtils.getFile(
-      SelectableProfileService.currentProfile.getAvatarPath(48)
-    );
-    uri = Services.io.newFileURI(file);
-  } else {
-    uri = Services.io.newURI(
-      SelectableProfileService.currentProfile.getAvatarPath(48)
-    );
-  }
-
-  const channel = Services.io.newChannelFromURI(
-    uri,
-    null,
-    Services.scriptSecurityManager.getSystemPrincipal(),
-    null,
-    Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
-    Ci.nsIContentPolicy.TYPE_IMAGE
-  );
-
-  if (profile.isCustomAvatar) {
-    return loadCustomAvatarImage(profile, channel);
-  }
-
-  return loadBuiltInAvatarImage(uri, channel);
 }
 
 /**
@@ -642,7 +589,13 @@ class SelectableProfileServiceClass extends EventEmitter {
 
       if (count > 1 && !this.#badge) {
         this.#badge = {
-          image: await loadImage(this.#currentProfile),
+          image: await loadImage(
+            Services.io.newURI(
+              `chrome://browser/content/profiles/assets/48_${
+                this.#currentProfile.avatar
+              }.svg`
+            )
+          ),
           iconPaintContext: this.#currentProfile.iconPaintContext,
           description: this.#currentProfile.name,
         };
@@ -658,18 +611,11 @@ class SelectableProfileServiceClass extends EventEmitter {
               .getOverlayIconController(win.docShell);
             TASKBAR_ICON_CONTROLLERS.set(win, iconController);
 
-            if (this.#currentProfile.isCustomAvatar) {
-              iconController.setOverlayIcon(
-                this.#badge.image,
-                this.#badge.description
-              );
-            } else {
-              iconController.setOverlayIcon(
-                this.#badge.image,
-                this.#badge.description,
-                this.#badge.iconPaintContext
-              );
-            }
+            iconController.setOverlayIcon(
+              this.#badge.image,
+              this.#badge.description,
+              this.#badge.iconPaintContext
+            );
           }
         }
       } else if (count <= 1 && this.#badge) {
@@ -1170,7 +1116,7 @@ class SelectableProfileServiceClass extends EventEmitter {
         lazy.setTimeout(() => {
           // To avoid displeasing the linter, assign to a temporary variable.
           let avatar = SelectableProfileService.currentProfile.avatar;
-          SelectableProfileService.currentProfile.setAvatar(avatar);
+          SelectableProfileService.currentProfile.avatar = avatar;
         }, 1000);
       }
     }
@@ -1293,7 +1239,8 @@ class SelectableProfileServiceClass extends EventEmitter {
    * @param {SelectableProfile} aSelectableProfile The SelectableProfile to be updated
    */
   async updateProfile(aSelectableProfile) {
-    let profileObj = await aSelectableProfile.toDbObject();
+    let profileObj = aSelectableProfile.toObject();
+    delete profileObj.avatarL10nId;
 
     await this.#connection.execute(
       `UPDATE Profiles
