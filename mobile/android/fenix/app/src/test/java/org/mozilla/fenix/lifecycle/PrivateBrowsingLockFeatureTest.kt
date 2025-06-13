@@ -20,6 +20,8 @@ import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.lib.state.Middleware
+import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -29,6 +31,7 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppAction.PrivateBrowsingLockAction
 import org.mozilla.fenix.components.appstate.AppState
 
 @RunWith(AndroidJUnit4::class)
@@ -350,9 +353,9 @@ class PrivateBrowsingLockFeatureTest {
         assertFalse(result)
     }
 
-    // on stop tests
+    // onPause tests
     @Test
-    fun `GIVEN feature is on and mode is private and there are unlocked private tabs WHEN Activity stops without config change THEN we lock private mode`() {
+    fun `GIVEN feature is on and mode is private and there are unlocked private tabs WHEN Activity doesn't have focus and pauses without config change THEN we lock private mode`() {
         val isFeatureEnabled = true
         val mode = BrowsingMode.Private
 
@@ -378,6 +381,7 @@ class PrivateBrowsingLockFeatureTest {
 
         val activity = mockk<AppCompatActivity>(relaxed = true)
         every { activity.isChangingConfigurations } returns false
+        every { activity.hasWindowFocus() } returns false
 
         feature.onPause(activity)
         appStore.waitUntilIdle()
@@ -386,7 +390,7 @@ class PrivateBrowsingLockFeatureTest {
     }
 
     @Test
-    fun `GIVEN feature is on and mode is normal and there are unlocked private tabs WHEN Activity stops without config change THEN we lock private mode`() {
+    fun `GIVEN feature is on and mode is normal and there are unlocked private tabs WHEN Activity doesn't have focus and pauses without config change THEN we lock private mode`() {
         val isFeatureEnabled = true
         val mode = BrowsingMode.Normal
 
@@ -412,6 +416,7 @@ class PrivateBrowsingLockFeatureTest {
 
         val activity = mockk<AppCompatActivity>(relaxed = true)
         every { activity.isChangingConfigurations } returns false
+        every { activity.hasWindowFocus() } returns false
 
         feature.onPause(activity)
         appStore.waitUntilIdle()
@@ -421,7 +426,7 @@ class PrivateBrowsingLockFeatureTest {
     }
 
     @Test
-    fun `GIVEN feature is on and mode is private and there are no private tabs WHEN Activity stops without config change THEN we do not lock private mode`() {
+    fun `GIVEN feature is on and mode is private and there are no private tabs WHEN Activity doesn't have focus and pauses without config change THEN we do not lock private mode`() {
         val isFeatureEnabled = true
         val mode = BrowsingMode.Private
 
@@ -442,15 +447,16 @@ class PrivateBrowsingLockFeatureTest {
 
         val activity = mockk<AppCompatActivity>(relaxed = true)
         every { activity.isChangingConfigurations } returns false
+        every { activity.hasWindowFocus() } returns false
 
-        feature.onStop(activity)
+        feature.onPause(activity)
         appStore.waitUntilIdle()
 
         assertFalse(appStore.state.isPrivateScreenLocked)
     }
 
     @Test
-    fun `GIVEN feature is on and mode is normal and there are no private tabs WHEN Activity stops without config change THEN we do not lock private mode`() {
+    fun `GIVEN feature is on and mode is normal and there are no private tabs WHEN Activity doesn't have focus and pauses without config change THEN we do not lock private mode`() {
         val isFeatureEnabled = true
         val mode = BrowsingMode.Normal
 
@@ -471,15 +477,16 @@ class PrivateBrowsingLockFeatureTest {
 
         val activity = mockk<AppCompatActivity>(relaxed = true)
         every { activity.isChangingConfigurations } returns false
+        every { activity.hasWindowFocus() } returns false
 
-        feature.onStop(activity)
+        feature.onPause(activity)
         appStore.waitUntilIdle()
 
         assertFalse(appStore.state.isPrivateScreenLocked)
     }
 
     @Test
-    fun `GIVEN feature is off and mode is private and there are private tabs WHEN Activity stops without config change THEN we do not lock private mode`() {
+    fun `GIVEN feature is off and mode is private and there are private tabs WHEN Activity doesn't have focus and pauses without config change THEN we do not lock private mode`() {
         val isFeatureEnabled = false
         val mode = BrowsingMode.Private
 
@@ -501,15 +508,16 @@ class PrivateBrowsingLockFeatureTest {
 
         val activity = mockk<AppCompatActivity>(relaxed = true)
         every { activity.isChangingConfigurations } returns false
+        every { activity.hasWindowFocus() } returns false
 
-        feature.onStop(activity)
+        feature.onPause(activity)
         appStore.waitUntilIdle()
 
         assertFalse(appStore.state.isPrivateScreenLocked)
     }
 
     @Test
-    fun `GIVEN feature is off and mode is normal and there are private tabs WHEN Activity stops without config change THEN we do not lock private mode`() {
+    fun `GIVEN feature is off and mode is normal and there are private tabs WHEN Activity doesn't have focus and pauses without config change THEN we do not lock private mode`() {
         val isFeatureEnabled = false
         val mode = BrowsingMode.Normal
 
@@ -531,8 +539,9 @@ class PrivateBrowsingLockFeatureTest {
 
         val activity = mockk<AppCompatActivity>(relaxed = true)
         every { activity.isChangingConfigurations } returns false
+        every { activity.hasWindowFocus() } returns false
 
-        feature.onStop(activity)
+        feature.onPause(activity)
         appStore.waitUntilIdle()
 
         assertFalse(appStore.state.isPrivateScreenLocked)
@@ -543,7 +552,7 @@ class PrivateBrowsingLockFeatureTest {
     // tab through the tabstray. the app goes into private mode and then activity shuts due to configuration change.
     // if we lock the screen at that point, going into private mode will always lock it due to activity restart.
     @Test
-    fun `GIVEN feature is on and mode is private and there are private tabs WHEN Activity stops with config change THEN we do not lock private mode`() {
+    fun `GIVEN feature is on and mode is private and there are private tabs WHEN Activity pauses with config change THEN we do not lock private mode`() {
         val isFeatureEnabled = true
         val mode = BrowsingMode.Private
 
@@ -565,11 +574,125 @@ class PrivateBrowsingLockFeatureTest {
 
         val activity = mockk<AppCompatActivity>(relaxed = true)
         every { activity.isChangingConfigurations } returns true
+        every { activity.hasWindowFocus() } returns false
+
+        feature.onPause(activity)
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    // NB: this is another important case: we don't want to lock the screen during activity onPause
+    // if the it still has window focus; e.g., when a system permission dialog is displayed or requested
+    @Test
+    fun `GIVEN feature is on and mode is private and there are private tabs WHEN Activity pauses without config change but still has window focus THEN we do not lock private mode`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        feature.onSuccessfulAuthentication()
+        appStore.waitUntilIdle()
+
+        val activity = mockk<AppCompatActivity>(relaxed = true)
+        every { activity.isChangingConfigurations } returns false
+        every { activity.hasWindowFocus() } returns true
+
+        feature.onPause(activity)
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
+    }
+
+    // onStop tests
+    @Test
+    fun `GIVEN the feature skipped locking during onPause due to activity window still having focus WHEN Activity stops THEN it makes sure to lock private tabs`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Private
+
+        val appStore = AppStore(initialState = AppState(mode = mode))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        feature.onSuccessfulAuthentication()
+        appStore.waitUntilIdle()
+
+        val activity = mockk<AppCompatActivity>(relaxed = true)
+        every { activity.isChangingConfigurations } returns false
+        every { activity.hasWindowFocus() } returns true
+
+        // Feature skips locking
+        feature.onPause(activity)
+        appStore.waitUntilIdle()
+
+        assertFalse(appStore.state.isPrivateScreenLocked)
 
         feature.onStop(activity)
         appStore.waitUntilIdle()
 
-        assertFalse(appStore.state.isPrivateScreenLocked)
+        assertTrue(appStore.state.isPrivateScreenLocked)
+    }
+
+    @Test
+    fun `GIVEN private mode is already locked WHEN Activity pauses without config change THEN feature doesn't repeat the lock action`() {
+        val isFeatureEnabled = true
+        val mode = BrowsingMode.Private
+        val isPrivateScreenLocked = true
+
+        val testMiddleware = object : Middleware<AppState, AppAction> {
+            var updateLockActionInvoked: Boolean = false
+
+            override fun invoke(
+                context: MiddlewareContext<AppState, AppAction>,
+                next: (AppAction) -> Unit,
+                action: AppAction,
+            ) {
+                if (action is PrivateBrowsingLockAction.UpdatePrivateBrowsingLock) {
+                    updateLockActionInvoked = true
+                }
+            }
+        }
+        val appStore = AppStore(initialState = AppState(mode = mode, isPrivateScreenLocked = isPrivateScreenLocked), middlewares = listOf(testMiddleware))
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.firefox.com", id = "firefox", private = true),
+                    createTab("https://www.mozilla.org", id = "mozilla"),
+                ),
+                selectedTabId = "mozilla",
+            ),
+        )
+        val feature = createFeature(browserStore = browserStore, appStore = appStore, storage = createStorage(isFeatureEnabled = isFeatureEnabled))
+        appStore.waitUntilIdle()
+
+        val activity = mockk<AppCompatActivity>(relaxed = true)
+        every { activity.isChangingConfigurations } returns false
+
+        testMiddleware.updateLockActionInvoked = false
+        feature.onStop(activity)
+        appStore.waitUntilIdle()
+
+        assertFalse(testMiddleware.updateLockActionInvoked)
     }
 
     // turning the feature on and off tests
@@ -603,11 +726,11 @@ class PrivateBrowsingLockFeatureTest {
         assertTrue(browserStore.state.privateTabs.isNotEmpty())
         assertFalse(appStore.state.isPrivateScreenLocked)
 
-        // verify that activity.onStop doesn't lock private mode
+        // verify that activity.onPause doesn't lock private mode
         val activity = mockk<AppCompatActivity>(relaxed = true)
         every { activity.isChangingConfigurations } returns false
 
-        feature.onStop(activity)
+        feature.onPause(activity)
         appStore.waitUntilIdle()
 
         assertTrue(browserStore.state.privateTabs.isNotEmpty())
