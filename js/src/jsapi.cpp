@@ -4664,8 +4664,7 @@ JS_PUBLIC_API bool JS_IndexToId(JSContext* cx, uint32_t index,
 
 JS_PUBLIC_API bool JS_CharsToId(JSContext* cx, JS::TwoByteChars chars,
                                 MutableHandleId idp) {
-  Rooted<JSAtom*> atom(cx,
-                       AtomizeChars(cx, chars.begin().get(), chars.length()));
+  JSAtom* atom = AtomizeChars(cx, chars.begin().get(), chars.length());
   if (!atom) {
     return false;
   }

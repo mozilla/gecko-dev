@@ -19,7 +19,6 @@
 #include "js/ColumnNumber.h"  // JS::LimitedColumnNumberOneOrigin, JS::TaggedColumnNumberOneOrigin
 #include "js/GCAPI.h"              // JS::AutoSuppressGCAnalysis
 #include "js/Principals.h"         // JSSubsumesOp
-#include "js/RootingAPI.h"         // JS::Rooted
 #include "vm/Activation.h"         // js::Activation{,Iterator}
 #include "vm/EnvironmentObject.h"  // js::CallObject
 #include "vm/JitActivation.h"      // js::jit::JitActivation
@@ -43,7 +42,6 @@ class ArgumentsObject;
 }  // namespace js
 
 using JS::Realm;
-using JS::Rooted;
 using JS::Value;
 
 using js::AbstractFramePtr;

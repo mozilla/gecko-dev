@@ -120,10 +120,6 @@ class MOZ_STACK_CLASS ModuleBuilder {
   [[nodiscard]] bool isAttributeSupported(frontend::TaggedParserAtomIndex key);
 };
 
-template <typename T>
-ArrayObject* CreateArray(JSContext* cx,
-                         const JS::Rooted<JS::GCVector<T>>& vector);
-
 }  // namespace js
 
 #endif  // vm_ModuleBuilder_h

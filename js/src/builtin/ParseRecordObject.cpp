@@ -32,8 +32,7 @@ ParseRecordObject* ParseRecordObject::create(JSContext* cx, const Value& val) {
 ParseRecordObject* ParseRecordObject::create(JSContext* cx,
                                              Handle<JSONParseNode*> parseNode,
                                              const Value& val) {
-  Rooted<ParseRecordObject*> obj(
-      cx, NewObjectWithGivenProto<ParseRecordObject>(cx, nullptr));
+  auto* obj = NewObjectWithGivenProto<ParseRecordObject>(cx, nullptr);
   if (!obj) {
     return nullptr;
   }

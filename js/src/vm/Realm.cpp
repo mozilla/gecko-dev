@@ -163,8 +163,8 @@ ObjectRealm::getOrCreateNonSyntacticLexicalEnvironment(JSContext* cx,
   MOZ_ASSERT(key->is<NonSyntacticVariablesObject>() ||
              !key->is<EnvironmentObject>());
 
-  Rooted<NonSyntacticLexicalEnvironmentObject*> lexicalEnv(
-      cx, NonSyntacticLexicalEnvironmentObject::create(cx, enclosing, thisv));
+  NonSyntacticLexicalEnvironmentObject* lexicalEnv =
+      NonSyntacticLexicalEnvironmentObject::create(cx, enclosing, thisv);
   if (!lexicalEnv) {
     return nullptr;
   }

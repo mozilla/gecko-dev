@@ -816,8 +816,7 @@ static void fun_trace(JSTracer* trc, JSObject* obj) {
 }
 
 static JSObject* CreateFunctionConstructor(JSContext* cx, JSProtoKey key) {
-  Rooted<GlobalObject*> global(cx, cx->global());
-  RootedObject functionProto(cx, &global->getPrototype(JSProto_Function));
+  RootedObject functionProto(cx, &cx->global()->getPrototype(JSProto_Function));
 
   return NewFunctionWithProto(
       cx, Function, 1, FunctionFlags::NATIVE_CTOR, nullptr,
@@ -832,9 +831,7 @@ static bool FunctionPrototype(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 static JSObject* CreateFunctionPrototype(JSContext* cx, JSProtoKey key) {
-  Rooted<GlobalObject*> self(cx, cx->global());
-
-  RootedObject objectProto(cx, &self->getPrototype(JSProto_Object));
+  RootedObject objectProto(cx, &cx->global()->getPrototype(JSProto_Object));
 
   return NewFunctionWithProto(
       cx, FunctionPrototype, 0, FunctionFlags::NATIVE_FUN, nullptr,

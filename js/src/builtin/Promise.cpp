@@ -6646,11 +6646,10 @@ bool PromiseObject::dependentPromises(JSContext* cx,
     }
 
     MOZ_RELEASE_ASSERT(obj->is<PromiseReactionRecord>());
-    Rooted<PromiseReactionRecord*> reaction(cx,
-                                            &obj->as<PromiseReactionRecord>());
+    auto* reaction = &obj->as<PromiseReactionRecord>();
 
     // Not all reactions have a Promise on them.
-    RootedObject promiseObj(cx, reaction->promise());
+    JSObject* promiseObj = reaction->promise();
     if (promiseObj) {
       if (!values.growBy(1)) {
         return false;

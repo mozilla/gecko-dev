@@ -18,7 +18,7 @@
 
 #include "jit/JSJitFrameIter.h"  // js::jit::{InlineFrameIterator,JSJitFrameIter}
 #include "js/ColumnNumber.h"     // JS::TaggedColumnNumberOneOrigin
-#include "js/RootingAPI.h"       // JS::Handle, JS::Rooted
+#include "js/RootingAPI.h"       // JS::Handle
 #include "js/TypeDecls.h"  // jsbytecode, JSContext, JSAtom, JSFunction, JSObject, JSScript
 #include "js/Value.h"       // JS::Value
 #include "vm/Activation.h"  // js::InterpreterActivation

@@ -8,21 +8,9 @@
 
 #include "mozilla/Assertions.h"  // MOZ_ASSERT
 
-#include "gc/GC.h"            // js::gc::AutoSuppressGC
-#include "jit/CalleeToken.h"  // js::jit::CalleeToken{IsFunction,To{Function,Script}}
-#include "js/RootingAPI.h"  // JS::Rooted
-#include "js/Value.h"       // JS::Value
 #include "vm/JSContext.h"   // JSContext, js::TlsContext
-#include "vm/Stack.h"       // js::InterpreterFrame
-
-#include "vm/Compartment-inl.h"  // JS::Compartment::wrap
 
 using namespace js;
-
-using JS::ObjectOrNullValue;
-using JS::Rooted;
-using JS::UndefinedValue;
-using JS::Value;
 
 void Activation::registerProfiling() {
   MOZ_ASSERT(isProfiling());

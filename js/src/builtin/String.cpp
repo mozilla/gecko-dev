@@ -1626,10 +1626,12 @@ static bool str_normalize(JSContext* cx, unsigned argc, Value* vp) {
  * IsStringWellFormedUnicode ( string )
  * https://tc39.es/ecma262/#sec-isstringwellformedunicode
  */
-static bool IsStringWellFormedUnicode(JSContext* cx, HandleString str,
+static bool IsStringWellFormedUnicode(JSContext* cx, JSString* str,
                                       size_t* isWellFormedUpTo) {
   MOZ_ASSERT(isWellFormedUpTo);
   *isWellFormedUpTo = 0;
+
+  AutoCheckCannotGC nogc;
 
   size_t len = str->length();
 
@@ -1644,10 +1646,7 @@ static bool IsStringWellFormedUnicode(JSContext* cx, HandleString str,
     return false;
   }
 
-  {
-    AutoCheckCannotGC nogc;
-    *isWellFormedUpTo = Utf16ValidUpTo(Span{linear->twoByteChars(nogc), len});
-  }
+  *isWellFormedUpTo = Utf16ValidUpTo(Span{linear->twoByteChars(nogc), len});
   return true;
 }
 
@@ -1663,8 +1662,7 @@ static bool str_isWellFormed(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 1. Let O be ? RequireObjectCoercible(this value).
   // Step 2. Let S be ? ToString(O).
-  RootedString str(cx,
-                   ToStringForStringFunction(cx, "isWellFormed", args.thisv()));
+  JSString* str = ToStringForStringFunction(cx, "isWellFormed", args.thisv());
   if (!str) {
     return false;
   }
@@ -4787,10 +4785,10 @@ JSString* js::EncodeURI(JSContext* cx, const char* chars, size_t length) {
   return sb.finishString();
 }
 
-static bool FlatStringMatchHelper(JSContext* cx, HandleString str,
-                                  HandleString pattern, bool* isFlat,
+static bool FlatStringMatchHelper(JSContext* cx, JSString* str,
+                                  JSString* pattern, bool* isFlat,
                                   int32_t* match) {
-  Rooted<JSLinearString*> linearPattern(cx, pattern->ensureLinear(cx));
+  JSLinearString* linearPattern = pattern->ensureLinear(cx);
   if (!linearPattern) {
     return false;
   }
@@ -4894,8 +4892,8 @@ bool js::FlatStringSearch(JSContext* cx, unsigned argc, Value* vp) {
   MOZ_ASSERT(args[1].isString());
   MOZ_ASSERT(cx->realm()->realmFuses.optimizeRegExpPrototypeFuse.intact());
 
-  RootedString str(cx, args[0].toString());
-  RootedString pattern(cx, args[1].toString());
+  JSString* str = args[0].toString();
+  JSString* pattern = args[1].toString();
 
   bool isFlat = false;
   int32_t match = 0;

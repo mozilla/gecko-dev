@@ -155,7 +155,7 @@ bool BucketCount::report(JSContext* cx, CountBase& countBase,
   Count& count = static_cast<Count&>(countBase);
 
   size_t length = count.ids_.length();
-  Rooted<ArrayObject*> arr(cx, NewDenseFullyAllocatedArray(cx, length));
+  ArrayObject* arr = NewDenseFullyAllocatedArray(cx, length);
   if (!arr) {
     return false;
   }
@@ -583,12 +583,12 @@ bool ByDomObjectClass::report(JSContext* cx, CountBase& countBase,
                               MutableHandleValue report) {
   Count& count = static_cast<Count&>(countBase);
 
-  Rooted<PlainObject*> obj(
-      cx, countMapToObject(cx, count.table, [cx](const UniqueC16String& key) {
+  PlainObject* obj =
+      countMapToObject(cx, count.table, [cx](const UniqueC16String& key) {
         const char16_t* chars = key.get();
         MOZ_ASSERT(chars);
         return AtomizeChars(cx, chars, js_strlen(chars));
-      }));
+      });
   if (!obj) {
     return false;
   }

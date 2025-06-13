@@ -16,7 +16,7 @@
 
 #include "gc/AllocKind.h"   // js::gc::AllocKind
 #include "js/CallArgs.h"    // JS::CallArgs
-#include "js/RootingAPI.h"  // JS::Handle, JS::Rooted
+#include "js/RootingAPI.h"  // JS::Handle
 #include "js/Value.h"       // JS::ObjectValue
 #include "vm/JSContext.h"   // JSContext
 #include "vm/JSFunction.h"  // JSFunction, js::Native, js::NewNativeFunction
@@ -42,9 +42,8 @@ static_assert(HandlerFunctionSlot_Extra < FunctionExtended::NUM_EXTENDED_SLOTS,
   cx->check(target);
 
   JS::Handle<PropertyName*> funName = cx->names().empty_;
-  JS::Rooted<JSFunction*> handlerFun(
-      cx, NewNativeFunction(cx, handler, 0, funName,
-                            gc::AllocKind::FUNCTION_EXTENDED, GenericObject));
+  JSFunction* handlerFun = NewNativeFunction(
+      cx, handler, 0, funName, gc::AllocKind::FUNCTION_EXTENDED, GenericObject);
   if (!handlerFun) {
     return nullptr;
   }

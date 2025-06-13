@@ -1953,8 +1953,7 @@ static bool SetterThatIgnoresPrototypeProperties(JSContext* cx,
   }
 
   // Step 2.
-  Rooted<JSObject*> home(
-      cx, GlobalObject::getOrCreateIteratorPrototype(cx, cx->global()));
+  JSObject* home = GlobalObject::getOrCreateIteratorPrototype(cx, cx->global());
   if (!home) {
     return false;
   }
@@ -2018,8 +2017,8 @@ static bool constructorGetter(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Step 1.
-  Rooted<JSObject*> constructor(
-      cx, GlobalObject::getOrCreateConstructor(cx, JSProto_Iterator));
+  JSObject* constructor =
+      GlobalObject::getOrCreateConstructor(cx, JSProto_Iterator);
   if (!constructor) {
     return false;
   }
