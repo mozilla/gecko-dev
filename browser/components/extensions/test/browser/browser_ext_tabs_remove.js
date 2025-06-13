@@ -53,7 +53,7 @@ add_task(async function undoCloseAfterExtRemovesOneTab() {
     "SessionStore should know that one tab was closed"
   );
 
-  undoCloseTab();
+  SessionWindowUI.undoCloseTab(window);
 
   is(
     gBrowser.tabs.length,
@@ -161,8 +161,8 @@ add_task(async function undoCloseAfterExtRemovesMultipleTabs() {
     "Last closed tab count is 2"
   );
 
-  undoCloseTab();
-  window2.undoCloseTab();
+  SessionWindowUI.undoCloseTab(window);
+  SessionWindowUI.undoCloseTab(window2);
 
   is(
     gBrowser.tabs.length,

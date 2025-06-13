@@ -507,7 +507,7 @@ var gBrowserInit = {
       }
 
       // Enable the Restore Last Session command if needed
-      RestoreLastSessionObserver.init();
+      gRestoreLastSessionObserver.init();
 
       SidebarController.startDelayedLoad();
 

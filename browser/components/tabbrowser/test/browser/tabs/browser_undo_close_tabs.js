@@ -39,7 +39,7 @@ add_task(async function withMultiSelectedTabs() {
     "SessionStore should know how many tabs were just closed"
   );
 
-  undoCloseTab();
+  SessionWindowUI.undoCloseTab(window);
   await TestUtils.waitForCondition(
     () => gBrowser.tabs.length == 5,
     "wait for the tabs to reopen"
@@ -121,7 +121,7 @@ add_task(async function withBothGroupsAndTab() {
       1,
       "LastClosedTabCount should be one"
     );
-    undoCloseTab();
+    SessionWindowUI.undoCloseTab(window);
 
     await TestUtils.waitForCondition(
       () => gBrowser.tabs.length == count,
@@ -151,7 +151,7 @@ add_task(async function withCloseTabsToTheRight() {
     "SessionStore should know how many tabs were just closed"
   );
 
-  undoCloseTab();
+  SessionWindowUI.undoCloseTab(window);
   await TestUtils.waitForCondition(
     () => gBrowser.tabs.length == 5,
     "wait for the tabs to reopen"

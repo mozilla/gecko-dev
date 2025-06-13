@@ -62,7 +62,7 @@ document.addEventListener(
           FirefoxViewHandler.openTab();
           break;
         case "hiddenUndoCloseWindow":
-          undoCloseWindow(0);
+          SessionWindowUI.undoCloseWindow(0);
           break;
 
         // == menu_HelpPopup ==

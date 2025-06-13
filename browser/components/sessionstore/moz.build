@@ -24,6 +24,7 @@ EXTRA_JS_MODULES.sessionstore = [
     "SessionStartup.sys.mjs",
     "SessionStore.sys.mjs",
     "SessionStoreFunctions.sys.mjs",
+    "SessionWindowUI.sys.mjs",
     "SessionWriter.sys.mjs",
     "StartupPerformance.sys.mjs",
     "TabAttributes.sys.mjs",

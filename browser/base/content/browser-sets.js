@@ -227,13 +227,13 @@ document.addEventListener(
             ScreenshotsUtils.notify(window, "Shortcut");
             break;
           case "History:UndoCloseTab":
-            undoCloseTab();
+            SessionWindowUI.undoCloseTab(window);
             break;
           case "History:UndoCloseWindow":
-            undoCloseWindow();
+            SessionWindowUI.undoCloseWindow();
             break;
           case "History:RestoreLastClosedTabOrWindowOrSession":
-            restoreLastClosedTabOrWindowOrSession();
+            SessionWindowUI.restoreLastClosedTabOrWindowOrSession(window);
             break;
           case "History:SearchHistory":
             PlacesCommandHook.searchHistory();

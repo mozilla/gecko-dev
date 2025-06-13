@@ -590,7 +590,7 @@ async function doReopenTests(useVerticalTabs) {
 
   info("restoring saved group via undoClosetab");
   await waitForNoActiveGroups();
-  undoCloseTab(undefined, win.__SSi);
+  SessionWindowUI.undoCloseTab(win, undefined, win.__SSi);
   await waitForReopenRecord();
   assertReopenEvent({
     id: groupId,
@@ -598,7 +598,7 @@ async function doReopenTests(useVerticalTabs) {
     layout: expectedLayout,
     type: "saved",
   });
-  await addTab("about:blank"); // removed by undoCloseTab
+  await addTabTo(win.gBrowser, "about:blank"); // removed by undoCloseTab
   await saveAndCloseGroup(win.gBrowser.getTabGroupById(groupId));
   await resetTelemetry();
 

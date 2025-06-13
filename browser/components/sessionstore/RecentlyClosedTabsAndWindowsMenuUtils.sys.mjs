@@ -10,6 +10,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PlacesUIUtils: "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
+  SessionWindowUI: "resource:///modules/sessionstore/SessionWindowUI.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "l10n", () => {
@@ -274,7 +275,8 @@ export var RecentlyClosedTabsAndWindowsMenuUtils = {
         aEvent.originalTarget.getAttribute("value")
       );
     } else {
-      aEvent.view.undoCloseTab(
+      lazy.SessionWindowUI.undoCloseTab(
+        aEvent.view,
         aEvent.originalTarget.getAttribute("value"),
         aEvent.originalTarget.getAttribute("source-window-id")
       );
@@ -496,8 +498,8 @@ function createEntry(
   }
 
   if (aIsWindowsFragment) {
-    element.addEventListener("command", event =>
-      event.target.ownerGlobal.undoCloseWindow(aIndex)
+    element.addEventListener("command", () =>
+      lazy.SessionWindowUI.undoCloseWindow(aIndex)
     );
   } else if (typeof aClosedTab.sourceClosedId == "number") {
     // sourceClosedId is used to look up the closed window to remove it when the tab is restored
@@ -520,7 +522,11 @@ function createEntry(
     element.setAttribute("value", aIndex);
     element.setAttribute("source-window-id", sourceWindowId);
     element.addEventListener("command", event =>
-      event.target.ownerGlobal.undoCloseTab(aIndex, sourceWindowId)
+      lazy.SessionWindowUI.undoCloseTab(
+        event.target.ownerGlobal,
+        aIndex,
+        sourceWindowId
+      )
     );
   }
 

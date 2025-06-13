@@ -18,7 +18,7 @@ add_task(async function () {
   );
   await promiseRemoveTabAndSessionState(tab1);
 
-  tab1 = undoCloseTab();
+  tab1 = SessionWindowUI.undoCloseTab(window);
   ok(tab1.pinned, "pinned tab 1 has been restored as a pinned tab");
   is(
     Array.prototype.indexOf.call(gBrowser.tabs, tab1),

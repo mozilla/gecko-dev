@@ -71,7 +71,7 @@ add_task(async function test_undo_last_action_correct_order() {
   SessionStore.resetLastClosedActions();
 
   let sessionRestored = promiseSessionStoreLoads(4 /* total restored tabs */);
-  restoreLastClosedTabOrWindowOrSession();
+  SessionWindowUI.restoreLastClosedTabOrWindowOrSession(window);
   await sessionRestored;
 
   Assert.equal(window.gBrowser.tabs.length, 4, "4 tabs have been restored");
@@ -93,7 +93,7 @@ add_task(async function test_undo_last_action_correct_order() {
   // close one tab and reopen it
   BrowserTestUtils.removeTab(window.gBrowser.tabs[1]);
   Assert.equal(window.gBrowser.tabs.length, 1, "Window has one open tabs");
-  restoreLastClosedTabOrWindowOrSession();
+  SessionWindowUI.restoreLastClosedTabOrWindowOrSession(window);
   Assert.equal(window.gBrowser.tabs.length, 2, "Window now has two open tabs");
 
   await SpecialPowers.popPrefEnv();

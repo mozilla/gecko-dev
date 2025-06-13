@@ -99,7 +99,7 @@ add_task(async () => {
   info("Reopening windows");
   let restoredWindows = [];
   while (SessionStore.getClosedWindowCount() > 0) {
-    restoredWindows.unshift(undoCloseWindow());
+    restoredWindows.unshift(SessionWindowUI.undoCloseWindow());
   }
   is(restoredWindows.length, 2, "Reopened correct number of windows");
 

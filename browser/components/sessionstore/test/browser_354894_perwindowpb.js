@@ -428,7 +428,7 @@ add_task(async function test_open_close_restore_from_popup() {
     is(counts.open, 0, "Got right number of open windows");
     is(counts.winstates, 1, "Got right number of window states");
 
-    newWin = undoCloseWindow(0);
+    newWin = SessionWindowUI.undoCloseWindow(0);
     await BrowserTestUtils.waitForEvent(newWin, "load");
 
     // Make sure we wait until this window is restored.

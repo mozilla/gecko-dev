@@ -49,7 +49,7 @@ add_task(async function replaceEmptyTabs() {
 
   is(tabbrowser.selectedTab, blankTab, "The blank tab should be selected.");
 
-  win.undoCloseTab();
+  SessionWindowUI.undoCloseTab(win);
 
   await TestUtils.waitForCondition(
     () => tabbrowser.tabs.length == 3,

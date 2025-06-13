@@ -75,6 +75,7 @@ ChromeUtils.defineESModuleGetters(this, {
     "resource:///modules/profiles/SelectableProfileService.sys.mjs",
   SessionStartup: "resource:///modules/sessionstore/SessionStartup.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
+  SessionWindowUI: "resource:///modules/sessionstore/SessionWindowUI.sys.mjs",
   SharingUtils: "resource:///modules/SharingUtils.sys.mjs",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
   SiteDataManager: "resource:///modules/SiteDataManager.sys.mjs",
@@ -512,6 +513,13 @@ ChromeUtils.defineLazyGetter(this, "Win7Features", () => {
     };
   }
   return null;
+});
+
+ChromeUtils.defineLazyGetter(this, "gRestoreLastSessionObserver", () => {
+  let { RestoreLastSessionObserver } = ChromeUtils.importESModule(
+    "resource:///modules/sessionstore/SessionWindowUI.sys.mjs"
+  );
+  return new RestoreLastSessionObserver(window);
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -4390,132 +4398,6 @@ var MailIntegration = {
 };
 
 /**
- * Applies only to the cmd|ctrl + shift + T keyboard shortcut
- * Undo the last action that was taken - either closing the last tab or closing the last window;
- * If none of those were the last actions, restore the last session if possible.
- */
-function restoreLastClosedTabOrWindowOrSession() {
-  let lastActionTaken = SessionStore.popLastClosedAction();
-
-  if (lastActionTaken) {
-    switch (lastActionTaken.type) {
-      case SessionStore.LAST_ACTION_CLOSED_TAB: {
-        undoCloseTab();
-        break;
-      }
-      case SessionStore.LAST_ACTION_CLOSED_WINDOW: {
-        undoCloseWindow();
-        break;
-      }
-    }
-  } else {
-    let closedTabCount = SessionStore.getLastClosedTabCount(window);
-    if (SessionStore.canRestoreLastSession) {
-      SessionStore.restoreLastSession();
-    } else if (closedTabCount) {
-      // we need to support users who have automatic session restore enabled
-      undoCloseTab();
-    }
-  }
-}
-
-/**
- * Re-open a closed tab into the current window.
- * @param [aIndex]
- *        The index of the tab (via SessionStore.getClosedTabData).
- *        When undefined, the first n closed tabs will be re-opened, where n is provided by getLastClosedTabCount.
- * @param {string} [sourceWindowSSId]
- *        An optional sessionstore id to identify the source window for the tab.
- *        I.e. the window the tab belonged to when closed.
- *        When undefined we'll use the current window
- * @returns a reference to the reopened tab.
- */
-function undoCloseTab(aIndex, sourceWindowSSId) {
-  // the window we'll open the tab into
-  let targetWindow = window;
-  // the window the tab was closed from
-  let sourceWindow;
-  if (sourceWindowSSId) {
-    sourceWindow = SessionStore.getWindowById(sourceWindowSSId);
-    if (!sourceWindow) {
-      throw new Error(
-        "sourceWindowSSId argument to undoCloseTab didn't resolve to a window"
-      );
-    }
-  } else {
-    sourceWindow = window;
-  }
-
-  // wallpaper patch to prevent an unnecessary blank tab (bug 343895)
-  let blankTabToRemove = null;
-  if (
-    targetWindow.gBrowser.visibleTabs.length == 1 &&
-    targetWindow.gBrowser.selectedTab.isEmpty
-  ) {
-    blankTabToRemove = targetWindow.gBrowser.selectedTab;
-  }
-
-  let tabsRemoved = false;
-  let tab = null;
-  const lastClosedTabGroupId =
-    SessionStore.getLastClosedTabGroupId(sourceWindow);
-  if (aIndex === undefined && lastClosedTabGroupId) {
-    let group;
-    if (SessionStore.getSavedTabGroup(lastClosedTabGroupId)) {
-      group = SessionStore.openSavedTabGroup(
-        lastClosedTabGroupId,
-        targetWindow,
-        {
-          source: "recent",
-        }
-      );
-    } else {
-      group = SessionStore.undoCloseTabGroup(
-        window,
-        lastClosedTabGroupId,
-        targetWindow
-      );
-    }
-    tabsRemoved = true;
-    tab = group.tabs.at(-1);
-  } else {
-    // We are specifically interested in the lastClosedTabCount for the source window.
-    // When aIndex is undefined, we restore all the lastClosedTabCount tabs.
-    let lastClosedTabCount = SessionStore.getLastClosedTabCount(sourceWindow);
-    // aIndex is undefined if the function is called without a specific tab to restore.
-    let tabsToRemove =
-      aIndex !== undefined ? [aIndex] : new Array(lastClosedTabCount).fill(0);
-    for (let index of tabsToRemove) {
-      if (SessionStore.getClosedTabCountForWindow(sourceWindow) > index) {
-        tab = SessionStore.undoCloseTab(sourceWindow, index, targetWindow);
-        tabsRemoved = true;
-      }
-    }
-  }
-
-  if (tabsRemoved && blankTabToRemove) {
-    targetWindow.gBrowser.removeTab(blankTabToRemove);
-  }
-
-  return tab;
-}
-
-/**
- * Re-open a closed window.
- * @param aIndex
- *        The index of the window (via SessionStore.getClosedWindowData)
- * @returns a reference to the reopened window.
- */
-function undoCloseWindow(aIndex) {
-  let window = null;
-  if (SessionStore.getClosedWindowCount() > (aIndex || 0)) {
-    window = SessionStore.undoCloseWindow(aIndex || 0);
-  }
-
-  return window;
-}
-
-/**
  * When the browser is being controlled from out-of-process,
  * e.g. when Marionette or the remote debugging protocol is used,
  * we add a visual hint to the browser UI to indicate to the user
@@ -4824,41 +4706,6 @@ function switchToTabHavingURI(
 
   return false;
 }
-
-var RestoreLastSessionObserver = {
-  init() {
-    if (
-      SessionStore.canRestoreLastSession &&
-      !PrivateBrowsingUtils.isWindowPrivate(window)
-    ) {
-      Services.obs.addObserver(this, "sessionstore-last-session-cleared", true);
-      Services.obs.addObserver(
-        this,
-        "sessionstore-last-session-re-enable",
-        true
-      );
-      goSetCommandEnabled("Browser:RestoreLastSession", true);
-    } else if (SessionStore.willAutoRestore) {
-      document.getElementById("Browser:RestoreLastSession").hidden = true;
-    }
-  },
-
-  observe(aSubject, aTopic) {
-    switch (aTopic) {
-      case "sessionstore-last-session-cleared":
-        goSetCommandEnabled("Browser:RestoreLastSession", false);
-        break;
-      case "sessionstore-last-session-re-enable":
-        goSetCommandEnabled("Browser:RestoreLastSession", true);
-        break;
-    }
-  },
-
-  QueryInterface: ChromeUtils.generateQI([
-    "nsIObserver",
-    "nsISupportsWeakReference",
-  ]),
-};
 
 // Prompt user to restart the browser in safe mode
 function safeModeRestart() {

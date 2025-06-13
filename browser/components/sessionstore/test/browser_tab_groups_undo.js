@@ -54,7 +54,7 @@ add_task(async function test_tabGroupsUndo() {
     "SessionStore saves the ID of the last closed tab group"
   );
 
-  undoCloseTab();
+  SessionWindowUI.undoCloseTab(window);
 
   Assert.equal(window.gBrowser.tabGroups.length, 1, "Tab group was restored");
   Assert.equal(
