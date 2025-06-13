@@ -435,26 +435,19 @@ bool js::RunScript(JSContext* cx, RunState& state) {
 
   GeckoProfilerEntryMarker marker(cx, state.script());
 
-  // If the isExecuting flag was not set, then enable it.
-  //  This flag is only set on the initial, outermost RunScript call.
-  //  Also start a timer if measureExecutionTimeEnabled() is true.
-  bool isExecuting = cx->isExecutingRef();
-  bool timerEnabled = cx->measuringExecutionTimeEnabled();
-
+  bool measuringTime = !cx->isMeasuringExecutionTime();
   mozilla::TimeStamp startTime;
-  if (!isExecuting) {
+  if (measuringTime) {
+    cx->setIsMeasuringExecutionTime(true);
     cx->setIsExecuting(true);
-    if (timerEnabled) {
-      startTime = mozilla::TimeStamp::Now();
-    }
+    startTime = mozilla::TimeStamp::Now();
   }
-  auto onScopeExit = mozilla::MakeScopeExit([&]() {
-    if (!isExecuting) {
+  auto timerEnd = mozilla::MakeScopeExit([&]() {
+    if (measuringTime) {
+      mozilla::TimeDuration delta = mozilla::TimeStamp::Now() - startTime;
+      cx->realm()->timers.executionTime += delta;
+      cx->setIsMeasuringExecutionTime(false);
       cx->setIsExecuting(false);
-      if (timerEnabled) {
-        mozilla::TimeDuration delta = mozilla::TimeStamp::Now() - startTime;
-        cx->realm()->timers.executionTime += delta;
-      }
     }
   });
 

@@ -49,6 +49,19 @@ class MOZ_RAII AutoWritableJitCodeFallible {
   }
 
   ~AutoWritableJitCodeFallible() {
+    // Taking TimeStamps frequently can be expensive, and there's no point
+    // measuring this if write protection is disabled.
+    const bool measuringTime = JitOptions.writeProtectCode;
+    const mozilla::TimeStamp startTime =
+        measuringTime ? mozilla::TimeStamp::Now() : mozilla::TimeStamp();
+    auto timer = mozilla::MakeScopeExit([&] {
+      if (measuringTime) {
+        if (Realm* realm = rt_->mainContextFromOwnThread()->realm()) {
+          realm->timers.protectTime += mozilla::TimeStamp::Now() - startTime;
+        }
+      }
+    });
+
     if (!ExecutableAllocator::makeExecutableAndFlushICache(addr_, size_)) {
       MOZ_CRASH();
     }

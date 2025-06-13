@@ -10741,6 +10741,111 @@
     "n_values": 50,
     "description": "Compression ratio of WOFF2 data (%)"
   },
+  "JS_PAGELOAD_EXECUTION_MS": {
+    "record_in_processes": ["content"],
+    "products": ["firefox"],
+    "alert_emails": [
+      "dpalmeiro@mozilla.com",
+      "perf-telemetry-alerts@mozilla.com"
+    ],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "exponential",
+    "high": 60000,
+    "n_buckets": 100,
+    "bug_numbers": [1709139],
+    "description": "Time spent during page load executing Javascript in ms."
+  },
+  "JS_PAGELOAD_DELAZIFICATION_MS": {
+    "record_in_processes": ["content"],
+    "products": ["firefox"],
+    "alert_emails": [
+      "dpalmeiro@mozilla.com",
+      "perf-telemetry-alerts@mozilla.com"
+    ],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "exponential",
+    "high": 10000,
+    "n_buckets": 100,
+    "bug_numbers": [1709139],
+    "description": "Time spent during page load delazifying Javascript in ms."
+  },
+  "JS_PAGELOAD_XDR_ENCODING_MS": {
+    "record_in_processes": ["content"],
+    "products": ["firefox"],
+    "alert_emails": [
+      "dpalmeiro@mozilla.com",
+      "perf-telemetry-alerts@mozilla.com"
+    ],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "exponential",
+    "high": 10000,
+    "n_buckets": 100,
+    "bug_numbers": [1709139],
+    "description": "Time spent during page load XDR encoding Javascript in ms."
+  },
+  "JS_PAGELOAD_BASELINE_COMPILE_MS": {
+    "record_in_processes": ["content"],
+    "products": ["firefox"],
+    "alert_emails": [
+      "dpalmeiro@mozilla.com",
+      "perf-telemetry-alerts@mozilla.com"
+    ],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "exponential",
+    "high": 10000,
+    "n_buckets": 100,
+    "bug_numbers": [1709139],
+    "description": "Time spent during page load baseline compiling Javascript in ms."
+  },
+  "JS_PAGELOAD_GC_MS": {
+    "record_in_processes": ["content"],
+    "products": ["firefox"],
+    "alert_emails": [
+      "dpalmeiro@mozilla.com",
+      "perf-telemetry-alerts@mozilla.com"
+    ],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "exponential",
+    "high": 10000,
+    "n_buckets": 100,
+    "bug_numbers": [1709139],
+    "description": "Time spent during page load in the GC in ms."
+  },
+  "JS_PAGELOAD_PROTECT_MS": {
+    "record_in_processes": ["content"],
+    "products": ["firefox"],
+    "alert_emails": [
+      "dpalmeiro@mozilla.com",
+      "perf-telemetry-alerts@mozilla.com"
+    ],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "exponential",
+    "high": 10000,
+    "n_buckets": 100,
+    "bug_numbers": [1709139],
+    "description": "Time spent during page load protecting JIT executable memory."
+  },
+  "JS_PAGELOAD_PARSE_MS": {
+    "record_in_processes": ["content"],
+    "products": ["firefox"],
+    "alert_emails": [
+      "dpalmeiro@mozilla.com",
+      "perf-telemetry-alerts@mozilla.com"
+    ],
+    "expires_in_version": "never",
+    "releaseChannelCollection": "opt-out",
+    "kind": "exponential",
+    "high": 10000,
+    "n_buckets": 100,
+    "bug_numbers": [1709139],
+    "description": "Time spent during page load syntax parsing JS scripts on the main thread in ms."
+  },
   "DOM_SCRIPT_LOADING_SOURCE": {
     "record_in_processes": ["content"],
     "products": ["firefox", "fennec"],
