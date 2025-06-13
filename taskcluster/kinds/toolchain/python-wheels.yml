@@ -17,14 +17,14 @@ task-defaults:
 
 linux64-1804-dbus-python:
     treeherder:
-        symbol: TL(py3.8-dbus-python)
+        symbol: TL(py3.9-dbus-python)
     fetches:
         fetch:
             - dbus-python-1.2.18
         toolchain:
-            - linux64-python-3.8
+            - linux64-python-3.9
     run:
-        toolchain-artifact: public/build/dbus_python-1.2.18-cp38-cp38-linux_x86_64.whl
+        toolchain-artifact: public/build/dbus_python-1.2.18-cp39-cp39-linux_x86_64.whl
     worker:
         docker-image: {in-tree: ubuntu1804-build-python-wheels}
 
@@ -57,7 +57,7 @@ linux-python-dbusmock:
         fetch:
             - python-dbusmock-0.32.2
         toolchain:
-            - linux64-python-3.8
+            - linux64-python-3.9
     run:
         toolchain-artifact: public/build/python_dbusmock-0.32.2-py3-none-any.whl
     worker:

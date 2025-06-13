@@ -77,7 +77,7 @@ tasks:
     rockylinux8:
         image: rockylinux:8
         pre-commands:
-            - dnf install -y git python38-pip
+            - dnf install -y git python39-pip
     rockylinux9:
         image: rockylinux:9
         pre-commands:

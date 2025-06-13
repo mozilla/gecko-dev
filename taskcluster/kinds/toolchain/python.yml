@@ -15,7 +15,7 @@ task-defaults:
             - 'build/psutil_requirements.txt'
             - 'build/zstandard_requirements.txt'
 
-linux64-python-3.8:
+linux64-python-3.9:
     treeherder:
         symbol: TL(python)
     run:
@@ -23,12 +23,12 @@ linux64-python-3.8:
         toolchain-artifact: public/build/python.tar.zst
     fetches:
         fetch:
-            - cpython-3.8.10
+            - cpython-3.9.13
     worker:
         docker-image: {in-tree: ubuntu1804-build-python}
 
-linux64-aarch64-python-3.8:
-    description: "cpython 3.8.10 AArch64/ARM64"
+linux64-aarch64-python-3.9:
+    description: "cpython 3.9.13 AArch64/ARM64"
     worker-type: b-linux-gcp-aarch64
     treeherder:
         symbol: TLA64(python)
@@ -37,7 +37,7 @@ linux64-aarch64-python-3.8:
         toolchain-artifact: public/build/python.tar.zst
     fetches:
         fetch:
-            - cpython-3.8.10
+            - cpython-3.9.13
     worker:
         docker-image: {in-tree: ubuntu2204-arm64-build-python}
 
@@ -53,8 +53,8 @@ linux64-aarch64-python-3.11:
     worker:
         docker-image: {in-tree: ubuntu2204-arm64-build-python}
 
-win64-python-3.8:
-    description: "cpython 3.8.10"
+win64-python-3.9:
+    description: "cpython 3.9.13"
     treeherder:
         symbol: TW64(python)
     run:
@@ -65,9 +65,9 @@ win64-python-3.8:
         toolchain:
             - linux64-wine
         fetch:
-            - cpython-3.8.10.exe
+            - cpython-3.9.13.exe
 
-macosx64-python-3.8:
+macosx64-python-3.9:
     treeherder:
         symbol: TM(python)
     worker-type: b-osx-1015
@@ -76,7 +76,7 @@ macosx64-python-3.8:
         toolchain-artifact: public/build/python.tar.zst
     fetches:
         fetch:
-            - cpython-3.8.10
+            - cpython-3.9.13
         toolchain:
             - macosx64-clang-toolchain
             - macosx64-sdk-toolchain
