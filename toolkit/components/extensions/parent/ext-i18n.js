@@ -29,6 +29,14 @@ this.i18n = class extends ExtensionAPI {
           return extension.localeData.uiLocale;
         },
 
+        getPreferredSystemLanguages: function () {
+          const systemLocales = Cc[
+            "@mozilla.org/intl/ospreferences;1"
+          ].getService(Ci.mozIOSPreferences).systemLocales;
+
+          return Promise.resolve(systemLocales);
+        },
+
         detectLanguage: function (text) {
           return LanguageDetector.detectLanguage(text).then(result => ({
             isReliable: result.confident,

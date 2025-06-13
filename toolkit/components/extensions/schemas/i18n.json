@@ -77,6 +77,26 @@
         }
       },
       {
+        "name": "getPreferredSystemLanguages",
+        "type": "function",
+        "async": "callback",
+        "description": "Gets the preferred locales of the operating system. This is different from the locales set in the browser; to get those, use $(ref:i18n.getAcceptLanguages).",
+        "parameters": [
+          {
+            "type": "function",
+            "name": "callback",
+            "parameters": [
+              {
+                "name": "languages",
+                "type": "array",
+                "items": { "$ref": "LanguageCode" },
+                "description": "Array of LanguageCode"
+              }
+            ]
+          }
+        ]
+      },
+      {
         "name": "getUILanguage",
         "type": "function",
         "description": "Gets the browser UI language of the browser. This is different from $(ref:i18n.getAcceptLanguages) which returns the preferred user languages.",
