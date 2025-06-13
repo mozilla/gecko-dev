@@ -1267,10 +1267,51 @@ struct DefineComparisonOps<Rooted<T>> : std::true_type {
   static const T& get(const Rooted<T>& v) { return v.get(); }
 };
 
+template <typename T, typename... Ts>
+struct IndexOfType {};
+
+template <typename T, typename... Ts>
+struct IndexOfType<T, T, Ts...> : public std::integral_constant<size_t, 0> {};
+
+template <typename T, typename U, typename... Ts>
+struct IndexOfType<T, U, Ts...>
+    : public std::integral_constant<size_t, IndexOfType<T, Ts...>::value + 1> {
+};
+
+template <typename T, typename... Ts>
+constexpr size_t IndexOfTypeV = IndexOfType<T, Ts...>::value;
+
 }  // namespace detail
 
 template <typename... Fs>
-using RootedTuple = Rooted<std::tuple<Fs...>>;
+class RootedTuple {
+  using Tuple = std::tuple<Fs...>;
+
+  Rooted<Tuple> fields;
+
+#ifdef DEBUG
+  bool inUse[std::tuple_size_v<Tuple>] = {};
+
+  bool* setFieldInUse(size_t index) {
+    MOZ_ASSERT(index < std::size(inUse));
+    bool& flag = inUse[index];
+    MOZ_ASSERT(!flag,
+               "Field of RootedTuple already in use by another RootedField");
+    flag = true;
+    return &flag;
+  }
+#endif
+
+  template <typename T, size_t N>
+  friend class RootedField;
+
+ public:
+  template <typename RootingContext>
+  explicit RootedTuple(const RootingContext& cx) : fields(cx) {}
+  template <typename RootingContext>
+  explicit RootedTuple(const RootingContext& cx, const Fs&... fs)
+      : fields(cx, fs...) {}
+};
 
 // Reference to a field in a RootedTuple. This is a drop-in replacement for an
 // individual Rooted.
@@ -1300,6 +1341,10 @@ class MOZ_RAII RootedField : public js::RootedOperations<T, RootedField<T, N>> {
   friend class Handle<T>;
   friend class MutableHandle<T>;
 
+#ifdef DEBUG
+  bool* inUseFlag = nullptr;
+#endif
+
  public:
   using ElementType = T;
 
@@ -1307,18 +1352,32 @@ class MOZ_RAII RootedField : public js::RootedOperations<T, RootedField<T, N>> {
   explicit RootedField(RootedTuple<Fs...>& rootedTuple) {
     using Tuple = std::tuple<Fs...>;
     if constexpr (N == SIZE_MAX) {
-      ptr = &std::get<T>(rootedTuple.get());
+      ptr = &std::get<T>(rootedTuple.fields.get());
     } else {
       static_assert(N < std::tuple_size_v<Tuple>);
       static_assert(std::is_same_v<T, std::tuple_element_t<N, Tuple>>);
-      ptr = &std::get<N>(rootedTuple.get());
+      ptr = &std::get<N>(rootedTuple.fields.get());
     }
+#ifdef DEBUG
+    size_t index = N;
+    if constexpr (N == SIZE_MAX) {
+      index = detail::IndexOfTypeV<T, Fs...>;
+    }
+    inUseFlag = rootedTuple.setFieldInUse(index);
+#endif
   }
   template <typename... Fs, typename S>
   explicit RootedField(RootedTuple<Fs...>& rootedTuple, S&& value)
       : RootedField(rootedTuple) {
     *ptr = std::forward<S>(value);
   }
+
+#ifdef DEBUG
+  ~RootedField() {
+    MOZ_ASSERT(*inUseFlag);
+    *inUseFlag = false;
+  }
+#endif
 
   T& get() { return *ptr; }
   const T& get() const { return *ptr; }

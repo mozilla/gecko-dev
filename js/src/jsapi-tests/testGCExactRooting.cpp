@@ -916,6 +916,23 @@ END_TEST(testResultPackedVariant)
 
 #endif  // HAVE_64BIT_BUILD
 
+BEGIN_TEST(testIndexOf) {
+  // Test template metaprogramming for finding the index of a type in a
+  // parameter pack. This is used by RootedField.
+  //
+  // Missing types fail to compile.
+
+  CHECK((JS::detail::IndexOfTypeV<int, int> == 0));
+  CHECK((JS::detail::IndexOfTypeV<int, float, int, float> == 1));
+  CHECK((JS::detail::IndexOfTypeV<int, float, double, int> == 2));
+
+  // IndexOfType doesn't check for duplicates.
+  CHECK((JS::detail::IndexOfTypeV<float, float, int, float> == 0));
+
+  return true;
+}
+END_TEST(testIndexOf)
+
 BEGIN_TEST(testRootedTuple) {
   // Tuple with a single GC thing field.
   {
