@@ -89,12 +89,10 @@ class GitRepository(Repository):
             Account for `git-cinnabar` remotes with `hg.mozilla.org` in the name,
             as well as SSH and HTTP remotes for Git-native.
             """
-            if (
-                is_cinnabar_repo
-                and "hg.mozilla.org" in url
-                and not url.endswith(("hg.mozilla.org/try", "hg.mozilla.org/try/"))
-            ):
-                return True
+            if is_cinnabar_repo:
+                return "hg.mozilla.org" in url and not url.endswith(
+                    "hg.mozilla.org/try"
+                )
 
             return any(
                 remote in url
