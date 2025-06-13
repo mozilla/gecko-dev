@@ -61,6 +61,12 @@ let AVAILABLE_PIP_OVERRIDES;
       },
     },
 
+    apple: {
+      "https://www.apple.com/*": {
+        videoWrapperScriptPath: "video-wrappers/apple.js",
+      },
+    },
+
     arte: {
       "https://*.arte.tv/*": {
         videoWrapperScriptPath: "video-wrappers/videojsWrapper.js",
