@@ -10,7 +10,7 @@
       "properties": {
         "repeatOption": {
           "type": "string",
-          "enum": ["once", "xdays"],
+          "enum": ["once", "xdays", "nag"],
           "description": "Determines how often a prompt is shown executes.",
           "default": "once"
         },
