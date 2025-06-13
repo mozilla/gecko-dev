@@ -629,7 +629,7 @@ bool js::InternalCallOrConstruct(JSContext* cx, const CallArgs& args,
 // means passing the WindowProxy instead of the Window (a GlobalObject) because
 // we must never expose the Window to script. This returns false only for DOM
 // getters or setters.
-static bool CalleeNeedsOuterizedThisObject(const Value& callee) {
+static bool CalleeNeedsOuterizedThisObject(Value callee) {
   if (!callee.isObject() || !callee.toObject().is<JSFunction>()) {
     return true;
   }
@@ -5136,7 +5136,7 @@ bool js::OptimizeSpreadCall(JSContext* cx, HandleValue arg,
   return true;
 }
 
-bool js::OptimizeGetIterator(const Value& arg, JSContext* cx) {
+bool js::OptimizeGetIterator(Value arg, JSContext* cx) {
   if (!arg.isObject()) {
     return false;
   }

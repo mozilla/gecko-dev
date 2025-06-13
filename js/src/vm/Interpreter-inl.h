@@ -39,7 +39,7 @@ namespace js {
  * uninitialized let declaration, represented by the magic value
  * JS_UNINITIALIZED_LEXICAL.
  */
-static inline bool IsUninitializedLexical(const Value& val) {
+static inline bool IsUninitializedLexical(Value val) {
   // Use whyMagic here because JS_OPTIMIZED_OUT could flow into here.
   return val.isMagic() && val.whyMagic() == JS_UNINITIALIZED_LEXICAL;
 }
