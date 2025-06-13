@@ -277,12 +277,6 @@ namespace ChromeUtils {
   undefined clearResourceCache(optional ClearResourceCacheOptions options = {});
 
   /**
-   * Clears the bfcache (backward-forward cache)
-   */
-  [Throws]
-  undefined clearBfcacheByPrincipal(Principal principal);
-
-  /**
    * Clears the Messaging Layer Security state by schemeless site.
    * This includes associated state-partitioned cache.
    */

@@ -2181,20 +2181,6 @@ const StoragePermissionsCleaner = {
   },
 };
 
-const BfcacheCleaner = {
-  async deleteAll() {
-    // TODO(Bug 1959477)
-  },
-
-  async deleteBySite(_aSchemelessSite, _aOriginAttributesPattern) {
-    // TODO(Bug 1959477)
-  },
-
-  async deleteByPrincipal(aPrincipal) {
-    ChromeUtils.clearBfcacheByPrincipal(aPrincipal);
-  },
-};
-
 // Here the map of Flags-Cleaners.
 const FLAGS_MAP = [
   {
@@ -2342,11 +2328,6 @@ const FLAGS_MAP = [
   {
     flag: Ci.nsIClearDataService.CLEAR_SHUTDOWN_EXCEPTIONS,
     cleaners: [ShutdownExceptionsCleaner],
-  },
-
-  {
-    flag: Ci.nsIClearDataService.CLEAR_BFCACHE,
-    cleaners: [BfcacheCleaner],
   },
 ];
 
