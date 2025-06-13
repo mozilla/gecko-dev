@@ -31,6 +31,7 @@ STEPS = {
             True,
             [
                 "central",
+                "firefox",
                 "unified",
             ],
         ),
