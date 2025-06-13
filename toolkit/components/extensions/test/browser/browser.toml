@@ -17,6 +17,8 @@ support-files = [
 ["browser_ext_management_themes.js"]
 skip-if = ["verify"]
 
+["browser_ext_notifications_useSystemBackend_false.js"]
+
 ["browser_ext_process_crash_handling.js"]
 skip-if = ["!crashreporter"]
 

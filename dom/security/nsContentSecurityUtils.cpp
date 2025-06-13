@@ -1360,6 +1360,7 @@ static nsLiteralCString sImgSrcDataBlobAllowList[] = {
     "chrome://devtools/content/responsive/toolbar.xhtml"_ns,
     "chrome://devtools/content/shared/sourceeditor/codemirror/cmiframe.html"_ns,
     "chrome://devtools/content/webconsole/index.html"_ns,
+    "chrome://global/content/alerts/alert.xhtml"_ns,
     "chrome://global/content/print.html"_ns,
 };
 // img-src https:
@@ -1386,6 +1387,7 @@ static nsLiteralCString sImgSrcHttpAllowList[] = {
     "chrome://devtools/content/framework/browser-toolbox/window.html"_ns,
     "chrome://devtools/content/framework/toolbox-window.xhtml"_ns,
     "chrome://browser/content/preferences/dialogs/applicationManager.xhtml"_ns,
+    "chrome://global/content/alerts/alert.xhtml"_ns,
     "chrome://mozapps/content/handling/appChooser.xhtml"_ns,
     // STOP! Do not add anything to this list.
 };
