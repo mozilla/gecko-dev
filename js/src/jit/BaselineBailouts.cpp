@@ -1919,8 +1919,7 @@ bool jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg) {
         // check if it is clobbered. Ensure that the local binding
         // restored during bailout before storing the arguments object
         // to the slot.
-        RootedScript script(cx, frame->script());
-        SetFrameArgumentsObject(cx, frame, script, argsObj);
+        SetFrameArgumentsObject(cx, frame, argsObj);
       }
 
       if (frameno == 0) {

@@ -49,7 +49,7 @@ ScriptAndCounts::ScriptAndCounts(ScriptAndCounts&& sac)
       scriptCounts(std::move(sac.scriptCounts)) {}
 
 void SetFrameArgumentsObject(JSContext* cx, AbstractFramePtr frame,
-                             HandleScript script, JSObject* argsobj);
+                             JSObject* argsobj);
 
 inline void ScriptWarmUpData::initEnclosingScript(BaseScript* enclosingScript) {
   MOZ_ASSERT(data_ == ResetState());
