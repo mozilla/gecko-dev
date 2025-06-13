@@ -7,7 +7,6 @@
 #define GPU_CommandEncoder_H_
 
 #include "mozilla/dom/TypedArray.h"
-#include "mozilla/RefPtr.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
 #include "mozilla/webgpu/WebGPUTypes.h"
@@ -41,9 +40,6 @@ class CommandBuffer;
 class ComputePassEncoder;
 class Device;
 class RenderPassEncoder;
-class WebGPUChild;
-
-enum class CommandEncoderState { Open, Locked, Ended };
 
 class CommandEncoder final : public ObjectBase, public ChildOf<Device> {
  public:
@@ -65,8 +61,6 @@ class CommandEncoder final : public ObjectBase, public ChildOf<Device> {
   ~CommandEncoder();
   void Cleanup();
 
-  CommandEncoderState mState;
-
   RefPtr<WebGPUChild> mBridge;
   nsTArray<WeakPtr<CanvasContext>> mPresentationContexts;
 
@@ -74,9 +68,6 @@ class CommandEncoder final : public ObjectBase, public ChildOf<Device> {
 
  public:
   const auto& GetDevice() const { return mParent; };
-  RefPtr<WebGPUChild> GetBridge();
-
-  CommandEncoderState GetState() const { return mState; };
 
   void EndComputePass(ffi::WGPURecordedComputePass& aPass);
   void EndRenderPass(ffi::WGPURecordedRenderPass& aPass);

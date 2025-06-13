@@ -1770,13 +1770,6 @@ ipc::IPCResult WebGPUParent::RecvDevicePopErrorScope(
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvReportError(RawId aDeviceId,
-                                             GPUErrorFilter aType,
-                                             const nsCString& aMessage) {
-  this->ReportError(Some(aDeviceId), aType, aMessage);
-  return IPC_OK();
-}
-
 bool WebGPUParent::UseExternalTextureForSwapChain(
     ffi::WGPUSwapChainId aSwapChainId) {
   auto ownerId = layers::RemoteTextureOwnerId{aSwapChainId._0};

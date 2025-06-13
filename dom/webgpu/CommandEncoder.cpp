@@ -73,10 +73,7 @@ static ffi::WGPUTexelCopyTextureInfo ConvertTextureCopyView(
 
 CommandEncoder::CommandEncoder(Device* const aParent,
                                WebGPUChild* const aBridge, RawId aId)
-    : ChildOf(aParent),
-      mId(aId),
-      mState(CommandEncoderState::Open),
-      mBridge(aBridge) {
+    : ChildOf(aParent), mId(aId), mBridge(aBridge) {
   MOZ_RELEASE_ASSERT(aId);
 }
 
@@ -98,8 +95,6 @@ void CommandEncoder::Cleanup() {
 
   wgpu_client_free_command_encoder_id(mBridge->GetClient(), mId);
 }
-
-RefPtr<WebGPUChild> CommandEncoder::GetBridge() { return mBridge; }
 
 void CommandEncoder::TrackPresentationContext(CanvasContext* aTargetContext) {
   if (aTargetContext) {
@@ -238,22 +233,6 @@ already_AddRefed<ComputePassEncoder> CommandEncoder::BeginComputePass(
     const dom::GPUComputePassDescriptor& aDesc) {
   RefPtr<ComputePassEncoder> pass = new ComputePassEncoder(this, aDesc);
   pass->SetLabel(aDesc.mLabel);
-  if (mState == CommandEncoderState::Ended) {
-    // Because we do not call wgpu until the pass is ended, we need to generate
-    // this error ourselves in order to report it at the correct time.
-    if (mBridge->CanSend()) {
-      mBridge->SendReportError(mParent->mId, dom::GPUErrorFilter::Validation,
-                               "Encoding must not have ended"_ns);
-    }
-    pass->Invalidate();
-  } else if (mState == CommandEncoderState::Locked) {
-    // This is not sufficient to handle this case properly. Invalidity
-    // needs to be transferred from the pass to the encoder when the pass
-    // ends. Bug 1971650.
-    pass->Invalidate();
-  } else {
-    mState = CommandEncoderState::Locked;
-  }
   return pass.forget();
 }
 
@@ -268,22 +247,6 @@ already_AddRefed<RenderPassEncoder> CommandEncoder::BeginRenderPass(
 
   RefPtr<RenderPassEncoder> pass = new RenderPassEncoder(this, aDesc);
   pass->SetLabel(aDesc.mLabel);
-  if (mState == CommandEncoderState::Ended) {
-    // Because we do not call wgpu until the pass is ended, we need to generate
-    // this error ourselves in order to report it at the correct time.
-    if (mBridge->CanSend()) {
-      mBridge->SendReportError(mParent->mId, dom::GPUErrorFilter::Validation,
-                               "Encoding must not have ended"_ns);
-    }
-    pass->Invalidate();
-  } else if (mState == CommandEncoderState::Locked) {
-    // This is not sufficient to handle this case properly. Invalidity
-    // needs to be transferred from the pass to the encoder when the pass
-    // ends. Bug 1971650.
-    pass->Invalidate();
-  } else {
-    mState = CommandEncoderState::Locked;
-  }
   return pass.forget();
 }
 
@@ -309,13 +272,6 @@ void CommandEncoder::EndComputePass(ffi::WGPURecordedComputePass& aPass) {
     return;
   }
 
-  if (mState != CommandEncoderState::Locked) {
-    mBridge->SendReportError(mParent->mId, dom::GPUErrorFilter::Validation,
-                             "Encoder is not currently locked"_ns);
-    return;
-  }
-  mState = CommandEncoderState::Open;
-
   ipc::ByteBuf byteBuf;
   ffi::wgpu_compute_pass_finish(&aPass, ToFFI(&byteBuf));
   mBridge->SendComputePass(mId, mParent->mId, std::move(byteBuf));
@@ -327,13 +283,6 @@ void CommandEncoder::EndRenderPass(ffi::WGPURecordedRenderPass& aPass) {
   if (!mBridge || !mBridge->CanSend()) {
     return;
   }
-
-  if (mState != CommandEncoderState::Locked) {
-    mBridge->SendReportError(mParent->mId, dom::GPUErrorFilter::Validation,
-                             "Encoder is not currently locked"_ns);
-    return;
-  }
-  mState = CommandEncoderState::Open;
 
   ipc::ByteBuf byteBuf;
   ffi::wgpu_render_pass_finish(&aPass, ToFFI(&byteBuf));
@@ -348,17 +297,8 @@ already_AddRefed<CommandBuffer> CommandEncoder::Finish(
   // type aliasing at the place that introduces it: `wgpu-core`.
   RawId deviceId = mParent->mId;
   if (mBridge->CanSend()) {
-    if (mState == CommandEncoderState::Locked) {
-      // Most errors that could occur here will be raised by wgpu. But since we
-      // don't tell wgpu about passes until they are ended, we need to raise an
-      // error if the application left a pass open.
-      mBridge->SendReportError(
-          mParent->mId, dom::GPUErrorFilter::Validation,
-          "Encoder is locked by a previously created render/compute pass"_ns);
-    }
     mBridge->SendCommandEncoderFinish(mId, deviceId, aDesc);
   }
-  mState = CommandEncoderState::Ended;
 
   RefPtr<CommandEncoder> me(this);
   RefPtr<CommandBuffer> comb = new CommandBuffer(

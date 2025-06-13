@@ -66,8 +66,6 @@ class RenderPassEncoder final : public ObjectBase,
                     uint64_t aDynamicOffsetsLength);
 
  public:
-  void Invalidate() { mValid = false; }
-
   void SetBindGroup(uint32_t aSlot, BindGroup* const aBindGroup,
                     const dom::Sequence<uint32_t>& aDynamicOffsets,
                     ErrorResult& aRv);
