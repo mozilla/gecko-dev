@@ -229,7 +229,7 @@ bool js::intl::SharedIntlData::validateTimeZoneName(
     return false;
   }
 
-  Rooted<JSLinearString*> timeZoneLinear(cx, timeZone->ensureLinear(cx));
+  JSLinearString* timeZoneLinear = timeZone->ensureLinear(cx);
   if (!timeZoneLinear) {
     return false;
   }
@@ -248,7 +248,7 @@ bool js::intl::SharedIntlData::tryCanonicalizeTimeZoneConsistentWithIANA(
     return false;
   }
 
-  Rooted<JSLinearString*> timeZoneLinear(cx, timeZone->ensureLinear(cx));
+  JSLinearString* timeZoneLinear = timeZone->ensureLinear(cx);
   if (!timeZoneLinear) {
     return false;
   }
@@ -518,7 +518,7 @@ bool js::intl::SharedIntlData::isSupportedLocale(JSContext* cx,
     return false;
   }
 
-  Rooted<JSLinearString*> localeLinear(cx, locale->ensureLinear(cx));
+  JSLinearString* localeLinear = locale->ensureLinear(cx);
   if (!localeLinear) {
     return false;
   }
@@ -649,7 +649,7 @@ bool js::intl::SharedIntlData::isUpperCaseFirst(JSContext* cx,
   }
 #endif
 
-  Rooted<JSLinearString*> localeLinear(cx, locale->ensureLinear(cx));
+  JSLinearString* localeLinear = locale->ensureLinear(cx);
   if (!localeLinear) {
     return false;
   }
@@ -741,7 +741,7 @@ bool js::intl::SharedIntlData::isIgnorePunctuation(JSContext* cx,
   }
 #endif
 
-  Rooted<JSLinearString*> localeLinear(cx, locale->ensureLinear(cx));
+  JSLinearString* localeLinear = locale->ensureLinear(cx);
   if (!localeLinear) {
     return false;
   }
