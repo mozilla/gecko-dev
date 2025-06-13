@@ -91,8 +91,12 @@ add_task(async function () {
         ...content.document.querySelectorAll("a[href*='" + kTestPage + "']"),
       ];
       is(links.length, 2, "Should have 2 links to entries for " + kTestPage);
-      // First entry has no data size or anything.
-      links[1].click();
+      // Make sure to pick correct entry - only the partitioned one has data.
+      let partitioned = Array.from(links).filter(e =>
+        e.href.includes("https%2Cexample.com")
+      );
+      is(partitioned.length, 1, "Should have 1 partitioned entry");
+      partitioned[0].click();
     }
   );
   await entryLoaded;
