@@ -35,6 +35,6 @@ def configure():
         distutils.dist.log = distutils.log
 
 
-def set_threshold(level):
+def set_threshold(level: int):
     logging.root.setLevel(level * 10)
     return set_threshold.unpatched(level)

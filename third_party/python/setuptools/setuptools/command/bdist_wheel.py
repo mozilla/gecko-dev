@@ -26,19 +26,14 @@ from wheel.metadata import pkginfo_to_metadata
 from wheel.wheelfile import WheelFile
 
 from .. import Command, __version__
+from .._normalization import safer_name
+from ..warnings import SetuptoolsDeprecationWarning
 from .egg_info import egg_info as egg_info_cls
 
 from distutils import log
 
 if TYPE_CHECKING:
     from _typeshed import ExcInfo
-
-
-def safe_name(name: str) -> str:
-    """Convert an arbitrary string to a standard distribution name
-    Any runs of non-alphanumeric/. characters are replaced with a single '-'.
-    """
-    return re.sub("[^A-Za-z0-9.]+", "-", name)
 
 
 def safe_version(version: str) -> str:
@@ -128,6 +123,9 @@ def get_abi_tag() -> str | None:
     elif soabi and impl == "cp" and soabi.startswith("cp"):
         # Windows
         abi = soabi.split("-")[0]
+        if hasattr(sys, "gettotalrefcount"):
+            # using debug build; append "d" flag
+            abi += "d"
     elif soabi and impl == "pp":
         # we want something like pypy36-pp73
         abi = "-".join(soabi.split("-")[:2])
@@ -141,10 +139,6 @@ def get_abi_tag() -> str | None:
         abi = None
 
     return abi
-
-
-def safer_name(name: str) -> str:
-    return safe_name(name).replace("-", "_")
 
 
 def safer_version(version: str) -> str:
@@ -205,7 +199,7 @@ class bdist_wheel(Command):
             "g",
             "Group name used when creating a tar file [default: current group]",
         ),
-        ("universal", None, "make a universal wheel [default: false]"),
+        ("universal", None, "*DEPRECATED* make a universal wheel [default: false]"),
         (
             "compression=",
             None,
@@ -230,6 +224,13 @@ class bdist_wheel(Command):
             None,
             "Python tag (cp32|cp33|cpNN) for abi3 wheel tag [default: false]",
         ),
+        (
+            "dist-info-dir=",
+            None,
+            "directory where a pre-generated dist-info can be found (e.g. as a "
+            "result of calling the PEP517 'prepare_metadata_for_build_wheel' "
+            "method)",
+        ),
     ]
 
     boolean_options = ["keep-temp", "skip-build", "relative", "universal"]
@@ -242,15 +243,16 @@ class bdist_wheel(Command):
         self.format = "zip"
         self.keep_temp = False
         self.dist_dir: str | None = None
+        self.dist_info_dir = None
         self.egginfo_dir: str | None = None
         self.root_is_pure: bool | None = None
         self.skip_build = False
         self.relative = False
         self.owner = None
         self.group = None
-        self.universal: bool = False
-        self.compression: int | str = "deflated"
-        self.python_tag: str = python_tag()
+        self.universal = False
+        self.compression: str | int = "deflated"
+        self.python_tag = python_tag()
         self.build_number: str | None = None
         self.py_limited_api: str | Literal[False] = False
         self.plat_name_supplied = False
@@ -260,8 +262,9 @@ class bdist_wheel(Command):
             bdist_base = self.get_finalized_command("bdist").bdist_base
             self.bdist_dir = os.path.join(bdist_base, "wheel")
 
-        egg_info = cast(egg_info_cls, self.distribution.get_command_obj("egg_info"))
-        egg_info.ensure_finalized()  # needed for correct `wheel_dist_name`
+        if self.dist_info_dir is None:
+            egg_info = cast(egg_info_cls, self.distribution.get_command_obj("egg_info"))
+            egg_info.ensure_finalized()  # needed for correct `wheel_dist_name`
 
         self.data_dir = self.wheel_dist_name + ".data"
         self.plat_name_supplied = bool(self.plat_name)
@@ -278,12 +281,25 @@ class bdist_wheel(Command):
 
         # Support legacy [wheel] section for setting universal
         wheel = self.distribution.get_option_dict("wheel")
-        if "universal" in wheel:
+        if "universal" in wheel:  # pragma: no cover
             # please don't define this in your global configs
             log.warn("The [wheel] section is deprecated. Use [bdist_wheel] instead.")
             val = wheel["universal"][1].strip()
             if val.lower() in ("1", "true", "yes"):
                 self.universal = True
+
+        if self.universal:
+            SetuptoolsDeprecationWarning.emit(
+                "bdist_wheel.universal is deprecated",
+                """
+                With Python 2.7 end-of-life, support for building universal wheels
+                (i.e., wheels that support both Python 2 and Python 3)
+                is being obviated.
+                Please discontinue using this option, or if you still need it,
+                file an issue with pypa/setuptools describing your use case.
+                """,
+                due_date=(2025, 8, 30),  # Introduced in 2024-08-30
+            )
 
         if self.build_number is not None and not self.build_number[:1].isdigit():
             raise ValueError("Build tag (build-number) must start with a digit.")
@@ -367,9 +383,9 @@ class bdist_wheel(Command):
             supported_tags = [
                 (t.interpreter, t.abi, plat_name) for t in tags.sys_tags()
             ]
-            assert (
-                tag in supported_tags
-            ), f"would build wheel with unsupported tag {tag}"
+            assert tag in supported_tags, (
+                f"would build wheel with unsupported tag {tag}"
+            )
         return tag
 
     def run(self):
@@ -433,7 +449,16 @@ class bdist_wheel(Command):
             f"{safer_version(self.distribution.get_version())}.dist-info"
         )
         distinfo_dir = os.path.join(self.bdist_dir, distinfo_dirname)
-        self.egg2dist(self.egginfo_dir, distinfo_dir)
+        if self.dist_info_dir:
+            # Use the given dist-info directly.
+            log.debug(f"reusing {self.dist_info_dir}")
+            shutil.copytree(self.dist_info_dir, distinfo_dir)
+            # Egg info is still generated, so remove it now to avoid it getting
+            # copied into the wheel.
+            shutil.rmtree(self.egginfo_dir)
+        else:
+            # Convert the generated egg-info into dist-info.
+            self.egg2dist(self.egginfo_dir, distinfo_dir)
 
         self.write_wheelfile(distinfo_dir)
 

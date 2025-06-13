@@ -6,6 +6,7 @@ import tempfile
 from functools import partial
 
 from . import _reqs
+from ._reqs import _StrOrIter
 from .warnings import SetuptoolsDeprecationWarning
 from .wheel import Wheel
 
@@ -30,7 +31,7 @@ def fetch_build_egg(dist, req):
     return _fetch_build_egg_no_warn(dist, req)
 
 
-def _fetch_build_eggs(dist, requires):
+def _fetch_build_eggs(dist, requires: _StrOrIter):
     import pkg_resources  # Delay import to avoid unnecessary side-effects
 
     _DeprecatedInstaller.emit(stacklevel=3)

@@ -4,6 +4,7 @@ import contextlib
 import os
 import re
 from itertools import chain
+from typing import ClassVar
 
 from .._importlib import metadata
 from ..dist import Distribution
@@ -49,7 +50,7 @@ class sdist(orig.sdist):
     ]
 
     distribution: Distribution  # override distutils.dist.Distribution with setuptools.dist.Distribution
-    negative_opt: dict[str, str] = {}
+    negative_opt: ClassVar[dict[str, str]] = {}
 
     README_EXTENSIONS = ['', '.rst', '.txt', '.md']
     READMES = tuple('README{0}'.format(ext) for ext in README_EXTENSIONS)

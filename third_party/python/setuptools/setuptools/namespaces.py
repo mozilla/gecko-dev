@@ -1,7 +1,7 @@
 import itertools
 import os
 
-from .compat import py39
+from .compat import py312
 
 from distutils import log
 
@@ -25,8 +25,9 @@ class Installer:
             list(lines)
             return
 
-        with open(filename, 'wt', encoding=py39.LOCALE_ENCODING) as f:
-            # Requires encoding="locale" instead of "utf-8" (python/cpython#77102).
+        with open(filename, 'wt', encoding=py312.PTH_ENCODING) as f:
+            # Python<3.13 requires encoding="locale" instead of "utf-8"
+            # See: python/cpython#77102
             f.writelines(lines)
 
     def uninstall_namespaces(self):

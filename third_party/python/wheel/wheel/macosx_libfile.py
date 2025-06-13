@@ -43,6 +43,13 @@ from __future__ import annotations
 import ctypes
 import os
 import sys
+from io import BufferedIOBase
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Union
+
+    StrPath = Union[str, os.PathLike[str]]
 
 """here the needed const and struct from mach-o header files"""
 
@@ -238,7 +245,7 @@ struct build_version_command {
 """
 
 
-def swap32(x):
+def swap32(x: int) -> int:
     return (
         ((x << 24) & 0xFF000000)
         | ((x << 8) & 0x00FF0000)
@@ -247,7 +254,10 @@ def swap32(x):
     )
 
 
-def get_base_class_and_magic_number(lib_file, seek=None):
+def get_base_class_and_magic_number(
+    lib_file: BufferedIOBase,
+    seek: int | None = None,
+) -> tuple[type[ctypes.Structure], int]:
     if seek is None:
         seek = lib_file.tell()
     else:
@@ -271,11 +281,11 @@ def get_base_class_and_magic_number(lib_file, seek=None):
     return BaseClass, magic_number
 
 
-def read_data(struct_class, lib_file):
+def read_data(struct_class: type[ctypes.Structure], lib_file: BufferedIOBase):
     return struct_class.from_buffer_copy(lib_file.read(ctypes.sizeof(struct_class)))
 
 
-def extract_macosx_min_system_version(path_to_lib):
+def extract_macosx_min_system_version(path_to_lib: str):
     with open(path_to_lib, "rb") as lib_file:
         BaseClass, magic_number = get_base_class_and_magic_number(lib_file, 0)
         if magic_number not in [FAT_MAGIC, FAT_MAGIC_64, MH_MAGIC, MH_MAGIC_64]:
@@ -301,7 +311,7 @@ def extract_macosx_min_system_version(path_to_lib):
                 read_data(FatArch, lib_file) for _ in range(fat_header.nfat_arch)
             ]
 
-            versions_list = []
+            versions_list: list[tuple[int, int, int]] = []
             for el in fat_arch_list:
                 try:
                     version = read_mach_header(lib_file, el.offset)
@@ -333,7 +343,10 @@ def extract_macosx_min_system_version(path_to_lib):
                 return None
 
 
-def read_mach_header(lib_file, seek=None):
+def read_mach_header(
+    lib_file: BufferedIOBase,
+    seek: int | None = None,
+) -> tuple[int, int, int] | None:
     """
     This function parses a Mach-O header and extracts
     information about the minimal macOS version.
@@ -380,14 +393,14 @@ def read_mach_header(lib_file, seek=None):
             continue
 
 
-def parse_version(version):
+def parse_version(version: int) -> tuple[int, int, int]:
     x = (version & 0xFFFF0000) >> 16
     y = (version & 0x0000FF00) >> 8
     z = version & 0x000000FF
     return x, y, z
 
 
-def calculate_macosx_platform_tag(archive_root, platform_tag):
+def calculate_macosx_platform_tag(archive_root: StrPath, platform_tag: str) -> str:
     """
     Calculate proper macosx platform tag basing on files which are included to wheel
 
@@ -420,7 +433,7 @@ def calculate_macosx_platform_tag(archive_root, platform_tag):
 
     assert len(base_version) == 2
     start_version = base_version
-    versions_dict = {}
+    versions_dict: dict[str, tuple[int, int]] = {}
     for dirpath, _dirnames, filenames in os.walk(archive_root):
         for filename in filenames:
             if filename.endswith(".dylib") or filename.endswith(".so"):

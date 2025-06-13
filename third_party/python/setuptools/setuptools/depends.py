@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import dis
 import marshal
@@ -15,7 +17,13 @@ class Require:
     """A prerequisite to building or installing a distribution"""
 
     def __init__(
-        self, name, requested_version, module, homepage='', attribute=None, format=None
+        self,
+        name,
+        requested_version,
+        module,
+        homepage: str = '',
+        attribute=None,
+        format=None,
     ):
         if format is None and requested_version is not None:
             format = Version
@@ -43,7 +51,7 @@ class Require:
             and self.format(version) >= self.requested_version
         )
 
-    def get_version(self, paths=None, default="unknown"):
+    def get_version(self, paths=None, default: str = "unknown"):
         """Get version number of installed module, 'None', or 'default'
 
         Search 'paths' for module.  If not found, return 'None'.  If found,
@@ -98,7 +106,7 @@ def maybe_close(f):
 # XXX it'd be better to test assertions about bytecode instead.
 if not sys.platform.startswith('java') and sys.platform != 'cli':
 
-    def get_module_constant(module, symbol, default=-1, paths=None):
+    def get_module_constant(module, symbol, default: str | int = -1, paths=None):
         """Find 'module' by searching 'paths', and extract 'symbol'
 
         Return 'None' if 'module' does not exist on 'paths', or it does not define
@@ -126,7 +134,7 @@ if not sys.platform.startswith('java') and sys.platform != 'cli':
 
         return extract_constant(code, symbol, default)
 
-    def extract_constant(code, symbol, default=-1):
+    def extract_constant(code, symbol, default: str | int = -1):
         """Extract the constant value of 'symbol' from 'code'
 
         If the name 'symbol' is bound to a constant value by the Python code

@@ -2,7 +2,7 @@
 
 from email.header import Header, decode_header, make_header
 from email.message import Message
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, cast
 
 METADATA_FIELDS = [
     # Name, Multiple-Use
@@ -23,6 +23,8 @@ METADATA_FIELDS = [
     ("Maintainer", False),
     ("Maintainer-email", False),
     ("License", False),
+    ("License-Expression", False),
+    ("License-File", True),
     ("Classifier", True),
     ("Requires-Dist", True),
     ("Requires-Python", False),
@@ -77,7 +79,7 @@ def msg_to_json(msg: Message) -> Dict[str, Any]:
                     value = value.split()
         result[key] = value
 
-    payload = msg.get_payload()
+    payload = cast(str, msg.get_payload())
     if payload:
         result["description"] = payload
 

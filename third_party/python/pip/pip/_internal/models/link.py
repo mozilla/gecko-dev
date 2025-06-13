@@ -27,7 +27,6 @@ from pip._internal.utils.misc import (
     split_auth_from_netloc,
     splitext,
 )
-from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.urls import path_to_url, url_to_path
 
 if TYPE_CHECKING:
@@ -171,20 +170,33 @@ def _ensure_quoted_url(url: str) -> str:
     and without double-quoting other characters.
     """
     # Split the URL into parts according to the general structure
-    # `scheme://netloc/path;parameters?query#fragment`.
-    result = urllib.parse.urlparse(url)
+    # `scheme://netloc/path?query#fragment`.
+    result = urllib.parse.urlsplit(url)
     # If the netloc is empty, then the URL refers to a local filesystem path.
     is_local_path = not result.netloc
     path = _clean_url_path(result.path, is_local_path=is_local_path)
-    return urllib.parse.urlunparse(result._replace(path=path))
+    return urllib.parse.urlunsplit(result._replace(path=path))
 
 
-class Link(KeyBasedCompareMixin):
+def _absolute_link_url(base_url: str, url: str) -> str:
+    """
+    A faster implementation of urllib.parse.urljoin with a shortcut
+    for absolute http/https URLs.
+    """
+    if url.startswith(("https://", "http://")):
+        return url
+    else:
+        return urllib.parse.urljoin(base_url, url)
+
+
+@functools.total_ordering
+class Link:
     """Represents a parsed link from a Package Index's simple URL"""
 
     __slots__ = [
         "_parsed_url",
         "_url",
+        "_path",
         "_hashes",
         "comes_from",
         "requires_python",
@@ -241,6 +253,8 @@ class Link(KeyBasedCompareMixin):
         # Store the url as a private attribute to prevent accidentally
         # trying to set a new value.
         self._url = url
+        # The .path property is hot, so calculate its value ahead of time.
+        self._path = urllib.parse.unquote(self._parsed_url.path)
 
         link_hash = LinkHash.find_hash_url_fragment(url)
         hashes_from_link = {} if link_hash is None else link_hash.as_dict()
@@ -253,8 +267,6 @@ class Link(KeyBasedCompareMixin):
         self.requires_python = requires_python if requires_python else None
         self.yanked_reason = yanked_reason
         self.metadata_file_data = metadata_file_data
-
-        super().__init__(key=url, defining_class=Link)
 
         self.cache_link_parsing = cache_link_parsing
         self.egg_fragment = self._egg_fragment()
@@ -272,7 +284,7 @@ class Link(KeyBasedCompareMixin):
         if file_url is None:
             return None
 
-        url = _ensure_quoted_url(urllib.parse.urljoin(page_url, file_url))
+        url = _ensure_quoted_url(_absolute_link_url(page_url, file_url))
         pyrequire = file_data.get("requires-python")
         yanked_reason = file_data.get("yanked")
         hashes = file_data.get("hashes", {})
@@ -324,7 +336,7 @@ class Link(KeyBasedCompareMixin):
         if not href:
             return None
 
-        url = _ensure_quoted_url(urllib.parse.urljoin(base_url, href))
+        url = _ensure_quoted_url(_absolute_link_url(base_url, href))
         pyrequire = anchor_attribs.get("data-requires-python")
         yanked_reason = anchor_attribs.get("data-yanked")
 
@@ -375,6 +387,19 @@ class Link(KeyBasedCompareMixin):
     def __repr__(self) -> str:
         return f"<Link {self}>"
 
+    def __hash__(self) -> int:
+        return hash(self.url)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Link):
+            return NotImplemented
+        return self.url == other.url
+
+    def __lt__(self, other: Any) -> bool:
+        if not isinstance(other, Link):
+            return NotImplemented
+        return self.url < other.url
+
     @property
     def url(self) -> str:
         return self._url
@@ -410,7 +435,7 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def path(self) -> str:
-        return urllib.parse.unquote(self._parsed_url.path)
+        return self._path
 
     def splitext(self) -> Tuple[str, str]:
         return splitext(posixpath.basename(self.path.rstrip("/")))
@@ -441,10 +466,10 @@ class Link(KeyBasedCompareMixin):
         project_name = match.group(1)
         if not self._project_name_re.match(project_name):
             deprecated(
-                reason=f"{self} contains an egg fragment with a non-PEP 508 name",
+                reason=f"{self} contains an egg fragment with a non-PEP 508 name.",
                 replacement="to use the req @ url syntax, and remove the egg fragment",
-                gone_in="25.0",
-                issue=11617,
+                gone_in="25.1",
+                issue=13157,
             )
 
         return project_name

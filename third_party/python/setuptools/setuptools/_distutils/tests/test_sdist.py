@@ -4,14 +4,12 @@ import os
 import pathlib
 import shutil  # noqa: F401
 import tarfile
-import warnings
 import zipfile
 from distutils.archive_util import ARCHIVE_FORMATS
 from distutils.command.sdist import sdist, show_formats
 from distutils.core import Distribution
 from distutils.errors import DistutilsOptionError
 from distutils.filelist import FileList
-from distutils.tests.test_config import BasePyPIRCCommandTestCase
 from os.path import join
 from textwrap import dedent
 
@@ -20,7 +18,7 @@ import path
 import pytest
 from more_itertools import ilen
 
-from .compat.py38 import check_warnings
+from . import support
 from .unix_compat import grp, pwd, require_uid_0, require_unix_id
 
 SETUP_PY = """
@@ -47,8 +45,9 @@ somecode%(sep)sdoc.txt
 
 
 @pytest.fixture(autouse=True)
-def project_dir(request, pypirc):
+def project_dir(request, distutils_managed_tempdir):
     self = request.instance
+    self.tmp_dir = self.mkdtemp()
     jaraco.path.build(
         {
             'somecode': {
@@ -68,7 +67,7 @@ def clean_lines(filepath):
         yield from filter(None, map(str.strip, f))
 
 
-class TestSDist(BasePyPIRCCommandTestCase):
+class TestSDist(support.TempdirManager):
     def get_cmd(self, metadata=None):
         """Returns a cmd"""
         if metadata is None:
@@ -274,14 +273,6 @@ class TestSDist(BasePyPIRCCommandTestCase):
         cmd.metadata_check = 0
         cmd.run()
         assert len(self.warnings(caplog.messages, 'warning: check: ')) == 0
-
-    def test_check_metadata_deprecated(self):
-        # makes sure make_metadata is deprecated
-        dist, cmd = self.get_cmd()
-        with check_warnings() as w:
-            warnings.simplefilter("always")
-            cmd.check_metadata()
-            assert len(w.warnings) == 1
 
     def test_show_formats(self, capsys):
         show_formats()

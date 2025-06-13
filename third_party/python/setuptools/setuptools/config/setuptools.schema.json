@@ -158,6 +158,11 @@
       "items": {"type": "string", "format": "python-module-name-relaxed"},
       "$comment": "TODO: clarify the relationship with ``packages``"
     },
+    "ext-modules": {
+      "description": "Extension modules to be compiled by setuptools",
+      "type": "array",
+      "items": {"$ref": "#/definitions/ext-module"}
+    },
     "data-files": {
       "$$description": [
         "``dict``-like structure where each key represents a directory and",
@@ -253,6 +258,82 @@
         {"type": "string", "format": "python-module-name-relaxed"},
         {"type": "string", "format": "pep561-stub-name"}
       ]
+    },
+    "ext-module": {
+      "$id": "#/definitions/ext-module",
+      "title": "Extension module",
+      "description": "Parameters to construct a :class:`setuptools.Extension` object",
+      "type": "object",
+      "required": ["name", "sources"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "format": "python-module-name-relaxed"
+        },
+        "sources": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "include-dirs":{
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "define-macros": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": [
+              {"description": "macro name", "type": "string"},
+              {"description": "macro value", "oneOf": [{"type": "string"}, {"type": "null"}]}
+            ],
+            "additionalItems": false
+          }
+        },
+        "undef-macros": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "library-dirs": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "libraries": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "runtime-library-dirs": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "extra-objects": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "extra-compile-args": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "extra-link-args": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "export-symbols": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "swig-opts": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "depends": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "language": {"type": "string"},
+        "optional": {"type": "boolean"},
+        "py-limited-api": {"type": "boolean"}
+      }
     },
     "file-directive": {
       "$id": "#/definitions/file-directive",

@@ -6,7 +6,6 @@ import os
 import pathlib
 import sys
 import tarfile
-import warnings
 from distutils import archive_util
 from distutils.archive_util import (
     ARCHIVE_FORMATS,
@@ -23,7 +22,6 @@ import path
 import pytest
 from test.support import patch
 
-from .compat.py38 import check_warnings
 from .unix_compat import UID_0_SUPPORT, grp, pwd, require_uid_0, require_unix_id
 
 
@@ -189,37 +187,6 @@ class ArchiveUtilTestCase(support.TempdirManager):
             os.chdir(old_dir)
         tarball = base_name + '.tar'
         assert os.path.exists(tarball)
-
-    @pytest.mark.skipif("not shutil.which('compress')")
-    def test_compress_deprecated(self):
-        tmpdir = self._create_files()
-        base_name = os.path.join(self.mkdtemp(), 'archive')
-
-        # using compress and testing the DeprecationWarning
-        old_dir = os.getcwd()
-        os.chdir(tmpdir)
-        try:
-            with check_warnings() as w:
-                warnings.simplefilter("always")
-                make_tarball(base_name, 'dist', compress='compress')
-        finally:
-            os.chdir(old_dir)
-        tarball = base_name + '.tar.Z'
-        assert os.path.exists(tarball)
-        assert len(w.warnings) == 1
-
-        # same test with dry_run
-        os.remove(tarball)
-        old_dir = os.getcwd()
-        os.chdir(tmpdir)
-        try:
-            with check_warnings() as w:
-                warnings.simplefilter("always")
-                make_tarball(base_name, 'dist', compress='compress', dry_run=True)
-        finally:
-            os.chdir(old_dir)
-        assert not os.path.exists(tarball)
-        assert len(w.warnings) == 1
 
     @pytest.mark.usefixtures('needs_zlib')
     def test_make_zipfile(self):

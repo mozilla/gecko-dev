@@ -3,6 +3,7 @@ network request configuration and behavior.
 """
 
 import email.utils
+import functools
 import io
 import ipaddress
 import json
@@ -106,6 +107,7 @@ def looks_like_ci() -> bool:
     return any(name in os.environ for name in CI_ENVIRONMENT_VARIABLES)
 
 
+@functools.lru_cache(maxsize=1)
 def user_agent() -> str:
     """
     Return a string representing the user agent.
@@ -230,7 +232,7 @@ class LocalFSAdapter(BaseAdapter):
             # to return a better error message:
             resp.status_code = 404
             resp.reason = type(exc).__name__
-            resp.raw = io.BytesIO(f"{resp.reason}: {exc}".encode("utf8"))
+            resp.raw = io.BytesIO(f"{resp.reason}: {exc}".encode())
         else:
             modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
             content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
@@ -337,6 +339,7 @@ class PipSession(requests.Session):
         # Namespace the attribute with "pip_" just in case to prevent
         # possible conflicts with the base class.
         self.pip_trusted_origins: List[Tuple[str, Optional[int]]] = []
+        self.pip_proxy = None
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()

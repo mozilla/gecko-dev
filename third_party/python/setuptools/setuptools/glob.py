@@ -13,7 +13,7 @@ import re
 __all__ = ["glob", "iglob", "escape"]
 
 
-def glob(pathname, recursive=False):
+def glob(pathname, recursive: bool = False):
     """Return a list of paths matching a pathname pattern.
 
     The pattern may contain simple shell-style wildcards a la
@@ -27,7 +27,7 @@ def glob(pathname, recursive=False):
     return list(iglob(pathname, recursive=recursive))
 
 
-def iglob(pathname, recursive=False):
+def iglob(pathname, recursive: bool = False):
     """Return an iterator which yields the paths matching a pathname pattern.
 
     The pattern may contain simple shell-style wildcards a la

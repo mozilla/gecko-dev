@@ -34,7 +34,7 @@ class TestDirUtil(support.TempdirManager):
         remove_tree(self.root_target, verbose=False)
 
         mkpath(self.target, verbose=True)
-        wanted = [f'creating {self.root_target}', f'creating {self.target}']
+        wanted = [f'creating {self.target}']
         assert caplog.messages == wanted
         caplog.clear()
 

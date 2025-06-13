@@ -70,8 +70,7 @@ class install(orig.install):
         elif self.single_version_externally_managed:
             if not self.root and not self.record:
                 raise DistutilsArgError(
-                    "You must specify --record or --root when building system"
-                    " packages"
+                    "You must specify --record or --root when building system packages"
                 )
 
     def handle_extra_path(self):

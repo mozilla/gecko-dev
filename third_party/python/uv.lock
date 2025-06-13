@@ -941,7 +941,7 @@ requires-dist = [
     { name = "mozilla-version", specifier = "==4.1.0" },
     { name = "packaging", specifier = "==23.1" },
     { name = "pathspec", specifier = "==0.9.0" },
-    { name = "pip", specifier = "==24.0" },
+    { name = "pip", specifier = "==25.0.1" },
     { name = "pip-tools", specifier = "==7.4.1" },
     { name = "ply", specifier = "==3.10" },
     { name = "pyasn1", specifier = "==0.4.8" },
@@ -955,7 +955,7 @@ requires-dist = [
     { name = "responses", specifier = "==0.10.6" },
     { name = "rsa", specifier = "==4.9" },
     { name = "sentry-sdk", specifier = "==1.14.0" },
-    { name = "setuptools", specifier = "==74.0.0" },
+    { name = "setuptools", specifier = "==75.3.1" },
     { name = "six", specifier = "==1.16.0" },
     { name = "slugid", specifier = "==2.0.0" },
     { name = "taskcluster", specifier = "==75.0.1" },
@@ -967,7 +967,7 @@ requires-dist = [
     { name = "typing-extensions", specifier = "==4.12.2" },
     { name = "urllib3", specifier = "==1.26.19" },
     { name = "voluptuous", specifier = "==0.12.1" },
-    { name = "wheel", specifier = "==0.43.0" },
+    { name = "wheel", specifier = "==0.45.1" },
     { name = "yamllint", specifier = "==1.23" },
 ]
 
@@ -1117,11 +1117,11 @@ wheels = [
 
 [[package]]
 name = "pip"
-version = "24.0"
+version = "25.0.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/94/59/6638090c25e9bc4ce0c42817b5a234e183872a1129735a9330c472cc2056/pip-24.0.tar.gz", hash = "sha256:ea9bd1a847e8c5774a5777bb398c19e80bcd4e2aa16a4b301b718fe6f593aba2", size = 2132709, upload-time = "2024-02-03T09:53:18.999Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/70/53/b309b4a497b09655cb7e07088966881a57d082f48ac3cb54ea729fd2c6cf/pip-25.0.1.tar.gz", hash = "sha256:88f96547ea48b940a3a385494e181e29fb8637898f88d88737c5049780f196ea", size = 1950850, upload-time = "2025-02-09T17:14:04.423Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8a/6a/19e9fe04fca059ccf770861c7d5721ab4c2aebc539889e97c7977528a53b/pip-24.0-py3-none-any.whl", hash = "sha256:ba0d021a166865d2265246961bec0152ff124de910c5cc39f1156ce3fa7c69dc", size = 2110226, upload-time = "2024-02-03T09:53:09.575Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/bc/b7db44f5f39f9d0494071bddae6880eb645970366d0a200022a1a93d57f5/pip-25.0.1-py3-none-any.whl", hash = "sha256:c46efd13b6aa8279f33f2864459c8ce587ea6a1a59ee20de055868d8f7688f7f", size = 1841526, upload-time = "2025-02-09T17:14:01.463Z" },
 ]
 
 [[package]]
@@ -1523,11 +1523,11 @@ wheels = [
 
 [[package]]
 name = "setuptools"
-version = "74.0.0"
+version = "75.3.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6a/21/8fd457d5a979109603e0e460c73177c3a9b6b7abcd136d0146156da95895/setuptools-74.0.0.tar.gz", hash = "sha256:a85e96b8be2b906f3e3e789adec6a9323abf79758ecfa3065bd740d81158b11e", size = 1389536, upload-time = "2024-08-27T19:17:48.692Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5f/3b/7b611c8bf332eaf04c9aa1c7bc9e6908d4741ec93c85f487248fc684d02c/setuptools-75.3.1.tar.gz", hash = "sha256:539788138433f5b4e55c7f51ee266ceaaa0e6fdc6137ad9922788168114ee341", size = 1354408, upload-time = "2025-03-11T23:54:21.366Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/df/b5/168cec9a10bf93b60b8f9af7f4e61d526e31e1aad8b9be0e30837746d700/setuptools-74.0.0-py3-none-any.whl", hash = "sha256:0274581a0037b638b9fc1c6883cc71c0210865aaa76073f7882376b641b84e8f", size = 1301729, upload-time = "2024-08-27T19:17:46.806Z" },
+    { url = "https://files.pythonhosted.org/packages/44/35/d7223a1748341c320957eaaad1787e129abe6ae481aa83fb4f02c9560925/setuptools-75.3.1-py3-none-any.whl", hash = "sha256:ccd77cda9d3bc3d3e99036d221b91d15f86e53195139d643b5b5299d42463cd3", size = 1251198, upload-time = "2025-03-11T23:54:19.212Z" },
 ]
 
 [[package]]
@@ -1721,11 +1721,11 @@ wheels = [
 
 [[package]]
 name = "wheel"
-version = "0.43.0"
+version = "0.45.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b8/d6/ac9cd92ea2ad502ff7c1ab683806a9deb34711a1e2bd8a59814e8fc27e69/wheel-0.43.0.tar.gz", hash = "sha256:465ef92c69fa5c5da2d1cf8ac40559a8c940886afcef87dcf14b9470862f1d85", size = 99109, upload-time = "2024-03-11T19:29:17.32Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8a/98/2d9906746cdc6a6ef809ae6338005b3f21bb568bea3165cfc6a243fdc25c/wheel-0.45.1.tar.gz", hash = "sha256:661e1abd9198507b1409a20c02106d9670b2576e916d58f520316666abca6729", size = 107545, upload-time = "2024-11-23T00:18:23.513Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7d/cd/d7460c9a869b16c3dd4e1e403cce337df165368c71d6af229a74699622ce/wheel-0.43.0-py3-none-any.whl", hash = "sha256:55c570405f142630c6b9f72fe09d9b67cf1477fcf543ae5b8dcb1f5b7377da81", size = 65775, upload-time = "2024-03-11T19:29:15.522Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/2c/87f3254fd8ffd29e4c02732eee68a83a1d3c346ae39bc6822dcbcb697f2b/wheel-0.45.1-py3-none-any.whl", hash = "sha256:708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248", size = 72494, upload-time = "2024-11-23T00:18:21.207Z" },
 ]
 
 [[package]]

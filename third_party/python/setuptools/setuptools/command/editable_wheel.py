@@ -23,12 +23,11 @@ from inspect import cleandoc
 from itertools import chain, starmap
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from types import TracebackType
 from typing import TYPE_CHECKING, Iterable, Iterator, Mapping, Protocol, TypeVar, cast
 
 from .. import Command, _normalization, _path, errors, namespaces
 from .._path import StrPath
-from ..compat import py39
+from ..compat import py312
 from ..discovery import find_package_path
 from ..dist import Distribution
 from ..warnings import InformationOnly, SetuptoolsDeprecationWarning, SetuptoolsWarning
@@ -138,7 +137,6 @@ class editable_wheel(Command):
             self._create_wheel_file(bdist_wheel)
         except Exception:
             traceback.print_exc()
-            # TODO: Fix false-positive [attr-defined] in typeshed
             project = self.distribution.name or self.distribution.get_name()
             _DebuggingTips.emit(project=project)
             raise
@@ -231,7 +229,6 @@ class editable_wheel(Command):
         """Set the ``editable_mode`` flag in the build sub-commands"""
         dist = self.distribution
         build = dist.get_command_obj("build")
-        # TODO: Update typeshed distutils stubs to overload non-None return type by default
         for cmd_name in build.get_sub_commands():
             cmd = dist.get_command_obj(cmd_name)
             if hasattr(cmd, "editable_mode"):
@@ -380,16 +377,15 @@ class editable_wheel(Command):
 
 
 class EditableStrategy(Protocol):
-    def __call__(self, wheel: WheelFile, files: list[str], mapping: dict[str, str]): ...
-
+    def __call__(
+        self, wheel: WheelFile, files: list[str], mapping: Mapping[str, str]
+    ): ...
     def __enter__(self) -> Self: ...
-
     def __exit__(
         self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-        /,
+        _exc_type: object,
+        _exc_value: object,
+        _traceback: object,
     ) -> object: ...
 
 
@@ -399,7 +395,7 @@ class _StaticPth:
         self.name = name
         self.path_entries = path_entries
 
-    def __call__(self, wheel: WheelFile, files: list[str], mapping: dict[str, str]):
+    def __call__(self, wheel: WheelFile, files: list[str], mapping: Mapping[str, str]):
         entries = "\n".join(str(p.resolve()) for p in self.path_entries)
         contents = _encode_pth(f"{entries}\n")
         wheel.writestr(f"__editable__.{self.name}.pth", contents)
@@ -444,7 +440,7 @@ class _LinkTree(_StaticPth):
         self._file = dist.get_command_obj("build_py").copy_file
         super().__init__(dist, name, [self.auxiliary_dir])
 
-    def __call__(self, wheel: WheelFile, files: list[str], mapping: dict[str, str]):
+    def __call__(self, wheel: WheelFile, files: list[str], mapping: Mapping[str, str]):
         self._create_links(files, mapping)
         super().__call__(wheel, files, mapping)
 
@@ -461,7 +457,7 @@ class _LinkTree(_StaticPth):
             dest.parent.mkdir(parents=True)
         self._file(src_file, dest, link=link)
 
-    def _create_links(self, outputs, output_mapping):
+    def _create_links(self, outputs, output_mapping: Mapping[str, str]):
         self.auxiliary_dir.mkdir(parents=True, exist_ok=True)
         link_type = "sym" if _can_symlink_files(self.auxiliary_dir) else "hard"
         normalised = ((self._normalize_output(k), v) for k, v in output_mapping.items())
@@ -538,7 +534,7 @@ class _TopLevelFinder:
         content = _encode_pth(f"import {finder}; {finder}.install()")
         yield (f"__editable__.{self.name}.pth", content)
 
-    def __call__(self, wheel: WheelFile, files: list[str], mapping: dict[str, str]):
+    def __call__(self, wheel: WheelFile, files: list[str], mapping: Mapping[str, str]):
         for file, content in self.get_implementation():
             wheel.writestr(file, content)
 
@@ -561,7 +557,9 @@ class _TopLevelFinder:
 
 
 def _encode_pth(content: str) -> bytes:
-    """.pth files are always read with 'locale' encoding, the recommendation
+    """
+    Prior to Python 3.13 (see https://github.com/python/cpython/issues/77102),
+    .pth files are always read with 'locale' encoding, the recommendation
     from the cpython core developers is to write them as ``open(path, "w")``
     and ignore warnings (see python/cpython#77102, pypa/setuptools#3937).
     This function tries to simulate this behaviour without having to create an
@@ -571,7 +569,8 @@ def _encode_pth(content: str) -> bytes:
     or ``locale.getencoding()``).
     """
     with io.BytesIO() as buffer:
-        wrapper = io.TextIOWrapper(buffer, encoding=py39.LOCALE_ENCODING)
+        wrapper = io.TextIOWrapper(buffer, encoding=py312.PTH_ENCODING)
+        # TODO: Python 3.13 replace the whole function with `bytes(content, "utf-8")`
         wrapper.write(content)
         wrapper.flush()
         buffer.seek(0)

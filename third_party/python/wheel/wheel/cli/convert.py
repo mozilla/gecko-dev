@@ -2,21 +2,23 @@ from __future__ import annotations
 
 import os.path
 import re
-import shutil
-import tempfile
-import zipfile
+from abc import ABCMeta, abstractmethod
+from collections import defaultdict
+from collections.abc import Iterator
+from email.message import Message
+from email.parser import Parser
+from email.policy import EmailPolicy
 from glob import iglob
+from pathlib import Path
+from textwrap import dedent
+from zipfile import ZipFile
 
-from ..bdist_wheel import bdist_wheel
+from .. import __version__
+from ..metadata import generate_requirements
+from ..vendored.packaging.tags import parse_tag
 from ..wheelfile import WheelFile
-from . import WheelError
 
-try:
-    from setuptools import Distribution
-except ImportError:
-    from distutils.dist import Distribution
-
-egg_info_re = re.compile(
+egg_filename_re = re.compile(
     r"""
     (?P<name>.+?)-(?P<ver>.+?)
     (-(?P<pyver>py\d\.\d+)
@@ -24,84 +26,168 @@ egg_info_re = re.compile(
     )?.egg$""",
     re.VERBOSE,
 )
+egg_info_re = re.compile(
+    r"""
+    ^(?P<name>.+?)-(?P<ver>.+?)
+    (-(?P<pyver>py\d\.\d+)
+    )?.egg-info/""",
+    re.VERBOSE,
+)
+wininst_re = re.compile(
+    r"\.(?P<platform>win32|win-amd64)(?:-(?P<pyver>py\d\.\d))?\.exe$"
+)
+pyd_re = re.compile(r"\.(?P<abi>[a-z0-9]+)-(?P<platform>win32|win_amd64)\.pyd$")
+serialization_policy = EmailPolicy(
+    utf8=True,
+    mangle_from_=False,
+    max_line_length=0,
+)
+GENERATOR = f"wheel {__version__}"
 
 
-class _bdist_wheel_tag(bdist_wheel):
-    # allow the client to override the default generated wheel tag
-    # The default bdist_wheel implementation uses python and abi tags
-    # of the running python process. This is not suitable for
-    # generating/repackaging prebuild binaries.
+def convert_requires(requires: str, metadata: Message) -> None:
+    extra: str | None = None
+    requirements: dict[str | None, list[str]] = defaultdict(list)
+    for line in requires.splitlines():
+        line = line.strip()
+        if not line:
+            continue
 
-    full_tag_supplied = False
-    full_tag = None  # None or a (pytag, soabitag, plattag) triple
+        if line.startswith("[") and line.endswith("]"):
+            extra = line[1:-1]
+            continue
 
-    def get_tag(self):
-        if self.full_tag_supplied and self.full_tag is not None:
-            return self.full_tag
+        requirements[extra].append(line)
+
+    for key, value in generate_requirements(requirements):
+        metadata.add_header(key, value)
+
+
+def convert_pkg_info(pkginfo: str, metadata: Message):
+    parsed_message = Parser().parsestr(pkginfo)
+    for key, value in parsed_message.items():
+        key_lower = key.lower()
+        if value == "UNKNOWN":
+            continue
+
+        if key_lower == "description":
+            description_lines = value.splitlines()
+            value = "\n".join(
+                (
+                    description_lines[0].lstrip(),
+                    dedent("\n".join(description_lines[1:])),
+                    "\n",
+                )
+            )
+            metadata.set_payload(value)
+        elif key_lower == "home-page":
+            metadata.add_header("Project-URL", f"Homepage, {value}")
+        elif key_lower == "download-url":
+            metadata.add_header("Project-URL", f"Download, {value}")
         else:
-            return bdist_wheel.get_tag(self)
+            metadata.add_header(key, value)
+
+    metadata.replace_header("Metadata-Version", "2.4")
 
 
-def egg2wheel(egg_path: str, dest_dir: str) -> None:
-    filename = os.path.basename(egg_path)
-    match = egg_info_re.match(filename)
-    if not match:
-        raise WheelError(f"Invalid egg file name: {filename}")
-
-    egg_info = match.groupdict()
-    dir = tempfile.mkdtemp(suffix="_e2w")
-    if os.path.isfile(egg_path):
-        # assume we have a bdist_egg otherwise
-        with zipfile.ZipFile(egg_path) as egg:
-            egg.extractall(dir)
-    else:
-        # support buildout-style installed eggs directories
-        for pth in os.listdir(egg_path):
-            src = os.path.join(egg_path, pth)
-            if os.path.isfile(src):
-                shutil.copy2(src, dir)
-            else:
-                shutil.copytree(src, os.path.join(dir, pth))
-
-    pyver = egg_info["pyver"]
-    if pyver:
-        pyver = egg_info["pyver"] = pyver.replace(".", "")
-
-    arch = (egg_info["arch"] or "any").replace(".", "_").replace("-", "_")
-
-    # assume all binary eggs are for CPython
-    abi = "cp" + pyver[2:] if arch != "any" else "none"
-
-    root_is_purelib = egg_info["arch"] is None
-    if root_is_purelib:
-        bw = bdist_wheel(Distribution())
-    else:
-        bw = _bdist_wheel_tag(Distribution())
-
-    bw.root_is_pure = root_is_purelib
-    bw.python_tag = pyver
-    bw.plat_name_supplied = True
-    bw.plat_name = egg_info["arch"] or "any"
-    if not root_is_purelib:
-        bw.full_tag_supplied = True
-        bw.full_tag = (pyver, abi, arch)
-
-    dist_info_dir = os.path.join(dir, "{name}-{ver}.dist-info".format(**egg_info))
-    bw.egg2dist(os.path.join(dir, "EGG-INFO"), dist_info_dir)
-    bw.write_wheelfile(dist_info_dir, generator="egg2wheel")
-    wheel_name = "{name}-{ver}-{pyver}-{}-{}.whl".format(abi, arch, **egg_info)
-    with WheelFile(os.path.join(dest_dir, wheel_name), "w") as wf:
-        wf.write_files(dir)
-
-    shutil.rmtree(dir)
+def normalize(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower().replace("-", "_")
 
 
-def parse_wininst_info(wininfo_name, egginfo_name):
-    """Extract metadata from filenames.
+class ConvertSource(metaclass=ABCMeta):
+    name: str
+    version: str
+    pyver: str = "py2.py3"
+    abi: str = "none"
+    platform: str = "any"
+    metadata: Message
 
-    Extracts the 4 metadataitems needed (name, version, pyversion, arch) from
-    the installer filename and the name of the egg-info directory embedded in
-    the zipfile (if any).
+    @property
+    def dist_info_dir(self) -> str:
+        return f"{self.name}-{self.version}.dist-info"
+
+    @abstractmethod
+    def generate_contents(self) -> Iterator[tuple[str, bytes]]:
+        pass
+
+
+class EggFileSource(ConvertSource):
+    def __init__(self, path: Path):
+        if not (match := egg_filename_re.match(path.name)):
+            raise ValueError(f"Invalid egg file name: {path.name}")
+
+        # Binary wheels are assumed to be for CPython
+        self.path = path
+        self.name = normalize(match.group("name"))
+        self.version = match.group("ver")
+        if pyver := match.group("pyver"):
+            self.pyver = pyver.replace(".", "")
+            if arch := match.group("arch"):
+                self.abi = self.pyver.replace("py", "cp")
+                self.platform = normalize(arch)
+
+        self.metadata = Message()
+
+    def generate_contents(self) -> Iterator[tuple[str, bytes]]:
+        with ZipFile(self.path, "r") as zip_file:
+            for filename in sorted(zip_file.namelist()):
+                # Skip pure directory entries
+                if filename.endswith("/"):
+                    continue
+
+                # Handle files in the egg-info directory specially, selectively moving
+                # them to the dist-info directory while converting as needed
+                if filename.startswith("EGG-INFO/"):
+                    if filename == "EGG-INFO/requires.txt":
+                        requires = zip_file.read(filename).decode("utf-8")
+                        convert_requires(requires, self.metadata)
+                    elif filename == "EGG-INFO/PKG-INFO":
+                        pkginfo = zip_file.read(filename).decode("utf-8")
+                        convert_pkg_info(pkginfo, self.metadata)
+                    elif filename == "EGG-INFO/entry_points.txt":
+                        yield (
+                            f"{self.dist_info_dir}/entry_points.txt",
+                            zip_file.read(filename),
+                        )
+
+                    continue
+
+                # For any other file, just pass it through
+                yield filename, zip_file.read(filename)
+
+
+class EggDirectorySource(EggFileSource):
+    def generate_contents(self) -> Iterator[tuple[str, bytes]]:
+        for dirpath, _, filenames in os.walk(self.path):
+            for filename in sorted(filenames):
+                path = Path(dirpath, filename)
+                if path.parent.name == "EGG-INFO":
+                    if path.name == "requires.txt":
+                        requires = path.read_text("utf-8")
+                        convert_requires(requires, self.metadata)
+                    elif path.name == "PKG-INFO":
+                        pkginfo = path.read_text("utf-8")
+                        convert_pkg_info(pkginfo, self.metadata)
+                        if name := self.metadata.get("Name"):
+                            self.name = normalize(name)
+
+                        if version := self.metadata.get("Version"):
+                            self.version = version
+                    elif path.name == "entry_points.txt":
+                        yield (
+                            f"{self.dist_info_dir}/entry_points.txt",
+                            path.read_bytes(),
+                        )
+
+                    continue
+
+                # For any other file, just pass it through
+                yield str(path.relative_to(self.path)), path.read_bytes()
+
+
+class WininstFileSource(ConvertSource):
+    """
+    Handles distributions created with ``bdist_wininst``.
 
     The egginfo filename has the format::
 
@@ -129,145 +215,118 @@ def parse_wininst_info(wininfo_name, egginfo_name):
        should therefore ignore the architecture if the content is pure-python.
     """
 
-    egginfo = None
-    if egginfo_name:
-        egginfo = egg_info_re.search(egginfo_name)
-        if not egginfo:
-            raise ValueError(f"Egg info filename {egginfo_name} is not valid")
+    def __init__(self, path: Path):
+        self.path = path
+        self.metadata = Message()
 
-    # Parse the wininst filename
-    # 1. Distribution name (up to the first '-')
-    w_name, sep, rest = wininfo_name.partition("-")
-    if not sep:
-        raise ValueError(f"Installer filename {wininfo_name} is not valid")
+        # Determine the initial architecture and Python version from the file name
+        # (if possible)
+        if match := wininst_re.search(path.name):
+            self.platform = normalize(match.group("platform"))
+            if pyver := match.group("pyver"):
+                self.pyver = pyver.replace(".", "")
 
-    # Strip '.exe'
-    rest = rest[:-4]
-    # 2. Python version (from the last '-', must start with 'py')
-    rest2, sep, w_pyver = rest.rpartition("-")
-    if sep and w_pyver.startswith("py"):
-        rest = rest2
-        w_pyver = w_pyver.replace(".", "")
-    else:
-        # Not version specific - use py2.py3. While it is possible that
-        # pure-Python code is not compatible with both Python 2 and 3, there
-        # is no way of knowing from the wininst format, so we assume the best
-        # here (the user can always manually rename the wheel to be more
-        # restrictive if needed).
-        w_pyver = "py2.py3"
-    # 3. Version and architecture
-    w_ver, sep, w_arch = rest.rpartition(".")
-    if not sep:
-        raise ValueError(f"Installer filename {wininfo_name} is not valid")
+        # Look for an .egg-info directory and any .pyd files for more precise info
+        egg_info_found = pyd_found = False
+        with ZipFile(self.path) as zip_file:
+            for filename in zip_file.namelist():
+                prefix, filename = filename.split("/", 1)
+                if not egg_info_found and (match := egg_info_re.match(filename)):
+                    egg_info_found = True
+                    self.name = normalize(match.group("name"))
+                    self.version = match.group("ver")
+                    if pyver := match.group("pyver"):
+                        self.pyver = pyver.replace(".", "")
+                elif not pyd_found and (match := pyd_re.search(filename)):
+                    pyd_found = True
+                    self.abi = match.group("abi")
+                    self.platform = match.group("platform")
 
-    if egginfo:
-        w_name = egginfo.group("name")
-        w_ver = egginfo.group("ver")
+                if egg_info_found and pyd_found:
+                    break
 
-    return {"name": w_name, "ver": w_ver, "arch": w_arch, "pyver": w_pyver}
+    def generate_contents(self) -> Iterator[tuple[str, bytes]]:
+        dist_info_dir = f"{self.name}-{self.version}.dist-info"
+        data_dir = f"{self.name}-{self.version}.data"
+        with ZipFile(self.path, "r") as zip_file:
+            for filename in sorted(zip_file.namelist()):
+                # Skip pure directory entries
+                if filename.endswith("/"):
+                    continue
 
+                # Handle files in the egg-info directory specially, selectively moving
+                # them to the dist-info directory while converting as needed
+                prefix, target_filename = filename.split("/", 1)
+                if egg_info_re.search(target_filename):
+                    basename = target_filename.rsplit("/", 1)[-1]
+                    if basename == "requires.txt":
+                        requires = zip_file.read(filename).decode("utf-8")
+                        convert_requires(requires, self.metadata)
+                    elif basename == "PKG-INFO":
+                        pkginfo = zip_file.read(filename).decode("utf-8")
+                        convert_pkg_info(pkginfo, self.metadata)
+                    elif basename == "entry_points.txt":
+                        yield (
+                            f"{dist_info_dir}/entry_points.txt",
+                            zip_file.read(filename),
+                        )
 
-def wininst2wheel(path, dest_dir):
-    with zipfile.ZipFile(path) as bdw:
-        # Search for egg-info in the archive
-        egginfo_name = None
-        for filename in bdw.namelist():
-            if ".egg-info" in filename:
-                egginfo_name = filename
-                break
+                    continue
+                elif prefix == "SCRIPTS":
+                    target_filename = f"{data_dir}/scripts/{target_filename}"
 
-        info = parse_wininst_info(os.path.basename(path), egginfo_name)
-
-        root_is_purelib = True
-        for zipinfo in bdw.infolist():
-            if zipinfo.filename.startswith("PLATLIB"):
-                root_is_purelib = False
-                break
-        if root_is_purelib:
-            paths = {"purelib": ""}
-        else:
-            paths = {"platlib": ""}
-
-        dist_info = "{name}-{ver}".format(**info)
-        datadir = "%s.data/" % dist_info
-
-        # rewrite paths to trick ZipFile into extracting an egg
-        # XXX grab wininst .ini - between .exe, padding, and first zip file.
-        members = []
-        egginfo_name = ""
-        for zipinfo in bdw.infolist():
-            key, basename = zipinfo.filename.split("/", 1)
-            key = key.lower()
-            basepath = paths.get(key, None)
-            if basepath is None:
-                basepath = datadir + key.lower() + "/"
-            oldname = zipinfo.filename
-            newname = basepath + basename
-            zipinfo.filename = newname
-            del bdw.NameToInfo[oldname]
-            bdw.NameToInfo[newname] = zipinfo
-            # Collect member names, but omit '' (from an entry like "PLATLIB/"
-            if newname:
-                members.append(newname)
-            # Remember egg-info name for the egg2dist call below
-            if not egginfo_name:
-                if newname.endswith(".egg-info"):
-                    egginfo_name = newname
-                elif ".egg-info/" in newname:
-                    egginfo_name, sep, _ = newname.rpartition("/")
-        dir = tempfile.mkdtemp(suffix="_b2w")
-        bdw.extractall(dir, members)
-
-    # egg2wheel
-    abi = "none"
-    pyver = info["pyver"]
-    arch = (info["arch"] or "any").replace(".", "_").replace("-", "_")
-    # Wininst installers always have arch even if they are not
-    # architecture-specific (because the format itself is).
-    # So, assume the content is architecture-neutral if root is purelib.
-    if root_is_purelib:
-        arch = "any"
-    # If the installer is architecture-specific, it's almost certainly also
-    # CPython-specific.
-    if arch != "any":
-        pyver = pyver.replace("py", "cp")
-    wheel_name = "-".join((dist_info, pyver, abi, arch))
-    if root_is_purelib:
-        bw = bdist_wheel(Distribution())
-    else:
-        bw = _bdist_wheel_tag(Distribution())
-
-    bw.root_is_pure = root_is_purelib
-    bw.python_tag = pyver
-    bw.plat_name_supplied = True
-    bw.plat_name = info["arch"] or "any"
-
-    if not root_is_purelib:
-        bw.full_tag_supplied = True
-        bw.full_tag = (pyver, abi, arch)
-
-    dist_info_dir = os.path.join(dir, "%s.dist-info" % dist_info)
-    bw.egg2dist(os.path.join(dir, egginfo_name), dist_info_dir)
-    bw.write_wheelfile(dist_info_dir, generator="wininst2wheel")
-
-    wheel_path = os.path.join(dest_dir, wheel_name)
-    with WheelFile(wheel_path, "w") as wf:
-        wf.write_files(dir)
-
-    shutil.rmtree(dir)
+                # For any other file, just pass it through
+                yield target_filename, zip_file.read(filename)
 
 
-def convert(files, dest_dir, verbose):
+def convert(files: list[str], dest_dir: str, verbose: bool) -> None:
     for pat in files:
-        for installer in iglob(pat):
-            if os.path.splitext(installer)[1] == ".egg":
-                conv = egg2wheel
+        for archive in iglob(pat):
+            path = Path(archive)
+            if path.suffix == ".egg":
+                if path.is_dir():
+                    source: ConvertSource = EggDirectorySource(path)
+                else:
+                    source = EggFileSource(path)
             else:
-                conv = wininst2wheel
+                source = WininstFileSource(path)
 
             if verbose:
-                print(f"{installer}... ", flush=True)
+                print(f"{archive}...", flush=True, end="")
 
-            conv(installer, dest_dir)
+            dest_path = Path(dest_dir) / (
+                f"{source.name}-{source.version}-{source.pyver}-{source.abi}"
+                f"-{source.platform}.whl"
+            )
+            with WheelFile(dest_path, "w") as wheelfile:
+                for name_or_zinfo, contents in source.generate_contents():
+                    wheelfile.writestr(name_or_zinfo, contents)
+
+                # Write the METADATA file
+                wheelfile.writestr(
+                    f"{source.dist_info_dir}/METADATA",
+                    source.metadata.as_string(policy=serialization_policy).encode(
+                        "utf-8"
+                    ),
+                )
+
+                # Write the WHEEL file
+                wheel_message = Message()
+                wheel_message.add_header("Wheel-Version", "1.0")
+                wheel_message.add_header("Generator", GENERATOR)
+                wheel_message.add_header(
+                    "Root-Is-Purelib", str(source.platform == "any").lower()
+                )
+                tags = parse_tag(f"{source.pyver}-{source.abi}-{source.platform}")
+                for tag in sorted(tags, key=lambda tag: tag.interpreter):
+                    wheel_message.add_header("Tag", str(tag))
+
+                wheelfile.writestr(
+                    f"{source.dist_info_dir}/WHEEL",
+                    wheel_message.as_string(policy=serialization_policy).encode(
+                        "utf-8"
+                    ),
+                )
+
             if verbose:
                 print("OK")
