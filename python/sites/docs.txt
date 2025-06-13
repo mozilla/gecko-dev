@@ -12,7 +12,7 @@ pypi:pytest==7.2.1
 pypi:pywatchman==1.4.1
 pypi:sphinx-copybutton==0.5.2
 pypi:sphinx-design==0.5.0
-pypi:sphinx-js==3.2.2
+pypi:sphinx-js==4.0.0
 pypi:sphinx-markdown-tables==0.0.17
 pypi:sphinx-rtd-theme==2.0.0
 pypi:sphinx-tabs==3.4.7
