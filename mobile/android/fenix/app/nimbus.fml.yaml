@@ -883,17 +883,7 @@ features:
         description: >
           Whether or not to enable private browsing mode lock.
         type: Boolean
-        default: false
-    defaults:
-      - channel: nightly
-        value:
-          enabled: true
-      - channel: beta
-        value:
-          enabled: true
-      - channel: developer
-        value:
-          enabled: true
+        default: true
 
 types:
   objects: {}
