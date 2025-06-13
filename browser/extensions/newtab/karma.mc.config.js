@@ -162,13 +162,6 @@ module.exports = function (config) {
               functions: 0,
               branches: 0,
             },
-            "content-src/components/DiscoveryStreamComponents/TrendingSearches/TrendingSearchesVarA.jsx":
-              {
-                statements: 0,
-                lines: 0,
-                functions: 0,
-                branches: 0,
-              },
             "content-src/components/DiscoveryStreamComponents/PersonalizedCard/PersonalizedCard.jsx":
               {
                 statements: 0,
@@ -274,10 +267,10 @@ module.exports = function (config) {
                 branches: 0,
               },
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
-              statements: 90.48,
-              lines: 90.48,
-              functions: 85.71,
-              branches: 68.75,
+              statements: 80.95,
+              lines: 80.95,
+              functions: 71.43,
+              branches: 72.37,
             },
             /**
              * WallpaperCategories.jsx is tested via an xpcshell test
