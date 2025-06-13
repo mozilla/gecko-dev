@@ -9278,6 +9278,9 @@ main section {
   }
 }
 
+.fixed-search .trending-searches-pill-wrapper {
+  display: none;
+}
 .trending-searches-pill-wrapper .trending-searches-title-wrapper {
   display: flex;
   align-items: center;
