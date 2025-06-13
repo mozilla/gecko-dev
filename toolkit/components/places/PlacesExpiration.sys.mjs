@@ -14,7 +14,6 @@
  * - On a repeating timer we expire in small chunks.
  *
  * Expiration algorithm will adapt itself based on:
- * - Memory size of the device.
  * - Status of the database (clean or dirty).
  */
 
@@ -34,21 +33,9 @@ const TOPIC_IDLE_DAILY = "idle-daily";
 const TOPIC_TESTING_MODE = "testing-mode";
 const TOPIC_TEST_INTERVAL_CHANGED = "test-interval-changed";
 
-// This value determines which systems we consider to have limited memory.
-// This is used to protect against large database sizes on those systems.
-const DATABASE_MEMORY_CONSTRAINED_THRESHOLD = 2147483648; // 2 GiB
-
-// This value determines which systems we consider to have limited disk space.
-// This is used to protect against large database sizes on those systems.
-const DATABASE_DISK_CONSTRAINED_THRESHOLD = 5368709120; // 5 GiB
-
 // Maximum size of the optimal database.  High-end hardware has plenty of
 // memory and disk space, but performances don't grow linearly.
 const DATABASE_MAX_SIZE = 78643200; // 75 MiB
-// If the physical memory size is bogus, fallback to this.
-const MEMSIZE_FALLBACK_BYTES = 268435456; // 256 MiB
-// If the disk available space is bogus, fallback to this.
-const DISKSIZE_FALLBACK_BYTES = 268435456; // 256 MiB
 
 // Max number of entries to expire at each expiration step.
 // This value is globally used for different kind of data we expire, can be
@@ -439,7 +426,7 @@ export function nsPlacesExpiration() {
   // instead we will stop after the next expiration step that will bring us
   // below it.
   // If this preference does not exist or has a negative value, we will
-  // calculate a limit based on current hardware.
+  // calculate a limit based on the database size.
   XPCOMUtils.defineLazyPreferenceGetter(
     this,
     "maxPages",
@@ -677,8 +664,13 @@ nsPlacesExpiration.prototype = {
   },
 
   /**
-   * Get the maximum number of pages that should be retained. This can expire
-   * old pages if a memory or disk threshold is exceeded.
+   * Get the maximum number of pages that should be retained.
+   *
+   * The limit is calculated to keep the Places database around
+   * DATABASE_MAX_SIZE in size.
+   *
+   * Users can override the default limit by setting
+   * `places.history.expiration.max_pages` to a custom limit.
    *
    * @returns {Promise<number>}
    *   The maximum number of pages.
@@ -693,42 +685,7 @@ nsPlacesExpiration.prototype = {
       return (this._pagesLimit = this.maxPages);
     }
 
-    // The user didn't specify a custom limit, so we calculate the number of
-    // unique places that may fit an optimal database size on this hardware.
-    // Oldest pages over this threshold will be expired.
-    let memSizeBytes = MEMSIZE_FALLBACK_BYTES;
-    try {
-      // Limit the size on systems with small memory.
-      // @ts-ignore - Typescript is not able to infer the type from nsIVariant
-      memSizeBytes = Services.sysinfo.getProperty("memsize");
-    } catch (ex) {}
-    if (memSizeBytes <= 0) {
-      memSizeBytes = MEMSIZE_FALLBACK_BYTES;
-    }
-
-    let diskAvailableBytes = DISKSIZE_FALLBACK_BYTES;
-    try {
-      // Protect against a full disk or tiny quota.
-      diskAvailableBytes =
-        lazy.PlacesUtils.history.DBConnection.databaseFile.QueryInterface(
-          Ci.nsIFile
-        ).diskSpaceAvailable;
-    } catch (ex) {}
-    if (diskAvailableBytes <= 0) {
-      diskAvailableBytes = DISKSIZE_FALLBACK_BYTES;
-    }
-
-    const isMemoryConstrained =
-      memSizeBytes < DATABASE_MEMORY_CONSTRAINED_THRESHOLD;
-    const isDiskConstrained =
-      diskAvailableBytes < DATABASE_DISK_CONSTRAINED_THRESHOLD;
-
     let optimalDatabaseSize = DATABASE_MAX_SIZE;
-    if (isMemoryConstrained || isDiskConstrained) {
-      // This size is used to protect against a large database size
-      // on disks with limited space or on systems with small memory
-      optimalDatabaseSize /= 2;
-    }
 
     // Calculate avg size of a URI in the database.
     let db;
