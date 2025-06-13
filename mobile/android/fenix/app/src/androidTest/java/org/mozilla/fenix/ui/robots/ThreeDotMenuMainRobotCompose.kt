@@ -9,7 +9,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -19,7 +18,9 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.MenuDialogTestTag.EXTENSIONS
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
+import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
 import org.mozilla.fenix.helpers.TestHelper.appName
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.packageName
@@ -180,6 +181,18 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
         Log.i(TAG, "verifyNoExtensionsButton: Verified that the \"Extensions\" button exists.")
     }
 
+    fun verifyTryRecommendedExtensionButton() {
+        Log.i(TAG, "verifyTryRecommendedExtensionButton: Trying to verify that the \"Extensions - Try a recommended extension\" button exists.")
+        composeTestRule.tryRecommendedExtensionButton().assertExists()
+        Log.i(TAG, "verifyTryRecommendedExtensionButton: Verified that the \"Extensions - Try a recommended extension\" button exists.")
+    }
+
+    fun verifyNoExtensionsEnabledButton() {
+        Log.i(TAG, "verifyNoExtensionsEnabledButton: Trying to verify that the \"Extensions - Try a recommended extension\" button exists.")
+        composeTestRule.noExtensionsEnabledButton().assertExists()
+        Log.i(TAG, "verifyNoExtensionsEnabledButton: Verified that the \"Extensions - Try a recommended extension\" button exists.")
+    }
+
     fun clickSaveButton() {
         Log.i(TAG, "clickSaveButton: Trying to click the \"Save\" button from the new main menu design.")
         composeTestRule.saveMenuButton().performClick()
@@ -282,11 +295,10 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
             return SettingsSubMenuLoginsAndPasswordsSavedLoginsRobot.Transition()
         }
 
-        @OptIn(ExperimentalTestApi::class)
         fun openExtensionsFromMainMenu(interact: SettingsSubMenuAddonsManagerRobot.() -> Unit): SettingsSubMenuAddonsManagerRobot.Transition {
             Log.i(TAG, "openExtensionsFromMainMenu: Trying to click the \"Extensions\" button")
-            composeTestRule.waitUntilAtLeastOneExists(hasTestTag(EXTENSIONS))
-            composeTestRule.extensionsButton().performClick()
+            assertUIObjectExists(itemWithResId("mainMenu.extensions"))
+            itemWithResId("mainMenu.extensions").clickAndWaitForNewWindow(waitingTimeShort)
             Log.i(TAG, "openExtensionsFromMainMenu: Clicked the \"Extensions\" button")
             composeTestRule.waitForIdle()
 
@@ -433,6 +445,15 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
             BrowserRobot().interact()
             return BrowserRobot.Transition()
         }
+
+        fun closeMainMenu(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
+            Log.i(TAG, "closeMainMenu: Trying to click the device back button")
+            mDevice.pressBack()
+            Log.i(TAG, "closeMainMenu: Clicked the device back button")
+
+            HomeScreenRobot().interact()
+            return HomeScreenRobot.Transition()
+        }
     }
 }
 
@@ -463,7 +484,11 @@ private fun ComposeTestRule.settingsButton() = onNodeWithContentDescription("Set
 
 private fun ComposeTestRule.extensionsButton() = onNodeWithTag(EXTENSIONS)
 
+private fun ComposeTestRule.tryRecommendedExtensionButton() = onNodeWithContentDescription("ExtensionsTry a recommended extension")
+
 private fun ComposeTestRule.noExtensionsButton() = onNodeWithContentDescription("ExtensionsNo extensions enabled")
+
+private fun ComposeTestRule.noExtensionsEnabledButton() = onNodeWithContentDescription("ExtensionsNo extensions enabled")
 
 private fun ComposeTestRule.moreButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_more_settings))
 

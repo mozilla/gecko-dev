@@ -21,7 +21,6 @@ import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertNativeAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertYoutubeAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.clickSystemHomeScreenShortcutAddButton
-import org.mozilla.fenix.helpers.AppAndSystemHelper.registerAndCleanupIdlingResources
 import org.mozilla.fenix.helpers.AppAndSystemHelper.runWithCondition
 import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_DOCS
 import org.mozilla.fenix.helpers.Constants.PackageName.PRINT_SPOOLER
@@ -32,7 +31,6 @@ import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MockBrowserDataHelper
-import org.mozilla.fenix.helpers.RecyclerViewIdlingResource
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
@@ -302,23 +300,21 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860779
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @SmokeTest
     @Test
     fun verifyRedesignedMenuAfterRemovingAnExtensionTest() {
-        val addonName = "uBlock Origin"
+        var recommendedExtensionTitle = ""
         val genericURL = getGenericAsset(mockWebServer, 1)
 
         homeScreen {
         }.openThreeDotMenu(composeTestRule) {
         }.openExtensionsFromMainMenu {
-            waitForAddonsListProgressBarToBeGone()
-            clickInstallAddon(addonName)
-            verifyAddonPermissionPrompt(addonName)
+            recommendedExtensionTitle = getRecommendedExtensionTitle(composeTestRule)
+            installRecommendedAddon(recommendedExtensionTitle, composeTestRule)
+            verifyAddonPermissionPrompt(recommendedExtensionTitle)
             acceptPermissionToInstallAddon()
-            verifyAddonInstallCompletedPrompt(addonName, composeTestRule.activityRule)
+            verifyAddonInstallCompletedPrompt(recommendedExtensionTitle, composeTestRule.activityRule)
             closeAddonInstallCompletePrompt()
-        }.goBack {
         }
 
         navigationToolbar {
@@ -326,36 +322,34 @@ class MainMenuTestCompose : TestSetup() {
         }.openThreeDotMenu(composeTestRule) {
         }.openExtensionsFromMainMenu {
             clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
-        }.openDetailedMenuForAddon(addonName) {
+        }.openDetailedMenuForAddon(recommendedExtensionTitle) {
         }.removeAddon(composeTestRule.activityRule) {
-            verifySnackBarText("Successfully uninstalled $addonName")
+            verifySnackBarText("Successfully uninstalled $recommendedExtensionTitle")
             waitUntilSnackbarGone()
         }.goBack {
         }
         browserScreen {
         }.openThreeDotMenu(composeTestRule) {
-            verifyNoExtensionsButton()
+            verifyTryRecommendedExtensionButton()
         }
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860784
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @SmokeTest
     @Test
     fun verifyTheManageExtensionsSubMenuTest() {
-        val addonName = "uBlock Origin"
+        var recommendedExtensionTitle = ""
         val genericURL = getGenericAsset(mockWebServer, 1)
 
         homeScreen {
         }.openThreeDotMenu(composeTestRule) {
         }.openExtensionsFromMainMenu {
-            waitForAddonsListProgressBarToBeGone()
-            clickInstallAddon(addonName)
-            verifyAddonPermissionPrompt(addonName)
+            recommendedExtensionTitle = getRecommendedExtensionTitle(composeTestRule)
+            installRecommendedAddon(recommendedExtensionTitle, composeTestRule)
+            verifyAddonPermissionPrompt(recommendedExtensionTitle)
             acceptPermissionToInstallAddon()
-            verifyAddonInstallCompletedPrompt(addonName, composeTestRule.activityRule)
+            verifyAddonInstallCompletedPrompt(recommendedExtensionTitle, composeTestRule.activityRule)
             closeAddonInstallCompletePrompt()
-        }.goBack {
         }
 
         navigationToolbar {
@@ -363,10 +357,8 @@ class MainMenuTestCompose : TestSetup() {
         }.openThreeDotMenu(composeTestRule) {
         }.openExtensionsFromMainMenu {
             clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
-        }.goBack {
-        }
-        browserScreen {
-            verifyPageContent(genericURL.content)
+            verifyAddonIsInstalled(recommendedExtensionTitle)
+            verifyEnabledTitleDisplayed()
         }
     }
 
@@ -565,22 +557,6 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860746
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
-    @SmokeTest
-    @Test
-    fun homeMainMenuExtensionsButtonOpensManageExtensionsTest() {
-        homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
-        }.openExtensionsFromMainMenu {
-            registerAndCleanupIdlingResources(
-                RecyclerViewIdlingResource(composeTestRule.activity.findViewById(R.id.add_ons_list), 1),
-            ) {
-                verifyAddonsItems()
-            }
-        }
-    }
-
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860845
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @SmokeTest
@@ -621,44 +597,6 @@ class MainMenuTestCompose : TestSetup() {
             openToolsMenu()
             clickPrintContentButton()
             assertNativeAppOpens(PRINT_SPOOLER)
-        }
-    }
-
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860778
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
-    @SmokeTest
-    @Test
-    fun verifyRedesignedMenuAfterDisablingAnExtensionTest() {
-        val addonName = "uBlock Origin"
-        val genericURL = getGenericAsset(mockWebServer, 1)
-
-        homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
-        }.openExtensionsFromMainMenu {
-            waitForAddonsListProgressBarToBeGone()
-            clickInstallAddon(addonName)
-            verifyAddonPermissionPrompt(addonName)
-            acceptPermissionToInstallAddon()
-            verifyAddonInstallCompletedPrompt(addonName, composeTestRule.activityRule)
-            closeAddonInstallCompletePrompt()
-        }.goBack {
-        }
-
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
-        }.openExtensionsFromMainMenu {
-            clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
-        }.openDetailedMenuForAddon(addonName) {
-            disableExtension()
-            verifySnackBarText("Successfully disabled $addonName")
-            waitUntilSnackbarGone()
-        }.goBack {
-        }.goBack {
-        }
-        browserScreen {
-        }.openThreeDotMenu(composeTestRule) {
-            verifyNoExtensionsButton()
         }
     }
 
@@ -705,6 +643,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860725
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971959")
     @Test
     fun verifyTheHomePageMainMenuCFRTest() {
         composeTestRule.activityRule.applySettingsExceptions {
@@ -857,25 +796,20 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860770
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @Test
-    fun noAddonsInstalledExtensionPromotionBannerTest() {
+    fun noInstalledExtensionsTest() {
         val genericURL = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
         }.openThreeDotMenu(composeTestRule) {
-        }.openExtensionsFromMainMenu {
-            verifyNoInstalledExtensionsPromotionBanner(composeTestRule)
-        }.clickExtensionsPromotionBannerLearnMoreLink(composeTestRule) {
-            verifyExtensionsPromotionBannerLearnMoreLinkURL()
+            verifyTryRecommendedExtensionButton()
         }
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860781
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @Test
-    fun disabledAddonsExtensionPromotionBannerTest() {
+    fun disabledExtensionTest() {
         var recommendedExtensionTitle = ""
         val genericURL = getGenericAsset(mockWebServer, 1)
 
@@ -888,6 +822,10 @@ class MainMenuTestCompose : TestSetup() {
             acceptPermissionToInstallAddon()
             verifyAddonInstallCompletedPrompt(recommendedExtensionTitle, composeTestRule.activityRule)
             closeAddonInstallCompletePrompt()
+        }
+        browserScreen {
+        }.openThreeDotMenu(composeTestRule) {
+        }.openExtensionsFromMainMenu {
             clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
         }.openDetailedMenuForAddon(recommendedExtensionTitle) {
             disableExtension()
@@ -895,8 +833,7 @@ class MainMenuTestCompose : TestSetup() {
         }.goBack {
         }.goBackToBrowser {
         }.openThreeDotMenu(composeTestRule) {
-        }.openExtensionsFromMainMenu {
-            verifyDisabledExtensionsPromotionBanner(composeTestRule)
+            verifyNoExtensionsEnabledButton()
         }
     }
 
@@ -915,7 +852,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860790
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971958")
     @Test
     fun verifyTheClosingBehaviourWhenTappingOutsideTheExtensionsSubMenuTest() {
         var recommendedExtensionTitle = ""
@@ -941,22 +878,27 @@ class MainMenuTestCompose : TestSetup() {
         }.clickOutsideTheMainMenu {
             verifyExtensionsMenuDoesNotExist()
         }
-        browserScreen {
-        }.openThreeDotMenu(composeTestRule) {
-        }.openExtensionsFromMainMenu {
-            clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
-        }.openDetailedMenuForAddon(recommendedExtensionTitle) {
-            disableExtension()
-            waitUntilSnackbarGone()
-        }.goBack {
-        }.goBackToBrowser {
-        }.openThreeDotMenu(composeTestRule) {
-        }.openExtensionsFromMainMenu {
-        }
-        mainMenuScreen(composeTestRule) {
-        }.clickOutsideTheMainMenu {
-            verifyExtensionsMenuDoesNotExist()
-        }
+        // Steps not applicable anymore due to recent main menu redesign changes
+        // Will revise when the final implementation is done
+        // Tracking ticket: https://bugzilla.mozilla.org/show_bug.cgi?id=1971939
+
+        // browserScreen {
+        // }.openThreeDotMenu(composeTestRule) {
+        // }.openExtensionsFromMainMenu {
+        //     clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
+        // }.openDetailedMenuForAddon(recommendedExtensionTitle) {
+        //     disableExtension()
+        //     waitUntilSnackbarGone()
+        // }.goBack {
+        // }.goBackToBrowser {
+        // }.openThreeDotMenu(composeTestRule) {
+        // }.openExtensionsFromMainMenu {
+        //     verifyManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
+        // }
+        // mainMenuScreen(composeTestRule) {
+        // }.clickOutsideTheMainMenu {
+        //     verifyExtensionsMenuDoesNotExist()
+        // }
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860800

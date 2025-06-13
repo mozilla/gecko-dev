@@ -640,6 +640,7 @@ class HomeScreenRobot {
             Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Trying to click main menu button")
             itemWithResId("$packageName:id/menuButton").click()
             Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Clicked main menu button")
+            assertUIObjectExists(itemWithResId("$packageName:id/design_bottom_sheet"))
 
             ThreeDotMenuMainRobotCompose(composeTestRule).interact()
             return ThreeDotMenuMainRobotCompose.Transition(composeTestRule)
