@@ -139,7 +139,7 @@ no-fission:
                 - "--disable-fission"
 
 geckoview-no-fission-no-ship:
-    description: "{description} with fission disabled and ship enabled"
+    description: "{description} with fission disabled and ship disabled"
     component: "GeckoView::General"
     expiration: "2025-09-01"
     suffix: "nofis-noship"
