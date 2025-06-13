@@ -21,8 +21,6 @@ try:
 except ImportError:
     import urllib.parse as urlparse
 
-from functools import lru_cache
-
 from six import string_types
 
 import mozharness
@@ -45,7 +43,6 @@ class MultipleWheelMatchError(Exception):
     pass
 
 
-@lru_cache(maxsize=None)
 def get_uv_executable():
     return shutil.which("uv")
 
