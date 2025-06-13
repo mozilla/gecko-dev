@@ -73,6 +73,20 @@ make
 make DESTDIR=${work_dir} install
 cd ${work_dir}
 
+sysconfig_file=$(
+  ls "${work_dir}/${tardir}/lib"/python3.*/*_sysconfigdata*.py 2>/dev/null \
+  | head -n1
+)
+if [ -n "$sysconfig_file" ]; then
+  cat >> "$sysconfig_file" << 'PYCODE'
+import sys
+build_time_vars = {
+    k: v.replace("/python", sys.base_prefix) if isinstance(v, str) and v.startswith("/python") else v
+    for k, v in build_time_vars.items()
+}
+PYCODE
+fi
+
 ${work_dir}/python/bin/python3 -m pip install --upgrade pip==23.0
 ${work_dir}/python/bin/python3 -m pip install -r ${GECKO_PATH}/build/psutil_requirements.txt -r ${GECKO_PATH}/build/zstandard_requirements.txt
 
