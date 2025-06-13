@@ -533,7 +533,7 @@ class _QuickSuggestTestUtils {
   }
 
   /**
-   * Returns an expected Wikipedia (non-sponsored) result that can be passed to
+   * Returns an expected Wikipedia result that can be passed to
    * `check_results()` in xpcshell tests.
    *
    * @returns {object}
@@ -546,9 +546,11 @@ class _QuickSuggestTestUtils {
     fullKeyword = keyword,
     title = "Wikipedia Suggestion",
     url = "https://example.com/wikipedia",
+    icon = null,
     iconBlob = null,
     suggestedIndex = -1,
     isSuggestedIndexRelativeToGroup = true,
+    telemetryType = "adm_nonsponsored",
   } = {}) {
     let result = {
       suggestedIndex,
@@ -559,17 +561,16 @@ class _QuickSuggestTestUtils {
       payload: {
         title,
         url,
+        icon,
         iconBlob,
         source,
         provider,
+        telemetryType,
         displayUrl: url.replace(/^https:\/\//, ""),
         isSponsored: false,
         qsSuggestion: fullKeyword ?? keyword,
-        sponsoredAdvertiser: "Wikipedia",
-        sponsoredIabCategory: "5 - Education",
         isBlockable: true,
         isManageable: true,
-        telemetryType: "adm_nonsponsored",
       },
     };
 
@@ -584,46 +585,6 @@ class _QuickSuggestTestUtils {
     }
 
     return result;
-  }
-
-  /**
-   * Returns an expected dynamic Wikipedia (non-sponsored) result that can be
-   * passed to `check_results()` in xpcshell tests.
-   *
-   * @returns {object}
-   *   An object that can be passed to `check_results()`.
-   */
-  dynamicWikipediaResult({
-    source = "merino",
-    provider = "wikipedia",
-    keyword = "wikipedia",
-    fullKeyword = keyword,
-    title = "Wikipedia Suggestion",
-    url = "https://example.com/wikipedia",
-    icon = null,
-    suggestedIndex = -1,
-    isSuggestedIndexRelativeToGroup = true,
-  } = {}) {
-    return {
-      suggestedIndex,
-      isSuggestedIndexRelativeToGroup,
-      type: lazy.UrlbarUtils.RESULT_TYPE.URL,
-      source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
-      heuristic: false,
-      payload: {
-        title,
-        url,
-        source,
-        provider,
-        icon,
-        displayUrl: url.replace(/^https:\/\//, ""),
-        isSponsored: false,
-        qsSuggestion: fullKeyword ?? keyword,
-        isBlockable: true,
-        isManageable: true,
-        telemetryType: "wikipedia",
-      },
-    };
   }
 
   /**

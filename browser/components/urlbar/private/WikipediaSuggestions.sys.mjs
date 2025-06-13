@@ -13,19 +13,24 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 /**
- * A feature that manages offline (non-Merino) Wikipedia suggestions. Online
- * (Merino) Wikipedia suggestions don't have their own `SuggestProvider`.
- * Instead they're handled directly by `UrlbarProviderQuickSuggest`.
+ * A feature that manages Wikipedia suggestions, both offline (Rust) and online
+ * (Merino).
  */
-export class OfflineWikipediaSuggestions extends SuggestProvider {
+export class WikipediaSuggestions extends SuggestProvider {
   get enablingPreferences() {
-    return ["suggest.quicksuggest.nonsponsored"];
+    return [
+      "wikipediaFeatureGate",
+      "suggest.wikipedia",
+      "suggest.quicksuggest.nonsponsored",
+    ];
   }
 
   get primaryUserControlledPreference() {
-    // Wikipedia suggestions can't be toggled separately from nonsponsored
-    // suggestions.
-    return null;
+    return "suggest.wikipedia";
+  }
+
+  get merinoProvider() {
+    return "wikipedia";
   }
 
   get rustSuggestionType() {
@@ -36,8 +41,10 @@ export class OfflineWikipediaSuggestions extends SuggestProvider {
     return false;
   }
 
-  getSuggestionTelemetryType() {
-    return "adm_nonsponsored";
+  getSuggestionTelemetryType(suggestion) {
+    // Previously online Wikipedia suggestions were not managed by this feature
+    // and they had a separate telemetry type, so we carry that forward here.
+    return suggestion.source == "merino" ? "wikipedia" : "adm_nonsponsored";
   }
 
   makeResult(queryContext, suggestion) {
@@ -48,11 +55,10 @@ export class OfflineWikipediaSuggestions extends SuggestProvider {
         url: suggestion.url,
         title: suggestion.title,
         qsSuggestion: [
-          suggestion.fullKeyword,
+          // Merino uses snake_case, so this will be `full_keyword` for it.
+          suggestion.fullKeyword ?? suggestion.full_keyword,
           lazy.UrlbarUtils.HIGHLIGHT.SUGGESTED,
         ],
-        sponsoredAdvertiser: "Wikipedia",
-        sponsoredIabCategory: "5 - Education",
         isBlockable: true,
         isManageable: true,
       })

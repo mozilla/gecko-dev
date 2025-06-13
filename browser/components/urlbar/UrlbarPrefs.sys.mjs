@@ -38,6 +38,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // for addon suggestions.
   ["addons.showLessFrequentlyCount", 0],
 
+  // Feature gate pref for AMP suggestions in the urlbar.
+  ["amp.featureGate", false],
+
   // "Autofill" is the name of the feature that automatically completes domains
   // and URLs that the user has visited as the user is typing them in the urlbar
   // textbox.  If false, autofill will be disabled.
@@ -416,6 +419,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // addon suggestions are turned on.
   ["suggest.addons", true],
 
+  // If `browser.urlbar.amp.featureGate` is true, this controls whether AMP
+  // suggestions are turned on.
+  ["suggest.amp", true],
+
   // Whether results will include the user's bookmarks.
   ["suggest.bookmark", true],
 
@@ -472,6 +479,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // If `browser.urlbar.weather.featureGate` is true, this controls whether
   // weather suggestions are turned on.
   ["suggest.weather", true],
+
+  // If `browser.urlbar.wikipedia.featureGate` is true, this controls whether
+  // Wikipedia suggestions are turned on.
+  ["suggest.wikipedia", true],
 
   // If `browser.urlbar.yelp.featureGate` is true, this controls whether
   // Yelp suggestions are turned on.
@@ -552,6 +563,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // The number of times the user has clicked the "Show less frequently" command
   // for weather suggestions.
   ["weather.showLessFrequentlyCount", 0],
+
+  // Feature gate pref for Wikipedia suggestions (part of Suggest).
+  ["wikipedia.featureGate", false],
 
   // Feature gate pref for Yelp suggestions in the urlbar.
   ["yelp.featureGate", false],

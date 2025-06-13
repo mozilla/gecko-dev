@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Basic tests for the quick suggest provider using the remote settings source.
-// See also test_quicksuggest_merino.js.
+// Tests for AMP and Wikipedia suggestions and some aspects of the Suggest
+// urlbar provider that aren't tested elsewhere. See also
+// `test_quicksuggest_merino.js`.
 
 "use strict";
 
@@ -114,6 +115,36 @@ const REMOTE_SETTINGS_RESULTS = [
   }),
 ];
 
+const MERINO_SUGGESTIONS = [
+  {
+    title: "Amp Suggestion",
+    url: "https://example.com/amp",
+    provider: "adm",
+    is_sponsored: true,
+    score: 0.31,
+    icon: "https://example.com/amp-icon",
+    iab_category: "22 - Shopping",
+    block_id: 1,
+    full_keyword: "amp",
+    advertiser: "Amp",
+    impression_url: "https://example.com/amp-impression",
+    click_url: "https://example.com/amp-click",
+  },
+  {
+    title: "Wikipedia Suggestion",
+    url: "https://example.com/wikipedia",
+    is_sponsored: false,
+    score: 0.23,
+    description: "description",
+    icon: "https://example.com/wikipedia-icon",
+    full_keyword: "wikipedia",
+    advertiser: "dynamic-wikipedia",
+    block_id: 0,
+    provider: "wikipedia",
+    categories: [6], // Education
+  },
+];
+
 let gMaxResultsSuggestionsCount;
 
 function expectedSponsoredPriorityResult() {
@@ -183,21 +214,43 @@ add_setup(async function init() {
   await resetRemoteSettingsData();
 });
 
-add_task(async function telemetryType_sponsored() {
+add_task(async function offline_telemetryType_amp() {
   Assert.equal(
-    QuickSuggest.getFeature("AmpSuggestions").getSuggestionTelemetryType({}),
+    QuickSuggest.getFeature("AmpSuggestions").getSuggestionTelemetryType({
+      source: "rust",
+    }),
     "adm_sponsored",
     "Telemetry type should be 'adm_sponsored'"
   );
 });
 
-add_task(async function telemetryType_nonsponsored() {
+add_task(async function offline_telemetryType_wikipedia() {
   Assert.equal(
-    QuickSuggest.getFeature(
-      "OfflineWikipediaSuggestions"
-    ).getSuggestionTelemetryType({}),
+    QuickSuggest.getFeature("WikipediaSuggestions").getSuggestionTelemetryType({
+      source: "rust",
+    }),
     "adm_nonsponsored",
     "Telemetry type should be 'adm_nonsponsored'"
+  );
+});
+
+add_task(async function online_telemetryType_amp() {
+  Assert.equal(
+    QuickSuggest.getFeature("AmpSuggestions").getSuggestionTelemetryType({
+      source: "merino",
+    }),
+    "adm_sponsored",
+    "Telemetry type should be 'adm_sponsored'"
+  );
+});
+
+add_task(async function online_telemetryType_wikipedia() {
+  Assert.equal(
+    QuickSuggest.getFeature("WikipediaSuggestions").getSuggestionTelemetryType({
+      source: "merino",
+    }),
+    "wikipedia",
+    "Telemetry type should be 'wikipedia'"
   );
 });
 
@@ -1779,6 +1832,193 @@ async function doAmpMatchingStrategyTest({
   }
 
   sandbox.restore();
+}
+
+add_task(async function offline_amp_disabled() {
+  for (let pref of [
+    "suggest.quicksuggest.sponsored",
+    "amp.featureGate",
+    "suggest.amp",
+  ]) {
+    info("Testing with pref: " + pref);
+
+    UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
+    UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", false);
+    await QuickSuggestTestUtils.forceSync();
+
+    // First make sure we can match an AMP suggestion.
+    await check_results({
+      context: createContext(SPONSORED_SEARCH_STRING, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [QuickSuggestTestUtils.ampResult()],
+    });
+
+    // Now disable the pref and try again.
+    UrlbarPrefs.set(pref, false);
+    await QuickSuggestTestUtils.forceSync();
+
+    await check_results({
+      context: createContext(SPONSORED_SEARCH_STRING, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [],
+    });
+
+    UrlbarPrefs.clear(pref);
+  }
+
+  await QuickSuggestTestUtils.forceSync();
+});
+
+add_task(async function offline_wikipedia_disabled() {
+  for (let pref of [
+    "suggest.quicksuggest.nonsponsored",
+    "wikipedia.featureGate",
+    "suggest.wikipedia",
+  ]) {
+    info("Testing with pref: " + pref);
+
+    UrlbarPrefs.set("suggest.quicksuggest.sponsored", false);
+    UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", true);
+    await QuickSuggestTestUtils.forceSync();
+
+    // First make sure we can match a Wikipedia suggestion.
+    await check_results({
+      context: createContext(NONSPONSORED_SEARCH_STRING, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [QuickSuggestTestUtils.wikipediaResult()],
+    });
+
+    // Now disable the pref and try again.
+    UrlbarPrefs.set(pref, false);
+    await QuickSuggestTestUtils.forceSync();
+
+    await check_results({
+      context: createContext(NONSPONSORED_SEARCH_STRING, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [],
+    });
+
+    UrlbarPrefs.clear(pref);
+  }
+
+  await QuickSuggestTestUtils.forceSync();
+});
+
+add_task(async function online_amp_disabled() {
+  await doMerinoTest(async () => {
+    for (let pref of [
+      "suggest.quicksuggest.sponsored",
+      "amp.featureGate",
+      "suggest.amp",
+    ]) {
+      info("Testing with pref: " + pref);
+
+      UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
+      UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", false);
+      await QuickSuggestTestUtils.forceSync();
+
+      // First make sure we can match an AMP suggestion.
+      await check_results({
+        context: createContext("test", {
+          providers: [UrlbarProviderQuickSuggest.name],
+          isPrivate: false,
+        }),
+        matches: [
+          QuickSuggestTestUtils.ampResult({
+            source: "merino",
+            provider: "adm",
+            icon: "https://example.com/amp-icon",
+            iabCategory: "22 - Shopping",
+            requestId: "request_id",
+          }),
+        ],
+      });
+
+      // Now disable the pref and try again.
+      UrlbarPrefs.set(pref, false);
+      await QuickSuggestTestUtils.forceSync();
+
+      await check_results({
+        context: createContext("test", {
+          providers: [UrlbarProviderQuickSuggest.name],
+          isPrivate: false,
+        }),
+        matches: [],
+      });
+
+      UrlbarPrefs.clear(pref);
+    }
+
+    await QuickSuggestTestUtils.forceSync();
+  });
+});
+
+add_task(async function online_wikipedia_disabled() {
+  await doMerinoTest(async () => {
+    for (let pref of [
+      "suggest.quicksuggest.nonsponsored",
+      "wikipedia.featureGate",
+      "suggest.wikipedia",
+    ]) {
+      info("Testing with pref: " + pref);
+
+      UrlbarPrefs.set("suggest.quicksuggest.sponsored", false);
+      UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", true);
+      await QuickSuggestTestUtils.forceSync();
+
+      // First make sure we can match a Wikipedia suggestion.
+      await check_results({
+        context: createContext("test", {
+          providers: [UrlbarProviderQuickSuggest.name],
+          isPrivate: false,
+        }),
+        matches: [
+          QuickSuggestTestUtils.wikipediaResult({
+            source: "merino",
+            provider: "wikipedia",
+            telemetryType: "wikipedia",
+            icon: "https://example.com/wikipedia-icon",
+          }),
+        ],
+      });
+
+      // Now disable the pref and try again.
+      UrlbarPrefs.set(pref, false);
+      await QuickSuggestTestUtils.forceSync();
+
+      await check_results({
+        context: createContext("test", {
+          providers: [UrlbarProviderQuickSuggest.name],
+          isPrivate: false,
+        }),
+        matches: [],
+      });
+
+      UrlbarPrefs.clear(pref);
+    }
+
+    await QuickSuggestTestUtils.forceSync();
+  });
+});
+
+async function doMerinoTest(callback) {
+  UrlbarPrefs.set("quicksuggest.dataCollection.enabled", true);
+  await MerinoTestUtils.server.start();
+
+  MerinoTestUtils.server.response.body.suggestions = MERINO_SUGGESTIONS;
+
+  await callback();
+
+  await MerinoTestUtils.server.stop();
+  UrlbarPrefs.clear("quicksuggest.dataCollection.enabled");
 }
 
 async function resetRemoteSettingsData(data = REMOTE_SETTINGS_RESULTS) {

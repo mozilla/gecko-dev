@@ -80,8 +80,11 @@ const EXPECTED_AMP_RESULT = QuickSuggestTestUtils.ampResult({
   provider: "adm",
   requestId: "request_id",
 });
-const EXPECTED_WIKIPEDIA_RESULT =
-  QuickSuggestTestUtils.dynamicWikipediaResult();
+const EXPECTED_WIKIPEDIA_RESULT = QuickSuggestTestUtils.wikipediaResult({
+  source: "merino",
+  provider: "wikipedia",
+  telemetryType: "wikipedia",
+});
 
 let gSandbox;
 

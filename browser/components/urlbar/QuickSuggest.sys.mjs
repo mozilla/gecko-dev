@@ -95,12 +95,24 @@ const SUGGEST_PREFS = Object.freeze({
       US: [["en"], true],
     },
   },
+  "amp.featureGate": {
+    defaultValues: {
+      GB: [["en"], true],
+      US: [["en"], true],
+    },
+  },
   "mdn.featureGate": {
     defaultValues: {
       US: [["en"], true],
     },
   },
   "weather.featureGate": {
+    defaultValues: {
+      GB: [["en"], true],
+      US: [["en"], true],
+    },
+  },
+  "wikipedia.featureGate": {
     defaultValues: {
       GB: [["en"], true],
       US: [["en"], true],
@@ -125,8 +137,6 @@ const FEATURES = {
     "resource:///modules/urlbar/private/DynamicSuggestions.sys.mjs",
   ImpressionCaps: "resource:///modules/urlbar/private/ImpressionCaps.sys.mjs",
   MDNSuggestions: "resource:///modules/urlbar/private/MDNSuggestions.sys.mjs",
-  OfflineWikipediaSuggestions:
-    "resource:///modules/urlbar/private/OfflineWikipediaSuggestions.sys.mjs",
   SuggestBackendMerino:
     "resource:///modules/urlbar/private/SuggestBackendMerino.sys.mjs",
   SuggestBackendMl:
@@ -135,6 +145,8 @@ const FEATURES = {
     "resource:///modules/urlbar/private/SuggestBackendRust.sys.mjs",
   WeatherSuggestions:
     "resource:///modules/urlbar/private/WeatherSuggestions.sys.mjs",
+  WikipediaSuggestions:
+    "resource:///modules/urlbar/private/WikipediaSuggestions.sys.mjs",
   YelpSuggestions: "resource:///modules/urlbar/private/YelpSuggestions.sys.mjs",
 };
 

@@ -730,6 +730,21 @@ pref("browser.urlbar.suggest.fakespot", true);
 // the suggestion. 0 means the min length should be taken from Nimbus.
 pref("browser.urlbar.addons.minKeywordLength", 0);
 
+// Feature gate pref for AMP suggestions in the urlbar.
+pref("browser.urlbar.amp.featureGate", false);
+
+// If `browser.urlbar.amp.featureGate` is true, this controls whether AMP
+// suggestions are turned on.
+pref("browser.urlbar.suggest.amp", true);
+
+// Feature gate pref for Wikipedia suggestions in the urlbar (part of Firefox
+// Suggest).
+pref("browser.urlbar.wikipedia.featureGate", false);
+
+// If `browser.urlbar.wikipedia.featureGate` is true, this controls whether
+// Wikipedia suggestions are turned on.
+pref("browser.urlbar.suggest.wikipedia", true);
+
 // Enable creating and editing user defined search engines.
 pref("browser.urlbar.update2.engineAliasRefresh", true);
 

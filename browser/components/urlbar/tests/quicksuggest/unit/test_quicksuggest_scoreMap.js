@@ -190,7 +190,7 @@ add_task(
       scoreMap: {
         adm_nonsponsored: score,
       },
-      expectedFeatureName: "OfflineWikipediaSuggestions",
+      expectedFeatureName: "WikipediaSuggestions",
       expectedScore: score,
       expectedResult: makeExpectedWikipediaResult({
         keyword,
@@ -230,7 +230,7 @@ add_task(
         adm_nonsponsored: score,
         adm_sponsored: score / 2,
       },
-      expectedFeatureName: "OfflineWikipediaSuggestions",
+      expectedFeatureName: "WikipediaSuggestions",
       expectedScore: score,
       expectedResult: makeExpectedWikipediaResult({
         keyword,
@@ -265,7 +265,7 @@ add_task(async function sponsoredWith_nonsponsoredWith_nonsponsoredWins() {
     scoreMap: {
       adm_nonsponsored: score,
     },
-    expectedFeatureName: "OfflineWikipediaSuggestions",
+    expectedFeatureName: "WikipediaSuggestions",
     expectedScore: score,
     expectedResult: makeExpectedWikipediaResult({
       keyword,
@@ -301,7 +301,7 @@ add_task(async function sponsoredWith_nonsponsoredWith_nonsponsoredWins_both() {
       adm_nonsponsored: score,
       adm_sponsored: score / 2,
     },
-    expectedFeatureName: "OfflineWikipediaSuggestions",
+    expectedFeatureName: "WikipediaSuggestions",
     expectedScore: score,
     expectedResult: makeExpectedWikipediaResult({
       keyword,

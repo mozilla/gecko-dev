@@ -21,8 +21,10 @@ const EXPECTED_PREFS_BY_REGION = {
     "suggest.quicksuggest.nonsponsored": true,
     "suggest.quicksuggest.sponsored": true,
     "addons.featureGate": true,
+    "amp.featureGate": true,
     "mdn.featureGate": true,
     "weather.featureGate": true,
+    "wikipedia.featureGate": true,
     "yelp.featureGate": true,
   },
   GB: {
@@ -32,8 +34,10 @@ const EXPECTED_PREFS_BY_REGION = {
     "suggest.quicksuggest.nonsponsored": true,
     "suggest.quicksuggest.sponsored": true,
     "addons.featureGate": false,
+    "amp.featureGate": true,
     "mdn.featureGate": false,
     "weather.featureGate": true,
+    "wikipedia.featureGate": true,
     "yelp.featureGate": false,
   },
 };
@@ -46,8 +50,10 @@ const EXPECTED_PREFS_DISABLED = {
   "suggest.quicksuggest.nonsponsored": false,
   "suggest.quicksuggest.sponsored": false,
   "addons.featureGate": false,
+  "amp.featureGate": false,
   "mdn.featureGate": false,
   "weather.featureGate": false,
+  "wikipedia.featureGate": false,
   "yelp.featureGate": false,
 };
 

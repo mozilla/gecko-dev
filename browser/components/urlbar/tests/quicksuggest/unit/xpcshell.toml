@@ -12,8 +12,6 @@ firefox-appdir = "browser"
 
 ["test_quicksuggest_dynamicSuggestions.js"]
 
-["test_quicksuggest_dynamicWikipedia.js"]
-
 ["test_quicksuggest_exposures.js"]
 
 ["test_quicksuggest_exposures_locales.js"]
