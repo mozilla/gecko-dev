@@ -2423,7 +2423,7 @@ LargeBuffer* BufferAllocator::lookupLargeBuffer(void* alloc, MaybeLock& lock) {
     lock.emplace(this);
   }
 
-  auto ptr = largeAllocMap.ref().lookup(alloc);
+  auto ptr = largeAllocMap.ref().readonlyThreadsafeLookup(alloc);
   MOZ_ASSERT(ptr);
   LargeBuffer* buffer = ptr->value();
   MOZ_ASSERT(buffer->data() == alloc);
