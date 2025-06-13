@@ -58,13 +58,14 @@ With all of the information found from those, there are two main things that can
 
 The second is requesting a confirmation from the performance sheriff that the patch which caused the alert is definitely the correct one. This can happen when the metric is very noisy, and the change is small (in the area of 2-3%, our threshold of detection). The sheriff will conduct more retriggers on the test, and may ask some clarifying questions about the patch.
 
-If there are any questions about the alert, or additional help is needed with debugging the alert feel free to needinfo the performance sheriff that reported the bug. The performance sheriff most suitable for adding a needinfo to can be identified on the regression bug via the user who added a ``status-firefox [X]: --- → affected`` comment. In the future, this person `will be identified in comment zero <https://bugzilla.mozilla.org/show_bug.cgi?id=1914174>`_.
+If there are any questions about the alert, or additional help is needed with debugging the alert feel free to needinfo the performance sheriff that reported the bug. The performance sheriff most suitable for adding a needinfo to can be identified in comment zero of the bug.
 
 Alert Resolution
 ----------------
 
-**There are 3 main resolutions for these alert bugs which depend on what you find in your investigations:**
- #. A ``WONTFIX`` resolution which implies that a change was detected, but it won't be fixed. It's possible to have this resolution on a bug which produces regressions, but the improvements outweigh those regressions. Harness-related changes are often resolved this way as well since we consider them baseline changes.
+**There are 4 main resolutions for these alert bugs which depend on what you find in your investigations:**
+ #. A ``WONTFIX`` resolution which implies that a change was detected, but it won't be fixed. It's possible to have this resolution on a bug which produces regressions, but the improvements outweigh those regressions.
+ #. A ``WORKSFORME`` resolution which implies that a detection was valid, but there was no actual change to the product's performance. Harness-related changes are often resolved this way as well since we consider them baseline changes and do not change the performance characteristics of the product.
  #. An ``INVALID`` resolution which implies that the detection was invalid, and there wasn't a change to performance metrics. These are generally rare, as performance sheriffs tend to invalidate the alerts before a bug is produced, and tend to be related to infrastructure changes or very noisy tests where a culprit can't be determined accurately.
  #. A ``FIXED`` resolution which implies that a change was detected, and a fix was made to resolve it.
 

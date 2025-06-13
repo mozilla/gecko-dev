@@ -188,7 +188,7 @@ Depending on the developer's response, one of five things may happen:
     - Reach out to a sheriff in ``#sheriffs`` on Matrix to request the backout.
 
       - Ensure that they understand that if they’re actively working on it, they can provide an update on the alert bug to prevent a backout.
-      - Ensure that they understand that they can close the bug with ``WONTFIX``/``INCOMPLETE`` if they aren’t actively working on it, or they think it isn’t a big issue. They can file a follow-up bug to look into the issue further in the future.
+      - Ensure that they understand that they can close the bug with ``WONTFIX``/``INCOMPLETE`` if they aren’t actively working on it, or they think it isn’t a big issue. They can file a follow-up bug to look into the issue further in the future. If it's been determined that there is no actual performance issue but there was a detection, they could close the bug as ``WORKSFORME``.
 
  #. **Developer provides an update on the alert bug:**
 
