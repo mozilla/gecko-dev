@@ -133,6 +133,139 @@ add_task(async function copiesToClipboard() {
 });
 
 /**
+ * Tests the "Remove all Highlights" context menu item.
+ *
+ * This test checks that the menu item is present and enabled if there is a
+ * text fragment in the URL.
+ * It also checks that after removing the highlights the URL in the URL bar
+ * does not contain the text fragment anymore. In this test, there is no fragment
+ * in the URL, so the URL must not have a hash (not even an empty one), because
+ * this would trigger a hashchange event and the page would scroll to the top.
+ */
+add_task(async function removesAllHighlightsWithEmptyFragment() {
+  await BrowserTestUtils.withNewTab(
+    "https://www.example.com/",
+    async function (browser) {
+      await loremIpsumTestPage(false)(browser);
+      await SpecialPowers.spawn(browser, [], async function () {
+        content.location.hash = ":~:text=lorem";
+      });
+
+      is(
+        gURLBar.value,
+        "www.example.com/#:~:text=lorem",
+        "URL bar does contain a hash after adding a text fragment"
+      );
+      let contextMenu = document.getElementById("contentAreaContextMenu");
+
+      let awaitPopupShown = BrowserTestUtils.waitForEvent(
+        contextMenu,
+        "popupshown"
+      );
+      await BrowserTestUtils.synthesizeMouseAtCenter(
+        "#text",
+        { type: "contextmenu", button: 2 },
+        browser
+      );
+      await awaitPopupShown;
+      let awaitPopupHidden = BrowserTestUtils.waitForEvent(
+        contextMenu,
+        "popuphidden"
+      );
+
+      let removeAllHighlights = contextMenu.querySelector(
+        "#context-remove-all-highlights"
+      );
+      ok(removeAllHighlights, '"Remove all Highlights" menu item is present');
+      ok(
+        BrowserTestUtils.isVisible(removeAllHighlights),
+        '"Remove all Highlights" menu item is visible'
+      );
+      let awaitLocationChange = BrowserTestUtils.waitForLocationChange(
+        gBrowser,
+        "https://www.example.com/"
+      );
+      removeAllHighlights
+        .closest("menupopup")
+        .activateItem(removeAllHighlights);
+
+      await awaitPopupHidden;
+      await awaitLocationChange;
+
+      is(
+        gURLBar.value,
+        "www.example.com",
+        "The URL does not contain a text fragment anymore, and also no fragment (not even an empty one)"
+      );
+    }
+  );
+});
+
+/**
+ * Tests the "Remove all Highlights" context menu item for a page which has both
+ * a fragment and a text fragment in the URL. After removing the highlights,
+ * the text fragment should be removed from the URL, but the fragment must still
+ * be there.
+ */
+add_task(async function removesAllHighlightsWithNonEmptyFragment() {
+  await BrowserTestUtils.withNewTab(
+    "https://www.example.com/",
+    async function (browser) {
+      await loremIpsumTestPage(false)(browser);
+      await SpecialPowers.spawn(browser, [], async function () {
+        content.location.hash = "foo:~:text=lorem";
+      });
+
+      is(
+        gURLBar.value,
+        "www.example.com/#foo:~:text=lorem",
+        "URL bar does contain a fragment and a text fragment"
+      );
+      let contextMenu = document.getElementById("contentAreaContextMenu");
+      let awaitPopupShown = BrowserTestUtils.waitForEvent(
+        contextMenu,
+        "popupshown"
+      );
+      await BrowserTestUtils.synthesizeMouseAtCenter(
+        "#text",
+        { type: "contextmenu", button: 2 },
+        browser
+      );
+      await awaitPopupShown;
+      let awaitPopupHidden = BrowserTestUtils.waitForEvent(
+        contextMenu,
+        "popuphidden"
+      );
+
+      let removeAllHighlights = contextMenu.querySelector(
+        "#context-remove-all-highlights"
+      );
+      ok(removeAllHighlights, '"Remove all Highlights" menu item is present');
+      ok(
+        BrowserTestUtils.isVisible(removeAllHighlights),
+        '"Remove all Highlights" menu item is visible'
+      );
+      let awaitLocationChange = BrowserTestUtils.waitForLocationChange(
+        gBrowser,
+        "https://www.example.com/#foo"
+      );
+      removeAllHighlights
+        .closest("menupopup")
+        .activateItem(removeAllHighlights);
+
+      await awaitPopupHidden;
+      await awaitLocationChange;
+
+      is(
+        gURLBar.value,
+        "www.example.com/#foo",
+        "Text Fragment is removed from the URL, fragment is still there"
+      );
+    }
+  );
+});
+
+/**
  * Creates a document which contains a contenteditable element with some content.
  * Additionally selects the editable content.
  *
