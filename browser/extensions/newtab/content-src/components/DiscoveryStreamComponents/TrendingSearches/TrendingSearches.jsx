@@ -213,8 +213,20 @@ function TrendingSearches() {
                   setRef={item => (resultRef.current[index] = item)}
                   tabIndex={index === 0 ? 0 : -1}
                 >
-                  <span className="trending-searches-icon icon icon-arrow-trending"></span>
-                  {result.lowerCaseSuggestion}
+                  {result.icon ? (
+                    <div className="trending-icon-wrapper">
+                      <img src={result.icon} alt="" className="trending-icon" />
+                      <div className="trending-info-wrapper">
+                        {result.lowerCaseSuggestion}
+                        <small>{result.description}</small>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="trending-searches-icon icon icon-arrow-trending"></span>
+                      {result.lowerCaseSuggestion}
+                    </>
+                  )}
                 </SafeAnchor>
               </li>
             );

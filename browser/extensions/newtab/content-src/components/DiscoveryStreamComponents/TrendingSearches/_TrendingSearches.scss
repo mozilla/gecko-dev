@@ -113,9 +113,23 @@
         outline: var(--focus-outline);
       }
 
+      .trending-icon-wrapper {
+        display: flex;
+        align-items: center;
+      }
+
       .trending-searches-icon {
         color: var(--newtab-text-primary-color);
-        margin-inline: var(--space-medium);
+        margin-inline: var(--space-medium) var(--space-large);
+      }
+
+      .trending-info-wrapper {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .trending-info-wrapper small {
+        color: var(--newtab-contextual-text-secondary-color);
       }
     }
 
@@ -132,6 +146,19 @@
       &:focus {
         outline: none;
       }
+
+      &:has(.trending-icon) {
+        display: flex;
+        align-items: center;
+      }
+    }
+
+    .trending-searches-list-item a img {
+      height: var(--icon-size-xlarge);
+      width: var(--icon-size-xlarge);
+      margin-inline: 0 var(--space-medium);
+      border-radius: var(--border-radius-medium);
+      object-fit: contain;
     }
   }
 }

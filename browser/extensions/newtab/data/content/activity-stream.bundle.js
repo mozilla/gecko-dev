@@ -5085,9 +5085,17 @@ function TrendingSearches() {
         title: result.suggestion,
         setRef: item => resultRef.current[index] = item,
         tabIndex: index === 0 ? 0 : -1
-      }, /*#__PURE__*/React.createElement("span", {
+      }, result.icon ? /*#__PURE__*/React.createElement("div", {
+        className: "trending-icon-wrapper"
+      }, /*#__PURE__*/React.createElement("img", {
+        src: result.icon,
+        alt: "",
+        className: "trending-icon"
+      }), /*#__PURE__*/React.createElement("div", {
+        className: "trending-info-wrapper"
+      }, result.lowerCaseSuggestion, /*#__PURE__*/React.createElement("small", null, result.description))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
         className: "trending-searches-icon icon icon-arrow-trending"
-      }), result.lowerCaseSuggestion));
+      }), result.lowerCaseSuggestion)));
     })));
   }
 }
