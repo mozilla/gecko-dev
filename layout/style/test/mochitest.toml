@@ -14,7 +14,6 @@ prefs = [
   "layout.css.basic-shape-shape.enabled=true",
   "layout.css.basic-shape-xywh.enabled=true",
   "layout.css.transform-box-content-stroke.enabled=true",
-  "layout.css.transition-behavior.enabled=true",
   "layout.css.field-sizing.enabled=true",
   "layout.css.anchor-positioning.enabled=true",
 ]

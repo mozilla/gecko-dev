@@ -9584,13 +9584,6 @@
   mirror: always
   rust: true
 
-# Whether transition-behavior property is enabled?
-- name: layout.css.transition-behavior.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-  rust: true
-
 # Whether @starting-style is enabled?
 - name: layout.css.starting-style-at-rules.enabled
   type: RelaxedAtomicBool
