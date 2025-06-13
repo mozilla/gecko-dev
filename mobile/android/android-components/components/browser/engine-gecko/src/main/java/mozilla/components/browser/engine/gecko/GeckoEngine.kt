@@ -356,7 +356,6 @@ class GeckoEngine(
     /**
      * See [Engine.registerWebExtensionDelegate].
      */
-    @Suppress("Deprecation")
     override fun registerWebExtensionDelegate(
         webExtensionDelegate: WebExtensionDelegate,
     ) {
@@ -368,6 +367,7 @@ class GeckoEngine(
                 ext: org.mozilla.geckoview.WebExtension,
                 permissions: Array<out String>,
                 origins: Array<out String>,
+                dataCollectionPermissions: Array<out String>,
             ): GeckoResult<NativePermissionPromptResponse>? {
                 val result = GeckoResult<NativePermissionPromptResponse>()
 
@@ -375,6 +375,7 @@ class GeckoEngine(
                     GeckoWebExtension(ext, runtime),
                     permissions.toList(),
                     origins.toList(),
+                    dataCollectionPermissions.toList(),
                 ) { data ->
                     result.complete(
                         NativePermissionPromptResponse(

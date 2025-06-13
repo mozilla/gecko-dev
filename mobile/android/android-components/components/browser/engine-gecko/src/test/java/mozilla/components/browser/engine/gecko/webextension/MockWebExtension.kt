@@ -34,9 +34,12 @@ fun mockNativeWebExtensionMetaData(
     requiredPermissions: Array<String> = emptyArray(),
     optionalPermissions: Array<String> = emptyArray(),
     grantedOptionalPermissions: Array<String> = emptyArray(),
-    grantedOptionalOrigins: Array<String> = emptyArray(),
-    optionalOrigins: Array<String> = emptyArray(),
     requiredOrigins: Array<String> = emptyArray(),
+    optionalOrigins: Array<String> = emptyArray(),
+    grantedOptionalOrigins: Array<String> = emptyArray(),
+    requiredDataCollectionPermissions: Array<String> = emptyArray(),
+    optionalDataCollectionPermissions: Array<String> = emptyArray(),
+    grantedOptionalDataCollectionPermissions: Array<String> = emptyArray(),
     name: String? = null,
     description: String? = null,
     version: String? = null,
@@ -65,10 +68,13 @@ fun mockNativeWebExtensionMetaData(
     ReflectionUtils.setField(metadata, "icon", icon)
     ReflectionUtils.setField(metadata, "requiredPermissions", requiredPermissions)
     ReflectionUtils.setField(metadata, "requiredOrigins", requiredOrigins)
+    ReflectionUtils.setField(metadata, "requiredDataCollectionPermissions", requiredDataCollectionPermissions)
     ReflectionUtils.setField(metadata, "optionalPermissions", optionalPermissions)
-    ReflectionUtils.setField(metadata, "grantedOptionalPermissions", grantedOptionalPermissions)
     ReflectionUtils.setField(metadata, "optionalOrigins", optionalOrigins)
+    ReflectionUtils.setField(metadata, "optionalDataCollectionPermissions", optionalDataCollectionPermissions)
+    ReflectionUtils.setField(metadata, "grantedOptionalPermissions", grantedOptionalPermissions)
     ReflectionUtils.setField(metadata, "grantedOptionalOrigins", grantedOptionalOrigins)
+    ReflectionUtils.setField(metadata, "grantedOptionalDataCollectionPermissions", grantedOptionalDataCollectionPermissions)
     ReflectionUtils.setField(metadata, "name", name)
     ReflectionUtils.setField(metadata, "description", description)
     ReflectionUtils.setField(metadata, "version", version)

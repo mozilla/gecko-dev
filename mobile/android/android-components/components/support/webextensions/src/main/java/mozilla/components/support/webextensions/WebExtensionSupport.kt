@@ -309,6 +309,7 @@ object WebExtensionSupport {
                     extension: WebExtension,
                     permissions: List<String>,
                     origins: List<String>,
+                    dataCollectionPermissions: List<String>,
                     onConfirm: (PermissionPromptResponse) -> Unit,
                 ) {
                     store.dispatch(
@@ -317,6 +318,7 @@ object WebExtensionSupport {
                                 extension,
                                 permissions,
                                 origins,
+                                dataCollectionPermissions,
                                 onConfirm,
                             ),
                         ),

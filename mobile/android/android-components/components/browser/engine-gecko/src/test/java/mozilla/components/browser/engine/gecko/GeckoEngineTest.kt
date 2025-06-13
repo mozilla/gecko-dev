@@ -108,7 +108,6 @@ import org.mozilla.geckoview.WebExtension as GeckoWebExtension
 
 typealias GeckoInstallException = org.mozilla.geckoview.WebExtension.InstallException
 
-@Suppress("DEPRECATION")
 @RunWith(AndroidJUnit4::class)
 class GeckoEngineTest {
 
@@ -1377,6 +1376,7 @@ class GeckoEngineTest {
         val extension = mockNativeWebExtension("test", "uri")
         val permissions = arrayOf("some", "permissions")
         val origins = arrayOf("and some", "origins")
+        val dataCollectionPermissions = arrayOf("some", "data", "collection", "perms")
         val webExtensionsDelegate: WebExtensionDelegate = mock()
         val engine = GeckoEngine(context, runtime = runtime)
 
@@ -1386,7 +1386,7 @@ class GeckoEngineTest {
         verify(webExtensionController).promptDelegate = geckoDelegateCaptor.capture()
 
         val result =
-            geckoDelegateCaptor.value.onInstallPromptRequest(extension, permissions, origins)
+            geckoDelegateCaptor.value.onInstallPromptRequest(extension, permissions, origins, dataCollectionPermissions)
 
         val extensionCaptor = argumentCaptor<WebExtension>()
         val onConfirmCaptor = argumentCaptor<((PermissionPromptResponse) -> Unit)>()
@@ -1395,6 +1395,7 @@ class GeckoEngineTest {
             extensionCaptor.capture(),
             eq(permissions.asList()),
             eq(origins.asList()),
+            eq(dataCollectionPermissions.asList()),
             onConfirmCaptor.capture(),
         )
 
@@ -1424,6 +1425,7 @@ class GeckoEngineTest {
         val extension = mockNativeWebExtension("test", "uri")
         val permissions = arrayOf("some", "permissions")
         val origins = arrayOf("and some", "origins")
+        val dataCollectionPermissions = arrayOf("some", "data", "collection", "perms")
         val webExtensionsDelegate: WebExtensionDelegate = mock()
         val engine = GeckoEngine(context, runtime = runtime)
 
@@ -1432,7 +1434,8 @@ class GeckoEngineTest {
         val geckoDelegateCaptor = argumentCaptor<WebExtensionController.PromptDelegate>()
         verify(webExtensionController).promptDelegate = geckoDelegateCaptor.capture()
 
-        val result = geckoDelegateCaptor.value.onInstallPromptRequest(extension, permissions, origins)
+        val result =
+            geckoDelegateCaptor.value.onInstallPromptRequest(extension, permissions, origins, dataCollectionPermissions)
 
         val extensionCaptor = argumentCaptor<WebExtension>()
         val onConfirmCaptor = argumentCaptor<((PermissionPromptResponse) -> Unit)>()
@@ -1441,6 +1444,7 @@ class GeckoEngineTest {
             extensionCaptor.capture(),
             eq(permissions.asList()),
             eq(origins.asList()),
+            eq(dataCollectionPermissions.asList()),
             onConfirmCaptor.capture(),
         )
 
@@ -1470,6 +1474,7 @@ class GeckoEngineTest {
         val extension = mockNativeWebExtension("test", "uri")
         val permissions = arrayOf("some", "permissions")
         val origins = arrayOf("and some", "origins")
+        val dataCollectionPermissions = arrayOf("some", "data", "collection", "perms")
         val webExtensionsDelegate: WebExtensionDelegate = mock()
         val engine = GeckoEngine(context, runtime = runtime)
 
@@ -1479,7 +1484,7 @@ class GeckoEngineTest {
         verify(webExtensionController).promptDelegate = geckoDelegateCaptor.capture()
 
         val result =
-            geckoDelegateCaptor.value.onInstallPromptRequest(extension, permissions, origins)
+            geckoDelegateCaptor.value.onInstallPromptRequest(extension, permissions, origins, dataCollectionPermissions)
 
         val extensionCaptor = argumentCaptor<WebExtension>()
         val onConfirmCaptor = argumentCaptor<((PermissionPromptResponse) -> Unit)>()
@@ -1488,6 +1493,7 @@ class GeckoEngineTest {
             extensionCaptor.capture(),
             eq(permissions.asList()),
             eq(origins.asList()),
+            eq(dataCollectionPermissions.asList()),
             onConfirmCaptor.capture(),
         )
 

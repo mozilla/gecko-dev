@@ -415,10 +415,13 @@ class GeckoWebExtensionTest {
                 disabledFlags = DisabledFlags.USER,
                 temporary = true,
                 requiredPermissions = arrayOf("p1", "p2"),
+                requiredDataCollectionPermissions = arrayOf("none"),
                 optionalPermissions = arrayOf("clipboardRead"),
-                grantedOptionalPermissions = arrayOf("clipboardRead"),
                 optionalOrigins = arrayOf("*://*.example.com/*", "*://opt-host-perm.example.com/*"),
+                optionalDataCollectionPermissions = arrayOf("technicalAndInteraction", "healthInfo"),
+                grantedOptionalPermissions = arrayOf("clipboardRead"),
                 grantedOptionalOrigins = arrayOf("*://*.example.com/*"),
+                grantedOptionalDataCollectionPermissions = arrayOf("technicalAndInteraction"),
                 fullDescription = "fullDescription",
                 downloadUrl = "downloadUrl",
                 reviewUrl = "reviewUrl",
@@ -439,6 +442,9 @@ class GeckoWebExtensionTest {
         assertEquals(listOf("*://*.example.com/*"), metadata.grantedOptionalOrigins)
         assertEquals(listOf("p1", "p2"), metadata.requiredPermissions)
         assertEquals(listOf("o1", "o2"), metadata.requiredOrigins)
+        assertEquals(listOf("none"), metadata.requiredDataCollectionPermissions)
+        assertEquals(listOf("technicalAndInteraction", "healthInfo"), metadata.optionalDataCollectionPermissions)
+        assertEquals(listOf("technicalAndInteraction"), metadata.grantedOptionalDataCollectionPermissions)
         assertEquals("desc", metadata.description)
         assertEquals("developer1", metadata.developerName)
         assertEquals("https://developer1.dev", metadata.developerUrl)

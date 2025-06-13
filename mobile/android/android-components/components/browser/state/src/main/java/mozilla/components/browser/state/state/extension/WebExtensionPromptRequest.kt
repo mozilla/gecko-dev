@@ -50,6 +50,7 @@ sealed class WebExtensionPromptRequest {
              * @property extension The [WebExtension] that requested the dialog to be shown.
              * @property permissions The permissions to list in the dialog.
              * @property origins The origins to list in the dialog.
+             * @property dataCollectionPermissions The data collection permissions to list in the dialog.
              * @property onConfirm A callback indicating the prompt has been confirmed and pass
              * [PermissionPromptResponse] result.
              */
@@ -57,6 +58,7 @@ sealed class WebExtensionPromptRequest {
                 override val extension: WebExtension,
                 val permissions: List<String>,
                 val origins: List<String>,
+                val dataCollectionPermissions: List<String>,
                 val onConfirm: (PermissionPromptResponse) -> Unit,
             ) : Permissions(extension)
 
