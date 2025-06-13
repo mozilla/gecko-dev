@@ -7,6 +7,8 @@ prefs = [
 
 ["browser_taskbarTabs_chromeTest.js"]
 
+["browser_taskbarTabs_cmd.js"]
+
 ["browser_taskbarTabs_pageAction.js"]
 
 ["browser_taskbarTabs_uriTest.js"]
