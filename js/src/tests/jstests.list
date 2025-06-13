@@ -703,8 +703,6 @@ skip script test262/intl402/PluralRules/prototype/resolvedOptions/properties.js
 skip script test262/intl402/PluralRules/prototype/resolvedOptions/order.js
 skip script test262/intl402/PluralRules/prototype/constructor/notation.js
 
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1962010
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/rule-change-without-offset-transition.js
 
 
 ###########################################################

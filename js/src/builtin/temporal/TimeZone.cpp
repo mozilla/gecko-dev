@@ -538,6 +538,30 @@ static bool GetNamedTimeZoneOffsetNanoseconds(
 }
 
 /**
+ * Check if the time zone offset at UTC time |utcMilliseconds1| is the same as
+ * the time zone offset at UTC time |utcMilliseconds2|.
+ */
+static bool EqualTimeZoneOffset(JSContext* cx,
+                                mozilla::intl::TimeZone* timeZone,
+                                int64_t utcMilliseconds1,
+                                int64_t utcMilliseconds2, bool* result) {
+  auto offset1 = timeZone->GetOffsetMs(utcMilliseconds1);
+  if (offset1.isErr()) {
+    intl::ReportInternalError(cx, offset1.unwrapErr());
+    return false;
+  }
+
+  auto offset2 = timeZone->GetOffsetMs(utcMilliseconds2);
+  if (offset2.isErr()) {
+    intl::ReportInternalError(cx, offset2.unwrapErr());
+    return false;
+  }
+
+  *result = offset1.unwrap() == offset2.unwrap();
+  return true;
+}
+
+/**
  * GetNamedTimeZoneNextTransition ( timeZoneIdentifier, epochNanoseconds )
  */
 bool js::temporal::GetNamedTimeZoneNextTransition(
@@ -559,26 +583,50 @@ bool js::temporal::GetNamedTimeZoneNextTransition(
     return false;
   }
 
-  auto next = tz->GetNextTransition(millis);
-  if (next.isErr()) {
-    intl::ReportInternalError(cx, next.unwrapErr());
-    return false;
-  }
+  // Skip over transitions which don't change the time zone offset.
+  //
+  // ICU4C returns all time zone rule changes as transitions, even if the
+  // actual time zone offset didn't change. Temporal requires to ignore these
+  // rule changes and instead only return transitions if the time zone offset
+  // did change.
+  while (true) {
+    auto next = tz->GetNextTransition(millis);
+    if (next.isErr()) {
+      intl::ReportInternalError(cx, next.unwrapErr());
+      return false;
+    }
 
-  auto transition = next.unwrap();
-  if (!transition) {
-    *result = mozilla::Nothing();
+    // If there's no next transition, we're done.
+    auto transition = next.unwrap();
+    if (!transition) {
+      *result = mozilla::Nothing();
+      return true;
+    }
+
+    // Check if the time offset at the next transition is equal to the current
+    // time zone offset.
+    bool equalOffset;
+    if (!EqualTimeZoneOffset(cx, tz, millis, *transition, &equalOffset)) {
+      return false;
+    }
+
+    // If the time zone offset is equal, then search for the next transition
+    // after |transition|.
+    if (equalOffset) {
+      millis = *transition;
+      continue;
+    }
+
+    // Otherwise return |transition| as the next transition.
+    auto transitionInstant = EpochNanoseconds::fromMilliseconds(*transition);
+    if (!IsValidEpochNanoseconds(transitionInstant)) {
+      *result = mozilla::Nothing();
+      return true;
+    }
+
+    *result = mozilla::Some(transitionInstant);
     return true;
   }
-
-  auto transitionInstant = EpochNanoseconds::fromMilliseconds(*transition);
-  if (!IsValidEpochNanoseconds(transitionInstant)) {
-    *result = mozilla::Nothing();
-    return true;
-  }
-
-  *result = mozilla::Some(transitionInstant);
-  return true;
 }
 
 /**
@@ -609,10 +657,47 @@ bool js::temporal::GetNamedTimeZonePreviousTransition(
     return false;
   }
 
+  // If there's no previous transition, we're done.
   auto transition = previous.unwrap();
   if (!transition) {
     *result = mozilla::Nothing();
     return true;
+  }
+
+  // Skip over transitions which don't change the time zone offset.
+  //
+  // ICU4C returns all time zone rule changes as transitions, even if the
+  // actual time zone offset didn't change. Temporal requires to ignore these
+  // rule changes and instead only return transitions if the time zone offset
+  // did change.
+  while (true) {
+    // Request the transition before |transition|.
+    auto beforePrevious = tz->GetPreviousTransition(*transition);
+    if (beforePrevious.isErr()) {
+      intl::ReportInternalError(cx, beforePrevious.unwrapErr());
+      return false;
+    }
+
+    // If there's no before transition, stop searching.
+    auto beforePreviousTransition = beforePrevious.unwrap();
+    if (!beforePreviousTransition) {
+      break;
+    }
+
+    // Check if the time zone offset at both transition points is equal.
+    bool equalOffset;
+    if (!EqualTimeZoneOffset(cx, tz, *transition, *beforePreviousTransition,
+                             &equalOffset)) {
+      return false;
+    }
+
+    // If time zone offset is not equal, then return |transition|.
+    if (!equalOffset) {
+      break;
+    }
+
+    // Otherwise continue searching from |beforePreviousTransition|.
+    transition = beforePreviousTransition;
   }
 
   auto transitionInstant = EpochNanoseconds::fromMilliseconds(*transition);
