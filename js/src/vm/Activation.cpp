@@ -8,7 +8,7 @@
 
 #include "mozilla/Assertions.h"  // MOZ_ASSERT
 
-#include "vm/JSContext.h"   // JSContext, js::TlsContext
+#include "vm/JSContext.h"  // JSContext, js::TlsContext
 
 using namespace js;
 
