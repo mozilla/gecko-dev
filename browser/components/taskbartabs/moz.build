@@ -5,24 +5,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXTRA_JS_MODULES.taskbartabs += [
+    "TaskbarTabCmd.sys.mjs",
     "TaskbarTabs.sys.mjs",
-    "TaskbarTabsChrome.sys.mjs",
-    "TaskbarTabsCmd.sys.mjs",
-    "TaskbarTabsPageAction.sys.mjs",
-    "TaskbarTabsPin.sys.mjs",
-    "TaskbarTabsRegistry.sys.mjs",
-    "TaskbarTabsUtils.sys.mjs",
-    "TaskbarTabsWindowManager.sys.mjs",
+    "TaskbarTabUI.sys.mjs",
 ]
-
-JAR_MANIFESTS += ["jar.mn"]
 
 BROWSER_CHROME_MANIFESTS += [
     "test/browser/browser.toml",
-]
-
-XPCSHELL_TESTS_MANIFESTS += [
-    "test/xpcshell/xpcshell.toml",
 ]
 
 XPCOM_MANIFESTS += [
