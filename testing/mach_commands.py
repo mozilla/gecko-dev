@@ -7,7 +7,7 @@ import logging
 import os
 import sys
 from datetime import date, timedelta
-from typing import List, Optional
+from typing import Optional
 
 import requests
 from mach.decorators import Command, CommandArgument, SubCommand
@@ -1400,7 +1400,7 @@ def high_freq_skipfails(command_context, failures: str, days: str):
 )
 def clean_skipfails(
     command_context,
-    manifest_search_path: List[str],
+    manifest_search_path: list[str],
     os_name: Optional[str] = None,
     os_version: Optional[str] = None,
     processor: Optional[str] = None,

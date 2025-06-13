@@ -15,7 +15,7 @@ import urllib.parse
 from copy import deepcopy
 from pathlib import Path
 from statistics import median
-from typing import Any, Dict, List, Literal, Tuple, Union
+from typing import Any, Literal, Union
 from xmlrpc.client import Fault
 
 from failedplatform import FailedPlatform
@@ -197,26 +197,26 @@ class Skipfails:
         self.jobs_url = "https://treeherder.mozilla.org/api/jobs/"
         self.push_ids = {}
         self.job_ids = {}
-        self.extras: Dict[str, PlatformInfo] = {}
+        self.extras: dict[str, PlatformInfo] = {}
         self.bugs = []  # preloaded bugs, currently not an updated cache
         self.error_summary = {}
         self._subtest_rx = None
         self.lmp = None
         self.failure_types = None
-        self.failed_platforms: Dict[str, FailedPlatform] = {}
-        self.platform_permutations: Dict[
+        self.failed_platforms: dict[str, FailedPlatform] = {}
+        self.platform_permutations: dict[
             str,  # Manifest
-            Dict[
+            dict[
                 str,  # OS
-                Dict[
+                dict[
                     str,  # OS Version
-                    Dict[
+                    dict[
                         str,  # Processor
-                        Dict[
+                        dict[
                             str,  # Build type
-                            Dict[
+                            dict[
                                 str,  # Test Variant
-                                Dict[str, int],  # {'pass': x, 'fail': y}
+                                dict[str, int],  # {'pass': x, 'fail': y}
                             ],
                         ],
                     ],
@@ -328,7 +328,7 @@ class Skipfails:
                         pixels = []
                         status = FAIL
                         lineno = failures[manifest][LL][label][PP][path].get(LINENO, 0)
-                        runs: Dict[str, Dict[str, Any]] = failures[manifest][LL][label][
+                        runs: dict[str, dict[str, Any]] = failures[manifest][LL][label][
                             PP
                         ][path][RUNS]
                         # skip_failure only needs to run against one task for each path
@@ -443,7 +443,7 @@ class Skipfails:
         except ValueError:
             return task.label
 
-    def get_failures(self, tasks: List[TestTask]):
+    def get_failures(self, tasks: list[TestTask]):
         """
         find failures and create structure comprised of runs by path:
            result:
@@ -459,7 +459,7 @@ class Skipfails:
         """
 
         failures = {}
-        manifest_paths: Dict[str, Dict[str, List[str]]] = {}
+        manifest_paths: dict[str, dict[str, list[str]]] = {}
         manifest_ = {
             KIND: Kind.UNKNOWN,
             LL: {},
@@ -855,7 +855,7 @@ class Skipfails:
         path: str,
         skip_if: str,
         filename: str,
-        anyjs: Optional[Dict[str, bool]],
+        anyjs: Optional[dict[str, bool]],
         lineno: Optional[int],
         label: Optional[str],
         classification: Optional[str],
@@ -1010,9 +1010,9 @@ class Skipfails:
         platform_info: Optional[PlatformInfo] = None,
         bug_id: Optional[str] = None,
         high_freq: bool = False,
-        anyjs: Optional[Dict[str, bool]] = None,
-        differences: Optional[List[int]] = None,
-        pixels: Optional[List[int]] = None,
+        anyjs: Optional[dict[str, bool]] = None,
+        differences: Optional[list[int]] = None,
+        pixels: Optional[list[int]] = None,
         lineno: Optional[int] = None,
         status: Optional[str] = None,
         label: Optional[str] = None,
@@ -1238,12 +1238,12 @@ class Skipfails:
         )
 
         # Typing from findTask is wrong, so we need to convert to Any
-        result: Optional[Dict[str, Any]] = index.findTask(route)
+        result: Optional[dict[str, Any]] = index.findTask(route)
         if result is not None:
             task_id: str = result["taskId"]
             result = queue.listLatestArtifacts(task_id)
             if result is not None and task_id is not None:
-                artifact_list: List[Dict[Literal["name"], str]] = result["artifacts"]
+                artifact_list: list[dict[Literal["name"], str]] = result["artifacts"]
                 for artifact in artifact_list:
                     artifact_name = artifact["name"]
                     if artifact_name.endswith("test-info-testrun-matrix.json"):
@@ -1690,7 +1690,7 @@ class Skipfails:
 
     def wpt_paths(
         self, shortpath: str
-    ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
+    ) -> tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
         """
         Analyzes the WPT short path for a test and returns
         (path, manifest, query, anyjs) where

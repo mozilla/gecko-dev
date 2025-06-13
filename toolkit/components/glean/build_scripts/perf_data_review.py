@@ -9,8 +9,8 @@ This was mostly copies from glean_parser, and should be kept in sync.
 """
 
 import re
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from glean_parser import parser, util
 

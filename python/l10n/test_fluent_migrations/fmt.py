@@ -4,10 +4,10 @@ import os
 import re
 import shutil
 import sys
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 from difflib import unified_diff
 from subprocess import check_call
-from typing import Iterable
 
 from compare_locales.merge import merge_channels
 from compare_locales.paths.configparser import TOMLParser

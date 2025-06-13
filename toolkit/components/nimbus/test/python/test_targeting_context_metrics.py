@@ -5,10 +5,10 @@ import json
 import os
 import subprocess
 import unittest
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, List, TypedDict
+from typing import Any, TypedDict
 
 import mozunit
 import yaml
@@ -21,7 +21,7 @@ TOPSRCDIR = NIMBUS_DIR.parent.parent.parent
 MACH = TOPSRCDIR / "mach"
 
 
-def run_mach(args: List[str], *, env: Dict[str, str] = None):
+def run_mach(args: list[str], *, env: dict[str, str] = None):
     if os.name == "nt":
         command = ["py", str(MACH), *args]
     else:
@@ -45,7 +45,7 @@ def run_mach(args: List[str], *, env: Dict[str, str] = None):
         raise
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_metrics():
     with METRICS_PATH.open() as f:
         return yaml.safe_load(f)
@@ -58,11 +58,11 @@ class TargetingPref(TypedDict):
 
 
 class TargetingContextDump(TypedDict):
-    prefs: List[TargetingPref]
-    values: List[str]
+    prefs: list[TargetingPref]
+    values: list[str]
 
 
-@lru_cache(maxsize=None)
+@cache
 def dump_targeting_context() -> TargetingContextDump:
     # Because we cannot run `mach xpcshell` in CI, we also allow our callers
     # to set the DUMP_TARGETING_CONTEXT_PATH environment variable to the path
@@ -100,8 +100,8 @@ class TargetingContextMetricTests(unittest.TestCase):
         self,
         category_name: str,
         metric_name: str,
-        defaults: Dict[str, Any],
-        metric: Dict[str, Any],
+        defaults: dict[str, Any],
+        metric: dict[str, Any],
     ):
         for key in (
             "bugs",

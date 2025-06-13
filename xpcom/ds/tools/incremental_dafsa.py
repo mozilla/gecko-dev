@@ -10,12 +10,12 @@ functions for converting to a compatible structure. This legacy format is define
 in make_dafsa.py.
 """
 
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Optional
 
 
 class Node:
-    children: Dict[str, "Node"]
-    parents: Dict[str, List["Node"]]
+    children: dict[str, "Node"]
+    parents: dict[str, list["Node"]]
     character: str
     is_root_node: bool
     is_end_node: bool
@@ -232,7 +232,7 @@ class DafsaAppendStateMachine:
     root_node: Node
     prefix_index: int
     suffix_cursor: SuffixCursor
-    stack: List[Node]
+    stack: list[Node]
     word: str
     suffix_overlaps_prefix: bool
     first_fork_index: Optional[int]

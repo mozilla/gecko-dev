@@ -8,7 +8,6 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -79,7 +78,7 @@ SETUP = {
 
 
 class RepoTestFixture:
-    def __init__(self, repo_dir: Path, vcs: str, steps: List[str]):
+    def __init__(self, repo_dir: Path, vcs: str, steps: list[str]):
         self.dir = repo_dir
         self.vcs = vcs
 

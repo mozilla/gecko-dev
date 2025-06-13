@@ -59,7 +59,7 @@ def log_copy_result(log, elapsed, destdir, result):
 _MSIX_ARCH = {"x86": "x86", "x86_64": "x64", "aarch64": "arm64"}
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def sdk_tool_search_path():
     from mozbuild.configure import ConfigureSandbox
 

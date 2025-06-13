@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import tomlkit
 from mozfile import which
@@ -39,7 +39,7 @@ class GeneratePythonLockfiles(MozbuildObject):
         self.mach_dependencies = []
         self.return_code = 0
 
-    def setup(self, keep_lockfiles: bool, sites: Optional[List[str]] = None) -> None:
+    def setup(self, keep_lockfiles: bool, sites: Optional[list[str]] = None) -> None:
         self.keep_lockfiles = keep_lockfiles
 
         all_sites = {
@@ -137,7 +137,7 @@ class GeneratePythonLockfiles(MozbuildObject):
         else:
             print(f"Successfully created lockfile for {site_name}")
 
-    def run(self, keep_lockfiles: bool, sites: Optional[List[str]] = None) -> int:
+    def run(self, keep_lockfiles: bool, sites: Optional[list[str]] = None) -> int:
         try:
             self.output_dir = Path(tempfile.mkdtemp(prefix="mach_python_lockfiles_"))
             self.setup(keep_lockfiles, sites)

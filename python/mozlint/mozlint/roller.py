@@ -16,7 +16,6 @@ from math import ceil
 from multiprocessing import get_context
 from multiprocessing.queues import Queue
 from subprocess import CalledProcessError
-from typing import Dict, Set
 
 import mozpack.path as mozpath
 from mozbuild.util import cpu_count
@@ -265,7 +264,7 @@ class LintRoller:
             return 1
         return 0
 
-    def should_lint_entire_tree(self, vcs_paths: Set[str], linter: Dict) -> bool:
+    def should_lint_entire_tree(self, vcs_paths: set[str], linter: dict) -> bool:
         """Return `True` if the linter should be run on the entire tree."""
         # Don't lint the entire tree when `--fix` is passed to linters.
         if "fix" in self.lintargs and self.lintargs["fix"]:

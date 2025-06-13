@@ -12,7 +12,8 @@ import math
 import pathlib
 import re
 import sys
-from typing import Iterable, NamedTuple, TypeVar
+from collections.abc import Iterable
+from typing import NamedTuple, TypeVar
 
 ARGS = sys.argv[1:]
 DEST = pathlib.Path(__file__).parent / "_generated_reftest.list"

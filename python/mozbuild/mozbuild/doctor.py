@@ -8,7 +8,7 @@ import socket
 import subprocess
 import sys
 from pathlib import Path
-from typing import Callable, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import attr
 import mozpack.path as mozpath
@@ -241,7 +241,7 @@ def memory(**kwargs) -> DoctorCheck:
 
 
 @check
-def storage_freespace(topsrcdir: str, topobjdir: str, **kwargs) -> List[DoctorCheck]:
+def storage_freespace(topsrcdir: str, topobjdir: str, **kwargs) -> list[DoctorCheck]:
     """Check the host machine has the recommended disk space to develop Firefox."""
     topsrcdir_mount = get_mount_point(topsrcdir)
     topobjdir_mount = get_mount_point(topobjdir)
@@ -307,7 +307,7 @@ def fix_lastaccess_win():
 @check
 def fs_lastaccess(
     topsrcdir: str, topobjdir: str, **kwargs
-) -> Union[DoctorCheck, List[DoctorCheck]]:
+) -> Union[DoctorCheck, list[DoctorCheck]]:
     """Check for the `lastaccess` behaviour on the filsystem, which can slow
     down filesystem operations."""
     if sys.platform.startswith("win"):
@@ -459,7 +459,7 @@ def mozillabuild(**kwargs) -> DoctorCheck:
 
 @check
 def artifact_build(
-    topsrcdir: str, configure_args: Optional[List[str]], **kwargs
+    topsrcdir: str, configure_args: Optional[list[str]], **kwargs
 ) -> DoctorCheck:
     """Check that if Artifact Builds are enabled, that no
     source files that would not be compiled are changed"""

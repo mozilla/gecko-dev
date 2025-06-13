@@ -30,7 +30,7 @@ def _raw_sandbox(extra_args=[]):
     return sandbox
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _bootstrap_sandbox():
     sandbox = _raw_sandbox()
     moz_configure = (

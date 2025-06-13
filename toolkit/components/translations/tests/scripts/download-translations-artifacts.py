@@ -10,7 +10,7 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import requests
 import yaml
@@ -26,7 +26,7 @@ def change_to_script_directory() -> None:
     print(f"\nChanged working directory to: {script_dir}\n")
 
 
-def load_yaml(file_path: Path) -> Dict[str, Any]:
+def load_yaml(file_path: Path) -> dict[str, Any]:
     """Load and parse the YAML file."""
     with file_path.open("r") as f:
         data = yaml.safe_load(f)

@@ -13,7 +13,7 @@ import types
 import uuid
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 from mozfile import load_source
 
@@ -476,7 +476,7 @@ def load_commands_from_file(path: Union[str, Path], module_name=None):
 
 
 def load_commands_from_spec(
-    spec: Dict[str, MachCommandReference], topsrcdir: str, missing_ok=False
+    spec: dict[str, MachCommandReference], topsrcdir: str, missing_ok=False
 ):
     """Load mach commands based on the given spec.
 

@@ -7,11 +7,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import (
-    Dict,
-    Optional,
-    Union,
-)
+from typing import Optional, Union
 
 from packaging.version import Version
 
@@ -32,7 +28,7 @@ from mozversioncontrol.repo.jj import (
 from mozversioncontrol.repo.mercurial import HgRepository
 from mozversioncontrol.repo.source import SrcRepository
 
-VCS_CLASSES: Dict[str, type] = {
+VCS_CLASSES: dict[str, type] = {
     "hg": HgRepository,
     "git": GitRepository,
     "jj": JujutsuRepository,

@@ -8,9 +8,9 @@ Create a Legacy Telemetry event definition for the provided, named Glean event m
 
 import re
 import sys
+from collections.abc import Sequence
 from os import path
 from pathlib import Path
-from typing import Sequence
 
 import yaml
 from glean_parser import parser, util

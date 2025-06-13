@@ -20,12 +20,7 @@ from dataclasses import (
     field,
 )
 from pathlib import Path
-from typing import (
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Optional, Union
 
 import requests
 from mach.util import get_state_dir
@@ -73,7 +68,7 @@ def load_token_from_disk() -> Optional[dict]:
 
 def get_stack_info(
     vcs: SupportedVcsRepository, head: Optional[str]
-) -> Tuple[str, str, List[str]]:
+) -> tuple[str, str, list[str]]:
     """Retrieve information about the current stack for submission via Lando.
 
     Returns a tuple of the current public base commit as a Mercurial SHA,
@@ -384,7 +379,7 @@ class LandoAPI:
 
     def post_try_push_patches(
         self,
-        patches: List[str],
+        patches: list[str],
         patch_format: str,
         base_commit: str,
         base_commit_vcs: str,

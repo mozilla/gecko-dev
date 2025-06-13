@@ -4,7 +4,7 @@
 
 
 import os
-from functools import lru_cache
+from functools import cache
 
 import yaml
 
@@ -47,7 +47,7 @@ def get_extensions(component):
     ]
 
 
-@lru_cache(maxsize=None)
+@cache
 def _read_build_config(root_dir):
     with open(os.path.join(root_dir, ".buildconfig.yml"), "rb") as f:
         return yaml.safe_load(f)

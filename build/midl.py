@@ -26,7 +26,7 @@ def relativize(path, base=None):
     return os.path.relpath(path, base)
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def files_in(path):
     return {p.lower(): os.path.join(path, p) for p in os.listdir(path)}
 

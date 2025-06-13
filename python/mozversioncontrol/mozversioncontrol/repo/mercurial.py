@@ -10,7 +10,7 @@ import subprocess
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from mozpack.files import FileListFinder
 
@@ -278,7 +278,7 @@ class HgRepository(Repository):
     def push_to_try(
         self,
         message: str,
-        changed_files: Dict[str, str] = {},
+        changed_files: dict[str, str] = {},
         allow_log_capture: bool = False,
     ):
         if changed_files:
@@ -315,8 +315,8 @@ class HgRepository(Repository):
         head: Optional[str] = None,
         base_ref: Optional[str] = None,
         limit: Optional[int] = None,
-        follow: Optional[List[str]] = None,
-    ) -> List[str]:
+        follow: Optional[list[str]] = None,
+    ) -> list[str]:
         """Return a list of commit SHAs for nodes on the current branch."""
         if not base_ref:
             base_ref = self.base_ref
@@ -337,7 +337,7 @@ class HgRepository(Repository):
 
         return self._run(*cmd).splitlines()
 
-    def get_commit_patches(self, nodes: List[str]) -> List[bytes]:
+    def get_commit_patches(self, nodes: list[str]) -> list[bytes]:
         """Return the contents of the patch `node` in the VCS' standard format."""
         # Running `hg export` once for each commit in a large stack is
         # slow, so instead we run it once and parse the output for each
@@ -369,7 +369,7 @@ class HgRepository(Repository):
 
     @contextmanager
     def try_commit(
-        self, commit_message: str, changed_files: Optional[Dict[str, str]] = None
+        self, commit_message: str, changed_files: Optional[dict[str, str]] = None
     ):
         """Create a temporary try commit as a context manager.
 

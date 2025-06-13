@@ -20,7 +20,7 @@ import subprocess
 import sys
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional, Union
 from urllib.parse import urlparse
 
 
@@ -45,7 +45,7 @@ def setup_logging():
 
 
 def run_command(
-    command: List[Union[str, bytes]], log_path: Optional[str] = None
+    command: list[Union[str, bytes]], log_path: Optional[str] = None
 ) -> int:
     """Execute a command, log its output, and check for errors.
 

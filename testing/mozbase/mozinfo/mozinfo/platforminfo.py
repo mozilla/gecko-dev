@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import yaml
 
@@ -31,14 +31,14 @@ class PlatformInfo:
         "debug-isolated-process": "isolated-process",
     }
 
-    def __init__(self, test_settings: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, test_settings: Optional[dict[str, Any]] = None) -> None:
         if test_settings is None:
             return
 
-        self._platform: Dict[str, Any] = test_settings["platform"]
-        self._platform_os: Dict[str, str] = self._platform["os"]
-        self._build: Dict[str, str] = test_settings["build"]
-        self._runtime: Dict[str, str] = test_settings.get("runtime", {})
+        self._platform: dict[str, Any] = test_settings["platform"]
+        self._platform_os: dict[str, str] = self._platform["os"]
+        self._build: dict[str, str] = test_settings["build"]
+        self._runtime: dict[str, str] = test_settings.get("runtime", {})
 
         self.build = self._platform_os.get("build")
         self.display = self._platform.get("display")
@@ -173,7 +173,7 @@ class PlatformInfo:
         return test_variant
 
     # Used for test data
-    def from_dict(self, data: Dict[str, Any]):
+    def from_dict(self, data: dict[str, Any]):
         self.os = data["os"]
         self.os_version = data["os_version"]
         self.arch = data["arch"]

@@ -4,7 +4,7 @@
 
 import json
 import logging
-from typing import List, Optional, Set, Tuple
+from typing import Optional
 
 import requests
 
@@ -24,7 +24,7 @@ class PlatformDiff:
         self.component = "platform-diff"
         self.task_id = task_id
         try:
-            self.replace: Optional[List[str]] = json.loads(replace) if replace else None
+            self.replace: Optional[list[str]] = json.loads(replace) if replace else None
         except json.JSONDecodeError:
             self.error(
                 f"Invalid JSON supplied to 'replace': '{replace}'. Ignoring parameter."
@@ -84,9 +84,9 @@ class PlatformDiff:
 
     def get_diff_lines(
         self, tgdiff: str
-    ) -> Tuple[Set[str], Set[Tuple[str, str]], Set[str], Set[str]]:
-        total_added: Set[str] = set()
-        total_removed: Set[Tuple[str, str]] = set()
+    ) -> tuple[set[str], set[tuple[str, str]], set[str], set[str]]:
+        total_added: set[str] = set()
+        total_removed: set[tuple[str, str]] = set()
         for line in tgdiff.split("\n"):
             if line.startswith("+++") or line.startswith("---"):
                 continue

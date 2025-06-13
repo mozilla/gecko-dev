@@ -7,7 +7,6 @@ import platform
 import shutil
 import subprocess
 from pathlib import Path
-from typing import List
 
 import mozfile
 
@@ -171,7 +170,7 @@ def create_dmg(
     source_directory: Path,
     output_dmg: Path,
     volume_name: str,
-    extra_files: List[tuple],
+    extra_files: list[tuple],
     dmg_tool: Path,
     hfs_tool: Path,
     mkfshfs_tool: Path,

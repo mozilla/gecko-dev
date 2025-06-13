@@ -5,7 +5,7 @@
 import contextlib
 import os
 from pathlib import Path
-from typing import Dict, Union
+from typing import Union
 
 from mozpack.files import FileListFinder
 
@@ -143,7 +143,7 @@ class SrcRepository(Repository):
     def push_to_try(
         self,
         message: str,
-        changed_files: Dict[str, str] = {},
+        changed_files: dict[str, str] = {},
         allow_log_capture: bool = False,
     ):
         pass

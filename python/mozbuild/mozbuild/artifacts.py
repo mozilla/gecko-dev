@@ -1249,7 +1249,7 @@ class Artifacts:
         return subprocess.check_output([self._hg] + list(args), **kwargs)
 
     @property
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _is_git_cinnabar(self):
         if self._git:
             try:
@@ -1270,7 +1270,7 @@ class Artifacts:
         return False
 
     @property
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _git_repo_kind(self):
         for kind, commit in (
             ("firefox", "2ca566cd74d5d0863ba7ef0529a4f88b2823eb43"),

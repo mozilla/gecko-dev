@@ -12,7 +12,7 @@ import sys
 import tempfile
 import traceback
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 import appdirs
 import yaml
@@ -232,7 +232,7 @@ def show_taskgraph(options):
     overrides = {
         "target-kinds": options.get("target_kinds"),
     }
-    parameters: List[Any[str, Parameters]] = options.pop("parameters")
+    parameters: list[Any[str, Parameters]] = options.pop("parameters")
     if not parameters:
         parameters = [
             parameters_loader(None, strict=False, overrides=overrides)

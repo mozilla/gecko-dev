@@ -8,7 +8,6 @@ import os
 import subprocess
 import sys
 from dataclasses import dataclass, field
-from typing import List
 
 from mozlint import result
 from mozlint.pathutils import expand_exclusions
@@ -102,7 +101,7 @@ class PathGroup:
 
     crate_name: str
     crate_root: str
-    paths: List[str] = field(default_factory=list)
+    paths: list[str] = field(default_factory=list)
 
 
 def lint(paths, config, log, root, substs=None, fix=None, **_lintargs):

@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import Optional
 
 from manifestparser.manifestparser import ManifestParser
 from manifestparser.toml import alphabetize_toml_str, remove_skip_if
@@ -85,7 +85,7 @@ class CleanSkipfails:
                 fp = open(manifest_path, "w", encoding="utf-8", newline="\n")
                 fp.write(manifest_str)
                 fp.close()
-                removed_condition: List[str] = []
+                removed_condition: list[str] = []
                 if self.os_name is not None:
                     removed_condition.append(f"'os == {self.os_name}'")
                 if self.os_version is not None:
@@ -101,7 +101,7 @@ class CleanSkipfails:
                         f'Did not find skip-if conditions to remove for {", ".join(removed_condition)} in manifest: "{manifest_path}"'
                     )
 
-    def get_manifest_paths(self) -> Set[str]:
+    def get_manifest_paths(self) -> set[str]:
         resolver = TestResolver.from_environment(cwd=self.manifest_search_path)
         if self.isdir(self.manifest_search_path):
             tests = list(resolver.resolve_tests(paths=[self.manifest_search_path]))

@@ -11,7 +11,6 @@ import os
 import sys
 import traceback
 from pathlib import Path
-from typing import List
 
 from .base import (
     CommandContext,
@@ -501,7 +500,7 @@ To see more help for a specific command, run:
             self.load_settings_by_file(setting_paths_to_pass)
             self.settings_loaded = True
 
-    def load_settings_by_file(self, paths: List[Path]):
+    def load_settings_by_file(self, paths: list[Path]):
         """Load the specified settings files.
 
         If a directory is specified, the following basenames will be

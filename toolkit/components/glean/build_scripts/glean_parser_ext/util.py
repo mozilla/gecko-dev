@@ -7,7 +7,6 @@ Utility functions for the glean_parser-based code generator
 """
 import copy
 from hashlib import sha1
-from typing import Dict, List, Tuple
 
 from glean_parser import util
 
@@ -87,12 +86,12 @@ def get_metrics(objs):
     return ret
 
 
-def type_ids_and_categories(objs) -> Tuple[Dict[str, Tuple[int, List[str]]], List[str]]:
+def type_ids_and_categories(objs) -> tuple[dict[str, tuple[int, list[str]]], list[str]]:
     """
     Iterates over the metrics in objs, constructing two metadata structures:
-     - metric_types: Dict[str, Tuple[int, List[str]]] - map from a metric
+     - metric_types: dict[str, tuple[int, list[str]]] - map from a metric
        type (snake_case) to its metric type id and ordered list of arguments.
-     - categories: List[str] - category names (snake_case)
+     - categories: list[str] - category names (snake_case)
 
     Is stable across invocations: Will generate same ids for same objs.
     (If it doesn't, JOG's factory disagreeing with GleanJSMetricsLookup

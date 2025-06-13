@@ -10,10 +10,11 @@ import stat
 import subprocess
 import sys
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Union
+from typing import Optional, Union
 
 from mach.util import (
     to_optional_path,
@@ -114,7 +115,7 @@ class GitRepository(Repository):
             if is_official_remote(url):
                 yield name
 
-    def get_mozilla_remote_args(self) -> List[str]:
+    def get_mozilla_remote_args(self) -> list[str]:
         """Return a list of `--remotes` arguments to limit commits to official remotes."""
         official_remotes = [
             f"--remotes={remote}" for remote in self.get_mozilla_upstream_remotes()
@@ -300,7 +301,7 @@ class GitRepository(Repository):
     def push_to_try(
         self,
         message: str,
-        changed_files: Dict[str, str] = {},
+        changed_files: dict[str, str] = {},
         allow_log_capture: bool = False,
     ):
         if not self.has_git_cinnabar:
@@ -339,8 +340,8 @@ class GitRepository(Repository):
         self,
         head: Optional[str] = None,
         limit: Optional[int] = None,
-        follow: Optional[List[str]] = None,
-    ) -> List[str]:
+        follow: Optional[list[str]] = None,
+    ) -> list[str]:
         """Return a list of commit SHAs for nodes on the current branch."""
         remote_args = self.get_mozilla_remote_args()
 
@@ -359,7 +360,7 @@ class GitRepository(Repository):
             cmd += ["--", *follow]
         return self._run(*cmd).splitlines()
 
-    def get_commit_patches(self, nodes: List[str]) -> List[bytes]:
+    def get_commit_patches(self, nodes: list[str]) -> list[bytes]:
         """Return the contents of the patch `node` in the VCS' standard format."""
         return [
             self._run("format-patch", node, "-1", "--always", "--stdout", encoding=None)
@@ -368,7 +369,7 @@ class GitRepository(Repository):
 
     @contextmanager
     def try_commit(
-        self, commit_message: str, changed_files: Optional[Dict[str, str]] = None
+        self, commit_message: str, changed_files: Optional[dict[str, str]] = None
     ):
         """Create a temporary try commit as a context manager.
 

@@ -6,7 +6,7 @@ import unittest
 from collections.abc import Iterable
 from io import StringIO
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import pytest
 from buildconfig import topsrcdir
@@ -24,7 +24,7 @@ def get_mach(request):
             return topsrcdir
 
     def inner(
-        provider_files: Optional[Union[Path, List[Path]]] = None,
+        provider_files: Optional[Union[Path, list[Path]]] = None,
         entry_point=None,
         context_handler=None,
     ):

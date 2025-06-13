@@ -6,7 +6,6 @@ Transform the beetmover task into an actual task description.
 """
 
 import logging
-from typing import List
 
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.dependencies import get_dependencies, get_primary_dependency
@@ -68,13 +67,13 @@ def remove_name(config, jobs):
 transforms.add_validate(beetmover_description_schema)
 
 
-def get_label_by_suffix(labels: List, suffix: str):
+def get_label_by_suffix(labels: list, suffix: str):
     """
     Given list of labels, returns the label with provided suffix
     Raises exception if more than one label is found.
 
     Args:
-        labels (List): List of labels
+        labels (list): List of labels
         suffix (str): Suffix for the desired label
 
     Returns

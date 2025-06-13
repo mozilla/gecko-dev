@@ -12,7 +12,7 @@ import sys
 import time
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Set, Union
+from typing import Optional, Union
 
 import requests
 from mach.util import get_state_dir
@@ -339,7 +339,7 @@ def get_os_tag_for_android(os_name: str):
 def ensure_android(
     os_name: str,
     os_arch: str,
-    packages: Optional[Set[str]] = None,
+    packages: Optional[set[str]] = None,
     artifact_mode=False,
     avd_manifest_path: Optional[Path] = None,
     prewarm_avd=False,
@@ -597,7 +597,7 @@ class AndroidPackageList(Enum):
 
 def get_android_packages(
     package_list_type: AndroidPackageList = AndroidPackageList.ALL,
-) -> Set[str]:
+) -> set[str]:
     packages_file_path = (Path(__file__).parent / package_list_type.value).resolve()
 
     content = packages_file_path.read_text()
@@ -609,7 +609,7 @@ def get_android_packages(
 def ensure_android_packages(
     os_name: str,
     os_arch: str,
-    packages: Optional[Set[str]],
+    packages: Optional[set[str]],
     avd_manifest=None,
     no_interactive=False,
     list_packages=False,

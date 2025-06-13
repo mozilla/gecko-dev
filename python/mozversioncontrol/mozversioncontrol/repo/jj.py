@@ -10,7 +10,7 @@ import sys
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import mozpack.path as mozpath
 from mozfile import which
@@ -273,7 +273,7 @@ class JujutsuRepository(Repository):
     def push_to_try(
         self,
         message: str,
-        changed_files: Dict[str, str] = {},
+        changed_files: dict[str, str] = {},
         allow_log_capture: bool = False,
     ):
         if not self.has_git_cinnabar:
@@ -322,8 +322,8 @@ class JujutsuRepository(Repository):
         self,
         head: Optional[str] = "@",
         limit: Optional[int] = None,
-        follow: Optional[List[str]] = None,
-    ) -> List[str]:
+        follow: Optional[list[str]] = None,
+    ) -> list[str]:
         """Return a list of commit SHAs for nodes on the current branch, in order that they should be applied."""
         # Note: lando gets grumpy if you try to push empty commits.
         cmd = [
@@ -347,7 +347,7 @@ class JujutsuRepository(Repository):
     def _looks_like_commit_id(self, id):
         return len(id) > 0 and all(letter in string.hexdigits for letter in id)
 
-    def get_commit_patches(self, nodes: List[str]) -> List[bytes]:
+    def get_commit_patches(self, nodes: list[str]) -> list[bytes]:
         """Return the contents of the patch `node` in the git standard format."""
         # Warning: tests, at least, may call this with change ids rather than
         # commit ids.
@@ -364,7 +364,7 @@ class JujutsuRepository(Repository):
 
     @contextmanager
     def try_commit(
-        self, commit_message: str, changed_files: Optional[Dict[str, str]] = None
+        self, commit_message: str, changed_files: Optional[dict[str, str]] = None
     ):
         """Create a temporary try commit as a context manager.
 

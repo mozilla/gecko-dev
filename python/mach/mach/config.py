@@ -20,7 +20,7 @@ import sys
 from configparser import NoSectionError, RawConfigParser
 from functools import wraps
 from pathlib import Path
-from typing import List, Union
+from typing import Union
 
 
 class ConfigException(Exception):
@@ -288,7 +288,7 @@ class ConfigSettings(collections.abc.Mapping):
     def load_file(self, filename: Union[str, Path]):
         self.load_files([Path(filename)])
 
-    def load_files(self, filenames: List[Path]):
+    def load_files(self, filenames: list[Path]):
         """Load a config from files specified by their paths.
 
         Files are loaded in the order given. Subsequent files will overwrite

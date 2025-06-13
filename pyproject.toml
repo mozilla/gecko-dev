@@ -1,6 +1,6 @@
 [tool.ruff]
 line-length = 99
-target-version = "py38"
+target-version = "py39"
 # See https://beta.ruff.rs/docs/rules/ for a full list of rules.
 lint.select = [
   "E", "W",    # pycodestyle

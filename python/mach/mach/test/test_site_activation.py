@@ -11,7 +11,6 @@ import sys
 import tempfile
 from pathlib import Path
 from subprocess import CompletedProcess
-from typing import List
 
 import buildconfig
 import mozunit
@@ -26,10 +25,10 @@ class ActivationContext:
         topsrcdir: Path,
         work_dir: Path,
         original_python_path: str,
-        stdlib_paths: List[Path],
-        system_paths: List[Path],
-        required_mach_sys_paths: List[Path],
-        mach_requirement_paths: List[Path],
+        stdlib_paths: list[Path],
+        system_paths: list[Path],
+        required_mach_sys_paths: list[Path],
+        mach_requirement_paths: list[Path],
         command_requirement_path: Path,
     ):
         self.topsrcdir = topsrcdir
@@ -344,7 +343,7 @@ def _activation_context():
         )
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def _original_python():
     current_site = MozSiteMetadata.from_runtime()
     stdlib_paths, system_paths = current_site.original_python.sys_path()
@@ -390,7 +389,7 @@ def _run_activation_script(
 
 def _run_activation_script_for_paths(
     context: ActivationContext, source: str, site_name: str, invoking_python: str = None
-) -> List[List[Path]]:
+) -> list[list[Path]]:
     """Return the states of the sys.path when activating Mach-managed sites
 
     Three sys.path states are returned:
@@ -415,7 +414,7 @@ def _run_activation_script_for_paths(
     ]
 
 
-def _assert_original_python_sys_path(context: ActivationContext, original: List[Path]):
+def _assert_original_python_sys_path(context: ActivationContext, original: list[Path]):
     # Assert that initial sys.path (prior to any activations) matches expectations.
     assert original == [
         Path(__file__).parent,
@@ -425,7 +424,7 @@ def _assert_original_python_sys_path(context: ActivationContext, original: List[
     ]
 
 
-def _sys_path_of_virtualenv(virtualenv: PythonVirtualenv) -> List[Path]:
+def _sys_path_of_virtualenv(virtualenv: PythonVirtualenv) -> list[Path]:
     output = subprocess.run(
         [virtualenv.python_path, "-c", "import sys; print(sys.path)"],
         stdout=subprocess.PIPE,
@@ -439,7 +438,7 @@ def _sys_path_of_virtualenv(virtualenv: PythonVirtualenv) -> List[Path]:
     return [Path(path) for path in _filter_pydev_from_paths(ast.literal_eval(output))]
 
 
-def _filter_pydev_from_paths(paths: List[str]) -> List[str]:
+def _filter_pydev_from_paths(paths: list[str]) -> list[str]:
     # Filter out injected "pydev" debugging tool if running within a JetBrains
     # debugging context.
     return [path for path in paths if "pydev" not in path and "JetBrains" not in path]

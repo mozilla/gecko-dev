@@ -27,7 +27,7 @@ import sys
 from argparse import ArgumentParser
 from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Union
+from typing import Any, NamedTuple, Union
 from urllib.parse import urlparse
 
 import jsonschema
@@ -43,17 +43,17 @@ class SchemaDefinition(NamedTuple):
     schema_path: Path
 
     #: The message types that will be bundled into the schema.
-    message_types: Dict[str, Path]
+    message_types: dict[str, Path]
 
     #: What common definitions to bundle into the schema.
     #:
     #: If `True`, all definitions will be bundled.
     #: If `False`, no definitons will be bundled.
     #: If a list, only the named definitions will be bundled.
-    bundle_common: Union[bool, List[str]]
+    bundle_common: Union[bool, list[str]]
 
     #: The testing corpus for the schema.
-    test_corpus: Dict[str, Path]
+    test_corpus: dict[str, Path]
 
 
 SCHEMA_DIR = Path("..", "templates")
@@ -393,7 +393,7 @@ def bundle_schema(schema_def: SchemaDefinition):
     }
 
 
-def check_diff(schema_def: SchemaDefinition, schema: Dict[str, Any]):
+def check_diff(schema_def: SchemaDefinition, schema: dict[str, Any]):
     """Check the generated schema matches the on-disk schema."""
     print(f"  Checking {schema_def.schema_path} for differences...")
 
@@ -411,7 +411,7 @@ def check_diff(schema_def: SchemaDefinition, schema: Dict[str, Any]):
         raise ValueError("Schemas do not match!")
 
 
-def validate_corpus(schema_def: SchemaDefinition, schema: Dict[str, Any]):
+def validate_corpus(schema_def: SchemaDefinition, schema: dict[str, Any]):
     """Check that the schema validates.
 
     This uses the same validation configuration that is used in Experimenter.

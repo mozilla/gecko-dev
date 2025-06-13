@@ -8,7 +8,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Set, Tuple, TypedDict
+from typing import Literal, Optional, TypedDict
 
 import requests
 from mozci.util.taskcluster import queue
@@ -36,12 +36,12 @@ class BugSuggestion(TypedDict):
 
 
 class TestInfoAllTestsItem(TypedDict):
-    manifest: List[str]
+    manifest: list[str]
     test: str
 
 
 class TestInfoAllTests(TypedDict):
-    tests: Dict[str, List[TestInfoAllTestsItem]]
+    tests: dict[str, list[TestInfoAllTestsItem]]
 
 
 class BugzillaFailure(TypedDict):
@@ -100,9 +100,9 @@ class HighFreqSkipfails:
         self.info("Fetching test_info_all_tests and caching it...")
         self.test_info_all_tests = self.get_test_info_all_tests()
 
-        manifest_errors: Set[Tuple[int, str]] = set()
+        manifest_errors: set[tuple[int, str]] = set()
 
-        task_data: Dict[str, Tuple[int, str, str]] = {}
+        task_data: dict[str, tuple[int, str, str]] = {}
         for bug_id, test_path in bug_list:
             self.info(f"Getting failures for bug '{bug_id}'...")
             failures_by_bug = self.get_failures_by_bug(bug_id)
@@ -166,7 +166,7 @@ class HighFreqSkipfails:
                     break
         return manifest
 
-    def get_bugs_to_inspect(self) -> List[Tuple[int, str]]:
+    def get_bugs_to_inspect(self) -> list[tuple[int, str]]:
         """
         Returns the id of bugs with the required amount of failures in the specified time range.
         Only bugs marked as `single tracking bugs` are taken into account.
@@ -180,9 +180,9 @@ class HighFreqSkipfails:
         return []
 
     def keep_bugs_above_threshold(
-        self, failure_list: List[BugzillaFailure]
-    ) -> List[int]:
-        filtered_failure_list: List[int] = []
+        self, failure_list: list[BugzillaFailure]
+    ) -> list[int]:
+        filtered_failure_list: list[int] = []
         if failure_list is not None:
             filtered_failure_list = [
                 item["bug_id"]
@@ -192,9 +192,9 @@ class HighFreqSkipfails:
         return filtered_failure_list
 
     def keep_single_tracking_bugs_with_path(
-        self, summaries: List[BugzillaSummary]
-    ) -> List[Tuple[int, str]]:
-        valid_bug_list: List[Tuple[int, str]] = []
+        self, summaries: list[BugzillaSummary]
+    ) -> list[tuple[int, str]]:
+        valid_bug_list: list[tuple[int, str]] = []
         for summary in summaries:
             if "single tracking bug" in summary["summary"]:
                 # Find the tests's relative path in the summary
@@ -210,13 +210,13 @@ class HighFreqSkipfails:
     #   API Calls   #
     #################
 
-    def get_bugzilla_summaries(self, bug_id_list: List[int]) -> List[BugzillaSummary]:
+    def get_bugzilla_summaries(self, bug_id_list: list[int]) -> list[BugzillaSummary]:
         url = f"https://bugzilla.mozilla.org/rest/bug?include_fields=summary,id&id={','.join([str(id) for id in bug_id_list])}"
         response = requests.get(url, headers={"User-agent": USER_AGENT})
-        json_response: Dict[Literal["bugs"], List[BugzillaSummary]] = response.json()
+        json_response: dict[Literal["bugs"], list[BugzillaSummary]] = response.json()
         return json_response["bugs"]
 
-    def get_bugzilla_failures(self, branch="trunk") -> List[BugzillaFailure]:
+    def get_bugzilla_failures(self, branch="trunk") -> list[BugzillaFailure]:
         url = f"https://treeherder.mozilla.org/api/failures/?startday={self.start_date.date()}&endday={self.end_date.date()}&tree={branch}&failurehash=all"
         response = requests.get(url, headers={"User-agent": USER_AGENT})
         # Some items may be missing the bug_id. Skip those
@@ -226,15 +226,15 @@ class HighFreqSkipfails:
             if "bug_id" in item and isinstance(item["bug_id"], int)
         ]
 
-    def get_failures_by_bug(self, bug: int, branch="trunk") -> List[FailureByBug]:
+    def get_failures_by_bug(self, bug: int, branch="trunk") -> list[FailureByBug]:
         url = f"https://treeherder.mozilla.org/api/failuresbybug/?startday={self.start_date.date()}&endday={self.end_date.date()}&tree={branch}&bug={bug}"
         response = requests.get(url, headers={"User-agent": USER_AGENT})
         json_data = response.json()
         return json_data
 
     def get_task_list(
-        self, task_id_list: List[str], branch="trunk"
-    ) -> List[Tuple[str, object]]:
+        self, task_id_list: list[str], branch="trunk"
+    ) -> list[tuple[str, object]]:
         tasks_response = queue.tasks({"taskIds": task_id_list})
         if tasks_response is not None:
             task_list = tasks_response["tasks"]

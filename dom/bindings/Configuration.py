@@ -5,7 +5,6 @@
 import itertools
 import os
 from collections import defaultdict
-from typing import List
 
 from WebIDL import IDLIncludesStatement, IDLInterface, IDLTypedef
 
@@ -43,7 +42,7 @@ class Configuration(DescriptorProvider):
     the configuration file.
     """
 
-    unionTypedefs: List[IDLTypedef]
+    unionTypedefs: list[IDLTypedef]
 
     class IDLAttrGetterOrSetterTemplate:
         class TemplateAdditionalArg:

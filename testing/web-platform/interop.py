@@ -10,8 +10,9 @@ import re
 import shutil
 import sys
 import tempfile
+from collections.abc import Iterable, Mapping
 from datetime import datetime
-from typing import Callable, Iterable, List, Mapping, Optional, Set, Tuple
+from typing import Callable, Optional
 
 repos = ["autoland", "mozilla-central", "try", "mozilla-central", "mozilla-beta", "wpt"]
 
@@ -83,9 +84,9 @@ def get_parser_interop_score() -> argparse.Namespace:
 
 
 def print_scores(
-    runs: Iterable[Tuple[str, str]],
-    results_by_category: Mapping[str, List[int]],
-    expected_failures_by_category: Optional[Mapping[str, List[Tuple[int, int]]]],
+    runs: Iterable[tuple[str, str]],
+    results_by_category: Mapping[str, list[int]],
+    expected_failures_by_category: Optional[Mapping[str, list[tuple[int, int]]]],
     include_total: bool,
 ):
     include_expected_failures = expected_failures_by_category is not None
@@ -145,8 +146,8 @@ def print_scores(
 
 
 def get_wptreports(
-    repo: str, commit: str, task_filters: List[str], log_dir: str, check_complete: bool
-) -> List[str]:
+    repo: str, commit: str, task_filters: list[str], log_dir: str, check_complete: bool
+) -> list[str]:
     import tcfetch
 
     return tcfetch.download_artifacts(
@@ -158,7 +159,7 @@ def get_wptreports(
     )
 
 
-def get_runs(commits: List[str]) -> List[Tuple[str, str]]:
+def get_runs(commits: list[str]) -> list[tuple[str, str]]:
     runs = []
     for item in commits:
         if ":" not in item:
@@ -171,7 +172,7 @@ def get_runs(commits: List[str]) -> List[Tuple[str, str]]:
 
 
 def get_category_filter(
-    category_filters: Optional[List[str]],
+    category_filters: Optional[list[str]],
 ) -> Optional[Callable[[str], bool]]:
     if category_filters is None:
         return None
@@ -202,8 +203,8 @@ def get_category_filter(
 
 
 def fetch_logs(
-    commits: List[str],
-    task_filters: List[str],
+    commits: list[str],
+    task_filters: list[str],
     log_dir: Optional[str],
     check_complete: bool,
     **kwargs,
@@ -220,7 +221,7 @@ def fetch_logs(
         get_wptreports(repo, commit, task_filters, log_dir, check_complete)
 
 
-def get_expected_failures(path: str) -> Mapping[str, Set[Optional[str]]]:
+def get_expected_failures(path: str) -> Mapping[str, set[Optional[str]]]:
     expected_failures = {}
     with open(path) as f:
         for i, entry in enumerate(csv.reader(f)):
@@ -251,12 +252,12 @@ def get_expected_failures(path: str) -> Mapping[str, Set[Optional[str]]]:
 
 
 def score_runs(
-    commits: List[str],
-    task_filters: List[str],
+    commits: list[str],
+    task_filters: list[str],
     log_dir: Optional[str],
     year: int,
     check_complete: bool,
-    category_filters: Optional[List[str]],
+    category_filters: Optional[list[str]],
     expected_failures: Optional[str],
     **kwargs,
 ):

@@ -10,7 +10,6 @@ import posixpath
 import re
 import subprocess
 from collections import defaultdict
-from typing import Dict
 
 import mozpack.path as mozpath
 import requests
@@ -1057,7 +1056,7 @@ class TestInfoReport(TestInfo):
             self.task_tuples[task_label] = platform_info
 
     matrix_map = defaultdict(list)
-    task_tuples: Dict[str, PlatformInfo] = {}
+    task_tuples: dict[str, PlatformInfo] = {}
 
     def find_non_test_path_loader(self, label):
         # TODO: how to keep this list synchronized?
