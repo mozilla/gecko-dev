@@ -57,9 +57,8 @@ const PREFS_FOR_SETTINGS = () => [
         "browser.newtabpage.activity-stream.system.trendingSearch.enabled",
         false
       ) &&
-        Services.prefs.getStringPref(
-          "browser.newtabpage.activity-stream.system.trendingSearch.defaultSearchEngine"
-        ) !== "Google"),
+        Services.prefs.getStringPref("browser.urlbar.placeholderName", "") !==
+          "Google"),
   },
   {
     id: "topsites",
