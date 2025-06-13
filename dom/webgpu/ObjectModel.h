@@ -54,7 +54,11 @@ class ObjectBase : public nsWrapperCache {
  protected:
   virtual ~ObjectBase() = default;
 
-  /// False during the destruction sequence of the object.
+  /// False during the destruction sequence of the object. This is not the same
+  /// thing as an object's valid state in the WebGPU spec. In the case of
+  /// render/compute pass encoders, this can also be false if the pass encoder
+  /// was created by calling beginRenderPass/beginComputePass on a command
+  /// encoder in the "ended" state (i.e. the pass was never valid).
   bool mValid = true;
 
  public:

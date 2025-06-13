@@ -11,6 +11,7 @@
 #include "RenderPipeline.h"
 #include "Utility.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
+#include "ipc/WebGPUChild.h"
 
 namespace mozilla::webgpu {
 
@@ -448,6 +449,12 @@ void RenderPassEncoder::InsertDebugMarker(const nsAString& aString) {
 }
 
 void RenderPassEncoder::End() {
+  if (mParent->GetState() != CommandEncoderState::Locked &&
+      mParent->GetBridge()->CanSend()) {
+    mParent->GetBridge()->SendReportError(mParent->GetDevice()->mId,
+                                          dom::GPUErrorFilter::Validation,
+                                          "Encoding must not have ended"_ns);
+  }
   if (!mValid) {
     return;
   }

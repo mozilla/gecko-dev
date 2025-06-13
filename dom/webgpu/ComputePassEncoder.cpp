@@ -10,8 +10,8 @@
 #include "ComputePipeline.h"
 #include "CommandEncoder.h"
 #include "Utility.h"
-
 #include "mozilla/webgpu/ffi/wgpu.h"
+#include "ipc/WebGPUChild.h"
 
 namespace mozilla::webgpu {
 
@@ -150,6 +150,12 @@ void ComputePassEncoder::InsertDebugMarker(const nsAString& aString) {
 }
 
 void ComputePassEncoder::End() {
+  if (mParent->GetState() != CommandEncoderState::Locked &&
+      mParent->GetBridge()->CanSend()) {
+    mParent->GetBridge()->SendReportError(mParent->GetDevice()->mId,
+                                          dom::GPUErrorFilter::Validation,
+                                          "Encoding must not have ended"_ns);
+  }
   if (!mValid) {
     return;
   }
