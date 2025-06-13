@@ -1,3 +1,5 @@
+// |jit-test| skip-if: !('scriptAddressForFunction' in this)
+
 with ({}) {}
 
 function makeObjWithFunctionGetter(n) {
