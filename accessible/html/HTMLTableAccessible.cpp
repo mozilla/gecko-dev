@@ -692,7 +692,7 @@ void HTMLTableAccessible::Description(nsString& aDescription) const {
 
 nsTableWrapperFrame* HTMLTableAccessible::GetTableWrapperFrame() const {
   nsTableWrapperFrame* tableFrame = do_QueryFrame(mContent->GetPrimaryFrame());
-  if (tableFrame && tableFrame->InnerTableFrame()) {
+  if (tableFrame && tableFrame->PrincipalChildList().FirstChild()) {
     return tableFrame;
   }
 
