@@ -302,16 +302,16 @@ static bool GetBooleanOption(JSContext* cx, HandleObject options,
  */
 static bool ApplyOptionsToTag(JSContext* cx, mozilla::intl::Locale& tag,
                               HandleObject options) {
-  // Steps 1-2 (Already performed in caller).
+  // Step 1. (Not applicable in our implementation.)
 
   Rooted<JSLinearString*> option(cx);
 
-  // Step 3.
+  // Step 2.
   if (!GetStringOption(cx, options, cx->names().language, &option)) {
     return false;
   }
 
-  // Step 4.
+  // Step 3.
   mozilla::intl::LanguageSubtag language;
   if (option && !intl::ParseStandaloneLanguageTag(option, language)) {
     if (UniqueChars str = QuoteString(cx, option, '"')) {
@@ -322,12 +322,12 @@ static bool ApplyOptionsToTag(JSContext* cx, mozilla::intl::Locale& tag,
     return false;
   }
 
-  // Step 5.
+  // Step 4.
   if (!GetStringOption(cx, options, cx->names().script, &option)) {
     return false;
   }
 
-  // Step 6.
+  // Step 5.
   mozilla::intl::ScriptSubtag script;
   if (option && !intl::ParseStandaloneScriptTag(option, script)) {
     if (UniqueChars str = QuoteString(cx, option, '"')) {
@@ -338,12 +338,12 @@ static bool ApplyOptionsToTag(JSContext* cx, mozilla::intl::Locale& tag,
     return false;
   }
 
-  // Step 7.
+  // Step 6.
   if (!GetStringOption(cx, options, cx->names().region, &option)) {
     return false;
   }
 
-  // Step 8.
+  // Step 7.
   mozilla::intl::RegionSubtag region;
   if (option && !intl::ParseStandaloneRegionTag(option, region)) {
     if (UniqueChars str = QuoteString(cx, option, '"')) {
@@ -354,28 +354,58 @@ static bool ApplyOptionsToTag(JSContext* cx, mozilla::intl::Locale& tag,
     return false;
   }
 
-  // Step 9 (Already performed in caller).
+  // Step 8.
+  if (!GetStringOption(cx, options, cx->names().variants, &option)) {
+    return false;
+  }
 
-  // Skip steps 10-13 when no subtags were modified.
-  if (language.Present() || script.Present() || region.Present()) {
-    // Step 10.
+  // Step 9.
+  mozilla::intl::Locale::VariantsVector variants;
+  if (option) {
+    bool ok;
+    if (!intl::ParseStandaloneVariantTag(option, variants, &ok)) {
+      ReportOutOfMemory(cx);
+      return false;
+    }
+    if (!ok) {
+      if (UniqueChars str = QuoteString(cx, option, '"')) {
+        JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr,
+                                  JSMSG_INVALID_OPTION_VALUE, "variants",
+                                  str.get());
+      }
+      return false;
+    }
+  }
+
+  // Skip steps 10-15 when no subtags were modified.
+  if (language.Present() || script.Present() || region.Present() ||
+      !variants.empty()) {
+    // Step 10. (Not applicable in our implementation.)
+
+    // Step 11.
     if (language.Present()) {
       tag.SetLanguage(language);
     }
 
-    // Step 11.
+    // Step 12.
     if (script.Present()) {
       tag.SetScript(script);
     }
 
-    // Step 12.
+    // Step 13.
     if (region.Present()) {
       tag.SetRegion(region);
     }
 
-    // Step 13.
-    // Optimized to only canonicalize the base-name subtags. All other
-    // canonicalization steps will happen later.
+    // Step 14.
+    if (!variants.empty()) {
+      tag.SetVariants(std::move(variants));
+    }
+
+    // Step 15.
+    //
+    // Optimization to perform base-name canonicalization early. This avoids
+    // extra work later on.
     auto result = tag.CanonicalizeBaseName();
     if (result.isErr()) {
       if (result.unwrapErr() ==
@@ -389,6 +419,7 @@ static bool ApplyOptionsToTag(JSContext* cx, mozilla::intl::Locale& tag,
     }
   }
 
+  // Step 16.
   return true;
 }
 
@@ -541,7 +572,7 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Steps 10-11.
+  // Step 10.
   RootedObject options(cx);
   if (args.hasDefined(1)) {
     options = ToObject(cx, args[1]);
@@ -550,7 +581,7 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
     }
   }
 
-  // ApplyOptionsToTag, steps 2 and 9.
+  // Step 11.
   mozilla::intl::Locale tag;
   if (!intl::ParseLocale(cx, tagLinearStr, tag)) {
     return false;
@@ -562,6 +593,7 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
                                  JSUseCounter::LEGACY_LANG_SUBTAG);
   }
 
+  // Step 12. (Optimized to only perform base-name canonicalization.)
   if (auto result = tag.CanonicalizeBaseName(); result.isErr()) {
     if (result.unwrapErr() ==
         mozilla::intl::Locale::CanonicalizationError::DuplicateVariant) {
@@ -574,21 +606,21 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   if (options) {
-    // Step 12.
+    // Step 13.
     if (!ApplyOptionsToTag(cx, tag, options)) {
       return false;
     }
 
-    // Step 13.
+    // Step 14.
     JS::RootedVector<intl::UnicodeExtensionKeyword> keywords(cx);
 
-    // Step 14.
+    // Step 15.
     Rooted<JSLinearString*> calendar(cx);
     if (!GetStringOption(cx, options, cx->names().calendar, &calendar)) {
       return false;
     }
 
-    // Steps 15-16.
+    // Steps 16-17.
     if (calendar) {
       bool isValid;
       if (!IsValidUnicodeExtensionValue(cx, calendar, &isValid)) {
@@ -609,13 +641,13 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
       }
     }
 
-    // Step 17.
+    // Step 18.
     Rooted<JSLinearString*> collation(cx);
     if (!GetStringOption(cx, options, cx->names().collation, &collation)) {
       return false;
     }
 
-    // Steps 18-19.
+    // Steps 19-20.
     if (collation) {
       bool isValid;
       if (!IsValidUnicodeExtensionValue(cx, collation, &isValid)) {
@@ -636,13 +668,13 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
       }
     }
 
-    // Step 20 (without validation).
+    // Step 21 (without validation).
     Rooted<JSLinearString*> hourCycle(cx);
     if (!GetStringOption(cx, options, cx->names().hourCycle, &hourCycle)) {
       return false;
     }
 
-    // Steps 20-21.
+    // Steps 21-22.
     if (hourCycle) {
       if (!StringEqualsLiteral(hourCycle, "h11") &&
           !StringEqualsLiteral(hourCycle, "h12") &&
@@ -661,13 +693,13 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
       }
     }
 
-    // Step 22 (without validation).
+    // Step 23 (without validation).
     Rooted<JSLinearString*> caseFirst(cx);
     if (!GetStringOption(cx, options, cx->names().caseFirst, &caseFirst)) {
       return false;
     }
 
-    // Steps 22-23.
+    // Steps 23-24.
     if (caseFirst) {
       if (!StringEqualsLiteral(caseFirst, "upper") &&
           !StringEqualsLiteral(caseFirst, "lower") &&
@@ -685,27 +717,27 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
       }
     }
 
-    // Steps 24-25.
+    // Steps 25-26.
     Rooted<JSLinearString*> numeric(cx);
     if (!GetBooleanOption(cx, options, cx->names().numeric, &numeric)) {
       return false;
     }
 
-    // Step 26.
+    // Step 27.
     if (numeric) {
       if (!keywords.emplaceBack("kn", numeric)) {
         return false;
       }
     }
 
-    // Step 27.
+    // Step 28.
     Rooted<JSLinearString*> numberingSystem(cx);
     if (!GetStringOption(cx, options, cx->names().numberingSystem,
                          &numberingSystem)) {
       return false;
     }
 
-    // Steps 28-29.
+    // Steps 29-30.
     if (numberingSystem) {
       bool isValid;
       if (!IsValidUnicodeExtensionValue(cx, numberingSystem, &isValid)) {
@@ -725,14 +757,13 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
       }
     }
 
-    // Step 30.
+    // Step 31.
     if (!ApplyUnicodeExtensionToTag(cx, tag, keywords)) {
       return false;
     }
   }
 
-  // ApplyOptionsToTag, steps 9 and 13.
-  // ApplyUnicodeExtensionToTag, step 9.
+  // ApplyUnicodeExtensionToTag, steps 6-7.
   if (auto result = tag.CanonicalizeExtensions(); result.isErr()) {
     if (result.unwrapErr() ==
         mozilla::intl::Locale::CanonicalizationError::DuplicateVariant) {
@@ -744,13 +775,13 @@ static bool Locale(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Steps 6, 31-37.
+  // Steps 6, 32-38.
   JSObject* obj = CreateLocaleObject(cx, proto, tag);
   if (!obj) {
     return false;
   }
 
-  // Step 38.
+  // Step 39.
   args.rval().setObject(*obj);
   return true;
 }

@@ -53,6 +53,15 @@ namespace intl {
     JS::Handle<JSLinearString*> str, mozilla::intl::RegionSubtag& result);
 
 /**
+ * Parse a string as a standalone |variant| tag sequence. If |str| is a
+ * standalone variant tag sequence, store all variant tags in |result| and
+ * return true. Otherwise return false.
+ */
+[[nodiscard]] bool ParseStandaloneVariantTag(
+    JS::Handle<JSLinearString*> str,
+    mozilla::intl::Locale::VariantsVector& result, bool* success);
+
+/**
  * Parse a string as an ISO-639 language code. Return |nullptr| in the result if
  * the input could not be parsed or the canonical form of the resulting language
  * tag contains more than a single language subtag.

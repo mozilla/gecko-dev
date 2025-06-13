@@ -651,6 +651,7 @@
   MACRO_(values, "values")                                                     \
   MACRO_(var, "var")                                                           \
   MACRO_(variable, "variable")                                                 \
+  MACRO_(variants, "variants")                                                 \
   MACRO_(void_, "void")                                                        \
   MACRO_(void_0_, "(void 0)")                                                  \
   MACRO_(waitAsync, "waitAsync")                                               \
