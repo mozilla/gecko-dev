@@ -112,7 +112,7 @@
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_extensions">పొడగింతలు</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">ఇంకా తెలుసుకోండి</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">ఇంకా తెలుసుకోండి</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">ఖాతా సమాచారం</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -170,7 +170,7 @@
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site">డెస్క్‌టాప్ సైటుకి మారండి</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">పనిముట్లు</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">పనిముట్లు</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">సహాయం</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -179,7 +179,7 @@
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">భద్రపరుచు</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">భద్రపరుచు</string>
   <!--
     Browser Toolbar
 

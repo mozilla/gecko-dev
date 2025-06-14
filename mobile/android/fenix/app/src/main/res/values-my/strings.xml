@@ -125,7 +125,7 @@
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">မျှဝေ</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">မျှဝေ…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">မျှဝေ…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").

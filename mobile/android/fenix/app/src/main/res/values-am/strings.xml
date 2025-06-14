@@ -209,25 +209,25 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">%s የራስዎ ያድርጉት</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">%s የራስዎ ያድርጉት</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">የተጫኑ ቅጥያዎች አሉዎት፣ ግን አልነቁም</string>
   <!--
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">ቅጥያዎች የአሰሳዎን ደረጃ ከፍ ያደርጋሉ፣ %s ምን እንደሚመስል እና እንዴት እንደሚሰራ ከመቀየር ጀምሮ እስከ ግላዊነትን እና ደህንነትን ማሳደግ ድረስ።</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">ቅጥያዎች የአሰሳዎን ደረጃ ከፍ ያደርጋሉ፣ %s ምን እንደሚመስል እና እንዴት እንደሚሰራ ከመቀየር ጀምሮ እስከ ግላዊነትን እና ደህንነትን ማሳደግ ድረስ።</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">ቅጥያዎችን ለመጠቀም በቅንብሮች ውስጥ ወይም ከታች “%s” ን በመምረጥ አንቃቸው።</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">ቅጥያዎችን ለመጠቀም በቅንብሮች ውስጥ ወይም ከታች “%s” ን በመምረጥ አንቃቸው።</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">ተጨማሪ ይወቁ</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">ተጨማሪ ይወቁ</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">ቅጥያዎችን ያስተዳድሩ</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">የሚመከሩ ቅጥያዎች</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">የሚመከሩ ቅጥያዎች</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -258,9 +258,9 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">መተግበሪያ ወደ መነሻ ማያ ገጽ ያክሉ</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">ወደ መነሻ ማያ ገጽ አክል…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">ወደ መነሻ ማያ ገጽ አክል…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-  <string name="browser_menu_add_app_to_homescreen_2">መተግበሪያን ወደ መነሻ ማያ ገጽ አክል…</string>
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">መተግበሪያን ወደ መነሻ ማያ ገጽ አክል…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">የXiaomi መሳሪያዎች ወደ መነሻ ስክሪን አቋራጮችን ለመጨመር ተጨማሪ ፈቃዶች ያስፈልጉ ይሆናል። እባክዎን ቅንብሮችዎን ያረጋግጡ።</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -268,17 +268,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">በገጽ ውስጥ ያግኙ</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">በገጽ ውስጥ ያግኙ…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">በገጽ ውስጥ ያግኙ…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">ገጽ ተርጉም</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">ወደ ስብስብ አስቀምጥ…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">ወደ ስብስብ አስቀምጥ…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">ወደ ስብስብ አስቀምጥ</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">አጋራ</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">ያጋሩ…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">ያጋሩ…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -313,7 +313,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">ይግቡ</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">የይለፍ ቃላትን፣ ትሮችን እና ሌሎችን አመሳስል</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">የይለፍ ቃላትን፣ ትሮችን እና ሌሎችን አመሳስል</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">ለማመሳሰል ተመልሰው ይግቡ</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -332,9 +332,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">ወደ ሞባይል ጣቢያ ቀይር</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">መሳሪያዎች</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">መሳሪያዎች</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">ወደ ዋናው ምናሌ ተመለስ</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">ወደ ዋናው ምናሌ ተመለስ</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">ዋናውን የምናሌ ገፅ ዝጋ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
@@ -350,34 +350,34 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">ብጁ የትር ምናሌ ገፅን ዝጋ</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site_2">የአንባቢ እይታ፣ ተርጉም፣ የተበላሸ ጣቢያን ሪፖርት አድርግ፣ አትም፣ አጋራ፣ መተግበሪያን ክፈት</string>
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">የአንባቢ እይታ፣ ተርጉም፣ የተበላሸ ጣቢያን ሪፖርት አድርግ፣ አትም፣ አጋራ፣ መተግበሪያን ክፈት</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">የአንባቢ እይታ፣ ተርጉም፣ አትም፣ አጋራ፣ መተግበሪያን ክፈት</string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">የአንባቢ እይታ፣ ተርጉም፣ አትም፣ አጋራ፣ መተግበሪያን ክፈት</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_report_site_2">የአንባቢ እይታ፣ የተበላሸ ጣቢያን ሪፖርት አድርግ፣ አትም፣ አጋራ፣ መተግበሪያን ክፈት</string>
+  <string name="browser_menu_tools_description_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">የአንባቢ እይታ፣ የተበላሸ ጣቢያን ሪፖርት አድርግ፣ አትም፣ አጋራ፣ መተግበሪያን ክፈት</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">የአንባቢ እይታ፣ አትም፣ አጋራ፣ መተግበሪያን ክፈት</string>
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">የአንባቢ እይታ፣ አትም፣ አጋራ፣ መተግበሪያን ክፈት</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">አስቀምጥ</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">አስቀምጥ</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">ዕልባት አክል፣ አቋራጭ፣ ዋና ገፅ፣ ስብስብ፣ ፒዲኤፍ</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">ዕልባት አክል፣ አቋራጭ፣ ዋና ገፅ፣ ስብስብ፣ ፒዲኤፍ</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">ለዚህ ገጽ ዕልባት ያድርጉ</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">እልባት አርትዕ</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">እንደ ፒዲኤፍ አስቀምጥ…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">እንደ ፒዲኤፍ አስቀምጥ…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">የአንባቢ እይታን ያብሩ</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">የአንባቢ እይታን ያብሩ</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">የአንባቢ እይታን ያጥፉ</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">የአንባቢ እይታን ያጥፉ</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_normal_tab">ወደ የግል ያልሆነ ትር ይሂዱ</string>
+  <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">ወደ የግል ያልሆነ ትር ይሂዱ</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">ገጽ ተርጉም…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">ገጽ ተርጉም…</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">የተበላሽ ጣቢያ አሳውቅ…</string>
   <!--
@@ -386,7 +386,7 @@
   -->
   <string name="browser_menu_translated_to">ወደ %1$s ተተርጉሟል</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">አትም…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">አትም…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -1484,7 +1484,6 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">ወደ ላይ አስስ</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">ተመለስ እና ፍለጋን ዝጋ</string>
-  <!-- Content description for the search bar clear text button on the downloads screen -->
   <string name="download_clear_search_description">አጽዳ</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">URL አጋራ</string>

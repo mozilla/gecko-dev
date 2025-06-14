@@ -184,11 +184,11 @@
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_extensions">Taq k\'amal</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">Tetamäx ch\'aqa\' chik</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">Tetamäx ch\'aqa\' chik</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Kinuk\'samajixik taq k\'amal</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">Chilab\'en taq k\'amal</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Chilab\'en taq k\'amal</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -215,7 +215,7 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">Tikanöx pa ruxaq</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">Tikanöx pa ruxaq…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">Tikanöx pa ruxaq…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">Titzalq\'omïx ruxaq</string>
   <!-- Browser menu button that saves the current tab to a collection -->
@@ -254,7 +254,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">Titikirisäx molojri\'ïl</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">Kexim ewan taq tzij, taq ruwi\', chuqa\' ch\'aqa\' chik</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Kexim ewan taq tzij, taq ruwi\', chuqa\' ch\'aqa\' chik</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Titikirisäx chik molojri\'ïl richin ximojri\'ïl</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -271,12 +271,12 @@
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site">Tik\'ex rik\'in ruxaq kematz\'ib\'</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">Samajib\'äl</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">Samajib\'äl</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">Tiyak</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">Tiyak</string>
   <!--
     Extensions management fragment
 

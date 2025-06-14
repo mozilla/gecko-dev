@@ -186,11 +186,11 @@
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_extensions">දිගු</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">තව දැනගන්න</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">තව දැනගන්න</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">දිගු කළමනාකරණය</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">නිර්දේශිත දිගු</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">නිර්දේශිත දිගු</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -221,9 +221,9 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">මුල් තිරයට යෙදුම දමන්න</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">මුල් තිරයට දමන්න…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">මුල් තිරයට දමන්න…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-  <string name="browser_menu_add_app_to_homescreen_2">මුල් තිරයට යෙදුම දමන්න…</string>
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">මුල් තිරයට යෙදුම දමන්න…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">මුල් තිරයට කෙටිමං එක් කිරීමට සියෝමි උපාංග වලට අමතර අවසර වුවමනා විය හැකිය. කරුණාකර ඔබගේ සැකසුම් පරීක්‍ෂා කරන්න.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -231,17 +231,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">පිටුවේ සොයන්න</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">පිටුවේ සොයන්න…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">පිටුවේ සොයන්න…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">පිටුව පරිවර්තනය</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">එකතුවට සුරකින්න…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">එකතුවට සුරකින්න…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">එකතුවට සුරකින්න</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">බෙදාගන්න</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">බෙදාගන්න…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">බෙදාගන්න…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -274,7 +274,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">පිවිසෙන්න</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">මුරපද, පටිති සහ තවත් දෑ සමමුහූර්ත කරන්න</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">මුරපද, පටිති සහ තවත් දෑ සමමුහූර්ත කරන්න</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">සමමුහූර්තයට පිවිසෙන්න</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -293,9 +293,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">ජංගම අඩවිය</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">මෙවලම්</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">මෙවලම්</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">ප්‍රධාන වට්ටෝරුවට ආපසු</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">ප්‍රධාන වට්ටෝරුවට ආපසු</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">ප්‍රධාන වට්ටෝරු පත්‍රය වසන්න</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
@@ -311,35 +311,35 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">අභිරුචි පටිති වට්ටෝරු පත්‍රය වසන්න</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">කියවීමේ දැක්ම, පරිවර්තනය, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">කියවීමේ දැක්ම, පරිවර්තනය, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">කියවීමේ දැක්ම, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">කියවීමේ දැක්ම, මුද්‍රණය, බෙදාගන්න, යෙදුම අරින්න</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">සුරකින්න</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">සුරකින්න</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">පොත්යොමු, කෙටිමං, මුල් පිටු, එකතු, PDF එක් කරන්න</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">පොත්යොමු, කෙටිමං, මුල් පිටු, එකතු, PDF එක් කරන්න</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">මෙම පිටුවට පොත්යොමුවක්</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">පොත්යොමුව සංස්කරණය</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">PDF ලෙස සුරකින්න…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">PDF ලෙස සුරකින්න…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">කියවීමේ දැක්ම සක්‍රිය කරන්න</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">කියවීමේ දැක්ම සක්‍රිය කරන්න</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">කියවීමේ දැක්ම අක්‍රිය කරන්න</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">කියවීමේ දැක්ම අක්‍රිය කරන්න</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">පිටුව පරිවර්තනය…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">පිටුව පරිවර්තනය…</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">%1$s වෙත පරිවර්තනය විය</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">මුද්‍රණය…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">මුද්‍රණය…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").

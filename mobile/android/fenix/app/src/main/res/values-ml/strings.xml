@@ -209,21 +209,21 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">%s താങ്ങളുടേതാക്കുക</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">%s താങ്ങളുടേതാക്കുക</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">നിങ്ങൾ വിപുലീകരണങ്ങൾ സ്ഥാപിച്ചിരിക്കുന്നു, പക്ഷേ പ്രവർത്തനക്ഷമമാക്കിയിട്ടില്ല</string>
   <!--
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">വിപുലീകരണങ്ങൾ താങ്ങളുടെ തിരയലിനെ സമനിലയിലാക്കുന്നു, %s എങ്ങനെ കാണുകയും പ്രവർത്തിക്കുകയും ചെയ്യുന്നു എന്നതു് മാറ്റുന്നതു് മുതൽ സ്വകാര്യതയും സുരക്ഷയും വർദ്ധിപ്പിക്കുന്നതു് വരെ.</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">വിപുലീകരണങ്ങൾ താങ്ങളുടെ തിരയലിനെ സമനിലയിലാക്കുന്നു, %s എങ്ങനെ കാണുകയും പ്രവർത്തിക്കുകയും ചെയ്യുന്നു എന്നതു് മാറ്റുന്നതു് മുതൽ സ്വകാര്യതയും സുരക്ഷയും വർദ്ധിപ്പിക്കുന്നതു് വരെ.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">വിപുലീകരണങ്ങൾ ഉപയോഗിക്കുന്നതിനു് ക്രമീകരണങ്ങളിൽ അല്ലെങ്കിൽ ചുവടെയുള്ള \"%s\" തിരഞ്ഞെടുത്തു് അതിനു് പ്രവർത്തനക്ഷമമാക്കുക.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">വിപുലീകരണങ്ങൾ ഉപയോഗിക്കുന്നതിനു് ക്രമീകരണങ്ങളിൽ അല്ലെങ്കിൽ ചുവടെയുള്ള \"%s\" തിരഞ്ഞെടുത്തു് അതിനു് പ്രവർത്തനക്ഷമമാക്കുക.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">കൂടുതലറിയുക</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">കൂടുതലറിയുക</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">വിപുലീകരണങ്ങൾ കൈകാര്യം ചെയ്യുക</string>
   <!-- Browser menu group that contains additional settings in collapsed state -->
@@ -231,7 +231,7 @@
   <!-- Browser menu group that contains additional settings in expanded state -->
   <string name="browser_menu_less_settings">കുറച്ചു്</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">ശുപാർശപെട്ട വിപുലീകരണങ്ങൾ</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">ശുപാർശപെട്ട വിപുലീകരണങ്ങൾ</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -264,9 +264,9 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">പ്രയോഗയന്ത്രാംശത്തിനു് ആമുഖതാളിലേക്കു് ചേർക്കുക</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">ആമുഖതാളിലേക്കു് ചേർക്കുക…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">ആമുഖതാളിലേക്കു് ചേർക്കുക…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-  <string name="browser_menu_add_app_to_homescreen_2">പ്രയോഗയന്ത്രാംശത്തിനു് ആമുഖതാളിലേക്കു് ചേർക്കുക…</string>
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">പ്രയോഗയന്ത്രാംശത്തിനു് ആമുഖതാളിലേക്കു് ചേർക്കുക…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi ഉപകരണങ്ങൾക്കു് ആമുഖപ്രതലത്തിലേക്കു് കുറുക്കുവഴികൾ ചേർക്കാൻ കൂടുതൽ അനുമതികൾ വേണ്ടപ്പെടും. ദയവായി താങ്ങളുടെ ക്രമീകരണങ്ങളിൽ നോക്കുക.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -274,17 +274,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">താളിൽ കണ്ടെത്തുക</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">താളിൽ കണ്ടെത്തുക…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">താളിൽ കണ്ടെത്തുക…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">താളിനു് തർജ്ജമചെയ്യുക</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">ശേഖരത്തിലേക്ക് കരുതിവയ്ക്കുക…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">ശേഖരത്തിലേക്ക് കരുതിവയ്ക്കുക…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">ശേഖരത്തിലേക്ക് കരുതിവയ്ക്കുക</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">പങ്കിടുക</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">പങ്കിടുക…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">പങ്കിടുക…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -319,7 +319,9 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">പ്രവേശിക്കൽ ചെയ്യുക</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">രഹസ്യവാക്കുകളും ടാബുകളും എന്നിവയും മറ്റും സമന്വയിപ്പിക്കുക</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">രഹസ്യവാക്കുകളും ടാബുകളും എന്നിവയും മറ്റും സമന്വയിപ്പിക്കുക</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_2">അടയാളക്കുറിപ്പുകളും രഹസ്യവാക്കുകളും ടാബുകളും എന്നിവയും മറ്റും സമന്വയിപ്പിക്കുക</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">സമന്വയിപ്പിക്കാനായി പ്രവേശിക്കൽ ചെയ്യുക</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -338,9 +340,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">മൊപൈൽ സൈറ്റിലേക്കു് മാറുക</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">ഉപകരണങ്ങള്‍</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">ഉപകരണങ്ങള്‍</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">പ്രധാന കുറിപ്പടിക്കട്ടയിലേക്കു് മടങ്ങുക</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">പ്രധാന കുറിപ്പടിക്കട്ടയിലേക്കു് മടങ്ങുക</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">പ്രധാന കുറിപ്പടി താളു് അടയ്ക്കുക</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
@@ -356,20 +358,20 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">ഇഷ്ടാനുസൃത ടാബുകുറിപ്പടി താളു് അടയ്ക്കുക</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site_2">വായന കാഴ്ച, വിവർത്തനം, തകർന്ന വെബ്സ്ഥാനത്തിനെ കുറിച്ചു് വിവരം അറിയിക്കുക,അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക</string>
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">വായന കാഴ്ച, വിവർത്തനം, തകർന്ന വെബ്സ്ഥാനത്തിനെ കുറിച്ചു് വിവരം അറിയിക്കുക,അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">വായന കാഴ്ച, വിവർത്തനം, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക</string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">വായന കാഴ്ച, വിവർത്തനം, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_report_site_2">വായന കാഴ്ച, തകർന്ന വെബ്സ്ഥാനത്തിനെ കുറിച്ചു് വിവരം അറിയിക്കുക,അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക</string>
+  <string name="browser_menu_tools_description_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">വായന കാഴ്ച, തകർന്ന വെബ്സ്ഥാനത്തിനെ കുറിച്ചു് വിവരം അറിയിക്കുക,അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">വായന കാഴ്ച, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക</string>
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">വായന കാഴ്ച, അച്ചടിപ്പു്, പങ്കിയൽ, പ്രയോഗം തുറക്കുക</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">കരുതിവയ്ക്കുക</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">കരുതിവയ്ക്കുക</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">അടയാളക്കുറിപ്പുവയ്ക്കുക, കുറുക്കുവഴി, ആമുഖം, ശേഖരം, പീ.ഡീ.എഫ.</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">അടയാളക്കുറിപ്പുവയ്ക്കുക, കുറുക്കുവഴി, ആമുഖം, ശേഖരം, പീ.ഡീ.എഫ.</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">ഈ താള്‍ അടയാളപ്പെടുത്തുക</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
@@ -377,17 +379,23 @@
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">അടയാളക്കുറിപ്പ് തിരുത്തുക</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">PDF ആയി കരുതിവയ്ക്കുക…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">PDF ആയി കരുതിവയ്ക്കുക…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">പീ.ഡീ.എഫ ആയി കരുതിവയ്ക്കുക</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">വായനാകാഴ്ച തുടങ്ങുക</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">വായനാകാഴ്ച തുടങ്ങുക</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">വായനാകാഴ്ച അണക്കുക</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">വായനാകാഴ്ച അണക്കുക</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_normal_tab">സ്വകാര്യമല്ലാത്ത ടാബിലേക്കു് നീക്കുക</string>
+  <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">സ്വകാര്യമല്ലാത്ത ടാബിലേക്കു് നീക്കുക</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">ഈ താളിന്റെ വിവർത്തനം ചെയ്യുക…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">ഈ താളിന്റെ വിവർത്തനം ചെയ്യുക…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">താളിന്റെ വിവൎത്തനം ചെയ്യുക</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">പൊട്ടിയ സൈറ്റിന്റെ വിവരം അറിയിക്കുക…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">തകൎന്ന സൈറ്റിന്റെ വിവരം അറിയിക്കുക</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -396,12 +404,23 @@
   <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
   <string name="browser_menu_translated">വിവൎത്തിക്കപ്പെട്ട</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">അച്ചടിപ്പിക്കുക…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">അച്ചടിപ്പിക്കുക…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">അച്ചടിപ്പിക്കുക</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">%1$s-ൽ നിന്നു് പുറത്തുകടക്കുക</string>
+  <!--
+    Content description for a banner within the menu which prompt the user to make this app their default browser.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_default_banner_title">%1$s-നെ തനിമട്ടാക്കുക</string>
+  <!-- Label text within the set as default banner -->
+  <string name="browser_menu_default_banner_subtitle">ഞൊടികൾ മാത്രമെടുക്കും. എപ്പോഴെങ്കിലും മാറ്റാം.</string>
+  <!-- Content description for the button that dismisses the set as default banner in the menu -->
+  <string name="browser_menu_default_banner_dismiss">കളയുക</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1479,7 +1498,16 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">മുകളിലേക്ക് ചെല്ലുക</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">തിരിച്ചുപ്പോയിയിട്ടു് തിരയൽ അടയ്ക്കുക</string>
-  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">തല്ക്കാലത്തേക്കു് നിൎത്തുക</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">തുടരുക</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">വീണ്ടും ശ്രമിയ്ക്കുക</string>
   <string name="download_clear_search_description">വെടിപ്പാക്കുക</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">കണ്ണി പങ്കിടുക</string>
@@ -3513,4 +3541,12 @@
     Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="review_prompt_pre_prompt_header">%1$s-നെ പറ്റി താങ്ങൾക്കു് എന്തഭിപ്രായമുണ്ടു് ?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">ഇതിൽ എന്തോ കുഴപ്പവുണ്ടു്</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">ഇതു അടിപൊളിയാണു്</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">താങ്ങൾക്കു് കുഴപ്പങ്ങൾ നേരിടുന്നതിലു് ഞങ്ങളെ പൊറുക്കണം. %1$s എങ്ങനെ മെച്ചപ്പെടുത്താമെന്നു് ഞങ്ങളെ അറിയിച്ചാൽ വളരെ നന്ദി.</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">പ്രതികരണം നൽകുക</string>
 </resources>

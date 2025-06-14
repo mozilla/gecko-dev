@@ -209,25 +209,25 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">ສ້າງ %s ເປັນຂອງທ່ານເອງ</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">ສ້າງ %s ເປັນຂອງທ່ານເອງ</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">ທ່ານໄດ້ຕິດຕັ້ງສ່ວນຂະຫຍາຍ, ແຕ່ບໍ່ໄດ້ເປີດໃຊ້ງານ</string>
   <!--
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">ສ່ວນຂະຫຍາຍເພີ່ມລະດັບການທ່ອງເວັບຂອງທ່ານ, ຈາກການປ່ຽນແປງວິທີທີ່ %s ເບິ່ງ ແລະ ປະຕິບັດໄປສູ່ການເພີ່ມຄວາມເປັນສ່ວນຕົວ ແລະ ຄວາມປອດໄພ.</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">ສ່ວນຂະຫຍາຍເພີ່ມລະດັບການທ່ອງເວັບຂອງທ່ານ, ຈາກການປ່ຽນແປງວິທີທີ່ %s ເບິ່ງ ແລະ ປະຕິບັດໄປສູ່ການເພີ່ມຄວາມເປັນສ່ວນຕົວ ແລະ ຄວາມປອດໄພ.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">ເພື່ອໃຊ້ສ່ວນຂະຫຍາຍ, ໃຫ້ເປີດໃຊ້ພວກມັນໃນການຕັ້ງຄ່າ ຫຼື ໂດຍການເລືອກ “%s” ຂ້າງລຸ່ມນີ້.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">ເພື່ອໃຊ້ສ່ວນຂະຫຍາຍ, ໃຫ້ເປີດໃຊ້ພວກມັນໃນການຕັ້ງຄ່າ ຫຼື ໂດຍການເລືອກ “%s” ຂ້າງລຸ່ມນີ້.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">ສຶກສາເພີ່ມເຕີມ</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">ສຶກສາເພີ່ມເຕີມ</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">ຈັດການສ່ວນເສີມ</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">ສ່ວນຂະຫຍາຍທີ່ແນະນຳ</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">ສ່ວນຂະຫຍາຍທີ່ແນະນຳ</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -258,9 +258,9 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">ເພີ່ມແອັບໄປໄວ້ຢູ່ໜ້າຈໍຫຼັກ</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">ເພີ່ມໄປໄວ້ຢູ່ໜ້າຈໍຫຼັກ…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">ເພີ່ມໄປໄວ້ຢູ່ໜ້າຈໍຫຼັກ…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-  <string name="browser_menu_add_app_to_homescreen_2">ເພີ່ມແອັບໄປໄວ້ຢູ່ໜ້າຈໍຫຼັກ…</string>
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">ເພີ່ມແອັບໄປໄວ້ຢູ່ໜ້າຈໍຫຼັກ…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">ອຸປະກອນ Xiaomi ອາດຈະຕ້ອງການການອະນຸຍາດພິເສດເພື່ອເພີ່ມທາງລັດໃສ່ໜ້າຈໍຫຼັກ. ກະລຸນາກວດເບິ່ງການຕັ້ງຄ່າຂອງທ່ານ.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -268,17 +268,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">ຄົ້ນຫາໃນຫນ້ານີ້</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">ຊອກຫາໃນໜ້າ…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">ຊອກຫາໃນໜ້າ…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">ແປໜ້ານີ້</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">ບັນທຶກໄວ້ໃນຄໍເລັກຊັນ…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">ບັນທຶກໄວ້ໃນຄໍເລັກຊັນ…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">ບັນທຶກໄປໄວ້ບ່ອນເກັບສະສົມ</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">ແບ່ງປັນ</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">ແບ່ງປັນ…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">ແບ່ງປັນ…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -313,7 +313,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">ເຂົ້າສູ່ລະບົບ</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">ຊິ້ງຂໍ້ມູນລະຫັດຜ່ານ, ແຖບ, ແລະ ອື່ນໆອີກ</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">ຊິ້ງຂໍ້ມູນລະຫັດຜ່ານ, ແຖບ, ແລະ ອື່ນໆອີກ</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">ກັບຄືນເຂົ້າສູ່ລະບົບເພື່ອຊິ້ງ</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -332,9 +332,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">ປ່ຽນໄປຫາເວັບໄຊທ໌ມືຖື</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">ເຄື່ອງມື</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">ເຄື່ອງມື</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">ກັບໄປທີ່ເມນູຫຼັກ</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">ກັບໄປທີ່ເມນູຫຼັກ</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">ປິດແຜ່ນເມນູຫຼັກ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
@@ -350,34 +350,34 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">ປິດຊີດເມນູແຖບແບບກຳນົດເອງ</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site_2">ມຸມມອງຜູ້ອ່ານ, ແປພາສາ, ລາຍງານເວັບໄຊທີ່ມີບັນຫາ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">ມຸມມອງຜູ້ອ່ານ, ແປພາສາ, ລາຍງານເວັບໄຊທີ່ມີບັນຫາ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">ມຸມມອງຜູ້ອ່ານ, ແປ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">ມຸມມອງຜູ້ອ່ານ, ແປ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_report_site_2">Reader View, ລາຍງານເວັບໄຊທີ່ມີບັນຫາ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
+  <string name="browser_menu_tools_description_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Reader View, ລາຍງານເວັບໄຊທີ່ມີບັນຫາ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">Reader View, Print, Share, ເປີດ app</string>
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Reader View, Print, Share, ເປີດ app</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">ບັນທຶກ</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">ບັນທຶກ</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">ເພີ່ມບຸກມາກ, ທາງລັດ, ຫນ້າທໍາອິດ, ຄໍເລັກຊັນ, PDF</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">ເພີ່ມບຸກມາກ, ທາງລັດ, ຫນ້າທໍາອິດ, ຄໍເລັກຊັນ, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">ບຸກມາກຫນ້ານີ້</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">ແກ້ໄຂບຸກມາກ</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">ບັນທຶກເປັນ PDF…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">ບັນທຶກເປັນ PDF…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">ເປີດ Reader View</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">ເປີດ Reader View</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">ປິດ Reader View</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">ປິດ Reader View</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_normal_tab">ຍ້າຍໄປແຖບທີ່ບໍ່ແມ່ນສ່ວນຕົວ</string>
+  <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">ຍ້າຍໄປແຖບທີ່ບໍ່ແມ່ນສ່ວນຕົວ</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">ແປໜ້ານີ້…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">ແປໜ້ານີ້…</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">ລາຍງານເວັບໄຊທີ່ມີບັນຫາ…</string>
   <!--
@@ -386,7 +386,7 @@
   -->
   <string name="browser_menu_translated_to">ແປເປັນ %1$s</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">ພິມ…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">ພິມ…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -1484,7 +1484,6 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">ນຳທາງຂຶ້ນໄປທາງເທິງ</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">ກັບຄືນ ແລະ ປິດການຊອກຫາ</string>
-  <!-- Content description for the search bar clear text button on the downloads screen -->
   <string name="download_clear_search_description">ລົບລ້າງ</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">ແບ່ງປັນ URL</string>

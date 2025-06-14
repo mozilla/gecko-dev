@@ -183,9 +183,9 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">Personaliza %s</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">Personaliza %s</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">Àteras informatziones</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">Àteras informatziones</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Gesti is estensiones</string>
   <!-- Browser menu button that opens AMO in a tab -->
@@ -211,9 +211,9 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">Agiunghe s’aplicatzione a s’ischermu printzipale</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">Agiunghe a s’ischermu printzipale…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Agiunghe a s’ischermu printzipale…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-  <string name="browser_menu_add_app_to_homescreen_2">Agiunghe s’aplicatzione a s’ischermu printzipale…</string>
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Agiunghe s’aplicatzione a s’ischermu printzipale…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">Is dispositivos Xiaomi podent rechèdere permissos extra pro agiùnghere curtzadòrgios a s’ischermu printzipale. Controlla sa cunfiguratzione.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -221,17 +221,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">Chirca in sa pàgina</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">Chirca in sa pàgina…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">Chirca in sa pàgina…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">Tradue sa pàgina</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">Sarva in una colletzione…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">Sarva in una colletzione…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">Sarva in una colletzione</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">Cumpartzi</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">Cumpartzi…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">Cumpartzi…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -266,7 +266,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">Identìfica·ti</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">Sincroniza craes, ischedas e àteru</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Sincroniza craes, ischedas e àteru</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Torra·ti a identificare pro sincronizare</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -285,9 +285,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Passa a su situ mòbile</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">Istrumentos</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">Istrumentos</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">Torra a su menù printzipale</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Torra a su menù printzipale</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">Serra su pannellu de su menù printzipale</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
@@ -303,32 +303,32 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Serra su pannellu de menù de ischedas personalizadas</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site_2">Visualizatzione de letura, Tradue, Sinnala unu situ chi non funtzionat, Imprenta, Cumpartzi, Aberi s’aplicatzione</string>
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Visualizatzione de letura, Tradue, Sinnala unu situ chi non funtzionat, Imprenta, Cumpartzi, Aberi s’aplicatzione</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">Visualizatzione de letura, Tradue, Imprenta, Cumpartzi, Aberi s’aplicatzione</string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Visualizatzione de letura, Tradue, Imprenta, Cumpartzi, Aberi s’aplicatzione</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_report_site_2">Visualizatzione de letura, Sinnala unu situ chi non funtzionat, Imprenta, Cumpartzi, Aberi s’aplicatzione</string>
+  <string name="browser_menu_tools_description_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Visualizatzione de letura, Sinnala unu situ chi non funtzionat, Imprenta, Cumpartzi, Aberi s’aplicatzione</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">Visualizatzione de letura, Imprenta, Cumpartzi, Aberi s’aplicatzione</string>
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Visualizatzione de letura, Imprenta, Cumpartzi, Aberi s’aplicatzione</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">Sarva</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">Sarva</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">Agiunghe sinnalibru, Curtzadòrgiu, Pàgina printzipale, Colletzione, PDF</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">Agiunghe sinnalibru, Curtzadòrgiu, Pàgina printzipale, Colletzione, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Agiunghe custa pàgina a is sinnalibros</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Modìfica su sinnalibru</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">Sarva comente PDF…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">Sarva comente PDF…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">Ativa sa visualizatzione de letura</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Ativa sa visualizatzione de letura</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">Disativa sa visualizatzione de letura</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Disativa sa visualizatzione de letura</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">Tradue sa pàgina…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Tradue sa pàgina…</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Sinnala unu situ chi non funtzionat…</string>
   <!--
@@ -337,7 +337,7 @@
   -->
   <string name="browser_menu_translated_to">Traduidu in %1$s</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">Imprenta…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Imprenta…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").

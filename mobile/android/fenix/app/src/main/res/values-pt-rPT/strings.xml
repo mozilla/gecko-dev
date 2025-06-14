@@ -209,21 +209,21 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">Torne o %s seu</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">Torne o %s seu</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">Tem extensões instaladas, mas não ativadas</string>
   <!--
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">As extensões elevam a sua experiência de navegação, desde a mudança da aparência e desempenho do %s até ao reforço da privacidade e da segurança.</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">As extensões elevam a sua experiência de navegação, desde a mudança da aparência e desempenho do %s até ao reforço da privacidade e da segurança.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Para utilizar as extensões, ative-as nas definições ou selecionando “%s” abaixo.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Para utilizar as extensões, ative-as nas definições ou selecionando “%s” abaixo.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">Saber mais</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">Saber mais</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Gerir extensões</string>
   <!-- Browser menu group that contains additional settings in collapsed state -->
@@ -231,7 +231,7 @@
   <!-- Browser menu group that contains additional settings in expanded state -->
   <string name="browser_menu_less_settings">Menos</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">Extensões recomendadas</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Extensões recomendadas</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -264,9 +264,9 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">Adicionar aplicação ao ecrã inicial</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">Adicionar ao ecrã inicial…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Adicionar ao ecrã inicial…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-  <string name="browser_menu_add_app_to_homescreen_2">Adicionar aplicação ao ecrã inicial…</string>
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Adicionar aplicação ao ecrã inicial…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">Os dispositivos Xiaomi podem necessitar de permissões adicionais para adicionar atalhos ao ecrã principal. Verifique as suas definições.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -274,17 +274,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">Encontrar na página</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">Localizar na página…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">Localizar na página…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">Traduzir página</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">Guardar na coleção…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">Guardar na coleção…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">Guardar na coleção</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">Partilhar</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">Partilhar…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">Partilhar…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -319,7 +319,9 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">Iniciar sessão</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">Sincronize palavras-passe, separadores e mais</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Sincronize palavras-passe, separadores e mais</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_2">Sincronize marcadores, palavras-passe, separadores e muito mais</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Volte a iniciar sessão para sincronizar</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -338,9 +340,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Mudar para o site móvel</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">Ferramentas</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">Ferramentas</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">Voltar ao menu principal</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Voltar ao menu principal</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">Fechar a folha do menu principal</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
@@ -356,20 +358,20 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Fechar a folha do menu de separador personalizado</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site_2">Vista de Leitura, Traduzir, Reportar site com problemas, Imprimir, Partilhar, Abrir aplicação</string>
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Vista de Leitura, Traduzir, Reportar site com problemas, Imprimir, Partilhar, Abrir aplicação</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">Vista de Leitura, Traduzir, Imprimir, Partilhar, Abrir aplicação</string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Vista de Leitura, Traduzir, Imprimir, Partilhar, Abrir aplicação</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_report_site_2">Vista de Leitura, Reportar site com problemas, Imprimir, Partilhar, Abrir Aplicação</string>
+  <string name="browser_menu_tools_description_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Vista de Leitura, Reportar site com problemas, Imprimir, Partilhar, Abrir Aplicação</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">Vista de Leitura, Imprimir, Partilhar, Abrir aplicação</string>
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Vista de Leitura, Imprimir, Partilhar, Abrir aplicação</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">Guardar</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">Guardar</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">Adicionar marcador, Atalho, Início, Coleção, PDF</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">Adicionar marcador, Atalho, Início, Coleção, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Adicionar página aos marcadores</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
@@ -377,17 +379,23 @@
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Editar marcador</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">Guardar como PDF…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">Guardar como PDF…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">Guardar como PDF</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">Ativar Vista de leitura</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Ativar Vista de leitura</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">Desativar a Vista de leitura</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Desativar a Vista de leitura</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_normal_tab">Mover para um separador não privado</string>
+  <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">Mover para um separador não privado</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">Traduzir página…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Traduzir página…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">Traduzir página</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Reportar site com problemas…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">Reportar site com problemas</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -396,7 +404,9 @@
   <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
   <string name="browser_menu_translated">Traduzido</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">Imprimir…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Imprimir…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">Imprimir</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -786,7 +796,7 @@
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
   <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">Ver separadores com o desbloqueio por impressão digital, reconhecimento facial ou PIN.</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
-  <string name="preferences_pbm_lock_screen_summary_2">Veja separadores com a sua impressão digital, PIN ou desbloqueio face.</string>
+  <string name="preferences_pbm_lock_screen_summary_2">Veja separadores com a sua impressão digital, PIN ou desbloqueio facial.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Bloqueador de faixas de cookies</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -1083,7 +1093,7 @@
   <!-- Title for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo">Momo</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
-  <string name="alternative_app_icon_option_momo_subtitle">Criada por @heyheymoshots</string>
+  <string name="alternative_app_icon_option_momo_subtitle">Criado por @heyheymoshots</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1557,7 +1567,16 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Navegar para cima</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Retroceder e fechar pesquisa</string>
-  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">Pausa</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">Retomar</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">Tentar novamente</string>
   <string name="download_clear_search_description">Limpar</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Partilhar URL</string>
@@ -1690,15 +1709,15 @@
   <!-- Broken site reason text for site is slow -->
   <string name="webcompat_reporter_reason_slow2">O site é lento</string>
   <!-- Broken site reason text for video isn’t playing or loading -->
-  <string name="webcompat_reporter_reason_media2">O vídeo não está a ser reproduzido ou a carregar</string>
+  <string name="webcompat_reporter_reason_media2">O vídeo não está a ser carregado ou em reprodução</string>
   <!-- Broken site reason text for missing content -->
   <string name="webcompat_reporter_reason_content2">Conteúdo em falta</string>
   <!-- Broken site reason text for can’t sign in or register -->
-  <string name="webcompat_reporter_reason_account2">Não foi possível iniciar sessão ou registar-se</string>
+  <string name="webcompat_reporter_reason_account2">Não foi possível iniciar sessão ou registar</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Bloqueador de anúncios</string>
   <!-- Broken site reason text for site asked to turn off ad blocker -->
-  <string name="webcompat_reporter_reason_turn_off_adblocker">Solicitado ao site para desativar o bloqueador de anúncios</string>
+  <string name="webcompat_reporter_reason_turn_off_adblocker">O site pediu para desativar o bloqueador de anúncios</string>
   <!-- Broken site reason text for browser isn’t supported or blocked -->
   <string name="webcompat_reporter_reason_notsupported">O navegador não é suportado ou está bloqueado</string>
   <!-- Broken site reason text for something else -->
@@ -1932,9 +1951,9 @@
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">Desativado</string>
   <!-- Toggle if desktop site is turned on -->
-  <string name="browser_feature_desktop_site_on">Ligado</string>
+  <string name="browser_feature_desktop_site_on">Ativado</string>
   <!-- Toggle if desktop site is turned off -->
-  <string name="browser_feature_desktop_site_off">Desligado</string>
+  <string name="browser_feature_desktop_site_off">Desativado</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">Permissões</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
@@ -3707,11 +3726,11 @@
   <!-- Label for a button positively rating the user's experience with the app -->
   <string name="review_prompt_positive_button">Está ótimo!</string>
   <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="review_prompt_rate_header">Obrigado por gostar do %1$s. Tem um segundo para espalhar a sua preferência com uma avaliação?</string>
+  <string name="review_prompt_rate_header">Obrigado por gostar do %1$s. Tem um segundo para espalhar o seu amor com uma avaliação?</string>
   <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
   <string name="review_prompt_rate_button">Avaliar %1$s na Play Store</string>
   <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
   <string name="review_prompt_feedback_header">Lamentamos que esteja a ter problemas. Diga-nos como podemos melhorar o %1$s.</string>
   <!-- Label for a button opening a feedback forum -->
-  <string name="review_prompt_feedback_button">Deixar comentários</string>
+  <string name="review_prompt_feedback_button">Deixar feedback</string>
 </resources>

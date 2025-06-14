@@ -197,14 +197,14 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">%s -نی اؤزوزه گؤتورون</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">%s -نی اؤزوزه گؤتورون</string>
   <!--
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">اوزانتی‌لار، %s نین گؤرونوشو و عملکردینی دگیشمکدن گیزلیلیک و گؤونلیگی آرتیرماغا کیمی مروروزو یوخاریا آپاریر</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">اوزانتی‌لار، %s نین گؤرونوشو و عملکردینی دگیشمکدن گیزلیلیک و گؤونلیگی آرتیرماغا کیمی مروروزو یوخاریا آپاریر</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">آرتیق بیلین</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">آرتیق بیلین</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">اوزانتی‌ْ‌لار مودیریتی</string>
   <!-- Browser menu button that opens AMO in a tab -->
@@ -226,23 +226,23 @@
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
   <string name="browser_menu_add_to_homescreen">آناصفحه‌یه آرتیر</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">آنا اکرانا آرتیر…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">آنا اکرانا آرتیر…</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
   <string name="resync_button_content_description">گئنه دؤنگل</string>
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">صفحه‌ده تاپ</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">یارپاقدا آختار…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">یارپاقدا آختار…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">صفحه‌نی ترجومه ائله</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">مجموعه‌‌ده ساخلا…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">مجموعه‌‌ده ساخلا…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">مجموعه‌ده ساخلا</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">پایلاش</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">پایلاش…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">پایلاش…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -277,7 +277,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">گیریش</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">دؤنگل رمزلری، تاغلاری، و داهاسی</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">دؤنگل رمزلری، تاغلاری، و داهاسی</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">دؤنگل اوچون گئنه گیرین</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -296,33 +296,33 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">موبایل سایتا گئچین</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">آلت‌لر</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">آلت‌لر</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">ساخلا</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">ساخلا</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">بوکمارک، شورتکات، آنا یارپاق، مجموعه، پی دی اف آرتیرماق</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">بوکمارک، شورتکات، آنا یارپاق، مجموعه، پی دی اف آرتیرماق</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">بو صفحه‌نی بوکمارک ائله</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">بوکمارک دوز‌ه‌لیشی</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">PDF اوْلاراق ساخلا…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">PDF اوْلاراق ساخلا…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">اوْخوجو گؤرونوشونو آچ</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">اوْخوجو گؤرونوشونو آچ</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">اوْخوجو گؤرونوشونو باغلا</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">اوْخوجو گؤرونوشونو باغلا</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">صفحه‌نی ترجومه ائله…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">صفحه‌نی ترجومه ائله…</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">%1$s دیلینه چئویر</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">پرینت…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">پرینت…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
