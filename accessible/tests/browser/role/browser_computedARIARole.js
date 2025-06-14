@@ -19,6 +19,7 @@ addAccessibleTask(
 </div>
 <div id="ariaSearchbox" role="searchbox">ARIA searchbox</div>
 <div id="ariaUnknown" role="unknown">unknown ARIA role</div>
+<div id="ariaFallbackUpperCase" role="REGION GROUP">unlabelled region with fallback to group, upper case</div>
 <button id="htmlButton">HTML button</button>
 <button id="toggleButton" aria-pressed="true">toggle button</button>
 <main id="htmlMain">HTML main</main>
@@ -61,6 +62,12 @@ addAccessibleTask(
     testComputedARIARole("ariaRowgroup", "rowgroup");
     testComputedARIARole("ariaSearchbox", "searchbox");
     testComputedARIARole("ariaUnknown", "generic");
+    // XXX Ideally, ariaFallbackUpperCase would be tested in
+    // testing/web-platform/tests/wai-aria/role/fallback-roles.html
+    // However, it's unclear in the spec whether ARIA roles are intended to be
+    // case insensitive or not, so we can't reasonably assume that in WPT until
+    // that's cleared up. See https://github.com/w3c/aria/issues/2548.
+    testComputedARIARole("ariaFallbackUpperCase", "group");
     testComputedARIARole("htmlButton", "button");
     // There is only a single ARIA role for buttons, but Gecko uses different
     // roles depending on states.

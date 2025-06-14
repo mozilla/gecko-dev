@@ -1519,7 +1519,8 @@ uint8_t aria::GetFirstValidRoleMapIndexExcluding(
     // Skip any roles that we aren't interested in.
     bool shouldSkip = false;
     for (nsStaticAtom* atomRole : aRolesToSkip) {
-      if (role.Equals(atomRole->GetUTF16String())) {
+      if (role.Equals(atomRole->GetUTF16String(),
+                      nsCaseInsensitiveStringComparator)) {
         shouldSkip = true;
         break;
       }
