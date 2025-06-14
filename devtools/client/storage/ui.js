@@ -569,14 +569,32 @@ class StorageUI {
     }
   }
 
-  editItem(data) {
+  async editItem(data, cellEditAbortController) {
     const selectedItem = this.tree.selectedItem;
     if (!selectedItem) {
       return;
     }
     const front = this.getCurrentFront();
 
-    front.editItem(data);
+    const result = await front.editItem(data);
+    // At the moment, only editing cookies can return an error
+    if (front.typeName === "cookies" && result?.errorString) {
+      const notificationBox = this._toolbox.getNotificationBox();
+      const message = await this._panelDoc.l10n.formatValue(
+        "storage-cookie-edit-error",
+        { errorString: result.errorString }
+      );
+
+      notificationBox.appendNotification(
+        message,
+        "storage-cookie-edit-error",
+        null,
+        notificationBox.PRIORITY_WARNING_LOW
+      );
+
+      // Revert value in table
+      cellEditAbortController.abort();
+    }
   }
 
   /**
@@ -1594,7 +1612,7 @@ class StorageUI {
   /**
    * Handles adding an item from the storage
    */
-  onAddItem() {
+  async onAddItem() {
     const selectedItem = this.tree.selectedItem;
     if (!selectedItem) {
       return;
@@ -1606,7 +1624,25 @@ class StorageUI {
     // Prepare to scroll into view.
     this.table.scrollIntoViewOnUpdate = true;
     this.table.editBookmark = createGUID();
-    front.addItem(this.table.editBookmark, host);
+    const result = await front.addItem(this.table.editBookmark, host);
+
+    // At the moment, only adding cookies can (theorically) return an error (although in
+    // practice, since we set the default properties of the cookie ourselves, this shouldn't
+    // happen).
+    if (front.typeName === "cookies" && result?.errorString) {
+      const notificationBox = this._toolbox.getNotificationBox();
+      const message = await this._panelDoc.l10n.formatValue(
+        "storage-cookie-create-error",
+        { errorString: result.errorString }
+      );
+
+      notificationBox.appendNotification(
+        message,
+        "storage-cookie-create-error",
+        null,
+        notificationBox.PRIORITY_WARNING_LOW
+      );
+    }
   }
 
   /**

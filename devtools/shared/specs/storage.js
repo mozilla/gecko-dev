@@ -70,6 +70,11 @@ types.addDictType("cookiestoreobject", {
   data: "array:nullable:cookieobject",
 });
 
+// Result of add/edit cookie operation: can throw error
+types.addDictType("cookieoperationresult", {
+  errorString: "nullable:string",
+});
+
 // Common methods for edit/remove
 const editRemoveMethods = {
   getFields: {
@@ -106,7 +111,13 @@ createStorageSpec({
           guid: Arg(0, "string"),
           host: Arg(1, "nullable:string"),
         },
-        response: {},
+        response: RetVal("cookieoperationresult"),
+      },
+    },
+    {
+      editItem: {
+        request: editRemoveMethods.editItem.request,
+        response: RetVal("cookieoperationresult"),
       },
     },
     {

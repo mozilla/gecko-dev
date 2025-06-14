@@ -315,7 +315,7 @@ TableWidget.prototype = {
   /**
    * Emit all cell edit events.
    */
-  onChange(data) {
+  async onChange(data) {
     const changedField = data.change.field;
     const colName = changedField.parentNode.id;
     const column = this.columns.get(colName);
@@ -341,7 +341,17 @@ TableWidget.prototype = {
     // save the uniqueId in editBookmark.
     this.editBookmark =
       colName === uniqueId ? change.newValue : items[uniqueId];
-    this.emit(EVENTS.CELL_EDIT, change);
+
+    // Pass an AbortController instance along so the edit can be aborted in the listeners
+    const abortController = new this.window.AbortController();
+    await this.emitAsync(EVENTS.CELL_EDIT, change, abortController);
+
+    // If the abortController was aborted, we only need to revert the field value
+    if (abortController.signal.aborted) {
+      changedField.value = data.change.oldValue;
+      return;
+    }
+
     this.syncRowHeight(change.items.uniqueKey);
   },
 
