@@ -223,7 +223,8 @@ toolbar .toolbaritem-combined-buttons {
     }
   }
 
-  &:hover > separator {
+  > separator:has(+ toolbarbutton:not([disabled]):hover),
+  > toolbarbutton:not([disabled]):hover + separator {
     opacity: 0;
   }
 }
