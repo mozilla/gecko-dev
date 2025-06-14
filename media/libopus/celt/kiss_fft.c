@@ -92,7 +92,7 @@ static void kf_bfly2(
          C_ADDTO( Fout[1] ,  t );
 
          t.r = Fout2[2].i;
-         t.i = -Fout2[2].r;
+         t.i = NEG32_ovflw(Fout2[2].r);
          C_SUB( Fout2[2] ,  Fout[2] , t );
          C_ADDTO( Fout[2] ,  t );
 

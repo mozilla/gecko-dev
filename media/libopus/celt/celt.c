@@ -176,6 +176,10 @@ void comb_filter_const_c(opus_val32 *y, opus_val32 *x, int T, int N,
                + MULT_COEF_32(g10,x2)
                + MULT_COEF_32(g11,ADD32(x1,x3))
                + MULT_COEF_32(g12,ADD32(x0,x4));
+#ifdef FIXED_POINT
+      /* A bit of bias seems to help here. */
+      y[i] = SUB32(y[i], 1);
+#endif
       y[i] = SATURATE(y[i], SIG_SAT);
       x4=x3;
       x3=x2;
@@ -237,6 +241,10 @@ void comb_filter(opus_val32 *y, opus_val32 *x, int T0, int T1, int N,
                + MULT_COEF_32(MULT_COEF(f,g10),x2)
                + MULT_COEF_32(MULT_COEF(f,g11),ADD32(x1,x3))
                + MULT_COEF_32(MULT_COEF(f,g12),ADD32(x0,x4));
+#ifdef FIXED_POINT
+      /* A bit of bias seems to help here. */
+      y[i] = SUB32(y[i], 3);
+#endif
       y[i] = SATURATE(y[i], SIG_SAT);
       x4=x3;
       x3=x2;
