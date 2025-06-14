@@ -5882,7 +5882,8 @@ static bool UseFrameEdge(nsIFrame* aFrame) {
     return true;
   }
   const nsImageFrame* image = do_QueryFrame(aFrame);
-  if (image && !aFrame->GetContent()->IsEditable()) {
+  if ((image || aFrame->IsHTMLCanvasFrame()) &&
+      !aFrame->GetContent()->IsEditable()) {
     // Editable images are a special-case because editing relies on clicking on
     // an editable image selecting it, for it to show resizers.
     return true;
