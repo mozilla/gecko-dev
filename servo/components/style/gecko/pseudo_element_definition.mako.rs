@@ -142,7 +142,7 @@ impl PseudoElement {
                 },
             % elif pseudo.is_named_view_transition_pseudo():
                 PseudoStyleType::${pseudo.pseudo_ident} => functional_pseudo_parameter.map(|p| {
-                    PseudoElement::${pseudo.capitalized_pseudo()}(PtNameAndClassSelector::from_name(p))
+                    PseudoElement::${pseudo.capitalized_pseudo()}(PtNameAndClassSelector::from_name(p.0))
                 }),
             % endif
             % endfor
@@ -160,13 +160,13 @@ impl PseudoElement {
     // FIXME: we probably have to return the arguments of -moz-tree. However, they are multiple
     // names, so we skip them for now (until we really need them).
     #[inline]
-    pub fn pseudo_type_and_argument(&self) -> (PseudoStyleType, Option< &AtomIdent>) {
+    pub fn pseudo_type_and_argument(&self) -> (PseudoStyleType, Option< &Atom>) {
         match *self {
             % for pseudo in PSEUDOS:
             % if pseudo.is_tree_pseudo_element():
                 PseudoElement::${pseudo.capitalized_pseudo()}(..) => (PseudoStyleType::XULTree, None),
             % elif pseudo.pseudo_ident == "highlight":
-                PseudoElement::${pseudo.capitalized_pseudo()}(ref value) => (PseudoStyleType::${pseudo.pseudo_ident}, Some(value)),
+                PseudoElement::${pseudo.capitalized_pseudo()}(ref value) => (PseudoStyleType::${pseudo.pseudo_ident}, Some(&value.0)),
             % elif pseudo.is_named_view_transition_pseudo():
                 PseudoElement::${pseudo.capitalized_pseudo()}(ref value) => (PseudoStyleType::${pseudo.pseudo_ident}, Some(value.name())),
             % else:
@@ -286,7 +286,7 @@ impl PseudoElement {
                     return false;
                 }
 
-                if selector_name.name().0 == atom!("*") {
+                if selector_name.name() == &atom!("*") {
                     return true;
                 }
                 // We don't need to check if `*_name == *selector_name` here because we already

@@ -51,22 +51,22 @@ pub enum Target {
 ///
 /// https://drafts.csswg.org/css-view-transitions-2/#typedef-pt-name-and-class-selector
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
-pub struct PtNameAndClassSelector(thin_vec::ThinVec<AtomIdent>);
+pub struct PtNameAndClassSelector(thin_vec::ThinVec<Atom>);
 
 impl PtNameAndClassSelector {
     /// Constructs a new one from a name.
-    pub fn from_name(name: AtomIdent) -> Self {
+    pub fn from_name(name: Atom) -> Self {
         Self(thin_vec![name])
     }
 
     /// Returns the name component.
-    pub fn name(&self) -> &AtomIdent {
+    pub fn name(&self) -> &Atom {
         debug_assert!(!self.0.is_empty());
         self.0.first().expect("Shouldn't be empty")
     }
 
     /// Returns the classes component.
-    pub fn classes(&self) -> &[AtomIdent] {
+    pub fn classes(&self) -> &[Atom] {
         debug_assert!(!self.0.is_empty());
         &self.0[1..]
     }
@@ -88,12 +88,12 @@ impl PtNameAndClassSelector {
         // <pt-name-selector> = '*' | <custom-ident>
         let parse_pt_name = |input: &mut Parser<'i, '_>| {
             // For pseudo-element string, we don't accept '*'.
-            if matches!(target, Target::Selector)
-                && input.try_parse(|i| i.expect_delim('*')).is_ok()
+            if matches!(target, Target::Selector) &&
+                input.try_parse(|i| i.expect_delim('*')).is_ok()
             {
-                Ok(AtomIdent::new(atom!("*")))
+                Ok(atom!("*"))
             } else {
-                CustomIdent::parse(input, &[]).map(|c| AtomIdent::new(c.0))
+                CustomIdent::parse(input, &[]).map(|c| c.0)
             }
         };
         let name = input.try_parse(parse_pt_name);
@@ -117,7 +117,7 @@ impl PtNameAndClassSelector {
             if let Ok(token) = input.try_parse(|i| i.expect_whitespace()) {
                 return Err(input.new_unexpected_token_error(Token::WhiteSpace(token)));
             }
-            CustomIdent::parse(input, &[]).map(|c| AtomIdent::new(c.0))
+            CustomIdent::parse(input, &[]).map(|c| c.0)
         };
         // If there is no `<pt-name-selector>`, it's fine to have whitespaces before the first '.'.
         if name.is_err() {
@@ -136,7 +136,7 @@ impl PtNameAndClassSelector {
 
         // Use the universal symbol as the first element to present the part of
         // `<pt-name-selector>` because they are equivalent (and the serialization is the same).
-        let mut result = thin_vec![name.unwrap_or(AtomIdent::new(atom!("*")))];
+        let mut result = thin_vec![name.unwrap_or(atom!("*"))];
         result.append(&mut classes);
 
         Ok(Self(result))
@@ -149,16 +149,16 @@ impl ToCss for PtNameAndClassSelector {
         W: fmt::Write,
     {
         let name = self.name();
-        if name.0 == atom!("*") {
+        if name == &atom!("*") {
             // serialize_atom_identifier() may serialize "*" as "\*", so we handle it separately.
             dest.write_char('*')?;
         } else {
-            serialize_atom_identifier(&name.0, dest)?;
+            serialize_atom_identifier(name, dest)?;
         }
 
         for class in self.classes() {
             dest.write_char('.')?;
-            serialize_atom_identifier(&class.0, dest)?;
+            serialize_atom_identifier(class, dest)?;
         }
 
         Ok(())
@@ -352,7 +352,7 @@ impl PseudoElement {
                 // The specificity of a named view transition pseudo-element selector with a `*`
                 // argument is zero.
                 // TODO: Bug 1964949. Implement matching for view-transition-class.
-                (name.name().0 != atom!("*")) as u32
+                (name.name() != &atom!("*")) as u32
             },
             _ => 1,
         }
