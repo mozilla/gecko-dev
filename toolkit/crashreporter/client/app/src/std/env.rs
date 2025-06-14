@@ -18,6 +18,10 @@ mock_key! {
     pub struct MockHomeDir => super::path::PathBuf
 }
 
+mock_key! {
+    pub struct MockTempDir => super::path::PathBuf
+}
+
 pub struct ArgsOs {
     argv0: Option<OsString>,
 }
@@ -52,6 +56,10 @@ pub fn args_os() -> ArgsOs {
 
 pub fn home_dir() -> Option<super::path::PathBuf> {
     MockHomeDir.try_get(|p| p.clone())
+}
+
+pub fn temp_dir() -> super::path::PathBuf {
+    MockTempDir.get(|p| p.clone())
 }
 
 #[allow(unused)]
