@@ -20,6 +20,8 @@ packages = [
     # AND also requires bumping the core-graphics dependency of winit (not present in v0.28)
     "foreign-types",
     "foreign-types-shared",
+    # Several crates depend on 0.2.6, and jobserver depends on 0.3.3.
+    "getrandom",
     # Internal dependencies of glsl-lang (only used in wrench) require different versions.
     "hashbrown",
     # glsl requires 5.1, and xcursor (required by winit) requires 7.1.
