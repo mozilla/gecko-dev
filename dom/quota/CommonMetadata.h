@@ -80,12 +80,15 @@ struct OriginMetadata : public PrincipalMetadata {
 
 struct OriginStateMetadata {
   int64_t mLastAccessTime;
+  bool mAccessed;
   bool mPersisted;
 
   OriginStateMetadata() = default;
 
-  OriginStateMetadata(int64_t aLastAccessTime, bool aPersisted)
-      : mLastAccessTime(aLastAccessTime), mPersisted(aPersisted) {}
+  OriginStateMetadata(int64_t aLastAccessTime, bool aAccessed, bool aPersisted)
+      : mLastAccessTime(aLastAccessTime),
+        mAccessed(aAccessed),
+        mPersisted(aPersisted) {}
 };
 
 struct FullOriginMetadata : OriginMetadata, OriginStateMetadata {
