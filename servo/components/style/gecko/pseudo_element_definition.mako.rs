@@ -29,6 +29,7 @@ pub enum PseudoElement {
 /// nsCSSPseudoElements::IsEagerlyCascadedInServo.
 <% EAGER_PSEUDOS = ["Before", "After", "FirstLine", "FirstLetter"] %>
 <% TREE_PSEUDOS = [pseudo for pseudo in PSEUDOS if pseudo.is_tree_pseudo_element()] %>
+<% NAMED_VT_PSEUDOS = [pseudo for pseudo in PSEUDOS if pseudo.is_named_view_transition_pseudo()] %>
 <% SIMPLE_PSEUDOS = [pseudo for pseudo in PSEUDOS if pseudo.is_simple_pseudo_element()] %>
 
 /// The number of eager pseudo-elements.
@@ -100,6 +101,17 @@ impl PseudoElement {
     pub fn is_tree_pseudo_element(&self) -> bool {
         match *self {
             % for pseudo in TREE_PSEUDOS:
+            ${pseudo_element_variant(pseudo)} => true,
+            % endfor
+            _ => false,
+        }
+    }
+
+    /// Whether this pseudo-element is a named view transition pseudo-element.
+    #[inline]
+    pub fn is_named_view_transition_pseudo_element(&self) -> bool {
+        match *self {
+            % for pseudo in NAMED_VT_PSEUDOS:
             ${pseudo_element_variant(pseudo)} => true,
             % endfor
             _ => false,
@@ -252,7 +264,11 @@ impl PseudoElement {
     }
 
     /// Returns true if this pseudo-element matches the given selector.
-    pub fn matches(&self, pseudo_selector: &PseudoElement) -> bool {
+    pub fn matches(
+        &self,
+        pseudo_selector: &PseudoElement,
+        element: &super::wrapper::GeckoElement,
+    ) -> bool {
         if *self == *pseudo_selector {
             return true;
         }
@@ -261,40 +277,8 @@ impl PseudoElement {
             return false;
         }
 
-        match (self, pseudo_selector) {
-            (
-                &Self::ViewTransitionGroup(ref _name),
-                &Self::ViewTransitionGroup(ref selector_name),
-            )
-            | (
-                &Self::ViewTransitionImagePair(ref _name),
-                &Self::ViewTransitionImagePair(ref selector_name),
-            )
-            | (
-                &Self::ViewTransitionOld(ref _name),
-                &Self::ViewTransitionOld(ref selector_name),
-            )
-            | (
-                &Self::ViewTransitionNew(ref _name),
-                &Self::ViewTransitionNew(ref selector_name),
-            ) => {
-                // Named view transition pseudos accept the universal selector as the name, so we
-                // check it first.
-                // https://drafts.csswg.org/css-view-transitions-1/#named-view-transition-pseudo
-                // TODO: Bug 1964949. Implement matching for view-transition-class.
-                if !selector_name.classes().is_empty() {
-                    return false;
-                }
-
-                if selector_name.name() == &atom!("*") {
-                    return true;
-                }
-                // We don't need to check if `*_name == *selector_name` here because we already
-                // check if the enums are equal above.
-                false
-            },
-            _ => false,
-        }
+        // Check named view transition pseudo-elements.
+        self.matches_named_view_transition_pseudo_element(pseudo_selector, element)
     }
 }
 

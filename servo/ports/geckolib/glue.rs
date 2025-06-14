@@ -6273,7 +6273,7 @@ pub extern "C" fn Servo_ResolveStyleLazily(
     );
 
     let matching_fn = |pseudo_selector: &PseudoElement| match pseudo_element {
-        Some(ref p) => p.matches(pseudo_selector),
+        Some(ref p) => p.matches(pseudo_selector, &element),
         _ => false,
     };
 

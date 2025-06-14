@@ -122,6 +122,8 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
                                        const StyleComputedTimingFunction&,
                                        nsTArray<Keyframe>&);
 
+  bool MatchClassList(nsAtom*, const nsTArray<StyleAtom>&) const;
+
   nsIGlobalObject* GetParentObject() const;
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
 

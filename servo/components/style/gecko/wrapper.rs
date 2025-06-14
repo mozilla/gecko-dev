@@ -2193,7 +2193,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             None => return false,
         };
 
-        pseudo.matches(pseudo_selector)
+        pseudo.matches(pseudo_selector, self)
     }
 
     #[inline]

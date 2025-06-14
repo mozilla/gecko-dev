@@ -798,6 +798,22 @@ bool Gecko_MatchLang(const Element* aElement, nsAtom* aOverrideLang,
   return false;
 }
 
+bool Gecko_MatchViewTransitionClass(
+    const mozilla::dom::Element* aElement,
+    const nsTArray<StyleAtom>* aPtNameAndClassSelector) {
+  MOZ_ASSERT(aElement && aPtNameAndClassSelector);
+
+  const Document* doc = aElement->OwnerDoc();
+  MOZ_ASSERT(doc);
+  const ViewTransition* vt = doc->GetActiveViewTransition();
+  MOZ_ASSERT(
+      vt, "We should have an active view transition for this pseudo-element");
+
+  nsAtom* name = Gecko_GetImplementedPseudoIdentifier(aElement);
+  MOZ_ASSERT(name);
+  return vt->MatchClassList(name, *aPtNameAndClassSelector);
+}
+
 nsAtom* Gecko_GetXMLLangValue(const Element* aElement) {
   const nsAttrValue* attr =
       aElement->GetParsedAttr(nsGkAtoms::lang, kNameSpaceID_XML);
