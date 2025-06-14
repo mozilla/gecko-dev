@@ -223,6 +223,8 @@
   <string name="browser_menu_extensions_disabled_description">Часова адключана</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">Няма ўключаных пашырэнняў</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">Паспрабаваць рэкамендаванае пашырэнне</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Ваш уліковы запіс</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -348,6 +350,8 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">Выйсці з %1$s</string>
+  <!-- Content description for the button that dismisses the set as default banner in the menu -->
+  <string name="browser_menu_default_banner_dismiss">Адхіліць</string>
   <!--
     Extensions management fragment
 
@@ -521,6 +525,8 @@
   <string name="onboarding_preferences_dialog_positive_button">Гатова</string>
   <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here -->
   <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">Калі ласка да Firefox</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Працягнуць</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
   <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Умовы выкарыстання Firefox</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
@@ -535,6 +541,8 @@
   <string name="onboarding_customize_toolbar_top_option">Уверсе</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">Унізе</string>
+  <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_toolbar_a11y_action_label_select">выбраць</string>
   <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Выберыце тэму</string>
   <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
@@ -1244,6 +1252,8 @@
   <string name="history_older">Даўней</string>
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">Няма гісторыі</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar">Ідзе спампоўка…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details">Падрабязнасці</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
@@ -1259,6 +1269,13 @@
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">Вылучана: %1$d</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">Скасаваць</string>
+  <!-- Text for the button to delete a single downloaded file item -->
+  <string name="download_delete_item">Выдаліць</string>
   <!-- Content description for the search bar clear text button on the downloads screen -->
   <string name="download_clear_search_description">Ачысціць</string>
   <!-- Text for the header of in progress downloads -->
@@ -1283,6 +1300,10 @@
     Text for the filter button to show all files in the downloads list
   -->
   <string name="download_content_type_filter_all">Усе</string>
+  <!-- Text for the filter button to show only images in the downloads list -->
+  <string name="download_content_type_filter_image">Выявы</string>
+  <!-- Text for the filter button to show only video files in the downloads list -->
+  <string name="download_content_type_filter_video">Відэа</string>
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">Дакументы</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
@@ -1307,6 +1328,8 @@
   <string name="webcompat_reporter_cancel">Скасаваць</string>
   <!-- The button text for the send button to submit the provided form data. -->
   <string name="webcompat_reporter_send">Даслаць</string>
+  <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+  <string name="webcompat_reporter_dismiss_success_snackbar_text">Закрыць</string>
   <!--
     These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site.
 
@@ -1419,6 +1442,8 @@
   <string name="bookmark_deletion_multiple_snackbar_message_3">Выдаленне абраных папак</string>
   <!-- Bookmark undo button for deletion snackbar action -->
   <string name="bookmark_undo_deletion">АДМЯНІЦЬ</string>
+  <!-- Bookmark snackbar message for deleting a single item. %s is the title of the item being deleted -->
+  <string name="bookmark_delete_single_item">Закладка %s выдалена</string>
   <!-- Text for the button to search all bookmarks -->
   <string name="bookmark_search">Увядзіце пошукавыя запыты</string>
   <!-- Content description for the bookmark screen delete bookmark navigation bar button -->

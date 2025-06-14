@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!--
+    Message announced to the user when tab tray is selected
+    The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_tab_counter_open_tab_tray">poki open: %1$s. nena la o lukin e poki.</string>
+  <!--
+    Message announced to the user when tab tray is selected used by a11y services
+    The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_open_tab_counter_tab_tray">poki open pi len ala: %1$s. nena la o lukin e poki.</string>
+  <!-- Browser menu button that creates a new tab -->
+  <string name="mozac_browser_menu_new_tab">poki sin</string>
+  <!-- Browser menu button that creates a private tab -->
+  <string name="mozac_browser_menu_new_private_tab">poki sin pi nasin len</string>
+  <!-- Browser menu button to close tab. Closes the current session when pressed. -->
+  <string name="mozac_close_tab">o pini e poki</string>
+  <!-- Menu option to duplicate the current tab -->
+  <string name="mozac_ui_tabcounter_duplicate_tab">o tu e poki</string>
+  <!-- Content description of the tab counter toolbar button -->
+  <string name="mozac_tab_counter_content_description">nena pi nanpa poki</string>
+</resources>

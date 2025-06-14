@@ -341,10 +341,20 @@
   <string name="browser_menu_tools">Alati</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description">Natrag na glavni izbornik</string>
+  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
+  <string name="browser_main_menu_handlebar_content_description">Zatvori glavni izbornik</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Pomoć</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
   <string name="browser_main_menu_content_description_settings_button">Postavke</string>
+  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
+  <string name="browser_extensions_menu_handlebar_content_description">Zatvori izbornik proširenja</string>
+  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
+  <string name="browser_save_menu_handlebar_content_description">Zatvori izbornik za spremanje</string>
+  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
+  <string name="browser_tools_menu_handlebar_content_description">Zatvori izbornik alata</string>
+  <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
+  <string name="browser_custom_tab_menu_handlebar_content_description">Zatvori izbornik prilagođenih kartica</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_translate_with_report_site_2">Prikaz čitača, Prevedi, Prijavi neispravanu stranicu, Ispiši, Dijeli, Otvori aplikaciju</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -392,6 +402,15 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">Izađi iz %1$s</string>
+  <!--
+    Content description for a banner within the menu which prompt the user to make this app their default browser.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_default_banner_title">Postavi %1$s kao standardni preglednik</string>
+  <!-- Label text within the set as default banner -->
+  <string name="browser_menu_default_banner_subtitle">Potrebno je samo par sekundi. Promijeni bilo kada.</string>
+  <!-- Content description for the button that dismisses the set as default banner in the menu -->
+  <string name="browser_menu_default_banner_dismiss">Odbaci</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -550,6 +569,11 @@
   -->
   <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Isprobaj Firefox widget za pretraživanje</string>
   <!--
+    Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">S Firefoxom na početnom ekranu imat ćeš jednostavan pristup pregledniku koji privatnost stavlja na prvo mjesto i blokira programe za praćenje među web stranicama.</string>
+  <!--
     Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
   -->
@@ -605,6 +629,7 @@
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Saznaj više</string>
   <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_usage_data_title">Šalji tehničke podatke i podatke o interakciji Mozilli</string>
+  <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">Podaci o tvom uređaju, hardverskoj konfiguraciji i načinu na koji koristiš Firefox pomažu poboljšati funkcije, performansu i stabilnost za sve.</string>
   <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Saznaj više</string>
   <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_positive_button">Gotovo</string>
@@ -630,6 +655,8 @@
   <string name="onboarding_term_of_service_line_three_link_text">Upravljaj</string>
   <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Pomogni nam da Firefox raste</string>
+  <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Kada dijeliš informacije o tome kako si otkrio/la Firefox i da ga koristiš, pomažeš nam da naš preglednik predstavimo većem broju ljudi.</string>
   <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
   <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Dijeli minimalne podatke s Mozillinim marketinškim tehnološkim partnerima. Ti se podaci nikada ne prodaju niti koriste za prikazivanje oglasa.</string>
   <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
@@ -652,6 +679,8 @@
   <string name="onboarding_customize_toolbar_top_option">Gore</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">Dolje</string>
+  <!-- Onboarding toolbar selection card content description for the main image. -->
+  <string name="onboarding_customize_toolbar_main_image_content_description">Velika slika zaglavlja s prikazom odabira alatne trake koja prikazuje ilustriranu alatnu traku.</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Slika donje trake alata</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Slika gornje trake alata</string>
@@ -669,6 +698,10 @@
   <string name="onboarding_customize_theme_light_option">Svijetla</string>
   <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_system_option">Automatski od sustava</string>
+  <!-- Onboarding theme selection card content description for the main image. -->
+  <string name="onboarding_customize_theme_main_image_content_description">Velika slika zaglavlja s prikazom odabira tema koja prikazuje ilustrirane alate za umjetnike i programere.</string>
+  <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+  <string name="onboarding_customize_theme_content_description">Slika teme „%1$s”</string>
   <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
   <string name="onboarding_customize_theme_a11y_action_label_select">odaberi</string>
   <!--
@@ -1067,6 +1100,12 @@
     Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled
   -->
   <string name="extension_process_crash_dialog_title">Dodaci su privremeno onemogućeni</string>
+  <!--
+    This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
+    The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="extension_process_crash_dialog_message">Jedno ili više proširenja su prestala raditi te su prouzročili nestabilnost sustava. %1$s ih je bezuspješno pokušao ponovo pokrenuti.\n\nProširenja se neće ponovo pokrenuti tijekom tvoje trenutačne sesije.\n\nUklanjanje ili deaktiviranje proširenja može riješiti ovaj problem.</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
   <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Pokušaj ponovo pokrenuti proširenja</string>
   <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -1530,6 +1569,8 @@
   <string name="download_delete_multi_select_dialog_confirm">Izbriši</string>
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel">Odustani</string>
+  <!-- Text for the header of in progress downloads -->
+  <string name="download_header_in_progress">U tijeku</string>
   <!--
     Time period headers for downloads
 
@@ -1546,6 +1587,13 @@
   <string name="download_time_period_older">Starije</string>
   <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
   <string name="download_item_in_progress_description_preparing">Pripremanje preuzimanja …</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s preostalo</string>
   <!--
     Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
     %1$s is the current file size that has been downloaded.
@@ -1565,6 +1613,12 @@
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • pauzirano</string>
+  <!-- Text to indicate that an in progress download is paused. -->
+  <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">pauzirano</string>
+  <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
+  <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">na čekanju</string>
+  <!-- Text to indicate that a download has failed to download. -->
+  <string name="download_item_status_failed">Preuzimanje nije uspjelo</string>
   <!-- Text for the snackbar action button to view failed download details. -->
   <string name="download_failed_snackbar_action_details">Detalji</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
@@ -2268,6 +2322,8 @@
   <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">Samo u privatnim karticama</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings -->
   <string name="preference_enhanced_tracking_protection_custom_cryptominers">Kripto rudari</string>
+  <!-- Preference for enhanced tracking protection for the custom protection settings -->
+  <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Poznati prikupljači digitalnih otisaka</string>
   <!-- Button label for navigating to the Enhanced Tracking Protection details -->
   <string name="enhanced_tracking_protection_details">Detalji</string>
   <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -2290,6 +2346,8 @@
   <string name="etp_cryptominers_title">Kripto rudari</string>
   <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_description">Sprečava da zlonamjerne skripte dobiju pristup tvom uređaju za rudarenje digitalne valute.</string>
+  <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_known_fingerprinters_description">Zaustavlja prikupljanje jedinstvenih podataka o tvom uređaju koji se mogu koristiti za praćenje.</string>
   <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_tracking_content_title">Sadržaj za praćenje</string>
   <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -2316,6 +2374,12 @@
   <string name="etp_redirect_trackers_title">Pratitelji preusmjeravanja</string>
   <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_redirect_trackers_description">Čisti kolačiće koje postavljaju preusmjeravanja na poznate stranice za praćenje.</string>
+  <!-- Preference for fingerprinting protection for the custom protection settings -->
+  <string name="etp_suspected_fingerprinters_title">Sumnjivi prikupljači digitalnih otisaka</string>
+  <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+  <string name="etp_suspected_fingerprinters_description">Omogućuje zaštitu od prikupljača digitalnih otisaka kako bi se zaustavili sumnjivi prikupljači digitalnih otisaka.</string>
+  <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_known_fingerprinters_title">Poznati prikupljači digitalnih otisaka</string>
   <!--
     Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
     as we use it on the UI to indicate which trackers have been partially unblocked.
@@ -2334,6 +2398,8 @@
     Preference title for DNS over HTTPS settings
   -->
   <string name="preference_doh_title">DNS preko HTTPS-a</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">Domain Name System (DNS) preko HTTPS šalje tvoje zahtjeve s imenom domene putem šifrirane veze, stvarajući siguran DNS i otežava drugima da vide koje web stranice namjeravaš posjetiti. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Saznaj više</string>
   <!-- Content description for the "Exceptions" button -->
@@ -2344,18 +2410,36 @@
   <string name="preference_doh_add_site_description">Dodaj stranicu</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">Standardna zaštita</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s odlučuje kada će se koristiti sigurni DNS za zaštitu tvoje privatnosti.</string>
   <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_1">Koristi tvog odabranog pružatelja usluge</string>
   <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_2">Koristi tvog standarnog DNS prevoditelja, ako postoji problem sa sigurnim pružateljem DNS-a</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">Koristi lokalnog pružatelja usluga, ukoliko je moguće. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">Isključi kada su VPN, roditeljska kontrola ili pravila poduzeća aktivna</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">Isključi kada mreža kaže aplikaciji %1$s da ne koristi sigurni DNS. %2$s</string>
   <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection">Povećana zaštita</string>
+  <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_summary">Ti određuješ kada koristiti sigurni DNS i birati tvog pružatelja usluge.</string>
   <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection_info_1">Koristi tvog odabranog pružatelja usluge</string>
   <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection_info_2">Koristi tvog standarnog DNS prevoditelja, samo ako postoji problem sa sigurnim DNS-om</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">Maksimalna zaštita</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s će uvijek koristiti sigurni DNS. Vidjet ćeš sigurnosno upozorenje prije nego što upotrijebimo tvoj DNS sustav.</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">Koristi samo odabranog pružatelja usluge</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">Uvijek upozori ako sigurni DNS nije dostupan</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">Ako sigurni DNS nije dostupan stranice se neće učitati ili neće ispravno funkcionirati</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">Isključeno</string>
   <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
@@ -2370,6 +2454,12 @@
   <string name="preference_doh_provider_custom_dialog_title">Prilagođeni pružatelj usluge</string>
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_textfield">Pružatelj usluge</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">URL-ovi moraju početi s „https://”</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">Neispravan URL</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">Odustani</string>
   <!-- Add button text for provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_add">Dodaj</string>
   <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
@@ -2502,6 +2592,8 @@
   <string name="logins_biometric_prompt_message_2">Otključaj za prikaz tvojih spremljenih lozinki</string>
   <!-- Title of warning dialog if users have no device authentication set up -->
   <string name="logins_warning_dialog_title_2">Zaštiti svoje spremljene lozinke</string>
+  <!-- Message of warning dialog if users have no device authentication set up -->
+  <string name="logins_warning_dialog_message_2">Postavi način zaključavanja uređaja – PIN ili lozinku – kao zaštitu pristupa tvojim spremljenim lozinkama ako netko drugi ima tvoj uređaj.</string>
   <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
   <string name="logins_warning_dialog_later">Kasnije</string>
   <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -3432,6 +3524,8 @@
   <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Aktualiziraj Firefox preglednika</string>
   <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
   <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Aktualiziraj prije 14. ožujka</string>
+  <!-- Homepage card title about old Firefox version -->
+  <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Za aktualiziranje je preostalo manje od 7 dana</string>
   <!-- Push notification title about old Firefox version. "Update" is a noun. -->
   <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Preporučuje se aktualiziranje</string>
   <!-- Push notification message about old Firefox version -->
