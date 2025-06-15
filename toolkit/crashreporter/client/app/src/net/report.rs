@@ -39,48 +39,52 @@ pub struct CrashReport<'a> {
 
 impl CrashReport<'_> {
     /// Send the crash report.
-    pub fn send(&self) -> anyhow::Result<Response> {
-        let mut request = None;
-
+    pub fn send(&self) -> std::io::Result<CrashReportSender> {
         #[cfg(mock)]
         if let Some(r) = MockReport.try_get(|f| f(self)) {
-            let response = r?;
-            request = Some(http::Request::Mock {
-                response: response.map(|s| s.into()),
+            return r.map(|inner| {
+                CrashReportSender(http::Request::Mock {
+                    response: inner.map(|s| s.into()),
+                })
             });
         }
 
-        let extra_json_data;
-        if request.is_none() {
-            extra_json_data = serde_json::to_string(self.extra)?;
+        let extra_json_data = serde_json::to_string(self.extra)?;
 
-            let mut parts = vec![
-                http::MimePart {
-                    name: "extra",
-                    content: http::MimePartContent::String(&extra_json_data),
-                    filename: Some("extra.json"),
-                    mime_type: Some("application/json"),
-                },
-                http::MimePart {
-                    name: "upload_file_minidump",
-                    content: http::MimePartContent::File(self.dump_file),
-                    filename: None,
-                    mime_type: None,
-                },
-            ];
-            if let Some(path) = self.memory_file {
-                parts.push(http::MimePart {
-                    name: "memory_report",
-                    content: http::MimePartContent::File(path),
-                    filename: None,
-                    mime_type: None,
-                })
-            }
-
-            request = Some(http::RequestBuilder::MimePost { parts }.build(self.url)?);
+        let mut parts = vec![
+            http::MimePart {
+                name: "extra",
+                content: http::MimePartContent::String(&extra_json_data),
+                filename: Some("extra.json"),
+                mime_type: Some("application/json"),
+            },
+            http::MimePart {
+                name: "upload_file_minidump",
+                content: http::MimePartContent::File(self.dump_file),
+                filename: None,
+                mime_type: None,
+            },
+        ];
+        if let Some(path) = self.memory_file {
+            parts.push(http::MimePart {
+                name: "memory_report",
+                content: http::MimePartContent::File(path),
+                filename: None,
+                mime_type: None,
+            })
         }
 
-        let response = request.unwrap().send()?;
+        http::RequestBuilder::MimePost { parts }
+            .build(self.url)
+            .map(CrashReportSender)
+    }
+}
+
+pub struct CrashReportSender(http::Request);
+
+impl CrashReportSender {
+    pub fn finish(self) -> anyhow::Result<Response> {
+        let response = self.0.send()?;
         let response = String::from_utf8_lossy(&response).into_owned();
         log::debug!("received response from sending report: {:?}", &*response);
         Ok(Response::parse(response))
@@ -199,7 +203,7 @@ mod test {
                     }),
                 )
                 .run(|| {
-                    let response = report.send().unwrap();
+                    let response = report.send().unwrap().finish().unwrap();
                     assert_eq!(response.crash_id.as_deref(), Some("1234"));
                     assert!(response.discarded);
                     assert_eq!(response.stop_sending_reports_for.as_deref(), Some("100"));

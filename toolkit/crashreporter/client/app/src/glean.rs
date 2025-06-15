@@ -96,7 +96,7 @@ mod uploader {
                 }
                 Ok(request) => match request.send() {
                     Err(e) => {
-                        log::error!("failed to send glean ping: {e:#}");
+                        log::error!("failed to send glean ping: {e}");
                         UploadResult::recoverable_failure()
                     }
                     Ok(_) => UploadResult::http_status(200),

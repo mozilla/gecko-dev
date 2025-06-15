@@ -162,8 +162,10 @@ impl Config {
         }
 
         if self.restart_command.is_none() {
-            self.restart_command =
-                Some(installation_program_path(mozbuild::config::MOZ_APP_NAME).into())
+            self.restart_command = Some(
+                self.installation_program_path(mozbuild::config::MOZ_APP_NAME)
+                    .into(),
+            )
         }
 
         // We no longer use `MOZ_CRASHREPORTER_RESTART_ARG_0`, see bug 1872920.
@@ -482,6 +484,23 @@ impl Config {
         }
     }
 
+    /// Get the path of a program in the installation.
+    ///
+    /// The returned path isn't guaranteed to exist.
+    // This method could be standalone rather than living in `Config`; it's here because it makes
+    // sense that if it were to rely on anything, it would be the `Config` (and that may change in
+    // the future).
+    pub fn installation_program_path<N: AsRef<OsStr>>(&self, program: N) -> PathBuf {
+        let self_path = self_path();
+        let exe_extension = self_path.extension().unwrap_or_default();
+        let mut p = program.as_ref().to_os_string();
+        if !exe_extension.is_empty() {
+            p.push(".");
+            p.push(exe_extension);
+        }
+        installation_path().join(p)
+    }
+
     /// Update the log file based on the current configured data_dir.
     fn update_log_file(&self) {
         if let (Some(log_target), Some(data_dir)) = (&self.log_target, &self.data_dir) {
@@ -620,20 +639,6 @@ pub fn installation_resource_path() -> &'static Path {
         }
     });
     &*PATH
-}
-
-/// Get the path of a program in the installation.
-///
-/// The returned path isn't guaranteed to exist.
-pub fn installation_program_path<N: AsRef<OsStr>>(program: N) -> PathBuf {
-    let self_path = self_path();
-    let exe_extension = self_path.extension().unwrap_or_default();
-    let mut p = program.as_ref().to_os_string();
-    if !exe_extension.is_empty() {
-        p.push(".");
-        p.push(exe_extension);
-    }
-    installation_path().join(p)
 }
 
 /// Get the path of the Firefox installation containing the crashreporter.
