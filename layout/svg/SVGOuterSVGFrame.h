@@ -35,6 +35,7 @@ class SVGOuterSVGFrame final : public SVGDisplayContainerFrame,
 
   friend nsContainerFrame* ::NS_NewSVGOuterSVGFrame(
       mozilla::PresShell* aPresShell, ComputedStyle* aStyle);
+  friend class AsyncSendIntrinsicSizeAndRatioToEmbedder;
   friend class AutoSVGViewHandler;
   friend class SVGFragmentIdentifier;
 
