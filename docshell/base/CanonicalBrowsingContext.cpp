@@ -341,8 +341,6 @@ void CanonicalBrowsingContext::ReplacedBy(
   mLoadingEntries.SwapElements(aNewContext->mLoadingEntries);
   MOZ_ASSERT(!aNewContext->mActiveEntry);
   mActiveEntry.swap(aNewContext->mActiveEntry);
-  MOZ_ASSERT(aNewContext->mActiveEntryList.isEmpty());
-  aNewContext->mActiveEntryList.extendBack(std::move(mActiveEntryList));
 
   aNewContext->mPermanentKey = mPermanentKey;
   mPermanentKey.setNull();
@@ -467,10 +465,6 @@ SessionHistoryEntry* CanonicalBrowsingContext::GetActiveSessionHistoryEntry() {
 void CanonicalBrowsingContext::SetActiveSessionHistoryEntry(
     SessionHistoryEntry* aEntry) {
   mActiveEntry = aEntry;
-  mActiveEntryList.clear();
-  if (mActiveEntry) {
-    mActiveEntryList.insertBack(mActiveEntry);
-  }
 }
 
 bool CanonicalBrowsingContext::HasHistoryEntry(nsISHEntry* aEntry) {
@@ -482,29 +476,7 @@ void CanonicalBrowsingContext::SwapHistoryEntries(nsISHEntry* aOldEntry,
                                                   nsISHEntry* aNewEntry) {
   // XXX Should we check also loading entries?
   if (mActiveEntry == aOldEntry) {
-    if (!aNewEntry) {
-      mActiveEntryList.clear();
-      mActiveEntry = nullptr;
-      return;
-    }
-
     nsCOMPtr<SessionHistoryEntry> newEntry = do_QueryInterface(aNewEntry);
-    RefPtr beforeOldEntry = mActiveEntry->removeAndGetPrevious();
-    if (newEntry->isInList()) {
-      RefPtr beforeNewEntry = newEntry->removeAndGetPrevious();
-
-      if (beforeNewEntry) {
-        beforeNewEntry->setNext(mActiveEntry);
-      } else {
-        mActiveEntryList.insertFront(mActiveEntry);
-      }
-    }
-
-    if (beforeOldEntry) {
-      beforeOldEntry->setNext(newEntry);
-    } else {
-      mActiveEntryList.insertFront(newEntry);
-    }
     mActiveEntry = newEntry.forget();
   }
 }
@@ -645,17 +617,21 @@ CanonicalBrowsingContext::ReplaceLoadingSessionHistoryEntryForLoad(
 }
 
 mozilla::Span<const SessionHistoryInfo>
-CanonicalBrowsingContext::GetContiguousSessionHistoryInfos() {
+CanonicalBrowsingContext::GetContiguousSessionHistoryInfos(
+    SessionHistoryInfo& aInfo) {
   MOZ_ASSERT(Navigation::IsAPIEnabled());
 
-  mActiveContiguousEntries.ClearAndRetainStorage();
-  if (mActiveEntry) {
-    nsSHistory::WalkContiguousEntriesInOrder(mActiveEntry, [&](auto* aEntry) {
-      if (nsCOMPtr<SessionHistoryEntry> entry = do_QueryObject(aEntry)) {
-        mActiveContiguousEntries.AppendElement(entry->Info());
-      }
-    });
+  nsISHistory* history = GetSessionHistory();
+  if (!history) {
+    return {};
   }
+
+  mActiveContiguousEntries.ClearAndRetainStorage();
+  nsSHistory::WalkContiguousEntriesInOrder(mActiveEntry, [&](auto* aEntry) {
+    if (nsCOMPtr<SessionHistoryEntry> entry = do_QueryObject(aEntry)) {
+      mActiveContiguousEntries.AppendElement(entry->Info());
+    }
+  });
 
   return mActiveContiguousEntries;
 }
@@ -1057,12 +1033,7 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
           addEntry = index < 0;
           if (!addEntry) {
             shistory->ReplaceEntry(index, newActiveEntry);
-            RefPtr entry = mActiveEntry;
-            while (entry) {
-              entry = entry->removeAndGetNext();
-            }
           }
-          mActiveEntryList.insertBack(newActiveEntry);
           mActiveEntry = newActiveEntry;
         } else if (LOAD_TYPE_HAS_FLAGS(
                        aLoadType, nsIWebNavigation::LOAD_FLAGS_IS_REFRESH) &&
@@ -1070,13 +1041,6 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
           addEntry = false;
           mActiveEntry->ReplaceWith(*newActiveEntry);
         } else {
-          RefPtr entry = mActiveEntry ? mActiveEntry->getNext() : nullptr;
-          while (entry) {
-            entry = entry->removeAndGetNext();
-          }
-          if (!newActiveEntry->isInList()) {
-            mActiveEntryList.insertBack(newActiveEntry);
-          }
           mActiveEntry = newActiveEntry;
         }
 
@@ -1105,9 +1069,6 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
                                                          this);
           }
           mActiveEntry = newActiveEntry;
-          if (!mActiveEntry->isInList()) {
-            mActiveEntryList.insertBack(mActiveEntry);
-          }
 
           shistory->InternalSetRequestedIndex(indexOfHistoryLoad);
           // FIXME UpdateIndex() here may update index too early (but even the
@@ -1128,7 +1089,6 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
               // history!
               shistory->AddNestedSHEntry(mActiveEntry, newActiveEntry, Top(),
                                          aCloneEntryChildren);
-              mActiveEntry->setNext(newActiveEntry);
               mActiveEntry = newActiveEntry;
             }
           } else {
@@ -1137,7 +1097,6 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
             //     Or can that even happen ever?
             if (parentEntry) {
               mActiveEntry = newActiveEntry;
-              mActiveEntryList.insertBack(mActiveEntry);
               // FIXME Using IsInProcess for aUseRemoteSubframes isn't quite
               //       right, but aUseRemoteSubframes should be going away.
               parentEntry->AddChild(
@@ -1259,13 +1218,6 @@ void CanonicalBrowsingContext::SetActiveSessionHistoryEntry(
           UseRemoteSubframes());
     }
   }
-
-  RefPtr toRemove =
-      oldActiveEntry ? oldActiveEntry->getNext() : mActiveEntryList.getFirst();
-  while (toRemove) {
-    toRemove = toRemove->removeAndGetNext();
-  }
-  mActiveEntryList.insertBack(mActiveEntry);
 
   ResetSHEntryHasUserInteractionCache();
 
@@ -3413,16 +3365,16 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(CanonicalBrowsingContext,
   if (tmp->mSessionHistory) {
     tmp->mSessionHistory->SetBrowsingContext(nullptr);
   }
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(
-      mSessionHistory, mCurrentBrowserParent, mWebProgress,
-      mSessionStoreSessionStorageUpdateTimer, mActiveEntryList, mActiveEntry)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSessionHistory, mCurrentBrowserParent,
+                                  mWebProgress,
+                                  mSessionStoreSessionStorageUpdateTimer)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(CanonicalBrowsingContext,
                                                   BrowsingContext)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(
-      mSessionHistory, mCurrentBrowserParent, mWebProgress,
-      mSessionStoreSessionStorageUpdateTimer, mActiveEntryList, mActiveEntry)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSessionHistory, mCurrentBrowserParent,
+                                    mWebProgress,
+                                    mSessionStoreSessionStorageUpdateTimer)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(CanonicalBrowsingContext,

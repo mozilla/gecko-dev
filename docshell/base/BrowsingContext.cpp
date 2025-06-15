@@ -4012,13 +4012,13 @@ void BrowsingContext::GetContiguousHistoryEntries(
   if (XRE_IsContentProcess()) {
     MOZ_ASSERT(ContentChild::GetSingleton());
     ContentChild::GetSingleton()->SendGetContiguousSessionHistoryInfos(
-        this,
+        this, aActiveEntry,
         [aActiveEntry, navigation = RefPtr(aNavigation)](auto aInfos) mutable {
           navigation->InitializeHistoryEntries(aInfos, &aActiveEntry);
         },
         [](auto aReason) { MOZ_ASSERT(false, "How did this happen?"); });
   } else {
-    auto infos = Canonical()->GetContiguousSessionHistoryInfos();
+    auto infos = Canonical()->GetContiguousSessionHistoryInfos(aActiveEntry);
     aNavigation->InitializeHistoryEntries(infos, &aActiveEntry);
   }
 }
