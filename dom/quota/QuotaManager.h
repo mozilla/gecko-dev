@@ -226,6 +226,8 @@ class QuotaManager final : public BackgroundThreadObject {
   void UpdateOriginAccessTime(const OriginMetadata& aOriginMetadata,
                               int64_t aTimestamp);
 
+  void UpdateOriginAccessed(const OriginMetadata& aOriginMetadata);
+
   void RemoveQuota();
 
   void RemoveQuotaForRepository(PersistenceType aPersistenceType) {

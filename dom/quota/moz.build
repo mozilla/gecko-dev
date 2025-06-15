@@ -57,6 +57,7 @@ EXPORTS.mozilla.dom.quota += [
     "DirectoryLockCategory.h",
     "DirectoryLockImpl.h",
     "DirectoryLockInlines.h",
+    "DirectoryMetadata.h",
     "DummyCipherStrategy.h",
     "EncryptedBlock.h",
     "EncryptingOutputStream.h",
