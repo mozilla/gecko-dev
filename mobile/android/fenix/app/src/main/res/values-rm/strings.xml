@@ -209,25 +209,25 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">Persunalisescha %s</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">Persunalisescha %s</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">Ti has extensiuns installadas, ma betg activadas</string>
   <!--
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">Extensiuns megliereschan la navigaziun, saja quai cun midar l’apparientscha ed il cumportament da %s u cun optimar la protecziun da datas e la segirezza.</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Extensiuns megliereschan la navigaziun, saja quai cun midar l’apparientscha ed il cumportament da %s u cun optimar la protecziun da datas e la segirezza.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Per utilisar las extensiuns, las activescha cun acceder als parameters u cun tscherner «%s» sutvart.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Per utilisar las extensiuns, las activescha cun acceder als parameters u cun tscherner «%s» sutvart.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">Ulteriuras infurmaziuns</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">Ulteriuras infurmaziuns</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Administrar las extensiuns</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">Extensiuns recumandadas</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Extensiuns recumandadas</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -258,9 +258,9 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">Agiuntar l’app al visur da partenza</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">Agiuntar al visur da partenza…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Agiuntar al visur da partenza…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-  <string name="browser_menu_add_app_to_homescreen_2">Agiuntar l’app al visur da partenza…</string>
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Agiuntar l’app al visur da partenza…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">Apparats da Xiaomi pon pretender permissiuns supplementaras per agiuntar scursanidas al visur da partenza. Controllescha per plaschair tes parameters.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -268,17 +268,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">Tschertgar en la pagina</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">Tschertgar en la pagina…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">Tschertgar en la pagina…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">Translatar la pagina</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">Memorisar en ina collecziun…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">Memorisar en ina collecziun…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">Memorisar en ina collecziun</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">Cundivider</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">Parter…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">Parter…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -313,7 +313,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">S’annunziar</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">Sincronisar pleds-clav, tabs e dapli</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Sincronisar pleds-clav, tabs e dapli</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">S’annunziar danovamain per sincronisar</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -332,9 +332,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Midar a la website per mobils</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">Utensils</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">Utensils</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">Enavos al menu principal</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Enavos al menu principal</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">Serrar il menu principal</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
@@ -350,34 +350,34 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Serrar il menu per la persunalisaziun da tabs</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site_2">Modus da lectura, translaziun, annunziar problems cun la website, stampar, cundivider, avrir app</string>
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Modus da lectura, translaziun, annunziar problems cun la website, stampar, cundivider, avrir app</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">Modus da lectura, translatar, stampar, cundivider, avrir app</string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Modus da lectura, translatar, stampar, cundivider, avrir app</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_report_site_2">Modus da lectura, annunziar problems cun la website, stampar, cundivider, avrir app</string>
+  <string name="browser_menu_tools_description_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Modus da lectura, annunziar problems cun la website, stampar, cundivider, avrir app</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">Modus da lectura, stampar, cundivider, avrir app</string>
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Modus da lectura, stampar, cundivider, avrir app</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">Memorisar</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">Memorisar</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">Agiuntar segnapagina, scursanida, partenza, collecziun, PDF</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">Agiuntar segnapagina, scursanida, partenza, collecziun, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Agiuntar la pagina als segnapaginas</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Modifitgar il segnapagina</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">Memorisar sco PDF…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">Memorisar sco PDF…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">Midar a la vista da lectura</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Midar a la vista da lectura</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">Bandunar la vista da lectura</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Bandunar la vista da lectura</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_normal_tab">Spustar en in tab betg privat</string>
+  <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">Spustar en in tab betg privat</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">Translatar la pagina…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Translatar la pagina…</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Annunziar problems cun questa website…</string>
   <!--
@@ -386,7 +386,7 @@
   -->
   <string name="browser_menu_translated_to">Translatà en %1$s</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">Stampar…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Stampar…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").

@@ -209,25 +209,25 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">Personecigu %s</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">Personecigu %s</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">Vi havas instalitajn etendaĵojn se ili ne estas aktivaj</string>
   <!--
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">Etendaĵoj plurmaniere plibonigas vian retumon, ekzemple per ŝanĝo de aspekto de %s aŭ per plibonigo de privateco kaj sekureco.</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Etendaĵoj plurmaniere plibonigas vian retumon, ekzemple per ŝanĝo de aspekto de %s aŭ per plibonigo de privateco kaj sekureco.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Por uzi etendaĵojn, aktivigi ilin en la agordoj aŭ per elekto de “%s” malsupre.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Por uzi etendaĵojn, aktivigi ilin en la agordoj aŭ per elekto de “%s” malsupre.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">Pli da informo</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">Pli da informo</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Administri etendaĵojn</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">Rekomenditaj etendaĵoj</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Rekomenditaj etendaĵoj</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -258,9 +258,9 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">Aldoni apon al la hejmekrano</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">Aldoni al hejmekrano…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Aldoni al hejmekrano…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-  <string name="browser_menu_add_app_to_homescreen_2">Aldoni apon al la hejmekrano…</string>
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Aldoni apon al la hejmekrano…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">La aparatoj de Xiami povus peti kromajn permesojn por aldoni ŝparvojojn al la hejmekrano. Bonvolu kontroli viajn agordojn.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -268,17 +268,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">Serĉi en paĝo</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">Serĉi en paĝo…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">Serĉi en paĝo…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">Traduki paĝon</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">Konservi en kolekto…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">Konservi en kolekto…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">Konservi en kolekto</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">Kundividi</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">Dividi…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">Dividi…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -313,7 +313,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">Komenci seancon</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">Speguli pasvortojn, langetojn, kaj pli</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Speguli pasvortojn, langetojn, kaj pli</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Rekomencu seancon por speguli</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -332,9 +332,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Iri al poŝaparata retejo</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">Iloj</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">Iloj</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">Reen al ĉefa menuo</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Reen al ĉefa menuo</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">Fermi ĉefan menuon</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
@@ -350,34 +350,34 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Fermi menuon de personecigo de langetoj</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site_2">Lega vido, traduki, raporti misfunkciantan retejon, presi, dividi, malfermi apon</string>
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Lega vido, traduki, raporti misfunkciantan retejon, presi, dividi, malfermi apon</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">Lega vido, traduki, presi, dividi, malfermi apon</string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Lega vido, traduki, presi, dividi, malfermi apon</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_report_site_2">Lega vido, raporti misfunkciantan retejon, presi, dividi, malfermi apon</string>
+  <string name="browser_menu_tools_description_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Lega vido, raporti misfunkciantan retejon, presi, dividi, malfermi apon</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">Lega vido, presi, dividi, malfermi apon</string>
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Lega vido, presi, dividi, malfermi apon</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">Konservi</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">Konservi</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">Aldono de legosigno, ŝparvojo, eka paĝo, kolekto, PDF</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">Aldono de legosigno, ŝparvojo, eka paĝo, kolekto, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Aldoni legosignon por tiu ĉi paĝo</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Redakti legosignon</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">Konservi kiel PDF…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">Konservi kiel PDF…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">Ŝalti legilan vidon</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Ŝalti legilan vidon</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">Malŝalti legilan vidon</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Malŝalti legilan vidon</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_normal_tab">Movi al neprivata langeto</string>
+  <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">Movi al neprivata langeto</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">Traduki paĝon…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Traduki paĝon…</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Raporti misfunkciantan retejon…</string>
   <!--
@@ -386,7 +386,7 @@
   -->
   <string name="browser_menu_translated_to">Tradukita en la %1$sn</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">Presi…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Presi…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -1484,7 +1484,6 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Iri supren</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Iri reen kaj fermi serĉon</string>
-  <!-- Content description for the search bar clear text button on the downloads screen -->
   <string name="download_clear_search_description">Viŝi</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Dividi retadreson</string>

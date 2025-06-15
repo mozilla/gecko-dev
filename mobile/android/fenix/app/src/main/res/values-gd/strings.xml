@@ -199,25 +199,25 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">Thoir dreach pearsanta air %s</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">Thoir dreach pearsanta air %s</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">Stàlaich thu leudachain ach cha do chuir thu an comas iad</string>
   <!--
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">Cuiridh leudachain comasan a bharrachd ris a’ bhrabhsadh a nì thu, eadar dreach is làimhseachadh %s agus prìobhaideachd is sàbhailteachd a bharrachd.</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Cuiridh leudachain comasan a bharrachd ris a’ bhrabhsadh a nì thu, eadar dreach is làimhseachadh %s agus prìobhaideachd is sàbhailteachd a bharrachd.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Feumaidh tu leudachan a chur an comas mus urrainn dhut an cleachdadh no le bhith a’ taghadh “%s” gu h-ìosal.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Feumaidh tu leudachan a chur an comas mus urrainn dhut an cleachdadh no le bhith a’ taghadh “%s” gu h-ìosal.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">Barrachd fiosrachaidh</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">Barrachd fiosrachaidh</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Stiùirich na leudachain</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">Leudachain a mholamaid</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Leudachain a mholamaid</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -246,7 +246,7 @@
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
   <string name="browser_menu_add_to_homescreen">Cuir ris an sgrìn mhòr</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">Cuir ris an sgrìn-dhachaigh…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Cuir ris an sgrìn-dhachaigh…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">Dh’fhaoidte gum feum uidheaman Xiaomi ceadan a bharrachd mus urrainn dhut ath-ghoiridean a chur ris an sgrìn-dhachaigh. Thoir sùil air na roghainnean.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -254,17 +254,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">Lorg air an duilleag</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">Lorg san duilleag…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">Lorg san duilleag…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">Eadar-theangaich an duilleag</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">Sàbhail ann an cruinneachadh…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">Sàbhail ann an cruinneachadh…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">Sàbhail ann an cruinneachadh</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">Co-roinn</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">Co-roinn…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">Co-roinn…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -299,7 +299,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">Clàraich a-steach</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">Sioncronaich faclan-faire, tabaichean is mòran a bharrachd</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Sioncronaich faclan-faire, tabaichean is mòran a bharrachd</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Clàraich a-steach a-rithist a dhèanamh sioncronachadh</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -318,9 +318,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Seall an làrach mobile</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">Innealan</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">Innealan</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">Air ais gun phrìomh-chlàr-taice</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Air ais gun phrìomh-chlàr-taice</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">An siota airson am prìomh-chlàr-taice a dhùnadh</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
@@ -335,28 +335,28 @@
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">Sàbhail</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">Sàbhail</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">Cuir comharra-lìn ris, ath-ghoirid, dhachaigh, cruinneachadh, PDF</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">Cuir comharra-lìn ris, ath-ghoirid, dhachaigh, cruinneachadh, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Dèan comharra-lìn dhen duilleag seo</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Deasaich an comharra-lìn</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">Sàbhail mar PDF…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">Sàbhail mar PDF…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">Cuir an sealladh leughaidh air</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Cuir an sealladh leughaidh air</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">Cuir an sealladh leughaidh dheth</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Cuir an sealladh leughaidh dheth</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">Eadar-theangaich an duilleag…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Eadar-theangaich an duilleag…</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">Chaidh %1$s a chur air</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">Clò-bhuail…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Clò-bhuail…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").

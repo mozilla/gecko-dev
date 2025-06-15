@@ -209,21 +209,21 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">%s نى ئۆز خاسلىقىڭىزغا ئايلاندۇرىدۇ</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">%s نى ئۆز خاسلىقىڭىزغا ئايلاندۇرىدۇ</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">كېڭەيتىلمە ئورنىتىلدى ئەمما قوزغىتىلمىدى</string>
   <!--
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">كېڭەيتىلمە %s نىڭ كۆرۈنۈش ۋە ئىجرا قىلىش ئۇسۇلىنى تەڭشەپ، شەخسىيەت ۋە بىخەتەرلىكنى كۈچەيتىپ توركۆرگۈ تەسىراتىڭىزنى ياخشىلايدۇ.</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">كېڭەيتىلمە %s نىڭ كۆرۈنۈش ۋە ئىجرا قىلىش ئۇسۇلىنى تەڭشەپ، شەخسىيەت ۋە بىخەتەرلىكنى كۈچەيتىپ توركۆرگۈ تەسىراتىڭىزنى ياخشىلايدۇ.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">كېڭەيتىلمە ئىشلىتىشتە تەڭشەكتىن قوزغىتىلىدۇ ياكى تۆۋەندىكى «%s» تاللىنىدۇ.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">كېڭەيتىلمە ئىشلىتىشتە تەڭشەكتىن قوزغىتىلىدۇ ياكى تۆۋەندىكى «%s» تاللىنىدۇ.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">تەپسىلاتى</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">تەپسىلاتى</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">كېڭەيتىلمە باشقۇرۇش</string>
   <!-- Browser menu group that contains additional settings in collapsed state -->
@@ -231,7 +231,7 @@
   <!-- Browser menu group that contains additional settings in expanded state -->
   <string name="browser_menu_less_settings">ئاز</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">تەۋسىيە كېڭەيتىلمە</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">تەۋسىيە كېڭەيتىلمە</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -264,9 +264,9 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">ئەپنى باش ئېكرانغا قوش</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">باش ئېكرانغا قوش…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">باش ئېكرانغا قوش…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-  <string name="browser_menu_add_app_to_homescreen_2">ئەپنى باش ئېكرانغا قوش…</string>
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">ئەپنى باش ئېكرانغا قوش…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">شياۋمى ئۈسكۈنىلىرىدە باش ئېكرانغا تېزلەتمە قوشۇشتا قوشۇمچە ئىجازەتكە ئېھتىياجلىق بولۇشى مۇمكىن. تەڭشەكلىرىڭىزنى تەكشۈرۈڭ.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -274,17 +274,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">بەتتىن ئىزدە</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">بەتتىن ئىزدە…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">بەتتىن ئىزدە…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">بەت تەرجىمىسى</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">يىغقۇچقا ساقلا…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">يىغقۇچقا ساقلا…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">يىغقۇچقا ساقلا</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">ھەمبەھىرلەش</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">ھەمبەھىر…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">ھەمبەھىر…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -319,7 +319,9 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">تىزىمغا كىرىڭ</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">ئىم، بەتكۈچ ۋە باشقىلارنى قەدەمداشلايدۇ</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">ئىم، بەتكۈچ ۋە باشقىلارنى قەدەمداشلايدۇ</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_2">خەتكۈچ، ئىم، بەتكۈچ ۋە باشقىلارنى قەدەمداشلايدۇ</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">قەدەمداشلاشتا تىزىمغا كىرىڭ</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -338,9 +340,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">كۆچمە بېكەتكە ئالماشتۇر</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">قوراللار</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">قوراللار</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">ئاساسىي تىزىملىككە قايت</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">ئاساسىي تىزىملىككە قايت</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">ئاساسىي تىزىملىك جەدۋىلىنى تاقايدۇ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
@@ -356,20 +358,20 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">ئىختىيارى بەتكۈچ تىزىملىك جەدۋىلىنى تاقايدۇ</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site_2">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، بۇزۇلغان بېكەتنى دوكلات قىلىش، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، بۇزۇلغان بېكەتنى دوكلات قىلىش، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشى، تەرجىمە، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_report_site_2">ئوقۇرمەن كۆرۈنۈشى، بۇزۇلغان بېكەتنى دوكلات قىلىش، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+  <string name="browser_menu_tools_description_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشى، بۇزۇلغان بېكەتنى دوكلات قىلىش، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">ئوقۇرمەن كۆرۈنۈشى، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشى، بېسىش، ھەمبەھىر، ئەپ ئېچىش</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">ساقلا</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">ساقلا</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">خەتكۈچ، تېزلەتمە، باش بەت، توپلام، PDF قوشىدۇ</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">خەتكۈچ، تېزلەتمە، باش بەت، توپلام، PDF قوشىدۇ</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">بۇ بەتنى خەتكۈچكە قوش</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
@@ -377,17 +379,23 @@
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">خەتكۈچ تەھرىر</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">PDF كە ساقلا…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">PDF كە ساقلا…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">PDF كە ساقلا</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">ئوقۇرمەن كۆرۈنۈشىنى ئاچ</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشىنى ئاچ</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">ئوقۇرمەن كۆرۈنۈشىنى تاقا</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">ئوقۇرمەن كۆرۈنۈشىنى تاقا</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_normal_tab">شەخسىي بولمىغان بەتكۈچكە يۆتكەل</string>
+  <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">شەخسىي بولمىغان بەتكۈچكە يۆتكەل</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">بەت تەرجىمىسى…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">بەت تەرجىمىسى…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">بەت تەرجىمىسى</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">بۇزۇلغان بېكەتنى دوكلات قىلىدۇ…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">بۇزۇلغان بېكەتنى دوكلات قىلىدۇ</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -396,12 +404,23 @@
   <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
   <string name="browser_menu_translated">تەرجىمە قىلىندى</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">باس…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">باس…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">باس</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">%1$s چېكىن</string>
+  <!--
+    Content description for a banner within the menu which prompt the user to make this app their default browser.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_default_banner_title">%1$s نى كۆڭۈلدىكى توركۆرگۈگە تەڭشەيدۇ</string>
+  <!-- Label text within the set as default banner -->
+  <string name="browser_menu_default_banner_subtitle">بىر قانچە سېكۇنت كېتىدۇ. خالىغان ۋاقىتتا ئۆزگەرتكىلى بولىدۇ.</string>
+  <!-- Content description for the button that dismisses the set as default banner in the menu -->
+  <string name="browser_menu_default_banner_dismiss">بولدىلا</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1548,7 +1567,16 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">ئۈستىگە يول باشلا</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">قايتىپ ۋە ئىزدەشنى تاقا</string>
-  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">ۋاقىتلىق توختىتىدۇ</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">داۋاملاشتۇر</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">قايتا سىنا</string>
   <string name="download_clear_search_description">تازىلا</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">تور ئادرېسى ھەمبەھىر</string>

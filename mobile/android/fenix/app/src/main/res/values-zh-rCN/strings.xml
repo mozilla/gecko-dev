@@ -209,21 +209,21 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">让 %s 有你的个性</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">让 %s 有你的个性</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">您已安装扩展，但未启用</string>
   <!--
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">扩展可从方方面面提升您的浏览体验，例如更改 %s 的外观和运作方式、增强隐私保护和安全性。</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">扩展可从方方面面提升您的浏览体验，例如更改 %s 的外观和运作方式、增强隐私保护和安全性。</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">若要使用扩展，请在设置中将其启用，或选择下方的“%s”。</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">若要使用扩展，请在设置中将其启用，或选择下方的“%s”。</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">详细了解</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">详细了解</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">管理扩展</string>
   <!-- Browser menu group that contains additional settings in collapsed state -->
@@ -231,7 +231,7 @@
   <!-- Browser menu group that contains additional settings in expanded state -->
   <string name="browser_menu_less_settings">折叠</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">推荐扩展</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">推荐扩展</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -264,9 +264,9 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">添加应用到主屏幕</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">添加到主屏幕…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">添加到主屏幕…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-  <string name="browser_menu_add_app_to_homescreen_2">添加应用到主屏幕…</string>
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">添加应用到主屏幕…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">在小米设备上，可能需要额外权限才能将快捷方式添加到主屏幕。请检查您的设置。</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -274,17 +274,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">在页面中查找</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">在页面中查找…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">在页面中查找…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">翻译页面</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">保存到收藏集…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">保存到收藏集…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">保存到收藏集</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">分享</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">分享…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">分享…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -319,7 +319,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">登录</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">同步密码、标签页等数据</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">同步密码、标签页等数据</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">重新登录以同步</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -338,9 +338,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">切换到移动版网站</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">工具</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">工具</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">回到主菜单</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">回到主菜单</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">关闭主菜单表单</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
@@ -356,20 +356,20 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">关闭定制标签页菜单表单</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site_2">阅读模式、翻译、反馈问题网站、打印、分享、在应用中打开</string>
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">阅读模式、翻译、反馈问题网站、打印、分享、在应用中打开</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">阅读模式、翻译、打印、分享、在应用中打开</string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">阅读模式、翻译、打印、分享、在应用中打开</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_report_site_2">阅读模式、反馈问题网站、打印、分享、在应用中打开</string>
+  <string name="browser_menu_tools_description_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">阅读模式、反馈问题网站、打印、分享、在应用中打开</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">阅读模式、打印、分享、在应用中打开</string>
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">阅读模式、打印、分享、在应用中打开</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">保存</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">保存</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">添加书签、快捷方式、主页、收藏集、PDF</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">添加书签、快捷方式、主页、收藏集、PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">将此页面加入书签</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
@@ -377,15 +377,15 @@
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">编辑书签</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">另存为 PDF…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">另存为 PDF…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">开启阅读模式</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">开启阅读模式</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">关闭阅读视图</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">关闭阅读视图</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_normal_tab">移动到非隐私标签页</string>
+  <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">移动到非隐私标签页</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">翻译页面…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">翻译页面…</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">反馈网站问题…</string>
   <!--
@@ -396,7 +396,7 @@
   <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
   <string name="browser_menu_translated">已翻译</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">打印…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">打印…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -1548,7 +1548,6 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">向上导航</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">返回并关闭搜索</string>
-  <!-- Content description for the search bar clear text button on the downloads screen -->
   <string name="download_clear_search_description">清除</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">分享 URL</string>

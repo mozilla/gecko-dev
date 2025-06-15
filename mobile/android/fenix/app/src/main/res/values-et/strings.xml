@@ -194,7 +194,7 @@
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_extensions">Lisad</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">Rohkem teavet</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">Rohkem teavet</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Konto andmed</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -216,17 +216,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">Otsi lehelt</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">Otsi lehelt…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">Otsi lehelt…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">Tõlgi leht</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">Salvesta kollektsiooni…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">Salvesta kollektsiooni…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">Salvesta kollektsiooni</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">Jaga</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">Jaga…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">Jaga…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -266,11 +266,11 @@
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">Salvesta</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">Salvesta</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Teata katkisest saidist…</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">Prindi…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Prindi…</string>
   <!--
     Browser Toolbar
 

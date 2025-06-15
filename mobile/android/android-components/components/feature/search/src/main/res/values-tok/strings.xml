@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!--
+    Search Widget
+
+    Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="search_widget_content_description">o open e poki sin lon ilo %1$s</string>
+  <!-- Text preview for smaller sized widgets. -->
+  <string name="search_widget_text_short">o alasa</string>
+  <!-- Text preview for larger sized widgets. -->
+  <string name="search_widget_text_long">o alasa lon ma ilo</string>
+</resources>

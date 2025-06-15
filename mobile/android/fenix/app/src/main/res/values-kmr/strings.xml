@@ -207,25 +207,25 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">%s`ê taybet bike</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">%s`ê taybet bike</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">Te pêvekên sazkirî hene, lê ne çalakkirî ne</string>
   <!--
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">Pêvek ji xuyakirin heta performansa %s`ê heta nepenî û ewlekariyê asta gera te bilind dikin.</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Pêvek ji xuyakirin heta performansa %s`ê heta nepenî û ewlekariyê asta gera te bilind dikin.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Ji bo bikaranîna pêvekan wan ji eyaran yan jî ji hilbijarka “%s” ya jêrê çalak bike.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Ji bo bikaranîna pêvekan wan ji eyaran yan jî ji hilbijarka “%s” ya jêrê çalak bike.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">Zêdetir bizane</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">Zêdetir bizane</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Pêvekan bi rê ve bibe</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">Pêvekên pêşniyarkirî</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Pêvekên pêşniyarkirî</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -256,9 +256,9 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">Bernamokê têxe ekrana destpêkê</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">Têxe ekrana destpêkê…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Têxe ekrana destpêkê…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-  <string name="browser_menu_add_app_to_homescreen_2">Bernamokê têxe ekrana destpêkê…</string>
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Bernamokê têxe ekrana destpêkê…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">Dibe ku ji bo cîhazên Xiaomi ji bo lêzêdekirina kurteriyan li ekrana destpêkê destûrên zêdetir pêwist bin. Tika ye eyarên xwe kontrol bike.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -266,17 +266,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">Di rûpelê de bibîne</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">Di rûpelê de bibîne…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">Di rûpelê de bibîne…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">Rûpelê wergerîne</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">Li koleksiyonê qeyd bike…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">Li koleksiyonê qeyd bike…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">Li koleksiyonê tomar bike</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">Parve bike</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">Parve bike…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">Parve bike…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -311,7 +311,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">Têkeve</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">Şîfre, hilpekîn û zêdetir tiştan senkronîze bike</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Şîfre, hilpekîn û zêdetir tiştan senkronîze bike</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Dîsa têke senkronîzekirina xwe</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -330,9 +330,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Vegere malpera mobîl</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">Amûr</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">Amûr</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">Vegere menuya giştî</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Vegere menuya giştî</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">Menuya giştî bigire</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
@@ -348,34 +348,34 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Menuya hilpekîna taybet bigire</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site_2">Xuyakirina Readerê, Wergerandin, malpera xirabe rapor bike, Çapkirin, Parvekirin, Bernamokê veke</string>
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Xuyakirina Readerê, Wergerandin, malpera xirabe rapor bike, Çapkirin, Parvekirin, Bernamokê veke</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">Xuyakirina Readerê, Wergerandin, Çapkirin, Parvekirin, Bernamokê veke</string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Xuyakirina Readerê, Wergerandin, Çapkirin, Parvekirin, Bernamokê veke</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_report_site_2">Xuyakirina Readerê, Malpera xirabe rapor bike, Çapkirin, Parvekirin, Bernamokê vek</string>
+  <string name="browser_menu_tools_description_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Xuyakirina Readerê, Malpera xirabe rapor bike, Çapkirin, Parvekirin, Bernamokê vek</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">Xuyakirina Readerê, Wergerandin, Çapkirin, Bernamokê veke</string>
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Xuyakirina Readerê, Wergerandin, Çapkirin, Bernamokê veke</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">Qeyd bike</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">Qeyd bike</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">Favoriyekê lê zêde bike, Kurterê, Têketin, Koleksiyon, PDF</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">Favoriyekê lê zêde bike, Kurterê, Têketin, Koleksiyon, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Vê rûpelê têxe nav favoriyan</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Favoriyan serast bike</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">Wekî PDF qeyd bike…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">Wekî PDF qeyd bike…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">Xuyakirina Readerê veke</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Xuyakirina Readerê veke</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">Xuyakirina Readerê bigire</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Xuyakirina Readerê bigire</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_normal_tab">Biçe hilpekîna ne-taybet</string>
+  <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">Biçe hilpekîna ne-taybet</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">Rûpelê wergerîne…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Rûpelê wergerîne…</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Malpera xirabe rapor bike…</string>
   <!--
@@ -384,7 +384,7 @@
   -->
   <string name="browser_menu_translated_to">Li zimanê %1$s hat wergerandin</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">Çapkirin…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Çapkirin…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -1334,7 +1334,6 @@
   <string name="download_multi_select_title">%1$d hatin bijartin</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Jê bibe</string>
-  <!-- Content description for the search bar clear text button on the downloads screen -->
   <string name="download_clear_search_description">Paqij bike</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">URL`ê parve bike</string>

@@ -197,25 +197,25 @@
     Browser menu banner header text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_header">Иҟаҵа %s уара иутәны</string>
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">Иҟаҵа %s уара иутәны</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">Анарҭбаарақәа шьақәыргылоуп аха аус ауӡом</string>
   <!--
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">Анарҭбаарақәа шәвеб-сафинг егьи аҩаӡарахь иргоит, %s аԥшреи аусуреи рыԥсахра инаркны амаӡареи ашәарҭадареи рырӷәӷәара аҟынӡа.</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Анарҭбаарақәа шәвеб-сафинг егьи аҩаӡарахь иргоит, %s аԥшреи аусуреи рыԥсахра инаркны амаӡареи ашәарҭадареи рырӷәӷәара аҟынӡа.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Анарҭбаарақәа рхархәаразы, урҭ аус арутәуп архиарақәа рҿы ма иалышәх «%s» ҵаҟа.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Анарҭбаарақәа рхархәаразы, урҭ аус арутәуп архиарақәа рҿы ма иалышәх «%s» ҵаҟа.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">Еиҳаны аилкаара</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">Еиҳаны аилкаара</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Анарҭбаарақәа рнапхгара</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">Иреиӷьу анарҭбаарақәа</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Иреиӷьу анарҭбаарақәа</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -242,7 +242,7 @@
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
   <string name="browser_menu_add_to_homescreen">Ахатә екран ахь</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">Ахатә екран ахь иацҵатәуп…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Ахатә екран ахь иацҵатәуп…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi ахархәагақәа ахатә екран аҿы аҿацәқәа рыцҵаразы иацҵаны азинқәа рҭаххар ауеит. Ҳаҳәоит, шәеиқәыршәарақәа гәашәҭ.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -250,17 +250,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">Иԥшаатәуп адаҟьаҿы</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">Адаҟьаҿы иԥшаатәуп…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">Адаҟьаҿы иԥшаатәуп…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">Адаҟьа аиҭагара</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">Аизгаҿы еиқәырхатәуп…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">Аизгаҿы еиқәырхатәуп…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">Аизгахь</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">Ашара</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">Ашара…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">Ашара…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -295,7 +295,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">Аҭалара</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">Апарольқәа, абларҭақәа уҳәа убас иҵегьы рсинхронизациа</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Апарольқәа, абларҭақәа уҳәа убас иҵегьы рсинхронизациа</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Асинхронизациазы даҽазнык аҭалара</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -314,9 +314,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Мобилтә саит ахь ацара</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">Аинструментқәа</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">Аинструментқәа</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">Амениу хада ахь ахынҳәра</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Амениу хада ахь ахынҳәра</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">Амениу хада адаҟьа арктәуп</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
@@ -331,28 +331,28 @@
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">Ахьчара</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">Ахьчара</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">Ацҵара Ҵәыӷәа, Аҿацә, Аҩны, Аизга, PDF</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">Ацҵара Ҵәыӷәа, Аҿацә, Аҩны, Аизга, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Ари адаҟьа азгәаҭа</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Аҭыӡдырга аредакциа азутәуп</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">PDF еиԥш еиқәырхатәуп…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">PDF еиԥш еиқәырхатәуп…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">Аԥхьара аҿаԥшыра аус арутәуп</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Аԥхьара аҿаԥшыра аус арутәуп</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">Аԥхьара аҿаԥшыра аҿыхтәуп</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Аԥхьара аҿаԥшыра аҿыхтәуп</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">Адаҟьа аиҭагара…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Адаҟьа аиҭагара…</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">Ииагоуп %1$s ахь</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">Атиулен…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Атиулен…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").

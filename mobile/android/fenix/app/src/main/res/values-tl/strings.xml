@@ -211,18 +211,18 @@
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">Mas level up ang iyong pag-browse gamit ang mga extension, mula sa pag-iba ng itsura at pagkilos ng %s hanggang sa pagpapalakas sa pribasiya at seguridad.</string>
+  <string name="browser_menu_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Mas level up ang iyong pag-browse gamit ang mga extension, mula sa pag-iba ng itsura at pagkilos ng %s hanggang sa pagpapalakas sa pribasiya at seguridad.</string>
   <!--
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Para makagamit ng mga extension, i-enable ang mga ito sa mga setting o kaya\'y pagpili ng “%s” sa baba.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Para makagamit ng mga extension, i-enable ang mga ito sa mga setting o kaya\'y pagpili ng “%s” sa baba.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
-  <string name="browser_menu_extensions_banner_learn_more">Alamin</string>
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">Alamin</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Pamahalaan ang mga extension</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
-  <string name="browser_menu_recommended_section_content_description">Inirerekomendang mga extension</string>
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Inirerekomendang mga extension</string>
   <!--
     Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
     %1$s is the name of the extension (for example: ClearURLs).
@@ -253,9 +253,9 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen">Idagdag ang app sa Home screen</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">Idagdag sa Home screen…</string>
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Idagdag sa Home screen…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
-  <string name="browser_menu_add_app_to_homescreen_2">Idagdag ang app sa Home screen…</string>
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Idagdag ang app sa Home screen…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">Baka kailanganin ng mga Xiaomi device ang karagdagang mga permiso para makapagdagdag ng mga shortcut sa home screen. Pakitingnan ang iyong mga setting.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -263,17 +263,17 @@
   <!-- Browser menu button that opens the find in page menu -->
   <string name="browser_menu_find_in_page">Hanapin sa pahina</string>
   <!-- Browser menu button that opens the find in page menu -->
-  <string name="browser_menu_find_in_page_2">Hanapin sa pahina…</string>
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">Hanapin sa pahina…</string>
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">Isalin ang pahina</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection">I-save sa collection…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">I-save sa collection…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
   <string name="browser_menu_save_to_collection_2">I-save sa collection</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">Ibahagi</string>
   <!-- Browser menu button that open a share menu to share the current site -->
-  <string name="browser_menu_share_2">Ibahagi…</string>
+  <string name="browser_menu_share_2" moz:removedIn="141" tools:ignore="UnusedResources">Ibahagi…</string>
   <!--
     Browser menu button shown in custom tabs that opens the current tab in Fenix
     %1$s is the name of the app (for example "Firefox").
@@ -308,7 +308,7 @@
   <!-- Browser menu label to sign in to sync on the device using Mozilla accounts -->
   <string name="browser_menu_sign_in">Mag-sign in</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption">Mag-sync ng mga password, tab, at iba pa</string>
+  <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Mag-sync ng mga password, tab, at iba pa</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Mag-sign in uli sa sync</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -327,9 +327,9 @@
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Lumipat sa mobile site</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
-  <string name="browser_menu_tools">Mga kagamitan</string>
+  <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">Mga kagamitan</string>
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
-  <string name="browser_menu_back_button_content_description">Bumalik sa main menu</string>
+  <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Bumalik sa main menu</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">Isara ang main menu sheet</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
@@ -345,34 +345,34 @@
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">Isara ang pasadyang tab menu sheet</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_translate_with_report_site_2">Reader View, Isalin, Mag-ulat ng sirang site, I-print, Ibahagi, Buksan ang app</string>
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Reader View, Isalin, Mag-ulat ng sirang site, I-print, Ibahagi, Buksan ang app</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_with_translate_without_report_site">Reader View, Isalin, I-print, Ibahagi, Buksan sa app</string>
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Reader View, Isalin, I-print, Ibahagi, Buksan sa app</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
-  <string name="browser_menu_tools_description_with_report_site_2">Reader View, Mag-ulat ng sirang site, I-print, Ibahagi, Buksan sa app</string>
+  <string name="browser_menu_tools_description_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Reader View, Mag-ulat ng sirang site, I-print, Ibahagi, Buksan sa app</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
-  <string name="browser_menu_tools_description_without_report_site">Reader View, Mag-print, Magbahagi, Buksan ang app</string>
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Reader View, Mag-print, Magbahagi, Buksan ang app</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">I-save</string>
+  <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">I-save</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">Magdagdag ng bookmark, Shortcut, Home, Collection, PDF</string>
+  <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">Magdagdag ng bookmark, Shortcut, Home, Collection, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">I-bookmark ang pahinang Ito</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Baguhin ang bookmark</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
-  <string name="browser_menu_save_as_pdf">I-save bilang PDF…</string>
+  <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">I-save bilang PDF…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">Buksan ang Reader View</string>
+  <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Buksan ang Reader View</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">Isara ang Reader View</string>
+  <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Isara ang Reader View</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_normal_tab">Ilipat sa di-pribadong tab</string>
+  <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">Ilipat sa di-pribadong tab</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
-  <string name="browser_menu_translate_page">Isalin ang pahina…</string>
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Isalin ang pahina…</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Mag-ulat ng sirang site…</string>
   <!--
@@ -381,7 +381,7 @@
   -->
   <string name="browser_menu_translated_to">Nakasalin na sa %1$s</string>
   <!-- Browser menu label for the print feature -->
-  <string name="browser_menu_print">I-print…</string>
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">I-print…</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -1475,7 +1475,6 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Mag-navigate pataas</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Bumalik at isara ang paghahanap</string>
-  <!-- Content description for the search bar clear text button on the downloads screen -->
   <string name="download_clear_search_description">Alisin</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Ibahagi ang URL</string>
