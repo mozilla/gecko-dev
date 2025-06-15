@@ -17374,7 +17374,7 @@ static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
       //    this code very often anyways.
       return EffectsInfo::FullyHidden();
     }
-    if (MOZ_UNLIKELY(NS_WARN_IF(!subDocFrame))) {
+    if (MOZ_UNLIKELY(!subDocFrame)) {
       // <frame> not inside a <frameset> might not create a subdoc frame,
       // for example.
       return EffectsInfo::FullyHidden();
