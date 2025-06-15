@@ -109,10 +109,7 @@ var gBrowserInit = {
         extraOptions instanceof Ci.nsIWritablePropertyBag2 &&
         extraOptions.hasKey("taskbartab")
       ) {
-        window.document.documentElement.setAttribute(
-          "taskbartab",
-          extraOptions.getPropertyAsAString("taskbartab")
-        );
+        window.document.documentElement.setAttribute("taskbartab", "");
       }
     }
 
@@ -248,7 +245,7 @@ var gBrowserInit = {
     Win10TabletModeUpdater.init();
     CombinedStopReload.ensureInitialized();
     gPrivateBrowsingUI.init();
-    TaskbarTabsChrome.init(window);
+    TaskbarTabUI.init(window);
     BrowserPageActions.init();
     if (gToolbarKeyNavEnabled) {
       ToolbarKeyboardNavigator.init();

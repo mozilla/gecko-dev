@@ -278,9 +278,6 @@ export const BrowserWindowTracker = {
    *   True to make the window a private browsing window.
    * @param {String} [options.features]
    *   Additional window features to give the new window.
-   * @param {boolean} [options.all]
-   *   True if "all" should be included as a window feature. If omitted, defaults
-   *   to true.
    * @param {nsIArray | nsISupportsString} [options.args]
    *   Arguments to pass to the new window.
    * @param {boolean} [options.remote]
@@ -296,15 +293,11 @@ export const BrowserWindowTracker = {
     openerWindow = undefined,
     private: isPrivate = false,
     features = undefined,
-    all = true,
     args = null,
     remote = undefined,
     fission = undefined,
   } = {}) {
-    let windowFeatures = "chrome,dialog=no";
-    if (all) {
-      windowFeatures += ",all";
-    }
+    let windowFeatures = "chrome,dialog=no,all";
     if (features) {
       windowFeatures += `,${features}`;
     }

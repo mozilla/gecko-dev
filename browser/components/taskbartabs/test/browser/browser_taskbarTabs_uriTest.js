@@ -6,7 +6,8 @@ ChromeUtils.defineESModuleGetters(this, {
   URILoadingHelper: "resource:///modules/URILoadingHelper.sys.mjs",
 });
 
-const URL = "https://example.com/";
+const URL =
+  "https://example.com/browser/browser/components/taskbartabs/test/browser/dummy_page.html";
 
 // Open a taskbar tab window, and then call openLinkIn()
 // to trigger the URILoadingHelper code. The webpage should

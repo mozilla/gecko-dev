@@ -85,8 +85,7 @@ ChromeUtils.defineESModuleGetters(this, {
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.sys.mjs",
   TabsSetupFlowManager:
     "resource:///modules/firefox-view-tabs-setup-manager.sys.mjs",
-  TaskbarTabsChrome:
-    "resource:///modules/taskbartabs/TaskbarTabsChrome.sys.mjs",
+  TaskbarTabUI: "resource:///modules/taskbartabs/TaskbarTabUI.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   ToolbarContextMenu: "resource:///modules/ToolbarContextMenu.sys.mjs",
   ToolbarDropHandler: "resource:///modules/ToolbarDropHandler.sys.mjs",

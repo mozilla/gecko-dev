@@ -1,18 +1,22 @@
 [DEFAULT]
 support-files = ["head.js"]
-run-if = ["os == 'win'"]
+
 prefs = [
   "browser.taskbarTabs.enabled=true"
 ]
 
+["browser_taskBarTabs_module.js"]
+support-files = [
+  "../../../tabbrowser/test/browser/tabs/dummy_page.html",
+]
+run-if = ["os == 'win'"]
+
 ["browser_taskbarTabs_chromeTest.js"]
-
-["browser_taskbarTabs_cmd.js"]
-
-["browser_taskbarTabs_pageAction.js"]
+run-if = ["os == 'win'"]
 
 ["browser_taskbarTabs_uriTest.js"]
-
-["browser_taskbarTabs_windowManager.js"]
+support-files = [
+  "dummy_page.html",
+]
 
 ["browser_taskbarTabs_windowTracker.js"]
