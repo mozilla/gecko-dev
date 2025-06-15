@@ -5872,20 +5872,18 @@ static FrameTarget GetSelectionClosestFrameForBlock(nsIFrame* aFrame,
 // edge based on the point position past the frame rect. If past the middle,
 // caret should be at end, otherwise at start. This behavior matches Blink.
 //
-// TODO(emilio): Can we use this code path for other replaced elements other
-// than images? Or even all other frames? We only get there when we didn't find
-// selectable children... At least one XUL test fails if we make this apply to
-// XUL labels. Also, editable images need _not_ to use the frame edge, see
-// below.
+// TODO(emilio): Can we use this code path for all other frames? We only get
+// there when we didn't find selectable children... Editable images need _not_
+// to use the frame edge tho, see below.
 static bool UseFrameEdge(nsIFrame* aFrame) {
   if (aFrame->IsFlexOrGridContainer() || aFrame->IsTableFrame()) {
     return true;
   }
-  const nsImageFrame* image = do_QueryFrame(aFrame);
-  if ((image || aFrame->IsHTMLCanvasFrame()) &&
+  // FIXME(bug 713387): The text frame check here shouldn't be needed.
+  if (aFrame->IsReplaced() && !aFrame->IsTextFrame() &&
       !aFrame->GetContent()->IsEditable()) {
-    // Editable images are a special-case because editing relies on clicking on
-    // an editable image selecting it, for it to show resizers.
+    // Editable replaced elements are a special-case because editing relies
+    // on clicking on an editable image selecting it, for it to show resizers.
     return true;
   }
   return false;
