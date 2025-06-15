@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <!--
-https://bugzilla.mozilla.org/show_bug.cgi?id=1867409
+https://bugzilla.mozilla.org/show_bug.cgi?id=1063073
 -->
 <html>
   <head>
     <title>Test that &lt;object&gt; embedding SVG and using its intrinsic
-           size will resize
+           size will resize if the &lt;object&gt; gets a reflow before the
+           root-&lt;svg&gt; gets its nsSVGOuterSVGFrame
     </title>
     <script src="/tests/SimpleTest/SimpleTest.js"></script>
     <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
@@ -27,11 +28,11 @@ function runTest() {
     </script>
   </head>
   <body onload="runTest();">
-    <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1867409">Mozilla Bug 1867409</a>
+    <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1063073">Mozilla Bug 1063073</a>
     <p id="display"></p>
     <div id="content">
       <object style="border:1px solid black" type="image/svg+xml"
-              data="object-immediate-intrinsic-size.sjs"></object>
+              data="object-delayed-intrinsic-size.sjs"></object>
     </div>
   </body>
 </html>

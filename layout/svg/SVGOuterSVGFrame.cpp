@@ -71,26 +71,6 @@ float SVGOuterSVGFrame::ComputeFullZoom() const {
   return 1.0f;
 }
 
-class AsyncSendIntrinsicSizeAndRatioToEmbedder : public Runnable {
- public:
-  explicit AsyncSendIntrinsicSizeAndRatioToEmbedder(SVGOuterSVGFrame* aFrame)
-      : Runnable("AsyncSendIntrinsicSizeAndRatioToEmbedder") {
-    mElement = aFrame->GetContent()->AsElement();
-  }
-  NS_IMETHOD Run() override {
-    AUTO_PROFILER_LABEL("AsyncSendIntrinsicSizeAndRatioToEmbedder::Run", OTHER);
-    // Check check we're still an outer svg frame. We could have been
-    // moved inside another svg element and now be an SVGInnerSVGFrame.
-    if (SVGOuterSVGFrame* frame = do_QueryFrame(mElement->GetPrimaryFrame())) {
-      frame->MaybeSendIntrinsicSizeAndRatioToEmbedder();
-    }
-    return NS_OK;
-  }
-
- private:
-  RefPtr<Element> mElement;
-};
-
 void SVGOuterSVGFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
                             nsIFrame* aPrevInFlow) {
   NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::svg),
@@ -128,10 +108,7 @@ void SVGOuterSVGFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
     }
   }
 
-  // We need to do this async in order to get the right ordering with
-  // respect to `Destroy()` when reframed.
-  nsContentUtils::AddScriptRunner(
-      new AsyncSendIntrinsicSizeAndRatioToEmbedder(this));
+  MaybeSendIntrinsicSizeAndRatioToEmbedder();
 }
 
 //----------------------------------------------------------------------
