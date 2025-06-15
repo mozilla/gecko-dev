@@ -85,17 +85,13 @@ using ClientDirectoryLockPromise =
 using UniversalDirectoryLockPromise =
     MozPromise<RefPtr<UniversalDirectoryLock>, nsresult, true>;
 
-struct ClientMetadata;
 struct OriginMetadata;
 struct PrincipalMetadata;
-using ClientMetadataArray = nsTArray<ClientMetadata>;
 using OriginMetadataArray = nsTArray<OriginMetadata>;
 using PrincipalMetadataArray = nsTArray<PrincipalMetadata>;
 using MaybePrincipalMetadataArray = Maybe<PrincipalMetadataArray>;
 class UsageInfo;
 
-using ClientMetadataArrayPromise =
-    MozPromise<ClientMetadataArray, nsresult, true>;
 using OriginMetadataArrayPromise =
     MozPromise<OriginMetadataArray, nsresult, true>;
 using OriginUsageMetadataArrayPromise =

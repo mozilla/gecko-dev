@@ -6906,11 +6906,7 @@ RefPtr<BoolPromise> QuotaManager::ClearStoragesForClient(
 
   clearClientOp->RunImmediately();
 
-  return Map<BoolPromise>(
-      clearClientOp->OnResults(),
-      [](ClientMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
-        return true;
-      });
+  return clearClientOp->OnResults();
 }
 
 RefPtr<BoolPromise> QuotaManager::ClearStoragesForOriginPrefix(
@@ -7036,11 +7032,7 @@ RefPtr<BoolPromise> QuotaManager::ShutdownStoragesForClient(
 
   shutdownClientOp->RunImmediately();
 
-  return Map<BoolPromise>(
-      shutdownClientOp->OnResults(),
-      [](ClientMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
-        return true;
-      });
+  return shutdownClientOp->OnResults();
 }
 
 RefPtr<BoolPromise> QuotaManager::ShutdownStorage(
