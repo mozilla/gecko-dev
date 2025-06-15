@@ -15,6 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://gre/modules/components-utils/ClientEnvironment.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
   ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
+  ShellService: "resource:///modules/ShellService.sys.mjs",
   TelemetryUtils: "resource://gre/modules/TelemetryUtils.sys.mjs",
 });
 
@@ -75,6 +76,15 @@ export var UsageReporting = {
       Glean.usage.osVersion.set(os.version);
       if (os.isWindows) {
         Glean.usage.windowsBuildNumber.set(os.windowsBuildNumber);
+        try {
+          Glean.usage.windowsUserProfileAgeInDays.set(
+            await lazy.ShellService.getOSUserProfileAgeInDays()
+          );
+        } catch (err) {
+          this._log.info(
+            `${SLUG}: Unable to determine the age of the windows user profile: ${err}`
+          );
+        }
         try {
           let wrk = Cc["@mozilla.org/windows-registry-key;1"].createInstance(
             Ci.nsIWindowsRegKey
