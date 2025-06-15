@@ -10,6 +10,7 @@ EXTRA_JS_MODULES.taskbartabs += [
     "TaskbarTabUI.sys.mjs",
     "TaskbarTabsRegistry.sys.mjs",
     "TaskbarTabsUtils.sys.mjs",
+    "TaskbarTabsWindowManager.sys.mjs",
 ]
 
 JAR_MANIFESTS += ["jar.mn"]
