@@ -7,7 +7,6 @@
 #include "DirectoryMetadata.h"
 
 #include "mozilla/Result.h"
-#include "mozilla/TypedEnumBits.h"
 #include "mozilla/dom/quota/Assertions.h"
 #include "mozilla/dom/quota/CommonMetadata.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
@@ -17,18 +16,6 @@
 #include "nsIBinaryOutputStream.h"
 
 namespace mozilla::dom::quota {
-
-// clang-format off
-
-enum class DirectoryMetadataFlags : uint32_t {
-  None        = 0,
-  Initialized = 1 << 0,
-  Accessed    = 1 << 1,
-};
-
-// clang-format on
-
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DirectoryMetadataFlags)
 
 Result<OriginStateMetadata, nsresult> ReadDirectoryMetadataHeader(
     nsIBinaryInputStream& aStream) {
@@ -42,18 +29,11 @@ Result<OriginStateMetadata, nsresult> ReadDirectoryMetadataHeader(
   QM_TRY_UNWRAP(originStateMetadata.mPersisted,
                 MOZ_TO_RESULT_INVOKE_MEMBER(aStream, ReadBoolean));
 
-  QM_TRY_INSPECT(const uint32_t& rawFlags,
+  QM_TRY_INSPECT(const bool& reservedData1,
                  MOZ_TO_RESULT_INVOKE_MEMBER(aStream, Read32));
-
-  auto flags = static_cast<DirectoryMetadataFlags>(rawFlags);
-
-  // If DirectoryMetadataFlags::Initialized is not set, the flags field
-  // contains no valid data. Since mAccessed indicates whether a full scan must
-  // be done during initialization, we conservatively set it to true when the
-  // access state is unknown.
-  originStateMetadata.mAccessed =
-      rawFlags == 0 || (flags & DirectoryMetadataFlags::Accessed) !=
-                           DirectoryMetadataFlags::None;
+  if (reservedData1 != 0) {
+    QM_TRY(MOZ_TO_RESULT(false));
+  }
 
   // XXX Use for the persistence type.
   QM_TRY_INSPECT(const bool& reservedData2,
@@ -72,19 +52,10 @@ nsresult WriteDirectoryMetadataHeader(
 
   QM_TRY(MOZ_TO_RESULT(aStream.WriteBoolean(aOriginStateMetadata.mPersisted)));
 
-  // Always set DirectoryMetadataFlags::Initialized when writing new metadata,
-  // to mark the flags field as valid. This distinguishes real flags from older
-  // files where the field was reserved and always written as zero.
-  auto flags =
-      DirectoryMetadataFlags::Initialized |
-      (aOriginStateMetadata.mAccessed ? DirectoryMetadataFlags::Accessed
-                                      : DirectoryMetadataFlags::None);
+  // Reserved data 1
+  QM_TRY(MOZ_TO_RESULT(aStream.Write32(0)));
 
-  auto rawFlags = static_cast<uint32_t>(flags);
-
-  QM_TRY(MOZ_TO_RESULT(aStream.Write32(rawFlags)));
-
-  // Reserved data
+  // Reserved data 2
   QM_TRY(MOZ_TO_RESULT(aStream.Write32(0)));
 
   return NS_OK;

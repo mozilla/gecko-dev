@@ -1334,7 +1334,6 @@ nsresult SaveOriginAccessTimeOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
   auto originStateMetadata = maybeOriginStateMetadata.extract();
 
   originStateMetadata.mLastAccessTime = PR_Now();
-  originStateMetadata.mAccessed = true;
 
   QM_TRY_INSPECT(const auto& file,
                  aQuotaManager.GetOriginDirectory(mOriginMetadata));
@@ -3513,45 +3512,48 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
   if (created) {
     // A new origin directory has been created.
 
-    const auto [timestamp, accessed] = [&aQuotaManager, &originMetadata]() {
-      // Update OriginInfo too if temporary origin was already initialized.
-      if (aQuotaManager.IsTemporaryStorageInitializedInternal()) {
-        if (aQuotaManager.IsTemporaryOriginInitializedInternal(
-                originMetadata)) {
-          // We have a temporary origin which has been initialized without
-          // ensuring respective origin directory. So OriginInfo already exists
-          // and it needs to be updated because the origin directory has been
-          // just created.
+    // XXX The code below could be converted to a function which returns the
+    //     timestamp.
+    int64_t timestamp;
 
-          return aQuotaManager.WithOriginInfo(
-              originMetadata, [](const auto& originInfo) {
-                const int64_t timestamp = originInfo->LockedAccessTime();
-                const bool accessed = originInfo->LockedAccessed();
+    // Update OriginInfo too if temporary origin was already initialized.
+    if (aQuotaManager.IsTemporaryStorageInitializedInternal()) {
+      if (aQuotaManager.IsTemporaryOriginInitializedInternal(originMetadata)) {
+        // We have a temporary origin which has been initialized without
+        // ensuring respective origin directory. So OriginInfo already exists
+        // and it needs to be updated because the origin directory has been
+        // just created.
 
-                originInfo->LockedDirectoryCreated();
+        timestamp = aQuotaManager.WithOriginInfo(
+            originMetadata, [](const auto& originInfo) {
+              const int64_t timestamp = originInfo->LockedAccessTime();
 
-                return std::make_pair(timestamp, accessed);
-              });
-        }
+              originInfo->LockedDirectoryCreated();
+
+              return timestamp;
+            });
+      } else {
+        timestamp = PR_Now();
       }
 
-      return std::make_pair(/* timestamp */ PR_Now(), /* accessed */ false);
-    }();
+      FullOriginMetadata fullOriginMetadata = FullOriginMetadata{
+          originMetadata,
+          OriginStateMetadata{timestamp, /* aPersisted */ true}};
 
-    FullOriginMetadata fullOriginMetadata = FullOriginMetadata{
-        originMetadata,
-        OriginStateMetadata{timestamp, accessed, /* aPersisted */ true}};
-
-    if (aQuotaManager.IsTemporaryStorageInitializedInternal()) {
       // Usually, infallible operations are placed after fallible ones.
       // However, since we lack atomic support for creating the origin
       // directory along with its metadata, we need to add the origin to cached
       // origins right after directory creation.
       aQuotaManager.AddTemporaryOrigin(fullOriginMetadata);
+    } else {
+      timestamp = PR_Now();
     }
 
     QM_TRY(MOZ_TO_RESULT(QuotaManager::CreateDirectoryMetadata2(
-        *directory, fullOriginMetadata)));
+        *directory,
+        FullOriginMetadata{
+            originMetadata,
+            OriginStateMetadata{timestamp, /* aPersisted */ true}})));
 
     // Update or create OriginInfo too if temporary storage was already
     // initialized.
@@ -3568,48 +3570,46 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
         // initialized yet. So OriginInfo needs to be created because the
         // origin directory has been just created.
 
+        FullOriginMetadata fullOriginMetadata = FullOriginMetadata{
+            originMetadata,
+            OriginStateMetadata{timestamp, /* aPersisted */ true}};
+
         aQuotaManager.InitQuotaForOrigin(fullOriginMetadata, ClientUsageArray(),
                                          /* aUsageBytes */ 0);
       }
     }
   } else {
-    QM_TRY_UNWRAP(
-        OriginStateMetadata originStateMetadata,
+    QM_TRY_INSPECT(
+        const bool& persisted,
         ([&aQuotaManager, &originMetadata,
-          &directory]() -> mozilla::Result<OriginStateMetadata, nsresult> {
-          Maybe<OriginStateMetadata> maybeOriginStateMetadata =
-              aQuotaManager.GetOriginStateMetadata(originMetadata);
+          &directory]() -> mozilla::Result<bool, nsresult> {
+          Nullable<bool> persisted =
+              aQuotaManager.OriginPersisted(originMetadata);
 
-          if (maybeOriginStateMetadata) {
-            return maybeOriginStateMetadata.extract();
+          if (!persisted.IsNull()) {
+            return persisted.Value();
           }
 
           // Get the metadata (restore the metadata file if necessary). We only
-          // use the origin state metadata.
+          // use the persisted flag.
           QM_TRY_INSPECT(
               const auto& metadata,
               aQuotaManager.LoadFullOriginMetadataWithRestore(directory));
 
-          return metadata;
+          return metadata.mPersisted;
         }()));
 
-    if (!originStateMetadata.mPersisted) {
+    if (!persisted) {
       // Set the persisted flag to true and also update origin access time
       // while we are here.
-
-      originStateMetadata.mLastAccessTime = PR_Now();
-      originStateMetadata.mPersisted = true;
-
-      QM_TRY(MOZ_TO_RESULT(
-          SaveDirectoryMetadataHeader(*directory, originStateMetadata)));
+      QM_TRY(MOZ_TO_RESULT(SaveDirectoryMetadataHeader(
+          *directory, OriginStateMetadata{/* aLastAccessTime */ PR_Now(),
+                                          /* aPersisted */ true})));
 
       // Directory metadata has been successfully updated.
       // Update OriginInfo too if temporary storage was already initialized.
       if (aQuotaManager.IsTemporaryStorageInitializedInternal()) {
         aQuotaManager.PersistOrigin(originMetadata);
-
-        // XXX The origin access time should be updated too (but not the
-        // accessed flag).
       }
     }
   }

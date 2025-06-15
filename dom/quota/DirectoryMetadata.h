@@ -39,19 +39,9 @@ struct OriginStateMetadata;
  * - bool mPersisted
  *     True if the origin is marked as persisted and should survive origin
  *     eviction.
- * - uint32_t flags
- *     A bitfield of DirectoryMetadataFlags used to store boolean state flags.
- *     This field currently maps only to mAccessed. The defined flags are:
- *       - Initialized: Always set when writing metadata; indicates that this
- *         field contains valid flag bits. Older files written before this
- *         flag was introduced will have this field set to zero.
- *       - Accessed: Indicates whether the origin has been accessed by a quota
- *         client. This maps directly to the mAccessed field in memory.
- *
- *     If the Initialized flag is not set, the flags field is considered
- *     invalid and mAccessed is conservatively set to true to ensure a full
- *     initialization scan.
- * - uint32_t reservedData
+ * - uint32_t reservedData1
+ *     Reserved for future use. Must be zero. Validation fails if nonzero.
+ * - uint32_t reservedData2
  *     Reserved for future use. Currently ignored.
  *
  * Legacy fields (still written and read for backward compatibility, but no
