@@ -39,9 +39,6 @@
 
 #include "gfxCrashReporterUtils.h"
 
-#include "gfxGDIFontList.h"
-#include "gfxGDIFont.h"
-
 #include "mozilla/layers/CanvasChild.h"
 #include "mozilla/layers/CompositorThread.h"
 
@@ -568,38 +565,7 @@ mozilla::gfx::BackendType gfxWindowsPlatform::GetPreferredCanvasBackend() {
 }
 
 bool gfxWindowsPlatform::CreatePlatformFontList() {
-  if (DWriteEnabled()) {
-    if (gfxPlatformFontList::Initialize(new gfxDWriteFontList)) {
-      return true;
-    }
-
-    // DWrite font initialization failed! Don't know why this would happen,
-    // but apparently it can - see bug 594865.
-    // So we're going to fall back to GDI fonts & rendering.
-    DisableD2D(FeatureStatus::Failed, "Failed to initialize fonts",
-               "FEATURE_FAILURE_FONT_FAIL"_ns);
-  }
-
-  // Make sure the static variable is initialized...
-  gfxPlatform::HasVariationFontSupport();
-  // ...then force it to false, even if the Windows version was recent enough
-  // to permit it, as we're using GDI fonts.
-  sHasVariationFontSupport = false;
-
-  return gfxPlatformFontList::Initialize(new gfxGDIFontList);
-}
-
-// This function will permanently disable D2D for the session. It's intended to
-// be used when, after initially chosing to use Direct2D, we encounter a
-// scenario we can't support.
-//
-// This is called during gfxPlatform::Init() so at this point there should be no
-// DrawTargetD2D/1 instances.
-void gfxWindowsPlatform::DisableD2D(FeatureStatus aStatus, const char* aMessage,
-                                    const nsACString& aFailureId) {
-  gfxConfig::SetFailed(Feature::DIRECT2D, aStatus, aMessage, aFailureId);
-  Factory::SetDirect3D11Device(nullptr);
-  UpdateBackendPrefs();
+  return gfxPlatformFontList::Initialize(new gfxDWriteFontList);
 }
 
 already_AddRefed<gfxASurface> gfxWindowsPlatform::CreateOffscreenSurface(

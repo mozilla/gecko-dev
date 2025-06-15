@@ -886,6 +886,23 @@ usage:
     notification_emails:
       - install-update@mozilla.com
     expires: never
+  windows_user_profile_age_in_days:
+    type: quantity
+    unit: days
+    lifetime: application
+    send_in_pings:
+      - usage-reporting
+    description: |
+        The age of the current users home folder in days.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968710
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968710
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - install-update@mozilla.com
+    expires: never
   app_build:
     type: string
     lifetime: application

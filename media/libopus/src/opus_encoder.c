@@ -457,7 +457,9 @@ static void dc_reject(const opus_res *in, opus_int32 cutoff_Hz, opus_res *out, o
       for (i=0;i<len;i++)
       {
          opus_val32 x, y;
-         x = SHL32((opus_val32)in[channels*i+c], 14-RES_SHIFT);
+         /* Saturate at +6 dBFS to avoid any wrap-around. */
+         x = SATURATE((opus_val32)in[channels*i+c], (1<<16<<RES_SHIFT)-1);
+         x = SHL32(x, 14-RES_SHIFT);
          y = x-hp_mem[2*c];
          hp_mem[2*c] = hp_mem[2*c] + PSHR32(x - hp_mem[2*c], shift);
 #ifdef ENABLE_RES24

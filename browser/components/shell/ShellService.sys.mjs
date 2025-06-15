@@ -72,6 +72,28 @@ let ShellServiceInternal = {
   },
 
   /**
+   * Used to determine based on the creation date of the home folder how old a
+   * user profile is (and NOT the browser profile).
+   */
+  async getOSUserProfileAgeInDays() {
+    let currentDate = new Date();
+    let homeFolderCreationDate = new Date(
+      (
+        await IOUtils.stat(Services.dirsvc.get("Home", Ci.nsIFile).path)
+      ).creationTime
+    );
+    // Round and return the age (=difference between today and creation) to a
+    // resolution of days.
+    return Math.round(
+      (currentDate - homeFolderCreationDate) /
+        1000 / // ms
+        60 / // sec
+        60 / // min
+        24 // hours
+    );
+  },
+
+  /**
    * Used to determine whether or not to show a "Set Default Browser"
    * query dialog. This attribute is true if the application is starting
    * up and "browser.shell.checkDefaultBrowser" is true, otherwise it

@@ -31,7 +31,7 @@
 #endif
 
 #include "opus.h"
-#include "celt/mathops.h"
+#include "mathops.h"
 #include "opus_private.h"
 
 #ifndef DISABLE_FLOAT_API

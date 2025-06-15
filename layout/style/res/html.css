@@ -720,10 +720,6 @@ spacer {
   float: none !important;
 }
 
-canvas {
-  user-select: none;
-}
-
 iframe:focus-visible,
 body:focus-visible,
 html:focus-visible {

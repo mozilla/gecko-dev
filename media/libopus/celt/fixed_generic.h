@@ -71,6 +71,14 @@
 #define MULT32_32_Q31(a,b) ADD32(ADD32(SHL(MULT16_16(SHR((a),16),SHR((b),16)),1), SHR(MULT16_16SU(SHR((a),16),((b)&0x0000ffff)),15)), SHR(MULT16_16SU(SHR((b),16),((a)&0x0000ffff)),15))
 #endif
 
+/** 32x32 multiplication, followed by a 31-bit shift right (with rounding). Results fits in 32 bits */
+#if OPUS_FAST_INT64
+#define MULT32_32_P31(a,b) ((opus_val32)SHR(1073741824+(opus_int64)(a)*(opus_int64)(b),31))
+#else
+#define MULT16_16U(a,b) ((opus_uint32)(a)*(opus_uint32)(b))
+#define MULT32_32_P31(a,b) ADD32(SHL(MULT16_16(SHR((a),16),SHR((b),16)),1), SHR32(128+(opus_int32)SHR(MULT16_16U(((a)&0x0000ffff),((b)&0x0000ffff)),16+7) + SHR32(MULT16_16SU(SHR((a),16),((b)&0x0000ffff)),7) + SHR32(MULT16_16SU(SHR((b),16),((a)&0x0000ffff)),7), 8) )
+#endif
+
 /** 32x32 multiplication, followed by a 32-bit shift right. Results fits in 32 bits */
 #if OPUS_FAST_INT64
 #define MULT32_32_Q32(a,b) ((opus_val32)SHR((opus_int64)(a)*(opus_int64)(b),32))
@@ -113,6 +121,9 @@
 #define PSHR32(a,shift) (SHR32((a)+((EXTEND32(1)<<((shift))>>1)),shift))
 /** 32-bit arithmetic shift right where the argument can be negative */
 #define VSHR32(a, shift) (((shift)>0) ? SHR32(a, shift) : SHL32(a, -(shift)))
+
+/** Arithmetic shift-right of a 64-bit value */
+#define SHR64(a,shift) ((a) >> (shift))
 
 /** "RAW" macros, should not be used outside of this header file */
 #define SHR(a,shift) ((a) >> (shift))

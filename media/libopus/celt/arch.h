@@ -184,7 +184,7 @@ typedef opus_val16 opus_res;
 #ifdef ENABLE_QEXT
 typedef opus_val32 celt_coef;
 #define COEF_ONE Q31ONE
-#define MULT_COEF_32(a, b) MULT32_32_Q31(a,b)
+#define MULT_COEF_32(a, b) MULT32_32_P31(a,b)
 #define MAC_COEF_32_ARM(c, a, b) ADD32((c), MULT32_32_Q32(a,b))
 #define MULT_COEF(a, b) MULT32_32_Q31(a,b)
 #define MULT_COEF_TAPS(a, b) SHL32(MULT16_16(a,b), 1)
@@ -315,6 +315,8 @@ static OPUS_INLINE int celt_isnan(float x)
 #define PSHR32(a,shift) (a)
 #define VSHR32(a,shift) (a)
 
+#define SHR64(a,shift) (a)
+
 #define PSHR(a,shift)   (a)
 #define SHR(a,shift)    (a)
 #define SHL(a,shift)    (a)
@@ -344,6 +346,7 @@ static OPUS_INLINE int celt_isnan(float x)
 
 #define MULT32_32_Q16(a,b)     ((a)*(b))
 #define MULT32_32_Q31(a,b)     ((a)*(b))
+#define MULT32_32_P31(a,b)     ((a)*(b))
 
 #define MAC16_32_Q15(c,a,b)     ((c)+(a)*(b))
 #define MAC16_32_Q16(c,a,b)     ((c)+(a)*(b))

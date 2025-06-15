@@ -292,11 +292,11 @@ void clt_mdct_backward_c(const mdct_lookup *l, kiss_fft_scalar *in, kiss_fft_sca
       opus_val32 maxval=0;
       for (i=0;i<N2;i++) {
          maxval = MAX32(maxval, ABS32(in[i*stride]));
-         sumval = ADD32_ovflw(sumval, ABS32(SHR32(in[i*stride],4)));
+         sumval = ADD32_ovflw(sumval, ABS32(SHR32(in[i*stride],11)));
       }
       pre_shift = IMAX(0, 29-celt_ilog2(1+SHR32(maxval,2)*3));
       /* Worst-case where all the energy goes to a single sample. */
-      post_shift = IMAX(0, 26-celt_ilog2(ABS32(sumval)));
+      post_shift = IMAX(0, 19-celt_ilog2(ABS32(sumval)));
       post_shift = IMIN(post_shift, pre_shift);
       fft_shift = pre_shift - post_shift;
    }

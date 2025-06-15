@@ -1667,23 +1667,6 @@ fontlist:
     expires: never
     telemetry_mirror: h#BAD_FALLBACK_FONT
 
-  gdi_init_total:
-    type: timing_distribution
-    description: >
-      gfxGDIFontList::InitFontList Total (ms)
-
-      This metric was generated to correspond to the Legacy Telemetry
-      exponential histogram GDI_INITFONTLIST_TOTAL.
-    time_unit: millisecond
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-    expires: never
-    telemetry_mirror: GDI_INITFONTLIST_TOTAL
-
   mac_init_total:
     type: timing_distribution
     description: >
