@@ -87,6 +87,7 @@ export class _CustomizeMenu extends React.PureComponent {
               setPref={this.props.setPref}
               enabledSections={this.props.enabledSections}
               wallpapersEnabled={this.props.wallpapersEnabled}
+              trendingSearchEnabled={this.props.trendingSearchEnabled}
               activeWallpaper={this.props.activeWallpaper}
               pocketRegion={this.props.pocketRegion}
               mayHaveTopicSections={this.props.mayHaveTopicSections}

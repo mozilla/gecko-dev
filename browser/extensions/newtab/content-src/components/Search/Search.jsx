@@ -149,13 +149,9 @@ export class _Search extends React.PureComponent {
     ]
       .filter(v => v)
       .join(" ");
-    const prefs = this.props.Prefs.values;
 
     const trendingSearchEnabled =
-      prefs["trendingSearch.enabled"] &&
-      prefs["system.trendingSearch.enabled"] &&
-      prefs["trendingSearch.defaultSearchEngine"]?.toLowerCase() === "google";
-
+      this.props.Prefs.values["trendingSearch.enabled"];
     const trendingSearchVariant =
       this.props.Prefs.values["trendingSearch.variant"];
 

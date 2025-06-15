@@ -33,8 +33,6 @@ const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
 const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
 const PREF_TRENDING_SEARCH = "trendingSearch.enabled";
-const PREF_TRENDING_SEARCH_SYSTEM = "system.trendingSearch.enabled";
-const PREF_SEARCH_ENGINE = "trendingSearch.defaultSearchEngine";
 const PREF_TRENDING_SEARCH_VARIANT = "trendingSearch.variant";
 const INTERSECTION_RATIO = 0.5;
 const VISIBLE = "visible";
@@ -366,10 +364,7 @@ export class _CardGrid extends React.PureComponent {
     const listFeedSelectedFeed = prefs[PREF_LIST_FEED_SELECTED_FEED];
     const billboardEnabled = prefs[PREF_BILLBOARD_ENABLED];
     const leaderboardEnabled = prefs[PREF_LEADERBOARD_ENABLED];
-    const trendingEnabled =
-      prefs[PREF_TRENDING_SEARCH] &&
-      prefs[PREF_TRENDING_SEARCH_SYSTEM] &&
-      prefs[PREF_SEARCH_ENGINE]?.toLowerCase() === "google";
+    const trendingEnabled = prefs[PREF_TRENDING_SEARCH];
     const trendingVariant = prefs[PREF_TRENDING_SEARCH_VARIANT];
 
     // filter out recs that should be in ListFeed

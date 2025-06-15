@@ -5132,8 +5132,6 @@ const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
 const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
 const PREF_TRENDING_SEARCH = "trendingSearch.enabled";
-const PREF_TRENDING_SEARCH_SYSTEM = "system.trendingSearch.enabled";
-const PREF_SEARCH_ENGINE = "trendingSearch.defaultSearchEngine";
 const PREF_TRENDING_SEARCH_VARIANT = "trendingSearch.variant";
 const CardGrid_INTERSECTION_RATIO = 0.5;
 const CardGrid_VISIBLE = "visible";
@@ -5418,7 +5416,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
     const listFeedSelectedFeed = prefs[PREF_LIST_FEED_SELECTED_FEED];
     const billboardEnabled = prefs[PREF_BILLBOARD_ENABLED];
     const leaderboardEnabled = prefs[PREF_LEADERBOARD_ENABLED];
-    const trendingEnabled = prefs[PREF_TRENDING_SEARCH] && prefs[PREF_TRENDING_SEARCH_SYSTEM] && prefs[PREF_SEARCH_ENGINE]?.toLowerCase() === "google";
+    const trendingEnabled = prefs[PREF_TRENDING_SEARCH];
     const trendingVariant = prefs[PREF_TRENDING_SEARCH_VARIANT];
 
     // filter out recs that should be in ListFeed
@@ -13361,6 +13359,7 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
       setPref: this.props.setPref,
       enabledSections: this.props.enabledSections,
       wallpapersEnabled: this.props.wallpapersEnabled,
+      trendingSearchEnabled: this.props.trendingSearchEnabled,
       activeWallpaper: this.props.activeWallpaper,
       pocketRegion: this.props.pocketRegion,
       mayHaveTopicSections: this.props.mayHaveTopicSections,
@@ -13571,8 +13570,7 @@ class _Search extends (external_React_default()).PureComponent {
    */
   render() {
     const wrapperClassName = ["search-wrapper", this.props.disable && "search-disabled", this.props.fakeFocus && "fake-focus"].filter(v => v).join(" ");
-    const prefs = this.props.Prefs.values;
-    const trendingSearchEnabled = prefs["trendingSearch.enabled"] && prefs["system.trendingSearch.enabled"] && prefs["trendingSearch.defaultSearchEngine"]?.toLowerCase() === "google";
+    const trendingSearchEnabled = this.props.Prefs.values["trendingSearch.enabled"];
     const trendingSearchVariant = this.props.Prefs.values["trendingSearch.variant"];
     return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("div", {
       className: wrapperClassName
@@ -15112,6 +15110,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       showTopicSelection
     } = DiscoveryStream;
     const mayShowTopicSelection = showTopicSelection && prefs["discoverystream.topicSelection.enabled"];
+    const trendingSearchEnabled = prefs["trendingSearch.enabled"];
     const {
       pocketConfig
     } = prefs;
@@ -15143,7 +15142,7 @@ class BaseContent extends (external_React_default()).PureComponent {
     const supportUrl = prefs["support.url"];
 
     // Trending Searches experiment pref check
-    const mayHaveTrendingSearch = prefs["system.trendingSearch.enabled"] && prefs["trendingSearch.defaultSearchEngine"].toLowerCase() === "google";
+    const mayHaveTrendingSearch = prefs["system.trendingSearch.enabled"] && prefs["trendingSearch.defaultSearchEngine"] === "Google";
 
     // Mobile Download Promo Pref Checks
     const mobileDownloadPromoEnabled = prefs["mobileDownloadModal.enabled"];
@@ -15200,6 +15199,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       enabledSections: enabledSections,
       wallpapersEnabled: wallpapersEnabled,
       activeWallpaper: activeWallpaper,
+      trendingSearchEnabled: trendingSearchEnabled,
       pocketRegion: pocketRegion,
       mayHaveTopicSections: mayHavePersonalizedTopicSections,
       mayHaveSponsoredTopSites: mayHaveSponsoredTopSites,

@@ -619,6 +619,8 @@ export class BaseContent extends React.PureComponent {
     const { showTopicSelection } = DiscoveryStream;
     const mayShowTopicSelection =
       showTopicSelection && prefs["discoverystream.topicSelection.enabled"];
+    const trendingSearchEnabled = prefs["trendingSearch.enabled"];
+
     const { pocketConfig } = prefs;
 
     const isDiscoveryStream =
@@ -664,7 +666,7 @@ export class BaseContent extends React.PureComponent {
     // Trending Searches experiment pref check
     const mayHaveTrendingSearch =
       prefs["system.trendingSearch.enabled"] &&
-      prefs["trendingSearch.defaultSearchEngine"].toLowerCase() === "google";
+      prefs["trendingSearch.defaultSearchEngine"] === "Google";
 
     // Mobile Download Promo Pref Checks
     const mobileDownloadPromoEnabled = prefs["mobileDownloadModal.enabled"];
@@ -768,6 +770,7 @@ export class BaseContent extends React.PureComponent {
             enabledSections={enabledSections}
             wallpapersEnabled={wallpapersEnabled}
             activeWallpaper={activeWallpaper}
+            trendingSearchEnabled={trendingSearchEnabled}
             pocketRegion={pocketRegion}
             mayHaveTopicSections={mayHavePersonalizedTopicSections}
             mayHaveSponsoredTopSites={mayHaveSponsoredTopSites}
