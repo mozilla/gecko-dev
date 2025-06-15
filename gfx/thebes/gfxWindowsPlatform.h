@@ -204,9 +204,6 @@ class gfxWindowsPlatform final : public gfxPlatform {
   bool InitDWriteSupport();
   void InitGPUProcessSupport();
 
-  void DisableD2D(mozilla::gfx::FeatureStatus aStatus, const char* aMessage,
-                  const nsACString& aFailureId);
-
   void InitializeConfig();
   void InitializeD3D9Config();
   void InitializeD3D11Config();

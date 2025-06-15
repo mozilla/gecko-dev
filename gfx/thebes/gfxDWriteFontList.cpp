@@ -27,7 +27,7 @@
 #include "nsDirectoryServiceDefs.h"
 #include "nsAppDirectoryServiceDefs.h"
 
-#include "gfxGDIFontList.h"
+#include "../2d/AutoHelpersWin.h"
 #include "gfxRect.h"
 #include "SharedFontList-impl.h"
 

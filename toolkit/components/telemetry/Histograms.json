@@ -1105,15 +1105,6 @@
     "n_values": 8,
     "description": "DirectWrite system fontlist initialization problem (1=GDI interop, 2=system font collection, 3=no fonts)"
   },
-  "GDI_INITFONTLIST_TOTAL": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 30000,
-    "n_buckets": 10,
-    "description": "gfxGDIFontList::InitFontList Total (ms)"
-  },
   "MAC_INITFONTLIST_TOTAL": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
