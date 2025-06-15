@@ -5,3 +5,6 @@ firefox-appdir = "browser"
 support-files = [
     "test_taskbarTabs.json",
 ]
+
+["test_taskbarTabs_pin.js"]
+support-files = ["../../../places/tests/browser/favicon-normal16.png"]
