@@ -9,7 +9,7 @@
 
     Content description (not visible, for screen readers etc.): "Three dot" menu button.
   -->
-  <string name="content_description_menu">Daha fazla seçenek</string>
+  <string name="content_description_menu">Diğer seçenekler</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_private_browsing_button">Gizli gezintiyi aç</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
@@ -320,6 +320,8 @@
   <string name="browser_menu_sign_in">Giriş yap</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Parolaları, sekmeleri ve daha fazlasını eşitle</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_2">Parolaları, yer imlerini, sekmeleri ve daha fazlasını eşitle</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Eşitlemek için yeniden giriş yap</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -378,6 +380,8 @@
   <string name="browser_menu_edit_bookmark">Yer imini düzenle</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">PDF olarak kaydet…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">PDF olarak kaydet</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
   <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Okuyucu görünümünü aç</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
@@ -386,8 +390,12 @@
   <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">Gizli olmayan sekmeye taşı</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Sayfayı çevir…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">Sayfayı çevir</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Bozuk siteyi rapor et…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">Bozuk siteyi rapor et</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -397,6 +405,8 @@
   <string name="browser_menu_translated">Çevrildi</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Yazdır…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">Yazdır</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -435,7 +445,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">Gezinti geçmişini temizle</string>
+  <string name="browser_toolbar_erase">Gezinti geçmişini sil</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">Sayfayı çevir</string>
   <!--
@@ -1019,7 +1029,7 @@
   <!-- Snackbar message for when wallpaper couldn't be selected because of the disk error -->
   <string name="wallpaper_select_error_snackbar_message">Duvar kâğıdı değiştirilemedi</string>
   <!-- Text displayed that links to website containing documentation about the "Limited Edition" wallpapers. -->
-  <string name="wallpaper_learn_more">Daha fazla bilgi alın</string>
+  <string name="wallpaper_learn_more">Daha fazla bilgi al</string>
   <!-- Text for classic wallpapers title. %s is the name of the app (for example "Firefox"). -->
   <string name="wallpaper_classic_title">Klasik %s</string>
   <!-- Text for artist series wallpapers title. "Artist series" represents a collection of artist collaborated wallpapers. -->
@@ -1422,7 +1432,7 @@
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_private_tab">Gizli sekme ekle</string>
   <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
-  <string name="tab_drawer_fab_content">GİZLİ</string>
+  <string name="tab_drawer_fab_content">Gizli</string>
   <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->
   <string name="tab_drawer_fab_sync">EŞİTLE</string>
   <!-- Text shown in the menu for sharing all tabs -->
@@ -1557,6 +1567,16 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Yukarı git</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Geri dön ve aramayı kapat</string>
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">Duraklat</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">Sürdür</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">Yeniden dene</string>
   <string name="download_clear_search_description">Temizle</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Adresi paylaş</string>
@@ -1778,7 +1798,7 @@
   -->
   <string name="bookmarks_multi_select_title">%1$d yer imi seçildi</string>
   <!-- Bookmark editing screen title -->
-  <string name="edit_bookmark_fragment_title">Yer imi düzenle</string>
+  <string name="edit_bookmark_fragment_title">Yer imini düzenle</string>
   <!-- Bookmark folder editing screen title -->
   <string name="edit_bookmark_folder_fragment_title">Klasörü düzenle</string>
   <!-- Bookmark sign in button message -->
@@ -3044,7 +3064,7 @@
   <!-- Additional information on the translation dialog that appears when a user uses the translation feature the first time. %1$s is a link using translations_bottom_sheet_info_message_learn_more as text. -->
   <string name="translations_bottom_sheet_info_message">Gizliliğinizi korumak için çeviriler asla cihazınızdan dışarı çıkmaz. Yeni diller ve gelişmeler de yolda! %1$s</string>
   <!-- Text that links to additional information about the Firefox translations feature. -->
-  <string name="translations_bottom_sheet_info_message_learn_more">Daha fazla bilgi alın</string>
+  <string name="translations_bottom_sheet_info_message_learn_more">Daha fazla bilgi al</string>
   <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->
   <string name="translations_bottom_sheet_translate_from">Bu dilden</string>
   <!-- Label for the dropdown to select which language to translate to on the translations dialog. Usually the translate to language selected will be the user's preferred language. -->
@@ -3187,7 +3207,7 @@
   <!-- Screen header presenting the download language preference feature. It will appear under the toolbar. %1$s is a link using download_languages_header_learn_more_preference as text ("Learn more"). Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="download_languages_header_preference">Daha hızlı çeviriler ve çevrimdışı çeviri için dillerin tamamını indirebilirsiniz. %1$s</string>
   <!-- Clickable text from the screen header that links to a website. -->
-  <string name="download_languages_header_learn_more_preference">Daha fazla bilgi alın</string>
+  <string name="download_languages_header_learn_more_preference">Daha fazla bilgi al</string>
   <!-- The subhead of the download language preference screen will appear above the pivot language. -->
   <string name="download_languages_available_languages_preference">Kullanılabilir diller</string>
   <!-- Text that will appear beside a core or pivot language package name to show that the language is necessary for the translation feature to function. -->

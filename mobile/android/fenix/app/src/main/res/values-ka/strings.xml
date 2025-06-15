@@ -320,6 +320,8 @@
   <string name="browser_menu_sign_in">შესვლა</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">დაასინქრონეთ პაროლები, ჩანართები და სხვა</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_2">დაასინქრონეთ სანიშნები, პაროლები, ჩანართები და სხვა</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">შესვლა სინქრონიზაციისთვის</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -378,6 +380,8 @@
   <string name="browser_menu_edit_bookmark">სანიშნის ჩასწორება</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">შეინახოს PDF…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">შეინახოს PDF</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
   <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">საკითხავი ხედის ჩართვა</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
@@ -386,8 +390,12 @@
   <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">გადასვლა ჩვეულებრივ ჩანართზე</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">გვერდის თარგმნა…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">გვერდის თარგმნა</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
-  <string name="browser_menu_webcompat_reporter">გაუმართაობის მოხსენება…</string>
+  <string name="browser_menu_webcompat_reporter">არეული საიტის მოხსენება…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">არეული საიტის მოხსენება</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -397,6 +405,8 @@
   <string name="browser_menu_translated">ნათარგმნი</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">ბეჭდვა…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">ბეჭდვა</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -1557,6 +1567,16 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">ზემოთ გადასვლა</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">უკან და ძიების დახურვა</string>
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">შეჩერება</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">გაგრძელება</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">გამეორება</string>
   <string name="download_clear_search_description">გასუფთავება</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">URL-ბმულის გაზიარება</string>
@@ -1645,7 +1665,7 @@
 
     The title of the Web Compat Reporter feature. This is displayed in the top app bar.
   -->
-  <string name="webcompat_reporter_screen_title">საიტზე გაუმართაობის მოხსენება</string>
+  <string name="webcompat_reporter_screen_title">არეული საიტის მოხსენება</string>
   <!-- The description of the Web Compat Reporter feature. %1$s is the name of the app (for example "Firefox"). -->
   <string name="webcompat_reporter_description">დაგვეხმარეთ, განვავითაროთ %1$s ყველასთვის. Mozilla-ს თანამშრომლები თქვენ მიერ გამოგზავნილ მონაცემებს იყენებენ ვებსაიტთან დაკავშირებული ხარვეზების მოსაგვარებლად.</string>
   <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->

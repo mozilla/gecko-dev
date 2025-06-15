@@ -320,6 +320,8 @@
   <string name="browser_menu_sign_in">Prijava</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Sinkroniziraj lozinke, kartice i još više</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_2">Sinkroniziraj zabilješke, lozinke, kartice i još više</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Ponovno se prijavite za sinkronizaciju</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -378,6 +380,8 @@
   <string name="browser_menu_edit_bookmark">Uredi zabilješku</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">Spremi kao PDF…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">Spremi kao PDF</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
   <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Uključi prikaz čitača</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
@@ -386,8 +390,12 @@
   <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">Prijeđi na karticu koja nije privatna</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Prevedi stranicu…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">Prevedi stranicu</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Prijavi neispravnu stranicu…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">Prijavi pokvarenu web stranicu</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -397,6 +405,8 @@
   <string name="browser_menu_translated">Prevedeno</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Ispis…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">Ispiši</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -1557,6 +1567,16 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Navigiraj prema gore</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Natrag i zatvori pretragu</string>
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">Pauziraj</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">Nastavi</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">Pokušaj ponovo</string>
   <string name="download_clear_search_description">Izbriši</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Dijeli URL</string>
@@ -3471,6 +3491,8 @@
     The title of the Addresses feature in the Debug Drawer.
   -->
   <string name="debug_drawer_addresses_title">Adrese</string>
+  <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+  <string name="debug_drawer_addresses_debug_locales_header">Jezici koji se mogu aktivirati za otklanjanje grešaka</string>
   <!-- The title of the header for the section for managing addresses. -->
   <string name="debug_drawer_addresses_management_header">Upravljaj adresama</string>
   <!-- The title of the button in the debug drawer for adding a new address. -->
@@ -3491,6 +3513,28 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Glean alati za otklanjanje grešaka</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">Alati za regiju</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">Privremeno zamjenjuje lokalne i regionalne vrijednosti u svrhu testiranja.</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">Lokalna regija</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">Trenutačna regija</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">Zamijeni lokalnu regiju</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">Zamijeni trenutačnu regiju</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">Zamijeni lokalnu i trenutačnu regiju</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">Trajno zamijeni lokalnu regiju</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3558,31 +3602,47 @@
 
     Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="setup_checklist_subtitle_3_steps_initial_state">Dovrši ova 3 koraka za postavljanje %1$sa za najbolje iskustvo pregledavanja.</string>
+  <string name="setup_checklist_subtitle_3_steps_initial_state">Dovrši ova tri koraka za postavljanje aplikacije %1$s za najbolje iskustvo pregledavanja.</string>
   <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
-  <string name="setup_checklist_subtitle_3_steps_first_step">Odličan početak! Završio/la si 1 od 3 koraka.</string>
+  <string name="setup_checklist_subtitle_3_steps_first_step">Odličan početak! Završio/la si jedan od tri koraka.</string>
   <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
   <string name="setup_checklist_subtitle_3_steps_second_step">Još samo malo! Dva koraka su završena, preostaje još jedan.</string>
   <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="setup_checklist_subtitle_3_steps_completed_state">Završio/la si sva 3 koraka. Uživaj u brzini, privatnosti i sigurnosti aplikacije %1$s.</string>
+  <string name="setup_checklist_subtitle_3_steps_completed_state">Završio/la si sva tri koraka. Uživaj u brzini, privatnosti i sigurnosti aplikacije %1$s.</string>
   <!--
     ===== Setup checklist feature: Subtitles for 6 steps =====
 
     Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="setup_checklist_subtitle_6_steps_initial_state">Dovrši ovih 6 koraka za postavljanje %1$sa za najbolje iskustvo pregledavanja.</string>
+  <string name="setup_checklist_subtitle_6_steps_initial_state">Dovrši ovih šest koraka za postavljanje %1$sa za najbolje iskustvo pregledavanja.</string>
   <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
-  <string name="setup_checklist_subtitle_6_steps_first_step">Odličan početak! Završio/la si 1 od 6 koraka.</string>
+  <string name="setup_checklist_subtitle_6_steps_first_step">Odličan početak! Završio/la si jedan od šest koraka.</string>
   <!-- Subtitle for the setup checklist when the second task is completed. -->
-  <string name="setup_checklist_subtitle_6_steps_second_step">Završio/la si 2 od 6 koraka. Odličan napredak!</string>
+  <string name="setup_checklist_subtitle_6_steps_second_step">Završio/la si dva od šest koraka. Odličan napredak!</string>
   <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
   <string name="setup_checklist_subtitle_6_steps_third_step">Na pola si puta! Tri koraka su gotova, preostala su još tri.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">Četiri koraka završena. Još samo dva!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">Pri kraju smo! Samo još jedan korak.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">Završio/la si svih šest koraka. Uživaj u brzini, privatnosti i sigurnosti aplikacije %1$s.</string>
   <!--
     ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
 
     Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="setup_checklist_subtitle_5_steps_initial_state">Dovrši ovih 5 koraka za postavljanje %1$sa za najbolje iskustvo pregledavanja.</string>
+  <string name="setup_checklist_subtitle_5_steps_initial_state">Dovrši ovih pet koraka za postavljanje aplikacije %1$s za najbolje iskustvo pregledavanja.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">Odličan početak! Završio/la si jedan od pet koraka.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">Završio/la si dva od pet koraka. Odličan napredak!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">Na pola si puta! Tri koraka su gotova, preostala su još dva.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">Pri kraju smo! Samo još jedan korak.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">Završio/la si svih pet koraka. Uživaj u brzini, privatnosti i sigurnosti aplikacije %1$s.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
@@ -3610,6 +3670,20 @@
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">Korisni alati</string>
   <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">Ukloni popis zadataka</string>
+  <!--
+    ===== Setup checklist feature: Accessibility =====
+
+    Accessibility description for a check mark on a completed task
+  -->
+  <string name="a11y_completed_task_description">Završeni zadaci</string>
+  <!-- Accessibility description for the task icon -->
+  <string name="a11y_task_icon_description">Ikona zadatka</string>
+  <!--
     Private browsing mode authentication screen
 
     Label for the secondary action to exit private browsing mode
@@ -3619,6 +3693,34 @@
   <string name="pbm_authentication_unlock">Otključaj</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">Otključaj privatne kartice</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">Aktiviraj zaključavanje ekrana za privatne kartice</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">Deaktiviraj zaključavanje ekrana za privatne kartice</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">Postavi zaključavanje ekrana za skrivanje kartica</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">Koristiti zaključavanje ekrana za skrivanje privatnih kartica?</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">Ne hvala</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">Zaključaj kartice</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">Kako ti se sviđa %1$s?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">Imam probleme</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">Super je!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">Radujemo se što voliš %1$s. Možeš li podijeliti tvoju ljubav ocjenom?</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">Ocijeni %1$s na Google Play stranici</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">Žao nam je što imaš probleme. Javi nam kako možemo poboljšati %1$s.</string>
   <!-- Label for a button opening a feedback forum -->
   <string name="review_prompt_feedback_button">Pošalji povratne informacije</string>
 </resources>

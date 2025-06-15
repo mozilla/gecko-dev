@@ -29,7 +29,7 @@
   -->
   <string name="search_hint">Søk etter %1$s</string>
   <!-- Menu item: Share the currently visible page -->
-  <string name="menu_share">Del …</string>
+  <string name="menu_share">Del…</string>
   <!-- Menu item: Report an issue on the current site -->
   <string name="menu_report_site_issue">Rapporter problem med nettsted</string>
   <!--
@@ -55,6 +55,7 @@
   <string name="menu_settings">Innstillinger</string>
   <string name="menu_about">Om</string>
   <string name="menu_help">Hjelp</string>
+  <string name="menu_terms_of_use">Vilkår for bruk</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -148,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s gir deg kontroll.&lt;/p&gt;
-&lt;p&gt;Bruk den som en privat nettleser:
-  &lt;ul&gt;
-    &lt;li&gt;Søk og surf rett i appen&lt;/li&gt;
-    &lt;li&gt;Blokker sporere (eller oppdater innstillingene for å tillate sporere)&lt;/li&gt;
-    &lt;li&gt;Slett for å fjerne infokapsler samt søk- og nettleserhistorikk&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s er produsert av Mozilla. Vårt oppdrag er å fremme et sunt, åpent Internett.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Les mer&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s gir deg kontroll.</p> <p>Bruk den som en privat nettleser: <ul> <li>Søk og surf rett i appen</li> <li>Blokker sporere (eller oppdater innstillingene for å tillate sporere)</li> <li>Slett for å fjerne infokapsler samt søk- og nettleserhistorikk</li> </ul> </p> <p>%1$s er produsert av Mozilla. Vårt oppdrag er å fremme et sunt, åpent Internett.<br/> <a href=\"%2$s\">Les mer</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Personvern og sikkerhet</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -466,6 +458,32 @@
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Rask. Privat. Ingen distraksjoner.</string>
   <!--
+    New Onboarding flow first screen 'terms of use' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Ved å fortsette godtar du %1$s</string>
+  <!--
+    New Onboarding flow first screen 'terms of use link'
+
+    Text for the link used in onboarding_first_screen_terms_of_use_text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Firefox brukervilkår.</string>
+  <!--
+    New Onboarding flow first screen 'privacy notice' text
+
+    %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
+  -->
+  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox bryr seg om ditt personvern. Les mer i vår %1$s</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">Personvernbestemmelser.</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Godta og fortsett</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue_2">Fortsett</string>
+  <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
+  <string name="a11y_link_available">Lenke tilgjengelig</string>
+  <!--
     Onboarding second screen: Title
 
     %1$s will be replaced by the app short name(Focus)
@@ -651,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Gå til Android-innstillinger</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Trykk på &lt;b&gt;Tillatelser&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Trykk på <b>Tillatelser</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Gå til Innstillinger</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Slå &lt;b&gt;%1$s&lt;/b&gt; PÅ</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Slå <b>%1$s</b> PÅ]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -725,7 +743,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> For å få forslag må %1$s sende det du skriver i adressefeltet til søkemotoren.</string>
+  <string name="enable_search_suggestion_description">For å få forslag må %1$s sende det du skriver i adressefeltet til søkemotoren.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">Nei</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -740,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Oppfører siden seg uventet?\n Prøv å deaktivere sporingsbeskyttelse</string>
+  <string name="tip_disable_tracking_protection">Oppfører siden seg uventet?\nPrøv å deaktivere sporingsbeskyttelse</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -751,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Åpne hver link i %1$s\n Angi %1$s som standardnettleser</string>
+  <string name="tip_set_default_browser">Åpne hver link i %1$s\nAngi %1$s som standardnettleser</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Autofullfør nettadresser for nettsteder du bruker mest\n Trykk og hold på en nettadresse i adressefeltet</string>
+  <string name="tip_autocomplete_url">Autofullfør nettadresser for nettsteder du bruker mest\nTrykk og hold på en nettadresse i adressefeltet</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Åpne en lenke i en ny fane\n Trykk og hold på en lenke på en side</string>
+  <string name="tip_open_in_new_tab">Åpne en lenke i en ny fane\nTrykk og hold på en lenke på en side</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Slå av tips på startskjermen</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -842,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Lagrede og delte bilder &lt;b&gt;vil ikke bli&lt;/b&gt; fjernet når du sletter %1$s-historikken</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Lagrede og delte bilder <b>vil ikke bli</b> fjernet når du sletter %1$s-historikken]]></string>
   <!--
     Theme Preferences
 
@@ -863,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s prøver å bruke en HTTPS-tilkobling når det er mulig for mer sikkerhet.
-     &lt;a href="%2$s"&gt;Les mer&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Endre denne innstillingen i Innstillinger &gt; Personvern og sikkerhet &gt; Sikkerhet.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s prøver å bruke en HTTPS-tilkobling når det er mulig for mer sikkerhet. <a href=\"%2$s\">Les mer</a> <br/><br/> Endre denne innstillingen i Innstillinger > Personvern og sikkerhet > Sikkerhet.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Tilkoblingen er ikke sikker</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Dette kan være på grunn av et problem med serverens konfigurasjon, eller det kan være fordi noen forsøker å forfalske tilkoblingen til serveren. &lt;br/&gt;&lt;br/&gt;
-    Dersom du har klart å koble til serveren tidligere kan problemet være midlertidig, og du kan prøve igjen senere.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Dette kan være på grunn av et problem med serverens konfigurasjon, eller det kan være fordi noen forsøker å forfalske tilkoblingen til serveren. <br/><br/> Dersom du har klart å koble til serveren tidligere kan problemet være midlertidig, og du kan prøve igjen senere.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Noen kan prøve å etterligne nettstedet, og det kan være risikabelt å fortsette.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s stoler ikke på &lt;b&gt;%2$s&lt;/b&gt; fordi sertifikatutstederen er ukjent, sertifikatet er selvsignert, eller serveren sender ikke de riktige mellomsertifikatene.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Noen kan prøve å etterligne nettstedet, og det kan være risikabelt å fortsette.</label> <br><br> <label>%1$s stoler ikke på <b>%2$s</b> fordi sertifikatutstederen er ukjent, sertifikatet er selvsignert, eller serveren sender ikke de riktige mellomsertifikatene.</label>]]></string>
   <!--
     Sessions List
 
