@@ -2704,32 +2704,6 @@ void QuotaManager::UpdateOriginAccessTime(const OriginMetadata& aOriginMetadata,
   originInfo->LockedUpdateAccessTime(aTimestamp);
 }
 
-void QuotaManager::UpdateOriginAccessed(const OriginMetadata& aOriginMetadata) {
-  AssertIsOnIOThread();
-  MOZ_ASSERT(aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
-
-  MutexAutoLock lock(mQuotaMutex);
-
-  GroupInfoPair* pair;
-  if (!mGroupInfoPairs.Get(aOriginMetadata.mGroup, &pair)) {
-    return;
-  }
-
-  RefPtr<GroupInfo> groupInfo =
-      pair->LockedGetGroupInfo(aOriginMetadata.mPersistenceType);
-  if (!groupInfo) {
-    return;
-  }
-
-  RefPtr<OriginInfo> originInfo =
-      groupInfo->LockedGetOriginInfo(aOriginMetadata.mOrigin);
-  if (!originInfo) {
-    return;
-  }
-
-  originInfo->LockedUpdateAccessed();
-}
-
 void QuotaManager::RemoveQuota() {
   AssertIsOnIOThread();
 
@@ -2850,8 +2824,8 @@ nsresult QuotaManager::LoadQuota() {
                          MOZ_TO_RESULT_INVOKE_MEMBER(stmt, GetInt64, 5));
           QM_TRY_UNWRAP(fullOriginMetadata.mLastAccessTime,
                         MOZ_TO_RESULT_INVOKE_MEMBER(stmt, GetInt64, 6));
-          QM_TRY_UNWRAP(fullOriginMetadata.mAccessed,
-                        MOZ_TO_RESULT_INVOKE_MEMBER(stmt, GetInt32, 7));
+          QM_TRY_INSPECT(const int64_t& accessed,
+                         MOZ_TO_RESULT_INVOKE_MEMBER(stmt, GetInt32, 7));
           QM_TRY_UNWRAP(fullOriginMetadata.mPersisted,
                         MOZ_TO_RESULT_INVOKE_MEMBER(stmt, GetInt32, 8));
 
@@ -2875,7 +2849,7 @@ nsresult QuotaManager::LoadQuota() {
           // ensure consistency is in
           // EnsureTemporaryOriginIsInitializedInternal.)
 
-          if (fullOriginMetadata.mAccessed) {
+          if (accessed) {
             QM_TRY_INSPECT(const auto& directory,
                            GetOriginDirectory(fullOriginMetadata));
 
@@ -2902,12 +2876,6 @@ nsresult QuotaManager::LoadQuota() {
 
             QM_TRY(OkIf(fullOriginMetadata.mPersisted == metadata.mPersisted),
                    Err(NS_ERROR_FAILURE));
-
-            // There was a previous regression where mLastAccessTime did not
-            // match. To avoid failing on similar non-critical mismatches, we
-            // wrap this check in a warn-only try macro for now.
-            QM_WARNONLY_TRY(
-                OkIf(fullOriginMetadata.mAccessed == metadata.mAccessed));
 
             QM_TRY(OkIf(fullOriginMetadata.mPersistenceType ==
                         metadata.mPersistenceType),
@@ -3438,19 +3406,18 @@ QuotaManager::GetOrCreateTemporaryOriginDirectory(
     // respective origin directory. So OriginInfo already exists and it needs
     // to be updated because the origin directory has been just created.
 
-    auto [timestamp, accessed, persisted] =
+    auto [timestamp, persisted] =
         WithOriginInfo(aOriginMetadata, [](const auto& originInfo) {
           const int64_t timestamp = originInfo->LockedAccessTime();
-          const bool accessed = originInfo->LockedAccessed();
           const bool persisted = originInfo->LockedPersisted();
 
           originInfo->LockedDirectoryCreated();
 
-          return std::make_tuple(timestamp, accessed, persisted);
+          return std::make_pair(timestamp, persisted);
         });
 
     FullOriginMetadata fullOriginMetadata{
-        aOriginMetadata, OriginStateMetadata{timestamp, accessed, persisted}};
+        aOriginMetadata, OriginStateMetadata{timestamp, persisted}};
 
     // Usually, infallible operations are placed after fallible ones. However,
     // since we lack atomic support for creating the origin directory along
@@ -6128,8 +6095,7 @@ QuotaManager::EnsurePersistentOriginIsInitializedInternal(
                 *directory,
                 FullOriginMetadata{
                     aOriginMetadata,
-                    OriginStateMetadata{timestamp, /* aAccessed */ false,
-                                        /* aPersisted */ true}})));
+                    OriginStateMetadata{timestamp, /* aPersisted */ true}})));
 
             return timestamp;
           }
@@ -6146,7 +6112,7 @@ QuotaManager::EnsurePersistentOriginIsInitializedInternal(
     QM_TRY(MOZ_TO_RESULT(InitializeOrigin(
         directory,
         FullOriginMetadata{aOriginMetadata,
-                           OriginStateMetadata{timestamp, /* aAccessed */ false,
+                           OriginStateMetadata{timestamp,
                                                /* aPersisted */ true}})));
 
     mInitializedOriginsInternal.AppendElement(aOriginMetadata.mOrigin);
@@ -6302,8 +6268,7 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
       InitQuotaForOrigin(
           FullOriginMetadata{
               aOriginMetadata,
-              OriginStateMetadata{timestamp, /* aAccessed */ false,
-                                  /* aPersisted */ false}},
+              OriginStateMetadata{timestamp, /* aPersisted */ false}},
           ClientUsageArray(), /* aUsageBytes */ 0,
           /* aDirectoryExists */ false);
 
@@ -6316,8 +6281,8 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
       const int64_t timestamp = PR_Now();
 
       FullOriginMetadata fullOriginMetadata = FullOriginMetadata{
-          aOriginMetadata, OriginStateMetadata{timestamp, /* aAccessed */ false,
-                                               /* aPersisted */ false}};
+          aOriginMetadata,
+          OriginStateMetadata{timestamp, /* aPersisted */ false}};
 
       // Usually, infallible operations are placed after fallible ones.
       // However, since we lack atomic support for creating the origin
@@ -6327,10 +6292,10 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
 
       // Only creating .metadata-v2 to reduce IO.
       QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(
-          *directory, FullOriginMetadata{
-                          aOriginMetadata,
-                          OriginStateMetadata{timestamp, /* aAccessed */ false,
-                                              /* aPersisted */ false}})));
+          *directory,
+          FullOriginMetadata{
+              aOriginMetadata,
+              OriginStateMetadata{timestamp, /* aPersisted */ false}})));
 
       // Don't need to traverse the directory, since it's empty.
       InitQuotaForOrigin(fullOriginMetadata, ClientUsageArray(),
@@ -9542,7 +9507,6 @@ nsresult RestoreDirectoryMetadata2Helper::ProcessOriginDirectory(
       *aOriginProps.mDirectory,
       FullOriginMetadata{aOriginProps.mOriginMetadata,
                          OriginStateMetadata{aOriginProps.mTimestamp,
-                                             /* aAccessed */ true,
                                              /* aPersisted */ false}})));
 
   return NS_OK;

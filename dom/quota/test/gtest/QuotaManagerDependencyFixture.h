@@ -79,9 +79,6 @@ class QuotaManagerDependencyFixture : public testing::Test {
   static Maybe<OriginStateMetadata> GetOriginStateMetadata(
       const OriginMetadata& aOriginMetadata);
 
-  static Maybe<OriginStateMetadata> LoadDirectoryMetadataHeader(
-      const OriginMetadata& aOriginMetadata);
-
   static uint64_t TotalDirectoryIterations();
 
   static uint64_t SaveOriginAccessTimeCount();

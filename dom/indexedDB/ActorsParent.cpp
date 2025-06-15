@@ -127,7 +127,6 @@
 #include "mozilla/dom/quota/ConditionalCompilation.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
-#include "mozilla/dom/quota/DirectoryMetadata.h"
 #include "mozilla/dom/quota/DecryptingInputStream_impl.h"
 #include "mozilla/dom/quota/EncryptingOutputStream_impl.h"
 #include "mozilla/dom/quota/ErrorHandling.h"
@@ -13390,7 +13389,7 @@ nsresult Maintenance::DirectoryWork() {
     // Loop over "<origin>/idb" directories.
     QM_TRY(CollectEachFile(
         *persistenceDir,
-        [this, &quotaManager, persistenceType, persistent, &idbDirName](
+        [this, &quotaManager, persistenceType, &idbDirName](
             const nsCOMPtr<nsIFile>& originDir) -> Result<Ok, nsresult> {
           if (NS_WARN_IF(QuotaClient::IsShuttingDownOnNonBackgroundThread()) ||
               IsAborted()) {
@@ -13481,20 +13480,6 @@ nsresult Maintenance::DirectoryWork() {
                   }));
 
               if (!databasePaths.IsEmpty()) {
-                if (!persistent) {
-                  auto maybeOriginStateMetadata =
-                      quotaManager->GetOriginStateMetadata(metadata);
-
-                  auto originStateMetadata = maybeOriginStateMetadata.extract();
-
-                  originStateMetadata.mAccessed = true;
-
-                  QM_TRY(MOZ_TO_RESULT(SaveDirectoryMetadataHeader(
-                      *originDir, originStateMetadata)));
-
-                  quotaManager->UpdateOriginAccessed(metadata);
-                }
-
                 mDirectoryInfos.EmplaceBack(persistenceType, metadata,
                                             std::move(databasePaths));
               }

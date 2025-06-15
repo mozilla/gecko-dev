@@ -416,8 +416,6 @@ TEST_F(TestQuotaManager,
 // Test simple OpenClientDirectory behavior and verify that origin access time
 // updates are triggered as expected.
 TEST_F(TestQuotaManager, OpenClientDirectory_Simple) {
-  auto testOriginMetadata = GetTestOriginMetadata();
-
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
@@ -425,12 +423,6 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Simple) {
   const auto saveOriginAccessTimeCountBefore = SaveOriginAccessTimeCount();
   const auto saveOriginAccessTimeCountInternalBefore =
       SaveOriginAccessTimeCountInternal();
-
-  // Can't check origin state metadata since storage is not yet initialized.
-
-  auto directoryMetadataHeaderBefore =
-      LoadDirectoryMetadataHeader(testOriginMetadata);
-  ASSERT_FALSE(directoryMetadataHeaderBefore);
 
   PerformOnBackgroundThread([]() {
     QuotaManager* quotaManager = QuotaManager::Get();
@@ -464,15 +456,6 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Simple) {
                 saveOriginAccessTimeCountInternalBefore,
             2u);
 
-  auto originStateMetadataAfter = GetOriginStateMetadata(testOriginMetadata);
-  ASSERT_TRUE(originStateMetadataAfter);
-  ASSERT_TRUE(originStateMetadataAfter->mAccessed);
-
-  auto directoryMetadataHeaderAfter =
-      LoadDirectoryMetadataHeader(testOriginMetadata);
-  ASSERT_TRUE(directoryMetadataHeaderAfter);
-  ASSERT_TRUE(directoryMetadataHeaderAfter->mAccessed);
-
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
 
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
@@ -481,8 +464,6 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Simple) {
 // Test simple OpenClientDirectory behavior when the origin directory exists,
 // and verify that access time updates are triggered on first and last access.
 TEST_F(TestQuotaManager, OpenClientDirectory_Simple_OriginDirectoryExists) {
-  auto testOriginMetadata = GetTestOriginMetadata();
-
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
@@ -497,15 +478,6 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Simple_OriginDirectoryExists) {
   const auto saveOriginAccessTimeCountInternalBefore =
       SaveOriginAccessTimeCountInternal();
 
-  auto originStateMetadataBefore = GetOriginStateMetadata(testOriginMetadata);
-  ASSERT_TRUE(originStateMetadataBefore);
-  ASSERT_FALSE(originStateMetadataBefore->mAccessed);
-
-  auto directoryMetadataHeaderBefore =
-      LoadDirectoryMetadataHeader(testOriginMetadata);
-  ASSERT_TRUE(directoryMetadataHeaderBefore);
-  ASSERT_FALSE(directoryMetadataHeaderBefore->mAccessed);
-
   PerformOnBackgroundThread([]() {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
@@ -538,15 +510,6 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Simple_OriginDirectoryExists) {
                 saveOriginAccessTimeCountInternalBefore,
             2u);
 
-  auto originStateMetadataAfter = GetOriginStateMetadata(testOriginMetadata);
-  ASSERT_TRUE(originStateMetadataAfter);
-  ASSERT_TRUE(originStateMetadataAfter->mAccessed);
-
-  auto directoryMetadataHeaderAfter =
-      LoadDirectoryMetadataHeader(testOriginMetadata);
-  ASSERT_TRUE(directoryMetadataHeaderAfter);
-  ASSERT_TRUE(directoryMetadataHeaderAfter->mAccessed);
-
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
 
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
@@ -557,8 +520,6 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Simple_OriginDirectoryExists) {
 // solely for updating access time.
 TEST_F(TestQuotaManager,
        OpenClientDirectory_Simple_NonExistingOriginDirectory) {
-  auto testOriginMetadata = GetTestOriginMetadata();
-
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
@@ -572,14 +533,6 @@ TEST_F(TestQuotaManager,
   const auto saveOriginAccessTimeCountBefore = SaveOriginAccessTimeCount();
   const auto saveOriginAccessTimeCountInternalBefore =
       SaveOriginAccessTimeCountInternal();
-
-  auto originStateMetadataBefore = GetOriginStateMetadata(testOriginMetadata);
-  ASSERT_TRUE(originStateMetadataBefore);
-  ASSERT_FALSE(originStateMetadataBefore->mAccessed);
-
-  auto directoryMetadataHeaderBefore =
-      LoadDirectoryMetadataHeader(testOriginMetadata);
-  ASSERT_FALSE(directoryMetadataHeaderBefore);
 
   PerformOnBackgroundThread([]() {
     QuotaManager* quotaManager = QuotaManager::Get();
@@ -618,14 +571,6 @@ TEST_F(TestQuotaManager,
                 saveOriginAccessTimeCountInternalBefore,
             0u);
 
-  auto originStateMetadataAfter = GetOriginStateMetadata(testOriginMetadata);
-  ASSERT_TRUE(originStateMetadataAfter);
-  ASSERT_TRUE(originStateMetadataAfter->mAccessed);
-
-  auto directoryMetadataHeaderAfter =
-      LoadDirectoryMetadataHeader(testOriginMetadata);
-  ASSERT_FALSE(directoryMetadataHeaderAfter);
-
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
 
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
@@ -651,15 +596,6 @@ TEST_F(TestQuotaManager,
   const auto saveOriginAccessTimeCountBefore = SaveOriginAccessTimeCount();
   const auto saveOriginAccessTimeCountInternalBefore =
       SaveOriginAccessTimeCountInternal();
-
-  auto originStateMetadataBefore = GetOriginStateMetadata(testOriginMetadata);
-  ASSERT_TRUE(originStateMetadataBefore);
-  ASSERT_FALSE(originStateMetadataBefore->mAccessed);
-
-  auto directoryMetadataHeaderBefore =
-      LoadDirectoryMetadataHeader(testOriginMetadata);
-  ASSERT_TRUE(directoryMetadataHeaderBefore);
-  ASSERT_FALSE(directoryMetadataHeaderBefore->mAccessed);
 
   PerformOnBackgroundThread([testOriginMetadata]() {
     QuotaManager* quotaManager = QuotaManager::Get();
@@ -706,13 +642,6 @@ TEST_F(TestQuotaManager,
                 saveOriginAccessTimeCountInternalBefore,
             2u);
 
-  auto originStateMetadataAfter = GetOriginStateMetadata(testOriginMetadata);
-  ASSERT_FALSE(originStateMetadataAfter);
-
-  auto directoryMetadataHeaderAfter =
-      LoadDirectoryMetadataHeader(testOriginMetadata);
-  ASSERT_FALSE(directoryMetadataHeaderAfter);
-
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
 
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
@@ -723,8 +652,6 @@ TEST_F(TestQuotaManager,
 // after the origin access time update triggered by first access has finished,
 // and that access time is updated only on first and last access as expected.
 TEST_F(TestQuotaManager, OpenClientDirectory_Ongoing_OriginDirectoryExists) {
-  auto testOriginMetadata = GetTestOriginMetadata();
-
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
@@ -738,15 +665,6 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Ongoing_OriginDirectoryExists) {
   const auto saveOriginAccessTimeCountBefore = SaveOriginAccessTimeCount();
   const auto saveOriginAccessTimeCountInternalBefore =
       SaveOriginAccessTimeCountInternal();
-
-  auto originStateMetadataBefore = GetOriginStateMetadata(testOriginMetadata);
-  ASSERT_TRUE(originStateMetadataBefore);
-  ASSERT_FALSE(originStateMetadataBefore->mAccessed);
-
-  auto directoryMetadataHeaderBefore =
-      LoadDirectoryMetadataHeader(testOriginMetadata);
-  ASSERT_TRUE(directoryMetadataHeaderBefore);
-  ASSERT_FALSE(directoryMetadataHeaderBefore->mAccessed);
 
   PerformOnBackgroundThread([saveOriginAccessTimeCountBefore,
                              saveOriginAccessTimeCountInternalBefore]() {
@@ -879,15 +797,6 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Ongoing_OriginDirectoryExists) {
   ASSERT_EQ(saveOriginAccessTimeCountInternalAfter -
                 saveOriginAccessTimeCountInternalBefore,
             2u);
-
-  auto originStateMetadataAfter = GetOriginStateMetadata(testOriginMetadata);
-  ASSERT_TRUE(originStateMetadataAfter);
-  ASSERT_TRUE(originStateMetadataAfter->mAccessed);
-
-  auto directoryMetadataHeaderAfter =
-      LoadDirectoryMetadataHeader(testOriginMetadata);
-  ASSERT_TRUE(directoryMetadataHeaderAfter);
-  ASSERT_TRUE(directoryMetadataHeaderAfter->mAccessed);
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
 
@@ -3213,7 +3122,6 @@ TEST_F(TestQuotaManager, GetOriginStateMetadata_OriginDirectoryExists) {
 
   auto originStateMetadata = maybeOriginStateMetadata.extract();
   ASSERT_GT(originStateMetadata.mLastAccessTime, 0);
-  ASSERT_FALSE(originStateMetadata.mAccessed);
   ASSERT_FALSE(originStateMetadata.mPersisted);
 
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
