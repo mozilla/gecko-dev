@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+from webdriver.error import ElementClickInterceptedException, WebDriverException
 
 URL = "https://salling.dk/herre/toej/c-11905/"
 COOKIES_CSS = "button[class*=accept]"
@@ -14,13 +15,22 @@ async def are_filters_onscreen(client):
     await client.navigate(URL, wait="none")
     client.await_css(COOKIES_CSS, is_displayed=True).click()
     client.await_element_hidden(client.css(COOKIES_OVERLAY_CSS))
-    for i in range(20):
-        await asyncio.sleep(0.1)
-        client.await_css(FILTERS_CSS, is_displayed=True).click()
+    for _ in range(20):
+        try:
+            await asyncio.sleep(0.1)
+            client.await_css(FILTERS_CSS, is_displayed=True).click()
+        except (WebDriverException, ElementClickInterceptedException):
+            continue
         brands = client.find_css(BRANDS_CSS, is_displayed=True)
         if brands:
             break
-    brands.click()
+    for _ in range(20):
+        try:
+            brands.click()
+            break
+        except (WebDriverException, ElementClickInterceptedException):
+            await asyncio.sleep(0.1)
+    await asyncio.sleep(0.5)
     return client.execute_script(
         "return arguments[0].getBoundingClientRect().top >= 0", brands
     )
