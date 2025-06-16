@@ -6,10 +6,6 @@ support-files = [
   "!/accessible/tests/mochitest/*.js",
 ]
 skip-if = ["a11y_checks"]
-prefs = [
-  # Required for the eval in invokeContentTask in shared-head.js
-  "security.allow_eval_with_system_principal=true"
-]
 
 ["browser_test_doc_creation.js"]
 

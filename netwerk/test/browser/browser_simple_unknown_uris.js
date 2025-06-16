@@ -52,10 +52,6 @@ add_task(async function test_bypass_remote_settings_static_parent() {
 });
 
 add_task(async function test_bypass_remote_settings_static_child() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["security.allow_eval_with_system_principal", true]],
-  });
-
   const URL_EXAMPLE = "https://example.com";
   const tab = BrowserTestUtils.addTab(gBrowser, URL_EXAMPLE);
   const browser = gBrowser.getBrowserForTab(tab);

@@ -152,7 +152,6 @@ this.PartitionedStorageHelper = {
             "privacy.restrict3rdpartystorage.userInteractionRequiredForHosts",
             "not-tracking.example.com",
           ],
-          ["security.allow_eval_with_system_principal", true],
         ],
       });
 
