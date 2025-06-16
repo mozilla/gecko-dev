@@ -458,7 +458,6 @@ bool nsNativeThemeGTK::IsWidgetAlwaysNonNative(nsIFrame* aFrame,
          aAppearance == StyleAppearance::Checkbox ||
          aAppearance == StyleAppearance::Radio ||
          aAppearance == StyleAppearance::Button ||
-         aAppearance == StyleAppearance::Toolbarbutton ||
          aAppearance == StyleAppearance::Listbox ||
          aAppearance == StyleAppearance::Menulist ||
          aAppearance == StyleAppearance::ProgressBar ||

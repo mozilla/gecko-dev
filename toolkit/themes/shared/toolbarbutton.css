@@ -8,12 +8,6 @@ toolbarbutton {
   margin: 0;
   padding: 3px;
 
-  @media (-moz-platform: macos) {
-    appearance: none;
-    margin-inline: 2px;
-    padding-inline: 2px;
-  }
-
   @media not (-moz-platform: macos) {
     &:where(:hover) {
       color: -moz-buttonhovertext;

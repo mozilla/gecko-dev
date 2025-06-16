@@ -290,12 +290,6 @@ static NSControlSize ControlSizeForEnum(CocoaSize enumControlSize) {
   return NSControlSizeRegular;
 }
 
-static NSString* CUIControlSizeForCocoaSize(NSControlSize aControlSize) {
-  if (aControlSize == NSControlSizeRegular) return @"regular";
-  if (aControlSize == NSControlSizeSmall) return @"small";
-  return @"mini";
-}
-
 using CellMarginArray = PerSizeArray<IntMargin>;
 
 static void InflateControlRect(NSRect* rect, NSControlSize cocoaControlSize,
@@ -1591,118 +1585,6 @@ void nsNativeThemeCocoa::DrawScale(CGContextRef cgContext,
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
-nsIFrame* nsNativeThemeCocoa::SeparatorResponsibility(nsIFrame* aBefore,
-                                                      nsIFrame* aAfter) {
-  // Usually a separator is drawn by the segment to the right of the
-  // separator, but pressed and selected segments have higher priority.
-  if (!aBefore || !aAfter) return nullptr;
-  if (IsSelectedButton(aAfter)) return aAfter;
-  if (IsSelectedButton(aBefore) || IsPressedButton(aBefore)) return aBefore;
-  return aAfter;
-}
-
-static CGRect SeparatorAdjustedRect(CGRect aRect,
-                                    nsNativeThemeCocoa::SegmentParams aParams) {
-  // A separator between two segments should always be located in the leftmost
-  // pixel column of the segment to the right of the separator, regardless of
-  // who ends up drawing it.
-  // CoreUI draws the separators inside the drawing rect.
-  if (!aParams.atLeftEnd && !aParams.drawsLeftSeparator) {
-    // The segment to the left of us draws the separator, so we need to make
-    // room for it.
-    aRect.origin.x += 1;
-    aRect.size.width -= 1;
-  }
-  if (aParams.drawsRightSeparator) {
-    // We draw the right separator, so we need to extend the draw rect into the
-    // segment to our right.
-    aRect.size.width += 1;
-  }
-  return aRect;
-}
-
-static NSString* ToolbarButtonPosition(BOOL aIsFirst, BOOL aIsLast) {
-  if (aIsFirst) {
-    if (aIsLast) {
-      return @"kCUISegmentPositionOnly";
-    }
-    return @"kCUISegmentPositionFirst";
-  }
-  if (aIsLast) {
-    return @"kCUISegmentPositionLast";
-  }
-  return @"kCUISegmentPositionMiddle";
-}
-
-struct SegmentedControlRenderSettings {
-  const PerSizeArray<CGFloat> heights;
-  const NSString* widgetName;
-};
-
-static constexpr const SegmentedControlRenderSettings
-    toolbarButtonRenderSettings{PerSizeArray<CGFloat>{15.0, 18.0, 22.0},
-                                @"kCUIWidgetButtonSegmentedSCurve"};
-
-nsNativeThemeCocoa::SegmentParams nsNativeThemeCocoa::ComputeSegmentParams(
-    nsIFrame* aFrame, ElementState aEventState, SegmentType aSegmentType) {
-  SegmentParams params;
-  params.segmentType = aSegmentType;
-  params.insideActiveWindow = FrameIsInActiveWindow(aFrame);
-  params.pressed = IsPressedButton(aFrame);
-  params.selected = IsSelectedButton(aFrame);
-  params.focused = aEventState.HasState(ElementState::FOCUSRING);
-  bool isRTL = IsFrameRTL(aFrame);
-  nsIFrame* left = GetAdjacentSiblingFrameWithSameAppearance(aFrame, isRTL);
-  nsIFrame* right = GetAdjacentSiblingFrameWithSameAppearance(aFrame, !isRTL);
-  params.atLeftEnd = !left;
-  params.atRightEnd = !right;
-  params.drawsLeftSeparator = SeparatorResponsibility(left, aFrame) == aFrame;
-  params.drawsRightSeparator = SeparatorResponsibility(aFrame, right) == aFrame;
-  params.rtl = isRTL;
-  return params;
-}
-
-static SegmentedControlRenderSettings RenderSettingsForSegmentType(
-    nsNativeThemeCocoa::SegmentType aSegmentType) {
-  switch (aSegmentType) {
-    case nsNativeThemeCocoa::SegmentType::eToolbarButton:
-      return toolbarButtonRenderSettings;
-  }
-}
-
-void nsNativeThemeCocoa::DrawSegment(CGContextRef cgContext,
-                                     const HIRect& inBoxRect,
-                                     const SegmentParams& aParams) {
-  SegmentedControlRenderSettings renderSettings =
-      RenderSettingsForSegmentType(aParams.segmentType);
-  NSControlSize controlSize =
-      FindControlSize(inBoxRect.size.height, renderSettings.heights, 4.0f);
-  CGRect drawRect = SeparatorAdjustedRect(inBoxRect, aParams);
-
-  NSDictionary* dict = @{
-    @"widget" : renderSettings.widgetName,
-    @"kCUIPresentationStateKey" :
-        (aParams.insideActiveWindow ? @"kCUIPresentationStateActiveKey"
-                                    : @"kCUIPresentationStateInactive"),
-    @"kCUIPositionKey" :
-        ToolbarButtonPosition(aParams.atLeftEnd, aParams.atRightEnd),
-    @"kCUISegmentLeadingSeparatorKey" :
-        [NSNumber numberWithBool:aParams.drawsLeftSeparator],
-    @"kCUISegmentTrailingSeparatorKey" :
-        [NSNumber numberWithBool:aParams.drawsRightSeparator],
-    @"value" : [NSNumber numberWithBool:aParams.selected],
-    @"state" : (aParams.pressed
-                    ? @"pressed"
-                    : (aParams.insideActiveWindow ? @"normal" : @"inactive")),
-    @"focus" : [NSNumber numberWithBool:aParams.focused],
-    @"size" : CUIControlSizeForCocoaSize(controlSize),
-    @"is.flipped" : [NSNumber numberWithBool:YES],
-    @"direction" : @"up"
-  };
-
-  RenderWithCoreUI(drawRect, cgContext, dict);
-}
-
 void nsNativeThemeCocoa::DrawMultilineTextField(CGContextRef cgContext,
                                                 const CGRect& inBoxRect,
                                                 bool aIsFocused) {
@@ -1834,12 +1716,6 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
           ComputeControlParams(aFrame, elementState), buttonType}));
     }
 
-    case StyleAppearance::Toolbarbutton: {
-      SegmentParams params = ComputeSegmentParams(aFrame, elementState,
-                                                  SegmentType::eToolbarButton);
-      params.insideActiveWindow = [NativeWindowForFrame(aFrame) isMainWindow];
-      return Some(WidgetInfo::Segment(params));
-    }
 
     case StyleAppearance::MozSidebar:
     case StyleAppearance::MozWindowTitlebar: {
@@ -2022,11 +1898,6 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo,
           DrawDropdown(cgContext, macRect, params);
           break;
         }
-        case Widget::eSegment: {
-          SegmentParams params = aWidgetInfo.Params<SegmentParams>();
-          DrawSegment(cgContext, macRect, params);
-          break;
-        }
         case Widget::eGroupBox: {
           HIThemeGroupBoxDrawInfo gdi = {0, kThemeStateActive,
                                          kHIThemeGroupBoxKindPrimary};
@@ -2112,7 +1983,6 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
     case StyleAppearance::MozMacHelpButton:
     case StyleAppearance::MozMacDisclosureButtonOpen:
     case StyleAppearance::MozMacDisclosureButtonClosed:
-    case StyleAppearance::Toolbarbutton:
     case StyleAppearance::Menulist:
     case StyleAppearance::MozMenulistArrowButton:
     case StyleAppearance::Textfield:
@@ -2161,11 +2031,6 @@ LayoutDeviceIntMargin nsNativeThemeCocoa::GetWidgetBorder(
         result =
             DirectionAwareMargin(LayoutDeviceIntMargin(1, 7, 3, 7), aFrame);
       }
-      break;
-    }
-
-    case StyleAppearance::Toolbarbutton: {
-      result = DirectionAwareMargin(LayoutDeviceIntMargin(1, 4, 1, 4), aFrame);
       break;
     }
 
@@ -2254,7 +2119,6 @@ bool nsNativeThemeCocoa::GetWidgetOverflow(nsDeviceContext* aContext,
     case StyleAppearance::MozMacDisclosureButtonOpen:
     case StyleAppearance::MozMacDisclosureButtonClosed:
     case StyleAppearance::MozMacHelpButton:
-    case StyleAppearance::Toolbarbutton:
     case StyleAppearance::NumberInput:
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:
@@ -2327,11 +2191,6 @@ LayoutDeviceIntSize nsNativeThemeCocoa::GetMinimumWidgetSize(
 
     case StyleAppearance::MozMacHelpButton: {
       result.SizeTo(kHelpButtonSize.width, kHelpButtonSize.height);
-      break;
-    }
-
-    case StyleAppearance::Toolbarbutton: {
-      result.SizeTo(0, toolbarButtonRenderSettings.heights[CocoaSize::Mini]);
       break;
     }
 
@@ -2446,7 +2305,6 @@ bool nsNativeThemeCocoa::ThemeSupportsWidget(nsPresContext* aPresContext,
     case StyleAppearance::MozMacDisclosureButtonClosed:
     case StyleAppearance::MozMacWindow:
     case StyleAppearance::Button:
-    case StyleAppearance::Toolbarbutton:
     case StyleAppearance::NumberInput:
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:

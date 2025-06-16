@@ -3,9 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #placesToolbar {
-  /* TODO(emilio): would be nice for the native cocoa theme to honor our sizes
-   * more precisely, it seems it could be taught to at least render
-   * NSControlSizeLarge controls or so */
   --toolbar-item-height: 26px;
   --toolbar-item-margin: 0px 4px;
 
@@ -24,9 +21,8 @@
   }
 
   > toolbarbutton {
-    height: var(--toolbar-item-height);
+    min-height: var(--toolbar-item-height);
     margin: var(--toolbar-item-margin);
-    padding: 0;
     appearance: auto;
     -moz-default-appearance: toolbarbutton;
 
@@ -118,22 +114,6 @@
 #forward-button,
 #back-button:-moz-locale-dir(rtl) {
   list-style-image: url("chrome://global/skin/icons/arrow-right.svg");
-}
-
-#back-button {
-  margin-inline-end: 0 !important; /* override margin from #placesToolbar > toolbarbutton */
-
-  > .toolbarbutton-icon {
-    margin-inline: 3px 2px !important;
-  }
-}
-
-#forward-button {
-  margin-inline-start: 0 !important; /* override margin from #placesToolbar > toolbarbutton */
-
-  > .toolbarbutton-icon {
-    margin-inline: 2px 3px !important;
-  }
 }
 
 /* Root View */

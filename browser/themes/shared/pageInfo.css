@@ -113,25 +113,26 @@
 @media (-moz-platform: macos) {
   #viewGroup {
     margin: 4px 0 9px;
-  }
 
-  #viewGroup > radio,
-  #viewGroup > toolbarbutton {
-    flex-direction: column;
-    align-items: center;
-    appearance: auto;
-    -moz-default-appearance: toolbarbutton;
-    font: menu;
-    margin: 0;
-    padding: 0 6px;
-    height: 22px;
-  }
+    > radio,
+    > toolbarbutton {
+      flex-direction: column;
+      align-items: center;
+      font: menu;
+      margin: 0 2px;
+      padding: 3px 6px;
+      border-radius: 3px;
 
-  @media (-moz-mac-big-sur-theme: 0) {
-    #viewGroup > radio[selected="true"],
-    #viewGroup > toolbarbutton[checked="true"] {
-      color: #fff !important;
-      text-shadow: rgba(0, 0, 0, 0.4) 0 1px;
+      &:hover,
+      &[selected] {
+        color: var(--button-text-color-hover);
+        background-color: var(--button-background-color-hover);
+      }
+
+      &:hover:active {
+        color: var(--button-text-color-active);
+        background-color: var(--button-background-color-active);
+      }
     }
   }
 }
