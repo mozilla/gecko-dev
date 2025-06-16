@@ -1872,6 +1872,10 @@ static bool ShouldCheckReason(nsIContentAnalysisRequest::Reason aReason) {
     case nsIContentAnalysisRequest::Reason::eDragAndDrop:
       return mozilla::StaticPrefs::
           browser_contentanalysis_interception_point_drag_and_drop_enabled();
+    case nsIContentAnalysisRequest::Reason::eNormalDownload:
+    case nsIContentAnalysisRequest::Reason::eSaveAsDownload:
+      return mozilla::StaticPrefs::
+          browser_contentanalysis_interception_point_download_enabled();
     default:
       MOZ_ASSERT_UNREACHABLE("Unrecognized content analysis request reason");
       return false;  // don't try to check it

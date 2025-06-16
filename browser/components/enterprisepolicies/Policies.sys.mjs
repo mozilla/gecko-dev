@@ -606,6 +606,7 @@ export var Policies = {
       }
       let interceptionPointPrefs = [
         ["Clipboard", "clipboard"],
+        ["Download", "download"],
         ["DragAndDrop", "drag_and_drop"],
         ["FileUpload", "file_upload"],
         ["Print", "print"],

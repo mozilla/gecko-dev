@@ -1337,6 +1337,16 @@
   value: true
   mirror: always
 
+# Should Firefox use content analysis for download operations?
+# Note that this has no effect unless browser.contentanalysis.enabled
+# is true.
+# This defaults to false so as to not break existing content analysis
+# configurations.
+- name: browser.contentanalysis.interception_point.download.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Should Firefox use content analysis for drag and drop operations?
 # Note that this has no effect unless browser.contentanalysis.enabled
 # is true.

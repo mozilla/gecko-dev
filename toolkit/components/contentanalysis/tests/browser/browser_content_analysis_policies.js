@@ -41,6 +41,7 @@ function getIndividualPrefName(name) {
 }
 const kInterceptionPoints = [
   "clipboard",
+  "download",
   "drag_and_drop",
   "file_upload",
   "print",
@@ -87,12 +88,13 @@ add_task(async function test_ca_active() {
   });
   ok(ca.isActive, "CA is active when enabled by enterprise policy pref");
   for (let interceptionPoint of kInterceptionPoints) {
+    const shouldBeEnabledByDefault = interceptionPoint !== "download";
     is(
       Services.prefs.getBoolPref(
         `browser.contentanalysis.interception_point.${interceptionPoint}.enabled`
       ),
-      true,
-      `${interceptionPoint} enabled by default`
+      shouldBeEnabledByDefault,
+      `${interceptionPoint} ${shouldBeEnabledByDefault ? "enabled" : "disabled"} by default`
     );
   }
   for (let interceptionPoint of kInterceptionPointsPlainTextOnly) {
@@ -175,6 +177,9 @@ add_task(async function test_ca_enterprise_config() {
             Enabled: false,
             PlainTextOnly: false,
           },
+          Download: {
+            Enabled: true,
+          },
           DragAndDrop: {
             Enabled: false,
             PlainTextOnly: false,
@@ -255,7 +260,7 @@ add_task(async function test_ca_enterprise_config() {
       Services.prefs.getBoolPref(
         `browser.contentanalysis.interception_point.${interceptionPoint}.enabled`
       ),
-      false,
+      interceptionPoint === "download",
       `${interceptionPoint} interception point match`
     );
   }

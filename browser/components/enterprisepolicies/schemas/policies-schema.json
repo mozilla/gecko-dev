@@ -291,6 +291,14 @@
                 }
               }
             },
+            "Download": {
+              "type": "object",
+              "properties": {
+                "Enabled": {
+                  "type": "boolean"
+                }
+              }
+            },
             "DragAndDrop": {
               "type": "object",
               "properties": {
