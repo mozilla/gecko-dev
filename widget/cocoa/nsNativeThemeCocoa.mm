@@ -760,42 +760,6 @@ static void DrawCellWithSnapping(NSCell* cell, CGContextRef cgContext,
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
-@interface NSWindow (CoreUIRendererPrivate)
-+ (CUIRendererRef)coreUIRenderer;
-@end
-
-@interface NSObject (NSAppearanceCoreUIRendering)
-- (void)_drawInRect:(CGRect)rect
-            context:(CGContextRef)cgContext
-            options:(id)options;
-@end
-
-static void RenderWithCoreUI(CGRect aRect, CGContextRef cgContext,
-                             NSDictionary* aOptions,
-                             bool aSkipAreaCheck = false) {
-  if (!aSkipAreaCheck &&
-      aRect.size.width * aRect.size.height > BITMAP_MAX_AREA) {
-    return;
-  }
-
-  NSAppearance* appearance = NSAppearance.currentAppearance;
-  if (appearance &&
-      [appearance respondsToSelector:@selector(_drawInRect:context:options:)]) {
-    // Render through NSAppearance on Mac OS 10.10 and up. This will call
-    // CUIDraw with a CoreUI renderer that will give us the correct 10.10
-    // style. Calling CUIDraw directly with [NSWindow coreUIRenderer] still
-    // renders 10.9-style widgets on 10.10.
-    [appearance _drawInRect:aRect context:cgContext options:aOptions];
-  } else {
-    // 10.9 and below
-    CUIRendererRef renderer =
-        [NSWindow respondsToSelector:@selector(coreUIRenderer)]
-            ? [NSWindow coreUIRenderer]
-            : nil;
-    CUIDraw(renderer, aRect, cgContext, (CFDictionaryRef)aOptions, NULL);
-  }
-}
-
 static float VerticalAlignFactor(nsIFrame* aFrame) {
   if (!aFrame) return 0.5f;  // default: center
 
@@ -983,7 +947,6 @@ static bool ShouldUnconditionallyDrawFocusRingIfFocused(nsIFrame* aFrame) {
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:
     case StyleAppearance::Textarea:
-    case StyleAppearance::Listbox:
       return true;
     default:
       return false;
@@ -1773,8 +1736,6 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
       return Some(WidgetInfo::MultilineTextField(
           elementState.HasState(ElementState::FOCUS)));
 
-    case StyleAppearance::Listbox:
-      return Some(WidgetInfo::ListBox());
     default:
       break;
   }
@@ -1916,23 +1877,6 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo,
       DrawMultilineTextField(cgContext, macRect, isFocused);
       break;
     }
-    case Widget::eListBox: {
-      // Fill the content with the control background color.
-      CGContextSetFillColorWithColor(
-          cgContext, [NSColor.controlBackgroundColor CGColor]);
-      CGContextFillRect(cgContext, macRect);
-      // Draw the frame using kCUIWidgetScrollViewFrame. This is what
-      // NSScrollView uses in
-      // -[NSScrollView drawRect:] if you give it a borderType of
-      // NSBezelBorder.
-      RenderWithCoreUI(
-          macRect, cgContext, @{
-            @"widget" : @"kCUIWidgetScrollViewFrame",
-            @"kCUIIsFlippedKey" : @YES,
-            @"kCUIVariantMetal" : @NO,
-          });
-      break;
-    }
   }
 
   // Reset the base CTM.
@@ -1977,7 +1921,6 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
     case StyleAppearance::Meter:
     case StyleAppearance::Range:
     case StyleAppearance::Textarea:
-    case StyleAppearance::Listbox:
       return false;
 
     default:
@@ -2043,13 +1986,6 @@ LayoutDeviceIntMargin nsNativeThemeCocoa::GetWidgetBorder(
       result.SizeTo(1, 1, 1, 1);
       break;
 
-    case StyleAppearance::Listbox: {
-      SInt32 frameOutset = 0;
-      ::GetThemeMetric(kThemeMetricListBoxFrameOutset, &frameOutset);
-      result.SizeTo(frameOutset, frameOutset, frameOutset, frameOutset);
-      break;
-    }
-
     default:
       break;
   }
@@ -2108,7 +2044,6 @@ bool nsNativeThemeCocoa::GetWidgetOverflow(nsDeviceContext* aContext,
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:
     case StyleAppearance::Textarea:
-    case StyleAppearance::Listbox:
     case StyleAppearance::Menulist:
     case StyleAppearance::MozMenulistArrowButton:
     case StyleAppearance::Checkbox:
@@ -2276,7 +2211,6 @@ bool nsNativeThemeCocoa::ThemeSupportsWidget(nsPresContext* aPresContext,
       }
       [[fallthrough]];
 
-    case StyleAppearance::Listbox:
     case StyleAppearance::MozWindowButtonBox:
     case StyleAppearance::MozWindowTitlebar:
     case StyleAppearance::MozSidebar:
@@ -2359,7 +2293,6 @@ bool nsNativeThemeCocoa::WidgetAppearanceDependsOnWindowFocus(
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:
     case StyleAppearance::Textarea:
-    case StyleAppearance::Listbox:
       return false;
     default:
       return true;

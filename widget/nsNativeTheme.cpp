@@ -571,5 +571,6 @@ bool nsNativeTheme::IsWidgetAlwaysNonNative(nsIFrame* aFrame,
          aAppearance == StyleAppearance::SpinnerUpbutton ||
          aAppearance == StyleAppearance::SpinnerDownbutton ||
          aAppearance == StyleAppearance::Toolbarbutton ||
+         aAppearance == StyleAppearance::Listbox ||
          (aFrame && aFrame->StyleUI()->mMozTheme == StyleMozTheme::NonNative);
 }

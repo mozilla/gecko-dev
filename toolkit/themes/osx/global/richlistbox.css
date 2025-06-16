@@ -10,6 +10,7 @@ richlistbox {
   margin: 2px 4px;
   background-color: Field;
   color: FieldText;
+  border: 1px solid ThreeDShadow;
 }
 
 richlistbox[disabled="true"] {

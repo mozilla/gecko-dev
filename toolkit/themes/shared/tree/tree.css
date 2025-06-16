@@ -15,12 +15,7 @@ tree {
   margin: 0 4px;
   background-color: Field;
   color: FieldText;
-  appearance: auto;
-  -moz-default-appearance: listbox;
-  @media (-moz-platform: linux) or (-moz-platform: windows) {
-    appearance: none;
-    border: 1px solid ThreeDShadow;
-  }
+  border: 1px solid ThreeDShadow;
 }
 
 /********** splitter **********/

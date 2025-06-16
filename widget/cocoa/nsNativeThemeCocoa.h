@@ -126,7 +126,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     eMeter,               // MeterParams
     eScale,               // ScaleParams
     eMultilineTextField,  // bool
-    eListBox,
   };
 
   struct WidgetInfo {
@@ -160,7 +159,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     static WidgetInfo MultilineTextField(bool aParams) {
       return WidgetInfo(Widget::eMultilineTextField, aParams);
     }
-    static WidgetInfo ListBox() { return WidgetInfo(Widget::eListBox, false); }
 
     template <typename T>
     T Params() const {
