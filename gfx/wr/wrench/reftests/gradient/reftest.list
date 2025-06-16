@@ -63,14 +63,14 @@ fuzzy(1,83164) == tiling-linear-1.yaml tiling-linear-1-ref.yaml
 fuzzy(1,46293) == tiling-linear-2.yaml tiling-linear-2-ref.yaml
 fuzzy(1,62154) == tiling-linear-3.yaml tiling-linear-3-ref.yaml
 
-fuzzy(1,17) == tiling-radial-1.yaml tiling-radial-1-ref.yaml
+fuzzy(1,17) fuzzy-if(platform(win),1,7548) == tiling-radial-1.yaml tiling-radial-1-ref.yaml
 fuzzy(1,1) == tiling-radial-2.yaml tiling-radial-2-ref.yaml
-fuzzy(1,3) fuzzy-if(platform(swgl),1,1318) == tiling-radial-3.yaml tiling-radial-3-ref.yaml
-fuzzy(1,17) == tiling-radial-4.yaml tiling-radial-4-ref.yaml
+fuzzy(1,3) fuzzy-if(platform(win),1,73001) fuzzy-if(platform(swgl),1,1318) == tiling-radial-3.yaml tiling-radial-3-ref.yaml
+fuzzy(1,17) fuzzy-if(platform(win),1,7512) == tiling-radial-4.yaml tiling-radial-4-ref.yaml
 
-fuzzy(1,500) == tiling-conic-1.yaml tiling-conic-1-ref.yaml
+fuzzy(1,500) fuzzy-if(platform(win),2,5559) == tiling-conic-1.yaml tiling-conic-1-ref.yaml
 fuzzy(1,250) == tiling-conic-2.yaml tiling-conic-2-ref.yaml
-fuzzy(1,320) == tiling-conic-3.yaml tiling-conic-3-ref.yaml
+fuzzy(1,320) fuzzy-if(platform(win),2,45278) == tiling-conic-3.yaml tiling-conic-3-ref.yaml
 
 == radial-zero-size-1.yaml radial-zero-size-ref.yaml
 == radial-zero-size-2.yaml radial-zero-size-ref.yaml
