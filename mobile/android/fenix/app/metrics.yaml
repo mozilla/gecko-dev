@@ -8050,52 +8050,6 @@ app_theme:
       tags:
         - Themes
 pocket:
-  pocket_top_site_clicked:
-    type: event
-    description: |
-      A user clicked on the trending Pocket top site
-    bugs:
-      - https://github.com/mozilla-mobile/fenix/issues/8126
-    data_reviews:
-      - https://github.com/mozilla-mobile/fenix/pull/8098
-      - https://github.com/mozilla-mobile/fenix/pull/15713#issuecomment-703972068
-      - https://github.com/mozilla-mobile/fenix/pull/19924#issuecomment-861423789
-      - https://github.com/mozilla-mobile/fenix/pull/20517#pullrequestreview-718069041
-      - https://github.com/mozilla-mobile/fenix/pull/21038#issuecomment-906757301
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-    no_lint:
-      - COMMON_PREFIX
-    metadata:
-      tags:
-        - PocketIntegration
-        - Shortcuts
-  pocket_top_site_removed:
-    type: event
-    description: |
-      A user removed the trending Pocket top site
-    bugs:
-      - https://github.com/mozilla-mobile/fenix/issues/8126
-    data_reviews:
-      - https://github.com/mozilla-mobile/fenix/pull/8098
-      - https://github.com/mozilla-mobile/fenix/pull/15713#issuecomment-703972068
-      - https://github.com/mozilla-mobile/fenix/pull/19924#issuecomment-861423789
-      - https://github.com/mozilla-mobile/fenix/pull/20517#pullrequestreview-718069041
-      - https://github.com/mozilla-mobile/fenix/pull/23453#issuecomment-1024694220
-      - https://github.com/mozilla-mobile/fenix/pull/28502
-      - https://github.com/mozilla-mobile/firefox-android/pull/4039
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-    metadata:
-      tags:
-        - PocketIntegration
-        - Shortcuts
   home_recs_shown:
     type: event
     description: |
