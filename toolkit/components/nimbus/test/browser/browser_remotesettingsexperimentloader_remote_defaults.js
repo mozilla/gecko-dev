@@ -55,17 +55,18 @@ const REMOTE_CONFIGURATION_BAR =
 const SYNC_DEFAULTS_PREF_BRANCH = "nimbus.syncdefaultsstore.";
 
 add_setup(function () {
+  const sandbox = sinon.createSandbox();
+
   const client = RemoteSettings("nimbus-desktop-experiments");
-  sinon.stub(client, "get").resolves([]);
-  sinon.stub(client.db, "getLastModified").resolves(0);
+  sandbox.stub(client, "get").resolves([]);
+  sandbox.stub(client.db, "getLastModified").resolves(0);
 
   const secureClient = RemoteSettings("nimbus-secure-experiments");
-  sinon.stub(secureClient, "get").resolves([]);
-  sinon.stub(secureClient.db, "getLastModified").resolves(0);
+  sandbox.stub(secureClient, "get").resolves([]);
+  sandbox.stub(secureClient.db, "getLastModified").resolves(0);
 
   registerCleanupFunction(() => {
-    client.get.restore();
-    secureClient.get.restore();
+    sandbox.restore();
   });
 });
 
