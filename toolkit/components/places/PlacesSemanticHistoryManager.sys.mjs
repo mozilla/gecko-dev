@@ -53,7 +53,6 @@ class PlacesSemanticHistoryManager {
   #finalized = false;
   #updateTask = null;
   #prevPagesRankChangedCount = 0;
-  #pageRankCountThreshold = 2;
   #pendingUpdates = true;
   testFlag = false;
   #updateTaskLatency = [];
@@ -62,6 +61,8 @@ class PlacesSemanticHistoryManager {
   #promiseRemoved = null;
   enoughEntries = false;
   #shutdownProgress = { state: "Not started" };
+  #deferredTaskInterval = DEFERRED_TASK_INTERVAL_MS;
+  #lastMaxChunksCount = 0;
 
   /**
    * Constructor for PlacesSemanticHistoryManager.
@@ -325,6 +326,14 @@ class PlacesSemanticHistoryManager {
   }
 
   /**
+   * Sets the DeferredTask interval for testing purposes.
+   * @param {number} val minimum milliseconds between deferred task executions.
+   */
+  setDeferredTaskIntervalForTests(val) {
+    this.#deferredTaskInterval = val;
+  }
+
+  /**
    * Creates or updates the DeferredTask for managing updates to the semantic DB.
    */
   #createOrUpdateTask() {
@@ -337,6 +346,12 @@ class PlacesSemanticHistoryManager {
       this.#updateTask.finalize().catch(console.error);
     }
 
+    // Syncs the semantic search database with history changes. It first checks
+    // if enough page changes have occurred to warrant an update. If so, it
+    // finds history entries that need to be added or removed from the vector
+    // database. It then processes a chunk of additions, for which it generates
+    // embeddings, and deletions in batches. It will re-arm itself if more work
+    // remains, otherwise marks the update as complete and notifies.
     this.#updateTask = new lazy.DeferredTask(
       async () => {
         if (this.#finalized) {
@@ -353,65 +368,90 @@ class PlacesSemanticHistoryManager {
             PlacesObservers.counts.get("pages-rank-changed") +
             PlacesObservers.counts.get("history-cleared");
           if (
-            pagesRankChangedCount - this.#prevPagesRankChangedCount >=
-              this.#pageRankCountThreshold ||
-            this.#pendingUpdates ||
-            this.testFlag
+            pagesRankChangedCount - this.#prevPagesRankChangedCount <
+              this.#changeThresholdCount &&
+            !this.#pendingUpdates &&
+            !this.testFlag
           ) {
-            this.#prevPagesRankChangedCount = pagesRankChangedCount;
-            const startTime = Cu.now();
-            lazy.logger.info(
-              `Changes exceed threshold (${this.#changeThresholdCount}). Scheduling update task.`
-            );
-            let addedRows = await this.findAdds(conn);
-            let deletedRows = await this.findDeletes(conn);
+            lazy.logger.info("No significant changes detected.");
+            return;
+          }
 
-            let totalAdds = addedRows.length;
-            let totalDeletes = deletedRows.length;
+          this.#prevPagesRankChangedCount = pagesRankChangedCount;
+          const startTime = Cu.now();
 
-            lazy.logger.info(
-              `Total rows to add: ${totalAdds}, delete: ${totalDeletes}`
-            );
+          lazy.logger.info(
+            `Changes exceed threshold (${this.#changeThresholdCount}).`
+          );
 
-            if (totalAdds > 0) {
-              this.#pendingUpdates = true;
-              const chunk = addedRows.slice(0, DEFAULT_CHUNK_SIZE);
+          let addRows = await this.findAdds(conn);
+          let deleteRows = await this.findDeletes(conn);
+
+          // We already have startTime for profile markers, so just use it
+          // instead of tracking timer within the distribution.
+          Glean.places.semanticHistoryFindChunksTime.accumulateSingleSample(
+            Cu.now() - startTime
+          );
+
+          lazy.logger.info(
+            `Total rows to add: ${addRows.length}, delete: ${deleteRows.length}`
+          );
+
+          if (addRows.length || deleteRows.length) {
+            let chunkTimer =
+              Glean.places.semanticHistoryChunkCalculateTime.start();
+
+            let chunksCount =
+              Math.ceil(addRows.length / DEFAULT_CHUNK_SIZE) +
+              Math.ceil(deleteRows.length / DEFAULT_CHUNK_SIZE);
+            if (chunksCount > this.#lastMaxChunksCount) {
+              this.#lastMaxChunksCount = chunksCount;
+              Glean.places.semanticHistoryMaxChunksCount.set(chunksCount);
+            }
+
+            if (addRows.length) {
+              const chunk = addRows.splice(0, DEFAULT_CHUNK_SIZE);
               await this.updateVectorDB(conn, chunk, []);
               ChromeUtils.addProfilerMarker(
                 "updateVectorDB",
                 startTime,
                 "Details about updateVectorDB event"
               );
-              this.#updateTask.arm();
             }
-            if (totalDeletes > 0) {
-              this.#pendingUpdates = true;
-              const chunk = deletedRows.slice(0, DEFAULT_CHUNK_SIZE);
+            if (deleteRows.length) {
+              const chunk = deleteRows.splice(0, DEFAULT_CHUNK_SIZE);
               await this.updateVectorDB(conn, [], chunk);
               ChromeUtils.addProfilerMarker(
                 "updateVectorDB",
                 startTime,
                 "Details about updateVectorDB event"
               );
-              this.#updateTask.arm();
             }
-            if (totalAdds + totalDeletes == 0) {
-              this.#pendingUpdates = false;
-              Services.obs.notifyObservers(
-                null,
-                "places-semantichistorymanager-update-complete"
-              );
-            }
-            if (this.testFlag) {
-              this.#updateTask.arm();
-            }
-            lazy.logger.info("Vector DB update task completed.");
-          } else {
-            lazy.logger.info("No significant changes detected.");
+
+            Glean.places.semanticHistoryChunkCalculateTime.stopAndAccumulate(
+              chunkTimer
+            );
+          }
+
+          if (addRows.length || deleteRows.length) {
+            // There's still entries to update, re-arm the task.
+            this.#pendingUpdates = true;
+            this.#updateTask.arm();
+            return;
+          }
+
+          this.#pendingUpdates = false;
+          Services.obs.notifyObservers(
+            null,
+            "places-semantichistorymanager-update-complete"
+          );
+          if (this.testFlag) {
+            this.#updateTask.arm();
           }
         } catch (error) {
           lazy.logger.error("Error executing vector DB update task:", error);
         } finally {
+          lazy.logger.info("Vector DB update task completed.");
           const updateEndTime = Cu.now();
           const updateTaskTime = updateEndTime - updateStartTime;
           this.#updateTaskLatency.push(updateTaskTime);
@@ -421,7 +461,7 @@ class PlacesSemanticHistoryManager {
           );
         }
       },
-      DEFERRED_TASK_INTERVAL_MS,
+      this.#deferredTaskInterval,
       DEFERRED_TASK_MAX_IDLE_WAIT_MS
     );
     lazy.logger.info("Update task armed.");

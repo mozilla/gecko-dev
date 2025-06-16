@@ -10,6 +10,9 @@ ChromeUtils.defineESModuleGetters(this, {
     "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs",
 });
 
+// Must be divisible by 8.
+const EMBEDDING_SIZE = 16;
+
 function approxEqual(a, b, tolerance = 1e-6) {
   return Math.abs(a - b) < tolerance;
 }
@@ -17,15 +20,27 @@ function approxEqual(a, b, tolerance = 1e-6) {
 function createPlacesSemanticHistoryManager() {
   return getPlacesSemanticHistoryManager(
     {
-      embeddingSize: 4,
+      embeddingSize: EMBEDDING_SIZE,
       rowLimit: 10,
       samplingAttrib: "frecency",
       changeThresholdCount: 3,
       distanceThreshold: 0.75,
-      testFlag: true,
     },
     true
   );
+}
+
+class MockMLEngine {
+  async run(request) {
+    const texts = request.args[0];
+    return texts.map(text => {
+      if (typeof text !== "string" || text.trim() === "") {
+        throw new Error("Invalid input: text must be a non-empty string");
+      }
+      // Return a mock embedding vector (e.g., an array of zeros)
+      return Array(EMBEDDING_SIZE).fill(0);
+    });
+  }
 }
 
 add_task(async function test_tensorToBindable() {
@@ -200,4 +215,61 @@ add_task(async function test_removeDatabaseFilesOnStartup() {
     ),
     "Pref should have been reset."
   );
+});
+
+add_task(async function test_chunksTelemetry() {
+  await PlacesTestUtils.addVisits([
+    { url: "https://test1.moz.com/", title: "test 1" },
+    { url: "https://test2.moz.com/", title: "test 2" },
+  ]);
+  Services.fog.initializeFOG();
+  Services.fog.testResetFOG();
+
+  Assert.strictEqual(
+    Glean.places.semanticHistoryFindChunksTime.testGetValue(),
+    null,
+    "No value initially"
+  );
+  Assert.strictEqual(
+    Glean.places.semanticHistoryChunkCalculateTime.testGetValue(),
+    null,
+    "No value initially"
+  );
+  Assert.strictEqual(
+    Glean.places.semanticHistoryMaxChunksCount.testGetValue(),
+    null,
+    "No value initially"
+  );
+  Services.prefs.setBoolPref("places.semanticHistory.featureGate", true);
+
+  let semanticManager = createPlacesSemanticHistoryManager();
+  // Ensure only one task execution for measuremant purposes.
+  semanticManager.setDeferredTaskIntervalForTests(3000);
+  await semanticManager.getConnection();
+  semanticManager.embedder.setEngine(new MockMLEngine());
+  await TestUtils.topicObserved(
+    "places-semantichistorymanager-update-complete"
+  );
+
+  Assert.equal(
+    Glean.places.semanticHistoryFindChunksTime.testGetValue().count,
+    1
+  );
+  Assert.greater(
+    Glean.places.semanticHistoryFindChunksTime.testGetValue().sum,
+    0
+  );
+
+  Assert.equal(
+    Glean.places.semanticHistoryChunkCalculateTime.testGetValue().count,
+    1
+  );
+  Assert.greater(
+    Glean.places.semanticHistoryChunkCalculateTime.testGetValue().sum,
+    0
+  );
+
+  Assert.equal(Glean.places.semanticHistoryMaxChunksCount.testGetValue(), 1);
+
+  await semanticManager.shutdown();
 });

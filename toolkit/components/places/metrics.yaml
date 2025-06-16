@@ -440,6 +440,54 @@ places:
     expires: never
     telemetry_mirror: PLACES_MAINTENANCE_DAYSFROMLAST
 
+  semantic_history_find_chunks_time:
+    type: timing_distribution
+    description: >
+      Time to find URLs to calculate embeddings for.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1971120
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1971120
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - mak@mozilla.com
+      - fx-search-telemetry@mozilla.com
+    expires: never
+
+  semantic_history_max_chunks_count:
+    type: quantity
+    description: >
+      Max number of chunks of embeddings to calculate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1971120
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1971120
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - mak@mozilla.com
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    unit: history chunks
+
+  semantic_history_chunk_calculate_time:
+    type: timing_distribution
+    description: >
+      Time to calculate a chunk of embeddings.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1971120
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1971120
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - mak@mozilla.com
+      - fx-search-telemetry@mozilla.com
+    expires: never
+
 page_icon:
   small_icon_count:
     type: counter
