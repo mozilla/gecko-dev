@@ -3797,7 +3797,14 @@ impl Renderer {
                         continue;
                     }
 
-                    let layer = &mut input_layers[tile_index_to_layer_index[idx].unwrap()];
+                    let layer_index = match tile_index_to_layer_index[idx] {
+                        None => {
+                            continue;
+                        }
+                        Some(layer_index) => layer_index,
+                    };
+
+                    let layer = &mut input_layers[layer_index];
                     // Skip compositing external images
                     match layer.usage {
                         CompositorSurfaceUsage::Content | CompositorSurfaceUsage::DebugOverlay => {}
@@ -3866,9 +3873,18 @@ impl Renderer {
                 continue;
             }
 
+            let layer_index = match tile_index_to_layer_index[idx] {
+                None => {
+                    // The rect of partial present should be subset of the rect of full render.
+                    error!("rect {:?} should have valid layer index", rect);
+                    continue;
+                }
+                Some(layer_index) => layer_index,
+            };
+
             // For normal tiles, add to occlusion tracker. For clear tiles, add directly
             // to the swapchain tile list
-            let layer = &mut swapchain_layers[tile_index_to_layer_index[idx].unwrap()];
+            let layer = &mut swapchain_layers[layer_index];
 
             // Clear tiles overwrite whatever is under them, so they are treated as opaque.
             match tile.kind {
