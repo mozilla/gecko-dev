@@ -5,11 +5,15 @@
 package org.mozilla.fenix.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import mozilla.components.compose.base.theme.AcornColors
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.base.theme.AcornTypography
+import mozilla.components.compose.base.theme.acornDarkColorScheme
+import mozilla.components.compose.base.theme.acornLightColorScheme
+import mozilla.components.compose.base.theme.acornPrivateColorScheme
 import mozilla.components.compose.base.theme.darkColorPalette
 import mozilla.components.compose.base.theme.layout.AcornLayout
 import mozilla.components.compose.base.theme.layout.AcornWindowSize
@@ -29,14 +33,21 @@ fun FirefoxTheme(
     theme: Theme = Theme.getTheme(),
     content: @Composable () -> Unit,
 ) {
-    val colors = when (theme) {
+    val colors: AcornColors = when (theme) {
         Theme.Light -> lightColorPalette
         Theme.Dark -> darkColorPalette
         Theme.Private -> privateColorPalette
     }
 
+    val colorScheme: ColorScheme = when (theme) {
+        Theme.Light -> acornLightColorScheme()
+        Theme.Dark -> acornDarkColorScheme()
+        Theme.Private -> acornPrivateColorScheme()
+    }
+
     AcornTheme(
         colors = colors,
+        colorScheme = colorScheme,
         content = content,
     )
 }
