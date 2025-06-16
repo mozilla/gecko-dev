@@ -212,13 +212,13 @@ defaults
 test-pref(privacy.resistFingerprinting,true) == system-font-rfp.html system-font-rfp-ref.html
 
 # Bug 1970980 - Test for regional-indicator emoji handling with Windows-specific fonts
-skip-if(!winWidget) pref(layout.css.font-variant-emoji.enabled,true) == 1970980-regional-indicators.html 1970980-regional-indicators-ref.html
+skip-if(!winWidget) == 1970980-regional-indicators.html 1970980-regional-indicators-ref.html
 
-pref(layout.css.font-variant-emoji.enabled,true) == 1971148-digits-color-font-01.html 1971148-digits-color-font-01-ref.html
-pref(layout.css.font-variant-emoji.enabled,true) == 1971148-digits-color-font-02.html 1971148-digits-color-font-01-ref.html
-pref(layout.css.font-variant-emoji.enabled,true) == 1971148-digits-color-font-03.html 1971148-digits-color-font-03-ref.html
-pref(layout.css.font-variant-emoji.enabled,true) == 1971148-digits-color-font-04.html 1971148-digits-color-font-03-ref.html
-pref(layout.css.font-variant-emoji.enabled,true) == 1971148-digits-color-font-05.html 1971148-digits-color-font-01-ref.html
-pref(layout.css.font-variant-emoji.enabled,true) == 1971148-digits-color-font-06.html 1971148-digits-color-font-01-ref.html
-pref(layout.css.font-variant-emoji.enabled,true) == 1971148-digits-color-font-07.html 1971148-digits-color-font-03-ref.html
-pref(layout.css.font-variant-emoji.enabled,true) == 1971148-digits-color-font-08.html 1971148-digits-color-font-03-ref.html
+== 1971148-digits-color-font-01.html 1971148-digits-color-font-01-ref.html
+== 1971148-digits-color-font-02.html 1971148-digits-color-font-01-ref.html
+== 1971148-digits-color-font-03.html 1971148-digits-color-font-03-ref.html
+== 1971148-digits-color-font-04.html 1971148-digits-color-font-03-ref.html
+== 1971148-digits-color-font-05.html 1971148-digits-color-font-01-ref.html
+== 1971148-digits-color-font-06.html 1971148-digits-color-font-01-ref.html
+== 1971148-digits-color-font-07.html 1971148-digits-color-font-03-ref.html
+== 1971148-digits-color-font-08.html 1971148-digits-color-font-03-ref.html

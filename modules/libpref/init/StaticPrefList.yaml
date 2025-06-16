@@ -9841,7 +9841,7 @@
 # Is support for font-variant-emoji enabled?
 - name: layout.css.font-variant-emoji.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
   rust: true
 
