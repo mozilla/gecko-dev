@@ -96,7 +96,9 @@ Breaking this down:
     `XRE_GetProcessType()`, so adjust as needed.
 -   Finally, the `--dmd` option need to be passed in so that DMD will be
     run. `--mode=scan` is needed so that when we get a DMD log the
-    entire contents of each block of memory is saved for later analysis.
+    entire contents of each block of memory is saved for later analysis. If
+    you aren't running Firefox through `mach`, you can activate DMD directly
+    with an environment variable with `DMD="--mode=scan"`.
 
 With that command line in hand, you can start Firefox. Be aware that
 this may take multiple minutes if you have optimization disabled.
