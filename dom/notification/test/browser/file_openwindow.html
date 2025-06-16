@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<script>
+  var { promise, resolve } = Promise.withResolvers();
+  navigator.serviceWorker.addEventListener("message", ev => {
+    if (ev.data === "HELLO") {
+      resolve();
+    }
+  }, { once: true })
+</script>

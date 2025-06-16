@@ -19,6 +19,8 @@
 #include "nsIBrowserDOMWindow.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeOwner.h"
+#include "nsIMutableArray.h"
+#include "nsISupportsPrimitives.h"
 #include "nsIURI.h"
 #include "nsIBrowser.h"
 #include "nsIWebProgress.h"
@@ -207,6 +209,53 @@ struct ClientOpenWindowArgsParsed {
 };
 
 #ifndef MOZ_GECKOVIEW
+
+static Result<Ok, nsresult> OpenNewWindow(
+    const ClientOpenWindowArgsParsed& aArgsValidated,
+    nsOpenWindowInfo* aOpenWindowInfo) {
+  nsresult rv;
+
+  nsCOMPtr<nsISupportsPRBool> nsFalse =
+      do_CreateInstance(NS_SUPPORTS_PRBOOL_CONTRACTID, &rv);
+  MOZ_TRY(rv);
+  MOZ_TRY(nsFalse->SetData(false));
+
+  nsCOMPtr<nsISupportsPRUint32> userContextId =
+      do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID, &rv);
+  MOZ_TRY(rv);
+  MOZ_TRY(userContextId->SetData(aArgsValidated.principal->GetUserContextId()));
+
+  nsCOMPtr<nsIMutableArray> args = do_CreateInstance(NS_ARRAY_CONTRACTID);
+  // https://searchfox.org/mozilla-central/rev/02d33f4bf984f65bd394bfd2d19d66569ae2cfe1/browser/base/content/browser-init.js#725-735
+  args->AppendElement(nullptr);                   // 0: uriToLoad
+  args->AppendElement(nullptr);                   // 1: extraOptions
+  args->AppendElement(nullptr);                   // 2: referrerInfo
+  args->AppendElement(nullptr);                   // 3: postData
+  args->AppendElement(nsFalse);                   // 4: allowThirdPartyFixup
+  args->AppendElement(userContextId);             // 5: userContextId
+  args->AppendElement(nullptr);                   // 6: originPrincipal
+  args->AppendElement(nullptr);                   // 7: originStoragePrincipal
+  args->AppendElement(aArgsValidated.principal);  // 8: triggeringPrincipal
+  args->AppendElement(nsFalse);                   // 9: allowInheritPrincipal
+  args->AppendElement(aArgsValidated.csp);        // 10: csp
+  args->AppendElement(aOpenWindowInfo);           // 11: nsOpenWindowInfo
+
+  nsCOMPtr<nsIWindowWatcher> ww = do_GetService(NS_WINDOWWATCHER_CONTRACTID);
+  nsCString features = "chrome,all,dialog=no"_ns;
+
+  if (aArgsValidated.principal->GetIsInPrivateBrowsing()) {
+    // Private browsing would generally have a window, but with
+    // browser.privatebrowsing.autostart=true it's still possible to get into
+    // this path. See also bug 1972335.
+    features += ",private";
+  }
+
+  nsCOMPtr<mozIDOMWindowProxy> win;
+  MOZ_TRY(ww->OpenWindow(nullptr, nsDependentCString(BROWSER_CHROME_URL_QUOTED),
+                         "_blank"_ns, features, args, getter_AddRefs(win)));
+  return Ok();
+}
+
 void OpenWindow(const ClientOpenWindowArgsParsed& aArgsValidated,
                 nsOpenWindowInfo* aOpenInfo, BrowsingContext** aBC,
                 ErrorResult& aRv) {
@@ -224,10 +273,14 @@ void OpenWindow(const ClientOpenWindowArgsParsed& aArgsValidated,
   nsCOMPtr<nsPIDOMWindowOuter> browserWindow =
       nsContentUtils::GetMostRecentWindowBy(filter);
   if (!browserWindow) {
-    // It is possible to be running without a browser window on Mac OS, so
-    // we need to open a new chrome window.
-    // TODO(catalinb): open new chrome window. Bug 1218080
-    aRv.ThrowTypeError("Unable to open window");
+    // It is possible to be running without a browser window (either because
+    // macOS hidden window or non-browser windows like Library), so we need to
+    // open a new chrome window.
+    auto result = OpenNewWindow(aArgsValidated, aOpenInfo);
+    if (NS_WARN_IF(result.isErr())) {
+      aRv.ThrowTypeError("Unable to open window");
+      return;
+    }
     return;
   }
 
