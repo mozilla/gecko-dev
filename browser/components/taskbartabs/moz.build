@@ -8,6 +8,7 @@ EXTRA_JS_MODULES.taskbartabs += [
     "TaskbarTabCmd.sys.mjs",
     "TaskbarTabs.sys.mjs",
     "TaskbarTabUI.sys.mjs",
+    "TaskbarTabsUtils.sys.mjs",
 ]
 
 BROWSER_CHROME_MANIFESTS += [
