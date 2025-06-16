@@ -6,6 +6,7 @@ package mozilla.components.concept.engine
 
 import android.content.Intent
 import androidx.annotation.CallSuper
+import mozilla.components.concept.engine.EngineSession.BounceTrackingProtectionMode
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_ALL
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.CookiePolicy.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS
 import mozilla.components.concept.engine.content.blocking.Tracker
@@ -438,6 +439,7 @@ abstract class EngineSession(
         val cookiePolicyPrivateMode: CookiePolicy = cookiePolicy,
         val strictSocialTrackingProtection: Boolean? = null,
         val cookiePurging: Boolean = false,
+        val bounceTrackingProtectionMode: BounceTrackingProtectionMode = BounceTrackingProtectionMode.DISABLED,
     ) {
 
         /**
@@ -552,6 +554,7 @@ abstract class EngineSession(
             fun none() = TrackingProtectionPolicy(
                 trackingCategories = arrayOf(TrackingCategory.NONE),
                 cookiePolicy = ACCEPT_ALL,
+                bounceTrackingProtectionMode = BounceTrackingProtectionMode.ENABLED_STANDBY,
             )
 
             /**
@@ -564,6 +567,7 @@ abstract class EngineSession(
                 cookiePolicy = ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS,
                 strictSocialTrackingProtection = true,
                 cookiePurging = true,
+                bounceTrackingProtectionMode = BounceTrackingProtectionMode.ENABLED,
             )
 
             /**
@@ -577,6 +581,7 @@ abstract class EngineSession(
                 cookiePolicy = ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS,
                 strictSocialTrackingProtection = false,
                 cookiePurging = true,
+                bounceTrackingProtectionMode = BounceTrackingProtectionMode.ENABLED_STANDBY,
             )
 
             /**
@@ -591,6 +596,7 @@ abstract class EngineSession(
              *  is set.
              *  @param cookiePurging Whether or not to automatically purge tracking cookies. This will
              *  purge cookies from tracking sites that do not have recent user interaction provided.
+             *  @param bounceTrackingProtectionMode the bounce tracking protection mode to use.
              */
             fun select(
                 trackingCategories: Array<TrackingCategory> = arrayOf(TrackingCategory.RECOMMENDED),
@@ -598,12 +604,15 @@ abstract class EngineSession(
                 cookiePolicyPrivateMode: CookiePolicy = cookiePolicy,
                 strictSocialTrackingProtection: Boolean? = null,
                 cookiePurging: Boolean = false,
+                bounceTrackingProtectionMode: BounceTrackingProtectionMode =
+                    BounceTrackingProtectionMode.ENABLED_STANDBY,
             ) = TrackingProtectionPolicyForSessionTypes(
                 trackingCategory = trackingCategories,
                 cookiePolicy = cookiePolicy,
                 cookiePolicyPrivateMode = cookiePolicyPrivateMode,
                 strictSocialTrackingProtection = strictSocialTrackingProtection,
                 cookiePurging = cookiePurging,
+                bounceTrackingProtectionMode = bounceTrackingProtectionMode,
             )
         }
 
@@ -616,6 +625,7 @@ abstract class EngineSession(
             if (cookiePurging != other.cookiePurging) return false
             if (cookiePolicyPrivateMode != other.cookiePolicyPrivateMode) return false
             if (strictSocialTrackingProtection != other.strictSocialTrackingProtection) return false
+            if (bounceTrackingProtectionMode != other.bounceTrackingProtectionMode) return false
             return true
         }
 
@@ -667,6 +677,35 @@ abstract class EngineSession(
     }
 
     /**
+     * Represents settings options for bounce tracking protection.
+     */
+    @Suppress("MagicNumber")
+    enum class BounceTrackingProtectionMode(val mode: Int) {
+        /**
+         * Fully disabled.
+         */
+        DISABLED(0),
+
+        /**
+         * Fully enabled.
+         */
+        ENABLED(1),
+
+        /**
+         * Disabled, but collects user interaction data. Use this mode as the
+         * "disabled" state when the feature can be toggled on and off, e.g. via
+         * preferences.
+         */
+        ENABLED_STANDBY(2),
+
+        /**
+         * Feature enabled, but tracker purging is only simulated. Used for
+         * testing and telemetry collection.
+         */
+        ENABLED_DRY_RUN(3),
+    }
+
+    /**
      * Subtype of [TrackingProtectionPolicy] to control the type of session this policy
      * should be applied to. By default, a policy will be applied to all sessions.
      *  @param trackingCategory a list of tracking categories to apply.
@@ -686,12 +725,14 @@ abstract class EngineSession(
         cookiePolicyPrivateMode: CookiePolicy = cookiePolicy,
         strictSocialTrackingProtection: Boolean? = null,
         cookiePurging: Boolean = false,
+        bounceTrackingProtectionMode: BounceTrackingProtectionMode = BounceTrackingProtectionMode.DISABLED,
     ) : TrackingProtectionPolicy(
         trackingCategories = trackingCategory,
         cookiePolicy = cookiePolicy,
         cookiePolicyPrivateMode = cookiePolicyPrivateMode,
         strictSocialTrackingProtection = strictSocialTrackingProtection,
         cookiePurging = cookiePurging,
+        bounceTrackingProtectionMode = bounceTrackingProtectionMode,
     ) {
         /**
          * Marks this policy to be used for private sessions only.
@@ -704,6 +745,7 @@ abstract class EngineSession(
             cookiePolicyPrivateMode = cookiePolicyPrivateMode,
             strictSocialTrackingProtection = false,
             cookiePurging = cookiePurging,
+            bounceTrackingProtectionMode = bounceTrackingProtectionMode,
         )
 
         /**
@@ -717,6 +759,7 @@ abstract class EngineSession(
             cookiePolicyPrivateMode = cookiePolicyPrivateMode,
             strictSocialTrackingProtection = strictSocialTrackingProtection,
             cookiePurging = cookiePurging,
+            bounceTrackingProtectionMode = bounceTrackingProtectionMode,
         )
     }
 

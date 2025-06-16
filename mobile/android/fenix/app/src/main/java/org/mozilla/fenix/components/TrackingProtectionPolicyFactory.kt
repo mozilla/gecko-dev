@@ -122,5 +122,6 @@ internal fun TrackingProtectionPolicyForSessionTypes.applyTCPIfNeeded(
         cookiePolicy = updatedCookiePolicy,
         strictSocialTrackingProtection = strictSocialTrackingProtection,
         cookiePurging = cookiePurging,
+        bounceTrackingProtectionMode = bounceTrackingProtectionMode,
     )
 }
