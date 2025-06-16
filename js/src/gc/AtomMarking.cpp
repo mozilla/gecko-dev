@@ -105,8 +105,14 @@ void AtomMarkingRuntime::mergePendingFreeArenaIndexes(GCRuntime* gc) {
   pendingFreeArenaIndexes.ref().clear();
 }
 
-void AtomMarkingRuntime::refineZoneBitmapsForCollectedZones(
-    GCRuntime* gc, size_t collectedZones) {
+void AtomMarkingRuntime::refineZoneBitmapsForCollectedZones(GCRuntime* gc) {
+  size_t collectedZones = 0;
+  for (ZonesIter zone(gc, SkipAtoms); !zone.done(); zone.next()) {
+    if (zone->isCollecting()) {
+      collectedZones++;
+    }
+  }
+
   // If there is more than one zone to update, copy the chunk mark bits into a
   // bitmap and AND that into the atom marking bitmap for each zone.
   DenseBitmap marked;
@@ -191,9 +197,15 @@ static void BitwiseOrIntoChunkMarkBits(Zone* atomsZone, Bitmap& bitmap) {
   }
 }
 
-void AtomMarkingRuntime::markAtomsUsedByUncollectedZones(
-    GCRuntime* gc, size_t uncollectedZones) {
+void AtomMarkingRuntime::markAtomsUsedByUncollectedZones(GCRuntime* gc) {
   MOZ_ASSERT(CurrentThreadIsPerformingGC());
+
+  size_t uncollectedZones = 0;
+  for (ZonesIter zone(gc, SkipAtoms); !zone.done(); zone.next()) {
+    if (!zone->isCollecting()) {
+      uncollectedZones++;
+    }
+  }
 
   // If there are no uncollected non-atom zones then there's no work to do.
   if (uncollectedZones == 0) {

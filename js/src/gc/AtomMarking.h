@@ -53,11 +53,11 @@ class AtomMarkingRuntime {
 
   // Update the atom marking bitmaps in all collected zones according to the
   // atoms zone mark bits.
-  void refineZoneBitmapsForCollectedZones(GCRuntime* gc, size_t collectedZones);
+  void refineZoneBitmapsForCollectedZones(GCRuntime* gc);
 
   // Set any bits in the chunk mark bitmaps for atoms which are marked in any
   // uncollected zone in the runtime.
-  void markAtomsUsedByUncollectedZones(GCRuntime* gc, size_t uncollectedZones);
+  void markAtomsUsedByUncollectedZones(GCRuntime* gc);
 
  private:
   // Fill |bitmap| with an atom marking bitmap based on the things that are
