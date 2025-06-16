@@ -39,11 +39,13 @@ private const val FILL_WIDTH_DEFAULT = 1.0f
  *
  * @param onUnlockClicked Invoked when the user taps the unlock button.
  * @param onLeaveClicked Invoked when the user taps the leave private tabs text.
+ * @param showNegativeButton To check if we display the negative button.
  */
 @Composable
 internal fun UnlockPrivateTabsScreen(
     onUnlockClicked: () -> Unit,
     onLeaveClicked: () -> Unit,
+    showNegativeButton: Boolean,
 ) {
     Column(
         modifier = Modifier
@@ -57,7 +59,7 @@ internal fun UnlockPrivateTabsScreen(
 
         Header()
 
-        Footer(onUnlockClicked, onLeaveClicked)
+        Footer(onUnlockClicked, onLeaveClicked, showNegativeButton)
 
         LaunchedEffect(Unit) {
             // Record telemetry event here as
@@ -91,7 +93,7 @@ private fun Header() {
 }
 
 @Composable
-private fun Footer(onUnlockClicked: () -> Unit, onLeaveClicked: () -> Unit) {
+private fun Footer(onUnlockClicked: () -> Unit, onLeaveClicked: () -> Unit, showNegativeButton: Boolean) {
     val fillWidthFraction = if (LocalContext.current.isLargeWindow()) {
         FILL_WIDTH_LARGE_WINDOW
     } else {
@@ -112,12 +114,14 @@ private fun Footer(onUnlockClicked: () -> Unit, onLeaveClicked: () -> Unit) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        TextButton(
-            text = stringResource(R.string.pbm_authentication_leave_private_tabs),
-            onClick = onLeaveClicked,
-            textColor = FirefoxTheme.colors.textActionPrimary,
-            upperCaseText = false,
-        )
+        if (showNegativeButton) {
+            TextButton(
+                text = stringResource(R.string.pbm_authentication_leave_private_tabs),
+                onClick = onLeaveClicked,
+                textColor = FirefoxTheme.colors.textActionPrimary,
+                upperCaseText = false,
+            )
+        }
     }
 }
 
@@ -128,6 +132,7 @@ private fun UnlockPrivateTabsPreview() {
         UnlockPrivateTabsScreen(
             onUnlockClicked = {},
             onLeaveClicked = {},
+            showNegativeButton = true,
         )
     }
 }

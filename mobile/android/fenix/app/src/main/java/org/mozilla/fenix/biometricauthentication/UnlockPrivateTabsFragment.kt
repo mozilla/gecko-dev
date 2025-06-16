@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import mozilla.components.browser.state.selector.normalTabs
+import mozilla.components.feature.customtabs.isCustomTabIntent
 import mozilla.components.support.base.feature.UserInteractionHandler
 import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
 import org.mozilla.fenix.HomeActivity
@@ -51,6 +52,10 @@ class UnlockPrivateTabsFragment : Fragment(), UserInteractionHandler {
         super.onViewCreated(view, savedInstanceState)
         PrivateBrowsingLocked.promptShown.record()
 
+        val homeActivity = activity as HomeActivity
+        val isCustomPrivateTab = isCustomTabIntent(homeActivity.intent) &&
+            homeActivity.browsingModeManager.mode.isPrivate
+
         (view as ComposeView).setContent {
             FirefoxTheme {
                 UnlockPrivateTabsScreen(
@@ -59,6 +64,7 @@ class UnlockPrivateTabsFragment : Fragment(), UserInteractionHandler {
                         PrivateBrowsingLocked.seeOtherTabsClicked.record()
                         closeFragment()
                     },
+                    showNegativeButton = !isCustomPrivateTab,
                 )
 
                 requestPrompt()
