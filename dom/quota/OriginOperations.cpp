@@ -770,9 +770,11 @@ class ClearOriginOp final : public ClearRequestBase {
 };
 
 class ClearClientOp final
-    : public OpenStorageDirectoryHelper<ResolvableNormalOriginOp<bool>> {
+    : public OpenStorageDirectoryHelper<
+          ResolvableNormalOriginOp<ClientMetadataArray, true>> {
   const PrincipalInfo mPrincipalInfo;
   PrincipalMetadata mPrincipalMetadata;
+  ClientMetadataArray mClientMetadataArray;
   const PersistenceScope mPersistenceScope;
   const Client::Type mClientType;
 
@@ -793,7 +795,7 @@ class ClearClientOp final
 
   nsresult DoDirectoryWork(QuotaManager& aQuotaManager) override;
 
-  bool UnwrapResolveValue() override;
+  ClientMetadataArray UnwrapResolveValue() override;
 
   void CloseDirectory() override;
 };
@@ -872,9 +874,11 @@ class ShutdownOriginOp final
   void CloseDirectory() override;
 };
 
-class ShutdownClientOp final : public ResolvableNormalOriginOp<bool> {
+class ShutdownClientOp final
+    : public ResolvableNormalOriginOp<ClientMetadataArray, true> {
   const PrincipalInfo mPrincipalInfo;
   PrincipalMetadata mPrincipalMetadata;
+  ClientMetadataArray mClientMetadataArray;
   RefPtr<UniversalDirectoryLock> mDirectoryLock;
   const PersistenceScope mPersistenceScope;
   const Client::Type mClientType;
@@ -892,9 +896,11 @@ class ShutdownClientOp final : public ResolvableNormalOriginOp<bool> {
 
   RefPtr<BoolPromise> OpenDirectory() override;
 
+  void CollectOriginMetadata(const ClientMetadata& aClientMetadata);
+
   nsresult DoDirectoryWork(QuotaManager& aQuotaManager) override;
 
-  bool UnwrapResolveValue() override;
+  ClientMetadataArray UnwrapResolveValue() override;
 
   void CloseDirectory() override;
 };
@@ -1179,7 +1185,7 @@ RefPtr<ResolvableNormalOriginOp<OriginMetadataArray, true>> CreateClearOriginOp(
                                    aPrincipalInfo);
 }
 
-RefPtr<ResolvableNormalOriginOp<bool>> CreateClearClientOp(
+RefPtr<ResolvableNormalOriginOp<ClientMetadataArray, true>> CreateClearClientOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     Maybe<PersistenceType> aPersistenceType,
     const PrincipalInfo& aPrincipalInfo, Client::Type aClientType) {
@@ -1210,10 +1216,11 @@ CreateShutdownOriginOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
                                       aPersistenceType, aPrincipalInfo);
 }
 
-RefPtr<ResolvableNormalOriginOp<bool>> CreateShutdownClientOp(
-    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    Maybe<PersistenceType> aPersistenceType,
-    const PrincipalInfo& aPrincipalInfo, Client::Type aClientType) {
+RefPtr<ResolvableNormalOriginOp<ClientMetadataArray, true>>
+CreateShutdownClientOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+                       Maybe<PersistenceType> aPersistenceType,
+                       const PrincipalInfo& aPrincipalInfo,
+                       Client::Type aClientType) {
   return MakeRefPtr<ShutdownClientOp>(
       std::move(aQuotaManager), aPersistenceType, aPrincipalInfo, aClientType);
 }
@@ -3071,6 +3078,8 @@ void ClearClientOp::DeleteFiles(const ClientMetadata& aClientMetadata) {
 
   QM_TRY(MOZ_TO_RESULT(directory->Remove(true)), QM_VOID);
 
+  mClientMetadataArray.AppendElement(aClientMetadata);
+
   const bool initialized =
       aClientMetadata.mPersistenceType == PERSISTENCE_TYPE_PERSISTENT
           ? mQuotaManager->IsPersistentOriginInitializedInternal(
@@ -3112,10 +3121,10 @@ nsresult ClearClientOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
   return NS_OK;
 }
 
-bool ClearClientOp::UnwrapResolveValue() {
+ClientMetadataArray ClearClientOp::UnwrapResolveValue() {
   AssertIsOnOwningThread();
 
-  return true;
+  return std::move(mClientMetadataArray);
 }
 
 void ClearClientOp::CloseDirectory() {
@@ -3368,22 +3377,51 @@ RefPtr<BoolPromise> ShutdownClientOp::OpenDirectory() {
   return mDirectoryLock->Acquire();
 }
 
+void ShutdownClientOp::CollectOriginMetadata(
+    const ClientMetadata& aClientMetadata) {
+  AssertIsOnIOThread();
+
+  QM_TRY_INSPECT(const auto& directory,
+                 mQuotaManager->GetOriginDirectory(aClientMetadata), QM_VOID);
+
+  QM_TRY(MOZ_TO_RESULT(directory->Append(
+             Client::TypeToString(aClientMetadata.mClientType))),
+         QM_VOID);
+
+  QM_TRY_INSPECT(const bool& exists,
+                 MOZ_TO_RESULT_INVOKE_MEMBER(directory, Exists), QM_VOID);
+  if (!exists) {
+    return;
+  }
+
+  mClientMetadataArray.AppendElement(aClientMetadata);
+}
+
 nsresult ShutdownClientOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
   AssertIsOnIOThread();
 
   AUTO_PROFILER_LABEL("ShutdownClientOp::DoDirectoryWork", OTHER);
 
-  // All the work is handled by NormalOriginOperationBase parent class. In
-  // this particular case, we just needed to acquire an exclusive directory
-  // lock and that's it.
+  if (mPersistenceScope.IsNull()) {
+    for (const PersistenceType type : kAllPersistenceTypes) {
+      CollectOriginMetadata(ClientMetadata(
+          OriginMetadata(mPrincipalMetadata, type), mClientType));
+    }
+  } else {
+    MOZ_ASSERT(mPersistenceScope.IsValue());
+
+    CollectOriginMetadata(ClientMetadata(
+        OriginMetadata(mPrincipalMetadata, mPersistenceScope.GetValue()),
+        mClientType));
+  }
 
   return NS_OK;
 }
 
-bool ShutdownClientOp::UnwrapResolveValue() {
+ClientMetadataArray ShutdownClientOp::UnwrapResolveValue() {
   AssertIsOnOwningThread();
 
-  return true;
+  return std::move(mClientMetadataArray);
 }
 
 void ShutdownClientOp::CloseDirectory() {
