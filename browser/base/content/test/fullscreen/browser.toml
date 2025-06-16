@@ -63,6 +63,8 @@ skip-if = [
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1949995
 ]
 
+["browser_fullscreen_ui_state.js"]
+
 ["browser_fullscreen_warning.js"]
 support-files = ["fullscreen.html"]
 skip-if = [
