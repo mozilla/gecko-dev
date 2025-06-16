@@ -348,7 +348,12 @@ nsresult MemoryTelemetry::GatherReports(
   RefPtr<Runnable> runnable = NS_NewRunnableFunction(
       "MemoryTelemetry::GatherReports", [mgr, completionRunnable]() mutable {
         auto timer = glean::memory::collection_time.Measure();
+// Each WebAssembly program eats up an entire 32-bits worth of address space,
+// which makes vsize rather useless on 64-bit systems, and will cause telemetry
+// to frequently hit the max value of 1TB, so only record it in 32-bit builds.
+#if !defined(HAVE_64BIT_BUILD)
         RECORD_BYTES(vsize, Vsize);
+#endif
 #if !defined(HAVE_64BIT_BUILD) || !defined(XP_WIN)
         RECORD_BYTES(vsize_max_contiguous, VsizeMaxContiguous);
 #endif
