@@ -115,6 +115,28 @@ class MarionetteBranch extends Branch {
   }
 
   /**
+   * The `marionette.navigate-after-click.enabled` preference enables the
+   * fallback logic for Selenium clients to wait for a potential navigation
+   * after clicking an element via "WebDriver:ElementClick".
+   *
+   * @returns {boolean}
+   */
+  get navigateAfterClickEnabled() {
+    return this.get("marionette.navigate-after-click.enabled", true);
+  }
+
+  /**
+   * The `marionette.navigate-after-click.timeout` preference defines the
+   * amount of milliseconds to wait for a potential navigation after a click
+   * event was dispatches via "WebDriver:ElementClick".
+   *
+   * @returns {number}
+   */
+  get navigateAfterClickTimeout() {
+    return this.get("marionette.navigate-after-click.timeout", 50);
+  }
+
+  /**
    * The `marionette.port` preference, detailing which port
    * the TCP server should listen on.
    *

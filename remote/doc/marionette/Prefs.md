@@ -22,3 +22,13 @@ port, which can be useful when running multiple Marionette servers
 on the same system.  The effective port is written to the user
 preference file when the server has started and is also logged to
 stdout.
+
+## `marionette.navigate-after-click.enabled`
+
+Check for a potential navigation after a click event was dispatched via
+"WebDriver:ElementClick". Defaults to `true`.
+
+## `marionette.navigate-after-click.timeout`
+
+Defines the amount of milliseconds to wait for a potential navigation after a
+click event was dispatched via "WebDriver:ElementClick". Defaults to 50ms.

@@ -3870,6 +3870,11 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
   // Port to start Marionette server on.
   pref("marionette.port", 2828);
 
+  // Wait logic for WebDriver:ElementClick in case navigation occurs.
+  // (Fallback behavior for Selenium clients)
+  pref("marionette.navigate-after-click.enabled", true);
+  pref("marionette.navigate-after-click.timeout", 50);
+
   // Enable WebDriver BiDi experimental commands and events.
   #if defined(NIGHTLY_BUILD)
     pref("remote.experimental.enabled", true);
