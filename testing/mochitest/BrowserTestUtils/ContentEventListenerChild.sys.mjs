@@ -119,12 +119,18 @@ export class ContentEventListenerChild extends JSWindowActorChild {
         continue;
       }
 
-      /* eslint-disable no-eval */
       let checkFn;
       if (checkFnSource) {
-        checkFn = eval(`(() => (${unescape(checkFnSource)}))()`);
+        const systemPrincipal =
+          Services.scriptSecurityManager.getSystemPrincipal();
+        const sb = Cu.Sandbox(systemPrincipal, {
+          sandboxPrototype: globalThis,
+        });
+        checkFn = Cu.evalInSandbox(
+          `(() => (${unescape(checkFnSource)}))()`,
+          sb
+        );
       }
-      /* eslint-enable no-eval */
 
       function listener(event) {
         if (checkFn && !checkFn(event)) {
