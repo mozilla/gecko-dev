@@ -30,6 +30,10 @@ namespace js {
 
 namespace gc::detail {
 
+static inline bool IsObject(JSObject* obj) { return true; }
+static inline bool IsObject(BaseScript* script) { return false; }
+static inline bool IsObject(const JS::Value& value) { return value.isObject(); }
+
 static inline bool IsSymbol(JSObject* obj) { return false; }
 static inline bool IsSymbol(BaseScript* script) { return false; }
 static inline bool IsSymbol(const JS::Value& value) { return value.isSymbol(); }
@@ -38,6 +42,8 @@ static inline bool IsSymbol(const JS::Value& value) { return value.isSymbol(); }
 // This must be kept in sync with ShouldMark in Marking.cpp.
 template <typename T>
 static CellColor GetEffectiveColor(GCMarker* marker, const T& item) {
+  static_assert(!IsBarriered<T>::value, "Don't pass wrapper types");
+
   Cell* cell = ToMarkable(item);
   if (!cell->isTenured()) {
     return CellColor::Black;
@@ -59,34 +65,24 @@ static CellColor GetEffectiveColor(GCMarker* marker, const T& item) {
 // again). As long as the wrapper is used as a weakmap key, it will not be
 // collected (and remain in the weakmap) until the wrapped object is
 // collected.
-
-// Only objects have delegates, so default to returning nullptr. Note that some
-// compilation units will only ever use the object version.
-static MOZ_MAYBE_UNUSED JSObject* GetDelegateInternal(gc::Cell* key) {
-  return nullptr;
-}
-
-static MOZ_MAYBE_UNUSED JSObject* GetDelegateInternal(JSObject* key) {
-  JSObject* delegate = UncheckedUnwrapWithoutExpose(key);
-  return (key == delegate) ? nullptr : delegate;
-}
-static MOZ_MAYBE_UNUSED JSObject* GetDelegateInternal(const Value& key) {
-  if (key.isObject()) {
-    return GetDelegateInternal(&key.toObject());
-  }
-  return nullptr;
-}
-
-// Use a helper function to do overload resolution to handle cases like
-// Heap<ObjectSubclass*>: find everything that is convertible to JSObject* (and
-// avoid calling barriers).
 template <typename T>
 static inline JSObject* GetDelegate(const T& key) {
-  return GetDelegateInternal(key);
-}
+  static_assert(!IsBarriered<T>::value, "Don't pass wrapper types");
+  static_assert(!std::is_same_v<T, gc::Cell*>, "Don't pass Cell*");
 
-template <>
-inline JSObject* GetDelegate(gc::Cell* const&) = delete;
+  // Only objects have delegates.
+  if (!IsObject(key)) {
+    return nullptr;
+  }
+
+  auto* obj = static_cast<JSObject*>(ToMarkable(key));
+  JSObject* delegate = UncheckedUnwrapWithoutExpose(obj);
+  if (delegate == obj) {
+    return nullptr;
+  }
+
+  return delegate;
+}
 
 }  // namespace gc::detail
 
@@ -195,7 +191,7 @@ bool WeakMap<K, V>::markEntry(GCMarker* marker, gc::CellColor mapColor,
   bool marked = false;
   CellColor markColor = AsCellColor(marker->markColor());
   CellColor keyColor = gc::detail::GetEffectiveColor(marker, key.get());
-  JSObject* delegate = gc::detail::GetDelegate(key);
+  JSObject* delegate = gc::detail::GetDelegate(key.get());
 
   if (delegate) {
     CellColor delegateColor = gc::detail::GetEffectiveColor(marker, delegate);
@@ -217,7 +213,7 @@ bool WeakMap<K, V>::markEntry(GCMarker* marker, gc::CellColor mapColor,
   if (IsMarked(keyColor)) {
     if (cellValue) {
       CellColor targetColor = std::min(mapColor, keyColor);
-      CellColor valueColor = gc::detail::GetEffectiveColor(marker, cellValue);
+      CellColor valueColor = gc::detail::GetEffectiveColor(marker, value.get());
       if (valueColor < targetColor) {
         MOZ_ASSERT(markColor >= targetColor);
         if (markColor == targetColor) {
