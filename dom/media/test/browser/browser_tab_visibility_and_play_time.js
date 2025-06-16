@@ -5,10 +5,10 @@
  * because we can't check the snapshot histogram in the content process.
  * The actual probe checking happens in `test_accumulated_play_time.html`.
  */
-'use strict';
+"use strict";
 
 const PAGE_URL =
-    'https://example.com/browser/dom/media/test/browser/file_media.html';
+  "https://example.com/browser/dom/media/test/browser/file_media.html";
 
 add_task(async function testChangingTabVisibilityAffectsInvisiblePlayTime() {
   const originalTab = gBrowser.selectedTab;
@@ -51,11 +51,11 @@ async function openMediaTab(url) {
         let count = 0;
         const listener = () => {
           if (++count > 2) {
-            element.removeEventListener('timeupdate', listener);
+            element.removeEventListener("timeupdate", listener);
             resolve();
           }
         };
-        element.addEventListener('timeupdate', listener);
+        element.addEventListener("timeupdate", listener);
       });
     };
 
@@ -68,9 +68,10 @@ async function openMediaTab(url) {
     };
     content.assertValueEqualTo = (videoChrome, checkType, expectedValue) => {
       content.assertAttributeDefined(videoChrome, checkType);
-      is(videoChrome[checkType], expectedValue,
-         `${checkType} equals to ${expectedValue}`
-
+      is(
+        videoChrome[checkType],
+        expectedValue,
+        `${checkType} equals to ${expectedValue}`
       );
     };
     content.assertValueConstantlyIncreases = async (videoChrome, checkType) => {
@@ -78,16 +79,20 @@ async function openMediaTab(url) {
       const valueSnapshot = videoChrome[checkType];
       await content.waitForOnTimeUpdate(videoChrome);
       Assert.greater(
-          videoChrome[checkType], valueSnapshot,
-          `${checkType} keeps increasing`);
+        videoChrome[checkType],
+        valueSnapshot,
+        `${checkType} keeps increasing`
+      );
     };
     content.assertValueKeptUnchanged = async (videoChrome, checkType) => {
       content.assertAttributeDefined(videoChrome, checkType);
       const valueSnapshot = videoChrome[checkType];
       await content.sleep(1000);
       Assert.equal(
-          videoChrome[checkType], valueSnapshot,
-          `${checkType} keeps unchanged`);
+        videoChrome[checkType],
+        valueSnapshot,
+        `${checkType} keeps unchanged`
+      );
     };
   });
   return tab;
@@ -100,60 +105,85 @@ function startMedia({
   shouldAccumulateHDRTime,
 }) {
   return SpecialPowers.spawn(
-      mediaTab.linkedBrowser,
-      [
-        shouldAccumulateTime,
-        shouldAccumulateInvisibleTime,
-        shouldAccumulateHDRTime,
-      ],
-      async (accumulateTime, accumulateInvisibleTime, accumulateHDRTime) => {
-        const video = content.document.getElementById('video');
-        ok(await video.play().then(() => true, () => false),
-           'video started playing');
-        const videoChrome = SpecialPowers.wrap(video);
-        if (accumulateTime) {
-          await content.assertValueConstantlyIncreases(
-              videoChrome, 'totalVideoPlayTime');
-        } else {
-          await content.assertValueKeptUnchanged(
-              videoChrome, 'totalVideoPlayTime');
-        }
-        if (accumulateInvisibleTime) {
-          await content.assertValueConstantlyIncreases(
-              videoChrome, 'invisiblePlayTime');
-        } else {
-          await content.assertValueKeptUnchanged(
-              videoChrome, 'invisiblePlayTime');
-        }
+    mediaTab.linkedBrowser,
+    [
+      shouldAccumulateTime,
+      shouldAccumulateInvisibleTime,
+      shouldAccumulateHDRTime,
+    ],
+    async (accumulateTime, accumulateInvisibleTime, accumulateHDRTime) => {
+      const video = content.document.getElementById("video");
+      ok(
+        await video.play().then(
+          () => true,
+          () => false
+        ),
+        "video started playing"
+      );
+      const videoChrome = SpecialPowers.wrap(video);
+      if (accumulateTime) {
+        await content.assertValueConstantlyIncreases(
+          videoChrome,
+          "totalVideoPlayTime"
+        );
+      } else {
+        await content.assertValueKeptUnchanged(
+          videoChrome,
+          "totalVideoPlayTime"
+        );
+      }
+      if (accumulateInvisibleTime) {
+        await content.assertValueConstantlyIncreases(
+          videoChrome,
+          "invisiblePlayTime"
+        );
+      } else {
+        await content.assertValueKeptUnchanged(
+          videoChrome,
+          "invisiblePlayTime"
+        );
+      }
 
-        const videoHDR = content.document.getElementById('videoHDR');
-        ok(videoHDR.play().then(() => true, () => false),
-           'videoHDR started playing');
-        const videoHDRChrome = SpecialPowers.wrap(videoHDR);
-        if (accumulateHDRTime) {
-          await content.assertValueConstantlyIncreases(
-              videoHDRChrome, 'totalVideoHDRPlayTime');
-        } else {
-          await content.assertValueKeptUnchanged(
-              videoHDRChrome, 'totalVideoHDRPlayTime');
-        }
-      });
+      const videoHDR = content.document.getElementById("videoHDR");
+      ok(
+        videoHDR.play().then(
+          () => true,
+          () => false
+        ),
+        "videoHDR started playing"
+      );
+      const videoHDRChrome = SpecialPowers.wrap(videoHDR);
+      if (accumulateHDRTime) {
+        await content.assertValueConstantlyIncreases(
+          videoHDRChrome,
+          "totalVideoHDRPlayTime"
+        );
+      } else {
+        await content.assertValueKeptUnchanged(
+          videoHDRChrome,
+          "totalVideoHDRPlayTime"
+        );
+      }
+    }
+  );
 }
 
 function pauseMedia(tab) {
   return SpecialPowers.spawn(tab.linkedBrowser, [], async _ => {
-    const video = content.document.getElementById('video');
+    const video = content.document.getElementById("video");
     video.pause();
-    ok(true, 'video paused');
+    ok(true, "video paused");
     const videoChrome = SpecialPowers.wrap(video);
-    await content.assertValueKeptUnchanged(videoChrome, 'totalVideoPlayTime');
-    await content.assertValueKeptUnchanged(videoChrome, 'invisiblePlayTime');
+    await content.assertValueKeptUnchanged(videoChrome, "totalVideoPlayTime");
+    await content.assertValueKeptUnchanged(videoChrome, "invisiblePlayTime");
 
-    const videoHDR = content.document.getElementById('videoHDR');
+    const videoHDR = content.document.getElementById("videoHDR");
     videoHDR.pause();
-    ok(true, 'videoHDR paused');
+    ok(true, "videoHDR paused");
     const videoHDRChrome = SpecialPowers.wrap(videoHDR);
     await content.assertValueKeptUnchanged(
-        videoHDRChrome, 'totalVideoHDRPlayTime');
+      videoHDRChrome,
+      "totalVideoHDRPlayTime"
+    );
   });
 }
