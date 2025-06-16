@@ -304,6 +304,34 @@ def test_perfherder_names_simplified_with_no_exclusions():
     )
 
 
+def test_perfherder_with_extra_metadata_options():
+    options = {
+        "perfherder": True,
+        "perfherder-stats": True,
+        "perfherder-prefix": "",
+        "perfherder-metrics": [
+            metric_fields("name:firstPaint,extraOptions:['option']"),
+            metric_fields("name:resource,extraOptions:['second-option']"),
+        ],
+    }
+
+    metrics, metadata, env = setup_env(options)
+    metadata.add_extra_options(["simpleperf"])
+
+    with temp_file() as output:
+        env.set_arg("output", output)
+        with metrics as m, silence():
+            m(metadata)
+        output_file = metadata.get_output()
+        with open(output_file) as f:
+            output = json.loads(f.read())
+
+    assert len(output["suites"]) == 1
+    assert sorted(output["suites"][0]["extraOptions"]) == sorted(
+        ["option", "second-option", "simpleperf"]
+    )
+
+
 def test_perfherder_with_extra_options():
     options = {
         "perfherder": True,

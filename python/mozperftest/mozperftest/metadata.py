@@ -18,6 +18,7 @@ class Metadata(MachLogger):
         self.script = script
         self._binary = None
         self._binary_version = None
+        self._extra_options = []
 
     def run_hook(self, name, *args, **kw):
         # this bypasses layer restrictions on args,
@@ -38,6 +39,12 @@ class Metadata(MachLogger):
 
     def clear_results(self):
         self._results = []
+
+    def add_extra_options(self, options):
+        self._extra_options.extend(options)
+
+    def get_extra_options(self):
+        return self._extra_options
 
     def update_options(self, name, options):
         self.options[name].update(options)

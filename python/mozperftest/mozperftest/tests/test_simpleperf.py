@@ -69,6 +69,8 @@ def test_simpleperf_setup():
     result = profiler.run(metadata)
     assert result == metadata
 
+    assert metadata.get_extra_options() == ["simpleperf"]
+
     # Test teardown method.
     profiler.teardown()
 
