@@ -72,10 +72,7 @@ if CONFIG["MOZ_CRASHREPORTER"]:
             DIRS += ["rust_minidump_writer_linux"]
 
     if CONFIG["OS_TARGET"] != "Android":
-        DIRS += [
-            "client/app",
-            "networking",
-        ]
+        DIRS += ["client/app"]
     else:
         DIRS += ["minidump-analyzer/android"]
 

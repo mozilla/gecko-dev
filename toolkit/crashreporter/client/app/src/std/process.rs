@@ -15,8 +15,6 @@ mock_key! {
     pub struct MockCommand(::std::path::PathBuf) => Box<dyn Fn(&Command) -> Result<Output> + Send + Sync>
 }
 
-pub const MOCK_PROCESS_ID: u32 = 1000;
-
 #[derive(Debug)]
 pub struct Command {
     pub program: OsString,
@@ -83,9 +81,7 @@ impl Command {
     }
 
     pub fn output(&mut self) -> std::io::Result<Output> {
-        MockCommand(self.program.as_os_str().into())
-            .try_get(|f| f(self))
-            .unwrap_or(Err(std::io::ErrorKind::NotFound.into()))
+        MockCommand(self.program.as_os_str().into()).get(|f| f(self))
     }
 
     pub fn spawn(&mut self) -> std::io::Result<Child> {
@@ -174,19 +170,11 @@ impl Child {
                 .expect("stdin not dropped, wait_with_output may block")
                 .into_inner()
                 .unwrap();
-            Some(
-                MockCommand(self.cmd.program.as_os_str().into())
-                    .try_get(|f| f(&self.cmd))
-                    .unwrap_or(Err(std::io::ErrorKind::NotFound.into())),
-            )
+            Some(MockCommand(self.cmd.program.as_os_str().into()).get(|f| f(&self.cmd)))
         } else {
             None
         }
     }
-}
-
-pub fn id() -> u32 {
-    MOCK_PROCESS_ID
 }
 
 pub struct ChildStdin {
@@ -204,20 +192,20 @@ impl std::io::Write for ChildStdin {
 }
 
 #[cfg(unix)]
-pub fn exit_status(status: i32) -> ExitStatus {
+pub fn success_exit_status() -> ExitStatus {
     use std::os::unix::process::ExitStatusExt;
-    ExitStatus::from_raw(status)
+    ExitStatus::from_raw(0)
 }
 
 #[cfg(windows)]
-pub fn exit_status(status: i32) -> ExitStatus {
+pub fn success_exit_status() -> ExitStatus {
     use std::os::windows::process::ExitStatusExt;
-    ExitStatus::from_raw(status as u32)
+    ExitStatus::from_raw(0)
 }
 
 pub fn success_output() -> Output {
     Output {
-        status: exit_status(0),
+        status: success_exit_status(),
         stdout: vec![],
         stderr: vec![],
     }

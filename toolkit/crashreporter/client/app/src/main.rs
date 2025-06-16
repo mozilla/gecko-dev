@@ -180,7 +180,6 @@ fn report_main() {
         crate::std::env::MockCurrentExe,
         "work_dir/crashreporter".into(),
     )
-    .set(crate::std::env::MockTempDir, "tmp".into())
     .set(
         crate::std::time::MockCurrentTime,
         time::OffsetDateTime::parse(
