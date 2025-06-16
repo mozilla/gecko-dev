@@ -55,13 +55,19 @@ function ChromeTask_ChromeScript() {
     /* eslint-enable no-unused-vars */
 
     try {
-      let runnablestr = `
-        (() => {
-          return (${source});
-        })();`;
-
-      // eslint-disable-next-line no-eval
-      let runnable = eval(runnablestr);
+      let sb = Cu.Sandbox(Services.scriptSecurityManager.getSystemPrincipal(), {
+        sandboxPrototype: {
+          __proto__: globalThis,
+          Assert,
+          ok,
+          is,
+          isnot,
+          todo,
+          todo_is,
+          info,
+        },
+      });
+      let runnable = Cu.evalInSandbox(`(() => (${source}))()`, sb);
       let result = await runnable.call(this, aData.arg);
       sendAsyncMessage("chrome-task:complete", {
         id,
