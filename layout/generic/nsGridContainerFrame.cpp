@@ -2496,7 +2496,7 @@ struct nsGridContainerFrame::Tracks {
     uint32_t mSpan;
     TrackSize::StateBits mState;
     LineRange mLineRange;
-    mozilla::EnumeratedArray<GridIntrinsicSizeType, nscoord> mSizes;
+    EnumeratedArray<GridIntrinsicSizeType, nscoord> mSizes;
     nsIFrame* mFrame;
 
     static bool IsSpanLessThan(const SpanningItemData& a,
@@ -6206,7 +6206,7 @@ struct CachedIntrinsicSizes {
     return sizes;
   }
 
-  mozilla::EnumeratedArray<GridIntrinsicSizeType, Maybe<nscoord>> mSizes;
+  EnumeratedArray<GridIntrinsicSizeType, Maybe<nscoord>> mSizes;
 
   // The item's percentage basis for intrinsic sizing purposes.
   const LogicalSize mPercentageBasis;
