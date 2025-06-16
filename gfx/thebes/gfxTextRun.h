@@ -1368,13 +1368,13 @@ class gfxFontGroup final : public gfxTextRunFactory {
 
   RefPtr<nsAtom> mLanguage;
 
-  gfxFloat mUnderlineOffset;
-  gfxFloat mHyphenWidth;
+  gfxFloat mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
+  gfxFloat mHyphenWidth = -1.0;  // negative indicates not yet measured
   gfxFloat mDevToCssSize;
 
   RefPtr<gfxUserFontSet> mUserFontSet;
-  uint64_t mCurrGeneration;  // track the current user font set generation,
-                             // rebuild font list if needed
+  uint64_t mCurrGeneration = 0;  // track the current user font set generation,
+                                 // rebuild font list if needed
 
   gfxTextPerfMetrics* mTextPerf;
 
@@ -1385,16 +1385,17 @@ class gfxFontGroup final : public gfxTextRunFactory {
   // cache the most recent pref font to avoid general pref font lookup
   FontFamily mLastPrefFamily;
   RefPtr<gfxFont> mLastPrefFont;
-  eFontPrefLang mLastPrefLang;  // lang group for last pref font
+  eFontPrefLang mLastPrefLang = eFontPrefLang_Western;  // lang group for last
+                                                        // pref font
   eFontPrefLang mPageLang;
   bool mLastPrefFirstFont;  // is this the first font in the list of pref fonts
                             // for this lang group?
 
-  bool mSkipDrawing;  // hide text while waiting for a font
-                      // download to complete (or fallback
-                      // timer to fire)
+  bool mSkipDrawing = false;  // hide text while waiting for a font
+                              // download to complete (or fallback
+                              // timer to fire)
 
-  bool mExplicitLanguage;  // Does mLanguage come from an explicit attribute?
+  bool mExplicitLanguage = false;  // Is mLanguage from an explicit attribute?
 
   bool mResolvedFonts = false;  // Whether the mFonts array has been set up.
 
