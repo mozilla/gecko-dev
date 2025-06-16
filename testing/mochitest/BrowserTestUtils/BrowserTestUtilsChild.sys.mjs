@@ -192,9 +192,16 @@ export class BrowserTestUtilsChild extends JSWindowActorChild {
         return new Promise(resolve => {
           let filterFn;
           if (aMessage.data.filterFunctionSource) {
-            /* eslint-disable-next-line no-eval */
-            filterFn = eval(
-              `(() => (${aMessage.data.filterFunctionSource}))()`
+            // eslint-disable-next-line mozilla/reject-globalThis-modification
+            let sb = Cu.Sandbox(globalThis, {
+              sandboxPrototype: {
+                __proto__: globalThis,
+                content: this.contentWindow,
+              },
+            });
+            filterFn = Cu.evalInSandbox(
+              `(() => (${aMessage.data.filterFunctionSource}))()`,
+              sb
             );
           }
 
@@ -294,19 +301,20 @@ export class BrowserTestUtilsChild extends JSWindowActorChild {
     }
   }
 
-  synthesizeMouse(data, window) {
-    let target = data.target;
+  #getTarget(data, window) {
+    let { target, targetFn } = data;
     if (typeof target == "string") {
-      target = this.document.querySelector(target);
-    } else if (typeof data.targetFn == "string") {
-      let runnablestr = `
-        (() => {
-          return (${data.targetFn});
-        })();`;
-      /* eslint-disable no-eval */
-      target = eval(runnablestr)();
-      /* eslint-enable no-eval */
+      return this.document.querySelector(target);
     }
+    if (typeof targetFn == "string") {
+      let sb = Cu.Sandbox(window, { sandboxPrototype: window });
+      return Cu.evalInSandbox(`(${targetFn})()`, sb);
+    }
+    return null;
+  }
+
+  synthesizeMouse(data, window) {
+    let target = this.#getTarget(data, window);
 
     let left = data.x;
     let top = data.y;
@@ -360,18 +368,7 @@ export class BrowserTestUtilsChild extends JSWindowActorChild {
   }
 
   synthesizeTouch(data, window) {
-    let target = data.target;
-    if (typeof target == "string") {
-      target = this.document.querySelector(target);
-    } else if (typeof data.targetFn == "string") {
-      let runnablestr = `
-        (() => {
-          return (${data.targetFn});
-        })();`;
-      /* eslint-disable no-eval */
-      target = eval(runnablestr)();
-      /* eslint-enable no-eval */
-    }
+    let target = this.#getTarget(data, window);
 
     if (target) {
       if (target.ownerDocument !== this.document) {
