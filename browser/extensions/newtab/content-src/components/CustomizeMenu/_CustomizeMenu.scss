@@ -3,32 +3,20 @@
   padding: 0;
   // z-index note: menu should cover fixed search bar and asrouter dev tools toggle button
   z-index: 5;
+  position: fixed;
+  inset-block-end: var(--space-xlarge);
 
   @media (height < 700px) {
     position: absolute;
-    inset-block-start: var(--space-xlarge);
+    inset-block-end: var(--space-xlarge);
     inset-inline-end: var(--space-xlarge);
   }
 
   @media (height >= 700px) {
     position: fixed;
-    inset-block-start: var(--space-xlarge);
+    inset-block-end: var(--space-xlarge);
     inset-inline-end: var(--space-xlarge);
   }
-}
-
-.layout-variant-b {
-  .personalizeButtonWrapper {
-    position: fixed;
-    inset-block-start: auto;
-    inset-block-end: var(--space-xlarge);
-  }
-}
-
-// Adjust spacing for DevTools wrench icon in variant B to avoid overlapping the customize button
-.layout-variant-b + .discoverystream-admin-toggle {
-  inset-block-start: auto;
-  inset-block-end: calc(var(--button-size-icon) + var(--space-xxlarge) + var(--space-small));
 }
 
 .personalize-button {

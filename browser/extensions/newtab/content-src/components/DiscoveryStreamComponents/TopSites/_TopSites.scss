@@ -18,13 +18,8 @@
       }
 
       .top-sites-list {
-        margin: 0 calc(var(--space-medium) * -1);
-
-        .layout-variant-a &,
-        .layout-variant-b & {
-          width: fit-content;
-          margin: 0 auto;
-        }
+        width: fit-content;
+        margin: 0 auto;
       }
     }
   }
