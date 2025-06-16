@@ -134,16 +134,7 @@ void nsRangeFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   const nsStyleDisplay* disp = StyleDisplay();
   if (IsThemed(disp)) {
     DisplayBorderBackgroundOutline(aBuilder, aLists);
-    // Only create items for the thumb. Specifically, we do not want the track
-    // to paint, since *our* background is used to paint the track, and we don't
-    // want the unthemed track painting over the top of the themed track.
-    // This logic is copied from
-    // nsContainerFrame::BuildDisplayListForNonBlockChildren as
-    // called by BuildDisplayListForInline.
-    if (nsIFrame* thumb = mThumbDiv->GetPrimaryFrame()) {
-      nsDisplayListSet set(aLists, aLists.Content());
-      BuildDisplayListForChild(aBuilder, thumb, set, DisplayChildFlag::Inline);
-    }
+    // Don't paint our children.
   } else {
     BuildDisplayListForInline(aBuilder, aLists);
   }
@@ -335,19 +326,10 @@ Decimal nsRangeFrame::GetValueAtEventPoint(WidgetGUIEvent* aEvent) {
     // Themed ranges draw on the border-box rect.
     rangeRect = GetRectRelativeToSelf();
     // We need to get the size of the thumb from the theme.
-    nsPresContext* pc = PresContext();
-    LayoutDeviceIntSize size = pc->Theme()->GetMinimumWidgetSize(
-        pc, this, StyleAppearance::RangeThumb);
-    thumbSize =
-        LayoutDeviceIntSize::ToAppUnits(size, pc->AppUnitsPerDevPixel());
-    // For GTK, GetMinimumWidgetSize returns zero for the thumb dimension
-    // perpendicular to the orientation of the slider.  That's okay since we
-    // only care about the dimension in the direction of the slider when using
-    // |thumbSize| below, but it means this assertion need to check
-    // IsHorizontal().
-    MOZ_ASSERT((IsHorizontal() && thumbSize.width > 0) ||
-                   (!IsHorizontal() && thumbSize.height > 0),
-               "The thumb is expected to take up some slider space");
+    nscoord min = CSSPixel::ToAppUnits(
+        PresContext()->Theme()->GetMinimumRangeThumbSize());
+    MOZ_ASSERT(min, "The thumb is expected to take up some slider space");
+    thumbSize = nsSize(min, min);
   } else {
     rangeRect = GetContentRectRelativeToSelf();
     nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
@@ -614,14 +596,10 @@ nsresult nsRangeFrame::AttributeChanged(int32_t aNameSpaceID,
 }
 
 nscoord nsRangeFrame::AutoCrossSize() {
-  nscoord minCrossSize(0);
-  if (IsThemed()) {
-    nsPresContext* pc = PresContext();
-    LayoutDeviceIntSize size = pc->Theme()->GetMinimumWidgetSize(
-        pc, this, StyleAppearance::RangeThumb);
-    minCrossSize =
-        pc->DevPixelsToAppUnits(IsHorizontal() ? size.height : size.width);
-  }
+  nscoord minCrossSize =
+      IsThemed() ? CSSPixel::ToAppUnits(
+                       PresContext()->Theme()->GetMinimumRangeThumbSize())
+                 : 0;
   return std::max(minCrossSize,
                   NSToCoordRound(OneEmInAppUnits() * CROSS_AXIS_EM_SIZE));
 }

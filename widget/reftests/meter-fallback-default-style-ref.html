@@ -15,11 +15,6 @@
     }
 
     div.meter-bar {
-      /**
-       * The purpose of this test is to not show the native style.
-       * -moz-appearance: meterchunk;
-       */
-
       height: 100%;
       width: 100%;
 
@@ -28,22 +23,10 @@
 
     div.meter-element { padding: 5px; }
     body > div:nth-child(1)  { -moz-appearance: none; }
-    body > div:nth-child(2) > .meter-bar { -moz-appearance: none; }
-    body > div:nth-child(3)  { background: red; }
-    body > div:nth-child(4) > .meter-bar { background: red; }
-    body > div:nth-child(5)  { border: 2px solid red; }
-    body > div:nth-child(6) > .meter-bar { border: 5px solid red; width: calc(100% - 10px); }
+    body > div:nth-child(2)  { background: red; }
+    body > div:nth-child(3)  { border: 2px solid red; }
   </style>
   <body>
-    <div class="meter-element">
-      <div class="meter-bar"></div>
-    </div>
-    <div class="meter-element">
-      <div class="meter-bar"></div>
-    </div>
-    <div class="meter-element">
-      <div class="meter-bar"></div>
-    </div>
     <div class="meter-element">
       <div class="meter-bar"></div>
     </div>
