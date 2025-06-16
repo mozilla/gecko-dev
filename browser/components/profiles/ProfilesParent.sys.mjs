@@ -183,8 +183,8 @@ export class ProfilesParent extends JSWindowActorParent {
     let profiles = await SelectableProfileService.getAllProfiles();
     let themes = await this.getSafeForContentThemes();
     return {
-      currentProfile: currentProfile.toObject(),
-      profiles: profiles.map(p => p.toObject()),
+      currentProfile: await currentProfile.toContentSafeObject(),
+      profiles: await Promise.all(profiles.map(p => p.toContentSafeObject())),
       themes,
       isInAutomation: Cu.isInAutomation,
     };
@@ -282,7 +282,8 @@ export class ProfilesParent extends JSWindowActorParent {
         // Make sure SelectableProfileService is initialized
         await SelectableProfileService.init();
         Glean.profilesDelete.displayed.record();
-        let profileObj = SelectableProfileService.currentProfile.toObject();
+        let profileObj =
+          await SelectableProfileService.currentProfile.toContentSafeObject();
         let windowCount = lazy.EveryWindow.readyWindows.length;
         let tabCount = lazy.EveryWindow.readyWindows
           .flatMap(win => win.gBrowser.openTabs.length)
@@ -326,14 +327,20 @@ export class ProfilesParent extends JSWindowActorParent {
         };
       }
       case "Profiles:UpdateProfileAvatar": {
-        let avatar = message.data.avatar;
-        SelectableProfileService.currentProfile.avatar = avatar;
+        let { avatarOrFile } = message.data;
+        await SelectableProfileService.currentProfile.setAvatar(avatarOrFile);
+        let value = SelectableProfileService.currentProfile.isCustomAvatar
+          ? "custom"
+          : avatarOrFile;
+
         if (source === "about:editprofile") {
-          Glean.profilesExisting.avatar.record({ value: avatar });
+          Glean.profilesExisting.avatar.record({ value });
         } else if (source === "about:newprofile") {
-          Glean.profilesNew.avatar.record({ value: avatar });
+          Glean.profilesNew.avatar.record({ value });
         }
-        break;
+        let profileObj =
+          await SelectableProfileService.currentProfile.toContentSafeObject();
+        return profileObj;
       }
       case "Profiles:UpdateProfileTheme": {
         let themeId = message.data;
