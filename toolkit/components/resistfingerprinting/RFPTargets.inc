@@ -99,6 +99,7 @@ ITEM_VALUE(WebGPUIsFallbackAdapter,     65)
 ITEM_VALUE(WebGPUSubgroupSizes,         66)
 ITEM_VALUE(JSLocalePrompt,              67)
 ITEM_VALUE(ScreenAvailToResolution,     68)
+ITEM_VALUE(UseHardcodedFontSubstitutes, 69)
 
 
 // !!! Don't forget to update kDefaultFingerprintingProtections in nsRFPService.cpp

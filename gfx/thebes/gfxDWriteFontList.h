@@ -457,6 +457,10 @@ class gfxDWriteFontList final : public gfxPlatformFontList {
       const nsTArray<nsCString>* aForceClassicFams = nullptr)
       MOZ_REQUIRES(mLock);
 
+  void AddSubstitute(const nsCString& aSubstituteName,
+                     const nsCString& aActualFontName, bool aIsHardcoded)
+      MOZ_REQUIRES(mLock);
+
 #ifdef MOZ_BUNDLED_FONTS
   already_AddRefed<IDWriteFontCollection> CreateBundledFontsCollection(
       IDWriteFactory* aFactory);
@@ -474,6 +478,13 @@ class gfxDWriteFontList final : public gfxPlatformFontList {
    */
   FontFamilyTable mFontSubstitutes;
   nsClassHashtable<nsCStringHashKey, nsCString> mSubstitutions;
+
+  /**
+   * Table of hardcoded font substitutes. We use this instead of the one
+   * generated from the registry when fingerprinting protections are enabled.
+   */
+  FontFamilyTable mHardcodedSubstitutes;
+  nsClassHashtable<nsCStringHashKey, nsCString> mHardcodedSubstitutions;
 
   virtual already_AddRefed<FontInfoData> CreateFontInfoData();
 
