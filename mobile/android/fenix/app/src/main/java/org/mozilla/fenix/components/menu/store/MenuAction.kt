@@ -354,5 +354,10 @@ sealed class MenuAction : Action {
         data class Reload(
             val bypassCache: Boolean,
         ) : Navigate()
+
+        /**
+         * [Navigate] action dispatched when stopping the current page from loading.
+         */
+        data object Stop : Navigate()
     }
 }

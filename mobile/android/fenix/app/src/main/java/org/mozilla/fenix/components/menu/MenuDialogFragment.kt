@@ -479,6 +479,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 val accountState by syncStore.observeAsState(initialValue = NotAuthenticated) { state ->
                                     state.accountState
                                 }
+                                val isSiteLoading by browserStore.observeAsState(initialValue = false) { state ->
+                                    state.selectedTab?.content?.loading == true
+                                }
 
                                 val appLinksRedirect = if (selectedTab?.content?.url != null) {
                                     appLinksUseCases.appLinkRedirect(selectedTab.content.url)
@@ -491,6 +494,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     account = account,
                                     accountState = accountState,
                                     showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
+                                    isSiteLoading = isSiteLoading,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                     isExtensionsExpanded = isExtensionsExpanded,
                                     isMoreMenuExpanded = isMoreMenuExpanded,
@@ -598,6 +602,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     },
                                     onRefreshButtonClick = { bypassCache: Boolean ->
                                         store.dispatch(MenuAction.Navigate.Reload(bypassCache))
+                                    },
+                                    onStopButtonClick = {
+                                        store.dispatch(MenuAction.Navigate.Stop)
                                     },
                                     onShareButtonClick = {
                                         selectedTab?.let {

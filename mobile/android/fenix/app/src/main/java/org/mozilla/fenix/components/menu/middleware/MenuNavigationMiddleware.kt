@@ -325,6 +325,15 @@ class MenuNavigationMiddleware(
                     }
                 }
 
+                is MenuAction.Navigate.Stop -> {
+                    val session = customTab ?: currentState.browserMenuState?.selectedTab
+
+                    session?.let {
+                        sessionUseCases.stopLoading.invoke(it.id)
+                        onDismiss()
+                    }
+                }
+
                 else -> Unit
             }
         }

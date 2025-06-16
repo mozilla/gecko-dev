@@ -7,6 +7,7 @@ package org.mozilla.fenix.components.menu
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import kotlinx.coroutines.test.runTest
+import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.feature.addons.Addon
