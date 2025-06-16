@@ -51,7 +51,7 @@ function handleRequest(request, response) {
     }
     response.setStatusLine(request.httpVersion, 200, "OK");
     response.setHeader("Cache-Control", "no-cache", false);
-    response.setHeader("Content-Type", "application/json", false);
+    response.setHeader("Content-Type", "application/json; charset=utf8", false);
     response.write(JSON_BYTES_1);
     if (!partial) {
       // Store the response in the global state

@@ -217,13 +217,13 @@ export class NetworkResponseListener {
       this.#uconv = Cc[
         "@mozilla.org/intl/scriptableunicodeconverter"
       ].createInstance(Ci.nsIScriptableUnicodeConverter);
+      try {
+        this.#uconv.charset = charset;
+      } catch (ex) {
+        this.#uconv.charset = "UTF-8";
+      }
     }
     try {
-      // Calling `charset` setter will clear the internal buffer of the
-      // decoder. Set the value only if it is different from the old one.
-      if (this.#uconv.charset !== (charset || "UTF-8")) {
-        this.#uconv.charset = charset || "UTF-8";
-      }
       return this.#uconv.ConvertToUnicode(text);
     } catch (ex) {
       return text;
