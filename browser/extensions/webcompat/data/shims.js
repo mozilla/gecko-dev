@@ -767,6 +767,20 @@ const AVAILABLE_SHIMS = [
     onlyIfDFPIActive: true,
   },
   {
+    id: "MicrosoftOfficeAuth",
+    platform: "desktop",
+    name: "Microsoft Office Auth",
+    bug: "1747889",
+    contentScripts: [
+      {
+        js: "microsoftOfficeAuth.js",
+        matches: ["*://usc-excel.officeapps.live.com/*"],
+        runAt: "document_start",
+        allFrames: true,
+      },
+    ],
+  },
+  {
     id: "MicrosoftVirtualAssistant",
     platform: "all",
     name: "Microsoft Virtual Assistant",

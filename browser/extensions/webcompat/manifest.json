@@ -139,6 +139,7 @@
     "shims/maxmind-geoip.js",
     "shims/messengerLogin.js",
     "shims/microsoftLogin.js",
+    "shims/microsoftOfficeAuth.js",
     "shims/microsoftVirtualAssistant.js",
     "shims/moat.js",
     "shims/mochitest-shim-1.js",
