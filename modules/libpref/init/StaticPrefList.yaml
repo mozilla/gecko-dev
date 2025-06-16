@@ -9046,7 +9046,11 @@
 # both unrolling and peeling.
 - name: javascript.options.wasm_unroll_loops
   type: bool
+#ifdef NIGHTLY_BUILD
   value: true
+#else
+  value: false
+#endif
   mirror: always
   set_spidermonkey_pref: always
 
