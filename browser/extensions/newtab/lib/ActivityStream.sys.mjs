@@ -815,7 +815,7 @@ export const PREFS_CONFIG = new Map([
     "trendingSearch.enabled",
     {
       title: "Enables the trending search widget",
-      value: false,
+      value: true,
     },
   ],
   [
@@ -1558,7 +1558,13 @@ export class ActivityStream {
     }
   }
 
-  observe(subject, topic) {
+  observe(subject, topic, data) {
+    // Custom logic for BROWSER_URLBAR_PLACEHOLDERNAME
+    if (topic === "nsPref:changed" && data === BROWSER_URLBAR_PLACEHOLDERNAME) {
+      this._updateDynamicPrefs();
+      return;
+    }
+
     switch (topic) {
       case "browser-search-engine-modified":
       case "intl:app-locales-changed":
