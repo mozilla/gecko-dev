@@ -78,29 +78,33 @@ gc(keyZone);
 // to be collected.
 assertEq(mapSize(mapZone.map), 1);
 
-printErr("  3.5 Collect key zone and atoms zone");
-schedulezone(keyZone);
-schedulezone('atoms');
-gc('zone');
-// TODO: Perhaps we could stop marking the key atom in the key zone at this
-// point if we don't mark all atoms referenced by uncollected zones at the
-// start of GC.
-assertEq(mapSize(mapZone.map), 1);
-
-printErr("  3.6 Collect only atoms zone");
-schedulezone('atoms');
-gc('zone');
-assertEq(mapSize(mapZone.map), 1);
-
-printErr("  3.7 Collect map zone and atoms zone");
+printErr("  3.5 Collect map zone and atoms zone (entry not removed)");
 schedulezone(mapZone);
 schedulezone('atoms');
 gc('zone');
 assertEq(mapSize(mapZone.map), 1);
 
-printErr("  3.8 Collect atoms, map and key zones (entry collected)");
-schedulezone('atoms');
-schedulezone(mapZone);
+printErr("  3.6 Collect key zone and atoms zone (key no longer referenced)");
 schedulezone(keyZone);
+schedulezone('atoms');
 gc('zone');
+assertEq(mapSize(mapZone.map), 1);
+
+printErr("  3.7 Collect only atoms zone (nothing collected)");
+schedulezone('atoms');
+gc('zone');
+assertEq(mapSize(mapZone.map), 1);
+
+printErr("  3.8 Collect only map zone (nothing collected)");
+gc(mapZone);
+assertEq(mapSize(mapZone.map), 1);
+
+printErr("  3.9 Collect map zone and atoms zone (entry collected)");
+schedulezone(mapZone);
+schedulezone('atoms');
+gc('zone');
+assertEq(mapSize(mapZone.map), 0);
+
+printErr("  3.10 Collect all zones (nothing more collected)");
+gc();
 assertEq(mapSize(mapZone.map), 0);
