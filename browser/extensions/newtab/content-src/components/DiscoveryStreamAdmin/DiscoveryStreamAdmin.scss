@@ -3,7 +3,7 @@
 .discoverystream-admin-toggle {
   position: fixed;
   // Adjust spacing for DevTools wrench icon to avoid overlapping the customize button
-  inset-block-end: calc(var(--button-size-icon) + var(--space-xxlarge));
+  inset-block-start: calc(var(--button-size-icon) + var(--space-xxlarge) + var(--space-small));
   inset-inline-end: var(--space-xlarge);
   border: 0;
   background: none;

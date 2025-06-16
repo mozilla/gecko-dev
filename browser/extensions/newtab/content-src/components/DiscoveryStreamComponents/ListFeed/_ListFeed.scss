@@ -25,21 +25,34 @@
 
   @media (min-width: $break-point-medium) {
     &.span-1 {
-      grid-row: span 1;
-    }
-
-    &.span-2 {
-      grid-row: span 2;
-    }
-  }
-
-  @media (min-width: $break-point-layout-variant) {
-    &.span-1 {
       grid-row: span 1 / -1;
     }
 
     &.span-2 {
       grid-row: span 2 / -1;
+    }
+  }
+
+  .layout-variant-a &,
+  .layout-variant-b & {
+    @media (min-width: $break-point-medium) {
+      &.span-1 {
+        grid-row: span 1;
+      }
+
+      &.span-2 {
+        grid-row: span 2;
+      }
+    }
+
+    @media (min-width: $break-point-layout-variant) {
+      &.span-1 {
+        grid-row: span 1 / -1;
+      }
+
+      &.span-2 {
+        grid-row: span 2 / -1;
+      }
     }
   }
 
@@ -204,6 +217,28 @@
   }
 }
 
+.layout-variant-a,
+.layout-variant-b {
+  .ds-card-grid .list-feed-content .ds-card.list-feed-card {
+    height: 135px;
+
+    @media (min-width: $break-point-widest) {
+      height: 140px;
+    }
+  }
+
+  .ds-card.placeholder.list-card-placeholder {
+    .placeholder-image {
+      height: 75px;
+      width: 75px;
+    }
+
+    .placeholder-header, .placeholder-description {
+      height: 20px;
+    }
+  }
+}
+
 .ds-card.placeholder.list-card-placeholder {
   box-shadow: unset;
   padding-inline-end: var(--space-large);
@@ -211,8 +246,8 @@
   flex: 1;
 
   .placeholder-image {
-    height: 75px;
-    width: 75px;
+    height: 55px;
+    width: 55px;
     position: absolute;
     border-radius: var(--border-radius-medium);
     inset-inline-end: var(--space-large);
@@ -229,7 +264,7 @@
 
   .placeholder-header, .placeholder-description {
     width: 60%;
-    height: 20px;
+    height: 12px;
   }
 
 
@@ -256,11 +291,6 @@
   min-height: 135px;
   gap: var(--space-large);
   position: relative;
-  height: 135px;
-
-  @media (min-width: $break-point-widest) {
-    height: 140px;
-  }
 
   &.fakespot {
     flex-direction: row;

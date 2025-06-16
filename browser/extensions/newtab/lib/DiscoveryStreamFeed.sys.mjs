@@ -53,8 +53,8 @@ const FEED_URL =
 const PREF_CONFIG = "discoverystream.config";
 const PREF_ENDPOINTS = "discoverystream.endpoints";
 const PREF_IMPRESSION_ID = "browser.newtabpage.activity-stream.impressionId";
-// const PREF_LAYOUT_EXPERIMENT_A = "newtabLayouts.variant-a";
-// const PREF_LAYOUT_EXPERIMENT_B = "newtabLayouts.variant-b";
+const PREF_LAYOUT_EXPERIMENT_A = "newtabLayouts.variant-a";
+const PREF_LAYOUT_EXPERIMENT_B = "newtabLayouts.variant-b";
 const PREF_CONTEXTUAL_SPOC_PLACEMENTS =
   "discoverystream.placements.contextualSpocs";
 const PREF_CONTEXTUAL_SPOC_COUNTS =
@@ -809,19 +809,18 @@ export class DiscoveryStreamFeed {
     const spocTopsitesPlacementEnabled =
       pocketConfig.spocTopsitesPlacementEnabled && !unifiedAdsEnabled;
 
-    // const layoutExperiment =
-    // this.store.getState().Prefs.values[PREF_LAYOUT_EXPERIMENT_A] ||
-    // this.store.getState().Prefs.values[PREF_LAYOUT_EXPERIMENT_B];
+    const layoutExperiment =
+      this.store.getState().Prefs.values[PREF_LAYOUT_EXPERIMENT_A] ||
+      this.store.getState().Prefs.values[PREF_LAYOUT_EXPERIMENT_B];
 
-    // let items = isBasicLayout ? 3 : 21;
-    let items = isBasicLayout ? 4 : 24;
-    // if (
-    //   pocketConfig.fourCardLayout ||
-    //   pocketConfig.hybridLayout ||
-    //   layoutExperiment
-    // ) {
-    //   items = isBasicLayout ? 4 : 24;
-    // }
+    let items = isBasicLayout ? 3 : 21;
+    if (
+      pocketConfig.fourCardLayout ||
+      pocketConfig.hybridLayout ||
+      layoutExperiment
+    ) {
+      items = isBasicLayout ? 4 : 24;
+    }
 
     const ctaButtonSponsors = pocketConfig.ctaButtonSponsors
       ?.split(",")
@@ -2687,6 +2686,8 @@ export class DiscoveryStreamFeed {
       case PREF_SPOCS_ENDPOINT_QUERY:
       case PREF_SPOCS_CLEAR_ENDPOINT:
       case PREF_ENDPOINTS:
+      case PREF_LAYOUT_EXPERIMENT_A:
+      case PREF_LAYOUT_EXPERIMENT_B:
       case PREF_SPOC_POSITIONS:
       case PREF_UNIFIED_ADS_SPOCS_ENABLED:
       case PREF_CONTEXTUAL_CONTENT_ENABLED:
@@ -3194,7 +3195,7 @@ getHardcodedLayout = ({
               id: "newtab-pocket-learn-more",
             },
             link_url: "",
-            icon: "chrome://global/skin/icons/pocket.svg",
+            icon: "chrome://global/skin/icons/help.svg",
           },
           properties: {
             spocMessageVariant,

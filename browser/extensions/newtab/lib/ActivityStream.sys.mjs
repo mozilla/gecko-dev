@@ -589,6 +589,20 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "newtabLayouts.variant-a",
+    {
+      title: "Boolean flag to turn layout variant A on and off",
+      value: false,
+    },
+  ],
+  [
+    "newtabLayouts.variant-b",
+    {
+      title: "Boolean flag to turn layout variant B on and off",
+      value: false,
+    },
+  ],
+  [
     "newtabShortcuts.refresh",
     {
       title: "Boolean flag to change sizes and spacing of new tab shortcuts",

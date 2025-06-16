@@ -418,6 +418,41 @@
     position: relative;
 
     .top-sites-list-wrapper {
+      width: 266px;
+      margin-inline: auto;
+
+      @media (min-width: $break-point-medium) {
+        width: 266px;
+      }
+
+      @media (min-width: $break-point-layout-variant) {
+        width: 510px;
+      }
+
+      @media (min-width: $break-point-widest) {
+        width: 986px;
+      }
+    }
+  }
+
+  // Note this breakpoint doesn't use set the same default width (746px).
+  // The sections layout uses a different $break-point-layout-variant
+  // but not $break-point-large. This rule below maintains
+  // the topsites layout to stack two rows x four tiles
+  // when the sections grid changes to a two column layout
+  @media (min-width: $break-point-large) {
+    .ds-layout-topsites .hide-for-narrow {
+      display: inline-block;
+    }
+  }
+}
+
+.has-sections-grid.layout-variant-a .ds-outer-wrapper-breakpoint-override,
+.has-sections-grid.layout-variant-b .ds-outer-wrapper-breakpoint-override {
+  .ds-layout-topsites {
+    position: relative;
+
+    .top-sites-list-wrapper {
       margin-inline: auto;
       width: 100%;
     }
@@ -432,18 +467,6 @@
       @media (min-width: $break-point-widest) {
         display: inline-block;
       }
-    }
-
-  }
-
-  // Note this breakpoint doesn't use set the same default width (746px).
-  // The sections layout uses a different $break-point-layout-variant
-  // but not $break-point-large. This rule below maintains
-  // the topsites layout to stack two rows x four tiles
-  // when the sections grid changes to a two column layout
-  @media (min-width: $break-point-large) {
-    .ds-layout-topsites .hide-for-narrow {
-      display: inline-block;
     }
   }
 }

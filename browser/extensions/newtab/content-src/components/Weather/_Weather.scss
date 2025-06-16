@@ -6,49 +6,58 @@
 
 .weather {
   font-size: inherit;
+  margin-block-start: var(--space-xlarge);
+  margin-inline-start: var(--space-xlarge);
   display: inline-block;
-  margin-inline-start: 0;
-  position: absolute;
-  inset-inline-end: var(--space-xxlarge);
-  inset-block-start: var(--space-xxlarge);
-  margin-block-start: 0;
-  z-index: 1;
 
-  @media (min-width: $break-point-layout-variant) {
-    inset-inline-end: var(--space-large);
+  @media (min-width: $break-point-medium) {
+    position: absolute;
+    inset-inline-start: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
+    margin-block-start: 0;
+    margin-inline-start: 0;
+    z-index: 1;
+
+    // Bug 1914055 - Layout experiment: logo/search spacing
+    .layout-variant-a &,
+    .layout-variant-b & {
+      inset-inline-start: var(--space-xlarge);
+      inset-block-start: var(--space-xlarge);
+    }
   }
 
-  @media (min-width: $break-point-large) {
-    inset-inline-end: var(--space-xxlarge);
+  // Bug 1914055 - Layout experiment: Position the weather widget absolutely
+  // across all breakpoints to keep logo margins consistent
+  .no-search.layout-variant-a &,
+  .no-search.layout-variant-b &,
+  .layout-variant-a &,
+  .layout-variant-b & {
+    position: absolute;
+    inset-inline-start: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
+    margin-block-start: 0;
+    margin-inline-start: 0;
   }
 
   // Edge case: users with weather enabled/search disabled
   .no-search & {
-    position: absolute;
-    inset-block-start: var(--space-xxlarge);
-    margin-block-start: 0;
-    margin-inline-start: 0;
-    inset-inline-end: var(--space-large);
+    position: relative;
+    margin-block-start: var(--space-xlarge);
+    margin-inline-start: var(--space-xlarge);
 
-    @media (min-width: $break-point-small) {
-      inset-inline-end: var(--space-xxlarge);
+    @media (min-width: $break-point-medium) {
+      margin-block-start: 0;
+      margin-inline-start: 0;
     }
 
-    @media (min-width: $break-point-layout-variant) {
-      inset-inline-end: var(--space-large);
-    }
-
-    @media (min-width: $break-point-large) {
-      inset-inline-end: var(--space-xxlarge);
+    @media (min-width: $break-point-weather) {
+      position: absolute;
+      inset-inline-start: var(--space-xlarge);
+      inset-block-start: var(--space-xlarge);
+      margin-block-start: 0;
+      margin-inline-start: 0;
     }
   }
-
-  .context-menu {
-    inset-inline-end: 100%;
-    inset-inline-start: auto;
-    margin-inline-end: var(--space-xsmall);
-  }
-
 }
 
 .weather-placeholder {
@@ -123,28 +132,102 @@
 // Edge case: users with weather enabled/search disabled
 .has-weather.no-search {
   .outer-wrapper {
+    padding-block-start: 0;
+
+    @media (min-width: $break-point-medium) {
+      padding-block-start: var(--space-xxlarge);
+    }
+  }
+}
+
+// Bug 1914055 - Layout experiment: logo/search spacing
+.layout-variant-a.has-weather.no-search,
+.layout-variant-b.has-weather.no-search {
+  .outer-wrapper {
     padding-block-start: var(--space-xlarge);
+  }
+}
+
+.no-search.layout-variant-b,
+.layout-variant-b {
+  .weather {
+    position: absolute;
+    inset-inline-start: auto;
+    inset-inline-end: var(--space-xxlarge);
+    inset-block-start: var(--space-xxlarge);
+    margin-block-start: 0;
+
+    @media (min-width: $break-point-layout-variant) {
+      inset-inline-end: var(--space-large);
+    }
+
+    @media (min-width: $break-point-large) {
+      inset-inline-end: var(--space-xxlarge);
+    }
+
+    .weatherSponsorText {
+      float: inline-end;
+
+      span {
+        inset-inline-end: 0;
+      }
+    }
+
+    .context-menu {
+      inset-inline-end: 100%;
+      inset-inline-start: auto;
+      margin-inline-end: var(--space-xsmall);
+    }
   }
 }
 
 // Bug 1959189 - Show mobile QR code modal toggle next to weather widget
 .has-mobile-download-promo {
   --mobile-download-promo-width: var(--space-xxlarge);
-
-  .weather {
+  // No Variant Layout, Var A Layout
+  .weather, &.layout-variant-a .weather {
+    // Default spacing (--space-xlarge) + width of .mobile-download-promo (32px) + gap
     @media (min-width: $break-point-medium) {
+      inset-inline-start: calc(var(--mobile-download-promo-width) + var(--space-xxlarge));
+    }
+  }
+
+  &.layout-variant-b .weather {
+    // Var B: width of .mobile-download-promo (32px) + gap
+    @media (min-width: $break-point-medium) {
+      inset-inline-start: auto;
       inset-inline-end: calc(var(--mobile-download-promo-width) + var(--space-medium));
     }
 
+    // Var B offset (32px) + width of .mobile-download-promo (32px) + gap
     @media (min-width: $break-point-layout-variant) {
       inset-inline-end: calc(var(--space-xxlarge) + var(--mobile-download-promo-width) + var(--space-medium));
     }
   }
 
   // Layout when search has been turned off. It will show one breakpoint later than `has-search`
-  &.no-search .weather {
+  &.layout-variant-b.no-search .weather {
+    // Var B offset (32px) + width of .mobile-download-promo (32px) + gap
     @media (min-width: $break-point-large) {
       inset-inline-end: calc(var(--space-xxlarge) + var(--mobile-download-promo-width) + var(--space-medium));
+    }
+  }
+}
+
+.no-search.layout-variant-b {
+  .weather {
+    inset-inline-end: var(--space-large);
+
+    @media (min-width: $break-point-small) {
+      inset-inline-end: var(--space-xxlarge);
+    }
+
+    @media (min-width: $break-point-layout-variant) {
+      inset-inline-end: var(--space-large);
+    }
+
+    @media (min-width: $break-point-large) {
+      inset-inline-end: var(--space-xxlarge);
     }
   }
 }
@@ -152,7 +235,11 @@
 // Edge case: users with weather enabled/search enabled
 .has-weather.has-search {
   .outer-wrapper:not(.only-search) {
-    padding-block-start: var(--space-xlarge);
+    padding-block-start: 0;
+
+    @media (min-width: $break-point-medium) {
+      padding-block-start: var(--space-xxlarge);
+    }
   }
 
   // Edge case: medium screens where we hide the weather icon and
@@ -182,17 +269,38 @@
   }
 }
 
+// Bug 1914055 - Layout experiment: logo/search spacing
+.layout-variant-a.has-weather.has-search,
+.layout-variant-b.has-weather.has-search {
+  .outer-wrapper:not(.only-search) {
+    padding-block-start: var(--space-xlarge);
+  }
+}
+
 // Unavailable / Error State
 .weatherNotAvailable {
   font-size: var(--newtab-weather-content-font-size);
+  display: flex;
   align-items: center;
   border-radius: var(--border-radius-medium);
   height: 52px;
   max-width: 205px;
-  display: none;
 
-  @media (min-width: $break-point-large) {
-    display: flex
+  // Bug 1915727 - Layout experiment: hide error message on smallest breakpoint
+  .layout-variant-a & {
+    display: none;
+
+    @media (min-width: $break-point-medium) {
+      display: flex
+    }
+  }
+
+  .layout-variant-b & {
+    display: none;
+
+    @media (min-width: $break-point-large) {
+      display: flex
+    }
   }
 
   &:hover {
@@ -261,14 +369,12 @@
   visibility: hidden;
   font-size: var(--newtab-weather-sponsor-font-size);
   color: var(--newtab-contextual-text-primary-color);
-  float: inline-end;
 
   // Contrast fix for users who have wallpapers set
   @include wallpaper-contrast-fix;
 
   span {
     color: var(--text-color-deemphasized);
-    inset-inline-end: 0;
   }
 }
 
@@ -648,8 +754,10 @@
 
 // Bug 1914193 - Only show the temperature on the smallest breakpoint and
 // return to default view on medium breakpoints
-.has-weather.has-search,
-.has-weather  {
+.has-weather.has-search.layout-variant-a,
+.has-weather.has-search.layout-variant-b,
+.layout-variant-a,
+.layout-variant-b  {
   .weatherCityRow,
   .weatherButtonContextMenuWrapper {
     display: none;

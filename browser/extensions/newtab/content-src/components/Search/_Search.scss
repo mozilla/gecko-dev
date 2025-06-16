@@ -7,19 +7,32 @@ $search-button-width: 48px;
 $glyph-forward: url('chrome://browser/skin/forward.svg');
 
 .search-wrapper {
-  padding: 0 0 var(--space-xxlarge);
+  padding: var(--space-xxlarge) 0;
 
+  // Bug 1914055 - Layout experiment: search spacing
+  .layout-variant-a &,
+  .layout-variant-b & {
+    padding-block-start: 0;
+    padding-block-end: var(--space-xxlarge);
+  }
 
   // Edge case for users who have pocket stories turned off
-  .no-recommended-stories & {
+  .layout-variant-a.no-recommended-stories &,
+  .layout-variant-b.no-recommended-stories & {
     // Bug 1967304 - Large number (40px)
     padding-block-end: calc(var(--space-large) + var(--space-xlarge));
   }
 
   // Edge case for users who have only search enabled
-  .only-search & {
+  .layout-variant-a .only-search &,
+  .layout-variant-b .only-search & {
     // Bug 1967304 - Large number (40px)
     padding-block-end: calc(var(--space-large) + var(--space-xlarge));
+  }
+
+  .only-search & {
+    // Bug 1967304 - Large number (40px)
+    padding: 0 0 calc(var(--space-large) + var(--space-xlarge));
   }
 
   .search-inner-wrapper {
@@ -28,18 +41,32 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
     min-height: $search-height-new;
     margin: 0 auto;
     position: relative;
-    width: 304px;
+    width: $searchbar-width-small;
 
     @media (min-width: $break-point-medium) {
       width: $searchbar-width-medium;
     }
 
     @media (min-width: $break-point-large) {
-      width: 510px;
+      width: $searchbar-width-large;
     }
 
     @media (min-width: $break-point-widest) {
-      width: 720px;
+      width: $searchbar-width-largest;
+    }
+
+    // Bug 1914053 - Layout experiment: search bar width
+    .layout-variant-a &,
+    .layout-variant-b & {
+      width: 304px;
+
+      @media (min-width: $break-point-large) {
+        width: 510px;
+      }
+
+      @media (min-width: $break-point-widest) {
+        width: 720px;
+      }
     }
 
     // Bug 1966715: Offset padding of the submit button so the reset button is visible
@@ -170,7 +197,7 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
   }
 }
 
-.has-recommended-stories {
+.layout-variant-b.has-recommended-stories {
   .outer-wrapper:not(.fixed-search) .search-wrapper {
     margin-block-start: var(--space-large);
   }
@@ -340,8 +367,13 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
   .fake-textbox {
     opacity: 0.54;
     text-align: start;
-    -webkit-line-clamp: 1;
-    overflow: hidden;
+
+    // Bug 1914055 - Layout experiment: search spacing
+    .layout-variant-a &,
+    .layout-variant-b & {
+      -webkit-line-clamp: 1;
+      overflow: hidden;
+    }
   }
 
   .fake-caret {

@@ -72,8 +72,29 @@ main {
 
 .ds-outer-wrapper-breakpoint-override {
   main {
-    width: auto;
+    width: 266px;
     padding-block-end: 0;
+
+    @media (min-width: $break-point-medium) {
+      width: 510px;
+    }
+
+    @media (min-width: $break-point-large) {
+      width: 746px;
+    }
+
+    @media (min-width: $break-point-widest) {
+      width: 986px;
+    }
+  }
+}
+
+// Bug 1931979: Note that .ds-card-grid has an exception for
+// the card section experiment layout
+.layout-variant-a,
+.layout-variant-b {
+  .ds-outer-wrapper-breakpoint-override main {
+    width: auto;
 
     .ds-card {
       width: 296px;
@@ -146,7 +167,6 @@ main {
         grid-template-columns: repeat(4, 1fr);
       }
     }
-
   }
 }
 
@@ -172,7 +192,13 @@ main {
 }
 
 .non-collapsible-section {
-  padding: 0;
+  padding: 0 var(--space-xlarge);
+
+  // Bug 1914053 - Layout experiment: search bar width
+  .layout-variant-a &,
+  .layout-variant-b & {
+    padding: 0;
+  }
 }
 
 .prefs-button {

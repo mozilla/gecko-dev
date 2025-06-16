@@ -751,7 +751,10 @@ export class _DSCard extends React.PureComponent {
       readTime: displayReadTime,
     } = DiscoveryStream;
 
+    const layoutsVariantAEnabled = Prefs.values["newtabLayouts.variant-a"];
+    const layoutsVariantBEnabled = Prefs.values["newtabLayouts.variant-b"];
     const sectionsEnabled = Prefs.values["discoverystream.sections.enabled"];
+    const layoutsVariantAorB = layoutsVariantAEnabled || layoutsVariantBEnabled;
 
     const smartCrop = Prefs.values["images.smart"];
     const faviconEnabled =
@@ -805,7 +808,7 @@ export class _DSCard extends React.PureComponent {
           this.getSectionImageSize("2", sectionsCardsImageSizes["2"]),
           this.getSectionImageSize("1", sectionsCardsImageSizes["1"]),
         ];
-      } else {
+      } else if (layoutsVariantAorB) {
         sizes = this.standardCardImageSizes;
       }
       if (isListCard) {
