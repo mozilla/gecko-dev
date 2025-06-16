@@ -93,10 +93,6 @@
         "issue": "broken-interactive-elements",
         "matches": ["*://weaversofireland.com/*"]
       },
-      "1957830": {
-        "issue": "broken-interactive-elements",
-        "matches": ["*://metropole.rennes.fr/*"]
-      },
       "1968640": {
         "issue": "broken-interactive-elements",
         "matches": ["*://shop.ticket-center-hohenschwangau.de/*"]
