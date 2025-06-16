@@ -141,6 +141,12 @@
       css: '@property --my-property { syntax: "<color>"; initial-value: green; inherits: maybe; }',
       error: "@property inherits descriptor ‘inherits: maybe;’ does not match specified syntax."
     },
+    {
+      css: 'foo { :host(:not[bar]) & { color: red } }',
+      // This is not the most ideal error, but it's better than nothing.
+      error: "Unknown property ‘:host(:not[bar]) & {’.  Declaration dropped.",
+      cssSelectors: "foo",
+    },
   ];
 
   // Tests that apply only to constructed style sheets

@@ -122,6 +122,7 @@ fn extract_error_param<'a>(err: ErrorKind<'a>) -> Option<ErrorString<'a>> {
     })
 }
 
+#[derive(Default)]
 struct ErrorParams<'a> {
     prefix_param: Option<ErrorString<'a>>,
     main_param: Option<ErrorString<'a>>,
@@ -168,17 +169,11 @@ fn extract_error_params<'a>(err: ErrorKind<'a>) -> Option<ErrorParams<'a>> {
             SelectorParseErrorKind::EmptySelector | SelectorParseErrorKind::DanglingCombinator => {
                 (None, None)
             },
-            err => match extract_error_param(ParseErrorKind::Custom(
+            err => (Some(extract_error_param(ParseErrorKind::Custom(
                 StyleParseErrorKind::SelectorError(err),
-            )) {
-                Some(e) => (Some(e), None),
-                None => return None,
-            },
+            ))?), None),
         },
-        err => match extract_error_param(err) {
-            Some(e) => (Some(e), None),
-            None => return None,
-        },
+        err => (Some(extract_error_param(err)?), None),
     };
     Some(ErrorParams {
         main_param: main,
@@ -219,10 +214,9 @@ impl<'a> ErrorHelpers<'a> for ContextualParseError<'a> {
 
     fn error_params(self) -> ErrorParams<'a> {
         let (s, error) = self.error_data();
-        extract_error_params(error).unwrap_or_else(|| ErrorParams {
-            main_param: Some(ErrorString::Snippet(s)),
-            prefix_param: None,
-        })
+        let mut params = extract_error_params(error).unwrap_or_default();
+        params.main_param.get_or_insert_with(|| ErrorString::Snippet(s));
+        params
     }
 
     fn selectors(&self) -> &'a [SelectorList<SelectorImpl>] {
