@@ -23,7 +23,9 @@
 
 <script class="testbody" type="text/javascript">
 
-function startTest() {
+add_task(async () => {
+  await SpecialPowers.pushPrefEnv({ set: [["media.media.hls.enabled", true]] });
+
   var v4x3 = document.getElementById('player4x3');
   var v16x9 = document.getElementById('player16x9');
 
@@ -39,13 +41,10 @@ function startTest() {
 
   v4x3.src = serverUrl + "/bipbop_4x3_single.m3u8";
   v16x9.src = serverUrl + "/bipbop_16x9_single.m3u8";
-  Promise.all([p1, p2]).then(() => {
-    SimpleTest.finish();
-  });
-}
-
-startTest();
-SimpleTest.waitForExplicitFinish();
+  Promise.all([p1, p2]).then(
+    () => { ok(true, `HLS played`); },
+    () => { ok(false, `cannot play HLS`); });
+});
 
 </script>
 </pre>

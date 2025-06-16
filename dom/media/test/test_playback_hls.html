@@ -12,6 +12,8 @@
 
 var manager = new MediaTestManager;
 
+gTestPrefs.push(["media.media.hls.enabled", true]);
+
 function startTest(test, token) {
   var video = document.createElement('video');
   video.preload = "metadata";
