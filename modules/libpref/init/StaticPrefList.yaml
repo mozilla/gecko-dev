@@ -11267,6 +11267,11 @@
 #endif
   mirror: always
 
+- name: media.gpu-process-encoder
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 - name: media.ffvpx-hw.enabled
   type: RelaxedAtomicBool
 #if defined(MOZ_WIDGET_GTK)
