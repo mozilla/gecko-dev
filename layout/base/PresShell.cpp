@@ -3935,7 +3935,8 @@ bool PresShell::ScrollFrameIntoView(
     const auto* stylePosition = aFrame->StylePosition();
     const auto positionProperty = aFrame->StyleDisplay()->mPosition;
     const auto anchorResolutionParams =
-        AnchorPosResolutionParams::UseCBFrameSize(aFrame, positionProperty);
+        AnchorPosOffsetResolutionParams::UseCBFrameSize(aFrame,
+                                                        positionProperty);
     for (auto side : AllPhysicalSides()) {
       if (stylePosition->GetAnchorResolvedInset(side, anchorResolutionParams)
               ->IsAuto()) {

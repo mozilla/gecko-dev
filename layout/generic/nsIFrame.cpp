@@ -7055,7 +7055,7 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
           ? AnchorResolvedSizeHelper::Overridden(*aSizeOverrides.mStyleBSize)
           : stylePos->BSize(aWM, positionProperty);
   const auto anchorResolutionParams =
-      AnchorPosResolutionParams::UseCBFrameSize(this, positionProperty);
+      AnchorPosOffsetResolutionParams::UseCBFrameSize(this, positionProperty);
   const auto iStartOffsetIsAuto =
       stylePos
           ->GetAnchorResolvedInset(LogicalSide::IStart, aWM,

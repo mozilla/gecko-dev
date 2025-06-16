@@ -1921,7 +1921,8 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetNonStaticPositionOffset(
   int32_t sign = 1;
   const auto positionProperty = StyleDisplay()->mPosition;
   const auto anchorResolutionParams =
-      AnchorPosResolutionParams::UseCBFrameSize(mOuterFrame, positionProperty);
+      AnchorPosOffsetResolutionParams::UseCBFrameSize(mOuterFrame,
+                                                      positionProperty);
   auto coord =
       positionData->GetAnchorResolvedInset(aSide, anchorResolutionParams);
 
@@ -1959,7 +1960,8 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetAbsoluteOffset(
     mozilla::Side aSide) {
   const auto positionProperty = StyleDisplay()->mPosition;
   const auto anchorResolutionParams =
-      AnchorPosResolutionParams::UseCBFrameSize(mOuterFrame, positionProperty);
+      AnchorPosOffsetResolutionParams::UseCBFrameSize(mOuterFrame,
+                                                      positionProperty);
   const auto coord =
       StylePosition()->GetAnchorResolvedInset(aSide, anchorResolutionParams);
   const auto oppositeCoord = StylePosition()->GetAnchorResolvedInset(
@@ -2042,7 +2044,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetStaticOffset(
     mozilla::Side aSide) {
   auto val = MakeRefPtr<nsROCSSPrimitiveValue>();
   const auto resolved = StylePosition()->GetAnchorResolvedInset(
-      aSide, AnchorPosResolutionParams::UseCBFrameSize(
+      aSide, AnchorPosOffsetResolutionParams::UseCBFrameSize(
                  mOuterFrame, StyleDisplay()->mPosition));
   if (resolved->IsAuto()) {
     val->SetString("auto");

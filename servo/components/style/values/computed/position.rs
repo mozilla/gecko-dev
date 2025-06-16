@@ -57,7 +57,7 @@ pub type AnchorFunction = GenericAnchorFunction<Percentage, LengthPercentage>;
 
 #[cfg(feature="gecko")]
 use crate::{
-    gecko_bindings::structs::AnchorPosResolutionParams,
+    gecko_bindings::structs::AnchorPosOffsetResolutionParams,
     logical_geometry::PhysicalSide,
     values::{DashedIdent, computed::Length},
 };
@@ -69,7 +69,7 @@ impl AnchorFunction {
         anchor_name: &DashedIdent,
         anchor_side: &AnchorSide,
         prop_side: PhysicalSide,
-        params: &AnchorPosResolutionParams,
+        params: &AnchorPosOffsetResolutionParams,
     ) -> Result<Length, ()> {
         use crate::gecko_bindings::structs::Gecko_GetAnchorPosOffset;
 

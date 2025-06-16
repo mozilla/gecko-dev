@@ -67,7 +67,7 @@ use style::gecko_bindings::structs::nsCSSPropertyID;
 use style::gecko_bindings::structs::nsChangeHint;
 use style::gecko_bindings::structs::nsCompatibility;
 use style::gecko_bindings::structs::nsresult;
-use style::gecko_bindings::structs::AnchorPosResolutionParams;
+use style::gecko_bindings::structs::AnchorPosOffsetResolutionParams;
 use style::gecko_bindings::structs::CallerType;
 use style::gecko_bindings::structs::CompositeOperation;
 use style::gecko_bindings::structs::DeclarationBlockMutationClosure;
@@ -8493,7 +8493,7 @@ pub enum CalcAnchorPositioningFunctionResolution {
 pub extern "C" fn Servo_ResolveAnchorFunctionsInCalcPercentage(
     calc: &computed::length_percentage::CalcLengthPercentage,
     prop_side: Option<&PhysicalSide>,
-    params: &AnchorPosResolutionParams,
+    params: &AnchorPosOffsetResolutionParams,
     out: &mut CalcAnchorPositioningFunctionResolution,
 ) {
     let resolved = calc.resolve_anchor(prop_side.copied(), params);
@@ -9918,11 +9918,11 @@ fn resolve_anchor_fallback(
 #[no_mangle]
 pub extern "C" fn Servo_ResolveAnchorFunction(
     func: &AnchorFunction,
-    params: &AnchorPosResolutionParams,
+    params: &AnchorPosOffsetResolutionParams,
     prop_side: PhysicalSide,
     out: &mut AnchorPositioningFunctionResolution,
 ) {
-    if !func.valid_for(prop_side, params.mPosition) {
+    if !func.valid_for(prop_side, params.mBaseParams.mPosition) {
         *out = resolve_anchor_fallback(&func.fallback);
         return;
     }

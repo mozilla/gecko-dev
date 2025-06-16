@@ -944,7 +944,7 @@ pub struct CalcLengthPercentageResolution {
 
 #[cfg(feature="gecko")]
 use crate::{
-    gecko_bindings::structs::AnchorPosResolutionParams,
+    gecko_bindings::structs::AnchorPosOffsetResolutionParams,
     logical_geometry::PhysicalSide,
 };
 
@@ -992,17 +992,17 @@ impl CalcLengthPercentage {
     pub fn resolve_anchor(
         &self,
         side: Option<PhysicalSide>,
-        params: &AnchorPosResolutionParams,
+        params: &AnchorPosOffsetResolutionParams,
     ) -> Result<(CalcNode, AllowedNumericType), ()> {
         use crate::values::{computed::AnchorFunction, generics::position::GenericAnchorFunction};
 
         fn resolve_anchor_function<'a>(
             f: &'a GenericAnchorFunction<Box<CalcNode>, Box<CalcNode>>,
             side: PhysicalSide,
-            params: &AnchorPosResolutionParams,
+            params: &AnchorPosOffsetResolutionParams,
         ) -> AnchorResolutionResult<'a, Box<CalcNode>> {
             let anchor_side: &CalcAnchorSide = &f.side;
-            let resolved = if f.valid_for(side, params.mPosition) {
+            let resolved = if f.valid_for(side, params.mBaseParams.mPosition) {
                 AnchorFunction::resolve(
                     &f.target_element,
                     &anchor_side.into(),
@@ -1028,14 +1028,14 @@ impl CalcLengthPercentage {
         fn resolve_anchor_functions(
             node: &CalcNode,
             side: Option<PhysicalSide>,
-            params: &AnchorPosResolutionParams,
+            params: &AnchorPosOffsetResolutionParams,
         ) -> Result<Option<CalcNode>, ()> {
             let resolution = match node {
                 CalcNode::Anchor(f) => {
                     let prop_side = side.expect("Side not given for anchor() resolution");
                     resolve_anchor_function(f, prop_side, params)
                 },
-                CalcNode::AnchorSize(f) => f.resolve(params.mPosition),
+                CalcNode::AnchorSize(f) => f.resolve(params.mBaseParams.mPosition),
                 _ => return Ok(None),
             };
 

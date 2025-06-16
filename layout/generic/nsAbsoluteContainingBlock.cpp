@@ -347,15 +347,15 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     // FIXME(emilio): Should the BSize(wm).IsAuto() check also for the extremum
     // lengths?
     const auto bSize = pos->BSize(wm, positionProperty);
-    const auto anchorPosResolutionParams =
-        AnchorPosResolutionParams::UseCBFrameSize(f, positionProperty);
+    const auto anchorResolutionParams =
+        AnchorPosOffsetResolutionParams::UseCBFrameSize(f, positionProperty);
     if ((nsStylePosition::BSizeDependsOnContainer(bSize) &&
          !(bSize->IsAuto() &&
            pos->GetAnchorResolvedInset(LogicalSide::BEnd, wm,
-                                       anchorPosResolutionParams)
+                                       anchorResolutionParams)
                ->IsAuto() &&
            !pos->GetAnchorResolvedInset(LogicalSide::BStart, wm,
-                                        anchorPosResolutionParams)
+                                        anchorResolutionParams)
                 ->IsAuto())) ||
         nsStylePosition::MinBSizeDependsOnContainer(
             pos->MinBSize(wm, positionProperty)) ||
@@ -383,7 +383,7 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
   // are easier to do using physical coordinates rather than logical.
   if (aCBWidthChanged) {
     const auto anchorResolutionParams =
-        AnchorPosResolutionParams::UseCBFrameSize(f, positionProperty);
+        AnchorPosOffsetResolutionParams::UseCBFrameSize(f, positionProperty);
     if (!IsFixedOffset(
             pos->GetAnchorResolvedInset(eSideLeft, anchorResolutionParams))) {
       return true;
@@ -404,7 +404,7 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
   }
   if (aCBHeightChanged) {
     const auto anchorResolutionParams =
-        AnchorPosResolutionParams::UseCBFrameSize(f, positionProperty);
+        AnchorPosOffsetResolutionParams::UseCBFrameSize(f, positionProperty);
     if (!IsFixedOffset(
             pos->GetAnchorResolvedInset(eSideTop, anchorResolutionParams))) {
       return true;
@@ -958,25 +958,26 @@ void nsAbsoluteContainingBlock::ReflowAbsoluteFrame(
     // https://drafts.csswg.org/css-position-3/#abspos-layout
     const auto* stylePos = aKidFrame->StylePosition();
     auto positionProperty = aKidFrame->StyleDisplay()->mPosition;
-    const auto anchorPosResolutionParams =
-        AnchorPosResolutionParams::UseCBFrameSize(aKidFrame, positionProperty);
+    const auto anchorResolutionParams =
+        AnchorPosOffsetResolutionParams::UseCBFrameSize(aKidFrame,
+                                                        positionProperty);
     const bool iInsetAuto =
         stylePos
             ->GetAnchorResolvedInset(LogicalSide::IStart, outerWM,
-                                     anchorPosResolutionParams)
+                                     anchorResolutionParams)
             ->IsAuto() ||
         stylePos
             ->GetAnchorResolvedInset(LogicalSide::IEnd, outerWM,
-                                     anchorPosResolutionParams)
+                                     anchorResolutionParams)
             ->IsAuto();
     const bool bInsetAuto =
         stylePos
             ->GetAnchorResolvedInset(LogicalSide::BStart, outerWM,
-                                     anchorPosResolutionParams)
+                                     anchorResolutionParams)
             ->IsAuto() ||
         stylePos
             ->GetAnchorResolvedInset(LogicalSide::BEnd, outerWM,
-                                     anchorPosResolutionParams)
+                                     anchorResolutionParams)
             ->IsAuto();
     const LogicalSize logicalCBSizeOuterWM(outerWM, aContainingBlock.Size());
     const LogicalSize kidMarginBox{

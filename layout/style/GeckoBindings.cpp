@@ -1954,15 +1954,15 @@ static Maybe<AnchorPosInfo> GetAnchorPosRect(const nsIFrame* aPositioned,
 }
 
 bool Gecko_GetAnchorPosOffset(
-    const AnchorPosResolutionParams* aParams, const nsAtom* aAnchorName,
+    const AnchorPosOffsetResolutionParams* aParams, const nsAtom* aAnchorName,
     StylePhysicalSide aPropSide,
     mozilla::StyleAnchorSideKeyword aAnchorSideKeyword, float aPercentage,
     mozilla::Length* aOut) {
-  if (!aParams || !aParams->mFrame) {
+  if (!aParams || !aParams->mBaseParams.mFrame) {
     return false;
   }
-  const auto info =
-      GetAnchorPosRect(aParams->mFrame, aAnchorName, !aParams->mCBSize);
+  const auto info = GetAnchorPosRect(aParams->mBaseParams.mFrame, aAnchorName,
+                                     !aParams->mCBSize);
   if (info.isNothing()) {
     return false;
   }
@@ -1972,7 +1972,8 @@ bool Gecko_GetAnchorPosOffset(
   const auto* containingBlock = info.ref().mContainingBlock;
   const auto usesCBWM = AnchorSideUsesCBWM(aAnchorSideKeyword);
   const auto cbwm = containingBlock->GetWritingMode();
-  const auto wm = usesCBWM ? aParams->mFrame->GetWritingMode() : cbwm;
+  const auto wm =
+      usesCBWM ? aParams->mBaseParams.mFrame->GetWritingMode() : cbwm;
   const auto logicalCBSize = aParams->mCBSize
                                  ? aParams->mCBSize->ConvertTo(wm, cbwm)
                                  : containingBlock->PaddingSize(wm);

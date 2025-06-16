@@ -67,7 +67,7 @@ static nscoord ComputeStickySideOffset(Side aSide,
                                        nscoord aPercentBasis) {
   // Guaranteed to resolve any use of anchor function as invalid.
   const auto& side = aPosition.GetAnchorResolvedInset(
-      aSide, AnchorPosResolutionParams::UseCBFrameSize(
+      aSide, AnchorPosOffsetResolutionParams::UseCBFrameSize(
                  nullptr, StylePositionProperty::Sticky));
   if (side->IsAuto()) {
     return NS_AUTOOFFSET;
