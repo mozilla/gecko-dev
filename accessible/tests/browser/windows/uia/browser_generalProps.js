@@ -4,6 +4,13 @@
 
 "use strict";
 
+/* import-globals-from ../../../mochitest/role.js */
+/* import-globals-from ../../../mochitest/states.js */
+loadScripts(
+  { name: "role.js", dir: MOCHITESTS_DIR },
+  { name: "states.js", dir: MOCHITESTS_DIR }
+);
+
 /* eslint-disable camelcase */
 // From https://learn.microsoft.com/en-us/windows/win32/winauto/landmark-type-identifiers
 const UIA_CustomLandmarkTypeId = 80000;
@@ -470,4 +477,44 @@ addUiaTask(
     );
   },
   { uiaEnabled: true, uiaDisabled: false }
+);
+
+/**
+ * Test the IsOffscreen property.
+ */
+addUiaTask(
+  `
+<button id="onscreen">onscreen</button>
+<button id="offscreen" style="position: absolute; left: -10000px;">offscreen</button>
+  `,
+  async function testIsOffscreen(browser, docAcc) {
+    await definePyVar("doc", `getDocUia()`);
+    ok(
+      !(await runPython(`findUiaByDomId(doc, "onscreen").CurrentIsOffscreen`)),
+      "onscreen has correct IsOffscreen"
+    );
+    ok(
+      await runPython(`findUiaByDomId(doc, "offscreen").CurrentIsOffscreen`),
+      "offscreen has correct IsOffscreen"
+    );
+    ok(
+      !(await runPython(`doc.CurrentIsOffscreen`)),
+      "doc has correct IsOffscreen"
+    );
+    info("Opening a new tab");
+    await BrowserTestUtils.withNewTab("", async () => {
+      // withNewTab (nor a focus event) isn't enough to guarantee the new tab is
+      // fully active in the foreground yet.
+      await untilCacheOk(() => {
+        const [state] = getStates(docAcc);
+        return state & STATE_OFFSCREEN;
+      }, "doc is offscreen in cross-platform tree");
+      // doc is now a background tab, so it should be offscreen.
+      ok(
+        await runPython(`doc.CurrentIsOffscreen`),
+        "doc has correct IsOffscreen"
+      );
+    });
+  },
+  { uiaEnabled: true, uiaDisabled: true }
 );

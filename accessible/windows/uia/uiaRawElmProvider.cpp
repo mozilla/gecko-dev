@@ -701,6 +701,12 @@ uiaRawElmProvider::GetPropertyValue(PROPERTYID aPropertyId,
           (acc->State() & states::FOCUSABLE) ? VARIANT_TRUE : VARIANT_FALSE;
       return S_OK;
 
+    case UIA_IsOffscreenPropertyId:
+      aPropertyValue->vt = VT_BOOL;
+      aPropertyValue->boolVal =
+          (acc->State() & states::OFFSCREEN) ? VARIANT_TRUE : VARIANT_FALSE;
+      return S_OK;
+
     case UIA_LabeledByPropertyId:
       if (Accessible* target = GetLabeledBy()) {
         aPropertyValue->vt = VT_UNKNOWN;
