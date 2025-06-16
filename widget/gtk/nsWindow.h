@@ -854,7 +854,6 @@ class nsWindow final : public nsBaseWidget {
   GdkPoint WaylandGetParentPosition();
   bool WaylandPopupConfigure();
   bool WaylandPopupIsAnchored();
-  bool WaylandPopupIsMenu();
   bool WaylandPopupIsContextMenu();
   bool WaylandPopupIsPermanent();
   // First popup means it's attached directly to toplevel window

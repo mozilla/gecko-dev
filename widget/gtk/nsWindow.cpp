@@ -1619,16 +1619,6 @@ void nsWindow::WaylandPopupHierarchyCalculatePositions() {
   }
 }
 
-// The MenuList popups are used as dropdown menus for example in WebRTC
-// microphone/camera chooser or autocomplete widgets.
-bool nsWindow::WaylandPopupIsMenu() {
-  nsMenuPopupFrame* menuPopupFrame = GetMenuPopupFrame(GetFrame());
-  if (menuPopupFrame) {
-    return mPopupType == PopupType::Menu && !menuPopupFrame->IsMenuList();
-  }
-  return false;
-}
-
 bool nsWindow::WaylandPopupIsContextMenu() {
   nsMenuPopupFrame* popupFrame = GetMenuPopupFrame(GetFrame());
   if (!popupFrame) {
@@ -1700,10 +1690,10 @@ void nsWindow::LogPopupHierarchy() {
     nsWindow* popup = mWaylandToplevel->mWaylandPopupNext;
     while (popup) {
       nsPrintfCString indentString("%*s", indent, " ");
-      LOG("%s %s %s nsWindow [%p] Menu %d Permanent %d ContextMenu %d "
+      LOG("%s %s %s nsWindow [%p] Permanent %d ContextMenu %d "
           "Anchored %d Visible %d MovedByRect %d\n",
           indentString.get(), popup->GetFrameTag().get(),
-          popup->GetPopupTypeName().get(), popup, popup->WaylandPopupIsMenu(),
+          popup->GetPopupTypeName().get(), popup,
           popup->WaylandPopupIsPermanent(), popup->mPopupContextMenu,
           popup->mPopupAnchored, gtk_widget_is_visible(popup->mShell),
           popup->mPopupUseMoveToRect);
@@ -1722,11 +1712,11 @@ void nsWindow::LogPopupHierarchy() {
       nsWindow* window = static_cast<nsWindow*>(widgetChain[i]);
       nsPrintfCString indentString("%*s", (int)(i + 1) * 4, " ");
       if (window) {
-        LOG("%s %s %s nsWindow [%p] Menu %d Permanent %d ContextMenu %d "
+        LOG("%s %s %s nsWindow [%p] Permanent %d ContextMenu %d "
             "Anchored %d Visible %d MovedByRect %d\n",
             indentString.get(), window->GetFrameTag().get(),
             window->GetPopupTypeName().get(), window,
-            window->WaylandPopupIsMenu(), window->WaylandPopupIsPermanent(),
+            window->WaylandPopupIsPermanent(),
             window->mPopupContextMenu, window->mPopupAnchored,
             gtk_widget_is_visible(window->mShell), window->mPopupUseMoveToRect);
       } else {
@@ -2573,21 +2563,15 @@ nsWindow::WaylandPopupGetPositionFromLayout() {
   } else {
     switch (flipType) {
       case FlipType::Both:
+      case FlipType::Default:
         hints = GdkAnchorHints(hints | GDK_ANCHOR_FLIP);
         break;
       case FlipType::Slide:
         hints = GdkAnchorHints(hints | GDK_ANCHOR_SLIDE);
         break;
-      case FlipType::Default:
-        hints = GdkAnchorHints(hints | GDK_ANCHOR_FLIP);
-        break;
       case FlipType::None:
         break;
     }
-  }
-  if (!WaylandPopupIsMenu()) {
-    // we don't want to slide menus to fit the screen rather resize them
-    hints = GdkAnchorHints(hints | GDK_ANCHOR_SLIDE);
   }
 
   // We want tooltips to flip verticaly or slide only.
