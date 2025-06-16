@@ -680,17 +680,28 @@ export class LoginDataSource extends DataSourceBase {
     if (logins.length != 1) {
       return;
     }
+
+    let notificationId = "update-login-success";
     const modifiedLogin = logins[0].clone();
+
     if (login.hasOwnProperty("username")) {
+      const passwordModified = modifiedLogin.password !== login.password;
+      const usernameModified = modifiedLogin.username !== login.username;
+
+      if (!passwordModified && usernameModified) {
+        notificationId = "update-username-success";
+      }
       modifiedLogin.username = login.username;
     }
+
     if (login.hasOwnProperty("password")) {
       modifiedLogin.password = login.password;
     }
+
     try {
       Services.logins.modifyLogin(logins[0], modifiedLogin);
       this.setNotification({
-        id: "update-login-success",
+        id: notificationId,
         viewMode: VIEW_MODES.LIST,
       });
       this.#recordLoginsUpdate("edit");

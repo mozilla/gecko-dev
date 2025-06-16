@@ -281,3 +281,46 @@ add_task(async function test_update_login_without_changes() {
 
   LoginTestUtils.clearData();
 });
+
+add_task(async function test_update_login_username_notification() {
+  const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
+  if (!canTestOSAuth) {
+    return;
+  }
+
+  info("Add login with no username");
+  const login = LoginTestUtils.testData.formLogin({
+    username: "",
+    password: "pass1",
+    origin: "https://example1.com",
+  });
+  await LoginTestUtils.addLogin(login);
+
+  const megalist = await openPasswordsSidebar();
+  await checkAllLoginsRendered(megalist);
+
+  const passwordCard = megalist.querySelector("password-card");
+  await waitForReauth(() => passwordCard.editBtn.click());
+
+  await BrowserTestUtils.waitForCondition(
+    () => megalist.querySelector("login-form"),
+    "Login form failed to render"
+  );
+
+  const newUsername = "new_username";
+  const loginForm = megalist.querySelector("login-form");
+  info("Updating login.");
+  setInputValue(loginForm, "login-username-field", newUsername);
+
+  const saveButton = loginForm.shadowRoot.querySelector(
+    "moz-button[type=primary]"
+  );
+  info("Submitting form.");
+  saveButton.buttonEl.click();
+
+  await waitForNotification(megalist, "update-username-success");
+  ok(true, "Got correct username updated notification.");
+
+  LoginTestUtils.clearData();
+  SidebarController.hide();
+});
