@@ -238,6 +238,28 @@ if $NEED_WINDOW_MANAGER; then
     # credit card numbers.
     eval `echo '' | /usr/bin/gnome-keyring-daemon -r -d --unlock --components=secrets`
 
+    # Wait for gnome-shell to start up
+    retry_count=5
+    while ! dbus-send --print-reply=literal --session --dest=org.gnome.Shell --type=method_call /org/gnome/Shell org.freedesktop.DBus.Properties.Get string:org.gnome.Shell string:OverviewActive; do
+      if [ $retry_count = 0 ]; then
+        fail "gnome-shell still not up, giving up"
+      fi
+      retry_count=$((retry_count - 1))
+      sleep 5
+    done
+    # Sometimes gnome-shell starts up in overview even though the ubuntu-dock
+    # extension is supposed to disable that.  When that happens we never get
+    # focus and the test harness times out.  So tell gnome-shell to get out of
+    # overview before anything else.
+    if dbus-send --print-reply=literal --session --dest=org.gnome.Shell --type=method_call /org/gnome/Shell org.freedesktop.DBus.Properties.Get string:org.gnome.Shell string:OverviewActive | grep true; then
+      dbus-send --session --dest=org.gnome.Shell --type=method_call /org/gnome/Shell org.freedesktop.DBus.Properties.Set string:org.gnome.Shell string:OverviewActive variant:boolean:false
+      sleep 2
+      if dbus-send --print-reply=literal --session --dest=org.gnome.Shell --type=method_call /org/gnome/Shell org.freedesktop.DBus.Properties.Get string:org.gnome.Shell string:OverviewActive | grep true; then
+        echo "gnome-shell didn't get out of overview, retry"
+        exit 4
+      fi
+    fi
+
     # Run mutter as nested wayland compositor to provide Wayland environment
     # on top of XVfb.
     if [ $MOZ_ENABLE_WAYLAND ]; then
