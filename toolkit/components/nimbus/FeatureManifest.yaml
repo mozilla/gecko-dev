@@ -1442,7 +1442,7 @@ newtabMerinoOhttp:
       type: boolean
       setPref:
         branch: user
-        pref: browser.newtabpage.activity-stream.discoverystrean.merino-provider.ohttp.enabled
+        pref: browser.newtabpage.activity-stream.discoverystream.merino-provider.ohttp.enabled
       description: >-
         Enables using OHTTP for merino content requests
 
