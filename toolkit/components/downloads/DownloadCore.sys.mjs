@@ -2638,15 +2638,30 @@ DownloadCopySaver.prototype = {
    * @rejects DownloadError if the download should be blocked.
    */
   async _checkReputationAndMove(aSetPropertiesFn) {
+    /**
+     * Maps nsIApplicationReputationService verdicts with the DownloadError ones.
+     */
+    const kVerdictMap = {
+      [Ci.nsIApplicationReputationService.VERDICT_DANGEROUS]:
+        DownloadError.BLOCK_VERDICT_MALWARE,
+      [Ci.nsIApplicationReputationService.VERDICT_UNCOMMON]:
+        DownloadError.BLOCK_VERDICT_UNCOMMON,
+      [Ci.nsIApplicationReputationService.VERDICT_POTENTIALLY_UNWANTED]:
+        DownloadError.BLOCK_VERDICT_POTENTIALLY_UNWANTED,
+      [Ci.nsIApplicationReputationService.VERDICT_DANGEROUS_HOST]:
+        DownloadError.BLOCK_VERDICT_MALWARE,
+    };
+
     let download = this.download;
     let targetPath = this.download.target.path;
     let partFilePath = this.download.target.partFilePath;
 
     let { shouldBlock, verdict } =
       await lazy.DownloadIntegration.shouldBlockForReputationCheck(download);
+    let downloadErrorVerdict = kVerdictMap[verdict] || "";
     if (shouldBlock) {
       Glean.downloads.userActionOnBlockedDownload[
-        verdict
+        downloadErrorVerdict
       ].accumulateSingleSample(0);
 
       let newProperties = { progress: 100, hasPartialData: false };
@@ -2665,7 +2680,7 @@ DownloadCopySaver.prototype = {
 
       throw new DownloadError({
         becauseBlockedByReputationCheck: true,
-        reputationCheckVerdict: verdict,
+        reputationCheckVerdict: downloadErrorVerdict,
       });
     }
 

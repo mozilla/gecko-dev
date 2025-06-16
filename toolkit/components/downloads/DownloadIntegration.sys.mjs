@@ -117,20 +117,6 @@ const kObserverTopics = [
 ];
 
 /**
- * Maps nsIApplicationReputationService verdicts with the DownloadError ones.
- */
-const kVerdictMap = {
-  [Ci.nsIApplicationReputationService.VERDICT_DANGEROUS]:
-    Downloads.Error.BLOCK_VERDICT_MALWARE,
-  [Ci.nsIApplicationReputationService.VERDICT_UNCOMMON]:
-    Downloads.Error.BLOCK_VERDICT_UNCOMMON,
-  [Ci.nsIApplicationReputationService.VERDICT_POTENTIALLY_UNWANTED]:
-    Downloads.Error.BLOCK_VERDICT_POTENTIALLY_UNWANTED,
-  [Ci.nsIApplicationReputationService.VERDICT_DANGEROUS_HOST]:
-    Downloads.Error.BLOCK_VERDICT_MALWARE,
-};
-
-/**
  * Provides functions to integrate with the host application, handling for
  * example the global prompts on shutdown.
  */
@@ -466,13 +452,13 @@ export var DownloadIntegration = {
       // Bail if DownloadSaver doesn't have a hash or signature info.
       return Promise.resolve({
         shouldBlock: false,
-        verdict: "",
+        verdict: Ci.nsIApplicationReputationService.VERDICT_SAFE,
       });
     }
     if (!hash || !sigInfo) {
       return Promise.resolve({
         shouldBlock: false,
-        verdict: "",
+        verdict: Ci.nsIApplicationReputationService.VERDICT_SAFE,
       });
     }
     return new Promise(resolve => {
@@ -489,7 +475,9 @@ export var DownloadIntegration = {
         function onComplete(aShouldBlock, aRv, aVerdict) {
           resolve({
             shouldBlock: aShouldBlock,
-            verdict: (aShouldBlock && kVerdictMap[aVerdict]) || "",
+            verdict: aShouldBlock
+              ? aVerdict
+              : Ci.nsIApplicationReputationService.VERDICT_SAFE,
           });
         }
       );

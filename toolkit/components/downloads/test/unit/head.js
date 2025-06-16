@@ -716,7 +716,8 @@ async function promisePartFileReady(aDownload) {
  *           keepPartialData: bool,
  *           keepBlockedData: bool,
  *           useLegacySaver: bool,
- *           verdict: string indicating the detailed reason for the block,
+ *           verdict: nsIApplicationReputationService value indicating the reason for the block,
+ *           expectedError: Downloads.Error value indicating the expected error,
  *        }
  * @return {Promise}
  * @resolves The reputation blocked download.
@@ -726,7 +727,8 @@ async function promiseBlockedDownload({
   keepPartialData,
   keepBlockedData,
   useLegacySaver,
-  verdict = Downloads.Error.BLOCK_VERDICT_UNCOMMON,
+  verdict = Ci.nsIApplicationReputationService.VERDICT_UNCOMMON,
+  expectedError = Downloads.Error.BLOCK_VERDICT_UNCOMMON,
 } = {}) {
   let blockFn = () => ({
     shouldBlockForReputationCheck: () =>
@@ -766,9 +768,9 @@ async function promiseBlockedDownload({
       throw ex;
     }
     Assert.ok(ex.becauseBlockedByReputationCheck);
-    Assert.equal(ex.reputationCheckVerdict, verdict);
+    Assert.equal(ex.reputationCheckVerdict, expectedError);
     Assert.ok(download.error.becauseBlockedByReputationCheck);
-    Assert.equal(download.error.reputationCheckVerdict, verdict);
+    Assert.equal(download.error.reputationCheckVerdict, expectedError);
   }
 
   Assert.ok(download.stopped);
@@ -1138,7 +1140,7 @@ add_setup(function test_common_initialize() {
       shouldBlockForReputationCheck: () =>
         Promise.resolve({
           shouldBlock: false,
-          verdict: "",
+          verdict: Ci.nsIApplicationReputationService.VERDICT_SAFE,
         }),
       confirmLaunchExecutable: () => Promise.resolve(),
       launchFile: () => Promise.resolve(),

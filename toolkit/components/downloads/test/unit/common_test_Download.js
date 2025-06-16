@@ -2090,7 +2090,7 @@ add_task(async function test_blocked_applicationReputation_race() {
         // 3. Allow the first attempt to finish with a blocked response.
         return Promise.resolve({
           shouldBlock: true,
-          verdict: Downloads.Error.BLOCK_VERDICT_UNCOMMON,
+          verdict: Ci.nsIApplicationReputationService.VERDICT_UNCOMMON,
         });
       }
 
@@ -2099,7 +2099,7 @@ add_task(async function test_blocked_applicationReputation_race() {
       //      is blocked, but not blocking here makes the test simpler.
       return Promise.resolve({
         shouldBlock: false,
-        verdict: "",
+        verdict: Ci.nsIApplicationReputationService.VERDICT_SAFE,
       });
     },
     shouldKeepBlockedData: () => Promise.resolve(true),

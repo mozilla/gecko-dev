@@ -10,15 +10,28 @@ Services.prefs.setBoolPref(
   true
 );
 
-const errors = [
-  Downloads.Error.BLOCK_VERDICT_MALWARE,
-  Downloads.Error.BLOCK_VERDICT_POTENTIALLY_UNWANTED,
-  Downloads.Error.BLOCK_VERDICT_INSECURE,
-  Downloads.Error.BLOCK_VERDICT_UNCOMMON,
-];
+const verdictToErrorsMap = new Map([
+  [
+    Ci.nsIApplicationReputationService.VERDICT_DANGEROUS,
+    Downloads.Error.BLOCK_VERDICT_MALWARE,
+  ],
+  [
+    Ci.nsIApplicationReputationService.VERDICT_POTENTIALLY_UNWANTED,
+    Downloads.Error.BLOCK_VERDICT_POTENTIALLY_UNWANTED,
+  ],
+  [
+    Ci.nsIApplicationReputationService.VERDICT_UNCOMMON,
+    Downloads.Error.BLOCK_VERDICT_UNCOMMON,
+  ],
+  // BLOCK_VERDICT_INSECURE does not have a corresponding verdict,
+  // but we use a different code path that doesn't use the verdict
+  // in the test.
+  ["Unused verdict", Downloads.Error.BLOCK_VERDICT_INSECURE],
+]);
 
 add_task(async function test_confirm_block_download() {
-  for (let error of errors) {
+  for (const verdict of verdictToErrorsMap.keys()) {
+    const error = verdictToErrorsMap.get(verdict);
     info(`Testing block ${error} download`);
     let histogram = TelemetryTestUtils.getAndClearKeyedHistogram(
       "DOWNLOADS_USER_ACTION_ON_BLOCKED_DOWNLOAD"
@@ -36,7 +49,8 @@ add_task(async function test_confirm_block_download() {
           keepPartialData: true,
           keepBlockedData: true,
           useLegacySaver: false,
-          verdict: error,
+          verdict,
+          expectedError: error,
         });
       }
       await download.start();
@@ -61,7 +75,8 @@ add_task(async function test_confirm_block_download() {
 });
 
 add_task(async function test_confirm_unblock_download() {
-  for (let error of errors) {
+  for (const verdict of verdictToErrorsMap.keys()) {
+    const error = verdictToErrorsMap.get(verdict);
     info(`Testing unblock ${error} download`);
     let histogram = TelemetryTestUtils.getAndClearKeyedHistogram(
       "DOWNLOADS_USER_ACTION_ON_BLOCKED_DOWNLOAD"
@@ -79,7 +94,8 @@ add_task(async function test_confirm_unblock_download() {
           keepPartialData: true,
           keepBlockedData: true,
           useLegacySaver: false,
-          verdict: error,
+          verdict,
+          expectedError: error,
         });
       }
       await download.start();
