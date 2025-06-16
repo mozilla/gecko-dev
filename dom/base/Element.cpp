@@ -326,8 +326,7 @@ void Element::SetPointerCapture(int32_t aPointerId, ErrorResult& aError) {
   // XXX If pointerInfo->mIsSynthesizedForTests does not match the last
   // WidgetPointerEvent's mFlags.mIsSynthesizedForTests, should we treat it
   // as unknown pointerId?
-  if (!pointerInfo->mActiveState ||
-      pointerInfo->mActiveDocument != OwnerDoc()) {
+  if (!pointerInfo->mIsActive || pointerInfo->mActiveDocument != OwnerDoc()) {
     return;
   }
   PointerEventHandler::RequestPointerCaptureById(aPointerId, this);

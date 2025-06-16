@@ -45,27 +45,51 @@ class PointerCaptureInfo final {
   bool Empty() { return !(mPendingElement || mOverrideElement); }
 };
 
-class PointerInfo final {
- public:
-  uint16_t mPointerType;
-  bool mActiveState;
-  bool mPrimaryState;
-  bool mFromTouchEvent;
-  bool mPreventMouseEventByContent;
-  // Set to true if the pointer is activated only by synthesized mouse events.
-  bool mIsSynthesizedForTests;
-  WeakPtr<dom::Document> mActiveDocument;
-  explicit PointerInfo(bool aActiveState, uint16_t aPointerType,
-                       bool aPrimaryState, bool aFromTouchEvent,
-                       dom::Document* aActiveDocument,
-                       bool aIsSynthesizedForTests = false)
-      : mPointerType(aPointerType),
-        mActiveState(aActiveState),
-        mPrimaryState(aPrimaryState),
-        mFromTouchEvent(aFromTouchEvent),
+struct PointerInfo final {
+  enum class Active : bool { No, Yes };
+  enum class Primary : bool { No, Yes };
+  enum class FromTouchEvent : bool { No, Yes };
+  enum class SynthesizeForTests : bool { No, Yes };
+  PointerInfo() = delete;
+  PointerInfo(const PointerInfo&) = default;
+  PointerInfo(PointerInfo&&) = default;
+  explicit PointerInfo(
+      Active aActiveState, uint16_t aInputSource, Primary aPrimaryState,
+      FromTouchEvent aFromTouchEvent, dom::Document* aActiveDocument,
+      SynthesizeForTests aIsSynthesizedForTests = SynthesizeForTests::No)
+      : mActiveDocument(aActiveDocument),
+        mInputSource(aInputSource),
+        mIsActive(static_cast<bool>(aActiveState)),
+        mIsPrimary(static_cast<bool>(aPrimaryState)),
+        mFromTouchEvent(static_cast<bool>(aFromTouchEvent)),
         mPreventMouseEventByContent(false),
-        mIsSynthesizedForTests(aIsSynthesizedForTests),
-        mActiveDocument(aActiveDocument) {}
+        mIsSynthesizedForTests(static_cast<bool>(aIsSynthesizedForTests)) {}
+  explicit PointerInfo(Active aActiveState,
+                       const WidgetPointerEvent& aPointerEvent,
+                       dom::Document* aActiveDocument)
+      : mActiveDocument(aActiveDocument),
+        mInputSource(aPointerEvent.mInputSource),
+        mIsActive(static_cast<bool>(aActiveState)),
+        mIsPrimary(aPointerEvent.mIsPrimary),
+        mFromTouchEvent(aPointerEvent.mFromTouchEvent),
+        mPreventMouseEventByContent(false),
+        mIsSynthesizedForTests(aPointerEvent.mFlags.mIsSynthesizedForTests) {}
+
+  WeakPtr<dom::Document> mActiveDocument;
+  // mInputSource indicates which input source caused the last event.  E.g.,
+  // if the last event is a compatibility mouse event, the input source is
+  // "touch".
+  uint16_t mInputSource = 0;
+  bool mIsActive : 1;
+  bool mIsPrimary : 1;
+  // mFromTouchEvent is set to true if the last event is a touch event or a
+  // pointer event caused by a touch event.  If the last event is a
+  // compatibility mouse event, this is set to false even though the input
+  // source is "touch".
+  bool mFromTouchEvent : 1;
+  bool mPreventMouseEventByContent : 1;
+  // Set to true if the pointer is activated only by synthesized mouse events.
+  bool mIsSynthesizedForTests : 1;
 };
 
 class PointerEventHandler final {
