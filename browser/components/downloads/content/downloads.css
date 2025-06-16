@@ -41,9 +41,10 @@
   display: none;
 }
 
-.download-state:not([state="6"],/* Blocked (parental) */
-                    [state="8"],/* Blocked (dirty)    */
-                    [state="9"] /* Blocked (policy)   */)
+.download-state:not([state="6"], /* Blocked (parental)         */
+                    [state="8"], /* Blocked (dirty)            */
+                    [state="9"], /* Blocked (policy)           */
+                    [state="10"] /* Blocked (content analysis) */)
                                            .downloadBlockedBadge,
 
 .download-state:not([state="-1"],/* Starting (initial) */

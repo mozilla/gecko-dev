@@ -1747,6 +1747,14 @@ var DownloadsBlockedSubview = {
     let e = this.elements;
     let s = DownloadsCommon.strings;
 
+    e.deleteButton.hidden =
+      download.error?.becauseBlockedByContentAnalysis &&
+      download.error?.reputationCheckVerdict === "Malware";
+
+    e.unblockButton.hidden =
+      download.error?.becauseBlockedByContentAnalysis &&
+      download.error?.reputationCheckVerdict === "Malware";
+
     title.l10n
       ? document.l10n.setAttributes(e.title, title.l10n.id, title.l10n.args)
       : (e.title.textContent = title);

@@ -12,6 +12,7 @@
  */
 
 import { DownloadList } from "resource://gre/modules/DownloadList.sys.mjs";
+import { DownloadError } from "resource://gre/modules/DownloadCore.sys.mjs";
 
 const lazy = {};
 
@@ -32,6 +33,7 @@ const METADATA_STATE_CANCELED = 3;
 const METADATA_STATE_PAUSED = 4;
 const METADATA_STATE_BLOCKED_PARENTAL = 6;
 const METADATA_STATE_DIRTY = 8;
+const METADATA_STATE_BLOCKED_CONTENT_ANALYSIS = 9;
 
 /**
  * Provides methods to retrieve downloads from previous sessions and store
@@ -125,6 +127,12 @@ export let DownloadHistory = {
         state = METADATA_STATE_BLOCKED_PARENTAL;
       } else if (download.error.becauseBlockedByReputationCheck) {
         state = METADATA_STATE_DIRTY;
+      } else if (download.error.becauseBlockedByContentAnalysis) {
+        state =
+          download.error.reputationCheckVerdict ===
+          DownloadError.BLOCK_VERDICT_MALWARE
+            ? METADATA_STATE_BLOCKED_CONTENT_ANALYSIS
+            : METADATA_STATE_DIRTY;
       } else {
         state = METADATA_STATE_FAILED;
       }
@@ -433,6 +441,11 @@ class HistoryDownload {
         this.error = { message: "History download failed." };
       } else if (metaData.state == METADATA_STATE_BLOCKED_PARENTAL) {
         this.error = { becauseBlockedByParentalControls: true };
+      } else if (metaData.state == METADATA_STATE_BLOCKED_CONTENT_ANALYSIS) {
+        this.error = {
+          becauseBlockedByContentAnalysis: true,
+          reputationCheckVerdict: metaData.reputationCheckVerdict || "",
+        };
       } else if (metaData.state == METADATA_STATE_DIRTY) {
         this.error = {
           becauseBlockedByReputationCheck: true,
@@ -502,6 +515,17 @@ class HistoryDownload {
     }
     this.deleted = true;
     await this.refresh();
+  }
+
+  /**
+   * This method mimicks the "respondToContentAnalysisWarnWithBlock"
+   * method of session downloads.
+   */
+  async respondToContentAnalysisWarnWithBlock() {
+    // A history download cannot be pending a content
+    // analysis response (since it doesn't persist after Firefox
+    // is closed), so just do nothing.
+    console.warn("attempted to block via Content Analysis a history download");
   }
 }
 

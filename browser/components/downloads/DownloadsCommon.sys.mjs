@@ -143,6 +143,7 @@ export var DownloadsCommon = {
   DOWNLOAD_BLOCKED_PARENTAL: 6,
   DOWNLOAD_DIRTY: 8,
   DOWNLOAD_BLOCKED_POLICY: 9,
+  DOWNLOAD_BLOCKED_CONTENT_ANALYSIS: 10,
 
   // The following are the possible values of the "attention" property.
   ATTENTION_NONE: "",
@@ -295,6 +296,18 @@ export var DownloadsCommon = {
       if (download.error.becauseBlockedByReputationCheck) {
         return DownloadsCommon.DOWNLOAD_DIRTY;
       }
+      if (download.error.becauseBlockedByContentAnalysis) {
+        // BLOCK_VERDICT_MALWARE indicates that the download was
+        // blocked by the content analysis service, so return
+        // DOWNLOAD_BLOCKED_CONTENT_ANALYSIS to indicate this.
+        // Otherwise, the content analysis service returned
+        // WARN, so the user has a chance to unblock the download,
+        // which corresponds with DOWNLOAD_DIRTY.
+        return download.error.reputationCheckVerdict ===
+          lazy.Downloads.Error.BLOCK_VERDICT_MALWARE
+          ? DownloadsCommon.DOWNLOAD_BLOCKED_CONTENT_ANALYSIS
+          : DownloadsCommon.DOWNLOAD_DIRTY;
+      }
       return DownloadsCommon.DOWNLOAD_FAILED;
     }
     if (download.canceled) {
@@ -311,7 +324,7 @@ export var DownloadsCommon = {
    */
   async deleteDownload(download) {
     // Check hasBlockedData to avoid double counting if you click the X button
-    // in the Libarary view and then delete the download from the history.
+    // in the Library view and then delete the download from the history.
     if (
       download.error?.becauseBlockedByReputationCheck &&
       download.hasBlockedData
@@ -331,6 +344,9 @@ export var DownloadsCommon = {
     }
     let list = await lazy.Downloads.getList(lazy.Downloads.ALL);
     await list.remove(download);
+    if (download.error?.becauseBlockedByContentAnalysis) {
+      await download.respondToContentAnalysisWarnWithBlock();
+    }
     await download.finalize(true);
   },
 
@@ -359,6 +375,9 @@ export var DownloadsCommon = {
       await list.remove(download);
     }
     await download.manuallyRemoveData();
+    if (download.error?.becauseBlockedByContentAnalysis) {
+      await download.respondToContentAnalysisWarnWithBlock();
+    }
     if (clearHistory < 2) {
       lazy.DownloadHistory.updateMetaData(download).catch(console.error);
     }
@@ -629,6 +648,8 @@ export var DownloadsCommon = {
    *            the "Downloads.Error.BLOCK_VERDICT_" constants. If an unknown
    *            reason is specified, "Downloads.Error.BLOCK_VERDICT_MALWARE" is
    *            assumed.
+   *          becauseBlockedByReputationCheck:
+   *            Whether the the download was blocked by a reputation check.
    *          window:
    *            The window with which this action is associated.
    *          dialogType:
@@ -645,7 +666,12 @@ export var DownloadsCommon = {
    *            - "confirmBlock" to delete the blocked data permanently.
    *            - "cancel" to do nothing and cancel the operation.
    */
-  async confirmUnblockDownload({ verdict, window, dialogType }) {
+  async confirmUnblockDownload({
+    verdict,
+    becauseBlockedByReputationCheck,
+    window,
+    dialogType,
+  }) {
     let s = DownloadsCommon.strings;
 
     // All the dialogs have an action button and a cancel button, while only
@@ -685,12 +711,18 @@ export var DownloadsCommon = {
     }
 
     let message;
+    let tip = s.unblockTip2;
     switch (verdict) {
       case lazy.Downloads.Error.BLOCK_VERDICT_UNCOMMON:
         message = s.unblockTypeUncommon2;
         break;
       case lazy.Downloads.Error.BLOCK_VERDICT_POTENTIALLY_UNWANTED:
-        message = s.unblockTypePotentiallyUnwanted2;
+        if (becauseBlockedByReputationCheck) {
+          message = s.unblockTypePotentiallyUnwanted2;
+        } else {
+          message = s.unblockTypeContentAnalysisWarn;
+          tip = s.unblockContentAnalysisTip;
+        }
         break;
       case lazy.Downloads.Error.BLOCK_VERDICT_INSECURE:
         message = s.unblockInsecure2;
@@ -700,7 +732,7 @@ export var DownloadsCommon = {
         message = s.unblockTypeMalware;
         break;
     }
-    message += "\n\n" + s.unblockTip2;
+    message += "\n\n" + tip;
 
     Services.ww.registerNotification(function onOpen(subj, topic) {
       if (topic == "domwindowopened" && subj instanceof Ci.nsIDOMWindow) {
@@ -860,7 +892,10 @@ DownloadsDataCtor.prototype = {
       download,
       DownloadsCommon.stateOfDownload(download)
     );
-    if (download.error?.becauseBlockedByReputationCheck) {
+    if (
+      download.error?.becauseBlockedByReputationCheck ||
+      download.error?.becauseBlockedByContentAnalysis
+    ) {
       this._notifyDownloadEvent("error");
     }
   },

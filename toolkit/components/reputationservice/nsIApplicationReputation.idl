@@ -20,6 +20,8 @@ interface nsIReferrerInfo;
 interface nsIApplicationReputationService : nsISupports {
   /**
    * Indicates the reason for the application reputation block.
+   * These values should not be modified as they match the values in
+   * ClientDownloadResponse.Verdict in csd.proto.
    */
   const unsigned long VERDICT_SAFE = 0;
   const unsigned long VERDICT_DANGEROUS = 1;
