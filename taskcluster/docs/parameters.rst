@@ -236,6 +236,9 @@ Release Promotion
 ``signoff_urls``
    A dictionary of signoff keys to url values. These are the urls marking the corresponding ``required_signoffs`` as signed off.
 
+``partial_versions``
+   A list of previous versions that partial updates should be generated for, in the form of X.YbuildN, eg: ["138.0.1build1", "137.0build2"].
+
 
 Repository Merge Day
 --------------------
