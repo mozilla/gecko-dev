@@ -6697,7 +6697,9 @@ static bool ShellIsAlive(nsWeakPtr& aWeakPtr) {
 
 void ScrollContainerFrame::SetScrollbarEnabled(Element* aElement,
                                                nscoord aMaxPos) {
-  DebugOnly<nsWeakPtr> weakShell(do_GetWeakReference(PresShell()));
+#ifdef DEBUG
+  nsWeakPtr weakShell(do_GetWeakReference(PresShell()));
+#endif
   if (aMaxPos) {
     aElement->UnsetAttr(kNameSpaceID_None, nsGkAtoms::disabled, true);
   } else {
@@ -6708,7 +6710,9 @@ void ScrollContainerFrame::SetScrollbarEnabled(Element* aElement,
 
 void ScrollContainerFrame::SetCoordAttribute(Element* aElement, nsAtom* aAtom,
                                              nscoord aSize) {
-  DebugOnly<nsWeakPtr> weakShell(do_GetWeakReference(PresShell()));
+#ifdef DEBUG
+  nsWeakPtr weakShell(do_GetWeakReference(PresShell()));
+#endif
   // convert to pixels
   int32_t pixelSize = nsPresContext::AppUnitsToIntCSSPixels(aSize);
 
