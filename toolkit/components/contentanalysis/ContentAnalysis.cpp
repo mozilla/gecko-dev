@@ -858,18 +858,27 @@ static void LogRequest(
   ss << "ContentAnalysisRequest:"
      << "\n";
 
-#define ADD_FIELD(PBUF, NAME, FUNC)            \
-  ss << "  " << (NAME) << ": ";                \
-  if ((PBUF)->has_##FUNC()) {                  \
-    LogWithMaxLength(ss, (PBUF)->FUNC(), 500); \
-    ss << "\n";                                \
-  } else                                       \
-    ss << "<none>"                             \
+#define ADD_FIELD_WITH_VALFUNC(PBUF, NAME, FUNC, VALFUNC) \
+  ss << "  " << (NAME) << ": ";                           \
+  if ((PBUF)->has_##FUNC()) {                             \
+    LogWithMaxLength(ss, VALFUNC(), 500);                 \
+    ss << "\n";                                           \
+  } else                                                  \
+    ss << "<none>"                                        \
        << "\n";
+
+#define ADD_FIELD(PBUF, NAME, FUNC) \
+  ADD_FIELD_WITH_VALFUNC(PBUF, NAME, FUNC, (PBUF)->FUNC)
 
 #define ADD_EXISTS(PBUF, NAME, FUNC) \
   ss << "  " << (NAME) << ": "       \
      << ((PBUF)->has_##FUNC() ? "<exists>" : "<none>") << "\n";
+
+#define ADD_NONEMPTY(PBUF, NAME, FUNC)                                      \
+  ss << "  " << (NAME) << ": "                                              \
+     << (((PBUF)->has_##FUNC() && (!(PBUF)->FUNC().empty())) ? "<nonempty>" \
+                                                             : "<none>")    \
+     << "\n";
 
   ADD_FIELD(aPbRequest, "Expires", expires_at);
   ADD_FIELD(aPbRequest, "Analysis Type", analysis_connector);
@@ -878,7 +887,7 @@ static void LogRequest(
   ADD_FIELD(aPbRequest, "User Action Requests Count",
             user_action_requests_count);
   ADD_FIELD(aPbRequest, "File Path", file_path);
-  ADD_FIELD(aPbRequest, "Text Content", text_content);
+  ADD_NONEMPTY(aPbRequest, "Text Content", text_content);
   // TODO: Tags
   ADD_EXISTS(aPbRequest, "Request Data Struct", request_data);
   const auto* requestData =
@@ -886,7 +895,13 @@ static void LogRequest(
   if (requestData) {
     ADD_FIELD(requestData, "  Url", url);
     ADD_FIELD(requestData, "  Email", email);
-    ADD_FIELD(requestData, "  SHA-256 Digest", digest);
+    auto hexDigestFunc = [&requestData]() {
+      return ToHexString(
+          reinterpret_cast<const uint8_t*>(requestData->digest().c_str()),
+          requestData->digest().length());
+    };
+    ADD_FIELD_WITH_VALFUNC(requestData, "  SHA-256 Digest", digest,
+                           hexDigestFunc);
     ADD_FIELD(requestData, "  Filename", filename);
     ADD_EXISTS(requestData, "  Client Download Request struct", csd);
     const auto* csd = requestData->has_csd() ? &requestData->csd() : nullptr;
