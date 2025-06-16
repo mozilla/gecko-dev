@@ -275,7 +275,6 @@ void AtomMarkingRuntime::markAtomValue(JSContext* cx, const Value& value) {
                                        value.isBigInt());
 }
 
-#ifdef DEBUG
 template <typename T>
 bool AtomMarkingRuntime::atomIsMarked(Zone* zone, T* thing) {
   static_assert(std::is_same_v<T, JSAtom> || std::is_same_v<T, JS::Symbol>,
@@ -305,6 +304,8 @@ bool AtomMarkingRuntime::atomIsMarked(Zone* zone, T* thing) {
 
 template bool AtomMarkingRuntime::atomIsMarked(Zone* zone, JSAtom* thing);
 template bool AtomMarkingRuntime::atomIsMarked(Zone* zone, JS::Symbol* thing);
+
+#ifdef DEBUG
 
 template <>
 bool AtomMarkingRuntime::atomIsMarked(Zone* zone, TenuredCell* thing) {
