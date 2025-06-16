@@ -174,6 +174,7 @@ STATIC_ATOMS = [
     Atom("axis", "axis"),
     Atom("b", "b"),
     Atom("background", "background"),
+    Atom("badge", "badge"),
     Atom("bar", "bar"),
     Atom("base", "base"),
     Atom("basefont", "basefont"),

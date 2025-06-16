@@ -91,6 +91,7 @@ nsMenuItemX::nsMenuItemX(nsMenuX* aParent, const nsString& aLabel,
         mIsChecked ? NSControlStateValueOn : NSControlStateValueOff;
 
     SetKeyEquiv();
+    SetBadge();
   }
 
   mIcon = MakeUnique<nsMenuItemIconX>(this);
@@ -311,6 +312,23 @@ void nsMenuItemX::SetKeyEquiv() {
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
+void nsMenuItemX::SetBadge() {
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
+
+  if (@available(macOS 14.0, *)) {
+    // Set key shortcut and modifiers
+    nsAutoString badgeValue;
+    if (!mContent->AsElement()->GetAttr(nsGkAtoms::badge, badgeValue)) {
+      mNativeMenuItem.badge = nullptr;
+      return;
+    }
+    mNativeMenuItem.badge = [[NSMenuItemBadge alloc]
+        initWithString:nsMenuUtilsX::GetTruncatedCocoaLabel(badgeValue)];
+  }
+
+  NS_OBJC_END_TRY_ABORT_BLOCK;
+}
+
 void nsMenuItemX::Dump(uint32_t aIndent) const {
   printf("%*s - item [%p] %-16s <%s>\n", aIndent * 2, "", this,
          mType == eSeparatorMenuItemType ? "----"
@@ -361,6 +379,8 @@ void nsMenuItemX::ObserveAttributeChanged(dom::Document* aDocument,
         mContent->AsElement()->GetAttr(nsGkAtoms::label, newLabel);
         mNativeMenuItem.title = nsMenuUtilsX::GetTruncatedCocoaLabel(newLabel);
       }
+    } else if (aAttribute == nsGkAtoms::badge) {
+      SetBadge();
     } else if (aAttribute == nsGkAtoms::key) {
       SetKeyEquiv();
     } else if (aAttribute == nsGkAtoms::image) {
