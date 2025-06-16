@@ -298,7 +298,10 @@ add_task(async function () {
   // restrictions, hence we explicitly switch off the https-first
   // upgrading mechanism.
   await SpecialPowers.pushPrefEnv({
-    set: [["dom.security.https_first", false]],
+    set: [
+      ["dom.security.https_first", false],
+      ["security.allow_eval_with_system_principal", true],
+    ],
   });
 
   await kAboutPagesRegistered;

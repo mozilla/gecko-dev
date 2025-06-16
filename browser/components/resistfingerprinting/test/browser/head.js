@@ -59,6 +59,7 @@ let setupPerformanceAPISpoofAndDisableTest = async function (
       ],
       ["browser.tabs.remote.useCrossOriginOpenerPolicy", crossOriginIsolated],
       ["browser.tabs.remote.useCrossOriginEmbedderPolicy", crossOriginIsolated],
+      ["security.allow_eval_with_system_principal", true],
     ],
   });
 
