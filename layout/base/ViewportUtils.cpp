@@ -178,29 +178,15 @@ LDPointOrRect ConvertToScreenRelativeVisual(const LDPointOrRect& aInput,
   MOZ_ASSERT(aCtx);
 
   LDPointOrRect layoutToVisual(aInput);
-  nsIFrame* prevRootFrame = nullptr;
-  nsPresContext* prevCtx = nullptr;
+  nsPresContext* rootCtx = aCtx->GetRootPresContext();
+  nsIFrame* rootRootFrame = rootCtx->PresShell()->GetRootFrame();
 
-  // Walk up to the rootmost prescontext, transforming as we go.
-  for (nsPresContext* ctx = aCtx; ctx; ctx = ctx->GetParentPresContext()) {
-    PresShell* shell = ctx->PresShell();
-    nsIFrame* rootFrame = shell->GetRootFrame();
-    if (prevRootFrame) {
-      // Convert layoutToVisual from being relative to `prevRootFrame`
-      // to being relative to `rootFrame` (layout space).
-      nscoord apd = prevCtx->AppUnitsPerDevPixel();
-      nsPoint offset = prevRootFrame->GetOffsetToCrossDoc(rootFrame, apd);
-      layoutToVisual += LayoutDevicePoint::FromAppUnits(offset, apd);
-    }
-    if (shell->GetResolution() != 1.0) {
-      // Found the APZ zoom root, so do the layout -> visual conversion.
-      layoutToVisual =
-          ViewportUtils::DocumentRelativeLayoutToVisual(layoutToVisual, shell);
-    }
-
-    prevRootFrame = rootFrame;
-    prevCtx = ctx;
-  }
+  auto transformToAncestor = ViewAs<LayoutDeviceToLayoutDeviceMatrix4x4>(
+      nsLayoutUtils::GetTransformToAncestor(
+          {aCtx->PresShell()->GetRootFrame(), ViewportType::Layout},
+          {rootRootFrame, ViewportType::Visual})
+          .GetMatrix());
+  layoutToVisual = TransformPointOrRect(transformToAncestor, layoutToVisual);
 
   // If we're in a nested content process, the above traversal will not have
   // encountered the APZ zoom root. The translation part of the layout-to-visual
@@ -209,7 +195,7 @@ LDPointOrRect ConvertToScreenRelativeVisual(const LDPointOrRect& aInput,
   // OOP iframe's widget includes this translation), but the scale part needs to
   // be computed and added separately.
   Scale2D enclosingResolution =
-      ViewportUtils::TryInferEnclosingResolution(prevCtx->GetPresShell());
+      ViewportUtils::TryInferEnclosingResolution(rootCtx->GetPresShell());
   if (enclosingResolution != Scale2D{1.0f, 1.0f}) {
     layoutToVisual = TransformPointOrRect(
         LayoutDeviceToLayoutDeviceMatrix4x4::Scaling(
@@ -221,8 +207,8 @@ LDPointOrRect ConvertToScreenRelativeVisual(const LDPointOrRect& aInput,
   // visual space) to screen space.
   LayoutDeviceIntRect rootScreenRect =
       LayoutDeviceIntRect::FromAppUnitsToNearest(
-          prevRootFrame->GetScreenRectInAppUnits(),
-          prevCtx->AppUnitsPerDevPixel());
+          rootRootFrame->GetScreenRectInAppUnits(),
+          rootCtx->AppUnitsPerDevPixel());
 
   return layoutToVisual + rootScreenRect.TopLeft();
 }

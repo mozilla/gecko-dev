@@ -74,10 +74,9 @@ class ViewportUtils {
    * presContexts, transforming the point along, until it gets to the
    * RelativeTo{aCtx->GetRootPresContext()->PresShell()->GetRootFrame(),
    * ViewportType::Visual} space. Then it further transforms it into a
-   * screen-relative space. Unlike the GetTransformToAncestor family of helper
-   * methods, this transformation does NOT include CSS transforms. Also, unlike
-   * other ViewportUtils methods, the input is relative to `aCtx` which might be
-   * a sub-shell of the presShell with the resolution.
+   * screen-relative space. Unlike other ViewportUtils methods, the input is
+   * relative to `aCtx` which might be a sub-shell of the presShell with the
+   * resolution.
    */
   static LayoutDevicePoint ToScreenRelativeVisual(const LayoutDevicePoint& aPt,
                                                   nsPresContext* aCtx);
