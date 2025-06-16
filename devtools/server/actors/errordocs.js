@@ -120,7 +120,7 @@ const ErrorDocs = {
 const MIXED_CONTENT_LEARN_MORE =
   "https://developer.mozilla.org/docs/Web/Security/Mixed_content";
 const TRACKING_PROTECTION_LEARN_MORE =
-  "https://developer.mozilla.org/Firefox/Privacy/Guides/Tracking_Protection";
+  "https://developer.mozilla.org/Web/Privacy/Guides/Firefox_tracking_protection";
 const INSECURE_PASSWORDS_LEARN_MORE =
   "https://developer.mozilla.org/docs/Web/Security/Insecure_passwords";
 const PUBLIC_KEY_PINS_LEARN_MORE =
