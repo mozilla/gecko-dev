@@ -14,13 +14,13 @@ support-files = [
   "../eme_standalone.js",
   "../gizmo.mp4",
   "../gizmo.webm",
+  "../gizmo_av1_10bit_420.webm",
   "../sintel-short-clearkey-subsample-encrypted-video.webm",
   "../vp9-yuv420p10.webm",
   "../small-shot.flac",
   "../small-shot.m4a",
   "../small-shot.mp3",
   "../small-shot.ogg",
-  "../TestPatternHDR.mp4",
   "../../mediasource/test/bipbop/bipbop_300-3s-no-audio.webm",
 ]
 
