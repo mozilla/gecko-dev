@@ -2963,10 +2963,12 @@ pref("font.size.monospace.x-math", 13);
   pref("font.name-list.serif.x-unicode", "Charis SIL Compact, Noto Serif, Droid Serif");
   pref("font.name-list.sans-serif.x-unicode", "Roboto, Google Sans, Droid Sans");
   pref("font.name-list.monospace.x-unicode", "Droid Sans Mono");
+  pref("font.name-list.cursive.x-unicode", "Dancing Script");
 
   pref("font.name-list.serif.x-western", "Charis SIL Compact, Noto Serif, Droid Serif");
   pref("font.name-list.sans-serif.x-western", "Roboto, Google Sans, Droid Sans");
   pref("font.name-list.monospace.x-western", "Droid Sans Mono");
+  pref("font.name-list.cursive.x-western", "Dancing Script");
 
   pref("font.name-list.serif.zh-CN", "Charis SIL Compact, Noto Serif CJK SC, Noto Serif, Droid Serif, Droid Sans Fallback");
   pref("font.name-list.sans-serif.zh-CN", "Roboto, Google Sans, Droid Sans, Noto Sans SC, Noto Sans CJK SC, SEC CJK SC, Droid Sans Fallback");
