@@ -1014,6 +1014,17 @@
           }
         }
       },
+      "xsmall": {
+        "value": {
+          "brand": {
+            "default": "0.733rem",
+            "comment": "11px / Note this token is to be used in rare cases because its hard to read. Please consult with the Design Systems and A11y teams for case-by-case feedback."
+          },
+          "platform": {
+            "default": "unset"
+          }
+        }
+      },
       "small": {
         "value": {
           "brand": {

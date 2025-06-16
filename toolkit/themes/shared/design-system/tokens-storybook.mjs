@@ -404,6 +404,17 @@ export const storybookTables = {
     },
     {
       value: {
+        brand: {
+          default: "0.733rem",
+          comment:
+            "11px / Note this token is to be used in rare cases because its hard to read. Please consult with the Design Systems and A11y teams for case-by-case feedback.",
+        },
+        platform: { default: "unset" },
+      },
+      name: "--font-size-xsmall",
+    },
+    {
+      value: {
         brand: { default: "0.867rem", comment: "13px" },
         platform: { default: "unset" },
       },
@@ -1461,6 +1472,14 @@ export const variableLookupTable = {
   "focus-outline-width": "2px",
   "font-size-root": {
     brand: { default: "15px" },
+    platform: { default: "unset" },
+  },
+  "font-size-xsmall": {
+    brand: {
+      default: "0.733rem",
+      comment:
+        "11px / Note this token is to be used in rare cases because its hard to read. Please consult with the Design Systems and A11y teams for case-by-case feedback.",
+    },
     platform: { default: "unset" },
   },
   "font-size-small": {

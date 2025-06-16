@@ -244,6 +244,17 @@ Type setting relies on design tokens for font size and font weight.
         <code>unset</code>
       </td>
     </tr>
+    <tr>
+      <th>
+        <code>--font-size-xsmall</code>
+      </th>
+      <td>
+        <code>0.733rem</code>
+      </td>
+      <td>
+        <code>unset</code>
+      </td>
+    </tr>
   </tbody>
 </table>
 
