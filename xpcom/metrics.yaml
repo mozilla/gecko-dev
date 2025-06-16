@@ -1307,6 +1307,7 @@ system.os:
       - metrics
       - sync
       - update
+      - third-party-modules
 
   version:
     type: string
@@ -1328,6 +1329,7 @@ system.os:
       - metrics
       - sync
       - update
+      - third-party-modules
 
   locale:
     type: string
@@ -1348,6 +1350,7 @@ system.os:
       - metrics
       - sync
       - update
+      - third-party-modules
 
   distro:
     type: string
@@ -1369,6 +1372,7 @@ system.os:
       - metrics
       - sync
       - update
+      - third-party-modules
 
   distro_version:
     type: string
@@ -1390,6 +1394,7 @@ system.os:
       - metrics
       - sync
       - update
+      - third-party-modules
 
   service_pack_major:
     type: quantity
@@ -1412,6 +1417,7 @@ system.os:
       - metrics
       - sync
       - update
+      - third-party-modules
 
   service_pack_minor:
     type: quantity
@@ -1434,6 +1440,7 @@ system.os:
       - metrics
       - sync
       - update
+      - third-party-modules
 
   windows_build_number:
     type: quantity
@@ -1457,6 +1464,7 @@ system.os:
       - metrics
       - sync
       - update
+      - third-party-modules
 
   windows_ubr:
     type: quantity
@@ -1480,6 +1488,7 @@ system.os:
       - metrics
       - sync
       - update
+      - third-party-modules
 
 system:
   memory:
@@ -1541,6 +1550,7 @@ system:
     send_in_pings:
       - metrics
       - update
+      - third-party-modules
 
   is_wow_arm_64:
     type: boolean
@@ -1560,6 +1570,7 @@ system:
     send_in_pings:
       - metrics
       - update
+      - third-party-modules
 
   has_win_package_id:
     type: boolean

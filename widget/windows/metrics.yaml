@@ -82,6 +82,9 @@ windows.security:
     notification_emails:
       - jimm@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - third-party-modules
 
   antispyware:
     type: string_list
@@ -97,6 +100,9 @@ windows.security:
     notification_emails:
       - jimm@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - third-party-modules
 
   firewall:
     type: string_list
@@ -112,3 +118,6 @@ windows.security:
     notification_emails:
       - jimm@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - third-party-modules

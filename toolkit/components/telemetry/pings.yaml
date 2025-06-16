@@ -85,3 +85,17 @@ onboarding-opt-out:
     set_upload_enabled: |
       During preonboarding the user opted out of uploading technical and
       usage telemetry data.
+
+third-party-modules:
+  description: |
+    Details about where, when, and how third-party modules were loaded into
+    Firefox processes.
+    Windows only.
+  include_client_id: true
+  send_if_empty: false
+  bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1963853
+  data_reviews:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1963853
+  notification_emails:
+    - gstoll@mozilla.com

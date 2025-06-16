@@ -17,6 +17,16 @@ namespace Telemetry {
  * This function returns a promise that asynchronously processes and gathers
  * untrusted module data. The promise is either resolved with the JS object
  * ping payload, or is rejected upon failure.
+ * If the processing succeeds, the Glean "third-party-modules" ping is
+ * submitted before the promise resolves with the JS object payload.
+ */
+nsresult SubmitAndGetUntrustedModulePayload(JSContext* aCx,
+                                            dom::Promise** aPromise);
+
+/**
+ * This function returns a promise that asynchronously processes and gathers
+ * untrusted module data. The promise is either resolved with the JS object
+ * ping payload, or is rejected upon failure.
  *
  * @param aFlags [in] Combinations of the flags defined under nsITelemetry.
  *               (See "Flags for getUntrustedModuleLoadEvents"

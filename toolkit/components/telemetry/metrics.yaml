@@ -47,6 +47,7 @@ legacy.telemetry:
       - 'newtab'
       - 'baseline'
       - 'nimbus-targeting-context'
+      - 'third-party-modules'
 
   profile_group_id:
     type: uuid
@@ -1179,3 +1180,169 @@ onboarding_opt_out:
             type: string
           branchSlug:
             type: string
+
+third.party.modules:
+  blocked_modules:
+    type: string_list
+    description: |
+      List of all DLL filenames that are on the dynamic blocklist.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963853
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963853
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gstoll@mozilla.com
+    expires: never
+    send_in_pings:
+      - third-party-modules
+
+  modules:
+    type: object
+    description: |
+      The third-party modules we saw get loaded into Firefox.
+      Maximum of 100 modules.
+      ```text
+      [{
+        resolvedDllName: sanitized string name of the module as resolved by the Windows loader,
+        fileVersion: string version of the DLL as contained in its resources's fixed version information,
+        companyName: string value of the CompanyName field as extracted from the DLL's version information. This property is only present when such version info is present, and when the 'signedBy' property is absent,
+        signedBy: string name of the organization whose certificate was used to sign the DLL. Only present for signed modules,
+        trustFlags: Flags that indicate this module's level of trustworthiness. This corresponds to one or more `mozilla::ModuleTrustFlags` OR'd together to form a number,
+      }, ...]
+      ```
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963853
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963853
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gstoll@mozilla.com
+    expires: never
+    send_in_pings:
+      - third-party-modules
+    structure:
+      type: array
+      items:
+        type: object
+        properties:
+          resolvedDllName:
+            type: string
+          fileVersion:
+            type: string
+          companyName:
+            type: string
+          signedBy:
+            type: string
+          trustFlags:
+            type: number
+
+  processes:
+    type: object
+    description: |
+      The per-process third-party module load context and events.
+      ```text
+      [{
+        processName: string containing processType and pid, formatted as `${processType}.0x${pid}`,
+        processType: one of the process string names specified in `xpcom/build/GeckoProcessTypes.h` or "browser" for Default,
+        elapsed: number of seconds since process creation that this object was generated,
+        xulLoadDurationMS: number of milliseconds it took to load xul.dll,
+        sanitizationFailures: number of dropped events due to failures in path sanitization,
+        trustTestFailures: number of dropped events due to failures computing trust levels,
+        events: [{ // Array of module load events for this process. The entries of this array are ordered to be in sync with the combinedStacks.stacks array (see below).
+          processUptimeMS: number of milliseconds between process creation and when this event was generated,
+          loadDurationMS: number of milliseconds of time spent loading this module,
+          threadID: numeric id of the thread that loaded the module,
+          threadName: string name of the thread that loaded the module, when applicable,
+          requestedDllName: sanitized string name of the module that was requested by the invoking code. Only exists when it is different from resolvedDllName,
+          baseAddress: string formatted as `0x%x`, the base address to which the loader mapped the module,
+          moduleIndex: numeric index of the element in the `modules` array that contains details about the module that was loaded during this event,
+          isDependent: boolean, true if the module is included in the executable's Import Directory Table,
+          loadStatus: number, corresponding to a value of `ModuleLoadInfo::Status`, of the status of the DLL load,
+        }, ...], // Max 50 events
+        combinedStacks: {
+          memoryMap: [[
+            <string> name of the module symbol file (e.g. `xul.pdb`),
+            <string> breakpad identifier for the module (e.g. `08A541B5942242BDB4AEABD8C87E4CFF2`),
+          ], ...],
+          stacks: [ // Array of stacks for this process. These entries are ordered to be in sync with the events array (above).
+            [
+              [
+                <integer> module index, or -1 for failure/invalid,
+                <integer> program counter relative to its module base, or an absolute PC if the module index is -1,
+              ], ... // Up to 512 stack frames
+            ], ... // Up to 50 stack traces
+          ],
+        ]
+      }, ...] // Up to 100 processes' information
+      ```
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963853
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963853
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - gstoll@mozilla.com
+    expires: never
+    send_in_pings:
+      - third-party-modules
+    structure:
+      type: array
+      items:
+        type: object
+        properties:
+          processName:
+            type: string
+          processType:
+            type: string
+          elapsed:
+            type: string # float
+          xulLoadDurationMS:
+            type: string # float
+          sanitizationFailures:
+            type: number
+          trustTestFailures:
+            type: number
+          events:
+            type: array
+            items:
+              type: object
+              properties:
+                processUptimeMS:
+                  type: number
+                loadDurationMS:
+                  type: string # float
+                threadID:
+                  type: number
+                threadName:
+                  type: string
+                requestedDllName:
+                  type: string
+                baseAddress:
+                  type: string
+                moduleIndex:
+                  type: number
+                isDependent:
+                  type: boolean
+                loadStatus:
+                  type: number
+          combinedStacks:
+            type: object
+            properties:
+              memoryMap:
+                type: array
+                items:
+                  type: array
+                  items:
+                    type: string
+              stacks:
+                type: array
+                items:
+                  type: array
+                  items:
+                    type: array
+                    items:
+                      type: number

@@ -647,6 +647,16 @@ TelemetryImpl::GetDebugSlowSQL(JSContext* cx,
 }
 
 NS_IMETHODIMP
+TelemetryImpl::SubmitAndGetUntrustedModulePayload(JSContext* aCx,
+                                                  Promise** aPromise) {
+#if defined(XP_WIN)
+  return Telemetry::SubmitAndGetUntrustedModulePayload(aCx, aPromise);
+#else
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
+}
+
+NS_IMETHODIMP
 TelemetryImpl::GetUntrustedModuleLoadEvents(uint32_t aFlags, JSContext* cx,
                                             Promise** aPromise) {
 #if defined(XP_WIN)

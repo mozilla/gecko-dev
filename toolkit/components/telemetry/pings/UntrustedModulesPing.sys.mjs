@@ -49,7 +49,7 @@ export var TelemetryUntrustedModulesPing = Object.freeze({
 
   notify() {
     try {
-      Services.telemetry.getUntrustedModuleLoadEvents().then(payload => {
+      Services.telemetry.submitAndGetUntrustedModulePayload().then(payload => {
         try {
           if (payload) {
             lazy.TelemetryController.submitExternalPing(

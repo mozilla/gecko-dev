@@ -8,6 +8,8 @@
 
 #include "GMPServiceParent.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/glean/GleanPings.h"
+#include "mozilla/glean/TelemetryMetrics.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/net/SocketProcessParent.h"
 #include "mozilla/ipc/UtilityProcessParent.h"
@@ -48,6 +50,11 @@ class MOZ_HEAP_CLASS MultiGetUntrustedModulesData final {
 
   RefPtr<MultiGetUntrustedModulesPromise> GetUntrustedModuleLoadEvents();
   void Serialize(RefPtr<dom::Promise>&& aPromise);
+
+  /**
+   * Submit a "third-party-modules" ping with any already-gotten data.
+   */
+  nsresult SubmitToGlean();
 
   MultiGetUntrustedModulesData(const MultiGetUntrustedModulesData&) = delete;
   MultiGetUntrustedModulesData(MultiGetUntrustedModulesData&&) = delete;
@@ -166,6 +173,251 @@ MultiGetUntrustedModulesData::GetUntrustedModuleLoadEvents() {
   return mPromise;
 }
 
+#if defined(XP_WIN)
+nsTArray<nsDependentSubstring> GetBlockedModules() {
+  nsTArray<nsDependentSubstring> blockedModules;
+  RefPtr<DllServices> dllSvc(DllServices::Get());
+  nt::SharedSection* sharedSection = dllSvc->GetSharedSection();
+  if (!sharedSection) {
+    return blockedModules;
+  }
+
+  auto dynamicBlocklist = sharedSection->GetDynamicBlocklist();
+  for (const auto& blockedEntry : dynamicBlocklist) {
+    if (!blockedEntry.IsValidDynamicBlocklistEntry()) {
+      break;
+    }
+    blockedModules.AppendElement(
+        nsDependentSubstring(blockedEntry.mName.Buffer,
+                             blockedEntry.mName.Length / sizeof(wchar_t)));
+  }
+  return blockedModules;
+}
+#endif
+
+nsresult MultiGetUntrustedModulesData::SubmitToGlean() {
+  MOZ_ASSERT(mFlags == 0,
+             "The Glean 'third-party-modules' ping doesn't know how to handle "
+             "nsITelemetry's flags for getUntrustedModuleLoadEvents.");
+
+  const UntrustedModulesBackupData& stagingRef = mBackupSvc->Staging();
+  if (stagingRef.IsEmpty()) {
+    return NS_OK;
+  }
+  glean::third_party_modules::ModulesObject modules;
+  glean::third_party_modules::ProcessesObject processes;
+  uint32_t modulesArrayIdx = 0;
+  for (const auto& container : stagingRef.Values()) {
+    if (!container) {
+      continue;
+    }
+    const auto& data = container->mData;
+    // We are duplicating the module mapping that
+    // UntrustedModulesDataSerializer::AddSingleData does because
+    // 1) Accessing its mIndexMap at the correct time would be fragile.
+    // 2) Decoupling data submission from JS serialization is arguably good.
+    nsTHashMap<nsStringHashKey, uint32_t> indexMap;
+    for (const auto& entry : data.mModules) {
+      nsresult rv = NS_OK;
+      (void)indexMap.LookupOrInsertWith(entry.GetKey(), [&]() -> uint32_t {
+        const auto record = entry.GetData();
+        if (!record) {
+          rv = NS_ERROR_FAILURE;
+          return 0;
+        }
+        glean::third_party_modules::ModulesObjectItem item;
+        item.resolvedDllName =
+            Some(NS_ConvertUTF16toUTF8(record->mSanitizedDllName));
+        if (record->mVersion.isSome()) {
+          auto [major, minor, patch, build] = record->mVersion->AsTuple();
+          nsCString version;
+          version.AppendPrintf("%" PRIu16 ".%" PRIu16 ".%" PRIu16 ".%" PRIu16,
+                               major, minor, patch, build);
+          item.fileVersion = Some(version);
+        }
+        if (record->mVendorInfo.isSome()) {
+          MOZ_ASSERT(!record->mVendorInfo->mVendor.IsEmpty());
+          if (record->mVendorInfo->mVendor.IsEmpty()) {
+            // Per `SerializeModule`, this is an error condition severe enough
+            // to cease further processing.
+            rv = NS_ERROR_FAILURE;
+            return 0;
+          }
+          switch (record->mVendorInfo->mSource) {
+            case VendorInfo::Source::Signature:
+              item.signedBy =
+                  Some(NS_ConvertUTF16toUTF8(record->mVendorInfo->mVendor));
+              break;
+            case VendorInfo::Source::VersionInfo:
+              item.companyName =
+                  Some(NS_ConvertUTF16toUTF8(record->mVendorInfo->mVendor));
+              break;
+            default:
+              MOZ_ASSERT_UNREACHABLE("Unknown VendorInfo Source!");
+              rv = NS_ERROR_FAILURE;
+              return 0;
+          }
+        }
+        item.trustFlags = Some(static_cast<int64_t>(record->mTrustFlags));
+        modules.EmplaceBack(item);
+        return modulesArrayIdx++;
+      });
+
+      if (modulesArrayIdx > kMaxModulesArrayLen) {
+        rv = NS_ERROR_CANNOT_CONVERT_DATA;
+      }
+
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return rv;
+      }
+    }
+
+    nsDependentCString processType;
+    if (data.mProcessType == GeckoProcessType_Default) {
+      processType.Rebind("browser"_ns, 0);
+    } else {
+      processType.Rebind(XRE_GeckoProcessTypeToString(data.mProcessType));
+    }
+
+    // UntrusteModulesDataSerializer::Add allows for multiple containers' data
+    // to be for the same process (type and pid).
+    // When that happens, the latest containers' data would take precedence.
+    // By intuition, I don't think that happens so we don't need to worry.
+    // And if it does, we'll get two items in the `processes` array:
+    // analyses may merely take the latest one.
+    glean::third_party_modules::ProcessesObjectItem process{
+        .processType = Some(processType),
+        .sanitizationFailures = Some(data.mSanitizationFailures),
+        .trustTestFailures = Some(data.mTrustTestFailures),
+    };
+
+    nsCString strPid(processType);
+    strPid.AppendLiteral(".0x");
+    strPid.AppendInt(static_cast<uint32_t>(data.mPid), 16);
+    process.processName = Some(strPid);
+
+    nsCString elapsed;
+    elapsed.AppendFloat(data.mElapsed.ToSecondsSigDigits());
+    process.elapsed = Some(elapsed);
+
+    if (data.mXULLoadDurationMS.isSome()) {
+      nsCString xulLoadDuration;
+      xulLoadDuration.AppendFloat(*(data.mXULLoadDurationMS));
+      process.xulLoadDurationMS = Some(xulLoadDuration);
+    }
+
+    glean::third_party_modules::ProcessesObjectItemEvents eventsArray;
+    for (const auto& eventContainer : data.mEvents) {
+      const ProcessedModuleLoadEvent& event = eventContainer->mEvent;
+      if (!event) {
+        // Event has no module.
+        continue;
+      }
+      glean::third_party_modules::ProcessesObjectItemEventsItem eventItem{
+          .processUptimeMS = Some(static_cast<int64_t>(event.mProcessUptimeMS)),
+          // TODO: Document the narrowing conversion (2^64ms is ~584MY)
+          .threadID = Some(event.mThreadId),
+          .requestedDllName =
+              Some(NS_ConvertUTF16toUTF8(event.mRequestedDllName)),
+          .isDependent = Some(event.mIsDependent),
+          .loadStatus = Some(event.mLoadStatus),
+      };
+
+      if (event.mLoadDurationMS.isSome()) {
+        nsCString loadDuration;
+        loadDuration.AppendFloat(*(event.mLoadDurationMS));
+        eventItem.loadDurationMS = Some(loadDuration);
+      }
+
+      nsDependentCString effectiveThreadName;
+      if (event.mThreadId == ::GetCurrentThreadId()) {
+        effectiveThreadName.Rebind("Main Thread"_ns, 0);
+      } else {
+        effectiveThreadName.Rebind(event.mThreadName, 0);
+      }
+      if (!effectiveThreadName.IsEmpty()) {
+        eventItem.threadName = Some(event.mThreadName);
+      }
+
+      if (!event.mRequestedDllName.IsEmpty() &&
+          !event.mRequestedDllName.Equals(event.mModule->mSanitizedDllName,
+                                          nsCaseInsensitiveStringComparator)) {
+        // TODO: Truncate to MAX_PATH - 3 + "..."
+        eventItem.requestedDllName =
+            Some(NS_ConvertUTF16toUTF8(event.mRequestedDllName));
+      }
+
+      nsAutoCString baseAddress("0x");
+      baseAddress.AppendInt(event.mBaseAddress, 16);
+      eventItem.baseAddress = Some(baseAddress);
+
+      uint32_t moduleIndex;
+      if (!indexMap.Get(event.mModule->mResolvedNtName, &moduleIndex)) {
+        // TODO: Should we instrument this somehow?
+        continue;
+      }
+      eventItem.moduleIndex = Some(moduleIndex);
+
+      eventsArray.AppendElement(eventItem);
+    }
+    if (eventsArray.Length()) {
+      process.events = Some(std::move(eventsArray));
+    }
+
+    glean::third_party_modules::ProcessesObjectItemCombinedstacks
+        combinedStacks;
+    glean::third_party_modules::ProcessesObjectItemCombinedstacksMemorymap
+        memoryMap;
+    const size_t moduleCount = data.mStacks.GetModuleCount();
+    for (size_t moduleIndex = 0; moduleIndex < moduleCount; ++moduleIndex) {
+      const auto& module = data.mStacks.GetModule(moduleIndex);
+      memoryMap.EmplaceBack(nsTArray<nsCString>{
+          NS_ConvertUTF16toUTF8(module.mName),
+          module.mBreakpadId,
+      });
+    }
+    combinedStacks.memoryMap = Some(std::move(memoryMap));
+
+    const size_t stackCount = data.mStacks.GetStackCount();
+    glean::third_party_modules::ProcessesObjectItemCombinedstacksStacks
+        stackArray;
+    for (size_t stackIndex = 0; stackIndex < stackCount; ++stackIndex) {
+      nsTArray<nsTArray<int64_t>> pcArray;
+      const CombinedStacks::Stack& stack = data.mStacks.GetStack(stackIndex);
+      const uint32_t pcCount = stack.size();
+      for (size_t pcIndex = 0; pcIndex < pcCount; ++pcIndex) {
+        const ProcessedStack::Frame& frame = stack[pcIndex];
+        const int64_t modIndex =
+            (std::numeric_limits<uint16_t>::max() == frame.mModIndex)
+                ? -1
+                : frame.mModIndex;
+        pcArray.EmplaceBack(nsTArray<int64_t>{
+            modIndex,
+            static_cast<int64_t>(frame.mOffset),
+        });
+      }
+      stackArray.AppendElement(std::move(pcArray));
+    }
+    combinedStacks.stacks = Some(std::move(stackArray));
+
+    process.combinedStacks = Some(std::move(combinedStacks));
+    processes.AppendElement(std::move(process));
+  }
+  glean::third_party_modules::modules.Set(std::move(modules));
+  glean::third_party_modules::processes.Set(std::move(processes));
+
+#if defined(XP_WIN)
+  nsTArray<nsDependentSubstring> uBlockedModules = GetBlockedModules();
+  nsTArray<nsCString> blockedModules;
+  for (const auto& blockedModule : uBlockedModules) {
+    blockedModules.EmplaceBack(NS_ConvertUTF16toUTF8(blockedModule));
+  }
+  glean::third_party_modules::blocked_modules.Set(blockedModules);
+#endif
+  glean_pings::ThirdPartyModules.Submit();
+  return NS_OK;
+}
+
 void MultiGetUntrustedModulesData::Serialize(RefPtr<dom::Promise>&& aPromise) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -251,20 +503,8 @@ void MultiGetUntrustedModulesData::Serialize(RefPtr<dom::Promise>&& aPromise) {
   }
 
 #if defined(XP_WIN)
-  RefPtr<DllServices> dllSvc(DllServices::Get());
-  nt::SharedSection* sharedSection = dllSvc->GetSharedSection();
-  if (sharedSection) {
-    auto dynamicBlocklist = sharedSection->GetDynamicBlocklist();
-
-    nsTArray<nsDependentSubstring> blockedModules;
-    for (const auto& blockedEntry : dynamicBlocklist) {
-      if (!blockedEntry.IsValidDynamicBlocklistEntry()) {
-        break;
-      }
-      blockedModules.AppendElement(
-          nsDependentSubstring(blockedEntry.mName.Buffer,
-                               blockedEntry.mName.Length / sizeof(wchar_t)));
-    }
+  nsTArray<nsDependentSubstring> blockedModules = GetBlockedModules();
+  if (!blockedModules.IsEmpty()) {
     rv = serializer.AddBlockedModules(blockedModules);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       aPromise->MaybeReject(rv);
@@ -278,10 +518,12 @@ void MultiGetUntrustedModulesData::Serialize(RefPtr<dom::Promise>&& aPromise) {
   aPromise->MaybeResolve(jsval);
 }
 
-nsresult GetUntrustedModuleLoadEvents(uint32_t aFlags, JSContext* cx,
-                                      dom::Promise** aPromise) {
+nsresult MaybeSubmitAndGetUntrustedModulePayload(JSContext* aCx,
+                                                 dom::Promise** aPromise,
+                                                 uint32_t aFlags,
+                                                 bool aSubmitGleanPing) {
   // Create a promise using global context.
-  nsIGlobalObject* global = xpc::CurrentNativeGlobal(cx);
+  nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;
   }
@@ -295,11 +537,30 @@ nsresult GetUntrustedModuleLoadEvents(uint32_t aFlags, JSContext* cx,
   auto multi = MakeRefPtr<MultiGetUntrustedModulesData>(aFlags);
   multi->GetUntrustedModuleLoadEvents()->Then(
       GetMainThreadSerialEventTarget(), __func__,
-      [promise, multi](bool) mutable { multi->Serialize(std::move(promise)); },
+      [promise, multi, aSubmitGleanPing](bool) mutable {
+        if (aSubmitGleanPing) {
+          nsresult rv = multi->SubmitToGlean();
+          if (NS_FAILED(rv)) {
+            promise->MaybeReject(rv);
+            return;
+          }
+        }
+        multi->Serialize(std::move(promise));
+      },
       [promise](nsresult aRv) { promise->MaybeReject(aRv); });
 
   promise.forget(aPromise);
   return NS_OK;
+}
+
+nsresult SubmitAndGetUntrustedModulePayload(JSContext* aCx,
+                                            dom::Promise** aPromise) {
+  return MaybeSubmitAndGetUntrustedModulePayload(aCx, aPromise, 0, true);
+}
+
+nsresult GetUntrustedModuleLoadEvents(uint32_t aFlags, JSContext* aCx,
+                                      dom::Promise** aPromise) {
+  return MaybeSubmitAndGetUntrustedModulePayload(aCx, aPromise, aFlags, false);
 }
 
 }  // namespace Telemetry

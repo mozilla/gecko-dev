@@ -229,6 +229,15 @@ interface nsITelemetry : nsISupports
   const unsigned long EXCLUDE_STACKINFO_FROM_LOADEVENTS = 1 << 3;
 
   /*
+   * Submits a Glean "third-party-modules" ping and returns a Legacy Telemetry
+   * "third-party-modules" ping payload.
+   *
+   * @returns Promise<"third-party-modules" ping payload>
+   */
+  [implicit_jscontext]
+  Promise submitAndGetUntrustedModulePayload();
+
+  /*
    * An array of untrusted module load events. Each element describes one or
    * more modules that were loaded, contextual information at the time of the
    * event (including stack trace), and flags describing the module's
