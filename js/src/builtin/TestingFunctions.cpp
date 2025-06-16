@@ -163,6 +163,7 @@ using namespace js;
 using mozilla::AssertedCast;
 using mozilla::AsWritableChars;
 using mozilla::Maybe;
+using mozilla::Some;
 using mozilla::Span;
 
 using JS::AutoStableStringChars;
@@ -3195,6 +3196,43 @@ static bool FullCompartmentChecks(JSContext* cx, unsigned argc, Value* vp) {
 
   cx->runtime()->gc.setFullCompartmentChecks(ToBoolean(args[0]));
   args.rval().setUndefined();
+  return true;
+}
+
+static bool IsAtomMarked(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  RootedObject callee(cx, &args.callee());
+  if (args.length() != 2) {
+    ReportUsageErrorASCII(cx, callee, "Expected two arguments");
+    return false;
+  }
+
+  if (!args[0].isObject()) {
+    ReportUsageErrorASCII(cx, callee,
+                          "Expected an object as the first argument");
+    return false;
+  }
+  Zone* zone = UncheckedUnwrap(&args[0].toObject())->zone();
+
+  Maybe<bool> result;
+  gc::GCRuntime* gc = &cx->runtime()->gc;
+  if (args[1].isSymbol()) {
+    result = Some(gc->atomMarking.atomIsMarked(zone, args[1].toSymbol()));
+  } else if (args[1].isString()) {
+    JSString* str = args[1].toString();
+    if (str->isAtom()) {
+      result = Some(gc->atomMarking.atomIsMarked(zone, &str->asAtom()));
+    }
+  }
+
+  if (result.isNothing()) {
+    ReportUsageErrorASCII(cx, callee,
+                          "Expected an atom as the second argument");
+    return false;
+  }
+
+  args.rval().setBoolean(result.value());
   return true;
 }
 
@@ -10148,6 +10186,10 @@ gc::ZealModeHelpText),
     JS_FN_HELP("abortgc", AbortGC, 1, 0,
 "abortgc()",
 "  Abort the current incremental GC."),
+
+    JS_FN_HELP("isAtomMarked", IsAtomMarked, 2, 0,
+"isAtomMarked(obj, atom)",
+"  Return whether |atom| is marked relative to the zone containing |obj|."),
 
     JS_FN_HELP("setMallocMaxDirtyPageModifier", SetMallocMaxDirtyPageModifier, 1, 0,
 "setMallocMaxDirtyPageModifier(value)",
