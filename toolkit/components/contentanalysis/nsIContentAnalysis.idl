@@ -177,13 +177,15 @@ interface nsIContentAnalysisRequest : nsISupports
 
   // Enumeration of what operation is happening, to be displayed to the user
   cenum OperationType : 32 {
-    eCustomDisplayString = 0,
-    eClipboard = 1,
-    eDroppedText = 2,
-    eOperationPrint = 3,
+    eClipboard = 0,
+    eDroppedText = 1,
+    eOperationPrint = 2,
+    eUpload = 3,
+    eDownload = 4,
   };
   readonly attribute nsIContentAnalysisRequest_OperationType operationTypeForDisplay;
-  readonly attribute AString operationDisplayString;
+  // Required if operationTypeForDisplay is eUpload or eDownload.
+  readonly attribute AString fileNameForDisplay;
 
   // ContentAnalysis will analyze the contents of this DataTransfer.  May
   // contain multiple items that require analysis, or none.
@@ -401,7 +403,7 @@ interface nsIContentAnalysis : nsISupports
    * Like cancelRequestsByUserAction but does the same for any other user
    * actions when aUserActionId is part of a "compound action" ("batch mode")
    * -- one actually made up of several user actions.  See
-   * ContentAnalysis::CheckFilesInBatchMode for an explanation.
+   * ContentAnalysis::CheckUploadsInBatchMode for an explanation.
    *
    * @param aUserActionId
    *        The primary user action ID for the batch request to cancel.

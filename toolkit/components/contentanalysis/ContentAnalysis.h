@@ -155,9 +155,9 @@ class ContentAnalysisRequest final : public nsIContentAnalysisRequest {
   // Type of text to display, see nsIContentAnalysisRequest for values
   OperationType mOperationTypeForDisplay;
 
-  // String to display if mOperationTypeForDisplay is
-  // OPERATION_CUSTOMDISPLAYSTRING
-  nsString mOperationDisplayString;
+  // File name to display if mOperationTypeForDisplay is
+  // eUpload or eDownload.
+  nsString mFileNameForDisplay;
 
   // The name of the printer being printed to
   nsString mPrinterName;
@@ -258,7 +258,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
   // user action ID of the first request generated.
   // Note that aURI is only necessary to pass in in gtests; otherwise we'll
   // get the URI from aWindow.
-  static RefPtr<FilesAllowedPromise> CheckFilesInBatchMode(
+  static RefPtr<FilesAllowedPromise> CheckUploadsInBatchMode(
       nsCOMArray<nsIFile>&& aFiles, bool aAutoAcknowledge,
       mozilla::dom::WindowGlobalParent* aWindow,
       nsIContentAnalysisRequest::Reason aReason, nsIURI* aURI = nullptr);

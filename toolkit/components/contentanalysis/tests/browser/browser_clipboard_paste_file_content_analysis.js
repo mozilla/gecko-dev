@@ -85,7 +85,7 @@ function assertContentAnalysisRequestFile(
 ) {
   assertContentAnalysisRequest(
     request,
-    Ci.nsIContentAnalysisRequest.eCustomDisplayString,
+    Ci.nsIContentAnalysisRequest.eUpload,
     expectedFilePath,
     "",
     expectedUserActionId,

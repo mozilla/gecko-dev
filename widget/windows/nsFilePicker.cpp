@@ -738,7 +738,7 @@ nsFilePicker::CheckContentAnalysisService() {
       nsFilePicker::ContentAnalysisResponse::CreateAndReject(rv, __func__));
   // This will check all of the files even if BLOCK responses are received for
   // some of them, and the promise will resolve with the files that are ALLOWed.
-  return mozilla::contentanalysis::ContentAnalysis::CheckFilesInBatchMode(
+  return mozilla::contentanalysis::ContentAnalysis::CheckUploadsInBatchMode(
       std::move(files), /* aAutoAcknowledge */ true, windowGlobal,
       nsIContentAnalysisRequest::Reason::eFilePickerDialog);
 };

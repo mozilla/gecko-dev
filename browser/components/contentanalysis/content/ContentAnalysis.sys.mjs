@@ -513,26 +513,41 @@ export const ContentAnalysis = {
    * @param {nsIContentAnalysisRequest} aRequest The nsIContentAnalysisRequest
    * @param {boolean} aStandalone Whether the message is going to be used on its own
    *                              line. This is used to add more context to the message
-   *                              if a file is being uploaded rather than just the name
-   *                              of the file.
+   *                              if a file is being uploaded or downloaded rather than
+   *                              just the name of the file.
    * @returns {ResourceNameOrOperationType}
    */
   _getResourceNameOrOperationTypeFromRequest(aRequest, aStandalone) {
+    /**
+     * @type {ResourceNameOrOperationType}
+     */
+    let nameOrOperationType = {
+      operationType: aRequest.operationTypeForDisplay,
+    };
     if (
-      aRequest.operationTypeForDisplay ==
-      Ci.nsIContentAnalysisRequest.eCustomDisplayString
+      aRequest.operationTypeForDisplay == Ci.nsIContentAnalysisRequest.eUpload
     ) {
       if (aStandalone) {
-        return {
-          name: this.l10n.formatValueSync(
-            "contentanalysis-customdisplaystring-description",
-            { filename: aRequest.operationDisplayString }
-          ),
-        };
+        nameOrOperationType.name = this.l10n.formatValueSync(
+          "contentanalysis-upload-description",
+          { filename: aRequest.fileNameForDisplay }
+        );
+      } else {
+        nameOrOperationType.name = aRequest.fileNameForDisplay;
       }
-      return { name: aRequest.operationDisplayString };
+    } else if (
+      aRequest.operationTypeForDisplay == Ci.nsIContentAnalysisRequest.eDownload
+    ) {
+      if (aStandalone) {
+        nameOrOperationType.name = this.l10n.formatValueSync(
+          "contentanalysis-download-description",
+          { filename: aRequest.fileNameForDisplay }
+        );
+      } else {
+        nameOrOperationType.name = aRequest.fileNameForDisplay;
+      }
     }
-    return { operationType: aRequest.operationTypeForDisplay };
+    return nameOrOperationType;
   },
 
   /**
@@ -700,7 +715,10 @@ export const ContentAnalysis = {
   _getErrorDialogMessage(aResourceNameOrOperationType) {
     if (aResourceNameOrOperationType.name) {
       return this.l10n.formatValueSync(
-        "contentanalysis-error-message-upload-file",
+        aResourceNameOrOperationType.operationType ==
+          Ci.nsIContentAnalysisRequest.eUpload
+          ? "contentanalysis-error-message-upload-file"
+          : "contentanalysis-error-message-download-file",
         { filename: aResourceNameOrOperationType.name }
       );
     }
@@ -881,9 +899,16 @@ export const ContentAnalysis = {
         let titleId = undefined;
         let body = undefined;
         if (aResourceNameOrOperationType.name) {
-          titleId = "contentanalysis-block-dialog-title-upload-file";
+          titleId =
+            aResourceNameOrOperationType.operationType ==
+            Ci.nsIContentAnalysisRequest.eUpload
+              ? "contentanalysis-block-dialog-title-upload-file"
+              : "contentanalysis-block-dialog-title-download-file";
           body = this.l10n.formatValueSync(
-            "contentanalysis-block-dialog-body-upload-file",
+            aResourceNameOrOperationType.operationType ==
+              Ci.nsIContentAnalysisRequest.eUpload
+              ? "contentanalysis-block-dialog-body-upload-file"
+              : "contentanalysis-block-dialog-body-download-file",
             { filename: aResourceNameOrOperationType.name }
           );
         } else {

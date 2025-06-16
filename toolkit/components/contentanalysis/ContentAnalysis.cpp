@@ -320,9 +320,8 @@ ContentAnalysisRequest::GetOperationTypeForDisplay(
 }
 
 NS_IMETHODIMP
-ContentAnalysisRequest::GetOperationDisplayString(
-    nsAString& aOperationDisplayString) {
-  aOperationDisplayString = mOperationDisplayString;
+ContentAnalysisRequest::GetFileNameForDisplay(nsAString& aFileNameForDisplay) {
+  aFileNameForDisplay = mFileNameForDisplay;
   return NS_OK;
 }
 
@@ -472,11 +471,12 @@ ContentAnalysisRequest::ContentAnalysisRequest(
   } else {
     mTextContent = std::move(aString);
   }
-  if (mOperationTypeForDisplay == OperationType::eCustomDisplayString) {
+  if (mOperationTypeForDisplay == OperationType::eUpload ||
+      mOperationTypeForDisplay == OperationType::eDownload) {
     MOZ_ASSERT(aStringIsFilePath);
-    nsresult rv = GetFileDisplayName(mFilePath, mOperationDisplayString);
+    nsresult rv = GetFileDisplayName(mFilePath, mFileNameForDisplay);
     if (NS_FAILED(rv)) {
-      mOperationDisplayString = u"file";
+      mFileNameForDisplay = u"file";
     }
   }
 }
@@ -542,7 +542,7 @@ RefPtr<ContentAnalysisRequest> ContentAnalysisRequest::Clone(
   MOZ_ALWAYS_SUCCEEDS(
       aRequest->GetOperationTypeForDisplay(&clone->mOperationTypeForDisplay));
   MOZ_ALWAYS_SUCCEEDS(
-      aRequest->GetOperationDisplayString(clone->mOperationDisplayString));
+      aRequest->GetFileNameForDisplay(clone->mFileNameForDisplay));
   MOZ_ALWAYS_SUCCEEDS(aRequest->GetPrinterName(clone->mPrinterName));
   MOZ_ALWAYS_SUCCEEDS(aRequest->GetWindowGlobalParent(
       getter_AddRefs(clone->mWindowGlobalParent)));
@@ -2328,12 +2328,12 @@ static void AddCARForText(
   aRequests->AppendElement(contentAnalysisRequest);
 }
 
-void AddCARForFile(nsString&& filePath,
-                   nsIContentAnalysisRequest::Reason aReason, nsIURI* aURI,
-                   mozilla::dom::WindowGlobalParent* aWindowGlobal,
-                   mozilla::dom::WindowGlobalParent* aSourceWindowGlobal,
-                   nsCString&& aUserActionId,
-                   nsTArray<RefPtr<nsIContentAnalysisRequest>>* aRequests) {
+void AddCARForUpload(nsString&& filePath,
+                     nsIContentAnalysisRequest::Reason aReason, nsIURI* aURI,
+                     mozilla::dom::WindowGlobalParent* aWindowGlobal,
+                     mozilla::dom::WindowGlobalParent* aSourceWindowGlobal,
+                     nsCString&& aUserActionId,
+                     nsTArray<RefPtr<nsIContentAnalysisRequest>>* aRequests) {
   if (filePath.IsEmpty()) {
     return;
   }
@@ -2344,8 +2344,8 @@ void AddCARForFile(nsString&& filePath,
   auto contentAnalysisRequest = MakeRefPtr<ContentAnalysisRequest>(
       nsIContentAnalysisRequest::AnalysisType::eFileAttached, aReason,
       std::move(filePath), true, EmptyCString(), aURI,
-      nsIContentAnalysisRequest::OperationType::eCustomDisplayString,
-      aWindowGlobal, aSourceWindowGlobal, std::move(aUserActionId));
+      nsIContentAnalysisRequest::OperationType::eUpload, aWindowGlobal,
+      aSourceWindowGlobal, std::move(aUserActionId));
   aRequests->AppendElement(contentAnalysisRequest);
 }
 
@@ -2438,10 +2438,10 @@ static nsresult AddClipboardCARForFile(
     if (nsCOMPtr<nsIFile> file = do_QueryInterface(transferData)) {
       nsString filePath;
       NS_ENSURE_SUCCESS(file->GetPath(filePath), NS_ERROR_FAILURE);
-      AddCARForFile(std::move(filePath),
-                    nsIContentAnalysisRequest::Reason::eClipboardPaste, aURI,
-                    aWindowGlobal, aSourceWindowGlobal,
-                    std::move(aUserActionId), aRequests);
+      AddCARForUpload(std::move(filePath),
+                      nsIContentAnalysisRequest::Reason::eClipboardPaste, aURI,
+                      aWindowGlobal, aSourceWindowGlobal,
+                      std::move(aUserActionId), aRequests);
     } else {
       MOZ_ASSERT_UNREACHABLE("clipboard data had kFileMime but no nsIFile!");
       return NS_ERROR_FAILURE;
@@ -2543,10 +2543,10 @@ static Result<bool, nsresult> AddRequestsFromDataTransferIfAny(
       file->GetMozFullPathInternal(filePath, error);
       NS_ENSURE_TRUE(!error.Failed(), Err(error.StealNSResult()));
 
-      AddCARForFile(std::move(filePath),
-                    nsIContentAnalysisRequest::Reason::eDragAndDrop, aUri,
-                    aWindowGlobal, aSourceWindowGlobal, nsCString(userActionId),
-                    aNewRequests);
+      AddCARForUpload(std::move(filePath),
+                      nsIContentAnalysisRequest::Reason::eDragAndDrop, aUri,
+                      aWindowGlobal, aSourceWindowGlobal,
+                      nsCString(userActionId), aNewRequests);
     }
   }
   return true;
@@ -3823,7 +3823,7 @@ bool ContentAnalysis::CheckClipboardContentAnalysisSync(
 }
 
 RefPtr<ContentAnalysis::FilesAllowedPromise>
-ContentAnalysis::CheckFilesInBatchMode(
+ContentAnalysis::CheckUploadsInBatchMode(
     nsCOMArray<nsIFile>&& aFiles, bool aAutoAcknowledge,
     mozilla::dom::WindowGlobalParent* aWindow,
     nsIContentAnalysisRequest::Reason aReason, nsIURI* aURI /* = nullptr */) {
@@ -3880,8 +3880,7 @@ ContentAnalysis::CheckFilesInBatchMode(
         new mozilla::contentanalysis::ContentAnalysisRequest(
             nsIContentAnalysisRequest::AnalysisType::eFileAttached, aReason,
             pathString, true /* aStringIsFilePath */, EmptyCString(), uri,
-            nsIContentAnalysisRequest::OperationType::eCustomDisplayString,
-            aWindow);
+            nsIContentAnalysisRequest::OperationType::eUpload, aWindow);
     nsCString userActionId = GenerateUUID();
     MOZ_ALWAYS_SUCCEEDS(request->SetUserActionId(userActionId));
     if (!userActionIds->put(userActionId)) {
@@ -4025,7 +4024,7 @@ ContentAnalysis::AnalyzeBatchContentRequest(nsIContentAnalysisRequest* aRequest,
   auto& systemPrincipal = *nsContentUtils::GetSystemPrincipal();
   if (dataTransfer->HasFile()) {
     // Get any files in the DataTransfer and pass them to
-    // CheckFilesInBatchMode() so they will be analyzed individually.
+    // CheckUploadsInBatchMode() so they will be analyzed individually.
     RefPtr fileList = dataTransfer->GetFiles(systemPrincipal);
     files.SetCapacity(fileList->Length());
     for (uint32_t i = 0; i < fileList->Length(); ++i) {
@@ -4059,8 +4058,8 @@ ContentAnalysis::AnalyzeBatchContentRequest(nsIContentAnalysisRequest* aRequest,
     RefPtr<mozilla::dom::WindowGlobalParent> windowGlobal;
     MOZ_ALWAYS_SUCCEEDS(
         aRequest->GetWindowGlobalParent(getter_AddRefs(windowGlobal)));
-    CheckFilesInBatchMode(std::move(files), aAutoAcknowledge, windowGlobal,
-                          nsIContentAnalysisRequest::Reason::eDragAndDrop)
+    CheckUploadsInBatchMode(std::move(files), aAutoAcknowledge, windowGlobal,
+                            nsIContentAnalysisRequest::Reason::eDragAndDrop)
         ->Then(
             mozilla::GetMainThreadSerialEventTarget(), __func__,
             [filesPromise,
