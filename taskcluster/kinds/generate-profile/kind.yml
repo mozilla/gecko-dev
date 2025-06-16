@@ -40,7 +40,7 @@ tasks:
             env:
                 NEED_XVFB: "true"
             max-run-time: 1200
-            docker-image: {in-tree: ubuntu1804-test}
+            docker-image: {in-tree: ubuntu2404-test}
             artifacts:
                 - type: directory
                   name: public/build
@@ -71,7 +71,7 @@ tasks:
             env:
                 NEED_XVFB: "true"
             max-run-time: 1200
-            docker-image: {in-tree: ubuntu1804-test}
+            docker-image: {in-tree: ubuntu2404-test}
             artifacts:
                 - type: directory
                   name: public/build
@@ -100,7 +100,7 @@ tasks:
         worker:
             chain-of-trust: true
             max-run-time: 2700
-            docker-image: {in-tree: ubuntu1804-test}
+            docker-image: {in-tree: ubuntu2404-test}
             env:
                 WORKING_DIR: "/builds/worker"
                 MOZHARNESS_PATH: "/builds/worker/checkouts/gecko/testing/mozharness"
@@ -142,7 +142,7 @@ tasks:
         worker:
             chain-of-trust: true
             max-run-time: 2700
-            docker-image: {in-tree: ubuntu1804-test}
+            docker-image: {in-tree: ubuntu2404-test}
             env:
                 WORKING_DIR: "/builds/worker"
                 MOZHARNESS_PATH: "/builds/worker/checkouts/gecko/testing/mozharness"
@@ -185,7 +185,7 @@ tasks:
             chain-of-trust: true
             max-run-time: 2700
             kvm: true  # for access to /dev/kvm for hw accel in the emulator
-            docker-image: {in-tree: ubuntu1804-test}
+            docker-image: {in-tree: ubuntu2404-test}
             env:
                 WORKING_DIR: "/builds/worker"
                 MOZHARNESS_PATH: "/builds/worker/checkouts/gecko/testing/mozharness"
@@ -228,7 +228,7 @@ tasks:
             chain-of-trust: true
             max-run-time: 2700
             kvm: true  # for access to /dev/kvm for hw accel in the emulator
-            docker-image: {in-tree: ubuntu1804-test}
+            docker-image: {in-tree: ubuntu2404-test}
             env:
                 WORKING_DIR: "/builds/worker"
                 MOZHARNESS_PATH: "/builds/worker/checkouts/gecko/testing/mozharness"
