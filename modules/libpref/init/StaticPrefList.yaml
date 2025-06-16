@@ -4698,7 +4698,7 @@
 # Whether to exclude third-party trackers from Storage Access API auto grants.
 - name: dom.storage_access.auto_grants.exclude_third_party_trackers
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Storage-access API.
@@ -13027,7 +13027,7 @@
 # cookieBehavior=5.
 - name: network.cookie.cookieBehavior.trackerCookieBlocking
   type: bool
-  value: @IS_NOT_NIGHTLY_BUILD@
+  value: false
   mirror: always
 
 # Whether to support CHIPS(Cookies Having Independent Partitioned State).
@@ -16111,7 +16111,7 @@
 # Whether to exclude third-party trackers from the storage access heuristics.
 - name: privacy.restrict3rdpartystorage.heuristic.exclude_third_party_trackers
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Recent visited pages redirection permission expiration.
