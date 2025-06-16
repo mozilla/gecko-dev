@@ -746,11 +746,16 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
   }
 
   SetIResize(!mFrame->HasAnyStateBits(NS_FRAME_IS_DIRTY) && isIResize);
-  const auto positionProperty = mStyleDisplay->mPosition;
+  const auto anchorResolutionParams =
+      AnchorPosOffsetResolutionParams::UseCBFrameSize(
+          AnchorPosResolutionParams::From(this));
 
-  const auto bSize = mStylePosition->BSize(wm, positionProperty);
-  const auto minBSize = mStylePosition->MinBSize(wm, positionProperty);
-  const auto maxBSize = mStylePosition->MaxBSize(wm, positionProperty);
+  const auto bSize =
+      mStylePosition->BSize(wm, anchorResolutionParams.mBaseParams.mPosition);
+  const auto minBSize = mStylePosition->MinBSize(
+      wm, anchorResolutionParams.mBaseParams.mPosition);
+  const auto maxBSize = mStylePosition->MaxBSize(
+      wm, anchorResolutionParams.mBaseParams.mPosition);
   // XXX Should we really need to null check mCBReflowInput?  (We do for
   // at least nsBoxFrame).
   if (mFrame->HasBSizeChange()) {
@@ -811,8 +816,6 @@ void ReflowInput::InitResizeFlags(nsPresContext* aPresContext,
                    ComputedLogicalBorderPadding(wm).BStartEnd(wm));
   }
 
-  const auto anchorResolutionParams =
-      AnchorPosOffsetResolutionParams::UseCBFrameSize(mFrame, positionProperty);
   bool dependsOnCBBSize =
       (nsStylePosition::BSizeDependsOnContainer(bSize) &&
        // FIXME: condition this on not-abspos?
@@ -944,14 +947,14 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
   // functions.
   LogicalMargin offsets(aWM);
   const nsStylePosition* position = aFrame->StylePosition();
-  const auto positionProperty = aFrame->StyleDisplay()->mPosition;
+  const auto anchorResolutionParams =
+      AnchorPosOffsetResolutionParams::UseCBFrameSize(
+          AnchorPosResolutionParams::From(aFrame));
 
   // Compute the 'inlineStart' and 'inlineEnd' values. 'inlineStart'
   // moves the boxes to the end of the line, and 'inlineEnd' moves the
   // boxes to the start of the line. The computed values are always:
   // inlineStart=-inlineEnd
-  const auto anchorResolutionParams =
-      AnchorPosOffsetResolutionParams::UseCBFrameSize(aFrame, positionProperty);
   const auto inlineStart = position->GetAnchorResolvedInset(
       LogicalSide::IStart, aWM, anchorResolutionParams);
   const auto inlineEnd = position->GetAnchorResolvedInset(
@@ -1672,7 +1675,7 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
 
   const auto anchorResolutionParams =
       AnchorPosOffsetResolutionParams::ExplicitCBFrameSize(
-          mFrame, &aCBSize, StylePositionProperty::Absolute);
+          AnchorPosResolutionParams::From(this), &aCBSize);
   const auto iStartOffset = mStylePosition->GetAnchorResolvedInset(
       LogicalSide::IStart, cbwm, anchorResolutionParams);
   const auto iEndOffset = mStylePosition->GetAnchorResolvedInset(

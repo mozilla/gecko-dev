@@ -4653,10 +4653,11 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
   // too conservative. min/max-content don't really depend on the container.
   WritingMode wm = aReflowInput.GetWritingMode();
   const nsStylePosition* stylePos = StylePosition();
-  const auto positionProperty = StyleDisplay()->mPosition;
-  const auto bsize = stylePos->BSize(wm, positionProperty);
   const auto anchorResolutionParams =
-      AnchorPosOffsetResolutionParams::UseCBFrameSize(this, positionProperty);
+      AnchorPosOffsetResolutionParams::UseCBFrameSize(
+          AnchorPosResolutionParams::From(this));
+  const auto bsize =
+      stylePos->BSize(wm, anchorResolutionParams.mBaseParams.mPosition);
   if (bsize->HasPercent() ||
       (StyleDisplay()->IsAbsolutelyPositionedStyle() &&
        (bsize->IsAuto() || !bsize->IsLengthPercentage()) &&

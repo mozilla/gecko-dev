@@ -310,7 +310,7 @@ AnchorResolvedMargin AnchorResolvedMarginHelper::ResolveAnchor(
   auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
   // TODO(dshin, bug 1969305)
   AnchorPosOffsetResolutionParams params =
-      AnchorPosOffsetResolutionParams::UseCBFrameSize(nullptr, aPosition);
+      AnchorPosOffsetResolutionParams::UseCBFrameSize({nullptr, aPosition});
   Servo_ResolveAnchorFunctionsInCalcPercentage(&c, nullptr, &params, &result);
   if (result.IsInvalid()) {
     return Zero();
@@ -1445,7 +1445,7 @@ AnchorResolvedSize AnchorResolvedSizeHelper::ResolveAnchor(
   auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
   // TODO(dshin, bug 1969305)
   AnchorPosOffsetResolutionParams params =
-      AnchorPosOffsetResolutionParams::UseCBFrameSize(nullptr, aPosition);
+      AnchorPosOffsetResolutionParams::UseCBFrameSize({nullptr, aPosition});
   Servo_ResolveAnchorFunctionsInCalcPercentage(&c, nullptr, &params, &result);
   if (result.IsInvalid()) {
     return Auto();
@@ -1479,7 +1479,7 @@ AnchorResolvedMaxSize AnchorResolvedMaxSizeHelper::ResolveAnchor(
   auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
   // TODO(dshin, bug 1969305)
   AnchorPosOffsetResolutionParams params =
-      AnchorPosOffsetResolutionParams::UseCBFrameSize(nullptr, aPosition);
+      AnchorPosOffsetResolutionParams::UseCBFrameSize({nullptr, aPosition});
   Servo_ResolveAnchorFunctionsInCalcPercentage(&c, nullptr, &params, &result);
   if (result.IsInvalid()) {
     return None();

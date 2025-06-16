@@ -38,9 +38,11 @@ class nsIURI;
 class nsTextFrame;
 struct nsStyleDisplay;
 struct nsStyleVisibility;
+class nsComputedDOMStyle;
 namespace mozilla {
 class ComputedStyle;
 struct IntrinsicSize;
+struct ReflowInput;
 
 }  // namespace mozilla
 
@@ -749,6 +751,13 @@ struct AnchorPosResolutionParams {
   const nsIFrame* mFrame;
   // Position property of the element in question.
   mozilla::StylePositionProperty mPosition;
+
+  // Helper functions for creating anchor resolution parameters.
+  // Defined in corresponding header files.
+  static inline AnchorPosResolutionParams From(const nsIFrame* aFrame);
+  static inline AnchorPosResolutionParams From(const mozilla::ReflowInput* aRI);
+  static inline AnchorPosResolutionParams From(
+      const nsComputedDOMStyle* aComputedDOMStyle);
 };
 
 // Set of parameters required to resolve the anchor's position offset in a
@@ -765,21 +774,20 @@ struct AnchorPosOffsetResolutionParams {
   AnchorPosResolutionParams mBaseParams;
 
   static AnchorPosOffsetResolutionParams UseCBFrameSize(
-      const nsIFrame* aFrame, mozilla::StylePositionProperty aPosition) {
-    return {aFrame, nullptr, aPosition};
+      const AnchorPosResolutionParams& aBaseParams) {
+    return {aBaseParams, nullptr};
   }
 
   static AnchorPosOffsetResolutionParams ExplicitCBFrameSize(
-      const nsIFrame* aFrame, const mozilla::LogicalSize* aCBSize,
-      mozilla::StylePositionProperty aPosition) {
-    return {aFrame, aCBSize, aPosition};
+      const AnchorPosResolutionParams& aBaseParams,
+      const mozilla::LogicalSize* aCBSize) {
+    return {aBaseParams, aCBSize};
   }
 
  private:
-  AnchorPosOffsetResolutionParams(const nsIFrame* aFrame,
-                                  const mozilla::LogicalSize* aCBSize,
-                                  mozilla::StylePositionProperty aPosition)
-      : mCBSize{aCBSize}, mBaseParams{aFrame, aPosition} {}
+  AnchorPosOffsetResolutionParams(const AnchorPosResolutionParams& aBaseParams,
+                                  const mozilla::LogicalSize* aCBSize)
+      : mCBSize{aCBSize}, mBaseParams{aBaseParams} {}
 };
 
 struct AnchorResolvedInsetHelper {
@@ -932,7 +940,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
     //     `nsBlockFrame` is about to run another reflow for clearance)
     const auto anchorResolutionParams =
         AnchorPosOffsetResolutionParams::UseCBFrameSize(
-            nullptr, mozilla::StylePositionProperty::Absolute);
+            {nullptr, mozilla::StylePositionProperty::Absolute});
     return (GetAnchorResolvedInset(mozilla::eSideRight, anchorResolutionParams)
                 ->IsAuto() &&
             GetAnchorResolvedInset(mozilla::eSideLeft, anchorResolutionParams)

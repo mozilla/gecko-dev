@@ -3933,10 +3933,9 @@ bool PresShell::ScrollFrameIntoView(
     // If we're targetting a sticky element, make sure not to apply
     // scroll-padding on the direction we're stuck.
     const auto* stylePosition = aFrame->StylePosition();
-    const auto positionProperty = aFrame->StyleDisplay()->mPosition;
     const auto anchorResolutionParams =
-        AnchorPosOffsetResolutionParams::UseCBFrameSize(aFrame,
-                                                        positionProperty);
+        AnchorPosOffsetResolutionParams::UseCBFrameSize(
+            AnchorPosResolutionParams::From(aFrame));
     for (auto side : AllPhysicalSides()) {
       if (stylePosition->GetAnchorResolvedInset(side, anchorResolutionParams)
               ->IsAuto()) {

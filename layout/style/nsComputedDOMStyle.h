@@ -175,9 +175,9 @@ class nsComputedDOMStyle final : public nsDOMCSSDeclaration,
       const Element*, const PseudoStyleRequest&, mozilla::PresShell*,
       StyleType);
 
-#define STYLE_STRUCT(name_)                \
-  const nsStyle##name_* Style##name_() {   \
-    return mComputedStyle->Style##name_(); \
+#define STYLE_STRUCT(name_)                    \
+  const nsStyle##name_* Style##name_() const { \
+    return mComputedStyle->Style##name_();     \
   }
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
@@ -397,11 +397,19 @@ class nsComputedDOMStyle final : public nsDOMCSSDeclaration,
 #endif
 
   friend struct ComputedStyleMap;
+  friend AnchorPosResolutionParams AnchorPosResolutionParams::From(
+      const nsComputedDOMStyle*);
 };
 
 already_AddRefed<nsComputedDOMStyle> NS_NewComputedDOMStyle(
     mozilla::dom::Element*, const nsAString& aPseudoElt,
     mozilla::dom::Document*, nsComputedDOMStyle::StyleType,
     mozilla::ErrorResult&);
+
+inline AnchorPosResolutionParams AnchorPosResolutionParams::From(
+    const nsComputedDOMStyle* aComputedDOMStyle) {
+  return {aComputedDOMStyle->mOuterFrame,
+          aComputedDOMStyle->StyleDisplay()->mPosition};
+}
 
 #endif /* nsComputedDOMStyle_h__ */

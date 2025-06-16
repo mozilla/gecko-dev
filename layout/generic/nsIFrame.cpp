@@ -7045,17 +7045,17 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
                      NS_UNCONSTRAINEDSIZE);
 
   const auto* stylePos = StylePosition();
-  const auto positionProperty = StyleDisplay()->mPosition;
+  const auto anchorResolutionParams =
+      AnchorPosOffsetResolutionParams::UseCBFrameSize(
+          AnchorPosResolutionParams::From(this));
   const auto& styleISize =
       aSizeOverrides.mStyleISize
           ? AnchorResolvedSizeHelper::Overridden(*aSizeOverrides.mStyleISize)
-          : stylePos->ISize(aWM, positionProperty);
+          : stylePos->ISize(aWM, anchorResolutionParams.mBaseParams.mPosition);
   const auto& styleBSize =
       aSizeOverrides.mStyleBSize
           ? AnchorResolvedSizeHelper::Overridden(*aSizeOverrides.mStyleBSize)
-          : stylePos->BSize(aWM, positionProperty);
-  const auto anchorResolutionParams =
-      AnchorPosOffsetResolutionParams::UseCBFrameSize(this, positionProperty);
+          : stylePos->BSize(aWM, anchorResolutionParams.mBaseParams.mPosition);
   const auto iStartOffsetIsAuto =
       stylePos
           ->GetAnchorResolvedInset(LogicalSide::IStart, aWM,
@@ -7156,9 +7156,11 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
               ? StyleSize::LengthPercentage(
                     StyleLengthPercentage::FromAppUnits(result.BSize(aWM)))
               : *styleBSize,
-          *stylePos->MinBSize(aWM, positionProperty),
-          *stylePos->MaxBSize(aWM, positionProperty), aCBSize.BSize(aWM),
-          boxSizingAdjust.BSize(aWM));
+          *stylePos->MinBSize(aWM,
+                              anchorResolutionParams.mBaseParams.mPosition),
+          *stylePos->MaxBSize(aWM,
+                              anchorResolutionParams.mBaseParams.mPosition),
+          aCBSize.BSize(aWM), boxSizingAdjust.BSize(aWM));
 
       const IntrinsicSizeInput input(
           aRenderingContext, Some(aCBSize.ConvertTo(GetWritingMode(), aWM)),

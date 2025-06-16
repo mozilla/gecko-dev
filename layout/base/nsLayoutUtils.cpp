@@ -1263,7 +1263,7 @@ SideBits nsLayoutUtils::GetSideBitsForFixedPositionContent(
   if (aFixedPosFrame) {
     const nsStylePosition* position = aFixedPosFrame->StylePosition();
     const auto params = AnchorPosOffsetResolutionParams::UseCBFrameSize(
-        aFixedPosFrame, StylePositionProperty::Fixed);
+        {aFixedPosFrame, StylePositionProperty::Fixed});
     if (!position->GetAnchorResolvedInset(eSideRight, params)->IsAuto()) {
       sides |= SideBits::eRight;
     }
