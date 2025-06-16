@@ -8,6 +8,7 @@ import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.not
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -461,6 +462,8 @@ class WebNotificationTest : BaseSessionTest() {
     }
 
     @Test fun openWithActionsAndClickAction() {
+        assumeThat(sessionRule.env.isNightly, equalTo(true))
+
         val notificationResult = openNotificationAction()
         val promiseResult = mainSession.evaluatePromiseJS("showNotification()")
         sessionRule.waitForResult(notificationResult)
@@ -471,6 +474,8 @@ class WebNotificationTest : BaseSessionTest() {
     }
 
     @Test fun openWithActionsAndClickTitle() {
+        assumeThat(sessionRule.env.isNightly, equalTo(true))
+
         val notificationResult = openNotificationAction()
         val promiseResult = mainSession.evaluatePromiseJS("showNotification()")
         sessionRule.waitForResult(notificationResult)
@@ -481,6 +486,8 @@ class WebNotificationTest : BaseSessionTest() {
     }
 
     @Test fun openWithActionsAndClickUnknownAction() {
+        assumeThat(sessionRule.env.isNightly, equalTo(true))
+
         val notificationResult = openNotificationAction()
         val promiseResult = mainSession.evaluatePromiseJS("showNotification()")
         sessionRule.waitForResult(notificationResult)
