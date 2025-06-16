@@ -20,6 +20,10 @@
  * JavaScript code in this page
  */
 
+/**
+ * pdfjsVersion = 5.3.42
+ * pdfjsBuild = 250cc7d29
+ */
 
 ;// ./src/scripting_api/constants.js
 const Border = Object.freeze({
@@ -4047,8 +4051,6 @@ function initSandbox(params) {
 
 ;// ./src/pdf.scripting.js
 
-const pdfjsVersion = "5.3.13";
-const pdfjsBuild = "875233b3c";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };

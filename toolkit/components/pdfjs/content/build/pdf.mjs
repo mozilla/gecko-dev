@@ -20,6 +20,10 @@
  * JavaScript code in this page
  */
 
+/**
+ * pdfjsVersion = 5.3.42
+ * pdfjsBuild = 250cc7d29
+ */
 
 ;// ./src/shared/util.js
 const isNodeJS = false;
@@ -2694,7 +2698,7 @@ class AnnotationEditorUIManager {
       return;
     }
     for (const editor of this.#allEditors.values()) {
-      if (editor.annotationElementId === editId) {
+      if (editor.annotationElementId === editId || editor.id === editId) {
         this.setSelected(editor);
         editor.enterInEditMode();
       } else {
@@ -2708,13 +2712,13 @@ class AnnotationEditorUIManager {
       this.currentLayer.addNewEditor();
     }
   }
-  updateToolbar(mode) {
-    if (mode === this.#mode) {
+  updateToolbar(options) {
+    if (options.mode === this.#mode) {
       return;
     }
     this._eventBus.dispatch("switchannotationeditormode", {
       source: this,
-      mode
+      ...options
     });
   }
   updateParams(type, value) {
@@ -3774,6 +3778,7 @@ class AnnotationEditor {
   #prevDragY = 0;
   #telemetryTimeouts = null;
   #touchManager = null;
+  isSelected = false;
   _isCopy = false;
   _editToolbar = null;
   _initialOptions = Object.create(null);
@@ -4516,7 +4521,7 @@ class AnnotationEditor {
     }
     const [tx, ty] = this.getInitialTranslation();
     this.translate(tx, ty);
-    bindEvents(this, div, ["keydown", "pointerdown"]);
+    bindEvents(this, div, ["keydown", "pointerdown", "dblclick"]);
     if (this.isResizable && this._uiManager._supportsPinchToZoom) {
       this.#touchManager ||= new TouchManager({
         container: div,
@@ -4593,9 +4598,6 @@ class AnnotationEditor {
       return;
     }
     this.#selectOnPointerEvent(event);
-  }
-  get isSelected() {
-    return this._uiManager.isSelected(this);
   }
   #selectOnPointerEvent(event) {
     const {
@@ -4742,10 +4744,20 @@ class AnnotationEditor {
     return false;
   }
   enableEditMode() {
+    if (this.isInEditMode()) {
+      return false;
+    }
+    this.parent.setEditingState(false);
     this.#isInEditMode = true;
+    return true;
   }
   disableEditMode() {
+    if (!this.isInEditMode()) {
+      return false;
+    }
+    this.parent.setEditingState(true);
     this.#isInEditMode = false;
+    return true;
   }
   isInEditMode() {
     return this.#isInEditMode;
@@ -4962,6 +4974,11 @@ class AnnotationEditor {
     this.div.focus();
   }
   select() {
+    if (this.isSelected && this._editToolbar) {
+      this._editToolbar.show();
+      return;
+    }
+    this.isSelected = true;
     this.makeResizable();
     this.div?.classList.add("selectedEditor");
     if (!this._editToolbar) {
@@ -4976,6 +4993,10 @@ class AnnotationEditor {
     this.#altText?.toggleAltTextBadge(false);
   }
   unselect() {
+    if (!this.isSelected) {
+      return;
+    }
+    this.isSelected = false;
     this.#resizersDiv?.classList.add("hidden");
     this.div?.classList.remove("selectedEditor");
     if (this.div?.contains(document.activeElement)) {
@@ -4989,7 +5010,23 @@ class AnnotationEditor {
   updateParams(type, value) {}
   disableEditing() {}
   enableEditing() {}
-  enterInEditMode() {}
+  get canChangeContent() {
+    return false;
+  }
+  enterInEditMode() {
+    if (!this.canChangeContent) {
+      return;
+    }
+    this.enableEditMode();
+    this.div.focus();
+  }
+  dblclick(event) {
+    this.enterInEditMode();
+    this.parent.updateToolbar({
+      mode: this.constructor._editorType,
+      editId: this.id
+    });
+  }
   getElementForAltText() {
     return this.div;
   }
@@ -5594,6 +5631,79 @@ class FontFaceObject {
       objs.delete(objId);
     }
     return this.compiledGlyphs[character] = path;
+  }
+}
+
+;// ./src/display/api_utils.js
+
+function getUrlProp(val) {
+  return null;
+}
+function getDataProp(val) {
+  if (val instanceof Uint8Array && val.byteLength === val.buffer.byteLength) {
+    return val;
+  }
+  if (typeof val === "string") {
+    return stringToBytes(val);
+  }
+  if (val instanceof ArrayBuffer || ArrayBuffer.isView(val) || typeof val === "object" && !isNaN(val?.length)) {
+    return new Uint8Array(val);
+  }
+  throw new Error("Invalid PDF binary data: either TypedArray, " + "string, or array-like object is expected in the data property.");
+}
+function getFactoryUrlProp(val) {
+  if (typeof val !== "string") {
+    return null;
+  }
+  if (val.endsWith("/")) {
+    return val;
+  }
+  throw new Error(`Invalid factory url: "${val}" must include trailing slash.`);
+}
+const isRefProxy = v => typeof v === "object" && Number.isInteger(v?.num) && v.num >= 0 && Number.isInteger(v?.gen) && v.gen >= 0;
+const isNameProxy = v => typeof v === "object" && typeof v?.name === "string";
+const isValidExplicitDest = _isValidExplicitDest.bind(null, isRefProxy, isNameProxy);
+class LoopbackPort {
+  #listeners = new Map();
+  #deferred = Promise.resolve();
+  postMessage(obj, transfer) {
+    const event = {
+      data: structuredClone(obj, transfer ? {
+        transfer
+      } : null)
+    };
+    this.#deferred.then(() => {
+      for (const [listener] of this.#listeners) {
+        listener.call(this, event);
+      }
+    });
+  }
+  addEventListener(name, listener, options = null) {
+    let rmAbort = null;
+    if (options?.signal instanceof AbortSignal) {
+      const {
+        signal
+      } = options;
+      if (signal.aborted) {
+        warn("LoopbackPort - cannot use an `aborted` signal.");
+        return;
+      }
+      const onAbort = () => this.removeEventListener(name, listener);
+      rmAbort = () => signal.removeEventListener("abort", onAbort);
+      signal.addEventListener("abort", onAbort);
+    }
+    this.#listeners.set(listener, rmAbort);
+  }
+  removeEventListener(name, listener) {
+    const rmAbort = this.#listeners.get(listener);
+    rmAbort?.();
+    this.#listeners.delete(listener);
+  }
+  terminate() {
+    for (const [, rmAbort] of this.#listeners) {
+      rmAbort?.();
+    }
+    this.#listeners.clear();
   }
 }
 
@@ -9599,6 +9709,67 @@ class PDFDataTransportStreamRangeReader {
   }
 }
 
+;// ./src/display/pdf_objects.js
+const INITIAL_DATA = Symbol("INITIAL_DATA");
+class PDFObjects {
+  #objs = Object.create(null);
+  #ensureObj(objId) {
+    return this.#objs[objId] ||= {
+      ...Promise.withResolvers(),
+      data: INITIAL_DATA
+    };
+  }
+  get(objId, callback = null) {
+    if (callback) {
+      const obj = this.#ensureObj(objId);
+      obj.promise.then(() => callback(obj.data));
+      return null;
+    }
+    const obj = this.#objs[objId];
+    if (!obj || obj.data === INITIAL_DATA) {
+      throw new Error(`Requesting object that isn't resolved yet ${objId}.`);
+    }
+    return obj.data;
+  }
+  has(objId) {
+    const obj = this.#objs[objId];
+    return !!obj && obj.data !== INITIAL_DATA;
+  }
+  delete(objId) {
+    const obj = this.#objs[objId];
+    if (!obj || obj.data === INITIAL_DATA) {
+      return false;
+    }
+    delete this.#objs[objId];
+    return true;
+  }
+  resolve(objId, data = null) {
+    const obj = this.#ensureObj(objId);
+    obj.data = data;
+    obj.resolve();
+  }
+  clear() {
+    for (const objId in this.#objs) {
+      const {
+        data
+      } = this.#objs[objId];
+      data?.bitmap?.close();
+    }
+    this.#objs = Object.create(null);
+  }
+  *[Symbol.iterator]() {
+    for (const objId in this.#objs) {
+      const {
+        data
+      } = this.#objs[objId];
+      if (data === INITIAL_DATA) {
+        continue;
+      }
+      yield [objId, data];
+    }
+  }
+}
+
 ;// ./src/display/text_layer.js
 
 
@@ -10020,7 +10191,8 @@ class XfaText {
 
 
 
-const DEFAULT_RANGE_CHUNK_SIZE = 65536;
+
+
 const RENDERING_CANCELLED_TIMEOUT = 100;
 function getDocument(src = {}) {
   const task = new PDFDocumentLoadingTask();
@@ -10033,7 +10205,7 @@ function getDocument(src = {}) {
   const withCredentials = src.withCredentials === true;
   const password = src.password ?? null;
   const rangeTransport = src.range instanceof PDFDataRangeTransport ? src.range : null;
-  const rangeChunkSize = Number.isInteger(src.rangeChunkSize) && src.rangeChunkSize > 0 ? src.rangeChunkSize : DEFAULT_RANGE_CHUNK_SIZE;
+  const rangeChunkSize = Number.isInteger(src.rangeChunkSize) && src.rangeChunkSize > 0 ? src.rangeChunkSize : 2 ** 16;
   let worker = src.worker instanceof PDFWorker ? src.worker : null;
   const verbosity = src.verbosity;
   const docBaseUrl = typeof src.docBaseUrl === "string" && !isDataScheme(src.docBaseUrl) ? src.docBaseUrl : null;
@@ -10090,7 +10262,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.3.13",
+    apiVersion: "5.3.42",
     data,
     password,
     disableAutoFetch,
@@ -10157,33 +10329,6 @@ function getDocument(src = {}) {
   }).catch(task._capability.reject);
   return task;
 }
-function getUrlProp(val) {
-  return null;
-}
-function getDataProp(val) {
-  if (val instanceof Uint8Array && val.byteLength === val.buffer.byteLength) {
-    return val;
-  }
-  if (typeof val === "string") {
-    return stringToBytes(val);
-  }
-  if (val instanceof ArrayBuffer || ArrayBuffer.isView(val) || typeof val === "object" && !isNaN(val?.length)) {
-    return new Uint8Array(val);
-  }
-  throw new Error("Invalid PDF binary data: either TypedArray, " + "string, or array-like object is expected in the data property.");
-}
-function getFactoryUrlProp(val) {
-  if (typeof val !== "string") {
-    return null;
-  }
-  if (val.endsWith("/")) {
-    return val;
-  }
-  throw new Error(`Invalid factory url: "${val}" must include trailing slash.`);
-}
-const isRefProxy = v => typeof v === "object" && Number.isInteger(v?.num) && v.num >= 0 && Number.isInteger(v?.gen) && v.gen >= 0;
-const isNameProxy = v => typeof v === "object" && typeof v?.name === "string";
-const isValidExplicitDest = _isValidExplicitDest.bind(null, isRefProxy, isNameProxy);
 class PDFDocumentLoadingTask {
   static #docId = 0;
   _capability = Promise.withResolvers();
@@ -10785,49 +10930,6 @@ class PDFPageProxy {
   }
   get stats() {
     return this._stats;
-  }
-}
-class LoopbackPort {
-  #listeners = new Map();
-  #deferred = Promise.resolve();
-  postMessage(obj, transfer) {
-    const event = {
-      data: structuredClone(obj, transfer ? {
-        transfer
-      } : null)
-    };
-    this.#deferred.then(() => {
-      for (const [listener] of this.#listeners) {
-        listener.call(this, event);
-      }
-    });
-  }
-  addEventListener(name, listener, options = null) {
-    let rmAbort = null;
-    if (options?.signal instanceof AbortSignal) {
-      const {
-        signal
-      } = options;
-      if (signal.aborted) {
-        warn("LoopbackPort - cannot use an `aborted` signal.");
-        return;
-      }
-      const onAbort = () => this.removeEventListener(name, listener);
-      rmAbort = () => signal.removeEventListener("abort", onAbort);
-      signal.addEventListener("abort", onAbort);
-    }
-    this.#listeners.set(listener, rmAbort);
-  }
-  removeEventListener(name, listener) {
-    const rmAbort = this.#listeners.get(listener);
-    rmAbort?.();
-    this.#listeners.delete(listener);
-  }
-  terminate() {
-    for (const [, rmAbort] of this.#listeners) {
-      rmAbort?.();
-    }
-    this.#listeners.clear();
   }
 }
 class PDFWorker {
@@ -11526,65 +11628,6 @@ class WorkerTransport {
     return this.#pageRefCache.get(refStr) ?? null;
   }
 }
-const INITIAL_DATA = Symbol("INITIAL_DATA");
-class PDFObjects {
-  #objs = Object.create(null);
-  #ensureObj(objId) {
-    return this.#objs[objId] ||= {
-      ...Promise.withResolvers(),
-      data: INITIAL_DATA
-    };
-  }
-  get(objId, callback = null) {
-    if (callback) {
-      const obj = this.#ensureObj(objId);
-      obj.promise.then(() => callback(obj.data));
-      return null;
-    }
-    const obj = this.#objs[objId];
-    if (!obj || obj.data === INITIAL_DATA) {
-      throw new Error(`Requesting object that isn't resolved yet ${objId}.`);
-    }
-    return obj.data;
-  }
-  has(objId) {
-    const obj = this.#objs[objId];
-    return !!obj && obj.data !== INITIAL_DATA;
-  }
-  delete(objId) {
-    const obj = this.#objs[objId];
-    if (!obj || obj.data === INITIAL_DATA) {
-      return false;
-    }
-    delete this.#objs[objId];
-    return true;
-  }
-  resolve(objId, data = null) {
-    const obj = this.#ensureObj(objId);
-    obj.data = data;
-    obj.resolve();
-  }
-  clear() {
-    for (const objId in this.#objs) {
-      const {
-        data
-      } = this.#objs[objId];
-      data?.bitmap?.close();
-    }
-    this.#objs = Object.create(null);
-  }
-  *[Symbol.iterator]() {
-    for (const objId in this.#objs) {
-      const {
-        data
-      } = this.#objs[objId];
-      if (data === INITIAL_DATA) {
-        continue;
-      }
-      yield [objId, data];
-    }
-  }
-}
 class RenderTask {
   #internalRenderTask = null;
   onContinue = null;
@@ -11753,8 +11796,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.3.13";
-const build = "875233b3c";
+const version = "5.3.42";
+const build = "250cc7d29";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -14850,12 +14893,9 @@ class FreeTextEditor extends AnnotationEditor {
     }
   }
   enableEditMode() {
-    if (this.isInEditMode()) {
-      return;
+    if (!super.enableEditMode()) {
+      return false;
     }
-    this.parent.setEditingState(false);
-    this.parent.updateToolbar(AnnotationEditorType.FREETEXT);
-    super.enableEditMode();
     this.overlayDiv.classList.remove("enabled");
     this.editorDiv.contentEditable = true;
     this._isDraggable = false;
@@ -14877,13 +14917,12 @@ class FreeTextEditor extends AnnotationEditor {
     this.editorDiv.addEventListener("paste", this.editorDivPaste.bind(this), {
       signal
     });
+    return true;
   }
   disableEditMode() {
-    if (!this.isInEditMode()) {
-      return;
+    if (!super.disableEditMode()) {
+      return false;
     }
-    this.parent.setEditingState(true);
-    super.disableEditMode();
     this.overlayDiv.classList.add("enabled");
     this.editorDiv.contentEditable = false;
     this.div.setAttribute("aria-activedescendant", this.#editorDivId);
@@ -14895,6 +14934,7 @@ class FreeTextEditor extends AnnotationEditor {
     });
     this.isEditing = false;
     this.parent.div.classList.add("freetextEditing");
+    return true;
   }
   focusin(event) {
     if (!this._focusEventsAllowed) {
@@ -15010,9 +15050,6 @@ class FreeTextEditor extends AnnotationEditor {
     this.enableEditMode();
     this.editorDiv.focus();
   }
-  dblclick(event) {
-    this.enterInEditMode();
-  }
   keydown(event) {
     if (event.target === this.div && event.key === "Enter") {
       this.enterInEditMode();
@@ -15038,6 +15075,9 @@ class FreeTextEditor extends AnnotationEditor {
   enableEditing() {
     this.editorDiv.setAttribute("role", "textbox");
     this.editorDiv.setAttribute("aria-multiline", true);
+  }
+  get canChangeContent() {
+    return true;
   }
   render() {
     if (this.div) {
@@ -15065,7 +15105,6 @@ class FreeTextEditor extends AnnotationEditor {
     this.overlayDiv = document.createElement("div");
     this.overlayDiv.classList.add("overlay", "enabled");
     this.div.append(this.overlayDiv);
-    bindEvents(this, this.div, ["dblclick", "keydown"]);
     if (this._isCopy || this.annotationElementId) {
       const [parentWidth, parentHeight] = this.parentDimensions;
       if (this.annotationElementId) {
@@ -19598,7 +19637,9 @@ class StampEditor extends AnnotationEditor {
     return SupportedImageMimeTypes.includes(mime);
   }
   static paste(item, parent) {
-    parent.pasteEditor(AnnotationEditorType.STAMP, {
+    parent.pasteEditor({
+      mode: AnnotationEditorType.STAMP
+    }, {
       bitmapFile: item.getAsFile()
     });
   }
@@ -20297,8 +20338,8 @@ class AnnotationEditorLayer {
   get isInvisible() {
     return this.isEmpty && this.#uiManager.getMode() === AnnotationEditorType.NONE;
   }
-  updateToolbar(mode) {
-    this.#uiManager.updateToolbar(mode);
+  updateToolbar(options) {
+    this.#uiManager.updateToolbar(options);
   }
   updateMode(mode = this.#uiManager.getMode()) {
     this.#cleanup();
@@ -20647,9 +20688,9 @@ class AnnotationEditorLayer {
   canCreateNewEmptyEditor() {
     return this.#currentEditorType?.canCreateNewEmptyEditor();
   }
-  async pasteEditor(mode, params) {
-    this.#uiManager.updateToolbar(mode);
-    await this.#uiManager.updateMode(mode);
+  async pasteEditor(options, params) {
+    this.updateToolbar(options);
+    await this.#uiManager.updateMode(options.mode);
     const {
       offsetX,
       offsetY
@@ -21128,8 +21169,7 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "5.3.13";
-const pdfjsBuild = "875233b3c";
+
 globalThis.pdfjsLib = {
   AbortException: AbortException,
   AnnotationEditorLayer: AnnotationEditorLayer,

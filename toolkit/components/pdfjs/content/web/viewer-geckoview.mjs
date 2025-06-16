@@ -20,6 +20,10 @@
  * JavaScript code in this page
  */
 
+/**
+ * pdfjsVersion = 5.3.42
+ * pdfjsBuild = 250cc7d29
+ */
 
 ;// ./web/pdfjs.js
 const {
@@ -7054,7 +7058,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.3.13";
+    const viewerVersion = "5.3.42";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -10617,8 +10621,6 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.3.13";
-const pdfjsBuild = "875233b3c";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
