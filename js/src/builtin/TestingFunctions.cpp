@@ -55,6 +55,7 @@
 #include "builtin/MapObject.h"
 #include "builtin/Promise.h"
 #include "builtin/TestingUtility.h"  // js::ParseCompileOptions, js::ParseDebugMetadata
+#include "builtin/WeakMapObject.h"
 #include "ds/IdValuePair.h"          // js::IdValuePair
 #include "frontend/CompilationStencil.h"  // frontend::CompilationStencil
 #include "frontend/FrontendContext.h"     // AutoReportFrontendContext
@@ -3197,34 +3198,51 @@ static bool FullCompartmentChecks(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+static WeakMapObject* MaybeWeakMapObject(const Value& value) {
+  if (!value.isObject()) {
+    return nullptr;
+  }
+
+  JSObject* obj = UncheckedUnwrap(&value.toObject());
+  if (!obj->is<WeakMapObject>()) {
+    return nullptr;
+  }
+
+  return &obj->as<WeakMapObject>();
+}
+
+static bool NondeterministicGetWeakMapSize(JSContext* cx, unsigned argc,
+                                           Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  WeakMapObject* weakmap = MaybeWeakMapObject(args.get(0));
+  if (args.length() != 1 || !weakmap) {
+    RootedObject callee(cx, &args.callee());
+    ReportUsageErrorASCII(cx, callee, "Expected a single WeakMap argument ");
+    return false;
+  }
+
+  args.rval().setNumber(weakmap->nondeterministicGetSize());
+  return true;
+}
+
 static bool NondeterministicGetWeakMapKeys(JSContext* cx, unsigned argc,
                                            Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  if (args.length() != 1) {
+  Rooted<WeakMapObject*> weakmap(cx, MaybeWeakMapObject(args.get(0)));
+  if (args.length() != 1 || !weakmap) {
     RootedObject callee(cx, &args.callee());
-    ReportUsageErrorASCII(cx, callee, "Wrong number of arguments");
+    ReportUsageErrorASCII(cx, callee, "Expected a single WeakMap argument ");
     return false;
   }
-  if (!args[0].isObject()) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_NOT_EXPECTED_TYPE,
-                              "nondeterministicGetWeakMapKeys", "WeakMap",
-                              InformalValueTypeName(args[0]));
-    return false;
-  }
+
   RootedObject arr(cx);
-  RootedObject mapObj(cx, &args[0].toObject());
-  if (!JS_NondeterministicGetWeakMapKeys(cx, mapObj, &arr)) {
+  if (!JS_NondeterministicGetWeakMapKeys(cx, weakmap, &arr)) {
     return false;
   }
-  if (!arr) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_NOT_EXPECTED_TYPE,
-                              "nondeterministicGetWeakMapKeys", "WeakMap",
-                              args[0].toObject().getClass()->name);
-    return false;
-  }
+
+  MOZ_ASSERT(arr);
   args.rval().setObject(*arr);
   return true;
 }
@@ -10139,6 +10157,10 @@ gc::ZealModeHelpText),
     JS_FN_HELP("fullcompartmentchecks", FullCompartmentChecks, 1, 0,
 "fullcompartmentchecks(true|false)",
 "  If true, check for compartment mismatches before every GC."),
+
+    JS_FN_HELP("nondeterministicGetWeakMapSize", NondeterministicGetWeakMapSize, 1, 0,
+"nondeterministicGetWeakMapSize(weakmap)",
+"  Returns the number of entries in the given WeakMap."),
 
     JS_FN_HELP("nondeterministicGetWeakMapKeys", NondeterministicGetWeakMapKeys, 1, 0,
 "nondeterministicGetWeakMapKeys(weakmap)",
