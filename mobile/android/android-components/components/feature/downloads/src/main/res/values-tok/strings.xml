@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+  <!-- Text shown on the second row of a paused download notification. -->
+  <string name="mozac_feature_downloads_paused_notification_text">kama jo li lape</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">sina wile ala wile jo sin e lipu ni? (%1$s)</string>
+  <!--
+    Alert dialog confirmation before downloading a file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_dialog_title_3">sina wile ala wile jo e lipu ni? (%1$s)</string>
+  <!-- Alert dialog confirmation before download a file, this is the positive action. -->
+  <string name="mozac_feature_downloads_dialog_download">wile</string>
+  <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
+  <string name="mozac_feature_downloads_dialog_download_again" tools:ignore="UnusedResources">o kama jo sin</string>
+  <!-- Alert dialog confirmation before download a file, this is the negative action. -->
+  <string name="mozac_feature_downloads_dialog_cancel">wile ala</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">lipu %1$s li lon a.</string>
+  <!-- Message that appears when the downloaded file could not be opened. -->
+  <string name="mozac_feature_downloads_could_not_open_file">mi ken ala open e lipu</string>
+  <!-- Button that cancels the download when pressed. -->
+  <string name="mozac_feature_downloads_button_cancel">o weka jo</string>
+  <!-- Button that restarts the download after a failed attempt. -->
+  <string name="mozac_feature_downloads_button_try_again">o sin</string>
+  <!-- Content description for close button -->
+  <string name="mozac_feature_downloads_button_close">o pini</string>
+  <!-- Title for the third party download app chooser dialog -->
+  <string name="mozac_feature_downloads_third_party_app_chooser_dialog_title">o open e lipu kepeken ilo seme</string>
+</resources>

@@ -175,7 +175,7 @@
   <!-- Browser menu button that opens a user's library -->
   <string name="browser_menu_library">kulupu lipu</string>
   <!-- Browser menu toggle that requests a desktop site -->
-  <string name="browser_menu_desktop_site">lipu pi ilo suli</string>
+  <string name="browser_menu_desktop_site">nasin lukin pi ilo suli</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
   <string name="browser_menu_open_in_regular_tab">o pana tawa poki</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
@@ -211,6 +211,24 @@
   <string name="browser_menu_edit">o ante</string>
   <!-- Button shown on the home page that opens the Customize home settings -->
   <string name="browser_menu_customize_home_1">o nasin sina e lipu lawa</string>
+  <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
+  <string name="browser_menu_switch_to_desktop_site">o kepeken nasin lukin lipu pi ilo suli</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">o ante e toki lipu…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">o ante e toki lipu</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">pana pi lipu kasi…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">pana pi lipu kasi</string>
+  <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
+  <string name="browser_toolbar_translate">o ante e toki lipu</string>
+  <!--
+    Content description (not visible, for screen readers etc.) for the translate page toolbar button that opens the translations dialog when the page is translated successfully.
+    %1$s is the name of the language that is displayed in the original page. (For example: English)
+    %2$s is the name of the language which the page was translated to. (For example: French)
+  -->
+  <string name="browser_toolbar_translated_successfully">toki lipu la %1$s li kama %2$s</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">o pana e nimi nasin</string>
   <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
@@ -229,6 +247,20 @@
   <string name="phone_feature_go_to_settings">o lukin e nasin ilo</string>
   <!-- Preference for altering video and audio autoplay for all websites -->
   <string name="preference_browser_feature_autoplay">open sitelen</string>
+  <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+  <string name="preference_feature_desktop_mode_default">tenpo ale la o kepeken nasin lukin lipu pi ilo suli</string>
+  <!-- Text for error message when printing a page and it fails. -->
+  <string name="unable_to_print_page_error">mi ken ala pana e lipu ilo ni tawa lipu kasi</string>
+  <!-- Text for the print feature in the share and browser menu -->
+  <string name="menu_print">pana pi lipu kasi</string>
+  <!-- Sub-header in the dialog to share a link to another sync device -->
+  <string name="share_device_subheader">o pana tawa ilo ante</string>
+  <!-- An option from the share dialog to send link to all other sync devices -->
+  <string name="sync_send_to_all">o pana tawa ilo ante ale</string>
+  <!-- The dialog text shown when additional devices are not available -->
+  <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">pana lipu la o kama tawa ilo Firefox lon ilo ante</string>
+  <!-- Add new device screen title -->
+  <string name="sync_add_new_device_title">o pana tawa ilo ante</string>
   <!-- Message for copying the URL via long press on the toolbar -->
   <string name="url_copied">mi jo e nimi nasin</string>
   <!-- Instructions on how to access pairing -->
@@ -239,6 +271,8 @@
   <string name="preference_doh_provider_custom_dialog_error_invalid">nimi nasin ni li pakala</string>
   <!-- Snackbar message shown after an URL has been copied to clipboard. -->
   <string name="browser_toolbar_url_copied_to_clipboard_snackbar">mi jo e nimi nasin</string>
+  <!-- The header for the email of an address -->
+  <string name="addresses_email">nimi pi poki lipu</string>
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. o lukin e nasin ilo lon ilo Android</string>
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
@@ -252,4 +286,17 @@
   <!-- Snackbar button text to navigate to telemetry settings. -->
   <string name="experiments_snackbar_button">o lukin e nasin ilo</string>
   <!-- Translations feature -->
+
+  <!--
+    Translation request dialog
+
+    Title for the translation dialog that allows a user to translate the webpage.
+  -->
+  <string name="translations_bottom_sheet_title">sina wile ala wile ante e toki lipu?</string>
+  <!--
+    Title for the translation dialog after a translation was completed successfully.
+    %1$s is the name of the language that the page was translated from, for example, "French".
+    %2$s is the name of the language that the page was translated to, for example, "English".
+  -->
+  <string name="translations_bottom_sheet_title_translation_completed">toki lipu la %1$s li kama %2$s</string>
 </resources>
