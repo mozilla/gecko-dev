@@ -132,6 +132,7 @@ class TrackingProtectionPanelInteractorTest {
     fun `WHEN onBackPressed is called THEN call popBackStack and navigate`() = runTestOnMain {
         every { context.settings().shouldUseCookieBannerPrivateMode } returns false
         val directionsSlot = slot<NavDirections>()
+        every { context.components.publicSuffixList } returns mockk()
 
         interactor.handleNavigationAfterCheck(tab, true)
 

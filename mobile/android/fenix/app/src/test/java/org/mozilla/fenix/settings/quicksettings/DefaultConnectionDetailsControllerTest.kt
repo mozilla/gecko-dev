@@ -90,6 +90,7 @@ class DefaultConnectionDetailsControllerTest {
     @Test
     fun `WHEN handleBackPressed is called THEN should call popBackStack and navigate`() = runTestOnMain {
         every { context.settings().shouldUseCookieBannerPrivateMode } returns false
+        every { context.components.publicSuffixList } returns mockk()
 
         controller.handleBackPressed()
 

@@ -19,6 +19,7 @@ import mozilla.components.support.ktx.kotlin.isContentUrl
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.settings.quicksettings.protections.cookiebanners.getCookieBannerUIMode
 
 /**
@@ -70,8 +71,9 @@ class TrackingProtectionPanelInteractor(
     internal fun handleNavigationAfterCheck(tab: SessionState, containsException: Boolean) {
         ioScope.launch {
             val cookieBannerUIMode = cookieBannersStorage.getCookieBannerUIMode(
-                context,
-                tab,
+                tab = tab,
+                isFeatureEnabledInPrivateMode = context.settings().shouldUseCookieBannerPrivateMode,
+                publicSuffixList = context.components.publicSuffixList,
             )
             withContext(Dispatchers.Main) {
                 fragment.runIfFragmentIsAttached {

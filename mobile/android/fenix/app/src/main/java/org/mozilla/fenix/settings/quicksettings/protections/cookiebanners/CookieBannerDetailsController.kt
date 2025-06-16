@@ -32,6 +32,7 @@ import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getRootView
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.trackingprotection.CookieBannerUIMode
 import org.mozilla.fenix.trackingprotection.ProtectionsAction
 import org.mozilla.fenix.trackingprotection.ProtectionsStore
@@ -85,8 +86,9 @@ class DefaultCookieBannerDetailsController(
             context.components.useCases.trackingProtectionUseCases.containsException(tab.id) { contains ->
                 ioScope.launch {
                     val cookieBannerUIMode = cookieBannersStorage.getCookieBannerUIMode(
-                        context,
-                        tab,
+                        tab = tab,
+                        isFeatureEnabledInPrivateMode = context.settings().shouldUseCookieBannerPrivateMode,
+                        publicSuffixList = publicSuffixList,
                     )
                     withContext(Dispatchers.Main) {
                         fragment.runIfFragmentIsAttached {

@@ -165,8 +165,9 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
             lifecycleScope.launch {
                 val cookieBannersStorage = requireComponents.core.cookieBannersStorage
                 val cookieBannerUIMode = cookieBannersStorage.getCookieBannerUIMode(
-                    requireContext(),
-                    tab,
+                    tab = tab,
+                    isFeatureEnabledInPrivateMode = requireContext().settings().shouldUseCookieBannerPrivateMode,
+                    publicSuffixList = requireComponents.publicSuffixList,
                 )
                 withContext(Dispatchers.Main) {
                     runIfFragmentIsAttached {

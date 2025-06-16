@@ -4,29 +4,32 @@
 
 package org.mozilla.fenix.settings.quicksettings.protections.cookiebanners
 
-import android.content.Context
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.concept.engine.cookiehandling.CookieBannersStorage
-import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.settings
+import mozilla.components.lib.publicsuffixlist.PublicSuffixList
 import org.mozilla.fenix.trackingprotection.CookieBannerUIMode
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 /**
  * Get the current status of cookie banner ui mode.
+ *
+ * @param tab The tab for which to get the cookie banner ui mode.
+ * @param isFeatureEnabledInPrivateMode Whether the cookie banner feature is enabled in private mode.
+ * @param publicSuffixList [PublicSuffixList] used to obtain the base domain of the current site.
  */
 suspend fun CookieBannersStorage.getCookieBannerUIMode(
-    context: Context,
     tab: SessionState,
+    isFeatureEnabledInPrivateMode: Boolean,
+    publicSuffixList: PublicSuffixList,
 ): CookieBannerUIMode {
-    return if (context.settings().shouldUseCookieBannerPrivateMode) {
+    return if (isFeatureEnabledInPrivateMode) {
         val isSiteDomainReported = withContext(Dispatchers.IO) {
             val host = tab.content.url.toUri().host.orEmpty()
-            val siteDomain = context.components.publicSuffixList.getPublicSuffixPlusOne(host).await()
+            val siteDomain = publicSuffixList.getPublicSuffixPlusOne(host).await()
             siteDomain?.let { isSiteDomainReported(it) }
         }
 
