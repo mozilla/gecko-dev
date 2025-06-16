@@ -5,8 +5,6 @@
 ### Firefox Home / New Tab strings for about:home / about:newtab.
 
 newtab-page-title = New Tab
-newtab-settings-button =
-    .title = Customize your New Tab page
 newtab-customize-panel-icon-button =
     .title = Customize this page
 newtab-customize-panel-icon-button-label = Customize

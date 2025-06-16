@@ -31,16 +31,6 @@ const PREF_INFERRED_PERSONALIZATION_SYSTEM =
 const PREF_INFERRED_PERSONALIZATION_USER =
   "discoverystream.sections.personalization.inferred.user.enabled";
 
-export const PrefsButton = ({ onClick, icon }) => (
-  <div className="prefs-button">
-    <button
-      className={`icon ${icon || "icon-settings"}`}
-      onClick={onClick}
-      data-l10n-id="newtab-settings-button"
-    />
-  </div>
-);
-
 // Returns a function will not be continuously triggered when called. The
 // function will be triggered if called again after `wait` milliseconds.
 function debounce(func, wait) {

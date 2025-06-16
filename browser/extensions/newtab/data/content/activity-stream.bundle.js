@@ -14604,16 +14604,6 @@ const Base_PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_THUMBS_UP_DOWN_LAYOUT_ENABLED = "discoverystream.thumbsUpDown.searchTopsitesCompact";
 const PREF_INFERRED_PERSONALIZATION_SYSTEM = "discoverystream.sections.personalization.inferred.enabled";
 const Base_PREF_INFERRED_PERSONALIZATION_USER = "discoverystream.sections.personalization.inferred.user.enabled";
-const PrefsButton = ({
-  onClick,
-  icon
-}) => /*#__PURE__*/external_React_default().createElement("div", {
-  className: "prefs-button"
-}, /*#__PURE__*/external_React_default().createElement("button", {
-  className: `icon ${icon || "icon-settings"}`,
-  onClick: onClick,
-  "data-l10n-id": "newtab-settings-button"
-}));
 
 // Returns a function will not be continuously triggered when called. The
 // function will be triggered if called again after `wait` milliseconds.
