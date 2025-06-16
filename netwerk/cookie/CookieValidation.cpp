@@ -547,10 +547,19 @@ bool CookieValidation::CheckValue(const CookieStruct& aCookieData) {
   const auto* start = aCookieData.value().BeginReading();
   const auto* end = aCookieData.value().EndReading();
 
+  bool shouldBlockEqualInNamelessCookie =
+      aCookieData.name().IsEmpty() &&
+      StaticPrefs::network_cookie_block_nameless_with_equal_char();
+
   auto charFilter = [&](unsigned char c) {
     if (StaticPrefs::network_cookie_blockUnicode() && c >= 0x80) {
       return true;
     }
+
+    if (c == '=' && shouldBlockEqualInNamelessCookie) {
+      return true;
+    }
+
     return std::find(std::begin(illegalCharacters), std::end(illegalCharacters),
                      c) != std::end(illegalCharacters);
   };

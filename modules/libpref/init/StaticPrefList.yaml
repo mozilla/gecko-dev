@@ -13136,6 +13136,12 @@
   value: true
   mirror: always
 
+# When true, Firefox will reject nameless cookies that contain `=` in value.
+- name: network.cookie.block_nameless_with_equal_char
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # If we should attempt to race the cache and network.
 - name: network.http.rcwn.enabled
   type: bool
