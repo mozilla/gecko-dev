@@ -46,9 +46,16 @@ async function openMediaTab(url) {
   await SpecialPowers.spawn(tab.linkedBrowser, [], _ => {
     content.waitForOnTimeUpdate = element => {
       return new Promise(resolve => {
-        element.addEventListener('timeupdate', () => {
-          resolve();
-        }, {once: true});
+        // Wait longer to ensure the system clock has actually moved forward,
+        // preventing intermittent failures.
+        let count = 0;
+        const listener = () => {
+          if (++count > 2) {
+            element.removeEventListener('timeupdate', listener);
+            resolve();
+          }
+        };
+        element.addEventListener('timeupdate', listener);
       });
     };
 
