@@ -174,9 +174,25 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
       } else {
         MutableHandle<JSObject*> builtinInstance =
             builtinInstances[*builtinModule];
-        if (!builtinInstance && !wasm::InstantiateBuiltinModule(
-                                    cx, *builtinModule, builtinInstance)) {
-          return false;
+
+        // If this module has not been instantiated yet, do so now.
+        if (!builtinInstance) {
+          // Use the first imported memory, if it exists, when compiling the
+          // builtin module.
+          const Import* firstMemoryImport =
+              (codeMeta.memories.empty() ||
+               codeMeta.memories[0].importIndex.isNothing())
+                  ? nullptr
+                  : &moduleMeta.imports[*codeMeta.memories[0].importIndex];
+
+          // Compile and instantiate the builtin module. This uses our module's
+          // importObj so that it can read the memory import that we provided
+          // above.
+          if (!wasm::InstantiateBuiltinModule(
+                  cx, *builtinModule, firstMemoryImport,
+                  importObj, builtinInstance)) {
+            return false;
+          }
         }
         isImportedStringModule = false;
         importModuleObject = builtinInstance;
@@ -396,7 +412,8 @@ static bool DescribeScriptedCaller(JSContext* cx, ScriptedCaller* caller,
   return true;
 }
 
-static SharedCompileArgs InitCompileArgs(JSContext* cx, FeatureOptions options,
+static SharedCompileArgs InitCompileArgs(JSContext* cx,
+                                         const FeatureOptions& options,
                                          const char* introducer) {
   ScriptedCaller scriptedCaller;
   if (!DescribeScriptedCaller(cx, &scriptedCaller, introducer)) {
@@ -5407,7 +5424,7 @@ static bool WebAssembly_mozIntGemm(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   Rooted<WasmModuleObject*> module(cx);
-  if (!wasm::CompileBuiltinModule(cx, wasm::BuiltinModuleId::IntGemm,
+  if (!wasm::CompileBuiltinModule(cx, wasm::BuiltinModuleId::IntGemm, nullptr,
                                   &module)) {
     ReportOutOfMemory(cx);
     return false;

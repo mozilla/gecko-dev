@@ -2398,7 +2398,7 @@ static bool WasmBuiltinI8VecMul(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   Rooted<WasmModuleObject*> module(cx);
-  if (!wasm::CompileBuiltinModule(cx, wasm::BuiltinModuleId::SelfTest,
+  if (!wasm::CompileBuiltinModule(cx, wasm::BuiltinModuleId::SelfTest, nullptr,
                                   &module)) {
     return false;
   }

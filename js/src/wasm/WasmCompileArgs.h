@@ -103,6 +103,7 @@ struct BuiltinModuleIds {
 struct FeatureOptions {
   FeatureOptions()
       : disableOptimizingCompiler(false),
+        mozIntGemm(false),
         isBuiltinModule(false),
         jsStringBuiltins(false),
         jsStringConstants(false) {}
@@ -110,6 +111,9 @@ struct FeatureOptions {
   // Whether we should try to disable our optimizing compiler. Only available
   // with `IsSimdPrivilegedContext`.
   bool disableOptimizingCompiler;
+  // Whether we enable the mozIntGemm builtin module. Only available with
+  // `IsSimdPrivilegedContext`.
+  bool mozIntGemm;
 
   // Enables builtin module opcodes, only set in WasmBuiltinModule.cpp.
   bool isBuiltinModule;

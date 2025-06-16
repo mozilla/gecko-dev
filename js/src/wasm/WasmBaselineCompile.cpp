@@ -5394,10 +5394,27 @@ bool BaseCompiler::emitCall() {
     return true;
   }
 
+  bool import = codeMeta_.funcIsImport(funcIndex);
+
+  if (import) {
+    BuiltinModuleFuncId knownFuncImport = codeMeta_.knownFuncImport(funcIndex);
+    if (knownFuncImport != BuiltinModuleFuncId::None) {
+      const BuiltinModuleFunc& builtinModuleFunc =
+          BuiltinModuleFuncs::getFromId(knownFuncImport);
+      if (builtinModuleFunc.usesMemory()) {
+        // The final parameter of an builtinModuleFunc is implicitly the heap
+        // base
+        pushHeapBase(0);
+      }
+
+      // Call the builtinModuleFunc
+      return emitInstanceCall(*builtinModuleFunc.sig());
+    }
+  }
+
   sync();
 
   const FuncType& funcType = codeMeta_.getFuncType(funcIndex);
-  bool import = codeMeta_.funcIsImport(funcIndex);
 
   uint32_t numArgs = funcType.args().length();
   size_t stackArgBytes = stackConsumed(numArgs);

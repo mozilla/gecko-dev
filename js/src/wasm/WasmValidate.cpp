@@ -3050,6 +3050,8 @@ static bool DecodeImport(Decoder& d, CodeMetadata* codeMeta,
       if (!DecodeMemoryTypeAndLimits(d, codeMeta, &codeMeta->memories)) {
         return false;
       }
+      codeMeta->memories.back().importIndex =
+          Some(moduleMeta->imports.length());
       break;
     }
     case DefinitionKind::Global: {

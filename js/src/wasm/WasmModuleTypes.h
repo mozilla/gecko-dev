@@ -81,6 +81,15 @@ struct CacheableName {
     return mozilla::Span<const char>(bytes_);
   }
 
+  [[nodiscard]] bool clone(CacheableName* name) const {
+    UTF8Bytes bytesCopy;
+    if (!bytesCopy.appendAll(bytes_)) {
+      return false;
+    }
+    *name = CacheableName(std::move(bytesCopy));
+    return true;
+  }
+
   static CacheableName fromUTF8Chars(UniqueChars&& utf8Chars);
   [[nodiscard]] static bool fromUTF8Chars(const char* utf8Chars,
                                           CacheableName* name);
@@ -804,9 +813,12 @@ WASM_DECLARE_CACHEABLE_POD(Limits);
 // MemoryDesc describes a memory.
 
 struct MemoryDesc {
+  // The limits of this memory
   Limits limits;
+  // The index of the import if this memory is imported
+  mozilla::Maybe<uint32_t> importIndex;
 
-  WASM_CHECK_CACHEABLE_POD(limits);
+  WASM_CHECK_CACHEABLE_POD(limits, importIndex);
 
   bool isShared() const { return limits.shared == Shareable::True; }
 
@@ -843,8 +855,9 @@ struct MemoryDesc {
     return limits.initial * PageSize;
   }
 
-  MemoryDesc() {}
-  explicit MemoryDesc(Limits limits) : limits(limits) {}
+  MemoryDesc() = default;
+  explicit MemoryDesc(Limits limits)
+      : limits(limits), importIndex(mozilla::Nothing()) {}
 };
 
 WASM_DECLARE_CACHEABLE_POD(MemoryDesc);

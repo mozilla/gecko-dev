@@ -115,6 +115,13 @@ bool FeatureOptions::init(JSContext* cx, HandleValue val) {
     }
 
     this->disableOptimizingCompiler = JS::ToBoolean(disableOptimizingCompiler);
+
+    RootedValue mozIntGemm(cx);
+    if (!JS_GetProperty(cx, obj, "mozIntGemm", &mozIntGemm)) {
+      return false;
+    }
+
+    this->mozIntGemm = JS::ToBoolean(mozIntGemm);
   } else {
     MOZ_ASSERT(!this->disableOptimizingCompiler);
   }
@@ -215,6 +222,8 @@ FeatureArgs FeatureArgs::build(JSContext* cx, const FeatureOptions& options) {
   features.builtinModules.jsStringConstants = options.jsStringConstants;
   features.builtinModules.jsStringConstantsNamespace =
       options.jsStringConstantsNamespace;
+  features.builtinModules.intGemm =
+      MozIntGemmAvailable(cx) && options.mozIntGemm;
 
   return features;
 }
