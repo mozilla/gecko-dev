@@ -297,7 +297,7 @@ void HLSDecoder::UpdateCurrentPrincipal(nsIURI* aMediaUri) {
   } else if (!principal->Subsumes(mContentPrincipal) &&
              !mContentPrincipal->Subsumes(principal)) {
     // Principals are disjoint -- no access.
-    mContentPrincipal = NullPrincipal::Create(OriginAttributes(), aMediaUri);
+    mContentPrincipal = NullPrincipal::Create(OriginAttributes());
   } else {
     MOZ_DIAGNOSTIC_CRASH("non-equal principals should be disjoint");
     mContentPrincipal = nullptr;
@@ -316,7 +316,7 @@ already_AddRefed<nsIPrincipal> HLSDecoder::GetContentPrincipal(
     securityFlags |= nsILoadInfo::SEC_COOKIES_INCLUDE;
   }
   nsCOMPtr<nsIPrincipal> principal =
-      NullPrincipal::Create(OriginAttributes(), aMediaUri);
+      NullPrincipal::Create(OriginAttributes());
   nsCOMPtr<nsIChannel> channel;
   nsresult rv = NS_NewChannel(
       getter_AddRefs(channel), aMediaUri, static_cast<dom::Element*>(element),
