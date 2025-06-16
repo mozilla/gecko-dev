@@ -1383,24 +1383,32 @@ var gProtectionsHandler = {
    */
   smartblockEmbedInfo: [
     {
-      sites: ["https://itisatracker.org"],
+      matchPatterns: ["https://itisatracker.org/*"],
       shimId: "EmbedTestShim",
       displayName: "Test",
     },
     {
-      sites: ["https://www.instagram.com", "https://platform.instagram.com"],
+      matchPatterns: [
+        "https://www.instagram.com/*",
+        "https://platform.instagram.com/*",
+      ],
       shimId: "InstagramEmbed",
       displayName: "Instagram",
     },
     {
-      sites: ["https://www.tiktok.com"],
+      matchPatterns: ["https://www.tiktok.com/*"],
       shimId: "TiktokEmbed",
       displayName: "Tiktok",
     },
     {
-      sites: ["https://platform.twitter.com"],
+      matchPatterns: ["https://platform.twitter.com/*"],
       shimId: "TwitterEmbed",
       displayName: "X",
+    },
+    {
+      matchPatterns: ["https://*.disqus.com/*"],
+      shimId: "DisqusEmbed",
+      displayName: "Disqus",
     },
   ],
 
@@ -2495,9 +2503,10 @@ var gProtectionsHandler = {
         continue;
       }
 
-      let shimInfo = this.smartblockEmbedInfo.find(element =>
-        element.sites.includes(origin)
-      );
+      let shimInfo = this.smartblockEmbedInfo.find(element => {
+        let matchPatternSet = new MatchPatternSet(element.matchPatterns);
+        return matchPatternSet.matches(origin);
+      });
       if (!shimInfo) {
         // origin not relevant to smartblock
         continue;

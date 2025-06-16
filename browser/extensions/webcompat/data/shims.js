@@ -1048,6 +1048,27 @@ const AVAILABLE_SHIMS = [
     unblocksOnOptIn: ["*://www.tiktok.com/*"],
   },
   {
+    id: "DisqusEmbed",
+    platform: "desktop",
+    name: "Disqus embed placeholder",
+    bug: "1965307",
+    runFirst: "disqus-embed.js",
+    // Blank stub file just so we run the script above when the matched script
+    // files get blocked.
+    file: "empty-script.js",
+    matches: ["*://*.disqus.com/embed.js"],
+    logos: ["disqus.svg"],
+    webExposedShimHelpers: [],
+    needsShimHelpers: [
+      "embedClicked",
+      "smartblockEmbedReplaced",
+      "smartblockGetFluentString",
+    ],
+    isSmartblockEmbedShim: true,
+    onlyIfBlockedByETP: true,
+    unblocksOnOptIn: ["*://*.disqus.com/*", "*://c.disquscdn.com/*"],
+  },
+  {
     id: "FingerpringJSBotd",
     platform: "all",
     name: "FingerprintJS Bot Detection",
