@@ -255,39 +255,6 @@ static void DrawCellIncludingFocusRing(NSCell* aCell, NSRect aWithFrame,
 
 @end
 
-@interface MOZSearchFieldCell : NSSearchFieldCell
-@property BOOL shouldUseToolbarStyle;
-@end
-
-@implementation MOZSearchFieldCell
-
-- (instancetype)init {
-  // We would like to render a search field which has the magnifying glass icon
-  // at the start of the search field, and no cancel button. On 10.12 and 10.13,
-  // empty search fields render the magnifying glass icon in the middle of the
-  // field. So in order to get the icon to show at the start of the field, we
-  // need to give the field some content. We achieve this with a single space
-  // character.
-  self = [super initTextCell:@" "];
-
-  // However, because the field is now non-empty, by default it shows a cancel
-  // button. To hide the cancel button, override it with a custom NSButtonCell
-  // which renders nothing.
-  NSButtonCell* invisibleCell = [[NSButtonCell alloc] initImageCell:nil];
-  invisibleCell.bezeled = NO;
-  invisibleCell.bordered = NO;
-  self.cancelButtonCell = invisibleCell;
-  [invisibleCell release];
-
-  return self;
-}
-
-- (BOOL)_isToolbarMode {
-  return self.shouldUseToolbarStyle;
-}
-
-@end
-
 #define HITHEME_ORIENTATION kHIThemeOrientationNormal
 
 static CGFloat kMaxFocusRingWidth =
@@ -431,12 +398,6 @@ nsNativeThemeCocoa::nsNativeThemeCocoa() : ThemeCocoa(ScrollbarStyle()) {
   [mTextFieldCell setEditable:YES];
   [mTextFieldCell setFocusRingType:NSFocusRingTypeExterior];
 
-  mSearchFieldCell = [[MOZSearchFieldCell alloc] init];
-  [mSearchFieldCell setBezelStyle:NSTextFieldRoundedBezel];
-  [mSearchFieldCell setBezeled:YES];
-  [mSearchFieldCell setEditable:YES];
-  [mSearchFieldCell setFocusRingType:NSFocusRingTypeExterior];
-
   mDropdownCell = [[NSPopUpButtonCell alloc] initTextCell:@"" pullsDown:NO];
 
   mComboBoxCell = [[NSComboBoxCell alloc] initTextCell:@""];
@@ -484,7 +445,6 @@ nsNativeThemeCocoa::~nsNativeThemeCocoa() {
   [mRadioButtonCell release];
   [mCheckboxCell release];
   [mTextFieldCell release];
-  [mSearchFieldCell release];
   [mDropdownCell release];
   [mComboBoxCell release];
   [mCellDrawWindow release];
@@ -1022,27 +982,6 @@ void nsNativeThemeCocoa::DrawTextField(CGContextRef cgContext,
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
-void nsNativeThemeCocoa::DrawSearchField(CGContextRef cgContext,
-                                         const HIRect& inBoxRect,
-                                         const TextFieldParams& aParams) {
-  NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
-
-  mSearchFieldCell.enabled = !aParams.disabled;
-  mSearchFieldCell.showsFirstResponder = aParams.focused;
-  mSearchFieldCell.placeholderString = @"";
-  mSearchFieldCell.shouldUseToolbarStyle = aParams.insideToolbar;
-
-  if (mCellDrawWindow) {
-    mCellDrawWindow.cellsShouldLookActive =
-        YES;  // TODO: propagate correct activeness state
-  }
-  DrawCellWithSnapping(mSearchFieldCell, cgContext, inBoxRect,
-                       searchFieldSettings, aParams.verticalAlignFactor,
-                       mCellDrawView, aParams.rtl);
-
-  NS_OBJC_END_TRY_IGNORE_BLOCK;
-}
-
 static bool ShouldUnconditionallyDrawFocusRingIfFocused(nsIFrame* aFrame) {
   // Mac always draws focus rings for textboxes and lists.
   switch (aFrame->StyleDisplay()->EffectiveAppearance()) {
@@ -1050,7 +989,6 @@ static bool ShouldUnconditionallyDrawFocusRingIfFocused(nsIFrame* aFrame) {
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:
     case StyleAppearance::Textarea:
-    case StyleAppearance::Searchfield:
     case StyleAppearance::Listbox:
       return true;
     default:
@@ -1929,10 +1867,6 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
       return Some(
           WidgetInfo::TextField(ComputeTextFieldParams(aFrame, elementState)));
 
-    case StyleAppearance::Searchfield:
-      return Some(WidgetInfo::SearchField(
-          ComputeTextFieldParams(aFrame, elementState)));
-
     case StyleAppearance::ProgressBar: {
       if (elementState.HasState(ElementState::INDETERMINATE)) {
         if (!QueueAnimatedContentForRefresh(aFrame->GetContent(), 30)) {
@@ -2104,11 +2038,6 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo,
           DrawTextField(cgContext, macRect, params);
           break;
         }
-        case Widget::eSearchField: {
-          TextFieldParams params = aWidgetInfo.Params<TextFieldParams>();
-          DrawSearchField(cgContext, macRect, params);
-          break;
-        }
         case Widget::eProgressBar: {
           ProgressParams params = aWidgetInfo.Params<ProgressParams>();
           DrawProgress(cgContext, macRect, params);
@@ -2189,7 +2118,6 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
     case StyleAppearance::Textfield:
     case StyleAppearance::NumberInput:
     case StyleAppearance::PasswordInput:
-    case StyleAppearance::Searchfield:
     case StyleAppearance::ProgressBar:
     case StyleAppearance::Meter:
     case StyleAppearance::Range:
@@ -2215,9 +2143,6 @@ LayoutDeviceIntMargin nsNativeThemeCocoa::DirectionAwareMargin(
 }
 
 static constexpr LayoutDeviceIntMargin kAquaDropdownBorder(1, 22, 2, 5);
-static constexpr LayoutDeviceIntMargin kAquaSearchfieldBorder(3, 5, 2, 19);
-static constexpr LayoutDeviceIntMargin kAquaSearchfieldBorderBigSur(5, 5, 4,
-                                                                    26);
 
 LayoutDeviceIntMargin nsNativeThemeCocoa::GetWidgetBorder(
     nsDeviceContext* aContext, nsIFrame* aFrame, StyleAppearance aAppearance) {
@@ -2268,14 +2193,6 @@ LayoutDeviceIntMargin nsNativeThemeCocoa::GetWidgetBorder(
       result.SizeTo(1, 1, 1, 1);
       break;
 
-    case StyleAppearance::Searchfield: {
-      auto border = nsCocoaFeatures::OnBigSurOrLater()
-                        ? kAquaSearchfieldBorderBigSur
-                        : kAquaSearchfieldBorder;
-      result = DirectionAwareMargin(border, aFrame);
-      break;
-    }
-
     case StyleAppearance::Listbox: {
       SInt32 frameOutset = 0;
       ::GetThemeMetric(kThemeMetricListBoxFrameOutset, &frameOutset);
@@ -2317,12 +2234,6 @@ bool nsNativeThemeCocoa::GetWidgetPadding(nsDeviceContext* aContext,
       aResult->SizeTo(0, 0, 0, 0);
       return true;
 
-    case StyleAppearance::Searchfield:
-      if (nsCocoaFeatures::OnBigSurOrLater()) {
-        return true;
-      }
-      break;
-
     default:
       break;
   }
@@ -2348,7 +2259,6 @@ bool nsNativeThemeCocoa::GetWidgetOverflow(nsDeviceContext* aContext,
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:
     case StyleAppearance::Textarea:
-    case StyleAppearance::Searchfield:
     case StyleAppearance::Listbox:
     case StyleAppearance::Menulist:
     case StyleAppearance::MozMenulistArrowButton:
@@ -2435,8 +2345,7 @@ LayoutDeviceIntSize nsNativeThemeCocoa::GetMinimumWidgetSize(
     case StyleAppearance::NumberInput:
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:
-    case StyleAppearance::Textarea:
-    case StyleAppearance::Searchfield: {
+    case StyleAppearance::Textarea: {
       // at minimum, we should be tall enough for 9pt text.
       // I'm using hardcoded values here because the appearance manager
       // values for the frame size are incorrect.
@@ -2542,7 +2451,6 @@ bool nsNativeThemeCocoa::ThemeSupportsWidget(nsPresContext* aPresContext,
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:
     case StyleAppearance::Textarea:
-    case StyleAppearance::Searchfield:
     case StyleAppearance::ProgressBar:
     case StyleAppearance::Progresschunk:
     case StyleAppearance::Meter:
@@ -2581,7 +2489,6 @@ bool nsNativeThemeCocoa::ThemeDrawsFocusForWidget(nsIFrame*,
   switch (aAppearance) {
     case StyleAppearance::Textarea:
     case StyleAppearance::Textfield:
-    case StyleAppearance::Searchfield:
     case StyleAppearance::NumberInput:
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Menulist:

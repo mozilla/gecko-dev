@@ -1655,8 +1655,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleDisplay {
         // `appearance: textfield` should behave like `auto` on all elements
         // except <input type=search/number/password> elements, which we
         // identify using the internal -moz-default-appearance property.
-        if (mDefaultAppearance == mozilla::StyleAppearance::Searchfield ||
-            mDefaultAppearance == mozilla::StyleAppearance::NumberInput ||
+        if (mDefaultAppearance == mozilla::StyleAppearance::NumberInput ||
             mDefaultAppearance == mozilla::StyleAppearance::PasswordInput) {
           return mAppearance;
         }
