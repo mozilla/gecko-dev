@@ -86,6 +86,11 @@ this.CookiePolicyHelper = {
 
       await SpecialPowers.flushPrefEnv();
 
+      // Allow eval below.
+      await SpecialPowers.pushPrefEnv({
+        set: [["security.allow_eval_with_system_principal", true]],
+      });
+
       if (prefs) {
         await SpecialPowers.pushPrefEnv({ set: prefs });
       }

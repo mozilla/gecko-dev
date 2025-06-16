@@ -79,6 +79,12 @@ let processResultsGlobal = (data, successes, failures) => {
   }
 };
 
+add_setup(function () {
+  return SpecialPowers.pushPrefEnv({
+    set: [["security.allow_eval_with_system_principal", true]],
+  });
+});
+
 // ================================================================================================
 // ================================================================================================
 // This test case is mostly copy-and-paste from the test case for window in

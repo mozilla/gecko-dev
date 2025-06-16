@@ -14,6 +14,8 @@ prefs = [
   "security.webauth.webauthn_enable_softtoken=true",
   "security.webauth.webauthn_enable_usbtoken=false",
   "security.webauthn.enable_conditional_mediation=true",
+  # Required for the eval in loadFormIntoWindow in pwmgr_common.js
+  "security.allow_eval_with_system_principal=true"
 ]
 support-files = [
   "../../../prompts/test/chromeScript.js",
