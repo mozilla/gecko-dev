@@ -1409,7 +1409,7 @@ newtabPrivatePing:
       type: boolean
       setPref:
         branch: user
-        pref: browser.newtabpage.activity-stream.telemetry.privatePing.inferred.enabled
+        pref: browser.newtabpage.activity-stream.telemetry.privatePing.inferredInterests.enabled
       description: >-
         Includes a differentially private intrest vector of general topical interests based on New Tab clicks. Only sent when user has enabled personalization.
     maxSubmissionDelayMs:
