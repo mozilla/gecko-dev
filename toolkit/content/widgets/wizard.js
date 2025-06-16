@@ -235,18 +235,6 @@
       return els.item(0);
     }
 
-    extra1() {
-      if (this.currentPage) {
-        this._fireEvent(this.currentPage, "extra1");
-      }
-    }
-
-    extra2() {
-      if (this.currentPage) {
-        this._fireEvent(this.currentPage, "extra2");
-      }
-    }
-
     rewind() {
       if (!this.canRewind) {
         return;
@@ -519,14 +507,9 @@
         ["next", () => this._wizard.advance()],
         ["finish", () => this._wizard.advance()],
         ["cancel", () => this._wizard.cancel()],
-        ["extra1", () => this._wizard.extra1()],
-        ["extra2", () => this._wizard.extra2()],
       ];
       for (let [name, listener] of listeners) {
-        let btn = this.getButton(name);
-        if (btn) {
-          btn.addEventListener("command", listener);
-        }
+        this.getButton(name)?.addEventListener("command", listener);
       }
 
       this._wizard._onWizardButtonsReady();
@@ -545,8 +528,6 @@
         return `
         <vbox flex="1">
           <hbox class="wizard-buttons-btm">
-            <button class="wizard-button" dlgtype="extra1" hidden="true"/>
-            <button class="wizard-button" dlgtype="extra2" hidden="true"/>
             <button data-l10n-id="wizard-macos-button-cancel"
                     class="wizard-button" dlgtype="cancel"/>
             <spacer flex="1"/>
@@ -570,31 +551,23 @@
       <button data-l10n-id="wizard-linux-button-back"
               class="wizard-button" dlgtype="back"/>
       <deck class="wizard-next-deck">
-        <hbox>
-          <button data-l10n-id="wizard-linux-button-finish"
-                  class="wizard-button"
-                  dlgtype="finish" default="true" flex="1"/>
-        </hbox>
-        <hbox>
-          <button data-l10n-id="wizard-linux-button-next"
-                  class="wizard-button" dlgtype="next"
-                  default="true" flex="1"/>
-        </hbox>
+        <button data-l10n-id="wizard-linux-button-finish"
+                class="wizard-button"
+                dlgtype="finish" default="true" />
+        <button data-l10n-id="wizard-linux-button-next"
+                class="wizard-button" dlgtype="next"
+                default="true" />
       </deck>`
           : `
       <button data-l10n-id="wizard-win-button-back"
               class="wizard-button" dlgtype="back"/>
       <deck class="wizard-next-deck">
-        <hbox>
-          <button data-l10n-id="wizard-win-button-finish"
-                  class="wizard-button"
-                  dlgtype="finish" default="true" flex="1"/>
-        </hbox>
-        <hbox>
-          <button data-l10n-id="wizard-win-button-next"
-                  class="wizard-button" dlgtype="next"
-                  default="true" flex="1"/>
-        </hbox>
+        <button data-l10n-id="wizard-win-button-finish"
+                class="wizard-button"
+                dlgtype="finish" default="true" />
+        <button data-l10n-id="wizard-win-button-next"
+                class="wizard-button" dlgtype="next"
+                default="true" />
       </deck>
       <button data-l10n-id="wizard-win-button-cancel"
               class="wizard-button"
@@ -604,8 +577,6 @@
       <vbox class="wizard-buttons-box-1" flex="1">
         <separator class="wizard-buttons-separator groove"/>
         <hbox class="wizard-buttons-box-2">
-          <button class="wizard-button" dlgtype="extra1" hidden="true"/>
-          <button class="wizard-button" dlgtype="extra2" hidden="true"/>
           <spacer flex="1"/>
           ${buttons}
         </hbox>
@@ -629,18 +600,14 @@
     }
 
     get defaultButton() {
-      let buttons = this._wizardButtonDeck.selectedPanel.getElementsByTagNameNS(
-        XUL_NS,
-        "button"
-      );
-      for (let i = 0; i < buttons.length; i++) {
-        if (
-          buttons[i].getAttribute("default") == "true" &&
-          !buttons[i].hidden &&
-          !buttons[i].disabled
-        ) {
-          return buttons[i];
-        }
+      let button = this._wizardButtonDeck?.selectedPanel;
+      if (
+        button &&
+        button.getAttribute("default") == "true" &&
+        !button.hidden &&
+        !button.disabled
+      ) {
+        return button;
       }
       return null;
     }
