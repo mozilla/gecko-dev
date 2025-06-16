@@ -11,9 +11,83 @@ Jinja2 template is not. Please file bugs! #}
 #ifndef mozilla_Glean{{ options.header_name }}_h
 #define mozilla_Glean{{ options.header_name }}_h
 
+{% if all_objs|has_structure %}
+#include "mozilla/JSONStringWriteFuncs.h"
+{% endif %}
 #include "mozilla/glean/bindings/MetricTypes.h"
 
 namespace mozilla::glean {
+
+{%- macro structure_to_json(struct, property_name, value) -%}
+{% if struct.type == "array" and property_name %}
+if ({{value}}.isSome()) {
+  writer.StartArrayProperty("{{property_name}}");
+  {% set valuename = value|replace("->", "")|camelize ~ "Item" %}
+  for (const auto& {{valuename}}: *{{value}}) {
+    {{ structure_to_json(struct["items"], None, valuename)|indent(4) }}
+  }
+  writer.EndArray();
+}
+{% elif struct.type == "array" and not property_name %}
+writer.StartArrayElement();
+{
+  {% set valuename = value|replace("->", "")|camelize ~ "Item" %}
+  for (const auto& {{valuename}}: {{value}}) {
+    {{ structure_to_json(struct["items"], None, valuename)|indent(4) }}
+  }
+}
+writer.EndArray();
+{% elif struct.type == "object" and property_name %}
+if ({{value}}.isSome()) {
+  writer.StartObjectProperty("{{property_name}}");
+{% for propname, val in struct.properties.items() %}
+  {{ structure_to_json(val, propname, value ~ "->" ~ propname)|indent(2) }}
+{%- endfor %}
+  writer.EndObject();
+}
+{% elif struct.type == "object" and not property_name %}
+writer.StartObjectElement();
+{
+{% for propname, val in struct.properties.items() %}
+  {{ structure_to_json(val, propname, value ~ "." ~ propname)|indent(2) }}
+{%- endfor %}
+}
+writer.EndObject();
+{% elif property_name %}
+if ({{value}}.isSome()) {
+  writer.{{struct.type|jsonwriter_prefix}}Property("{{property_name}}", *({{value}}));
+}
+{% else %}
+writer.{{struct.type|jsonwriter_prefix}}Element({{value}});
+{% endif %}
+{%- endmacro -%}
+
+{%- macro generate_structure(name, struct) -%}
+{% if struct.type == "array" %}
+{% if struct["items"].type not in ("array", "object") %}
+  using {{ name }} = nsTArray<{{struct["items"].type|structure_type_name}}>;
+{% else %}
+{{ generate_structure(name ~ "Item", struct["items"]) }}
+  using {{ name }} = nsTArray<{{ name }}Item>;
+{% endif %}
+{% elif struct.type == "object" %}
+{% for itemname, val in struct.properties.items() %}
+{% if val.type in ("array", "object") %}
+{{ generate_structure(name ~ itemname|Camelize, val) }}
+{% endif %}
+{% endfor %}
+
+  struct {{ name }} {
+  {% for itemname, val in struct.properties.items() %}
+  {% if val.type not in ("array", "object") %}
+    Maybe<{{val.type|structure_type_name}}> {{ itemname }};
+  {% else %}
+    Maybe<{{name ~ itemname|Camelize}}> {{ itemname }};
+  {% endif %}
+  {% endfor %}
+  };
+{% endif %}
+{%- endmacro -%}
 
 {%- macro generate_extra_keys(obj) -%}
 {% for name, suffix in obj["_generate_enums"] %}
@@ -71,11 +145,13 @@ enum class {{ obj.name|Camelize }}Label: uint16_t {
 
 namespace {{ category_name|snake_case }} {
   {% for obj in objs.values() %}
-  {% if obj.type != "object" %}{# TODO(bug 1881023): Add C++ support #}
   /**
    * generated from {{ category_name }}.{{ obj.name }}
-  {% if obj|attr("_generate_enums") or (obj.labeled and obj.labels and obj.labels|length) %}
+  {% if obj|attr("_generate_enums") or (obj.labeled and obj.labels and obj.labels|length) or obj|attr("_generate_structure")%}
    */
+  {% if obj|attr("_generate_structure") %}
+{{ generate_structure(obj.name|Camelize ~ "Object", obj._generate_structure) }}
+  {%- endif %}
   {% if obj|attr("_generate_enums") %}
 {{ generate_extra_keys(obj) }}
   {%- endif %}
@@ -87,12 +163,27 @@ namespace {{ category_name|snake_case }} {
    * {{ obj.description|trim | replace('\n', '\n   * ') }}
    */
   constexpr impl::{{ obj|type_name }} {{obj.name|snake_case }}({{obj|metric_id}});
-  {% endif %}
   {% if not loop.last %}
 
   {% endif %}
   {% endfor %}
 }
+{% for obj in objs.values() %}
+{% if obj|attr("_generate_structure") %}
+{% set typename_t = category_name|snake_case ~ "::" ~ obj.name|Camelize ~ "Object" %}
+
+template <>
+inline void impl::ObjectMetric<{{typename_t}}, {{typename_t}}Tag>::Set(const {{typename_t}}& aObj) const {
+  nsCString json;
+  JSONStringRefWriteFunc writeFunc(json);
+  JSONWriter writer(writeFunc, JSONWriter::CollectionStyle::SingleLineStyle);
+
+  {{ structure_to_json(obj._generate_structure, None, "aObj")|indent(2) }}
+
+  SetStr(json);
+}
+{% endif %}
+{% endfor %}
 {% endfor %}
 
 } // namespace mozilla::glean

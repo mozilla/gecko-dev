@@ -670,6 +670,40 @@ TEST_F(FOGFixture, TestLabeledQuantityWorks) {
       0, test_only::button_jars.Get("push"_ns).TestGetValue().unwrap().ref());
 }
 
+TEST_F(FOGFixture, TestObjectWorks) {
+  ASSERT_EQ(mozilla::Nothing(),
+            test_only::balloons.TestGetValueAsJSONString().unwrap());
+  test_only::BalloonsObject balloons;
+  balloons.EmplaceBack(test_only::BalloonsObjectItem{
+      .colour = Some("blorange"_ns),
+      .diameter = Some(42),
+  });
+  test_only::balloons.Set(balloons);
+
+  // TODO(bug 1881023): Check the full obj, not just JSON substr.
+  nsCString json =
+      test_only::balloons.TestGetValueAsJSONString().unwrap().ref();
+  ASSERT_THAT(json.get(), testing::HasSubstr("blorange"));
+}
+
+TEST_F(FOGFixture, TestComplexObjectWorks) {
+  ASSERT_EQ(mozilla::Nothing(),
+            test_only::crash_stack.TestGetValueAsJSONString().unwrap());
+  test_only::CrashStackObject crash_obj{
+      .status = Some("failure"_ns),
+      .main_module = Some(17),
+      .crash_info = mozilla::Nothing(),
+      .modules = mozilla::Nothing(),
+  };
+
+  test_only::crash_stack.Set(crash_obj);
+
+  // TODO(bug 1881023): Check the full obj, not just JSON substr.
+  nsCString json =
+      test_only::crash_stack.TestGetValueAsJSONString().unwrap().ref();
+  ASSERT_THAT(json.get(), testing::HasSubstr("failure"));
+}
+
 extern "C" void Rust_TestRustInGTest();
 TEST_F(FOGFixture, TestRustInGTest) { Rust_TestRustInGTest(); }
 

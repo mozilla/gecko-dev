@@ -53,7 +53,7 @@ void GleanObject::TestGetValue(JSContext* aCx, const nsACString& aPingName,
                                ErrorResult& aRv) {
   aResult.set(nullptr);
 
-  auto result = mObject.TestGetValue(aPingName);
+  auto result = mObject.TestGetValueAsJSONString(aPingName);
   if (result.isErr()) {
     aRv.ThrowDataError(result.unwrapErr());
     return;

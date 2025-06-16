@@ -9,6 +9,7 @@
 #ifndef mozilla_GleanMetrics_h
 #define mozilla_GleanMetrics_h
 
+#include "mozilla/JSONStringWriteFuncs.h"
 #include "mozilla/glean/bindings/MetricTypes.h"
 
 namespace mozilla::glean {
@@ -164,6 +165,21 @@ namespace test {
 }
 
 namespace test_nested {
+  /**
+   * generated from test.nested.an_object
+   */
+
+  struct AnObjectObjectItem {
+    Maybe<nsCString> colour;
+    Maybe<int64_t> diameter;
+    Maybe<int64_t> CamelCasedParameter;
+  };
+
+  using AnObjectObject = nsTArray<AnObjectObjectItem>;
+  /**
+   * An example object
+   */
+  constexpr impl::ObjectMetric<AnObjectObject, struct AnObjectObjectTag> an_object(18);
 
   /**
    * generated from test.nested.datetime_metric
@@ -266,6 +282,37 @@ namespace test_nested {
    * description
    */
   constexpr impl::UuidMetric uuid_metric(28);
+}
+
+template <>
+inline void impl::ObjectMetric<test_nested::AnObjectObject, test_nested::AnObjectObjectTag>::Set(const test_nested::AnObjectObject& aObj) const {
+  nsCString json;
+  JSONStringRefWriteFunc writeFunc(json);
+  JSONWriter writer(writeFunc, JSONWriter::CollectionStyle::SingleLineStyle);
+
+  writer.StartArrayElement();
+  {
+    for (const auto& aobjItem: aObj) {
+      writer.StartObjectElement();
+      {
+        if (aobjItem.colour.isSome()) {
+          writer.StringProperty("colour", *(aobjItem.colour));
+        }
+        if (aobjItem.diameter.isSome()) {
+          writer.IntProperty("diameter", *(aobjItem.diameter));
+        }
+        if (aobjItem.CamelCasedParameter.isSome()) {
+          writer.IntProperty("CamelCasedParameter", *(aobjItem.CamelCasedParameter));
+        }
+      }
+      writer.EndObject();
+
+    }
+  }
+  writer.EndArray();
+
+
+  SetStr(json);
 }
 
 namespace test2 {
@@ -419,6 +466,21 @@ namespace test2 {
 }
 
 namespace test2_nested {
+  /**
+   * generated from test2.nested.an_object
+   */
+
+  struct AnObjectObjectItem {
+    Maybe<nsCString> colour;
+    Maybe<int64_t> diameter;
+    Maybe<int64_t> CamelCasedParameter;
+  };
+
+  using AnObjectObject = nsTArray<AnObjectObjectItem>;
+  /**
+   * An example object
+   */
+  constexpr impl::ObjectMetric<AnObjectObject, struct AnObjectObjectTag> an_object(46);
 
   /**
    * generated from test2.nested.datetime_metric
@@ -511,6 +573,37 @@ namespace test2_nested {
    * description
    */
   constexpr impl::UuidMetric uuid_metric(56);
+}
+
+template <>
+inline void impl::ObjectMetric<test2_nested::AnObjectObject, test2_nested::AnObjectObjectTag>::Set(const test2_nested::AnObjectObject& aObj) const {
+  nsCString json;
+  JSONStringRefWriteFunc writeFunc(json);
+  JSONWriter writer(writeFunc, JSONWriter::CollectionStyle::SingleLineStyle);
+
+  writer.StartArrayElement();
+  {
+    for (const auto& aobjItem: aObj) {
+      writer.StartObjectElement();
+      {
+        if (aobjItem.colour.isSome()) {
+          writer.StringProperty("colour", *(aobjItem.colour));
+        }
+        if (aobjItem.diameter.isSome()) {
+          writer.IntProperty("diameter", *(aobjItem.diameter));
+        }
+        if (aobjItem.CamelCasedParameter.isSome()) {
+          writer.IntProperty("CamelCasedParameter", *(aobjItem.CamelCasedParameter));
+        }
+      }
+      writer.EndObject();
+
+    }
+  }
+  writer.EndArray();
+
+
+  SetStr(json);
 }
 
 } // namespace mozilla::glean

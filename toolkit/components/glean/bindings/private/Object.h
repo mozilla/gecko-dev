@@ -21,17 +21,15 @@ class GleanObject;
 
 namespace impl {
 
-template <class T>
+template <typename T, typename Tag>
 class ObjectMetric {
   friend class mozilla::glean::GleanObject;
 
  public:
   constexpr explicit ObjectMetric(uint32_t id) : mId(id) {}
 
- private:
-  const uint32_t mId;
+  void Set(const T&) const;
 
-  /* TODO(bug 1881023): Turn this into the public C++ API */
   /**
    * **Test-only API**
    *
@@ -49,8 +47,8 @@ class ObjectMetric {
    *
    * @return value of the stored metric, or Nothing() if there is no value.
    */
-  Result<Maybe<nsCString>, nsCString> TestGetValue(
-      const nsACString& aPingName) const {
+  Result<Maybe<nsCString>, nsCString> TestGetValueAsJSONString(
+      const nsACString& aPingName = nsCString()) const {
     nsCString err;
     if (fog_object_test_get_error(mId, &err)) {
       return Err(err);
@@ -63,10 +61,18 @@ class ObjectMetric {
     return Some(ret);
   }
 
+ private:
+  const uint32_t mId;
+
   void SetStr(const nsACString& aValue) const {
     fog_object_set_string(mId, &aValue);
   }
 };
+
+using RuntimeObject = bool;
+template <>
+void ObjectMetric<RuntimeObject, void>::Set(const RuntimeObject&) const =
+    delete;
 
 }  // namespace impl
 
@@ -86,7 +92,7 @@ class GleanObject final : public GleanMetric {
   virtual ~GleanObject() = default;
 
  private:
-  const impl::ObjectMetric<void> mObject;
+  const impl::ObjectMetric<impl::RuntimeObject, void> mObject;
 };
 
 }  // namespace mozilla::glean

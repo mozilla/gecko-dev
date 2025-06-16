@@ -33,12 +33,17 @@ def type_name(obj):
                 # because we only expose the new event API
                 suffix = "Extra"
                 return f"{util.Camelize(obj.type)}Metric<{util.Camelize(obj.name) + suffix}>"
+    generate_structure = getattr(obj, "_generate_structure", [])  # Object metric?
+    if len(generate_structure):
+        generic = util.Camelize(obj.name) + "Object"
+        tag = generic + "Tag"
+        return f"ObjectMetric<{generic}, struct {tag}>"
     return util.Camelize(obj.type) + "Metric"
 
 
 def extra_type_name(typ: str) -> str:
     """
-    Returns the corresponding Rust type for event's extra key types.
+    Returns the corresponding C++ type for event's extra key types.
     """
 
     if typ == "boolean":
@@ -51,6 +56,47 @@ def extra_type_name(typ: str) -> str:
         return "UNSUPPORTED"
 
 
+def structure_type_name(typ: str) -> str:
+    """
+    Returns the corresponding C++ type for objects' structure types.
+    """
+
+    if typ == "boolean":
+        return "bool"
+    elif typ == "string":
+        return "nsCString"
+    elif typ == "number":
+        return "int64_t"
+    else:
+        return "UNSUPPORTED"
+
+
+def jsonwriter_prefix(typ: str) -> str:
+    """
+    Returns the JSONWriter function prefix for a given structure type.
+    """
+
+    if typ == "boolean":
+        return "Bool"
+    elif typ == "string":
+        return "String"
+    elif typ == "number":
+        return "Int"
+    else:
+        return "UNSUPPORTED"
+
+
+def has_structure(all_objs) -> bool:
+    """
+    Returns true if there's a metric in objs that needs a generated structure.
+    """
+    for _, objs in all_objs.items():
+        for metric in objs.values():
+            if hasattr(metric, "_generate_structure"):
+                return True
+    return False
+
+
 @memoize
 def get_metrics_template(get_metric_id):
     return util.get_jinja2_template(
@@ -59,6 +105,9 @@ def get_metrics_template(get_metric_id):
             ("snake_case", lambda value: value.replace(".", "_").replace("-", "_")),
             ("type_name", type_name),
             ("extra_type_name", extra_type_name),
+            ("structure_type_name", structure_type_name),
+            ("jsonwriter_prefix", jsonwriter_prefix),
+            ("has_structure", has_structure),
             ("metric_id", get_metric_id),
         ),
     )

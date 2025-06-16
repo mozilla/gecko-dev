@@ -17,9 +17,6 @@ pub mod test {
     use glean::HistogramType;
     use once_cell::sync::Lazy;
 
-    #[allow(unused_imports)]
-    use std::convert::TryFrom;
-
     #[allow(non_upper_case_globals)]
     /// generated from test.boolean_metric
     ///
@@ -97,8 +94,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(4), meta, None)
-;
+        let metric = LabeledMetric::new(BaseMetricId(4), meta, None);
         metric
     });
 
@@ -167,8 +163,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(5), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
-;
+        let metric = LabeledMetric::new(BaseMetricId(5), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]));
         metric
     });
 
@@ -189,8 +184,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(6), meta, None)
-;
+        let metric = LabeledMetric::new(BaseMetricId(6), meta, None);
         metric
     });
 
@@ -235,8 +229,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(7), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
-;
+        let metric = LabeledMetric::new(BaseMetricId(7), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]));
         metric
     });
 
@@ -257,8 +250,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(8), meta, None)
-;
+        let metric = LabeledMetric::new(BaseMetricId(8), meta, None);
         metric
     });
 
@@ -303,8 +295,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(9), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
-;
+        let metric = LabeledMetric::new(BaseMetricId(9), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]));
         metric
     });
 
@@ -465,8 +456,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::with_unordered_ipc(BaseMetricId(17), meta, None)
-;
+        let metric = LabeledMetric::with_unordered_ipc(BaseMetricId(17), meta, None);
         metric
     });
 
@@ -478,9 +468,6 @@ pub mod test_nested {
     #[allow(unused_imports)] // HistogramType might be unusued, let's avoid warnings
     use glean::HistogramType;
     use once_cell::sync::Lazy;
-
-    #[allow(unused_imports)]
-    use std::convert::TryFrom;
 
         pub type AnObjectObject = Vec<AnObjectObjectItem>;
 
@@ -754,9 +741,6 @@ pub mod test2 {
     use glean::HistogramType;
     use once_cell::sync::Lazy;
 
-    #[allow(unused_imports)]
-    use std::convert::TryFrom;
-
     #[allow(non_upper_case_globals)]
     /// generated from test2.boolean_metric
     ///
@@ -834,8 +818,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(32), meta, None)
-;
+        let metric = LabeledMetric::new(BaseMetricId(32), meta, None);
         metric
     });
 
@@ -904,8 +887,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(33), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
-;
+        let metric = LabeledMetric::new(BaseMetricId(33), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]));
         metric
     });
 
@@ -926,8 +908,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(34), meta, None)
-;
+        let metric = LabeledMetric::new(BaseMetricId(34), meta, None);
         metric
     });
 
@@ -972,8 +953,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(35), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
-;
+        let metric = LabeledMetric::new(BaseMetricId(35), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]));
         metric
     });
 
@@ -994,8 +974,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(36), meta, None)
-;
+        let metric = LabeledMetric::new(BaseMetricId(36), meta, None);
         metric
     });
 
@@ -1040,8 +1019,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(37), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
-;
+        let metric = LabeledMetric::new(BaseMetricId(37), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]));
         metric
     });
 
@@ -1202,8 +1180,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::with_unordered_ipc(BaseMetricId(45), meta, None)
-;
+        let metric = LabeledMetric::with_unordered_ipc(BaseMetricId(45), meta, None);
         metric
     });
 
@@ -1215,9 +1192,6 @@ pub mod test2_nested {
     #[allow(unused_imports)] // HistogramType might be unusued, let's avoid warnings
     use glean::HistogramType;
     use once_cell::sync::Lazy;
-
-    #[allow(unused_imports)]
-    use std::convert::TryFrom;
 
         pub type AnObjectObject = Vec<AnObjectObjectItem>;
 

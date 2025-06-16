@@ -130,9 +130,6 @@ pub mod {{ category_name|snake_case }} {
     use glean::HistogramType;
     use once_cell::sync::Lazy;
 
-    #[allow(unused_imports)]
-    use std::convert::TryFrom;
-
     {% for obj in objs.values() %}
     {% if obj|attr("_generate_enums") %}
 {{ generate_extra_keys(obj) }}
@@ -199,7 +196,7 @@ pub mod {{ category_name|snake_case }} {
         {%- else -%}
         None
         {%- endif -%})
-        {% endif %};
+        {%- endif -%};
         {% if obj.type == "event" or obj.type == "object" %}
         {#
           event/object metrics don't have a map.
