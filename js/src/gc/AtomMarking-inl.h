@@ -40,10 +40,14 @@ MOZ_ALWAYS_INLINE bool AtomMarkingRuntime::inlinedMarkAtomInternal(
   js::gc::TenuredCell* cell = &thing->asTenured();
   MOZ_ASSERT(cell->zoneFromAnyThread()->isAtomsZone());
 
-  // This doesn't check for pinned atoms since that might require taking a
-  // lock. This is not required for correctness.
   if (thing->isPermanentAndMayBeShared()) {
     return true;
+  }
+
+  if constexpr (std::is_same_v<T, JSAtom>) {
+    if (thing->isPinned()) {
+      return true;
+    }
   }
 
   size_t bit = GetAtomBit(cell);
