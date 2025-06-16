@@ -131,7 +131,7 @@
     min-height: var(--tabstrip-min-height);
 
     --tab-min-width: 76px;
-    :root[uidensity="touch"] & .tabbrowser-tab:not([pinned]) {
+    :root[uidensity="touch"] & .tabbrowser-tab[fadein]:not([pinned]) {
       /* Touch mode needs additional space for the close button. */
       min-width: max(var(--tab-min-width-pref, var(--tab-min-width)), 86px);
     }
@@ -239,7 +239,7 @@
     &:is([muted], [soundplaying], [activemedia-blocked]) {
       --tab-icon-end-margin: 2px;
 
-      #tabbrowser-tabs[orient="horizontal"] &:not([pinned]) {
+      #tabbrowser-tabs[orient="horizontal"] &[fadein]:not([pinned]) {
         min-width: max(var(--tab-min-width-pref, var(--tab-min-width)), 100px);
       }
     }
