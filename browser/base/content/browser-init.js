@@ -109,7 +109,10 @@ var gBrowserInit = {
         extraOptions instanceof Ci.nsIWritablePropertyBag2 &&
         extraOptions.hasKey("taskbartab")
       ) {
-        window.document.documentElement.setAttribute("taskbartab", "");
+        window.document.documentElement.setAttribute(
+          "taskbartab",
+          extraOptions.getPropertyAsAString("taskbartab")
+        );
       }
     }
 
