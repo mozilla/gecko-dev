@@ -1835,125 +1835,110 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo,
 
   const Widget widget = aWidgetInfo.Widget();
 
-  // Some widgets render using DrawTarget, and some using CGContext.
+  AutoRestoreTransform autoRestoreTransform(&aDrawTarget);
+  gfx::Rect widgetRect = aWidgetRect;
+  gfx::Rect dirtyRect = aDirtyRect;
+
+  dirtyRect.Scale(1.0f / aScale);
+  widgetRect.Scale(1.0f / aScale);
+  aDrawTarget.SetTransform(aDrawTarget.GetTransform().PreScale(aScale, aScale));
+
+  // The remaining widgets require a CGContext.
+  CGRect macRect = CGRectMake(widgetRect.X(), widgetRect.Y(),
+                              widgetRect.Width(), widgetRect.Height());
+
+  gfxQuartzNativeDrawing nativeDrawing(aDrawTarget, dirtyRect);
+
+  CGContextRef cgContext = nativeDrawing.BeginNativeDrawing();
+  if (cgContext == nullptr) {
+    // The Quartz surface handles 0x0 surfaces by internally
+    // making all operations no-ops; there's no cgcontext created for them.
+    // Unfortunately, this means that callers that want to render
+    // directly to the CGContext need to be aware of this quirk.
+    return;
+  }
+
+  // Set the context's "base transform" to in order to get correctly-sized
+  // focus rings.
+  CGContextSetBaseCTM(cgContext, CGAffineTransformMakeScale(aScale, aScale));
+
   switch (widget) {
-    case Widget::eColorFill: {
-      sRGBColor color = aWidgetInfo.Params<sRGBColor>();
-      aDrawTarget.FillRect(aWidgetRect, ColorPattern(ToDeviceColor(color)));
+    case Widget::eCheckbox: {
+      CheckboxOrRadioParams params =
+          aWidgetInfo.Params<CheckboxOrRadioParams>();
+      DrawCheckboxOrRadio(cgContext, true, macRect, params);
       break;
     }
-    default: {
-      AutoRestoreTransform autoRestoreTransform(&aDrawTarget);
-      gfx::Rect widgetRect = aWidgetRect;
-      gfx::Rect dirtyRect = aDirtyRect;
-
-      dirtyRect.Scale(1.0f / aScale);
-      widgetRect.Scale(1.0f / aScale);
-      aDrawTarget.SetTransform(
-          aDrawTarget.GetTransform().PreScale(aScale, aScale));
-
-      // The remaining widgets require a CGContext.
-      CGRect macRect = CGRectMake(widgetRect.X(), widgetRect.Y(),
-                                  widgetRect.Width(), widgetRect.Height());
-
-      gfxQuartzNativeDrawing nativeDrawing(aDrawTarget, dirtyRect);
-
-      CGContextRef cgContext = nativeDrawing.BeginNativeDrawing();
-      if (cgContext == nullptr) {
-        // The Quartz surface handles 0x0 surfaces by internally
-        // making all operations no-ops; there's no cgcontext created for them.
-        // Unfortunately, this means that callers that want to render
-        // directly to the CGContext need to be aware of this quirk.
-        return;
-      }
-
-      // Set the context's "base transform" to in order to get correctly-sized
-      // focus rings.
-      CGContextSetBaseCTM(cgContext,
-                          CGAffineTransformMakeScale(aScale, aScale));
-
-      switch (widget) {
-        case Widget::eColorFill:
-          MOZ_CRASH("already handled in outer switch");
-          break;
-        case Widget::eCheckbox: {
-          CheckboxOrRadioParams params =
-              aWidgetInfo.Params<CheckboxOrRadioParams>();
-          DrawCheckboxOrRadio(cgContext, true, macRect, params);
-          break;
-        }
-        case Widget::eRadio: {
-          CheckboxOrRadioParams params =
-              aWidgetInfo.Params<CheckboxOrRadioParams>();
-          DrawCheckboxOrRadio(cgContext, false, macRect, params);
-          break;
-        }
-        case Widget::eButton: {
-          ButtonParams params = aWidgetInfo.Params<ButtonParams>();
-          DrawButton(cgContext, macRect, params);
-          break;
-        }
-        case Widget::eDropdown: {
-          DropdownParams params = aWidgetInfo.Params<DropdownParams>();
-          DrawDropdown(cgContext, macRect, params);
-          break;
-        }
-        case Widget::eGroupBox: {
-          HIThemeGroupBoxDrawInfo gdi = {0, kThemeStateActive,
-                                         kHIThemeGroupBoxKindPrimary};
-          HIThemeDrawGroupBox(&macRect, &gdi, cgContext, HITHEME_ORIENTATION);
-          break;
-        }
-        case Widget::eTextField: {
-          TextFieldParams params = aWidgetInfo.Params<TextFieldParams>();
-          DrawTextField(cgContext, macRect, params);
-          break;
-        }
-        case Widget::eProgressBar: {
-          ProgressParams params = aWidgetInfo.Params<ProgressParams>();
-          DrawProgress(cgContext, macRect, params);
-          break;
-        }
-        case Widget::eMeter: {
-          MeterParams params = aWidgetInfo.Params<MeterParams>();
-          DrawMeter(cgContext, macRect, params);
-          break;
-        }
-        case Widget::eScale: {
-          ScaleParams params = aWidgetInfo.Params<ScaleParams>();
-          DrawScale(cgContext, macRect, params);
-          break;
-        }
-        case Widget::eMultilineTextField: {
-          bool isFocused = aWidgetInfo.Params<bool>();
-          DrawMultilineTextField(cgContext, macRect, isFocused);
-          break;
-        }
-        case Widget::eListBox: {
-          // Fill the content with the control background color.
-          CGContextSetFillColorWithColor(
-              cgContext, [NSColor.controlBackgroundColor CGColor]);
-          CGContextFillRect(cgContext, macRect);
-          // Draw the frame using kCUIWidgetScrollViewFrame. This is what
-          // NSScrollView uses in
-          // -[NSScrollView drawRect:] if you give it a borderType of
-          // NSBezelBorder.
-          RenderWithCoreUI(
-              macRect, cgContext, @{
-                @"widget" : @"kCUIWidgetScrollViewFrame",
-                @"kCUIIsFlippedKey" : @YES,
-                @"kCUIVariantMetal" : @NO,
-              });
-          break;
-        }
-      }
-
-      // Reset the base CTM.
-      CGContextSetBaseCTM(cgContext, CGAffineTransformIdentity);
-
-      nativeDrawing.EndNativeDrawing();
+    case Widget::eRadio: {
+      CheckboxOrRadioParams params =
+          aWidgetInfo.Params<CheckboxOrRadioParams>();
+      DrawCheckboxOrRadio(cgContext, false, macRect, params);
+      break;
+    }
+    case Widget::eButton: {
+      ButtonParams params = aWidgetInfo.Params<ButtonParams>();
+      DrawButton(cgContext, macRect, params);
+      break;
+    }
+    case Widget::eDropdown: {
+      DropdownParams params = aWidgetInfo.Params<DropdownParams>();
+      DrawDropdown(cgContext, macRect, params);
+      break;
+    }
+    case Widget::eGroupBox: {
+      HIThemeGroupBoxDrawInfo gdi = {0, kThemeStateActive,
+                                     kHIThemeGroupBoxKindPrimary};
+      HIThemeDrawGroupBox(&macRect, &gdi, cgContext, HITHEME_ORIENTATION);
+      break;
+    }
+    case Widget::eTextField: {
+      TextFieldParams params = aWidgetInfo.Params<TextFieldParams>();
+      DrawTextField(cgContext, macRect, params);
+      break;
+    }
+    case Widget::eProgressBar: {
+      ProgressParams params = aWidgetInfo.Params<ProgressParams>();
+      DrawProgress(cgContext, macRect, params);
+      break;
+    }
+    case Widget::eMeter: {
+      MeterParams params = aWidgetInfo.Params<MeterParams>();
+      DrawMeter(cgContext, macRect, params);
+      break;
+    }
+    case Widget::eScale: {
+      ScaleParams params = aWidgetInfo.Params<ScaleParams>();
+      DrawScale(cgContext, macRect, params);
+      break;
+    }
+    case Widget::eMultilineTextField: {
+      bool isFocused = aWidgetInfo.Params<bool>();
+      DrawMultilineTextField(cgContext, macRect, isFocused);
+      break;
+    }
+    case Widget::eListBox: {
+      // Fill the content with the control background color.
+      CGContextSetFillColorWithColor(
+          cgContext, [NSColor.controlBackgroundColor CGColor]);
+      CGContextFillRect(cgContext, macRect);
+      // Draw the frame using kCUIWidgetScrollViewFrame. This is what
+      // NSScrollView uses in
+      // -[NSScrollView drawRect:] if you give it a borderType of
+      // NSBezelBorder.
+      RenderWithCoreUI(
+          macRect, cgContext, @{
+            @"widget" : @"kCUIWidgetScrollViewFrame",
+            @"kCUIIsFlippedKey" : @YES,
+            @"kCUIVariantMetal" : @NO,
+          });
+      break;
     }
   }
+
+  // Reset the base CTM.
+  CGContextSetBaseCTM(cgContext, CGAffineTransformIdentity);
+
+  nativeDrawing.EndNativeDrawing();
 }
 
 bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(

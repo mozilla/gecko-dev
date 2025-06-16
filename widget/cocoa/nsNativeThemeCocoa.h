@@ -116,7 +116,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
   };
 
   enum Widget : uint8_t {
-    eColorFill,  // mozilla::gfx::sRGBColor
     eCheckbox,   // CheckboxOrRadioParams
     eRadio,      // CheckboxOrRadioParams
     eButton,     // ButtonParams
@@ -131,9 +130,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
   };
 
   struct WidgetInfo {
-    static WidgetInfo ColorFill(const mozilla::gfx::sRGBColor& aParams) {
-      return WidgetInfo(Widget::eColorFill, aParams);
-    }
     static WidgetInfo Checkbox(const CheckboxOrRadioParams& aParams) {
       return WidgetInfo(Widget::eCheckbox, aParams);
     }
