@@ -204,6 +204,15 @@ size_t WeakCollectionObject::sizeOfExcludingThis(
   return map ? map->sizeOfIncludingThis(aMallocSizeOf) : 0;
 }
 
+size_t WeakCollectionObject::nondeterministicGetSize() {
+  ValueValueWeakMap* map = getMap();
+  if (!map) {
+    return 0;
+  }
+
+  return map->count();
+}
+
 bool WeakCollectionObject::nondeterministicGetKeys(
     JSContext* cx, Handle<WeakCollectionObject*> obj, MutableHandleObject ret) {
   RootedObject arr(cx, NewDenseEmptyArray(cx));
