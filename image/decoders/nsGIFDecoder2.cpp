@@ -299,10 +299,6 @@ void nsGIFDecoder2::EndImageFrame() {
   // even if some of them weren't decoded properly and thus are blank.
   mGIFStruct.images_decoded++;
 
-  // Reset graphic control extension parameters that we shouldn't reuse
-  // between frames.
-  mGIFStruct.delay_time = 0;
-
   // Tell the superclass we finished a frame
   PostFrameStop(opacity);
 
@@ -311,6 +307,13 @@ void nsGIFDecoder2::EndImageFrame() {
     mColormap[mGIFStruct.tpixel] = mOldColor;
     mOldColor = 0;
   }
+
+  // Reset graphic control extension parameters that we shouldn't reuse
+  // between frames.
+  mGIFStruct.delay_time = 0;
+  mGIFStruct.is_transparent = 0;
+  mGIFStruct.tpixel = 0;
+  mGIFStruct.disposal_method = 0;
 
   mColormap = nullptr;
   mColormapSize = 0;
