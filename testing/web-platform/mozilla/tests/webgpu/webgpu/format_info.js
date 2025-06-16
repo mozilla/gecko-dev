@@ -1710,10 +1710,10 @@ export const kStencilTextureFormats = kDepthStencilFormats.filter(
   (v) => kTextureFormatInfo[v].stencil
 );
 
-const kTextureFormatTier1AllowsRenderAttachmentBlendableMultisampleResolve =
+export const kTextureFormatTier1AllowsRenderAttachmentBlendableMultisampleResolve =
 ['r8snorm', 'rg8snorm', 'rgba8snorm', 'rg11b10ufloat'];
 
-const kTextureFormatsTier1EnablesStorageReadOnlyWriteOnly = [
+export const kTextureFormatsTier1EnablesStorageReadOnlyWriteOnly = [
 'r8unorm',
 'r8snorm',
 'r8uint',
