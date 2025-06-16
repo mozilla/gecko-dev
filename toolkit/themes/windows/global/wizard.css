@@ -42,12 +42,3 @@ html|*.wizard-page-box {
 .wizard-buttons-box-2 {
   margin: 10px;
 }
-
-.wizard-button[dlgtype="finish"],
-.wizard-button[dlgtype="next"] {
-  margin-inline-start: 0 !important;
-}
-
-.wizard-button[dlgtype="back"] {
-  margin-inline-end: 0 !important;
-}
