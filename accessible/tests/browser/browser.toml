@@ -11,6 +11,10 @@ support-files = [
   "windows/a11y_setup.py",
   "windows/a11y_setup_requirements.txt",
 ]
+prefs = [
+  # Required for the eval in invokeContentTask in shared-head.js
+  "security.allow_eval_with_system_principal=true"
+]
 
 ["browser_shutdown_acc_reference.js"]
 
