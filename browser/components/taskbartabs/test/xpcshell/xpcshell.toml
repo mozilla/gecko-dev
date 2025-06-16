@@ -1,0 +1,8 @@
+[DEFAULT]
+firefox-appdir = "browser"
+run-if = ["os == 'win'"]
+
+["test_TaskbarTabsRegistry.js"]
+support-files = [
+    "test_taskbarTabs.json",
+]
