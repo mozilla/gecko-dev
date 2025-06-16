@@ -1843,12 +1843,6 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo,
       DrawDropdown(cgContext, macRect, params);
       break;
     }
-    case Widget::eGroupBox: {
-      HIThemeGroupBoxDrawInfo gdi = {0, kThemeStateActive,
-                                     kHIThemeGroupBoxKindPrimary};
-      HIThemeDrawGroupBox(&macRect, &gdi, cgContext, HITHEME_ORIENTATION);
-      break;
-    }
     case Widget::eTextField: {
       TextFieldParams params = aWidgetInfo.Params<TextFieldParams>();
       DrawTextField(cgContext, macRect, params);
