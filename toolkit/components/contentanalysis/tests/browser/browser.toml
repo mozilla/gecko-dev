@@ -88,6 +88,18 @@ skip-if = ["true"] # bug 1932955
 
 ["browser_content_analysis_quit_confirmation_dialog.js"]
 
+["browser_download_content_analysis.js"]
+support-files = [
+  "file_to_download.unknownextension",
+]
+
+["browser_download_pdf_save_as_content_analysis.js"]
+support-files = [
+  "!/toolkit/components/pdfjs/test/head.js",
+  "!/toolkit/content/tests/browser/common/mockTransfer.js",
+  "file_pdf.pdf",
+]
+
 ["browser_print_changing_page_content_analysis.js"]
 support-files = [
   "!/toolkit/components/printing/tests/head.js",
