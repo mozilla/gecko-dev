@@ -26,8 +26,6 @@ import java.net.URISyntaxException
 
 @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
 internal const val EXTRA_BROWSER_FALLBACK_URL = "browser_fallback_url"
-internal const val PARAMS_ANDROID_FALLBACK_LINK = "afl" // From https://firebase.google.com/docs/dynamic-links/create-manually
-internal const val PARAMS_FALLBACK_LINK = "link"
 private const val MARKET_INTENT_URI_PACKAGE_PREFIX = "market://details?id="
 
 @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -202,22 +200,10 @@ class AppLinksUseCases(
 
             return RedirectData(
                 appIntent = appIntent,
-                fallbackUrl = url.getHierarchicalUrl(),
+                fallbackUrl = null,
                 marketplaceIntent = marketplaceIntent,
                 resolveInfo = resolveInfo,
             )
-        }
-
-        private fun String.getHierarchicalUrl(): String? {
-            val fallbackUrlFromUrlParams = this.toUri()
-                .takeIf { it.isHierarchical }
-                ?.let { uriWithParams ->
-                    uriWithParams.getQueryParameter(PARAMS_ANDROID_FALLBACK_LINK)
-                        ?: uriWithParams.getQueryParameter(PARAMS_FALLBACK_LINK)
-                }
-
-            return fallbackUrlFromUrlParams ?: safeParseUri(this, Intent.URI_INTENT_SCHEME)
-                ?.getStringExtra(EXTRA_BROWSER_FALLBACK_URL)
         }
 
         private fun isPlayStoreURL(url: String): Boolean {
