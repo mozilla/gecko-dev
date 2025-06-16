@@ -14,7 +14,6 @@
 #include "nsLayoutUtils.h"
 #include "nsObjCExceptions.h"
 #include "nsNumberControlFrame.h"
-#include "nsRangeFrame.h"
 #include "nsRect.h"
 #include "nsSize.h"
 #include "nsStyleConsts.h"
@@ -32,7 +31,6 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Range.h"
 #include "mozilla/dom/Element.h"
-#include "mozilla/dom/HTMLMeterElement.h"
 #include "mozilla/layers/StackingContextHelper.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/StaticPrefs_widget.h"
@@ -48,7 +46,6 @@
 
 using namespace mozilla;
 using namespace mozilla::gfx;
-using mozilla::dom::HTMLMeterElement;
 
 #define DRAW_IN_FRAME_DEBUG 0
 #define SCROLLBARS_VISUAL_DEBUG 0
@@ -160,102 +157,6 @@ static void DrawCellIncludingFocusRing(NSCell* aCell, NSRect aWithFrame,
   [aCell drawWithFrame:aWithFrame inView:aInView];
   DrawFocusRingForCellIfNeeded(aCell, aWithFrame, aInView);
 }
-
-/**
- * NSProgressBarCell is used to draw progress bars of any size.
- */
-@interface NSProgressBarCell : NSCell {
-  /*All instance variables are private*/
-  double mValue;
-  double mMax;
-  bool mIsIndeterminate;
-  bool mIsHorizontal;
-}
-
-- (void)setValue:(double)value;
-- (double)value;
-- (void)setMax:(double)max;
-- (double)max;
-- (void)setIndeterminate:(bool)aIndeterminate;
-- (bool)isIndeterminate;
-- (void)setHorizontal:(bool)aIsHorizontal;
-- (bool)isHorizontal;
-- (void)drawWithFrame:(NSRect)cellFrame inView:(NSView*)controlView;
-@end
-
-@implementation NSProgressBarCell
-
-- (void)setMax:(double)aMax {
-  mMax = aMax;
-}
-
-- (double)max {
-  return mMax;
-}
-
-- (void)setValue:(double)aValue {
-  mValue = aValue;
-}
-
-- (double)value {
-  return mValue;
-}
-
-- (void)setIndeterminate:(bool)aIndeterminate {
-  mIsIndeterminate = aIndeterminate;
-}
-
-- (bool)isIndeterminate {
-  return mIsIndeterminate;
-}
-
-- (void)setHorizontal:(bool)aIsHorizontal {
-  mIsHorizontal = aIsHorizontal;
-}
-
-- (bool)isHorizontal {
-  return mIsHorizontal;
-}
-
-- (void)drawWithFrame:(NSRect)cellFrame inView:(NSView*)controlView {
-  CGContext* cgContext = [[NSGraphicsContext currentContext] CGContext];
-
-  HIThemeTrackDrawInfo tdi;
-
-  tdi.version = 0;
-  tdi.min = 0;
-
-  tdi.value = INT32_MAX * (mValue / mMax);
-  tdi.max = INT32_MAX;
-  tdi.bounds = NSRectToCGRect(cellFrame);
-  tdi.attributes = mIsHorizontal ? kThemeTrackHorizontal : 0;
-  tdi.enableState = [self controlTint] == NSClearControlTint
-                        ? kThemeTrackInactive
-                        : kThemeTrackActive;
-
-  NSControlSize size = [self controlSize];
-  if (size == NSControlSizeRegular) {
-    tdi.kind =
-        mIsIndeterminate ? kThemeLargeIndeterminateBar : kThemeLargeProgressBar;
-  } else {
-    NS_ASSERTION(
-        size == NSControlSizeSmall,
-        "We shouldn't have another size than small and regular for the moment");
-    tdi.kind = mIsIndeterminate ? kThemeMediumIndeterminateBar
-                                : kThemeMediumProgressBar;
-  }
-
-  int32_t stepsPerSecond = mIsIndeterminate ? 60 : 30;
-  int32_t milliSecondsPerStep = 1000 / stepsPerSecond;
-  tdi.trackInfo.progress.phase = uint8_t(
-      PR_IntervalToMilliseconds(PR_IntervalNow()) / milliSecondsPerStep);
-
-  HIThemeDrawTrack(&tdi, NULL, cgContext, kHIThemeOrientationNormal);
-}
-
-@end
-
-#define HITHEME_ORIENTATION kHIThemeOrientationNormal
 
 static constexpr CGFloat kMaxFocusRingWidth = 7;
 
@@ -396,11 +297,6 @@ nsNativeThemeCocoa::nsNativeThemeCocoa() : ThemeCocoa(ScrollbarStyle()) {
   [mComboBoxCell setEditable:YES];
   [mComboBoxCell setFocusRingType:NSFocusRingTypeExterior];
 
-  mProgressBarCell = [[NSProgressBarCell alloc] init];
-
-  mMeterBarCell = [[NSLevelIndicatorCell alloc]
-      initWithLevelIndicatorStyle:NSLevelIndicatorStyleContinuousCapacity];
-
   mCellDrawView = [[MOZCellDrawView alloc] init];
 
   if (XRE_IsParentProcess()) {
@@ -428,8 +324,6 @@ nsNativeThemeCocoa::nsNativeThemeCocoa() : ThemeCocoa(ScrollbarStyle()) {
 nsNativeThemeCocoa::~nsNativeThemeCocoa() {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 
-  [mMeterBarCell release];
-  [mProgressBarCell release];
   [mDisclosureButtonCell release];
   [mHelpButtonCell release];
   [mPushButtonCell release];
@@ -1280,271 +1174,6 @@ void nsNativeThemeCocoa::DrawDropdown(CGContextRef cgContext,
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
-constexpr static CellRenderSettings progressSettings[2][2] = {
-    // Vertical progress bar.
-    {// Determined settings.
-     {{
-          NSSize{},       // mini
-          NSSize{10, 0},  // small
-          NSSize{16, 0}   // regular
-      },
-      {NSSize{}, NSSize{}, NSSize{}},
-      {
-          IntMargin{0, 0, 0, 0},  // mini
-          IntMargin{0, 0, 0, 0},  // small
-          IntMargin{0, 0, 0, 0}   // regular
-      }},
-     // There is no horizontal margin in regular undetermined size.
-     {{
-          NSSize{},       // mini
-          NSSize{10, 0},  // small
-          NSSize{16, 0}   // regular
-      },
-      {NSSize{}, NSSize{}, NSSize{}},
-      {
-          IntMargin{0, 0, 0, 0},  // mini
-          IntMargin{1, 1, 1, 1},  // small
-          IntMargin{1, 0, 1, 0}   // regular
-      }}},
-    // Horizontal progress bar.
-    {// Determined settings.
-     {{
-          NSSize{},       // mini
-          NSSize{0, 10},  // small
-          NSSize{0, 16}   // regular
-      },
-      {NSSize{}, NSSize{}, NSSize{}},
-      {
-          IntMargin{0, 0, 0, 0},  // mini
-          IntMargin{1, 1, 1, 1},  // small
-          IntMargin{1, 1, 1, 1}   // regular
-      }},
-     // There is no horizontal margin in regular undetermined size.
-     {{
-          NSSize{},       // mini
-          NSSize{0, 10},  // small
-          NSSize{0, 16}   // regular
-      },
-      {NSSize{}, NSSize{}, NSSize{}},
-      {
-          IntMargin{0, 0, 0, 0},  // mini
-          IntMargin{1, 1, 1, 1},  // small
-          IntMargin{0, 1, 0, 1}   // regular
-      }}}};
-
-nsNativeThemeCocoa::ProgressParams nsNativeThemeCocoa::ComputeProgressParams(
-    nsIFrame* aFrame, ElementState aEventState, bool aIsHorizontal) {
-  ProgressParams params;
-  params.value = GetProgressValue(aFrame);
-  params.max = GetProgressMaxValue(aFrame);
-  params.verticalAlignFactor = VerticalAlignFactor(aFrame);
-  params.insideActiveWindow = FrameIsInActiveWindow(aFrame);
-  params.indeterminate = aEventState.HasState(ElementState::INDETERMINATE);
-  params.horizontal = aIsHorizontal;
-  params.rtl = IsFrameRTL(aFrame);
-  return params;
-}
-
-void nsNativeThemeCocoa::DrawProgress(CGContextRef cgContext,
-                                      const HIRect& inBoxRect,
-                                      const ProgressParams& aParams) {
-  NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
-
-  NSProgressBarCell* cell = mProgressBarCell;
-
-  [cell setValue:aParams.value];
-  [cell setMax:aParams.max];
-  [cell setIndeterminate:aParams.indeterminate];
-  [cell setHorizontal:aParams.horizontal];
-  [cell
-      setControlTint:(aParams.insideActiveWindow ? [NSColor currentControlTint]
-                                                 : NSClearControlTint)];
-
-  if (mCellDrawWindow) {
-    mCellDrawWindow.cellsShouldLookActive = aParams.insideActiveWindow;
-  }
-  DrawCellWithSnapping(
-      cell, cgContext, inBoxRect,
-      progressSettings[aParams.horizontal][aParams.indeterminate],
-      aParams.verticalAlignFactor, mCellDrawView, aParams.rtl);
-
-  NS_OBJC_END_TRY_IGNORE_BLOCK;
-}
-
-constexpr static CellRenderSettings meterSetting = {
-    {
-        NSSize{0, 16},  // mini
-        NSSize{0, 16},  // small
-        NSSize{0, 16}   // regular
-    },
-    {NSSize{}, NSSize{}, NSSize{}},
-    {
-        IntMargin{1, 1, 1, 1},  // mini
-        IntMargin{1, 1, 1, 1},  // small
-        IntMargin{1, 1, 1, 1}   // regular
-    },
-};
-
-nsNativeThemeCocoa::MeterParams nsNativeThemeCocoa::ComputeMeterParams(
-    nsIFrame* aFrame) {
-  nsIContent* content = aFrame->GetContent();
-  if (!(content && content->IsHTMLElement(nsGkAtoms::meter))) {
-    return MeterParams();
-  }
-
-  HTMLMeterElement* meterElement = static_cast<HTMLMeterElement*>(content);
-  MeterParams params;
-  params.value = meterElement->Value();
-  params.min = meterElement->Min();
-  params.max = meterElement->Max();
-  ElementState states = meterElement->State();
-  if (states.HasState(ElementState::SUB_OPTIMUM)) {
-    params.optimumState = OptimumState::eSubOptimum;
-  } else if (states.HasState(ElementState::SUB_SUB_OPTIMUM)) {
-    params.optimumState = OptimumState::eSubSubOptimum;
-  }
-  params.horizontal = !IsVerticalMeter(aFrame);
-  params.verticalAlignFactor = VerticalAlignFactor(aFrame);
-  params.rtl = IsFrameRTL(aFrame);
-
-  return params;
-}
-
-void nsNativeThemeCocoa::DrawMeter(CGContextRef cgContext,
-                                   const HIRect& inBoxRect,
-                                   const MeterParams& aParams) {
-  NS_OBJC_BEGIN_TRY_IGNORE_BLOCK
-
-  NSLevelIndicatorCell* cell = mMeterBarCell;
-
-  [cell setMinValue:aParams.min];
-  [cell setMaxValue:aParams.max];
-  [cell setDoubleValue:aParams.value];
-
-  /**
-   * The way HTML and Cocoa defines the meter/indicator widget are different.
-   * So, we are going to use a trick to get the Cocoa widget showing what we
-   * are expecting: we set the warningValue or criticalValue to the current
-   * value when we want to have the widget to be in the warning or critical
-   * state.
-   */
-  switch (aParams.optimumState) {
-    case OptimumState::eOptimum:
-      [cell setWarningValue:aParams.max + 1];
-      [cell setCriticalValue:aParams.max + 1];
-      break;
-    case OptimumState::eSubOptimum:
-      [cell setWarningValue:aParams.value];
-      [cell setCriticalValue:aParams.max + 1];
-      break;
-    case OptimumState::eSubSubOptimum:
-      [cell setWarningValue:aParams.max + 1];
-      [cell setCriticalValue:aParams.value];
-      break;
-  }
-
-  HIRect rect = CGRectStandardize(inBoxRect);
-  BOOL vertical = !aParams.horizontal;
-
-  CGContextSaveGState(cgContext);
-
-  if (vertical) {
-    /**
-     * Cocoa doesn't provide a vertical meter bar so to show one, we have to
-     * show a rotated horizontal meter bar.
-     * Given that we want to show a vertical meter bar, we assume that the rect
-     * has vertical dimensions but we can't correctly draw a meter widget inside
-     * such a rectangle so we need to inverse width and height (and re-position)
-     * to get a rectangle with horizontal dimensions.
-     * Finally, we want to show a vertical meter so we want to rotate the result
-     * so it is vertical. We do that by changing the context.
-     */
-    CGFloat tmp = rect.size.width;
-    rect.size.width = rect.size.height;
-    rect.size.height = tmp;
-    rect.origin.x += rect.size.height / 2.f - rect.size.width / 2.f;
-    rect.origin.y += rect.size.width / 2.f - rect.size.height / 2.f;
-
-    CGContextTranslateCTM(cgContext, CGRectGetMidX(rect), CGRectGetMidY(rect));
-    CGContextRotateCTM(cgContext, -M_PI / 2.f);
-    CGContextTranslateCTM(cgContext, -CGRectGetMidX(rect),
-                          -CGRectGetMidY(rect));
-  }
-
-  if (mCellDrawWindow) {
-    mCellDrawWindow.cellsShouldLookActive =
-        YES;  // TODO: propagate correct activeness state
-  }
-  DrawCellWithSnapping(cell, cgContext, rect, meterSetting,
-                       aParams.verticalAlignFactor, mCellDrawView,
-                       !vertical && aParams.rtl);
-
-  CGContextRestoreGState(cgContext);
-
-  NS_OBJC_END_TRY_IGNORE_BLOCK
-}
-
-Maybe<nsNativeThemeCocoa::ScaleParams>
-nsNativeThemeCocoa::ComputeHTMLScaleParams(nsIFrame* aFrame,
-                                           ElementState aEventState) {
-  nsRangeFrame* rangeFrame = do_QueryFrame(aFrame);
-  if (!rangeFrame) {
-    return Nothing();
-  }
-
-  bool isHorizontal = IsRangeHorizontal(aFrame);
-
-  // ScaleParams requires integer min, max and value. This is purely for
-  // drawing, so we normalize to a range 0-1000 here.
-  ScaleParams params;
-  params.value = int32_t(rangeFrame->GetValueAsFractionOfRange() * 1000);
-  params.min = 0;
-  params.max = 1000;
-  params.reverse = !isHorizontal || rangeFrame->IsRightToLeft();
-  params.insideActiveWindow = FrameIsInActiveWindow(aFrame);
-  params.focused = aEventState.HasState(ElementState::FOCUSRING);
-  params.disabled = aEventState.HasState(ElementState::DISABLED);
-  params.horizontal = isHorizontal;
-  return Some(params);
-}
-
-void nsNativeThemeCocoa::DrawScale(CGContextRef cgContext,
-                                   const HIRect& inBoxRect,
-                                   const ScaleParams& aParams) {
-  NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
-
-  HIThemeTrackDrawInfo tdi;
-
-  tdi.version = 0;
-  tdi.kind = kThemeMediumSlider;
-  tdi.bounds = inBoxRect;
-  tdi.min = aParams.min;
-  tdi.max = aParams.max;
-  tdi.value = aParams.value;
-  tdi.attributes = kThemeTrackShowThumb;
-  if (aParams.horizontal) {
-    tdi.attributes |= kThemeTrackHorizontal;
-  }
-  if (aParams.reverse) {
-    tdi.attributes |= kThemeTrackRightToLeft;
-  }
-  if (aParams.focused) {
-    tdi.attributes |= kThemeTrackHasFocus;
-  }
-  if (aParams.disabled) {
-    tdi.enableState = kThemeTrackDisabled;
-  } else {
-    tdi.enableState =
-        aParams.insideActiveWindow ? kThemeTrackActive : kThemeTrackInactive;
-  }
-  tdi.trackInfo.slider.thumbDir = kThemeThumbPlain;
-  tdi.trackInfo.slider.pressState = 0;
-
-  HIThemeDrawTrack(&tdi, NULL, cgContext, HITHEME_ORIENTATION);
-
-  NS_OBJC_END_TRY_IGNORE_BLOCK;
-}
-
 void nsNativeThemeCocoa::DrawMultilineTextField(CGContextRef cgContext,
                                                 const CGRect& inBoxRect,
                                                 bool aIsFocused) {
@@ -1703,32 +1332,6 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
       return Some(
           WidgetInfo::TextField(ComputeTextFieldParams(aFrame, elementState)));
 
-    case StyleAppearance::ProgressBar: {
-      if (elementState.HasState(ElementState::INDETERMINATE)) {
-        if (!QueueAnimatedContentForRefresh(aFrame->GetContent(), 30)) {
-          NS_WARNING("Unable to animate progressbar!");
-        }
-      }
-      return Some(WidgetInfo::ProgressBar(ComputeProgressParams(
-          aFrame, elementState, !IsVerticalProgress(aFrame))));
-    }
-
-    case StyleAppearance::Meter:
-      return Some(WidgetInfo::Meter(ComputeMeterParams(aFrame)));
-
-    case StyleAppearance::Progresschunk:
-    case StyleAppearance::Meterchunk:
-      // Do nothing: progress and meter bars cases will draw chunks.
-      break;
-
-    case StyleAppearance::Range: {
-      Maybe<ScaleParams> params = ComputeHTMLScaleParams(aFrame, elementState);
-      if (params) {
-        return Some(WidgetInfo::Scale(*params));
-      }
-      break;
-    }
-
     case StyleAppearance::Textarea:
       return Some(WidgetInfo::MultilineTextField(
           elementState.HasState(ElementState::FOCUS)));
@@ -1848,21 +1451,6 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo,
       DrawTextField(cgContext, macRect, params);
       break;
     }
-    case Widget::eProgressBar: {
-      ProgressParams params = aWidgetInfo.Params<ProgressParams>();
-      DrawProgress(cgContext, macRect, params);
-      break;
-    }
-    case Widget::eMeter: {
-      MeterParams params = aWidgetInfo.Params<MeterParams>();
-      DrawMeter(cgContext, macRect, params);
-      break;
-    }
-    case Widget::eScale: {
-      ScaleParams params = aWidgetInfo.Params<ScaleParams>();
-      DrawScale(cgContext, macRect, params);
-      break;
-    }
     case Widget::eMultilineTextField: {
       bool isFocused = aWidgetInfo.Params<bool>();
       DrawMultilineTextField(cgContext, macRect, isFocused);
@@ -1908,9 +1496,6 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
     case StyleAppearance::Textfield:
     case StyleAppearance::NumberInput:
     case StyleAppearance::PasswordInput:
-    case StyleAppearance::ProgressBar:
-    case StyleAppearance::Meter:
-    case StyleAppearance::Range:
     case StyleAppearance::Textarea:
       return false;
 
@@ -2045,17 +1630,6 @@ bool nsNativeThemeCocoa::GetWidgetOverflow(nsDeviceContext* aContext,
                       static_cast<int32_t>(kMaxFocusRingWidth));
       break;
     }
-    case StyleAppearance::ProgressBar: {
-      // Progress bars draw a 2 pixel white shadow under their progress
-      // indicators.
-      overflow.bottom = 2;
-      break;
-    }
-    case StyleAppearance::Meter: {
-      // Meter bars overflow their boxes by about 2 pixels.
-      overflow.SizeTo(2, 2, 2, 2);
-      break;
-    }
     default:
       break;
   }
@@ -2129,22 +1703,6 @@ LayoutDeviceIntSize nsNativeThemeCocoa::GetMinimumWidgetSize(
       break;
     }
 
-    case StyleAppearance::ProgressBar: {
-      SInt32 barHeight = 0;
-      ::GetThemeMetric(kThemeMetricNormalProgressBarThickness, &barHeight);
-      result.SizeTo(0, barHeight);
-      break;
-    }
-
-    case StyleAppearance::RangeThumb: {
-      SInt32 width = 0;
-      SInt32 height = 0;
-      ::GetThemeMetric(kThemeMetricSliderMinThumbWidth, &width);
-      ::GetThemeMetric(kThemeMetricSliderMinThumbHeight, &height);
-      result.SizeTo(width, height);
-      break;
-    }
-
     case StyleAppearance::MozMenulistArrowButton:
       return ThemeCocoa::GetMinimumWidgetSize(aPresContext, aFrame,
                                               aAppearance);
@@ -2170,10 +1728,6 @@ bool nsNativeThemeCocoa::WidgetAttributeChangeRequiresRepaint(
     case StyleAppearance::MozSidebar:
     case StyleAppearance::Tooltip:
     case StyleAppearance::Menupopup:
-    case StyleAppearance::Progresschunk:
-    case StyleAppearance::ProgressBar:
-    case StyleAppearance::Meter:
-    case StyleAppearance::Meterchunk:
       return false;
     default:
       break;
@@ -2219,11 +1773,6 @@ bool nsNativeThemeCocoa::ThemeSupportsWidget(nsPresContext* aPresContext,
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:
     case StyleAppearance::Textarea:
-    case StyleAppearance::ProgressBar:
-    case StyleAppearance::Progresschunk:
-    case StyleAppearance::Meter:
-    case StyleAppearance::Meterchunk:
-    case StyleAppearance::Range:
       return !IsWidgetStyled(aPresContext, aFrame, aAppearance);
 
     default:
@@ -2239,9 +1788,6 @@ bool nsNativeThemeCocoa::WidgetIsContainer(StyleAppearance aAppearance) {
     case StyleAppearance::MozMenulistArrowButton:
     case StyleAppearance::Radio:
     case StyleAppearance::Checkbox:
-    case StyleAppearance::ProgressBar:
-    case StyleAppearance::Meter:
-    case StyleAppearance::Range:
     case StyleAppearance::MozMacHelpButton:
     case StyleAppearance::MozMacDisclosureButtonOpen:
     case StyleAppearance::MozMacDisclosureButtonClosed:

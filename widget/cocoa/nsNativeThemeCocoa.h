@@ -17,7 +17,6 @@
 
 @class MOZCellDrawWindow;
 @class MOZCellDrawView;
-@class NSProgressBarCell;
 class nsDeviceContext;
 
 namespace mozilla {
@@ -84,46 +83,12 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     bool rtl = false;
   };
 
-  struct ProgressParams {
-    double value = 0.0;
-    double max = 0.0;
-    float verticalAlignFactor = 0.5f;
-    bool insideActiveWindow = false;
-    bool indeterminate = false;
-    bool horizontal = false;
-    bool rtl = false;
-  };
-
-  struct MeterParams {
-    double value = 0;
-    double min = 0;
-    double max = 0;
-    OptimumState optimumState = OptimumState::eOptimum;
-    float verticalAlignFactor = 0.5f;
-    bool horizontal = true;
-    bool rtl = false;
-  };
-
-  struct ScaleParams {
-    int32_t value = 0;
-    int32_t min = 0;
-    int32_t max = 0;
-    bool insideActiveWindow = false;
-    bool disabled = false;
-    bool focused = false;
-    bool horizontal = true;
-    bool reverse = false;
-  };
-
   enum Widget : uint8_t {
     eCheckbox,   // CheckboxOrRadioParams
     eRadio,      // CheckboxOrRadioParams
     eButton,     // ButtonParams
     eDropdown,   // DropdownParams
     eTextField,           // TextFieldParams
-    eProgressBar,         // ProgressParams
-    eMeter,               // MeterParams
-    eScale,               // ScaleParams
     eMultilineTextField,  // bool
   };
 
@@ -143,15 +108,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     static WidgetInfo TextField(const TextFieldParams& aParams) {
       return WidgetInfo(Widget::eTextField, aParams);
     }
-    static WidgetInfo ProgressBar(const ProgressParams& aParams) {
-      return WidgetInfo(Widget::eProgressBar, aParams);
-    }
-    static WidgetInfo Meter(const MeterParams& aParams) {
-      return WidgetInfo(Widget::eMeter, aParams);
-    }
-    static WidgetInfo Scale(const ScaleParams& aParams) {
-      return WidgetInfo(Widget::eScale, aParams);
-    }
     static WidgetInfo MultilineTextField(bool aParams) {
       return WidgetInfo(Widget::eMultilineTextField, aParams);
     }
@@ -170,9 +126,7 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
         : mVariant(aParams), mWidget(aWidget) {}
 
     mozilla::Variant<mozilla::gfx::sRGBColor, CheckboxOrRadioParams,
-                     ButtonParams, DropdownParams, 
-                     TextFieldParams, ProgressParams, MeterParams, ScaleParams,
-                     bool>
+                     ButtonParams, DropdownParams, TextFieldParams, bool>
         mVariant;
 
     enum Widget mWidget;
@@ -217,8 +171,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
   Transparency GetWidgetTransparency(nsIFrame*, StyleAppearance) override;
   mozilla::Maybe<WidgetInfo> ComputeWidgetInfo(nsIFrame*, StyleAppearance,
                                                const nsRect& aRect);
-  void DrawProgress(CGContextRef context, const HIRect& inBoxRect,
-                    const ProgressParams& aParams);
 
  protected:
   virtual ~nsNativeThemeCocoa();
@@ -227,19 +179,8 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
                                              nsIFrame*);
   ControlParams ComputeControlParams(nsIFrame*, mozilla::dom::ElementState);
   TextFieldParams ComputeTextFieldParams(nsIFrame*, mozilla::dom::ElementState);
-  ProgressParams ComputeProgressParams(nsIFrame*, mozilla::dom::ElementState,
-                                       bool aIsHorizontal);
-  MeterParams ComputeMeterParams(nsIFrame*);
-  mozilla::Maybe<ScaleParams> ComputeHTMLScaleParams(
-      nsIFrame*, mozilla::dom::ElementState);
 
   // HITheme drawing routines
-  void DrawMeter(CGContextRef context, const HIRect& inBoxRect,
-                 const MeterParams& aParams);
-  void DrawTabPanel(CGContextRef context, const HIRect& inBoxRect,
-                    bool aIsInsideActiveWindow);
-  void DrawScale(CGContextRef context, const HIRect& inBoxRect,
-                 const ScaleParams& aParams);
   void DrawCheckboxOrRadio(CGContextRef cgContext, bool inCheckbox,
                            const HIRect& inBoxRect,
                            const CheckboxOrRadioParams& aParams);
@@ -263,8 +204,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
                   const ButtonParams& aParams);
   void DrawDropdown(CGContextRef context, const HIRect& inBoxRect,
                     const DropdownParams& aParams);
-  void DrawToolbar(CGContextRef cgContext, const CGRect& inBoxRect,
-                   bool aIsMain);
   void DrawMultilineTextField(CGContextRef cgContext, const CGRect& inBoxRect,
                               bool aIsFocused);
   void RenderWidget(const WidgetInfo& aWidgetInfo, mozilla::ColorScheme,
@@ -281,8 +220,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
   NSTextFieldCell* mTextFieldCell;
   NSPopUpButtonCell* mDropdownCell;
   NSComboBoxCell* mComboBoxCell;
-  NSProgressBarCell* mProgressBarCell;
-  NSLevelIndicatorCell* mMeterBarCell;
   MOZCellDrawWindow* mCellDrawWindow = nil;
   MOZCellDrawView* mCellDrawView;
 };
