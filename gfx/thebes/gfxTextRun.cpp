@@ -1856,18 +1856,8 @@ gfxFontGroup::gfxFontGroup(nsPresContext* aPresContext,
       mUserFontSet(aUserFontSet),
       mTextPerf(aTextPerf),
       mPageLang(gfxPlatformFontList::GetFontPrefLangFor(aLanguage)),
-      mExplicitLanguage(aExplicitLanguage) {
-  switch (aVariantEmoji) {
-    case StyleFontVariantEmoji::Normal:
-    case StyleFontVariantEmoji::Unicode:
-      break;
-    case StyleFontVariantEmoji::Text:
-      mEmojiPresentation = FontPresentation::TextExplicit;
-      break;
-    case StyleFontVariantEmoji::Emoji:
-      mEmojiPresentation = FontPresentation::EmojiExplicit;
-      break;
-  }
+      mExplicitLanguage(aExplicitLanguage),
+      mFontVariantEmoji(aVariantEmoji) {
   // We don't use SetUserFontSet() here, as we want to unconditionally call
   // EnsureFontList() rather than only do UpdateUserFonts() if it changed.
 }
@@ -3209,7 +3199,11 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
   if (EmojiPresentation emojiPresentation = GetEmojiPresentation(aCh);
       emojiPresentation != TextOnly) {
     // Default presentation from the font-variant-emoji property.
-    presentation = mEmojiPresentation;
+    if (mFontVariantEmoji == StyleFontVariantEmoji::Emoji) {
+      presentation = FontPresentation::EmojiExplicit;
+    } else if (mFontVariantEmoji == StyleFontVariantEmoji::Text) {
+      presentation = FontPresentation::TextExplicit;
+    }
     // If there wasn't an explicit font-variant-emoji setting, default to
     // what Unicode prefers for this character.
     if (presentation == FontPresentation::Any) {
@@ -3225,8 +3219,7 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
     // glyph.
     // If the prefer-text selector is present, we specifically look for a
     // font that will provide a monochrome glyph.
-    if (aNextCh == kVariationSelector16 ||
-        (aNextCh >= kEmojiSkinToneFirst && aNextCh <= kEmojiSkinToneLast) ||
+    if (aNextCh == kVariationSelector16 || IsEmojiSkinToneModifier(aNextCh) ||
         gfxFontUtils::IsEmojiFlagAndTag(aCh, aNextCh)) {
       // Emoji presentation is explicitly requested by a variation selector
       // or the presence of a skin-tone codepoint.
@@ -3305,8 +3298,14 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
   // Handle a candidate font that could support the character, returning true
   // if we should go ahead and return |f|, false to continue searching.
   auto CheckCandidate = [&](gfxFont* f, FontMatchType t) -> bool {
-    // If no preference, then just accept the font.
-    if (presentation == FontPresentation::Any) {
+    // If no preference, or if it's an explicitly-named family in the fontgroup
+    // and font-variant-emoji is 'normal', then we accept the font.
+    if (presentation == FontPresentation::Any ||
+        (!IsExplicitPresentation(presentation) &&
+         t.kind == FontMatchType::Kind::kFontGroup &&
+         t.generic == StyleGenericFontFamily::None &&
+         mFontVariantEmoji == StyleFontVariantEmoji::Normal &&
+         !gfxFontUtils::IsRegionalIndicator(aCh))) {
       *aMatchType = t;
       return true;
     }
@@ -3445,21 +3444,6 @@ already_AddRefed<gfxFont> gfxFontGroup::FindFontForChar(
         }
       }
     }
-  }
-
-  // If it's an emoji codepoint and we found a named-family candidate (not a
-  // generic) in the font list, we accept it even if it doesn't match the
-  // presentation (so authors can deliberately request fonts that do not match
-  // the Unicode emoji default presentation style for a given character). But
-  // don't do this if a particular presentation was explicitly requested in the
-  // text, or for Regional Indicator chars (because of Segoe UI Emoji).
-  if (candidateFont &&
-      candidateMatchType.generic == StyleGenericFontFamily::None &&
-      presentation != FontPresentation::EmojiExplicit &&
-      presentation != FontPresentation::TextExplicit &&
-      !gfxFontUtils::IsRegionalIndicator(aCh)) {
-    *aMatchType = candidateMatchType;
-    return candidateFont.forget();
   }
 
   if (fontListLength == 0) {
@@ -3612,19 +3596,26 @@ void gfxFontGroup::ComputeRanges(nsTArray<TextRange>& aRanges, const T* aString,
     // the font selected for an adjacent character, and does not need to
     // consider emoji vs text presentation.
     if ((font = GetFontAt(0, ch)) != nullptr && font->HasCharacter(ch) &&
-        // In 8-bit text, the only time emoji presentation might be needed
-        // is if it is explicitly requested with font-variant, as no 8-bit
-        // chars are emoji by default.
-        ((sizeof(T) == sizeof(uint8_t) &&
-          (mEmojiPresentation != FontPresentation::EmojiExplicit ||
-           GetEmojiPresentation(ch) == TextOnly)) ||
-         // For 16-bit text, we need to consider cluster extenders etc.
-         (sizeof(T) == sizeof(char16_t) &&
-          (!IsClusterExtender(ch) && ch != NARROW_NO_BREAK_SPACE &&
-           !gfxFontUtils::IsJoinControl(ch) &&
-           !gfxFontUtils::IsJoinCauser(prevCh) &&
-           !gfxFontUtils::IsVarSelector(ch) &&
-           GetEmojiPresentation(ch) == TextOnly)))) {
+        (
+            // In 8-bit text, we can unconditionally accept the first font if
+            // font-variant-emoji is 'normal', or if the character does not
+            // have the emoji property; there cannot be adjacent characters
+            // that would affect it.
+            (sizeof(T) == sizeof(uint8_t) &&
+             (mFontVariantEmoji == StyleFontVariantEmoji::Normal ||
+              GetEmojiPresentation(ch) == TextOnly)) ||
+            // For 16-bit text, we need to consider cluster extenders etc.
+            (sizeof(T) == sizeof(char16_t) &&
+             (!IsClusterExtender(ch) && ch != NARROW_NO_BREAK_SPACE &&
+              !gfxFontUtils::IsJoinControl(ch) &&
+              !gfxFontUtils::IsJoinCauser(prevCh) &&
+              !gfxFontUtils::IsVarSelector(ch) &&
+              (GetEmojiPresentation(ch) == TextOnly ||
+               (!(IsEmojiPresentationSelector(nextCh) ||
+                  IsEmojiSkinToneModifier(nextCh) ||
+                  gfxFontUtils::IsEmojiFlagAndTag(ch, nextCh)) &&
+                mFontVariantEmoji == StyleFontVariantEmoji::Normal &&
+                mFonts[0].Generic() == StyleGenericFontFamily::None)))))) {
       matchType = {FontMatchType::Kind::kFontGroup, mFonts[0].Generic()};
     } else {
       font =

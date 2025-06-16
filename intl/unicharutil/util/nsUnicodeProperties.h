@@ -56,10 +56,16 @@ enum EmojiPresentation { TextOnly = 0, TextDefault = 1, EmojiDefault = 2 };
 
 const uint32_t kVariationSelector15 = 0xFE0E;  // text presentation
 const uint32_t kVariationSelector16 = 0xFE0F;  // emoji presentation
+static inline bool IsEmojiPresentationSelector(uint32_t aCh) {
+  return aCh >= kVariationSelector15 && aCh <= kVariationSelector16;
+}
 
 // Unicode values for EMOJI MODIFIER FITZPATRICK TYPE-*
 const uint32_t kEmojiSkinToneFirst = 0x1f3fb;
 const uint32_t kEmojiSkinToneLast = 0x1f3ff;
+static inline bool IsEmojiSkinToneModifier(uint32_t aCh) {
+  return aCh >= kEmojiSkinToneFirst && aCh <= kEmojiSkinToneLast;
+}
 
 extern const hb_unicode_general_category_t sICUtoHBcategory[];
 

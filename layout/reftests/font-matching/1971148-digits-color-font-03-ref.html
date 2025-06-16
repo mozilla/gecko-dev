@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+
+<style>
+@font-face {
+  font-family: Ahem;
+  src: url(../fonts/Ahem.ttf);
+}
+div {
+  font: 25px/2 "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", Ahem;
+}
+span.text {
+  font-family: Ahem;
+  font-variant-emoji: text;
+}
+</style>
+
+<p>Expect digits to be rendered from Ahem:</p>
+<div style="font-variant-emoji: text">abc<span class=text>123</span>xyz</div>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+
+<style>
+@font-face {
+  font-family: Ahem;
+  src: url(../fonts/Ahem.ttf);
+}
+div {
+  font: 25px/2 "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", Ahem;
+}
+</style>
+
+<!-- presence of ZWSP should not affect font selection -->
+
+<p>Expect digits to be rendered from Ahem:</p>
+<div style="font-variant-emoji: unicode">abc123xyz&#x200b;</div>
