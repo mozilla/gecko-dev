@@ -53,16 +53,11 @@ class AtomMarkingRuntime {
 
   // Update the atom marking bitmaps in all collected zones according to the
   // atoms zone mark bits.
-  void refineZoneBitmapsForCollectedZones(GCRuntime* gc);
+  void refineZoneBitmapsForCollectedZones(GCRuntime* gc, size_t collectedZones);
 
-  // Get a bitmap of all atoms marked in zones that are not being collected by
-  // the current GC. On failure, mark the atoms instead.
-  UniquePtr<DenseBitmap> getOrMarkAtomsUsedByUncollectedZones(GCRuntime* gc);
-
-  // Set any bits in the chunk mark bitmaps for atoms which are marked in
-  // uncollected zones, using the bitmap returned from the previous method.
-  void markAtomsUsedByUncollectedZones(GCRuntime* gc,
-                                       UniquePtr<DenseBitmap> markedUnion);
+  // Set any bits in the chunk mark bitmaps for atoms which are marked in any
+  // uncollected zone in the runtime.
+  void markAtomsUsedByUncollectedZones(GCRuntime* gc, size_t uncollectedZones);
 
  private:
   // Fill |bitmap| with an atom marking bitmap based on the things that are
@@ -91,11 +86,10 @@ class AtomMarkingRuntime {
   void markId(JSContext* cx, jsid id);
   void markAtomValue(JSContext* cx, const Value& value);
 
+#ifdef DEBUG
   // Return whether |thing/id| is in the atom marking bitmap for |zone|.
   template <typename T>
   bool atomIsMarked(Zone* zone, T* thing);
-
-#ifdef DEBUG
   bool idIsMarked(Zone* zone, jsid id);
   bool valueIsMarked(Zone* zone, const Value& value);
 #endif

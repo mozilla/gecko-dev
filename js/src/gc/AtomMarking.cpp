@@ -105,14 +105,8 @@ void AtomMarkingRuntime::mergePendingFreeArenaIndexes(GCRuntime* gc) {
   pendingFreeArenaIndexes.ref().clear();
 }
 
-void AtomMarkingRuntime::refineZoneBitmapsForCollectedZones(GCRuntime* gc) {
-  size_t collectedZones = 0;
-  for (ZonesIter zone(gc, SkipAtoms); !zone.done(); zone.next()) {
-    if (zone->isCollecting()) {
-      collectedZones++;
-    }
-  }
-
+void AtomMarkingRuntime::refineZoneBitmapsForCollectedZones(
+    GCRuntime* gc, size_t collectedZones) {
   // If there is more than one zone to update, copy the chunk mark bits into a
   // bitmap and AND that into the atom marking bitmap for each zone.
   DenseBitmap marked;
@@ -197,33 +191,40 @@ static void BitwiseOrIntoChunkMarkBits(Zone* atomsZone, Bitmap& bitmap) {
   }
 }
 
-UniquePtr<DenseBitmap> AtomMarkingRuntime::getOrMarkAtomsUsedByUncollectedZones(
-    GCRuntime* gc) {
+void AtomMarkingRuntime::markAtomsUsedByUncollectedZones(
+    GCRuntime* gc, size_t uncollectedZones) {
   MOZ_ASSERT(CurrentThreadIsPerformingGC());
 
-  UniquePtr<DenseBitmap> markedUnion = MakeUnique<DenseBitmap>();
-  if (!markedUnion || !markedUnion->ensureSpace(allocatedWords)) {
-    // On failure, mark the atoms immediately.
+  // If there are no uncollected non-atom zones then there's no work to do.
+  if (uncollectedZones == 0) {
+    return;
+  }
+
+  // If there is more than one zone then try to compute a simple union of the
+  // zone atom bitmaps before updating the chunk mark bitmaps. If there is only
+  // one zone or this allocation fails then update the chunk mark bitmaps
+  // separately for each zone.
+
+  DenseBitmap markedUnion;
+  if (uncollectedZones == 1 || !markedUnion.ensureSpace(allocatedWords)) {
     for (ZonesIter zone(gc, SkipAtoms); !zone.done(); zone.next()) {
       if (!zone->isCollecting()) {
         BitwiseOrIntoChunkMarkBits(gc->atomsZone(), zone->markedAtoms());
       }
     }
-    return nullptr;
+    return;
   }
 
   for (ZonesIter zone(gc, SkipAtoms); !zone.done(); zone.next()) {
+    // We only need to update the chunk mark bits for zones which were
+    // not collected in the current GC. Atoms which are referenced by
+    // collected zones have already been marked.
     if (!zone->isCollecting()) {
-      zone->markedAtoms().bitwiseOrInto(*markedUnion);
+      zone->markedAtoms().bitwiseOrInto(markedUnion);
     }
   }
 
-  return markedUnion;
-}
-
-void AtomMarkingRuntime::markAtomsUsedByUncollectedZones(
-    GCRuntime* gc, UniquePtr<DenseBitmap> markedUnion) {
-  BitwiseOrIntoChunkMarkBits(gc->atomsZone(), *markedUnion);
+  BitwiseOrIntoChunkMarkBits(gc->atomsZone(), markedUnion);
 }
 
 template <typename T>
@@ -262,6 +263,7 @@ void AtomMarkingRuntime::markAtomValue(JSContext* cx, const Value& value) {
                                        value.isBigInt());
 }
 
+#ifdef DEBUG
 template <typename T>
 bool AtomMarkingRuntime::atomIsMarked(Zone* zone, T* thing) {
   static_assert(std::is_same_v<T, JSAtom> || std::is_same_v<T, JS::Symbol>,
@@ -291,8 +293,6 @@ bool AtomMarkingRuntime::atomIsMarked(Zone* zone, T* thing) {
 
 template bool AtomMarkingRuntime::atomIsMarked(Zone* zone, JSAtom* thing);
 template bool AtomMarkingRuntime::atomIsMarked(Zone* zone, JS::Symbol* thing);
-
-#ifdef DEBUG
 
 template <>
 bool AtomMarkingRuntime::atomIsMarked(Zone* zone, TenuredCell* thing) {

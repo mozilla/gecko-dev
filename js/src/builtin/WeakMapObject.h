@@ -23,7 +23,6 @@ class WeakCollectionObject : public NativeObject {
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
-  size_t nondeterministicGetSize();
   [[nodiscard]] static bool nondeterministicGetKeys(
       JSContext* cx, Handle<WeakCollectionObject*> obj,
       MutableHandleObject ret);

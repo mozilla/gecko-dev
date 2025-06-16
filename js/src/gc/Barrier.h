@@ -1112,10 +1112,6 @@ struct RemoveBarrier<WeakHeapPtr<T>> {
   using Type = T;
 };
 
-template <typename T>
-using IsBarriered =
-    std::negation<std::is_same<T, typename RemoveBarrier<T>::Type>>;
-
 #if MOZ_IS_GCC
 template struct JS_PUBLIC_API StableCellHasher<JSObject*>;
 template struct JS_PUBLIC_API StableCellHasher<JSScript*>;

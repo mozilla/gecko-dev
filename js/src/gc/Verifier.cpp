@@ -1119,28 +1119,23 @@ static JSObject* MaybeGetDelegate(Cell* cell) {
 }
 
 bool js::gc::CheckWeakMapEntryMarking(const WeakMapBase* map, Cell* key,
-                                      Cell* maybeValue) {
+                                      Cell* value) {
   bool ok = true;
 
   Zone* zone = map->zone();
-  MOZ_RELEASE_ASSERT(CurrentThreadCanAccessZone(zone));
-  MOZ_RELEASE_ASSERT(zone->isGCMarking());
+  MOZ_ASSERT(CurrentThreadCanAccessZone(zone));
+  MOZ_ASSERT(zone->isGCMarking());
 
   JSObject* object = map->memberOf;
-  if (object) {
-    MOZ_RELEASE_ASSERT(object->zone() == zone);
-  }
+  MOZ_ASSERT_IF(object, object->zone() == zone);
 
   // Debugger weak maps can have keys in different zones.
   Zone* keyZone = key->zoneFromAnyThread();
-  if (!map->allowKeysInOtherZones()) {
-    MOZ_RELEASE_ASSERT(keyZone == zone || keyZone->isAtomsZone());
-  }
+  MOZ_ASSERT_IF(!map->allowKeysInOtherZones(),
+                keyZone == zone || keyZone->isAtomsZone());
 
-  if (maybeValue) {
-    Zone* valueZone = maybeValue->zoneFromAnyThread();
-    MOZ_RELEASE_ASSERT(valueZone == zone || valueZone->isAtomsZone());
-  }
+  Zone* valueZone = value->zoneFromAnyThread();
+  MOZ_ASSERT(valueZone == zone || valueZone->isAtomsZone());
 
   if (object && object->color() != map->mapColor()) {
     fprintf(stderr, "WeakMap object is marked differently to the map\n");
@@ -1153,24 +1148,24 @@ bool js::gc::CheckWeakMapEntryMarking(const WeakMapBase* map, Cell* key,
   // Values belonging to other runtimes or in uncollected zones are treated as
   // black.
   JSRuntime* mapRuntime = zone->runtimeFromAnyThread();
-  auto effectiveColor = [=](Cell* cell) -> CellColor {
-    if (!cell || cell->runtimeFromAnyThread() != mapRuntime) {
+  auto effectiveColor = [=](Cell* cell, Zone* cellZone) -> CellColor {
+    if (cell->runtimeFromAnyThread() != mapRuntime) {
       return CellColor::Black;
     }
-    if (cell->zoneFromAnyThread()->isGCMarkingOrSweeping()) {
+    if (cellZone->isGCMarkingOrSweeping()) {
       return cell->color();
     }
     return CellColor::Black;
   };
 
-  CellColor valueColor = effectiveColor(maybeValue);
-  CellColor keyColor = effectiveColor(key);
+  CellColor valueColor = effectiveColor(value, valueZone);
+  CellColor keyColor = effectiveColor(key, keyZone);
 
   if (valueColor < std::min(map->mapColor(), keyColor)) {
     fprintf(stderr, "WeakMap value is less marked than map and key\n");
     fprintf(stderr, "(map %p is %s, key %p is %s, value %p is %s)\n", map,
-            CellColorName(map->mapColor()), key, CellColorName(keyColor),
-            maybeValue, CellColorName(valueColor));
+            CellColorName(map->mapColor()), key, CellColorName(keyColor), value,
+            CellColorName(valueColor));
 #  ifdef DEBUG
     fprintf(stderr, "Key:\n");
     key->dump();
@@ -1178,10 +1173,8 @@ bool js::gc::CheckWeakMapEntryMarking(const WeakMapBase* map, Cell* key,
       fprintf(stderr, "Delegate:\n");
       delegate->dump();
     }
-    if (maybeValue) {
-      fprintf(stderr, "Value:\n");
-      maybeValue->dump();
-    }
+    fprintf(stderr, "Value:\n");
+    value->dump();
 #  endif
 
     ok = false;
@@ -1192,22 +1185,13 @@ bool js::gc::CheckWeakMapEntryMarking(const WeakMapBase* map, Cell* key,
     return ok;
   }
 
-  CellColor delegateColor = effectiveColor(delegate);
+  CellColor delegateColor = effectiveColor(delegate, delegate->zone());
   if (keyColor < std::min(map->mapColor(), delegateColor)) {
     fprintf(stderr, "WeakMap key is less marked than map or delegate\n");
     fprintf(stderr, "(map %p is %s, delegate %p is %s, key %p is %s)\n", map,
             CellColorName(map->mapColor()), delegate,
             CellColorName(delegateColor), key, CellColorName(keyColor));
     ok = false;
-  }
-
-  // Symbols key must be marked in the atom marking bitmap for the zone.
-  if (key->is<JS::Symbol>()) {
-    GCRuntime* gc = &mapRuntime->gc;
-    if (!gc->atomMarking.atomIsMarked(zone, key->as<JS::Symbol>())) {
-      fprintf(stderr, "Symbol key %p not marked in atom marking bitmap\n", key);
-      ok = false;
-    }
   }
 
   return ok;

@@ -694,8 +694,6 @@ class GCRuntime {
   static void* refillFreeList(JS::Zone* zone, AllocKind thingKind);
   void attemptLastDitchGC();
 
-  bool isSymbolReferencedByUncollectedZone(JS::Symbol* sym);
-
   // Test mark queue.
 #ifdef DEBUG
   const GCVector<HeapPtr<JS::Value>, 0, SystemAllocPolicy>& getTestMarkQueue()
@@ -1078,7 +1076,6 @@ class GCRuntime {
 
   // State used for managing atom mark bitmaps in each zone.
   AtomMarkingRuntime atomMarking;
-  MainThreadOrGCTaskData<UniquePtr<DenseBitmap>> atomsUsedByUncollectedZones;
 
   /*
    * Pointer to a callback that, if set, will be used to create a
