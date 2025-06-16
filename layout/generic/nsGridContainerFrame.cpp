@@ -339,12 +339,13 @@ struct RepeatTrackSizingInput {
 
   // This should be used in intrinsic sizing (i.e. when we can't initialize
   // the sizes directly from ReflowInput values).
-  void InitFromStyle(LogicalAxis aAxis, WritingMode aWM,
+  void InitFromStyle(LogicalAxis aAxis, WritingMode aWM, const nsIFrame* aFrame,
                      const ComputedStyle* aStyle,
                      const AspectRatio& aAspectRatio,
                      const Maybe<LogicalSize>& aContainingBlockSize) {
     const auto& pos = aStyle->StylePosition();
-    const auto positionProperty = aStyle->StyleDisplay()->mPosition;
+    const AnchorPosResolutionParams anchorResolutionParams{
+        aFrame, aStyle->StyleDisplay()->mPosition};
     BoxSizingAdjustment boxSizingAdjustment(aWM, *aStyle);
     const nscoord cbSizeInAxis = aContainingBlockSize
                                      ? aContainingBlockSize->Size(aAxis, aWM)
@@ -357,7 +358,8 @@ struct RepeatTrackSizingInput {
     };
 
     nscoord& min = mMin.Size(aAxis, aWM);
-    const auto styleMinSize = pos->MinSize(aAxis, aWM, positionProperty);
+    const auto styleMinSize =
+        pos->MinSize(aAxis, aWM, anchorResolutionParams.mPosition);
     if (styleMinSize->ConvertsToLength()) {
       min = adjustForBoxSizing(styleMinSize->ToLength());
     } else if (styleMinSize->HasPercent() &&
@@ -367,8 +369,8 @@ struct RepeatTrackSizingInput {
     } else if (aAspectRatio && styleMinSize->BehavesLikeInitialValue(aAxis)) {
       // Use GetOrthogonalAxis() to get the ratio-determining axis. Same for max
       // and size below in this function.
-      const auto styleRDMinSize =
-          pos->MinSize(GetOrthogonalAxis(aAxis), aWM, positionProperty);
+      const auto styleRDMinSize = pos->MinSize(
+          GetOrthogonalAxis(aAxis), aWM, anchorResolutionParams.mPosition);
       if (Maybe<nscoord> resolvedMinSize = ComputeTransferredSize(
               styleRDMinSize, aAxis, aWM, aAspectRatio, boxSizingAdjustment,
               aContainingBlockSize)) {
@@ -377,7 +379,8 @@ struct RepeatTrackSizingInput {
     }
 
     nscoord& max = mMax.Size(aAxis, aWM);
-    const auto styleMaxSize = pos->MaxSize(aAxis, aWM, positionProperty);
+    const auto styleMaxSize =
+        pos->MaxSize(aAxis, aWM, anchorResolutionParams.mPosition);
     if (styleMaxSize->ConvertsToLength()) {
       max = std::max(min, adjustForBoxSizing(styleMaxSize->ToLength()));
     } else if (styleMaxSize->HasPercent() &&
@@ -386,8 +389,8 @@ struct RepeatTrackSizingInput {
           min, adjustForBoxSizing(
                    styleMaxSize->AsLengthPercentage().Resolve(cbSizeInAxis)));
     } else if (aAspectRatio && styleMaxSize->BehavesLikeInitialValue(aAxis)) {
-      const auto styleRDMaxSize =
-          pos->MaxSize(GetOrthogonalAxis(aAxis), aWM, positionProperty);
+      const auto styleRDMaxSize = pos->MaxSize(
+          GetOrthogonalAxis(aAxis), aWM, anchorResolutionParams.mPosition);
       if (Maybe<nscoord> resolvedMaxSize = ComputeTransferredSize(
               styleRDMaxSize, aAxis, aWM, aAspectRatio, boxSizingAdjustment,
               aContainingBlockSize)) {
@@ -398,9 +401,10 @@ struct RepeatTrackSizingInput {
     nscoord& size = mSize.Size(aAxis, aWM);
     // When computing the intrinsic inline size, disregard the explicit
     // inline-size property as it should not affect the final result.
-    const auto styleSize = aAxis == LogicalAxis::Inline
-                               ? AnchorResolvedSizeHelper::Auto()
-                               : pos->BSize(aWM, positionProperty);
+    const auto styleSize =
+        aAxis == LogicalAxis::Inline
+            ? AnchorResolvedSizeHelper::Auto()
+            : pos->BSize(aWM, anchorResolutionParams.mPosition);
     if (styleSize->ConvertsToLength()) {
       size = std::clamp(adjustForBoxSizing(styleSize->ToLength()), min, max);
     } else if (styleSize->HasPercent() &&
@@ -410,8 +414,8 @@ struct RepeatTrackSizingInput {
                          styleSize->AsLengthPercentage().Resolve(cbSizeInAxis)),
                      min, max);
     } else if (aAspectRatio && styleSize->BehavesLikeInitialValue(aAxis)) {
-      const auto styleRDSize =
-          pos->Size(GetOrthogonalAxis(aAxis), aWM, positionProperty);
+      const auto styleRDSize = pos->Size(GetOrthogonalAxis(aAxis), aWM,
+                                         anchorResolutionParams.mPosition);
       if (Maybe<nscoord> resolvedSize = ComputeTransferredSize(
               styleRDSize, aAxis, aWM, aAspectRatio, boxSizingAdjustment,
               aContainingBlockSize)) {
@@ -928,8 +932,10 @@ struct nsGridContainerFrame::GridItemInfo {
                                  ? mFrame->PrincipalChildList().FirstChild()
                                  : mFrame;
     const auto* pos = styleFrame->StylePosition();
-    const auto positionProperty = styleFrame->StyleDisplay()->mPosition;
-    const auto size = pos->Size(aContainerAxis, aContainerWM, positionProperty);
+    const auto anchorResolutionParams =
+        AnchorPosResolutionParams::From(styleFrame);
+    const auto size = pos->Size(aContainerAxis, aContainerWM,
+                                anchorResolutionParams.mPosition);
     // max-content and min-content should behave as initial value in block axis.
     // FIXME: Bug 567039: moz-fit-content and -moz-available are not supported
     // for block size dimension on sizing properties (e.g. height), so we
@@ -942,8 +948,8 @@ struct nsGridContainerFrame::GridItemInfo {
     if (!isAuto && !size->HasPercent()) {
       return false;
     }
-    const auto minSize =
-        pos->MinSize(aContainerAxis, aContainerWM, positionProperty);
+    const auto minSize = pos->MinSize(aContainerAxis, aContainerWM,
+                                      anchorResolutionParams.mPosition);
     // max-content and min-content should behave as initial value in block axis.
     // FIXME: Bug 567039: moz-fit-content and -moz-available are not supported
     // for block size dimension on sizing properties (e.g. height), so we
@@ -1014,13 +1020,14 @@ struct nsGridContainerFrame::GridItemInfo {
     };
 
     const nsStylePosition* stylePos = mFrame->StylePosition();
-    const auto positionProperty = mFrame->StyleDisplay()->mPosition;
-    bool isItemAutoSize = IsDependentOnContainerSize(*stylePos->BSize(
-                              aContainerWM, positionProperty)) ||
-                          IsDependentOnContainerSize(*stylePos->MinBSize(
-                              aContainerWM, positionProperty)) ||
-                          IsDependentOnContainerSize(*stylePos->MaxBSize(
-                              aContainerWM, positionProperty));
+    const auto anchorResolutionParams = AnchorPosResolutionParams::From(mFrame);
+    bool isItemAutoSize =
+        IsDependentOnContainerSize(
+            *stylePos->BSize(aContainerWM, anchorResolutionParams.mPosition)) ||
+        IsDependentOnContainerSize(*stylePos->MinBSize(
+            aContainerWM, anchorResolutionParams.mPosition)) ||
+        IsDependentOnContainerSize(*stylePos->MaxBSize(
+            aContainerWM, anchorResolutionParams.mPosition));
 
     return isItemAutoSize;
   }
@@ -5199,13 +5206,13 @@ void nsGridContainerFrame::Grid::SubgridPlaceGridItems(
     // subgrid. Otherwise, we may have to know the area size that this grid item
     // is placed, and pass the area size as the containing block size to this
     // function.
-    repeatSizing.InitFromStyle(LogicalAxis::Inline, gridRI.mWM,
+    repeatSizing.InitFromStyle(LogicalAxis::Inline, gridRI.mWM, gridRI.mFrame,
                                gridRI.mFrame->Style(),
                                gridRI.mFrame->GetAspectRatio(), Nothing());
   }
   if (!childGrid->IsRowSubgrid() && gridRI.mRowFunctions.mHasRepeatAuto) {
     // FIXME: Bug 1918794. Same as above.
-    repeatSizing.InitFromStyle(LogicalAxis::Block, gridRI.mWM,
+    repeatSizing.InitFromStyle(LogicalAxis::Block, gridRI.mWM, gridRI.mFrame,
                                gridRI.mFrame->Style(),
                                gridRI.mFrame->GetAspectRatio(), Nothing());
   }
@@ -6058,9 +6065,11 @@ struct CachedIntrinsicSizes {
     if (aTypes.contains(GridIntrinsicSizeType::MinSize)) {
       nsIFrame* const child = aGridItem.mFrame;
       const nsStylePosition* const stylePos = child->StylePosition();
-      const auto positionProperty = child->StyleDisplay()->mPosition;
+      const auto anchorResolutionParams =
+          AnchorPosResolutionParams::From(child);
       const WritingMode cbwm = aGridRI.mWM;
-      auto styleSize = stylePos->Size(aAxis, cbwm, positionProperty);
+      auto styleSize =
+          stylePos->Size(aAxis, cbwm, anchorResolutionParams.mPosition);
       const LogicalAxis axisInItemWM =
           cbwm.IsOrthogonalTo(child->GetWritingMode())
               ? GetOrthogonalAxis(aAxis)
@@ -6114,7 +6123,8 @@ struct CachedIntrinsicSizes {
         // https://drafts.csswg.org/css-grid-2/#min-size-contribution
         nsIFrame* const child = aGridItem.mFrame;
         const nsStylePosition* const stylePos = child->StylePosition();
-        const auto positionProperty = child->StyleDisplay()->mPosition;
+        const auto anchorResolutionParams =
+            AnchorPosResolutionParams::From(child);
         const LogicalAxis axisInItemWM =
             containerWM.IsOrthogonalTo(child->GetWritingMode())
                 ? GetOrthogonalAxis(aAxis)
@@ -6123,8 +6133,8 @@ struct CachedIntrinsicSizes {
         // The caller must handle this case separately.
         // See EnsureContributions.
         {
-          const auto styleSize =
-              stylePos->Size(aAxis, containerWM, positionProperty);
+          const auto styleSize = stylePos->Size(
+              aAxis, containerWM, anchorResolutionParams.mPosition);
           MOZ_ASSERT(styleSize->BehavesLikeInitialValue(axisInItemWM) ||
                          styleSize->HasPercent(),
                      "Should have been caught in EnsureContributions");
@@ -6142,8 +6152,8 @@ struct CachedIntrinsicSizes {
         MOZ_ASSERT((aGridItem.mState[aAxis] & ItemState::eIsBaselineAligned) ||
                        aGridItem.mBaselineOffset[aAxis] == (nscoord)0,
                    "baseline offset should be zero when not baseline-aligned");
-        const auto styleMinSize =
-            stylePos->MinSize(aAxis, containerWM, positionProperty);
+        const auto styleMinSize = stylePos->MinSize(
+            aAxis, containerWM, anchorResolutionParams.mPosition);
 
         // max-content and min-content should behave as initial value in block
         // axis.
@@ -10134,7 +10144,7 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
   RepeatTrackSizingInput repeatSizing(gridRI.mWM);
   if (!IsColSubgrid() && gridRI.mColFunctions.mHasRepeatAuto) {
     repeatSizing.InitFromStyle(
-        LogicalAxis::Inline, gridRI.mWM, gridRI.mFrame->Style(),
+        LogicalAxis::Inline, gridRI.mWM, gridRI.mFrame, gridRI.mFrame->Style(),
         gridRI.mFrame->GetAspectRatio(), aInput.mContainingBlockSize);
   }
   if ((!IsRowSubgrid() && gridRI.mRowFunctions.mHasRepeatAuto &&
@@ -10144,7 +10154,7 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     // the only case where our block-size can affect the number of columns.
     // Masonry layout always depends on how many rows we have though.
     repeatSizing.InitFromStyle(
-        LogicalAxis::Block, gridRI.mWM, gridRI.mFrame->Style(),
+        LogicalAxis::Block, gridRI.mWM, gridRI.mFrame, gridRI.mFrame->Style(),
         gridRI.mFrame->GetAspectRatio(), aInput.mContainingBlockSize);
   }
 

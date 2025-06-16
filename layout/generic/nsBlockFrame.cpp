@@ -4083,10 +4083,11 @@ bool nsBlockFrame::IsSelfEmpty() {
 
   WritingMode wm = GetWritingMode();
   const nsStylePosition* position = StylePosition();
-  const auto positionProperty = StyleDisplay()->mPosition;
-  const auto bSize = position->BSize(wm, positionProperty);
+  const auto anchorResolutionParams = AnchorPosResolutionParams::From(this);
+  const auto bSize = position->BSize(wm, anchorResolutionParams.mPosition);
 
-  if (IsNonAutoNonZeroBSize(*position->MinBSize(wm, positionProperty)) ||
+  if (IsNonAutoNonZeroBSize(
+          *position->MinBSize(wm, anchorResolutionParams.mPosition)) ||
       IsNonAutoNonZeroBSize(*bSize)) {
     return false;
   }

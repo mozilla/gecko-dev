@@ -654,9 +654,8 @@ static bool IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM) {
   // quite rarely.
 
   const nsStyleMargin* margin = aFrame->StyleMargin();
-  const auto anchorPosResolutionParams =
-      AnchorPosResolutionParams::From(aFrame);
-  if (HasPercentageUnitMargin(*margin, anchorPosResolutionParams.mPosition)) {
+  const auto anchorResolutionParams = AnchorPosResolutionParams::From(aFrame);
+  if (HasPercentageUnitMargin(*margin, anchorResolutionParams.mPosition)) {
     return true;
   }
 
@@ -668,15 +667,14 @@ static bool IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM) {
   // Note that borders can't be aware of percentages
 
   const nsStylePosition* pos = aFrame->StylePosition();
-  const auto iSize = pos->ISize(aWM, anchorPosResolutionParams.mPosition);
+  const auto iSize = pos->ISize(aWM, anchorResolutionParams.mPosition);
   const auto anchorOffsetResolutionParams =
-      AnchorPosOffsetResolutionParams::UseCBFrameSize(
-          anchorPosResolutionParams);
+      AnchorPosOffsetResolutionParams::UseCBFrameSize(anchorResolutionParams);
   if ((nsStylePosition::ISizeDependsOnContainer(iSize) && !iSize->IsAuto()) ||
       nsStylePosition::MaxISizeDependsOnContainer(
-          pos->MaxISize(aWM, anchorPosResolutionParams.mPosition)) ||
+          pos->MaxISize(aWM, anchorResolutionParams.mPosition)) ||
       nsStylePosition::MinISizeDependsOnContainer(
-          pos->MinISize(aWM, anchorPosResolutionParams.mPosition)) ||
+          pos->MinISize(aWM, anchorResolutionParams.mPosition)) ||
       pos->GetAnchorResolvedInset(LogicalSide::IStart, aWM,
                                   anchorOffsetResolutionParams)
           ->HasPercent() ||
@@ -709,7 +707,7 @@ static bool IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM) {
     nsIFrame* f = const_cast<nsIFrame*>(aFrame);
     if (f->GetAspectRatio() &&
         // Some percents are treated like 'auto', so check != coord
-        !pos->BSize(aWM, anchorPosResolutionParams.mPosition)
+        !pos->BSize(aWM, anchorResolutionParams.mPosition)
              ->ConvertsToLength()) {
       const IntrinsicSize& intrinsicSize = f->GetIntrinsicSize();
       if (!intrinsicSize.width && !intrinsicSize.height) {

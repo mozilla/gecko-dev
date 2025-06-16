@@ -33,7 +33,7 @@ void nsContainerFrame::DoInlineIntrinsicISize(ISizeData* aData,
   const nsStylePadding* stylePadding = StylePadding();
   const nsStyleBorder* styleBorder = StyleBorder();
   const nsStyleMargin* styleMargin = StyleMargin();
-  const auto positionProperty = StyleDisplay()->mPosition;
+  const auto anchorResolutionParams = AnchorPosResolutionParams::From(this);
 
   // This goes at the beginning no matter how things are broken and how
   // messy the bidi situations are, since per CSS2.1 section 8.6
@@ -52,7 +52,8 @@ void nsContainerFrame::DoInlineIntrinsicISize(ISizeData* aData,
         // clamp negative calc() to 0
         std::max(stylePadding->mPadding.Get(startSide).Resolve(0), 0) +
         styleBorder->GetComputedBorderWidth(startSide) +
-        GetMargin(styleMargin->GetMargin(startSide, positionProperty));
+        GetMargin(styleMargin->GetMargin(startSide,
+                                         anchorResolutionParams.mPosition));
     if (MOZ_LIKELY(sliceBreak)) {
       aData->mCurrentLine += startPBM;
     } else {
@@ -64,7 +65,8 @@ void nsContainerFrame::DoInlineIntrinsicISize(ISizeData* aData,
       // clamp negative calc() to 0
       std::max(stylePadding->mPadding.Get(endSide).Resolve(0), 0) +
       styleBorder->GetComputedBorderWidth(endSide) +
-      GetMargin(styleMargin->GetMargin(endSide, positionProperty));
+      GetMargin(
+          styleMargin->GetMargin(endSide, anchorResolutionParams.mPosition));
   if (MOZ_UNLIKELY(!sliceBreak)) {
     clonePBM += endPBM;
     aData->mCurrentLine += clonePBM;

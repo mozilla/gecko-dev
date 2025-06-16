@@ -68,25 +68,29 @@ nscoord CSSAlignUtils::AlignJustifySelf(const StyleAlignFlags& aAlignment,
   bool hasAutoMarginStart;
   bool hasAutoMarginEnd;
   const auto* styleMargin = aRI.mStyleMargin;
-  const auto positionProperty = aRI.mStyleDisplay->mPosition;
+  const auto anchorResolutionParams = AnchorPosResolutionParams::From(&aRI);
   if (aFlags & (AlignJustifyFlags::IgnoreAutoMargins |
                 AlignJustifyFlags::AligningMarginBox)) {
     // (Note: ReflowInput will have treated "auto" margins as 0, so we
     // don't need to do anything special to avoid expanding them.)
     hasAutoMarginStart = hasAutoMarginEnd = false;
   } else if (aAxis == LogicalAxis::Block) {
-    hasAutoMarginStart =
-        styleMargin->GetMargin(LogicalSide::BStart, wm, positionProperty)
-            ->IsAuto();
+    hasAutoMarginStart = styleMargin
+                             ->GetMargin(LogicalSide::BStart, wm,
+                                         anchorResolutionParams.mPosition)
+                             ->IsAuto();
     hasAutoMarginEnd =
-        styleMargin->GetMargin(LogicalSide::BEnd, wm, positionProperty)
+        styleMargin
+            ->GetMargin(LogicalSide::BEnd, wm, anchorResolutionParams.mPosition)
             ->IsAuto();
   } else { /* aAxis == LogicalAxis::Inline */
-    hasAutoMarginStart =
-        styleMargin->GetMargin(LogicalSide::IStart, wm, positionProperty)
-            ->IsAuto();
+    hasAutoMarginStart = styleMargin
+                             ->GetMargin(LogicalSide::IStart, wm,
+                                         anchorResolutionParams.mPosition)
+                             ->IsAuto();
     hasAutoMarginEnd =
-        styleMargin->GetMargin(LogicalSide::IEnd, wm, positionProperty)
+        styleMargin
+            ->GetMargin(LogicalSide::IEnd, wm, anchorResolutionParams.mPosition)
             ->IsAuto();
   }
 

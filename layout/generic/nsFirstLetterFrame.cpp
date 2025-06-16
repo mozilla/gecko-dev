@@ -171,16 +171,16 @@ bool nsFirstLetterFrame::UseTightBounds() const {
 
   const auto wm = GetWritingMode();
   const auto* styleMargin = StyleMargin();
-  const auto positionProperty = StyleDisplay()->mPosition;
-  const auto bStart =
-      styleMargin->GetMargin(LogicalSide::BStart, wm, positionProperty);
+  const auto anchorResolutionParams = AnchorPosResolutionParams::From(this);
+  const auto bStart = styleMargin->GetMargin(LogicalSide::BStart, wm,
+                                             anchorResolutionParams.mPosition);
   // Currently, we only check for margins with negative *length* values;
   // negative percentages seem unlikely to be used/useful in this context.
   if (bStart->ConvertsToLength() && bStart->ToLength() < 0) {
     return false;
   }
-  const auto bEnd =
-      styleMargin->GetMargin(LogicalSide::BEnd, wm, positionProperty);
+  const auto bEnd = styleMargin->GetMargin(LogicalSide::BEnd, wm,
+                                           anchorResolutionParams.mPosition);
   return !(bEnd->ConvertsToLength() && bEnd->ToLength() < 0);
 }
 

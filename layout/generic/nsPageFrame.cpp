@@ -124,10 +124,12 @@ nsReflowStatus nsPageFrame::ReflowPageContent(
   // that we will respect a margin of zero if specified, assuming this means
   // the document is intended to fit the paper size exactly, and the client is
   // taking full responsibility for what happens around the edges.
-  const auto positionProperty = kidReflowInput.mStyleDisplay->mPosition;
+  const auto anchorResolutionParams =
+      AnchorPosResolutionParams::From(&kidReflowInput);
   if (mPD->mPrintSettings->GetHonorPageRuleMargins()) {
     for (const auto side : mozilla::AllPhysicalSides()) {
-      if (!kidReflowInput.mStyleMargin->GetMargin(side, positionProperty)
+      if (!kidReflowInput.mStyleMargin
+               ->GetMargin(side, anchorResolutionParams.mPosition)
                ->IsAuto()) {
         // Computed margins are already in the coordinate space of the content,
         // do not scale.

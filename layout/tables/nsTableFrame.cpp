@@ -3642,18 +3642,18 @@ bool nsTableFrame::ColumnHasCellSpacingBefore(int32_t aColIndex) const {
   // Check if we have a <col> element with a non-zero definite inline size.
   // Note: percentages and calc(%) are intentionally not considered.
   if (const auto* col = fif->GetColFrame(aColIndex)) {
-    const auto positionProperty = col->StyleDisplay()->mPosition;
-    const auto iSize =
-        col->StylePosition()->ISize(GetWritingMode(), positionProperty);
+    const auto anchorResolutionParams = AnchorPosResolutionParams::From(col);
+    const auto iSize = col->StylePosition()->ISize(
+        GetWritingMode(), anchorResolutionParams.mPosition);
     if (iSize->ConvertsToLength() && iSize->ToLength() > 0) {
-      const auto maxISize =
-          col->StylePosition()->MaxISize(GetWritingMode(), positionProperty);
+      const auto maxISize = col->StylePosition()->MaxISize(
+          GetWritingMode(), anchorResolutionParams.mPosition);
       if (!maxISize->ConvertsToLength() || maxISize->ToLength() > 0) {
         return true;
       }
     }
-    const auto minISize =
-        col->StylePosition()->MinISize(GetWritingMode(), positionProperty);
+    const auto minISize = col->StylePosition()->MinISize(
+        GetWritingMode(), anchorResolutionParams.mPosition);
     if (minISize->ConvertsToLength() && minISize->ToLength() > 0) {
       return true;
     }

@@ -12619,20 +12619,24 @@ PresShell::WindowSizeConstraints PresShell::GetWindowSizeConstraints() {
     return {minSize, maxSize};
   }
   const auto* pos = rootFrame->StylePosition();
-  const auto positionProperty = rootFrame->StyleDisplay()->mPosition;
-  if (const auto styleMinWidth = pos->GetMinWidth(positionProperty);
+  const auto anchorResolutionParams =
+      AnchorPosResolutionParams::From(rootFrame);
+  if (const auto styleMinWidth =
+          pos->GetMinWidth(anchorResolutionParams.mPosition);
       styleMinWidth->ConvertsToLength()) {
     minSize.width = styleMinWidth->ToLength();
   }
-  if (const auto styleMinHeight = pos->GetMinHeight(positionProperty);
+  if (const auto styleMinHeight =
+          pos->GetMinHeight(anchorResolutionParams.mPosition);
       styleMinHeight->ConvertsToLength()) {
     minSize.height = styleMinHeight->ToLength();
   }
-  if (const auto maxWidth = pos->GetMaxWidth(positionProperty);
+  if (const auto maxWidth = pos->GetMaxWidth(anchorResolutionParams.mPosition);
       maxWidth->ConvertsToLength()) {
     maxSize.width = maxWidth->ToLength();
   }
-  if (const auto maxHeight = pos->GetMaxHeight(positionProperty);
+  if (const auto maxHeight =
+          pos->GetMaxHeight(anchorResolutionParams.mPosition);
       maxHeight->ConvertsToLength()) {
     maxSize.height = maxHeight->ToLength();
   }

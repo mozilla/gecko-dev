@@ -1283,10 +1283,10 @@ nsPoint nsSubDocumentFrame::GetExtraOffset() const {
 
 void nsSubDocumentFrame::SubdocumentIntrinsicSizeOrRatioChanged() {
   const nsStylePosition* pos = StylePosition();
-  const auto positionProperty = StyleDisplay()->mPosition;
+  const auto anchorResolutionParams = AnchorPosResolutionParams::From(this);
   bool dependsOnIntrinsics =
-      !pos->GetWidth(positionProperty)->ConvertsToLength() ||
-      !pos->GetHeight(positionProperty)->ConvertsToLength();
+      !pos->GetWidth(anchorResolutionParams.mPosition)->ConvertsToLength() ||
+      !pos->GetHeight(anchorResolutionParams.mPosition)->ConvertsToLength();
 
   if (dependsOnIntrinsics || pos->mObjectFit != StyleObjectFit::Fill) {
     auto dirtyHint = dependsOnIntrinsics

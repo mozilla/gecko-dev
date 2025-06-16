@@ -1948,8 +1948,9 @@ nsRect nsTreeBodyFrame::GetImageSize(int32_t aRowIndex, nsTreeColumn* aCol,
       GetImage(aRowIndex, aCol, aUseContext, aComputedStyle);
 
   const nsStylePosition* myPosition = aComputedStyle->StylePosition();
-  const auto positionProperty = aComputedStyle->StyleDisplay()->mPosition;
-  const auto width = myPosition->GetWidth(positionProperty);
+  const AnchorPosResolutionParams anchorResolutionParams{
+      this, aComputedStyle->StyleDisplay()->mPosition};
+  const auto width = myPosition->GetWidth(anchorResolutionParams.mPosition);
   if (width->ConvertsToLength()) {
     int32_t val = width->ToLength();
     r.width += val;
@@ -1957,7 +1958,7 @@ nsRect nsTreeBodyFrame::GetImageSize(int32_t aRowIndex, nsTreeColumn* aCol,
     needWidth = true;
   }
 
-  const auto height = myPosition->GetHeight(positionProperty);
+  const auto height = myPosition->GetHeight(anchorResolutionParams.mPosition);
   if (height->ConvertsToLength()) {
     int32_t val = height->ToLength();
     r.height += val;
@@ -2009,8 +2010,9 @@ nsSize nsTreeBodyFrame::GetImageDestSize(ComputedStyle* aComputedStyle,
   // Get the style position to see if the CSS has specified the
   // destination width/height.
   const nsStylePosition* myPosition = aComputedStyle->StylePosition();
-  const auto positionProperty = aComputedStyle->StyleDisplay()->mPosition;
-  const auto width = myPosition->GetWidth(positionProperty);
+  const AnchorPosResolutionParams anchorResolutionParams{
+      this, aComputedStyle->StyleDisplay()->mPosition};
+  const auto width = myPosition->GetWidth(anchorResolutionParams.mPosition);
   if (width->ConvertsToLength()) {
     // CSS has specified the destination width.
     size.width = width->ToLength();
@@ -2019,7 +2021,7 @@ nsSize nsTreeBodyFrame::GetImageDestSize(ComputedStyle* aComputedStyle,
     needWidth = true;
   }
 
-  const auto height = myPosition->GetHeight(positionProperty);
+  const auto height = myPosition->GetHeight(anchorResolutionParams.mPosition);
   if (height->ConvertsToLength()) {
     // CSS has specified the destination height.
     size.height = height->ToLength();
@@ -2099,16 +2101,19 @@ int32_t nsTreeBodyFrame::GetRowHeight() {
       GetPseudoComputedStyle(nsCSSAnonBoxes::mozTreeRow());
   if (rowContext) {
     const nsStylePosition* myPosition = rowContext->StylePosition();
-    const auto positionProperty = rowContext->StyleDisplay()->mPosition;
+    const AnchorPosResolutionParams anchorResolutionParams{
+        this, rowContext->StyleDisplay()->mPosition};
 
     nscoord minHeight = 0;
-    const auto styleMinHeight = myPosition->GetMinHeight(positionProperty);
+    const auto styleMinHeight =
+        myPosition->GetMinHeight(anchorResolutionParams.mPosition);
     if (styleMinHeight->ConvertsToLength()) {
       minHeight = styleMinHeight->ToLength();
     }
 
     nscoord height = 0;
-    const auto styleHeight = myPosition->GetHeight(positionProperty);
+    const auto styleHeight =
+        myPosition->GetHeight(anchorResolutionParams.mPosition);
     if (styleHeight->ConvertsToLength()) {
       height = styleHeight->ToLength();
     }
@@ -2144,8 +2149,9 @@ int32_t nsTreeBodyFrame::GetIndentation() {
       GetPseudoComputedStyle(nsCSSAnonBoxes::mozTreeIndentation());
   if (indentContext) {
     const nsStylePosition* myPosition = indentContext->StylePosition();
-    const auto positionProperty = indentContext->StyleDisplay()->mPosition;
-    const auto width = myPosition->GetWidth(positionProperty);
+    const AnchorPosResolutionParams anchorResolutionParams{
+        this, indentContext->StyleDisplay()->mPosition};
+    const auto width = myPosition->GetWidth(anchorResolutionParams.mPosition);
     if (width->ConvertsToLength()) {
       return width->ToLength();
     }
@@ -2772,11 +2778,13 @@ ImgDrawResult nsTreeBodyFrame::PaintSeparator(int32_t aRowIndex,
       GetPseudoComputedStyle(nsCSSAnonBoxes::mozTreeSeparator());
 
   const nsStylePosition* stylePosition = separatorContext->StylePosition();
-  const auto positionProperty = separatorContext->StyleDisplay()->mPosition;
+  const AnchorPosResolutionParams anchorResolutionParams{
+      this, separatorContext->StyleDisplay()->mPosition};
 
   // Obtain the height for the separator or use the default value.
   nscoord height;
-  const auto styleHeight = stylePosition->GetHeight(positionProperty);
+  const auto styleHeight =
+      stylePosition->GetHeight(anchorResolutionParams.mPosition);
   if (styleHeight->ConvertsToLength()) {
     height = styleHeight->ToLength();
   } else {
@@ -3512,8 +3520,10 @@ ImgDrawResult nsTreeBodyFrame::PaintDropFeedback(
 
     // Obtain the width for the drop feedback or use default value.
     nscoord width;
-    const auto positionProperty = feedbackContext->StyleDisplay()->mPosition;
-    const auto styleWidth = stylePosition->GetWidth(positionProperty);
+    const AnchorPosResolutionParams anchorResolutionParams{
+        this, feedbackContext->StyleDisplay()->mPosition};
+    const auto styleWidth =
+        stylePosition->GetWidth(anchorResolutionParams.mPosition);
     if (styleWidth->ConvertsToLength()) {
       width = styleWidth->ToLength();
     } else {
@@ -3523,7 +3533,8 @@ ImgDrawResult nsTreeBodyFrame::PaintDropFeedback(
 
     // Obtain the height for the drop feedback or use default value.
     nscoord height;
-    const auto styleHeight = stylePosition->GetHeight(positionProperty);
+    const auto styleHeight =
+        stylePosition->GetHeight(anchorResolutionParams.mPosition);
     if (styleHeight->ConvertsToLength()) {
       height = styleHeight->ToLength();
     } else {

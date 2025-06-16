@@ -841,8 +841,9 @@ static bool RecomputePosition(nsIFrame* aFrame) {
     if (aFrame->HasIntrinsicKeywordForBSize()) {
       WritingMode wm = aFrame->GetWritingMode();
       const auto* styleMargin = aFrame->StyleMargin();
-      const auto positionProperty = aFrame->StyleDisplay()->mPosition;
-      if (styleMargin->HasBlockAxisAuto(wm, positionProperty)) {
+      const auto anchorResolutionParams =
+          AnchorPosResolutionParams::From(aFrame);
+      if (styleMargin->HasBlockAxisAuto(wm, anchorResolutionParams.mPosition)) {
         return false;
       }
     }
