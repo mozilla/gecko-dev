@@ -230,6 +230,7 @@ void js::gc::GCRuntime::traceRuntimeForMajorGC(JSTracer* trc,
   // compacting GC.
   if (atomsZone()->isGCMarking()) {
     traceRuntimeAtoms(trc);
+    atomMarking.markAtomsUsedByUncollectedZones(this);
   }
 
   {
