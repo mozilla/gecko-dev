@@ -1320,7 +1320,10 @@ ContentAnalysis::UrlFilterResult ContentAnalysis::FilterByUrlLists(
 
 NS_IMPL_ISUPPORTS(ContentAnalysisRequest, nsIContentAnalysisRequest);
 NS_IMPL_ISUPPORTS(ContentAnalysisResponse, nsIContentAnalysisResponse,
-                  nsIContentAnalysisResult);
+                  nsIContentAnalysisResult, nsIClassInfo);
+NS_IMPL_CI_INTERFACE_GETTER(ContentAnalysisResponse, nsIContentAnalysisResponse,
+                            nsIContentAnalysisResult);
+NS_IMPL_THREADSAFE_CI(ContentAnalysisResponse);
 NS_IMPL_ISUPPORTS(ContentAnalysisActionResult, nsIContentAnalysisResult);
 NS_IMPL_ISUPPORTS(ContentAnalysisNoResult, nsIContentAnalysisResult);
 
@@ -2224,7 +2227,8 @@ void ContentAnalysis::NotifyResponseObservers(
 
   nsCOMPtr<nsIObserverService> obsServ =
       mozilla::services::GetObserverService();
-  obsServ->NotifyObservers(aResponse, "dlp-response", nullptr);
+  obsServ->NotifyObservers(static_cast<nsIContentAnalysisResponse*>(aResponse),
+                           "dlp-response", nullptr);
 }
 
 void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
@@ -3479,7 +3483,8 @@ ContentAnalysis::ShowBlockedRequestDialog(nsIContentAnalysisRequest* aRequest) {
       nsIContentAnalysisResponse::Action::eBlock, std::move(token),
       std::move(userActionId));
   response->SetOwner(this);
-  obsServ->NotifyObservers(response, "dlp-response", nullptr);
+  obsServ->NotifyObservers(static_cast<nsIContentAnalysisResponse*>(response),
+                           "dlp-response", nullptr);
   return NS_OK;
 }
 

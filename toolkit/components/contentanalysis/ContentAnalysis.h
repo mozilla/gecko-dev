@@ -510,9 +510,11 @@ class ContentAnalysis final : public nsIContentAnalysis,
   friend class ::ContentAnalysisTest;
 };
 
-class ContentAnalysisResponse final : public nsIContentAnalysisResponse {
+class ContentAnalysisResponse final : public nsIContentAnalysisResponse,
+                                      public nsIClassInfo {
  public:
   NS_DECL_ISUPPORTS
+  NS_DECL_NSICLASSINFO
   NS_DECL_NSICONTENTANALYSISRESULT
   NS_DECL_NSICONTENTANALYSISRESPONSE
 
