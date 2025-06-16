@@ -19,6 +19,7 @@ const lazy = {};
 let internalContentAnalysisService = undefined;
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   PanelMultiView: "resource:///modules/PanelMultiView.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
@@ -94,7 +95,7 @@ export const ContentAnalysis = {
 
   /**
    * @typedef {object} RequestInfo
-   * @property {CanonicalBrowsingContext} browsingContext - browsing context where the request was sent from
+   * @property {CanonicalBrowsingContext?} browsingContext - browsing context where the request was sent from
    * @property {ResourceNameOrOperationType} resourceNameOrOperationType - name of the operation
    */
 
@@ -294,7 +295,11 @@ export const ContentAnalysis = {
             return;
           }
           let browsingContext = request.windowGlobalParent?.browsingContext;
-          if (!browsingContext) {
+          if (
+            !browsingContext &&
+            request.operationTypeForDisplay !==
+              Ci.nsIContentAnalysisRequest.eDownload
+          ) {
             throw new Error(
               "Got dlp-request-made message but couldn't find a browsingContext!"
             );
@@ -338,6 +343,14 @@ export const ContentAnalysis = {
         }
         this.requestTokenToRequestInfo.delete(response.requestToken);
         this._removeSlowCAMessage(response.userActionId, response.requestToken);
+        if (
+          windowAndResourceNameOrOperationType.resourceNameOrOperationType
+            ?.operationType === Ci.nsIContentAnalysisRequest.eDownload
+        ) {
+          // Don't show warn/block dialogs for downloads; they're shown inside
+          // the downloads panel.
+          return;
+        }
         const responseResult =
           response?.action ?? Ci.nsIContentAnalysisResponse.eUnspecified;
         // Don't show dialog if this is a cached response
@@ -426,7 +439,8 @@ export const ContentAnalysis = {
    * _SHOW_DIALOGS and _SHOW_NOTIFICATIONS.
    *
    * @param {string} aMessage - Message to show
-   * @param {CanonicalBrowsingContext} aBrowsingContext - BrowsingContext to show the dialog in.
+   * @param {CanonicalBrowsingContext?} aBrowsingContext - BrowsingContext to show the dialog in. If
+   *                            null, the top browsing context will be used for native notifications.
    * @param {number} aTimeout - timeout for closing the native notification. 0 indicates it is
    *                            not automatically closed.
    * @returns {NotificationInfo?} - information about the native notification, if it has been shown.
@@ -442,9 +456,19 @@ export const ContentAnalysis = {
     }
 
     if (this._SHOW_NOTIFICATIONS) {
+      // Downloading as a "save as" operation does not provide a browsing context,
+      // so use the the top window in that case.
       let topWindow =
-        aBrowsingContext.topChromeWindow ??
-        aBrowsingContext.embedderWindowGlobal.browsingContext.topChromeWindow;
+        aBrowsingContext?.topChromeWindow ??
+        aBrowsingContext?.embedderWindowGlobal.browsingContext
+          .topChromeWindow ??
+        lazy.BrowserWindowTracker.getTopWindow();
+      if (!topWindow) {
+        console.error(
+          "Unable to get window to show Content Analysis notification for."
+        );
+        return null;
+      }
       const notification = new topWindow.Notification(
         this.l10n.formatValueSync("contentanalysis-notification-title"),
         { body: aMessage, silent: lazy.silentNotifications }
@@ -556,7 +580,7 @@ export const ContentAnalysis = {
    *
    * @param {nsIContentAnalysisRequest} aRequest
    * @param {ResourceNameOrOperationType} aResourceNameOrOperationType
-   * @param {CanonicalBrowsingContext} aBrowsingContext
+   * @param {CanonicalBrowsingContext?} aBrowsingContext
    */
   _queueSlowCAMessage(
     aRequest,
@@ -643,7 +667,7 @@ export const ContentAnalysis = {
    * @param {nsIContentAnalysisRequest.AnalysisType} aOperation The operation
    * @param {nsIContentAnalysisRequest} aRequest The request that is taking a long time
    * @param {string} aBodyMessage Message to show in the body of the alert
-   * @param {CanonicalBrowsingContext} aBrowsingContext BrowsingContext to show the alert in
+   * @param {CanonicalBrowsingContext?} aBrowsingContext BrowsingContext to show the alert in
    */
   _showSlowCAMessage(aOperation, aRequest, aBodyMessage, aBrowsingContext) {
     if (!this._shouldShowBlockingNotification(aOperation)) {
