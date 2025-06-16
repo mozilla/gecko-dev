@@ -3822,6 +3822,23 @@
       }
     ]
   },
+  "1968198": {
+    "label": "www.metacritic.com",
+    "bugs": {
+      "1968198": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://www.metacritic.com/browse/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1968198-metacritic.com-fix-release-year-filter.css"]
+        }
+      }
+    ]
+  },
   "1969165": {
     "label": "appointments.mpi.mb.ca",
     "bugs": {

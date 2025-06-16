@@ -1,0 +1,36 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * metacritic.com - fix release year slider
+ * Bug #1968198 - https://bugzilla.mozilla.org/show_bug.cgi?id=1968198
+ * WebCompat issue #136582 - https://webcompat.com/issues/136582
+ */
+
+.range-slider input[type="range"],
+.range-slider input[type="range"]::-moz-range-track,
+.range-slider input[type="range"]::-moz-range-progress {
+  pointer-events: none;
+}
+.range-slider input[type="range"]::-moz-range-thumb {
+  pointer-events: all;
+}
+.range-slider input[type="range"]::-moz-range-track {
+  appearance: none;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  cursor: pointer;
+  height: 6px;
+  width: 100%;
+}
+.range-slider input[type="range"][name="releaseYearMin"]::-moz-range-track {
+  background-image: linear-gradient(
+    90deg,
+    #e6e6e6 var(--webkitProgressPercentLeft),
+    #404040 var(--webkitProgressPercentLeft),
+    #404040 var(--webkitProgressPercentRight),
+    #e6e6e6 var(--webkitProgressPercentRight)
+  );
+}
