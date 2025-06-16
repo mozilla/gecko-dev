@@ -26,6 +26,9 @@ const fxaDevices = [
 ];
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
   await promiseSyncReady();
   await Services.search.init();
   // gSync.init() is called in a requestIdleCallback. Force its initialization.
@@ -40,10 +43,7 @@ add_setup(async function () {
   await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:mozilla");
   // Bug 1968055 - Temporarily enabled pocket pref while we remove the pref entirely
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["test.wait300msAfterTabSwitch", true],
-      ["extensions.pocket.enabled", true],
-    ],
+    set: [["extensions.pocket.enabled", true]],
   });
 });
 
