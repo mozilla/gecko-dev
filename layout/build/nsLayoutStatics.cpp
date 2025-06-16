@@ -10,6 +10,7 @@
 #include "nscore.h"
 
 #include "mozilla/intl/AppDateTimeFormat.h"
+#include "mozilla/intl/EncodingToLang.h"
 #include "mozilla/dom/ServiceWorkerRegistrar.h"
 #include "nsAttrValue.h"
 #include "nsComputedDOMStyle.h"
@@ -299,6 +300,8 @@ nsresult nsLayoutStatics::Initialize() {
   }
 #endif
 
+  mozilla::intl::EncodingToLang::Initialize();
+
   return NS_OK;
 }
 
@@ -401,4 +404,6 @@ void nsLayoutStatics::Shutdown() {
   RestoreTabContentObserver::Shutdown();
 
   mozilla::intl::LineBreakCache::Shutdown();
+
+  mozilla::intl::EncodingToLang::Shutdown();
 }

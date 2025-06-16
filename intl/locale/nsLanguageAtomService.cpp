@@ -20,10 +20,6 @@
 using namespace mozilla;
 using mozilla::intl::OSPreferences;
 
-static constexpr nsUConvProp encodingsGroups[] = {
-#include "encodingsgroups.properties.h"
-};
-
 // List of mozilla internal x-* tags that map to themselves (see bug 256257)
 static constexpr nsStaticAtom* kLangGroups[] = {
     // This list must be sorted!
@@ -108,18 +104,6 @@ nsStaticAtom* nsLanguageAtomService::LookupLanguage(
 
   RefPtr<nsAtom> lang = NS_Atomize(lowered);
   return GetLanguageGroup(lang);
-}
-
-already_AddRefed<nsAtom> nsLanguageAtomService::LookupCharSet(
-    NotNull<const Encoding*> aEncoding) {
-  nsAutoCString charset;
-  aEncoding->Name(charset);
-  nsAutoCString group;
-  if (NS_FAILED(nsUConvPropertySearch::SearchPropertyValue(
-          encodingsGroups, std::size(encodingsGroups), charset, group))) {
-    return RefPtr<nsAtom>(nsGkAtoms::Unicode).forget();
-  }
-  return NS_Atomize(group);
 }
 
 nsAtom* nsLanguageAtomService::GetLocaleLanguage() {

@@ -35,6 +35,7 @@ EXPORTS += [
 
 EXPORTS.mozilla.intl += [
     "AppDateTimeFormat.h",
+    "EncodingToLang.h",
     "LocaleService.h",
     "MozLocaleBindings.h",
     "OSPreferences.h",
@@ -43,6 +44,7 @@ EXPORTS.mozilla.intl += [
 
 UNIFIED_SOURCES += [
     "AppDateTimeFormat.cpp",
+    "EncodingToLang.cpp",
     "LocaleService.cpp",
     "nsLanguageAtomService.cpp",
     "nsUConvPropertySearch.cpp",
@@ -67,13 +69,6 @@ LOCAL_INCLUDES += [
 RESOURCE_FILES += [
     "language.properties",
 ]
-
-prefixes = ("encodingsgroups",)
-
-for prefix in prefixes:
-    input_file = prefix + ".properties"
-    header = prefix + ".properties.h"
-    GeneratedFile(header, script="props2arrays.py", inputs=[input_file])
 
 if CONFIG["ENABLE_TESTS"]:
     DIRS += ["tests/gtest"]

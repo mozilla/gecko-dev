@@ -33,7 +33,6 @@ class nsLanguageAtomService final {
   static void Shutdown();
 
   nsStaticAtom* LookupLanguage(const nsACString& aLanguage);
-  already_AddRefed<nsAtom> LookupCharSet(NotNull<const Encoding*> aCharSet);
   nsAtom* GetLocaleLanguage();
 
   // Returns the language group that the specified language is a part of,

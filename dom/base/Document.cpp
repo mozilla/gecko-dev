@@ -277,6 +277,7 @@
 #include "mozilla/gfx/ScaleFactor.h"
 #include "mozilla/glean/DomMetrics.h"
 #include "mozilla/glean/DomUseCounterMetrics.h"
+#include "mozilla/intl/EncodingToLang.h"
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/ipc/IdleSchedulerChild.h"
 #include "mozilla/ipc/MessageChannel.h"
@@ -418,7 +419,6 @@
 #include "nsIXULRuntime.h"
 #include "nsImageLoadingContent.h"
 #include "nsImportModule.h"
-#include "nsLanguageAtomService.h"
 #include "nsLayoutUtils.h"
 #include "nsMimeTypes.h"
 #include "nsNetCID.h"
@@ -1501,6 +1501,7 @@ Document::Document(const char* aContentType)
       mInteractiveWidgetMode(
           InteractiveWidgetUtils::DefaultInteractiveWidgetMode()),
       mHeaderData(nullptr),
+      mLanguageFromCharset(nullptr),
       mServoRestyleRootDirtyBits(0),
       mThrowOnDynamicMarkupInsertionCounter(0),
       mIgnoreOpensDuringUnloadCounter(0),
@@ -19777,7 +19778,7 @@ nsAtom* Document::GetLanguageForStyle() const {
   if (nsAtom* lang = GetContentLanguageAsAtomForStyle()) {
     return lang;
   }
-  return mLanguageFromCharset.get();
+  return mLanguageFromCharset;
 }
 
 void Document::GetContentLanguageForBindings(DOMString& aString) const {
@@ -19786,7 +19787,7 @@ void Document::GetContentLanguageForBindings(DOMString& aString) const {
 
 const LangGroupFontPrefs* Document::GetFontPrefsForLang(
     nsAtom* aLanguage, bool* aNeedsToCache) const {
-  nsAtom* lang = aLanguage ? aLanguage : mLanguageFromCharset.get();
+  nsAtom* lang = aLanguage ? aLanguage : mLanguageFromCharset;
   return StaticPresData::Get()->GetFontPrefsForLang(lang, aNeedsToCache);
 }
 
@@ -19794,7 +19795,7 @@ void Document::DoCacheAllKnownLangPrefs() {
   MOZ_ASSERT(mMayNeedFontPrefsUpdate);
   RefPtr<nsAtom> lang = GetLanguageForStyle();
   StaticPresData* data = StaticPresData::Get();
-  data->GetFontPrefsForLang(lang ? lang.get() : mLanguageFromCharset.get());
+  data->GetFontPrefsForLang(lang ? lang.get() : mLanguageFromCharset);
   data->GetFontPrefsForLang(nsGkAtoms::x_math);
   // https://bugzilla.mozilla.org/show_bug.cgi?id=1362599#c12
   data->GetFontPrefsForLang(nsGkAtoms::Unicode);
@@ -19805,29 +19806,14 @@ void Document::DoCacheAllKnownLangPrefs() {
 }
 
 void Document::RecomputeLanguageFromCharset() {
-  RefPtr<nsAtom> language;
-  // Optimize the default character sets.
-  if (mCharacterSet == WINDOWS_1252_ENCODING) {
-    language = nsGkAtoms::x_western;
-  } else {
-    nsLanguageAtomService* service = nsLanguageAtomService::GetService();
-    if (mCharacterSet == UTF_8_ENCODING) {
-      language = nsGkAtoms::Unicode;
-    } else {
-      language = service->LookupCharSet(mCharacterSet);
-    }
-
-    if (language == nsGkAtoms::Unicode) {
-      language = service->GetLocaleLanguage();
-    }
-  }
+  nsAtom* language = mozilla::intl::EncodingToLang::Lookup(mCharacterSet);
 
   if (language == mLanguageFromCharset) {
     return;
   }
 
   mMayNeedFontPrefsUpdate = true;
-  mLanguageFromCharset = std::move(language);
+  mLanguageFromCharset = language;
 }
 
 nsICookieJarSettings* Document::CookieJarSettings() {
