@@ -8,6 +8,7 @@ EXTRA_JS_MODULES.taskbartabs += [
     "TaskbarTabCmd.sys.mjs",
     "TaskbarTabs.sys.mjs",
     "TaskbarTabUI.sys.mjs",
+    "TaskbarTabsPin.sys.mjs",
     "TaskbarTabsRegistry.sys.mjs",
     "TaskbarTabsUtils.sys.mjs",
     "TaskbarTabsWindowManager.sys.mjs",
