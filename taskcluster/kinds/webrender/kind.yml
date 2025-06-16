@@ -225,7 +225,6 @@ tasks:
                 NODE_OPTIONS: '--max_old_space_size=4096'
         fetches:
             toolchain:
-                - win64-clang
                 - win64-rust
                 - vs
                 - wrench-deps

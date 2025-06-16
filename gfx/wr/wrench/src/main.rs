@@ -676,14 +676,10 @@ pub fn main() {
             glutin::GlRequest::Specific(glutin::Api::OpenGl, opengl_version)
         }
         Some("default") | None => {
-            if args.is_present("angle") || cfg!(target_os = "android") {
-                // GlThenGles first attempts to bind OpenGL using eglBindAPI(),
-                // falling back to GLES if that fails. Angle, including Android
-                // devices who use Angle as their GL driver, successfully allow
-                // binding the OpenGL API but will subsequently fail to return
-                // any available configs, meaning context creation will always
-                // fail. To avoid this by deault just request Gles on Angle and
-                // Android. See bug 1928322 and bug 1971545.
+            if cfg!(target_os = "android") {
+                // Some Android devices successfully allow binding the OpenGL API but then fail to
+                // return any available configs, meaning context creation always fails. So just
+                // request GLES by default on Android.
                 glutin::GlRequest::Specific(glutin::Api::OpenGlEs, opengles_version)
             } else {
                 glutin::GlRequest::GlThenGles {
