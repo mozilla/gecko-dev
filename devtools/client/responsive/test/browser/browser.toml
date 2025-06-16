@@ -80,6 +80,8 @@ tags = "devtools webextensions"
 
 ["browser_eyedropper.js"]
 
+["browser_eyedropper_update.js"]
+
 ["browser_in_rdm_pane.js"]
 
 ["browser_many_toggles.js"]
