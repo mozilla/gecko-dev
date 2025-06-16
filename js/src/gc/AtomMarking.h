@@ -55,9 +55,14 @@ class AtomMarkingRuntime {
   // atoms zone mark bits.
   void refineZoneBitmapsForCollectedZones(GCRuntime* gc);
 
-  // Set any bits in the chunk mark bitmaps for atoms which are marked in any
-  // uncollected zone in the runtime.
-  void markAtomsUsedByUncollectedZones(GCRuntime* gc);
+  // Get a bitmap of all atoms marked in zones that are not being collected by
+  // the current GC. On failure, mark the atoms instead.
+  UniquePtr<DenseBitmap> getOrMarkAtomsUsedByUncollectedZones(GCRuntime* gc);
+
+  // Set any bits in the chunk mark bitmaps for atoms which are marked in
+  // uncollected zones, using the bitmap returned from the previous method.
+  void markAtomsUsedByUncollectedZones(GCRuntime* gc,
+                                       UniquePtr<DenseBitmap> markedUnion);
 
  private:
   // Fill |bitmap| with an atom marking bitmap based on the things that are

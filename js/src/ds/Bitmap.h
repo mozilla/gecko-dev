@@ -51,6 +51,10 @@ class DenseBitmap {
   uintptr_t word(size_t i) const { return data[i]; }
   uintptr_t& word(size_t i) { return data[i]; }
 
+  bool getBit(size_t bit) const {
+    return word(bit / JS_BITS_PER_WORD) & (1 << (bit % JS_BITS_PER_WORD));
+  }
+
   template <typename T>
   typename std::enable_if_t<std::is_convertible_v<T, uintptr_t>, void>
   copyBitsFrom(size_t wordStart, size_t numWords, T* source) {
@@ -63,6 +67,13 @@ class DenseBitmap {
   template <typename T>
   typename std::enable_if_t<std::is_convertible_v<T, uintptr_t>, void>
   bitwiseOrRangeInto(size_t wordStart, size_t numWords, T* target) const {
+    if (wordStart >= data.length()) {
+      return;
+    }
+
+    // Does not support copying partial blocks.
+    MOZ_ASSERT(wordStart + numWords <= data.length());
+
     for (size_t i = 0; i < numWords; i++) {
       target[i] |= data[wordStart + i];
     }

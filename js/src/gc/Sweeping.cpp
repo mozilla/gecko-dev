@@ -1363,6 +1363,12 @@ class ImmediateSweepWeakCacheTask : public GCParallelTask {
 void GCRuntime::updateAtomsBitmap() {
   atomMarking.refineZoneBitmapsForCollectedZones(this);
 
+  // Mark atoms used by uncollected zones after refining the atoms bitmaps.
+  auto& atomsToMark = atomsUsedByUncollectedZones.ref();
+  if (atomsToMark) {
+    atomMarking.markAtomsUsedByUncollectedZones(this, std::move(atomsToMark));
+  }
+
   // For convenience sweep these tables non-incrementally as part of bitmap
   // sweeping; they are likely to be much smaller than the main atoms table.
   SweepingTracer trc(rt);

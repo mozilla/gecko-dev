@@ -4,6 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#ifndef gc_AtomMarking_inl_h
+#define gc_AtomMarking_inl_h
+
 #include "gc/AtomMarking.h"
 
 #include "mozilla/Assertions.h"
@@ -75,6 +78,21 @@ MOZ_ALWAYS_INLINE bool AtomMarkingRuntime::inlinedMarkAtomInternal(
   return true;
 }
 
+inline bool GCRuntime::isSymbolReferencedByUncollectedZone(JS::Symbol* sym) {
+  MOZ_ASSERT(sym->zone()->isAtomsZone());
+
+  if (!atomsUsedByUncollectedZones.ref()) {
+    return false;
+  }
+
+  MOZ_ASSERT(atomsZone()->wasGCStarted());
+
+  size_t bit = GetAtomBit(sym);
+  MOZ_ASSERT(bit / JS_BITS_PER_WORD < atomMarking.allocatedWords);
+
+  return atomsUsedByUncollectedZones.ref()->getBit(bit);
+}
+
 void AtomMarkingRuntime::markChildren(JSContext* cx, JSAtom*) {}
 
 void AtomMarkingRuntime::markChildren(JSContext* cx, JS::Symbol* symbol) {
@@ -97,3 +115,5 @@ MOZ_ALWAYS_INLINE bool AtomMarkingRuntime::inlinedMarkAtomFallible(
 
 }  // namespace gc
 }  // namespace js
+
+#endif  // gc_AtomMarking_inl_h
