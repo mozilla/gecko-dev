@@ -23,10 +23,20 @@
 #include "nsUserCharacteristics.h"
 
 namespace mozilla {
+// MouseLocation logs the mouse location and when/where enqueued synthesized
+// mouse move is flushed.  If you don't need all mouse location recording at
+// eMouseMove, you can use MouseLocation:3,sync.  Then, it's logged once per
+// 50 times.  Otherwise, if you need to log all eMouseMove locations, you can
+// use MouseLocation:5,sync.
+// Note that this is actually available only on debug builds for saving the
+// runtime cost on opt builds.
+LazyLogModule gLogMouseLocation("MouseLocation");
 
 using namespace dom;
 
 Maybe<int32_t> PointerEventHandler::sSpoofedPointerId;
+StaticAutoPtr<PointerInfo> PointerEventHandler::sLastMouseInfo;
+StaticRefPtr<nsIWeakReference> PointerEventHandler::sLastMousePresShell;
 
 // Keeps a map between pointerId and element that currently capturing pointer
 // with such pointerId. If pointerId is absent in this map then nobody is
@@ -73,6 +83,8 @@ void PointerEventHandler::ReleaseStatics() {
     delete sPointerCaptureRemoteTargetTable;
     sPointerCaptureRemoteTargetTable = nullptr;
   }
+  sLastMouseInfo = nullptr;
+  sLastMousePresShell = nullptr;
 }
 
 /* static */
@@ -149,6 +161,77 @@ void PointerEventHandler::RecordPointerState(
   else {
     pointerInfo->ClearLastState();
   }
+}
+
+/* static */
+void PointerEventHandler::RecordMouseState(
+    PresShell& aRootPresShell, const WidgetMouseEvent& aMouseEvent) {
+  MOZ_ASSERT(aRootPresShell.IsRoot());
+  if (!sLastMouseInfo) {
+    sLastMouseInfo = new PointerInfo();
+  }
+  sLastMousePresShell = do_GetWeakReference(&aRootPresShell);
+  sLastMouseInfo->mLastRefPointInRootDoc =
+      aRootPresShell.GetEventLocation(aMouseEvent);
+  sLastMouseInfo->mLastTargetGuid =
+      layers::InputAPZContext::GetTargetLayerGuid();
+  // FIXME: Don't trust the synthesized for tests flag of drag events.
+  if (aMouseEvent.mClass != eDragEventClass) {
+    sLastMouseInfo->mInputSource = aMouseEvent.mInputSource;
+    sLastMouseInfo->mIsSynthesizedForTests =
+        aMouseEvent.mFlags.mIsSynthesizedForTests;
+  }
+#ifdef DEBUG
+  if (MOZ_LOG_TEST(gLogMouseLocation, LogLevel::Info)) {
+    static uint32_t sFrequentMessageCount = 0;
+    const bool isFrequentMessage =
+        aMouseEvent.mMessage == eMouseMove || aMouseEvent.mMessage == eDragOver;
+    if (!isFrequentMessage ||
+        MOZ_LOG_TEST(gLogMouseLocation, LogLevel::Verbose) ||
+        !(sFrequentMessageCount % 50)) {
+      MOZ_LOG(gLogMouseLocation,
+              isFrequentMessage ? LogLevel::Debug : LogLevel::Info,
+              ("[ps=%p]got %s for %p at {%d, %d}\n", &aRootPresShell,
+               ToChar(aMouseEvent.mMessage), aMouseEvent.mWidget.get(),
+               sLastMouseInfo->mLastRefPointInRootDoc.x,
+               sLastMouseInfo->mLastRefPointInRootDoc.y));
+    }
+    if (isFrequentMessage) {
+      sFrequentMessageCount++;
+    } else {
+      // Let's log the next eMouseMove or eDragOver after the other
+      // messages.
+      sFrequentMessageCount = 0;
+    }
+  }
+#endif
+}
+
+/* static */
+void PointerEventHandler::ClearMouseState(PresShell& aRootPresShell,
+                                          const WidgetMouseEvent& aMouseEvent) {
+  MOZ_ASSERT(aRootPresShell.IsRoot());
+  const RefPtr<PresShell> lastMousePresShell =
+      do_QueryReferent(sLastMousePresShell);
+  if (lastMousePresShell != &aRootPresShell) {
+    return;
+  }
+  sLastMouseInfo->ClearLastState();
+  sLastMouseInfo->mLastTargetGuid =
+      layers::InputAPZContext::GetTargetLayerGuid();
+  sLastMouseInfo->mInputSource = MouseEvent_Binding::MOZ_SOURCE_UNKNOWN;
+  sLastMouseInfo->mIsSynthesizedForTests =
+      aMouseEvent.mFlags.mIsSynthesizedForTests;
+#ifdef DEBUG
+  MOZ_LOG(gLogMouseLocation, LogLevel::Info,
+          ("[ps=%p]got %s for %p, mouse location is cleared\n", &aRootPresShell,
+           ToChar(aMouseEvent.mMessage), aMouseEvent.mWidget.get()));
+#endif
+}
+
+/* static */
+LazyLogModule& PointerEventHandler::MouseLocationLogRef() {
+  return gLogMouseLocation;
 }
 
 /* static */
@@ -397,6 +480,22 @@ void PointerEventHandler::ReleaseAllPointerCaptureRemoteTarget() {
 /* static */
 const PointerInfo* PointerEventHandler::GetPointerInfo(uint32_t aPointerId) {
   return sActivePointersIds->Get(aPointerId);
+}
+
+/* static */
+const PointerInfo* PointerEventHandler::GetLastMouseInfo(
+    const PresShell* aRootPresShell /* = nullptr */) {
+  if (!sLastMousePresShell || !sLastMouseInfo) {
+    return nullptr;
+  }
+  if (aRootPresShell) {
+    const RefPtr<PresShell> lastMousePresShell =
+        do_QueryReferent(sLastMousePresShell);
+    if (lastMousePresShell != aRootPresShell) {
+      return nullptr;
+    }
+  }
+  return sLastMouseInfo;
 }
 
 /* static */

@@ -10,6 +10,7 @@
 #include "LayoutConstants.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/StaticPtr.h"
 #include "mozilla/TouchEvents.h"
 #include "mozilla/WeakPtr.h"
 
@@ -219,6 +220,44 @@ class PointerEventHandler final {
   static void RecordPointerState(const nsPoint& aRefPointInRootPresShell,
                                  const WidgetMouseEvent& aMouseEvent);
 
+  /**
+   * Called when PresShell starts handling a mouse event.  The data will be used
+   * for synthesizing eMouseMove to dispatch mouse boundary events and updates
+   * `:hover` state.
+   *
+   * @param aRootPresShell      Must be the root PresShell of the PresShell
+   *                            which starts handling the event.
+   * @param aMouseEvent         The mouse event which the PresShell starts
+   *                            handling.
+   */
+  static void RecordMouseState(PresShell& aRootPresShell,
+                               const WidgetMouseEvent& aMouseEvent);
+
+  /**
+   * Called when PresShell dispatches a mouse event to the DOM.
+   */
+  static void RecordMouseButtons(const WidgetMouseEvent& aMouseEvent) {
+    // Buttons of mouse should be shared even if there are multiple mouse
+    // pointers which has different pointerIds for the backward compatibility.
+    // Thus, here does not check sLastMousePresShell nor pointerId.
+    if (sLastMouseInfo) {
+      sLastMouseInfo->mLastButtons = aMouseEvent.mButtons;
+    }
+  }
+
+  /**
+   * Called when PresShell starts handling a mouse event or something which
+   * should make aRootPresShell should never dispatch synthetic eMouseMove
+   * events.
+   *
+   * @param aRootPresShell      Must be the root PresShell of the PresShell
+   *                            which starts handling the event.
+   * @param aMouseEvent         The mouse event which the PresShell starts
+   *                            handling.
+   */
+  static void ClearMouseState(PresShell& aRootPresShell,
+                              const WidgetMouseEvent& aMouseEvent);
+
   // Request/release pointer capture of the specified pointer by the element.
   static void RequestPointerCaptureById(uint32_t aPointerId,
                                         dom::Element* aElement);
@@ -246,6 +285,18 @@ class PointerEventHandler final {
   // Note that the result may be activated only by synthesized events for test.
   // If you don't want it, check PointerInfo::mIsSynthesizedForTests.
   static const PointerInfo* GetPointerInfo(uint32_t aPointerId);
+
+  /**
+   * Return the PointeInfo which stores the last mouse event state which should
+   * be used for dispatching a synthetic eMouseMove.
+   *
+   * @param aRootPresShell      [optional] If specified, return non-nullptr if
+   *                            and only if the last mouse info was set by
+   *                            aRootPresShell.  Otherwise, return the last
+   *                            mouse info which was set by any PresShell.
+   */
+  [[nodiscard]] static const PointerInfo* GetLastMouseInfo(
+      const PresShell* aRootPresShell = nullptr);
 
   // CheckPointerCaptureState checks cases, when got/lostpointercapture events
   // should be fired.
@@ -435,6 +486,11 @@ class PointerEventHandler final {
   [[nodiscard]] static bool NeedToDispatchPointerRawUpdate(
       const dom::Document* aDocument);
 
+  /**
+   * Return a log module reference for logging the mouse location.
+   */
+  [[nodiscard]] static LazyLogModule& MouseLocationLogRef();
+
  private:
   // Set pointer capture of the specified pointer by the element.
   static void SetPointerCaptureById(uint32_t aPointerId,
@@ -478,6 +534,13 @@ class PointerEventHandler final {
    */
   static void SetPointerCapturingElementAtLastPointerUp(
       nsWeakPtr&& aPointerCapturingElement);
+
+  // Stores the last mouse info to dispatch synthetic eMouseMove in root
+  // PresShells.
+  static StaticAutoPtr<PointerInfo> sLastMouseInfo;
+
+  // Stores the last mouse info setter.
+  static StaticRefPtr<nsIWeakReference> sLastMousePresShell;
 };
 
 }  // namespace mozilla

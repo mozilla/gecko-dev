@@ -257,6 +257,13 @@ class PresShell final : public nsStubDocumentObserver,
   bool IsDestroying() { return mIsDestroying; }
 
   /**
+   * Return true if this is for the root nsPresContext.
+   */
+  [[nodiscard]] bool IsRoot() const {
+    return mPresContext && mPresContext->IsRoot();
+  }
+
+  /**
    * All frames owned by the shell are allocated from an arena.  They
    * are also recycled using free lists.  Separate free lists are
    * maintained for each frame type (aID), which must always correspond
@@ -1782,6 +1789,12 @@ class PresShell final : public nsStubDocumentObserver,
   // on resize.
   void AddOrthogonalFlow(nsIFrame* aFrame) { mOrthogonalFlows.Insert(aFrame); }
 
+  /**
+   * Return the nsPoint represents the location of the mouse event relative to
+   * the root document in visual coordinates
+   */
+  nsPoint GetEventLocation(const WidgetMouseEvent& aEvent) const;
+
  private:
   ~PresShell();
 
@@ -2048,16 +2061,9 @@ class PresShell final : public nsStubDocumentObserver,
     bool IsKeyPressEvent() override;
   };
 
-  /**
-   * return the nsPoint represents the location of the mouse event relative to
-   * the root document in visual coordinates
-   */
-  nsPoint GetEventLocation(const WidgetMouseEvent& aEvent) const;
-
   // Check if aEvent is a mouse event and record the mouse location for later
   // synth mouse moves.
   void RecordPointerLocation(WidgetGUIEvent* aEvent);
-  inline bool MouseLocationWasSetBySynthesizedMouseEventForTests() const;
   class nsSynthMouseMoveEvent final : public nsARefreshObserver {
    public:
     nsSynthMouseMoveEvent(PresShell* aPresShell, bool aFromScroll)
@@ -3245,22 +3251,14 @@ class PresShell final : public nsStubDocumentObserver,
   // events. This stores all pointerIds which over the root window.
   CopyableTArray<uint32_t> mPointerIds;
 
-  // It is set only on a presshell for a root document, this value represents
-  // the last observed location of the mouse relative to that root document,
-  // in visual coordinates. It is set to (NS_UNCONSTRAINEDSIZE,
-  // NS_UNCONSTRAINEDSIZE) if the mouse isn't over our window or there is no
-  // last observed mouse location for some reason.
-  nsPoint mMouseLocation;
-  // This is used for the synthetic mouse events too.  This is set when a mouse
-  // event is dispatched into the DOM.
-  static int16_t sMouseButtons;
+  // This is set only by PresShell for a root document to synthesize eMouseMove
+  // at a layout change or a scroll to dispatch mouse boundary events.  The
+  // details of the mouse event is stored by PointerEventHandler.
+  Maybe<uint32_t> mLastMousePointerId;
+
   // The last observed pointer location relative to that root document in visual
   // coordinates.
   nsPoint mLastOverWindowPointerLocation;
-  // This is an APZ state variable that tracks the target guid for the last
-  // mouse event that was processed (corresponding to mMouseLocation). This is
-  // needed for the synthetic mouse events.
-  layers::ScrollableLayerGuid mMouseEventTargetGuid;
 
   // Only populated on root content documents.
   nsSize mVisualViewportSize;
@@ -3312,12 +3310,6 @@ class PresShell final : public nsStubDocumentObserver,
   // middle of frame construction and the like... it really shouldn't be
   // needed, one hopes, but it is for now.
   uint16_t mChangeNestCount;
-
-  // This is the input source which set mMouseLocation.
-  uint16_t mMouseLocationInputSource = 0;  // MOZ_SOURCE_UNKNOWN by default
-
-  // This is the pointerId which set mMouseLocation.
-  uint32_t mMouseLocationPointerId = 0;
 
   // Flags controlling how our document is rendered.  These persist
   // between paints and so are tied with retained layer pixels.
@@ -3424,10 +3416,6 @@ class PresShell final : public nsStubDocumentObserver,
   // Whether mForceDispatchKeyPressEventsForNonPrintableKeys and
   // mForceUseLegacyKeyCodeAndCharCodeValues are initialized.
   bool mInitializedWithKeyPressEventDispatchingBlacklist : 1;
-
-  // Set to true if mMouseLocation is set by a mouse event which is synthesized
-  // for tests.
-  bool mMouseLocationWasSetBySynthesizedMouseEventForTests : 1;
 
   bool mHasTriedFastUnsuppress : 1;
 
