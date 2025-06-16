@@ -354,18 +354,6 @@ public class ContentBlocking {
         getSettings().setCookieBannerDetectOnlyMode(enabled);
         return this;
       }
-
-      /**
-       * Sets the bounce tracking protection mode.
-       *
-       * @param mode A int indicating the new mode.
-       * @return The Builder instance.
-       */
-      public @NonNull Builder bounceTrackingProtectionMode(
-          final @CBCBounceTrackingProtectionMode int mode) {
-        getSettings().setBounceTrackingProtectionMode(mode);
-        return this;
-      }
     }
 
     /* package */ final Pref<String> mAt =
@@ -442,11 +430,6 @@ public class ContentBlocking {
 
     /* package */ final Pref<String> mQueryParameterStrippingStripList =
         new Pref<>("privacy.query_stripping.strip_list", "");
-
-    /* package */ final Pref<Integer> mBounceTrackingProtectionMode =
-        new Pref<Integer>(
-            "privacy.bounceTrackingProtection.mode",
-            BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_DISABLED);
 
     /* package */ final Pref<Boolean> mEtb =
         new Pref<Boolean>("privacy.trackingprotection.emailtracking.enabled", false);
@@ -1045,28 +1028,6 @@ public class ContentBlocking {
             return new Settings[size];
           }
         };
-
-    /**
-     * Get the current mode of the bounce tracking protection. See nsIBounceTrackingProtection.idl
-     * for mode descriptions.
-     *
-     * @return int indicating the bounce tracking protection mode.
-     */
-    public @CBCBounceTrackingProtectionMode int getBounceTrackingProtectionMode() {
-      return mapToBounceTrackingProtectionMode(mBounceTrackingProtectionMode.get());
-    }
-
-    /**
-     * Sets the bounce tracking protection mode.
-     *
-     * @param mode A int indicating the new mode.
-     * @return This Settings instance.
-     */
-    public @NonNull Settings setBounceTrackingProtectionMode(
-        final @CBCBounceTrackingProtectionMode int mode) {
-      mBounceTrackingProtectionMode.commit(mode);
-      return this;
-    }
   }
 
   /**
@@ -2093,49 +2054,4 @@ public class ContentBlocking {
     CookieBannerMode.COOKIE_BANNER_MODE_REJECT_OR_ACCEPT,
   })
   public @interface CBCookieBannerMode {}
-
-  /** Modes for Bounce Tracking Protection. */
-  public static class BounceTrackingProtectionMode {
-    /** Fully disabled. */
-    public static final int BOUNCE_TRACKING_PROTECTION_MODE_DISABLED = 0;
-
-    /** Fully enabled. */
-    public static final int BOUNCE_TRACKING_PROTECTION_MODE_ENABLED = 1;
-
-    /**
-     * Disabled, but collects user interaction data. Use this mode as the "disabled" state when the
-     * feature can be toggled on and off, e.g. via preferences.
-     */
-    public static final int BOUNCE_TRACKING_PROTECTION_MODE_ENABLED_STANDBY = 2;
-
-    /**
-     * Feature enabled, but tracker purging is only simulated. Used for testing and telemetry
-     * collection.
-     */
-    public static final int BOUNCE_TRACKING_PROTECTION_MODE_ENABLED_DRY_RUN = 3;
-
-    protected BounceTrackingProtectionMode() {}
-  }
-
-  @Retention(RetentionPolicy.SOURCE)
-  @IntDef({
-    BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_DISABLED,
-    BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_ENABLED,
-    BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_ENABLED_STANDBY,
-    BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_ENABLED_DRY_RUN,
-  })
-  public @interface CBCBounceTrackingProtectionMode {}
-
-  // Mapping function for BTP mode to ensure only valid constants are returned.
-  private static final int mapToBounceTrackingProtectionMode(final int value) {
-    switch (value) {
-      case BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_DISABLED:
-      case BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_ENABLED:
-      case BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_ENABLED_STANDBY:
-      case BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_ENABLED_DRY_RUN:
-        return value;
-      default:
-        return BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_DISABLED;
-    }
-  }
 }

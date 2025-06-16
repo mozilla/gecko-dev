@@ -449,18 +449,7 @@ package org.mozilla.geckoview {
     field @NonNull public final String uri;
   }
 
-  public static class ContentBlocking.BounceTrackingProtectionMode {
-    ctor protected BounceTrackingProtectionMode();
-    field public static final int BOUNCE_TRACKING_PROTECTION_MODE_DISABLED = 0;
-    field public static final int BOUNCE_TRACKING_PROTECTION_MODE_ENABLED = 1;
-    field public static final int BOUNCE_TRACKING_PROTECTION_MODE_ENABLED_DRY_RUN = 3;
-    field public static final int BOUNCE_TRACKING_PROTECTION_MODE_ENABLED_STANDBY = 2;
-  }
-
   @Retention(value=RetentionPolicy.SOURCE) public static interface ContentBlocking.CBAntiTracking {
-  }
-
-  @Retention(value=RetentionPolicy.SOURCE) public static interface ContentBlocking.CBCBounceTrackingProtectionMode {
   }
 
   @Retention(value=RetentionPolicy.SOURCE) public static interface ContentBlocking.CBCookieBannerMode {
@@ -559,7 +548,6 @@ package org.mozilla.geckoview {
 
   @AnyThread public static class ContentBlocking.Settings extends RuntimeSettings {
     method public int getAntiTrackingCategories();
-    method public int getBounceTrackingProtectionMode();
     method public boolean getCookieBannerDetectOnlyMode();
     method public boolean getCookieBannerGlobalRulesEnabled();
     method public boolean getCookieBannerGlobalRulesSubFramesEnabled();
@@ -581,7 +569,6 @@ package org.mozilla.geckoview {
     method @NonNull public Collection<ContentBlocking.SafeBrowsingProvider> getSafeBrowsingProviders();
     method public boolean getStrictSocialTrackingProtection();
     method @NonNull public ContentBlocking.Settings setAntiTracking(int);
-    method @NonNull public ContentBlocking.Settings setBounceTrackingProtectionMode(int);
     method @NonNull public ContentBlocking.Settings setCookieBannerDetectOnlyMode(boolean);
     method @NonNull public ContentBlocking.Settings setCookieBannerGlobalRulesEnabled(boolean);
     method @NonNull public ContentBlocking.Settings setCookieBannerGlobalRulesSubFramesEnabled(boolean);
@@ -608,7 +595,6 @@ package org.mozilla.geckoview {
   @AnyThread public static class ContentBlocking.Settings.Builder extends RuntimeSettings.Builder<ContentBlocking.Settings> {
     ctor public Builder();
     method @NonNull public ContentBlocking.Settings.Builder antiTracking(int);
-    method @NonNull public ContentBlocking.Settings.Builder bounceTrackingProtectionMode(int);
     method @NonNull public ContentBlocking.Settings.Builder cookieBannerGlobalRulesEnabled(boolean);
     method @NonNull public ContentBlocking.Settings.Builder cookieBannerGlobalRulesSubFramesEnabled(boolean);
     method @NonNull public ContentBlocking.Settings.Builder cookieBannerHandlingDetectOnlyMode(boolean);

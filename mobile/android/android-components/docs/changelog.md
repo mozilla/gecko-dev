@@ -10,8 +10,6 @@ permalink: /changelog/
 * **concept-engine**, **browser-engine-gecko**: Added methods to get, set, and clear browser preferences. [Bug 1949876](https://bugzilla.mozilla.org/show_bug.cgi?id=1949876)
 * **ui-widgets**
   * Updated EngineViewClippingBehavior to support top and bottom toolbars at the same time.
-* **concept-engine** and **browser-engine-gecko**
-  * 🌟️ Added `TrackingProtectionPolicy.bounceTrackingProtectionMode` it allows configuring the Bounce Tracking Protection feature, disabled by default. [Bug 1963445](https://bugzilla.mozilla.org/show_bug.cgi?id=1963445)
 
 * **feature-downloads**
   * ⚠️ **Breaking change**: Changed constructor of `DownloadEstimator`. [Bug 1970176](https://bugzilla.mozilla.org/show_bug.cgi?id=1970176).

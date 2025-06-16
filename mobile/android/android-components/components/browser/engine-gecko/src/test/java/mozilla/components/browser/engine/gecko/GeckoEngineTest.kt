@@ -343,7 +343,6 @@ class GeckoEngineTest {
         assertEquals(contentBlockingSettings.queryParameterStrippingPrivateBrowsingEnabled, engine.settings.queryParameterStrippingPrivateBrowsing)
         assertEquals(contentBlockingSettings.queryParameterStrippingAllowList[0], engine.settings.queryParameterStrippingAllowList)
         assertEquals(contentBlockingSettings.queryParameterStrippingStripList[0], engine.settings.queryParameterStrippingStripList)
-        assertEquals(contentBlockingSettings.bounceTrackingProtectionMode, EngineSession.BounceTrackingProtectionMode.ENABLED.mode)
 
         assertEquals(contentBlockingSettings.emailTrackerBlockingPrivateBrowsingEnabled, engine.settings.emailTrackerBlockingPrivateBrowsing)
 
@@ -415,88 +414,6 @@ class GeckoEngineTest {
 
         verify(mockRuntime.settings.contentBlocking).setEnhancedTrackingProtectionLevel(
             ContentBlocking.EtpLevel.STRICT,
-        )
-    }
-
-    @Test
-    fun `WHEN a recommended tracking protection policy is set THEN Bounce Tracking Protection must be in standby mode`() {
-        val mockRuntime = mock<GeckoRuntime>()
-        whenever(mockRuntime.settings).thenReturn(mock())
-        whenever(mockRuntime.settings.contentBlocking).thenReturn(mock())
-
-        val engine = GeckoEngine(testContext, runtime = mockRuntime)
-
-        engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.recommended()
-
-        verify(mockRuntime.settings.contentBlocking).setBounceTrackingProtectionMode(
-            EngineSession.BounceTrackingProtectionMode.ENABLED_STANDBY.mode,
-        )
-    }
-
-    @Test
-    fun `WHEN a strict tracking protection policy is set THEN Bounce Tracking Protection must be enabled`() {
-        val mockRuntime = mock<GeckoRuntime>()
-        whenever(mockRuntime.settings).thenReturn(mock())
-        whenever(mockRuntime.settings.contentBlocking).thenReturn(mock())
-
-        val engine = GeckoEngine(testContext, runtime = mockRuntime)
-
-        engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.strict()
-
-        verify(mockRuntime.settings.contentBlocking).setBounceTrackingProtectionMode(
-            EngineSession.BounceTrackingProtectionMode.ENABLED.mode,
-        )
-    }
-
-    @Test
-    fun `WHEN a custom tracking protection policy is set THEN Bounce Tracking Protection must be in standby mode`() {
-        val mockRuntime = mock<GeckoRuntime>()
-        whenever(mockRuntime.settings).thenReturn(mock())
-        whenever(mockRuntime.settings.contentBlocking).thenReturn(mock())
-
-        val engine = GeckoEngine(testContext, runtime = mockRuntime)
-
-        engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.select(
-            // Set only an unrelated setting.
-            strictSocialTrackingProtection = true,
-        )
-
-        verify(mockRuntime.settings.contentBlocking).setBounceTrackingProtectionMode(
-            EngineSession.BounceTrackingProtectionMode.ENABLED_STANDBY.mode,
-        )
-    }
-
-    @Test
-    fun `WHEN a custom tracking protection policy enables BTP THEN Bounce Tracking Protection must be enabled`() {
-        val mockRuntime = mock<GeckoRuntime>()
-        whenever(mockRuntime.settings).thenReturn(mock())
-        whenever(mockRuntime.settings.contentBlocking).thenReturn(mock())
-
-        val engine = GeckoEngine(testContext, runtime = mockRuntime)
-
-        engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.select(
-            // Set only an unrelated setting.
-            strictSocialTrackingProtection = true,
-            bounceTrackingProtectionMode = EngineSession.BounceTrackingProtectionMode.ENABLED,
-        )
-
-        verify(mockRuntime.settings.contentBlocking).setBounceTrackingProtectionMode(
-            EngineSession.BounceTrackingProtectionMode.ENABLED.mode,
-        )
-    }
-
-    @Test
-    fun `WHEN a "none" tracking protection policy is set THEN Bounce Tracking Protection must be in standby mode`() {
-        val mockRuntime = mock<GeckoRuntime>()
-        whenever(mockRuntime.settings).thenReturn(mock())
-        whenever(mockRuntime.settings.contentBlocking).thenReturn(mock())
-
-        val engine = GeckoEngine(testContext, runtime = mockRuntime)
-
-        engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.none()
-
-        verify(mockRuntime.settings.contentBlocking).setBounceTrackingProtectionMode(
-            EngineSession.BounceTrackingProtectionMode.ENABLED_STANDBY.mode,
         )
     }
 

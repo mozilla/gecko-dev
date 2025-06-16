@@ -26,8 +26,6 @@ exclude: true
 - Added [`WebNotificationAction`][141.13] that represents action buttons of notifications.
 - Added [`WebNotification.actions`][141.14] and a new function signature with `action` to [`WebNotification.click()`][141.15] to indicate action click.
 - Added support for special "technical and interaction" data collection permission ([bug 1964992]({{bugilla}}1964992))
-- Added `setBounceTrackingProtectionMode`, `getBounceTrackingProtectionMode` to [`ContentBlocking.Settings`][141.16].
-  ([bug 1963445]({{bugzilla}}1963445))
 
 [141.1]: {{javadoc_uri}}/ProfilerController.html
 [141.2]: {{javadoc_uri}}/GeckoRuntime.html#getProfilerController()
@@ -43,7 +41,6 @@ exclude: true
 [141.13]: {{javadoc_uri}}/WebNotificationAction.html
 [141.14]: {{javadoc_uri}}/WebNotification.html#actions
 [141.15]: {{javadoc_uri}}/WebNotification.html#click(java.lang.String)
-[141.16]: {{javadoc_uri}}/ContentBlocking.html
 
 ## v140
 - Added a [`GeckoPreferenceController`][140.1] class to manage Gecko preferences.
@@ -1776,4 +1773,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: b6f072b9eeafdc37d742bd6df23283928a4a27bb
+[api-version]: b39eec444862b51a7ef0dd0a62c73711a566df3c
