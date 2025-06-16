@@ -349,11 +349,8 @@ nsresult FetchMostFrecentSubPageIcon(const RefPtr<Database>& aDB,
     rv = stmt->GetInt64(1, &payload.id);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
 
-    uint8_t* data;
-    uint32_t dataLen = 0;
-    rv = stmt->GetBlob(3, &dataLen, &data);
+    rv = stmt->GetBlobAsUTF8String(3, payload.data);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
-    payload.data.Adopt(TO_CHARBUFFER(data), dataLen);
 
     int32_t width;
     rv = stmt->GetInt32(4, &width);
@@ -463,34 +460,43 @@ nsresult FetchIconInfo(const RefPtr<Database>& aDB,
   bool hasResult;
 
   struct IconInfo {
-    int64_t id;
-    uint8_t* data;
-    uint32_t dataLen = 0;
-    PRTime expiration;
-    int32_t isRich = 0;
-    int32_t rootIcon;
-    int32_t width = 0;
+    IconInfo(int64_t aIconId, const nsCString& aData, PRTime aExpiration,
+             bool aIsRich, bool aRootIcon, uint16_t aWidth,
+             const nsCString& aSvgSpec)
+        : id(aIconId),
+          data(aData),
+          expiration(aExpiration),
+          isRich(aIsRich),
+          rootIcon(aRootIcon),
+          width(aWidth),
+          spec(aSvgSpec) {}
+
+    int64_t id = -1;
+    nsCString data;
+    PRTime expiration = 0;
+    bool isRich = 0;
+    bool rootIcon = 0;
+    uint16_t width = 0;
     nsAutoCString spec;
-    bool isSet() { return width > 0; };
   };
 
-  IconInfo svgIcon;
-  IconInfo lastIcon;
-  IconInfo selectedIcon;
+  UniquePtr<IconInfo> svgIcon;
+  UniquePtr<IconInfo> selectedIcon;
+  uint16_t lastIconWidth = 0;
 
   bool preferNonRichIcons = aPreferredWidth <= THRESHOLD_WIDTH;
 
   while (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
     int32_t width = stmt->AsInt32(3);
-    if (lastIcon.width == width) {
+    if (lastIconWidth == width) {
       // If we already found an icon for this width, we always prefer the first
       // icon found, because it's a non-root icon, per the root ASC ordering.
       continue;
     }
 
     int64_t iconId = stmt->AsInt64(0);
-    int32_t rootIcon = stmt->AsInt32(5);
-    int32_t isRich = stmt->AsInt32(6);
+    bool rootIcon = !!stmt->AsInt32(5);
+    bool isRich = !!stmt->AsInt32(6);
 
     // Expiration can be NULL.
     PRTime expiration = 0;
@@ -502,9 +508,8 @@ nsresult FetchIconInfo(const RefPtr<Database>& aDB,
       expiration = expire_ms * 1000;
     }
 
-    uint8_t* data;
-    uint32_t dataLen = 0;
-    rv = stmt->GetBlob(2, &dataLen, &data);
+    nsCString data;
+    rv = stmt->GetBlobAsUTF8String(2, data);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsAutoCString iconURL;
@@ -516,14 +521,14 @@ nsresult FetchIconInfo(const RefPtr<Database>& aDB,
     // threshold, otherwise simply store the first SVG found regardless of
     // richness.
     int32_t isSVG = (width == UINT16_MAX);
-    if (isSVG && !svgIcon.isSet()) {
+    if (isSVG && !svgIcon) {
       if ((preferNonRichIcons && !isRich) || !preferNonRichIcons) {
-        svgIcon = {iconId, data,     dataLen, expiration,
-                   isRich, rootIcon, width,   iconURL};
+        svgIcon = MakeUnique<IconInfo>(iconId, data, expiration, isRich,
+                                       rootIcon, width, iconURL);
       }
     }
 
-    if (preferNonRichIcons && lastIcon.isSet() && isRich && !lastIcon.isRich) {
+    if (preferNonRichIcons && isRich && selectedIcon && !selectedIcon->isRich) {
       // If we already found a non-rich icon, we prefer it to rich icons
       // for small sizes.
       break;
@@ -536,17 +541,18 @@ nsresult FetchIconInfo(const RefPtr<Database>& aDB,
       // If the difference between the preferred size and the previously found
       // larger icon is more than 4 times the difference between the preferred
       // size and the smaller icon, choose the smaller icon.
-      if (aPreferredWidth - width < abs(lastIcon.width - aPreferredWidth) / 4) {
-        selectedIcon = {iconId, data,     dataLen, expiration,
-                        isRich, rootIcon, width};
+      if (aPreferredWidth - width < abs(lastIconWidth - aPreferredWidth) / 4) {
+        selectedIcon = MakeUnique<IconInfo>(iconId, data, expiration, isRich,
+                                            rootIcon, width, EmptyCString());
         rv = stmt->GetUTF8String(4, _icon.spec);
         NS_ENSURE_SUCCESS(rv, rv);
       }
       break;
     }
 
-    lastIcon = {iconId, data, dataLen, expiration, isRich, rootIcon, width};
-    selectedIcon = {iconId, data, dataLen, expiration, isRich, rootIcon, width};
+    lastIconWidth = width;
+    selectedIcon = MakeUnique<IconInfo>(iconId, data, expiration, isRich,
+                                        rootIcon, width, EmptyCString());
     rv = stmt->GetUTF8String(4, _icon.spec);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -558,22 +564,22 @@ nsresult FetchIconInfo(const RefPtr<Database>& aDB,
   // non-rich SVGs for below-threshold requests, rich SVGs are not considered.
   // For above-threshold requests, any SVG would overwrite the selected icon if
   // its width differs from the requested size.
-  if (svgIcon.isSet() && !svgIcon.spec.IsEmpty()) {
-    if ((selectedIcon.width != aPreferredWidth) ||
-        (preferNonRichIcons && selectedIcon.isRich)) {
-      _icon.spec = svgIcon.spec;
-      selectedIcon = svgIcon;
+  if (svgIcon && selectedIcon) {
+    if ((selectedIcon->width != aPreferredWidth) ||
+        (preferNonRichIcons && selectedIcon->isRich)) {
+      _icon.spec = svgIcon->spec;
+      selectedIcon = std::move(svgIcon);
     }
   }
 
-  if (selectedIcon.dataLen) {
-    _icon.expiration = selectedIcon.expiration;
-    _icon.rootIcon = selectedIcon.rootIcon;
+  if (selectedIcon) {
+    _icon.expiration = selectedIcon->expiration;
+    _icon.rootIcon = selectedIcon->rootIcon;
 
     IconPayload payload;
-    payload.id = selectedIcon.id;
-    payload.data.Adopt(TO_CHARBUFFER(selectedIcon.data), selectedIcon.dataLen);
-    payload.width = selectedIcon.width;
+    payload.id = selectedIcon->id;
+    payload.data = selectedIcon->data;
+    payload.width = selectedIcon->width;
     if (payload.width == UINT16_MAX) {
       payload.mimeType.AssignLiteral(SVG_MIME_TYPE);
     } else {
