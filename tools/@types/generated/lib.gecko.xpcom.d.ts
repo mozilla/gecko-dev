@@ -892,6 +892,7 @@ interface nsIWindowMediator extends nsISupports {
   getMostRecentWindow(aWindowType: string): mozIDOMWindowProxy;
   getMostRecentBrowserWindow(): mozIDOMWindowProxy;
   getMostRecentNonPBWindow(aWindowType: string): mozIDOMWindowProxy;
+  getMostRecentWindowBy(aWindowType: string, aFilter: u8): mozIDOMWindowProxy;
   getOuterWindowWithId(aOuterWindowID: u64): mozIDOMWindowProxy;
   getCurrentInnerWindowWithId(aInnerWindowID: u64): mozIDOMWindow;
   addListener(aListener: nsIWindowMediatorListener): void;
@@ -2597,7 +2598,6 @@ interface nsIDOMWindowUtils extends nsISupports {
   sendNativeTouchpadPinch(aEventPhase: u32, aScale: float, aScreenX: i32, aScreenY: i32, aModifierFlags: i32): void;
   sendNativeTouchTap(aScreenX: i32, aScreenY: i32, aLongTap: boolean, aObserver?: nsIObserver): void;
   sendNativePenInput(aPointerId: u32, aPointerState: u32, aScreenX: i32, aScreenY: i32, aPressure: double, aRotation: u32, aTiltX: i32, aTiltY: i32, aButton: i32, aObserver?: nsIObserver, aElement?: Element): void;
-  clearNativeTouchSequence(aObserver?: nsIObserver): void;
   sendNativeTouchpadDoubleTap(aScreenX: i32, aScreenY: i32, aModifierFlags: i32): void;
   sendNativeTouchpadPan(aEventPhase: u32, aScreenX: i32, aScreenY: i32, aDeltaX: double, aDeltaY: double, aModifierFlags: i32, aObserver?: nsIObserver): void;
   readonly parsedStyleSheets: u32;
@@ -3083,6 +3083,13 @@ interface nsIScriptError extends nsIConsoleMessage {
   initWithSanitizedSource(message: string, sourceName: string, lineNumber: u32, columnNumber: u32, flags: u32, category: string, innerWindowID: u64, fromChromeContext?: boolean): void;
   initWithSourceURI(message: string, sourceURI: nsIURI, lineNumber: u32, columnNumber: u32, flags: u32, category: string, innerWindowID: u64, fromChromeContext?: boolean): void;
   initSourceId(sourceId: u32): void;
+}
+
+// https://searchfox.org/mozilla-central/source/dom/bindings/test/mozITestInterfaceJS.idl
+
+interface mozITestInterfaceJS extends nsISupports {
+  testThrowNsresult(): void;
+  testThrowNsresultFromNative(): void;
 }
 
 // https://searchfox.org/mozilla-central/source/dom/interfaces/events/nsIDOMEventListener.idl
@@ -5282,6 +5289,37 @@ interface nsIStyleSheetService extends nsISupports {
   unregisterSheet(sheetURI: nsIURI, type: u32): void;
 }
 
+// https://searchfox.org/mozilla-central/source/layout/tools/layout-debug/src/nsILayoutDebuggingTools.idl
+
+}  // global
+
+declare enum nsILayoutDebuggingTools_DumpFrameFlags {
+  DUMP_FRAME_FLAGS_CSS_PIXELS = 1,
+  DUMP_FRAME_FLAGS_DETERMINISTIC = 2,
+}
+
+declare global {
+
+namespace nsILayoutDebuggingTools {
+  type DumpFrameFlags = nsILayoutDebuggingTools_DumpFrameFlags;
+}
+
+interface nsILayoutDebuggingTools extends nsISupports, Enums<typeof nsILayoutDebuggingTools_DumpFrameFlags> {
+  init(win: mozIDOMWindow): void;
+  forceRefresh(): void;
+  setReflowCounts(enabled: boolean): void;
+  setPagedMode(enabled: boolean): void;
+  dumpContent(anonymousSubtrees: boolean): void;
+  dumpFrames(flags: u8): void;
+  dumpTextRuns(): void;
+  dumpViews(): void;
+  dumpCounterManager(): void;
+  dumpStyleSheets(): void;
+  dumpMatchedRules(): void;
+  dumpComputedStyles(): void;
+  dumpReflowStats(): void;
+}
+
 // https://searchfox.org/mozilla-central/source/layout/xul/tree/nsITreeSelection.idl
 
 interface nsITreeSelection extends nsISupports {
@@ -7278,6 +7316,7 @@ interface nsISystemProxySettings extends nsISupports {
   readonly PACURI: string;
   getProxyForURI(testSpec: string, testScheme: string, testHost: string, testPort: i32): string;
   readonly systemWPADSetting: boolean;
+  setSystemProxyInfo(host: string, port: i32, pacFileUrl: string, exclusionList: string[]): void;
 }
 
 // https://searchfox.org/mozilla-central/source/netwerk/base/nsITLSServerSocket.idl
@@ -10082,7 +10121,6 @@ interface nsIRelativeFilePref extends nsISupports {
 
 interface nsIPrefetchService extends nsISupports {
   prefetchURI(aURI: nsIURI, aReferrerInfo: nsIReferrerInfo, aSource: Node, aExplicit: boolean): void;
-  preloadURI(aURI: nsIURI, aReferrerInfo: nsIReferrerInfo, aSource: Node, aPolicyType: nsContentPolicyType): void;
   hasMoreElements(): boolean;
   cancelPrefetchPreloadURI(aURI: nsIURI, aSource: Node): void;
 }
@@ -10148,7 +10186,6 @@ interface nsIMarionette extends nsISupports {
 // https://searchfox.org/mozilla-central/source/remote/components/nsIRemoteAgent.idl
 
 interface nsIRemoteAgent extends nsISupports {
-  readonly debuggerAddress: string;
   readonly running: boolean;
 }
 
@@ -10186,6 +10223,13 @@ interface mozISandboxSettings extends nsISupports {
   readonly effectiveContentSandboxLevel: i32;
   readonly contentWin32kLockdownState: i32;
   readonly contentWin32kLockdownStateString: string;
+}
+
+// https://searchfox.org/mozilla-central/source/security/sandbox/common/test/mozISandboxTest.idl
+
+interface mozISandboxTest extends nsISupports {
+  startTests(aProcessesList: string[]): void;
+  finishTests(): void;
 }
 
 // https://searchfox.org/mozilla-central/source/toolkit/components/satchel/nsIFormFillController.idl
@@ -11207,10 +11251,11 @@ declare enum nsIContentAnalysisRequest_Reason {
 }
 
 declare enum nsIContentAnalysisRequest_OperationType {
-  eCustomDisplayString = 0,
-  eClipboard = 1,
-  eDroppedText = 2,
-  eOperationPrint = 3,
+  eClipboard = 0,
+  eDroppedText = 1,
+  eOperationPrint = 2,
+  eUpload = 3,
+  eDownload = 4,
 }
 
 declare global {
@@ -11225,7 +11270,7 @@ interface nsIContentAnalysisRequest extends nsISupports, Enums<typeof nsIContent
   readonly analysisType: nsIContentAnalysisRequest.AnalysisType;
   readonly reason: nsIContentAnalysisRequest.Reason;
   readonly operationTypeForDisplay: nsIContentAnalysisRequest.OperationType;
-  readonly operationDisplayString: string;
+  readonly fileNameForDisplay: string;
   dataTransfer: DataTransfer;
   readonly transferable: nsITransferable;
   readonly textContent: string;
@@ -15489,6 +15534,7 @@ interface nsIXPCComponents_Interfaces {
   nsITextInputProcessorCallback: nsJSIID<nsITextInputProcessorCallback>;
   nsIScriptErrorNote: nsJSIID<nsIScriptErrorNote>;
   nsIScriptError: nsJSIID<nsIScriptError>;
+  mozITestInterfaceJS: nsJSIID<mozITestInterfaceJS>;
   nsIDOMGeoPosition: nsJSIID<nsIDOMGeoPosition>;
   nsIDOMGeoPositionCallback: nsJSIID<nsIDOMGeoPositionCallback>;
   nsIDOMGeoPositionCoords: nsJSIID<nsIDOMGeoPositionCoords>;
@@ -15683,6 +15729,7 @@ interface nsIXPCComponents_Interfaces {
   nsIPreloadedStyleSheet: nsJSIID<nsIPreloadedStyleSheet>;
   nsISVGPaintContext: nsJSIID<nsISVGPaintContext>;
   nsIStyleSheetService: nsJSIID<nsIStyleSheetService>;
+  nsILayoutDebuggingTools: nsJSIID<nsILayoutDebuggingTools, typeof nsILayoutDebuggingTools_DumpFrameFlags>;
   nsITreeSelection: nsJSIID<nsITreeSelection>;
   nsITreeView: nsJSIID<nsITreeView>;
   mozILocaleService: nsJSIID<mozILocaleService>;
@@ -16057,6 +16104,7 @@ interface nsIXPCComponents_Interfaces {
   nsIApplicationReputationQuery: nsJSIID<nsIApplicationReputationQuery>;
   nsIApplicationReputationCallback: nsJSIID<nsIApplicationReputationCallback>;
   mozISandboxSettings: nsJSIID<mozISandboxSettings>;
+  mozISandboxTest: nsJSIID<mozISandboxTest>;
   nsIFormFillController: nsJSIID<nsIFormFillController>;
   nsIFormFillCompleteObserver: nsJSIID<nsIFormFillCompleteObserver>;
   mozIAppServicesLogger: nsJSIID<mozIAppServicesLogger>;

@@ -2755,6 +2755,7 @@ interface PointerEventInit extends MouseEventInit {
     coalescedEvents?: PointerEvent[];
     height?: number;
     isPrimary?: boolean;
+    persistentDeviceId?: number;
     pointerId?: number;
     pointerType?: string;
     predictedEvents?: PointerEvent[];
@@ -7322,6 +7323,7 @@ interface Document extends Node, DocumentOrShadowRoot, FontFaceSource, GeometryU
     onreadystatechange: ((this: Document, ev: Event) => any) | null;
     onvisibilitychange: ((this: Document, ev: Event) => any) | null;
     readonly partitionedPrincipal: Principal;
+    pausedByDevTools: boolean;
     readonly permDelegateHandler: nsIPermissionDelegateHandler;
     readonly plugins: HTMLCollection;
     readonly preferredStyleSheetSet: string | null;
@@ -15807,6 +15809,7 @@ interface PointerEvent extends MouseEvent {
     readonly azimuthAngle: number;
     readonly height: number;
     readonly isPrimary: boolean;
+    readonly persistentDeviceId: number;
     readonly pointerId: number;
     readonly pointerType: string;
     readonly pressure: number;
@@ -19581,6 +19584,15 @@ declare var TaskSignal: {
     any(signals: AbortSignal[], init?: TaskSignalAnyInit): TaskSignal;
 };
 
+interface TestChromeOnlyInterface {
+}
+
+declare var TestChromeOnlyInterface: {
+    prototype: TestChromeOnlyInterface;
+    new(): TestChromeOnlyInterface;
+    isInstance: IsInstance<TestChromeOnlyInterface>;
+};
+
 interface TestFunctions {
     allowSharedArrayBuffer: ArrayBuffer;
     allowSharedArrayBufferView: ArrayBufferView;
@@ -19625,6 +19637,7 @@ declare var TestFunctions: {
     prototype: TestFunctions;
     new(): TestFunctions;
     isInstance: IsInstance<TestFunctions>;
+    createTestChromeOnlyInterface(): TestChromeOnlyInterface;
     passThroughCallbackPromise(callback: PromiseReturner): Promise<any>;
     passThroughPromise(arg: any): Promise<any>;
     throwToRejectPromise(): Promise<any>;
@@ -24504,7 +24517,7 @@ declare namespace ChromeUtils {
     function dateNow(): number;
     function defineESModuleGetters(aTarget: any, aModules: any, aOptions?: ImportESModuleOptionsDictionary): void;
     function defineLazyGetter(aTarget: any, aName: any, aLambda: any): void;
-    function endWheelTransaction(): void;
+    function endWheelTransaction(window: WindowProxy): Promise<void>;
     function ensureHeadlessContentProcess(aRemoteType: string): Promise<nsIContentParentKeepAlive>;
     function ensureJSOracleStarted(): void;
     function fillNonDefaultOriginAttributes(originAttrs?: OriginAttributesDictionary): OriginAttributesDictionary;
