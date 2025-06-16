@@ -10,9 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -35,7 +33,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.button.TertiaryButton
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.History
 import org.mozilla.fenix.GleanMetrics.HomeBookmarks
@@ -65,7 +62,6 @@ import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
 import org.mozilla.fenix.home.recentvisits.view.RecentVisitMenuItem
 import org.mozilla.fenix.home.recentvisits.view.RecentlyVisited
 import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
-import org.mozilla.fenix.home.sessioncontrol.CustomizeHomeIteractor
 import org.mozilla.fenix.home.sessioncontrol.MessageCardInteractor
 import org.mozilla.fenix.home.sessioncontrol.viewholders.FeltPrivacyModeInfoCard
 import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescription
@@ -225,13 +221,6 @@ internal fun Homepage(
                             PocketSection(
                                 state = pocketState,
                                 cardBackgroundColor = cardBackgroundColor,
-                                interactor = interactor,
-                            )
-                        }
-
-                        if (showCustomizeHome) {
-                            CustomizeHomeButton(
-                                buttonBackgroundColor = customizeHomeButtonBackgroundColor,
                                 interactor = interactor,
                             )
                         }
@@ -440,21 +429,6 @@ private fun CollectionsSection(
 }
 
 @Composable
-private fun CustomizeHomeButton(buttonBackgroundColor: Color, interactor: CustomizeHomeIteractor) {
-    Spacer(modifier = Modifier.height(24.dp))
-
-    TertiaryButton(
-        text = stringResource(R.string.browser_menu_customize_home_1),
-        modifier = Modifier
-            .heightIn(min = 48.dp)
-            .padding(horizontal = dimensionResource(R.dimen.home_item_horizontal_margin))
-            .fillMaxWidth(),
-        backgroundColor = buttonBackgroundColor,
-        onClick = interactor::openCustomizeHomePage,
-    )
-}
-
-@Composable
 @PreviewLightDark
 private fun HomepagePreview() {
     FirefoxTheme {
@@ -488,7 +462,6 @@ private fun HomepagePreview() {
                     cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
                     buttonTextColor = WallpaperState.default.buttonTextColor,
                     buttonBackgroundColor = WallpaperState.default.buttonBackgroundColor,
-                    customizeHomeButtonBackgroundColor = FirefoxTheme.colors.actionTertiary,
                     bottomSpacerHeight = 188.dp,
                 ),
                 interactor = FakeHomepagePreview.homepageInteractor,
@@ -528,7 +501,6 @@ private fun HomepagePreviewCollections() {
                 cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
                 buttonTextColor = WallpaperState.default.buttonTextColor,
                 buttonBackgroundColor = WallpaperState.default.buttonBackgroundColor,
-                customizeHomeButtonBackgroundColor = FirefoxTheme.colors.actionTertiary,
                 bottomSpacerHeight = 188.dp,
             ),
             interactor = FakeHomepagePreview.homepageInteractor,

@@ -190,12 +190,6 @@ class SessionControlInteractorTest {
     }
 
     @Test
-    fun `WHEN tapping on the customize home button THEN openCustomizeHomePage`() {
-        interactor.openCustomizeHomePage()
-        verify { controller.handleCustomizeHomeTapped() }
-    }
-
-    @Test
     fun `WHEN Show All bookmarks button is clicked THEN the click is handled`() {
         interactor.onShowAllBookmarksClicked()
         verify { bookmarksController.handleShowAllBookmarksClicked() }

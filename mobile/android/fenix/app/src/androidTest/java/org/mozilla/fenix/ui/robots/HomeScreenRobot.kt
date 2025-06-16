@@ -480,21 +480,6 @@ class HomeScreenRobot {
 //        }
 //    }
 
-    fun verifyCustomizeHomepageButton(composeTestRule: ComposeTestRule, enabled: Boolean) {
-        if (enabled) {
-            Log.i(TAG, "verifyCustomizeHomepageButton: Trying to perform scroll to the \"Customize homepage\" button")
-            composeTestRule.onNodeWithTag(HOMEPAGE).performScrollToNode(hasText("Customize homepage"))
-            Log.i(TAG, "verifyCustomizeHomepageButton: Performed scroll to the \"Customize homepage\" button")
-            Log.i(TAG, "verifyCustomizeHomepageButton: Trying to verify that the \"Customize homepage\" button is displayed")
-            composeTestRule.onNodeWithText("Customize homepage").assertIsDisplayed()
-            Log.i(TAG, "verifyCustomizeHomepageButton: Verified that the \"Customize homepage\" button is displayed")
-        } else {
-            Log.i(TAG, "verifyCustomizeHomepageButton: Trying to verify that the \"Customize homepage\" button is not displayed")
-            composeTestRule.onNodeWithText("Customize homepage").assertIsNotDisplayed()
-            Log.i(TAG, "verifyCustomizeHomepageButton: Verified that the \"Customize homepage\" button is not displayed")
-        }
-    }
-
     fun getProvokingStoryPublisher(position: Int): String {
         val publisher = mDevice.findObject(
             UiSelector()
@@ -870,18 +855,6 @@ class HomeScreenRobot {
 
             HistoryRobot().interact()
             return HistoryRobot.Transition()
-        }
-
-        fun openCustomizeHomepage(composeTestRule: ComposeTestRule, interact: SettingsSubMenuHomepageRobot.() -> Unit): SettingsSubMenuHomepageRobot.Transition {
-            Log.i(TAG, "openCustomizeHomepage: Trying to perform scroll to the \"Customize homepage\" button")
-            composeTestRule.onNodeWithTag(HOMEPAGE).performScrollToNode(hasText("Customize homepage"))
-            Log.i(TAG, "openCustomizeHomepage: Performed scroll to the \"Customize homepage\" button")
-            Log.i(TAG, "openCustomizeHomepage: Trying to click \"Customize homepage\" button")
-            composeTestRule.onNodeWithText("Customize homepage").performClick()
-            Log.i(TAG, "openCustomizeHomepage: Clicked \"Customize homepage\" button")
-
-            SettingsSubMenuHomepageRobot().interact()
-            return SettingsSubMenuHomepageRobot.Transition()
         }
 
         fun clickJumpBackInShowAllButton(composeTestRule: HomeActivityComposeTestRule, interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {

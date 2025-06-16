@@ -123,13 +123,6 @@ interface CollectionInteractor {
     fun onRemoveCollectionsPlaceholder()
 }
 
-interface CustomizeHomeIteractor {
-    /**
-     * Opens the customize home settings page.
-     */
-    fun openCustomizeHomePage()
-}
-
 /**
  * Interface for top site related actions in the [SessionControlInteractor].
  */
@@ -413,10 +406,6 @@ class SessionControlInteractor(
 
     override fun onRemoveRecentHistoryHighlight(highlightUrl: String) {
         recentVisitsController.handleRemoveRecentHistoryHighlight(highlightUrl)
-    }
-
-    override fun openCustomizeHomePage() {
-        controller.handleCustomizeHomeTapped()
     }
 
     override fun onStoryShown(storyShown: PocketStory, storyPosition: Triple<Int, Int, Int>) {

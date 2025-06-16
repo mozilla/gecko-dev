@@ -42,7 +42,6 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.Collections
 import org.mozilla.fenix.GleanMetrics.HomeBookmarks
-import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.GleanMetrics.RecentTabs
 import org.mozilla.fenix.GleanMetrics.TopSites
@@ -176,11 +175,6 @@ interface SessionControlController {
      * @see [MessageCardInteractor.onMessageClosedClicked]
      */
     fun handleMessageClosed(message: Message)
-
-    /**
-     * @see [CustomizeHomeIteractor.openCustomizeHomePage]
-     */
-    fun handleCustomizeHomeTapped()
 
     /**
      * @see [WallpaperInteractor.showWallpapersOnboardingDialog]
@@ -572,12 +566,6 @@ class DefaultSessionControlController(
         }
 
         return url
-    }
-
-    override fun handleCustomizeHomeTapped() {
-        val directions = HomeFragmentDirections.actionGlobalHomeSettingsFragment()
-        navController.nav(navController.currentDestination?.id, directions)
-        HomeScreen.customizeHomeClicked.record(NoExtras())
     }
 
     override fun handleShowWallpapersOnboardingDialog(state: WallpaperState): Boolean {

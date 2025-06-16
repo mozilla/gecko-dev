@@ -49,7 +49,6 @@ import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.Collections
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.HomeBookmarks
-import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.GleanMetrics.RecentTabs
 import org.mozilla.fenix.GleanMetrics.TopSites
@@ -179,23 +178,6 @@ class DefaultSessionControlControllerTest {
             navController.navigate(
                 match<NavDirections> {
                     it.actionId == R.id.action_global_collectionCreationFragment
-                },
-                null,
-            )
-        }
-    }
-
-    @Test
-    fun handleCustomizeHomeTapped() {
-        assertNull(HomeScreen.customizeHomeClicked.testGetValue())
-
-        createController().handleCustomizeHomeTapped()
-
-        assertNotNull(HomeScreen.customizeHomeClicked.testGetValue())
-        verify {
-            navController.navigate(
-                match<NavDirections> {
-                    it.actionId == R.id.action_global_homeSettingsFragment
                 },
                 null,
             )

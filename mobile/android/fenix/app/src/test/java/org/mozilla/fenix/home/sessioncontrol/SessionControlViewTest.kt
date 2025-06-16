@@ -23,7 +23,7 @@ import org.mozilla.fenix.utils.Settings
 class SessionControlViewTest {
 
     @Test
-    fun `GIVEN recent Bookmarks WHEN normalModeAdapterItems is called THEN add a customize home button`() {
+    fun `GIVEN recent Bookmarks WHEN normalModeAdapterItems is called THEN show bookmarks section`() {
         val settings: Settings = mockk()
         val topSites = emptyList<TopSite>()
         val collections = emptyList<TabCollection>()
@@ -53,10 +53,11 @@ class SessionControlViewTest {
             pocketStories = pocketStories,
         )
 
+        assertEquals(4, results.size)
         assertTrue(results[0] is AdapterItem.TopPlaceholderItem)
         assertTrue(results[1] is AdapterItem.BookmarksHeader)
         assertTrue(results[2] is AdapterItem.Bookmarks)
-        assertTrue(results[3] is AdapterItem.CustomizeHomeButton)
+        assertTrue(results[3] is AdapterItem.BottomSpacer)
     }
 
     @Test
@@ -95,7 +96,7 @@ class SessionControlViewTest {
     }
 
     @Test
-    fun `GIVEN recent tabs WHEN normalModeAdapterItems is called THEN add a customize home button`() {
+    fun `GIVEN recent tabs WHEN normalModeAdapterItems is called THEN show jump back in section`() {
         val settings: Settings = mockk()
         val topSites = emptyList<TopSite>()
         val collections = emptyList<TabCollection>()
@@ -125,14 +126,15 @@ class SessionControlViewTest {
             pocketStories,
         )
 
+        assertEquals(4, results.size)
         assertTrue(results[0] is AdapterItem.TopPlaceholderItem)
         assertTrue(results[1] is AdapterItem.RecentTabsHeader)
         assertTrue(results[2] is AdapterItem.RecentTabItem)
-        assertTrue(results[3] is AdapterItem.CustomizeHomeButton)
+        assertTrue(results[3] is AdapterItem.BottomSpacer)
     }
 
     @Test
-    fun `GIVEN history metadata WHEN normalModeAdapterItems is called THEN add a customize home button`() {
+    fun `GIVEN history metadata WHEN normalModeAdapterItems is called THEN show recently visited section`() {
         val settings: Settings = mockk()
         val topSites = emptyList<TopSite>()
         val collections = emptyList<TabCollection>()
@@ -162,14 +164,15 @@ class SessionControlViewTest {
             pocketStories,
         )
 
+        assertEquals(4, results.size)
         assertTrue(results[0] is AdapterItem.TopPlaceholderItem)
         assertTrue(results[1] is AdapterItem.RecentVisitsHeader)
         assertTrue(results[2] is AdapterItem.RecentVisitsItems)
-        assertTrue(results[3] is AdapterItem.CustomizeHomeButton)
+        assertTrue(results[3] is AdapterItem.BottomSpacer)
     }
 
     @Test
-    fun `GIVEN pocket articles WHEN normalModeAdapterItems is called THEN add a customize home button`() {
+    fun `GIVEN pocket articles WHEN normalModeAdapterItems is called THEN show stories section`() {
         val settings: Settings = mockk()
         val topSites = emptyList<TopSite>()
         val collections = emptyList<TabCollection>()
@@ -200,11 +203,10 @@ class SessionControlViewTest {
             true,
         )
 
-        assertEquals(4, results.size)
+        assertEquals(3, results.size)
         assertTrue(results[0] is AdapterItem.TopPlaceholderItem)
         assertTrue(results[1] is AdapterItem.PocketStoriesItem)
-        assertTrue(results[2] is AdapterItem.CustomizeHomeButton)
-        assertTrue(results[3] is AdapterItem.BottomSpacer)
+        assertTrue(results[2] is AdapterItem.BottomSpacer)
 
         // When the first frame has not yet drawn don't add pocket.
         val results2 = normalModeAdapterItems(

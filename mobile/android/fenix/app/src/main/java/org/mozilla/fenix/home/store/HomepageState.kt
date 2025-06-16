@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.home.store
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -31,9 +30,7 @@ import org.mozilla.fenix.home.topsites.TopSiteColors
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.HomeScreenSection
 import org.mozilla.fenix.search.SearchDialogFragment
-import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.utils.Settings
-import org.mozilla.fenix.wallpapers.WallpaperState
 
 /**
  * State object that describes the homepage.
@@ -98,7 +95,6 @@ internal sealed class HomepageState {
      * @property cardBackgroundColor Background color for card items.
      * @property buttonBackgroundColor Background [Color] for buttons.
      * @property buttonTextColor Text [Color] for buttons.
-     * @property customizeHomeButtonBackgroundColor Background [Color] for customize home button.
      * @property bottomSpacerHeight Height in [Dp] for the bottom of the scrollable view, based on
      * what's currently visible on the screen.
      */
@@ -126,16 +122,8 @@ internal sealed class HomepageState {
         val cardBackgroundColor: Color,
         val buttonBackgroundColor: Color,
         val buttonTextColor: Color,
-        val customizeHomeButtonBackgroundColor: Color,
         override val bottomSpacerHeight: Dp,
-    ) : HomepageState() {
-
-        /**
-         * Whether to show customize home button.
-         */
-        val showCustomizeHome: Boolean
-            get() = showTopSites || showRecentTabs || showBookmarks || showRecentlyVisited || showPocketStories
-    }
+    ) : HomepageState()
 
     val browsingMode: BrowsingMode
         get() = when (this) {
@@ -203,7 +191,6 @@ internal sealed class HomepageState {
                         cardBackgroundColor = wallpaperState.cardBackgroundColor,
                         buttonBackgroundColor = wallpaperState.buttonBackgroundColor,
                         buttonTextColor = wallpaperState.buttonTextColor,
-                        customizeHomeButtonBackgroundColor = wallpaperState.customizeHomeButtonBackgroundColor(),
                         bottomSpacerHeight = getBottomSpace(),
                     )
                 }
@@ -214,21 +201,6 @@ internal sealed class HomepageState {
 
 private val showSyncedTab: Boolean
     get() = FxNimbus.features.homescreen.value().sectionsEnabled[HomeScreenSection.SYNCED_TABS] == true
-
-@Composable
-private fun WallpaperState.customizeHomeButtonBackgroundColor(): Color {
-    var buttonColor: Color = FirefoxTheme.colors.actionTertiary
-
-    ComposeRunIfWallpaperCardColorsAreAvailable { cardColorLight, cardColorDark ->
-        buttonColor = if (isSystemInDarkTheme()) {
-            cardColorDark
-        } else {
-            cardColorLight
-        }
-    }
-
-    return buttonColor
-}
 
 @Composable
 private fun getBottomSpace(): Dp {

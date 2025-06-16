@@ -53,7 +53,6 @@ class HomeScreenTest : TestSetup() {
             verifyNoCollectionsText(activityTestRule)
             scrollToPocketProvokingStories()
             verifyThoughtProvokingStories(true)
-            verifyCustomizeHomepageButton(activityTestRule, true)
             verifyNavigationToolbar()
             verifyHomeMenuButton()
             verifyTabButton()
@@ -122,30 +121,6 @@ class HomeScreenTest : TestSetup() {
 
         homeScreen {
             verifyJumpBackInSectionIsNotDisplayed(activityTestRule)
-        }
-    }
-
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1569839
-    @Test
-    fun verifyCustomizeHomepageButtonTest() {
-        val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
-
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-        }.goToHomescreen(activityTestRule) {
-        }.openCustomizeHomepage(activityTestRule) {
-            clickShortcutsButton()
-            clickJumpBackInButton()
-            clickRecentBookmarksButton()
-            clickRecentSearchesButton()
-            clickPocketButton()
-        }.goBackToHomeScreen {
-            verifyCustomizeHomepageButton(activityTestRule, false)
-        }.openThreeDotMenu {
-        }.openCustomizeHome {
-            clickShortcutsButton()
-        }.goBackToHomeScreen {
-            verifyCustomizeHomepageButton(activityTestRule, true)
         }
     }
 }

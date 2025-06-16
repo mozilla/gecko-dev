@@ -85,8 +85,6 @@ internal object FakeHomepagePreview {
 
             override fun onMessageClosedClicked(message: Message) { /* no op */ }
 
-            override fun openCustomizeHomePage() { /* no op */ }
-
             override fun onStoryShown(
                 storyShown: PocketStory,
                 storyPosition: Triple<Int, Int, Int>,

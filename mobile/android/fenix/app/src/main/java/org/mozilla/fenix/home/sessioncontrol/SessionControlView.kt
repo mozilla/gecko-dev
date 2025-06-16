@@ -49,7 +49,6 @@ internal fun normalModeAdapterItems(
     firstFrameDrawn: Boolean = false,
 ): List<AdapterItem> {
     val items = mutableListOf<AdapterItem>()
-    var shouldShowCustomizeHome = false
 
     // Add a synchronous, unconditional and invisible placeholder so home is anchored to the top when created.
     items.add(AdapterItem.TopPlaceholderItem)
@@ -59,7 +58,6 @@ internal fun normalModeAdapterItems(
     }
 
     if (settings.showTopSitesFeature && topSites.isNotEmpty()) {
-        shouldShowCustomizeHome = true
         items.add(AdapterItem.TopSitePager(topSites))
     }
 
@@ -68,7 +66,6 @@ internal fun normalModeAdapterItems(
     }
 
     if (showRecentTab) {
-        shouldShowCustomizeHome = true
         items.add(AdapterItem.RecentTabsHeader)
         items.add(AdapterItem.RecentTabItem)
         if (showRecentSyncedTab) {
@@ -77,13 +74,11 @@ internal fun normalModeAdapterItems(
     }
 
     if (settings.showBookmarksHomeFeature && bookmarks.isNotEmpty()) {
-        shouldShowCustomizeHome = true
         items.add(AdapterItem.BookmarksHeader)
         items.add(AdapterItem.Bookmarks)
     }
 
     if (settings.historyMetadataUIFeature && recentVisits.isNotEmpty()) {
-        shouldShowCustomizeHome = true
         items.add(AdapterItem.RecentVisitsHeader)
         items.add(AdapterItem.RecentVisitsItems)
     }
@@ -101,13 +96,7 @@ internal fun normalModeAdapterItems(
     // This is only useful while we have a RecyclerView + Compose implementation. We can remove this
     // when we switch to a Compose-only home screen.
     if (firstFrameDrawn && settings.showPocketRecommendationsFeature && pocketStories.isNotEmpty()) {
-        shouldShowCustomizeHome = true
-
         items.add(AdapterItem.PocketStoriesItem)
-    }
-
-    if (shouldShowCustomizeHome) {
-        items.add(AdapterItem.CustomizeHomeButton)
     }
 
     items.add(AdapterItem.BottomSpacer)
