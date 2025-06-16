@@ -32,6 +32,7 @@ import shutil
 import socket
 import stat
 import subprocess
+import threading
 import urllib.error
 import urllib.request
 
@@ -112,6 +113,17 @@ def print_line(prefix, m):
     sys.stdout.buffer.flush()
 
 
+def reap_zombies(main_subprocess):
+    """Wait for main_subprocess to exit, while awaiting any other child processes"""
+    while main_subprocess.poll() is None:
+        with main_subprocess._waitpid_lock:
+            if main_subprocess.returncode is not None:
+                return
+            pid, status = os.wait()
+            if pid == main_subprocess.pid:
+                main_subprocess._handle_exitstatus(status)
+
+
 def run_and_prefix_output(prefix, args, *, extra_env=None, cwd=None):
     """Runs a process and prefixes its output with the time.
 
@@ -151,6 +163,13 @@ def run_and_prefix_output(prefix, args, *, extra_env=None, cwd=None):
 
     stdout = io.TextIOWrapper(p.stdout, encoding="latin1")
 
+    if os.getpid() == 1:
+        # in docker we're init, so we get to adopt unawaited zombies
+        reaper_thread = threading.Thread(target=reap_zombies, args=(p,))
+        reaper_thread.start()
+    else:
+        reaper_thread = None
+
     while True:
         data = stdout.readline().encode("latin1")
 
@@ -159,6 +178,8 @@ def run_and_prefix_output(prefix, args, *, extra_env=None, cwd=None):
 
         print_line(prefix, data)
 
+    if reaper_thread:
+        reaper_thread.join()
     return p.wait()
 
 
