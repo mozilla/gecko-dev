@@ -321,7 +321,7 @@
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Cydweddu cyfrineiriau, tabiau, a mwy</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption_2">Cydweddu cyfrineiriau, tabiau, a mwy</string>
+  <string name="browser_menu_sign_in_caption_2">Cydweddu cyfrineiriau, tabiau, a rhagor</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Ail fewngofnodi i gydweddu</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -416,9 +416,9 @@
     Content description for a banner within the menu which prompt the user to make this app their default browser.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_default_banner_title">Gwnewch %1$s yn rhagosodiad i chi</string>
+  <string name="browser_menu_default_banner_title">Gwnewch %1$s eich porwr arferol</string>
   <!-- Label text within the set as default banner -->
-  <string name="browser_menu_default_banner_subtitle">Yn cymryd eiliadau. Newid unrhyw bryd.</string>
+  <string name="browser_menu_default_banner_subtitle">Dim ond yn cymryd eiliadau. Ei newid unrhyw bryd.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
   <string name="browser_menu_default_banner_dismiss">Cau</string>
   <!--

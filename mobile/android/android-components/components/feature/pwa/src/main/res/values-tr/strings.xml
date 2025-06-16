@@ -7,7 +7,7 @@
   <!-- Text shown on the second row of the site controls notification. -->
   <string name="mozac_feature_pwa_site_controls_notification_text">Bu uygulamanın adresini kopyalamak için dokunun</string>
   <!-- Refresh button in site controls notification. -->
-  <string name="mozac_feature_pwa_site_controls_refresh">Yenile</string>
+  <string name="mozac_feature_pwa_site_controls_refresh">Tazele</string>
   <!-- Toast displayed when the website URL is copied. -->
   <string name="mozac_feature_pwa_copy_success">Adres kopyalandı.</string>
 </resources>

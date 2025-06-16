@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
   <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">ilo %s pi nasin len</string>
   <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
@@ -48,12 +48,39 @@
   <string name="home_bookmarks_menu_item_remove">o weka</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">kulupu Mozilla li pali e ilo %1$s.</string>
+  <!--
+    Private Browsing
+
+    Explanation for private browsing displayed to users on home view when they first enable private mode.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="private_browsing_placeholder_description_2">nasin len la ilo %1$s li weka e sona pi lipu lukin sina lon weka sina. ni li len ala e sina tawa ilo lipu tawa kulupu lawa. taso jan ante li kepeken ilo sina la nasin ni li len e sina tawa ona.</string>
+  <string name="private_browsing_common_myths">o kama sona pona e nasin len</string>
   <!-- Text for the positive action button -->
-  <string name="open_in_app_cfr_positive_button_text">o tawa lipu wile</string>
+  <string name="open_in_app_cfr_positive_button_text">o lukin e lipu wile</string>
   <!-- Text for the negative action button -->
   <string name="open_in_app_cfr_negative_button_text">o weka</string>
+  <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
+  <string name="camera_permissions_needed_positive_button_text">o lukin e lipu wile</string>
   <!-- Text for the negative action button to dismiss the dialog. -->
   <string name="camera_permissions_needed_negative_button_text">o weka</string>
+  <!-- Text for the positive action button to go to Settings for auto close tabs. -->
+  <string name="tab_tray_close_tabs_banner_positive_button_text">o lukin e lipu wile</string>
+  <!-- Text for the negative action button to dismiss the Close Tabs Banner. -->
+  <string name="tab_tray_close_tabs_banner_negative_button_text">o weka</string>
+  <!-- Text for the action link to go to Settings for inactive tabs. -->
+  <string name="tab_tray_inactive_onboarding_button_text">o pini e ni lon lipu wile</string>
+  <!-- Text for title for the auto-close dialog of the inactive tabs. -->
+  <string name="tab_tray_inactive_auto_close_title">poki o weka ala weka lon tenpo mun wan?</string>
+  <!--
+    Text for the body for the auto-close dialog of the inactive tabs.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="tab_tray_inactive_auto_close_body_2">sina lukin ala e poki lon tenpo suli la ilo %1$s li ken weka e ona.</string>
+  <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
+  <string name="tab_tray_inactive_auto_close_button_content_description">o pini</string>
+  <!-- Text for turn on auto close tabs button in the auto-close dialog of the inactive tabs. -->
+  <string name="tab_tray_inactive_turn_on_auto_close_button_2">o pini e poki kepeken lawa sina ala</string>
   <!--
     Home screen icons - Long press shortcuts
 
@@ -62,16 +89,39 @@
   <string name="home_screen_shortcut_open_new_tab_2">poki sin</string>
   <!-- Shortcut action to open new private tab -->
   <string name="home_screen_shortcut_open_new_private_tab_2">poki sin pi nasin len</string>
+  <!-- Shortcut action to open Passwords screen -->
+  <string name="home_screen_shortcut_passwords">nimi open</string>
+  <!--
+    Recent Tabs
+
+    Header text for jumping back into the recent tab in the home screen
+  -->
+  <string name="recent_tabs_header">o lukin e poki pi tenpo poka</string>
+  <!-- Button text for showing all the tabs in the tabs tray -->
+  <string name="recent_tabs_show_all">o lukin e poki ale</string>
+  <!-- Content description for the button which navigates the user to show all recent tabs in the tabs tray. -->
+  <string name="recent_tabs_show_all_content_description_2">o lukin e poki poka ale</string>
+  <!-- Text for the dropdown menu to remove a recent synced tab from the homescreen -->
+  <string name="recent_synced_tab_menu_item_remove">o weka</string>
   <!--
     Text for the menu button to remove a grouped highlight from the user's browsing history
     in the Recently visited section
   -->
   <string name="recent_tab_menu_item_remove">o weka</string>
   <!--
+    History Metadata
+
+    Header text for a section on the home screen that displays grouped highlights from the
+    user's browsing history, such as topics they have researched or explored on the web
+  -->
+  <string name="history_metadata_header_2">lukin poka</string>
+  <!--
     Text for the menu button to remove a grouped highlight from the user's browsing history
     in the Recently visited section
   -->
   <string name="recently_visited_menu_item_remove">o weka</string>
+  <!-- Content description for the button which navigates the user to show all of their history. -->
+  <string name="past_explorations_show_all_content_description_2">o lukin e poki lukin ale</string>
   <!--
     Browser Fragment
 
@@ -84,6 +134,83 @@
   <string name="browser_menu_refresh">o sin</string>
   <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
   <string name="browser_menu_stop">o pini</string>
+  <!-- Browser menu button that opens the extensions manager -->
+  <string name="browser_menu_extensions">ilo namako</string>
+  <!--
+    Browser menu banner header text for extensions onboarding.
+    %s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_extensions_banner_onboarding_header" moz:removedIn="141" tools:ignore="UnusedResources">o nasin sina e ilo %s</string>
+  <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
+  <string name="browser_menu_disabled_extensions_banner_onboarding_header">ilo namako li lon ilo sina. taso sina li ken ala e ona</string>
+  <!-- Browser menu banner link text for learning more about extensions -->
+  <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">o kama sona</string>
+  <!-- Browser menu button that opens the extensions manager -->
+  <string name="browser_menu_manage_extensions">o nasin e ilo namako</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">o suli</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">o lili</string>
+  <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
+  <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">ilo namako ni li pona tawa jan mute</string>
+  <!--
+    Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+    %1$s is the name of the extension (for example: ClearURLs).
+  -->
+  <string name="browser_menu_extension_plus_icon_content_description_2">o jo e ilo %1$s</string>
+  <!-- Browser menu button that opens AMO in a tab -->
+  <string name="browser_menu_discover_more_extensions">o alasa e ilo namako ante</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+  <string name="browser_menu_no_extensions_installed_description">ilo li ken ala e ilo namako</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">o jo e ilo namako pona</string>
+  <!-- Browser menu button that opens account settings -->
+  <string name="browser_menu_account_settings">sona sijelo</string>
+  <!-- Browser menu button that sends a user to help articles -->
+  <string name="browser_menu_help">lipu sona</string>
+  <!-- Browser menu button that sends a to a the what's new article -->
+  <string name="browser_menu_whats_new">seme li sin</string>
+  <!-- Browser menu button that opens the settings menu -->
+  <string name="browser_menu_settings">nasin ilo</string>
+  <!-- Browser menu button that opens a user's library -->
+  <string name="browser_menu_library">kulupu lipu</string>
+  <!-- Browser menu toggle that requests a desktop site -->
+  <string name="browser_menu_desktop_site">lipu pi ilo suli</string>
+  <!-- Browser menu button that reopens a private tab as a regular tab -->
+  <string name="browser_menu_open_in_regular_tab">o pana tawa poki</string>
+  <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
+  <string name="browser_menu_add_to_homescreen">o pana tawa lipu lawa ilo</string>
+  <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+  <string name="browser_menu_add_app_to_homescreen">o pana tawa lipu lawa ilo</string>
+  <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
+  <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">o pana tawa lipu lawa ilo…</string>
+  <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">o pana tawa lipu lawa ilo…</string>
+  <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+  <string name="browser_menu_add_to_homescreen_xiaomi">kulupu Xiaomi la ilo li wile e ken ante tawa ni: sina ken pana e ilo tawa lipu lawa. o lukin e nasin ilo sina.</string>
+  <!-- Browser menu button that opens the find in page menu -->
+  <string name="browser_menu_find_in_page">o alasa lon lipu</string>
+  <!-- Browser menu button that opens the find in page menu -->
+  <string name="browser_menu_find_in_page_2" moz:removedIn="141" tools:ignore="UnusedResources">o alasa lon lipu…</string>
+  <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
+  <string name="browser_menu_translations">o ante e toki lipu</string>
+  <!-- Browser menu button that saves the current tab to a collection -->
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">o awen lon kulupu…</string>
+  <!-- Browser menu button that saves the current tab to a collection -->
+  <string name="browser_menu_save_to_collection_2">o awen lon kulupu</string>
+  <!-- Browser menu button that open a share menu to share the current site -->
+  <string name="browser_menu_share">o pana</string>
+  <!--
+    Browser menu button shown in custom tabs that opens the current tab in Fenix
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_open_in_fenix">o open lon ilo %1$s</string>
+  <!-- Browser menu label for adding a bookmark -->
+  <string name="browser_menu_add">o pana</string>
+  <!-- Browser menu label for editing a bookmark -->
+  <string name="browser_menu_edit">o ante</string>
+  <!-- Button shown on the home page that opens the Customize home settings -->
+  <string name="browser_menu_customize_home_1">o nasin sina e lipu lawa</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">o pana e nimi nasin</string>
   <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
@@ -94,14 +221,26 @@
   <string name="bookmark_url_label">nimi nasin</string>
   <!-- Bookmark editing error missing or improper URL -->
   <string name="bookmark_invalid_url_error">nimi nasin ni li pakala</string>
+  <!--
+    Site Permissions
+
+    Button label that take the user to the Android App setting
+  -->
+  <string name="phone_feature_go_to_settings">o lukin e nasin ilo</string>
+  <!-- Preference for altering video and audio autoplay for all websites -->
+  <string name="preference_browser_feature_autoplay">open sitelen</string>
   <!-- Message for copying the URL via long press on the toolbar -->
   <string name="url_copied">mi jo e nimi nasin</string>
+  <!-- Instructions on how to access pairing -->
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[ilo ante suli la o alasa e nimi <b>https://firefox.com/pair</b>]]></string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
   <string name="preference_doh_provider_custom_dialog_error_https">nimi nasin li wile e open “https://”</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
   <string name="preference_doh_provider_custom_dialog_error_invalid">nimi nasin ni li pakala</string>
   <!-- Snackbar message shown after an URL has been copied to clipboard. -->
   <string name="browser_toolbar_url_copied_to_clipboard_snackbar">mi jo e nimi nasin</string>
+  <!-- First step for the allowing a permission -->
+  <string name="phone_feature_blocked_step_settings">1. o lukin e nasin ilo lon ilo Android</string>
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- Hint for editing URL of a shortcut. -->
@@ -110,5 +249,7 @@
   <string name="top_sites_edit_dialog_url_error">o pana e nimi nasin pona</string>
   <!-- Label for the URL edit field in the edit top site dialog. -->
   <string name="top_sites_edit_dialog_url_title">nimi nasin</string>
+  <!-- Snackbar button text to navigate to telemetry settings. -->
+  <string name="experiments_snackbar_button">o lukin e nasin ilo</string>
   <!-- Translations feature -->
 </resources>

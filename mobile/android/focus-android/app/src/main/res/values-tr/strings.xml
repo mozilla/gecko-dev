@@ -11,7 +11,7 @@
   -->
 
   <!-- Label used for buttons, e.g. in dialogs -->
-  <string name="action_cancel">Vazgeç</string>
+  <string name="action_cancel">İptal</string>
   <!-- Label used for buttons, e.g. in dialogs -->
   <string name="action_ok">Tamam</string>
   <string name="action_save">Kaydet</string>
@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s kontrolü size verir.&lt;/p&gt;
-&lt;p&gt;Onu gizlilik odaklı bir tarayıcı olarak kullanabilirsiniz:
-  &lt;ul&gt;
-    &lt;li&gt;Doğrudan uygulamada arama yapabilir ve web’de gezinebilirsiniz&lt;/li&gt;
-    &lt;li&gt;Takip kodlarını engelleyebilirsiniz (veya belli takip kodlarına izin verebilirsiniz)&lt;/li&gt;
-    &lt;li&gt;Tek düğmeyle çerezleri, arama ve gezinti geçmişinizi silebilirsiniz&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s Mozilla tarafından geliştirilmiştir. Misyonumuz daha sağlıklı ve açık bir internet yaratmaktır.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Daha fazla bilgi alın&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s kontrolü size verir.</p> <p>Onu gizlilik odaklı bir tarayıcı olarak kullanabilirsiniz: <ul> <li>Doğrudan uygulamada arama yapabilir ve web’de gezinebilirsiniz</li> <li>Takip kodlarını engelleyebilirsiniz (veya belli takip kodlarına izin verebilirsiniz)</li> <li>Tek düğmeyle çerezleri, arama ve gezinti geçmişinizi silebilirsiniz</li> </ul> </p> <p>%1$s Mozilla tarafından geliştirilmiştir. Misyonumuz daha sağlıklı ve açık bir internet yaratmaktır.<br/> <a href=\"%2$s\">Daha fazla bilgi alın</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Gizlilik ve Güvenlik</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -600,7 +591,7 @@
     results found in the page and the position the user is at. %1$d is the
     position, %2$d is the total number of results.
   -->
-  <string name="accessibility_find_in_page_result">%2$d sonuçtan %1$d. sonuç</string>
+  <string name="accessibility_find_in_page_result">%2$d sonuçtan %1$d sonuç</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
   <string name="accessibility_next_result">Sonraki sonucu bul</string>
   <!-- String to be read by the accessibility service when focusing the previous result button -->
@@ -656,7 +647,7 @@
   <!-- Long text for a detail explanation indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
   <string name="cookie_banner_exception_panel_description_site_is_not_supported">Çerez bildirimlerini azaltma özelliği henüz bu siteyi desteklemiyor. Ekibimizin bu siteyi inceleyip gelecekte desteklemesini ister misiniz?</string>
   <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
-  <string name="cookie_banner_exception_panel_site_is_not_supported_cancel_button">Vazgeç</string>
+  <string name="cookie_banner_exception_panel_site_is_not_supported_cancel_button">İptal</string>
   <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
   <string name="cookie_banner_exception_panel_site_is_not_supported_request_support_button">Destek iste</string>
   <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Android ayarlarına gidin</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;İzinler&lt;/b&gt;’e dokunun</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b>İzinler</b>’e dokunun]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Ayarlara git</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; ayarını AÇIK yapın</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> ayarını AÇIK yapın]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -752,7 +743,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> Arama önerileri alabilmeniz için %1$s’un adres çubuğuna yazdığınız şeyleri seçtiğiniz arama motoruna göndermesi gerekir.</string>
+  <string name="enable_search_suggestion_description">Arama önerileri alabilmeniz için %1$s’un adres çubuğuna yazdığınız şeyleri seçtiğiniz arama motoruna göndermesi gerekir.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">Hayır</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -767,8 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Düzgün görünmeyen bir site mi var?\n
-    İzlenme Koruması’nı kapatmayı deneyin</string>
+  <string name="tip_disable_tracking_protection">Düzgün görünmeyen bir site mi var?\nİzlenme Koruması’nı kapatmayı deneyin</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -779,23 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Her bağlantıyı %1$s ile açabilirsiniz\n
-        %1$s’u varsayılan tarayıcınız yapın
-    </string>
+  <string name="tip_set_default_browser">Her bağlantıyı %1$s ile açabilirsiniz\n%1$s’u varsayılan tarayıcınız yapın</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">En çok kullandığınız sitelerin adreslerini otomatik tamamlayabilirsiniz\n
-        Adres çubuğundaki herhangi bir adrese basılı tutun
-    </string>
+  <string name="tip_autocomplete_url">En çok kullandığınız sitelerin adreslerini otomatik tamamlayabilirsiniz\nAdres çubuğundaki herhangi bir adrese basılı tutun</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Bağlantıları yeni sekmede açabilirsiniz\n
-        Bir sayfadaki herhangi bir bağlantıya uzun basın
-    </string>
+  <string name="tip_open_in_new_tab">Bağlantıları yeni sekmede açabilirsiniz\nBir sayfadaki herhangi bir bağlantıya uzun basın</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Başlangıç ​​ekranında ipuçlarını kapat</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -876,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">%1$s geçmişini sildiğinizde, kaydettiğiniz ve paylaştığınız resimler &lt;b&gt;silinmeyecektir&lt;/b&gt;</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[%1$s geçmişini sildiğinizde, kaydettiğiniz ve paylaştığınız resimler <b>silinmeyecektir</b>]]></string>
   <!--
     Theme Preferences
 
@@ -897,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s, güvenliğinizi artırmak için mümkünse HTTPS bağlantısı kullanmaya çalışır.
-     &lt;a href="%2$s"&gt;Daha fazla bilgi alın&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Bu ayarı Ayarlar &gt; Gizlilik ve Güvenlik &gt; Güvenlik kısmından değiştirebilirsiniz.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s, güvenliğinizi artırmak için mümkünse HTTPS bağlantısı kullanmaya çalışır. <a href=\"%2$s\">Daha fazla bilgi alın</a> <br/><br/> Bu ayarı Ayarlar > Gizlilik ve Güvenlik > Güvenlik kısmından değiştirebilirsiniz.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Bağlantı güvenli değil</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Sunucunun yapılandırmasıyla ilgili bir sorun olabilir veya birisi sunucuyu taklit etmeye çalışıyor olabilir.&lt;br/&gt;&lt;br/&gt;
-    Daha önce bu sunucuya sorunsuz bağlandıysanız sorun geçici olabilir.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Sunucunun yapılandırmasıyla ilgili bir sorun olabilir veya birisi sunucuyu taklit etmeye çalışıyor olabilir.<br/><br/> Daha önce bu sunucuya sorunsuz bağlandıysanız sorun geçici olabilir.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Birisi bu siteyi taklit etmeye çalışıyor olabilir ve devam etmeniz riskli olabilir.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s &lt;b&gt;%2$s&lt;/b&gt; sitesine güvenmiyor. Sitenin sertifikasını düzenleyen kuruluş tanınmıyor olabilir, sertifika kendi kendine imzalanmış olabilir veya sunucu doğu ara sertifikaları göndermiyor olabilir.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Birisi bu siteyi taklit etmeye çalışıyor olabilir ve devam etmeniz riskli olabilir.</label> <br><br> <label>%1$s <b>%2$s</b> sitesine güvenmiyor. Sitenin sertifikasını düzenleyen kuruluş tanınmıyor olabilir, sertifika kendi kendine imzalanmış olabilir veya sunucu doğu ara sertifikaları göndermiyor olabilir.</label>]]></string>
   <!--
     Sessions List
 
