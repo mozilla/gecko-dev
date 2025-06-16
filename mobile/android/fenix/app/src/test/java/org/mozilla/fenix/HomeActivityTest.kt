@@ -86,12 +86,16 @@ class HomeActivityTest {
     }
 
     @Test
-    fun `getModeFromIntentOrLastKnown returns mode from settings when intent does not set`() {
+    fun `GIVEN browsing mode is not set by intent WHEN getModeFromIntentOrLastKnown is called THEN returns normal browsing mode`() {
         every { testContext.settings() } returns Settings(testContext)
         every { activity.applicationContext } returns testContext
         testContext.settings().lastKnownMode = BrowsingMode.Private
 
-        assertEquals(testContext.settings().lastKnownMode, activity.getModeFromIntentOrLastKnown(null))
+        assertEquals(BrowsingMode.Normal, activity.getModeFromIntentOrLastKnown(null))
+
+        testContext.settings().lastKnownMode = BrowsingMode.Normal
+
+        assertEquals(BrowsingMode.Normal, activity.getModeFromIntentOrLastKnown(null))
     }
 
     @Test

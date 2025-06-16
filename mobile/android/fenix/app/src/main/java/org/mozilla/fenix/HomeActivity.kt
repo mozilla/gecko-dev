@@ -1101,7 +1101,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
     /**
      * External sources such as 3rd party links and shortcuts use this function to enter
      * private mode directly before the content view is created. Returns the mode set by the intent
-     * otherwise falls back to the last known mode.
+     * otherwise falls back to normal browsing mode.
      */
     @VisibleForTesting
     internal fun getModeFromIntentOrLastKnown(intent: Intent?): BrowsingMode {
@@ -1111,7 +1111,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 return BrowsingMode.fromBoolean(isPrivate = startPrivateMode)
             }
         }
-        return settings().lastKnownMode
+        return BrowsingMode.Normal
     }
 
     /**

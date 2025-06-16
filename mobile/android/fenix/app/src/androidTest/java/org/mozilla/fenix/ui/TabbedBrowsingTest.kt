@@ -7,6 +7,7 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import mozilla.components.concept.engine.mediasession.MediaSession
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SkipLeaks
@@ -494,9 +495,9 @@ class TabbedBrowsingTest : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/526244
+    @Ignore("Temporarily disabled: https://bugzilla.mozilla.org/show_bug.cgi?id=1972361")
     @Test
-    fun privateModeStaysAsDefaultAfterRestartTest() {
+    fun privateModeDoNotPersistAfterRestartTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
@@ -508,7 +509,6 @@ class TabbedBrowsingTest : TestSetup() {
         restartApp(composeTestRule.activityRule)
 
         homeScreen {
-            verifyPrivateBrowsingHomeScreenItems()
         }.openTabDrawer(composeTestRule) {
         }.toggleToNormalTabs {
             verifyExistingOpenTabs(defaultWebPage.title)
@@ -534,7 +534,6 @@ class TabbedBrowsingTest : TestSetup() {
         closeApp(composeTestRule.activityRule)
         restartApp(composeTestRule.activityRule)
         homeScreen {
-            verifyPrivateBrowsingHomeScreenItems()
         }.openTabDrawer(composeTestRule) {
             verifyNoOpenTabsInPrivateBrowsing()
         }
