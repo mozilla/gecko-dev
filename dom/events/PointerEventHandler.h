@@ -7,6 +7,7 @@
 #ifndef mozilla_PointerEventHandler_h
 #define mozilla_PointerEventHandler_h
 
+#include "LayoutConstants.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TouchEvents.h"
@@ -15,6 +16,8 @@
 // XXX Avoid including this here by moving function bodies to the cpp file
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
+
+#include "mozilla/layers/InputAPZContext.h"
 
 class nsIFrame;
 class nsIContent;
@@ -45,17 +48,27 @@ class PointerCaptureInfo final {
   bool Empty() { return !(mPendingElement || mOverrideElement); }
 };
 
+/**
+ * PointerInfo stores the pointer's information and its last state (position,
+ * buttons, etc).
+ */
 struct PointerInfo final {
+  using Document = dom::Document;
   enum class Active : bool { No, Yes };
   enum class Primary : bool { No, Yes };
   enum class FromTouchEvent : bool { No, Yes };
   enum class SynthesizeForTests : bool { No, Yes };
-  PointerInfo() = delete;
+  PointerInfo()
+      : mIsActive(false),
+        mIsPrimary(false),
+        mFromTouchEvent(false),
+        mPreventMouseEventByContent(false),
+        mIsSynthesizedForTests(false) {}
   PointerInfo(const PointerInfo&) = default;
-  PointerInfo(PointerInfo&&) = default;
   explicit PointerInfo(
       Active aActiveState, uint16_t aInputSource, Primary aPrimaryState,
-      FromTouchEvent aFromTouchEvent, dom::Document* aActiveDocument,
+      FromTouchEvent aFromTouchEvent, Document* aActiveDocument,
+      const PointerInfo* aLastPointerInfo = nullptr,
       SynthesizeForTests aIsSynthesizedForTests = SynthesizeForTests::No)
       : mActiveDocument(aActiveDocument),
         mInputSource(aInputSource),
@@ -63,23 +76,98 @@ struct PointerInfo final {
         mIsPrimary(static_cast<bool>(aPrimaryState)),
         mFromTouchEvent(static_cast<bool>(aFromTouchEvent)),
         mPreventMouseEventByContent(false),
-        mIsSynthesizedForTests(static_cast<bool>(aIsSynthesizedForTests)) {}
+        mIsSynthesizedForTests(static_cast<bool>(aIsSynthesizedForTests)) {
+    if (aLastPointerInfo) {
+      TakeOverLastState(*aLastPointerInfo);
+    }
+  }
   explicit PointerInfo(Active aActiveState,
                        const WidgetPointerEvent& aPointerEvent,
-                       dom::Document* aActiveDocument)
+                       Document* aActiveDocument,
+                       const PointerInfo* aLastPointerInfo = nullptr)
       : mActiveDocument(aActiveDocument),
         mInputSource(aPointerEvent.mInputSource),
         mIsActive(static_cast<bool>(aActiveState)),
         mIsPrimary(aPointerEvent.mIsPrimary),
         mFromTouchEvent(aPointerEvent.mFromTouchEvent),
         mPreventMouseEventByContent(false),
-        mIsSynthesizedForTests(aPointerEvent.mFlags.mIsSynthesizedForTests) {}
+        mIsSynthesizedForTests(aPointerEvent.mFlags.mIsSynthesizedForTests) {
+    if (aLastPointerInfo) {
+      TakeOverLastState(*aLastPointerInfo);
+    }
+  }
 
-  WeakPtr<dom::Document> mActiveDocument;
+  [[nodiscard]] bool InputSourceSupportsHover() const {
+    return WidgetMouseEventBase::InputSourceSupportsHover(mInputSource);
+  }
+
+  [[nodiscard]] bool HasLastState() const {
+    return mLastRefPointInRootDoc !=
+           nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+  }
+
+  /**
+   * Make this store the last pointer state such as the position, buttons, etc,
+   * which should be used at dispatching a synthetic mouse/pointer move.
+   */
+  void RecordLastState(const nsPoint& aRefPointInRootDoc,
+                       const WidgetMouseEvent& aMouseOrPointerEvent) {
+    MOZ_ASSERT_IF(aMouseOrPointerEvent.mMessage == eMouseMove ||
+                      aMouseOrPointerEvent.mMessage == ePointerMove,
+                  aMouseOrPointerEvent.IsReal());
+
+    mLastRefPointInRootDoc = aRefPointInRootDoc;
+    mLastTargetGuid = layers::InputAPZContext::GetTargetLayerGuid();
+    // FIXME: DragEvent may not be initialized with the proper state.  So,
+    // ignore the details of drag events for now.
+    if (aMouseOrPointerEvent.mClass != eDragEventClass) {
+      mLastTiltX = aMouseOrPointerEvent.tiltX;
+      mLastTiltY = aMouseOrPointerEvent.tiltY;
+      mLastButtons = aMouseOrPointerEvent.mButtons;
+      mLastPressure = aMouseOrPointerEvent.mPressure;
+    }
+  }
+
+  /**
+   * Take over the last pointer state from older PointerInfo.
+   */
+  void TakeOverLastState(const PointerInfo& aPointerInfo) {
+    mLastRefPointInRootDoc = aPointerInfo.mLastRefPointInRootDoc;
+    mLastTargetGuid = aPointerInfo.mLastTargetGuid;
+    mLastTiltX = aPointerInfo.mLastTiltX;
+    mLastTiltY = aPointerInfo.mLastTiltY;
+    mLastButtons = aPointerInfo.mLastButtons;
+    mLastPressure = aPointerInfo.mLastPressure;
+  }
+
+  /**
+   * Clear the last pointer state to stop dispatching synthesized mouse/pointer
+   * move at the position.
+   */
+  void ClearLastState() {
+    mLastRefPointInRootDoc =
+        nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+    mLastTargetGuid = layers::ScrollableLayerGuid();
+    mLastTiltX = 0;
+    mLastTiltY = 0;
+    mLastButtons = 0;
+    mLastPressure = 0.0f;
+  }
+
+  // mLastRefPointInRootDoc stores the event point relative to the root
+  // PresShell.  So, it's different from the WidgetEvent::mRefPoint.
+  nsPoint mLastRefPointInRootDoc =
+      nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+  layers::ScrollableLayerGuid mLastTargetGuid;
+  WeakPtr<Document> mActiveDocument;
   // mInputSource indicates which input source caused the last event.  E.g.,
   // if the last event is a compatibility mouse event, the input source is
   // "touch".
   uint16_t mInputSource = 0;
+  int32_t mLastTiltX = 0;
+  int32_t mLastTiltY = 0;
+  int16_t mLastButtons = 0;
+  float mLastPressure = 0.0f;
   bool mIsActive : 1;
   bool mIsPrimary : 1;
   // mFromTouchEvent is set to true if the last event is a touch event or a
@@ -117,8 +205,19 @@ class PointerEventHandler final {
 
   // Called in ESM::PreHandleEvent to update current active pointers in a hash
   // table.
-  static void UpdateActivePointerState(WidgetMouseEvent* aEvent,
+  static void UpdatePointerActiveState(WidgetMouseEvent* aEvent,
                                        nsIContent* aTargetContent = nullptr);
+
+  /**
+   * Called when PresShell starts handling a mouse or subclass event.  This will
+   * set PointerInfo for synthesizing pointer move at the position later.
+   *
+   * @param aRefPointInRootPresShell    The event location in the root
+   *                                    PresShell.
+   * @param aMouseEvent                 The event which will be handled.
+   */
+  static void RecordPointerState(const nsPoint& aRefPointInRootPresShell,
+                                 const WidgetMouseEvent& aMouseEvent);
 
   // Request/release pointer capture of the specified pointer by the element.
   static void RequestPointerCaptureById(uint32_t aPointerId,
@@ -142,8 +241,8 @@ class PointerEventHandler final {
   // Get the pointer captured info of the specified pointer.
   static PointerCaptureInfo* GetPointerCaptureInfo(uint32_t aPointerId);
 
-  // Return the PointerInfo if the pointer with aPointerId is situated in device
-  // , nullptr otherwise.
+  // Return the PointerInfo if the pointer with aPointerId is situated in
+  // device, nullptr otherwise.
   // Note that the result may be activated only by synthesized events for test.
   // If you don't want it, check PointerInfo::mIsSynthesizedForTests.
   static const PointerInfo* GetPointerInfo(uint32_t aPointerId);

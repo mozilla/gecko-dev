@@ -99,6 +99,8 @@ class ProfileChunkedBuffer;
 class ScrollContainerFrame;
 class StyleSheet;
 
+struct PointerInfo;
+
 #ifdef ACCESSIBILITY
 namespace a11y {
 class DocAccessible;
@@ -1046,8 +1048,8 @@ class PresShell final : public nsStubDocumentObserver,
     mUnderHiddenEmbedderElement = aUnderHiddenEmbedderElement;
   }
 
-  MOZ_CAN_RUN_SCRIPT
-  void DispatchSynthMouseMove(WidgetGUIEvent* aEvent);
+  MOZ_CAN_RUN_SCRIPT void DispatchSynthMouseOrPointerMove(
+      WidgetMouseEvent* aMouseOrPointerMoveEvent);
 
   /* Temporarily ignore the Displayport for better paint performance. We
    * trigger a repaint once suppression is disabled. Without that
@@ -2087,6 +2089,9 @@ class PresShell final : public nsStubDocumentObserver,
     bool mFromScroll;
   };
   MOZ_CAN_RUN_SCRIPT void ProcessSynthMouseMoveEvent(bool aFromScroll);
+  MOZ_CAN_RUN_SCRIPT void ProcessSynthMouseOrPointerMoveEvent(
+      EventMessage aMoveMessage, uint32_t aPointerId,
+      const PointerInfo& aPointerInfo);
 
   void UpdateImageLockingState();
 
@@ -3235,9 +3240,11 @@ class PresShell final : public nsStubDocumentObserver,
   nsCallbackEventRequest* mFirstCallbackEventRequest = nullptr;
   nsCallbackEventRequest* mLastCallbackEventRequest = nullptr;
 
-  // This is used for synthetic mouse events that are sent when what is under
-  // the mouse pointer may have changed without the mouse moving (eg scrolling,
-  // change to the document contents).
+  // This is used only by PresShell for a root document to synthesize
+  // ePointerMove at a layout change or a scroll to dispatch pointer boundary
+  // events. This stores all pointerIds which over the root window.
+  CopyableTArray<uint32_t> mPointerIds;
+
   // It is set only on a presshell for a root document, this value represents
   // the last observed location of the mouse relative to that root document,
   // in visual coordinates. It is set to (NS_UNCONSTRAINEDSIZE,

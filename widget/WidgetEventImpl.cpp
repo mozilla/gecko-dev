@@ -895,8 +895,9 @@ double WidgetPointerHelper::ComputeTiltY(double aAltitudeAngle,
  * mozilla::WidgetMouseEventBase (MouseEvents.h)
  ******************************************************************************/
 
-bool WidgetMouseEventBase::InputSourceSupportsHover() const {
-  switch (mInputSource) {
+// static
+bool WidgetMouseEventBase::InputSourceSupportsHover(uint16_t aInputSource) {
+  switch (aInputSource) {
     case dom::MouseEvent_Binding::MOZ_SOURCE_MOUSE:
     case dom::MouseEvent_Binding::MOZ_SOURCE_PEN:
     case dom::MouseEvent_Binding::MOZ_SOURCE_ERASER:

@@ -1097,7 +1097,7 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       break;
     }
     case eMouseEnterIntoWidget:
-      PointerEventHandler::UpdateActivePointerState(mouseEvent, aTargetContent);
+      PointerEventHandler::UpdatePointerActiveState(mouseEvent, aTargetContent);
       // In some cases on e10s eMouseEnterIntoWidget
       // event was sent twice into child process of content.
       // (From specific widget code (sending is not permanent) and
@@ -1152,7 +1152,7 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       [[fallthrough]];
     case ePointerDown:
       if (aEvent->mMessage == ePointerDown) {
-        PointerEventHandler::UpdateActivePointerState(mouseEvent,
+        PointerEventHandler::UpdatePointerActiveState(mouseEvent,
                                                       aTargetContent);
         PointerEventHandler::ImplicitlyCapturePointer(aTargetFrame, aEvent);
         // https://html.spec.whatwg.org/multipage/interaction.html#activation-triggering-input-event
@@ -1168,7 +1168,7 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     case ePointerMove:
     case ePointerRawUpdate: {
       if (aEvent->mMessage == ePointerMove) {
-        PointerEventHandler::UpdateActivePointerState(mouseEvent,
+        PointerEventHandler::UpdatePointerActiveState(mouseEvent,
                                                       aTargetContent);
       }
       if (!mInTouchDrag &&
@@ -4211,7 +4211,7 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
       // Implicitly releasing capture for given pointer. ePointerLostCapture
       // should be send after ePointerUp or ePointerCancel.
       PointerEventHandler::ImplicitlyReleasePointerCapture(pointerEvent);
-      PointerEventHandler::UpdateActivePointerState(pointerEvent);
+      PointerEventHandler::UpdatePointerActiveState(pointerEvent);
 
       if (
           // After pointercancel, pointer becomes invalid so we can remove
@@ -4648,7 +4648,7 @@ nsresult EventStateManager::PostHandleEvent(nsPresContext* aPresContext,
       break;
 
     case eMouseExitFromWidget:
-      PointerEventHandler::UpdateActivePointerState(aEvent->AsMouseEvent());
+      PointerEventHandler::UpdatePointerActiveState(aEvent->AsMouseEvent());
       break;
 
 #ifdef XP_MACOSX
