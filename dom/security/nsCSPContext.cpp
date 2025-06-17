@@ -682,15 +682,15 @@ nsCSPContext::GetAllowsInline(CSPDirective aDirective, bool aHasUnsafeHash,
     // Check the content length to ensure the content is not allocated more than
     // once. Even though we are in a for loop, it is probable that there is only
     // one policy, so this check may be unnecessary.
-    if (content.IsEmpty() && aTriggeringElement) {
-      nsCOMPtr<nsIScriptElement> element =
-          do_QueryInterface(aTriggeringElement);
-      if (element) {
-        element->GetScriptText(content);
-      }
-    }
     if (content.IsEmpty()) {
-      content = aContentOfPseudoScript;
+      if (aContentOfPseudoScript.IsVoid()) {
+        // Lazily retrieve the text of inline script, see bug 1376651.
+        nsCOMPtr<nsIScriptElement> element = do_QueryInterface(aTriggeringElement);
+        MOZ_ASSERT(element);
+        element->GetScriptText(content);
+      } else {
+        content = aContentOfPseudoScript;
+      }
     }
 
     // Step 3. Let unsafe-hashes flag be false.
