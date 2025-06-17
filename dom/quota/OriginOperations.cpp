@@ -3051,7 +3051,8 @@ RefPtr<BoolPromise> ClearClientOp::OpenDirectory() {
 
   return OpenStorageDirectory(
       mPersistenceScope, OriginScope::FromOrigin(mPrincipalMetadata),
-      ClientStorageScope::CreateFromClient(mClientType), /* aExclusive */ true);
+      ClientStorageScope::CreateFromClient(mClientType), /* aExclusive */ true,
+      /* aInitializeOrigins */ false, DirectoryLockCategory::UninitClients);
 }
 
 void ClearClientOp::DeleteFiles(const ClientMetadata& aClientMetadata) {
@@ -3373,7 +3374,8 @@ RefPtr<BoolPromise> ShutdownClientOp::OpenDirectory() {
 
   mDirectoryLock = mQuotaManager->CreateDirectoryLockInternal(
       mPersistenceScope, OriginScope::FromOrigin(mPrincipalMetadata),
-      ClientStorageScope::CreateFromClient(mClientType), /* aExclusive */ true);
+      ClientStorageScope::CreateFromClient(mClientType), /* aExclusive */ true,
+      DirectoryLockCategory::UninitClients);
 
   return mDirectoryLock->Acquire();
 }
