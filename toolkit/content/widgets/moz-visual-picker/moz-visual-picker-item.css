@@ -5,6 +5,7 @@
 :host {
   --visual-picker-item-border-radius: var(--border-radius-medium);
   --visual-picker-item-border-width: var(--border-width);
+  cursor: default;
 }
 
 .picker-item {
@@ -30,5 +31,10 @@
   ::slotted(:first-child) {
     --visual-picker-item-child-border-radius: calc(var(--visual-picker-item-border-radius) - var(--visual-picker-item-border-width));
     border-radius: var(--visual-picker-item-child-border-radius);
+  }
+
+  .label {
+    margin: 0;
+    padding: var(--space-small);
   }
 }
