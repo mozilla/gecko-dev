@@ -32,8 +32,6 @@ const kIsMac = navigator.platform.indexOf("Mac") == 0;
 function runTests() {
   const kWordSelectEatSpaceToNextWord =
     SpecialPowers.getBoolPref("layout.word_select.eat_space_to_next_word");
-  const kNewWhiteSpaceNormalizerEnabled =
-    SpecialPowers.getBoolPref("editor.white_space_normalization.blink_compatible");
 
   const kImgURL =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEElEQVR42mNgaGD4D8YwBgAw9AX9Y9zBwwAAAABJRU5ErkJggg==";
@@ -870,7 +868,7 @@ function runTests() {
           SpecialPowers.doCommand(aWindow, "cmd_deleteWordBackward");
         },
         {
-          innerHTML: kNewWhiteSpaceNormalizerEnabled ? "abc&nbsp;" : "abc <br>",
+          innerHTML: "abc&nbsp;",
           beforeInputEvent: {
             cancelable: true,
             inputType: "deleteWordBackward",
@@ -912,12 +910,7 @@ function runTests() {
           SpecialPowers.doCommand(aWindow, "cmd_deleteWordForward");
         },
         {
-          innerHTML: (function () {
-            if (kWordSelectEatSpaceToNextWord) {
-              return "def";
-            }
-            return kNewWhiteSpaceNormalizerEnabled ? "&nbsp;def" : " def"
-          })(),
+          innerHTML: kWordSelectEatSpaceToNextWord ? "def" : "&nbsp;def",
           beforeInputEvent: {
             cancelable: true,
             inputType: "deleteWordForward",

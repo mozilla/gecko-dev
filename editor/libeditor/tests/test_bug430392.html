@@ -21,9 +21,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=430392
 /** Test for Bug 430392 **/
 
 function test() {
-  const kNewWhiteSpaceNormalizerEnabled =
-    SpecialPowers.getBoolPref("editor.white_space_normalization.blink_compatible");
-
   var edit = document.getElementById("edit");
   var html = edit.innerHTML;
   var expectedText = edit.textContent;
@@ -70,27 +67,16 @@ function test() {
         switch (aSeparator) {
           case "div":
           case "p":
-            if (kNewWhiteSpaceNormalizerEnabled) {
-              // The following white-space of "A" should be converted to an
-              // NBSP when it's wrapped in a new paragraph.  Then, it'll stay
-              // the start of the `Text` after `Backspace`es.  Therefore, it
-              // won't be back to an ASCII white-space.
-              return " A\u00A0; B ; C ";
-            }
-            // After insertParagraph, the space after "A" becomes a preceding
-            // white space in the paragraph.  Therefore, it's removed when
-            // joining the block boundary by Backspace.
-            // XXX Shouldn't it become invisible, so, shouldn't be removed later.
-            // So, this is actual expected result for the cases.
-            return " A; B ; C ";
+            // The following white-space of "A" should be converted to an
+            // NBSP when it's wrapped in a new paragraph.  Then, it'll stay
+            // the start of the `Text` after `Backspace`es.  Therefore, it
+            // won't be back to an ASCII white-space.
+            return " A\u00A0; B ; C ";
           case "br":
             // After insertLineBreak, the first white-space should be replaced
             // with &nbsp; and it should not be reconverted at Backspace.
             // Therefore, the actual expected result is " A&nbsp;; B ; C ".
-            if (kNewWhiteSpaceNormalizerEnabled) {
-              return " A\u00A0; B ; C ";
-            }
-            return undefined;
+            return " A\u00A0; B ; C ";
         }
         throw new Error("handle all cases!");
       },
@@ -127,7 +113,7 @@ function test() {
       // <br> is inserted, the following white-space should be preserved as
       // an &nbsp;.  Then, it should not be reconverted to a white-space after
       // Backspace.
-      kNewWhiteSpaceNormalizerEnabled ? " \u00A0; AB ; C " : " ; AB ; C ",
+      " \u00A0; AB ; C ",
     ],
   ];
 

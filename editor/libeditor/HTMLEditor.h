@@ -1068,9 +1068,6 @@ class HTMLEditor final : public EditorBase,
       return mNewInvisibleWhiteSpaces;
     }
 
-    void MaybeAppendNewInvisibleWhiteSpace(
-        const nsIContent* aContentWillBeRemoved);
-
    private:
     ~DocumentModifiedEvent() = default;
 

@@ -5780,13 +5780,6 @@
   value: false
   mirror: always
 
-# Whether enabling blink compatible white-space normalizer or keep using
-# Gecko's traditional white-space normalizer.
-- name: editor.white_space_normalization.blink_compatible
-  type: bool
-  value: true
-  mirror: always
-
 # General prefs for editor, indicating whether Gecko-specific editing UI is
 # enabled by default. Those UIs are not implemented by any other browsers.  So,
 # only Firefox users can change some styles with them. This means that Firefox

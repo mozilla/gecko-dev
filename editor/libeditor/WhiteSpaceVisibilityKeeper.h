@@ -65,49 +65,6 @@ class WhiteSpaceVisibilityKeeper final {
                                   const EditorDOMPoint& aPoint);
 
   /**
-   * Fix up white-spaces before aStartPoint and after aEndPoint in preparation
-   * for content to keep the white-spaces visibility after the range is deleted.
-   * Note that the nodes and offsets are adjusted in response to any dom changes
-   * we make while adjusting white-spaces.
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
-  PrepareToDeleteRangeAndTrackPoints(HTMLEditor& aHTMLEditor,
-                                     EditorDOMPoint* aStartPoint,
-                                     EditorDOMPoint* aEndPoint,
-                                     const Element& aEditingHost) {
-    MOZ_ASSERT(
-        !StaticPrefs::editor_white_space_normalization_blink_compatible());
-    MOZ_ASSERT(aStartPoint->IsSetAndValid());
-    MOZ_ASSERT(aEndPoint->IsSetAndValid());
-    AutoTrackDOMPoint trackerStart(aHTMLEditor.RangeUpdaterRef(), aStartPoint);
-    AutoTrackDOMPoint trackerEnd(aHTMLEditor.RangeUpdaterRef(), aEndPoint);
-    Result<CaretPoint, nsresult> caretPointOrError =
-        WhiteSpaceVisibilityKeeper::PrepareToDeleteRange(
-            aHTMLEditor, EditorDOMRange(*aStartPoint, *aEndPoint),
-            aEditingHost);
-    NS_WARNING_ASSERTION(
-        caretPointOrError.isOk(),
-        "WhiteSpaceVisibilityKeeper::PrepareToDeleteRange() failed");
-    return caretPointOrError;
-  }
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
-  PrepareToDeleteRange(HTMLEditor& aHTMLEditor, const EditorDOMRange& aRange,
-                       const Element& aEditingHost) {
-    MOZ_ASSERT(
-        !StaticPrefs::editor_white_space_normalization_blink_compatible());
-    MOZ_ASSERT(aRange.IsPositionedAndValid());
-    Result<CaretPoint, nsresult> caretPointOrError =
-        WhiteSpaceVisibilityKeeper::
-            MakeSureToKeepVisibleStateOfWhiteSpacesAroundDeletingRange(
-                aHTMLEditor, aRange, aEditingHost);
-    NS_WARNING_ASSERTION(
-        caretPointOrError.isOk(),
-        "WhiteSpaceVisibilityKeeper::"
-        "MakeSureToKeepVisibleStateOfWhiteSpacesAroundDeletingRange() failed");
-    return caretPointOrError;
-  }
-
-  /**
    * PrepareToSplitBlockElement() makes sure that the invisible white-spaces
    * not to become visible and returns splittable point.
    *
@@ -329,26 +286,6 @@ class WhiteSpaceVisibilityKeeper final {
       HTMLEditor& aHTMLEditor, const EditorDOMPointInText& aPoint);
 
   /**
-   * Delete previous white-space of aPoint.  This automatically keeps visibility
-   * of white-spaces around aPoint. E.g., may remove invisible leading
-   * white-spaces.
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
-  DeletePreviousWhiteSpace(HTMLEditor& aHTMLEditor,
-                           const EditorDOMPoint& aPoint,
-                           const Element& aEditingHost);
-
-  /**
-   * Delete inclusive next white-space of aPoint.  This automatically keeps
-   * visiblity of white-spaces around aPoint. E.g., may remove invisible
-   * trailing white-spaces.
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
-  DeleteInclusiveNextWhiteSpace(HTMLEditor& aHTMLEditor,
-                                const EditorDOMPoint& aPoint,
-                                const Element& aEditingHost);
-
-  /**
    * Delete aContentToDelete and may remove/replace white-spaces around it.
    * Then, if deleting content makes 2 text nodes around it are adjacent
    * siblings, this joins them and put selection at the joined point.
@@ -359,37 +296,7 @@ class WhiteSpaceVisibilityKeeper final {
                                             const EditorDOMPoint& aCaretPoint,
                                             const Element& aEditingHost);
 
-  /**
-   * Try to normalize visible white-space sequence around aPoint.
-   * This may collapse `Selection` after replaced text.  Therefore, the callers
-   * of this need to restore `Selection` by themselves (this does not do it for
-   * performance reason of multiple calls).
-   */
-  template <typename EditorDOMPointType>
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static nsresult
-  NormalizeVisibleWhiteSpacesAt(HTMLEditor& aHTMLEditor,
-                                const EditorDOMPointType& aPoint,
-                                const Element& aEditingHost);
-
  private:
-  /**
-   * Maybe delete invisible white-spaces for keeping make them invisible and/or
-   * may replace ASCII white-spaces with NBSPs for making visible white-spaces
-   * to keep visible.
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<CaretPoint, nsresult>
-  MakeSureToKeepVisibleStateOfWhiteSpacesAroundDeletingRange(
-      HTMLEditor& aHTMLEditor, const EditorDOMRange& aRangeToDelete,
-      const Element& aEditingHost);
-
-  /**
-   * MakeSureToKeepVisibleWhiteSpacesVisibleAfterSplit() replaces ASCII white-
-   * spaces which becomes invisible after split with NBSPs.
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static nsresult
-  MakeSureToKeepVisibleWhiteSpacesVisibleAfterSplit(
-      HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToSplit);
-
   /**
    * ReplaceTextAndRemoveEmptyTextNodes() replaces the range between
    * aRangeToReplace with aReplaceString simply.  Additionally, removes

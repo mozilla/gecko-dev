@@ -17,8 +17,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=386782
     // designMode document is in a frame inside the window, as this means
     // the editable region is not in the root docshell (a less complicated case).
 
-    const kNewWhiteSpaceNormalizerEnabled =
-      SpecialPowers.getBoolPref("editor.white_space_normalization.blink_compatible");
     var gTests = [
       {
         // <html><body><p>designModeDocument</p></body></html>
@@ -34,12 +32,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=386782
         url: "file_bug386782_contenteditable.html",
         name: "contentEditableNavigate",
         expectedBodyBeforeEdit: "<p>contentEditable</p>",
-        expectedBodyAfterEdit: kNewWhiteSpaceNormalizerEnabled
-          ? "EDITED&nbsp;<p>contentEditable</p>"
-          : "EDITED <br><p>contentEditable</p>",
-        expectedBodyAfterSecondEdit: kNewWhiteSpaceNormalizerEnabled
-          ? "EDITED TWICE&nbsp;<p>contentEditable</p>"
-          : "EDITED TWICE <br><p>contentEditable</p>",
+        expectedBodyAfterEdit: "EDITED&nbsp;<p>contentEditable</p>",
+        expectedBodyAfterSecondEdit: "EDITED TWICE&nbsp;<p>contentEditable</p>",
       },
     ];
 

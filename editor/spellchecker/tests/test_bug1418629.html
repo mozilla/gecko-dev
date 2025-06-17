@@ -19,9 +19,6 @@
 <div id="edit1" contenteditable=true></div>
 
 <script>
-const kNewWhiteSpaceNormalizerEnabled =
-  SpecialPowers.getBoolPref("editor.white_space_normalization.blink_compatible");
-
 const { maybeOnSpellCheck } = SpecialPowers.ChromeUtils.importESModule(
   "resource://testing-common/AsyncSpellCheckTestHelper.sys.mjs"
 );
@@ -80,7 +77,7 @@ async function test_with_single_quote(input) {
   synthesizeKey(" ");
   is(
     input.value || input.textContent,
-    kNewWhiteSpaceNormalizerEnabled && !isTextControl(input) ? "doesn\'\u00A0" : "doesn\' ",
+    !isTextControl(input) ? "doesn\'\u00A0" : "doesn\' ",
     `Typing white-space after "doesn'" should've succeeded`
   );
 
