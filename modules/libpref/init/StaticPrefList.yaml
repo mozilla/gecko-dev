@@ -18866,8 +18866,7 @@
 
 # Mechanism to use to mark fullscreen windows.
 #
-# (If no problems are reported which adjusting this pref solves, it should be
-# removed in v141, and fixed at `1`.)
+# This value can be fixed once we settle on a version that works universally.
 #
 # * 0: Default. Use Gecko-internal heuristics. May vary between versions.
 # * 1: Use only "NonRudeHWND". Historical default on Win7.
@@ -18875,7 +18874,7 @@
 # * 3: Use both. (Never a default; not well-tested.)
 - name: widget.windows.fullscreen_marking_method
   type: RelaxedAtomicUint32
-  value: 0
+  value: 2
   mirror: always
 
 # Whether to open the Windows file and folder pickers "remotely" (in a utility
