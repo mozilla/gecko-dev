@@ -341,6 +341,7 @@ support-files = [
   "style.css^headers^",
   "test.font.woff",
   "test.font.woff^headers^",
+  "triggerLoads.sjs",
 ]
 
 ["browser_urlDecorationStripping.js"]

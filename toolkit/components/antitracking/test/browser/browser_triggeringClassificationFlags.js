@@ -364,3 +364,48 @@ add_task(async function test_first_party_flags_in_about_blank_iframe() {
 
   BrowserTestUtils.removeTab(tab);
 });
+
+// Test that loads from an embedded tracking script have the correct flags.
+add_task(async function test_embedded_tracking_script() {
+  // Open the test page and inject the tracking iframe
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    TEST_TOP_PAGE
+  );
+
+  for (const testCase of TEST_CASES) {
+    // Skip the font face test because we don't have a definite way to determine
+    // who triggers the load in this case.
+    if (testCase.name === "Font") {
+      continue;
+    }
+
+    let obsPromise = observeAndCheck(
+      testCase.url,
+      0,
+      Ci.nsIClassifiedChannel.CLASSIFIED_TRACKING
+    );
+
+    // Inject a tracking script into the page.
+    await SpecialPowers.spawn(
+      tab.linkedBrowser,
+      [
+        TEST_3RD_PARTY_DOMAIN_HTTP +
+          TEST_PATH +
+          "triggerLoads.sjs?type=" +
+          testCase.name +
+          "&url=" +
+          testCase.url,
+      ],
+      async src => {
+        let script = content.document.createElement("script");
+        script.src = src;
+        content.document.body.appendChild(script);
+      }
+    );
+
+    await obsPromise;
+  }
+
+  BrowserTestUtils.removeTab(tab);
+});
