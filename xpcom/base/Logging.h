@@ -308,4 +308,7 @@ void log_print(const LogModule* aModule, LogLevel aLevel, TimeStamp* aStart,
 // with their log definitions by exporting it outside of Logging.h.
 #undef MOZ_LOGGING_ENABLED
 
+// Utility for pretty-printing booleans.
+inline const char* GetBoolName(bool aBool) { return aBool ? "true" : "false"; }
+
 #endif  // mozilla_logging_h

@@ -324,8 +324,6 @@ static const char* const kVirtualKeyName[] = {
 static_assert(sizeof(kVirtualKeyName) / sizeof(const char*) == 0x100,
               "The virtual key name must be defined just 256 keys");
 
-static const char* GetBoolName(bool aBool) { return aBool ? "true" : "false"; }
-
 static const nsCString GetCharacterCodeName(WPARAM aCharCode) {
   switch (aCharCode) {
     case 0x0000:
