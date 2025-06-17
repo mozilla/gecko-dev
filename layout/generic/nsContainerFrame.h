@@ -852,7 +852,7 @@ class nsContainerFrame : public nsSplittableFrame {
 
   // Helper used by Progress and Meter frames. Returns true if the bar should
   // be rendered vertically, based on writing-mode and -moz-orient properties.
-  bool ResolvedOrientationIsVertical();
+  bool ResolvedOrientationIsVertical() const;
 
   /**
    * Calculate the used values for 'width' and 'height' for a replaced element.

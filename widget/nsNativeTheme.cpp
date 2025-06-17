@@ -16,7 +16,6 @@
 #include "nsStyleConsts.h"
 #include "nsPIDOMWindow.h"
 #include "nsProgressFrame.h"
-#include "nsMeterFrame.h"
 #include "nsRangeFrame.h"
 #include "nsCSSRendering.h"
 #include "ImageContainer.h"
@@ -204,19 +203,10 @@ bool nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext,
    * Progress bar appearance should be the same for the bar and the container
    * frame.
    */
-  if (aAppearance == StyleAppearance::ProgressBar) {
+  if (aAppearance == StyleAppearance::ProgressBar ||
+      aAppearance == StyleAppearance::Meter) {
     if (nsProgressFrame* progressFrame = do_QueryFrame(aFrame)) {
       return !progressFrame->ShouldUseNativeStyle();
-    }
-  }
-
-  /**
-   * Meter bar appearance should be the same for the bar and the container
-   * frame. nsMeterFrame owns the logic and will tell us what we should do.
-   */
-  if (aAppearance == StyleAppearance::Meter) {
-    if (nsMeterFrame* meterFrame = do_QueryFrame(aFrame)) {
-      return !meterFrame->ShouldUseNativeStyle();
     }
   }
 

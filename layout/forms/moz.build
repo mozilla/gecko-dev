@@ -27,7 +27,6 @@ UNIFIED_SOURCES += [
     "nsHTMLButtonControlFrame.cpp",
     "nsImageControlFrame.cpp",
     "nsListControlFrame.cpp",
-    "nsMeterFrame.cpp",
     "nsNumberControlFrame.cpp",
     "nsProgressFrame.cpp",
     "nsRangeFrame.cpp",

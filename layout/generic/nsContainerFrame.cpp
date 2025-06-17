@@ -2175,7 +2175,7 @@ void nsContainerFrame::ReparentFloatsForInlineChild(nsIFrame* aOurLineContainer,
   }
 }
 
-bool nsContainerFrame::ResolvedOrientationIsVertical() {
+bool nsContainerFrame::ResolvedOrientationIsVertical() const {
   StyleOrient orient = StyleDisplay()->mOrient;
   switch (orient) {
     case StyleOrient::Horizontal:
