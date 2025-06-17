@@ -7683,13 +7683,13 @@ ContentParent::RecvGetLoadingSessionHistoryInfoFromParent(
 }
 
 mozilla::ipc::IPCResult ContentParent::RecvGetContiguousSessionHistoryInfos(
-    const MaybeDiscarded<BrowsingContext>& aContext,
+    const MaybeDiscarded<BrowsingContext>& aContext, SessionHistoryInfo&& aInfo,
     GetContiguousSessionHistoryInfosResolver&& aResolver) {
   if (aContext.IsNullOrDiscarded()) {
     return IPC_OK();
   }
 
-  aResolver(aContext.get_canonical()->GetContiguousSessionHistoryInfos());
+  aResolver(aContext.get_canonical()->GetContiguousSessionHistoryInfos(aInfo));
 
   return IPC_OK();
 }

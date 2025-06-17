@@ -1344,6 +1344,7 @@ class ContentParent final : public PContentParent,
 
   mozilla::ipc::IPCResult RecvGetContiguousSessionHistoryInfos(
       const MaybeDiscarded<BrowsingContext>& aContext,
+      SessionHistoryInfo&& aInfo,
       GetContiguousSessionHistoryInfosResolver&& aResolver);
 
   mozilla::ipc::IPCResult RecvRemoveFromBFCache(

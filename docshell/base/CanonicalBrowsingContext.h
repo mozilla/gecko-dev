@@ -327,7 +327,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   void GetLoadingSessionHistoryInfoFromParent(
       Maybe<LoadingSessionHistoryInfo>& aLoadingInfo);
 
-  mozilla::Span<const SessionHistoryInfo> GetContiguousSessionHistoryInfos();
+  mozilla::Span<const SessionHistoryInfo> GetContiguousSessionHistoryInfos(
+      SessionHistoryInfo& aInfo);
 
   void HistoryCommitIndexAndLength();
 
@@ -607,7 +608,6 @@ class CanonicalBrowsingContext final : public BrowsingContext {
     RefPtr<SessionHistoryEntry> mEntry;
   };
   nsTArray<LoadingSessionHistoryEntry> mLoadingEntries;
-  AutoCleanLinkedList<RefPtr<SessionHistoryEntry>> mActiveEntryList;
   RefPtr<SessionHistoryEntry> mActiveEntry;
 
   RefPtr<nsSecureBrowserUI> mSecureBrowserUI;
