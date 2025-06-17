@@ -15788,6 +15788,13 @@
   value: true
   mirror: always
 
+# Annotate channels based on the anti fraud list
+# Note: consent manager annotations will be disabled if tracking protection is disabled
+- name: privacy.trackingprotection.antifraud.annotate_channels
+  type: bool
+  value: true
+  mirror: always
+
 # Whether to spoof user locale to English (used as part of Resist
 # Fingerprinting).
 # 0 - will prompt
