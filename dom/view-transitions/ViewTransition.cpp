@@ -1259,9 +1259,8 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
     MOZ_ASSERT(f->GetContent()->IsElement());
     // Capture the view-transition-class.
     // https://drafts.csswg.org/css-view-transitions-2/#vt-class-algorithms
-    auto capture =
-        MakeUnique<CapturedElement>(f, mInitialSnapshotContainingBlockSize,
-                                    DocumentScopedClassListFor(f));
+    auto capture = MakeUnique<CapturedElement>(
+        f, mInitialSnapshotContainingBlockSize, DocumentScopedClassListFor(f));
     mNamedElements.InsertOrUpdate(name, std::move(capture));
     mNames.AppendElement(name);
   }
@@ -1631,6 +1630,10 @@ void ViewTransition::SkipTransition(
       case SkipTransitionReason::RootRemoved:
         readyPromise->MaybeRejectWithInvalidStateError(
             "Skipped view transition due to root element going away");
+        break;
+      case SkipTransitionReason::PageSwap:
+        readyPromise->MaybeRejectWithInvalidStateError(
+            "Skipped view transition due to page swap");
         break;
       case SkipTransitionReason::Resize:
         readyPromise->MaybeRejectWithInvalidStateError(

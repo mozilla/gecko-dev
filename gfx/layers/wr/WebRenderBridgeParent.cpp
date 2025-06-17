@@ -624,8 +624,11 @@ bool WebRenderBridgeParent::UpdateResources(
       }
       case OpUpdateResource::TOpDeleteSnapshotImage: {
         const auto& op = cmd.get_OpDeleteSnapshotImage();
-        if (!MatchesNamespace(wr::AsImageKey(op.key()))) {
-          MOZ_ASSERT_UNREACHABLE("Stale snapshot image key (remove)!");
+        if (NS_WARN_IF(!MatchesNamespace(wr::AsImageKey(op.key())))) {
+          // TODO(bug 1972525): Fix tab detach with an active view transition
+          // and uncomment this assertion.
+          //
+          // MOZ_ASSERT_UNREACHABLE("Stale snapshot image key (remove)!");
           break;
         }
         aUpdates.DeleteSnapshotImage(op.key());

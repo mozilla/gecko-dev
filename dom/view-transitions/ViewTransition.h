@@ -66,6 +66,7 @@ enum class SkipTransitionReason : uint8_t {
   DuplicateTransitionNameCapturingNewState,
   PseudoUpdateFailure,
   Resize,
+  PageSwap,
 };
 
 // https://drafts.csswg.org/css-view-transitions-1/#viewtransition-phase
