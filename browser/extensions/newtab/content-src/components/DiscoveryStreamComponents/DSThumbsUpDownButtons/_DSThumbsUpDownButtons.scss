@@ -110,14 +110,7 @@
     }
 
     .logo-and-wordmark-wrapper {
-      margin-block-end: var(--space-xxlarge);
-
-      // Bug 1934636 - Logo is positioned absolutely and
-      // does not need a bottom margin applied
-      .layout-variant-a &,
-      .layout-variant-b & {
-        margin-block-end: 0;
-      }
+      margin-block-end: 0;
     }
 
     @media (height <=700px) {
@@ -142,12 +135,7 @@
 
   // _TopSites.scss
   .top-site-outer {
-    margin-block-end: 0;
-
-    .layout-variant-a,
-    .layout-variant-b & {
-      margin-block-end: var(--space-medium);
-    }
+    margin-block-end: var(--space-medium);
 
     .shortcuts-refresh & {
       margin-block-end: 0;
