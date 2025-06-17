@@ -7,10 +7,15 @@
 #ifndef DOM_QUOTA_DIRECTORYLOCK_H_
 #define DOM_QUOTA_DIRECTORYLOCK_H_
 
+template <typename T, typename Serialized>
+class EnumSet;
+
 template <class T>
 class RefPtr;
 
 namespace mozilla::dom::quota {
+
+enum class DirectoryLockCategory : uint8_t;
 
 template <typename T>
 constexpr void SafeDropDirectoryLock(RefPtr<T>& aDirectoryLock);
@@ -23,6 +28,9 @@ constexpr void SafeDropDirectoryLockIfNotDropped(RefPtr<T>& aDirectoryLock);
 
 template <typename T>
 constexpr void DropDirectoryLockIfNotDropped(RefPtr<T>& aDirectoryLock);
+
+inline auto MakeBlockedByChecker(
+    const EnumSet<DirectoryLockCategory>& aCategories);
 
 }  // namespace mozilla::dom::quota
 

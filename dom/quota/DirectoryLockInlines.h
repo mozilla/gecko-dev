@@ -11,6 +11,7 @@
 #  error Must include DirectoryLock.h first
 #endif
 
+#include "mozilla/dom/quota/DirectoryLockImpl.h"
 #include "mozilla/RefPtr.h"
 
 namespace mozilla::dom::quota {
@@ -53,6 +54,13 @@ constexpr void DropDirectoryLockIfNotDropped(RefPtr<T>& aDirectoryLock) {
     aDirectoryLock->Drop();
   }
   aDirectoryLock = nullptr;
+}
+
+inline auto MakeBlockedByChecker(
+    const EnumSet<DirectoryLockCategory>& aCategories) {
+  return [aCategories](const DirectoryLockImpl::PrepareInfo& aPrepareInfo) {
+    return aPrepareInfo.IsBlockedBy(aCategories);
+  };
 }
 
 }  // namespace mozilla::dom::quota
