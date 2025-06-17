@@ -40,12 +40,20 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/gfx/Tools.h"
+#include "mozilla/Logging.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_widget.h"
 
 using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::widget;
+
+extern mozilla::LazyLogModule sWidgetDragServiceLog;
+#define __DRAGSERVICE_LOG__(logLevel, ...) \
+  MOZ_LOG(sWidgetDragServiceLog, logLevel, __VA_ARGS__)
+#define LOGD(...) __DRAGSERVICE_LOG__(mozilla::LogLevel::Debug, (__VA_ARGS__))
+#define LOGI(...) __DRAGSERVICE_LOG__(mozilla::LogLevel::Info, (__VA_ARGS__))
+#define LOGE(...) __DRAGSERVICE_LOG__(mozilla::LogLevel::Error, (__VA_ARGS__))
 
 nsDragSession::~nsDragSession() { NS_IF_RELEASE(mDataObject); }
 
@@ -57,6 +65,11 @@ already_AddRefed<nsIDragSession> nsDragService::CreateDragSession() {
 bool nsDragSession::CreateDragImage(nsINode* aDOMNode,
                                     const Maybe<CSSIntRegion>& aRegion,
                                     SHDRAGIMAGE* psdi) {
+  auto logDidNotDraw = MakeScopeExit([&]() {
+    LOGD("[%p] %s | aDOMNode: %p | psdi: %p | Did not draw image", this,
+         __FUNCTION__, aDOMNode, psdi);
+  });
+
   if (!psdi) return false;
 
   memset(psdi, 0, sizeof(SHDRAGIMAGE));
@@ -133,6 +146,12 @@ bool nsDragSession::CreateDragImage(nsINode* aDOMNode,
     psdi->ptOffset.y = screenPoint.y - dragRect.Y();
 
     DeleteDC(hdcSrc);
+    LOGD(
+        "[%p] %s | aDOMNode: %p | psdi: %p | bm dims: (%u, %u) | "
+        "screenPoint: (%d, %d) | Drew drag image",
+        this, __FUNCTION__, aDOMNode, psdi, bmWidth, bmHeight,
+        static_cast<int>(screenPoint.x), static_cast<int>(screenPoint.y));
+    logDidNotDraw.release();
   }
 
   dataSurface->Unmap();
@@ -154,7 +173,10 @@ nsresult nsDragSession::InvokeDragSessionImpl(
 
   uint32_t numItemsToDrag = 0;
   nsresult rv = anArrayTransferables->GetLength(&numItemsToDrag);
-  if (!numItemsToDrag) return NS_ERROR_FAILURE;
+  if (!numItemsToDrag) {
+    LOGD("[%p] %s | No items in drag", this, __FUNCTION__);
+    return NS_ERROR_FAILURE;
+  }
 
   // The clipboard class contains some static utility methods that we
   // can use to create an IDataObject from the transferable
@@ -183,6 +205,8 @@ nsresult nsDragSession::InvokeDragSessionImpl(
         dataObjCollection->AddDataObject(dataObj);
       }
     }
+    LOGD("[%p] %s | Created nsDataObjCollection with %d items", this,
+         __FUNCTION__, dataObjCollection->GetNumDataObjects());
   }  // if dragging multiple items
   else {
     nsCOMPtr<nsITransferable> trans =
@@ -194,6 +218,9 @@ nsresult nsDragSession::InvokeDragSessionImpl(
     }
   }  // else dragging a single object
 
+  LOGD("[%p] %s | numItemsToDrag: %u | itemToDrag: %p", this, __FUNCTION__,
+       numItemsToDrag, itemToDrag.get());
+
   // Create a drag image if support is available
   IDragSourceHelper* pdsh;
   if (SUCCEEDED(CoCreateInstance(CLSID_DragDropHelper, nullptr,
@@ -201,8 +228,9 @@ nsresult nsDragSession::InvokeDragSessionImpl(
                                  (void**)&pdsh))) {
     SHDRAGIMAGE sdi;
     if (CreateDragImage(mSourceNode, aRegion, &sdi)) {
-      if (FAILED(pdsh->InitializeFromBitmap(&sdi, itemToDrag)))
+      if (FAILED(pdsh->InitializeFromBitmap(&sdi, itemToDrag))) {
         DeleteObject(sdi.hbmpDragImage);
+      }
     }
     pdsh->Release();
   }
@@ -233,6 +261,9 @@ static HWND GetSourceWindow(dom::Document* aSourceDocument) {
 nsresult nsDragSession::StartInvokingDragSession(nsIWidget* aWidget,
                                                  IDataObject* aDataObj,
                                                  uint32_t aActionType) {
+  LOGD("[%p] %s | aDataObj: %p | aActionType: %u", this, __FUNCTION__, aDataObj,
+       aActionType);
+
   // To do the drag we need to create an object that
   // implements the IDataObject interface (for OLE)
   RefPtr<nsNativeDragSource> nativeDragSrc =
@@ -269,6 +300,10 @@ nsresult nsDragSession::StartInvokingDragSession(nsIWidget* aWidget,
   }
 
   // Call the native D&D method
+  LOGI(
+      "[%p] %s | Starting nested event loop that will run for the duration of "
+      "the drag",
+      this, __FUNCTION__);
   HRESULT res = ::DoDragDrop(aDataObj, nativeDragSrc, effects, &winDropRes);
 
   // In cases where the drop operation completed outside the application,
@@ -320,6 +355,14 @@ nsresult nsDragSession::StartInvokingDragSession(nsIWidget* aWidget,
   SetDragEndPoint(LayoutDeviceIntPoint(cpos.x, cpos.y));
 
   ModifierKeyState modifierKeyState;
+  LOGI(
+      "[%p] %s | mSentLocalDropEvent: %s | mDataTransfer->DropEffectInt: %d | "
+      "mUserCancelled: %s | dragEndPoint: (%ld,%ld) | modifier-keys: %u | "
+      "Exited nested drag event loop.  Ending Gecko-initiated drag session.",
+      this, __FUNCTION__, GetBoolName(mSentLocalDropEvent),
+      mDataTransfer ? mDataTransfer->DropEffectInt() : INT_MAX,
+      GetBoolName(mUserCancelled), cpos.x, cpos.y,
+      modifierKeyState.GetModifiers());
   EndDragSession(true, modifierKeyState.GetModifiers());
 
   mDoingDrag = false;
@@ -488,14 +531,15 @@ void nsDragSession::SetDroppedLocal() {
 NS_IMETHODIMP
 nsDragSession::IsDataFlavorSupported(const char* aDataFlavor, bool* _retval) {
   if (!aDataFlavor || !mDataObject || !_retval) {
-    MOZ_DRAGSERVICE_LOG("%s: error", __PRETTY_FUNCTION__);
+    LOGE("[%p] %s | aDataFlavor: %s | mDataObject: %p | invalid args", this,
+         __FUNCTION__, aDataFlavor ? aDataFlavor : "<null>", mDataObject);
     return NS_ERROR_FAILURE;
   }
 
   *_retval = false;
   auto logging = MakeScopeExit([&] {
-    MOZ_DRAGSERVICE_LOG("IsDataFlavorSupported: %s is%s found", aDataFlavor,
-                        *_retval ? "" : " not");
+    LOGD("[%p] %s | %s was%s found", this, __FUNCTION__, aDataFlavor,
+         *_retval ? "" : " not");
   });
 
   FORMATETC fe;
@@ -655,8 +699,12 @@ nsDragSession::UpdateDragImage(nsINode* aImage, int32_t aImageX,
     SHDRAGIMAGE sdi;
     if (CreateDragImage(mSourceNode, Nothing(), &sdi)) {
       nsNativeDragTarget::DragImageChanged();
-      if (FAILED(pdsh->InitializeFromBitmap(&sdi, mDataObject)))
+      if (FAILED(pdsh->InitializeFromBitmap(&sdi, mDataObject))) {
         DeleteObject(sdi.hbmpDragImage);
+      } else {
+        LOGD("[%p] %s | created new drag image and set DragImageChanged", this,
+             __FUNCTION__);
+      }
     }
     pdsh->Release();
   }

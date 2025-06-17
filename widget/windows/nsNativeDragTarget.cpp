@@ -16,11 +16,20 @@
 #include "nsClipboard.h"
 #include "KeyboardLayout.h"
 
+#include "mozilla/dom/Event.h"
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/Logging.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;
+
+extern mozilla::LazyLogModule sWidgetDragServiceLog;
+#define __DRAGSERVICE_LOG__(logLevel, ...) \
+  MOZ_LOG(sWidgetDragServiceLog, logLevel, __VA_ARGS__)
+#define LOGD(...) __DRAGSERVICE_LOG__(mozilla::LogLevel::Debug, (__VA_ARGS__))
+#define LOGI(...) __DRAGSERVICE_LOG__(mozilla::LogLevel::Info, (__VA_ARGS__))
+#define LOGE(...) __DRAGSERVICE_LOG__(mozilla::LogLevel::Error, (__VA_ARGS__))
 
 // This is cached for Leave notification
 static POINTL gDragLastPoint;
@@ -37,12 +46,14 @@ nsNativeDragTarget::nsNativeDragTarget(nsIWidget* aWidget)
       mTookOwnRef(false),
       mWidget(aWidget),
       mDropTargetHelper(nullptr) {
+  LOGD("[%p] %s", this, __FUNCTION__);
   mHWnd = (HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW);
 
   mDragService = do_GetService("@mozilla.org/widget/dragservice;1");
 }
 
 nsNativeDragTarget::~nsNativeDragTarget() {
+  LOGD("[%p] %s", this, __FUNCTION__);
   if (mDropTargetHelper) {
     mDropTargetHelper->Release();
     mDropTargetHelper = nullptr;
@@ -86,6 +97,7 @@ void nsNativeDragTarget::GetGeckoDragAction(DWORD grfKeyState,
   // If a window is disabled or a modal window is on top of it
   // (which implies it is disabled), then we should not allow dropping.
   if (!mWidget->IsEnabled()) {
+    LOGD("[%p] %s | window was not enabled", this, __FUNCTION__);
     *pdwEffect = DROPEFFECT_NONE;
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_NONE;
     return;
@@ -128,6 +140,12 @@ void nsNativeDragTarget::GetGeckoDragAction(DWORD grfKeyState,
     *pdwEffect = DROPEFFECT_NONE;
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_NONE;
   }
+
+  LOGD(
+      "[%p] %s | grfKeyState: %lu | desiredEffect: %lu | mEffectsAllowed: %lu "
+      "| mEffectsPreferred: %lu | *pdwEffect: %lu | *aGeckoAction: %u",
+      this, __FUNCTION__, grfKeyState, desiredEffect, mEffectsAllowed,
+      mEffectsPreferred, *pdwEffect, *aGeckoAction);
 }
 
 inline bool IsKeyDown(char key) { return GetKeyState(key) < 0; }
@@ -145,10 +163,10 @@ void nsNativeDragTarget::DispatchDragDropEvent(EventMessage aEventMessage,
 
   if (mHWnd != nullptr) {
     ::ScreenToClient(mHWnd, &cpos);
-    event.mRefPoint = LayoutDeviceIntPoint(cpos.x, cpos.y);
   } else {
-    event.mRefPoint = LayoutDeviceIntPoint(0, 0);
+    cpos = {0, 0};
   }
+  event.mRefPoint = LayoutDeviceIntPoint(cpos.x, cpos.y);
 
   ModifierKeyState modifierKeyState;
   modifierKeyState.InitInputEvent(event);
@@ -161,6 +179,10 @@ void nsNativeDragTarget::DispatchDragDropEvent(EventMessage aEventMessage,
     event.mInputSource = dom::MouseEvent_Binding::MOZ_SOURCE_MOUSE;
   }
 
+  LOGI("[%p] %s | Dispatching %s event at client pos (%ld, %ld)", this,
+       __FUNCTION__,
+       NS_ConvertUTF16toUTF8(dom::Event::GetEventName(aEventMessage)).get(),
+       cpos.x, cpos.y);
   mWidget->DispatchInputEvent(&event);
 }
 
@@ -171,10 +193,11 @@ void nsNativeDragTarget::ProcessDrag(EventMessage aEventMessage,
   uint32_t geckoAction;
   GetGeckoDragAction(grfKeyState, pdwEffect, &geckoAction);
 
-  // Set the current action into the Gecko specific type
+  // Set the current action to the Gecko specific type
   RefPtr<nsDragSession> currSession =
       static_cast<nsDragSession*>(mDragService->GetCurrentSession(mWidget));
   if (!currSession) {
+    LOGD("[%p] %s | No active drag session", this, __FUNCTION__);
     return;
   }
 
@@ -215,6 +238,13 @@ void nsNativeDragTarget::ProcessDrag(EventMessage aEventMessage,
     }
   }
 
+  LOGD(
+      "[%p] %s | grfKeyState: %lu | mEffectsAllowed: %lu | "
+      "mEffectsPreferred: %lu | *pdwEffect: %lu | post dispatch geckoAction: "
+      "%u",
+      this, __FUNCTION__, grfKeyState, mEffectsAllowed, mEffectsPreferred,
+      *pdwEffect, geckoAction);
+
   // Clear the cached value
   currSession->SetCanDrop(false);
 }
@@ -224,6 +254,7 @@ STDMETHODIMP
 nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource, DWORD grfKeyState,
                               POINTL ptl, DWORD* pdwEffect) {
   if (!mDragService) {
+    LOGD("[%p] %s | No drag service", this, __FUNCTION__);
     return E_FAIL;
   }
 
@@ -265,6 +296,11 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource, DWORD grfKeyState,
     // We have no preference if we can't obtain it
     mEffectsPreferred = DROPEFFECT_NONE;
   }
+  LOGD(
+      "[%p] %s | grfKeyState: %lu | ptl: (%ld, %ld) | mEffectsAllowed: %lu"
+      " | mEffectsPreferred: %lu",
+      this, __FUNCTION__, grfKeyState, ptl.x, ptl.y, mEffectsAllowed,
+      mEffectsPreferred);
 
   // Set the native data object into drag session
   session->SetIDataObject(pIDataSource);
@@ -289,6 +325,7 @@ void nsNativeDragTarget::AddLinkSupportIfCanBeGenerated(
 STDMETHODIMP
 nsNativeDragTarget::DragOver(DWORD grfKeyState, POINTL ptl, LPDWORD pdwEffect) {
   if (!mDragService) {
+    LOGD("[%p] %s | No drag service", this, __FUNCTION__);
     return E_FAIL;
   }
 
@@ -302,6 +339,7 @@ nsNativeDragTarget::DragOver(DWORD grfKeyState, POINTL ptl, LPDWORD pdwEffect) {
   RefPtr<nsDragSession> currentDragSession =
       static_cast<nsDragSession*>(mDragService->GetCurrentSession(mWidget));
   if (!currentDragSession) {
+    LOGD("[%p] %s | No drag session", this, __FUNCTION__);
     return S_OK;  // Drag was canceled.
   }
 
@@ -323,10 +361,19 @@ nsNativeDragTarget::DragOver(DWORD grfKeyState, POINTL ptl, LPDWORD pdwEffect) {
     GetDropTargetHelper()->DragOver(&pt, *pdwEffect);
   }
 
+  LOGD(
+      "[%p] %s | grfKeyState: %lu | ptl: (%ld, %ld) | *pdwEffect: %lu | "
+      "mEffectsAllowed: %lu | dragImageChanged: %s",
+      this, __FUNCTION__, grfKeyState, ptl.x, ptl.y, *pdwEffect,
+      mEffectsAllowed, GetBoolName(dragImageChanged));
+  LOGI("[%p] %s | Firing 'drag' event at drag source, if available", this,
+       __FUNCTION__);
+
   ModifierKeyState modifierKeyState;
   currentDragSession->FireDragEventAtSource(eDrag,
                                             modifierKeyState.GetModifiers());
   // Now process the native drag state and then dispatch the event
+  LOGI("[%p] %s | Firing 'dragover' event at drag target", this, __FUNCTION__);
   ProcessDrag(eDragOver, grfKeyState, ptl, pdwEffect);
 
   this->Release();
@@ -337,6 +384,7 @@ nsNativeDragTarget::DragOver(DWORD grfKeyState, POINTL ptl, LPDWORD pdwEffect) {
 STDMETHODIMP
 nsNativeDragTarget::DragLeave() {
   if (!mDragService) {
+    LOGD("[%p] %s | No drag service", this, __FUNCTION__);
     return E_FAIL;
   }
 
@@ -346,6 +394,7 @@ nsNativeDragTarget::DragLeave() {
   }
 
   // dispatch the event into Gecko
+  LOGI("[%p] %s | dispatching dragexit event", this, __FUNCTION__);
   DispatchDragDropEvent(eDragExit, gDragLastPoint);
 
   nsCOMPtr<nsIDragSession> currentDragSession =
@@ -360,6 +409,8 @@ nsNativeDragTarget::DragLeave() {
       // initiated in a different app. End the drag session, since
       // we're done with it for now (until the user drags back into
       // mozilla).
+      LOGI("[%p] %s | ending drag session with external (non-Gecko) source",
+           this, __FUNCTION__);
       ModifierKeyState modifierKeyState;
       currentDragSession->EndDragSession(false,
                                          modifierKeyState.GetModifiers());
@@ -377,6 +428,7 @@ nsNativeDragTarget::DragLeave() {
 }
 
 void nsNativeDragTarget::DragCancel() {
+  LOGD("[%p] %s", this, __FUNCTION__);
   // Cancel the drag session if we did DragEnter.
   if (mTookOwnRef) {
     if (GetDropTargetHelper()) {
@@ -386,6 +438,8 @@ void nsNativeDragTarget::DragCancel() {
       ModifierKeyState modifierKeyState;
       RefPtr<nsIDragSession> session = mDragService->GetCurrentSession(mWidget);
       if (session) {
+        LOGI("[%p] %s | modifier-keys: %u | ending canceled drag session", this,
+             __FUNCTION__, modifierKeyState.GetModifiers());
         session->EndDragSession(false, modifierKeyState.GetModifiers());
       }
     }
@@ -398,6 +452,7 @@ STDMETHODIMP
 nsNativeDragTarget::Drop(LPDATAOBJECT pData, DWORD grfKeyState, POINTL aPT,
                          LPDWORD pdwEffect) {
   if (!mDragService) {
+    LOGD("[%p] %s | No drag service", this, __FUNCTION__);
     return E_FAIL;
   }
 
@@ -414,6 +469,7 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData, DWORD grfKeyState, POINTL aPT,
   RefPtr<nsDragSession> currentDragSession =
       static_cast<nsDragSession*>(mDragService->GetCurrentSession(mWidget));
   if (!currentDragSession) {
+    LOGD("[%p] %s | No drag session", this, __FUNCTION__);
     return S_OK;
   }
   currentDragSession->SetIDataObject(pData);
@@ -422,12 +478,19 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData, DWORD grfKeyState, POINTL aPT,
   // We use strong refs to prevent it from destroying these:
   RefPtr<nsNativeDragTarget> kungFuDeathGrip = this;
 
+  LOGI(
+      "[%p] %s | grfKeyState: %lu | aPT: (%ld, %ld) | *pdwEffect: %lu | "
+      "dispatching drop event",
+      this, __FUNCTION__, grfKeyState, aPT.x, aPT.y, *pdwEffect);
+
   // Now process the native drag state and then dispatch the event
   ProcessDrag(eDrop, grfKeyState, aPT, pdwEffect);
 
   currentDragSession =
       static_cast<nsDragSession*>(mDragService->GetCurrentSession(mWidget));
   if (!currentDragSession) {
+    LOGD("[%p] %s | Drag session was canceled during drop event", this,
+         __FUNCTION__);
     return S_OK;  // DragCancel() was called.
   }
 
@@ -445,6 +508,10 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData, DWORD grfKeyState, POINTL aPT,
   cpos.y = GET_Y_LPARAM(pos);
   currentDragSession->SetDragEndPoint(cpos.x, cpos.y);
   ModifierKeyState modifierKeyState;
+  LOGI(
+      "[%p] %s | position: (%lu, %lu) | modifier-keys: %u | ending completed "
+      "drag session",
+      this, __FUNCTION__, cpos.x, cpos.y, modifierKeyState.GetModifiers());
   currentDragSession->EndDragSession(true, modifierKeyState.GetModifiers());
 
   // release the ref that was taken in DragEnter
