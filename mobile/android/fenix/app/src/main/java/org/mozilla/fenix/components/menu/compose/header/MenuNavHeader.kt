@@ -43,6 +43,8 @@ import org.mozilla.fenix.theme.Theme
 internal fun MenuNavHeader(
     state: MenuItemState = MenuItemState.ENABLED,
     isSiteLoading: Boolean,
+    goBackState: MenuItemState = MenuItemState.ENABLED,
+    goForwardState: MenuItemState = MenuItemState.ENABLED,
     onBackButtonClick: (longPress: Boolean) -> Unit,
     onForwardButtonClick: (longPress: Boolean) -> Unit,
     onRefreshButtonClick: (longPress: Boolean) -> Unit,
@@ -80,7 +82,7 @@ internal fun MenuNavHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         MenuNavItem(
-            state = state,
+            state = goBackState,
             painter = painterResource(id = R.drawable.mozac_ic_back_24),
             label = stringResource(id = R.string.browser_menu_back),
             onClick = { onBackButtonClick(false) },
@@ -88,7 +90,7 @@ internal fun MenuNavHeader(
         )
 
         MenuNavItem(
-            state = state,
+            state = goForwardState,
             painter = painterResource(id = R.drawable.mozac_ic_forward_24),
             label = stringResource(id = R.string.browser_menu_forward),
             onClick = { onForwardButtonClick(false) },

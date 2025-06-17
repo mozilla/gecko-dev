@@ -502,6 +502,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isDesktopMode = isDesktopMode,
                                     isPdf = isPdf,
                                     isReaderViewActive = isReaderViewActive,
+                                    canGoBack = selectedTab?.content?.canGoBack ?: true,
+                                    canGoForward = selectedTab?.content?.canGoForward ?: true,
                                     extensionsMenuItemDescription = getExtensionsMenuItemDescription(
                                         isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                         allWebExtensionsDisabled = allWebExtensionsDisabled,

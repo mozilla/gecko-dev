@@ -91,6 +91,8 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param isReaderViewActive Whether or not Reader View is active or not.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
  * @param allWebExtensionsDisabled Whether or not all web extensions are disabled.
+ * @param canGoBack Whether or not the back button is enabled.
+ * @param canGoForward Whether or not the forward button is enabled.
  * @param extensionsMenuItemDescription The label of extensions menu item description.
  * @param scrollState The [ScrollState] used for vertical scrolling.
  * @param showBanner Whether or not the default browser banner should be shown.
@@ -139,6 +141,8 @@ fun MainMenu(
     isReaderViewActive: Boolean,
     isExtensionsProcessDisabled: Boolean,
     allWebExtensionsDisabled: Boolean,
+    canGoBack: Boolean,
+    canGoForward: Boolean,
     extensionsMenuItemDescription: String,
     scrollState: ScrollState,
     showBanner: Boolean,
@@ -176,6 +180,16 @@ fun MainMenu(
                     MenuItemState.DISABLED
                 } else {
                     MenuItemState.ENABLED
+                },
+                goBackState = if (canGoBack && accessPoint != MenuAccessPoint.Home) {
+                    MenuItemState.ENABLED
+                } else {
+                    MenuItemState.DISABLED
+                },
+                goForwardState = if (canGoForward && accessPoint != MenuAccessPoint.Home) {
+                    MenuItemState.ENABLED
+                } else {
+                    MenuItemState.DISABLED
                 },
                 isSiteLoading = accessPoint != MenuAccessPoint.Home && isSiteLoading,
                 onBackButtonClick = onBackButtonClick,
@@ -892,6 +906,8 @@ private fun MenuDialogPreview() {
                 isReaderViewActive = false,
                 isExtensionsProcessDisabled = true,
                 allWebExtensionsDisabled = false,
+                canGoBack = true,
+                canGoForward = true,
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
                 showBanner = true,
@@ -950,6 +966,8 @@ private fun MenuDialogPrivatePreview(
                 isPdf = false,
                 isReaderViewActive = false,
                 isExtensionsProcessDisabled = false,
+                canGoBack = true,
+                canGoForward = true,
                 allWebExtensionsDisabled = false,
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
