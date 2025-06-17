@@ -15,10 +15,13 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.benchmark.utils.TARGET_PACKAGE
+import org.mozilla.fenix.benchmark.utils.clearPackageData
+import org.mozilla.fenix.benchmark.utils.completeOnboarding
 import org.mozilla.fenix.benchmark.utils.measureRepeatedDefault
 
 /**
- * This test class benchmarks the speed of app startup. Run this benchmark to verify how effective
+ * This test class benchmarks the speed of completing onboarding. Run this benchmark to verify how effective
  * a Baseline Profile is. It does this by comparing [CompilationMode.None], which represents the
  * app with no Baseline Profiles optimizations, and [CompilationMode.Partial], which uses Baseline Profiles.
  *
@@ -31,7 +34,7 @@ import org.mozilla.fenix.benchmark.utils.measureRepeatedDefault
  * or using the gradle command:
  *
  * ```
- * ./gradlew :benchmark:connectedBenchmarkAndroidTest -P android.testInstrumentationRunnerArguments.class=org.mozilla.fenix.benchmark.BaselineProfilesStartupBenchmark -P benchmarkTest
+ * ./gradlew :benchmark:connectedBenchmarkAndroidTest -P android.testInstrumentationRunnerArguments.annotation=org.mozilla.fenix.benchmark.baselineprofile -P benchmarkTest -P disableOptimization
  * ```
  *
  * The metric results will be in `benchmark/build/outputs/connected_android_test_additional_output` folder.
@@ -45,28 +48,32 @@ import org.mozilla.fenix.benchmark.utils.measureRepeatedDefault
 @RunWith(AndroidJUnit4::class)
 @RequiresApi(Build.VERSION_CODES.N)
 @BaselineProfileMacrobenchmark
-class BaselineProfilesStartupBenchmark {
+class BaselineProfilesOnboardingBenchmark {
 
     @get:Rule
     val benchmarkRule = MacrobenchmarkRule()
 
     @Test
-    fun startupNone() = startupBenchmark(CompilationMode.None())
+    fun onboardingNone() = onboardingBenchmark(CompilationMode.None())
 
     @Test
-    fun startupPartialWithBaselineProfiles() =
-        startupBenchmark(CompilationMode.Partial(baselineProfileMode = BaselineProfileMode.Require))
+    fun onboarding() =
+        onboardingBenchmark(CompilationMode.Partial(baselineProfileMode = BaselineProfileMode.Require))
 
-    private fun startupBenchmark(compilationMode: CompilationMode) =
+    private fun onboardingBenchmark(compilationMode: CompilationMode) =
         benchmarkRule.measureRepeatedDefault(
+            packageName = TARGET_PACKAGE,
             metrics = listOf(StartupTimingMetric()),
             startupMode = StartupMode.COLD,
             compilationMode = compilationMode,
             setupBlock = {
                 pressHome()
+                device.clearPackageData(packageName = packageName)
+                killProcess()
             },
         ) {
             startActivityAndWait()
+            device.completeOnboarding()
             killProcess()
         }
 }
