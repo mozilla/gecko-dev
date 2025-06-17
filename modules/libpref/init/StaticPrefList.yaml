@@ -16041,7 +16041,7 @@
 #if defined(ANDROID)
   value: false
 #else
-  value: @IS_NIGHTLY_BUILD@
+  value: true
 #endif
   mirror: always
 
@@ -16096,7 +16096,7 @@
 #if defined(ANDROID)
   value: true
 #else
-  value: @IS_NOT_NIGHTLY_BUILD@
+  value: false
 #endif
   mirror: always
 
