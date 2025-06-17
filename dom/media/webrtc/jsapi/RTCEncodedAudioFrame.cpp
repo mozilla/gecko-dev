@@ -47,22 +47,15 @@ RTCEncodedAudioFrame::RTCEncodedAudioFrame(
       mOwner(aOwner) {
   mMetadata.mSynchronizationSource.Construct(mFrame->GetSsrc());
   mMetadata.mPayloadType.Construct(mFrame->GetPayloadType());
-  // send frames are derived directly from TransformableFrameInterface, not
-  // TransformableAudioFrameInterface! Right now, send frames have no csrcs
-  // or sequence number
-  // TODO(bug 1835076): Fix this
-  if (mFrame->GetDirection() ==
-      webrtc::TransformableFrameInterface::Direction::kReceiver) {
-    const auto& audioFrame(
-        static_cast<webrtc::TransformableAudioFrameInterface&>(*mFrame));
-    mMetadata.mContributingSources.Construct();
-    for (const auto csrc : audioFrame.GetContributingSources()) {
-      Unused << mMetadata.mContributingSources.Value().AppendElement(csrc,
-                                                                     fallible);
-    }
-    if (const auto optionalSeqNum = audioFrame.SequenceNumber()) {
-      mMetadata.mSequenceNumber.Construct(*optionalSeqNum);
-    }
+  const auto& audioFrame(
+      static_cast<webrtc::TransformableAudioFrameInterface&>(*mFrame));
+  mMetadata.mContributingSources.Construct();
+  for (const auto csrc : audioFrame.GetContributingSources()) {
+    Unused << mMetadata.mContributingSources.Value().AppendElement(csrc,
+                                                                   fallible);
+  }
+  if (const auto optionalSeqNum = audioFrame.SequenceNumber()) {
+    mMetadata.mSequenceNumber.Construct(*optionalSeqNum);
   }
 
   // Base class needs this, but can't do it itself because of an assertion in
