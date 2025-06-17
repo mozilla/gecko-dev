@@ -43,7 +43,10 @@ dependencies {
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
     testImplementation libs.kotlin.reflect
-    testImplementation libs.junit.vintage
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit4
+    testRuntimeOnly libs.junit.vintage
+    testRuntimeOnly libs.junit.platform.launcher
     testImplementation libs.testing.robolectric
     testImplementation libs.testing.coroutines
 }

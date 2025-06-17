@@ -93,7 +93,8 @@ androidx-test-monitor = "1.7.2"
 androidx-test-orchestrator = "1.5.1"
 androidx-test-runner = "1.6.1"
 androidx-test-uiautomator = "2.3.0"
-junit = "5.11.4"
+junit4 = "4.13.2"
+junit5 = "5.11.4"
 mockito = "5.17.0"
 mockk = "1.14.2"
 robolectric = "4.14.1"
@@ -114,10 +115,11 @@ kotlin-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coro
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
 kotlin-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 
-junit-api = { group = "org.junit.jupiter", name = "junit-jupiter-api", version.ref = "junit" }
-junit-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engine", version.ref = "junit" }
-junit-params = { group = "org.junit.jupiter", name = "junit-jupiter-params", version.ref = "junit" }
-junit-vintage = { group = "org.junit.vintage", name = "junit-vintage-engine", version.ref = "junit" }
+junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
+junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit5" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
+junit-vintage = { group = "org.junit.vintage", name = "junit-vintage-engine" }
 
 testing-robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 testing-mockito = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }

@@ -44,7 +44,10 @@ dependencies {
 
     testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
 
-    testImplementation libs.junit.vintage
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit4
+    testRuntimeOnly libs.junit.vintage
+    testRuntimeOnly libs.junit.platform.launcher
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric
 }

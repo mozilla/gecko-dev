@@ -342,9 +342,9 @@ dependencies {
 
     testImplementation "org.mozilla.telemetry:glean-native-forUnitTests:${project.ext.glean_version}"
 
-    testImplementation libs.junit.api
-    testImplementation libs.junit.params
-    testRuntimeOnly libs.junit.engine
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
 
     testImplementation libs.testing.robolectric
     testImplementation libs.testing.mockito

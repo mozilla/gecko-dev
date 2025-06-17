@@ -8,7 +8,10 @@ apply plugin: 'kotlin'
 dependencies {
     implementation libs.tools.detekt.api
 
-    testImplementation libs.junit.vintage
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit4
+    testRuntimeOnly libs.junit.vintage
+    testRuntimeOnly libs.junit.platform.launcher
     testImplementation libs.tools.detekt.api
     testImplementation libs.tools.detekt.test
 }

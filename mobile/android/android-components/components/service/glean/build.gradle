@@ -41,7 +41,10 @@ dependencies {
 
     testImplementation libs.androidx.test.core
 
-    testImplementation libs.junit.vintage
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit4
+    testRuntimeOnly libs.junit.vintage
+    testRuntimeOnly libs.junit.platform.launcher
     testImplementation libs.testing.robolectric
     testImplementation libs.testing.mockwebserver
     testImplementation libs.androidx.work.testing

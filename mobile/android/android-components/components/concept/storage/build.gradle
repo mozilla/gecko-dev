@@ -33,7 +33,10 @@ dependencies {
     implementation libs.androidx.annotation
 
     testImplementation project(':components:support-test')
-    testImplementation libs.junit.vintage
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit4
+    testRuntimeOnly libs.junit.vintage
+    testRuntimeOnly libs.junit.platform.launcher
 }
 
 apply from: '../../../android-lint.gradle'
