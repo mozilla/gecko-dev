@@ -18,7 +18,7 @@ macro_rules! delegate {
 }
 
 #[repr(transparent)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize)]
 pub struct Path(std::path::Path);
 
 impl AsRef<std::path::Path> for Path {
