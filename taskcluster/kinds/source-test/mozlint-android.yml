@@ -107,7 +107,6 @@ lints:
             - 'tools/lint/**'
 
 fenix:
-    worker-type: t-linux-xlarge-source
     treeherder:
         symbol: A(fenix-lints)
     run:
@@ -135,7 +134,6 @@ fenix:
             - 'tools/lint/**'
 
 focus:
-    worker-type: t-linux-xlarge-source
     treeherder:
         symbol: A(focus-lints)
     run:
@@ -163,7 +161,6 @@ focus:
             - 'tools/lint/**'
 
 android-components:
-    worker-type: t-linux-xlarge-source
     treeherder:
         symbol: A(ac-lints)
     run:
