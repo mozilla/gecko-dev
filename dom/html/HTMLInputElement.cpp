@@ -3284,6 +3284,11 @@ void HTMLInputElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
         StopNumberControlSpinnerSpin();
       }
     }
+
+    if (StaticPrefs::dom_input_number_and_range_modified_by_mousewheel() &&
+        aVisitor.mEvent->mMessage == eWheel) {
+      aVisitor.mMaybeUncancelable = false;
+    }
   }
 
   nsGenericHTMLFormControlElementWithState::GetEventTargetParent(aVisitor);

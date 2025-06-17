@@ -133,6 +133,7 @@ class MOZ_STACK_CLASS EventChainPreVisitor final : public EventChainVisitor {
         mRelatedTargetRetargetedInCurrentScope(false),
         mIgnoreBecauseOfShadowDOM(false),
         mWantsActivationBehavior(false),
+        mMaybeUncancelable(false),
         mParentTarget(nullptr),
         mEventTargetAtParent(nullptr),
         mRetargetedRelatedTarget(nullptr),
@@ -265,6 +266,14 @@ class MOZ_STACK_CLASS EventChainPreVisitor final : public EventChainVisitor {
    * See activationTarget in https://dom.spec.whatwg.org/#concept-event-dispatch
    */
   bool mWantsActivationBehavior;
+
+  /*
+   * Some events will be set uncancelable if we know they won't be default
+   * prevented. If mMaybeUncancelable is true, we haven't found something
+   * that might default prevent the event, like a non-passive listener.
+   * https://w3c.github.io/touch-events/#cancelability
+   */
+  bool mMaybeUncancelable;
 
  private:
   /**
