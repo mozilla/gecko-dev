@@ -836,12 +836,22 @@ add_task(async function test_cleanupOldRecipes() {
   const conn = await ProfilesDatastoreService.getConnection();
   await conn.execute(
     `
-      INSERT INTO NimbusEnrollments VALUES(
-        null,
+      INSERT INTO NimbusEnrollments(
+        profileId,
+        slug,
+        branchSlug,
+        recipe,
+        active,
+        unenrollReason,
+        lastSeen,
+        setPrefs,
+        prefFlips,
+        source
+      ) VALUES(
         :profileId,
         :slug,
         :branchSlug,
-        null,
+        :recipe,
         :active,
         :unenrollReason,
         :lastSeen,
@@ -858,6 +868,7 @@ add_task(async function test_cleanupOldRecipes() {
       unenrollReason: "unknown",
       lastSeen: new Date(NOW - ONE_YEAR - ONE_DAY).toJSON(),
       source: "NimbusTestUtils",
+      recipe: JSON.stringify({}),
     }
   );
 

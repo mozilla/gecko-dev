@@ -318,7 +318,7 @@ export class NimbusEnrollments {
           profileId: lazy.ExperimentAPI.profileId,
           slug: enrollment.slug,
           branchSlug: enrollment.branch.slug,
-          recipe: enrollment.active ? JSON.stringify(recipe) : null,
+          recipe: JSON.stringify(recipe),
           active: enrollment.active,
           unenrollReason: enrollment.unenrollReason ?? null,
           lastSeen: enrollment.lastSeen,
@@ -342,7 +342,6 @@ export class NimbusEnrollments {
       await conn.executeCached(
         `
           UPDATE NimbusEnrollments SET
-            recipe = null,
             active = false,
             unenrollReason = :unenrollReason,
             setPrefs = null,

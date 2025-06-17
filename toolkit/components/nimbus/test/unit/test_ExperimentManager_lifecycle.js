@@ -501,11 +501,6 @@ add_task(async function testDb() {
   Assert.notEqual(rolloutEnrollment, null, "rollout enrollment exists");
   Assert.ok(!rolloutEnrollment.active, "rollout enrollment is inactive");
   Assert.equal(
-    rolloutEnrollment.recipe,
-    null,
-    "rollout enrollment recipe is null"
-  );
-  Assert.equal(
     rolloutEnrollment.unenrollReason,
     "recipe-not-seen",
     "rollout unenrollReason"
@@ -529,11 +524,6 @@ add_task(async function testDb() {
     "experiment enrollment still exists"
   );
   Assert.ok(!experimentEnrollment.active, "experiment enrollment is inactive");
-  Assert.equal(
-    experimentEnrollment.recipe,
-    null,
-    "experiment enrollment recipe is null"
-  );
   Assert.equal(
     experimentEnrollment.unenrollReason,
     "targeting",
