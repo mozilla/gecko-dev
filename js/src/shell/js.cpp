@@ -111,6 +111,9 @@
 #include "jit/JitcodeMap.h"
 #include "jit/JitZone.h"
 #include "jit/shared/CodeGenerator-shared.h"
+#ifdef JS_CODEGEN_ARM64
+#  include "jit/arm64/vixl/Cpu-Features-vixl.h"
+#endif
 #include "js/Array.h"        // JS::NewArrayObject
 #include "js/ArrayBuffer.h"  // JS::{CreateMappedArrayBufferContents,NewMappedArrayBufferWithContents,IsArrayBufferObject,GetArrayBufferLengthAndData}
 #include "js/BuildId.h"      // JS::BuildIdCharVector, JS::SetProcessBuildIdOp
@@ -12799,6 +12802,8 @@ bool InitOptionParser(OptionParser& op) {
       !op.addBoolOption('\0', "no-avx",
                         "No-op. AVX is currently disabled by default.") ||
 #endif
+      !op.addBoolOption('\0', "no-fjcvtzs",
+                        "Pretend CPU does not support FJCVTZS instruction.") ||
       !op.addBoolOption('\0', "more-compartments",
                         "Make newGlobal default to creating a new "
                         "compartment.") ||
@@ -13169,6 +13174,12 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
     if (!sCompilerProcessFlags.append("--no-sse42")) {
       return false;
     }
+  }
+#endif
+#if defined(JS_CODEGEN_ARM64)
+  if (op.getBoolOption("no-fjcvtzs")) {
+    vixl::CPUFeatures fjcvtzs(vixl::CPUFeatures::kJSCVT);
+    fjcvtzs.DisableGlobally();
   }
 #endif
 #ifndef __wasi__
