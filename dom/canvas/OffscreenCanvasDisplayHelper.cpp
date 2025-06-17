@@ -577,7 +577,7 @@ UniquePtr<uint8_t[]> OffscreenCanvasDisplayHelper::GetImageBuffer(
   }
 
   if (resistFingerprinting) {
-    nsIPrincipal* principal;
+    nsIPrincipal* principal = nullptr;
     {
       MutexAutoLock lock(mMutex);
       if (mCanvasElement) {
