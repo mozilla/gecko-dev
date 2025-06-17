@@ -69,7 +69,7 @@ export class MozVisualPickerItem extends SelectControlItemMixin(MozLitElement) {
   }
 
   handleKeydown(event) {
-    if (event.keyCode == KeyEvent.DOM_VK_SPACE) {
+    if (event.code == "Space" || event.code == "Enter") {
       this.handleClick(event);
     }
   }

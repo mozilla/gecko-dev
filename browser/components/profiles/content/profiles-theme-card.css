@@ -2,24 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-:host {
-  --theme-card-border-radius: 10px;
-  --preview-image-border-radius: 9px;
-  --theme-card-border-width: 2px;
-
-  box-sizing: border-box;
-  border-radius: var(--theme-card-border-radius);
-}
-
 moz-card {
   --card-padding: 0;
 }
 
 .theme-card {
   width: 120px;
-  border-radius: var(--theme-card-border-radius);
   border: none;
   box-shadow: none;
+  border-radius: var(--visual-picker-item-child-border-radius);
 
   &:hover {
     background-color: var(--button-background-color-hover);
@@ -27,8 +18,6 @@ moz-card {
 
   @media (forced-colors) {
     &:hover {
-      border-color: SelectedItem;
-
       .theme-name {
         color: SelectedItem;
       }
@@ -36,7 +25,6 @@ moz-card {
 
     :host([checked]) & {
       background-color: SelectedItem;
-      border-color: SelectedItemText;
       color: SelectedItemText;
 
       .theme-name {
@@ -55,8 +43,7 @@ moz-card {
   width: 100%;
   height: 40px;
 
-  border-top-left-radius: var(--preview-image-border-radius);
-  border-top-right-radius: var(--preview-image-border-radius);
+  border-radius: var(--visual-picker-item-child-border-radius) var(--visual-picker-item-child-border-radius) 0 0;
 
   /*
    * We set the background color here in case the
@@ -68,9 +55,7 @@ moz-card {
   > img {
     -moz-context-properties: fill, stroke, fill-opacity;
     width: 100%;
-
-    border-top-left-radius: var(--preview-image-border-radius);
-    border-top-right-radius: var(--preview-image-border-radius);
+    border-radius: inherit;
   }
 }
 
@@ -78,8 +63,6 @@ moz-card {
   display: block;
   padding: var(--space-small) var(--space-medium);
 
-  border-inline-width: var(--theme-card-border-width);
-  border-block-end-width: var(--theme-card-border-width);
   border-block-start: var(--card-border);
 
   font-size: var(--font-size-small);

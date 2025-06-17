@@ -59,11 +59,11 @@ import "chrome://global/content/elements/moz-button.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-button-group.mjs";
 // eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-visual-picker.mjs";
+// eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/profiles/avatar.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/profiles/profiles-theme-card.mjs";
-// eslint-disable-next-line import/no-unassigned-import
-import "chrome://browser/content/profiles/profiles-group.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/profiles/profile-avatar-selector.mjs";
 
@@ -390,16 +390,18 @@ export class EditProfileCard extends MozLitElement {
       return null;
     }
 
-    return html`<profiles-group
+    return html`<moz-visual-picker
+      type="listbox"
       id="themes"
       value=${this.profile.themeId}
       data-l10n-id="edit-profile-page-theme-header-2"
       name="theme"
-      @click=${this.handleThemeClick}
+      @change=${this.handleThemeChange}
     >
       ${this.themes.map(
         t =>
-          html`<profiles-group-item
+          html`<moz-visual-picker-item
+            class="theme-item"
             l10nId=${ifDefined(t.dataL10nId)}
             name=${ifDefined(t.name)}
             value=${t.id}
@@ -409,12 +411,12 @@ export class EditProfileCard extends MozLitElement {
               .theme=${t}
               value=${t.id}
             ></profiles-theme-card>
-          </profiles-group-item>`
+          </moz-visual-picker-item>`
       )}
-    </profiles-group>`;
+    </moz-visual-picker>`;
   }
 
-  handleThemeClick() {
+  handleThemeChange() {
     this.updateTheme(this.themesPicker.value);
   }
 
@@ -425,20 +427,22 @@ export class EditProfileCard extends MozLitElement {
 
     let avatars = ["book", "briefcase", "flower", "heart", "shopping", "star"];
 
-    return html`<profiles-group
+    return html`<moz-visual-picker
+      type="listbox"
       value=${this.profile.avatar}
       data-l10n-id="edit-profile-page-avatar-header-2"
       name="avatar"
       id="avatars"
-      @click=${this.handleAvatarClick}
+      @change=${this.handleAvatarChange}
       >${avatars.map(
         avatar =>
-          html`<profiles-group-item
+          html`<moz-visual-picker-item
+            class="avatar-item"
             l10nId=${this.getAvatarL10nId(avatar)}
             value=${avatar}
             ><profiles-avatar value=${avatar}></profiles-avatar
-          ></profiles-group-item>`
-      )}</profiles-group
+          ></moz-visual-picker-item>`
+      )}</moz-visual-picker
     >`;
   }
 
@@ -476,7 +480,7 @@ export class EditProfileCard extends MozLitElement {
     this.avatarSelector.hidden = !this.avatarSelector.hidden;
   }
 
-  handleAvatarClick() {
+  handleAvatarChange() {
     this.updateAvatar(this.avatarsPicker.value);
   }
 
