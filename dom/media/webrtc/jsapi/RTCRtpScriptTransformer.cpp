@@ -412,19 +412,10 @@ already_AddRefed<Promise> RTCRtpScriptTransformer::SendKeyFrameRequest() {
   return promise.forget();
 }
 
-void RTCRtpScriptTransformer::KeyFrameRequestDone(bool aSuccess) {
+void RTCRtpScriptTransformer::KeyFrameRequestDone() {
   auto promises = std::move(mKeyFrameRequestPromises);
-  if (aSuccess) {
-    for (const auto& promise : promises) {
-      promise->MaybeResolveWithUndefined();
-    }
-  } else {
-    for (const auto& promise : promises) {
-      ErrorResult rv;
-      rv.ThrowInvalidStateError(
-          "Depacketizer is not defined, or not processing");
-      promise->MaybeReject(std::move(rv));
-    }
+  for (const auto& promise : promises) {
+    promise->MaybeResolveWithUndefined();
   }
 }
 

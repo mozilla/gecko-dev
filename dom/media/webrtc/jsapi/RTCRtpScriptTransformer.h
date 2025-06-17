@@ -157,7 +157,7 @@ class RTCRtpScriptTransformer final : public nsISupports,
   void GenerateKeyFrameError(const Maybe<std::string>& aRid,
                              const CopyableErrorResult& aResult);
   already_AddRefed<Promise> SendKeyFrameRequest();
-  void KeyFrameRequestDone(bool aSuccess);
+  void KeyFrameRequestDone();
 
   // Public to ease implementation of cycle collection functions
   using GenerateKeyFramePromises =
