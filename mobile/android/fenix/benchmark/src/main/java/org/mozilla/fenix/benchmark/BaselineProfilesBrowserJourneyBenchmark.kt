@@ -13,6 +13,7 @@ import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.StartupTimingMetric
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -55,6 +56,7 @@ import org.mozilla.fenix.benchmark.utils.measureRepeatedDefault
 @RunWith(AndroidJUnit4::class)
 @RequiresApi(Build.VERSION_CODES.N)
 @BaselineProfileMacrobenchmark
+@Ignore("Re-enable once Baseline Profiles are ready for Browser Journey - Bug 1971318")
 class BaselineProfilesBrowserJourneyBenchmark {
 
     @get:Rule
