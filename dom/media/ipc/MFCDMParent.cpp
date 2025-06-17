@@ -27,6 +27,7 @@
 #include "mozilla/dom/KeySystemNames.h"
 #include "mozilla/dom/MediaKeysBinding.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/gfx/gfxVars.h"
 #include "mozilla/ipc/UtilityAudioDecoderChild.h"
 #include "mozilla/ipc/UtilityProcessManager.h"
 #include "mozilla/ipc/UtilityProcessParent.h"
@@ -862,6 +863,13 @@ void MFCDMParent::GetCapabilities(const nsString& aKeySystem,
     return;
   }
 
+  // HWDRM is blocked by gfx downloadable blocklist.
+  if (isHardwareDecryption && !gfx::gfxVars::UseWMFHWDWM()) {
+    MFCDM_PARENT_SLOG("Block HWDRM for %s",
+                      NS_ConvertUTF16toUTF8(aKeySystem).get());
+    return;
+  }
+
   // MFCDM requires persistent storage, and can't use in-memory storage, it
   // can't be used in private browsing.
   if (aFlags.contains(CapabilitesFlag::IsPrivateBrowsing)) {
@@ -1128,6 +1136,8 @@ mozilla::ipc::IPCResult MFCDMParent::RecvInit(
     }
   };
 
+  const bool isHWSecure =
+      IsKeySystemHWSecure(mKeySystem, aParams.videoCapabilities());
   if (IsBeingProfiledOrLogEnabled()) {
     nsPrintfCString msg(
         "(key-system=%s, origin=%s, distinctiveID=%s, "
@@ -1136,13 +1146,13 @@ mozilla::ipc::IPCResult MFCDMParent::RecvInit(
         NS_ConvertUTF16toUTF8(mKeySystem).get(),
         NS_ConvertUTF16toUTF8(aParams.origin()).get(),
         RequirementToStr(aParams.distinctiveID()),
-        RequirementToStr(aParams.persistentState()),
-        IsKeySystemHWSecure(mKeySystem, aParams.videoCapabilities()));
+        RequirementToStr(aParams.persistentState()), isHWSecure);
     MFCDM_PARENT_LOG("Creating a CDM %s", msg.get());
     PROFILER_MARKER_TEXT("MFCDMParent::RecvInit(creating CDM)", MEDIA_PLAYBACK,
                          {}, msg);
   }
   MFCDM_REJECT_IF(!mFactory, NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+  MOZ_ASSERT_IF(isHWSecure, gfx::gfxVars::UseWMFHWDWM());
 
   MOZ_ASSERT(IsTypeSupported(mFactory, mKeySystem));
   MFCDM_REJECT_IF_FAILED(CreateContentDecryptionModule(
