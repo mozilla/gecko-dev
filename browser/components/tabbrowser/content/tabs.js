@@ -2881,7 +2881,12 @@
         }
       }
 
-      if (gBrowser._tabGroupsEnabled && isTab(draggedTab) && !isPinned) {
+      if (
+        gBrowser._tabGroupsEnabled &&
+        isTab(draggedTab) &&
+        !isPinned &&
+        (!numPinned || newDropElementIndex > numPinned)
+      ) {
         let dragOverGroupingThreshold = 1 - moveOverThreshold;
 
         // When dragging tab(s) over an ungrouped tab, signal to the user
