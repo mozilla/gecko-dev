@@ -382,6 +382,12 @@ this.tabs = class extends ExtensionAPIPersistent {
         ) {
           return false;
         }
+        if (
+          filter.cookieStoreId != null &&
+          filter.cookieStoreId !== tab.cookieStoreId
+        ) {
+          return false;
+        }
         if (filter.urls) {
           return filter.urls.matches(tab._uri) && tab.hasTabPermission;
         }

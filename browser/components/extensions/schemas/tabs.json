@@ -467,7 +467,8 @@
             "minItems": 1
           },
           "tabId": { "type": "integer", "optional": true },
-          "windowId": { "type": "integer", "optional": true }
+          "windowId": { "type": "integer", "optional": true },
+          "cookieStoreId": { "type": "string", "optional": true }
         }
       }
     ],
