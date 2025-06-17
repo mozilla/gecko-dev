@@ -341,7 +341,7 @@ FetchDriver::FetchDriver(SafeRefPtr<InternalRequest> aRequest,
                          nsIEventTarget* aMainThreadEventTarget,
                          nsICookieJarSettings* aCookieJarSettings,
                          PerformanceStorage* aPerformanceStorage,
-                         bool aIsTrackingFetch)
+                         net::ClassificationFlags aTrackingFlags)
     : mPrincipal(aPrincipal),
       mLoadGroup(aLoadGroup),
       mRequest(std::move(aRequest)),
@@ -350,7 +350,7 @@ FetchDriver::FetchDriver(SafeRefPtr<InternalRequest> aRequest,
       mCookieJarSettings(aCookieJarSettings),
       mPerformanceStorage(aPerformanceStorage),
       mNeedToObserveOnDataAvailable(false),
-      mIsTrackingFetch(aIsTrackingFetch),
+      mTrackingFlags(aTrackingFlags),
       mIsOn3PCBExceptionList(false),
       mOnStopRequestCalled(false)
 #ifdef DEBUG
@@ -364,6 +364,9 @@ FetchDriver::FetchDriver(SafeRefPtr<InternalRequest> aRequest,
   MOZ_ASSERT(mRequest);
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aMainThreadEventTarget);
+
+  mIsTrackingFetch = net::UrlClassifierCommon::IsTrackingClassificationFlag(
+      mTrackingFlags.thirdPartyFlags, false);
 }
 
 FetchDriver::~FetchDriver() {
@@ -692,6 +695,14 @@ nsresult FetchDriver::HttpFetch(
     rv = loadInfo->SetIsOn3PCBExceptionList(mIsOn3PCBExceptionList);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+
+  nsCOMPtr<nsILoadInfo> loadInfo = chan->LoadInfo();
+  rv = loadInfo->SetTriggeringFirstPartyClassificationFlags(
+      mTrackingFlags.firstPartyFlags);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = loadInfo->SetTriggeringThirdPartyClassificationFlags(
+      mTrackingFlags.thirdPartyFlags);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   // If the fetch is created by FetchEvent.request or NavigationPreload request,
   // corresponding InterceptedHttpChannel information need to propagate to the
