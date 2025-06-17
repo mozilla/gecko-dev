@@ -7,8 +7,6 @@
 
 interface nsIURI;
 interface nsIPrincipal;
-interface mozIPlacesPendingOperation;
-interface nsIFaviconDataCallback;
 
 [scriptable, uuid(e81e0b0c-b9f1-4c2e-8f3c-b809933cf73c)]
 interface nsIFaviconService : nsISupports
