@@ -11,6 +11,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.components.metrics.UTMParams
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.shadows.ShadowBuild
 
@@ -20,6 +21,7 @@ class DistributionIdManagerTest {
     private var providerValue: String? = null
     private var legacyProviderValue: String? = null
     private var storedId: String? = null
+    private var savedId: String = ""
 
     private val testDistributionProviderChecker = object : DistributionProviderChecker {
         override fun queryProvider(): String? = providerValue
@@ -39,11 +41,20 @@ class DistributionIdManagerTest {
 
     private val testDistributionMetricsProvider = mockk<DistributionMetricsProvider>(relaxed = true)
 
+    private val testDistributionSettings = object : DistributionSettings {
+        override fun getDistributionId(): String = savedId
+
+        override fun saveDistributionId(id: String) {
+            savedId = id
+        }
+    }
+
     @After
     fun tearDown() {
         providerValue = null
         legacyProviderValue = null
         storedId = null
+        savedId = ""
         ShadowBuild.reset()
     }
 
@@ -54,6 +65,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             appPreinstalledOnVivoDevice = { true },
         )
 
@@ -72,6 +84,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             appPreinstalledOnVivoDevice = { true },
         )
 
@@ -87,6 +100,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             appPreinstalledOnVivoDevice = { false },
         )
 
@@ -105,6 +119,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
         )
 
         val distributionId = subject.getDistributionId()
@@ -119,6 +134,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
         )
 
         storedId = "testId"
@@ -135,6 +151,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtTelefonicaInstalled = { true },
         )
 
@@ -151,6 +168,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtTelefonicaInstalled = { true },
         )
 
@@ -167,6 +185,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtTelefonicaInstalled = { false },
         )
 
@@ -183,6 +202,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtTelefonicaInstalled = { true },
         )
 
@@ -199,6 +219,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtTelefonicaInstalled = { false },
         )
 
@@ -215,6 +236,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
         )
 
         testBrowserStoreProvider.updateDistributionId(DistributionIdManager.Distribution.VIVO_001.id)
@@ -237,6 +259,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
         )
 
         providerValue = "aura"
@@ -252,6 +275,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtUsaInstalled = { true },
         )
 
@@ -268,6 +292,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtUsaInstalled = { true },
         )
 
@@ -284,6 +309,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
         )
 
         providerValue = "digital_turbine"
@@ -299,6 +325,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtTelefonicaInstalled = { true },
         )
 
@@ -315,6 +342,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtUsaInstalled = { true },
         )
 
@@ -331,6 +359,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
         )
 
         legacyProviderValue = "digital_turbine"
@@ -346,6 +375,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtTelefonicaInstalled = { true },
         )
 
@@ -365,6 +395,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtTelefonicaInstalled = { true },
         )
 
@@ -384,6 +415,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtTelefonicaInstalled = { true },
         )
 
@@ -403,6 +435,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtTelefonicaInstalled = { true },
         )
 
@@ -423,6 +456,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtUsaInstalled = { true },
         )
 
@@ -442,6 +476,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtUsaInstalled = { true },
         )
 
@@ -461,6 +496,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtUsaInstalled = { true },
         )
 
@@ -480,6 +516,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
             isDtTelefonicaInstalled = { true },
         )
 
@@ -500,6 +537,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
         )
 
         subject.recordProviderCheckerEvents(
@@ -518,6 +556,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
         )
 
         subject.recordProviderCheckerEvents(
@@ -536,6 +575,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
         )
 
         subject.recordProviderCheckerEvents(
@@ -554,6 +594,7 @@ class DistributionIdManagerTest {
             testBrowserStoreProvider,
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
         )
 
         subject.recordProviderCheckerEvents(
@@ -564,5 +605,86 @@ class DistributionIdManagerTest {
 
         verify(exactly = 0) { testDistributionMetricsProvider.recordDt003Detected() }
         verify(exactly = 0) { testDistributionMetricsProvider.recordDt003LegacyDetected() }
+    }
+
+    fun `WHEN the play install referrer response has a vivo india campaign THEN the distribution ID is updated`() {
+        val subject = DistributionIdManager(
+            testContext,
+            testBrowserStoreProvider,
+            distributionProviderChecker = testDistributionProviderChecker,
+            legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
+        )
+
+        subject.updateDistributionIdFromUtmParams(
+            UTMParams(
+                source = "source",
+                medium = "medium",
+                campaign = "vivo-india-preinstall",
+                content = "content",
+                term = "term",
+            ),
+        )
+
+        val distributionId = subject.getDistributionId()
+
+        assertEquals("vivo-002", distributionId)
+    }
+
+    @Test
+    fun `WHEN the play install referrer response does not have a vivo india campaign THEN the distribution ID is not updated`() {
+        val subject = DistributionIdManager(
+            testContext,
+            testBrowserStoreProvider,
+            distributionProviderChecker = testDistributionProviderChecker,
+            legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
+        )
+
+        subject.updateDistributionIdFromUtmParams(
+            UTMParams(
+                source = "source",
+                medium = "medium",
+                campaign = "campaign",
+                content = "content",
+                term = "term",
+            ),
+        )
+
+        val distributionId = subject.getDistributionId()
+
+        assertEquals("Mozilla", distributionId)
+    }
+
+    @Test
+    fun `WHEN there is a saved ID THEN the saved ID is returned`() {
+        val subject = DistributionIdManager(
+            testContext,
+            testBrowserStoreProvider,
+            distributionProviderChecker = testDistributionProviderChecker,
+            legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
+        )
+
+        testDistributionSettings.saveDistributionId("dist")
+
+        val distributionId = subject.getDistributionId()
+
+        assertEquals("dist", distributionId)
+    }
+
+    @Test
+    fun `WHEN there is not a saved ID THEN a non blank ID is returned`() {
+        val subject = DistributionIdManager(
+            testContext,
+            testBrowserStoreProvider,
+            distributionProviderChecker = testDistributionProviderChecker,
+            legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
+        )
+
+        val distributionId = subject.getDistributionId()
+
+        assertEquals("Mozilla", distributionId)
     }
 }

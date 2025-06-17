@@ -38,6 +38,7 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.distributions.DefaultDistributionBrowserStoreProvider
 import org.mozilla.fenix.distributions.DistributionIdManager
 import org.mozilla.fenix.distributions.DistributionProviderChecker
+import org.mozilla.fenix.distributions.DistributionSettings
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.utils.Settings
@@ -63,6 +64,11 @@ class FenixApplicationTest {
         override fun queryProvider(): String? = null
     }
 
+    private val testDistributionSettings = object : DistributionSettings {
+        override fun getDistributionId(): String = ""
+        override fun saveDistributionId(id: String) = Unit
+    }
+
     @Before
     fun setUp() {
         application = ApplicationProvider.getApplicationContext()
@@ -74,6 +80,7 @@ class FenixApplicationTest {
             browserStoreProvider = DefaultDistributionBrowserStoreProvider(browserStore),
             distributionProviderChecker = testDistributionProviderChecker,
             legacyDistributionProviderChecker = testLegacyDistributionProviderChecker,
+            distributionSettings = testDistributionSettings,
         )
     }
 
