@@ -3,6 +3,8 @@
 # file, # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import logging
+import re
+import subprocess
 import sys
 import tempfile
 from os import environ, makedirs
@@ -193,6 +195,8 @@ def build(command_context, binary_path, **kwargs):
             logging.ERROR("Invalid test type")
             sys.exit(1)
 
+    if mozinfo.os == "win":
+        log_file = bits_pretest()
     try:
         kwargs["binary"] = set_up(
             binary_path or get_binary_path(tempdir_name, **kwargs), tempdir=tempdir_name
@@ -212,6 +216,8 @@ def build(command_context, binary_path, **kwargs):
     finally:
         with open(MANIFEST_LOC, "w") as f:
             f.write(old_content)
+        if mozinfo.os == "win":
+            bits_posttest(log_file)
         tempdir.cleanup()
 
 
@@ -245,7 +251,7 @@ def run_tests(binary=None, topsrcdir=None, tempdir=None, **kwargs):
     failed = MarionetteHarness(MarionetteTestRunner, args=vars(args)).run()
     if VERSION_INFO_FILENAME:
         with VERSION_INFO_FILENAME.open("a") as fh:
-            fh.write(f"Status: {'failed' if failed else 'passed'}\n\n")
+            fh.write(f"Status: {'failed' if failed else 'passed'}\n")
     if failed > 0:
         return 1
     return 0
@@ -305,3 +311,52 @@ def set_up(binary_path, tempdir):
             f.write(f'pref("app.update.channel", "{TEST_UPDATE_CHANNEL}");')
 
     return binary_path_str
+
+
+def bits_pretest():
+    # Check that BITS is enabled
+    for line in subprocess.check_output(["sc", "qc", "BITS"], text=True).split("\n"):
+        if "START_TYPE" in line:
+            assert "DISABLED" not in line
+    # Write all logs to a file to check for results later
+    log_file = tempfile.NamedTemporaryFile(mode="wt", delete=False)
+    sys.stdout = log_file
+    return log_file
+
+
+def bits_posttest(log_file):
+    log_file.close()
+    sys.stdout = sys.__stdout__
+
+    failed = 0
+    try:
+        # Check that all the expected logs are present
+        downloader_regex = r"UpdateService:makeBitsRequest - Starting BITS download with url: https?:\/\/.+, updateDir: .+, filename: .+"
+        bits_download_regex = (
+            r"Downloader:downloadUpdate - BITS download running. BITS ID: {.+}"
+        )
+
+        with open(log_file.name, errors="ignore") as f:
+            logs = f.read()
+            assert re.search(downloader_regex, logs)
+            assert re.search(bits_download_regex, logs)
+            assert (
+                "AUS:SVC Downloader:_canUseBits - Not using BITS because it was already tried"
+                not in logs
+            )
+            assert (
+                "AUS:SVC Downloader:downloadUpdate - Starting nsIIncrementalDownload with url:"
+                not in logs
+            )
+    except (UnicodeDecodeError, AssertionError) as e:
+        failed = 1
+        print(e)
+    finally:
+        Path(log_file.name).unlink()
+
+    if VERSION_INFO_FILENAME:
+        with VERSION_INFO_FILENAME.open("a") as fh:
+            fh.write(f"BITS: {'failed' if failed else 'passed'}\n")
+
+    if failed:
+        sys.exit(1)
