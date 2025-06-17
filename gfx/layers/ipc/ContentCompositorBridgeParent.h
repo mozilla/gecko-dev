@@ -7,6 +7,7 @@
 #ifndef mozilla_layers_ContentCompositorBridgeParent_h
 #define mozilla_layers_ContentCompositorBridgeParent_h
 
+#include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/CompositorThread.h"
 #include "mozilla/UniquePtr.h"
@@ -82,6 +83,11 @@ class ContentCompositorBridgeParent final : public CompositorBridgeParentBase {
 
   mozilla::ipc::IPCResult RecvCheckContentOnlyTDR(
       const uint32_t& sequenceNum, bool* isContentOnlyTDR) override;
+
+  mozilla::ipc::IPCResult RecvDynamicToolbarOffsetChanged(
+      const int32_t& aOffset) override {
+    return IPC_FAIL_NO_REASON(this);
+  }
 
   mozilla::ipc::IPCResult RecvBeginRecording(
       const TimeStamp& aRecordingStart,

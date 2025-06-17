@@ -672,6 +672,12 @@ RefPtr<OMTASampler> CompositorBridgeParent::GetOMTASampler() const {
   return mOMTASampler;
 }
 
+mozilla::ipc::IPCResult CompositorBridgeParent::RecvDynamicToolbarOffsetChanged(
+    const int32_t& aOffset) {
+  SetFixedLayerMargins(0, aOffset);
+  return IPC_OK();
+}
+
 CompositorBridgeParent*
 CompositorBridgeParent::GetCompositorBridgeParentFromLayersId(
     const LayersId& aLayersId) {

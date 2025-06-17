@@ -81,10 +81,10 @@ class nsIWidgetListener {
    */
   virtual void SizeModeChanged(nsSizeMode aSizeMode) {}
 
-#ifdef MOZ_WIDGET_ANDROID
   virtual void DynamicToolbarMaxHeightChanged(mozilla::ScreenIntCoord aHeight) {
   }
   virtual void DynamicToolbarOffsetChanged(mozilla::ScreenIntCoord aOffset) {}
+#ifdef MOZ_WIDGET_ANDROID
   /** Called when the software keyboard appears/disappears. */
   virtual void KeyboardHeightChanged(mozilla::ScreenIntCoord aHeight) {}
   virtual void AndroidPipModeChanged(bool) {}

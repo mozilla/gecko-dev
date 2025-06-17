@@ -203,6 +203,8 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   WindowRenderer* GetWindowRenderer() override;
   bool HasWindowRenderer() const final { return !!mWindowRenderer; }
 
+  void DynamicToolbarOffsetChanged(mozilla::ScreenIntCoord aOffset) override;
+
   // A remote compositor session tied to this window has been lost and IPC
   // messages will no longer work. The widget must clean up any lingering
   // resources and possibly schedule another paint.

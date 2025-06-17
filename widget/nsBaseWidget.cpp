@@ -445,6 +445,13 @@ void nsIWidget::RemoveAllChildren() {
   }
 }
 
+void nsBaseWidget::DynamicToolbarOffsetChanged(
+    mozilla::ScreenIntCoord aOffset) {
+  if (mCompositorBridgeChild) {
+    mCompositorBridgeChild->SendDynamicToolbarOffsetChanged(aOffset);
+  }
+}
+
 LayoutDeviceIntRect nsIWidget::MaybeRoundToDisplayPixels(
     const LayoutDeviceIntRect& aRect, TransparencyMode aTransparency,
     int32_t aRound) {
