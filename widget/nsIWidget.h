@@ -564,6 +564,8 @@ class nsIWidget : public nsISupports {
   virtual mozilla::DesktopToLayoutDeviceScale
   GetDesktopToDeviceScaleByScreen() = 0;
 
+  virtual void DynamicToolbarOffsetChanged(mozilla::ScreenIntCoord aOffset) = 0;
+
   /**
    * Return the default scale factor for the window. This is the
    * default number of device pixels per CSS pixel to use. This should

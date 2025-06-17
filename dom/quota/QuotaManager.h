@@ -509,6 +509,8 @@ class QuotaManager final : public BackgroundThreadObject {
       const ClientMetadata& aClientMetadata,
       RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
+  bool IsPersistentClientInitialized(const ClientMetadata& aClientMetadata);
+
   // Returns a pair of an nsIFile object referring to the directory, and a bool
   // indicating whether the directory was newly created.
   Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
@@ -520,6 +522,8 @@ class QuotaManager final : public BackgroundThreadObject {
   RefPtr<BoolPromise> InitializeTemporaryClient(
       const ClientMetadata& aClientMetadata, bool aCreateIfNonExistent,
       RefPtr<UniversalDirectoryLock> aDirectoryLock);
+
+  bool IsTemporaryClientInitialized(const ClientMetadata& aClientMetadata);
 
   // Returns a pair of an nsIFile object referring to the directory, and a bool
   // indicating whether the directory was newly created.
@@ -906,6 +910,22 @@ class QuotaManager final : public BackgroundThreadObject {
   bool IsOriginInitialized(PersistenceType aPersistenceType,
                            const nsACString& aOrigin) const;
 
+  void NoteInitializedClient(PersistenceType aPersistenceType,
+                             const nsACString& aOrigin,
+                             Client::Type aClientType);
+
+  void NoteUninitializedClients(
+      const ClientMetadataArray& aClientMetadataArray);
+
+  void NoteUninitializedClients(
+      const OriginMetadataArray& aOriginMetadataArray);
+
+  void NoteUninitializedClients(PersistenceType aPersistenceType);
+
+  bool IsClientInitialized(PersistenceType aPersistenceType,
+                           const nsACString& aOrigin,
+                           Client::Type aClientType) const;
+
   bool IsSanitizedOriginValid(const nsACString& aSanitizedOrigin);
 
   Result<nsCString, nsresult> EnsureStorageOriginFromOrigin(
@@ -1089,6 +1109,11 @@ class QuotaManager final : public BackgroundThreadObject {
   using BoolArray = AutoTArray<bool, PERSISTENCE_TYPE_INVALID>;
   nsTHashMap<nsCStringHashKeyWithDisabledMemmove, BoolArray>
       mInitializedOrigins;
+
+  using BitSetArray =
+      AutoTArray<BitSet<Client::TYPE_MAX>, PERSISTENCE_TYPE_INVALID>;
+  nsTHashMap<nsCStringHashKeyWithDisabledMemmove, BitSetArray>
+      mInitializedClients;
 
   // Things touched on the IO thread only.
   struct IOThreadAccessible {

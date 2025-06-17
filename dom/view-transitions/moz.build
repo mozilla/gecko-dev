@@ -17,4 +17,10 @@ UNIFIED_SOURCES += [
 
 include("/ipc/chromium/chromium-config.mozbuild")
 
+# Before adding mochitest manifests, confirm that you can't write your test as
+# a web platform test.
+BROWSER_CHROME_MANIFESTS += [
+    "test/browser/browser.toml",
+]
+
 FINAL_LIBRARY = "xul"

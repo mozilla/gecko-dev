@@ -17,6 +17,10 @@ const { URLChecker } = ChromeUtils.importESModule(
   "chrome://global/content/ml/Utils.sys.mjs"
 );
 
+const { Progress } = ChromeUtils.importESModule(
+  "chrome://global/content/ml/Utils.sys.mjs"
+);
+
 // Root URL of the fake hub, see the `data` dir in the tests.
 const FAKE_HUB =
   "chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/data";
@@ -1897,9 +1901,17 @@ add_task(async function test_migrateStore_emptyDatabase() {
   await deleteCache(cache);
 });
 
-add_task(async function test_getOwnerIcon() {
+add_task(async function test_getOwnerIcon_cache() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.ml.logLevel", "All"]],
+  });
+
+  const originalOPFSFile = OPFS.File;
+
+  const localPaths = new Set();
+  const stub = sinon.stub(OPFS, "File").callsFake(function (args) {
+    localPaths.add(args.localPath);
+    return new originalOPFSFile(args); // preserve original behavior
   });
 
   const hub = new ModelHub({
@@ -1907,20 +1919,59 @@ add_task(async function test_getOwnerIcon() {
     urlTemplate: FAKE_URL_TEMPLATE,
   });
 
-  const fullyQualifiedModelName = "mochitests/mozilla/distilvit";
+  const fullyQualifiedModelName = `mochitests/mozilla/distilvit-${crypto.randomUUID()}`;
 
   // first call will get the icon from the web
   const icon = await hub.getOwnerIcon(fullyQualifiedModelName);
   Assert.notEqual(icon, null);
 
   // second call will get it from the cache
-  let spy = sinon.spy(OPFS.File.prototype, "getBlobFromOPFS");
+  let spy = sinon.spy(Progress, "fetchUrl");
 
   const icon2 = await hub.getOwnerIcon(fullyQualifiedModelName);
   Assert.notEqual(icon2, null);
 
   // check that it cames from OPFS
-  Assert.notEqual(await spy.lastCall.returnValue, null);
+  Assert.equal(spy.called, false);
 
-  sinon.restore();
+  spy.restore();
+  stub.restore();
+  for (const path of localPaths) {
+    await OPFS.remove(path, { recursive: true });
+  }
+});
+
+add_task(async function test_getOwnerIcon_download() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.logLevel", "All"]],
+  });
+
+  const originalOPFSFile = OPFS.File;
+
+  const localPaths = new Set();
+  const stub = sinon.stub(OPFS, "File").callsFake(function (args) {
+    localPaths.add(args.localPath);
+    return new originalOPFSFile(args); // preserve original behavior
+  });
+
+  const hub = new ModelHub({
+    rootUrl: FAKE_HUB,
+    urlTemplate: FAKE_URL_TEMPLATE,
+  });
+
+  const fullyQualifiedModelName = `mochitests/mozilla/distilvit-${crypto.randomUUID()}`;
+
+  let spy = sinon.spy(Progress, "fetchUrl");
+  // first call will get the icon from the web
+  const icon = await hub.getOwnerIcon(fullyQualifiedModelName);
+  Assert.notEqual(icon, null);
+  // check that it didn't come from OPFS
+  Assert.equal(spy.called, true);
+  Assert.notEqual(await spy.lastCall?.returnValue, null);
+
+  spy.restore();
+  stub.restore();
+  for (const path of localPaths) {
+    await OPFS.remove(path, { recursive: true });
+  }
 });

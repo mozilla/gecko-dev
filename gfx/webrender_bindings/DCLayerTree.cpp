@@ -647,7 +647,6 @@ void DCLayerTree::CompositorEndFrame() {
     // Ensure surface is trimmed to updated tile valid rects
     surface->UpdateAllocatedRect();
     if (!same) {
-      // Add surfaces in z-order they were added to the scene.
       const auto visual = surface->GetRootVisual();
       if (UseLayerCompositor()) {
         // Layer compositor expects front to back.

@@ -191,7 +191,7 @@ class HTMLScriptElement final : public nsGenericHTMLElement,
   nsIContent* GetAsContent() override { return this; }
 
   // ScriptElement
-  virtual bool HasScriptContent() override;
+  virtual bool HasExternalScriptContent() override;
 
   RefPtr<nsDOMTokenList> mBlocking;
 };

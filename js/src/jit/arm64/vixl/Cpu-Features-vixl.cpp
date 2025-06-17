@@ -41,6 +41,16 @@
 
 namespace vixl {
 
+// Set of features which are disabled. This takes precedence over all ways to
+// construct a CPUFeatures set.
+static uint64_t disabledFeaturesMask = 0;
+
+void CPUFeatures::DisableGlobally() {
+  // Remove all feature flags set.
+  disabledFeaturesMask |= features_;
+}
+
+
 static uint64_t MakeFeatureMask(CPUFeatures::Feature feature) {
   if (feature == CPUFeatures::kNone) {
     return 0;
@@ -65,7 +75,8 @@ CPUFeatures CPUFeatures::All() {
   CPUFeatures all;
   // Check that the shift is well-defined.
   VIXL_STATIC_ASSERT(CPUFeatures::kNumberOfFeatures < (sizeof(uint64_t) * 8));
-  all.features_ = (UINT64_C(1) << kNumberOfFeatures) - 1;
+  all.features_ = (UINT64_C(1) << CPUFeatures::kNumberOfFeatures) - 1;
+  all.features_ &= ~disabledFeaturesMask;
   return all;
 }
 
@@ -101,6 +112,7 @@ void CPUFeatures::Combine(Feature feature0,
   features_ |= MakeFeatureMask(feature1);
   features_ |= MakeFeatureMask(feature2);
   features_ |= MakeFeatureMask(feature3);
+  features_ &= ~disabledFeaturesMask;
 }
 
 void CPUFeatures::Remove(const CPUFeatures& other) {

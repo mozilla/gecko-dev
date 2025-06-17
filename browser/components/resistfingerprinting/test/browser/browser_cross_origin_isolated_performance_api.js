@@ -125,6 +125,10 @@ add_setup(async function () {
 });
 
 add_task(async function runTestsForWorker() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["security.allow_eval_with_system_principal", true]],
+  });
+
   // RFP
   await setupAndRunCrossOriginIsolatedTest(
     {

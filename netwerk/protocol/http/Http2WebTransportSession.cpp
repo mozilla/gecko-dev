@@ -580,7 +580,7 @@ nsresult Http2WebTransportSession::GenerateHeaders(nsCString& aCompressedData,
 
   rv = session->Compressor()->EncodeHeaderBlock(
       mFlatHttpRequestHeaders, "CONNECT"_ns, path, authorityHeader, "https"_ns,
-      "webtransport"_ns, false, aCompressedData);
+      "webtransport"_ns, false, aCompressedData, true);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mRequestBodyLenRemaining = 0x0fffffffffffffffULL;

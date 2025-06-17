@@ -332,50 +332,116 @@ mock_key! {
     pub struct MockFS => MockFiles
 }
 
-pub struct File {
-    content: MockFileContent,
-    pos: usize,
+pub struct OpenOptions {
+    read: bool,
+    write: bool,
+    truncate: bool,
+    create: bool,
 }
 
-impl File {
-    pub fn open<P: AsRef<Path>>(path: P) -> Result<File> {
-        MockFS.get(move |files| {
+macro_rules! flag_setter {
+    ( $name:ident ) => {
+        pub fn $name(&mut self, $name: bool) -> &mut Self {
+            self.$name = $name;
+            self
+        }
+    };
+}
+
+impl OpenOptions {
+    pub fn new() -> Self {
+        OpenOptions {
+            read: false,
+            write: false,
+            truncate: false,
+            create: false,
+        }
+    }
+
+    flag_setter!(read);
+    flag_setter!(write);
+    flag_setter!(truncate);
+    flag_setter!(create);
+
+    pub fn open(&self, path: impl AsRef<Path>) -> Result<File> {
+        let path = path.as_ref();
+        MockFS.get(|files| {
+            let name = path.file_name().expect("invalid path");
             files
-                .path(path, false, |item| match &item.content {
-                    MockFSContent::File(result) => result
-                        .as_ref()
-                        .map(|b| File {
-                            content: b.clone(),
-                            pos: 0,
-                        })
-                        .map_err(|e| e.kind().into()),
-                    MockFSContent::Dir(_) => Err(ErrorKind::NotFound.into()),
+                .parent_dir(path, move |d| -> Result<File> {
+                    let content = if let Some(item) = d.get(name) {
+                        match &item.content {
+                            MockFSContent::File(result) => {
+                                result.as_ref().cloned().map_err(|e| e.kind())
+                            }
+                            MockFSContent::Dir(_) => Err(ErrorKind::NotFound),
+                        }
+                    } else if !self.create {
+                        Err(ErrorKind::NotFound)
+                    } else {
+                        let content = MockFileContent::default();
+                        d.insert(
+                            name.to_owned(),
+                            MockFSItem {
+                                content: MockFSContent::File(Ok(content.clone())),
+                                modified: super::time::SystemTime::now().0,
+                            },
+                        );
+                        Ok(content)
+                    }?;
+                    let file = File {
+                        content,
+                        pos: 0,
+                        read: self.read,
+                        write: self.write,
+                    };
+                    if self.truncate {
+                        file.set_len(0)?;
+                    }
+                    Ok(file)
                 })
                 .and_then(|r| r)
         })
     }
+}
+
+pub struct File {
+    content: MockFileContent,
+    pos: usize,
+    read: bool,
+    write: bool,
+}
+
+impl File {
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<File> {
+        OpenOptions::new().read(true).open(path)
+    }
 
     pub fn create<P: AsRef<Path>>(path: P) -> Result<File> {
-        let path = path.as_ref();
-        MockFS.get(|files| {
-            let name = path.file_name().expect("invalid path");
-            files.parent_dir(path, move |d| {
-                d.remove(name);
-                d.insert(
-                    name.to_owned(),
-                    MockFSItem {
-                        content: MockFSContent::File(Ok(Default::default())),
-                        modified: super::time::SystemTime::now().0,
-                    },
-                );
-            })
-        })?;
-        Self::open(path)
+        OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(path)
+    }
+
+    pub fn set_len(&self, size: u64) -> Result<()> {
+        if !self.write {
+            return Err(std::io::ErrorKind::PermissionDenied.into());
+        }
+        let new_len: usize = size
+            .try_into()
+            .map_err(|_| std::io::ErrorKind::InvalidInput)?;
+        self.content.0.lock().unwrap().resize(new_len, 0);
+        Ok(())
     }
 }
 
 impl Read for File {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+        if !self.read {
+            return Err(std::io::ErrorKind::PermissionDenied.into());
+        }
         let guard = self.content.0.lock().unwrap();
         if self.pos >= guard.len() {
             return Ok(0);
@@ -427,6 +493,9 @@ impl Seek for File {
 
 impl Write for File {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
+        if !self.write {
+            return Err(std::io::ErrorKind::PermissionDenied.into());
+        }
         let mut guard = self.content.0.lock().unwrap();
         let end = self.pos + buf.len();
         if end > guard.len() {
@@ -438,6 +507,9 @@ impl Write for File {
     }
 
     fn flush(&mut self) -> Result<()> {
+        if !self.write {
+            return Err(std::io::ErrorKind::PermissionDenied.into());
+        }
         Ok(())
     }
 }

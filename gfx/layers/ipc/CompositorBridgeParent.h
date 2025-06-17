@@ -213,6 +213,8 @@ class CompositorBridgeParentBase : public PCompositorBridgeParent,
       const uint32_t& startIndex, nsTArray<float>* intervals) = 0;
   virtual mozilla::ipc::IPCResult RecvCheckContentOnlyTDR(
       const uint32_t& sequenceNum, bool* isContentOnlyTDR) = 0;
+  virtual mozilla::ipc::IPCResult RecvDynamicToolbarOffsetChanged(
+      const int32_t& aOffset) = 0;
 
   bool mCanSend;
 
@@ -282,6 +284,9 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
       const uint32_t& sequenceNum, bool* isContentOnlyTDR) override {
     return IPC_OK();
   }
+
+  mozilla::ipc::IPCResult RecvDynamicToolbarOffsetChanged(
+      const int32_t& aOffset) override;
 
   mozilla::ipc::IPCResult RecvNotifyMemoryPressure() override;
   mozilla::ipc::IPCResult RecvBeginRecording(

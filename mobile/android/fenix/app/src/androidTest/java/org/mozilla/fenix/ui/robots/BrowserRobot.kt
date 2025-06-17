@@ -45,6 +45,7 @@ import androidx.test.uiautomator.Until
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.mediasession.MediaSession
+import mozilla.components.concept.engine.utils.EngineReleaseChannel
 import org.hamcrest.CoreMatchers.allOf
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -1127,9 +1128,21 @@ class BrowserRobot {
         Log.i(TAG, "verifyWebCompatReporterViewItems: Trying to verify that the \"Describe the problem (optional)\" field is displayed")
         composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_label_description)).assertIsDisplayed()
         Log.i(TAG, "verifyWebCompatReporterViewItems: Verified that the \"Describe the problem (optional)\" field is displayed")
-        Log.i(TAG, "verifyWebCompatReporterViewItems: Trying to verify that the \"Send more info\" link is displayed")
-        composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_send_more_info)).assertIsDisplayed()
-        Log.i(TAG, "verifyWebCompatReporterViewItems: Verified that the \"Send more info\" link is displayed")
+        if (appContext.components.core.engine.version.releaseChannel !== EngineReleaseChannel.RELEASE) {
+            Log.i(
+                TAG, "Release channel is ${appContext.components.core.engine.version.releaseChannel}",
+            )
+            Log.i(
+                TAG,
+                "verifyWebCompatReporterViewItems: Trying to verify that the \"Send more info\" link is displayed",
+            )
+            composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_send_more_info))
+                .assertIsDisplayed()
+            Log.i(
+                TAG,
+                "verifyWebCompatReporterViewItems: Verified that the \"Send more info\" link is displayed",
+            )
+        }
         Log.i(TAG, "verifyWebCompatReporterViewItems: Trying to verify that the \"Cancel\" button is displayed")
         composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_cancel))
         Log.i(TAG, "verifyWebCompatReporterViewItems: Verified that the \"Cancel \" button is displayed")

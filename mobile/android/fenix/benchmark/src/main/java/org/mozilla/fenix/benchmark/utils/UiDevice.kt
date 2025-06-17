@@ -15,6 +15,11 @@ fun UiDevice.clearPackageData(packageName: String) {
     executeShellCommand("pm revoke $packageName android.permission.POST_NOTIFICATIONS")
 }
 
+fun UiDevice.isOnboardingCompleted() : Boolean {
+    val dismissSetAsDefault = findObject(UiSelector().resourceId("android:id/button2"))
+    return !dismissSetAsDefault.waitForExists(WAITING_TIME_MS)
+}
+
 fun UiDevice.isWallpaperOnboardingShown() : Boolean {
     val wallpaperFragmentText = findObject(
         UiSelector().text("Choose a wallpaper that speaks to you.")

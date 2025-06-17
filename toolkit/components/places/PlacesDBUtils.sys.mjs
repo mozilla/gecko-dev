@@ -1109,6 +1109,18 @@ export var PlacesDBUtils = {
       },
 
       {
+        distribution: Glean.places.databaseSemanticHistoryFilesize,
+        async callback() {
+          let semanticDbPath = PathUtils.join(
+            PathUtils.profileDir,
+            "places_semantic.sqlite"
+          );
+          let info = await IOUtils.stat(semanticDbPath);
+          return Math.floor(info.size / BYTES_PER_MEBIBYTE);
+        },
+      },
+
+      {
         distribution: Glean.places.annosPagesCount,
         query: "SELECT count(*) FROM moz_annos",
       },
@@ -1141,30 +1153,38 @@ export var PlacesDBUtils = {
     ];
 
     for (let probe of probes) {
-      let val;
-      if ("query" in probe) {
-        let db = await lazy.PlacesUtils.promiseDBConnection();
-        val = (
-          await db.execute(probe.query, probe.params || {})
-        )[0].getResultByIndex(0);
-      }
-      // Report the result of the probe through Telemetry.
-      // The resulting promise cannot reject.
-      if ("callback" in probe) {
-        val = await probe.callback();
-      }
-      if (probe.distribution) {
-        // Memory distributions have the method named 'accumulate'
-        // instead of 'accumulateSingleSample'.
-        if ("accumulateSingleSample" in probe.distribution) {
-          probe.distribution.accumulateSingleSample(val);
-        } else if ("accumulate" in probe.distribution) {
-          probe.distribution.accumulate(val);
+      try {
+        let val;
+        if ("query" in probe) {
+          let db = await lazy.PlacesUtils.promiseDBConnection();
+          val = (
+            await db.execute(probe.query, probe.params || {})
+          )[0].getResultByIndex(0);
         }
-      } else if (probe.quantity) {
-        probe.quantity.set(val);
-      } else {
-        throw new Error("Unknwon telemetry probe type");
+        // Report the result of the probe through Telemetry.
+        // The resulting promise cannot reject.
+        if ("callback" in probe) {
+          val = await probe.callback();
+        }
+        if (probe.distribution) {
+          // Memory distributions have the method named 'accumulate'
+          // instead of 'accumulateSingleSample'.
+          if ("accumulateSingleSample" in probe.distribution) {
+            probe.distribution.accumulateSingleSample(val);
+          } else if ("accumulate" in probe.distribution) {
+            probe.distribution.accumulate(val);
+          }
+        } else if (probe.quantity) {
+          probe.quantity.set(val);
+        } else {
+          throw new Error("Unknwon telemetry probe type");
+        }
+      } catch (ex) {
+        // We want to execute the next steps anyway, for certain probes it is
+        // expected that the file may be missing.
+        if (ex.code != DOMException.NOT_FOUND_ERR) {
+          console.error(ex);
+        }
       }
     }
   },

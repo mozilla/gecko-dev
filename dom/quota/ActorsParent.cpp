@@ -3422,6 +3422,7 @@ QuotaManager::GetOrCreateTemporaryOriginDirectory(
                   OriginMetadataArray originMetadataArray;
                   originMetadataArray.AppendElement(aOriginMetadata);
 
+                  quotaManager->NoteUninitializedClients(originMetadataArray);
                   quotaManager->NoteUninitializedOrigins(originMetadataArray);
                 }),
             NS_DISPATCH_NORMAL));
@@ -6402,7 +6403,26 @@ RefPtr<BoolPromise> QuotaManager::InitializePersistentClient(
 
   initializePersistentClientOp->RunImmediately();
 
-  return initializePersistentClientOp->OnResults();
+  return Map<BoolPromise>(
+      initializePersistentClientOp->OnResults(),
+      [self = RefPtr(this), origin = aClientMetadata.mOrigin,
+       clientType = aClientMetadata.mClientType](
+          const BoolPromise::ResolveOrRejectValue& aValue) {
+        self->NoteInitializedClient(PERSISTENCE_TYPE_PERSISTENT, origin,
+                                    clientType);
+
+        return aValue.ResolveValue();
+      });
+}
+
+bool QuotaManager::IsPersistentClientInitialized(
+    const ClientMetadata& aClientMetadata) {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(aClientMetadata.mPersistenceType == PERSISTENCE_TYPE_PERSISTENT);
+
+  return IsClientInitialized(aClientMetadata.mPersistenceType,
+                             aClientMetadata.mOrigin,
+                             aClientMetadata.mClientType);
 }
 
 Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
@@ -6465,7 +6485,26 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryClient(
 
   initializeTemporaryClientOp->RunImmediately();
 
-  return initializeTemporaryClientOp->OnResults();
+  return Map<BoolPromise>(
+      initializeTemporaryClientOp->OnResults(),
+      [self = RefPtr(this), persistenceType = aClientMetadata.mPersistenceType,
+       origin = aClientMetadata.mOrigin,
+       clientType = aClientMetadata.mClientType](
+          const BoolPromise::ResolveOrRejectValue& aValue) {
+        self->NoteInitializedClient(persistenceType, origin, clientType);
+
+        return aValue.ResolveValue();
+      });
+}
+
+bool QuotaManager::IsTemporaryClientInitialized(
+    const ClientMetadata& aClientMetadata) {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(aClientMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
+
+  return IsClientInitialized(aClientMetadata.mPersistenceType,
+                             aClientMetadata.mOrigin,
+                             aClientMetadata.mClientType);
 }
 
 Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
@@ -6887,6 +6926,7 @@ RefPtr<BoolPromise> QuotaManager::ClearStoragesForOrigin(
       clearOriginOp->OnResults(),
       [self = RefPtr(this)](
           OriginMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
+        self->NoteUninitializedClients(aValue.ResolveValue());
         self->NoteUninitializedOrigins(aValue.ResolveValue());
 
         return true;
@@ -6908,7 +6948,9 @@ RefPtr<BoolPromise> QuotaManager::ClearStoragesForClient(
 
   return Map<BoolPromise>(
       clearClientOp->OnResults(),
-      [](ClientMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
+      [self = RefPtr(this)](
+          ClientMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
+        self->NoteUninitializedClients(aValue.ResolveValue());
         return true;
       });
 }
@@ -6929,6 +6971,7 @@ RefPtr<BoolPromise> QuotaManager::ClearStoragesForOriginPrefix(
       clearStoragesForOriginPrefixOp->OnResults(),
       [self = RefPtr(this)](
           OriginMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
+        self->NoteUninitializedClients(aValue.ResolveValue());
         self->NoteUninitializedOrigins(aValue.ResolveValue());
 
         return true;
@@ -6950,6 +6993,7 @@ RefPtr<BoolPromise> QuotaManager::ClearStoragesForOriginAttributesPattern(
       clearDataOp->OnResults(),
       [self = RefPtr(this)](
           OriginMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
+        self->NoteUninitializedClients(aValue.ResolveValue());
         self->NoteUninitializedOrigins(aValue.ResolveValue());
 
         return true;
@@ -6969,6 +7013,7 @@ RefPtr<BoolPromise> QuotaManager::ClearPrivateRepository() {
   return Map<BoolPromise>(
       clearPrivateRepositoryOp->OnResults(),
       [self = RefPtr(this)](const BoolPromise::ResolveOrRejectValue& aValue) {
+        self->NoteUninitializedClients(PERSISTENCE_TYPE_PRIVATE);
         self->NoteUninitializedRepository(PERSISTENCE_TYPE_PRIVATE);
 
         return aValue.ResolveValue();
@@ -6991,6 +7036,7 @@ RefPtr<BoolPromise> QuotaManager::ClearStorage() {
           return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
         }
 
+        self->mInitializedClients.Clear();
         self->mInitializedOrigins.Clear();
         self->mBackgroundThreadAccessible.Access()->mInitializedGroups.Clear();
         self->mAllTemporaryOriginsInitialized = false;
@@ -7017,6 +7063,7 @@ RefPtr<BoolPromise> QuotaManager::ShutdownStoragesForOrigin(
       shutdownOriginOp->OnResults(),
       [self = RefPtr(this)](
           OriginMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
+        self->NoteUninitializedClients(aValue.ResolveValue());
         self->NoteUninitializedOrigins(aValue.ResolveValue());
 
         return true;
@@ -7038,7 +7085,10 @@ RefPtr<BoolPromise> QuotaManager::ShutdownStoragesForClient(
 
   return Map<BoolPromise>(
       shutdownClientOp->OnResults(),
-      [](ClientMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
+      [self = RefPtr(this)](
+          ClientMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
+        self->NoteUninitializedClients(aValue.ResolveValue());
+
         return true;
       });
 }
@@ -7066,6 +7116,7 @@ RefPtr<BoolPromise> QuotaManager::ShutdownStorage(
           return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
         }
 
+        self->mInitializedClients.Clear();
         self->mInitializedOrigins.Clear();
         self->mBackgroundThreadAccessible.Access()->mInitializedGroups.Clear();
         self->mAllTemporaryOriginsInitialized = false;
@@ -8107,6 +8158,91 @@ bool QuotaManager::IsOriginInitialized(PersistenceType aPersistenceType,
   const auto entry = mInitializedOrigins.Lookup(aOrigin);
 
   return entry && (*entry)[aPersistenceType];
+}
+
+void QuotaManager::NoteInitializedClient(PersistenceType aPersistenceType,
+                                         const nsACString& aOrigin,
+                                         Client::Type aClientType) {
+  AssertIsOnOwningThread();
+
+  auto& bitSetArray = mInitializedClients.LookupOrInsertWith(aOrigin, []() {
+    BitSetArray bitSetArray;
+    bitSetArray.AppendElements(PERSISTENCE_TYPE_INVALID);
+    return bitSetArray;
+  });
+
+  bitSetArray[aPersistenceType][aClientType] = true;
+}
+
+void QuotaManager::NoteUninitializedClients(
+    const ClientMetadataArray& aClientMetadataArray) {
+  AssertIsOnOwningThread();
+
+  for (const auto& clientMetadata : aClientMetadataArray) {
+    auto entry = mInitializedClients.Lookup(clientMetadata.mOrigin);
+    if (!entry) {
+      return;
+    }
+
+    auto& bitSetArray = *entry;
+
+    if (bitSetArray[clientMetadata.mPersistenceType]
+                   [clientMetadata.mClientType]) {
+      bitSetArray[clientMetadata.mPersistenceType][clientMetadata.mClientType] =
+          false;
+
+      if (std::all_of(bitSetArray.begin(), bitSetArray.end(),
+                      [](const auto& entry) { return entry.IsEmpty(); })) {
+        entry.Remove();
+      }
+    }
+  }
+}
+
+void QuotaManager::NoteUninitializedClients(
+    const OriginMetadataArray& aOriginMetadataArray) {
+  AssertIsOnOwningThread();
+
+  for (const auto& originMetadata : aOriginMetadataArray) {
+    auto entry = mInitializedClients.Lookup(originMetadata.mOrigin);
+    if (!entry) {
+      return;
+    }
+
+    auto& bitSetArray = *entry;
+
+    bitSetArray[originMetadata.mPersistenceType].ResetAll();
+
+    if (std::all_of(bitSetArray.begin(), bitSetArray.end(),
+                    [](const auto& entry) { return entry.IsEmpty(); })) {
+      entry.Remove();
+    }
+  }
+}
+
+void QuotaManager::NoteUninitializedClients(PersistenceType aPersistenceType) {
+  AssertIsOnOwningThread();
+
+  for (auto iter = mInitializedClients.Iter(); !iter.Done(); iter.Next()) {
+    auto& bitSetArray = iter.Data();
+
+    bitSetArray[aPersistenceType].ResetAll();
+
+    if (std::all_of(bitSetArray.begin(), bitSetArray.end(),
+                    [](const auto& entry) { return entry.IsEmpty(); })) {
+      iter.Remove();
+    }
+  }
+}
+
+bool QuotaManager::IsClientInitialized(PersistenceType aPersistenceType,
+                                       const nsACString& aOrigin,
+                                       Client::Type aClientType) const {
+  AssertIsOnOwningThread();
+
+  const auto entry = mInitializedClients.Lookup(aOrigin);
+
+  return entry && (*entry)[aPersistenceType][aClientType];
 }
 
 Result<nsCString, nsresult> QuotaManager::EnsureStorageOriginFromOrigin(

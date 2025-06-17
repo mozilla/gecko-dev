@@ -3909,7 +3909,7 @@ impl Renderer {
                             segment_builder.build(|segment| {
                                 let key = OcclusionItemKey { tile_index: idx, needs_mask: segment.has_mask };
 
-                                layer. occlusion.add(
+                                layer.occlusion.add(
                                     &segment.rect.cast_unit(),
                                     is_opaque && !segment.has_mask,
                                     key,

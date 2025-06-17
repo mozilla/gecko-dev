@@ -58,6 +58,7 @@ add_setup(async function () {
       ["privacy.trackingprotection.annotate_channels", true],
       // Bug 1617611: Fix all the tests broken by "cookies SameSite=lax by default"
       ["network.cookie.sameSite.laxByDefault", false],
+      ["security.allow_eval_with_system_principal", true],
     ],
   });
   registerCleanupFunction(cleanup);

@@ -489,8 +489,8 @@ void Navigation::Reload(JSContext* aCx, const NavigationReloadOptions& aOptions,
   //    serializedState.
   RefPtr docShell = nsDocShell::Cast(document->GetDocShell());
   MOZ_ASSERT(docShell);
-  docShell->ReloadNavigable(aCx, nsIWebNavigation::LOAD_FLAGS_NONE,
-                            serializedState);
+  docShell->ReloadNavigable(Some(WrapNotNullUnchecked(aCx)),
+                            nsIWebNavigation::LOAD_FLAGS_NONE, serializedState);
 
   // 10. Return a navigation API method tracker-derived result for
   //     apiMethodTracker.

@@ -13031,7 +13031,7 @@
 # Whether to support CHIPS(Cookies Having Independent Partitioned State).
 - name: network.cookie.CHIPS.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Updated to match the target count when we migrate the unpartitioned CHIPS
@@ -13045,7 +13045,7 @@
 # This lets us remotely perform a database migration with Nimbus.
 - name: network.cookie.CHIPS.migrateDatabaseTarget
   type: RelaxedAtomicUint32
-  value: 1
+  value: 2
   mirror: always
 
 # Stale threshold for cookies in seconds.
@@ -15829,6 +15829,25 @@
   value: true
   mirror: always
 
+# Annotate channels based on the anti-fraud list
+# Note: anti-fraud annotations will be disabled if tracking protection is disabled
+- name: privacy.trackingprotection.antifraud.annotate_channels
+  type: bool
+  value: true
+  mirror: always
+
+# Skip blocking for anti-fraud resources in all modes.
+- name: privacy.trackingprotection.antifraud.skip.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+# Skip blocking for anti-fraud resources in Private Browsing mode.
+- name: privacy.trackingprotection.antifraud.skip.pbmode.enabled
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # Whether to spoof user locale to English (used as part of Resist
 # Fingerprinting).
 # 0 - will prompt
@@ -16026,7 +16045,7 @@
 # Enable the heuristic to allow storage access for windows opened using window.open()
 - name: privacy.restrict3rdpartystorage.heuristic.window_open
   type: bool
-  value: @IS_NOT_NIGHTLY_BUILD@
+  value: false
   mirror: always
 
 # Enable the heuristic to allow storage access for windows opened using window.open()
@@ -16041,7 +16060,7 @@
 #if defined(ANDROID)
   value: false
 #else
-  value: @IS_NIGHTLY_BUILD@
+  value: true
 #endif
   mirror: always
 
@@ -16096,7 +16115,7 @@
 #if defined(ANDROID)
   value: true
 #else
-  value: @IS_NOT_NIGHTLY_BUILD@
+  value: false
 #endif
   mirror: always
 

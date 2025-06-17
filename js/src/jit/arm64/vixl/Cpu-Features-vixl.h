@@ -288,6 +288,10 @@ class CPUFeatures {
   const_iterator begin() const;
   const_iterator end() const;
 
+  //  Prevent any new CPUFeatures objects from having any of the flag set in
+  //  this instance of CPUFeatures. This cannot be undone.
+  void DisableGlobally();
+
  private:
   // Each bit represents a feature. This field will be replaced as needed if
   // features are added.

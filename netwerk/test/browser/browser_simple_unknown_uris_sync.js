@@ -63,6 +63,10 @@ add_task(async function test_bypass_list_update_sync_parent() {
 
 // sync update, test on child
 add_task(async function test_bypass_list_update_sync_child() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["security.allow_eval_with_system_principal", true]],
+  });
+
   const settings = await RemoteSettings(bypassCollectionName);
   let stub = sinon.stub(settings, "get").returns(newData);
   registerCleanupFunction(async function () {

@@ -172,6 +172,8 @@ The provided ``download`` helper will:
     - ``fallbackToDump`` (default: ``false``): activates a fallback to a dump that has been
       packaged with the client, when other ways to load the attachment have failed.
       See :ref:`services/packaging-attachments <services/packaging-attachments>` for more information.
+    - ``cacheResult`` (default: ``true``): keeps a copy of the attachment file in the cache when true,
+      allowing future calls for the same attachment to receive the cached result.
 
 .. note::
 

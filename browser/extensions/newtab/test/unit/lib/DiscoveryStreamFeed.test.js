@@ -20,6 +20,9 @@ const ONE_WEEK = 7 * 24 * 60 * 60 * 1000; // 1 week
 
 const FAKE_UUID = "{foo-123-foo}";
 
+const DEFAULT_COLUMN_COUNT = 4;
+const DEFAULT_ROW_COUNT = 6;
+
 // eslint-disable-next-line max-statements
 describe("DiscoveryStreamFeed", () => {
   let feed;
@@ -393,7 +396,10 @@ describe("DiscoveryStreamFeed", () => {
         "https://spocs.getpocket.com/spocs"
       );
       const { layout } = feed.store.getState().DiscoveryStream;
-      assert.equal(layout[0].components[2].properties.items, 3);
+      assert.equal(
+        layout[0].components[2].properties.items,
+        DEFAULT_COLUMN_COUNT
+      );
     });
     it("should use 1 row layout if specified", async () => {
       feed.store = createStore(combineReducers(reducers), {
@@ -413,9 +419,12 @@ describe("DiscoveryStreamFeed", () => {
       await feed.loadLayout(feed.store.dispatch);
 
       const { layout } = feed.store.getState().DiscoveryStream;
-      assert.equal(layout[0].components[2].properties.items, 3);
+      assert.equal(
+        layout[0].components[2].properties.items,
+        DEFAULT_COLUMN_COUNT
+      );
     });
-    it("should use 7 row layout if specified", async () => {
+    it("should use 6 row layout if specified", async () => {
       feed.store = createStore(combineReducers(reducers), {
         Prefs: {
           values: {
@@ -433,7 +442,10 @@ describe("DiscoveryStreamFeed", () => {
       await feed.loadLayout(feed.store.dispatch);
 
       const { layout } = feed.store.getState().DiscoveryStream;
-      assert.equal(layout[0].components[2].properties.items, 21);
+      assert.equal(
+        layout[0].components[2].properties.items,
+        DEFAULT_ROW_COUNT * DEFAULT_COLUMN_COUNT
+      );
     });
     it("should use new spocs endpoint if in the config", async () => {
       feed.config.spocs_endpoint = "https://spocs.getpocket.com/spocs2";
@@ -467,7 +479,10 @@ describe("DiscoveryStreamFeed", () => {
         "https://spocs.getpocket.com/spocs"
       );
       const { layout } = feed.store.getState().DiscoveryStream;
-      assert.equal(layout[0].components[2].properties.items, 3);
+      assert.equal(
+        layout[0].components[2].properties.items,
+        DEFAULT_COLUMN_COUNT
+      );
     });
     it("should use new spocs endpoint if in a FF pref", async () => {
       feed.store = createStore(combineReducers(reducers), {
@@ -504,7 +519,10 @@ describe("DiscoveryStreamFeed", () => {
       await feed.loadLayout(feed.store.dispatch);
 
       const { layout } = feed.store.getState().DiscoveryStream;
-      assert.equal(layout[0].components[2].properties.items, 24);
+      assert.equal(
+        layout[0].components[2].properties.items,
+        DEFAULT_ROW_COUNT * DEFAULT_COLUMN_COUNT
+      );
     });
     it("should create a layout with spoc and widget positions", async () => {
       feed.store = createStore(combineReducers(reducers), {

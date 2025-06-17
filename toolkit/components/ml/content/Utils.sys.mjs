@@ -11,7 +11,6 @@ ChromeUtils.defineESModuleGetters(
     BLOCK_WORDS_ENCODED: "chrome://global/content/ml/BlockWords.sys.mjs",
     RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
     TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
-    OPFS: "chrome://global/content/ml/OPFS.sys.mjs",
     FEATURES: "chrome://global/content/ml/EngineProcess.sys.mjs",
     PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   },
@@ -447,30 +446,26 @@ export class MultiProgressAggregator {
 }
 
 /**
- * Converts a model and its headers to a Response object.
+ * Fetches a URL and returns the response if the request is successful (status 2xx).
+ * Throws an error if the response status indicates failure.
  *
- * @param {string} modelFilePath - path to the model file in Origin Private FileSystem (OPFS).
- * @param {object|null} headers
- * @returns {Response} The generated Response instance
+ * @async
+ * @function fetchUrl
+ * @param {string | URL} url - The URL to fetch.
+ * @param {RequestInit} [options] - Optional fetch options (method, headers, body, etc.).
+ * @returns {Promise<Response>} The fetch `Response` object.
+ * @throws {Error} If the response status is not in the 200–299 range.
  */
-export async function modelToResponse(modelFilePath, headers) {
-  let responseHeaders = {};
+export async function fetchUrl(url, options) {
+  const response = await fetch(url, options);
 
-  if (headers) {
-    // Headers are converted to strings, as the cache may hold int keys like fileSize
-    for (let key in headers) {
-      if (headers[key] != null) {
-        responseHeaders[key] = headers[key].toString();
-      }
-    }
+  if (!response.ok) {
+    throw new Error(
+      `HTTP error! Status: ${response.status} ${response.statusText}`
+    );
   }
 
-  const file = await (await lazy.OPFS.getFileHandle(modelFilePath)).getFile();
-
-  return new Response(file.stream(), {
-    status: 200,
-    headers: responseHeaders,
-  });
+  return response;
 }
 
 /**
@@ -518,7 +513,7 @@ export async function readResponseToWriter(
     },
   });
 
-  // Pipes the response body through the progress stream into the writable stream.
+  // Pipes the response body through the progress stream into the writable stream and close the stream on completion/error.
   await response.body.pipeThrough(progressStream).pipeTo(writableStream);
 }
 
@@ -529,6 +524,7 @@ Progress.ProgressStatusText = ProgressStatusText;
 Progress.ProgressType = ProgressType;
 Progress.readResponse = readResponse;
 Progress.readResponseToWriter = readResponseToWriter;
+Progress.fetchUrl = fetchUrl;
 
 export async function getInferenceProcessInfo() {
   // for now we only have a single inference process.
@@ -1156,4 +1152,60 @@ export function recordDetailsViewTelemetry(modelAddonWrapper) {
   Glean.modelManagement.detailsView.record({
     ...baseRecordData(modelAddonWrapper),
   });
+}
+
+/**
+ * Converts a binary string (where each character represents a byte) into a hexadecimal string.
+ *
+ * @param {string} binaryStr - The binary string to convert.
+ * @returns {string} The resulting hexadecimal string.
+ */
+export function binaryToHex(binaryStr) {
+  return Array.from(binaryStr)
+    .map(c => c.charCodeAt(0).toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/**
+ * Computes a cryptographic hash of a Blob using the specified algorithm and output format.
+ *
+ * @param {Blob} blob - The Blob to hash.
+ * @param {("md5"|"sha1"|"sha256"|"sha384"|"sha512")} [algorithm="sha256"] - The hashing algorithm to use.
+ * @param {("hex"|"binary"|"base64")} [outputFormat="hex"] - The output format of the hash.
+ * @returns {Promise<string>} The computed hash as a string in the specified format.
+ */
+export async function computeHash(
+  blob,
+  algorithm = "sha256",
+  outputFormat = "hex"
+) {
+  let hasher = Cc["@mozilla.org/security/hash;1"].createInstance(
+    Ci.nsICryptoHash
+  );
+  hasher.initWithString(algorithm);
+
+  const hashingTransform = new TransformStream({
+    transform(chunk, controller) {
+      hasher.update(chunk, chunk.length);
+      controller.enqueue(chunk); // pass through
+    },
+  });
+
+  const sink = new WritableStream({
+    write() {
+      /* discard */
+    },
+  });
+
+  await blob.stream().pipeThrough(hashingTransform).pipeTo(sink);
+
+  const base64 = outputFormat === "base64";
+
+  let hash = hasher.finish(/* base64 */ base64);
+
+  if (outputFormat === "hex") {
+    hash = binaryToHex(hash);
+  }
+
+  return hash;
 }

@@ -206,6 +206,9 @@ class BaselineFrame {
     // Clearing the RUNNING_IN_INTERPRETER flag is sufficient, but we also null
     // out the interpreter fields to ensure we don't use stale values.
     flags_ &= ~RUNNING_IN_INTERPRETER;
+    if (JS::Prefs::experimental_self_hosted_cache() && script()->selfHosted()) {
+      flags_ |= REALM_INDEPENDENT;
+    }
     interpreterPC_ = nullptr;
   }
 

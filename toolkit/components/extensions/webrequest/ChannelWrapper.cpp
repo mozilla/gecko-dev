@@ -66,7 +66,6 @@ static const ClassificationStruct classificationArray[] = {
     {CF::CLASSIFIED_CRYPTOMINING_CONTENT, MUC::Cryptomining_content},
     {CF::CLASSIFIED_EMAILTRACKING, MUC::Emailtracking},
     {CF::CLASSIFIED_EMAILTRACKING_CONTENT, MUC::Emailtracking_content},
-    {CF::CLASSIFIED_CONSENTMANAGER, MUC::Consentmanager},
     {CF::CLASSIFIED_TRACKING, MUC::Tracking},
     {CF::CLASSIFIED_TRACKING_AD, MUC::Tracking_ad},
     {CF::CLASSIFIED_TRACKING_ANALYTICS, MUC::Tracking_analytics},
@@ -78,7 +77,9 @@ static const ClassificationStruct classificationArray[] = {
     {CF::CLASSIFIED_SOCIALTRACKING_TWITTER, MUC::Socialtracking_twitter},
     {CF::CLASSIFIED_ANY_BASIC_TRACKING, MUC::Any_basic_tracking},
     {CF::CLASSIFIED_ANY_STRICT_TRACKING, MUC::Any_strict_tracking},
-    {CF::CLASSIFIED_ANY_SOCIAL_TRACKING, MUC::Any_social_tracking}};
+    {CF::CLASSIFIED_ANY_SOCIAL_TRACKING, MUC::Any_social_tracking},
+    {CF::CLASSIFIED_CONSENTMANAGER, MUC::Consentmanager},
+    {CF::CLASSIFIED_ANTIFRAUD, MUC::Antifraud}};
 
 /*****************************************************************************
  * Lifetimes

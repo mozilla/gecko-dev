@@ -4056,10 +4056,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       descLines = 3,
       readTime: displayReadTime
     } = DiscoveryStream;
-    const layoutsVariantAEnabled = Prefs.values["newtabLayouts.variant-a"];
-    const layoutsVariantBEnabled = Prefs.values["newtabLayouts.variant-b"];
     const sectionsEnabled = Prefs.values["discoverystream.sections.enabled"];
-    const layoutsVariantAorB = layoutsVariantAEnabled || layoutsVariantBEnabled;
     const smartCrop = Prefs.values["images.smart"];
     const faviconEnabled = Prefs.values["discoverystream.publisherFavicon.enabled"];
     // Refined cards have their own excerpt hiding logic.
@@ -4091,7 +4088,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       sizes = this.dsImageSizes;
       if (sectionsEnabled) {
         sizes = [this.getSectionImageSize("4", sectionsCardsImageSizes["4"]), this.getSectionImageSize("3", sectionsCardsImageSizes["3"]), this.getSectionImageSize("2", sectionsCardsImageSizes["2"]), this.getSectionImageSize("1", sectionsCardsImageSizes["1"])];
-      } else if (layoutsVariantAorB) {
+      } else {
         sizes = this.standardCardImageSizes;
       }
       if (isListCard) {
@@ -14602,8 +14599,6 @@ function Base_extends() { return Base_extends = Object.assign ? Object.assign.bi
 
 const Base_VISIBLE = "visible";
 const Base_VISIBILITY_CHANGE_EVENT = "visibilitychange";
-const Base_PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
-const PREF_THUMBS_UP_DOWN_LAYOUT_ENABLED = "discoverystream.thumbsUpDown.searchTopsitesCompact";
 const PREF_INFERRED_PERSONALIZATION_SYSTEM = "discoverystream.sections.personalization.inferred.enabled";
 const Base_PREF_INFERRED_PERSONALIZATION_USER = "discoverystream.sections.personalization.inferred.user.enabled";
 
@@ -14792,66 +14787,24 @@ class BaseContent extends (external_React_default()).PureComponent {
       return;
     }
     const logoAlwaysVisible = prefs["logowordmark.alwaysVisible"];
-    const layoutsVariantAEnabled = prefs["newtabLayouts.variant-a"];
-    const layoutsVariantBEnabled = prefs["newtabLayouts.variant-b"];
-    const layoutsVariantAorB = layoutsVariantAEnabled || layoutsVariantBEnabled;
-    const thumbsUpDownEnabled = prefs[Base_PREF_THUMBS_UP_DOWN_ENABLED];
-    // For the compact layout to be active,
-    // thumbs also has to be enabled until Bug 1932242 is fixed
-    const thumbsUpDownLayoutEnabled = prefs[PREF_THUMBS_UP_DOWN_LAYOUT_ENABLED] && thumbsUpDownEnabled;
 
     /* Bug 1917937: The logic presented below is fragile but accurate to the pixel. As new tab experiments with layouts, we have a tech debt of competing styles and classes the slightly modify where the search bar sits on the page. The larger solution for this is to replace everything with an intersection observer, but would require a larger refactor of this file. In the interim, we can programmatically calculate when to fire the fixed-scroll event and account for the moved elements so that topsites/etc stays in the same place. The CSS this references has been flagged to reference this logic so (hopefully) keep them in sync. */
 
     let SCROLL_THRESHOLD = 0; // When the fixed-scroll event fires
     let MAIN_OFFSET_PADDING = 0; // The padding to compensate for the moved elements
 
+    const CSS_VAR_SPACE_XXLARGE = 32.04; // Custom Acorn themed variable (8 * 0.267rem);
+
     let layout = {
-      outerWrapperPaddingTop: 30,
-      searchWrapperPaddingTop: 34,
-      searchWrapperPaddingBottom: 38,
+      outerWrapperPaddingTop: 24,
+      searchWrapperPaddingTop: 16,
+      searchWrapperPaddingBottom: CSS_VAR_SPACE_XXLARGE,
       searchWrapperFixedScrollPaddingTop: 27,
       searchWrapperFixedScrollPaddingBottom: 27,
       searchInnerWrapperMinHeight: 52,
-      logoAndWordmarkWrapperHeight: 64,
-      logoAndWordmarkWrapperMarginBottom: 48
+      logoAndWordmarkWrapperHeight: 0,
+      logoAndWordmarkWrapperMarginBottom: 0
     };
-    const CSS_VAR_SPACE_XXLARGE = 34.2; // Custom Acorn themed variable (8 * 0.267rem);
-
-    // Experimental layouts
-    // (Note these if statements are ordered to match the CSS cascade)
-    if (thumbsUpDownLayoutEnabled || layoutsVariantAorB) {
-      // Thumbs Compact View Layout
-      if (thumbsUpDownLayoutEnabled) {
-        layout.logoAndWordmarkWrapperMarginBottom = CSS_VAR_SPACE_XXLARGE;
-        if (!logoAlwaysVisible) {
-          layout.searchWrapperPaddingTop = CSS_VAR_SPACE_XXLARGE;
-          layout.searchWrapperPaddingBottom = CSS_VAR_SPACE_XXLARGE;
-        }
-      }
-
-      // Variant B Layout
-      if (layoutsVariantAEnabled) {
-        layout.outerWrapperPaddingTop = 24;
-        if (!thumbsUpDownLayoutEnabled) {
-          layout.searchWrapperPaddingTop = 0;
-          layout.searchWrapperPaddingBottom = 32;
-          layout.logoAndWordmarkWrapperMarginBottom = 32;
-        }
-      }
-
-      // Variant B Layout
-      if (layoutsVariantBEnabled) {
-        layout.outerWrapperPaddingTop = 24;
-        // Logo is positioned absolute, so remove it
-        layout.logoAndWordmarkWrapperHeight = 0;
-        layout.logoAndWordmarkWrapperMarginBottom = 0;
-        layout.searchWrapperPaddingTop = 16;
-        layout.searchWrapperPaddingBottom = CSS_VAR_SPACE_XXLARGE;
-        if (!thumbsUpDownLayoutEnabled) {
-          layout.searchWrapperPaddingBottom = 32;
-        }
-      }
-    }
 
     // Logo visibility applies to all layouts
     if (!logoAlwaysVisible) {
@@ -15091,10 +15044,7 @@ class BaseContent extends (external_React_default()).PureComponent {
       customizeMenuVisible
     } = App;
     const prefs = props.Prefs.values;
-    const layoutsVariantAEnabled = prefs["newtabLayouts.variant-a"];
-    const layoutsVariantBEnabled = prefs["newtabLayouts.variant-b"];
     const shortcutsRefresh = prefs["newtabShortcuts.refresh"];
-    const layoutsVariantAorB = layoutsVariantAEnabled || layoutsVariantBEnabled;
     const activeWallpaper = prefs[`newtabWallpapers.wallpaper`];
     const wallpapersEnabled = prefs["newtabWallpapers.enabled"];
     const weatherEnabled = prefs.showWeather;
@@ -15155,10 +15105,9 @@ class BaseContent extends (external_React_default()).PureComponent {
     // Mobile download promo modal is enabled/visible
     weatherEnabled && mayHaveWeather && "has-weather",
     // Weather widget is enabled/visible
-    prefs.showSearch ? "has-search" : "no-search", layoutsVariantAEnabled ? "layout-variant-a" : "",
-    // Layout experiment variant A
-    layoutsVariantBEnabled ? "layout-variant-b" : "",
-    // Layout experiment variant B
+    prefs.showSearch ? "has-search" : "no-search",
+    // layoutsVariantAEnabled ? "layout-variant-a" : "", // Layout experiment variant A
+    // layoutsVariantBEnabled ? "layout-variant-b" : "", // Layout experiment variant B
     shortcutsRefresh ? "shortcuts-refresh" : "",
     // Shortcuts refresh experiment
     pocketEnabled ? "has-recommended-stories" : "no-recommended-stories", sectionsEnabled ? "has-sections-grid" : ""].filter(v => v).join(" ");
@@ -15215,10 +15164,8 @@ class BaseContent extends (external_React_default()).PureComponent {
       hiddenOverride: shouldShowDownloadHighlight,
       onDismiss: this.handleDismissDownloadHighlight,
       dispatch: this.props.dispatch
-    }, /*#__PURE__*/external_React_default().createElement(DownloadMobilePromoHighlight
-    // Var B layout has the weather right-aligned
-    , {
-      position: `${layoutsVariantBEnabled ? "inset-inline-start" : "inset-inline-end"} inset-block-end`,
+    }, /*#__PURE__*/external_React_default().createElement(DownloadMobilePromoHighlight, {
+      position: `inset-inline-start inset-block-end`,
       dispatch: this.props.dispatch
     })))), /*#__PURE__*/external_React_default().createElement("div", {
       className: outerClassName,
@@ -15231,7 +15178,7 @@ class BaseContent extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement(ErrorBoundary, null, /*#__PURE__*/external_React_default().createElement(Search_Search, Base_extends({
       showLogo: noSectionsEnabled || prefs["logowordmark.alwaysVisible"],
       handoffEnabled: searchHandoffEnabled
-    }, props.Search)))), !prefs.showSearch && layoutsVariantAorB && !noSectionsEnabled && /*#__PURE__*/external_React_default().createElement(Logo, null), /*#__PURE__*/external_React_default().createElement("div", {
+    }, props.Search)))), !prefs.showSearch && !noSectionsEnabled && /*#__PURE__*/external_React_default().createElement(Logo, null), /*#__PURE__*/external_React_default().createElement("div", {
       className: `body-wrapper${initialized ? " on" : ""}`
     }, isDiscoveryStream ? /*#__PURE__*/external_React_default().createElement(ErrorBoundary, {
       className: "borderless-error"

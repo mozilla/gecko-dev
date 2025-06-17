@@ -21,16 +21,32 @@ add_task(async function test_ARIA_level_on_tabs() {
   );
 
   const group1Tabs = tabs.slice(1, 3);
-  const group1 = gBrowser.addTabGroup(group1Tabs, {
+  let tabGroupedEvents = group1Tabs.map(tab =>
+    BrowserTestUtils.waitForEvent(
+      window,
+      "TabGrouped",
+      false,
+      ev => ev.detail == tab
+    )
+  );
+  gBrowser.addTabGroup(group1Tabs, {
     insertBefore: group1Tabs[0],
   });
-  await BrowserTestUtils.waitForEvent(group1, "TabGrouped");
+  await Promise.allSettled(tabGroupedEvents);
 
   const group2Tabs = tabs.slice(6);
-  const group2 = gBrowser.addTabGroup(group2Tabs, {
+  tabGroupedEvents = group2Tabs.map(tab =>
+    BrowserTestUtils.waitForEvent(
+      window,
+      "TabGrouped",
+      false,
+      ev => ev.detail == tab
+    )
+  );
+  gBrowser.addTabGroup(group2Tabs, {
     insertBefore: group2Tabs[0],
   });
-  await BrowserTestUtils.waitForEvent(group2, "TabGrouped");
+  await Promise.allSettled(tabGroupedEvents);
 
   Assert.ok(
     gBrowser.tabs

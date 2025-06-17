@@ -1303,6 +1303,7 @@ void FinalizeOriginEvictionOp::UnblockOpen() {
   MOZ_ALWAYS_SUCCEEDS(NS_DispatchToCurrentThread(NS_NewRunnableFunction(
       "dom::quota::FinalizeOriginEvictionOp::UnblockOpen",
       [quotaManager = mQuotaManager, origins = std::move(origins)]() {
+        quotaManager->NoteUninitializedClients(origins);
         quotaManager->NoteUninitializedOrigins(origins);
       })));
 

@@ -1231,6 +1231,8 @@ skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && 
 
 ["test_synthesized_response.js"]
 
+["test_te_remove.js"]
+
 ["test_throttlechannel.js"]
 
 ["test_throttlequeue.js"]

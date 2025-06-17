@@ -413,11 +413,18 @@ this.tabs = class extends ExtensionAPIPersistent {
       };
 
       let listener = event => {
+        // tab grouping events are fired on the group,
+        // not the tab itself.
+        let updatedTab = event.originalTarget;
+        if (event.type == "TabGrouped" || event.type == "TabUngrouped") {
+          updatedTab = event.detail;
+        }
+
         // Ignore any events prior to TabOpen
         // and events that are triggered while tabs are swapped between windows.
         if (
-          event.originalTarget.initializingTab ||
-          event.originalTarget.ownerGlobal.gBrowserInit?.isAdoptingTab()
+          updatedTab.initializingTab ||
+          updatedTab.ownerGlobal.gBrowserInit?.isAdoptingTab()
         ) {
           return;
         }
@@ -425,7 +432,6 @@ this.tabs = class extends ExtensionAPIPersistent {
           return;
         }
         let needed = [];
-        let updatedTab = event.originalTarget;
 
         if (event.type == "TabAttrModified") {
           let changed = event.detail.changed;
@@ -480,13 +486,7 @@ this.tabs = class extends ExtensionAPIPersistent {
           needed.push("discarded");
         } else if (event.type === "TabGrouped") {
           needed.push("groupId");
-          // tab grouping events are fired on the group,
-          // not the tab itself.
-          updatedTab = event.detail;
         } else if (event.type === "TabUngrouped") {
-          // tab grouping events are fired on the group,
-          // not the tab itself.
-          updatedTab = event.detail;
           if (updatedTab.group) {
             // If there is still a group, that means that the group changed,
             // so TabGrouped will also fire. Ignore to avoid duplicate events.

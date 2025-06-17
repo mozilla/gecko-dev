@@ -101,7 +101,7 @@ robolectric = "4.14.1"
 # Third party library versions
 adjust = "5.4.0"
 okhttp = "4.12.0"
-okio = "3.11.0"
+okio = "3.13.0"
 sentry = "8.13.3"
 
 commons-exec = "1.3"

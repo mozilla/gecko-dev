@@ -69,7 +69,7 @@ tasks:
             commands:
                 - [python3, taskcluster/scripts/tests/test-lab.py, fenix/arm64-v8a-macrobenchmark.yml, /builds/worker/fetches/target.arm64-v8a.apk, --apk_test, /builds/worker/fetches/target.noarch.apk]
                 - [python3, taskcluster/scripts/tests/copy-artifacts-from-ftl.py, "macrobenchmark"]
-                - [python3, taskcluster/scripts/tests/compute-macrobenchmark-results.py, "/builds/worker/artifacts/build/macrobenchmark.json", "/builds/worker/artifacts/build/macrobenchmark.txt"]
+                - [python3, taskcluster/scripts/tests/compute-macrobenchmark-results.py, "/builds/worker/artifacts/build/macrobenchmark", "/builds/worker/artifacts/build/macrobenchmark.txt"]
         treeherder:
             platform: fenix-android-all/opt
             symbol: fenix(run)

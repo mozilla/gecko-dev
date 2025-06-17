@@ -490,6 +490,7 @@ void nsHttpTransaction::SetConnection(nsAHttpConnection* conn) {
 }
 
 void nsHttpTransaction::OnActivated() {
+  nsresult rv;
   MOZ_ASSERT(OnSocketThread());
 
   if (mActivated) {
@@ -516,7 +517,13 @@ void nsHttpTransaction::OnActivated() {
     // of the header happens in the h2 compression code. We still have to
     // add the header to the request head here, though, so that devtools can
     // show that we sent the header. FUN!
-    Unused << mRequestHead->SetHeader(nsHttp::TE, "trailers"_ns);
+    nsAutoCString teHeader;
+    rv = mRequestHead->GetHeader(nsHttp::TE, teHeader);
+    if (NS_FAILED(rv) || !teHeader.Equals("moz_no_te_trailers"_ns)) {
+      // If the request already has TE:moz_no_te_trailers then
+      // Http2Compressor::EncodeHeaderBlock won't actually add this header.
+      Unused << mRequestHead->SetHeader(nsHttp::TE, "trailers"_ns);
+    }
   }
 
   mActivated = true;

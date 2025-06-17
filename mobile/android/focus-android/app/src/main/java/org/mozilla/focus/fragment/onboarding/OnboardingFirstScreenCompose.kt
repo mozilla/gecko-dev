@@ -95,19 +95,19 @@ fun OnBoardingFirstScreenCompose(
 
         LinkText(
             text = stringResource(
-                R.string.onboarding_first_screen_terms_of_use_text,
-                stringResource(R.string.onboarding_first_screen_terms_of_use_link),
+                R.string.onboarding_first_screen_terms_of_use_text_2,
+                stringResource(R.string.onboarding_first_screen_terms_of_use_link_2),
             ),
-            linkText = stringResource(R.string.onboarding_first_screen_terms_of_use_link),
+            linkText = stringResource(R.string.onboarding_first_screen_terms_of_use_link_2),
             onClick = termsOfServiceOnClick,
         )
 
         LinkText(
             text = stringResource(
-                R.string.onboarding_first_screen_privacy_notice_text,
-                stringResource(R.string.onboarding_first_screen_privacy_notice_link),
+                R.string.onboarding_first_screen_privacy_notice_text_2,
+                stringResource(R.string.onboarding_first_screen_privacy_notice_link_2),
             ),
-            linkText = stringResource(R.string.onboarding_first_screen_privacy_notice_link),
+            linkText = stringResource(R.string.onboarding_first_screen_privacy_notice_link_2),
             onClick = privacyNoticeOnClick,
         )
 

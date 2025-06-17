@@ -44,6 +44,7 @@ import org.mozilla.fenix.benchmark.utils.measureRepeatedDefault
  **/
 @RunWith(AndroidJUnit4::class)
 @RequiresApi(Build.VERSION_CODES.N)
+@BaselineProfileMacrobenchmark
 class BaselineProfilesStartupBenchmark {
 
     @get:Rule

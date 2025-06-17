@@ -1065,7 +1065,8 @@ Http2Compressor::~Http2Compressor() {
 nsresult Http2Compressor::EncodeHeaderBlock(
     const nsCString& nvInput, const nsACString& method, const nsACString& path,
     const nsACString& host, const nsACString& scheme,
-    const nsACString& protocol, bool simpleConnectForm, nsACString& output) {
+    const nsACString& protocol, bool simpleConnectForm, nsACString& output,
+    bool addTEHeader) {
   mSetInitialMaxBufferSizeAllowed = false;
   mOutput = &output;
   output.Truncate();
@@ -1192,7 +1193,7 @@ nsresult Http2Compressor::EncodeHeaderBlock(
   // transaction) would require totally reworking how/when the transaction
   // creates its request stream, which is not worth the effort and risk of
   // breakage just to add one header only to h2 connections.
-  if (!simpleConnectForm && !isWebsocket) {
+  if (addTEHeader && !simpleConnectForm && !isWebsocket) {
     // Add in TE: trailers for regular requests
     nsAutoCString te("te");
     nsAutoCString trailers("trailers");

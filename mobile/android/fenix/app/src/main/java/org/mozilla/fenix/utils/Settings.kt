@@ -2457,4 +2457,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         },
         featureFlag = true,
     )
+
+    /**
+     * Distribution ID that represents if the app was installed via a distribution deal
+     */
+    var distributionId by stringPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_distribution_id),
+        default = "",
+    )
 }

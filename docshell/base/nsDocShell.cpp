@@ -3902,14 +3902,37 @@ nsresult nsDocShell::LoadErrorPage(nsIURI* aErrorURI, nsIURI* aFailedURI,
   return InternalLoad(loadState);
 }
 
+MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP
+nsDocShell::Reload(uint32_t aReloadFlags) {
+  return ReloadNavigable(Nothing(), aReloadFlags, nullptr,
+                         UserNavigationInvolvement::BrowserUI);
+}
+
 // https://html.spec.whatwg.org/#reload
 // To reload a navigable navigable given an optional serialized state-or-null
 // navigationAPIState (default null) and an optional user navigation
 // involvement userInvolvement (default "none"):
 nsresult nsDocShell::ReloadNavigable(
-    JSContext* aCx, uint32_t aReloadFlags,
+    mozilla::Maybe<NotNull<JSContext*>> aCx, uint32_t aReloadFlags,
     nsIStructuredCloneContainer* aNavigationAPIState,
     UserNavigationInvolvement aUserInvolvement) {
+  if (!IsNavigationAllowed()) {
+    return NS_OK;  // JS may not handle returning of an error code
+  }
+
+  NS_ASSERTION(((aReloadFlags & INTERNAL_LOAD_FLAGS_LOADURI_SETUP_FLAGS) == 0),
+               "Reload command not updated to use load flags!");
+  NS_ASSERTION((aReloadFlags & EXTRA_LOAD_FLAGS) == 0,
+               "Don't pass these flags to Reload");
+
+  uint32_t loadType = MAKE_LOAD_TYPE(LOAD_RELOAD_NORMAL, aReloadFlags);
+  NS_ENSURE_TRUE(IsValidLoadType(loadType), NS_ERROR_INVALID_ARG);
+  NS_ENSURE_TRUE(
+      aUserInvolvement == UserNavigationInvolvement::BrowserUI || aCx,
+      NS_ERROR_INVALID_ARG);
+
+  RefPtr<nsDocShell> docShell(this);
+
   // 1. If userInvolvement is not "browser UI", then:
   if (aUserInvolvement != UserNavigationInvolvement::BrowserUI) {
     // 1.1 Let navigation be navigable's active window's navigation API.
@@ -3939,7 +3962,7 @@ nsresult nsDocShell::ReloadNavigable(
     RefPtr destinationURL = mActiveEntry ? mActiveEntry->GetURI() : nullptr;
     if (navigation &&
         !navigation->FirePushReplaceReloadNavigateEvent(
-            aCx, NavigationType::Reload, destinationURL,
+            *aCx, NavigationType::Reload, destinationURL,
             /* aIsSameDocument */ false, Some(aUserInvolvement),
             /* aSourceElement*/ nullptr, /* aFormDataEntryList */ nullptr,
             destinationNavigationAPIState,
@@ -3947,29 +3970,8 @@ nsresult nsDocShell::ReloadNavigable(
       return NS_OK;
     }
   }
-  // 2. Set navigable's active session history entry's document state's reload
-  //    pending to true.
-  // 3. Let traversable be navigable's traversable navigable.
-  // 4. Append the following session history traversal steps to traversable:
-  // 4.1 Apply the reload history step to traversable given userInvolvement.
-  // XXX this is not complete yet. userInvolvement is not yet propagated,
-  //     and the navigate event is not yet fired (https://bugzil.la/1962710)
-  return Reload(aReloadFlags);
-}
 
-NS_IMETHODIMP
-nsDocShell::Reload(uint32_t aReloadFlags) {
-  if (!IsNavigationAllowed()) {
-    return NS_OK;  // JS may not handle returning of an error code
-  }
-
-  NS_ASSERTION(((aReloadFlags & INTERNAL_LOAD_FLAGS_LOADURI_SETUP_FLAGS) == 0),
-               "Reload command not updated to use load flags!");
-  NS_ASSERTION((aReloadFlags & EXTRA_LOAD_FLAGS) == 0,
-               "Don't pass these flags to Reload");
-
-  uint32_t loadType = MAKE_LOAD_TYPE(LOAD_RELOAD_NORMAL, aReloadFlags);
-  NS_ENSURE_TRUE(IsValidLoadType(loadType), NS_ERROR_INVALID_ARG);
+  // The following steps are implemented by the remainder of ReloadNavigable.
 
   // Send notifications to the HistoryListener if any, about the impending
   // reload
@@ -3979,7 +3981,6 @@ nsDocShell::Reload(uint32_t aReloadFlags) {
     bool forceReload = IsForceReloadType(loadType);
     if (!XRE_IsParentProcess()) {
       ++mPendingReloadCount;
-      RefPtr<nsDocShell> docShell(this);
       nsCOMPtr<nsIDocumentViewer> viewer(mDocumentViewer);
       NS_ENSURE_STATE(viewer);
 

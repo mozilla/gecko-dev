@@ -394,6 +394,9 @@ class IntermediatePreloads {
       return;
     }
 
+    // attachment cache is no longer needed
+    await this.client.attachments.deleteAll();
+
     Services.obs.notifyObservers(
       null,
       "remote-security-settings:intermediates-updated",
@@ -443,6 +446,7 @@ class IntermediatePreloads {
       let { buffer } = await this.client.attachments.download(record, {
         retries: 0,
         checkHash: true,
+        cacheResult: false,
       });
       dataAsString = lazy.gTextDecoder.decode(new Uint8Array(buffer));
     } catch (err) {

@@ -9,7 +9,7 @@ ChromeUtils.defineESModuleGetters(
   {
     PromiseWorker: "resource://gre/modules/workers/PromiseWorker.mjs",
     getBackend: "chrome://global/content/ml/backends/Pipeline.mjs",
-    modelToResponse: "chrome://global/content/ml/Utils.sys.mjs",
+    OPFS: "chrome://global/content/ml/OPFS.sys.mjs",
     generateUUID: "chrome://global/content/ml/Utils.sys.mjs",
   },
   { global: "current" }
@@ -51,7 +51,7 @@ class MLEngineWorker {
     }
 
     // Transformers.js expects a response object, so we wrap the array buffer
-    return lazy.modelToResponse(res.ok[2], res.ok[1]);
+    return lazy.OPFS.toResponse(res.ok[2], res.ok[1]);
   }
 
   async getModelFile(...args) {

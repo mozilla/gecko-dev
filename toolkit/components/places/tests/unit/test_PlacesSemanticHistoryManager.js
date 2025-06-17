@@ -43,6 +43,10 @@ class MockMLEngine {
   }
 }
 
+add_setup(async function () {
+  Services.fog.initializeFOG();
+});
+
 add_task(async function test_tensorToBindable() {
   const semanticManager = createPlacesSemanticHistoryManager();
   let tensor = [0.3, 0.3, 0.3, 0.3];
@@ -160,6 +164,14 @@ add_task(async function test_removeDatabaseFilesOnDisable() {
     await IOUtils.exists(semanticManager.semanticDB.databaseFilePath + "-wal")
   );
 
+  Services.fog.testResetFOG();
+  await PlacesDBUtils.telemetry();
+  Assert.equal(
+    Glean.places.databaseSemanticHistoryFilesize.testGetValue().count,
+    1,
+    "Check for file size being collected"
+  );
+
   await semanticManager.shutdown();
 
   // Create a new instance of the manager after disabling the feature.
@@ -222,7 +234,7 @@ add_task(async function test_chunksTelemetry() {
     { url: "https://test1.moz.com/", title: "test 1" },
     { url: "https://test2.moz.com/", title: "test 2" },
   ]);
-  Services.fog.initializeFOG();
+
   Services.fog.testResetFOG();
 
   Assert.strictEqual(

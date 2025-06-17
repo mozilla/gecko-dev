@@ -347,6 +347,17 @@ void QuotaManagerDependencyFixture::ClearStoragesForOrigin(
 }
 
 // static
+void QuotaManagerDependencyFixture::InitializePersistentClient(
+    const ClientMetadata& aClientMetadata) {
+  PerformOnBackgroundThread([aClientMetadata]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    Await(quotaManager->InitializePersistentClient(aClientMetadata));
+  });
+}
+
+// static
 void QuotaManagerDependencyFixture::InitializeTemporaryClient(
     const ClientMetadata& aClientMetadata, bool aCreateIfNonExistent) {
   PerformOnBackgroundThread([aClientMetadata, aCreateIfNonExistent]() {
@@ -511,6 +522,12 @@ QuotaManagerDependencyFixture::GetTestPersistentOriginMetadata() {
 }
 
 // static
+ClientMetadata
+QuotaManagerDependencyFixture::GetTestPersistentClientMetadata() {
+  return {GetTestPersistentOriginMetadata(), Client::SDB};
+}
+
+// static
 OriginMetadata QuotaManagerDependencyFixture::GetTestOriginMetadata() {
   return {GetTestPrincipalMetadata(), PERSISTENCE_TYPE_DEFAULT};
 }
@@ -518,6 +535,16 @@ OriginMetadata QuotaManagerDependencyFixture::GetTestOriginMetadata() {
 // static
 ClientMetadata QuotaManagerDependencyFixture::GetTestClientMetadata() {
   return {GetTestOriginMetadata(), Client::SDB};
+}
+
+// static
+OriginMetadata QuotaManagerDependencyFixture::GetTestPrivateOriginMetadata() {
+  return {GetTestPrincipalMetadata(), PERSISTENCE_TYPE_PRIVATE};
+}
+
+// static
+ClientMetadata QuotaManagerDependencyFixture::GetTestPrivateClientMetadata() {
+  return {GetTestPrivateOriginMetadata(), Client::SDB};
 }
 
 // static

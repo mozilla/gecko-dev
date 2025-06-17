@@ -5,5 +5,9 @@ support-files = [
   "head.js",
   "!/accessible/tests/mochitest/*.js",
 ]
+prefs = [
+  # Required for the eval in invokeContentTask in shared-head.js
+  "security.allow_eval_with_system_principal=true"
+]
 
 ["browser_pivot.js"]

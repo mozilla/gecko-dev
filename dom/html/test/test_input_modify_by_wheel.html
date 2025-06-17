@@ -2,10 +2,11 @@
 <html>
 <!--
 https://bugzilla.mozilla.org/show_bug.cgi?id=1261673
+https://bugzilla.mozilla.org/show_bug.cgi?id=1970030
 -->
 <head>
   <meta charset="utf-8">
-  <title>Test for Bug 1261673</title>
+  <title>Test change number and range input value through wheel event</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script src="/tests/SimpleTest/EventUtils.js"></script>
   <script src="/tests/SimpleTest/paint_listener.js"></script>
@@ -13,13 +14,13 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1261673
 </head>
 <body>
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1261673">Mozilla Bug 1261673</a>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1970030">Mozilla Bug 1970030</a>
 <p id="display"></p>
 <div id="content" style="display: none">
 </div>
 <input id="test_number" type="number" value=5>
 <script type="text/javascript">
 
-/** Test for Bug 1261673 **/
 SimpleTest.waitForExplicitFinish();
 SimpleTest.waitForFocus(runTests);
 
@@ -68,14 +69,30 @@ function runTests() {
       expectedValue += p.valueChanged;
     }
 
+    const wheelEventPromise = new Promise(res => {
+      input.addEventListener("wheel", e => res(e), { passive: true, once: true });
+    })
+
     sendWheelAndPaint(input, 1, 1, { deltaY: p.deltaY, deltaMode: p.deltaMode },
                       async () => {
       is(parseInt(input.value), expectedValue,
          "Handle wheel in number input test-" + testIdx +
          " with pref " + (isPrefEnabled ? "en" : "dis") + "abled");
 
+      info(`actualChangeCount ${actualChangeCount}, expectedChangeCount ${expectedChangeCount}`);
       is(actualChangeCount, expectedChangeCount,
          "UA should fire change event when input's value changed");
+
+      // Need to wrap event to see if it was default prevented by system
+      const wheelEvent = SpecialPowers.wrap(await wheelEventPromise);
+
+      const shouldScroll = !(isPrefEnabled && p.valueChanged);
+      if (shouldScroll) {
+        ok(!wheelEvent.defaultPrevented, "Wheel event should not be default prevented");
+      } else {
+        ok(wheelEvent.defaultPrevented, "Wheel event should be default prevented");
+      }
+
       if (++testIdx < params.length) {
         // More subtests remain; kick off the next one.
         runNext();

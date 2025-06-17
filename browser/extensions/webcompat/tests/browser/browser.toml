@@ -30,6 +30,7 @@ https_first_disabled = true
 skip-if = ["verify"]
 
 ["browser_smartblockembeds.js"]
+skip-if = ["os == 'mac'"] # Bug 1945222
 
 ["browser_smartblockembeds_mutation.js"]
 skip-if = [

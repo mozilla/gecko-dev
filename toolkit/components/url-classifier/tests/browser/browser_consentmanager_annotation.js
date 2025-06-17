@@ -7,45 +7,8 @@ let { UrlClassifierTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/UrlClassifierTestUtils.sys.mjs"
 );
 
-const TEST_DOMAIN = "https://example.com/";
-const TEST_PATH = "browser/toolkit/components/url-classifier/tests/browser/";
-
-const TEST_PAGE = TEST_DOMAIN + TEST_PATH + "page.html";
-
 const CONSENTMANAGER_DOMAIN = "https://consent-manager.example.org/";
 const CONSENTMANAGER_IMAGE = CONSENTMANAGER_DOMAIN + TEST_PATH + "raptor.jpg";
-
-function loadImage(browser, url) {
-  return SpecialPowers.spawn(browser, [url], page => {
-    return new Promise(resolve => {
-      let image = new content.Image();
-      image.src = page + "?" + Math.random();
-      image.onload = _ => resolve(true);
-      image.onerror = _ => resolve(false);
-    });
-  });
-}
-
-function checkChannelClassificationsFlags(expectedURLPrePath, flags) {
-  return TestUtils.topicObserved("http-on-modify-request", subject => {
-    let httpChannel = subject.QueryInterface(Ci.nsIHttpChannel);
-
-    if (!httpChannel.URI.spec.startsWith(expectedURLPrePath)) {
-      // this is not the request we are looking for
-      // we use the prepath and not the spec because the query is randomly generated in the
-      // loaded image
-      return false;
-    }
-
-    ok(
-      subject.QueryInterface(Ci.nsIClassifiedChannel).classificationFlags &
-        flags,
-      "Classification flags should match expected"
-    );
-
-    return true;
-  });
-}
 
 async function tryLoadingImageAndCheckConsentManagerFlags(tab, shouldLoad) {
   let channelCheckPromise = checkChannelClassificationsFlags(
@@ -84,6 +47,7 @@ add_setup(async function () {
       ["privacy.trackingprotection.emailtracking.enabled", false],
       ["privacy.trackingprotection.fingerprinting.enabled", false],
       ["privacy.trackingprotection.socialtracking.enabled", false],
+      ["privacy.trackingprotection.antifraud.annotate_channels", false],
       ["privacy.trackingprotection.consentmanager.annotate_channels", true],
 
       ["privacy.trackingprotection.consentmanager.skip.enabled", false],

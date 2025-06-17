@@ -112,19 +112,13 @@
     }
   }
 
-  // Bug 1914195 - Only show the topic selection button/modal on larger and wider breakpoints
-  .layout-variant-a &,
-  .layout-variant-b & {
-    .button-topic-selection {
-      display: none;
-
-      @media(min-width: $break-point-layout-variant) {
-        display: block;
-      }
-    }
-  }
-
   .button-topic-selection {
+    display: none;
+
+    @media(min-width: $break-point-layout-variant) {
+      display: block;
+    }
+
     // Note: the 'primary' theme uses a solid color and does not need this override
     moz-button[type='default'] {
       // Bug 1908010 - This overwrites the design system color because of a

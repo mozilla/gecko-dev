@@ -383,7 +383,7 @@
 .ruleview-rule.uneditable .ruleview-propertyvaluecontainer > .ruleview-propertyvalue,
 .ruleview-rule[uneditable="true"] .ruleview-namecontainer > .ruleview-propertyname,
 .ruleview-rule[uneditable="true"] .ruleview-propertyvaluecontainer > .ruleview-propertyvalue {
-  border-bottom-color: transparent;
+  text-decoration: none;
 }
 
 .ruleview-overridden-rule-filter {
