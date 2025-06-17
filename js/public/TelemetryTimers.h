@@ -21,6 +21,8 @@ struct JSTimers {
   mozilla::TimeDuration delazificationTime;  // Total time spent delazifying
 };
 
+extern JS_PUBLIC_API void SetMeasuringExecutionTimeEnabled(JSContext* cx,
+                                                           bool value);
 extern JS_PUBLIC_API JSTimers GetJSTimers(JSContext* cx);
 
 }  // namespace JS

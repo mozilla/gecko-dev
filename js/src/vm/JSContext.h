@@ -175,7 +175,7 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
 
   // Are we currently timing execution? This flag ensures that we do not
   // double-count execution time in reentrant situations.
-  js::ContextData<bool> measuringExecutionTime_;
+  js::ContextData<bool> measuringExecutionTimeEnabled_;
 
   // This variable is used by the HelperThread scheduling to update the priority
   // of task based on whether JavaScript is being executed on the main thread.
@@ -186,9 +186,11 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   // currently operating on.
   void setRuntime(JSRuntime* rt);
 
-  bool isMeasuringExecutionTime() const { return measuringExecutionTime_; }
-  void setIsMeasuringExecutionTime(bool value) {
-    measuringExecutionTime_ = value;
+  bool measuringExecutionTimeEnabled() const {
+    return measuringExecutionTimeEnabled_;
+  }
+  void setMeasuringExecutionTimeEnabled(bool value) {
+    measuringExecutionTimeEnabled_ = value;
   }
 
   // While JSContexts are meant to be used on a single thread, this reference is
