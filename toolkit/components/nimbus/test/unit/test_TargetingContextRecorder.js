@@ -189,9 +189,6 @@ add_task(async function testNimbusTargetingContextAllKeysPresent() {
     }
   }, recordTargetingContext);
 
-  manager.store._deleteForTests("experiment");
-  manager.store._deleteForTests("rollout");
-
   await cleanup();
 });
 
@@ -368,10 +365,6 @@ add_task(async function testExperimentMetrics() {
       ].sort()
     );
   }, recordTargetingContext);
-
-  manager.store._deleteForTests("experiment-1");
-  manager.store._deleteForTests("experiment-2");
-  manager.store._deleteForTests("rollout-1");
 
   await cleanup();
 });

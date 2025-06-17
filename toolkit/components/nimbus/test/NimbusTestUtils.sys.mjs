@@ -148,10 +148,14 @@ export const NimbusTestUtils = {
         "Store should have no active enrollments"
       );
 
+      // Do *not* queue a removal from the store yet -- we'll handle that in
+      // cleanupEnrollmentDatabase.
       store
         .getAll()
         .filter(e => !e.active)
-        .forEach(e => store._deleteForTests(e.slug));
+        .forEach(e =>
+          store._deleteForTests(e.slug, { removeFromNimbusEnrollments: false })
+        );
 
       NimbusTestUtils.Assert.deepEqual(
         store
@@ -677,7 +681,6 @@ export const NimbusTestUtils = {
     return async function doEnrollmentCleanup() {
       experimentManager.unenroll(enrollment.slug);
       experimentManager.store._deleteForTests(enrollment.slug);
-      experimentManager.store._db?.updateEnrollment(enrollment.slug);
 
       await NimbusTestUtils.flushStore(experimentManager.store);
     };
