@@ -350,7 +350,7 @@ nsresult Http2StreamTunnel::GenerateHeaders(nsCString& aCompressedData,
 
   nsresult rv = session->Compressor()->EncodeHeaderBlock(
       mFlatHttpRequestHeaders, "CONNECT"_ns, EmptyCString(), authorityHeader,
-      EmptyCString(), EmptyCString(), true, aCompressedData);
+      EmptyCString(), EmptyCString(), true, aCompressedData, true);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // The size of the input headers is approximate
@@ -739,7 +739,7 @@ nsresult Http2StreamWebSocket::GenerateHeaders(nsCString& aCompressedData,
 
   rv = session->Compressor()->EncodeHeaderBlock(
       mFlatHttpRequestHeaders, "CONNECT"_ns, path, authorityHeader, scheme,
-      "websocket"_ns, false, aCompressedData);
+      "websocket"_ns, false, aCompressedData, true);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mRequestBodyLenRemaining = 0x0fffffffffffffffULL;
