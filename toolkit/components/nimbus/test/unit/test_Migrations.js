@@ -765,7 +765,7 @@ add_task(async function test_migration_firefoxLabsEnrollments() {
           `Pref ${pref} should be set after enrollment`
         );
 
-        await manager.unenroll(slug);
+        manager.unenroll(slug);
         Assert.equal(
           Services.prefs.getBoolPref(pref),
           false,
@@ -919,7 +919,7 @@ add_task(async function test_migration_firefoxLabsEnrollments_idempotent() {
   );
 
   for (const { slug } of recipes) {
-    await manager.unenroll(slug);
+    manager.unenroll(slug);
   }
 
   await cleanup();
@@ -1017,7 +1017,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
 
     await store.init();
 
-    store.addEnrollment(
+    store.set(
+      "inactive-1",
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "inactive-1",
         { featureId: "no-feature-firefox-desktop" },
@@ -1028,7 +1029,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
         }
       )
     );
-    store.addEnrollment(
+    store.set(
+      "inactive-2",
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "inactive-2",
         { branchSlug: "treatment-a", featureId: "no-feature-firefox-desktop" },
@@ -1039,7 +1041,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
         }
       )
     );
-    store.addEnrollment(
+    store.set(
+      "expired-but-active",
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "expired-but-active",
         { featureId: "no-feature-firefox-desktop" },
@@ -1047,7 +1050,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
       )
     );
 
-    store.addEnrollment(
+    store.set(
+      "experiment-1",
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "experiment-1",
         {
@@ -1057,7 +1061,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
         { source: NimbusTelemetry.EnrollmentSource.RS_LOADER }
       )
     );
-    store.addEnrollment(
+    store.set(
+      "rollout-1",
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "rollout-1",
         { featureId: "no-feature-firefox-desktop" },
@@ -1075,7 +1080,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
         }
       )
     );
-    store.addEnrollment(
+    store.set(
+      "prefFlips-experiment",
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "prefFlips-experiment",
         {
@@ -1092,7 +1098,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
         }
       )
     );
-    store.addEnrollment(
+    store.set(
+      "setPref-experiment",
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "setPref-experiment",
         {
@@ -1113,7 +1120,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
         }
       )
     );
-    store.addEnrollment(
+    store.set(
+      "devtools",
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "devtools",
         {
@@ -1123,7 +1131,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
         { source: "nimbus-devtools" }
       )
     );
-    store.addEnrollment(
+    store.set(
+      "optin",
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "optin",
         {

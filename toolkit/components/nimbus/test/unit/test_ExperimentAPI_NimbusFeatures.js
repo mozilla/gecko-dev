@@ -88,7 +88,7 @@ add_task(async function readyCallAfterStore_with_remote_value() {
 
   Assert.ok(!feature.getVariable("enabled"), "Loads value from store");
 
-  await manager.unenroll(MATCHING_ROLLOUT.slug);
+  manager.unenroll(MATCHING_ROLLOUT.slug);
 
   await cleanup();
 });
@@ -140,7 +140,7 @@ add_task(async function update_remote_defaults_onUpdate() {
   Assert.equal(stub.callCount, 1, "Called once for remote configs");
   Assert.equal(stub.firstCall.args[1], "rollout-updated", "Correct reason");
 
-  await manager.unenroll(MATCHING_ROLLOUT.slug);
+  manager.unenroll(MATCHING_ROLLOUT.slug);
 
   await cleanup();
 });
@@ -160,7 +160,7 @@ add_task(async function update_remote_defaults_readyPromise() {
     "Update called after enrollment processed."
   );
 
-  await manager.unenroll(MATCHING_ROLLOUT.slug);
+  manager.unenroll(MATCHING_ROLLOUT.slug);
 
   await cleanup();
 });
@@ -182,7 +182,7 @@ add_task(async function update_remote_defaults_enabled() {
     "Feature is disabled by remote configuration"
   );
 
-  await manager.unenroll(MATCHING_ROLLOUT.slug);
+  manager.unenroll(MATCHING_ROLLOUT.slug);
   await cleanup();
 });
 

@@ -7,6 +7,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   FirefoxLabs: "resource://nimbus/FirefoxLabs.sys.mjs",
+  NimbusEnrollments: "resource://nimbus/lib/Enrollments.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusTelemetry: "resource://nimbus/lib/Telemetry.sys.mjs",
   ProfilesDatastoreService:
@@ -105,12 +106,7 @@ function migrateNoop() {
 }
 
 async function migrateEnrollmentsToSql() {
-  if (
-    !Services.prefs.getBoolPref(
-      "nimbus.profilesdatastoreservice.enabled",
-      false
-    )
-  ) {
+  if (!lazy.NimbusEnrollments.databaseEnabled) {
     // We are in an xpcshell test that has not initialized the
     // ProfilesDatastoreService.
     //

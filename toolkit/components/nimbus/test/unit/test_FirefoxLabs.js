@@ -157,7 +157,7 @@ add_task(async function test_enroll() {
 
   Assert.ok(manager.store.get(recipe.slug)?.active, "Active enrollment exists");
 
-  await labs.unenroll(recipe.slug);
+  labs.unenroll(recipe.slug);
 
   await cleanup();
 });
@@ -188,7 +188,7 @@ add_task(async function test_reenroll() {
     `Active enrollment for ${recipe.slug}`
   );
 
-  await labs.unenroll(recipe.slug);
+  labs.unenroll(recipe.slug);
   Assert.ok(
     manager.store.get(recipe.slug)?.active === false,
     `Inactive enrollment for ${recipe.slug}`
@@ -206,7 +206,7 @@ add_task(async function test_reenroll() {
     `Active enrollment for ${recipe.slug}`
   );
 
-  await labs.unenroll(recipe.slug);
+  labs.unenroll(recipe.slug);
 
   await cleanup();
 });
@@ -247,20 +247,20 @@ add_task(async function test_unenroll() {
   Assert.ok(manager.store.get("opt-in")?.active, "Enrolled in opt-in");
 
   // Should not throw.
-  await labs.unenroll("bogus");
+  labs.unenroll("bogus");
 
   // Should not throw.
-  await labs.unenroll("rollout");
+  labs.unenroll("rollout");
   Assert.ok(
     manager.store.get("rollout").active,
     "Enrolled in rollout after attempting to unenroll with incorrect API"
   );
 
-  await labs.unenroll("opt-in");
+  labs.unenroll("opt-in");
   Assert.ok(!manager.store.get("opt-in").active, "Unenrolled from opt-in");
 
   // Should not throw.
-  await labs.unenroll("opt-in");
+  labs.unenroll("opt-in");
 
   Assert.deepEqual(
     Glean.nimbusEvents.enrollmentStatus
@@ -288,6 +288,6 @@ add_task(async function test_unenroll() {
     ]
   );
 
-  await manager.unenroll("rollout");
+  manager.unenroll("rollout");
   await cleanup();
 });

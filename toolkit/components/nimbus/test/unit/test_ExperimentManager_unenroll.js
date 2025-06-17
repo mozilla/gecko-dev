@@ -24,7 +24,7 @@ add_task(async function test_set_inactive() {
   const { manager, cleanup } = await setupTest();
 
   await manager.enroll(NimbusTestUtils.factories.recipe("foo"), "test");
-  await manager.unenroll("foo");
+  manager.unenroll("foo");
 
   Assert.equal(
     manager.store.get("foo").active,
@@ -202,7 +202,7 @@ add_task(async function test_setExperimentInactive_called() {
     "experiment should be active before unenroll"
   );
 
-  await manager.unenroll("foo");
+  manager.unenroll("foo");
 
   Assert.ok(
     TelemetryEnvironment.setExperimentInactive.calledWith("foo"),
@@ -241,7 +241,7 @@ add_task(async function test_send_unenroll_event() {
     "no Glean unenrollment events before unenrollment"
   );
 
-  await manager.unenroll("foo", { reason: "some-reason" });
+  manager.unenroll("foo", { reason: "some-reason" });
 
   // We expect only one event and that that one event matches the expected enrolled experiment
   Assert.deepEqual(
@@ -278,7 +278,7 @@ add_task(async function test_undefined_reason() {
 
   await manager.enroll(experiment, "test");
 
-  await manager.unenroll("foo");
+  manager.unenroll("foo");
 
   // We expect only one event and that that one event reason matches the expected reason
   Assert.deepEqual(
@@ -308,29 +308,21 @@ add_task(async function test_undefined_reason() {
 
 add_task(async function test_remove_rollouts() {
   const { sandbox, manager, cleanup } = await setupTest();
-  sandbox.spy(manager.store, "updateExperiment");
+  sandbox.spy(manager.store, "deactivateEnrollment");
   const rollout = NimbusTestUtils.factories.rollout("foo");
 
   await manager.enroll(
     NimbusTestUtils.factories.recipe("foo", { isRollout: true }),
     "test"
   );
-  Assert.ok(
-    manager.store.updateExperiment.notCalled,
-    "Should not have called updateExperiment when enrolling"
-  );
 
-  await manager.unenroll("foo", { reason: "some-reason" });
+  manager.unenroll("foo", { reason: "some-reason" });
 
   Assert.ok(
-    manager.store.updateExperiment.calledOnce,
-    "Called to set the rollout as inactive"
-  );
-  Assert.ok(
-    manager.store.updateExperiment.calledWith(rollout.slug, {
-      active: false,
-      unenrollReason: "some-reason",
-    }),
+    manager.store.deactivateEnrollment.calledOnceWithExactly(
+      rollout.slug,
+      "some-reason"
+    ),
     "Called with expected parameters"
   );
 
@@ -347,7 +339,7 @@ add_task(async function test_unenroll_individualOptOut_statusTelemetry() {
     "test"
   );
 
-  await manager.unenroll("foo", { reason: "individual-opt-out" });
+  manager.unenroll("foo", { reason: "individual-opt-out" });
 
   Assert.deepEqual(
     Glean.nimbusEvents.enrollmentStatus
@@ -384,7 +376,7 @@ add_task(async function testUnenrollBogusReason() {
 
   Assert.ok(manager.store.get("bogus").active, "Enrollment active");
 
-  await manager.unenroll("bogus", "bogus");
+  manager.unenroll("bogus", "bogus");
 
   Assert.deepEqual(
     Glean.nimbusEvents.enrollmentStatus

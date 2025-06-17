@@ -210,7 +210,7 @@ ChromeUtils.defineLazyGetter(AboutPages, "aboutStudies", () => {
     },
 
     async removeMessagingSystemExperiment(slug) {
-      await lazy.ExperimentAPI.manager.unenroll(
+      lazy.ExperimentAPI.manager.unenroll(
         slug,
         lazy.UnenrollmentCause.fromReason(
           lazy.NimbusTelemetry.UnenrollReason.INDIVIDUAL_OPT_OUT

@@ -137,57 +137,52 @@ add_task(async function test_getAllBranches_Failure() {
 /**
  * Store events
  */
-add_task(async function test_addEnrollment_eventEmit_add() {
+add_task(async function test_enroll_eventEmit_add() {
   const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
   const store = manager.store;
 
   const featureStub = sandbox.stub();
-  const experiment = NimbusTestUtils.factories.experiment("foo", {
-    branch: {
-      slug: "variant",
-      ratio: 1,
-      features: [{ featureId: "purple", value: {} }],
-    },
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+    featureId: "no-feature-firefox-desktop",
   });
 
   await ExperimentAPI.ready();
 
-  store.on("featureUpdate:purple", featureStub);
+  store.on("featureUpdate:no-feature-firefox-desktop", featureStub);
 
-  store.addEnrollment(experiment);
+  await manager.enroll(recipe, "test");
 
   Assert.equal(
     featureStub.callCount,
     1,
     "should call 'featureUpdate' callback for featureId when an experiment is added"
   );
-  Assert.equal(featureStub.firstCall.args[0], "featureUpdate:purple");
+  Assert.equal(
+    featureStub.firstCall.args[0],
+    "featureUpdate:no-feature-firefox-desktop"
+  );
   Assert.equal(featureStub.firstCall.args[1], "experiment-updated");
 
-  store.off("featureUpdate:purple", featureStub);
+  store.off("featureUpdate:no-feature-firefox-desktop", featureStub);
 
-  await manager.unenroll(experiment.slug);
+  manager.unenroll(recipe.slug);
   await cleanup();
 });
 
-add_task(async function test_updateExperiment_eventEmit_add_and_update() {
-  const { sandbox, manager, cleanup } = await NimbusTestUtils.setupTest();
-  const store = manager.store;
+add_task(async function test_enroll_unenroll_eventEmit_add_and_update() {
+  const { sandbox, manager, store, cleanup } =
+    await NimbusTestUtils.setupTest();
 
   const featureStub = sandbox.stub();
-  const experiment = NimbusTestUtils.factories.experiment("foo", {
-    branch: {
-      slug: "variant",
-      ratio: 1,
-      features: [{ featureId: "purple", value: {} }],
-    },
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+    featureId: "no-feature-firefox-desktop",
   });
 
-  store.addEnrollment(experiment);
+  await manager.enroll(recipe, "test");
 
-  store._onFeatureUpdate("purple", featureStub);
+  store._onFeatureUpdate("no-feature-firefox-desktop", featureStub);
 
-  store.updateExperiment(experiment.slug, experiment);
+  manager.unenroll(recipe.slug);
 
   await TestUtils.waitForCondition(
     () => featureStub.callCount == 2,
@@ -196,39 +191,39 @@ add_task(async function test_updateExperiment_eventEmit_add_and_update() {
   // Called twice, once when attaching the event listener (because there is an
   // existing experiment with that name) and 2nd time for the update event
   Assert.equal(featureStub.callCount, 2, "Called twice for feature");
-  Assert.equal(featureStub.firstCall.args[0], "featureUpdate:purple");
+  Assert.equal(
+    featureStub.firstCall.args[0],
+    "featureUpdate:no-feature-firefox-desktop"
+  );
   Assert.equal(featureStub.firstCall.args[1], "experiment-updated");
 
-  store._offFeatureUpdate("featureUpdate:purple", featureStub);
+  store._offFeatureUpdate(
+    "featureUpdate:no-feature-firefox-desktop",
+    featureStub
+  );
 
-  await manager.unenroll(experiment.slug);
   await cleanup();
 });
 
-add_task(async function test_updateExperiment_eventEmit_off() {
-  const { manager, sandbox, cleanup } = await NimbusTestUtils.setupTest();
-  const store = manager.store;
+add_task(async function test_deactivateEnrollment_eventEmit_off() {
+  const { sandbox, manager, store, cleanup } =
+    await NimbusTestUtils.setupTest();
 
   const featureStub = sandbox.stub();
-  const experiment = NimbusTestUtils.factories.experiment("foo", {
-    branch: {
-      slug: "variant",
-      ratio: 1,
-      features: [{ featureId: "purple", value: {} }],
-    },
+  const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig("foo", {
+    featureId: "no-feature-firefox-desktop",
   });
 
-  store.on("featureUpdate:purple", featureStub);
+  store.on("featureUpdate:no-feature-firefox-desktop", featureStub);
 
-  store.addEnrollment(experiment);
+  await manager.enroll(recipe, "test");
 
-  store.off("featureUpdate:purple", featureStub);
+  store.off("featureUpdate:no-feature-firefox-desktop", featureStub);
 
-  store.updateExperiment(experiment.slug, experiment);
+  manager.unenroll(recipe.slug);
 
   Assert.equal(featureStub.callCount, 1, "Called only once before `off`");
 
-  await manager.unenroll(experiment.slug);
   await cleanup();
 });
 
@@ -724,7 +719,7 @@ add_task(async function testGetEnrollmentMetadata() {
     experimentMeta
   );
 
-  await manager.unenroll("rollout-slug");
+  manager.unenroll("rollout-slug");
 
   // There is only an active experiment.
   Assert.deepEqual(
@@ -740,7 +735,7 @@ add_task(async function testGetEnrollmentMetadata() {
     experimentMeta
   );
 
-  await manager.unenroll("experiment-slug");
+  manager.unenroll("experiment-slug");
 
   // There are no active enrollments.
   Assert.equal(
