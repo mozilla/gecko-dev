@@ -683,7 +683,7 @@ export class ContextIdComponent {
         return handleRustResult(
             result,
             FfiConverterTypeContextIDComponent.lift.bind(FfiConverterTypeContextIDComponent),
-            FfiConverterTypeApiError.lift.bind(FfiConverterTypeApiError),
+            null,
         )
     }
 
