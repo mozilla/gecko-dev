@@ -119,6 +119,8 @@ struct LoadInfoArgs
   uint32_t                    triggeringSandboxFlags;
   uint64_t                    triggeringWindowId;
   bool                        triggeringStorageAccess;
+  uint32_t                    triggeringFirstPartyClassificationFlags;
+  uint32_t                    triggeringThirdPartyClassificationFlags;
   nsContentPolicyType         contentPolicyType;
   uint32_t                    tainting;
   bool                        blockAllMixedContent;

@@ -718,6 +718,10 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
       mTriggeringSandboxFlags(rhs.mTriggeringSandboxFlags),
       mTriggeringWindowId(rhs.mTriggeringWindowId),
       mTriggeringStorageAccess(rhs.mTriggeringStorageAccess),
+      mTriggeringFirstPartyClassificationFlags(
+          rhs.mTriggeringFirstPartyClassificationFlags),
+      mTriggeringThirdPartyClassificationFlags(
+          rhs.mTriggeringThirdPartyClassificationFlags),
       mInternalContentPolicyType(rhs.mInternalContentPolicyType),
       mTainting(rhs.mTainting),
       mBlockAllMixedContent(rhs.mBlockAllMixedContent),
@@ -809,9 +813,12 @@ LoadInfo::LoadInfo(
     const Maybe<ServiceWorkerDescriptor>& aController,
     nsSecurityFlags aSecurityFlags, uint32_t aSandboxFlags,
     uint32_t aTriggeringSandboxFlags, uint64_t aTriggeringWindowId,
-    bool aTriggeringStorageAccess, nsContentPolicyType aContentPolicyType,
-    LoadTainting aTainting, bool aBlockAllMixedContent,
-    bool aUpgradeInsecureRequests, bool aBrowserUpgradeInsecureRequests,
+    bool aTriggeringStorageAccess,
+    uint32_t aTriggeringFirstPartyClassificationFlags,
+    uint32_t aTriggeringThirdPartyClassificationFlags,
+    nsContentPolicyType aContentPolicyType, LoadTainting aTainting,
+    bool aBlockAllMixedContent, bool aUpgradeInsecureRequests,
+    bool aBrowserUpgradeInsecureRequests,
     bool aBrowserDidUpgradeInsecureRequests,
     bool aBrowserWouldUpgradeInsecureRequests, bool aForceAllowDataURI,
     bool aAllowInsecureRedirectToDataURI,
@@ -870,6 +877,10 @@ LoadInfo::LoadInfo(
       mTriggeringSandboxFlags(aTriggeringSandboxFlags),
       mTriggeringWindowId(aTriggeringWindowId),
       mTriggeringStorageAccess(aTriggeringStorageAccess),
+      mTriggeringFirstPartyClassificationFlags(
+          aTriggeringFirstPartyClassificationFlags),
+      mTriggeringThirdPartyClassificationFlags(
+          aTriggeringThirdPartyClassificationFlags),
       mInternalContentPolicyType(aContentPolicyType),
       mTainting(aTainting),
       mBlockAllMixedContent(aBlockAllMixedContent),
@@ -1198,6 +1209,30 @@ LoadInfo::GetTriggeringStorageAccess(bool* aResult) {
 NS_IMETHODIMP
 LoadInfo::SetTriggeringStorageAccess(bool aFlags) {
   mTriggeringStorageAccess = aFlags;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::GetTriggeringFirstPartyClassificationFlags(uint32_t* aResult) {
+  *aResult = mTriggeringFirstPartyClassificationFlags;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::SetTriggeringFirstPartyClassificationFlags(uint32_t aFlags) {
+  mTriggeringFirstPartyClassificationFlags = aFlags;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::GetTriggeringThirdPartyClassificationFlags(uint32_t* aResult) {
+  *aResult = mTriggeringThirdPartyClassificationFlags;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::SetTriggeringThirdPartyClassificationFlags(uint32_t aFlags) {
+  mTriggeringThirdPartyClassificationFlags = aFlags;
   return NS_OK;
 }
 
