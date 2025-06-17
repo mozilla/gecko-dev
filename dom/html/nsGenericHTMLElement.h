@@ -14,7 +14,6 @@
 #include "nsContentCreatorFunctions.h"
 #include "nsStyledElement.h"
 #include "mozilla/dom/BindingDeclarations.h"
-#include "mozilla/dom/HTMLElementBinding.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/DOMRect.h"
 #include "mozilla/dom/ValidityState.h"
@@ -40,9 +39,13 @@ class EventChainVisitor;
 class EventListenerManager;
 class PresState;
 namespace dom {
+class BooleanOrUnrestrictedDoubleOrString;
 class ElementInternals;
 class HTMLFormElement;
+class OwningBooleanOrUnrestrictedDoubleOrString;
+class TogglePopoverOptionsOrBoolean;
 enum class FetchPriority : uint8_t;
+struct ShowPopoverOptions;
 }  // namespace dom
 }  // namespace mozilla
 
@@ -206,7 +209,8 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
   MOZ_CAN_RUN_SCRIPT void RunPopoverToggleEventTask(
       mozilla::dom::PopoverToggleEventTask* aTask,
       mozilla::dom::PopoverVisibilityState aOldState);
-  MOZ_CAN_RUN_SCRIPT void ShowPopover(ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void ShowPopover(
+      const mozilla::dom::ShowPopoverOptions& aOptions, ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT void ShowPopoverInternal(Element* aInvoker,
                                               ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void HidePopoverWithoutRunningScript();
@@ -215,7 +219,8 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
                                               ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT void HidePopover(ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT bool TogglePopover(
-      const mozilla::dom::Optional<bool>& aForce, ErrorResult& aRv);
+      const mozilla::dom::TogglePopoverOptionsOrBoolean& aOptions,
+      ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT void FocusPopover();
   void ForgetPreviouslyFocusedElementAfterHidingPopover();
   MOZ_CAN_RUN_SCRIPT void FocusPreviousElementAfterHidingPopover();

@@ -24,6 +24,7 @@
 #include "mozilla/dom/AncestorIterator.h"
 #include "mozilla/dom/FetchPriority.h"
 #include "mozilla/dom/FormData.h"
+#include "mozilla/dom/HTMLElementBinding.h"
 #include "nsCaseTreatment.h"
 #include "nscore.h"
 #include "nsGenericHTMLElement.h"
@@ -3493,9 +3494,15 @@ void nsGenericHTMLElement::RunPopoverToggleEventTask(
 }
 
 // https://html.spec.whatwg.org/#dom-showpopover
-void nsGenericHTMLElement::ShowPopover(ErrorResult& aRv) {
-  return ShowPopoverInternal(nullptr, aRv);
+void nsGenericHTMLElement::ShowPopover(const ShowPopoverOptions& aOptions,
+                                       ErrorResult& aRv) {
+  Element* source = nullptr;
+  if (aOptions.mSource.WasPassed()) {
+    source = &aOptions.mSource.Value();
+  }
+  return ShowPopoverInternal(MOZ_KnownLive(source), aRv);
 }
+
 void nsGenericHTMLElement::ShowPopoverInternal(Element* aInvoker,
                                                ErrorResult& aRv) {
   if (!CheckPopoverValidity(PopoverVisibilityState::Hidden, nullptr, aRv)) {
@@ -3631,12 +3638,29 @@ void nsGenericHTMLElement::FocusPreviousElementAfterHidingPopover() {
 }
 
 // https://html.spec.whatwg.org/multipage/popover.html#dom-togglepopover
-bool nsGenericHTMLElement::TogglePopover(const Optional<bool>& aForce,
-                                         ErrorResult& aRv) {
-  if (PopoverOpen() && (!aForce.WasPassed() || !aForce.Value())) {
+bool nsGenericHTMLElement::TogglePopover(
+    const TogglePopoverOptionsOrBoolean& aOptions, ErrorResult& aRv) {
+  std::optional<bool> force;
+  // Kept alive by TogglePopoverOptions if non-null.
+  Element* invoker = nullptr;
+
+  if (aOptions.IsBoolean()) {
+    force = std::make_optional(aOptions.GetAsBoolean());
+  } else {
+    const auto& options = aOptions.GetAsTogglePopoverOptions();
+    if (options.mForce.WasPassed()) {
+      force = std::make_optional(options.mForce.Value());
+    }
+    if (options.mSource.WasPassed()) {
+      invoker = &options.mSource.Value();
+    }
+  }
+
+  if (PopoverOpen() && !force.value_or(false)) {
     HidePopover(aRv);
-  } else if (!aForce.WasPassed() || aForce.Value()) {
-    ShowPopover(aRv);
+  } else if (force.value_or(true)) {
+    // Kept alive by TogglePopoverOptions.
+    ShowPopoverInternal(MOZ_KnownLive(invoker), aRv);
   } else {
     CheckPopoverValidity(GetPopoverData()
                              ? GetPopoverData()->GetPopoverVisibilityState()
