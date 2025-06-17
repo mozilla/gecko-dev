@@ -5,6 +5,10 @@ support-files = [
   "!/accessible/tests/browser/shared-head.js",
   "!/accessible/tests/mochitest/*.js",
 ]
+prefs = [
+  # Required for the eval in invokeContentTask in shared-head.js
+  "security.allow_eval_with_system_principal=true"
+]
 
 ["browser_test_aria_select.js"]
 
