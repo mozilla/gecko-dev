@@ -13,6 +13,8 @@ function cacheKey(resourceType, resourceId) {
 }
 
 class ResourceCommand {
+  #destroyed = false;
+
   /**
    * This class helps retrieving existing and listening to resources.
    * A resource is something that:
@@ -68,6 +70,10 @@ class ResourceCommand {
       this._notifyWatchers,
       throttleDelay
     );
+  }
+
+  destroy() {
+    this.#destroyed = true;
   }
 
   get watcherFront() {
@@ -650,7 +656,16 @@ class ResourceCommand {
         }
 
         if (watcherFront) {
-          targetFront = await this._getTargetForWatcherResource(resource);
+          try {
+            targetFront = await this._getTargetForWatcherResource(resource);
+          } catch (e) {
+            if (this.#destroyed) {
+              // If the resource-command was destroyed while waiting for
+              // _getTargetForWatcherResource, swallow the error.
+              return;
+            }
+            throw e;
+          }
           // When we receive resources from the Watcher actor,
           // there is no guarantee that the target front is fully initialized.
           // The Target Front is initialized by the TargetCommand, by calling TargetFront.attachAndInitThread.
@@ -814,7 +829,17 @@ class ResourceCommand {
       // otherwise we would notify about the update *before* it's available
       // and the resource won't be in _cache.
       if (watcherFront) {
-        targetFront = await this._getTargetForWatcherResource(update);
+        try {
+          targetFront = await this._getTargetForWatcherResource(update);
+        } catch (e) {
+          if (this.#destroyed) {
+            // If the resource-command was destroyed while waiting for
+            // _getTargetForWatcherResource, swallow the error.
+            return;
+          }
+          throw e;
+        }
+
         // When we receive the navigation request, the target front has already been
         // destroyed, but this is fine. The cached resource has the reference to
         // the (destroyed) target front and it is fully initialized.
