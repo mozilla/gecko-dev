@@ -100,7 +100,7 @@ function test() {
   });
 
   let window = docShell.docViewer.DOMDocument.defaultView;
-  window.eval(`console.log("${EXPECTED_CONSOLE_MESSAGE_CONTENT}");`);
+  window.console.log(EXPECTED_CONSOLE_MESSAGE_CONTENT);
   chromeWebNav.close();
   chromeWebNav = null;
 

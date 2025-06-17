@@ -34,8 +34,9 @@ support-files = [
 ]
 
 prefs = [
-    "javascript.options.large_arraybuffers=true",
-    "javascript.options.experimental.error_iserror=true",
+  "security.allow_eval_with_system_principal=true",
+  "javascript.options.large_arraybuffers=true",
+  "javascript.options.experimental.error_iserror=true",
 ]
 
 ["test_APIExposer.xhtml"]
