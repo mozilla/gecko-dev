@@ -103,8 +103,7 @@ decorate_task(
   withStubbedHeartbeat(),
   withClearStorage(),
   async function testRepeatGeneral({ heartbeatClassStub }) {
-    const allHeartbeatStorage = new Storage("normandy-heartbeat");
-    await allHeartbeatStorage.setItem("lastShown", Date.now());
+    await ShowHeartbeatAction._setLastShown("recipe0", Date.now());
     const recipe = heartbeatRecipeFactory();
 
     const action = new ShowHeartbeatAction();
@@ -124,9 +123,8 @@ decorate_task(
   withStubbedHeartbeat(),
   withClearStorage(),
   async function testRepeatUnrelated({ heartbeatClassStub }) {
-    const allHeartbeatStorage = new Storage("normandy-heartbeat");
-    await allHeartbeatStorage.setItem(
-      "lastShown",
+    await ShowHeartbeatAction._setLastShown(
+      "recipe0",
       Date.now() - 25 * HOUR_IN_MS
     );
     const recipe = heartbeatRecipeFactory();
@@ -147,8 +145,10 @@ decorate_task(
     const recipe = heartbeatRecipeFactory({
       arguments: { repeatOption: "once" },
     });
-    const recipeStorage = new Storage(recipe.id);
-    await recipeStorage.setItem("lastShown", Date.now() - 25 * HOUR_IN_MS);
+    await ShowHeartbeatAction._setLastShown(
+      recipe.id,
+      Date.now() - 25 * HOUR_IN_MS
+    );
 
     const action = new ShowHeartbeatAction();
     await action.processRecipe(recipe, BaseAction.suitability.FILTER_MATCH);
@@ -169,12 +169,9 @@ decorate_task(
         repeatEvery: 2,
       },
     });
-    const recipeStorage = new Storage(recipe.id);
-    const allHeartbeatStorage = new Storage("normandy-heartbeat");
 
-    await recipeStorage.setItem("lastShown", Date.now() - 25 * HOUR_IN_MS);
-    await allHeartbeatStorage.setItem(
-      "lastShown",
+    await ShowHeartbeatAction._setLastShown(
+      recipe.id,
       Date.now() - 25 * HOUR_IN_MS
     );
     const action = new ShowHeartbeatAction();
@@ -182,9 +179,8 @@ decorate_task(
     is(action.lastError, null, "No errors should have been thrown");
     is(heartbeatClassStub.args.length, 0, "Heartbeat should not be called");
 
-    await recipeStorage.setItem("lastShown", Date.now() - 50 * HOUR_IN_MS);
-    await allHeartbeatStorage.setItem(
-      "lastShown",
+    await ShowHeartbeatAction._setLastShown(
+      recipe.id,
       Date.now() - 50 * HOUR_IN_MS
     );
     await action.processRecipe(recipe, BaseAction.suitability.FILTER_MATCH);
@@ -193,55 +189,6 @@ decorate_task(
       heartbeatClassStub.args.length,
       1,
       "Heartbeat should have been called once"
-    );
-  }
-);
-
-/* Test that a repeat=nag recipe is shown again until lastInteraction is set */
-decorate_task(
-  withStubbedHeartbeat(),
-  withClearStorage(),
-  async function testRepeatTypeNag({ heartbeatClassStub }) {
-    const recipe = heartbeatRecipeFactory({
-      arguments: { repeatOption: "nag" },
-    });
-    const recipeStorage = new Storage(recipe.id);
-    const allHeartbeatStorage = new Storage("normandy-heartbeat");
-
-    await allHeartbeatStorage.setItem(
-      "lastShown",
-      Date.now() - 25 * HOUR_IN_MS
-    );
-    await recipeStorage.setItem("lastShown", Date.now() - 25 * HOUR_IN_MS);
-    const action = new ShowHeartbeatAction();
-    await action.processRecipe(recipe, BaseAction.suitability.FILTER_MATCH);
-    is(action.lastError, null, "No errors should have been thrown");
-    is(heartbeatClassStub.args.length, 1, "Heartbeat should be called");
-
-    await allHeartbeatStorage.setItem(
-      "lastShown",
-      Date.now() - 50 * HOUR_IN_MS
-    );
-    await recipeStorage.setItem("lastShown", Date.now() - 50 * HOUR_IN_MS);
-    await action.processRecipe(recipe, BaseAction.suitability.FILTER_MATCH);
-    is(action.lastError, null, "No errors should have been thrown");
-    is(heartbeatClassStub.args.length, 2, "Heartbeat should be called again");
-
-    await allHeartbeatStorage.setItem(
-      "lastShown",
-      Date.now() - 75 * HOUR_IN_MS
-    );
-    await recipeStorage.setItem("lastShown", Date.now() - 75 * HOUR_IN_MS);
-    await recipeStorage.setItem(
-      "lastInteraction",
-      Date.now() - 50 * HOUR_IN_MS
-    );
-    await action.processRecipe(recipe, BaseAction.suitability.FILTER_MATCH);
-    is(action.lastError, null, "No errors should have been thrown");
-    is(
-      heartbeatClassStub.args.length,
-      2,
-      "Heartbeat should not be called again"
     );
   }
 );
@@ -373,5 +320,40 @@ decorate_task(
       `test-id::${ClientEnvironment.userId}`,
       "userId should be included if requested"
     );
+  }
+);
+
+/* _set*, _get* and _clearAllStorage should store and retrieve data */
+decorate_task(
+  withClearStorage(),
+  async function testProfileDatastoreServiceStorage() {
+    // Make sure values return null before being set
+    Assert.equal(await ShowHeartbeatAction._getLastShown(), null);
+    Assert.equal(await ShowHeartbeatAction._getLastInteraction(), null);
+
+    // Set values to check
+    await ShowHeartbeatAction._setLastShown("recipe1", 1);
+    await ShowHeartbeatAction._setLastShown("recipe2", 2);
+    await ShowHeartbeatAction._setLastInteraction("recipe1", 3);
+    await ShowHeartbeatAction._setLastInteraction("recipe2", 4);
+
+    // Check that they are available
+    Assert.equal(await ShowHeartbeatAction._getLastShown("recipe1"), 1);
+    Assert.equal(await ShowHeartbeatAction._getLastShown("recipe2"), 2);
+    Assert.equal(await ShowHeartbeatAction._getLastShown(), 2);
+    Assert.equal(await ShowHeartbeatAction._getLastInteraction("recipe1"), 3);
+    Assert.equal(await ShowHeartbeatAction._getLastInteraction("recipe2"), 4);
+    Assert.equal(await ShowHeartbeatAction._getLastInteraction(), 4);
+
+    // Check that clearing the old storage doesn't remove data.
+    await Storage.clearAllStorage();
+    Assert.equal(await ShowHeartbeatAction._getLastShown(), 2);
+    Assert.equal(await ShowHeartbeatAction._getLastInteraction(), 4);
+
+    // Check that clearing the storage removes data from multiple prefixes.
+    await ShowHeartbeatAction._clearAllStorage();
+    Assert.equal(await ShowHeartbeatAction._getLastShown("recipe1"), null);
+    Assert.equal(await ShowHeartbeatAction._getLastShown("recipe2"), null);
+    Assert.equal(await ShowHeartbeatAction._getLastShown(), null);
   }
 );
