@@ -17,6 +17,7 @@ include "mozilla/dom/notification/IPCUtils.h";
 include "mozilla/ipc/URIUtils.h";
 include "mozilla/layers/LayersMessageUtils.h";
 include "mozilla/net/NeckoMessageUtils.h";
+include "mozilla/URLClassifierIPCUtils.h";
 
 include IPCBlob;
 include IPCStream;
@@ -60,6 +61,7 @@ using mozilla::TimeStamp from "mozilla/TimeStamp.h";
 [MoveOnly] using class mozilla::ipc::BigBuffer from "mozilla/ipc/BigBuffer.h";
 using mozilla::dom::NotificationDirection from "mozilla/dom/NotificationBinding.h";
 using mozilla::dom::UserNavigationInvolvement from "mozilla/dom/UserNavigationInvolvement.h";
+using mozilla::net::ClassificationFlags from "nsIClassifiedChannel.h";
 
 namespace mozilla {
 namespace dom {
@@ -204,6 +206,7 @@ struct DocShellLoadStateInit
   uint32_t TriggeringSandboxFlags;
   uint64_t TriggeringWindowId;
   bool TriggeringStorageAccess;
+  ClassificationFlags TriggeringClassificationFlags;
   int32_t? CancelContentJSEpoch;
 
   bool ResultPrincipalURIIsSome;

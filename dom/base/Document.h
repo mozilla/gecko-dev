@@ -3900,6 +3900,13 @@ class Document : public nsINode,
   // classification flags of the document.
   net::ClassificationFlags GetScriptTrackingFlags() const;
 
+  net::ClassificationFlags GetClassificationFlags() {
+    return mClassificationFlags;
+  }
+  void SetClassificationFlags(net::ClassificationFlags aFlags) {
+    mClassificationFlags = aFlags;
+  }
+
   // ResizeObserver usage.
   void AddResizeObserver(ResizeObserver& aObserver) {
     MOZ_ASSERT(!mResizeObservers.Contains(&aObserver));
@@ -5538,6 +5545,8 @@ class Document : public nsINode,
   nsCOMPtr<nsICookieJarSettings> mCookieJarSettings;
 
   bool mHasStoragePermission;
+
+  net::ClassificationFlags mClassificationFlags;
 
   // Document generation. Gets incremented everytime it changes.
   int32_t mGeneration;
