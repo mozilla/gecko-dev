@@ -327,9 +327,8 @@ mozilla::dom::ReferrerPolicy HTMLScriptElement::GetReferrerPolicy() {
   return GetReferrerPolicyAsEnum();
 }
 
-bool HTMLScriptElement::HasScriptContent() {
-  return (mFrozen ? mExternal : HasAttr(nsGkAtoms::src)) ||
-         nsContentUtils::HasNonEmptyTextContent(this);
+bool HTMLScriptElement::HasExternalScriptContent() {
+  return mFrozen ? mExternal : HasAttr(nsGkAtoms::src);
 }
 
 // https://html.spec.whatwg.org/multipage/scripting.html#dom-script-supports
