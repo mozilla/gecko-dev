@@ -38,6 +38,7 @@
 #include "nsIBufferedStreams.h"
 #include "nsBufferedStreams.h"
 #include "nsIChannelEventSink.h"
+#include "nsIClassifiedChannel.h"
 #include "nsIContentSniffer.h"
 #include "mozilla/dom/Document.h"
 #include "nsIDownloader.h"
@@ -489,6 +490,15 @@ nsresult NS_NewChannelInternal(
     if (aCookieJarSettings) {
       loadInfo->SetCookieJarSettings(aCookieJarSettings);
     }
+  }
+
+  if (aLoadingNode) {
+    nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
+    ClassificationFlags flags =
+        aLoadingNode->OwnerDoc()->GetScriptTrackingFlags();
+
+    loadInfo->SetTriggeringFirstPartyClassificationFlags(flags.firstPartyFlags);
+    loadInfo->SetTriggeringThirdPartyClassificationFlags(flags.thirdPartyFlags);
   }
 
   channel.forget(outChannel);
