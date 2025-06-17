@@ -15,7 +15,7 @@ gcloud:
 
   device:
     - model: MediumPhone.arm
-      version: 30
+      version: 34
       locale: en_US
 
   type: robo
