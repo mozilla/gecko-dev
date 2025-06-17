@@ -458,7 +458,7 @@ var UUIDMap = {
 };
 
 function clearCacheForExtensionPrincipal(principal, clearAll = false) {
-  if (!principal.schemeIs("moz-extension")) {
+  if (!ExtensionUtils.isExtensionUrl(principal)) {
     return Promise.reject(new Error("Unexpected non extension principal"));
   }
 
@@ -1428,7 +1428,7 @@ export class ExtensionData {
         .map(matcher => matcher.pattern)
         // moz-extension://id/* is always added to allowedOrigins, but it
         // is not a valid host permission in the API. So, remove it.
-        .filter(pattern => !pattern.startsWith("moz-extension:")),
+        .filter(pattern => !ExtensionUtils.isExtensionUrl(pattern)),
       apis: [...this.apiNames],
     };
 

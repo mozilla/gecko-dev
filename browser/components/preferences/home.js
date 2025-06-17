@@ -8,6 +8,10 @@
 
 // HOME PAGE
 
+ChromeUtils.defineESModuleGetters(this, {
+  ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
+});
+
 /*
  * Preferences:
  *
@@ -438,7 +442,7 @@ var gHomePane = {
       this._renderCustomSettings();
       this._setInputDisabledStates(false);
     } else {
-      if (HomePage.get().startsWith("moz-extension:")) {
+      if (ExtensionUtils.isExtensionUrl(HomePage.get())) {
         controllingExtension = await getControllingExtension(
           PREF_SETTING_TYPE,
           HOMEPAGE_OVERRIDE_KEY

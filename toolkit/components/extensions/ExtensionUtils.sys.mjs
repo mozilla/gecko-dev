@@ -7,11 +7,14 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
-const lazy = XPCOMUtils.declareLazy({
-  setTimeout: "resource://gre/modules/Timer.sys.mjs",
-  // xpcshell doesn't handle idle callbacks well.
-  idleTimeout: () => (Services.appinfo.name === "XPCShell" ? 500 : undefined),
-});
+const lazy = XPCOMUtils.declareLazy(
+  {
+    setTimeout: "resource://gre/modules/Timer.sys.mjs",
+    // xpcshell doesn't handle idle callbacks well.
+    idleTimeout: () => (Services.appinfo.name === "XPCShell" ? 500 : undefined),
+  },
+  { global: "contextual" }
+);
 
 // It would be nicer to go through `Services.appinfo`, but some tests need to be
 // able to replace that field with a custom implementation before it is first
@@ -325,6 +328,23 @@ async function makeDataURI(iconUrl) {
   return `data:${contentType};base64,${btoa(str)}`;
 }
 
+/**
+ * Returns whether the given url is a moz-extension scheme url.
+ *
+ * @param {string | nsIURI | nsIPrincipal | URL} url The url to check.
+ * @returns {boolean} Whether the url is a moz-extension scheme url.
+ */
+function isExtensionUrl(url) {
+  if (typeof url === "string") {
+    return url.startsWith("moz-extension://");
+  } else if (URL.isInstance(url)) {
+    return url.protocol === "moz-extension:";
+  } else if (url instanceof Ci.nsIURI || url instanceof Ci.nsIPrincipal) {
+    return url.schemeIs("moz-extension");
+  }
+  return false;
+}
+
 export var ExtensionUtils = {
   flushJarCache,
   getInnerWindowID,
@@ -332,6 +352,7 @@ export var ExtensionUtils = {
   getUniqueId,
   filterStack,
   makeDataURI,
+  isExtensionUrl,
   parseMatchPatterns,
   promiseDocumentIdle,
   promiseDocumentLoaded,

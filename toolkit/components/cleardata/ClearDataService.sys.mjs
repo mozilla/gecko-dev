@@ -9,6 +9,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   Downloads: "resource://gre/modules/Downloads.sys.mjs",
+  ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   ServiceWorkerCleanUp: "resource://gre/modules/ServiceWorkerCleanUp.sys.mjs",
 });
@@ -2176,7 +2177,7 @@ const StoragePermissionsCleaner = {
       // AddonPolicy() returns a WebExtensionPolicy that has been registered before,
       // typically during extension startup. Since Disabled or uninstalled add-ons
       // don't appear there, we should use schemeIs instead
-      aPrincipal.schemeIs("moz-extension")
+      lazy.ExtensionUtils.isExtensionUrl(aPrincipal)
     );
   },
 };

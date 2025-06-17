@@ -700,6 +700,8 @@ run-sequentially = "very high failure rate in parallel"
 ["test_ext_xhr_cors.js"]
 run-sequentially = "very high failure rate in parallel"
 
+["test_extensionUtils.js"]
+
 ["test_native_manifests.js"]
 subprocess = true
 skip-if = ["os == 'android'"]

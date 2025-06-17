@@ -1961,7 +1961,7 @@ function isRestrictedPrincipalURI(uri) {
   // moz-extension: is not restricted because an extension always has permission
   // to its own moz-extension:-origin. The caller is expected to verify that an
   // extension can only access its own URI.
-  if (uri.schemeIs("moz-extension")) {
+  if (ExtensionUtils.isExtensionUrl(uri)) {
     return false;
   }
 
@@ -2367,7 +2367,8 @@ function getMatchedRulesForRequest(request, extension) {
   // for consistency.
   if (
     !lazy.gMatchRequestsFromOtherExtensions &&
-    initiatorURI?.schemeIs("moz-extension")
+    initiatorURI &&
+    ExtensionUtils.isExtensionUrl(initiatorURI)
   ) {
     const extUuid = initiatorURI.host;
     ruleManagers = ruleManagers.filter(rm => rm.extension.uuid === extUuid);

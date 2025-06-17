@@ -87,6 +87,7 @@ loader.lazyRequireGetter(
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
+  ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
   TYPES: "resource://devtools/shared/highlighters.mjs",
 });
 loader.lazyRequireGetter(this, "flags", "resource://devtools/shared/flags.js");
@@ -3500,7 +3501,7 @@ Toolbox.prototype = {
       return url;
     }
     // Only moz-extension URL should be shortened into the URL pathname.
-    if (parsedURL.protocol !== "moz-extension:") {
+    if (!lazy.ExtensionUtils.isExtensionUrl(parsedURL)) {
       return url;
     }
     return parsedURL.pathname;

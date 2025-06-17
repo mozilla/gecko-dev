@@ -24,6 +24,14 @@ loader.lazyRequireGetter(
   true
 );
 
+ChromeUtils.defineESModuleGetters(
+  this,
+  {
+    ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
+  },
+  { global: "contextual" }
+);
+
 class BaseTargetActor extends Actor {
   constructor(conn, targetType, spec) {
     super(conn, spec);
@@ -280,7 +288,7 @@ class BaseTargetActor extends Actor {
       // whereas we can only spawn one tracer per thread.
       if (
         this.targetType == Targets.TYPES.PROCESS ||
-        this.url?.startsWith("moz-extension://")
+        ExtensionUtils.isExtensionUrl(this.url)
       ) {
         return;
       }
