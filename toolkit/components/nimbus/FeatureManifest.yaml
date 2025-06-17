@@ -522,7 +522,7 @@ urlbar:
         pref: places.semanticHistory.distanceThreshold
       description: >-
         semantic similarity distance threshold (0.0 - 1.0)
-        defaulted at 0.75.
+        defaulted at 0.6.
     suggestSemanticHistoryMinLength:
       type: int
       setPref:

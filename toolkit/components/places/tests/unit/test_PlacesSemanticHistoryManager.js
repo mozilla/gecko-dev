@@ -22,9 +22,6 @@ function createPlacesSemanticHistoryManager() {
     {
       embeddingSize: EMBEDDING_SIZE,
       rowLimit: 10,
-      samplingAttrib: "frecency",
-      changeThresholdCount: 3,
-      distanceThreshold: 0.75,
     },
     true
   );

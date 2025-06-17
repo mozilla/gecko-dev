@@ -70,7 +70,7 @@ class ProviderSemanticHistorySearch extends UrlbarProvider {
     if (!this.#semanticManager) {
       const distanceThreshold = Services.prefs.getFloatPref(
         "places.semanticHistory.distanceThreshold",
-        0.75
+        0.6
       );
       this.#semanticManager = lazy.getPlacesSemanticHistoryManager({
         embeddingSize: 384,

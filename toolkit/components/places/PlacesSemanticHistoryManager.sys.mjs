@@ -72,7 +72,7 @@ class PlacesSemanticHistoryManager {
    * @param {number} [options.rowLimit=600] - Maximum number of rows to process from the database.
    * @param {string} [options.samplingAttrib="frecency"] - Attribute used for sampling rows.
    * @param {number} [options.changeThresholdCount=3] - Threshold of changed rows to trigger updates.
-   * @param {number} [options.distanceThreshold=0.75] - Cosine distance threshold to determine similarity.
+   * @param {number} [options.distanceThreshold=0.6] - Cosine distance threshold to determine similarity.
    * @param {boolean} [options.testFlag=false] - Flag for test behavior.
    */
   constructor({
@@ -80,7 +80,7 @@ class PlacesSemanticHistoryManager {
     rowLimit = 600,
     samplingAttrib = "frecency",
     changeThresholdCount = 3,
-    distanceThreshold = 0.75,
+    distanceThreshold = 0.6,
     testFlag = false,
   } = {}) {
     this.QueryInterface = ChromeUtils.generateQI([
@@ -831,14 +831,7 @@ let gSingleton = null;
  * @param {boolean} recreate set could true only for testing purposes and should not be true in production
  */
 export function getPlacesSemanticHistoryManager(
-  options = {
-    embeddingSize: 384,
-    rowLimit: 600,
-    samplingAttrib: "frecency",
-    changeThresholdCount: 3,
-    distanceThreshold: 0.75,
-    testFlag: false,
-  },
+  options = {},
   recreate = false
 ) {
   if (!gSingleton || recreate) {
