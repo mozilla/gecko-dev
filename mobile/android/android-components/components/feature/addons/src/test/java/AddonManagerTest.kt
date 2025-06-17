@@ -727,7 +727,7 @@ class AddonManagerTest {
             },
         )
 
-        verify(engine).addOptionalPermissions(eq(extension.id), any(), any(), onSuccessCaptor.capture(), any())
+        verify(engine).addOptionalPermissions(eq(extension.id), any(), any(), any(), onSuccessCaptor.capture(), any())
         onSuccessCaptor.value.invoke(extension)
         assertNotNull(updateAddon)
         assertEquals(addon.id, updateAddon!!.id)
@@ -782,7 +782,7 @@ class AddonManagerTest {
             },
         )
 
-        verify(engine).removeOptionalPermissions(eq(extension.id), any(), any(), onSuccessCaptor.capture(), any())
+        verify(engine).removeOptionalPermissions(eq(extension.id), any(), any(), any(), onSuccessCaptor.capture(), any())
         onSuccessCaptor.value.invoke(extension)
         assertNotNull(updateAddon)
         assertEquals(addon.id, updateAddon!!.id)
