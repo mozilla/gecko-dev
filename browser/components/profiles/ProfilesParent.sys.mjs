@@ -329,7 +329,7 @@ export class ProfilesParent extends JSWindowActorParent {
       case "Profiles:UpdateProfileAvatar": {
         let { avatarOrFile } = message.data;
         await SelectableProfileService.currentProfile.setAvatar(avatarOrFile);
-        let value = SelectableProfileService.currentProfile.isCustomAvatar
+        let value = SelectableProfileService.currentProfile.hasCustomAvatar
           ? "custom"
           : avatarOrFile;
 

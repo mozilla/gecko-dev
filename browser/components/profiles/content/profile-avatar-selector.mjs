@@ -135,9 +135,32 @@ export class ProfileAvatarSelector extends MozLitElement {
   async handleSaveClick(event) {
     event.stopImmediatePropagation();
 
+    const img = new Image();
+    img.src = this.blobURL;
+    await img.decode();
+
+    const size = 512;
+    const canvas = new OffscreenCanvas(size, size);
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext("2d");
+
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.clip();
+
+    const scale = size / Math.min(img.width, img.height);
+    const x = (size - img.width * scale) / 2;
+    const y = (size - img.height * scale) / 2;
+    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+
+    const blob = await canvas.convertToBlob({ type: "image/png" });
+    const circularFile = new File([blob], this.file.name, {
+      type: "image/png",
+    });
+
     document.dispatchEvent(
       new CustomEvent("Profiles:CustomAvatarUpload", {
-        detail: { file: this.file },
+        detail: { file: circularFile },
       })
     );
 

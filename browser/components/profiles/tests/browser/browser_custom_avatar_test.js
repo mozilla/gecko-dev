@@ -75,6 +75,19 @@ add_task(async function test_edit_profile_custom_avatar_upload() {
     PathUtils.tempDir,
     "avatar.png"
   );
+
+  // We need to create actual image data here because our circular avatar
+  // processing code in profile-avatar-selector.mjs expects valid image data.
+  // If we pass an empty file, the img.decode() call will fail with an EncodingError
+  const canvas = new OffscreenCanvas(100, 100);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "red";
+  ctx.fillRect(0, 0, 100, 100);
+
+  const blob = await canvas.convertToBlob({ type: "image/png" });
+  const buffer = await blob.arrayBuffer();
+  await IOUtils.write(mockAvatarFilePath, new Uint8Array(buffer));
+
   const mockAvatarFile = Cc["@mozilla.org/file/local;1"].createInstance(
     Ci.nsIFile
   );
@@ -165,6 +178,50 @@ add_task(async function test_edit_profile_custom_avatar_upload() {
     curProfile.hasCustomAvatar,
     "Current profile has a custom avatar image"
   );
+
+  // Verify the saved avatar is circular and corners are transparent
+  const avatarPath = curProfile.getAvatarPath();
+  const avatarData = await IOUtils.read(avatarPath);
+  const avatarBlob = new Blob([avatarData], { type: "image/png" });
+
+  const img = new Image();
+  const loaded = new Promise(resolve => {
+    img.addEventListener("load", resolve, { once: true });
+  });
+  img.src = URL.createObjectURL(avatarBlob);
+  await loaded;
+
+  const verifyCanvas = new OffscreenCanvas(img.width, img.height);
+  const verifyCtx = verifyCanvas.getContext("2d");
+  verifyCtx.drawImage(img, 0, 0);
+
+  const topLeft = verifyCtx.getImageData(0, 0, 1, 1).data;
+  const topRight = verifyCtx.getImageData(img.width - 1, 0, 1, 1).data;
+  const bottomLeft = verifyCtx.getImageData(0, img.height - 1, 1, 1).data;
+  const bottomRight = verifyCtx.getImageData(
+    img.width - 1,
+    img.height - 1,
+    1,
+    1
+  ).data;
+  const center = verifyCtx.getImageData(
+    Math.floor(img.width / 2),
+    Math.floor(img.height / 2),
+    1,
+    1
+  ).data;
+
+  Assert.equal(topLeft[3], 0, "Top left corner should be transparent");
+  Assert.equal(topRight[3], 0, "Top right corner should be transparent");
+  Assert.equal(bottomLeft[3], 0, "Bottom left corner should be transparent");
+  Assert.equal(bottomRight[3], 0, "Bottom right corner should be transparent");
+
+  Assert.equal(center[0], 255, "Center pixel should have red channel = 255");
+  Assert.equal(center[1], 0, "Center pixel should have green channel = 0");
+  Assert.equal(center[2], 0, "Center pixel should have blue channel = 0");
+  Assert.equal(center[3], 255, "Center pixel should be opaque");
+
+  URL.revokeObjectURL(img.src);
 
   MockFilePicker.cleanup();
 

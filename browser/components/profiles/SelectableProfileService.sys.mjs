@@ -114,15 +114,11 @@ async function loadCustomAvatarImage(profile, channel) {
 async function loadImage(profile) {
   let uri;
 
-  if (SelectableProfileService.currentProfile.hasCustomAvatar) {
-    const file = await IOUtils.getFile(
-      SelectableProfileService.currentProfile.getAvatarPath(48)
-    );
+  if (profile.hasCustomAvatar) {
+    const file = await IOUtils.getFile(profile.getAvatarPath(48));
     uri = Services.io.newFileURI(file);
   } else {
-    uri = Services.io.newURI(
-      SelectableProfileService.currentProfile.getAvatarPath(48)
-    );
+    uri = Services.io.newURI(profile.getAvatarPath(48));
   }
 
   const channel = Services.io.newChannelFromURI(
@@ -134,7 +130,7 @@ async function loadImage(profile) {
     Ci.nsIContentPolicy.TYPE_IMAGE
   );
 
-  if (profile.isCustomAvatar) {
+  if (profile.hasCustomAvatar) {
     return loadCustomAvatarImage(profile, channel);
   }
 
@@ -658,7 +654,7 @@ class SelectableProfileServiceClass extends EventEmitter {
               .getOverlayIconController(win.docShell);
             TASKBAR_ICON_CONTROLLERS.set(win, iconController);
 
-            if (this.#currentProfile.isCustomAvatar) {
+            if (this.#currentProfile.hasCustomAvatar) {
               iconController.setOverlayIcon(
                 this.#badge.image,
                 this.#badge.description
