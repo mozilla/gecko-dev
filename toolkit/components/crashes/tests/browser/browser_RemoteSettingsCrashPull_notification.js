@@ -35,7 +35,9 @@ async function getNotification(shouldBeNull = false) {
     if (shouldBeNull) {
       return document.querySelector(kNotificationSelector) === null;
     }
-    return document.querySelector(kNotificationSelector) !== null;
+    const node = document.querySelector(kNotificationSelector);
+    const msg = node?.shadowRoot?.querySelector?.(".message");
+    return msg !== null && msg.innerText !== "";
   }, "Trying to get a notification");
   return document.querySelector(kNotificationSelector);
 }
