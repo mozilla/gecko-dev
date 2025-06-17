@@ -3022,7 +3022,6 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
       };
 
       MOZ_ASSERT(!maybeSource.empty());
-      TimeStamp startTime = TimeStamp::Now();
       maybeSource.mapNonEmpty(compile);
       aStencilOut = stencil.get();
 
@@ -3033,7 +3032,6 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
                            erv, encodeBytecode);
       }
 
-      mMainThreadParseTime += TimeStamp::Now() - startTime;
       aRv = std::move(erv);
     }
   }
@@ -3373,11 +3371,6 @@ void ScriptLoader::RegisterForBytecodeEncoding(ScriptLoadRequest* aRequest) {
 void ScriptLoader::LoadEventFired() {
   mLoadEventFired = true;
   MaybeTriggerBytecodeEncoding();
-
-  if (!mMainThreadParseTime.IsZero()) {
-    glean::javascript_pageload::parse_time.AccumulateRawDuration(
-        mMainThreadParseTime);
-  }
 }
 
 void ScriptLoader::Destroy() {

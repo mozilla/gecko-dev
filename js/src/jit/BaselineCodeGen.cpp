@@ -249,8 +249,6 @@ MethodStatus BaselineCompiler::compile(JSContext* cx) {
           script->filename(), script->lineno(),
           script->column().oneOriginValue());
 
-  AutoIncrementalTimer timer(cx->realm()->timers.baselineCompileTime);
-
   MOZ_ASSERT(!script->hasBaselineScript());
 
   if (!compileImpl()) {
