@@ -133,8 +133,6 @@ class Animation : public DOMEventTargetHelper,
   void SetCurrentTimeAsDouble(const Nullable<double>& aCurrentTime,
                               ErrorResult& aRv);
 
-  Nullable<double> GetOverallProgress() const;
-
   double PlaybackRate() const { return mPlaybackRate; }
   void SetPlaybackRate(double aPlaybackRate);
 

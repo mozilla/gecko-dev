@@ -458,38 +458,6 @@ void Animation::SetCurrentTimeNoUpdate(const TimeDuration& aSeekTime) {
   UpdateTiming(SeekFlag::DidSeek, SyncNotifyFlag::Async);
 }
 
-// https://drafts.csswg.org/web-animations-2/#the-overall-progress-of-an-animation
-Nullable<double> Animation::GetOverallProgress() const {
-  Nullable<double> result;
-  if (!mEffect) {
-    return result;
-  }
-  const Nullable<TimeDuration> currentTime = GetCurrentTimeAsDuration();
-  if (currentTime.IsNull()) {
-    return result;
-  }
-
-  const StickyTimeDuration endTime = EffectEnd();
-  if (endTime.IsZero()) {
-    if (currentTime.Value() < TimeDuration(0)) {
-      result.SetValue(0.0);
-    } else {
-      result.SetValue(1.0);
-    }
-    return result;
-  }
-
-  if (endTime == StickyTimeDuration::Forever()) {
-    result.SetValue(0.0);
-    return result;
-  }
-
-  auto overallProgress =
-      std::min(std::max(currentTime.Value() / endTime, 0.0), 1.0);
-  result.SetValue(overallProgress);
-  return result;
-}
-
 // https://drafts.csswg.org/web-animations/#set-the-playback-rate
 void Animation::SetPlaybackRate(double aPlaybackRate) {
   mPendingPlaybackRate.reset();
