@@ -132,8 +132,8 @@ int32_t nsComboboxControlFrame::CharCountOfLargestOptionForInflation() const {
   return int32_t(maxLength);
 }
 
-nscoord nsComboboxControlFrame::GetLongestOptionISize(
-    gfxContext* aRenderingContext) const {
+nscoord nsComboboxControlFrame::GetOptionISize(gfxContext* aRenderingContext,
+                                               Type aType) const {
   // Compute the width of each option's (potentially text-transformed) text,
   // and use the widest one as part of our intrinsic size.
   nscoord maxOptionSize = 0;
@@ -148,8 +148,8 @@ nscoord nsComboboxControlFrame::GetLongestOptionISize(
   nsAtom* language = StyleFont()->mLanguage;
   AutoTArray<bool, 50> charsToMergeArray;
   AutoTArray<bool, 50> deletedCharsArray;
-  for (auto i : IntegerRange(Select().Options()->Length())) {
-    GetOptionText(i, label);
+  auto GetOptionSize = [&](uint32_t aIndex) -> nscoord {
+    GetOptionText(aIndex, label);
     const nsAutoString* stringToUse = &label;
     if (textTransform ||
         textStyle->mWebkitTextSecurity != StyleTextSecurity::None) {
@@ -163,9 +163,15 @@ nscoord nsComboboxControlFrame::GetLongestOptionISize(
           deletedCharsArray);
       stringToUse = &transformedLabel;
     }
-    maxOptionSize = std::max(maxOptionSize,
-                             nsLayoutUtils::AppUnitWidthOfStringBidi(
-                                 *stringToUse, this, *fm, *aRenderingContext));
+    return nsLayoutUtils::AppUnitWidthOfStringBidi(*stringToUse, this, *fm,
+                                                   *aRenderingContext);
+  };
+  if (aType == Type::Longest) {
+    for (auto i : IntegerRange(Select().Options()->Length())) {
+      maxOptionSize = std::max(maxOptionSize, GetOptionSize(i));
+    }
+  } else {
+    maxOptionSize = GetOptionSize(mDisplayedIndex);
   }
   if (maxOptionSize) {
     // HACK: Add one app unit to workaround silly Netgear router styling, see
@@ -185,7 +191,10 @@ nscoord nsComboboxControlFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
 
   nscoord displayISize = 0;
   if (!containISize && !StyleContent()->mContent.IsNone()) {
-    displayISize += GetLongestOptionISize(aInput.mContext);
+    auto optionType = StyleUIReset()->mFieldSizing == StyleFieldSizing::Content
+                          ? Type::Current
+                          : Type::Longest;
+    displayISize += GetOptionISize(aInput.mContext, optionType);
   }
 
   // Add room for the dropmarker button (if there is one).
