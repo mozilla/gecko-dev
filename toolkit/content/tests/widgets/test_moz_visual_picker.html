@@ -29,6 +29,31 @@
       let defaultTemplate;
       let testHelpers = new InputTestHelpers();
 
+      async function keyboardNavigate(picker, direction) {
+        let keyCode = `KEY_Arrow${
+          direction.charAt(0).toUpperCase() + direction.slice(1)
+        }`;
+        synthesizeKey(keyCode);
+        await picker.updateComplete;
+      }
+
+      async function renderVisualPicker(
+        type = "radio",
+        template = defaultTemplate
+      ) {
+        let renderTarget = await testHelpers.renderTemplate(template);
+        let picker = renderTarget.querySelector("moz-visual-picker");
+        let items = [
+          ...renderTarget.querySelectorAll("moz-visual-picker-item"),
+        ];
+        let [firstItem, secondItem, thirdItem] = items;
+
+        picker.type = type;
+        await picker.updateComplete;
+
+        return { picker, items, firstItem, secondItem, thirdItem };
+      }
+
       add_setup(async function setup() {
         ({ html } = await testHelpers.setupLit());
         let templateFn = attrs => html`
@@ -54,18 +79,24 @@
         const TEST_LABEL = "Testing...";
         const TEST_DESCRIPTION = "Testing description..";
         const TEST_SUPPORT_PAGE = "Testing support page..";
+
         let renderTarget = await testHelpers.renderTemplate(defaultTemplate);
         let picker = renderTarget.querySelector("moz-visual-picker");
+        let items = [
+          ...renderTarget.querySelectorAll("moz-visual-picker-item"),
+        ];
 
         is(
           picker.fieldset.label,
           "Visual picker label",
           "Visual picker supports a label."
         );
+
         picker.label = TEST_LABEL;
         picker.description = TEST_DESCRIPTION;
         picker.supportPage = TEST_SUPPORT_PAGE;
         await picker.updateComplete;
+
         is(
           picker.fieldset.label,
           TEST_LABEL,
@@ -81,50 +112,78 @@
           TEST_SUPPORT_PAGE,
           "Visual picker support page is set."
         );
+        is(
+          picker.fieldset.getAttribute("role"),
+          "radiogroup",
+          "Visual picker uses the 'radiogroup' role by default."
+        );
+        items.forEach(item => {
+          is(
+            item.itemEl.getAttribute("role"),
+            "radio",
+            "Visual picker items use the 'radio' role by default."
+          );
+        });
+
+        picker.type = "listbox";
+        await picker.updateComplete;
+
+        is(
+          picker.fieldset.getAttribute("role"),
+          "listbox",
+          "Visual picker uses the 'listbox' role after the type is changed."
+        );
+        items.forEach(item => {
+          is(
+            item.itemEl.getAttribute("role"),
+            "option",
+            "Visual picker items use the 'option' role after the picker type is changed."
+          );
+        });
       });
 
       add_task(async function testChangingPickerValue() {
-        let renderTarget = await testHelpers.renderTemplate(defaultTemplate);
-        let picker = renderTarget.querySelector("moz-visual-picker");
-        let items = [
-          ...renderTarget.querySelectorAll("moz-visual-picker-item"),
-        ];
-        let [firstItem, secondItem, thirdItem] = items;
+        let items, picker;
 
-        function verifySelectedPickerItem(selectedItem, setsFocus) {
+        async function verifySelectedPickerItem(selectedItem, focusedItem) {
+          let ariaProperty =
+            picker.type == "radio" ? "aria-checked" : "aria-selected";
           ok(selectedItem.checked, "The selected picker item is checked.");
           is(
-            selectedItem.itemEl.getAttribute("aria-checked"),
+            selectedItem.itemEl.getAttribute(ariaProperty),
             "true",
-            "The checked item has the correct aria-checked value."
+            `The checked item has the correct ${ariaProperty} value.`
           );
-          is(
-            selectedItem.itemEl.tabIndex,
-            0,
-            "The selected picker item is focusable."
-          );
-          if (setsFocus) {
+
+          if (focusedItem) {
+            is(focusedItem.itemEl.tabIndex, 0, "The active item is focusable.");
             is(
               document.activeElement,
-              selectedItem,
-              "The selected picker item is focused."
+              focusedItem,
+              `Expected ${focusedItem.value} item to be focused`
             );
           }
-          items
-            .filter(item => item !== selectedItem)
-            .forEach(item => {
-              ok(!item.checked, "All other picker items are unchecked.");
-              is(
-                item.itemEl.getAttribute("aria-checked"),
-                "false",
-                "All other items have the correct aria-checked value."
-              );
-              is(
-                item.itemEl.tabIndex,
-                -1,
-                "All other items are not focusable."
-              );
-            });
+
+          items.forEach(item => {
+            let isChecked = item == selectedItem;
+            let tabIndex = item == (focusedItem ?? selectedItem) ? 0 : -1;
+            is(
+              item.checked,
+              isChecked,
+              `${item.value} item is ${isChecked ? "" : "not"} checked`
+            );
+            is(
+              item.itemEl.getAttribute(ariaProperty),
+              isChecked ? "true" : "false",
+              `${item.value} item has the expected ${ariaProperty} value`
+            );
+            is(
+              item.itemEl.tabIndex,
+              tabIndex,
+              `${item.value} item has the expected tabIndex`
+            );
+          });
+
           is(
             picker.value,
             selectedItem.value,
@@ -132,23 +191,34 @@
           );
         }
 
-        // Verify the initial state.
-        verifySelectedPickerItem(firstItem);
+        async function verifyValueChange(type) {
+          ({ picker, items } = await renderVisualPicker(type));
+          let [firstItem, secondItem, thirdItem] = items;
 
-        // Verify changing the checked property directly.
-        secondItem.checked = true;
-        await picker.updateComplete;
-        verifySelectedPickerItem(secondItem);
+          info(`Verifying ways of changing the value of a ${type} picker`);
 
-        // Verify clicking on a picker item to change checked state.
-        synthesizeMouseAtCenter(thirdItem, {});
-        await picker.updateComplete;
-        verifySelectedPickerItem(thirdItem, true);
+          // Verify the initial state.
+          verifySelectedPickerItem(firstItem);
 
-        // Verify changing the picker value sets the selected state of child items.
-        picker.value = "first";
-        await picker.updateComplete;
-        verifySelectedPickerItem(firstItem);
+          // Verify changing the checked property directly.
+          secondItem.checked = true;
+          await picker.updateComplete;
+          verifySelectedPickerItem(secondItem);
+
+          // Verify clicking on a picker item to change checked state.
+          synthesizeMouseAtCenter(thirdItem, {});
+          await picker.updateComplete;
+          verifySelectedPickerItem(thirdItem, thirdItem);
+
+          // Verify changing the picker value sets the selected state of child items.
+          picker.value = "first";
+          await picker.updateComplete;
+          let focusedItem = type == "listbox" ? thirdItem : null;
+          verifySelectedPickerItem(firstItem, focusedItem);
+        }
+
+        await verifyValueChange("radio");
+        await verifyValueChange("listbox");
       });
 
       // Verify that settings a value on the group works as expected creating
@@ -183,20 +253,11 @@
       });
 
       // Verify that keyboard navigation works as expected.
-      add_task(async function testKeyboardNavigation() {
-        let renderTarget = await testHelpers.renderTemplate(defaultTemplate);
-        let picker = renderTarget.querySelector("moz-visual-picker");
-        let [firstItem, secondItem, thirdItem] = renderTarget.querySelectorAll(
-          "moz-visual-picker-item"
-        );
+      add_task(async function testRadioKeyboardNavigation() {
+        let { firstItem, secondItem, thirdItem, picker } =
+          await renderVisualPicker();
 
-        async function keyboardNavigate(direction) {
-          let keyCode = `KEY_Arrow${
-            direction.charAt(0).toUpperCase() + direction.slice(1)
-          }`;
-          synthesizeKey(keyCode);
-          await picker.updateComplete;
-        }
+        const navigate = direction => keyboardNavigate(picker, direction);
 
         function validateActiveElement(item) {
           is(
@@ -204,47 +265,48 @@
             item,
             "Focus moves to the expected picker item."
           );
+
           is(picker.value, item.value, "Visual picker value is updated.");
         }
 
         synthesizeMouseAtCenter(firstItem, {});
         await picker.updateComplete;
 
-        await keyboardNavigate("down");
+        await navigate("down");
         validateActiveElement(secondItem);
 
-        await keyboardNavigate("down");
+        await navigate("down");
         validateActiveElement(thirdItem);
 
-        await keyboardNavigate("down");
+        await navigate("down");
         validateActiveElement(firstItem);
 
-        await keyboardNavigate("up");
+        await navigate("up");
         validateActiveElement(thirdItem);
 
-        await keyboardNavigate("up");
+        await navigate("up");
         validateActiveElement(secondItem);
 
-        await keyboardNavigate("right");
+        await navigate("right");
         validateActiveElement(thirdItem);
 
-        await keyboardNavigate("right");
+        await navigate("right");
         validateActiveElement(firstItem);
 
-        await keyboardNavigate("left");
+        await navigate("left");
         validateActiveElement(thirdItem);
 
-        await keyboardNavigate("left");
+        await navigate("left");
         validateActiveElement(secondItem);
 
         // Validate that disabled items get skipped over.
         thirdItem.disabled = true;
         await picker.updateComplete;
 
-        await keyboardNavigate("down");
+        await navigate("down");
         validateActiveElement(firstItem);
 
-        await keyboardNavigate("up");
+        await navigate("up");
         validateActiveElement(secondItem);
 
         thirdItem.disabled = false;
@@ -255,16 +317,16 @@
           set: [["intl.l10n.pseudo", "bidi"]],
         });
 
-        await keyboardNavigate("left");
+        await navigate("left");
         validateActiveElement(thirdItem);
 
-        await keyboardNavigate("left");
+        await navigate("left");
         validateActiveElement(firstItem);
 
-        await keyboardNavigate("right");
+        await navigate("right");
         validateActiveElement(thirdItem);
 
-        await keyboardNavigate("right");
+        await navigate("right");
         validateActiveElement(secondItem);
 
         secondItem.click();
@@ -291,195 +353,453 @@
           </moz-visual-picker>
           <button tabindex="0" id="after">After picker item></button>
         `;
-        let renderTarget = await testHelpers.renderTemplate(template);
+
+        async function validateNoItemSelected(type) {
+          let { picker, items, firstItem, secondItem, thirdItem } =
+            await renderVisualPicker(type, template);
+          let [beforeButton, afterButton] = document.querySelectorAll("button");
+
+          info(
+            `Verifying behavior when no item is selected for ${type} picker`
+          );
+
+          ok(!picker.value, "Visual picker does not have a value.");
+          items.forEach(item =>
+            ok(!item.checked, "All picker items are unselected.")
+          );
+
+          beforeButton.focus();
+          synthesizeKey("KEY_Tab", {});
+          is(
+            document.activeElement,
+            firstItem,
+            "First picker item is tab focusable when all items un-checked."
+          );
+          [secondItem, thirdItem].forEach(item =>
+            is(
+              item.itemEl.getAttribute("tabindex"),
+              "-1",
+              "All other items are not tab focusable."
+            )
+          );
+
+          synthesizeKey("KEY_Tab", {});
+          is(
+            document.activeElement,
+            afterButton,
+            "Tab moves focus out of the visual picker."
+          );
+
+          synthesizeKey("KEY_Tab", { shiftKey: true });
+          is(
+            document.activeElement,
+            firstItem,
+            "Focus moves back to the first picker item."
+          );
+
+          synthesizeKey("KEY_ArrowDown", {});
+          is(
+            document.activeElement,
+            secondItem,
+            "Focus moves to the second picker item with down arrow keypress."
+          );
+          if (type == "listbox") {
+            synthesizeKey(" ");
+          }
+          is(
+            picker.value,
+            secondItem.value,
+            "Picker value updates to second picker item value."
+          );
+
+          synthesizeKey("KEY_Tab");
+
+          secondItem.checked = false;
+          await picker.updateComplete;
+
+          synthesizeKey("KEY_Tab", { shiftKey: true });
+
+          ok(
+            !picker.value,
+            "Picker value is un-set when all picker items un-checked programmatically."
+          );
+          is(
+            document.activeElement,
+            firstItem,
+            "First picker item becomes focusable again."
+          );
+
+          synthesizeKey(" ");
+          is(
+            picker.value,
+            firstItem.value,
+            "Hitting space selects the focused item."
+          );
+
+          synthesizeKey("KEY_Tab", { shiftKey: true });
+          firstItem.disabled = true;
+          secondItem.disabled = true;
+          await picker.updateComplete;
+
+          synthesizeKey("KEY_Tab");
+          is(
+            document.activeElement,
+            thirdItem,
+            "First non-disabled picker item is focusable when all items are un-checked."
+          );
+        }
+
+        await validateNoItemSelected("radio");
+        await validateNoItemSelected("listbox");
+      });
+
+      // Verify expected events emitted in the correct order.
+      add_task(async function testPickerEvents() {
+        async function validatePickerEvents(type) {
+          let { picker, items, firstItem, secondItem, thirdItem } =
+            await renderVisualPicker(type);
+          let { trackEvent, verifyEvents } = testHelpers.getInputEventHelpers();
+
+          items.forEach(item => {
+            item.addEventListener("click", trackEvent);
+            item.addEventListener("input", trackEvent);
+            item.addEventListener("change", trackEvent);
+          });
+          picker.addEventListener("change", trackEvent);
+          picker.addEventListener("input", trackEvent);
+
+          // Verify that clicking on a item emits the right events in the correct order.
+          synthesizeMouseAtCenter(thirdItem.itemEl, {});
+          await TestUtils.waitForTick();
+
+          verifyEvents([
+            {
+              type: "click",
+              value: "third",
+              localName: "moz-visual-picker-item",
+              checked: true,
+            },
+            {
+              type: "input",
+              value: "third",
+              localName: "moz-visual-picker-item",
+              checked: true,
+            },
+            { type: "input", value: "third", localName: "moz-visual-picker" },
+            {
+              type: "change",
+              value: "third",
+              localName: "moz-visual-picker-item",
+              checked: true,
+            },
+            { type: "change", value: "third", localName: "moz-visual-picker" },
+          ]);
+
+          // Verify that keyboard navigation emits the right events in the correct order.
+          synthesizeKey("KEY_ArrowUp", {});
+          await picker.updateComplete;
+          await TestUtils.waitForTick();
+
+          if (type == "radio") {
+            info(
+              "For radio pickers arrow key navigation changes the value and emits change and input events."
+            );
+            is(picker.value, secondItem.value, "picker value is updated.");
+            verifyEvents([
+              {
+                type: "input",
+                value: "second",
+                localName: "moz-visual-picker",
+              },
+              {
+                type: "change",
+                value: "second",
+                localName: "moz-visual-picker",
+              },
+            ]);
+          } else {
+            info(
+              "For listbox pickers arrow key navigation does not change the value or emit events."
+            );
+            is(picker.value, thirdItem.value, "picker value is updated.");
+            verifyEvents([]);
+          }
+
+          // Verify that changing the group's value directly doesn't emit any events.
+          picker.value = firstItem.value;
+          await picker.updateComplete;
+          ok(firstItem.checked, "Expected item is checked.");
+          await TestUtils.waitForTick();
+          verifyEvents([]);
+
+          // Verify that changing a item's checked state directly doesn't emit any events.
+          secondItem.checked = true;
+          await picker.updateComplete;
+          is(picker.value, secondItem.value, "Picker value is updated.");
+          await TestUtils.waitForTick();
+          verifyEvents([]);
+
+          // Verify activating item with space emits proper events.
+          picker.value = "";
+          await picker.updateComplete;
+
+          ok(!firstItem.checked, "The first item is not selected.");
+          firstItem.focus();
+          synthesizeKey(" ");
+          await TestUtils.waitForTick();
+          verifyEvents([
+            {
+              type: "click",
+              value: "first",
+              localName: "moz-visual-picker-item",
+              checked: true,
+            },
+            {
+              type: "input",
+              value: "first",
+              localName: "moz-visual-picker-item",
+              checked: true,
+            },
+            { type: "input", value: "first", localName: "moz-visual-picker" },
+            {
+              type: "change",
+              value: "first",
+              localName: "moz-visual-picker-item",
+              checked: true,
+            },
+            { type: "change", value: "first", localName: "moz-visual-picker" },
+          ]);
+        }
+
+        await validatePickerEvents("radio");
+        await validatePickerEvents("listbox");
+      });
+
+      // Verifies listbox picker roles, states, and properties meet these requirements:
+      // https://www.w3.org/WAI/ARIA/apg/patterns/listbox/#wai-ariaroles,states,andproperties
+      add_task(async function testListboxPickerRoleStatesProperties() {
+        const LISTBOX_LABEL = "I'm a listbox";
+        let listboxTemplate = html`
+          <moz-visual-picker
+            type="listbox"
+            label=${LISTBOX_LABEL}
+            value="first"
+          >
+            <moz-visual-picker-item value="first">
+              <div class="slotted">In the slot</div>
+            </moz-visual-picker-item>
+            <moz-visual-picker-item value="second">
+              <div class="slotted">In the slot</div>
+            </moz-visual-picker-item>
+            <moz-visual-picker-item value="third">
+              <div class="slotted">In the slot</div>
+            </moz-visual-picker-item>
+          </moz-visual-picker>
+        `;
+        let renderTarget = await testHelpers.renderTemplate(listboxTemplate);
         let picker = renderTarget.querySelector("moz-visual-picker");
         let items = [
           ...renderTarget.querySelectorAll("moz-visual-picker-item"),
         ];
-        let [firstItem, secondItem, thirdItem] = renderTarget.querySelectorAll(
-          "moz-visual-picker-item"
-        );
-        let [beforeButton, afterButton] =
-          renderTarget.querySelectorAll("button");
+        let [firstItem, secondItem, thirdItem] = items;
 
-        ok(!picker.value, "Visual picker does not have a value.");
-        items.forEach(item =>
-          ok(!item.checked, "All picker items are unselected.")
+        is(
+          picker.fieldset.getAttribute("role"),
+          "listbox",
+          "The top level picker element has a role of 'listbox'."
         );
+        is(
+          picker.fieldset.shadowRoot
+            .querySelector("fieldset")
+            .getAttribute("aria-orientation"),
+          "horizontal",
+          "The top level picker element's aria-orientation is set to 'horizontal'"
+        );
+
+        let slottedItems = picker.shadowRoot
+          .querySelector("slot:not([name])")
+          .assignedElements();
+
+        items.forEach(item => {
+          is(
+            item.itemEl.getAttribute("role"),
+            "option",
+            "Each picker item has a role of 'option'."
+          );
+          ok(
+            slottedItems.includes(item),
+            "Item is contained by the listbox element."
+          );
+        });
+
+        let legend = picker.fieldset.shadowRoot.querySelector("legend");
+        is(legend.innerText, LISTBOX_LABEL, "The listbox element is labelled.");
+        ok(BrowserTestUtils.isVisible(legend), "The listbox label is visible.");
+
+        ok(firstItem.checked, "The first item is selected.");
+        is(
+          firstItem.itemEl.getAttribute("aria-selected"),
+          "true",
+          "aria-selected is set on the selected item."
+        );
+        [secondItem, thirdItem].forEach(item => {
+          ok(!item.checked, "All other items are unchecked.");
+          is(
+            item.itemEl.getAttribute("aria-selected"),
+            "false",
+            "All other items have aria-selected set to false."
+          );
+        });
+
+        synthesizeMouseAtCenter(thirdItem, {});
+        await picker.updateComplete;
+
+        ok(thirdItem.checked, "The third item is now selected.");
+        is(
+          thirdItem.itemEl.getAttribute("aria-selected"),
+          "true",
+          "aria-selected is set on the selected item."
+        );
+        [firstItem, secondItem].forEach(item => {
+          ok(
+            !item.checked,
+            "All other items are unchecked because only one item can be selected at a time."
+          );
+          is(
+            item.itemEl.getAttribute("aria-selected"),
+            "false",
+            "All other items have aria-selected set to false."
+          );
+        });
+      });
+
+      // Verifies listbox picker keyboard interactions meet these requirements:
+      // https://www.w3.org/WAI/ARIA/apg/patterns/listbox/#keyboardinteraction
+      add_task(async function testListboxPickerInteractions() {
+        let listboxTemplate = html`
+          <button tabindex="0">Before picker</button>
+          <moz-visual-picker type="listbox" label="Another listbox">
+            <moz-visual-picker-item value="first">
+              <div class="slotted">In the slot</div>
+            </moz-visual-picker-item>
+            <moz-visual-picker-item value="second">
+              <div class="slotted">In the slot</div>
+            </moz-visual-picker-item>
+            <moz-visual-picker-item value="third">
+              <div class="slotted">In the slot</div>
+            </moz-visual-picker-item>
+          </moz-visual-picker>
+        `;
+        let renderTarget = await testHelpers.renderTemplate(listboxTemplate);
+        let picker = renderTarget.querySelector("moz-visual-picker");
+        let items = [
+          ...renderTarget.querySelectorAll("moz-visual-picker-item"),
+        ];
+        let [firstItem, secondItem, thirdItem] = items;
+        let beforeButton = renderTarget.querySelector("button");
+
+        const navigate = direction => keyboardNavigate(picker, direction);
 
         beforeButton.focus();
         synthesizeKey("KEY_Tab", {});
         is(
           document.activeElement,
           firstItem,
-          "First picker item is tab focusable when all items un-checked."
-        );
-        [secondItem, thirdItem].forEach(item =>
-          is(
-            item.itemEl.getAttribute("tabindex"),
-            "-1",
-            "All other items are not tab focusable."
-          )
+          "First item is focused when no items are selected and the picker receives focus."
         );
 
+        synthesizeKey("KEY_Tab", { shiftKey: true });
+        isnot(
+          document.activeElement,
+          firstItem,
+          "Item loses focus when the picker is blurred."
+        );
+
+        picker.value = "third";
+        await picker.updateComplete;
         synthesizeKey("KEY_Tab", {});
-        is(
-          document.activeElement,
-          afterButton,
-          "Tab moves focus out of the visual picker."
-        );
 
-        synthesizeKey("KEY_Tab", { shiftKey: true });
-        is(
-          document.activeElement,
-          firstItem,
-          "Focus moves back to the first picker item."
-        );
-
-        synthesizeKey("KEY_ArrowDown", {});
-        is(
-          document.activeElement,
-          secondItem,
-          "Focus moves to the second picker item with down arrow keypress."
-        );
-        is(
-          picker.value,
-          secondItem.value,
-          "Picker value updates to second picker item value."
-        );
-
-        secondItem.checked = false;
-        await picker.updateComplete;
-
-        synthesizeKey("KEY_Tab", { shiftKey: true });
         ok(
-          !picker.value,
-          "Picker value is un-set when all picker items un-checked programmatically."
+          thirdItem.checked,
+          "Third item is selected after picker value changes."
         );
-        is(
-          document.activeElement,
-          firstItem,
-          "First picker item becomes focusable again."
-        );
-
-        synthesizeKey(" ");
-        is(
-          picker.value,
-          firstItem.value,
-          "Hitting space selects the focused item."
-        );
-
-        synthesizeKey("KEY_Tab", { shiftKey: true });
-        firstItem.disabled = true;
-        secondItem.disabled = true;
-        await picker.updateComplete;
-
-        synthesizeKey("KEY_Tab");
         is(
           document.activeElement,
           thirdItem,
-          "First non-disabled picker item is focusable when all items are un-checked."
+          "The selected item is focused when when the picker receives focus."
         );
-      });
 
-      // Verify expected events emitted in the correct order.
-      add_task(async function testPickerEvents() {
-        let renderTarget = await testHelpers.renderTemplate(defaultTemplate);
-        let picker = renderTarget.querySelector("moz-visual-picker");
-        let items = renderTarget.querySelectorAll("moz-visual-picker-item");
-        let [firstItem, secondItem, thirdItem] = items;
-        let { trackEvent, verifyEvents } = testHelpers.getInputEventHelpers();
+        await navigate("down");
+        is(
+          document.activeElement,
+          thirdItem,
+          "Focus does not wrap, so the third item stays focused after hitting the down arrow."
+        );
+        ok(!firstItem.checked, "Selection does not follow focus.");
+        is(picker.value, "third", "The picker value is unchanged.");
 
-        items.forEach(item => {
-          item.addEventListener("click", trackEvent);
-          item.addEventListener("input", trackEvent);
-          item.addEventListener("change", trackEvent);
-        });
-        picker.addEventListener("change", trackEvent);
-        picker.addEventListener("input", trackEvent);
+        await navigate("left");
+        is(
+          document.activeElement,
+          secondItem,
+          "The second item is focused after hitting the left arrow from the third item."
+        );
+        ok(!secondItem.checked, "Selection does not follow focus.");
+        is(
+          picker.value,
+          "third",
+          "The picker value is not changed by navigation."
+        );
 
-        // Verify that clicking on a item emits the right events in the correct order.
-        synthesizeMouseAtCenter(thirdItem.itemEl, {});
-        await TestUtils.waitForTick();
+        await navigate("up");
+        is(
+          document.activeElement,
+          firstItem,
+          "The first item is focused after hitting the up arrow from the second item."
+        );
+        ok(!firstItem.checked, "Selection does not follow focus.");
+        is(
+          picker.value,
+          "third",
+          "The picker value is not changed by navigation."
+        );
 
-        verifyEvents([
-          {
-            type: "click",
-            value: "third",
-            localName: "moz-visual-picker-item",
-            checked: true,
-          },
-          {
-            type: "input",
-            value: "third",
-            localName: "moz-visual-picker-item",
-            checked: true,
-          },
-          { type: "input", value: "third", localName: "moz-visual-picker" },
-          {
-            type: "change",
-            value: "third",
-            localName: "moz-visual-picker-item",
-            checked: true,
-          },
-          { type: "change", value: "third", localName: "moz-visual-picker" },
-        ]);
+        await navigate("left");
+        is(
+          document.activeElement,
+          firstItem,
+          "Focus does not wrap, so the first item stays focused after hitting the left arrow."
+        );
+        ok(!firstItem.checked, "Selection does not follow focus.");
+        is(
+          picker.value,
+          "third",
+          "The picker value is not changed by navigation."
+        );
 
-        // Verify that keyboard navigation emits the right events in the correct order.
-        synthesizeKey("KEY_ArrowUp", {});
-        await picker.updateComplete;
-        is(picker.value, secondItem.value, "picker value is updated.");
-        await TestUtils.waitForTick();
+        await navigate("right");
+        is(
+          document.activeElement,
+          secondItem,
+          "The second item is focused after hitting the right arrow from the first item."
+        );
+        ok(!secondItem.checked, "Selection does not follow focus.");
+        is(
+          picker.value,
+          "third",
+          "The picker value is not changed by navigation."
+        );
 
-        verifyEvents([
-          { type: "input", value: "second", localName: "moz-visual-picker" },
-          { type: "change", value: "second", localName: "moz-visual-picker" },
-        ]);
-
-        // Verify that changing the group's value directly doesn't emit any events.
-        picker.value = firstItem.value;
-        await picker.updateComplete;
-        ok(firstItem.checked, "Expected item is checked.");
-        await TestUtils.waitForTick();
-        verifyEvents([]);
-
-        // Verify that changing a item's checked state directly doesn't emit any events.
-        secondItem.checked = true;
-        await picker.updateComplete;
-        is(picker.value, secondItem.value, "Picker value is updated.");
-        await TestUtils.waitForTick();
-        verifyEvents([]);
-
-        // Verify activating item with space emits proper events.
-        picker.value = "";
-        await picker.updateComplete;
-
-        ok(!firstItem.checked, "The first item is not selected.");
-        firstItem.focus();
         synthesizeKey(" ");
-        await TestUtils.waitForTick();
-        verifyEvents([
-          {
-            type: "click",
-            value: "first",
-            localName: "moz-visual-picker-item",
-            checked: true,
-          },
-          {
-            type: "input",
-            value: "first",
-            localName: "moz-visual-picker-item",
-            checked: true,
-          },
-          { type: "input", value: "first", localName: "moz-visual-picker" },
-          {
-            type: "change",
-            value: "first",
-            localName: "moz-visual-picker-item",
-            checked: true,
-          },
-          { type: "change", value: "first", localName: "moz-visual-picker" },
-        ]);
+        ok(
+          secondItem.checked,
+          "Second item is selected when space bar is pressed."
+        );
+        is(
+          picker.value,
+          "second",
+          "The picker value changes when a new item is selected."
+        );
       });
     </script>
   </head>
