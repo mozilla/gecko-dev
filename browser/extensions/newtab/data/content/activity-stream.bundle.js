@@ -9280,7 +9280,9 @@ class TopSiteLink extends (external_React_default()).PureComponent {
       "data-is-sponsored-link": !!link.sponsored_tile_id,
       title: title,
       onFocus: this.props.onFocus
-    }, /*#__PURE__*/external_React_default().createElement("div", {
+    }, shortcutsRefresh && link.isPinned && /*#__PURE__*/external_React_default().createElement("div", {
+      className: "icon icon-pin-small"
+    }), /*#__PURE__*/external_React_default().createElement("div", {
       className: "tile",
       "aria-hidden": true
     }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -9296,9 +9298,7 @@ class TopSiteLink extends (external_React_default()).PureComponent {
       className: "top-site-icon default-icon",
       "data-fallback": smallFaviconStyle ? "" : letterFallback,
       style: smallFaviconStyle
-    })), shortcutsRefresh && link.isPinned && /*#__PURE__*/external_React_default().createElement("div", {
-      className: "icon icon-pin-small"
-    }), !shortcutsRefresh && link.searchTopSite && /*#__PURE__*/external_React_default().createElement("div", {
+    })), !shortcutsRefresh && link.searchTopSite && /*#__PURE__*/external_React_default().createElement("div", {
       className: "top-site-icon search-topsite"
     })), /*#__PURE__*/external_React_default().createElement("div", {
       className: `title${link.isPinned ? " has-icon pinned" : ""}${link.type === SPOC_TYPE || link.show_sponsored_label ? " sponsored" : ""}`

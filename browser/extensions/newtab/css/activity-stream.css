@@ -1098,6 +1098,9 @@ main section {
 .shortcuts-refresh .top-site-outer:hover .tile {
   background-color: var(--newtab-background-color-secondary);
 }
+.shortcuts-refresh .top-site-outer:hover .icon-pin-small {
+  opacity: 1;
+}
 .shortcuts-refresh .top-site-outer .top-site-button {
   padding: var(--space-large) var(--space-large) var(--space-small);
 }
@@ -1152,13 +1155,10 @@ main section {
   inset-block-start: calc(var(--space-large) + var(--space-xlarge));
 }
 .shortcuts-refresh .top-site-outer .icon-pin-small {
-  color-scheme: light;
+  inset-block-start: var(--space-small);
+  inset-inline-start: var(--space-small);
+  opacity: 0;
   position: absolute;
-  inset-block-start: var(--space-xsmall);
-  inset-inline-start: var(--space-xsmall);
-}
-[lwt-newtab-brighttext] .shortcuts-refresh .top-site-outer .icon-pin-small {
-  color-scheme: dark;
 }
 
 .shortcuts-refresh .discovery-stream.ds-layout.ds-layout-topsites {
