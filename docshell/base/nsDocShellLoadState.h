@@ -12,6 +12,7 @@
 #include "mozilla/dom/SessionHistoryEntry.h"
 #include "mozilla/dom/UserNavigationInvolvement.h"
 
+#include "nsIClassifiedChannel.h"
 #include "nsILoadInfo.h"
 
 // Helper Classes
@@ -126,6 +127,10 @@ class nsDocShellLoadState final {
   bool TriggeringStorageAccess() const;
 
   void SetTriggeringStorageAccess(bool aTriggeringStorageAccess);
+
+  mozilla::net::ClassificationFlags TriggeringClassificationFlags() const;
+  void SetTriggeringClassificationFlags(
+      mozilla::net::ClassificationFlags aFlags);
 
   nsIContentSecurityPolicy* Csp() const;
 
@@ -483,6 +488,10 @@ class nsDocShellLoadState final {
   // same-origin navigations that should propogate unpartitioned storage access.
   uint64_t mTriggeringWindowId;
   bool mTriggeringStorageAccess;
+
+  // The classification flags of the context responsible for causing
+  // the load to start.
+  mozilla::net::ClassificationFlags mTriggeringClassificationFlags;
 
   // The CSP of the load, that is, the CSP of the entity responsible for causing
   // the load to occur. Most likely this is the CSP of the document that started

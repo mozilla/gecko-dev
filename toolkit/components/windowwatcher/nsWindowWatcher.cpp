@@ -2088,6 +2088,8 @@ already_AddRefed<nsDocShellLoadState> nsWindowWatcher::CreateLoadState(
       loadState->SetTextDirectiveUserActivation(
           parentDoc->ConsumeTextDirectiveUserActivation() ||
           loadState->HasValidUserGestureActivation());
+      loadState->SetTriggeringClassificationFlags(
+          parentDoc->GetScriptTrackingFlags());
     }
   }
 

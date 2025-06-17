@@ -342,6 +342,7 @@
 #include "nsICSSLoaderObserver.h"
 #include "nsICategoryManager.h"
 #include "nsICertOverrideService.h"
+#include "nsIClassifiedChannel.h"
 #include "nsIContent.h"
 #include "nsIContentInlines.h"
 #include "nsIContentPolicy.h"
@@ -1506,6 +1507,7 @@ Document::Document(const char* aContentType)
       mThrowOnDynamicMarkupInsertionCounter(0),
       mIgnoreOpensDuringUnloadCounter(0),
       mSavedResolution(1.0f),
+      mClassificationFlags({0, 0}),
       mGeneration(0),
       mCachedTabSizeGeneration(0),
       mNextFormNumber(0),
@@ -3667,6 +3669,15 @@ nsresult Document::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
   if (docShell && !loadInfo->GetLoadErrorPage()) {
     mSandboxFlags = loadInfo->GetSandboxFlags();
     WarnIfSandboxIneffective(docShell, mSandboxFlags, GetChannel());
+  }
+
+  nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
+      do_QueryInterface(aChannel);
+
+  if (classifiedChannel) {
+    mClassificationFlags = {
+        classifiedChannel->GetFirstPartyClassificationFlags(),
+        classifiedChannel->GetThirdPartyClassificationFlags()};
   }
 
   // Set the opener policy for the top level content document.

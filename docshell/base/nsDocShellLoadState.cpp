@@ -93,6 +93,7 @@ nsDocShellLoadState::nsDocShellLoadState(
   mTriggeringSandboxFlags = aLoadState.TriggeringSandboxFlags();
   mTriggeringWindowId = aLoadState.TriggeringWindowId();
   mTriggeringStorageAccess = aLoadState.TriggeringStorageAccess();
+  mTriggeringClassificationFlags = aLoadState.TriggeringClassificationFlags();
   mTriggeringRemoteType = aLoadState.TriggeringRemoteType();
   mSchemelessInput = aLoadState.SchemelessInput();
   mHttpsUpgradeTelemetry = aLoadState.HttpsUpgradeTelemetry();
@@ -161,6 +162,7 @@ nsDocShellLoadState::nsDocShellLoadState(const nsDocShellLoadState& aOther)
       mTriggeringSandboxFlags(aOther.mTriggeringSandboxFlags),
       mTriggeringWindowId(aOther.mTriggeringWindowId),
       mTriggeringStorageAccess(aOther.mTriggeringStorageAccess),
+      mTriggeringClassificationFlags(aOther.mTriggeringClassificationFlags),
       mCsp(aOther.mCsp),
       mKeepResultPrincipalURIIfSet(aOther.mKeepResultPrincipalURIIfSet),
       mLoadReplace(aOther.mLoadReplace),
@@ -222,6 +224,7 @@ nsDocShellLoadState::nsDocShellLoadState(nsIURI* aURI, uint64_t aLoadIdentifier)
       mTriggeringSandboxFlags(0),
       mTriggeringWindowId(0),
       mTriggeringStorageAccess(false),
+      mTriggeringClassificationFlags({0, 0}),
       mKeepResultPrincipalURIIfSet(false),
       mLoadReplace(false),
       mInheritPrincipal(false),
@@ -480,6 +483,9 @@ nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
   loadState->SetTriggeringWindowId(aLoadURIOptions.mTriggeringWindowId);
   loadState->SetTriggeringStorageAccess(
       aLoadURIOptions.mTriggeringStorageAccess);
+  // The load is assumed to be first-party, so the triggering classification
+  // should be both zero.
+  loadState->SetTriggeringClassificationFlags({0, 0});
   loadState->SetPostDataStream(postData);
   loadState->SetHeadersStream(aLoadURIOptions.mHeaders);
   loadState->SetBaseURI(aLoadURIOptions.mBaseURI);
@@ -617,6 +623,16 @@ void nsDocShellLoadState::SetTriggeringStorageAccess(
 
 bool nsDocShellLoadState::TriggeringStorageAccess() const {
   return mTriggeringStorageAccess;
+}
+
+mozilla::net::ClassificationFlags
+nsDocShellLoadState::TriggeringClassificationFlags() const {
+  return mTriggeringClassificationFlags;
+}
+
+void nsDocShellLoadState::SetTriggeringClassificationFlags(
+    mozilla::net::ClassificationFlags aFlags) {
+  mTriggeringClassificationFlags = aFlags;
 }
 
 bool nsDocShellLoadState::InheritPrincipal() const { return mInheritPrincipal; }
@@ -1364,6 +1380,7 @@ DocShellLoadStateInit nsDocShellLoadState::Serialize(
   loadState.TriggeringSandboxFlags() = mTriggeringSandboxFlags;
   loadState.TriggeringWindowId() = mTriggeringWindowId;
   loadState.TriggeringStorageAccess() = mTriggeringStorageAccess;
+  loadState.TriggeringClassificationFlags() = mTriggeringClassificationFlags;
   loadState.TriggeringRemoteType() = mTriggeringRemoteType;
   loadState.SchemelessInput() = mSchemelessInput;
   loadState.HttpsUpgradeTelemetry() = mHttpsUpgradeTelemetry;
