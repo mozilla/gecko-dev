@@ -100,6 +100,7 @@ class gfxVarReceiver;
   _(UseHEVCHwDecode, bool, false)                                  \
   _(UseHEVCHwEncode, bool, false)                                  \
   _(HwDecodedVideoZeroCopy, bool, false)                           \
+  _(UseWMFHWDWM, bool, false)                                      \
   _(UseDMABufSurfaceExport, bool, true)                            \
   _(ReuseDecoderDevice, bool, false)                               \
   _(UseCanvasRenderThread, bool, false)                            \

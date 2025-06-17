@@ -3037,6 +3037,25 @@ void gfxPlatform::InitHardwareVideoConfig() {
 #endif
 
 #undef CODEC_HW_FEATURE_SETUP
+
+#ifdef MOZ_WMF_CDM
+  FeatureState& featureHWDRM = gfxConfig::GetFeature(Feature::WMF_HW_DRM);
+  featureHWDRM.EnableByDefault();
+  if (StaticPrefs::media_wmf_media_engine_enabled() != 1 &&
+      StaticPrefs::media_wmf_media_engine_enabled() != 2) {
+    featureHWDRM.UserDisable(
+        "Force disabled by 'media.wmf.media-engine.enabled'",
+        "FEATURE_FAILURE_USER_FORCE_DISABLED"_ns);
+  } else if (StaticPrefs::media_wmf_media_engine_bypass_gfx_blocklist()) {
+    featureHWDRM.UserForceEnable(
+        "Force enabled by "
+        "'media.wmf.media-engine.bypass-gfx-blocklist'");
+  } else if (!IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_WMF_HW_DRM, &message,
+                                  failureId)) {
+    featureHWDRM.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
+  }
+  gfxVars::SetUseWMFHWDWM(featureHWDRM.IsEnabled());
+#endif
 }
 
 void gfxPlatform::InitWebGLConfig() {
