@@ -44,14 +44,6 @@
                 android:inflatedId="@+id/findInPageView"
                 android:layout="@layout/component_find_in_page_bar" />
 
-            <include
-                android:id="@+id/viewDynamicDownloadDialog"
-                layout="@layout/download_dialog_layout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:visibility="gone" />
-
             <mozilla.components.feature.readerview.view.ReaderViewControlsBar
                 android:id="@+id/readerViewControlsBar"
                 android:layout_width="match_parent"
@@ -67,16 +59,6 @@
                 android:layout="@layout/browser_layout_crash_reporter"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
-
-            <FrameLayout
-                android:id="@+id/startDownloadDialogContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:visibility="gone"
-                android:clickable="true"
-                android:focusable="true"
-                android:elevation="@dimen/browser_fragment_toolbar_elevation"/>
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/dynamicSnackbarContainer"

@@ -69,16 +69,6 @@ class SnackbarBehaviorTest {
     }
 
     @Test
-    fun `GIVEN the dynamic download dialog is shown WHEN the snackbar is shown THEN place the snackbar above the dialog`() {
-        dependency.id = R.id.viewDynamicDownloadDialog
-        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
-
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-
-        assertSnackbarPlacementAboveAnchor()
-    }
-
-    @Test
     fun `GIVEN a bottom toolbar is shown WHEN the snackbar is shown THEN place the snackbar above the toolbar`() {
         dependency.id = R.id.toolbar
         val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
@@ -109,108 +99,6 @@ class SnackbarBehaviorTest {
     }
 
     @Test
-    fun `GIVEN a toolbar and a dynamic download dialog are shown WHEN the snackbar is shown THEN place the snackbar above the dialog`() {
-        listOf(R.id.viewDynamicDownloadDialog, R.id.toolbar).forEach {
-            parent.addView(View(testContext).apply { id = it })
-        }
-        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
-
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-
-        assertSnackbarPlacementAboveAnchor(parent.findViewById(R.id.viewDynamicDownloadDialog))
-    }
-
-    @Test
-    fun `GIVEN a toolbar, a download dialog and a dynamic download dialog are shown WHEN the snackbar is shown THEN place the snackbar above the download dialog`() {
-        listOf(R.id.viewDynamicDownloadDialog, R.id.toolbar, R.id.startDownloadDialogContainer).forEach {
-            parent.addView(View(testContext).apply { id = it })
-        }
-        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
-
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-
-        assertSnackbarPlacementAboveAnchor(parent.findViewById(R.id.startDownloadDialogContainer))
-    }
-
-    @Test
-    fun `GIVEN the snackbar is anchored to the dynamic download dialog and a bottom toolbar is shown WHEN the dialog is not shown anymore THEN place the snackbar above the toolbar`() {
-        val dialog = View(testContext)
-            .apply { id = R.id.viewDynamicDownloadDialog }
-            .also { parent.addView(it) }
-        val toolbar = View(testContext)
-            .apply { id = R.id.toolbar }
-            .also { parent.addView(it) }
-        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
-
-        // Test the scenario where the dialog is invisible.
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(dialog)
-        dialog.visibility = View.GONE
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(toolbar)
-
-        // Test the scenario where the dialog is removed from parent.
-        dialog.visibility = View.VISIBLE
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(dialog)
-        parent.removeView(dialog)
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(toolbar)
-    }
-
-    @Test
-    fun `GIVEN the snackbar is anchored to a download dialog and another dynamic dialog is shown WHEN the dialog is not shown anymore THEN place the snackbar above the dynamic dialog`() {
-        val dialog = View(testContext)
-            .apply { id = R.id.startDownloadDialogContainer }
-            .also { parent.addView(it) }
-        val dynamicDialog = View(testContext)
-            .apply { id = R.id.viewDynamicDownloadDialog }
-            .also { parent.addView(it) }
-        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
-
-        // Test the scenario where the dialog is invisible.
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(dialog)
-        dialog.visibility = View.GONE
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(dynamicDialog)
-
-        // Test the scenario where the dialog is removed from parent.
-        dialog.visibility = View.VISIBLE
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(dialog)
-        parent.removeView(dialog)
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(dynamicDialog)
-    }
-
-    @Test
-    fun `GIVEN the snackbar is anchored to a download dialog and a bottom toolbar is shown WHEN the dialog is not shown anymore THEN place the snackbar above the toolbar`() {
-        val dialog = View(testContext)
-            .apply { id = R.id.startDownloadDialogContainer }
-            .also { parent.addView(it) }
-        val toolbar = View(testContext)
-            .apply { id = R.id.toolbar }
-            .also { parent.addView(it) }
-        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
-
-        // Test the scenario where the dialog is invisible.
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(dialog)
-        dialog.visibility = View.GONE
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(toolbar)
-
-        // Test the scenario where the dialog is removed from parent.
-        dialog.visibility = View.VISIBLE
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(dialog)
-        parent.removeView(dialog)
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(toolbar)
-    }
-
-    @Test
     fun `GIVEN the snackbar is anchored to the bottom toolbar WHEN the toolbar is not shown anymore THEN place the snackbar at the bottom`() {
         val toolbar = View(testContext)
             .apply { id = R.id.toolbar }
@@ -229,32 +117,6 @@ class SnackbarBehaviorTest {
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
         assertSnackbarPlacementAboveAnchor(toolbar)
         parent.removeView(toolbar)
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarIsPlacedAtTheBottomOfTheScreen()
-    }
-
-    @Test
-    fun `GIVEN the snackbar is anchored to the dynamic download dialog and a top toolbar is shown WHEN the dialog is not shown anymore THEN place the snackbar to the bottom`() {
-        val dialog = View(testContext)
-            .apply { id = R.id.viewDynamicDownloadDialog }
-            .also { parent.addView(it) }
-        View(testContext)
-            .apply { id = R.id.toolbar }
-            .also { parent.addView(it) }
-        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
-
-        // Test the scenario where the dialog is invisible.
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(dialog)
-        dialog.visibility = View.GONE
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarIsPlacedAtTheBottomOfTheScreen()
-
-        // Test the scenario where the dialog is removed from parent.
-        dialog.visibility = View.VISIBLE
-        behavior.layoutDependsOn(parent, snackbarContainer, dependency)
-        assertSnackbarPlacementAboveAnchor(dialog)
-        parent.removeView(dialog)
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
         assertSnackbarIsPlacedAtTheBottomOfTheScreen()
     }

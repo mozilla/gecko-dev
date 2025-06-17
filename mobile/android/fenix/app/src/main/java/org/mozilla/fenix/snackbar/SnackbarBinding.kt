@@ -32,7 +32,7 @@ import org.mozilla.fenix.components.appstate.AppAction.ShareAction
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
-import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog
+import org.mozilla.fenix.downloads.getCannotOpenFileErrorMessage
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.navigateWithBreadcrumb
 import org.mozilla.fenix.ext.settings
@@ -334,7 +334,7 @@ class SnackbarBinding(
 
                     is SnackbarState.CannotOpenFileError -> {
                         snackbarDelegate.show(
-                            text = DynamicDownloadDialog.getCannotOpenFileErrorMessage(
+                            text = getCannotOpenFileErrorMessage(
                                 context,
                                 state.downloadState,
                             ),

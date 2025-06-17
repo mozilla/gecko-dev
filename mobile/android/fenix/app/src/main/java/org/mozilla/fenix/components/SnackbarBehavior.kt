@@ -29,8 +29,6 @@ class SnackbarBehavior<V : View>(
 
     // Priority list of possible anchors for the snackbar.
     private val dependenciesIds = buildList {
-        add(R.id.startDownloadDialogContainer)
-        add(R.id.viewDynamicDownloadDialog)
         add(R.id.loginSelectBar)
         add(R.id.suggestStrongPasswordBar)
         add(R.id.creditCardSelectBar)

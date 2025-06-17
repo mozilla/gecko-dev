@@ -15,7 +15,6 @@ import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.feature.addons.ui.translateName
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import org.mozilla.fenix.R
-import org.mozilla.fenix.databinding.DownloadDialogLayoutBinding
 import org.mozilla.fenix.databinding.FragmentAddOnInternalSettingsBinding
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.showToolbar
@@ -65,14 +64,6 @@ class AddonInternalSettingsFragment : AddonPopupBaseFragment() {
             owner = this,
             view = view,
         )
-    }
-
-    override fun provideDownloadContainer(): ViewGroup {
-        return binding.startDownloadDialogContainer
-    }
-
-    override fun provideDownloadDialogLayoutBinding(): DownloadDialogLayoutBinding {
-        return binding.viewDynamicDownloadDialog
     }
 
     override fun provideDynamicSnackbarContainer(): ConstraintLayout {

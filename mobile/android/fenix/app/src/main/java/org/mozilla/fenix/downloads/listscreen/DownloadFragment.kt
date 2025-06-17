@@ -14,7 +14,7 @@ import org.mozilla.fenix.components.lazyStore
 import org.mozilla.fenix.compose.ComposeFragment
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
-import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog
+import org.mozilla.fenix.downloads.getCannotOpenFileErrorMessage
 import org.mozilla.fenix.downloads.listscreen.di.DownloadUIMiddlewareProvider
 import org.mozilla.fenix.downloads.listscreen.di.DownloadUIMiddlewareProvider.provideUndoDelayProvider
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
@@ -80,7 +80,7 @@ class DownloadFragment : ComposeFragment() {
                 Snackbar.make(
                     snackBarParentView = rootView,
                     snackbarState = SnackbarState(
-                        message = DynamicDownloadDialog.getCannotOpenFileErrorMessage(
+                        message = getCannotOpenFileErrorMessage(
                             context = it,
                             download = downloadState,
                         ),

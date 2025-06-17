@@ -191,8 +191,7 @@ import org.mozilla.fenix.crashes.CrashContentView
 import org.mozilla.fenix.customtabs.ExternalAppBrowserActivity
 import org.mozilla.fenix.databinding.FragmentBrowserBinding
 import org.mozilla.fenix.downloads.DownloadService
-import org.mozilla.fenix.downloads.dialog.StartDownloadDialog
-import org.mozilla.fenix.downloads.dialog.ThirdPartyDownloadDialog
+import org.mozilla.fenix.downloads.dialog.createDownloadAppDialog
 import org.mozilla.fenix.ext.accessibilityManager
 import org.mozilla.fenix.ext.breadcrumb
 import org.mozilla.fenix.ext.components
@@ -339,8 +338,7 @@ abstract class BaseBrowserFragment :
     protected lateinit var browserScreenStore: BrowserScreenStore
     private val homeViewModel: HomeScreenViewModel by activityViewModels()
 
-    private var currentStartDownloadDialog: StartDownloadDialog? = null
-    private var firstPartyDownloadDialog: AlertDialog? = null
+    private var downloadDialog: AlertDialog? = null
 
     private var lastSavedGeneratedPassword: String? = null
 
@@ -727,7 +725,7 @@ abstract class BaseBrowserFragment :
             },
             customFirstPartyDownloadDialog = { filename, contentSize, positiveAction, negativeAction ->
                 run {
-                    if (firstPartyDownloadDialog == null && currentStartDownloadDialog == null) {
+                    if (downloadDialog == null) {
                         requireContext().components.analytics.crashReporter.recordCrashBreadcrumb(
                             Breadcrumb("FirstPartyDownloadDialog created"),
                         )
@@ -735,7 +733,7 @@ abstract class BaseBrowserFragment :
                         val contentSizeInBytes =
                             requireComponents.core.fileSizeFormatter.formatSizeInBytes(contentSize.value)
 
-                        firstPartyDownloadDialog = AlertDialog.Builder(requireContext())
+                        downloadDialog = AlertDialog.Builder(requireContext())
                             .setTitle(
                                 getString(
                                     R.string.mozac_feature_downloads_dialog_title_3,
@@ -751,7 +749,7 @@ abstract class BaseBrowserFragment :
                                 negativeAction.value.invoke()
                                 dialog.dismiss()
                             }.setOnDismissListener {
-                                firstPartyDownloadDialog = null
+                                downloadDialog = null
                                 context.components.analytics.crashReporter.recordCrashBreadcrumb(
                                     Breadcrumb("FirstPartyDownloadDialog onDismiss"),
                                 )
@@ -761,23 +759,22 @@ abstract class BaseBrowserFragment :
             },
             customThirdPartyDownloadDialog = { downloaderApps, onAppSelected, negativeActionCallback ->
                 run {
-                    if (firstPartyDownloadDialog == null && currentStartDownloadDialog == null) {
+                    if (downloadDialog == null) {
                         context.components.analytics.crashReporter.recordCrashBreadcrumb(
-                            Breadcrumb("ThirdPartyDownloadDialog created"),
+                            Breadcrumb("DownloaderAppDialog created"),
                         )
-                        ThirdPartyDownloadDialog(
-                            activity = requireActivity(),
+                        downloadDialog = createDownloadAppDialog(
+                            context = context,
                             downloaderApps = downloaderApps.value,
                             onAppSelected = onAppSelected.value,
-                            negativeButtonAction = negativeActionCallback.value,
-                        ).onDismiss {
-                            context.components.analytics.crashReporter.recordCrashBreadcrumb(
-                                Breadcrumb("ThirdPartyDownloadDialog onDismiss"),
-                            )
-                            currentStartDownloadDialog = null
-                        }.show(binding.startDownloadDialogContainer).also {
-                            currentStartDownloadDialog = it
-                        }
+                            onDismiss = {
+                                downloadDialog = null
+                                context.components.analytics.crashReporter.recordCrashBreadcrumb(
+                                    Breadcrumb("DownloaderAppDialog onDismiss"),
+                                )
+                            },
+                        )
+                        downloadDialog?.show()
                     }
                 }
             },
@@ -1729,8 +1726,7 @@ abstract class BaseBrowserFragment :
     }
 
     private fun dismissDownloadDialogs() {
-        currentStartDownloadDialog?.dismiss()
-        firstPartyDownloadDialog?.dismiss()
+        downloadDialog?.dismiss()
     }
 
     @VisibleForTesting
@@ -1818,14 +1814,10 @@ abstract class BaseBrowserFragment :
     @CallSuper
     override fun onBackPressed(): Boolean {
         return findInPageIntegration.onBackPressed() ||
-            fullScreenFeature.onBackPressed() ||
-            promptsFeature.onBackPressed() ||
-            currentStartDownloadDialog?.let {
-                it.dismiss()
-                true
-            } ?: false ||
-            sessionFeature.onBackPressed() ||
-            lastTabFeature.onBackPressed()
+                fullScreenFeature.onBackPressed() ||
+                promptsFeature.onBackPressed() ||
+                sessionFeature.onBackPressed() ||
+                lastTabFeature.onBackPressed()
     }
 
     @CallSuper

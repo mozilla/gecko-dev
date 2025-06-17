@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.os.Environment
 import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
@@ -35,10 +34,8 @@ import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.appstate.AppAction
-import org.mozilla.fenix.databinding.DownloadDialogLayoutBinding
 import org.mozilla.fenix.downloads.DownloadService
-import org.mozilla.fenix.downloads.dialog.StartDownloadDialog
-import org.mozilla.fenix.downloads.dialog.ThirdPartyDownloadDialog
+import org.mozilla.fenix.downloads.dialog.createDownloadAppDialog
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.ext.requireComponents
@@ -55,8 +52,7 @@ abstract class AddonPopupBaseFragment : Fragment(), EngineSession.Observer, User
     protected var session: SessionState? = null
     protected var engineSession: EngineSession? = null
     private var canGoBack: Boolean = false
-    private var currentStartDownloadDialog: StartDownloadDialog? = null
-    private var firstPartyDownloadDialog: AlertDialog? = null
+    private var downloadDialog: AlertDialog? = null
 
     @Suppress("DEPRECATION", "LongMethod")
     // https://github.com/mozilla-mobile/fenix/issues/19920
@@ -120,11 +116,11 @@ abstract class AddonPopupBaseFragment : Fragment(), EngineSession.Observer, User
                 },
                 customFirstPartyDownloadDialog = { filename, contentSize, positiveAction, negativeAction ->
                     run {
-                        if (firstPartyDownloadDialog == null && currentStartDownloadDialog == null) {
+                        if (downloadDialog == null) {
                             val contentSizeInBytes =
                                 requireComponents.core.fileSizeFormatter.formatSizeInBytes(contentSize.value)
 
-                            firstPartyDownloadDialog = AlertDialog.Builder(requireContext())
+                            downloadDialog = AlertDialog.Builder(requireContext())
                                 .setTitle(
                                     getString(
                                         R.string.mozac_feature_downloads_dialog_title_3,
@@ -140,7 +136,7 @@ abstract class AddonPopupBaseFragment : Fragment(), EngineSession.Observer, User
                                     negativeAction.value.invoke()
                                     dialog.dismiss()
                                 }.setOnDismissListener {
-                                    firstPartyDownloadDialog = null
+                                    downloadDialog = null
                                     requireContext().components.analytics.crashReporter.recordCrashBreadcrumb(
                                         Breadcrumb("FirstPartyDownloadDialog onDismiss"),
                                     )
@@ -150,23 +146,22 @@ abstract class AddonPopupBaseFragment : Fragment(), EngineSession.Observer, User
                 },
                 customThirdPartyDownloadDialog = { downloaderApps, onAppSelected, negativeActionCallback ->
                     run {
-                        if (firstPartyDownloadDialog == null && currentStartDownloadDialog == null) {
+                        if (downloadDialog == null) {
                             requireContext().components.analytics.crashReporter.recordCrashBreadcrumb(
-                                Breadcrumb("ThirdPartyDownloadDialog created"),
+                                Breadcrumb("DownloaderAppDialog created"),
                             )
-                            ThirdPartyDownloadDialog(
-                                activity = requireActivity(),
+                            downloadDialog = createDownloadAppDialog(
+                                context = requireContext(),
                                 downloaderApps = downloaderApps.value,
                                 onAppSelected = onAppSelected.value,
-                                negativeButtonAction = negativeActionCallback.value,
-                            ).onDismiss {
-                                requireContext().components.analytics.crashReporter.recordCrashBreadcrumb(
-                                    Breadcrumb("ThirdPartyDownloadDialog onDismiss"),
-                                )
-                                currentStartDownloadDialog = null
-                            }.show(provideDownloadContainer()).also {
-                                currentStartDownloadDialog = it
-                            }
+                                onDismiss = {
+                                    downloadDialog = null
+                                    requireContext().components.analytics.crashReporter.recordCrashBreadcrumb(
+                                        Breadcrumb("DownloaderAppDialog onDismiss"),
+                                    )
+                                },
+                            )
+                            downloadDialog?.show()
                         }
                     }
                 },
@@ -223,20 +218,6 @@ abstract class AddonPopupBaseFragment : Fragment(), EngineSession.Observer, User
     private fun provideBrowserStore() = requireComponents.core.store
 
     /**
-     * Provides a container for download-related views.
-     *
-     * @return A ViewGroup that will contain the download views.
-     */
-    abstract fun provideDownloadContainer(): ViewGroup
-
-    /**
-     * Provides the layout binding for the download dialog.
-     *
-     * @return A DownloadDialogLayoutBinding instance that binds the download dialog layout.
-     */
-    abstract fun provideDownloadDialogLayoutBinding(): DownloadDialogLayoutBinding
-
-    /**
      * Provides a container for dynamic snackbars.
      *
      * @return A ConstraintLayout that will contain the dynamic snackbars.
@@ -259,8 +240,7 @@ abstract class AddonPopupBaseFragment : Fragment(), EngineSession.Observer, User
     override fun onStop() {
         super.onStop()
         engineSession?.unregister(this)
-        currentStartDownloadDialog?.dismiss()
-        firstPartyDownloadDialog?.dismiss()
+        downloadDialog?.dismiss()
     }
 
     override fun onPromptRequest(promptRequest: PromptRequest) {
