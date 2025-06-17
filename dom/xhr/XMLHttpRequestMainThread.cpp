@@ -65,6 +65,7 @@
 #include "nsStringStream.h"
 #include "nsIAuthPrompt.h"
 #include "nsIAuthPrompt2.h"
+#include "nsIClassifiedChannel.h"
 #include "nsIClassOfService.h"
 #include "nsIHttpChannel.h"
 #include "nsISupportsPriority.h"
@@ -2634,6 +2635,14 @@ nsresult XMLHttpRequestMainThread::CreateChannel() {
     nsCOMPtr<nsILoadInfo> loadInfo = mChannel->LoadInfo();
     rv = loadInfo->SetCspEventListener(mCSPEventListener);
     NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  if (nsCOMPtr<Document> doc = GetDocumentIfCurrent()) {
+    net::ClassificationFlags flags = doc->GetScriptTrackingFlags();
+    nsCOMPtr<nsILoadInfo> loadInfo = mChannel->LoadInfo();
+
+    loadInfo->SetTriggeringFirstPartyClassificationFlags(flags.firstPartyFlags);
+    loadInfo->SetTriggeringThirdPartyClassificationFlags(flags.thirdPartyFlags);
   }
 
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel));

@@ -15,6 +15,7 @@
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
+#include "nsIClassifiedChannel.h"
 #include "nsIGlobalObject.h"
 
 #include "nsDOMString.h"
@@ -450,7 +451,8 @@ class MainThreadFetchRunnable : public Runnable {
       fetch = new FetchDriver(mRequest.clonePtr(), principal, loadGroup,
                               workerPrivate->MainThreadEventTarget(),
                               workerPrivate->CookieJarSettings(),
-                              workerPrivate->GetPerformanceStorage(), false);
+                              workerPrivate->GetPerformanceStorage(),
+                              net::ClassificationFlags({0, 0}));
       nsAutoCString spec;
       if (proxy->GetWorkerPrivate()->GetBaseURI()) {
         proxy->GetWorkerPrivate()->GetBaseURI()->GetAsciiSpec(spec);
@@ -560,7 +562,7 @@ already_AddRefed<Promise> FetchRequest(nsIGlobalObject* aGlobal,
     nsCOMPtr<nsILoadGroup> loadGroup;
     nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
     nsIPrincipal* principal;
-    bool isTrackingFetch = false;
+    net::ClassificationFlags trackingFlags;
     if (window) {
       doc = window->GetExtantDoc();
       if (!doc) {
@@ -571,7 +573,7 @@ already_AddRefed<Promise> FetchRequest(nsIGlobalObject* aGlobal,
       loadGroup = doc->GetDocumentLoadGroup();
       cookieJarSettings = doc->CookieJarSettings();
 
-      isTrackingFetch = doc->IsScriptTracking(cx);
+      trackingFlags = doc->GetScriptTrackingFlags();
     } else {
       principal = aGlobal->PrincipalOrNull();
       if (NS_WARN_IF(!principal)) {
@@ -596,7 +598,7 @@ already_AddRefed<Promise> FetchRequest(nsIGlobalObject* aGlobal,
         new FetchDriver(std::move(internalRequest), principal, loadGroup,
                         aGlobal->SerialEventTarget(), cookieJarSettings,
                         nullptr,  // PerformanceStorage
-                        isTrackingFetch);
+                        trackingFlags);
     fetch->SetDocument(doc);
     resolver->SetLoadGroup(loadGroup);
     aRv = fetch->Fetch(signalImpl, resolver);
@@ -1694,7 +1696,7 @@ void FetchBody<Derived>::MaybeTeeReadableStreamBody(
     return;
   }
 
-  nsTArray<RefPtr<ReadableStream> > branches;
+  nsTArray<RefPtr<ReadableStream>> branches;
   MOZ_KnownLive(mReadableStreamBody)->Tee(aCx, branches, aRv);
   if (aRv.Failed()) {
     return;

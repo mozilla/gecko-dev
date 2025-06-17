@@ -61,7 +61,7 @@ ScriptLoadContext::ScriptLoadContext(
       mIsNonAsyncScriptInserted(false),
       mIsXSLT(false),
       mInCompilingList(false),
-      mIsTracking(false),
+      mClassificationFlags({0, 0}),
       mWasCompiledOMT(false),
       mLineNo(1),
       mColumnNo(0),

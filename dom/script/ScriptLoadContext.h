@@ -26,6 +26,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/MaybeOneOf.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/net/UrlClassifierCommon.h"
 #include "mozilla/PreloaderBase.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPrefs_dom.h"
@@ -35,6 +36,7 @@
 #include "mozilla/Vector.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsIClassifiedChannel.h"
 #include "nsIScriptElement.h"
 
 class nsICacheInfoChannel;
@@ -151,10 +153,12 @@ class ScriptLoadContext : public JS::loader::LoadContextBase,
 
   bool CompileStarted() const;
 
-  bool IsTracking() const { return mIsTracking; }
-  void SetIsTracking() {
-    MOZ_ASSERT(!mIsTracking);
-    mIsTracking = true;
+  net::ClassificationFlags& GetClassificationFlags() {
+    return mClassificationFlags;
+  }
+  void SetClassificationFlags(
+      const net::ClassificationFlags& aClassificationFlags) {
+    mClassificationFlags = aClassificationFlags;
   }
 
   void BlockOnload(Document* aDocument);
@@ -290,11 +294,11 @@ class ScriptLoadContext : public JS::loader::LoadContextBase,
   bool mIsNonAsyncScriptInserted;  // True if we live in
                                    // mNonAsyncExternalScriptInsertedRequests
   bool mIsXSLT;                    // True if we live in mXSLTRequests.
-  bool mInCompilingList;  // True if we are in mOffThreadCompilingRequests.
-  bool mIsTracking;       // True if the script comes from a source on our
-                          // tracking protection list.
-  bool mWasCompiledOMT;   // True if the script has been compiled off main
-                          // thread.
+  bool mInCompilingList;     // True if we are in mOffThreadCompilingRequests.
+  net::ClassificationFlags   // Classification flags
+      mClassificationFlags;  // of the source of the script.
+  bool mWasCompiledOMT;      // True if the script has been compiled off main
+                             // thread.
 
   // Task that performs off-thread compilation or off-thread decode.
   // This field is used to take the result of the task, or cancel the task.

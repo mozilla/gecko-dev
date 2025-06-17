@@ -4527,9 +4527,10 @@ nsresult Document::Dispatch(already_AddRefed<nsIRunnable>&& aRunnable) const {
 }
 
 void Document::NoteScriptTrackingStatus(const nsACString& aURL,
-                                        bool aIsTracking) {
-  if (aIsTracking) {
-    mTrackingScripts.Insert(aURL);
+                                        net::ClassificationFlags& aFlags) {
+  // If the script is not tracking, we don't need to do anything.
+  if (aFlags.firstPartyFlags || aFlags.thirdPartyFlags) {
+    mTrackingScripts.InsertOrUpdate(aURL, aFlags);
   }
   // Ideally, whether a given script is tracking or not should be consistent,
   // but there is a race so that it is not, when loading real sites in debug
@@ -4542,7 +4543,27 @@ bool Document::IsScriptTracking(JSContext* aCx) const {
   if (!JS::DescribeScriptedCaller(&filename, aCx)) {
     return false;
   }
-  return mTrackingScripts.Contains(nsDependentCString(filename.get()));
+
+  auto entry = mTrackingScripts.Lookup(nsDependentCString(filename.get()));
+  if (!entry) {
+    return false;
+  }
+
+  return net::UrlClassifierCommon::IsTrackingClassificationFlag(
+      entry.Data().thirdPartyFlags, IsInPrivateBrowsing());
+}
+
+net::ClassificationFlags Document::GetScriptTrackingFlags() const {
+  if (auto loc = JSCallingLocation::Get()) {
+    if (auto entry = mTrackingScripts.Lookup(loc.FileName())) {
+      return entry.Data();
+    }
+  }
+
+  // If the currently executing script is not a tracker, return the
+  // classification flags of the document.
+
+  return mClassificationFlags;
 }
 
 void Document::GetContentType(nsAString& aContentType) {

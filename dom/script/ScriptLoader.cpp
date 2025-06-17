@@ -1001,7 +1001,11 @@ nsresult ScriptLoader::StartLoadInternal(
 
   LOG(("ScriptLoadRequest (%p): mode=%u tracking=%d", aRequest,
        unsigned(aRequest->GetScriptLoadContext()->mScriptMode),
-       aRequest->GetScriptLoadContext()->IsTracking()));
+       net::UrlClassifierCommon::IsTrackingClassificationFlag(
+           aRequest->GetScriptLoadContext()
+               ->GetClassificationFlags()
+               .thirdPartyFlags,
+           NS_UsePrivateBrowsing(channel))));
 
   PrepareRequestPriorityAndRequestDependencies(channel, aRequest);
 
@@ -2593,7 +2597,8 @@ nsresult ScriptLoader::FillCompileOptionsForRequest(
 
   if (mDocument) {
     mDocument->NoteScriptTrackingStatus(
-        aRequest->mURL, aRequest->GetScriptLoadContext()->IsTracking());
+        aRequest->mURL,
+        aRequest->GetScriptLoadContext()->GetClassificationFlags());
   }
 
   const char* introductionType;
@@ -4399,7 +4404,10 @@ nsresult ScriptLoader::PrepareLoadedRequest(ScriptLoadRequest* aRequest,
     MOZ_ASSERT(classifiedChannel);
     if (classifiedChannel &&
         classifiedChannel->IsThirdPartyTrackingResource()) {
-      aRequest->GetScriptLoadContext()->SetIsTracking();
+      net::ClassificationFlags flags{
+          classifiedChannel->GetFirstPartyClassificationFlags(),
+          classifiedChannel->GetThirdPartyClassificationFlags()};
+      aRequest->GetScriptLoadContext()->SetClassificationFlags(flags);
     }
   }
 
