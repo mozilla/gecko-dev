@@ -328,6 +328,22 @@ places:
     expires: never
     telemetry_mirror: PLACES_DATABASE_FAVICONS_FILESIZE_MB
 
+  database_semantic_history_filesize:
+    type: memory_distribution
+    description: >
+      PLACES: Semantic History database filesize (MB)
+    memory_unit: megabyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1965010
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1965010
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - mak@mozilla.com
+      - fx-search-telemetry@mozilla.com
+    expires: never
+
   expiration_steps_to_clean:
     type: custom_distribution
     description: >

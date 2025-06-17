@@ -237,7 +237,6 @@ class ProviderSemanticHistorySearch extends UrlbarProvider {
         UrlbarUtils.RESULT_SOURCE.TABS,
         ...payload
       );
-      result.resultGroup = UrlbarUtils.RESULT_GROUP.HISTORY_SEMANTIC;
       addCallback(this, result);
       added = true;
     }
