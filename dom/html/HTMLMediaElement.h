@@ -1113,7 +1113,7 @@ class HTMLMediaElement : public nsGenericHTMLElement,
    * substep of the resource selection algorithm. Do not call this directly,
    * call QueueLoadFromSourceTask() instead.
    */
-  void LoadFromSourceChildren();
+  void LoadFromSourceChildren(const JSCallingLocation& aCallingLocation);
 
   /**
    * Asynchronously awaits a stable state, and then causes
@@ -1124,13 +1124,13 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   /**
    * Runs the media resource selection algorithm.
    */
-  void SelectResource();
+  void SelectResource(const JSCallingLocation& aCallingLocation);
 
   /**
    * A wrapper function that allows us to cleanly reset flags after a call
    * to SelectResource()
    */
-  void SelectResourceWrapper();
+  void SelectResourceWrapper(const JSCallingLocation& aCallingLocation);
 
   /**
    * Asynchronously awaits a stable state, and then causes SelectResource()
@@ -1147,7 +1147,7 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   /**
    * The resource-fetch algorithm step of the load algorithm.
    */
-  MediaResult LoadResource();
+  MediaResult LoadResource(const JSCallingLocation& aCallingLocation);
 
   /**
    * Selects the next <source> child from which to load a resource. Called
@@ -1215,7 +1215,8 @@ class HTMLMediaElement : public nsGenericHTMLElement,
    * Will continue running the resource selection algorithm.
    * Sets mPreloadAction to aAction.
    */
-  void ResumeLoad(PreloadAction aAction);
+  void ResumeLoad(PreloadAction aAction,
+                  const JSCallingLocation& aCallingLocation);
 
   /**
    * Handle a change to the preload attribute. Should be called whenever the
@@ -1224,7 +1225,7 @@ class HTMLMediaElement : public nsGenericHTMLElement,
    * element. If there is a change then this method will initiate any
    * behaviour that is necessary to implement the action.
    */
-  void UpdatePreloadAction();
+  void UpdatePreloadAction(const JSCallingLocation& aCallingLocation);
 
   /**
    * Fire progress events if needed according to the time and byte constraints
