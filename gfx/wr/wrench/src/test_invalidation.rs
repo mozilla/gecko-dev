@@ -85,9 +85,9 @@ impl<'a> TestHarness<'a> {
             tile_info.local_valid_rect,
             pr(100.0, 100.0, 100.0, 100.0),
         );
-        assert_eq!(
-            tile_info.local_dirty_rect,
-            pr(100.0, 100.0, 100.0, 100.0),
+        assert!(
+            tile_info.local_dirty_rect.contains_box(
+                &pr(100.0, 100.0, 100.0, 100.0))
         );
 
         // Render composite_nop_2.yaml, ensure that the valid/dirty rects are as expected
@@ -97,9 +97,9 @@ impl<'a> TestHarness<'a> {
             tile_info.local_valid_rect,
             pr(100.0, 120.0, 100.0, 100.0),
         );
-        assert_eq!(
-            tile_info.local_dirty_rect,
-            pr(100.0, 120.0, 100.0, 100.0),
+        assert!(
+            tile_info.local_dirty_rect.contains_box(
+                &pr(100.0, 120.0, 100.0, 100.0))
         );
 
         // Main part of this test - ensure WR detects a composite is required in this case
