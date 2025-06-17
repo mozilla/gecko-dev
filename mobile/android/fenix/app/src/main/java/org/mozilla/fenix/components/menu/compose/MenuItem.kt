@@ -165,7 +165,11 @@ internal fun MenuTextItem(
         } else {
             MENU_ITEM_HEIGHT_WITHOUT_DESC
         },
-        modifier = modifier,
+        modifier = modifier
+            .clip(shape = ROUNDED_CORNER_SHAPE)
+            .background(
+                color = FirefoxTheme.colors.layer3,
+            ),
         iconPainter = iconPainter,
         onClick = onClick,
     )

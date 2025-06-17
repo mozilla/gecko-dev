@@ -258,30 +258,6 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860762
-    @SmokeTest
-    @Test
-    fun shareCustomTabUsingMainMenuButtonTest() {
-        val customTabPage = getGenericAsset(mockWebServer, 1)
-
-        intentReceiverActivityTestRule.launchActivity(
-            createCustomTabIntent(
-                customTabPage.url.toString(),
-            ),
-        )
-
-        customTabScreen {
-        }.openMainMenuFromRedesignedToolbar {
-        }.clickShareButtonFromRedesignedMenu {
-            verifyShareTabLayout()
-            verifySharingWithSelectedApp(
-                appName = "Gmail",
-                content = customTabPage.url.toString(),
-                subject = customTabPage.title,
-            )
-        }
-    }
-
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860771
     @SmokeTest
     @Test

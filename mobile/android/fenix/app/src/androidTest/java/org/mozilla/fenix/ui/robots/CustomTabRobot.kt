@@ -21,14 +21,12 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiSelector
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.menu.MenuDialogTestTag.SHARE
 import org.mozilla.fenix.helpers.Constants.LONG_CLICK_DURATION
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescriptionAndIndex
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
@@ -185,10 +183,9 @@ class CustomTabRobot {
 
     fun verifyRedesignedCustomTabsMainMenuItemsExist(customMenuItem: String, exist: Boolean, waitingTime: Long = TestAssetHelper.waitingTime) =
         assertUIObjectExists(
-            itemWithDescription(getStringResource(R.string.browser_menu_switch_to_desktop_site)),
+            itemWithDescription("Open in $appName"),
+            itemWithDescription(getStringResource(R.string.browser_menu_desktop_site)),
             itemWithDescription(getStringResource(R.string.browser_menu_find_in_page)),
-            itemWithDescriptionAndIndex("Open in $appName", 2),
-            itemWithResId(SHARE),
             itemContainingText(customMenuItem),
             exists = exist,
             waitingTime = waitingTime,
@@ -210,27 +207,27 @@ class CustomTabRobot {
     }
 
     fun verifySwitchToDesktopSiteButton(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "verifySwitchToDesktopSiteButton: Trying to verify that the \"Switch to desktop site\" button is displayed.")
+        Log.i(TAG, "verifySwitchToDesktopSiteButton: Trying to verify that the \"Desktop site\" button is displayed.")
         composeTestRule.desktopSiteButton().assertIsDisplayed()
         Log.i(TAG, "verifySwitchToDesktopSiteButton: Verified that the \"Switch to desktop site\" button is displayed.")
     }
 
     fun verifySwitchToMobileSiteButton(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "verifySwitchToMobileSiteButton: Trying to verify that the \"Switch to mobile site\" button is displayed.")
+        Log.i(TAG, "verifySwitchToMobileSiteButton: Trying to verify that the \"Desktop site\" button is displayed.")
         composeTestRule.mobileSiteButton().assertIsDisplayed()
         Log.i(TAG, "verifySwitchToMobileSiteButton: Verified that the \"Switch to mobile site\" button is displayed.")
     }
 
     fun clickSwitchToDesktopSiteButton(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "clickSwitchToDesktopSiteButton: Trying to click the \"Switch to desktop site\" button.")
+        Log.i(TAG, "clickSwitchToDesktopSiteButton: Trying to click the \"Desktop site\" button.")
         composeTestRule.desktopSiteButton().performClick()
-        Log.i(TAG, "clickSwitchToDesktopSiteButton: Clicked the \"Switch to desktop site\" button.")
+        Log.i(TAG, "clickSwitchToDesktopSiteButton: Clicked the \"Desktop site\" button.")
     }
 
     fun clickSwitchToMobileSiteButton(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "clickSwitchToMobileSiteButton: Trying to click the \"Switch to mobile site\" button.")
+        Log.i(TAG, "clickSwitchToMobileSiteButton: Trying to click the \"Desktop site\" button.")
         composeTestRule.mobileSiteButton().performClick()
-        Log.i(TAG, "clickSwitchToMobileSiteButton: Clicked the \"Switch to mobile site\" button.")
+        Log.i(TAG, "clickSwitchToMobileSiteButton: Clicked the \"Desktop site\" button.")
     }
 
     class Transition {
@@ -348,8 +345,8 @@ private fun progressBar() =
     mDevice.findObject(
         UiSelector().resourceId("$packageName:id/mozac_browser_toolbar_progress"),
     )
-private fun ComposeTestRule.desktopSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_switch_to_desktop_site))
+private fun ComposeTestRule.desktopSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_desktop_site))
 
-private fun ComposeTestRule.mobileSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_switch_to_mobile_site))
+private fun ComposeTestRule.mobileSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_desktop_site))
 
 private fun ComposeTestRule.findInPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_find_in_page))

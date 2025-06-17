@@ -708,10 +708,15 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             }
 
                             Route.CustomTabMenu -> {
+                                val isSiteLoading by browserStore.observeAsState(false) { state ->
+                                    args.customTabSessionId?.let { state.findCustomTab(it)?.content?.loading } ?: false
+                                }
                                 handlebarContentDescription =
                                     context.getString(R.string.browser_custom_tab_menu_handlebar_content_description)
 
                                 CustomTabMenu(
+                                    isSiteLoading = isSiteLoading,
+                                    scrollState = scrollState,
                                     isPdf = customTab?.content?.isPdf == true,
                                     isDesktopMode = isDesktopMode,
                                     isSandboxCustomTab = args.isSandboxCustomTab,
@@ -737,7 +742,19 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     onOpenInFirefoxMenuClick = {
                                         store.dispatch(MenuAction.OpenInFirefox)
                                     },
-                                    onShareMenuClick = {
+                                    onBackButtonClick = { viewHistory: Boolean ->
+                                        store.dispatch(MenuAction.Navigate.Back(viewHistory))
+                                    },
+                                    onForwardButtonClick = { viewHistory: Boolean ->
+                                        store.dispatch(MenuAction.Navigate.Forward(viewHistory))
+                                    },
+                                    onRefreshButtonClick = { bypassCache: Boolean ->
+                                        store.dispatch(MenuAction.Navigate.Reload(bypassCache))
+                                    },
+                                    onStopButtonClick = {
+                                        store.dispatch(MenuAction.Navigate.Stop)
+                                    },
+                                    onShareButtonClick = {
                                         store.dispatch(MenuAction.Navigate.Share)
                                     },
                                 )
