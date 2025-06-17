@@ -2280,6 +2280,85 @@ private_browsing_locked:
       - android-probes@mozilla.com
     expires: never
 
+custom_review_prompt:
+  prompt_displayed:
+    type: event
+    description: Logged when the custom review prompt is shown to the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966653
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D253398
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+  positive_feedback_clicked:
+    type: event
+    description: Logged when the user clicks the positive button in the custom review prompt.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966653
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D253398
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+  negative_feedback_clicked:
+    type: event
+    description: Logged when the user clicks the negative button in the custom review prompt.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966653
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D253398
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+  rate_on_play_store_clicked:
+    type: event
+    description: Logged when the user chooses to rate the app on the Play Store from the custom review prompt.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966653
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D253398
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+  open_mozilla_connect_clicked:
+    type: event
+    description: Logged when the user chooses to open Mozilla Connect from the custom review prompt.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966653
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D253398
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
+  prompt_dismissed:
+    type: event
+    description: Logged when the user dismisses the custom review prompt without interacting with any of the main options.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1966653
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D253398
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
 search_shortcuts:
   selected:
     type: event
