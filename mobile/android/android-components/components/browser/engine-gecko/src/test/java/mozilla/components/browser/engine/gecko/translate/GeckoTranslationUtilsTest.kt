@@ -119,23 +119,11 @@ class GeckoTranslationUtilsTest {
             var onErrorCalled = false
 
             val geckoResult: GeckoResult<List<GeckoViewLanguageModel>> =
-                GeckoResult.allOf<GeckoViewLanguageModel?>(
-                    GeckoResult<GeckoViewLanguageModel?>(
-                        GeckoResult.fromValue<GeckoViewLanguageModel?>(
-                            english,
-                        ),
-                    ),
-                    GeckoResult<GeckoViewLanguageModel?>(
-                        GeckoResult.fromValue<GeckoViewLanguageModel?>(
-                            deutsch,
-                        ),
-                    ),
-                    GeckoResult<GeckoViewLanguageModel?>(
-                        GeckoResult.fromValue<GeckoViewLanguageModel?>(
-                            french,
-                        ),
-                    ),
-                )
+            GeckoResult.allOf(
+                GeckoResult.fromValue(english),
+                GeckoResult.fromValue(deutsch),
+                GeckoResult.fromValue(french),
+            )
 
             val mappingResult = GeckoTranslationUtils.mapGeckoViewLanguageModels(geckoResult)
 
@@ -179,7 +167,7 @@ class GeckoTranslationUtilsTest {
             var onErrorCalled = false
 
             val geckoResult: GeckoResult<List<GeckoViewLanguageModel>> =
-                GeckoResult.allOf<GeckoViewLanguageModel?>(
+                GeckoResult.allOf(
                     successGeckoResult(english),
                     successGeckoResult(deutsch),
                     exceptionalGeckoResult(
