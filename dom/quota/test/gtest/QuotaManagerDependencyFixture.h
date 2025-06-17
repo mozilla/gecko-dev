@@ -65,6 +65,7 @@ class QuotaManagerDependencyFixture : public testing::Test {
                                    UsageInfo* aResult);
   static void ClearStoragesForOrigin(const OriginMetadata& aOriginMetadata);
 
+  static void InitializePersistentClient(const ClientMetadata& aClientMetadata);
   static void InitializeTemporaryClient(const ClientMetadata& aClientMetadata,
                                         bool aCreateIfNonExistent = true);
 
@@ -250,8 +251,11 @@ class QuotaManagerDependencyFixture : public testing::Test {
 
   static PrincipalMetadata GetTestPrincipalMetadata();
   static OriginMetadata GetTestPersistentOriginMetadata();
+  static ClientMetadata GetTestPersistentClientMetadata();
   static OriginMetadata GetTestOriginMetadata();
   static ClientMetadata GetTestClientMetadata();
+  static OriginMetadata GetTestPrivateOriginMetadata();
+  static ClientMetadata GetTestPrivateClientMetadata();
 
   static PrincipalMetadata GetOtherTestPrincipalMetadata();
   static OriginMetadata GetOtherTestOriginMetadata();
