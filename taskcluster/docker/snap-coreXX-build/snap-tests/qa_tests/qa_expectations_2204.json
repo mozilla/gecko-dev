@@ -343,7 +343,7 @@
         "reference": "test_pdf_zoom_p1_150p-core24_2204.png"
       },
       "p1_400p": {
-        "reference": "test_pdf_zoom_p1_400p-core24_2204.png"
+        "reference": "test_pdf_zoom_p1_400p-betacore24_2204.png"
       },
       "p1_actual": {
         "reference": "test_pdf_zoom_p1_actual-core24_2204.png"
@@ -395,7 +395,7 @@
         "reference": "test_pdf_zoom_p1_150p-core24_2204.png"
       },
       "p1_400p": {
-        "reference": "test_pdf_zoom_p1_400p-core24_2204.png"
+        "reference": "test_pdf_zoom_p1_400p-releasecore24_2204.png"
       },
       "p1_actual": {
         "reference": "test_pdf_zoom_p1_actual-core24_2204.png"
