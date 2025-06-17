@@ -919,8 +919,8 @@ struct nsGridContainerFrame::GridItemInfo {
   //
   // @note the caller should also check that the item has a span length of 1,
   // and that the item's track has a min track sizing function that is 'auto'.
-  bool ShouldApplyAutoMinSize(WritingMode aContainerWM,
-                              LogicalAxis aContainerAxis) const {
+  bool MinContributionDependsOnAutoMinSize(WritingMode aContainerWM,
+                                           LogicalAxis aContainerAxis) const {
     MOZ_ASSERT(
         mArea.LineRangeForAxis(aContainerAxis).Extent() == 1,
         "Should not be called with grid items that span multiple tracks.");
@@ -941,10 +941,17 @@ struct nsGridContainerFrame::GridItemInfo {
     // for block size dimension on sizing properties (e.g. height), so we
     // treat it as `auto`.
     bool isAuto = size->BehavesLikeInitialValue(itemAxis);
-    // TODO alaskanemily: This probably shouldn't be a special case.
-    // Although this being a percentage isn't relevant to whether or not the
-    // minimum contribution is content-based or not, but this matches the
-    // expectations of MinContribution().
+    // This check for HasPercent is intended to correspond to whether or not
+    // the item's preferred size depends on the size of its containing block.
+    //
+    // TODO alaskanemily: This probably shouldn't be a special case here.
+    // This is part of how EnsureContributions with the MinSize flag is
+    // implemented, where this forces ResolveIntrinsicSizeForNonSpanningItems
+    // to use MinSize instead of Min/MaxContentContribution, which
+    // EnsureContributions will then translate to/from MinContentContribution
+    //
+    // https://drafts.csswg.org/css-grid-2/#algo-single-span-items
+    // Section "For auto minimums"
     if (!isAuto && !size->HasPercent()) {
       return false;
     }
@@ -2333,13 +2340,15 @@ enum class TrackSizingPhase {
 // Used for grid items intrinsic size types.
 // See CachedIntrinsicSizes which uses this for content contributions.
 enum class GridIntrinsicSizeType {
-  MinSize,
+  // MinContribution is the "minimum contribution", defined at
+  // https://drafts.csswg.org/css-grid-2/#min-size-contribution
+  MinContribution,
   MinContentContribution,
   MaxContentContribution
 };
 
 static constexpr GridIntrinsicSizeType kAllGridIntrinsicSizeTypes[] = {
-    GridIntrinsicSizeType::MinSize,
+    GridIntrinsicSizeType::MinContribution,
     GridIntrinsicSizeType::MinContentContribution,
     GridIntrinsicSizeType::MaxContentContribution};
 
@@ -2356,7 +2365,7 @@ struct MaxContiguousEnumValue<GridIntrinsicSizeType> {
 static GridIntrinsicSizeType SizeTypeForPhase(TrackSizingPhase aPhase) {
   switch (aPhase) {
     case TrackSizingPhase::IntrinsicMinimums:
-      return GridIntrinsicSizeType::MinSize;
+      return GridIntrinsicSizeType::MinContribution;
     case TrackSizingPhase::ContentBasedMinimums:
     case TrackSizingPhase::IntrinsicMaximums:
       return GridIntrinsicSizeType::MinContentContribution;
@@ -2512,10 +2521,10 @@ struct nsGridContainerFrame::Tracks {
     void Dump() const {
       printf(
           "SpanningItemData { mSpan: %d, mState: %d, mLineRange: (%d, %d), "
-          "mSizes: {MinSize: %d, MinContentContribution: %d, "
+          "mSizes: {MinContribution: %d, MinContentContribution: %d, "
           "MaxContentContribution: %d}, mFrame: %p\n",
           mSpan, mState, mLineRange.mStart, mLineRange.mEnd,
-          mSizes[GridIntrinsicSizeType::MinSize],
+          mSizes[GridIntrinsicSizeType::MinContribution],
           mSizes[GridIntrinsicSizeType::MinContentContribution],
           mSizes[GridIntrinsicSizeType::MaxContentContribution], mFrame);
     }
@@ -6059,10 +6068,23 @@ struct CachedIntrinsicSizes {
     // https://drafts.csswg.org/css-sizing-3/#valdef-width-min-content
     // https://drafts.csswg.org/css-sizing-3/#valdef-width-max-content
 
-    // FIXME: Bug 567039: moz-fit-content and -moz-available are not supported
-    // for block size dimension on sizing properties (e.g. height), so we
-    // treat it as `auto`.
-    if (aTypes.contains(GridIntrinsicSizeType::MinSize)) {
+    // If we need to calculate GridIntrinsicSizeType::MinContribution, we might
+    // need to substitute GridIntrinsicSizeType::MinContentContribution instead.
+    // Per https://drafts.csswg.org/css-grid-2/#algo-single-span-items
+    // Section "For auto minimums":
+    //  * "if the item's computed preferred size behaves as auto or depends on
+    //    the size of its containing block in the relevant axis," then we do in
+    //    fact need the used minimum size."
+    //  * "...else the item's minimum contribution is its min-content
+    //    contribution" in which case we make a recursive call to compute
+    //    GridIntrinsicSizeType::MinContentContribution instead, and do a fixup
+    //    to place that value in the MinContentContribution slot.
+    // Note that we use BehavesLikeInitialValue and HasPercent to implement
+    // the spec check for "behaves as auto or depends on the size of its
+    // containing block".
+    // We make a similar check in MinContributionDependsOnAutoMinSize as
+    // an earlier test for whether we need the used minimum size.
+    if (aTypes.contains(GridIntrinsicSizeType::MinContribution)) {
       nsIFrame* const child = aGridItem.mFrame;
       const nsStylePosition* const stylePos = child->StylePosition();
       const auto anchorResolutionParams =
@@ -6074,14 +6096,17 @@ struct CachedIntrinsicSizes {
           cbwm.IsOrthogonalTo(child->GetWritingMode())
               ? GetOrthogonalAxis(aAxis)
               : aAxis;
+      // FIXME: Bug 567039: moz-fit-content and -moz-available are not
+      // supported for block size dimension on sizing properties (e.g. height),
+      // so we treat it as `auto`.
       if (!styleSize->BehavesLikeInitialValue(axisInItemWM) &&
           !styleSize->HasPercent()) {
         // Calculate without MinSize, but ensuring MinContentContribution.
-        aTypes -= GridIntrinsicSizeType::MinSize;
+        aTypes -= GridIntrinsicSizeType::MinContribution;
         aTypes += GridIntrinsicSizeType::MinContentContribution;
         EnsureContributions(aTypes, aGridItem, aGridRI, aAxis);
         // Copy the MinSize from the MinContentContribution.
-        mSizes[GridIntrinsicSizeType::MinSize] =
+        mSizes[GridIntrinsicSizeType::MinContribution] =
             mSizes[GridIntrinsicSizeType::MinContentContribution];
         return;
       }
@@ -6118,7 +6143,7 @@ struct CachedIntrinsicSizes {
         return ContentContribution(aGridItem, aGridRI, aAxis, aPercentageBasis,
                                    IntrinsicISizeType::PrefISize,
                                    aMinSizeClamp);
-      case GridIntrinsicSizeType::MinSize: {
+      case GridIntrinsicSizeType::MinContribution: {
         // Compute the min-size contribution for a grid item, as defined at
         // https://drafts.csswg.org/css-grid-2/#min-size-contribution
         nsIFrame* const child = aGridItem.mFrame;
@@ -6298,49 +6323,89 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSizeForNonSpanningItems(
     GridReflowInput& aGridRI, const TrackSizingFunctions& aFunctions,
     nscoord aPercentageBasis, SizingConstraint aConstraint,
     const LineRange& aRange, const GridItemInfo& aGridItem) {
+  // Calculate track sizes for fit non-spanning items.
+  // https://drafts.csswg.org/css-grid-2/#algo-single-span-items
   CachedIntrinsicSizes cache{aGridItem, aGridRI, mAxis};
   TrackSize& sz = mSizes[aRange.mStart];
 
-  // Calculate track sizes for fit non-spanning items.
-  // https://drafts.csswg.org/css-grid-2/#algo-single-span-items
+  // Contribution type to use as the base size.
+  // This is a Maybe as we might not need to calculate a contribution at all,
+  // for instance if the base sizing function is a definite length.
   Maybe<GridIntrinsicSizeType> baseSizeType;
   if (sz.mState & TrackSize::eAutoMinSizing) {
-    // Check if we need to apply "Automatic Minimum Size" and cache it.
-    if (aGridItem.ShouldApplyAutoMinSize(aGridRI.mWM, mAxis)) {
+    // "For auto minimums:"
+    // "If the track has an 'auto' min track sizing function and the grid
+    // container is being sized under a min-/max-content constraint, set
+    // the track's base size to the maximum of its items' limited
+    // min-content contributions"
+    if (aGridItem.MinContributionDependsOnAutoMinSize(aGridRI.mWM, mAxis)) {
       // Clamp it if it's spanning a definite track max-sizing function.
       if (const Maybe<nscoord> minSizeClamp =
               ComputeMinSizeClamp(aFunctions, aPercentageBasis, aRange)) {
         cache.mMinSizeClamp = *minSizeClamp;
         aGridItem.mState[mAxis] |= ItemState::eClampMarginBoxMinSize;
       }
+      // Use the content-based contribution.
       baseSizeType.emplace((aConstraint == SizingConstraint::MaxContent)
                                ? GridIntrinsicSizeType::MaxContentContribution
                                : GridIntrinsicSizeType::MinContentContribution);
     } else {
-      baseSizeType.emplace(GridIntrinsicSizeType::MinSize);
+      // Use the minimum contribution.
+      // Note that this could still become MinContentContribution in practice.
+      // MinContributionDependsOnAutoMinSize can return false when the item's
+      // size depends on the size of its containing block. In that case, using
+      // EnsureContributions to compute MinSize will instead compute
+      // MinContentContribution, which will then be placed in the MinSize
+      // slot on the cache.
+      baseSizeType.emplace(GridIntrinsicSizeType::MinContribution);
     }
   } else if (sz.mState & TrackSize::eMinContentMinSizing) {
+    // "For min-content minimums:"
+    // "If the track has a 'min-content' min track sizing function, set its
+    // base size to the maximum of the items' min-content contributions"
     baseSizeType.emplace(GridIntrinsicSizeType::MinContentContribution);
   } else if (sz.mState & TrackSize::eMaxContentMinSizing) {
+    // "For max-content minimums:"
+    // "If the track has a 'max-content' min track sizing function, set its
+    // base size to the maximum of the items' max-content contributions"
     baseSizeType.emplace(GridIntrinsicSizeType::MaxContentContribution);
   }
 
-  // max sizing
+  // Size of fit-content maximum, if any.
   Maybe<nscoord> fitContentClamp;
+  // Contribution type to use as the growth limit.
+  // This is a Maybe as we might not need to calculate a contribution at all,
+  // for instance if the growth limit sizing function is a definite length.
   Maybe<GridIntrinsicSizeType> limitType;
   if (sz.mState & TrackSize::eMinContentMaxSizing) {
+    // "For min-content maximums:"
+    // "If the track has a 'min-content' max track sizing function, set its
+    // growth limit to the maximum of the items' min-content contributions"
     limitType.emplace(GridIntrinsicSizeType::MinContentContribution);
   } else if (sz.mState &
              (TrackSize::eAutoMaxSizing | TrackSize::eMaxContentMaxSizing)) {
+    // "For max-content maximums:"
+    // "If the track has a 'max-content' max track sizing function, set its
+    // growth limit to the maximum of the items' max-content contributions"
     limitType.emplace(GridIntrinsicSizeType::MaxContentContribution);
     if (MOZ_UNLIKELY(sz.mState & TrackSize::eApplyFitContentClamping)) {
-      // Clamp mLimit to the fit-content() size, for §12.5.1.
+      // "For fit-content() maximums, furthermore clamp this growth limit by
+      // the fit-content() argument."
       fitContentClamp.emplace(aFunctions.SizingFor(aRange.mStart)
                                   .AsFitContent()
                                   .AsBreadth()
                                   .Resolve(aPercentageBasis));
     }
   }
+
+  // Even if it was possible to use the minimum contribution as the limit in
+  // the spec, this could get trashed by the checks for whether the item's auto
+  // minimum size depends on the size implemented in
+  // GridItemInfo::MinContributionDependsOnAutoMinSize and
+  // CachedIntrinsicSizes::EnsureContributions.
+  MOZ_ASSERT(
+      limitType != Some(GridIntrinsicSizeType::MinContribution),
+      "We should never be using the minimum contribution as the limit size.");
 
   // Accumulate the required size types and compute the contributions.
   {
@@ -6353,7 +6418,6 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSizeForNonSpanningItems(
     cache.EnsureContributions(sizeTypesToCalculate, aGridItem, aGridRI, mAxis);
   }
 
-  // The base size is taken from the min size type.
   if (baseSizeType) {
     sz.mBase = std::max(sz.mBase, *cache.mSizes[*baseSizeType]);
   }
@@ -6365,11 +6429,13 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSizeForNonSpanningItems(
     }
     sz.mLimit = std::max(sz.mLimit, *cache.mSizes[*limitType]);
     if (fitContentClamp) {
+      // "furthermore clamp this growth limit by the fit-content() argument."
       sz.mLimit = std::min(sz.mLimit, *fitContentClamp);
     }
   }
 
-  // Ensure the limit is at least as large as the base.
+  // "In all cases, if a track's growth limit is now less than its base size,
+  // increase the growth limit to match the base size."
   sz.mLimit = std::max(sz.mLimit, sz.mBase);
 }
 
@@ -7015,7 +7081,7 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
     const LineRange& lineRange = area.*aRange;
     const TrackSize::StateBits state = StateBitsForRange(lineRange);
     // Set flex sizing flag as soon as possible to ensure
-    // ShouldApplyAutoMinSize will function properly.
+    // MinContributionDependsOnAutoMinSize will function properly.
     if (state & TrackSize::eFlexMaxSizing) {
       gridItem.mState[mAxis] |= ItemState::eIsFlexing;
     }
@@ -7118,7 +7184,7 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
             SelectorForPhase(TrackSizingPhase::IntrinsicMinimums, aConstraint);
 
         if (state & selector) {
-          sizeTypesToCalculate += GridIntrinsicSizeType::MinSize;
+          sizeTypesToCalculate += GridIntrinsicSizeType::MinContribution;
         }
 
         // For 3.2 and 3.5
