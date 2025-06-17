@@ -2849,6 +2849,26 @@
           dropBefore = !dropBefore;
         }
 
+        // If dragging a group over another group, don't make it look like it is
+        // possible to drop the dragged group inside the other group.
+        if (
+          isTabGroupLabel(draggedTab) &&
+          dropElement?.group &&
+          !dropElement.group.collapsed
+        ) {
+          let overlappedGroup = dropElement.group;
+
+          if (isTabGroupLabel(dropElement)) {
+            dropBefore = true;
+            newDropElementIndex = dropElement.elementIndex;
+          } else {
+            dropBefore = false;
+            newDropElementIndex = overlappedGroup.tabs.at(-1).elementIndex + 1;
+          }
+
+          dropElement = overlappedGroup;
+        }
+
         // Constrain drop direction at the boundary between pinned and
         // unpinned tabs so that they don't mix together.
         let isOutOfBounds = isPinned
