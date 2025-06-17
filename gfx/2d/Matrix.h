@@ -2402,14 +2402,6 @@ class Matrix4x4TypedFlagged
                             _32, _33, _34, _41, _42, _43, _44, mType};
   }
 
- private:
-  Matrix4x4TypedFlagged(Float a11, Float a12, Float a13, Float a14, Float a21,
-                        Float a22, Float a23, Float a24, Float a31, Float a32,
-                        Float a33, Float a34, Float a41, Float a42, Float a43,
-                        Float a44, const MatrixType aType)
-      : Parent(a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34, a41,
-               a42, a43, a44),
-        mType(aType) {}
   static Matrix4x4TypedFlagged FromUnknownMatrix(
       const Matrix4x4Flagged& aUnknown) {
     return Matrix4x4TypedFlagged{
@@ -2418,6 +2410,15 @@ class Matrix4x4TypedFlagged
         aUnknown._33, aUnknown._34,  aUnknown._41, aUnknown._42, aUnknown._43,
         aUnknown._44, aUnknown.mType};
   }
+
+ private:
+  Matrix4x4TypedFlagged(Float a11, Float a12, Float a13, Float a14, Float a21,
+                        Float a22, Float a23, Float a24, Float a31, Float a32,
+                        Float a33, Float a34, Float a41, Float a42, Float a43,
+                        Float a44, const MatrixType aType)
+      : Parent(a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34, a41,
+               a42, a43, a44),
+        mType(aType) {}
 
   template <class F>
   PointTyped<TargetUnits, F> TransformPointSimple(

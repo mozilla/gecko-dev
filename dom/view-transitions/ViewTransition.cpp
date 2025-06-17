@@ -54,25 +54,19 @@ static void SetCaptured(nsIFrame* aFrame, bool aCaptured) {
 //
 // TODO(emilio): This might need revision.
 static CSSToCSSMatrix4x4Flagged EffectiveTransform(nsIFrame* aFrame) {
-  CSSToCSSMatrix4x4Flagged matrix;
   if (aFrame->GetSize().IsEmpty() || aFrame->Style()->IsRootElementStyle()) {
-    return matrix;
+    return {};
   }
 
-  auto untransformedSize = CSSSize::FromAppUnits(aFrame->GetSize());
-  auto boundingRect = CSSRect::FromAppUnits(aFrame->GetBoundingClientRect());
+  auto matrix = CSSToCSSMatrix4x4Flagged::FromUnknownMatrix(
+      nsLayoutUtils::GetTransformToAncestor(
+          RelativeTo{aFrame},
+          RelativeTo{nsLayoutUtils::GetContainingBlockForClientRect(aFrame)},
+          nsIFrame::IN_CSS_UNITS, nullptr));
   auto inkOverflowRect =
       CSSRect::FromAppUnits(aFrame->InkOverflowRectRelativeToSelf());
-  if (boundingRect.Size() != untransformedSize) {
-    float sx = boundingRect.width / untransformedSize.width;
-    float sy = boundingRect.height / untransformedSize.height;
-    matrix = CSSToCSSMatrix4x4Flagged::Scaling(sx, sy, 1.0f);
-  }
   if (inkOverflowRect.TopLeft() != CSSPoint()) {
     matrix.PostTranslate(inkOverflowRect.x, inkOverflowRect.y, 0.0f);
-  }
-  if (boundingRect.TopLeft() != CSSPoint()) {
-    matrix.PostTranslate(boundingRect.x, boundingRect.y, 0.0f);
   }
   // Compensate for the default transform-origin of 50% 50%.
   matrix.ChangeBasis(-inkOverflowRect.Width() / 2,
