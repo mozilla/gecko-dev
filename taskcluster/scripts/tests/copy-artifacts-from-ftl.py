@@ -59,6 +59,7 @@ class Worker(Enum):
     RESULTS_DIR = "/builds/worker/artifacts/results"
     BASELINE_PROFILE_DIR = "/builds/worker/workspace/baselineProfile"
     MACROBENCHMARK_DEST = "/builds/worker/artifacts/build/macrobenchmark.json"
+    MACROBENCHMARK_DIR = "/builds/worker/artifacts/build/macrobenchmark"
     ARTIFACTS_DIR = "/builds/worker/artifacts/build"
 
 
@@ -286,13 +287,30 @@ def process_baseline_profile_artifacts(root_gcs_path, device_names):
 
 def process_macrobenchmark_artifact(root_gcs_path, device_names):
     device = device_names[0]
-    artifact = fetch_artifacts(
+    artifacts = fetch_artifacts(
         root_gcs_path, device, ArtifactType.MACROBENCHMARK.value
-    )[0]
-    if not artifact:
-        exit_with_error(f"No artifacts found for device: {device}")
+    )
+    if not artifacts:
+        exit_with_error(f"No macrobenchmark artifacts found for device: {device}")
 
-    gsutil_cp(artifact, Worker.MACROBENCHMARK_DEST.value)
+    downloaded_files = []
+
+    for artifact in artifacts:
+        base_name = os.path.basename(artifact)
+        ## TODO: Maybe get the name from the shard number
+        dest_path = os.path.join(Worker.MACROBENCHMARK_DIR.value, base_name)
+        count = 1
+
+        # If file exists, find a unique name
+        while os.path.exists(dest_path):
+            name, extension = os.path.splitext(base_name)
+            dest_path = os.path.join(
+                Worker.MACROBENCHMARK_DIR.value, f"{name}_{count}{extension}"
+            )
+            count += 1
+
+        gsutil_cp(artifact, dest_path)
+        downloaded_files.append(dest_path)
 
 
 def process_crash_artifacts(root_gcs_path, failed_device_names):
