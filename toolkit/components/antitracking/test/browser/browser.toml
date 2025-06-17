@@ -328,6 +328,21 @@ support-files = [
 
 ["browser_thirdPartyStorageRejectionForCORS.js"]
 
+["browser_triggeringClassificationFlags.js"]
+support-files = [
+  "empty_size.mp3",
+  "empty_size.mp3^headers^",
+  "fetch.html",
+  "fetch.html^headers^",
+  "file_ws_handshake_delay_wsh.py",
+  "short.mp4",
+  "short.mp4^headers^",
+  "style.css",
+  "style.css^headers^",
+  "test.font.woff",
+  "test.font.woff^headers^",
+]
+
 ["browser_urlDecorationStripping.js"]
 
 ["browser_urlQueryStringStripping.js"]
