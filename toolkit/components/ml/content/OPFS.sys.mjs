@@ -1,8 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+/**
+ * @typedef {import("./Utils.sys.mjs").ProgressAndStatusCallbackParams} ProgressAndStatusCallbackParams
+ */
 const lazy = {};
 const IN_WORKER = typeof importScripts !== "undefined";
+const ES_MODULES_OPTIONS = IN_WORKER ? { global: "current" } : {};
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
   return console.createInstance({
@@ -10,6 +15,15 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
     prefix: "ML:OPFS",
   });
 });
+
+ChromeUtils.defineESModuleGetters(
+  lazy,
+  {
+    Progress: "chrome://global/content/ml/Utils.sys.mjs",
+    computeHash: "chrome://global/content/ml/Utils.sys.mjs",
+  },
+  ES_MODULES_OPTIONS
+);
 
 /**
  * Retrieves a handle to a directory at the specified path in the Origin Private File System (OPFS).
@@ -73,6 +87,239 @@ async function getFileHandleFromOPFS(filePath, { create = false } = {}) {
   const fileHandle = await directoryHandle.getFileHandle(fileName, { create });
 
   return fileHandle;
+}
+
+/**
+ * Remove all entries (files or directories) in the given directory handle
+ * for which the provided predicate returns true. No failures if the file doesn't exist.
+ *
+ * The removals are executed in parallel using Promise.all.
+ *
+ * @param {string | null} path  - The path to the directory to scan for entries.
+ * @param {(name: string, handle: FileSystemHandle) => boolean} predicate - A function that returns true if the entry should be removed.
+ * @returns {Promise<void>} A promise that resolves when all removals are complete.
+ */
+async function removeMatchingOPFSEntries(path = null, predicate) {
+  const deletePromises = [];
+
+  let dirHandle;
+  try {
+    dirHandle = await getDirectoryHandleFromOPFS(path, { create: false });
+  } catch (err) {
+    if (err.name === "NotFoundError") {
+      return;
+    }
+    throw err;
+  }
+
+  for await (const [name, handle] of dirHandle.entries()) {
+    if (predicate(name, handle)) {
+      try {
+        deletePromises.push(
+          dirHandle.removeEntry(name, {
+            recursive: handle.kind === "directory",
+          })
+        );
+      } catch (err) {
+        if (err.name !== "NotFoundError") {
+          throw err;
+        }
+      }
+    }
+  }
+
+  await Promise.all(deletePromises);
+}
+
+/**
+ * Converts a file in OPFS and given headers to a Response object.
+ *
+ * @param {string} filePath - path to the file in Origin Private FileSystem (OPFS).
+ * @param {object|null} headers
+ * @returns {Response} The generated Response instance
+ */
+export async function createResponseFromOPFSFile(filePath, headers) {
+  let responseHeaders = {};
+
+  if (headers) {
+    // Headers are converted to strings, as the cache may hold int keys like fileSize
+    for (let key in headers) {
+      if (headers[key] != null) {
+        responseHeaders[key] = headers[key].toString();
+      }
+    }
+  }
+
+  const file = await (await getFileHandleFromOPFS(filePath)).getFile();
+
+  return new Response(file.stream(), {
+    status: 200,
+    headers: responseHeaders,
+  });
+}
+
+/**
+ * Downloads content from a URL and saves it to the Origin Private File System (OPFS).
+ *
+ * @param {object} params - Parameters.
+ * @param {string | URL | Response} params.source - The source of the content. If a string or URL is given, it will be fetched. If a Response is provided, it will be used directly.
+ * @param {string} params.savePath - OPFS path to save the file (e.g., "folder/file.txt").
+ * @param {?function(ProgressAndStatusCallbackParams):void} [params.progressCallback] - Optional progress callback.
+ * @param {boolean} [params.ignoreCachingErrors=false] - If true, all errors due to retrieving/saving from OPFS are ignored.
+ * @returns {Promise<File>} The saved or existing file.
+ */
+async function downloadToOPFSImpl({
+  source,
+  savePath,
+  progressCallback,
+  ignoreCachingErrors = false,
+} = {}) {
+  // Download and write file
+  let response = source;
+
+  if (!Response.isInstance(source)) {
+    response = await lazy.Progress.fetchUrl(source.toString()); // Assumes fetchUrl throws if !ok
+  }
+
+  let fileObject;
+
+  try {
+    // Delay file creation until response is ok
+    const fileHandle = await getFileHandleFromOPFS(savePath, { create: true });
+
+    const writableStream = await fileHandle.createWritable({
+      keepExistingData: false,
+      mode: "siloed",
+    });
+
+    await lazy.Progress.readResponseToWriter(
+      response,
+      writableStream,
+      progressCallback
+    );
+
+    fileObject = await fileHandle.getFile();
+  } catch (err) {
+    if (ignoreCachingErrors && DOMException.isInstance(err)) {
+      lazy.console.warn(
+        `Caching Error when saving url  ${source.url ?? source}. Returning the file without caching.`
+      );
+      return response.blob();
+    }
+
+    throw err;
+  }
+
+  return fileObject;
+}
+
+/**
+ * Verifies that a Blob matches an expected SHA-256 hash and/or size, if provided.
+ *
+ * @param {Blob} blob - The Blob to validate.
+ * @param {string|null} expectedHash - Optional expected SHA-256 hash in hexadecimal format.
+ * @param {number|null} expectedSize - Optional expected size of the Blob in bytes.
+ * @returns {Promise<boolean>} True if all provided expectations match; false if any do not.
+ */
+
+async function maybeVerifyBlob(blob, expectedHash, expectedSize) {
+  if (expectedSize != null && blob.size != expectedSize) {
+    return false;
+  }
+
+  if (expectedHash != null) {
+    return (await lazy.computeHash(blob, "sha256", "hex")) == expectedHash;
+  }
+
+  return true;
+}
+
+/**
+ * Downloads content from a URL and saves it to the Origin Private File System (OPFS).
+ *
+ * If `skipIfExists` is true and a valid file already exists at the given path,
+ * the existing file is returned and no download is performed.
+ *
+ * @param {object} params - Parameters.
+ * @param {string | URL | Response} params.source - The source of the content. If a string or URL is given, it will be fetched. If a Response is provided, it will be used directly.
+ * @param {string} params.savePath - OPFS path to save the file (e.g., "folder/file.txt").
+ * @param {?function(ProgressAndStatusCallbackParams):void} [params.progressCallback] - Optional progress callback.
+ * @param {boolean} [params.skipIfExists=false] - Whether to skip download if the file exists and passes hash check.
+ * @param {number} params.fileSize - Expected file size.
+ * @param {string} params.sha256Hash - Expected SHA-256 hash (hex).
+ * @param {boolean} [params.deletePreviousVersions=false] - If true, deletes other entries in the parent directory after successful download.
+ * @param {boolean} [params.ignoreCachingErrors=false] - If true, all errors due to retrieving/saving from OPFS are ignored.
+ * @returns {Promise<File>} The saved or existing file.
+ */
+async function downloadToOPFS({
+  source,
+  savePath,
+  progressCallback,
+  skipIfExists = false,
+  sha256Hash,
+  fileSize,
+  deletePreviousVersions = false,
+  ignoreCachingErrors = false,
+} = {}) {
+  let fileObject;
+  let cacheWasUsed = false;
+
+  if (skipIfExists) {
+    try {
+      const cachedHandle = await getFileHandleFromOPFS(savePath, {
+        create: false,
+      });
+      fileObject = await cachedHandle.getFile();
+      cacheWasUsed = true;
+    } catch (err) {
+      if (err.name !== "NotFoundError" && !ignoreCachingErrors) {
+        throw err;
+      }
+    }
+  }
+
+  // File does not exists — downloading
+  if (!fileObject) {
+    fileObject = await downloadToOPFSImpl({
+      source,
+      savePath,
+      progressCallback,
+      ignoreCachingErrors,
+    });
+  }
+
+  // Validate hash and size
+  if (!(await maybeVerifyBlob(fileObject, sha256Hash, fileSize))) {
+    // Failures could be due to corrupted file, remote file changes, incorrect ground truth hash/size.
+    const message = `Hash check failed for url ${source.url ?? source} saved at ${savePath}.`;
+
+    if (cacheWasUsed) {
+      lazy.console.warn(`${message} Purging the cache and re-downloading.`);
+      return downloadToOPFS({
+        source,
+        savePath,
+        progressCallback,
+        skipIfExists: false, // Retrigger forced download.
+        sha256Hash,
+        fileSize,
+      });
+    }
+    throw new Error(message);
+  }
+
+  // Optionally delete other versions
+  if (deletePreviousVersions) {
+    // Extract revision directory and file name from savePath
+    const lastSlashIndex = savePath.lastIndexOf("/");
+    const revisionsDir = savePath.substring(0, lastSlashIndex) || "";
+    const currentFileName = savePath.substring(lastSlashIndex + 1);
+
+    await removeMatchingOPFSEntries(revisionsDir, name => {
+      return name !== currentFileName;
+    });
+  }
+
+  return fileObject;
 }
 
 /**
@@ -189,42 +436,40 @@ class OPFSFile {
    * @returns {Promise<string>} A promise that resolves to the file's object URL.
    */
   async getAsObjectURL() {
-    // Try from OPFS first
-    let blob = await this.getBlobFromOPFS();
+    let fileObject;
+    let response;
 
-    // If not in OPFS, try the provided URLs
-    if (!blob) {
-      if (!this.urls) {
-        throw new Error("File not present in OPFS and no urls provided");
-      }
+    if (!this.urls) {
+      throw new Error("File not present in OPFS and no urls provided");
+    }
 
-      for (const url of this.urls) {
-        blob = await this.getBlobFromURL(url);
-        if (blob) {
-          break;
-        }
+    for (const url of this.urls) {
+      try {
+        fileObject = await downloadToOPFS({
+          source: url,
+          savePath: this.localPath, // Cache the newly fetched file in OPFS
+          deletePreviousVersions: false,
+          skipIfExists: true, // Try from OPFS first
+          ignoreCachingErrors: true,
+        });
+
+        break;
+      } catch (error) {
+        // Ignored
       }
     }
 
-    if (!blob) {
+    if (!fileObject && response?.ok) {
+      // Even if caching fails, we still return the fetched blob's URL
+      fileObject = await response.blob();
+    }
+
+    if (!fileObject) {
       throw new Error("Could not fetch the resource from the provided urls");
     }
 
-    // Cache the newly fetched file in OPFS
-    try {
-      const newFileHandle = await getFileHandleFromOPFS(this.localPath, {
-        create: true,
-      });
-      const writable = await newFileHandle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-    } catch (writeErr) {
-      lazy.console.warning(`Failed to write file to OPFS cache: ${writeErr}`);
-      // Even if caching fails, we still return the fetched blob's URL
-    }
-
     // Return a Blob URL for the fetched (and potentially cached) file
-    return URL.createObjectURL(blob);
+    return URL.createObjectURL(fileObject);
   }
 }
 
@@ -233,4 +478,6 @@ export var OPFS = OPFS || {};
 OPFS.getFileHandle = getFileHandleFromOPFS;
 OPFS.getDirectoryHandle = getDirectoryHandleFromOPFS;
 OPFS.remove = removeFromOPFS;
+OPFS.download = downloadToOPFS;
+OPFS.toResponse = createResponseFromOPFSFile;
 OPFS.File = OPFSFile;

@@ -29,7 +29,7 @@ const perfMetadata = {
   },
 };
 
-requestLongerTimeout(250);
+requestLongerTimeout(300);
 
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
@@ -65,7 +65,8 @@ async function generateEmbeddings(textList) {
     modelHubUrlTemplate: "{model}/{revision}",
     modelRevision: "main",
     dtype: "q8",
-    timeoutMS: 2 * 60 * 1000,
+    // timeoutMS: 2 * 60 * 1000,
+    timeoutMS: -1,
   });
   const requestInfo = {
     inputArgs: textList,

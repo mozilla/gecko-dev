@@ -31,10 +31,6 @@ const perfMetadata = {
 
 requestLongerTimeout(250);
 
-const { sinon } = ChromeUtils.importESModule(
-  "resource://testing-common/Sinon.sys.mjs"
-);
-
 // Text-to-speech model tests
 add_task(async function test_ml_tts() {
   const options = new PipelineOptions({

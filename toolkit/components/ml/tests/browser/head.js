@@ -333,7 +333,7 @@ async function initializeEngine(pipelineOptions, prefs = null) {
   const modelHubRootUrl = Services.env.get("MOZ_MODELS_HUB");
   if (!modelHubRootUrl) {
     throw new Error(
-      "MOZ_MODELS_HUB is not set, you need to run with --hooks toolkit/components/ml/tests/tools/hook_local_hub.py"
+      "MOZ_MODELS_HUB is not set, you need to run with --hooks toolkit/components/ml/tests/tools/hooks_local_hub.py"
     );
   }
 
@@ -449,6 +449,22 @@ async function perfSetup({ disabled = false, prefs = [], backend } = {}) {
 
   remoteClients["ml-onnx-runtime"].client.attachments.download = download;
 
+  let downloadRSAttachmentStub;
+
+  // Lot of unit tests even the one outside our components declare sinon
+  // So we are not making it module level to allow including this file without issue
+  const { sinon } = ChromeUtils.importESModule(
+    "resource://testing-common/Sinon.sys.mjs"
+  );
+
+  if (typeof MLEngineParent.downloadRSAttachment.restore !== "function") {
+    downloadRSAttachmentStub = sinon
+      .stub(MLEngineParent, "downloadRSAttachment")
+      .callsFake(async ({ wasmRecord }) => {
+        return (await download(wasmRecord)).buffer;
+      });
+  }
+
   return {
     remoteClients,
     async cleanup() {
@@ -460,6 +476,9 @@ async function perfSetup({ disabled = false, prefs = [], backend } = {}) {
         200
       );
       await SpecialPowers.popPrefEnv();
+      if (downloadRSAttachmentStub) {
+        downloadRSAttachmentStub.restore();
+      }
     },
   };
 }
