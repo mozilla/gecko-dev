@@ -280,7 +280,12 @@ add_task(async function test_downloader_reports_offline_error() {
 add_task(clear_state);
 
 // Common code for test_download_cache_hit and test_download_cache_corruption.
-async function doTestDownloadCacheImpl({ simulateCorruption }) {
+async function doTestDownloadCacheImpl({
+  simulateCorruption,
+  expectedReads = 1,
+  expectedWrites = 1,
+  downloadOptions = {},
+}) {
   let readCount = 0;
   let writeCount = 0;
   const cacheImpl = {
@@ -303,11 +308,11 @@ async function doTestDownloadCacheImpl({ simulateCorruption }) {
   };
   Object.defineProperty(downloader, "cacheImpl", { value: cacheImpl });
 
-  let downloadResult = await downloader.download(RECORD);
+  let downloadResult = await downloader.download(RECORD, downloadOptions);
   Assert.equal(downloadResult._source, "remote_match", "expected source");
   Assert.equal(downloadResult.buffer.byteLength, 1597, "expected result");
-  Assert.equal(readCount, 1, "expected cache read attempts");
-  Assert.equal(writeCount, 1, "expected cache write attempts");
+  Assert.equal(readCount, expectedReads, "expected cache read attempts");
+  Assert.equal(writeCount, expectedWrites, "expected cache write attempts");
 }
 
 add_task(async function test_download_cache_hit() {
@@ -318,6 +323,27 @@ add_task(clear_state);
 // Verify that the downloader works despite a broken cache implementation.
 add_task(async function test_download_cache_corruption() {
   await doTestDownloadCacheImpl({ simulateCorruption: true });
+});
+add_task(clear_state);
+
+add_task(async function test_download_with_cache_enabled() {
+  await doTestDownloadCacheImpl({
+    simulateCorruption: false,
+    downloadOptions: {
+      cacheResult: true,
+    },
+  });
+});
+add_task(clear_state);
+
+add_task(async function test_download_with_cache_disabled() {
+  await doTestDownloadCacheImpl({
+    simulateCorruption: false,
+    expectedWrites: 0,
+    downloadOptions: {
+      cacheResult: false,
+    },
+  });
 });
 add_task(clear_state);
 
