@@ -10,6 +10,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusEnrollments: "resource://nimbus/lib/Enrollments.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  NimbusMigrations: "resource://nimbus/lib/Migrations.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
   ProfilesDatastoreService:
     "moz-src:///toolkit/profile/ProfilesDatastoreService.sys.mjs",
@@ -261,7 +262,7 @@ export class ExperimentStore extends SharedDataMap {
       this._emitFeatureUpdate(featureId, "feature-enrollments-loaded");
     }
 
-    await this._reportStartupDatabaseConsistency();
+    await this._reportStartupDatabaseConsistency("startup");
 
     // Clean up the old recipes *after* we report database consistency so that
     // we're not racing.
@@ -544,7 +545,7 @@ export class ExperimentStore extends SharedDataMap {
     }
   }
 
-  async _reportStartupDatabaseConsistency() {
+  async _reportStartupDatabaseConsistency(trigger) {
     if (!lazy.NimbusEnrollments.databaseEnabled) {
       // We are in an xpcshell test that has not initialized the
       // ProfilesDatastoreService.
@@ -554,11 +555,24 @@ export class ExperimentStore extends SharedDataMap {
       return;
     }
 
+    // If we call this with trigger === "migration", the migration won't
+    // actually be completed because it will be in progress.
+    if (
+      trigger === "startup" &&
+      !lazy.NimbusMigrations.isMigrationCompleted(
+        lazy.NimbusMigrations.Phase.AFTER_STORE_INITIALIZED,
+        "import-enrollments-to-sql"
+      )
+    ) {
+      // We haven't ran the migration, so it will report 0 enrollments in the
+      // database. We will report this event when the migration completes.
+      return;
+    }
+
     const conn = await lazy.ProfilesDatastoreService.getConnection();
     const rows = await conn.execute(
       `
         SELECT
-          slug,
           active
         FROM NimbusEnrollments
         WHERE
@@ -584,6 +598,7 @@ export class ExperimentStore extends SharedDataMap {
       total_store_count: storeEnrollments.length,
       db_active_count: dbActiveCount,
       store_active_count: storeActiveCount,
+      trigger,
     });
   }
 }

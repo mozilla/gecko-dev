@@ -979,6 +979,7 @@ add_task(async function test_restoreDatabaseConsistency() {
   const { cleanup } = await NimbusTestUtils.setupTest({
     storePath,
     clearTelemetry: true,
+    migrationState: NimbusTestUtils.migrationState.IMPORTED_ENROLLMENTS_TO_SQL,
   });
 
   const events = Glean.nimbusEvents.startupDatabaseConsistency
@@ -990,6 +991,7 @@ add_task(async function test_restoreDatabaseConsistency() {
       total_store_count: "3",
       db_active_count: "2",
       store_active_count: "2",
+      trigger: "startup",
     },
   ]);
 

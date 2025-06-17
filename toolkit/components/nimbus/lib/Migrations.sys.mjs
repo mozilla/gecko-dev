@@ -63,11 +63,11 @@ export const NIMBUS_MIGRATION_PREFS = Object.fromEntries(
   Object.entries(Phase).map(([, v]) => [v, `nimbus.migrations.${v}`])
 );
 
-export const LABS_MIGRATION_FEATURE_MAP = {
+export const LABS_MIGRATION_FEATURE_MAP = Object.freeze({
   "auto-pip": "firefox-labs-auto-pip",
   "urlbar-ime-search": "firefox-labs-urlbar-ime-search",
   "jpeg-xl": "firefox-labs-jpeg-xl",
-};
+});
 
 /**
  * Migrate from the legacy migration state to multi-phase migration state.
@@ -216,6 +216,10 @@ async function migrateEnrollmentsToSql() {
       );
     }
   });
+
+  await lazy.ExperimentAPI.manager.store._reportStartupDatabaseConsistency(
+    "migration"
+  );
 }
 
 /**
@@ -318,6 +322,8 @@ export const NimbusMigrations = {
   Phase,
   migration,
 
+  NIMBUS_MIGRATION_PREFS,
+
   /**
    * Apply any outstanding migrations for the given phase.
    *
@@ -372,6 +378,29 @@ export const NimbusMigrations = {
     if (latestMigration != lastSuccess) {
       Services.prefs.setIntPref(phasePref, lastSuccess);
     }
+  },
+
+  /**
+   * Return whether or not a specific migration has been completed.
+   *
+   * @param {Phase} phase The migration phase the specified migration occurs in.
+   * @param {string} The name of the migration.
+   *
+   * @returns {boolean} Whether or not the migration was completed.
+   */
+  isMigrationCompleted(phase, name) {
+    const phasePref = NIMBUS_MIGRATION_PREFS[phase];
+    const progress = Services.prefs.getIntPref(phasePref, -1);
+
+    const migrationIndex = this.MIGRATIONS[phase]?.findIndex(
+      m => m.name === name
+    );
+
+    if (migrationIndex === -1) {
+      return false;
+    }
+
+    return progress >= migrationIndex;
   },
 
   /**
