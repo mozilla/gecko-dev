@@ -1403,6 +1403,7 @@ class GeckoEngineTest {
             PermissionPromptResponse(
                 isPermissionsGranted = true,
                 isPrivateModeGranted = false,
+                isTechnicalAndInteractionDataGranted = false,
             ),
         )
 
@@ -1414,10 +1415,11 @@ class GeckoEngineTest {
         shadowOf(getMainLooper()).idle()
         assertTrue(nativePermissionPromptResponse!!.isPermissionsGranted!!)
         assertFalse(nativePermissionPromptResponse!!.isPrivateModeGranted!!)
+        assertFalse(nativePermissionPromptResponse!!.isTechnicalAndInteractionDataGranted!!)
     }
 
     @Test
-    fun `GIVEN permissions granted AND private mode granted WHEN onInstallPermissionRequest THEN delegate is called with all modes allowed`() {
+    fun `GIVEN permissions granted AND private mode granted AND technicalAndInteraction data granted WHEN onInstallPermissionRequest THEN delegate is called with all modes allowed`() {
         val runtime: GeckoRuntime = mock()
         val webExtensionController: WebExtensionController = mock()
         whenever(runtime.webExtensionController).thenReturn(webExtensionController)
@@ -1452,6 +1454,7 @@ class GeckoEngineTest {
             PermissionPromptResponse(
                 isPermissionsGranted = true,
                 isPrivateModeGranted = true,
+                isTechnicalAndInteractionDataGranted = true,
             ),
         )
 
@@ -1463,6 +1466,7 @@ class GeckoEngineTest {
         shadowOf(getMainLooper()).idle()
         assertTrue(nativePermissionPromptResponse!!.isPermissionsGranted!!)
         assertTrue(nativePermissionPromptResponse!!.isPrivateModeGranted!!)
+        assertTrue(nativePermissionPromptResponse!!.isTechnicalAndInteractionDataGranted!!)
     }
 
     @Test
@@ -1501,6 +1505,7 @@ class GeckoEngineTest {
             PermissionPromptResponse(
                 isPermissionsGranted = false,
                 isPrivateModeGranted = false,
+                isTechnicalAndInteractionDataGranted = false,
             ),
         )
 
@@ -1512,6 +1517,7 @@ class GeckoEngineTest {
         shadowOf(getMainLooper()).idle()
         assertFalse(nativePermissionPromptResponse!!.isPermissionsGranted!!)
         assertFalse(nativePermissionPromptResponse!!.isPrivateModeGranted!!)
+        assertFalse(nativePermissionPromptResponse!!.isTechnicalAndInteractionDataGranted!!)
     }
 
     @Test

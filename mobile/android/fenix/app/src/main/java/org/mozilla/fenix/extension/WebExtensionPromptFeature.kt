@@ -149,7 +149,12 @@ class WebExtensionPromptFeature(
 
         // If we don't have any promptable permissions, just proceed.
         if (shouldGrantWithoutPrompt) {
-            handlePermissions(promptRequest, granted = true, privateBrowsingAllowed = false)
+            handlePermissions(
+                promptRequest,
+                granted = true,
+                privateBrowsingAllowed = false,
+                technicalAndInteractionDataGranted = false,
+            )
             return
         }
 
@@ -300,11 +305,12 @@ class WebExtensionPromptFeature(
                     context,
                 ),
             ),
-            onPositiveButtonClicked = { _, privateBrowsingAllowed ->
+            onPositiveButtonClicked = { _, privateBrowsingAllowed, technicalAndInteractionDataAllowed ->
                 handlePermissions(
                     promptRequest,
                     granted = true,
                     privateBrowsingAllowed,
+                    technicalAndInteractionDataAllowed,
                 )
             },
             onNegativeButtonClicked = {
@@ -312,6 +318,7 @@ class WebExtensionPromptFeature(
                     promptRequest,
                     granted = false,
                     privateBrowsingAllowed = false,
+                    technicalAndInteractionDataGranted = false,
                 )
             },
             onLearnMoreClicked = {
@@ -332,19 +339,29 @@ class WebExtensionPromptFeature(
 
     private fun tryToReAttachButtonHandlersToPreviousDialog() {
         findPreviousPermissionDialogFragment()?.let { dialog ->
-            dialog.onPositiveButtonClicked = { addon, privateBrowsingAllowed ->
+            dialog.onPositiveButtonClicked = { addon, privateBrowsingAllowed, technicalAndInteractionDataGranted ->
                 store.state.webExtensionPromptRequest?.let { promptRequest ->
                     if (promptRequest is WebExtensionPromptRequest.AfterInstallation.Permissions &&
                         addon.id == promptRequest.extension.id
                     ) {
-                        handlePermissions(promptRequest, granted = true, privateBrowsingAllowed)
+                        handlePermissions(
+                            promptRequest,
+                            granted = true,
+                            privateBrowsingAllowed,
+                            technicalAndInteractionDataGranted,
+                        )
                     }
                 }
             }
             dialog.onNegativeButtonClicked = {
                 store.state.webExtensionPromptRequest?.let { promptRequest ->
                     if (promptRequest is WebExtensionPromptRequest.AfterInstallation.Permissions) {
-                        handlePermissions(promptRequest, granted = false, privateBrowsingAllowed = false)
+                        handlePermissions(
+                            promptRequest,
+                            granted = false,
+                            privateBrowsingAllowed = false,
+                            technicalAndInteractionDataGranted = false,
+                        )
                     }
                 }
             }
@@ -376,6 +393,7 @@ class WebExtensionPromptFeature(
         promptRequest: WebExtensionPromptRequest.AfterInstallation.Permissions,
         granted: Boolean,
         privateBrowsingAllowed: Boolean,
+        technicalAndInteractionDataGranted: Boolean,
     ) {
         when (promptRequest) {
             is WebExtensionPromptRequest.AfterInstallation.Permissions.Optional -> {
@@ -386,6 +404,7 @@ class WebExtensionPromptFeature(
                 val response = PermissionPromptResponse(
                     isPermissionsGranted = granted,
                     isPrivateModeGranted = privateBrowsingAllowed,
+                    isTechnicalAndInteractionDataGranted = technicalAndInteractionDataGranted,
                 )
                 promptRequest.onConfirm(response)
             }

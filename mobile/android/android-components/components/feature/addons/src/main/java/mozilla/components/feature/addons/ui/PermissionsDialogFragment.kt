@@ -50,6 +50,7 @@ internal const val KEY_PERMISSIONS = "KEY_PERMISSIONS"
 internal const val KEY_ORIGINS = "KEY_ORIGINS"
 internal const val KEY_DATA_COLLECTION_PERMISSIONS = "KEY_DATA_COLLECTION_PERMISSIONS"
 private const val DEFAULT_VALUE = Int.MAX_VALUE
+private const val TECHNICAL_AND_INTERACTION_PERM = "technicalAndInteraction"
 
 /**
  * A dialog that shows a set of permission required by an [Addon].
@@ -60,7 +61,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
      * A lambda called when the allow button is clicked which contains the [Addon] and
      * whether the addon is allowed in private browsing mode.
      */
-    var onPositiveButtonClicked: ((Addon, Boolean) -> Unit)? = null
+    var onPositiveButtonClicked: ((Addon, Boolean, Boolean) -> Unit)? = null
 
     /**
      * A lambda called when the deny button is clicked.
@@ -250,6 +251,8 @@ class PermissionsDialogFragment : AddonDialogFragment() {
         val optionalsSettingsTitle = rootView.findViewById<TextView>(R.id.optional_settings_title)
         val allowedInPrivateBrowsing =
             rootView.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
+        val technicalAndInteraction =
+            rootView.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
 
         var extraPermissionWarning: String? = null
         if (isUserScriptsPermission) {
@@ -257,8 +260,13 @@ class PermissionsDialogFragment : AddonDialogFragment() {
                 .getString(R.string.mozac_feature_addons_permissions_user_scripts_extra_warning)
         }
 
+        val showTechnicalAndInteraction =
+            dataCollectionPermissions.contains(TECHNICAL_AND_INTERACTION_PERM) && !forOptionalPermissions
         val requiredDataCollectionPermissionText =
-            buildRequiredDataCollectionPermissionsText(dataCollectionPermissions.toList())
+            buildRequiredDataCollectionPermissionsText(
+                dataCollectionPermissions.filter { it != TECHNICAL_AND_INTERACTION_PERM }
+                    .toList(),
+            )
 
         permissionsRecyclerView.adapter = RequiredPermissionsAdapter(
             permissions = listPermissions,
@@ -291,8 +299,19 @@ class PermissionsDialogFragment : AddonDialogFragment() {
             allowedInPrivateBrowsing.isVisible = false
         }
 
+        if (showTechnicalAndInteraction) {
+            optionalsSettingsTitle.isVisible = true
+            technicalAndInteraction.isVisible = true
+            // This is an opt-out setting.
+            technicalAndInteraction.isChecked = true
+        }
+
         positiveButton.setOnClickListener {
-            onPositiveButtonClicked?.invoke(addon, allowedInPrivateBrowsing.isChecked)
+            onPositiveButtonClicked?.invoke(
+                addon,
+                allowedInPrivateBrowsing.isChecked,
+                technicalAndInteraction.isChecked,
+            )
             dismiss()
         }
 
@@ -472,7 +491,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
                 gravity = Gravity.BOTTOM,
                 shouldWidthMatchParent = true,
             ),
-            onPositiveButtonClicked: ((Addon, Boolean) -> Unit)? = null,
+            onPositiveButtonClicked: ((Addon, Boolean, Boolean) -> Unit)? = null,
             onNegativeButtonClicked: (() -> Unit)? = null,
             onLearnMoreClicked: (() -> Unit)? = null,
         ): PermissionsDialogFragment {

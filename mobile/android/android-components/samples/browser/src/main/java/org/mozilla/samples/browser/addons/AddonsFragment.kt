@@ -181,7 +181,7 @@ class AddonsFragment : Fragment(), AddonsManagerAdapterDelegate {
         }
     }
 
-    private val onConfirmPermissionButtonClicked: ((Addon, Boolean) -> Unit) = { addon, _ ->
+    private val onConfirmPermissionButtonClicked: ((Addon, Boolean, Boolean) -> Unit) = { addon, _, _ ->
         val includedBinding = OverlayAddOnProgressBinding.bind(binding.addonProgressOverlay.addonProgressOverlay)
 
         includedBinding.root.visibility = View.VISIBLE

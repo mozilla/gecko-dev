@@ -109,6 +109,24 @@
                 android:gravity="center_vertical"
                 android:drawablePadding="8dp" />
 
+            <androidx.appcompat.widget.AppCompatCheckBox
+                android:id="@+id/technical_and_interaction_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/allow_in_private_browsing"
+                android:layout_alignStart="@id/allow_in_private_browsing"
+                android:layout_alignEnd="@id/allow_in_private_browsing"
+                android:layout_gravity="center"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:paddingTop="4dp"
+                android:text="@string/mozac_feature_addons_permissions_dialog_technical_and_interaction_data"
+                android:textColor="?android:attr/textColorPrimary"
+                android:gravity="center_vertical"
+                android:drawablePadding="8dp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
         </RelativeLayout>
     </androidx.core.widget.NestedScrollView>
 

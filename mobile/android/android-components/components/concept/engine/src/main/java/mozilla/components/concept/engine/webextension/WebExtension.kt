@@ -541,6 +541,7 @@ enum class EnableSource(val id: Int) {
 data class PermissionPromptResponse(
     val isPermissionsGranted: Boolean,
     val isPrivateModeGranted: Boolean = false,
+    val isTechnicalAndInteractionDataGranted: Boolean = false,
 )
 
 /**
