@@ -9,19 +9,16 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.rule.ActivityTestRule
-import mozilla.components.concept.engine.utils.EngineReleaseChannel
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.customannotations.SmokeTest
-import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertNativeAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertYoutubeAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.clickSystemHomeScreenShortcutAddButton
-import org.mozilla.fenix.helpers.AppAndSystemHelper.runWithCondition
 import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_DOCS
 import org.mozilla.fenix.helpers.Constants.PackageName.PRINT_SPOOLER
 import org.mozilla.fenix.helpers.DataGenerationHelper.createCustomTabIntent
@@ -905,34 +902,29 @@ class MainMenuTestCompose : TestSetup() {
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyTheReportBrokenSiteOptionTest() {
-        runWithCondition(
-            // This test will not run on RC builds because the "Report site issue button" is not available.
-            composeTestRule.activity.components.core.engine.version.releaseChannel !== EngineReleaseChannel.RELEASE,
-        ) {
-            val defaultWebPage = getGenericAsset(mockWebServer, 1)
+        val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
-            navigationToolbar {
-            }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.clickReportBrokenSiteButton {
-                verifyWebCompatReporterViewItems(composeTestRule, websiteURL = defaultWebPage.url.toString())
-            }.closeWebCompatReporter {
-            }.openThreeDotMenu(composeTestRule) {
-            }.openSettings {
-            }.openSettingsSubMenuDataCollection {
-                clickUsageAndTechnicalDataToggle()
-                verifyUsageAndTechnicalDataToggle(enabled = false)
-            }
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.clickReportBrokenSiteButton {
+            verifyWebCompatReporterViewItems(composeTestRule, websiteURL = defaultWebPage.url.toString())
+        }.closeWebCompatReporter {
+        }.openThreeDotMenu(composeTestRule) {
+        }.openSettings {
+        }.openSettingsSubMenuDataCollection {
+            clickUsageAndTechnicalDataToggle()
+            verifyUsageAndTechnicalDataToggle(enabled = false)
+        }
 
-            exitMenu()
+        exitMenu()
 
-            browserScreen {
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.clickReportBrokenSiteButton {
-                verifyUrl("webcompat.com/issues/new")
-            }
+        browserScreen {
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.clickReportBrokenSiteButton {
+            verifyUrl("webcompat.com/issues/new")
         }
     }
 
@@ -940,25 +932,20 @@ class MainMenuTestCompose : TestSetup() {
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyTheWhatIsBrokenErrorMessageTest() {
-        runWithCondition(
-            // This test will not run on RC builds because the "Report site issue button" is not available.
-            composeTestRule.activity.components.core.engine.version.releaseChannel !== EngineReleaseChannel.RELEASE,
-        ) {
-            val defaultWebPage = getGenericAsset(mockWebServer, 1)
+        val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
-            navigationToolbar {
-            }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.openReportBrokenSite {
-                verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
-                verifyWhatIsBrokenField(composeTestRule)
-                verifySendButtonIsEnabled(composeTestRule, isEnabled = false)
-                clickChooseReasonField(composeTestRule)
-                clickSiteDoesNotLoadReason(composeTestRule)
-                verifyChooseReasonErrorMessageIsNotDisplayed(composeTestRule)
-                verifySendButtonIsEnabled(composeTestRule, isEnabled = true)
-            }
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.openReportBrokenSite {
+            verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
+            verifyWhatIsBrokenField(composeTestRule)
+            verifySendButtonIsEnabled(composeTestRule, isEnabled = false)
+            clickChooseReasonField(composeTestRule)
+            clickSiteDoesNotLoadReason(composeTestRule)
+            verifyChooseReasonErrorMessageIsNotDisplayed(composeTestRule)
+            verifySendButtonIsEnabled(composeTestRule, isEnabled = true)
         }
     }
 
@@ -966,26 +953,21 @@ class MainMenuTestCompose : TestSetup() {
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyThatTheBrokenSiteFormCanBeCanceledTest() {
-        runWithCondition(
-            // This test will not run on RC builds because the "Report site issue button" is not available.
-            composeTestRule.activity.components.core.engine.version.releaseChannel !== EngineReleaseChannel.RELEASE,
-        ) {
-            val defaultWebPage = getGenericAsset(mockWebServer, 1)
+        val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
-            navigationToolbar {
-            }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.openReportBrokenSite {
-                verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
-                clickChooseReasonField(composeTestRule)
-                clickSiteDoesNotLoadReason(composeTestRule)
-                clickBrokenSiteFormCancelButton(composeTestRule)
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.openReportBrokenSite {
-                verifyWhatIsBrokenField(composeTestRule)
-            }
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.openReportBrokenSite {
+            verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
+            clickChooseReasonField(composeTestRule)
+            clickSiteDoesNotLoadReason(composeTestRule)
+            clickBrokenSiteFormCancelButton(composeTestRule)
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.openReportBrokenSite {
+            verifyWhatIsBrokenField(composeTestRule)
         }
     }
 
@@ -993,31 +975,26 @@ class MainMenuTestCompose : TestSetup() {
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @Test
     fun verifyTheBrokenSiteFormSubmissionTest() {
-        runWithCondition(
-            // This test will not run on RC builds because the "Report site issue button" is not available.
-            composeTestRule.activity.components.core.engine.version.releaseChannel !== EngineReleaseChannel.RELEASE,
-        ) {
-            val defaultWebPage = getGenericAsset(mockWebServer, 1)
+        val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
-            navigationToolbar {
-            }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.openReportBrokenSite {
-                verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
-                clickChooseReasonField(composeTestRule)
-                clickSiteDoesNotLoadReason(composeTestRule)
-                describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
-                clickBrokenSiteFormSendButton(composeTestRule)
-            }
-            browserScreen {
-                verifySnackBarText("Your report was sent")
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.openReportBrokenSite {
-                verifyWhatIsBrokenField(composeTestRule)
-                verifyBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time", isDisplayed = false)
-            }
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.openReportBrokenSite {
+            verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
+            clickChooseReasonField(composeTestRule)
+            clickSiteDoesNotLoadReason(composeTestRule)
+            describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
+            clickBrokenSiteFormSendButton(composeTestRule)
+        }
+        browserScreen {
+            verifySnackBarText("Your report was sent")
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.openReportBrokenSite {
+            verifyWhatIsBrokenField(composeTestRule)
+            verifyBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time", isDisplayed = false)
         }
     }
 
@@ -1025,27 +1002,22 @@ class MainMenuTestCompose : TestSetup() {
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyThatTheBrokenSiteFormInfoPersistsTest() {
-        runWithCondition(
-            // This test will not run on RC builds because the "Report site issue button" is not available.
-            composeTestRule.activity.components.core.engine.version.releaseChannel !== EngineReleaseChannel.RELEASE,
-        ) {
-            val defaultWebPage = getGenericAsset(mockWebServer, 1)
+        val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
-            navigationToolbar {
-            }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.openReportBrokenSite {
-                verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
-                clickChooseReasonField(composeTestRule)
-                clickSiteDoesNotLoadReason(composeTestRule)
-                describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
-            }.closeWebCompatReporter {
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.openReportBrokenSite {
-                verifyBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time", isDisplayed = true)
-            }
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.openReportBrokenSite {
+            verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
+            clickChooseReasonField(composeTestRule)
+            clickSiteDoesNotLoadReason(composeTestRule)
+            describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
+        }.closeWebCompatReporter {
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.openReportBrokenSite {
+            verifyBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time", isDisplayed = true)
         }
     }
 
@@ -1053,32 +1025,27 @@ class MainMenuTestCompose : TestSetup() {
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyTheBrokenSiteFormIsEmptyWithoutSubmittingThePreviousOneTest() {
-        runWithCondition(
-            // This test will not run on RC builds because the "Report site issue button" is not available.
-            composeTestRule.activity.components.core.engine.version.releaseChannel !== EngineReleaseChannel.RELEASE,
-        ) {
-            val firstWebPage = getGenericAsset(mockWebServer, 1)
-            val secondWebPage = getGenericAsset(mockWebServer, 2)
+        val firstWebPage = getGenericAsset(mockWebServer, 1)
+        val secondWebPage = getGenericAsset(mockWebServer, 2)
 
-            navigationToolbar {
-            }.enterURLAndEnterToBrowser(firstWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.openReportBrokenSite {
-                verifyWebCompatReporterViewItems(composeTestRule, firstWebPage.url.toString())
-                clickChooseReasonField(composeTestRule)
-                clickSiteDoesNotLoadReason(composeTestRule)
-                describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
-            }.closeWebCompatReporter {
-            }.openTabDrawer(composeTestRule) {
-            }.openNewTab {
-            }.submitQuery(secondWebPage.url.toString()) {
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.openReportBrokenSite {
-                verifyWhatIsBrokenField(composeTestRule)
-                verifyBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time", isDisplayed = false)
-            }
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(firstWebPage.url) {
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.openReportBrokenSite {
+            verifyWebCompatReporterViewItems(composeTestRule, firstWebPage.url.toString())
+            clickChooseReasonField(composeTestRule)
+            clickSiteDoesNotLoadReason(composeTestRule)
+            describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
+        }.closeWebCompatReporter {
+        }.openTabDrawer(composeTestRule) {
+        }.openNewTab {
+        }.submitQuery(secondWebPage.url.toString()) {
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.openReportBrokenSite {
+            verifyWhatIsBrokenField(composeTestRule)
+            verifyBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time", isDisplayed = false)
         }
     }
 
@@ -1086,32 +1053,27 @@ class MainMenuTestCompose : TestSetup() {
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyThatTheBrokenSiteFormInfoIsErasedWhenKillingTheAppTest() {
-        runWithCondition(
-            // This test will not run on RC builds because the "Report site issue button" is not available.
-            composeTestRule.activity.components.core.engine.version.releaseChannel !== EngineReleaseChannel.RELEASE,
-        ) {
-            val defaultWebPage = getGenericAsset(mockWebServer, 1)
+        val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
-            navigationToolbar {
-            }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.openReportBrokenSite {
-                verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
-                clickChooseReasonField(composeTestRule)
-                clickSiteDoesNotLoadReason(composeTestRule)
-                describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
-            }
-            closeApp(composeTestRule.activityRule)
-            restartApp(composeTestRule.activityRule)
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.openReportBrokenSite {
+            verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
+            clickChooseReasonField(composeTestRule)
+            clickSiteDoesNotLoadReason(composeTestRule)
+            describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
+        }
+        closeApp(composeTestRule.activityRule)
+        restartApp(composeTestRule.activityRule)
 
-            browserScreen {
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.openReportBrokenSite {
-                verifyWhatIsBrokenField(composeTestRule)
-                verifyBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time", isDisplayed = false)
-            }
+        browserScreen {
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.openReportBrokenSite {
+            verifyWhatIsBrokenField(composeTestRule)
+            verifyBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time", isDisplayed = false)
         }
     }
 
@@ -1119,29 +1081,22 @@ class MainMenuTestCompose : TestSetup() {
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyReportBrokenSiteFormNotDisplayedWhenTelemetryIsDisabledTest() {
-        runWithCondition(
-            // This test will not run on RC builds because the "Report site issue button" is not available.
-            composeTestRule.activity.components.core.engine.version.releaseChannel !== EngineReleaseChannel.RELEASE,
-        ) {
-            val defaultWebPage = getGenericAsset(mockWebServer, 1)
+        val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
-            homeScreen {
-            }.openThreeDotMenu(composeTestRule) {
-            }.openSettings {
-            }.openSettingsSubMenuDataCollection {
-                clickUsageAndTechnicalDataToggle()
-                verifyUsageAndTechnicalDataToggle(enabled = false)
-            }
-
-            exitMenu()
-
-            navigationToolbar {
-            }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
-                openToolsMenu()
-            }.openReportBrokenSite {
-                verifyUrl("webcompat.com/issues/new")
-            }
+        homeScreen {
+        }.openThreeDotMenu(composeTestRule) {
+        }.openSettings {
+        }.openSettingsSubMenuDataCollection {
+            clickUsageAndTechnicalDataToggle()
+            verifyUsageAndTechnicalDataToggle(enabled = false)
+        }
+        exitMenu()
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(defaultWebPage.url) {
+        }.openThreeDotMenu(composeTestRule) {
+            openToolsMenu()
+        }.openReportBrokenSite {
+            verifyUrl("webcompat.com/issues/new")
         }
     }
 }
