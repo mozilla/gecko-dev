@@ -324,6 +324,7 @@ class WebExtensionTest : BaseSessionTest() {
                 extension.id,
                 arrayOf(),
                 arrayOf("*://example.com/*"),
+                arrayOf(),
             ),
         )
 
@@ -348,6 +349,7 @@ class WebExtensionTest : BaseSessionTest() {
                 extension.id,
                 arrayOf(),
                 arrayOf(),
+                arrayOf(),
             ),
         )
 
@@ -363,6 +365,7 @@ class WebExtensionTest : BaseSessionTest() {
             controller.addOptionalPermissions(
                 extension.id,
                 arrayOf("activeTab"),
+                arrayOf(),
                 arrayOf(),
             ),
         )
@@ -394,6 +397,7 @@ class WebExtensionTest : BaseSessionTest() {
                 extension.id,
                 arrayOf(),
                 arrayOf(),
+                arrayOf(),
             ),
         )
 
@@ -409,6 +413,7 @@ class WebExtensionTest : BaseSessionTest() {
             controller.removeOptionalPermissions(
                 extension.id,
                 arrayOf("activeTab"),
+                arrayOf(),
                 arrayOf(),
             ),
         )
@@ -434,6 +439,7 @@ class WebExtensionTest : BaseSessionTest() {
                 extension.id,
                 arrayOf(),
                 arrayOf("*://example.com/*"),
+                arrayOf(),
             ),
         )
 
@@ -455,6 +461,7 @@ class WebExtensionTest : BaseSessionTest() {
                     extension.id,
                     arrayOf(),
                     arrayOf("*://missing-origins.com/*"),
+                    arrayOf(),
                 ),
             )
             fail()
@@ -474,6 +481,7 @@ class WebExtensionTest : BaseSessionTest() {
                 controller.addOptionalPermissions(
                     extension.id,
                     arrayOf("clipboardRead"),
+                    arrayOf(),
                     arrayOf(),
                 ),
             )
@@ -495,6 +503,7 @@ class WebExtensionTest : BaseSessionTest() {
                     extension.id,
                     arrayOf(),
                     arrayOf("<all_urls>"),
+                    arrayOf(),
                 ),
             )
             fail()
@@ -541,6 +550,7 @@ class WebExtensionTest : BaseSessionTest() {
                 extension.id,
                 arrayOf(),
                 arrayOf("http://*/", "https://*/", "file://*/*"),
+                arrayOf(),
             ),
         )
 
@@ -600,6 +610,7 @@ class WebExtensionTest : BaseSessionTest() {
                 extension.id,
                 arrayOf("activeTab", "geolocation"),
                 arrayOf("*://example.com/*"),
+                arrayOf(),
             ),
         )
         sessionRule.waitForResult(controller.uninstall(extension))
@@ -632,7 +643,7 @@ class WebExtensionTest : BaseSessionTest() {
             }
         })
 
-        val extension = sessionRule.waitForResult(
+        var extension = sessionRule.waitForResult(
             controller.install(
                 "resource://android/assets/web_extensions/data-collection-unsigned.xpi",
                 "data-collection@test.mozilla.org",
@@ -657,6 +668,54 @@ class WebExtensionTest : BaseSessionTest() {
         var grantedOptionalDataCollectionPermissions = extension.metaData.grantedOptionalDataCollectionPermissions
         assertThat(
             "Expected no granted data collection permissions.",
+            grantedOptionalDataCollectionPermissions.size,
+            equalTo(0),
+        )
+
+        // Now let's add a new optional data collection permission.
+        extension = sessionRule.waitForResult(
+            controller.addOptionalPermissions(
+                extension.id,
+                arrayOf(),
+                arrayOf(),
+                arrayOf("locationInfo"),
+            ),
+        )
+        grantedOptionalDataCollectionPermissions = extension.metaData.grantedOptionalDataCollectionPermissions
+        assertArrayEquals(
+            "grantedOptionalDataCollectionPermissions has the expected permissions",
+            arrayOf("locationInfo"),
+            grantedOptionalDataCollectionPermissions,
+        )
+
+        // Let's add another one.
+        extension = sessionRule.waitForResult(
+            controller.addOptionalPermissions(
+                extension.id,
+                arrayOf(),
+                arrayOf(),
+                arrayOf("technicalAndInteraction"),
+            ),
+        )
+        grantedOptionalDataCollectionPermissions = extension.metaData.grantedOptionalDataCollectionPermissions
+        assertArrayEquals(
+            "grantedOptionalDataCollectionPermissions has the expected permissions",
+            arrayOf("locationInfo", "technicalAndInteraction"),
+            grantedOptionalDataCollectionPermissions,
+        )
+
+        // And now we remove them.
+        extension = sessionRule.waitForResult(
+            controller.removeOptionalPermissions(
+                extension.id,
+                arrayOf(),
+                arrayOf(),
+                arrayOf("technicalAndInteraction", "locationInfo"),
+            ),
+        )
+        grantedOptionalDataCollectionPermissions = extension.metaData.grantedOptionalDataCollectionPermissions
+        assertThat(
+            "Expected no more granted data collection permissions.",
             grantedOptionalDataCollectionPermissions.size,
             equalTo(0),
         )

@@ -93,7 +93,7 @@ typealias NativePermissionPromptResponse = org.mozilla.geckoview.WebExtension.Pe
 /**
  * Gecko-based implementation of Engine interface.
  */
-@Suppress("LargeClass", "TooManyFunctions")
+@Suppress("LargeClass", "TooManyFunctions", "DEPRECATION")
 class GeckoEngine(
     context: Context,
     private val defaultSettings: Settings? = null,

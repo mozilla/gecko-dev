@@ -1252,14 +1252,16 @@ export var GeckoViewWebExtension = {
       }
 
       case "GeckoView:WebExtension:AddOptionalPermissions": {
-        const { extensionId, permissions, origins } = aData;
+        const {
+          extensionId,
+          permissions,
+          origins,
+          dataCollectionPermissions: data_collection,
+        } = aData;
         try {
           const addon = await this.extensionById(extensionId);
           const normalized = lazy.ExtensionPermissions.normalizeOptional(
-            {
-              permissions,
-              origins,
-            },
+            { permissions, origins, data_collection },
             addon.optionalPermissions
           );
           const policy = WebExtensionPolicy.getByID(addon.id);
@@ -1277,11 +1279,16 @@ export var GeckoViewWebExtension = {
       }
 
       case "GeckoView:WebExtension:RemoveOptionalPermissions": {
-        const { extensionId, permissions, origins } = aData;
+        const {
+          extensionId,
+          permissions,
+          origins,
+          dataCollectionPermissions: data_collection,
+        } = aData;
         try {
           const addon = await this.extensionById(extensionId);
           const normalized = lazy.ExtensionPermissions.normalizeOptional(
-            { permissions, origins },
+            { permissions, origins, data_collection },
             addon.optionalPermissions
           );
           const policy = WebExtensionPolicy.getByID(addon.id);
