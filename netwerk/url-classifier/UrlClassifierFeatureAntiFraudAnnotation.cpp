@@ -96,7 +96,8 @@ UrlClassifierFeatureAntiFraudAnnotation::MaybeCreate(nsIChannel* aChannel) {
     return nullptr;
   }
 
-  // We also don't need to annotate the channel if we are not blocking trackers
+  // We also don't need to annotate the channel if we are not blocking
+  // fingerprinters
   if (!StaticPrefs::privacy_trackingprotection_fingerprinting_enabled()) {
     return nullptr;
   }

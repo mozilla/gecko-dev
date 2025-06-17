@@ -15788,20 +15788,20 @@
   value: true
   mirror: always
 
-# Annotate channels based on the anti fraud list
-# Note: consent manager annotations will be disabled if tracking protection is disabled
+# Annotate channels based on the anti-fraud list
+# Note: anti-fraud annotations will be disabled if tracking protection is disabled
 - name: privacy.trackingprotection.antifraud.annotate_channels
   type: bool
   value: true
   mirror: always
 
-# Skip blocking for consentmanager resources in all modes.
+# Skip blocking for anti-fraud resources in all modes.
 - name: privacy.trackingprotection.antifraud.skip.enabled
   type: RelaxedAtomicBool
   value: false
   mirror: always
 
-# Skip blocking for consentmanager resources in Private Browsing mode.
+# Skip blocking for anti-fraud resources in Private Browsing mode.
 - name: privacy.trackingprotection.antifraud.skip.pbmode.enabled
   type: RelaxedAtomicBool
   value: true
