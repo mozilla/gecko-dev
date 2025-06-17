@@ -77,9 +77,11 @@ static bool IsAvailableInRdd(DecoderType type) {
 static bool IsAvailableInUtility(DecoderType type) {
   switch (type) {
     case DecoderType::Opus:
+      return StaticPrefs::media_utility_opus_enabled();
     case DecoderType::Vorbis:
+      return StaticPrefs::media_utility_vorbis_enabled();
     case DecoderType::Wave:
-      return true;
+      return StaticPrefs::media_utility_wav_enabled();
     // Others are video codecs, don't take care of them
     default:
       return false;

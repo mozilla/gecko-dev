@@ -23,3 +23,23 @@ add_setup(async function checkAudioDecodingNonUtility() {
 add_task(async function testAudioDecodingInUtility() {
   await runTest({ expectUtility: true });
 });
+
+add_task(async function testFailureAudioDecodingInRDD() {
+  await runTest({ expectUtility: false, expectError: true });
+});
+
+add_task(async function testFailureAudioDecodingInContent() {
+  const platform = Services.appinfo.OS;
+  if (platform === "WINNT") {
+    ok(
+      true,
+      "Manually skipping on Windows because of gfx killing us, cf browser.ini"
+    );
+    return;
+  }
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["media.rdd-process.enabled", false]],
+  });
+  await runTest({ expectUtility: false, expectRDD: false, expectError: true });
+});

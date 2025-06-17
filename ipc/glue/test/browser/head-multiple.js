@@ -16,6 +16,14 @@ async function runTest({
   info(`  expectRDD: ${expectRDD}`);
   info(`  expectContent: ${expectContent}`);
 
+  // Utility should now be the default, so dont toggle the pref unless we test
+  // RDD
+  if (!expectUtility) {
+    await SpecialPowers.pushPrefEnv({
+      set: [["media.utility-process.enabled", expectUtility]],
+    });
+  }
+
   const platform = Services.appinfo.OS;
 
   for (let { src, expectations } of audioTestData()) {

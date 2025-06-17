@@ -179,7 +179,8 @@ void PEMFactory::InitRddPEMs() {
 
 void PEMFactory::InitUtilityPEMs() {
   if (StaticPrefs::media_use_remote_encoder_audio() &&
-      StaticPrefs::media_ffmpeg_encoder_enabled()) {
+      StaticPrefs::media_ffmpeg_encoder_enabled() &&
+      StaticPrefs::media_utility_ffvpx_enabled()) {
     if (RefPtr<PlatformEncoderModule> pem =
             FFVPXRuntimeLinker::CreateEncoder()) {
       mCurrentPEMs.AppendElement(pem);
@@ -188,7 +189,8 @@ void PEMFactory::InitUtilityPEMs() {
 
 #ifdef MOZ_FFMPEG
   if (StaticPrefs::media_use_remote_encoder_audio() &&
-      StaticPrefs::media_ffmpeg_enabled()) {
+      StaticPrefs::media_ffmpeg_enabled() &&
+      StaticPrefs::media_utility_ffmpeg_enabled()) {
     if (RefPtr<PlatformEncoderModule> pem =
             FFmpegRuntimeLinker::CreateEncoder()) {
       mCurrentPEMs.AppendElement(pem);

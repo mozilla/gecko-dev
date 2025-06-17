@@ -35,6 +35,12 @@ async function findGenericAudioDecoder() {
   return audioDecoders[0].pid;
 }
 
+add_setup(async function setup() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["media.utility-process.enabled", true]],
+  });
+});
+
 add_task(async function testKill() {
   await runTest("small-shot.ogg", "Utility Generic", "ffvpx audio decoder");
 
