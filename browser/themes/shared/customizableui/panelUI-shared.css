@@ -2255,7 +2255,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 
 /* ----- Profiles panels ----- */
 
-.panel-header + toolbarseparator {
+#PanelUI-profiles .panel-header + toolbarseparator {
   display: none;
 }
 
