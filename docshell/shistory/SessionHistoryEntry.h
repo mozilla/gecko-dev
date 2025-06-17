@@ -368,10 +368,7 @@ class HistoryEntryCounterForBrowsingContext {
 #define NS_SESSIONHISTORYENTRY_IID \
   {0x5b66a244, 0x8cec, 0x4caa, {0xaa, 0x0a, 0x78, 0x92, 0xfd, 0x17, 0xa6, 0x67}}
 
-class SessionHistoryEntry
-    : public nsISHEntry,
-      public nsSupportsWeakReference,
-      public LinkedListElement<RefPtr<SessionHistoryEntry>> {
+class SessionHistoryEntry : public nsISHEntry, public nsSupportsWeakReference {
  public:
   SessionHistoryEntry(nsDocShellLoadState* aLoadState, nsIChannel* aChannel);
   SessionHistoryEntry();

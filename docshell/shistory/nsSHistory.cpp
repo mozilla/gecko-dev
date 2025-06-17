@@ -621,25 +621,50 @@ void nsSHistory::WalkContiguousEntries(
 void nsSHistory::WalkContiguousEntriesInOrder(
     nsISHEntry* aEntry, const std::function<void(nsISHEntry*)>& aCallback) {
   MOZ_ASSERT(aEntry);
-  MOZ_ASSERT(SessionHistoryInParent());
+
+  nsCOMPtr<nsISHistory> shistory = aEntry->GetShistory();
+  if (!shistory) {
+    return;
+  }
+
+  int32_t index = shistory->GetIndexOfEntry(aEntry);
+  int32_t count = shistory->GetCount();
 
   nsCOMPtr<nsIURI> targetURI = aEntry->GetURI();
 
   // Walk backward to find the entries that have the same origin as the
   // input entry.
-  nsCOMPtr<SessionHistoryEntry> entry = do_QueryInterface(aEntry);
-  MOZ_ASSERT(entry);
-  while (nsCOMPtr previousEntry = entry->getPrevious()) {
-    nsCOMPtr<nsIURI> uri = previousEntry->GetURI();
+  int32_t lowerBound = index;
+  for (int32_t i = index - 1; i >= 0; i--) {
+    RefPtr<nsISHEntry> entry;
+    shistory->GetEntryAtIndex(i, getter_AddRefs(entry));
+    if (!entry) {
+      continue;
+    }
+    nsCOMPtr<nsIURI> uri = entry->GetURI();
     if (NS_FAILED(nsContentUtils::GetSecurityManager()->CheckSameOriginURI(
             targetURI, uri, false, false))) {
       break;
     }
-    entry = previousEntry;
+    lowerBound = i;
+  }
+  for (int32_t i = lowerBound; i < index; i++) {
+    RefPtr<nsISHEntry> entry;
+    shistory->GetEntryAtIndex(i, getter_AddRefs(entry));
+    MOZ_ASSERT(entry);
+    aCallback(entry);
   }
 
-  aCallback(entry);
-  while ((entry = entry->getNext())) {
+  // Then, call the callback on the input entry.
+  aCallback(aEntry);
+
+  // Then, Walk forward.
+  for (int32_t i = index + 1; i < count; i++) {
+    RefPtr<nsISHEntry> entry;
+    shistory->GetEntryAtIndex(i, getter_AddRefs(entry));
+    if (!entry) {
+      continue;
+    }
     nsCOMPtr<nsIURI> uri = entry->GetURI();
     if (NS_FAILED(nsContentUtils::GetSecurityManager()->CheckSameOriginURI(
             targetURI, uri, false, false))) {

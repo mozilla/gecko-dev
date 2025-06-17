@@ -1102,7 +1102,8 @@ parent:
     async GetLoadingSessionHistoryInfoFromParent(MaybeDiscardedBrowsingContext aContext)
         returns (LoadingSessionHistoryInfo? aLoadingInfo);
 
-    async GetContiguousSessionHistoryInfos(MaybeDiscardedBrowsingContext aContext)
+    async GetContiguousSessionHistoryInfos(MaybeDiscardedBrowsingContext aContext,
+                                           SessionHistoryInfo aInfo)
         returns (SessionHistoryInfo[] infos);
 
     async RemoveFromBFCache(MaybeDiscardedBrowsingContext aContext);
