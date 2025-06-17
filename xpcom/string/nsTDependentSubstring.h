@@ -73,7 +73,7 @@ class MOZ_GSL_POINTER nsTDependentSubstring : public nsTSubstring<T> {
                        ClassFlags(0)) {}
 
   explicit nsTDependentSubstring(
-      mozilla::Span<const char_type> aData MOZ_LIFETIME_BOUND)
+      mozilla::Span<const char_type> aData)
       : nsTDependentSubstring(aData.Elements(), aData.Length()) {}
 
   nsTDependentSubstring(const char_type* aStart MOZ_LIFETIME_BOUND,
@@ -89,8 +89,8 @@ class MOZ_GSL_POINTER nsTDependentSubstring : public nsTSubstring<T> {
                         char16ptr_t aEnd MOZ_LIFETIME_BOUND);
 #endif
 
-  nsTDependentSubstring(const const_iterator& aStart MOZ_LIFETIME_BOUND,
-                        const const_iterator& aEnd MOZ_LIFETIME_BOUND);
+  nsTDependentSubstring(const const_iterator& aStart,
+                        const const_iterator& aEnd);
 
   // Create a nsTDependentSubstring to be bound later
   nsTDependentSubstring() : substring_type() {}
