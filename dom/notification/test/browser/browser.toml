@@ -3,13 +3,6 @@
 ["browser_permission_dismiss.js"]
 support-files = ["notification.html"]
 
-["browser_openwindow_without_window.js"]
-support-files = [
-  "empty.html",
-  "file_openwindow.html",
-  "file_openwindow.serviceworker.js",
-]
-
 ["browser_userContextId_openWindow.js"]
 support-files = [
   "empty.html",

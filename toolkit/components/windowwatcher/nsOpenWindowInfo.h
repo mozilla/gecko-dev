@@ -11,12 +11,7 @@
 #include "nsISupportsImpl.h"
 #include "mozilla/OriginAttributes.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/ClientOpenWindowUtils.h"
-
-// f4fecc26-02fe-46dc-935c-4d6f9acb18a6
-#define NS_OPENWINDOWINFO_CID \
-  {0xf4fecc26, 0x02fe, 0x46dc, {0x93, 0x5c, 0x4d, 0x6f, 0x9a, 0xcb, 0x18, 0xa6}}
 
 class nsOpenWindowInfo : public nsIOpenWindowInfo {
  public:
