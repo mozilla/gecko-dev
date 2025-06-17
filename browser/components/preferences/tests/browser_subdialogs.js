@@ -215,19 +215,11 @@ async function close_subdialog_and_test_generic_end_state(
 
 let tab;
 
-add_setup(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["security.allow_eval_with_system_principal", true]],
-  });
-
+add_task(async function test_initialize() {
   tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
     "about:preferences"
   );
-
-  registerCleanupFunction(() => {
-    gBrowser.removeTab(tab);
-  });
 });
 
 add_task(
@@ -674,3 +666,7 @@ add_task(
     );
   }
 );
+
+add_task(async function test_shutdown() {
+  gBrowser.removeTab(tab);
+});

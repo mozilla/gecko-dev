@@ -671,7 +671,6 @@ bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
     return true;
   }
 
-#ifndef NIGHTLY_BUILD
   DetectJsHacks();
   if (MOZ_UNLIKELY(sJSHacksPresent)) {
     MOZ_LOG(
@@ -681,7 +680,6 @@ bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
          (aIsSystemPrincipal ? "with System Principal" : "in parent process")));
     return true;
   }
-#endif
 
   if (XRE_IsE10sParentProcess() &&
       !StaticPrefs::extensions_webextensions_remote()) {

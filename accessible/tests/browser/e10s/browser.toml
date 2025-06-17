@@ -16,10 +16,6 @@ support-files = [
   "!/accessible/tests/mochitest/letters.gif",
   "!/accessible/tests/mochitest/moz.png",
 ]
-prefs = [
-  # Required for the eval in invokeContentTask in shared-head.js
-  "security.allow_eval_with_system_principal=true"
-]
 
 ["browser_aria_activedescendant.js"]
 

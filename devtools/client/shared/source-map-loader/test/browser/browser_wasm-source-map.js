@@ -18,12 +18,6 @@ SourceMapConsumer.initialize({
     "resource://devtools/client/shared/vendor/source-map/lib/mappings.wasm",
 });
 
-add_setup(function () {
-  return SpecialPowers.pushPrefEnv({
-    set: [["security.allow_eval_with_system_principal", true]],
-  });
-});
-
 add_task(async function smokeTest() {
   const testMap1 = {
     version: 3,

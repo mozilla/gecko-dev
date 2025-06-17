@@ -10,10 +10,6 @@
 // verifies animation has more precsion when it's in cross-origin-isolated and
 // cross-origin-isolated doesn't affect RFP.
 add_task(async function runRTPTestAnimation() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["security.allow_eval_with_system_principal", true]],
-  });
-
   let runTests = async function (data) {
     function waitForCondition(aCond, aCallback, aErrorMsg) {
       var tries = 0;

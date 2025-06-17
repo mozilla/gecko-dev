@@ -9,8 +9,6 @@ prefs = [
   # Enabling the a11y service from XPCOM doesn't seem to be enough to get ATK
   # working correctly. Force enable it before the test starts.
   "accessibility.force_disabled=-1",
-  # Required for the eval in invokeContentTask in shared-head.js
-  "security.allow_eval_with_system_principal=true"
 ]
 
 ["browser_atspi_interfaces.js"]

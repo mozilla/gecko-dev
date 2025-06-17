@@ -7,10 +7,6 @@ support-files = [
   "!/accessible/tests/mochitest/letters.gif",
   "!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js",
 ]
-prefs = [
-  # Required for the eval in invokeContentTask in shared-head.js
-  "security.allow_eval_with_system_principal=true"
-]
 
 ["browser_accessible_moved.js"]
 

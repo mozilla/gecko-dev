@@ -152,7 +152,6 @@ add_task(async function testPermissionGrantedOn3rdParty() {
         "privacy.restrict3rdpartystorage.userInteractionRequiredForHosts",
         "tracking.example.com,tracking.example.org",
       ],
-      ["security.allow_eval_with_system_principal", true],
     ],
   });
 
@@ -319,7 +318,6 @@ add_task(async function testPermissionGrantedOnFirstParty() {
         "privacy.restrict3rdpartystorage.heuristic.exclude_third_party_trackers",
         false,
       ],
-      ["security.allow_eval_with_system_principal", true],
     ],
   });
 

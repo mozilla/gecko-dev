@@ -229,8 +229,8 @@ var gTests = [
           const device = aSubject
             .QueryInterface(Ci.nsIArrayExtensions)
             .GetElementAt(0).wrappedJSObject;
-          // content defined by BrowserTestUtilsChild.
-          content.wrappedJSObject.message(device.id);
+          // `this` is the BrowserTestUtilsChild.
+          this.contentWindow.wrappedJSObject.message(device.id);
           return true;
         }
       );
