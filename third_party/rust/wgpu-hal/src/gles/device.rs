@@ -219,6 +219,7 @@ impl super::Device {
         let (module, info) = naga::back::pipeline_constants::process_overrides(
             &stage.module.naga.module,
             &stage.module.naga.info,
+            Some((naga_stage, stage.entry_point)),
             stage.constants,
         )
         .map_err(|e| {
@@ -969,6 +970,8 @@ impl crate::Device for super::Device {
                 }
                 #[cfg(webgl)]
                 super::TextureInner::ExternalFramebuffer { .. } => {}
+                #[cfg(native)]
+                super::TextureInner::ExternalNativeFramebuffer { .. } => {}
             }
         }
 

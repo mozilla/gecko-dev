@@ -60,6 +60,7 @@ dx12 = [
     "dep:libloading",
     "dep:log",
     "dep:ordered-float",
+    "dep:parking_lot",
     "dep:profiling",
     "dep:range-alloc",
     "dep:windows-core",
@@ -92,9 +93,11 @@ gles = [
     "dep:log",
     "dep:ndk-sys",
     "dep:objc",
+    "dep:parking_lot",
     "dep:profiling",
     "dep:wasm-bindgen",
     "dep:web-sys",
+    "wgpu-types/web",
     "windows/Win32_Graphics_OpenGL",
     "windows/Win32_Graphics_Gdi",
     "windows/Win32_System_LibraryLoader",
@@ -111,6 +114,7 @@ metal = [
     "dep:log",
     "dep:metal",
     "dep:objc",
+    "dep:parking_lot",
     "dep:profiling",
 ]
 portable-atomic = ["dep:portable-atomic"]
@@ -120,6 +124,7 @@ renderdoc = [
     "dep:log",
 ]
 static-dxc = ["dep:mach-dxcompiler-rs"]
+validation_canary = ["dep:parking_lot"]
 vulkan = [
     "naga/spv-out",
     "dep:android_system_properties",
@@ -133,6 +138,7 @@ vulkan = [
     "dep:libloading",
     "dep:log",
     "dep:ordered-float",
+    "dep:parking_lot",
     "dep:profiling",
     "dep:smallvec",
     "dep:windows",
@@ -210,6 +216,7 @@ default-features = false
 
 [dependencies.parking_lot]
 version = "0.12.3"
+optional = true
 
 [dependencies.profiling]
 version = "1"
@@ -232,6 +239,7 @@ default-features = false
 [dependencies.wgpu-types]
 version = "25.0.0"
 path = "../wgpu-types"
+default-features = false
 
 [dev-dependencies.cfg-if]
 version = "1"

@@ -150,8 +150,8 @@ mod foreign {
         },
         command::{
             ClearError, CommandEncoderError, ComputePassError, CopyError, CreateRenderBundleError,
-            QueryError, QueryUseError, RenderBundleError, RenderPassError, ResolveError,
-            TransferError,
+            EncoderStateError, QueryError, QueryUseError, RenderBundleError, RenderPassError,
+            ResolveError, TransferError,
         },
         device::{
             queue::{QueueSubmitError, QueueWriteError},
@@ -478,7 +478,7 @@ mod foreign {
     impl HasErrorBufferType for CopyError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
-                CopyError::Encoder(e) => e.error_type(),
+                CopyError::EncoderState(e) => e.error_type(),
                 CopyError::Transfer(e) => e.error_type(),
 
                 CopyError::InvalidResource(_) => ErrorBufferType::Validation,
@@ -486,6 +486,12 @@ mod foreign {
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
             }
+        }
+    }
+
+    impl HasErrorBufferType for EncoderStateError {
+        fn error_type(&self) -> ErrorBufferType {
+            ErrorBufferType::Validation
         }
     }
 
@@ -540,7 +546,7 @@ mod foreign {
     impl HasErrorBufferType for QueryError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
-                QueryError::Encoder(e) => e.error_type(),
+                QueryError::EncoderState(e) => e.error_type(),
                 QueryError::Use(e) => e.error_type(),
                 QueryError::Resolve(e) => e.error_type(),
 

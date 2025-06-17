@@ -8,7 +8,7 @@ use wgt::{BufferAddress, BufferUsages, Extent3d, TextureSelector, TextureUsages}
 use crate::device::trace::Command as TraceCommand;
 use crate::{
     api_log,
-    command::{clear_texture, CommandEncoderError},
+    command::{clear_texture, EncoderStateError},
     conv,
     device::{Device, DeviceError, MissingDownlevelFlags},
     global::Global,
@@ -29,24 +29,6 @@ use super::{ClearError, CommandBufferMutable};
 pub type TexelCopyBufferInfo = wgt::TexelCopyBufferInfo<BufferId>;
 pub type TexelCopyTextureInfo = wgt::TexelCopyTextureInfo<TextureId>;
 pub type CopyExternalImageDestInfo = wgt::CopyExternalImageDestInfo<TextureId>;
-
-#[deprecated(
-    since = "24.0.0",
-    note = "This has been renamed to `TexelCopyBufferInfo`, and will be removed in 25.0.0."
-)]
-pub type ImageCopyBuffer = wgt::TexelCopyBufferInfo<BufferId>;
-
-#[deprecated(
-    since = "24.0.0",
-    note = "This has been renamed to `TexelCopyTextureInfo`, and will be removed in 25.0.0."
-)]
-pub type ImageCopyTexture = wgt::TexelCopyTextureInfo<TextureId>;
-
-#[deprecated(
-    since = "24.0.0",
-    note = "This has been renamed to `TexelCopyTextureSourceInfo`, and will be removed in 25.0.0."
-)]
-pub type ImageCopyTextureTagged = wgt::CopyExternalImageDestInfo<TextureId>;
 
 #[derive(Clone, Copy, Debug)]
 pub enum CopySide {
@@ -161,19 +143,15 @@ pub enum TransferError {
 #[non_exhaustive]
 pub enum CopyError {
     #[error(transparent)]
-    Encoder(#[from] CommandEncoderError),
+    EncoderState(#[from] EncoderStateError),
+    #[error(transparent)]
+    Device(#[from] DeviceError),
     #[error("Copy error")]
     Transfer(#[from] TransferError),
     #[error(transparent)]
     DestroyedResource(#[from] DestroyedResourceError),
     #[error(transparent)]
     InvalidResource(#[from] InvalidResourceError),
-}
-
-impl From<DeviceError> for CopyError {
-    fn from(err: DeviceError) -> Self {
-        CopyError::Encoder(CommandEncoderError::Device(err))
-    }
 }
 
 pub(crate) fn extract_texture_selector<T>(

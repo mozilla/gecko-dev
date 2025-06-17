@@ -2310,15 +2310,11 @@ impl Global {
             CommandEncoderAction::RunComputePass {
                 base,
                 timestamp_writes,
-            } => {
-                if let Err(err) = self.compute_pass_end_with_unresolved_commands(
-                    self_id,
-                    base,
-                    timestamp_writes.as_ref(),
-                ) {
-                    error_buf.init(err);
-                }
-            }
+            } => self.compute_pass_end_with_unresolved_commands(
+                self_id,
+                base,
+                timestamp_writes.as_ref(),
+            ),
             CommandEncoderAction::WriteTimestamp {
                 query_set_id,
                 query_index,
@@ -2353,18 +2349,14 @@ impl Global {
                 target_depth_stencil,
                 timestamp_writes,
                 occlusion_query_set_id,
-            } => {
-                if let Err(err) = self.render_pass_end_with_unresolved_commands(
-                    self_id,
-                    base,
-                    &target_colors,
-                    target_depth_stencil.as_ref(),
-                    timestamp_writes.as_ref(),
-                    occlusion_query_set_id,
-                ) {
-                    error_buf.init(err);
-                }
-            }
+            } => self.render_pass_end_with_unresolved_commands(
+                self_id,
+                base,
+                &target_colors,
+                target_depth_stencil.as_ref(),
+                timestamp_writes.as_ref(),
+                occlusion_query_set_id,
+            ),
             CommandEncoderAction::ClearBuffer { dst, offset, size } => {
                 if let Err(err) = self.command_encoder_clear_buffer(self_id, dst, offset, size) {
                     error_buf.init(err);
@@ -2395,8 +2387,7 @@ impl Global {
                     error_buf.init(err);
                 }
             }
-            CommandEncoderAction::BuildAccelerationStructuresUnsafeTlas { .. }
-            | CommandEncoderAction::BuildAccelerationStructures { .. } => {
+            CommandEncoderAction::BuildAccelerationStructures { .. } => {
                 unreachable!("internal error: attempted to build acceleration structures")
             }
         }

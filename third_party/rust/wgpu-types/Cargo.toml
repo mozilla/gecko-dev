@@ -50,12 +50,16 @@ serde = [
     "bitflags/serde",
 ]
 std = [
-    "js-sys/std",
-    "web-sys/std",
+    "js-sys?/std",
+    "web-sys?/std",
     "thiserror/std",
 ]
 strict_asserts = []
 trace = ["std"]
+web = [
+    "dep:js-sys",
+    "dep:web-sys",
+]
 
 [lib]
 name = "wgpu_types"
@@ -100,6 +104,7 @@ version = "1.0.118"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.js-sys]
 version = "0.3.77"
+optional = true
 default-features = false
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
@@ -113,6 +118,7 @@ features = [
     "OffscreenCanvas",
     "VideoFrame",
 ]
+optional = true
 default-features = false
 
 [lints.clippy]

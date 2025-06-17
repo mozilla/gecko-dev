@@ -10,6 +10,8 @@ use thiserror::Error;
 use super::PipelineConstants;
 use crate::{
     arena::HandleVec,
+    compact::{compact, KeepUnused},
+    ir,
     proc::{ConstantEvaluator, ConstantEvaluatorError, Emitter},
     valid::{Capabilities, ModuleInfo, ValidationError, ValidationFlags, Validator},
     Arena, Block, Constant, Expression, Function, Handle, Literal, Module, Override, Range, Scalar,
@@ -55,6 +57,7 @@ pub enum PipelineConstantError {
 pub fn process_overrides<'a>(
     module: &'a Module,
     module_info: &'a ModuleInfo,
+    entry_point: Option<(ir::ShaderStage, &str)>,
     pipeline_constants: &PipelineConstants,
 ) -> Result<(Cow<'a, Module>, Cow<'a, ModuleInfo>), PipelineConstantError> {
     if module.overrides.is_empty() {
@@ -62,6 +65,16 @@ pub fn process_overrides<'a>(
     }
 
     let mut module = module.clone();
+
+    // If an entry point was specified, compact the module to remove anything
+    // not reachable from that entry point. This is necessary because we may not
+    // have values for overrides that are not reachable from the entry point.
+    if let Some((ep_stage, ep_name)) = entry_point {
+        module
+            .entry_points
+            .retain(|ep| ep.stage == ep_stage && ep.name == ep_name);
+    }
+    compact(&mut module, KeepUnused::No);
 
     // A map from override handles to the handles of the constants
     // we've replaced them with.
@@ -932,6 +945,19 @@ fn map_value_to_literal(value: f64, scalar: Scalar) -> Result<Literal, PipelineC
             let value = value as u32;
             Ok(Literal::U32(value))
         }
+        Scalar::F16 => {
+            // https://webidl.spec.whatwg.org/#js-float
+            if !value.is_finite() {
+                return Err(PipelineConstantError::SrcNeedsToBeFinite);
+            }
+
+            let value = half::f16::from_f64(value);
+            if !value.is_finite() {
+                return Err(PipelineConstantError::DstRangeTooSmall);
+            }
+
+            Ok(Literal::F16(value))
+        }
         Scalar::F32 => {
             // https://webidl.spec.whatwg.org/#js-float
             if !value.is_finite() {
@@ -953,7 +979,10 @@ fn map_value_to_literal(value: f64, scalar: Scalar) -> Result<Literal, PipelineC
 
             Ok(Literal::F64(value))
         }
-        _ => unreachable!(),
+        Scalar::ABSTRACT_FLOAT | Scalar::ABSTRACT_INT => {
+            unreachable!("abstract values should not be validated out of override processing")
+        }
+        _ => unreachable!("unrecognized scalar type for override"),
     }
 }
 

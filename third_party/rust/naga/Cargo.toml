@@ -49,7 +49,6 @@ arbitrary = [
     "half/arbitrary",
     "half/std",
 ]
-compact = []
 default = []
 deserialize = [
     "dep:serde",
@@ -78,13 +77,12 @@ spv-in = [
     "dep:spirv",
 ]
 spv-out = ["dep:spirv"]
+std = []
 stderr = ["codespan-reporting/std"]
 termcolor = ["codespan-reporting/termcolor"]
 wgsl-in = [
     "dep:hexf-parse",
-    "dep:strum",
     "dep:unicode-ident",
-    "compact",
 ]
 wgsl-out = []
 
@@ -181,12 +179,6 @@ default-features = false
 version = "0.3"
 optional = true
 
-[dependencies.strum]
-version = "0.27"
-features = ["derive"]
-optional = true
-default-features = false
-
 [dependencies.thiserror]
 version = "2.0.3"
 default-features = false
@@ -237,8 +229,13 @@ default-features = false
 version = "0.3"
 features = ["deserialize"]
 
+[dev-dependencies.strum]
+version = "0.27"
+features = ["derive"]
+default-features = false
+
 [dev-dependencies.toml]
-version = "0.8"
+version = "0.8.9"
 
 [dev-dependencies.walkdir]
 version = "2.3"
