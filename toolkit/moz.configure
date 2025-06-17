@@ -1127,6 +1127,11 @@ project_flag(
     set_as_define=True,
 )
 
+project_flag(
+    "MOZ_EXTRA_ERROR_DEFINITIONS",
+    help="Name of JSON file to add extra error definitions to ErrorList.py",
+    nargs=1,
+)
 
 # Profile Management
 # ==============================================================
