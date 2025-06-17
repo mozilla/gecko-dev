@@ -81,8 +81,8 @@ class nsHistory final : public nsISupports, public nsWrapperCache {
   already_AddRefed<mozilla::dom::ChildSHistory> GetSessionHistory() const;
 
   MOZ_CAN_RUN_SCRIPT
-  void DeltaTraverse(mozilla::Maybe<JSContext*> aCx, int32_t aDelta,
-                     mozilla::dom::CallerType aCallerType,
+  void DeltaTraverse(mozilla::Maybe<mozilla::NotNull<JSContext*>> aCx,
+                     int32_t aDelta, mozilla::dom::CallerType aCallerType,
                      mozilla::ErrorResult& aRv);
 
   nsWeakPtr mInnerWindow;

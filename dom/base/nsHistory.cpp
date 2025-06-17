@@ -139,7 +139,7 @@ void nsHistory::GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
 // https://html.spec.whatwg.org/#dom-history-go
 void nsHistory::Go(JSContext* aCx, int32_t aDelta, CallerType aCallerType,
                    ErrorResult& aRv) {
-  DeltaTraverse(Some(aCx), aDelta, aCallerType, aRv);
+  DeltaTraverse(Some(WrapNotNull(aCx)), aDelta, aCallerType, aRv);
 }
 
 // https://html.spec.whatwg.org/#dom-history-back
@@ -214,8 +214,9 @@ already_AddRefed<ChildSHistory> nsHistory::GetSessionHistory() const {
 }
 
 // https://html.spec.whatwg.org/#delta-traverse
-void nsHistory::DeltaTraverse(mozilla::Maybe<JSContext*> aCx, int32_t aDelta,
-                              CallerType aCallerType, ErrorResult& aRv) {
+void nsHistory::DeltaTraverse(mozilla::Maybe<NotNull<JSContext*>> aCx,
+                              int32_t aDelta, CallerType aCallerType,
+                              ErrorResult& aRv) {
   LOG(("nsHistory::Go(%d)", aDelta));
   // Step 1, but instead of Document we operate on the inner window in this and
   // following steps.
@@ -236,8 +237,8 @@ void nsHistory::DeltaTraverse(mozilla::Maybe<JSContext*> aCx, int32_t aDelta,
     MOZ_DIAGNOSTIC_ASSERT(aCx);
     RefPtr<nsDocShell> docShell = nsDocShell::Cast(win->GetDocShell());
 
-    nsresult rv =
-        docShell->ReloadNavigable(*aCx, nsIWebNavigation::LOAD_FLAGS_NONE);
+    nsresult rv = docShell->ReloadNavigable(WrapNotNull(aCx),
+                                            nsIWebNavigation::LOAD_FLAGS_NONE);
     if (NS_FAILED(rv)) {
       aRv.Throw(rv);
     }

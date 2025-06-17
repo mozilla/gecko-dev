@@ -1140,11 +1140,27 @@ class nsDocShell final : public nsDocLoader,
   bool IsSameDocumentAsActiveEntry(
       const mozilla::dom::SessionHistoryInfo& aSHInfo);
 
-  MOZ_CAN_RUN_SCRIPT nsresult
-  ReloadNavigable(JSContext* aCx, uint32_t aReloadFlags,
-                  nsIStructuredCloneContainer* aNavigationAPIState = nullptr,
-                  mozilla::dom::UserNavigationInvolvement aUserInvolvement =
-                      mozilla::dom::UserNavigationInvolvement::None);
+  using nsIWebNavigation::Reload;
+
+  /**
+   * Implementation of the spec algorithm #reload.
+   *
+   * Arguments the spec defines:
+   *
+   * @param aNavigationAPIState state for Navigation API.
+   * @param aUserInvolvement if the user is involved in the reload.
+   *
+   * Arguments we need internally:
+   *
+   * @param aReloadFlags see nsIWebNavigation.reload.
+   * @param aCx if the NavigateEvent is expected to fire aCx cannot be Nothing.
+   */
+  MOZ_CAN_RUN_SCRIPT
+  nsresult ReloadNavigable(
+      mozilla::Maybe<mozilla::NotNull<JSContext*>> aCx, uint32_t aReloadFlags,
+      nsIStructuredCloneContainer* aNavigationAPIState = nullptr,
+      mozilla::dom::UserNavigationInvolvement aUserInvolvement =
+          mozilla::dom::UserNavigationInvolvement::None);
 
  private:
   MOZ_CAN_RUN_SCRIPT
