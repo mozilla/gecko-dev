@@ -334,6 +334,27 @@ ExtensionPreferencesManager.addSetting("zoomSiteSpecific", {
   },
 });
 
+ExtensionPreferencesManager.addSetting("verticalTabs", {
+  permission: "browserSettings",
+  prefNames: ["sidebar.verticalTabs"],
+
+  setCallback(value) {
+    return { [this.prefNames[0]]: value };
+  },
+
+  getCallback() {
+    return Services.prefs.getBoolPref("sidebar.verticalTabs");
+  },
+
+  validate() {
+    if (AppConstants.platform == "android") {
+      throw new ExtensionError(
+        `android is not a supported platform for verticalTabs.`
+      );
+    }
+  },
+});
+
 this.browserSettings = class extends ExtensionAPI {
   homePageOverrideListener(fire) {
     let listener = () => {
@@ -575,6 +596,20 @@ this.browserSettings = class extends ExtensionAPI {
             return ExtensionPreferencesManager.setSetting(
               extension.id,
               "zoomSiteSpecific",
+              details.value
+            );
+          },
+        }),
+        verticalTabs: Object.assign(makeSettingsAPI("verticalTabs"), {
+          set: details => {
+            if (typeof details.value !== "boolean") {
+              throw new ExtensionError(
+                `${details.value} is not a valid value for verticalTabs.`
+              );
+            }
+            return ExtensionPreferencesManager.setSetting(
+              extension.id,
+              "verticalTabs",
               details.value
             );
           },
