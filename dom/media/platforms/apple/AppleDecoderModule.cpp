@@ -155,8 +155,7 @@ DecodeSupportSet AppleDecoderModule::Supports(
     case MediaCodec::VP8:
       [[fallthrough]];
     case MediaCodec::VP9:
-      if (StaticPrefs::media_rdd_vpx_enabled() &&
-          StaticPrefs::media_utility_ffvpx_enabled()) {
+      if (StaticPrefs::media_rdd_vpx_enabled()) {
         dss += DecodeSupport::SoftwareDecode;
       }
       break;

@@ -133,8 +133,7 @@ class PDMInitializer final {
       FFVPXRuntimeLinker::Init();
     }
 #ifdef MOZ_FFMPEG
-    if (StaticPrefs::media_utility_ffmpeg_enabled() &&
-        kind == ipc::SandboxingKind::GENERIC_UTILITY) {
+    if (kind == ipc::SandboxingKind::GENERIC_UTILITY) {
       FFmpegRuntimeLinker::Init();
     }
 #endif
@@ -147,9 +146,7 @@ class PDMInitializer final {
 #ifdef XP_WIN
 #  ifdef MOZ_WMF
       if (!StaticPrefs::media_rdd_process_enabled() ||
-          !StaticPrefs::media_rdd_wmf_enabled() ||
-          !StaticPrefs::media_utility_process_enabled() ||
-          !StaticPrefs::media_utility_wmf_enabled()) {
+          !StaticPrefs::media_rdd_wmf_enabled()) {
         WMFDecoderModule::Init();
       }
 #  endif
@@ -586,24 +583,19 @@ void PDMFactory::CreateUtilityPDMs() {
   const ipc::SandboxingKind aKind = GetCurrentSandboxingKind();
 #ifdef XP_WIN
   if (StaticPrefs::media_wmf_enabled() &&
-      StaticPrefs::media_utility_wmf_enabled() &&
       aKind == ipc::SandboxingKind::UTILITY_AUDIO_DECODING_WMF) {
     StartupPDM(WMFDecoderModule::Create());
   }
 #endif
 #ifdef MOZ_APPLEMEDIA
-  if (StaticPrefs::media_utility_applemedia_enabled() &&
-      aKind == ipc::SandboxingKind::UTILITY_AUDIO_DECODING_APPLE_MEDIA) {
+  if (aKind == ipc::SandboxingKind::UTILITY_AUDIO_DECODING_APPLE_MEDIA) {
     StartupPDM(AppleDecoderModule::Create());
   }
 #endif
   if (aKind == ipc::SandboxingKind::GENERIC_UTILITY) {
-    if (StaticPrefs::media_utility_ffvpx_enabled()) {
-      StartupPDM(FFVPXRuntimeLinker::CreateDecoder());
-    }
+    StartupPDM(FFVPXRuntimeLinker::CreateDecoder());
 #ifdef MOZ_FFMPEG
     if (StaticPrefs::media_ffmpeg_enabled() &&
-        StaticPrefs::media_utility_ffmpeg_enabled() &&
         !StartupPDM(FFmpegRuntimeLinker::CreateDecoder())) {
       mFailureFlags += GetFailureFlagBasedOnFFmpegStatus(
           FFmpegRuntimeLinker::LinkStatusCode());
