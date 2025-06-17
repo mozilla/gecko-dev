@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">Прагляд і рэдагаванне налад прыватнасці</string>
   <!-- Description for all_urls add-on permission. -->
@@ -83,9 +83,9 @@
   <!-- Description for userScripts permission. -->
   <string name="mozac_feature_addons_permissions_user_scripts_description">Дазволіць неправераным староннім скрыптам доступ да вашых дадзеных</string>
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
-  <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Неправераныя скрыпты могуць пагражаць бяспецы і прыватнасці. Запускайце скрыпты толькі з пашырэнняў ці крыніц, якім давяраеце.</string>
+  <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Неправераныя скрыпты могуць пагражаць бяспецы і прыватнасці. Запускайце скрыпты толькі з пашырэнняў ці крыніц, якім давяраеце.</string>
   <!-- Description for devtools permission. -->
-  <string name="mozac_feature_addons_permissions_devtools_description">Дазвол інструментам распрацоўшчыка атрымліваць доступ да вашых дадзеных у адкрытых картках</string>
+  <string name="mozac_feature_addons_permissions_devtools_description">Дазвол інструментам распрацоўшчыка атрымліваць доступ да вашых дадзеных у адкрытых картках</string>
   <!-- Description for text button that expands the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_all_sites">Паказваць усе сайты</string>
   <!-- Description for text button that hides the majority of the list of domain permissions -->
@@ -109,7 +109,7 @@
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">Укл.</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">Дазволена ў прыватным агляданні</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">Дазволена ў прыватным агляданні</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">Запуск у прыватным агляданні</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -135,11 +135,11 @@
   <!-- This is a button to report an add-on. -->
   <string name="mozac_feature_addons_report">Паведаміць</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_permissions_dialog_title">Дадаць %1$s?</string>
+  <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">Дадаць %1$s?</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s запытвае дадатковыя дазволы.</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle">Гэта патрабуе вашага дазволу на:</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">Гэта патрабуе вашага дазволу на:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">Ён хоча атрымаць дазвол на:</string>
   <!-- This is a button to add (install) an add-on . -->
@@ -271,9 +271,9 @@
   <!-- "See details" link displayed below an add-on status message. -->
   <string name="mozac_feature_addons_status_see_details">Паказаць падрабязнасці</string>
   <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_status_blocklisted_1">Гэта пашырэнне заблакавана за парушэнне палітык Mozilla і было адключана.</string>
+  <string name="mozac_feature_addons_status_blocklisted_1">Гэта пашырэнне заблакавана за парушэнне палітык Mozilla і было адключана.</string>
   <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-  <string name="mozac_feature_addons_status_softblocked_1">Гэта пашырэнне абмежавана з-за парушэння палітык Mozilla і было адключана. Вы можаце ўключыць яго, але гэта можа быць рызыкоўна.</string>
+  <string name="mozac_feature_addons_status_softblocked_1">Гэта пашырэнне абмежавана з-за парушэння палітык Mozilla і было адключана. Вы можаце ўключыць яго, але гэта можа быць рызыкоўна.</string>
   <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
   <string name="mozac_feature_addons_status_softblocked_re_enabled">Гэта пашырэнне парушае палітыку Mozilla. Яго выкарыстанне можа быць рызыкоўным.</string>
   <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->

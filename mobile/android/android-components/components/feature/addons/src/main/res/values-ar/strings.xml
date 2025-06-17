@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">قراءة إعدادات الخصوصية وتعديلها</string>
   <!-- Description for all_urls add-on permission. -->
@@ -41,7 +41,7 @@
   <!-- Description for browser_setting permission. -->
   <string name="mozac_feature_addons_permissions_browser_setting_description">قراءة إعدادات المتصفح وتعديلها</string>
   <!-- Description for browser_data permission. -->
-  <string name="mozac_feature_addons_permissions_browser_data_description">مسح تأريخ التصفح الحديث و الكعكات و البيانات المتعلقة بها</string>
+  <string name="mozac_feature_addons_permissions_browser_data_description">مسح تأريخ التصفح الحديث و الكعكات و البيانات المتعلقة بها</string>
   <!-- Description for clipboard_read permission. -->
   <string name="mozac_feature_addons_permissions_clipboard_read_description">جلب البيانات من الحافظة</string>
   <!-- Description for clipboard_write permission. -->
@@ -51,7 +51,7 @@
   <!-- Description for declarativeNetRequestFeedback permission. -->
   <string name="mozac_feature_addons_permissions_declarative_net_request_feedback_description">اقرأ تأريخ التصفح</string>
   <!-- Description for downloads permission. -->
-  <string name="mozac_feature_addons_permissions_downloads_description">تنزيل الملفات و قراءة تأريخ تنزيل المتصفح و تعديله</string>
+  <string name="mozac_feature_addons_permissions_downloads_description">تنزيل الملفات و قراءة تأريخ تنزيل المتصفح و تعديله</string>
   <!-- Description for downloads_open permission. -->
   <string name="mozac_feature_addons_permissions_downloads_open_description">فتح الملفات المنزّلة على الجهاز</string>
   <!-- Description for find permission. -->
@@ -73,7 +73,7 @@
   <!-- Description for sessions permission. -->
   <string name="mozac_feature_addons_permissions_sessions_description">الوصول إلى الألسنة المغلقة حديثًا</string>
   <!-- Description for tab_hide permission. -->
-  <string name="mozac_feature_addons_permissions_tab_hide_description">إخفاء و إظهار ألسنة المتصفح</string>
+  <string name="mozac_feature_addons_permissions_tab_hide_description">إخفاء و إظهار ألسنة المتصفح</string>
   <!-- Description for top_sites permission. -->
   <string name="mozac_feature_addons_permissions_top_sites_description">الوصول إلى تأريخ التصفح</string>
   <!-- Description for trialML permission. -->
@@ -95,13 +95,13 @@
   <!-- The rating of the add-on. -->
   <string name="mozac_feature_addons_rating">التقييم</string>
   <!-- A link that points to the detail page of the extension. -->
-  <string name="mozac_feature_addons_more_info_link_2"> المزيد عن هذا الامتداد</string>
+  <string name="mozac_feature_addons_more_info_link_2">المزيد عن هذا الامتداد</string>
   <!-- The settings of the add-on. -->
   <string name="mozac_feature_addons_settings">الإعدادات</string>
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">مفعّلة</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">اسمح بها في التصفّح الخاص</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">اسمح بها في التصفّح الخاص</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">تعمل في التصفّح الخاص</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -127,11 +127,11 @@
   <!-- This is a button to report an add-on. -->
   <string name="mozac_feature_addons_report">أبلِغ</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_permissions_dialog_title">أتريد إضافة %1$s؟</string>
+  <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">أتريد إضافة %1$s؟</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title">يطلب %1$s صلاحيات إضافية.</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle">يحتاج الصلاحيات التالية:</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">يحتاج الصلاحيات التالية:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">تُريدُ:</string>
   <!-- This is a button to add (install) an add-on . -->
@@ -161,7 +161,7 @@
   <!-- The content of the "crash" notification in the extensions manager -->
   <string name="mozac_feature_extensions_manager_notification_content_text">توقف أحد الإضافات (أو أكثر) عن العمل، مما يجعل نظامك غير مستقر.</string>
   <!-- Button to re-enable the extensions in the "crash" notification -->
-  <string name="mozac_feature_extensions_manager_notification_restart_button"> إعادة تشغيل الإمتدادات</string>
+  <string name="mozac_feature_extensions_manager_notification_restart_button">إعادة تشغيل الإمتدادات</string>
   <!-- Button in the extensions manager that opens AMO in a tab -->
   <string name="mozac_feature_addons_find_more_extensions_button_text">ابحث عن امتدادات أكثر</string>
   <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on -->
@@ -267,7 +267,7 @@
   <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
   <string name="mozac_feature_addons_status_softblocked_re_enabled">هذا الامتداد ينتهك سياسات موزيلا. قد يكون من الخطر استخدامه.</string>
   <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_status_unsigned">تعذّر التحقق من أمان %1$s  ولذا عُطّل.</string>
+  <string name="mozac_feature_addons_status_unsigned">تعذّر التحقق من أمان %1$s ولذا عُطّل.</string>
   <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
   <string name="mozac_feature_addons_status_incompatible">%1$s غير متوافق مع إصدارك من %2$s (النسخة %3$s).</string>
 </resources>

@@ -55,6 +55,7 @@
   <string name="menu_settings">Көйләүләр</string>
   <string name="menu_about">Хакында</string>
   <string name="menu_help">Ярдәм</string>
+  <string name="menu_terms_of_use">Куллану шартлары</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.
@@ -148,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s дилбегәне Сезнең кулга тапшыра.&lt;/p&gt;
-&lt;p&gt;Аны хосусый браузер буларак кулланып, түбәндәгеләрне эшләп була:
-  &lt;ul&gt;
-    &lt;li&gt;Турыдан-туры кушымта эчендә эзләү һәм пәрәвездә гизү&lt;/li&gt;
-    &lt;li&gt;Күзәтүче-трекерларны блоклау (яисә, көйләүләрне яңартып, аларны рөхсәт итү)&lt;/li&gt;
-    &lt;li&gt;Кукиларны, эзләү һәм гизү тарихларын җиңел генә бетереп ату&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s Mozilla тарафыннан җитештерелә. Безнең миссиябез — сәламәт һәм ачык Интернетны үстерү.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Күбрәк белү&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s дилбегәне Сезнең кулга тапшыра.</p> <p>Аны хосусый браузер буларак кулланып, түбәндәгеләрне эшләп була: <ul> <li>Турыдан-туры кушымта эчендә эзләү һәм пәрәвездә гизү</li> <li>Күзәтүче-трекерларны блоклау (яисә, көйләүләрне яңартып, аларны рөхсәт итү)</li> <li>Кукиларны, эзләү һәм гизү тарихларын җиңел генә бетереп ату</li> </ul> </p> <p>%1$s Mozilla тарафыннан җитештерелә. Безнең миссиябез — сәламәт һәм ачык Интернетны үстерү.<br/> <a href=\"%2$s\">Күбрәк белү</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Хосусыйлык &amp; Хәвефсезлек</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -328,12 +320,18 @@
   <string name="preference_mozilla_telemetry_summary">Күбрәк белү</string>
   <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
   <string name="preference_mozilla_telemetry_summary2">Mozilla, %1$s\'ны һәркемгә дә тәкъдим итү һәм яхшырту өчен кирәкле мәгълүматларны гына җыярга тырыша.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preference_daily_usage_ping_title">Көндәлек куллану пингы</string>
+  <string name="preference_daily_usage_ping_description">Бу Mozilla-га актив кулланучылар санын бәяләргә ярдәм итә.</string>
+  <string name="preference_daily_usage_ping_learn_more">Күбрәк белү</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Хосусыйлык сәясәте</string>
   <!-- In-app link (in settings) to Focus licensing information. -->
   <string name="preference_licensing_info">Лицензия турында мәгълүмат</string>
   <!-- Link to Focus licensing information from other libraries that we use. -->
   <string name="preference_libraries_we_use">Без кулланган китапханәләр</string>
+  <!-- Link to Focus Crash reports list. -->
+  <string name="preference_crashes">Ватылулар</string>
   <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="open_source_licenses_title">%s | OSS китапханәләр</string>
   <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
@@ -459,6 +457,20 @@
   <string name="onboarding_first_screen_title">%1$s кушымтасына рәхим итегез</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Тиз. Хосусый. Бүлдерүләрсез.</string>
+  <!--
+    New Onboarding flow first screen 'terms of use link'
+
+    Text for the link used in onboarding_first_screen_terms_of_use_text
+  -->
+  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Firefox куллану шартлары.</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">Хосусыйлык аңлатмасы.</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Кабул итү һәм дәвам итү</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue_2">Дәвам итү</string>
+  <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
+  <string name="a11y_link_available">Кулланырлык сылтамалар</string>
   <!--
     Onboarding second screen: Title
 
@@ -595,7 +607,7 @@
   <!-- Preference summary for the cookie banner. If the cookie banner option is disabled. -->
   <string name="preferences_cookie_banner_summary_off">Сүнгән</string>
   <!-- Title preference inside Cookie banner reduction screen. Here you can set the cookie banner option to disabled or reject_all. -->
-  <string name="cookie_banner_reject_all_option_title"> Cookie баннерларын киметү</string>
+  <string name="cookie_banner_reject_all_option_title">Cookie баннерларын киметү</string>
   <!-- Preference summary inside Cookie banner reduction screen. Here you can set the cookie banner option to disabled or reject_all. -->
   <string name="cookie_banner_reject_all_option_summary">Мөмкинлек булганда cookie сорауларын автоматик рәвештә кире кагып, баннерларны азрак күрегез.</string>
   <!-- Preference for removing cookie/consent banners from sites automatically, this is shown as part of the protections panel with the tracking protection toggle. -->
@@ -645,11 +657,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Android көйләүләренә керегез</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;Рөхсәтләр&lt;/b&gt;гә басыгыз</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b>Рөхсәтләр</b>гә басыгыз]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Көйләүләргә күчү</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; көйләвен кабызыгыз</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> көйләвен кабызыгыз]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Камера</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -836,7 +848,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">%1$s тарихын бетергәндә, сакланган яки уртаклашылган рәсемнәр &lt;b&gt;бетерелмәячәк&lt;/b&gt;</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[%1$s тарихын бетергәндә, сакланган яки уртаклашылган рәсемнәр <b>бетерелмәячәк</b>]]></string>
   <!--
     Theme Preferences
 
@@ -857,22 +869,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s күбрәк хәвефсезлек өчен мөмкин булганда HTTPS бәйләнешен кулланырга тырыша.
-    &lt;a href="%2$s"&gt;Күбрәк белү&lt;/a&gt;&lt;br/&gt;&lt;br/&gt;
-    Бу көйләнүне үзгәртү өчен Көйләүләр &gt; Хосусыйлык һәм Хәвефсезлек &gt; Хәвефсезлек бүлегенә күчегез.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s күбрәк хәвефсезлек өчен мөмкин булганда HTTPS бәйләнешен кулланырга тырыша. <a href=\"%2$s\">Күбрәк белү</a><br/><br/> Бу көйләнүне үзгәртү өчен Көйләүләр > Хосусыйлык һәм Хәвефсезлек > Хәвефсезлек бүлегенә күчегез.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Бәйләнеш хәвефсез түгел</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Бу сервер көйләүләрендәге хата белән бәйле булырга мөмкин, яисә кемдер Сезгә кирәкле серверны икенче бере белән алыштырырга тырыша.&lt;br/&gt;&lt;br/&gt;
-    Моңа кадәр бу серверга уңышлы тоташа торган булсагыз, бу хата вакытлыча гына булырга мөмкин.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Бу сервер көйләүләрендәге хата белән бәйле булырга мөмкин, яисә кемдер Сезгә кирәкле серверны икенче бере белән алыштырырга тырыша.<br/><br/> Моңа кадәр бу серверга уңышлы тоташа торган булсагыз, бу хата вакытлыча гына булырга мөмкин.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-    &lt;label&gt;Кемдер үзенең сайтын бу сайт дип күрсәтергә тырыша кебек, шунлыктан дәвам итү куркыныч булырга мөмкин.&lt;/label&gt;
-     &lt;br&gt;&lt;br&gt;
-     &lt;label&gt;%1$s кушымтасы &lt;b&gt;%2$s&lt;/b&gt; сайтына ышанмый, чөнки сертификатын бастыручу я билгесез, я ул үзлегеннән имзаланган, я сервер дөрес арадашчы сертификатлар җибәрми.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Кемдер үзенең сайтын бу сайт дип күрсәтергә тырыша кебек, шунлыктан дәвам итү куркыныч булырга мөмкин.</label> <br><br> <label>%1$s кушымтасы <b>%2$s</b> сайтына ышанмый, чөнки сертификатын бастыручу я билгесез, я ул үзлегеннән имзаланган, я сервер дөрес арадашчы сертификатлар җибәрми.</label>]]></string>
   <!--
     Sessions List
 
@@ -937,11 +940,11 @@
 
     This text should be as short as possible, max 68 chars
   -->
-  <string name="exit_fullscreen_with_gesture_short">Чыгу өчен экранны өстән тартып, "кире кайту" ишарәсен кулланыгыз</string>
+  <string name="exit_fullscreen_with_gesture_short">Чыгу өчен экранны өстән тартып, \"кире кайту\" ишарәсен кулланыгыз</string>
   <!--
     Message shown to explain how to exit fullscreen mode when using back button navigation.
 
     This text should be as short as possible, max 68 chars
   -->
-  <string name="exit_fullscreen_with_back_button_short">Чыгу өчен экранны өстән тартып, "кире кайту" төймәсенә басыгыз</string>
+  <string name="exit_fullscreen_with_back_button_short">Чыгу өчен экранны өстән тартып, \"кире кайту\" төймәсенә басыгыз</string>
 </resources>

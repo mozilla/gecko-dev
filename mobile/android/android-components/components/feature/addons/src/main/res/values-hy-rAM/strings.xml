@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">Կարդալ և փոփոխել գաղտնիության կարգավորումները</string>
   <!-- Description for all_urls add-on permission. -->
@@ -63,7 +63,7 @@
   <!-- Description for history permission. -->
   <string name="mozac_feature_addons_permissions_history_description">Դիտարկումների պատմության մատչում</string>
   <!-- Description for management permission. -->
-  <string name="mozac_feature_addons_permissions_management_description">Հետևել  ընդլայնման օգտագործմանը և կառավարել ոճերը</string>
+  <string name="mozac_feature_addons_permissions_management_description">Հետևել ընդլայնման օգտագործմանը և կառավարել ոճերը</string>
   <!-- Description for native_messaging permission. -->
   <string name="mozac_feature_addons_permissions_native_messaging_description">Հաղորդագրությունների փոխանակում այլ հավելվածների հետ</string>
   <!-- Description for notifications permission. -->
@@ -109,7 +109,7 @@
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">Միաց.</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">Թույլատրել գաղտնի դիտարկումում</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">Թույլատրել գաղտնի դիտարկումում</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">Աշխատեցնել գաղտնի դիտարկմամբ</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -135,11 +135,11 @@
   <!-- This is a button to report an add-on. -->
   <string name="mozac_feature_addons_report">Հաղորդել</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_permissions_dialog_title">Ավելացնե՞լ %1$s-ը:</string>
+  <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">Ավելացնե՞լ %1$s-ը:</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s-ը պահանջում է լրացուցիչ թույլտվություններ:</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle">Այն պահանջում է ձեր թույլտվությունը՝</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">Այն պահանջում է ձեր թույլտվությունը՝</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">Այն ցանկանում է՝</string>
   <!-- This is a button to add (install) an add-on . -->

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">プライバシー設定の読み取りと変更</string>
   <!-- Description for all_urls add-on permission. -->
@@ -109,7 +109,7 @@
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">オン</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">プライベートブラウジングモードでの動作を許可する</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">プライベートブラウジングモードでの動作を許可する</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">プライベートブラウジングモードで実行する</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -135,11 +135,11 @@
   <!-- This is a button to report an add-on. -->
   <string name="mozac_feature_addons_report">報告</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_permissions_dialog_title">%1$s を追加しますか？</string>
+  <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">%1$s を追加しますか？</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s が追加の許可を必要としています。</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle">あなたの許可が必要です:</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">あなたの許可が必要です:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">追加の許可:</string>
   <!-- This is a button to add (install) an add-on . -->
@@ -167,7 +167,7 @@
   <!-- The title of the "crash" notification in the extensions manager -->
   <string name="mozac_feature_extensions_manager_notification_title_text">拡張機能は一時的に無効化されています</string>
   <!-- The content of the "crash" notification in the extensions manager -->
-  <string name="mozac_feature_extensions_manager_notification_content_text">システムを不安定にしている 1 個以上の拡張機能が動作を停止しました。 </string>
+  <string name="mozac_feature_extensions_manager_notification_content_text">システムを不安定にしている 1 個以上の拡張機能が動作を停止しました。</string>
   <!-- Button to re-enable the extensions in the "crash" notification -->
   <string name="mozac_feature_extensions_manager_notification_restart_button">拡張機能を再起動</string>
   <!-- Button in the extensions manager that opens AMO in a tab -->
