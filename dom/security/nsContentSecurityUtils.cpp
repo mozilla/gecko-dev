@@ -623,6 +623,9 @@ bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
       // See bug 1777479
       "resource://devtools/shared/performance-new/symbolication.sys.mjs"_ns,
 
+      // The devtools use a WASM module to optimize source-map mapping.
+      "resource://devtools/client/shared/vendor/source-map/lib/wasm.js"_ns,
+
       // The Browser Toolbox/Console
       "debugger"_ns,
   };
@@ -671,6 +674,7 @@ bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
     return true;
   }
 
+#ifndef NIGHTLY_BUILD
   DetectJsHacks();
   if (MOZ_UNLIKELY(sJSHacksPresent)) {
     MOZ_LOG(
@@ -680,6 +684,7 @@ bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
          (aIsSystemPrincipal ? "with System Principal" : "in parent process")));
     return true;
   }
+#endif
 
   if (XRE_IsE10sParentProcess() &&
       !StaticPrefs::extensions_webextensions_remote()) {
