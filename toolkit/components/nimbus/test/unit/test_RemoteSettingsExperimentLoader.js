@@ -160,7 +160,7 @@ add_task(async function test_loadingErrorOnEmptyRecipesWithNullLastModified() {
     .stub(loader.remoteSettingsClients.experiments.db, "getLastModified")
     .resolves(null);
 
-  const { loadingError } = await loader.getRecipesFromAllCollections({
+  let { loadingError } = await loader.getRecipesFromAllCollections({
     trigger: "test",
   });
 
@@ -183,6 +183,29 @@ add_task(async function test_loadingErrorOnEmptyRecipesWithNullLastModified() {
       },
     ],
     "Submitted failure telemetry"
+  );
+
+  Services.fog.testResetFOG();
+
+  loader.remoteSettingsClients.experiments.get.resolves([
+    NimbusTestUtils.factories.recipe("test"),
+  ]);
+
+  ({ loadingError } = await loader.getRecipesFromAllCollections({
+    trigger: "test",
+  }));
+
+  Assert.ok(
+    loadingError === false,
+    "should not error when loading nonempty recipes collection"
+  );
+
+  Assert.deepEqual(
+    Glean.nimbusEvents.remoteSettingsSync
+      .testGetValue("events")
+      ?.map(ev => ev.extra) ?? [],
+    [],
+    "Didn't submit success telemetry"
   );
 
   await cleanup();

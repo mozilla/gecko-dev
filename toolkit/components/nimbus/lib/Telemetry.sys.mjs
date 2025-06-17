@@ -175,6 +175,15 @@ export const NimbusTelemetry = {
   },
 
   recordRemoteSettingsSync(forceSync, experiments, secureExperiments, trigger) {
+    // Do not record when all collections succeed and experiments isn't empty.
+    if (
+      secureExperiments !== null &&
+      experiments !== null &&
+      experiments.length !== 0
+    ) {
+      return;
+    }
+
     const event = {
       force_sync: forceSync,
       experiments_success: experiments !== null,
