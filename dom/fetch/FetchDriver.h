@@ -8,7 +8,6 @@
 #define mozilla_dom_FetchDriver_h
 
 #include "nsIChannelEventSink.h"
-#include "nsIClassifiedChannel.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsINetworkInterceptController.h"
 #include "nsIStreamListener.h"
@@ -113,8 +112,7 @@ class FetchDriver final : public nsIChannelEventSink,
   FetchDriver(SafeRefPtr<InternalRequest> aRequest, nsIPrincipal* aPrincipal,
               nsILoadGroup* aLoadGroup, nsIEventTarget* aMainThreadEventTarget,
               nsICookieJarSettings* aCookieJarSettings,
-              PerformanceStorage* aPerformanceStorage,
-              net::ClassificationFlags aTrackingFlags);
+              PerformanceStorage* aPerformanceStorage, bool aIsTrackingFetch);
 
   nsresult Fetch(AbortSignalImpl* aSignalImpl, FetchDriverObserver* aObserver);
 
@@ -193,7 +191,6 @@ class FetchDriver final : public nsIChannelEventSink,
   bool mNeedToObserveOnDataAvailable;
 
   bool mIsTrackingFetch;
-  net::ClassificationFlags mTrackingFlags;
 
   // Indicates whether the fetch request is from a third-party context.
   Maybe<bool> mIsThirdPartyContext;

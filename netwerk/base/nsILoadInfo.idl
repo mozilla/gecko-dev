@@ -458,24 +458,6 @@ interface nsILoadInfo : nsISupports
   [infallible] attribute boolean triggeringStorageAccess;
 
   /**
-   * The classification flags of the first-party context responsible for causing
-   * the load to start. If the load is not triggered by a first-party context,
-   * this will be 0.
-   *
-   * See nsIClassifiedChannel.idl for the list of flags.
-   */
-  [infallible] attribute unsigned long triggeringFirstPartyClassificationFlags;
-
-  /**
-   * The classification flags of the third-party context responsible for causing
-   * the load to start. If the load is not triggered by a third-party context,
-   * this will be 0.
-   *
-   * See nsIClassifiedChannel.idl for the list of flags.
-   */
-  [infallible] attribute unsigned long triggeringThirdPartyClassificationFlags;
-
-  /**
    * Allows to query only the security mode bits from above.
    */
   [infallible] readonly attribute unsigned long securityMode;

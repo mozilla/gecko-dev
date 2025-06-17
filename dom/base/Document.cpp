@@ -342,7 +342,6 @@
 #include "nsICSSLoaderObserver.h"
 #include "nsICategoryManager.h"
 #include "nsICertOverrideService.h"
-#include "nsIClassifiedChannel.h"
 #include "nsIContent.h"
 #include "nsIContentInlines.h"
 #include "nsIContentPolicy.h"
@@ -1507,7 +1506,6 @@ Document::Document(const char* aContentType)
       mThrowOnDynamicMarkupInsertionCounter(0),
       mIgnoreOpensDuringUnloadCounter(0),
       mSavedResolution(1.0f),
-      mClassificationFlags({0, 0}),
       mGeneration(0),
       mCachedTabSizeGeneration(0),
       mNextFormNumber(0),
@@ -3671,15 +3669,6 @@ nsresult Document::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
     WarnIfSandboxIneffective(docShell, mSandboxFlags, GetChannel());
   }
 
-  nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
-      do_QueryInterface(aChannel);
-
-  if (classifiedChannel) {
-    mClassificationFlags = {
-        classifiedChannel->GetFirstPartyClassificationFlags(),
-        classifiedChannel->GetThirdPartyClassificationFlags()};
-  }
-
   // Set the opener policy for the top level content document.
   nsCOMPtr<nsIHttpChannelInternal> httpChan = do_QueryInterface(mChannel);
   nsILoadInfo::CrossOriginOpenerPolicy policy =
@@ -4538,10 +4527,9 @@ nsresult Document::Dispatch(already_AddRefed<nsIRunnable>&& aRunnable) const {
 }
 
 void Document::NoteScriptTrackingStatus(const nsACString& aURL,
-                                        net::ClassificationFlags& aFlags) {
-  // If the script is not tracking, we don't need to do anything.
-  if (aFlags.firstPartyFlags || aFlags.thirdPartyFlags) {
-    mTrackingScripts.InsertOrUpdate(aURL, aFlags);
+                                        bool aIsTracking) {
+  if (aIsTracking) {
+    mTrackingScripts.Insert(aURL);
   }
   // Ideally, whether a given script is tracking or not should be consistent,
   // but there is a race so that it is not, when loading real sites in debug
@@ -4554,27 +4542,7 @@ bool Document::IsScriptTracking(JSContext* aCx) const {
   if (!JS::DescribeScriptedCaller(&filename, aCx)) {
     return false;
   }
-
-  auto entry = mTrackingScripts.Lookup(nsDependentCString(filename.get()));
-  if (!entry) {
-    return false;
-  }
-
-  return net::UrlClassifierCommon::IsTrackingClassificationFlag(
-      entry.Data().thirdPartyFlags, IsInPrivateBrowsing());
-}
-
-net::ClassificationFlags Document::GetScriptTrackingFlags() const {
-  if (auto loc = JSCallingLocation::Get()) {
-    if (auto entry = mTrackingScripts.Lookup(loc.FileName())) {
-      return entry.Data();
-    }
-  }
-
-  // If the currently executing script is not a tracker, return the
-  // classification flags of the document.
-
-  return mClassificationFlags;
+  return mTrackingScripts.Contains(nsDependentCString(filename.get()));
 }
 
 void Document::GetContentType(nsAString& aContentType) {

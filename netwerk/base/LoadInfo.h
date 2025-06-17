@@ -237,12 +237,9 @@ class LoadInfo final : public nsILoadInfo {
       const Maybe<mozilla::dom::ServiceWorkerDescriptor>& aController,
       nsSecurityFlags aSecurityFlags, uint32_t aSandboxFlags,
       uint32_t aTriggeringSandboxFlags, uint64_t aTriggeringWindowId,
-      bool aTriggeringStorageAccess,
-      uint32_t aTriggeringFirstPartyClassificationFlags,
-      uint32_t aTriggeringThirdPartyClassificationFlags,
-      nsContentPolicyType aContentPolicyType, LoadTainting aTainting,
-      bool aBlockAllMixedContent, bool aUpgradeInsecureRequests,
-      bool aBrowserUpgradeInsecureRequests,
+      bool aTriggeringStorageAccess, nsContentPolicyType aContentPolicyType,
+      LoadTainting aTainting, bool aBlockAllMixedContent,
+      bool aUpgradeInsecureRequests, bool aBrowserUpgradeInsecureRequests,
       bool aBrowserDidUpgradeInsecureRequests,
       bool aBrowserWouldUpgradeInsecureRequests, bool aForceAllowDataURI,
       bool aAllowInsecureRedirectToDataURI,
@@ -351,8 +348,6 @@ class LoadInfo final : public nsILoadInfo {
   uint32_t mTriggeringSandboxFlags = 0;
   uint64_t mTriggeringWindowId = 0;
   bool mTriggeringStorageAccess = false;
-  uint32_t mTriggeringFirstPartyClassificationFlags = 0;
-  uint32_t mTriggeringThirdPartyClassificationFlags = 0;
   nsContentPolicyType mInternalContentPolicyType;
   LoadTainting mTainting = LoadTainting::Basic;
   bool mBlockAllMixedContent = false;

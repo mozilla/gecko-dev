@@ -7,7 +7,6 @@
 #include "mozilla/dom/LocationBase.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIScriptContext.h"
-#include "nsIClassifiedChannel.h"
 #include "nsDocShellLoadState.h"
 #include "nsIWebNavigation.h"
 #include "nsNetUtil.h"
@@ -114,7 +113,6 @@ already_AddRefed<nsDocShellLoadState> LocationBase::CheckURL(
       loadState->HasValidUserGestureActivation());
   loadState->SetTriggeringWindowId(doc->InnerWindowID());
   loadState->SetTriggeringStorageAccess(doc->UsingStorageAccess());
-  loadState->SetTriggeringClassificationFlags(doc->GetScriptTrackingFlags());
 
   return loadState.forget();
 }

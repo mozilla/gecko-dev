@@ -715,8 +715,6 @@ nsresult nsFrameLoader::ReallyStartLoadingInternal() {
     if (ownerDoc) {
       loadState->SetTriggeringStorageAccess(ownerDoc->UsingStorageAccess());
       loadState->SetTriggeringWindowId(ownerDoc->InnerWindowID());
-      loadState->SetTriggeringClassificationFlags(
-          ownerDoc->GetScriptTrackingFlags());
     }
 
     // If we're loading the default about:blank document in a <browser> element,

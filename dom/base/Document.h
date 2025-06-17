@@ -71,7 +71,6 @@
 #include "nsHashKeys.h"
 #include "nsIChannel.h"
 #include "nsIChannelEventSink.h"
-#include "nsIClassifiedChannel.h"
 #include "nsID.h"
 #include "nsIDocumentViewer.h"
 #include "nsIInterfaceRequestor.h"
@@ -3889,23 +3888,10 @@ class Document : public nsINode,
   // The URLs passed to this function should match what
   // JS::DescribeScriptedCaller() returns, since this API is used to
   // determine whether some code is being called from a tracking script.
-  void NoteScriptTrackingStatus(const nsACString& aURL,
-                                net::ClassificationFlags& aFlags);
+  void NoteScriptTrackingStatus(const nsACString& aURL, bool isTracking);
   // The JSContext passed to this method represents the context that we want to
   // determine if it belongs to a tracker.
   bool IsScriptTracking(JSContext* aCx) const;
-
-  // Acquires the script tracking flags for the currently executing script. If
-  // the currently executing script is not a tracker, it will return the
-  // classification flags of the document.
-  net::ClassificationFlags GetScriptTrackingFlags() const;
-
-  net::ClassificationFlags GetClassificationFlags() {
-    return mClassificationFlags;
-  }
-  void SetClassificationFlags(net::ClassificationFlags aFlags) {
-    mClassificationFlags = aFlags;
-  }
 
   // ResizeObserver usage.
   void AddResizeObserver(ResizeObserver& aObserver) {
@@ -5313,10 +5299,10 @@ class Document : public nsINode,
 
   RefPtr<nsCommandManager> mMidasCommandManager;
 
-  // The hashmap of all the tracking script URLs.  URLs are added to this map by
+  // The set of all the tracking script URLs.  URLs are added to this set by
   // calling NoteScriptTrackingStatus().  Currently we assume that a URL not
-  // existing in the map means the corresponding script isn't a tracking script.
-  nsTHashMap<nsCStringHashKey, net::ClassificationFlags> mTrackingScripts;
+  // existing in the set means the corresponding script isn't a tracking script.
+  nsTHashSet<nsCString> mTrackingScripts;
 
   // Pointer to our parser if we're currently in the process of being
   // parsed into.
@@ -5545,8 +5531,6 @@ class Document : public nsINode,
   nsCOMPtr<nsICookieJarSettings> mCookieJarSettings;
 
   bool mHasStoragePermission;
-
-  net::ClassificationFlags mClassificationFlags;
 
   // Document generation. Gets incremented everytime it changes.
   int32_t mGeneration;

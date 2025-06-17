@@ -5,17 +5,6 @@
 
 #include "nsISupports.idl"
 
-%{C++
-namespace mozilla::net {
-// This struct is used to hold classification flags for both
-// firstPartyClassificationFlags and thirdPartyClassificationFlags.
-struct ClassificationFlags {
-  uint32_t firstPartyFlags;
-  uint32_t thirdPartyFlags;
-};
-}
-%}
-
 /**
  * nsIClassifiedChannel
  *

@@ -1810,15 +1810,10 @@ class HTMLMediaElement::ChannelLoader final {
  public:
   NS_INLINE_DECL_REFCOUNTING(ChannelLoader);
 
-  explicit ChannelLoader(const JSCallingLocation& aCallingLocation)
-      : mCallingLocation(aCallingLocation) {}
-
   void LoadInternal(HTMLMediaElement* aElement) {
     if (mCancelled) {
       return;
     }
-
-    JSCallingLocation::AutoFallback fallback(&mCallingLocation);
 
     // determine what security checks need to be performed in AsyncOpen().
     nsSecurityFlags securityFlags =
@@ -1996,7 +1991,6 @@ class HTMLMediaElement::ChannelLoader final {
   nsCOMPtr<nsIChannel> mChannel;
 
   bool mCancelled = false;
-  JSCallingLocation mCallingLocation;
 };
 
 class HTMLMediaElement::ErrorSink {
@@ -2619,9 +2613,9 @@ void HTMLMediaElement::QueueLoadFromSourceTask() {
 
   ChangeDelayLoadStatus(true);
   ChangeNetworkState(NETWORK_LOADING);
-  RefPtr<Runnable> r = NewRunnableMethod<JSCallingLocation>(
-      "HTMLMediaElement::LoadFromSourceChildren", this,
-      &HTMLMediaElement::LoadFromSourceChildren, JSCallingLocation::Get());
+  RefPtr<Runnable> r =
+      NewRunnableMethod("HTMLMediaElement::LoadFromSourceChildren", this,
+                        &HTMLMediaElement::LoadFromSourceChildren);
   RunInStableState(r);
 }
 
@@ -2630,9 +2624,9 @@ void HTMLMediaElement::QueueSelectResourceTask() {
   if (mHaveQueuedSelectResource) return;
   mHaveQueuedSelectResource = true;
   ChangeNetworkState(NETWORK_NO_SOURCE);
-  RefPtr<Runnable> r = NewRunnableMethod<JSCallingLocation>(
-      "HTMLMediaElement::SelectResourceWrapper", this,
-      &HTMLMediaElement::SelectResourceWrapper, JSCallingLocation::Get());
+  RefPtr<Runnable> r =
+      NewRunnableMethod("HTMLMediaElement::SelectResourceWrapper", this,
+                        &HTMLMediaElement::SelectResourceWrapper);
   RunInStableState(r);
 }
 
@@ -2736,17 +2730,15 @@ void HTMLMediaElement::ResetState() {
   }
 }
 
-void HTMLMediaElement::SelectResourceWrapper(
-    const JSCallingLocation& aCallingLocation) {
-  SelectResource(aCallingLocation);
+void HTMLMediaElement::SelectResourceWrapper() {
+  SelectResource();
   MaybeBeginCloningVisually();
   mIsRunningSelectResource = false;
   mHaveQueuedSelectResource = false;
   mIsDoingExplicitLoad = false;
 }
 
-void HTMLMediaElement::SelectResource(
-    const JSCallingLocation& aCallingLocation) {
+void HTMLMediaElement::SelectResource() {
   if (!mSrcAttrStream && !HasAttr(nsGkAtoms::src) && !HasSourceChildren(this)) {
     // The media element has neither a src attribute nor any source
     // element children, abort the load.
@@ -2763,7 +2755,7 @@ void HTMLMediaElement::SelectResource(
   // Delay setting mIsRunningSeletResource until after UpdatePreloadAction
   // so that we don't lose our state change by bailing out of the preload
   // state update
-  UpdatePreloadAction(aCallingLocation);
+  UpdatePreloadAction();
   mIsRunningSelectResource = true;
 
   // If we have a 'src' attribute, use that exclusively.
@@ -2802,7 +2794,7 @@ void HTMLMediaElement::SelectResource(
         OwnerDoc()->AddMediaElementWithMSE();
       }
       DDLINKCHILD("mediasource", mMediaSource.get());
-      UpdatePreloadAction(aCallingLocation);
+      UpdatePreloadAction();
       if (mPreloadAction == HTMLMediaElement::PRELOAD_NONE && !mMediaSource) {
         // preload:none media, suspend the load here before we make any
         // network requests.
@@ -2810,7 +2802,7 @@ void HTMLMediaElement::SelectResource(
         return;
       }
 
-      rv = LoadResource(aCallingLocation);
+      rv = LoadResource();
       if (NS_SUCCEEDED(rv)) {
         return;
       }
@@ -2823,7 +2815,7 @@ void HTMLMediaElement::SelectResource(
   } else {
     // Otherwise, the source elements will be used.
     mIsLoadingFromSourceChildren = true;
-    LoadFromSourceChildren(aCallingLocation);
+    LoadFromSourceChildren();
   }
 }
 
@@ -2978,8 +2970,7 @@ void HTMLMediaElement::DealWithFailedElement(nsIContent* aSourceElement) {
                         &HTMLMediaElement::QueueLoadFromSourceTask));
 }
 
-void HTMLMediaElement::LoadFromSourceChildren(
-    const JSCallingLocation& aCallingLocation) {
+void HTMLMediaElement::LoadFromSourceChildren() {
   NS_ASSERTION(mDelayingLoadEvent,
                "Should delay load event (if in document) during load");
   NS_ASSERTION(mIsLoadingFromSourceChildren,
@@ -3096,7 +3087,7 @@ void HTMLMediaElement::LoadFromSourceChildren(
       return;
     }
 
-    if (NS_SUCCEEDED(LoadResource(aCallingLocation))) {
+    if (NS_SUCCEEDED(LoadResource())) {
       return;
     }
 
@@ -3112,8 +3103,7 @@ void HTMLMediaElement::SuspendLoad() {
   ChangeDelayLoadStatus(false);
 }
 
-void HTMLMediaElement::ResumeLoad(PreloadAction aAction,
-                                  const JSCallingLocation& aCallingLocation) {
+void HTMLMediaElement::ResumeLoad(PreloadAction aAction) {
   NS_ASSERTION(mSuspendedForPreloadNone,
                "Must be halted for preload:none to resume from preload:none "
                "suspended load.");
@@ -3123,15 +3113,15 @@ void HTMLMediaElement::ResumeLoad(PreloadAction aAction,
   ChangeNetworkState(NETWORK_LOADING);
   if (!mIsLoadingFromSourceChildren) {
     // We were loading from the element's src attribute.
-    MediaResult rv = LoadResource(aCallingLocation);
+    MediaResult rv = LoadResource();
     if (NS_FAILED(rv)) {
       NoSupportedMediaSourceError(rv.Description());
     }
   } else {
     // We were loading from a child <source> element. Try to resume the
     // load of that child, and if that fails, try the next child.
-    if (NS_FAILED(LoadResource(aCallingLocation))) {
-      LoadFromSourceChildren(aCallingLocation);
+    if (NS_FAILED(LoadResource())) {
+      LoadFromSourceChildren();
     }
   }
 }
@@ -3161,8 +3151,7 @@ uint32_t HTMLMediaElement::GetPreloadDefaultAuto() const {
                              HTMLMediaElement::PRELOAD_ENOUGH);
 }
 
-void HTMLMediaElement::UpdatePreloadAction(
-    const JSCallingLocation& aCallingLocation) {
+void HTMLMediaElement::UpdatePreloadAction() {
   PreloadAction nextAction = PRELOAD_UNDEFINED;
   // If autoplay is set, or we're playing, we should always preload data,
   // as we'll need it to play.
@@ -3212,7 +3201,7 @@ void HTMLMediaElement::UpdatePreloadAction(
       // Our load was previouly suspended due to the media having preload
       // value "none". The preload value has changed to preload:auto, so
       // resume the load.
-      ResumeLoad(PRELOAD_ENOUGH, aCallingLocation);
+      ResumeLoad(PRELOAD_ENOUGH);
     } else {
       // Preload as much of the video as we can, i.e. don't suspend after
       // the first frame.
@@ -3237,13 +3226,12 @@ void HTMLMediaElement::UpdatePreloadAction(
       // value "none". The preload value has changed to preload:metadata, so
       // resume the load. We'll pause the load again after we've read the
       // metadata.
-      ResumeLoad(PRELOAD_METADATA, aCallingLocation);
+      ResumeLoad(PRELOAD_METADATA);
     }
   }
 }
 
-MediaResult HTMLMediaElement::LoadResource(
-    const JSCallingLocation& aCallingLocation) {
+MediaResult HTMLMediaElement::LoadResource() {
   NS_ASSERTION(mDelayingLoadEvent,
                "Should delay load event (if in document) during load");
 
@@ -3295,7 +3283,7 @@ MediaResult HTMLMediaElement::LoadResource(
 
   AssertReadyStateIsNothing();
 
-  RefPtr<ChannelLoader> loader = new ChannelLoader(aCallingLocation);
+  RefPtr<ChannelLoader> loader = new ChannelLoader;
   nsresult rv = loader->Load(this);
   if (NS_SUCCEEDED(rv)) {
     mChannelLoader = std::move(loader);
@@ -4723,7 +4711,7 @@ void HTMLMediaElement::PlayInternal(bool aHandlingUserInput) {
   // invoke the media element's resource selection algorithm.
   MaybeDoLoad();
   if (mSuspendedForPreloadNone) {
-    ResumeLoad(PRELOAD_ENOUGH, JSCallingLocation::Get());
+    ResumeLoad(PRELOAD_ENOUGH);
   }
 
   // 4.8.12.8 - Step 5:
@@ -4754,7 +4742,7 @@ void HTMLMediaElement::PlayInternal(bool aHandlingUserInput) {
   // We changed mPaused and mCanAutoplayFlag which can affect
   // AddRemoveSelfReference and our preload status.
   AddRemoveSelfReference();
-  UpdatePreloadAction(JSCallingLocation::Get());
+  UpdatePreloadAction();
   UpdateSrcMediaStreamPlaying();
   StartMediaControlKeyListenerIfNeeded();
 
@@ -5053,10 +5041,10 @@ void HTMLMediaElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
         }
         // This attribute can affect AddRemoveSelfReference
         AddRemoveSelfReference();
-        UpdatePreloadAction(JSCallingLocation::Get());
+        UpdatePreloadAction();
       }
     } else if (aName == nsGkAtoms::preload) {
-      UpdatePreloadAction(JSCallingLocation::Get());
+      UpdatePreloadAction();
     } else if (aName == nsGkAtoms::loop) {
       if (mDecoder) {
         mDecoder->SetLooping(!!aValue);
@@ -5104,7 +5092,7 @@ nsresult HTMLMediaElement::BindToTree(BindContext& aContext, nsINode& aParent) {
 
     // The preload action depends on the value of the autoplay attribute.
     // It's value may have changed, so update it.
-    UpdatePreloadAction(JSCallingLocation::Get());
+    UpdatePreloadAction();
   }
 
   NotifyDecoderActivityChanges();

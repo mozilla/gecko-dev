@@ -265,7 +265,7 @@ RefPtr<FetchServicePromises> FetchService::FetchInstance::Fetch() {
       // tracking fetch to false, but for Keepalive
       // requests from main thread this needs to be
       // changed. See Bug 1892406
-      net::ClassificationFlags({0, 0})  // TrackingFlags
+      false  // IsTrackingFetch
   );
 
   if (mArgsType == FetchArgsType::WorkerFetch) {

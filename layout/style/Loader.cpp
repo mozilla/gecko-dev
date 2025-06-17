@@ -42,7 +42,6 @@
 #include "nsContentPolicyUtils.h"
 #include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
-#include "nsIClassifiedChannel.h"
 #include "nsIClassOfService.h"
 #include "nsIScriptError.h"
 #include "nsMimeTypes.h"
@@ -1070,7 +1069,6 @@ nsresult Loader::NewStyleSheetChannel(SheetLoadData& aLoadData,
                                       nsIChannel** aOutChannel) {
   nsCOMPtr<nsILoadGroup> loadGroup;
   nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
-  net::ClassificationFlags triggeringClassificationFlags;
   if (aUseLoadGroup == UseLoadGroup::Yes && mDocument) {
     loadGroup = mDocument->GetDocumentLoadGroup();
     // load for a document with no loadgrup indicates that something is
@@ -1081,11 +1079,6 @@ nsresult Loader::NewStyleSheetChannel(SheetLoadData& aLoadData,
     }
 
     cookieJarSettings = mDocument->CookieJarSettings();
-
-    // If the script context is tracking, we use the flags from the script
-    // tracking flags. Otherwise, we fallback to use the flags from the
-    // document.
-    triggeringClassificationFlags = mDocument->GetScriptTrackingFlags();
   }
 
   nsSecurityFlags securityFlags =
@@ -1128,17 +1121,9 @@ nsresult Loader::NewStyleSheetChannel(SheetLoadData& aLoadData,
     }
   }
 
-  MOZ_TRY(NS_NewChannel(aOutChannel, aLoadData.mURI, triggeringPrincipal,
-                        securityFlags, contentPolicyType, cookieJarSettings,
-                        /* aPerformanceStorage = */ nullptr, loadGroup));
-
-  nsCOMPtr<nsILoadInfo> loadInfo = (*aOutChannel)->LoadInfo();
-  loadInfo->SetTriggeringFirstPartyClassificationFlags(
-      triggeringClassificationFlags.firstPartyFlags);
-  loadInfo->SetTriggeringThirdPartyClassificationFlags(
-      triggeringClassificationFlags.thirdPartyFlags);
-
-  return NS_OK;
+  return NS_NewChannel(aOutChannel, aLoadData.mURI, triggeringPrincipal,
+                       securityFlags, contentPolicyType, cookieJarSettings,
+                       /* aPerformanceStorage = */ nullptr, loadGroup);
 }
 
 nsresult Loader::LoadSheetSyncInternal(SheetLoadData& aLoadData,
