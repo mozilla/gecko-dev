@@ -1795,6 +1795,13 @@ class PresShell final : public nsStubDocumentObserver,
    */
   nsPoint GetEventLocation(const WidgetMouseEvent& aEvent) const;
 
+  /**
+   * Returns current modifier state which was set when PresShell started
+   * handling an event which has modifier state.  So, the result is "current"
+   * modifier state from the web apps point of view.
+   */
+  static Modifiers GetCurrentModifiers() { return sCurrentModifiers; }
+
  private:
   ~PresShell();
 
@@ -2061,9 +2068,18 @@ class PresShell final : public nsStubDocumentObserver,
     bool IsKeyPressEvent() override;
   };
 
-  // Check if aEvent is a mouse event and record the mouse location for later
-  // synth mouse moves.
+  /**
+   * Called when starting to handle aEvent, and this stores or clears the last
+   * mouse/pointer location to synthesize or to cancel synthesizing eMouseMove
+   * and/or ePointerMove.
+   */
   void RecordPointerLocation(WidgetGUIEvent* aEvent);
+
+  /**
+   * Called when starting to handle aEvent and stores the last modifier state.
+   */
+  static void RecordModifiers(WidgetGUIEvent* aEvent);
+
   class nsSynthMouseMoveEvent final : public nsARefreshObserver {
    public:
     nsSynthMouseMoveEvent(PresShell* aPresShell, bool aFromScroll)
@@ -3454,6 +3470,10 @@ class PresShell final : public nsStubDocumentObserver,
   static bool sDisableNonTestMouseEvents;
 
   static bool sProcessInteractable;
+
+  // Store the modifiers which are notified by the last event handling.  So,
+  // this is "current" modifier state from the web apps point of view.
+  static Modifiers sCurrentModifiers;
 };
 
 }  // namespace mozilla

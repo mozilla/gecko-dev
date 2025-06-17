@@ -6,7 +6,7 @@
 
 /* a presentation of a document, part 2 */
 
-#include "mozilla/PresShell.h"
+#include "PresShell.h"
 
 #include <algorithm>
 
@@ -616,6 +616,8 @@ TimeStamp PresShell::EventHandler::sLastInputProcessed;
 StaticRefPtr<Element> PresShell::EventHandler::sLastKeyDownEventTargetElement;
 
 bool PresShell::sProcessInteractable = false;
+
+Modifiers PresShell::sCurrentModifiers = MODIFIER_NONE;
 
 static bool gVerifyReflowEnabled;
 
@@ -6160,8 +6162,7 @@ void PresShell::ProcessSynthMouseOrPointerMoveEvent(
   event.mButtons = aPointerInfo.mLastButtons;
   event.mInputSource = aPointerInfo.mInputSource;
   event.pointerId = aPointerId;
-  // XXX set event.mModifiers ?
-  // XXX mnakano I think that we should get the latest information from widget.
+  event.mModifiers = PresShell::GetCurrentModifiers();
 
   if (BrowserBridgeChild* bbc = GetChildBrowser(pointView)) {
     // If we have a BrowserBridgeChild, we're going to be dispatching this
@@ -7212,6 +7213,38 @@ void PresShell::RecordPointerLocation(WidgetGUIEvent* aEvent) {
   }
 }
 
+// static
+void PresShell::RecordModifiers(WidgetGUIEvent* aEvent) {
+  switch (aEvent->mMessage) {
+    case eKeyPress:
+    case eKeyUp:
+    case eKeyDown:
+    case eMouseMove:
+    case eMouseUp:
+    case eMouseDown:
+    case eMouseEnterIntoWidget:
+    case eMouseExitFromWidget:
+    case eMouseActivate:
+    case eMouseTouchDrag:
+    case eMouseLongTap:
+    case eMouseRawUpdate:
+    case eMouseExploreByTouch:
+    case ePointerCancel:
+    case eContextMenu:
+    case eTouchStart:
+    case eTouchMove:
+    case eTouchEnd:
+    case eTouchCancel:
+    case eTouchPointerCancel:
+    case eTouchRawUpdate:
+    case eWheel:
+      sCurrentModifiers = aEvent->AsInputEvent()->mModifiers;
+      break;
+    default:
+      break;
+  }
+}
+
 void PresShell::nsSynthMouseMoveEvent::Revoke() {
   if (mPresShell) {
     mPresShell->GetPresContext()->RefreshDriver()->RemoveRefreshObserver(
@@ -7317,6 +7350,8 @@ nsresult PresShell::HandleEvent(nsIFrame* aFrameForPresShell,
                                 bool aDontRetargetEvents,
                                 nsEventStatus* aEventStatus) {
   MOZ_ASSERT(aGUIEvent);
+
+  RecordModifiers(aGUIEvent);
 
   AutoWeakFrame weakFrameForPresShell(aFrameForPresShell);
 

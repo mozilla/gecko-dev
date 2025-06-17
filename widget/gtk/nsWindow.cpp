@@ -4248,6 +4248,7 @@ void nsWindow::OnEnterNotifyEvent(GdkEventCrossing* aEvent) {
 
   event.mRefPoint = GdkEventCoordsToDevicePixels(aEvent->x, aEvent->y);
   event.AssignEventTime(GetWidgetEventTime(aEvent->time));
+  KeymapWrapper::InitInputEvent(event, aEvent->state);
 
   LOG("OnEnterNotify");
 
@@ -4332,6 +4333,7 @@ void nsWindow::OnLeaveNotifyEvent(GdkEventCrossing* aEvent) {
   event.AssignEventTime(GetWidgetEventTime(aEvent->time));
   event.mExitFrom = Some(leavingTopLevel ? WidgetMouseEvent::ePlatformTopLevel
                                          : WidgetMouseEvent::ePlatformChild);
+  KeymapWrapper::InitInputEvent(event, aEvent->state);
 
   LOG("OnLeaveNotify");
 
