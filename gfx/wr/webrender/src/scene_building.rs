@@ -1278,7 +1278,7 @@ impl<'a> SceneBuilder<'a> {
             },
         };
 
-        self.clip_tree_builder.push_clip_chain(Some(info.space_and_clip.clip_chain_id), false);
+        self.clip_tree_builder.push_clip_chain(Some(info.space_and_clip.clip_chain_id), false, false);
 
         // TODO(gw): This is the only remaining call site that relies on ClipId parenting, remove me!
         self.add_rect_clip_node(
@@ -2261,6 +2261,7 @@ impl<'a> SceneBuilder<'a> {
         self.clip_tree_builder.push_clip_chain(
             clip_chain_id,
             !composite_ops.is_empty(),
+            composite_ops.snapshot.is_some(),
         );
 
         let new_space = match (self.raster_space_stack.last(), requested_raster_space) {
@@ -3018,7 +3019,7 @@ impl<'a> SceneBuilder<'a> {
         clip_chain_id: api::ClipChainId,
         should_inflate: bool,
     ) {
-        self.clip_tree_builder.push_clip_chain(Some(clip_chain_id), false);
+        self.clip_tree_builder.push_clip_chain(Some(clip_chain_id), false, false);
 
         // Store this shadow in the pending list, for processing
         // during pop_all_shadows.
