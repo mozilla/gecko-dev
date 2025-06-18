@@ -46,6 +46,10 @@ const TEST_MODES = Object.freeze({
     requestActive: true,
     cancelQuit: false,
   },
+  REQUEST_ACTIVE_BUT_ALREADY_CANCELLED_QUIT: {
+    requestActive: true,
+    alreadyCancelledQuit: true,
+  },
 });
 
 async function testConfirmationDialog(testMode) {
@@ -94,20 +98,24 @@ async function testConfirmationDialog(testMode) {
   let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(
     Ci.nsISupportsPRBool
   );
+  if (testMode.alreadyCancelledQuit) {
+    cancelQuit.data = true;
+  }
   let quitConfirmationDialogPromise;
-  if (testMode.requestActive) {
+  if (testMode.requestActive && !testMode.alreadyCancelledQuit) {
     quitConfirmationDialogPromise = BrowserTestUtils.promiseAlertDialog(
       testMode.cancelQuit ? "cancel" : "accept"
     );
   }
 
-  // If testMode.requestActive is false, we don't expect a confirmation dialog
-  // to pop up. If it does, this test will timeout. (since we didn't call
-  // promiseAlertDialog() above)
+  // If testMode.requestActive is false or testMode.alreadyCancelledQuit is true,
+  // we don't expect a confirmation dialog to pop up. If it does, this test will
+  // timeout. (since we didn't call promiseAlertDialog() above)
   Services.obs.notifyObservers(cancelQuit, "quit-application-requested");
   is(
     cancelQuit.data,
-    testMode.requestActive && testMode.cancelQuit,
+    testMode.alreadyCancelledQuit ||
+      (testMode.requestActive && testMode.cancelQuit),
     "checking if CA should abort quit"
   );
   if (testMode.requestActive) {
@@ -140,5 +148,13 @@ add_task(
 add_task(
   async function testQuitConfirmationDialogShownWhenRequestActiveAndConfirmQuit() {
     await testConfirmationDialog(TEST_MODES.REQUEST_ACTIVE_AND_CONFIRM_QUIT);
+  }
+);
+
+add_task(
+  async function testQuitConfirmationDialogNotShownIfQuitAlreadyCancelled() {
+    await testConfirmationDialog(
+      TEST_MODES.REQUEST_ACTIVE_BUT_ALREADY_CANCELLED_QUIT
+    );
   }
 );

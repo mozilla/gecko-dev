@@ -215,6 +215,11 @@ export const ContentAnalysis = {
   async observe(aSubj, aTopic, _aData) {
     switch (aTopic) {
       case "quit-application-requested": {
+        if (aSubj.data) {
+          // something has already cancelled the quit operation,
+          // so we don't need to do anything.
+          return;
+        }
         let pendingRequestInfos = this._getAllSlowCARequestInfos();
         let requestDescriptions = Array.from(
           pendingRequestInfos.flatMap(info =>
