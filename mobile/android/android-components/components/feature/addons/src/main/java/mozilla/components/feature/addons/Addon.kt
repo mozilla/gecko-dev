@@ -7,6 +7,8 @@ package mozilla.components.feature.addons
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.icu.text.ListFormatter
+import android.os.Build
 import android.os.Parcelable
 import androidx.annotation.VisibleForTesting
 import androidx.core.net.toUri
@@ -63,6 +65,8 @@ data class Addon(
     val permissions: List<String> = emptyList(),
     val optionalPermissions: List<Permission> = emptyList(),
     val optionalOrigins: List<Permission> = emptyList(),
+    val requiredDataCollectionPermissions: List<String> = emptyList(),
+    val optionalDataCollectionPermissions: List<Permission> = emptyList(),
     val translatableName: Map<String, String> = emptyMap(),
     val translatableDescription: Map<String, String> = emptyMap(),
     val translatableSummary: Map<String, String> = emptyMap(),
@@ -242,6 +246,22 @@ data class Addon(
     }
 
     /**
+     * Returns a list of localized Strings for each of the required data collection permissions.
+     * @param context Context for resource lookup
+     */
+    fun translateRequiredDataCollectionPermissions(context: Context): List<String> {
+        return localizeDataCollectionPermissions(requiredDataCollectionPermissions, context)
+    }
+
+    /**
+     * Returns a list of [LocalizedPermission] for each of the optional data collection permissions.
+     * @param context Context for resource lookup
+     */
+    fun translateOptionalDataCollectionPermissions(context: Context): List<LocalizedPermission> {
+        return localizeOptionalDataCollectionPermissions(optionalDataCollectionPermissions, context)
+    }
+
+    /**
      * Returns whether or not this [Addon] is currently installed.
      */
     fun isInstalled() = installedState != null
@@ -353,7 +373,7 @@ data class Addon(
          * kept in sync with `DATA_COLLECTION_PERMISSIONS` in `ExtensionPermissionMessages.sys.mjs`.
          */
         @Suppress("MaxLineLength")
-        private val dataCollectionPermissionToTranslation = mapOf(
+        private val dataCollectionPermissionToShortTranslation = mapOf(
             "authenticationInfo" to R.string.mozac_feature_addons_permissions_data_collection_authenticationInfo_short_description,
             "bookmarksInfo" to R.string.mozac_feature_addons_permissions_data_collection_bookmarksInfo_short_description,
             "browsingActivity" to R.string.mozac_feature_addons_permissions_data_collection_browsingActivity_short_description,
@@ -366,6 +386,26 @@ data class Addon(
             "technicalAndInteraction" to R.string.mozac_feature_addons_permissions_data_collection_technicalAndInteraction_short_description,
             "websiteActivity" to R.string.mozac_feature_addons_permissions_data_collection_websiteActivity_short_description,
             "websiteContent" to R.string.mozac_feature_addons_permissions_data_collection_websiteContent_short_description,
+        )
+
+        /**
+         * A map of data collection permissions to long translation string ids. This should be
+         * kept in sync with `DATA_COLLECTION_PERMISSIONS` in `ExtensionPermissionMessages.sys.mjs`.
+         */
+        @Suppress("MaxLineLength")
+        private val dataCollectionPermissionToLongTranslation = mapOf(
+            "authenticationInfo" to R.string.mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description,
+            "bookmarksInfo" to R.string.mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description,
+            "browsingActivity" to R.string.mozac_feature_addons_permissions_data_collection_browsingActivity_long_description,
+            "financialAndPaymentInfo" to R.string.mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description,
+            "healthInfo" to R.string.mozac_feature_addons_permissions_data_collection_healthInfo_long_description,
+            "locationInfo" to R.string.mozac_feature_addons_permissions_data_collection_locationInfo_long_description,
+            "personalCommunications" to R.string.mozac_feature_addons_permissions_data_collection_personalCommunications_long_description,
+            "personallyIdentifyingInfo" to R.string.mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_long_description,
+            "searchTerms" to R.string.mozac_feature_addons_permissions_data_collection_searchTerms_long_description,
+            "technicalAndInteraction" to R.string.mozac_feature_addons_permissions_data_collection_technicalAndInteraction_long_description,
+            "websiteActivity" to R.string.mozac_feature_addons_permissions_data_collection_websiteActivity_long_description,
+            "websiteContent" to R.string.mozac_feature_addons_permissions_data_collection_websiteContent_long_description,
         )
 
         /**
@@ -397,7 +437,65 @@ data class Addon(
          * @param permissions The list of data collection permissions to be localized.
          */
         fun localizeDataCollectionPermissions(permissions: List<String>, context: Context): List<String> {
-            return permissions.mapNotNull { dataCollectionPermissionToTranslation[it] }.map { context.getString(it) }
+            return permissions.mapNotNull {
+                dataCollectionPermissionToShortTranslation[it]
+            }.map { context.getString(it) }
+        }
+
+        /**
+         * Takes a list of optional data collection [permissions] and returns a list of [LocalizedPermission].
+         * @param permissions The list of optional data collection permissions to be localized.
+         * @param context The context for resource lookup.
+         */
+        fun localizeOptionalDataCollectionPermissions(
+            permissions: List<Permission>,
+            context: Context,
+        ): List<LocalizedPermission> {
+            return permissions.mapNotNull {
+                val resourceId = dataCollectionPermissionToLongTranslation[it.name]
+                if (resourceId != null) {
+                    LocalizedPermission(context.getString(resourceId), it)
+                } else {
+                    null
+                }
+            }
+        }
+
+        /**
+         * Takes a list of localized permission [String] values and formats it to return a single string.
+         *
+         * @param localizedPermissions The list of localized permission [String]
+         */
+        fun formatLocalizedDataCollectionPermissions(localizedPermissions: List<String>): String {
+            // We want to render the list of data collection permissions as a sentence in the UI. The localized
+            // string expects a unique string parameter that is a formatted list of permission names. For example:
+            //
+            // ```
+            // The developer says this extension collects: x, y, z
+            // ```
+            //
+            // Unfortunately, we have to account for either a lack of proper API (prior to API level 26), a fairly
+            // limited API (prior to API level 33) and a nice API (API level 33 and above). That essentially means:
+            //
+            // - For API level 33 and above (TIRAMISU), we will return `x, y, z` because we use the "AND" type and
+            //   the "NARROW" width.
+            //
+            // - For API level 26 (O) to 33 (excluded), we will use the list formatter that is configured with the
+            //   "AND" type (good) and the "WIDE" width (not ideal). We will therefore return `x, y and z` for the
+            //   same list of permissions. It's still better to use a list formatter for localization.
+            //
+            // - For API level below 26, we use a "join string with a comma" fallback. That will return `x, y, z`
+            //   in plain English. That will also return the same formatted string in _any_ locale, even when that
+            //   isn't how a list should be formatted. We do not have any other option, though.
+            val formattedList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ListFormatter.getInstance(Locale.getDefault(), ListFormatter.Type.AND, ListFormatter.Width.NARROW)
+                    .format(localizedPermissions)
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ListFormatter.getInstance(Locale.getDefault()).format(localizedPermissions)
+            } else {
+                localizedPermissions.joinToString(", ")
+            }
+            return formattedList
         }
 
         /**
@@ -479,7 +577,6 @@ data class Addon(
             }
 
             val grantedOptionalPermissions = metadata?.grantedOptionalPermissions ?: emptyList()
-            val grantedOptionalOrigins = metadata?.grantedOptionalOrigins ?: emptyList()
             val optionalPermissions = metadata?.optionalPermissions?.map { permission ->
                 Permission(
                     name = permission,
@@ -488,14 +585,24 @@ data class Addon(
             } ?: emptyList()
 
             val allOrigins = metadata?.optionalOrigins?.toMutableSet() ?: mutableSetOf()
+            val grantedOptionalOrigins = metadata?.grantedOptionalOrigins ?: emptyList()
             allOrigins.addAll(grantedOptionalOrigins)
-
             val optionalOrigins = allOrigins.map { origin ->
                 Permission(
                     name = origin,
                     granted = grantedOptionalOrigins.contains(origin),
                 )
             }
+
+            val requiredDataCollectionPermissions = metadata?.requiredDataCollectionPermissions ?: emptyList()
+            val grantedOptionalDataCollectionPermissions =
+                metadata?.grantedOptionalDataCollectionPermissions ?: emptyList()
+            val optionalDataCollectionPermissions = metadata?.optionalDataCollectionPermissions?.map { permission ->
+                Permission(
+                    name = permission,
+                    granted = grantedOptionalDataCollectionPermissions.contains(permission),
+                )
+            } ?: emptyList()
 
             return Addon(
                 id = extension.id,
@@ -504,6 +611,8 @@ data class Addon(
                 permissions = permissions,
                 optionalPermissions = optionalPermissions,
                 optionalOrigins = optionalOrigins,
+                requiredDataCollectionPermissions = requiredDataCollectionPermissions,
+                optionalDataCollectionPermissions = optionalDataCollectionPermissions,
                 downloadUrl = metadata?.downloadUrl.orEmpty(),
                 rating = Rating(averageRating, reviewCount),
                 homepageUrl = homepageUrl,

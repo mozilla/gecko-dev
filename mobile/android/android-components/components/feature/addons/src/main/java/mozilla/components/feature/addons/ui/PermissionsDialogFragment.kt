@@ -10,8 +10,6 @@ import android.content.DialogInterface
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.drawable.GradientDrawable
-import android.icu.text.ListFormatter
-import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -34,7 +32,6 @@ import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.ext.getParcelableCompat
-import java.util.Locale
 
 internal const val KEY_ADDON = "KEY_ADDON"
 private const val KEY_DIALOG_GRAVITY = "KEY_DIALOG_GRAVITY"
@@ -394,30 +391,12 @@ class PermissionsDialogFragment : AddonDialogFragment() {
         }
 
         val localizedPermissions = Addon.localizeDataCollectionPermissions(permissions, requireContext())
-        val formattedList = formatLocalizedDataCollectionPermissions(localizedPermissions)
+        val formattedList = Addon.formatLocalizedDataCollectionPermissions(localizedPermissions)
 
         return requireContext().getString(
             R.string.mozac_feature_addons_permissions_required_data_collection_description,
             formattedList,
         )
-    }
-
-    @VisibleForTesting
-    internal fun formatLocalizedDataCollectionPermissions(localizedPermissions: List<String>): String? {
-        val formattedList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ListFormatter.getInstance(Locale.getDefault(), ListFormatter.Type.AND, ListFormatter.Width.NARROW)
-                .format(localizedPermissions)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Unfortunately, this is going to use `ListFormatter.Type.AND` and `ListFormatter.Width.WIDE`,
-            // which results in the following formatted list in English: `x, y and z` instead of `x, y, z`
-            // (which is what we want).
-            //
-            // It's probably better to use a list formatter than the "join string with a comma" fallback...
-            ListFormatter.getInstance(Locale.getDefault()).format(localizedPermissions)
-        } else {
-            localizedPermissions.joinToString(", ")
-        }
-        return formattedList
     }
 
     @VisibleForTesting

@@ -37,8 +37,7 @@ import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
- * The permissions screen for an addon which allows a user to edit the optional
- * and origin permissions.
+ * The permissions screen for an addon which allows a user to edit the optional permissions.
  */
 @Composable
 @Suppress("LongParameterList", "LongMethod")
@@ -46,6 +45,9 @@ fun AddonPermissionsScreen(
     permissions: List<String>,
     optionalPermissions: List<Addon.LocalizedPermission>,
     originPermissions: List<Addon.LocalizedPermission>,
+    requiredDataCollectionPermissions: List<String> = emptyList(),
+    hasNoneDataCollection: Boolean = false,
+    optionalDataCollectionPermissions: List<Addon.LocalizedPermission> = emptyList(),
     isAllSitesSwitchVisible: Boolean,
     isAllSitesEnabled: Boolean,
     onAddOptionalPermissions: (AddonPermissionsUpdateRequest) -> Unit,
@@ -54,12 +56,39 @@ fun AddonPermissionsScreen(
     onRemoveAllSitesPermissions: () -> Unit,
     onLearnMoreClick: (String) -> Unit,
 ) {
+    val hasNoPermission = permissions.isEmpty() &&
+            optionalPermissions.isEmpty() &&
+            originPermissions.isEmpty() &&
+            requiredDataCollectionPermissions.isEmpty() &&
+            optionalDataCollectionPermissions.isEmpty() && !hasNoneDataCollection
+
+    // Early return with a "no permissions required" message when the add-on doesn't have any permission that we can
+    // list in this screen.
+    if (hasNoPermission) {
+        return LazyColumn(modifier = Modifier.padding(vertical = 8.dp)) {
+            item {
+                TextListItem(
+                    label = stringResource(R.string.addons_does_not_require_permissions),
+                    maxLabelLines = Int.MAX_VALUE,
+                )
+            }
+
+            item {
+                Divider()
+            }
+
+            item {
+                LearnMoreItem(onLearnMoreClick)
+            }
+        }
+    }
+
     LazyColumn(modifier = Modifier.padding(vertical = 8.dp)) {
         if (permissions.isNotEmpty()) {
             // Required Permissions Header
             item {
                 SectionHeader(
-                    label = stringResource(R.string.addons_permissions_heading_required),
+                    label = stringResource(R.string.addons_permissions_heading_required_permissions),
                 )
             }
 
@@ -70,14 +99,9 @@ fun AddonPermissionsScreen(
                     maxLabelLines = Int.MAX_VALUE,
                 )
             }
-        }
 
-        if (permissions.isEmpty() && (optionalPermissions.isEmpty() && originPermissions.isEmpty())) {
             item {
-                TextListItem(
-                    label = stringResource(R.string.addons_does_not_require_permissions),
-                    maxLabelLines = Int.MAX_VALUE,
-                )
+                Divider()
             }
         }
 
@@ -85,10 +109,8 @@ fun AddonPermissionsScreen(
         if (optionalPermissions.isNotEmpty() || originPermissions.isNotEmpty()) {
             // Optional Section Header
             item {
-                Divider()
-
                 SectionHeader(
-                    label = stringResource(id = R.string.addons_permissions_heading_optional),
+                    label = stringResource(id = R.string.addons_permissions_heading_optional_permissions),
                 )
             }
 
@@ -117,7 +139,7 @@ fun AddonPermissionsScreen(
                         modifier = Modifier
                             .padding(horizontal = 16.dp, vertical = 6.dp),
                         localizedPermission = optionalPermission,
-                        isOriginPermission = false,
+                        type = OptionalPermissionType.PERMISSION,
                         addOptionalPermission = onAddOptionalPermissions,
                         removeOptionalPermission = onRemoveOptionalPermissions,
                     )
@@ -137,40 +159,74 @@ fun AddonPermissionsScreen(
                     OptionalPermissionSwitch(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                         localizedPermission = originPermission,
-                        isOriginPermission = true,
+                        type = OptionalPermissionType.ORIGIN,
                         isEnabled = !isAllSitesEnabled,
                         addOptionalPermission = onAddOptionalPermissions,
                         removeOptionalPermission = onRemoveOptionalPermissions,
                     )
                 }
             }
+
+            item {
+                Divider()
+            }
         }
 
-        // Learn More
-        item {
-            val learnMoreState = LinkTextState(
-                text = stringResource(R.string.mozac_feature_addons_learn_more),
-                url = SupportUtils.getSumoURLForTopic(
-                    LocalContext.current,
-                    SupportUtils.SumoTopic.MANAGE_OPTIONAL_EXTENSION_PERMISSIONS,
-                ),
-                onClick = {
-                    onLearnMoreClick.invoke(it)
-                },
-            )
-
-            Divider()
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-            ) {
-                LinkText(
-                    text = stringResource(R.string.mozac_feature_addons_learn_more),
-                    linkTextStates = listOf(learnMoreState),
+        if (requiredDataCollectionPermissions.isNotEmpty() || hasNoneDataCollection) {
+            // Optional Section Header
+            item {
+                SectionHeader(
+                    label = stringResource(id = R.string.addons_permissions_heading_required_data_collection),
                 )
             }
+
+            item {
+                TextListItem(
+                    label = if (hasNoneDataCollection) {
+                        stringResource(id = R.string.addons_permissions_none_required_data_collection_description)
+                    } else {
+                        stringResource(
+                            id = R.string.addons_permissions_required_data_collection_description,
+                            Addon.formatLocalizedDataCollectionPermissions(requiredDataCollectionPermissions),
+                        )
+                    },
+                    maxLabelLines = Int.MAX_VALUE,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+            }
+
+            item {
+                Divider()
+            }
+        }
+
+        if (optionalDataCollectionPermissions.isNotEmpty()) {
+            item {
+                SectionHeader(
+                    label = stringResource(id = R.string.addons_permissions_heading_optional_data_collection),
+                )
+            }
+
+            items(
+                items = optionalDataCollectionPermissions,
+                key = { it.localizedName },
+            ) { optionalPermission ->
+                OptionalPermissionSwitch(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    localizedPermission = optionalPermission,
+                    type = OptionalPermissionType.DATA_COLLECTION,
+                    addOptionalPermission = onAddOptionalPermissions,
+                    removeOptionalPermission = onRemoveOptionalPermissions,
+                )
+            }
+
+            item {
+                Divider()
+            }
+        }
+
+        item {
+            LearnMoreItem(onLearnMoreClick)
         }
     }
 }
@@ -215,7 +271,7 @@ private fun SectionHeader(label: String, testTag: String = "") {
     ) {
         Text(
             text = label,
-            color = FirefoxTheme.colors.textAccent,
+            color = FirefoxTheme.colors.textPrimary,
             style = FirefoxTheme.typography.headline8,
             modifier = Modifier
                 .weight(1f)
@@ -225,10 +281,45 @@ private fun SectionHeader(label: String, testTag: String = "") {
 }
 
 @Composable
+private fun LearnMoreItem(onLearnMoreClick: (String) -> Unit) {
+    val learnMoreText = stringResource(R.string.mozac_feature_addons_learn_more)
+    val learnMoreState = LinkTextState(
+        text = learnMoreText,
+        url = SupportUtils.getSumoURLForTopic(
+            LocalContext.current,
+            SupportUtils.SumoTopic.MANAGE_OPTIONAL_EXTENSION_PERMISSIONS,
+        ),
+        onClick = {
+            onLearnMoreClick.invoke(it)
+        },
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+    ) {
+        LinkText(
+            text = learnMoreText,
+            linkTextStates = listOf(learnMoreState),
+        )
+    }
+}
+
+/**
+ * The type of optional permission to render in `OptionalPermissionSwitch`.
+ */
+enum class OptionalPermissionType {
+    PERMISSION,
+    ORIGIN,
+    DATA_COLLECTION,
+}
+
+@Composable
 private fun OptionalPermissionSwitch(
     modifier: Modifier,
     localizedPermission: Addon.LocalizedPermission,
-    isOriginPermission: Boolean,
+    type: OptionalPermissionType,
     isEnabled: Boolean = true,
     addOptionalPermission: (AddonPermissionsUpdateRequest) -> Unit,
     removeOptionalPermission: (AddonPermissionsUpdateRequest) -> Unit,
@@ -242,10 +333,13 @@ private fun OptionalPermissionSwitch(
         if (enabled) {
             addOptionalPermission(
                 AddonPermissionsUpdateRequest(
-                    optionalPermissions = if (!isOriginPermission) {
+                    optionalPermissions = if (type == OptionalPermissionType.PERMISSION) {
                         listOf(localizedPermission.permission.name)
                     } else { emptyList() },
-                    originPermissions = if (isOriginPermission) {
+                    originPermissions = if (type == OptionalPermissionType.ORIGIN) {
+                        listOf(localizedPermission.permission.name)
+                    } else { emptyList() },
+                    dataCollectionPermissions = if (type == OptionalPermissionType.DATA_COLLECTION) {
                         listOf(localizedPermission.permission.name)
                     } else { emptyList() },
                 ),
@@ -253,21 +347,26 @@ private fun OptionalPermissionSwitch(
         } else {
             removeOptionalPermission(
                 AddonPermissionsUpdateRequest(
-                    optionalPermissions = if (!isOriginPermission) {
+                    optionalPermissions = if (type == OptionalPermissionType.PERMISSION) {
                         listOf(localizedPermission.permission.name)
                     } else { emptyList() },
-                    originPermissions = if (isOriginPermission) {
+                    originPermissions = if (type == OptionalPermissionType.ORIGIN) {
+                        listOf(localizedPermission.permission.name)
+                    } else { emptyList() },
+                    dataCollectionPermissions = if (type == OptionalPermissionType.DATA_COLLECTION) {
                         listOf(localizedPermission.permission.name)
                     } else { emptyList() },
                 ),
             )
         }
     }
+
     if (localizedPermission.permission.name == "userScripts") {
         InfoCard(
             type = InfoType.Warning,
             modifier = Modifier
-                .fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
             description = stringResource(R.string.mozac_feature_addons_permissions_user_scripts_extra_warning),
         )
     }
@@ -297,6 +396,17 @@ private fun AddonPermissionsScreenPreview() {
             Permission("https://user-added.website.com", false),
         ),
     )
+    val requiredDataCollectionPermissions: List<String> = listOf("location", "browsing activity")
+    val optionalDataCollectionPermissions: List<Addon.LocalizedPermission> = listOf(
+        Addon.LocalizedPermission(
+            "Share location with extension developer",
+            Permission("location", false),
+        ),
+        Addon.LocalizedPermission(
+            "Share technical and interaction data with extension developer",
+            Permission("technicalAndInteraction", false),
+        ),
+    )
 
     FirefoxTheme {
         Column(modifier = Modifier.background(FirefoxTheme.colors.layer1)) {
@@ -304,6 +414,8 @@ private fun AddonPermissionsScreenPreview() {
                 permissions = permissions,
                 optionalPermissions = optionalPermissions,
                 originPermissions = originPermissions,
+                requiredDataCollectionPermissions = requiredDataCollectionPermissions,
+                optionalDataCollectionPermissions = optionalDataCollectionPermissions,
                 isAllSitesSwitchVisible = true,
                 isAllSitesEnabled = false,
                 onAddOptionalPermissions = { _ -> },

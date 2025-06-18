@@ -896,7 +896,7 @@ class PermissionsDialogFragmentTest {
                 firstItem.permissionText.contains(
                     testContext.getString(
                         R.string.mozac_feature_addons_permissions_required_data_collection_description,
-                        fragment.formatLocalizedDataCollectionPermissions(
+                        Addon.formatLocalizedDataCollectionPermissions(
                             Addon.localizeDataCollectionPermissions(
                                 dataCollectionPermissions,
                                 testContext,
@@ -982,7 +982,7 @@ class PermissionsDialogFragmentTest {
                 secondItem.permissionText.contains(
                     testContext.getString(
                         R.string.mozac_feature_addons_permissions_required_data_collection_description,
-                        fragment.formatLocalizedDataCollectionPermissions(
+                        Addon.formatLocalizedDataCollectionPermissions(
                             Addon.localizeDataCollectionPermissions(
                                 dataCollectionPermissions,
                                 testContext,
@@ -1114,7 +1114,7 @@ class PermissionsDialogFragmentTest {
                 secondItem.permissionText.contains(
                     testContext.getString(
                         R.string.mozac_feature_addons_permissions_required_data_collection_description,
-                        fragment.formatLocalizedDataCollectionPermissions(
+                        Addon.formatLocalizedDataCollectionPermissions(
                             Addon.localizeDataCollectionPermissions(
                                 dataCollectionPermissions,
                                 testContext,

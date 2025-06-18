@@ -174,11 +174,23 @@ class AddonTest {
             "*://*/*",
         )
 
-        assertFalse("Found all_urls permission when none exists", Addon.permissionsListContainsAllUrls(permissionsWithoutAllUrls))
-        assertTrue("Did not find the all_urls permission in the list", Addon.permissionsListContainsAllUrls(permissionsWithAllUrls))
+        assertFalse(
+            "Found all_urls permission when none exists",
+            Addon.permissionsListContainsAllUrls(permissionsWithoutAllUrls),
+        )
+        assertTrue(
+            "Did not find the all_urls permission in the list",
+            Addon.permissionsListContainsAllUrls(permissionsWithAllUrls),
+        )
 
-        assertFalse("Found all_urls permission when none exists", Addon.permissionsListContainsAllUrls(domainsWithoutAllUrls))
-        assertTrue("Did not find the all_urls permission in the list", Addon.permissionsListContainsAllUrls(domainsWithAllUrls))
+        assertFalse(
+            "Found all_urls permission when none exists",
+            Addon.permissionsListContainsAllUrls(domainsWithoutAllUrls),
+        )
+        assertTrue(
+            "Did not find the all_urls permission in the list",
+            Addon.permissionsListContainsAllUrls(domainsWithAllUrls),
+        )
     }
 
     @Test
@@ -191,7 +203,11 @@ class AddonTest {
             createdAt = "",
             updatedAt = "",
             translatableName = mapOf(Addon.DEFAULT_LOCALE to "name", "de" to "Name", "es" to "nombre"),
-            translatableDescription = mapOf(Addon.DEFAULT_LOCALE to "description", "de" to "Beschreibung", "es" to "descripción"),
+            translatableDescription = mapOf(
+                Addon.DEFAULT_LOCALE to "description",
+                "de" to "Beschreibung",
+                "es" to "descripción",
+            ),
             translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary", "de" to "Kurzfassung", "es" to "resumen"),
         )
 
@@ -408,10 +424,22 @@ class AddonTest {
     @Test
     fun `localizeOptionalPermissions - should provide LocalizedPermission list`() {
         val expectedLocalizedPermissions = listOf(
-            Addon.LocalizedPermission(testContext.getString(R.string.mozac_feature_addons_permissions_all_urls_description), Addon.Permission("<all_urls>", false)),
-            Addon.LocalizedPermission(testContext.getString(R.string.mozac_feature_addons_permissions_web_navigation_description), Addon.Permission("webNavigation", false)),
-            Addon.LocalizedPermission(testContext.getString(R.string.mozac_feature_addons_permissions_clipboard_read_description), Addon.Permission("clipboardRead", false)),
-            Addon.LocalizedPermission(testContext.getString(R.string.mozac_feature_addons_permissions_clipboard_write_description), Addon.Permission("clipboardWrite", false)),
+            Addon.LocalizedPermission(
+                testContext.getString(R.string.mozac_feature_addons_permissions_all_urls_description),
+                Addon.Permission("<all_urls>", false),
+            ),
+            Addon.LocalizedPermission(
+                testContext.getString(R.string.mozac_feature_addons_permissions_web_navigation_description),
+                Addon.Permission("webNavigation", false),
+            ),
+            Addon.LocalizedPermission(
+                testContext.getString(R.string.mozac_feature_addons_permissions_clipboard_read_description),
+                Addon.Permission("clipboardRead", false),
+            ),
+            Addon.LocalizedPermission(
+                testContext.getString(R.string.mozac_feature_addons_permissions_clipboard_write_description),
+                Addon.Permission("clipboardWrite", false),
+            ),
         )
 
         val permissions = listOf(
@@ -638,6 +666,66 @@ class AddonTest {
                 listOf("nonExisting", "healthInfo", "locationInfo"),
                 testContext,
             ).size == 2,
+        )
+    }
+
+    @Test
+    fun `translateRequiredDataCollectionPermissions - should return localized strings for the required data collection permissions`() {
+        val addon = Addon(
+            id = "addon-id",
+            requiredDataCollectionPermissions = listOf("bookmarksInfo", "browsingActivity"),
+        )
+
+        assertEquals(
+            listOf(
+                R.string.mozac_feature_addons_permissions_data_collection_bookmarksInfo_short_description,
+                R.string.mozac_feature_addons_permissions_data_collection_browsingActivity_short_description,
+            ).map { testContext.getString(it) },
+            addon.translateRequiredDataCollectionPermissions(testContext),
+        )
+    }
+
+    @Test
+    fun `localizeOptionalDataCollectionPermissions - should return a LocalizedPermission for each data collection permission`() {
+        listOf(
+            "authenticationInfo",
+            "bookmarksInfo",
+            "browsingActivity",
+            "financialAndPaymentInfo",
+            "healthInfo",
+            "locationInfo",
+            "personalCommunications",
+            "personallyIdentifyingInfo",
+            "searchTerms",
+            "technicalAndInteraction",
+            "websiteActivity",
+            "websiteContent",
+        ).map { permission ->
+            val list = Addon.localizeOptionalDataCollectionPermissions(
+                listOf(Addon.Permission(permission, false)),
+                testContext,
+            )
+            assertTrue("expected a localized string for $permission", list.size == 1)
+        }
+    }
+
+    @Test
+    fun `translateOptionalDataCollectionPermissions - should return localized permissions for the optional data collection permissions`() {
+        val addon = Addon(
+            id = "addon-id",
+            optionalDataCollectionPermissions = listOf(
+                Addon.Permission("bookmarksInfo", false),
+                Addon.Permission("browsingActivity", false),
+            ),
+        )
+
+        assertEquals(
+            listOf(
+                R.string.mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description,
+                R.string.mozac_feature_addons_permissions_data_collection_browsingActivity_long_description,
+            ).map { testContext.getString(it) },
+            // Only return the localized name for each LocalizedPermission.
+            addon.translateOptionalDataCollectionPermissions(testContext).map { it.localizedName },
         )
     }
 }
