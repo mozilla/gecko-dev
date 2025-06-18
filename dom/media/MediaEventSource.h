@@ -10,7 +10,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "mozilla/AbstractThread.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/DataMutex.h"
 #include "mozilla/Mutex.h"
@@ -96,35 +95,6 @@ class TakeArgsHelper {
 template <typename T>
 struct TakeArgs : public TakeArgsHelper<T>::type {};
 
-template <typename T>
-struct EventTarget;
-
-template <>
-struct EventTarget<nsIEventTarget> {
-  static void Dispatch(nsIEventTarget* aTarget,
-                       already_AddRefed<nsIRunnable> aTask) {
-    aTarget->Dispatch(std::move(aTask), NS_DISPATCH_NORMAL);
-  }
-  static bool IsOnTargetThread(nsIEventTarget* aTarget) {
-    bool rv;
-    aTarget->IsOnCurrentThread(&rv);
-    return rv;
-  }
-};
-
-template <>
-struct EventTarget<AbstractThread> {
-  static void Dispatch(AbstractThread* aTarget,
-                       already_AddRefed<nsIRunnable> aTask) {
-    aTarget->Dispatch(std::move(aTask));
-  }
-  static bool IsOnTargetThread(AbstractThread* aTarget) {
-    bool rv;
-    aTarget->IsOnCurrentThread(&rv);
-    return rv;
-  }
-};
-
 /**
  * Encapsulate a raw pointer to be captured by a lambda without causing
  * static-analysis errors.
@@ -168,21 +138,20 @@ class Listener : public RevocableToken {
 };
 
 /**
- * Store the registered target thread and function so it knows where and to
+ * Store the registered event target and function so it knows where and to
  * whom to send the event data.
  */
-template <typename Target, typename Function, typename... As>
+template <typename Function, typename... As>
 class ListenerImpl : public Listener<As...> {
   // Strip CV and reference from Function.
   using FunctionStorage = std::decay_t<Function>;
-  using SelfType = ListenerImpl<Target, Function, As...>;
+  using SelfType = ListenerImpl<Function, As...>;
 
  public:
-  ListenerImpl(Target* aTarget, Function&& aFunction)
-      : mData(MakeRefPtr<Data>(aTarget, std::forward<Function>(aFunction)),
-              "MediaEvent ListenerImpl::mData") {
-    MOZ_DIAGNOSTIC_ASSERT(aTarget);
-  }
+  ListenerImpl(nsCOMPtr<nsIEventTarget>&& aTarget, Function&& aFunction)
+      : mData(MakeRefPtr<Data>(std::move(aTarget),
+                               std::forward<Function>(aFunction)),
+              "MediaEvent ListenerImpl::mData") {}
 
  protected:
   virtual ~ListenerImpl() {
@@ -201,7 +170,7 @@ class ListenerImpl : public Listener<As...> {
       RefPtr<nsIRunnable> temp(aTask);
       return;
     }
-    EventTarget<Target>::Dispatch(data->mTarget, std::move(aTask));
+    data->mTarget->Dispatch(std::move(aTask));
   }
 
   bool CanTakeArgs() const override { return TakeArgs<FunctionStorage>::value; }
@@ -209,15 +178,15 @@ class ListenerImpl : public Listener<As...> {
   // |F| takes one or more arguments.
   template <typename F>
   std::enable_if_t<TakeArgs<F>::value, void> ApplyWithArgsImpl(
-      Target* aTarget, const F& aFunc, As&&... aEvents) {
-    MOZ_DIAGNOSTIC_ASSERT(EventTarget<Target>::IsOnTargetThread(aTarget));
+      nsIEventTarget* aTarget, const F& aFunc, As&&... aEvents) {
+    MOZ_DIAGNOSTIC_ASSERT(aTarget->IsOnCurrentThread());
     aFunc(std::move(aEvents)...);
   }
 
   // |F| takes no arguments.
   template <typename F>
   std::enable_if_t<!TakeArgs<F>::value, void> ApplyWithArgsImpl(
-      Target* aTarget, const F& aFunc, As&&... aEvents) {
+      nsIEventTarget* aTarget, const F& aFunc, As&&... aEvents) {
     MOZ_CRASH("Call ApplyWithNoArgs instead.");
   }
 
@@ -232,22 +201,22 @@ class ListenerImpl : public Listener<As...> {
     if (!data) {
       return;
     }
-    MOZ_DIAGNOSTIC_ASSERT(EventTarget<Target>::IsOnTargetThread(data->mTarget));
+    MOZ_DIAGNOSTIC_ASSERT(data->mTarget->IsOnCurrentThread());
     ApplyWithArgsImpl(data->mTarget, data->mFunction, std::move(aEvents)...);
   }
 
   // |F| takes one or more arguments.
   template <typename F>
   std::enable_if_t<TakeArgs<F>::value, void> ApplyWithNoArgsImpl(
-      Target* aTarget, const F& aFunc) {
+      nsIEventTarget* aTarget, const F& aFunc) {
     MOZ_CRASH("Call ApplyWithArgs instead.");
   }
 
   // |F| takes no arguments.
   template <typename F>
   std::enable_if_t<!TakeArgs<F>::value, void> ApplyWithNoArgsImpl(
-      Target* aTarget, const F& aFunc) {
-    MOZ_DIAGNOSTIC_ASSERT(EventTarget<Target>::IsOnTargetThread(aTarget));
+      nsIEventTarget* aTarget, const F& aFunc) {
+    MOZ_DIAGNOSTIC_ASSERT(aTarget->IsOnCurrentThread());
     aFunc();
   }
 
@@ -262,7 +231,7 @@ class ListenerImpl : public Listener<As...> {
     if (!data) {
       return;
     }
-    MOZ_DIAGNOSTIC_ASSERT(EventTarget<Target>::IsOnTargetThread(data->mTarget));
+    MOZ_DIAGNOSTIC_ASSERT(data->mTarget->IsOnCurrentThread());
     ApplyWithNoArgsImpl(data->mTarget, data->mFunction);
   }
 
@@ -286,10 +255,12 @@ class ListenerImpl : public Listener<As...> {
     virtual ~RefCountedMediaEventListenerData() = default;
   };
   struct Data : public RefCountedMediaEventListenerData {
-    Data(RefPtr<Target> aTarget, Function&& aFunction)
+    Data(nsCOMPtr<nsIEventTarget>&& aTarget, Function&& aFunction)
         : mTarget(std::move(aTarget)),
-          mFunction(std::forward<Function>(aFunction)) {}
-    const RefPtr<Target> mTarget;
+          mFunction(std::forward<Function>(aFunction)) {
+      MOZ_DIAGNOSTIC_ASSERT(mTarget);
+    }
+    const nsCOMPtr<nsIEventTarget> mTarget;
     FunctionStorage mFunction;
   };
 
@@ -373,8 +344,8 @@ class MediaEventSourceImpl {
 
   typedef detail::Listener<ArgType<Es>...> Listener;
 
-  template <typename Target, typename Func>
-  using ListenerImpl = detail::ListenerImpl<Target, Func, ArgType<Es>...>;
+  template <typename Func>
+  using ListenerImpl = detail::ListenerImpl<Func, ArgType<Es>...>;
 
   template <typename Method>
   using TakeArgs = detail::TakeArgs<Method>;
@@ -384,49 +355,26 @@ class MediaEventSourceImpl {
         [](const auto& listener) { return listener->IsRevoked(); });
   }
 
-  template <typename Target, typename Function>
-  MediaEventListener ConnectInternal(Target* aTarget, Function&& aFunction) {
+  template <typename Function>
+  MediaEventListener ConnectInternal(nsIEventTarget* aTarget,
+                                     Function&& aFunction) {
     MutexAutoLock lock(mMutex);
     PruneListeners();
     MOZ_ASSERT(Lp == ListenerPolicy::NonExclusive || mListeners.IsEmpty());
     auto l = mListeners.AppendElement();
-    *l = new ListenerImpl<Target, Function>(aTarget,
-                                            std::forward<Function>(aFunction));
+    *l = new ListenerImpl<Function>(aTarget, std::forward<Function>(aFunction));
     return MediaEventListener(*l);
-  }
-
-  // |Method| takes one or more arguments.
-  template <typename Target, typename This, typename Method>
-  std::enable_if_t<TakeArgs<Method>::value, MediaEventListener> ConnectInternal(
-      Target* aTarget, This* aThis, Method aMethod) {
-    detail::RawPtr<This> thiz(aThis);
-    return ConnectInternal(aTarget, [=](ArgType<Es>&&... aEvents) {
-      (thiz.get()->*aMethod)(std::move(aEvents)...);
-    });
-  }
-
-  // |Method| takes no arguments. Don't bother passing the event data.
-  template <typename Target, typename This, typename Method>
-  std::enable_if_t<!TakeArgs<Method>::value, MediaEventListener>
-  ConnectInternal(Target* aTarget, This* aThis, Method aMethod) {
-    detail::RawPtr<This> thiz(aThis);
-    return ConnectInternal(aTarget, [=]() { (thiz.get()->*aMethod)(); });
   }
 
  public:
   /**
    * Register a function to receive notifications from the event source.
    *
-   * @param aTarget The target thread on which the function will run.
+   * @param aTarget The event target on which the function will run.
    * @param aFunction A function to be called on the target thread. The function
    *                  parameter must be convertible from |EventType|.
    * @return An object used to disconnect from the event source.
    */
-  template <typename Function>
-  MediaEventListener Connect(AbstractThread* aTarget, Function&& aFunction) {
-    return ConnectInternal(aTarget, std::forward<Function>(aFunction));
-  }
-
   template <typename Function>
   MediaEventListener Connect(nsIEventTarget* aTarget, Function&& aFunction) {
     return ConnectInternal(aTarget, std::forward<Function>(aFunction));
@@ -444,15 +392,17 @@ class MediaEventSourceImpl {
    * pointers.
    */
   template <typename This, typename Method>
-  MediaEventListener Connect(AbstractThread* aTarget, This* aThis,
-                             Method aMethod) {
-    return ConnectInternal(aTarget, aThis, aMethod);
-  }
-
-  template <typename This, typename Method>
   MediaEventListener Connect(nsIEventTarget* aTarget, This* aThis,
                              Method aMethod) {
-    return ConnectInternal(aTarget, aThis, aMethod);
+    if constexpr (TakeArgs<Method>::value) {
+      detail::RawPtr<This> thiz(aThis);
+      return ConnectInternal(aTarget, [=](ArgType<Es>&&... aEvents) {
+        (thiz.get()->*aMethod)(std::move(aEvents)...);
+      });
+    } else {
+      detail::RawPtr<This> thiz(aThis);
+      return ConnectInternal(aTarget, [=]() { (thiz.get()->*aMethod)(); });
+    }
   }
 
  protected:
