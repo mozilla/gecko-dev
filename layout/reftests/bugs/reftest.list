@@ -2148,7 +2148,7 @@ fuzzy-if(winWidget||cocoaWidget,0-1,0-4400) == 1814047.html 1814047-ref.html
 pref(layout.testing.overlay-scrollbars.always-visible,true) pref(ui.useOverlayScrollbars,1) == 1827337-1.html 1827337-1-ref.html
 pref(layout.testing.overlay-scrollbars.always-visible,true) pref(ui.useOverlayScrollbars,1) fuzzy-if(winWidget,0-21,0-134) fuzzy-if(cocoaWidget,0-2,0-12) == 1828879-1.html 1828879-1-ref.html
 skip-if(!cocoaWidget) != 1834316-1.html 1834316-1-notref.html
-skip-if(!cocoaWidget) test-pref(layout.css.font-visibility.standard,1) ref-pref(layout.css.font-visibility.standard,3) == 1835271-1.html 1835271-1-ref.html
+skip-if(!cocoaWidget) test-pref(layout.css.font-visibility,1) ref-pref(layout.css.font-visibility,3) == 1835271-1.html 1835271-1-ref.html
 skip-if(!cocoaWidget) != 1836024-1.html 1836024-1-notref.html
 # The 1840511-* tests are reliably fuzzy on certain configurations, per bug
 # 1840511.  (It passes on macOS and Android. It also passes with software WR,

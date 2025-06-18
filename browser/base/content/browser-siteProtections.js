@@ -1637,13 +1637,6 @@ var gProtectionsHandler = {
   init() {
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
-      "_fontVisibilityTrackingProtection",
-      "layout.css.font-visibility.trackingprotection",
-      3000
-    );
-
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
       "_protectionsPopupToastTimeout",
       "browser.protections_panel.toast.timeout",
       3000

@@ -3377,30 +3377,6 @@ queryStripping:
         List of query params to be stripped from URIs. This list will be merged
         with records coming from RemoteSettings.
 
-fontvisibility:
-  description: Control Font Visibility in PBM
-  owner: tom@mozilla.com
-  hasExposure: false
-  variables:
-    enabledETP:
-      type: int
-      setPref:
-        branch: default
-        pref: layout.css.font-visibility.trackingprotection
-      description: Set the Font Visibility level when Enhanced Tracking Protection is enabled
-    enabledStandard:
-      type: int
-      setPref:
-        branch: default
-        pref: layout.css.font-visibility.standard
-      description: Set the Font Visibility level for normal browsing
-    enabledPBM:
-      type: int
-      setPref:
-        branch: default
-        pref: layout.css.font-visibility.private
-      description: Set the Font Visibility level for private browsing (will override ETP)
-
 fingerprintingProtection:
   description: Control Fingerprinting Protection
   owner: tihuang@mozilla.com
