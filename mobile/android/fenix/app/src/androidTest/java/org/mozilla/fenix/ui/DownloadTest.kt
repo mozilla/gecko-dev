@@ -62,14 +62,12 @@ class DownloadTest : TestSetup() {
     val memoryLeaksRule = DetectMemoryLeaksRule()
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/243844
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun verifyTheDownloadPromptsTest() {
         downloadRobot {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = "web_icon.png")
-            verifyDownloadCompleteNotificationPopup()
-        }.clickOpen("image/png") {}
-        downloadRobot {
+            verifyDownloadCompleteSnackbar(fileName = "web_icon.png")
+            clickSnackbarButton(composeTestRule = activityTestRule, "OPEN")
             verifyPhotosAppOpens()
         }
     }
@@ -81,24 +79,25 @@ class DownloadTest : TestSetup() {
         downloadRobot {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = "1GB.zip")
             setNetworkEnabled(enabled = false)
-            verifyDownloadFailedPrompt("1GB.zip")
+            verifyDownloadFailedSnackbar(fileName = "1GB.zip")
+            clickSnackbarButton(composeTestRule = activityTestRule, "DETAILS")
+            // A clickTryAgainButton() method should be called here, to tap the "Try Again button from Downloads menu.
+            // This is not implemented yet.
             setNetworkEnabled(enabled = true)
-            clickTryAgainButton()
         }
         mDevice.openNotification()
         notificationShade {
-            verifySystemNotificationDoesNotExist("Download failed")
-            verifySystemNotificationExists("1GB.zip")
+            verifySystemNotificationExists("Download failed")
         }.closeNotificationTray {}
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2298616
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun verifyDownloadCompleteNotificationTest() {
         downloadRobot {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = "web_icon.png")
-            verifyDownloadCompleteNotificationPopup()
+            verifyDownloadCompleteSnackbar(fileName = "web_icon.png")
+            waitUntilDownloadSnackbarGone()
         }
         mDevice.openNotification()
         notificationShade {
@@ -124,6 +123,8 @@ class DownloadTest : TestSetup() {
     fun pauseResumeCancelDownloadTest() {
         downloadRobot {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = "3GB.zip")
+            verifySnackBarText("Download in progress")
+            waitUntilDownloadSnackbarGone()
         }
         mDevice.openNotification()
         notificationShade {
@@ -143,12 +144,11 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2301474
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun openDownloadedFileFromDownloadsMenuTest() {
         downloadRobot {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = "web_icon.png")
-            verifyDownloadCompleteNotificationPopup()
+            verifyDownloadCompleteSnackbar(fileName = "web_icon.png")
         }
         browserScreen {
         }.openThreeDotMenu {
@@ -181,7 +181,6 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2302662
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun deleteMultipleDownloadedFilesTest() {
         val firstDownloadedFile = "smallZip.zip"
@@ -189,12 +188,12 @@ class DownloadTest : TestSetup() {
 
         downloadRobot {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = firstDownloadedFile)
-            verifyDownloadedFileName(firstDownloadedFile)
-        }.closeDownloadPrompt {
+            verifyDownloadCompleteSnackbar(fileName = firstDownloadedFile)
+        }
+        browserScreen {
         }.clickDownloadLink(secondDownloadedFile) {
-            verifyDownloadPrompt(secondDownloadedFile)
         }.clickDownload {
-            verifyDownloadedFileName(secondDownloadedFile)
+            verifyDownloadCompleteSnackbar(fileName = secondDownloadedFile)
         }
         browserScreen {
         }.openThreeDotMenu {
@@ -219,12 +218,11 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2301537
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun fileDeletedFromStorageIsDeletedEverywhereTest() {
         downloadRobot {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = "smallZip.zip")
-            verifyDownloadCompleteNotificationPopup()
+            verifyDownloadCompleteSnackbar(fileName = "smallZip.zip")
         }
         browserScreen {
         }.openThreeDotMenu {
@@ -240,7 +238,7 @@ class DownloadTest : TestSetup() {
 
         downloadRobot {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = "smallZip.zip")
-            verifyDownloadCompleteNotificationPopup()
+            verifyDownloadCompleteSnackbar(fileName = "smallZip.zip")
         }
         browserScreen {
         }.openThreeDotMenu {
@@ -278,8 +276,7 @@ class DownloadTest : TestSetup() {
         downloadRobot {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = "1GB.zip")
             setNetworkEnabled(enabled = false)
-            verifyDownloadFailedPrompt("1GB.zip")
-        }
+            verifyDownloadFailedSnackbar(fileName = "1GB.zip")
 
         browserScreen {
         }.openNotificationShade {
@@ -292,10 +289,7 @@ class DownloadTest : TestSetup() {
             )
             verifySystemNotificationDoesNotExist("Firefox Fenix")
         }.closeNotificationTray {}
-
-        downloadRobot {
-        }.closeDownloadPrompt {
-            verifyDownloadPromptIsDismissed()
+         waitUntilDownloadSnackbarGone()
         }
     }
 
@@ -348,7 +342,6 @@ class DownloadTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2048448
     // Save edited PDF file from the share overlay
     @SmokeTest
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun saveAsPdfFunctionalityTest() {
         val genericURL =
@@ -364,9 +357,10 @@ class DownloadTest : TestSetup() {
         }.openThreeDotMenu {
         }.clickShareButton {
         }.clickSaveAsPDF {
-            verifyDownloadPrompt("pdfForm.pdf")
+           verifyDownloadPrompt(downloadFile)
         }.clickDownload {
-        }.clickOpen("application/pdf") {
+            verifyDownloadCompleteSnackbar(fileName = downloadFile)
+            clickSnackbarButton(composeTestRule = activityTestRule, "OPEN")
             assertExternalAppOpens(GOOGLE_DOCS)
         }
     }
@@ -384,14 +378,17 @@ class DownloadTest : TestSetup() {
             verifyDownloadPrompt(downloadFile)
             setNetworkEnabled(false)
         }.clickDownload {
-            verifyDownloadFailedPrompt(downloadFile)
+            verifyDownloadFailedSnackbar(fileName = "3GB.zip")
             setNetworkEnabled(true)
-            clickTryAgainButton()
+            clickSnackbarButton(composeTestRule = activityTestRule, "DETAILS") // Downloads menu opens
+            // A clickTryAgainButton() method should be called here, to tap the "Try Again button from Downloads menu.
+            // This is not implemented yet.
         }
         browserScreen {
         }.openNotificationShade {
             expandNotificationMessage("3GB.zip")
             clickDownloadNotificationControlButton("CANCEL")
+        // This test is not complete yet, as download was not resumed
         }
     }
 
@@ -403,12 +400,12 @@ class DownloadTest : TestSetup() {
 
         downloadRobot {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = firstDownloadedFile)
-            verifySnackBarText("Download completed")
+            verifyDownloadCompleteSnackbar(fileName = firstDownloadedFile)
         }
         browserScreen {
         }.clickDownloadLink(secondDownloadedFile) {
         }.clickDownload {
-            verifySnackBarText("Download completed")
+            verifyDownloadCompleteSnackbar(fileName = secondDownloadedFile)
         }
         browserScreen {
         }.openThreeDotMenu {
@@ -424,7 +421,7 @@ class DownloadTest : TestSetup() {
     fun shareDownloadedFileTest() {
         downloadRobot {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = "web_icon.png")
-            verifySnackBarText("Download completed")
+            verifyDownloadCompleteSnackbar(fileName = "web_icon.png")
         }
         browserScreen {
         }.openThreeDotMenu {

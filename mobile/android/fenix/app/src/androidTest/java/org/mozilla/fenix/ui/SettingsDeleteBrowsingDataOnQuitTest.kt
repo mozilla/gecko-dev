@@ -25,6 +25,7 @@ import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.restartApp
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.helpers.perf.DetectMemoryLeaksRule
+import org.mozilla.fenix.ui.robots.browserScreen
 import org.mozilla.fenix.ui.robots.clickPageObject
 import org.mozilla.fenix.ui.robots.downloadRobot
 import org.mozilla.fenix.ui.robots.homeScreen
@@ -173,7 +174,6 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1243096
     @SmokeTest
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun deleteDownloadsOnQuitTest() {
         val downloadTestPage = "https://storage.googleapis.com/mobile_test_assets/test_app/downloads.html"
@@ -187,8 +187,9 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
         }
         downloadRobot {
             openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = "smallZip.zip")
-            verifyDownloadCompleteNotificationPopup()
-        }.closeDownloadPrompt {
+            verifyDownloadCompleteSnackbar(fileName = "smallZip.zip")
+        }
+        browserScreen {
         }.goToHomescreen(composeTestRule) {
         }.openThreeDotMenu {
             clickQuit()
