@@ -568,6 +568,9 @@ struct sctp_event_subscribe {
 #define SCTP_PLUGGABLE_SS               0x00001203
 #define SCTP_SS_VALUE                   0x00001204
 
+/* For I-DATA */
+#define SCTP_INTERLEAVING_SUPPORTED 0x00001206
+
 /*
  * read-only options
  */
