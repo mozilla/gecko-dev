@@ -149,7 +149,7 @@ mod foreign {
             GetBindGroupLayoutError,
         },
         command::{
-            ClearError, CommandEncoderError, ComputePassError, CopyError, CreateRenderBundleError,
+            ClearError, CommandEncoderError, ComputePassError, CreateRenderBundleError,
             EncoderStateError, QueryError, QueryUseError, RenderBundleError, RenderPassError,
             ResolveError, TransferError,
         },
@@ -468,20 +468,6 @@ mod foreign {
                 | CreateTextureViewError::InvalidAspect { .. }
                 | CreateTextureViewError::FormatReinterpretation { .. }
                 | CreateTextureViewError::DestroyedResource(_) => ErrorBufferType::Validation,
-
-                // N.B: forced non-exhaustiveness
-                _ => ErrorBufferType::Validation,
-            }
-        }
-    }
-
-    impl HasErrorBufferType for CopyError {
-        fn error_type(&self) -> ErrorBufferType {
-            match self {
-                CopyError::EncoderState(e) => e.error_type(),
-                CopyError::Transfer(e) => e.error_type(),
-
-                CopyError::InvalidResource(_) => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,

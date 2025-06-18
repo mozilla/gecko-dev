@@ -1040,7 +1040,7 @@ enum Texture {
     SampleCompareLevel,
     SampleGrad,
     SampleLevel,
-    // SampleBaseClampToEdge,
+    SampleBaseClampToEdge,
 }
 
 impl Texture {
@@ -1055,7 +1055,7 @@ impl Texture {
             "textureSampleCompareLevel" => Self::SampleCompareLevel,
             "textureSampleGrad" => Self::SampleGrad,
             "textureSampleLevel" => Self::SampleLevel,
-            // "textureSampleBaseClampToEdge" => Some(Self::SampleBaseClampToEdge),
+            "textureSampleBaseClampToEdge" => Self::SampleBaseClampToEdge,
             _ => return None,
         })
     }
@@ -1071,7 +1071,7 @@ impl Texture {
             Self::SampleCompareLevel => 5,
             Self::SampleGrad => 6,
             Self::SampleLevel => 5,
-            // Self::SampleBaseClampToEdge => 3,
+            Self::SampleBaseClampToEdge => 3,
         }
     }
 }
@@ -2737,7 +2737,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
 
                             let rctx = ctx.runtime_expression_ctx(span)?;
                             rctx.block
-                                .push(ir::Statement::Barrier(ir::Barrier::STORAGE), span);
+                                .push(ir::Statement::ControlBarrier(ir::Barrier::STORAGE), span);
                             return Ok(None);
                         }
                         "workgroupBarrier" => {
@@ -2745,7 +2745,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
 
                             let rctx = ctx.runtime_expression_ctx(span)?;
                             rctx.block
-                                .push(ir::Statement::Barrier(ir::Barrier::WORK_GROUP), span);
+                                .push(ir::Statement::ControlBarrier(ir::Barrier::WORK_GROUP), span);
                             return Ok(None);
                         }
                         "subgroupBarrier" => {
@@ -2753,7 +2753,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
 
                             let rctx = ctx.runtime_expression_ctx(span)?;
                             rctx.block
-                                .push(ir::Statement::Barrier(ir::Barrier::SUB_GROUP), span);
+                                .push(ir::Statement::ControlBarrier(ir::Barrier::SUB_GROUP), span);
                             return Ok(None);
                         }
                         "textureBarrier" => {
@@ -2761,7 +2761,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
 
                             let rctx = ctx.runtime_expression_ctx(span)?;
                             rctx.block
-                                .push(ir::Statement::Barrier(ir::Barrier::TEXTURE), span);
+                                .push(ir::Statement::ControlBarrier(ir::Barrier::TEXTURE), span);
                             return Ok(None);
                         }
                         "workgroupUniformLoad" => {
@@ -3527,6 +3527,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
         let sampler = self.expression_for_abstract(args.next()?, ctx)?;
 
         let coordinate = self.expression_with_leaf_scalar(args.next()?, ir::Scalar::F32, ctx)?;
+        let clamp_to_edge = matches!(fun, Texture::SampleBaseClampToEdge);
 
         let (class, arrayed) = ctx.image_data(image, image_span)?;
         let array_index = arrayed
@@ -3593,6 +3594,10 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                 level = ir::SampleLevel::Exact(exact);
                 depth_ref = None;
             }
+            Texture::SampleBaseClampToEdge => {
+                level = crate::SampleLevel::Zero;
+                depth_ref = None;
+            }
         };
 
         let offset = args
@@ -3612,6 +3617,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
             offset,
             level,
             depth_ref,
+            clamp_to_edge,
         })
     }
 
