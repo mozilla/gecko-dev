@@ -115,7 +115,14 @@ async function migrateEnrollmentsToSql() {
   // those enrollments need to exist in both the ExperimentStore and SQL
   // database.
 
-  const enrollments = await lazy.ExperimentAPI.manager.store.getAll();
+  await lazy.ExperimentAPI.manager.store.ready();
+
+  // Ensure we are copying the data from the JSONFile explicitly because if the
+  // NimbusEnrollments table is the source of truth, then getAll() will return
+  // an empty array.
+  const enrollments = Object.values(
+    lazy.ExperimentAPI.manager.store._jsonFile.data
+  );
 
   // Likewise, the set of all recipes is
   const { recipes } =
@@ -208,6 +215,16 @@ async function migrateEnrollmentsToSql() {
       );
     }
   });
+
+  if (lazy.NimbusEnrollments.readFromDatabaseEnabled) {
+    // These now exist in the database and in the ExperimentStore's JSONFile
+    // data. However, the regular ExperimentStore data will not have been
+    // populated yet (because it will have read zero rows from the database
+    // during `SharedDataMap.init()`.
+    const store = lazy.ExperimentAPI.manager.store;
+    store._data = structuredClone(store._jsonFile.data);
+    store._syncToChildren({ flush: true });
+  }
 
   await lazy.ExperimentAPI.manager.store._reportStartupDatabaseConsistency(
     "migration"

@@ -288,8 +288,6 @@ export const NimbusTestUtils = {
           firefoxLabsTitle: null,
         },
         source: "NimbusTestUtils",
-        isEnrollmentPaused: true,
-        experimentType,
         userFacingName,
         userFacingDescription,
         lastSeen: new Date().toJSON(),
@@ -662,6 +660,28 @@ export const NimbusTestUtils = {
     try {
       Services.prefs.deleteBranch(SYNC_DEFAULTS_PREF_BRANCH);
     } catch (e) {}
+  },
+
+  enableNimbusEnrollments({ read = false } = {}) {
+    const writePref = "nimbus.profilesdatastoreservice.enabled";
+    const readPref = "nimbus.profilesdatastoreservice.read.enabled";
+
+    const originalWriteValue = Services.prefs.getBoolPref(writePref, false);
+    const originalReadValue = Services.prefs.getBoolPref(readPref, false);
+
+    Services.prefs.setBoolPref(writePref, true);
+
+    if (!originalReadValue && read) {
+      Services.prefs.setBoolPref(readPref, true);
+    }
+
+    lazy.NimbusEnrollments._reloadPrefsForTests();
+
+    return function () {
+      Services.prefs.setBoolPref(writePref, originalWriteValue);
+      Services.prefs.setBoolPref(readPref, originalReadValue);
+      lazy.NimbusEnrollments._reloadPrefsForTests();
+    };
   },
 
   /**
@@ -1188,6 +1208,7 @@ Object.defineProperties(NimbusTestUtils.factories.experiment, {
               value,
             },
           ],
+          firefoxLabsTitle: null,
         },
         ...props,
       });
@@ -1212,6 +1233,7 @@ Object.defineProperties(NimbusTestUtils.factories.rollout, {
               value,
             },
           ],
+          firefoxLabsTitle: null,
         },
         ...props,
       });
