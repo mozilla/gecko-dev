@@ -115,14 +115,7 @@ async function migrateEnrollmentsToSql() {
   // those enrollments need to exist in both the ExperimentStore and SQL
   // database.
 
-  await lazy.ExperimentAPI.manager.store.ready();
-
-  // Ensure we are copying the data from the JSONFile explicitly because if the
-  // NimbusEnrollments table is the source of truth, then getAll() will return
-  // an empty array.
-  const enrollments = Object.values(
-    lazy.ExperimentAPI.manager.store._jsonFile.data
-  );
+  const enrollments = await lazy.ExperimentAPI.manager.store.getAll();
 
   // Likewise, the set of all recipes is
   const { recipes } =
@@ -216,16 +209,6 @@ async function migrateEnrollmentsToSql() {
     }
   });
 
-  if (lazy.NimbusEnrollments.readFromDatabaseEnabled) {
-    // These now exist in the database and in the ExperimentStore's JSONFile
-    // data. However, the regular ExperimentStore data will not have been
-    // populated yet (because it will have read zero rows from the database
-    // during `SharedDataMap.init()`.
-    const store = lazy.ExperimentAPI.manager.store;
-    store._data = structuredClone(store._jsonFile.data);
-    store._syncToChildren({ flush: true });
-  }
-
   await lazy.ExperimentAPI.manager.store._reportStartupDatabaseConsistency(
     "migration"
   );
@@ -310,7 +293,7 @@ async function migrateFirefoxLabsEnrollments() {
         // structures without using set().
         // We do not have to sync these changes to child processes because the
         // data is only used in the parent process.
-        lazy.ExperimentAPI.manager.store._jsonFile.saveSoon();
+        lazy.ExperimentAPI.manager.store._store.saveSoon();
       }
     },
     { mode: "shared" }

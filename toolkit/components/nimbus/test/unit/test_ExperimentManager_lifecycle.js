@@ -23,7 +23,7 @@ const { ProfilesDatastoreService } = ChromeUtils.importESModule(
  * onStartup()
  * - should set call setExperimentActive for each active experiment
  */
-async function test_onStartup_setExperimentActive_called() {
+add_task(async function test_onStartup_setExperimentActive_called() {
   let storePath;
 
   {
@@ -51,12 +51,7 @@ async function test_onStartup_setExperimentActive_called() {
   }
 
   const { sandbox, manager, initExperimentAPI, cleanup } =
-    await NimbusTestUtils.setupTest({
-      storePath,
-      init: false,
-      migrationState:
-        NimbusTestUtils.migrationState.IMPORTED_ENROLLMENTS_TO_SQL,
-    });
+    await NimbusTestUtils.setupTest({ storePath, init: false });
 
   sandbox.stub(NimbusTelemetry, "setExperimentActive");
 
@@ -83,18 +78,9 @@ async function test_onStartup_setExperimentActive_called() {
   manager.unenroll("bar");
 
   await cleanup();
-}
-
-add_task(test_onStartup_setExperimentActive_called);
-add_task(async function test_onStartup_setExperimentActive_called_db() {
-  const resetNimbusEnrollmentPrefs = NimbusTestUtils.enableNimbusEnrollments({
-    read: true,
-  });
-  await test_onStartup_setExperimentActive_called();
-  resetNimbusEnrollmentPrefs();
 });
 
-async function test_startup_unenroll() {
+add_task(async function test_startup_unenroll() {
   Services.prefs.setBoolPref("app.shield.optoutstudies.enabled", false);
 
   let storePath;
@@ -130,15 +116,6 @@ async function test_startup_unenroll() {
   Services.prefs.clearUserPref("app.shield.optoutstudies.enabled");
 
   await cleanup();
-}
-
-add_task(test_startup_unenroll);
-add_task(async function test_startup_unenroll_db() {
-  const resetNimbusEnrollmentPrefs = NimbusTestUtils.enableNimbusEnrollments({
-    read: true,
-  });
-  await test_startup_unenroll();
-  resetNimbusEnrollmentPrefs();
 });
 
 add_task(async function test_onRecipe_enroll() {

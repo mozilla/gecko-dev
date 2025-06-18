@@ -7,7 +7,6 @@ import { EventEmitter } from "resource://gre/modules/EventEmitter.sys.mjs";
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
-  NimbusEnrollments: "resource://nimbus/lib/Enrollments.sys.mjs",
   JSONFile: "resource://gre/modules/JSONFile.sys.mjs",
 });
 
@@ -36,7 +35,7 @@ export class SharedDataMap extends EventEmitter {
       } // else we directly rejected our _readyDeferred promise.
 
       // Lazy-load JSON file that backs Storage instances.
-      ChromeUtils.defineLazyGetter(this, "_jsonFile", () => {
+      ChromeUtils.defineLazyGetter(this, "_store", () => {
         try {
           return new lazy.JSONFile({
             path:
@@ -57,17 +56,8 @@ export class SharedDataMap extends EventEmitter {
   async init() {
     if (!this._isReady && IS_MAIN_PROCESS) {
       try {
-        // TODO(bug 1972602): When we consider the NimbusEnrollments table to be
-        // the source of truth, we don't need to keep reading and writing to the
-        // JSON file.
-        await this._jsonFile.load();
-
-        if (lazy.NimbusEnrollments.readFromDatabaseEnabled) {
-          this._data = await lazy.NimbusEnrollments.loadEnrollments();
-        } else {
-          this._data = this._jsonFile.data;
-        }
-
+        await this._store.load();
+        this._data = this._store.data;
         this._syncToChildren({ flush: true });
         this._checkIfReady();
 
@@ -105,18 +95,8 @@ export class SharedDataMap extends EventEmitter {
         "Setting values from within a content process is not allowed"
       );
     }
-
-    this._data[key] = value;
-
-    // TODO(bug 1972602): When we consider the NimbusEnrollments table to be
-    // the source of truth, we don't ened to keep reading and writing to the
-    // JSON file.
-    if (lazy.NimbusEnrollments.readFromDatabaseEnabled) {
-      this._jsonFile.data[key] = value;
-    }
-
-    this._jsonFile.saveSoon();
-
+    this._store.data[key] = value;
+    this._store.saveSoon();
     this._syncToChildren();
     this._notifyUpdate();
   }
@@ -132,27 +112,14 @@ export class SharedDataMap extends EventEmitter {
     if (!keysToRemove.length) {
       return;
     }
-
-    for (const key of keysToRemove) {
+    for (let key of keysToRemove) {
       try {
-        delete this._data[key];
+        delete this._store.data[key];
       } catch (e) {
         // It's ok if this fails
       }
-
-      // TODO(bug 1972602): When we consider the NimbusEnrollments table to be
-      // the source of truth, we don't need to keep reading and writing to the
-      // JSON file.
-      if (lazy.NimbusEnrollments.readFromDatabaseEnabled) {
-        try {
-          delete this._jsonFile.data[key];
-        } catch (e) {
-          // It's ok if this fails
-        }
-      }
     }
-
-    this._jsonFile.saveSoon();
+    this._store.saveSoon();
   }
 
   // Only used in tests
@@ -163,17 +130,8 @@ export class SharedDataMap extends EventEmitter {
       );
     }
     if (this.has(key)) {
-      delete this._data[key];
-
-      // TODO(bug 1972602): When we consider the NimbusEnrollments table to be
-      // the source of truth, we don't need to keep reading and writing to the
-      // JSON file.
-      if (lazy.NimbusEnrollments.readFromDatabaseEnabled) {
-        delete this._jsonFile.data[key];
-      }
-
-      this._jsonFile.saveSoon();
-
+      delete this._store.data[key];
+      this._store.saveSoon();
       this._syncToChildren();
       this._notifyUpdate();
     }

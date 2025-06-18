@@ -288,6 +288,8 @@ export const NimbusTestUtils = {
           firefoxLabsTitle: null,
         },
         source: "NimbusTestUtils",
+        isEnrollmentPaused: true,
+        experimentType,
         userFacingName,
         userFacingDescription,
         lastSeen: new Date().toJSON(),
@@ -662,28 +664,6 @@ export const NimbusTestUtils = {
     } catch (e) {}
   },
 
-  enableNimbusEnrollments({ read = false } = {}) {
-    const writePref = "nimbus.profilesdatastoreservice.enabled";
-    const readPref = "nimbus.profilesdatastoreservice.read.enabled";
-
-    const originalWriteValue = Services.prefs.getBoolPref(writePref, false);
-    const originalReadValue = Services.prefs.getBoolPref(readPref, false);
-
-    Services.prefs.setBoolPref(writePref, true);
-
-    if (!originalReadValue && read) {
-      Services.prefs.setBoolPref(readPref, true);
-    }
-
-    lazy.NimbusEnrollments._reloadPrefsForTests();
-
-    return function () {
-      Services.prefs.setBoolPref(writePref, originalWriteValue);
-      Services.prefs.setBoolPref(readPref, originalReadValue);
-      lazy.NimbusEnrollments._reloadPrefsForTests();
-    };
-  },
-
   /**
    * Enroll in the given recipe.
    *
@@ -885,16 +865,16 @@ export const NimbusTestUtils = {
     await NimbusTestUtils.assert.storeIsEmpty(store);
 
     // Prevent the next save from happening.
-    store._jsonFile._saver.disarm();
+    store._store._saver.disarm();
 
     // If we're too late to stop the save from happening then we need to wait
     // for it to finish. Otherwise the saver might recreate the file on disk
     // after we delete it.
-    if (store._jsonFile._saver.isRunning) {
-      await store._jsonFile._saver._runningPromise;
+    if (store._store._saver.isRunning) {
+      await store._store._saver._runningPromise;
     }
 
-    await IOUtils.remove(store._jsonFile.path);
+    await IOUtils.remove(store._store.path);
   },
 
   /**
@@ -908,7 +888,7 @@ export const NimbusTestUtils = {
    * @returns {string} The path to the file on disk.
    */
   async saveStore(store) {
-    const jsonFile = store._jsonFile;
+    const jsonFile = store._store;
 
     if (jsonFile._saver.isRunning) {
       // It is possible that the store has been updated since we started writing
@@ -922,7 +902,7 @@ export const NimbusTestUtils = {
     await jsonFile._save();
     await store._db?._flushNow();
 
-    return jsonFile.path;
+    return store._store.path;
   },
 
   /**
@@ -1208,7 +1188,6 @@ Object.defineProperties(NimbusTestUtils.factories.experiment, {
               value,
             },
           ],
-          firefoxLabsTitle: null,
         },
         ...props,
       });
@@ -1233,7 +1212,6 @@ Object.defineProperties(NimbusTestUtils.factories.rollout, {
               value,
             },
           ],
-          firefoxLabsTitle: null,
         },
         ...props,
       });

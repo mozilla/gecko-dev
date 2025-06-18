@@ -1059,20 +1059,12 @@ nimbus_events:
           "migration" or "startup".
         type: string
 
-      primary:
-        description: >
-          Which store was used at startup. This is either "database" or
-          "jsonfile".
-        type: string
-
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1956080
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1972427
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956082
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1956080
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1972427
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956082
     notification_emails:
       - beth@mozilla.com
       - project-nimbus@mozilla.com

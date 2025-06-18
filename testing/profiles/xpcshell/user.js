@@ -56,10 +56,5 @@ user_pref("javascript.options.asyncstack_capture_debuggee_only", false);
 // this.
 user_pref("nimbus.profilesdatastoreservice.enabled", false);
 
-// Disable reading from the ProfilesDatastoreService by Nimbus in xpcshell tests.
-// TODO(bug 1967779): Require the ProfileDatastoreService by default.
-// TODO(bug 1972426): Make this the default and remove this.
-user_pref("nimbus.profilesdatastoreservice.read.enabled", false);
-
 // Enable Nimbus debug logging.
 user_pref("messaging-system.log", "all");

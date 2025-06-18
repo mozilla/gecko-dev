@@ -55,7 +55,7 @@ add_task(async function test_usageBeforeInitialization() {
   await cleanup();
 });
 
-async function test_initOnUpdateEventsFire() {
+add_task(async function test_initOnUpdateEventsFire() {
   let storePath;
 
   {
@@ -130,7 +130,6 @@ async function test_initOnUpdateEventsFire() {
   const { sandbox, initExperimentAPI, cleanup } = await setupTest({
     storePath,
     init: false,
-    migrationState: NimbusTestUtils.migrationState.IMPORTED_ENROLLMENTS_TO_SQL,
   });
 
   const onFeatureUpdate = sandbox.stub();
@@ -171,15 +170,6 @@ async function test_initOnUpdateEventsFire() {
     "coenroll-4",
   ]);
   await cleanup();
-}
-
-add_task(test_initOnUpdateEventsFire);
-add_task(async function test_initOnUpdateEventsFireDb() {
-  const resetNimbusEnrollmentPrefs = NimbusTestUtils.enableNimbusEnrollments({
-    read: true,
-  });
-  await test_initOnUpdateEventsFire();
-  resetNimbusEnrollmentPrefs();
 });
 
 add_task(async function test_getExperimentForGroup() {
@@ -925,46 +915,33 @@ add_task(async function test_cleanupOldRecipes() {
   await NimbusTestUtils.assert.storeIsEmpty(store);
 });
 
-async function test_restore() {
+add_task(async function test_restore() {
   let storePath;
   {
     const store = NimbusTestUtils.stubs.store();
     await store.init();
 
-    NimbusTestUtils.addEnrollmentForRecipe(
-      NimbusTestUtils.factories.recipe("experiment"),
-      { store, branchSlug: "control" }
-    );
-    NimbusTestUtils.addEnrollmentForRecipe(
-      NimbusTestUtils.factories.recipe("rollout", { isRollout: true }),
-      { store }
+    // This is explicitly testing restoring from the JSON store, so we don't set
+    // the enrollments in the database.
+    store.set("experiment", NimbusTestUtils.factories.experiment("experiment"));
+    store.set(
+      "rollout",
+      NimbusTestUtils.factories.rollout("rollout", { active: true })
     );
 
     storePath = await NimbusTestUtils.saveStore(store);
   }
 
-  const { store, cleanup } = await setupTest({
-    storePath,
-    migrationState: NimbusTestUtils.migrationState.IMPORTED_ENROLLMENTS_TO_SQL,
-  });
+  const { store, cleanup } = await setupTest({ storePath });
 
   Assert.ok(store.get("experiment"));
   Assert.ok(store.get("rollout"));
 
   await NimbusTestUtils.cleanupManager(["experiment", "rollout"]);
   await cleanup();
-}
-
-add_task(test_restore);
-add_task(async function test_restore_db() {
-  const resetNimbusEnrollmentPrefs = NimbusTestUtils.enableNimbusEnrollments({
-    read: true,
-  });
-  await test_restore();
-  resetNimbusEnrollmentPrefs();
 });
 
-async function test_restoreDatabaseConsistency(primary = "jsonfile") {
+add_task(async function test_restoreDatabaseConsistency() {
   Services.fog.testResetFOG();
 
   let storePath;
@@ -1026,19 +1003,9 @@ async function test_restoreDatabaseConsistency(primary = "jsonfile") {
       db_active_count: "2",
       store_active_count: "2",
       trigger: "startup",
-      primary,
     },
   ]);
 
   await NimbusTestUtils.cleanupManager(["rollout", "experiment"]);
   await cleanup();
-}
-
-add_task(test_restoreDatabaseConsistency);
-add_task(async function test_restoreDatabaseConsistencyDb() {
-  const resetNimbusEnrollmentPrefs = NimbusTestUtils.enableNimbusEnrollments({
-    read: true,
-  });
-  await test_restoreDatabaseConsistency("database");
-  resetNimbusEnrollmentPrefs();
 });
