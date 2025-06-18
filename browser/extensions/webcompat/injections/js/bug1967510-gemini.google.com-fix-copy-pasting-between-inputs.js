@@ -23,7 +23,7 @@ const { prototype } = DataTransfer.wrappedJSObject;
 const desc = Object.getOwnPropertyDescriptor(prototype, "setData");
 const { value } = desc;
 desc.value = exportFunction(function (format, data) {
-  value(format, data);
+  value.call(this, format, data);
   if (data === "") {
     this.clearData("text/html");
   }
