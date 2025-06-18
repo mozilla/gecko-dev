@@ -865,16 +865,16 @@ export const NimbusTestUtils = {
     await NimbusTestUtils.assert.storeIsEmpty(store);
 
     // Prevent the next save from happening.
-    store._store._saver.disarm();
+    store._jsonFile._saver.disarm();
 
     // If we're too late to stop the save from happening then we need to wait
     // for it to finish. Otherwise the saver might recreate the file on disk
     // after we delete it.
-    if (store._store._saver.isRunning) {
-      await store._store._saver._runningPromise;
+    if (store._jsonFile._saver.isRunning) {
+      await store._jsonFile._saver._runningPromise;
     }
 
-    await IOUtils.remove(store._store.path);
+    await IOUtils.remove(store._jsonFile.path);
   },
 
   /**
@@ -888,7 +888,7 @@ export const NimbusTestUtils = {
    * @returns {string} The path to the file on disk.
    */
   async saveStore(store) {
-    const jsonFile = store._store;
+    const jsonFile = store._jsonFile;
 
     if (jsonFile._saver.isRunning) {
       // It is possible that the store has been updated since we started writing
@@ -902,7 +902,7 @@ export const NimbusTestUtils = {
     await jsonFile._save();
     await store._db?._flushNow();
 
-    return store._store.path;
+    return jsonFile.path;
   },
 
   /**

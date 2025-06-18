@@ -271,7 +271,7 @@ export class PrefFlipsFeature {
     if (inactiveSlugs.size || newSlugs.size) {
       // If we've modified any enrollments in the store we must ensure that
       // there is a save queued.
-      this.manager.store._store.saveSoon();
+      this.manager.store._jsonFile.saveSoon();
     }
   }
 

@@ -35,7 +35,7 @@ export class SharedDataMap extends EventEmitter {
       } // else we directly rejected our _readyDeferred promise.
 
       // Lazy-load JSON file that backs Storage instances.
-      ChromeUtils.defineLazyGetter(this, "_store", () => {
+      ChromeUtils.defineLazyGetter(this, "_jsonFile", () => {
         try {
           return new lazy.JSONFile({
             path:
@@ -56,8 +56,8 @@ export class SharedDataMap extends EventEmitter {
   async init() {
     if (!this._isReady && IS_MAIN_PROCESS) {
       try {
-        await this._store.load();
-        this._data = this._store.data;
+        await this._jsonFile.load();
+        this._data = this._jsonFile.data;
         this._syncToChildren({ flush: true });
         this._checkIfReady();
 
@@ -95,8 +95,8 @@ export class SharedDataMap extends EventEmitter {
         "Setting values from within a content process is not allowed"
       );
     }
-    this._store.data[key] = value;
-    this._store.saveSoon();
+    this._jsonFile.data[key] = value;
+    this._jsonFile.saveSoon();
     this._syncToChildren();
     this._notifyUpdate();
   }
@@ -114,12 +114,12 @@ export class SharedDataMap extends EventEmitter {
     }
     for (let key of keysToRemove) {
       try {
-        delete this._store.data[key];
+        delete this._jsonFile.data[key];
       } catch (e) {
         // It's ok if this fails
       }
     }
-    this._store.saveSoon();
+    this._jsonFile.saveSoon();
   }
 
   // Only used in tests
@@ -130,8 +130,8 @@ export class SharedDataMap extends EventEmitter {
       );
     }
     if (this.has(key)) {
-      delete this._store.data[key];
-      this._store.saveSoon();
+      delete this._jsonFile.data[key];
+      this._jsonFile.saveSoon();
       this._syncToChildren();
       this._notifyUpdate();
     }
