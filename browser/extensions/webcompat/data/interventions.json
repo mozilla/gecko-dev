@@ -2947,6 +2947,7 @@
     "interventions": [
       {
         "platforms": ["all"],
+        "max_version": 140,
         "content_scripts": {
           "css": ["bug1931538-buzzfeed.com-card-game-fix.css"]
         }

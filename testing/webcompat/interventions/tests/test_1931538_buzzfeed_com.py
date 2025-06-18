@@ -28,13 +28,22 @@ async def can_click_on_cards(client):
     return True
 
 
+@pytest.mark.only_firefox_versions(max=140)
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
     assert await can_click_on_cards(client)
 
 
+@pytest.mark.only_firefox_versions(max=140)
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
 async def test_disabled(client):
     assert not await can_click_on_cards(client)
+
+
+@pytest.mark.only_firefox_versions(min=141)
+@pytest.mark.asyncio
+@pytest.mark.without_interventions
+async def test_regression(client):
+    assert await can_click_on_cards(client)
