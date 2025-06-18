@@ -15,6 +15,7 @@ contextual-manager-more-options-popup =
 
 ## Passwords
 
+contextual-manager-passwords-title = Passwords
 contextual-manager-passwords-command-create = Add password
 contextual-manager-passwords-command-import-from-browser = Import from another browser…
 contextual-manager-passwords-command-import = Import from a file…
