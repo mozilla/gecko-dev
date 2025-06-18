@@ -11,7 +11,7 @@
   position: sticky;
   /* finally, we need to set it's width as the scroller width minus the gutter width so
            it takes the whole horizontal visual space */
-  width: calc(var(--cm-editor-scroller-width, 100%) - var(--cm-gutter-width, 0) - /* gutter border */ 1px);
+  width: calc(var(--cm-editor-scroller-width, 100%) - var(--cm-gutter-width, 0) - /* borders */ 2px);
 }
 
 .conditional-breakpoint-panel {
@@ -20,12 +20,12 @@
   background: var(--theme-toolbar-background);
   border-top: 1px solid var(--theme-splitter-color);
   border-bottom: 1px solid var(--theme-splitter-color);
+  border-right: 1px solid var(--theme-splitter-color);
 }
 
 .conditional-breakpoint-panel .input-container:focus-within {
   outline: var(--theme-focus-outline);
-  outline-offset: -2px;
-  box-shadow: var(--theme-outline-box-shadow);
+  outline-offset: -4px;
 }
 
 .conditional-breakpoint-panel .prompt {
@@ -36,9 +36,6 @@
   padding-bottom: 3px;
   text-align: right;
   width: 30px;
-  align-self: baseline;
-  margin-top: 3px;
-  align-items: center;
   flex-shrink: 0;
 }
 
@@ -46,9 +43,9 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin-top: 3px;
   position: relative;
 }
+
 .conditional-breakpoint-panel button[type="submit"] {
   background-color: var(--blue-60);
   color: white;
@@ -69,6 +66,9 @@
   padding: 4px 8px;
   border-top: 1px solid var(--theme-splitter-color);
   gap: 8px 20px;
+  /* CodeMirror sets a monospace font on its content, let's go back to the defaut set on :root in common.css */
+  font: message-box;
+  font-size: var(--theme-body-font-size);
 }
 
 .conditional-breakpoint-panel-buttons {
@@ -77,6 +77,10 @@
   flex-grow: 1;
   justify-content: flex-end;
   gap: 4px;
+
+  button {
+    outline-offset: 2px;
+  }
 }
 
 .conditional-breakpoint-panel-checkbox-label {
