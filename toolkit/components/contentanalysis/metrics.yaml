@@ -230,7 +230,9 @@ content_analysis:
   request_sent_by_analysis_type:
     type: labeled_counter
     description: Recorded when a request is sent to the DLP agent.
-     The label is the analysisType of the request.
+     The label is the analysisType of the request, which corresponds
+     to a value in the AnalysisConnector enum in analysis.proto.
+     (e.g. "FILE_DOWNLOADED", "FILE_ATTACHED", "BULK_DATA_ENTRY", etc.)
     bugs:
       - https://bugzil.la/1963385
     data_reviews:
@@ -245,7 +247,42 @@ content_analysis:
   request_sent_by_reason:
     type: labeled_counter
     description: Recorded when a request is sent to the DLP agent.
-     The label is the reason of the request.
+     The label is the reason of the request, which corresponds to
+     a value in the ContentAnalysisRequest::Reason enum in analysis.proto.
+     (e.g. "CLIPBOARD_PASTE", "DRAG_AND_DROP", etc.)
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  response_duration_by_analysis_type:
+    type: labeled_timing_distribution
+    time_unit: microsecond
+    description: The time between sending a request to the DLP agent
+     and receiving a response from the agent. The label is the analysisType
+     of the request.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  response_action:
+    type: labeled_counter
+    description: Recorded when a response is received from the DLP agent.
+     The label is the action of the response, converted to a string (so "1").
+     The values correspond to nsIContentAnalysisResponse::Action.
     bugs:
       - https://bugzil.la/1963385
     data_reviews:

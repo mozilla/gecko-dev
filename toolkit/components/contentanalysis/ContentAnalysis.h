@@ -11,6 +11,7 @@
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/MaybeDiscarded.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/glean/ContentanalysisMetrics.h"
 #include "mozilla/media/MediaUtils.h"
 #include "mozilla/WeakPtr.h"
 #include "nsIClipboard.h"
@@ -34,6 +35,7 @@ class nsBaseClipboard;
 class nsIPrincipal;
 class nsIPrintSettings;
 class ContentAnalysisTest;
+class ContentAnalysisTelemetryTest;
 
 namespace mozilla::dom {
 class CanonicalBrowsingContext;
@@ -335,12 +337,14 @@ class ContentAnalysis final : public nsIContentAnalysis,
   static void HandleResponseFromAgent(
       content_analysis::sdk::ContentAnalysisResponse&& aResponse);
 
-  struct UserActionIdAndAutoAcknowledge final {
+  struct BasicRequestInfo final {
     nsCString mUserActionId;
+    glean::TimerId mTimerId;
+    nsCString mAnalysisTypeStr;
     bool mAutoAcknowledge;
   };
-  DataMutex<nsTHashMap<nsCString, UserActionIdAndAutoAcknowledge>>
-      mRequestTokenToUserActionIdMap;
+  DataMutex<nsTHashMap<nsCString, BasicRequestInfo>>
+      mRequestTokenToBasicRequestInfoMap;
 
   void IssueResponse(ContentAnalysisResponse* response,
                      nsCString&& aUserActionId, bool aAcknowledge,
@@ -516,6 +520,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
 
   friend class ContentAnalysisResponse;
   friend class ::ContentAnalysisTest;
+  friend class ::ContentAnalysisTelemetryTest;
 };
 
 class ContentAnalysisResponse final : public nsIContentAnalysisResponse,
