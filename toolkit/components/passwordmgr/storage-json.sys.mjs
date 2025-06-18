@@ -581,90 +581,6 @@ export class LoginManagerStorage_json {
     },
     candidateLogins = this._store.data.logins
   ) {
-    function match(aLoginItem) {
-      for (let field in matchData) {
-        let wantedValue = matchData[field];
-
-        // Override the storage field name for some fields due to backwards
-        // compatibility with Sync/storage.
-        let storageFieldName = field;
-        switch (field) {
-          case "formActionOrigin": {
-            storageFieldName = "formSubmitURL";
-            break;
-          }
-          case "origin": {
-            storageFieldName = "hostname";
-            break;
-          }
-        }
-
-        switch (field) {
-          case "formActionOrigin":
-            if (wantedValue != null) {
-              // Historical compatibility requires this special case
-              if (
-                aLoginItem.formSubmitURL == "" ||
-                (wantedValue == "" && Object.keys(matchData).length != 1)
-              ) {
-                break;
-              }
-              if (
-                !lazy.LoginHelper.isOriginMatching(
-                  aLoginItem[storageFieldName],
-                  wantedValue,
-                  aOptions
-                )
-              ) {
-                return false;
-              }
-              break;
-            }
-          // fall through
-          case "origin":
-            if (wantedValue != null) {
-              // needed for formActionOrigin fall through
-              if (
-                !lazy.LoginHelper.isOriginMatching(
-                  aLoginItem[storageFieldName],
-                  wantedValue,
-                  aOptions
-                )
-              ) {
-                return false;
-              }
-              break;
-            }
-          // Normal cases.
-          // fall through
-          case "httpRealm":
-          case "id":
-          case "usernameField":
-          case "passwordField":
-          case "encryptedUsername":
-          case "encryptedPassword":
-          case "guid":
-          case "encType":
-          case "timeCreated":
-          case "timeLastUsed":
-          case "timePasswordChanged":
-          case "timesUsed":
-          case "syncCounter":
-          case "everSynced":
-            if (wantedValue == null && aLoginItem[storageFieldName]) {
-              return false;
-            } else if (aLoginItem[storageFieldName] != wantedValue) {
-              return false;
-            }
-            break;
-          // Fail if caller requests an unknown property.
-          default:
-            throw new Error("Unexpected field: " + field);
-        }
-      }
-      return true;
-    }
-
     let foundLogins = [],
       foundIds = [];
     for (let loginItem of candidateLogins) {
@@ -672,7 +588,7 @@ export class LoginManagerStorage_json {
         continue; // skip deleted items
       }
 
-      if (match(loginItem)) {
+      if (this.#matchLogin(loginItem, matchData, aOptions)) {
         // Create the new nsLoginInfo object, push to array
         let login = Cc["@mozilla.org/login-manager/loginInfo;1"].createInstance(
           Ci.nsILoginInfo
@@ -793,6 +709,109 @@ export class LoginManagerStorage_json {
     return logins;
   }
 
+  /**
+   * Checks if the given login item matches the specified matchData.
+   *
+   * @param {Object} aLoginItem The login item to check.
+   * @param {Object} aMatchData The match data to compare against. keyed by
+   * @param {Object} [aOptions] Additional options for matching
+   *
+   * @returns {boolean} - Returns true if the login item matches the match data,
+   *
+   */
+  #matchLogin(
+    aLoginItem,
+    aMatchData,
+    aOptions = {
+      schemeUpgrades: false,
+      acceptDifferentSubdomains: false,
+      acceptRelatedRealms: false,
+      relatedRealms: [],
+    }
+  ) {
+    for (let field in aMatchData) {
+      let wantedValue = aMatchData[field];
+
+      // Override the storage field name for some fields due to backwards
+      // compatibility with Sync/storage.
+      let storageFieldName = field;
+      switch (field) {
+        case "formActionOrigin": {
+          storageFieldName = "formSubmitURL";
+          break;
+        }
+        case "origin": {
+          storageFieldName = "hostname";
+          break;
+        }
+      }
+
+      switch (field) {
+        case "formActionOrigin":
+          if (wantedValue != null) {
+            // Historical compatibility requires this special case
+            if (
+              aLoginItem.formSubmitURL == "" ||
+              (wantedValue == "" && Object.keys(aMatchData).length != 1)
+            ) {
+              break;
+            }
+            if (
+              !lazy.LoginHelper.isOriginMatching(
+                aLoginItem[storageFieldName],
+                wantedValue,
+                aOptions
+              )
+            ) {
+              return false;
+            }
+            break;
+          }
+        // fall through
+        case "origin":
+          if (wantedValue != null) {
+            // needed for formActionOrigin fall through
+            if (
+              !lazy.LoginHelper.isOriginMatching(
+                aLoginItem[storageFieldName],
+                wantedValue,
+                aOptions
+              )
+            ) {
+              return false;
+            }
+            break;
+          }
+        // Normal cases.
+        // fall through
+        case "httpRealm":
+        case "id":
+        case "usernameField":
+        case "passwordField":
+        case "encryptedUsername":
+        case "encryptedPassword":
+        case "guid":
+        case "encType":
+        case "timeCreated":
+        case "timeLastUsed":
+        case "timePasswordChanged":
+        case "timesUsed":
+        case "syncCounter":
+        case "everSynced":
+          if (wantedValue == null && aLoginItem[storageFieldName]) {
+            return false;
+          } else if (aLoginItem[storageFieldName] != wantedValue) {
+            return false;
+          }
+          break;
+        // Fail if caller requests an unknown property.
+        default:
+          throw new Error("Unexpected field: " + field);
+      }
+    }
+    return true;
+  }
+
   countLogins(origin, formActionOrigin, httpRealm) {
     this._store.ensureDataReady();
 
@@ -807,10 +826,13 @@ export class LoginManagerStorage_json {
         matchData[field] = loginData[field];
       }
     }
-    let [logins] = this._searchLogins(matchData);
 
-    this.log(`Counted ${logins.length} logins.`);
-    return logins.length;
+    const foundLogins = this._store.data.logins.filter(
+      loginItem => !loginItem.deleted && this.#matchLogin(loginItem, matchData)
+    );
+
+    this.log(`Counted ${foundLogins.length} logins.`);
+    return foundLogins.length;
   }
 
   addPotentiallyVulnerablePassword(login) {
