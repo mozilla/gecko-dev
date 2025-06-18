@@ -67,77 +67,77 @@ nsCString EncoderConfig::ToString() const {
   return rv;
 };
 
-static nsCString ColorRangeToString(const gfx::ColorRange& aColorRange) {
+const char* ColorRangeToString(const gfx::ColorRange& aColorRange) {
   switch (aColorRange) {
     case gfx::ColorRange::FULL:
-      return "FULL"_ns;
+      return "FULL";
     case gfx::ColorRange::LIMITED:
-      return "LIMITED"_ns;
+      return "LIMITED";
   }
   MOZ_ASSERT_UNREACHABLE("unknown ColorRange");
-  return "unknown"_ns;
+  return "unknown";
 }
 
-static nsCString YUVColorSpaceToString(
-    const gfx::YUVColorSpace& aYUVColorSpace) {
+const char* YUVColorSpaceToString(const gfx::YUVColorSpace& aYUVColorSpace) {
   switch (aYUVColorSpace) {
     case gfx::YUVColorSpace::BT601:
-      return "BT601"_ns;
+      return "BT601";
     case gfx::YUVColorSpace::BT709:
-      return "BT709"_ns;
+      return "BT709";
     case gfx::YUVColorSpace::BT2020:
-      return "BT2020"_ns;
+      return "BT2020";
     case gfx::YUVColorSpace::Identity:
-      return "Identity"_ns;
+      return "Identity";
   }
   MOZ_ASSERT_UNREACHABLE("unknown YUVColorSpace");
-  return "unknown"_ns;
+  return "unknown";
 }
 
-static nsCString ColorSpace2ToString(const gfx::ColorSpace2& aColorSpace2) {
+const char* ColorSpace2ToString(const gfx::ColorSpace2& aColorSpace2) {
   switch (aColorSpace2) {
     case gfx::ColorSpace2::Display:
-      return "Display"_ns;
+      return "Display";
     case gfx::ColorSpace2::SRGB:
-      return "SRGB"_ns;
+      return "SRGB";
     case gfx::ColorSpace2::DISPLAY_P3:
-      return "DISPLAY_P3"_ns;
+      return "DISPLAY_P3";
     case gfx::ColorSpace2::BT601_525:
-      return "BT601_525"_ns;
+      return "BT601_525";
     case gfx::ColorSpace2::BT709:
-      return "BT709"_ns;
+      return "BT709";
     case gfx::ColorSpace2::BT2020:
-      return "BT2020"_ns;
+      return "BT2020";
   }
   MOZ_ASSERT_UNREACHABLE("unknown ColorSpace2");
-  return "unknown"_ns;
+  return "unknown";
 }
 
-static nsCString TransferFunctionToString(
+const char* TransferFunctionToString(
     const gfx::TransferFunction& aTransferFunction) {
   switch (aTransferFunction) {
     case gfx::TransferFunction::BT709:
-      return "BT709"_ns;
+      return "BT709";
     case gfx::TransferFunction::SRGB:
-      return "SRGB"_ns;
+      return "SRGB";
     case gfx::TransferFunction::PQ:
-      return "PQ"_ns;
+      return "PQ";
     case gfx::TransferFunction::HLG:
-      return "HLG"_ns;
+      return "HLG";
   }
   MOZ_ASSERT_UNREACHABLE("unknown TransferFunction");
-  return "unknown"_ns;
+  return "unknown";
 }
 
 nsCString EncoderConfig::VideoColorSpace::ToString() const {
-  return nsPrintfCString(
-      "VideoColorSpace: [range: %s, matrix: %s, primaries: %s, transfer: %s]",
-      mRange ? ColorRangeToString(mRange.value()).get() : "none",
-      mMatrix ? YUVColorSpaceToString(mMatrix.value()).get() : "none",
-      mPrimaries ? ColorSpace2ToString(mPrimaries.value()).get() : "none",
-      mTransferFunction
-          ? TransferFunctionToString(mTransferFunction.value()).get()
-          : "none");
+  nsAutoCString ret;
+  ret.AppendFmt(
+      "VideoColorSpace: [range: {}, matrix: {}, primaries: {}, transfer: {}]",
+      mRange ? ColorRangeToString(mRange.value()) : "none",
+      mMatrix ? YUVColorSpaceToString(mMatrix.value()) : "none",
+      mPrimaries ? ColorSpace2ToString(mPrimaries.value()) : "none",
+      mTransferFunction ? TransferFunctionToString(mTransferFunction.value())
+                        : "none");
+  return ret;
 }
 
 nsCString EncoderConfig::SampleFormat::ToString() const {
