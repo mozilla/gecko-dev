@@ -6,8 +6,9 @@
     "package.json": "^2.0.1"
   },
   "devDependencies": {
-    "browsertime": "https://github.com/sitespeedio/browsertime/tarball/465f1de3de9b4e59b8ad076ce9317c829de35af3",
-    "jimp": "0.22.12"
+    "browsertime": "https://github.com/sitespeedio/browsertime/tarball/c8fe4c46e374a08a5b43e7bc0ff48f749088264e",
+    "jimp": "0.22.12",
+    "usb-power-profiling": "1.6.0"
   },
   "notes(private)": "We don't want to publish to npm, so this is marked as private",
   "private": true
