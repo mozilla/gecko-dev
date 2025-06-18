@@ -6,6 +6,7 @@
 
 EXPORTS.mozilla.net += [
     "DataChannel.h",
+    "DataChannelDcSctp.h",
     "DataChannelListener.h",
     "DataChannelLog.h",
     "DataChannelProtocol.h",
@@ -14,6 +15,7 @@ EXPORTS.mozilla.net += [
 
 SOURCES += [
     "DataChannel.cpp",
+    "DataChannelDcSctp.cpp",
     "DataChannelUsrsctp.cpp",
 ]
 
