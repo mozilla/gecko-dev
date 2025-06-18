@@ -804,11 +804,22 @@ export class LoginDataSource extends DataSourceBase {
     }
 
     const logins = await LoginHelper.getAllUserFacingLogins();
-    this.beforeReloadingDataSource();
-
     const breachesMap = lazy.BREACH_ALERTS_ENABLED
       ? await lazy.LoginBreaches.getPotentialBreachesByLoginGUID(logins)
       : new Map();
+
+    this.#syncReloadDataSource(logins, breachesMap);
+
+    this.doneReloadDataSource = true;
+  }
+
+  /**
+   * Implementation between `beforeReloadingDataSource` and `afterReloadingDataSource`
+   * should be synchronous because the two functions operates on member variable
+   * #linesToForget and they don't expect it to be changed in the middle of reloading.
+   */
+  #syncReloadDataSource(logins, breachesMap) {
+    this.beforeReloadingDataSource();
 
     const loginsWithAlerts = logins.filter(
       login =>
@@ -870,7 +881,6 @@ export class LoginDataSource extends DataSourceBase {
     this.#header.value.total = logins.length;
     this.#header.value.alerts = loginsWithAlerts.length;
     this.afterReloadingDataSource();
-    this.doneReloadDataSource = true;
   }
 
   #reloadEmptyDataSource() {
