@@ -500,10 +500,10 @@ export var SpellCheckHelper = {
     return (
       // Forms without an explicit action often don't work, see Bug 1960237.
       form.hasAttribute("action") &&
-      // The other methods are post and dialog.
-      // Post forms are rarely search forms, see discussion in Bug 1964507.
-      // Dialog forms are not supported for obvious reasons.
-      method == "GET" &&
+      // Since post forms are rarely search forms, we only count them as such
+      // if they have a search role. The only other method is dialog, which
+      // we never count as search forms.
+      (method == "GET" || (method == "POST" && form.role == "search")) &&
       // SearchEngine objects currently only support urlencoded requests.
       form.enctype == "application/x-www-form-urlencoded" &&
       // Don't allow forms with file inputs.

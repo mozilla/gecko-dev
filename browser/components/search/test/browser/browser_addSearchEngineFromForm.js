@@ -39,6 +39,30 @@ const TESTS = [
     submission: "caff\u00E8+",
     expected: "https://example.org/search?q=caff%E8%2B&cb=true",
   },
+  {
+    action: "/search",
+    method: "POST",
+    charset: "UTF-8",
+    fields: [
+      { name: "q", value: "Some initial value", main: true },
+      { name: "utf8✓", value: "✓", hidden: true },
+    ],
+    submission: "kitten",
+    expected: "https://example.org/search",
+    expectedPost: "q=kitten&utf8%E2%9C%93=%E2%9C%93",
+  },
+  {
+    action: "/search",
+    method: "POST",
+    charset: "windows-1252",
+    fields: [
+      { name: "q", main: true },
+      { name: "foo", value: "bar" },
+    ],
+    submission: "caff\u00E8+",
+    expected: "https://example.org/search",
+    expectedPost: "q=caff%E8%2B&foo=bar",
+  },
 ];
 
 const URL_UTF_8 =
@@ -93,6 +117,7 @@ async function createForm({ action, method, fields }) {
   let form = doc.createElement("form");
   form.method = method;
   form.action = action;
+  form.role = "search";
 
   for (let fieldInfo of fields) {
     let input = doc.createElement("input");
@@ -228,9 +253,14 @@ add_task(async function testSearchFieldDetection() {
   isSearchField = SpellCheckHelper.isTargetASearchEngineField(input, window);
   Assert.equal(isSearchField, false, "Method=post means no search field");
 
-  form.method = "GET";
+  form.role = "search";
+  isSearchField = SpellCheckHelper.isTargetASearchEngineField(input, window);
+  Assert.equal(isSearchField, true, "Post and role=search means search field");
 
-  delete input.removeAttribute("name");
+  form.method = "GET";
+  form.removeAttribute("role");
+
+  input.removeAttribute("name");
   isSearchField = SpellCheckHelper.isTargetASearchEngineField(input, window);
   Assert.equal(isSearchField, false, "Missing name means no search field");
 
