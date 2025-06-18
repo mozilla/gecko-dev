@@ -33,7 +33,7 @@
     `);
 
     await test.step_wait(() => result.length == 2, "Wait for both scripts to be executed", 1000);
-    test.step(() => assert_array_equals(result, [2, 1],
+    test.step(() => assert_array_equals(result, [1, 2],
                                         "Check expected execution order"));
     test.done();
   }, "Execution order of non-parser created inline module scripts");
