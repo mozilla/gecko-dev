@@ -1411,7 +1411,7 @@ const BASE_MESSAGES = () => [
     skip_in_tests: "fails unrelated tests",
     content: {
       label: {
-        raw: "Finish setup",
+        string_id: "onboarding-aw-finish-setup-button",
       },
       logo: {
         imageURL: "chrome://branding/content/about-logo.png",
@@ -1431,7 +1431,7 @@ const BASE_MESSAGES = () => [
       id: "defaultBrowserCheck",
     },
     targeting:
-      "source == 'startup' && ((currentDate|date - profileAgeCreated|date) / 86400000 <= 7) && localeLanguageCode == 'en'",
+      "source == 'startup' && ((currentDate|date - profileAgeCreated|date) / 86400000 <= 7)",
   },
   {
     id: "FINISH_SETUP_CHECKLIST",
