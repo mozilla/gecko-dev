@@ -70,7 +70,6 @@ add_task(async function testEnrollments() {
     );
     Assert.ok(!dbEnrollment.active, "Enrollment no longer active");
     Assert.equal(dbEnrollment.unenrollReason, "reason123", "Unenroll reason");
-    Assert.equal(dbEnrollment.recipe, null, "Recipe is now null");
   }
 
   manager.store._removeEntriesByKeys([recipe.slug]);
@@ -117,7 +116,6 @@ add_task(async function testCollapseWrites() {
   Assert.notEqual(dbEnrollment, null, "Enrollment exists in database");
   Assert.ok(!dbEnrollment.active, "Enrollment is not active");
   Assert.equal(dbEnrollment.unenrollReason, "some reason");
-  Assert.equal(dbEnrollment.recipe, null, "Recipe is null");
 
   await cleanup();
 });

@@ -92,17 +92,8 @@ function migrateMultiphase() {
 function migrateNoop() {
   // This migration intentionally left blank.
   //
-  // Bug 1956080 added `migrateEnrollmentsToSql` but the actual Nimbus profile
-  // ID added in that bug wasn't persistent (see bug 1969994) and reset every
-  // startup. Therefore the rows created by the first run of
-  // `migrateEnrollmentsToSql` are no longer associated with any profile and the
-  // `migrateEnrollmentsToSql` migration needs to run again with a new profile
-  // ID. A seperate migration was added in `ProfilesDatastoreService` to delete all
-  // entries from the `NimbusEnrollments` table.
-  //
-  // To prevent the `migrateEnrollmentsToSql` migration from running twice on a
-  // new client, this migration takes the place of the original
-  // `migrateEnrollmentsToSql`.
+  // Use this migration to replace outdated migrations that should not be run on
+  // new clients.
 }
 
 async function migrateEnrollmentsToSql() {
@@ -405,6 +396,13 @@ export const NimbusMigrations = {
   },
 
   /**
+   * A mapping of each Nimbus initialization phase to the mirgations that will occur.
+   *
+   * N.B.: Migrations *cannot* be removed from this. If you want to remove a
+   * migration, you *must* replace it with {@link migrateNoop} otherwise clients
+   * that have already migrated will get out of sync and not perform new
+   * migrations correctly.
+   *
    * @type {Record<Phase, Migration[]>}
    */
   MIGRATIONS: {
@@ -413,6 +411,13 @@ export const NimbusMigrations = {
     ],
 
     [Phase.AFTER_STORE_INITIALIZED]: [
+      // Bug 1969994: This used to be migrateEnrollmentsToSql, but we had to
+      // wipe the NimbusEnrollments table and re-run the migration to work
+      // around ExperimentAPI.profileId not being persistent.
+      migration("noop", migrateNoop),
+      // Bug 1972427: This used to be migrateEnrollmentsToSql, but we had to
+      // re-create the NimbusEnrollments table with an altered schema and re-run
+      // the migration to ensure recipe was never null.
       migration("noop", migrateNoop),
       migration("import-enrollments-to-sql", migrateEnrollmentsToSql),
     ],

@@ -61,7 +61,7 @@ class ProfilesDatastoreServiceClass {
   async createTables() {
     // TODO: (Bug 1902320) Handle exceptions on connection opening
     let currentVersion = await this.#connection.getSchemaVersion();
-    if (currentVersion == 3) {
+    if (currentVersion == 4) {
       return;
     }
 
@@ -124,8 +124,17 @@ class ProfilesDatastoreServiceClass {
     }
 
     if (currentVersion < 3) {
-      await this.#connection.execute("DELETE FROM NimbusEnrollments;");
+      await this.#connection.executeTransaction(async () => {
+        await this.#connection.execute("DELETE FROM NimbusEnrollments;");
+      });
       await this.#connection.setSchemaVersion(3);
+    }
+
+    if (currentVersion < 4) {
+      await this.#connection.executeTransaction(async () => {
+        await this.#connection.execute("DELETE FROM NimbusEnrollments;");
+      });
+      await this.#connection.setSchemaVersion(4);
     }
   }
 
