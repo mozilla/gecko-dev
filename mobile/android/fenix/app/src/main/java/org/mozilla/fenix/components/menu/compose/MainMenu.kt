@@ -659,7 +659,7 @@ private fun HomepageMenuGroup(
 
         MenuItem(
             label = stringResource(id = R.string.browser_menu_customize_home_1),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_grid_add_24),
+            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_tool_24),
             onClick = onCustomizeHomepageMenuClick,
         )
 
