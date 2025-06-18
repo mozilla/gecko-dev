@@ -55,18 +55,6 @@
 #include "DataChannelLog.h"
 #include "DataChannelProtocol.h"
 
-// Let us turn on and off important assertions in non-debug builds
-#ifdef DEBUG
-#  define ASSERT_WEBRTC(x) MOZ_ASSERT((x))
-#elif defined(MOZ_WEBRTC_ASSERT_ALWAYS)
-#  define ASSERT_WEBRTC(x) \
-    do {                   \
-      if (!(x)) {          \
-        MOZ_CRASH();       \
-      }                    \
-    } while (0)
-#endif
-
 namespace mozilla {
 
 LazyLogModule gDataChannelLog("DataChannel");
@@ -389,10 +377,10 @@ DataChannelConnection::~DataChannelConnection() {
   DC_DEBUG(("Deleting DataChannelConnection %p", (void*)this));
   // This may die on the MainThread, or on the STS thread, or on an
   // sctp thread if we were in a callback when the DOM side shut things down.
-  ASSERT_WEBRTC(mState == DataChannelConnectionState::Closed);
+  MOZ_ASSERT(mState == DataChannelConnectionState::Closed);
   MOZ_ASSERT(mPending.empty());
 
-  if (!IsSTSThread()) {
+  if (!mSTS->IsOnCurrentThread()) {
     // We may be on MainThread *or* on an sctp thread (being called from
     // receive_cb() or SctpDtlsOutput())
     if (mInternalIOThread) {
@@ -411,7 +399,7 @@ DataChannelConnection::~DataChannelConnection() {
 }
 
 void DataChannelConnection::Destroy() {
-  ASSERT_WEBRTC(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
   DC_DEBUG(("Destroying DataChannelConnection %p", (void*)this));
   CloseAll();
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
@@ -471,8 +459,7 @@ Maybe<RefPtr<DataChannelConnection>> DataChannelConnection::Create(
     nsISerialEventTarget* aTarget, MediaTransportHandler* aHandler,
     const uint16_t aLocalPort, const uint16_t aNumStreams,
     const Maybe<uint64_t>& aMaxMessageSize) {
-  ASSERT_WEBRTC(NS_IsMainThread());
-
+  MOZ_ASSERT(NS_IsMainThread());
   RefPtr<DataChannelConnection> connection = new DataChannelConnection(
       aListener, aTarget, aHandler);  // Walks into a bar
   return connection->Init(aLocalPort, aNumStreams, aMaxMessageSize)
@@ -487,6 +474,7 @@ DataChannelConnection::DataChannelConnection(
       mLock("netwerk::sctp::DataChannelConnection"),
       mListener(aListener),
       mTransportHandler(aHandler) {
+  MOZ_ASSERT(NS_IsMainThread());
   DC_VERBOSE(("Constructor DataChannelConnection=%p, listener=%p", this,
               mListener.get()));
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
@@ -497,7 +485,7 @@ DataChannelConnection::DataChannelConnection(
 bool DataChannelConnection::Init(const uint16_t aLocalPort,
                                  const uint16_t aNumStreams,
                                  const Maybe<uint64_t>& aMaxMessageSize) {
-  ASSERT_WEBRTC(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
 
   struct sctp_initmsg initmsg = {};
   struct sctp_assoc_value av = {};
@@ -656,7 +644,7 @@ error_cleanup:
 // Only called on MainThread, mMaxMessageSize is read on other threads
 void DataChannelConnection::SetMaxMessageSize(bool aMaxMessageSizeSet,
                                               uint64_t aMaxMessageSize) {
-  ASSERT_WEBRTC(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
 
   if (mMaxMessageSizeSet && !aMaxMessageSizeSet) {
     // Don't overwrite already set MMS with default values
@@ -704,14 +692,14 @@ void DataChannelConnection::SetMaxMessageSize(bool aMaxMessageSizeSet,
 }
 
 uint64_t DataChannelConnection::GetMaxMessageSize() {
-  ASSERT_WEBRTC(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
   return mMaxMessageSize;
 }
 
 void DataChannelConnection::AppendStatsToReport(
     const UniquePtr<dom::RTCStatsCollection>& aReport,
     const DOMHighResTimeStamp aTimestamp) const {
-  ASSERT_WEBRTC(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
   nsString temp;
   for (const RefPtr<DataChannel>& chan : mChannels.GetAll()) {
     // If channel is empty, ignore
@@ -766,7 +754,7 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
                                                const uint16_t aLocalPort,
                                                const uint16_t aRemotePort) {
   MutexAutoLock lock(mLock);
-  ASSERT_WEBRTC(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
 
   static const auto paramString =
       [](const std::string& tId, const Maybe<bool>& client,
@@ -838,8 +826,8 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
 }
 
 void DataChannelConnection::SetSignals(const std::string& aTransportId) {
-  ASSERT_WEBRTC(IsSTSThread());
   MutexAutoLock lock(mLock);
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   if (mTransportId == aTransportId) {
     // Nothing to do!
     return;
@@ -867,8 +855,8 @@ void DataChannelConnection::SetSignals(const std::string& aTransportId) {
 
 void DataChannelConnection::TransportStateChange(
     const std::string& aTransportId, TransportLayer::State aState) {
-  ASSERT_WEBRTC(IsSTSThread());
   MutexAutoLock lock(mLock);
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   if (aTransportId == mTransportId) {
     if (aState == TransportLayer::TS_OPEN) {
       DC_DEBUG(("Transport is open!"));
@@ -883,9 +871,9 @@ void DataChannelConnection::TransportStateChange(
 }
 
 void DataChannelConnection::CompleteConnect() {
-  DC_DEBUG(("dtls open"));
-  ASSERT_WEBRTC(IsSTSThread());
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   mLock.AssertCurrentThreadOwns();
+  DC_DEBUG(("dtls open"));
   if (mSctpConfigured) {
     // mSocket could have been closed by an error or for some other reason,
     // don't open an opportunity to reinit.
@@ -983,6 +971,7 @@ void DataChannelConnection::ProcessQueuedOpens() {
 
 void DataChannelConnection::SctpDtlsInput(const std::string& aTransportId,
                                           const MediaPacket& packet) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   MutexAutoLock lock(mLock);
   if ((packet.type() != MediaPacket::SCTP) || (mTransportId != aTransportId)) {
     return;
@@ -1042,6 +1031,7 @@ int DataChannelConnection::SctpDtlsOutput(void* addr, void* buffer,
 #endif
 
 DataChannel* DataChannelConnection::FindChannelByStream(uint16_t stream) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   return mChannels.Get(stream).get();
 }
 
@@ -1074,6 +1064,7 @@ uint16_t DataChannelConnection::FindFreeStream() const {
 }
 
 uint32_t DataChannelConnection::UpdateCurrentStreamIndex() {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   RefPtr<DataChannel> channel = mChannels.GetNextChannel(mCurrentStream);
   if (!channel) {
     mCurrentStream = 0;
@@ -1084,6 +1075,7 @@ uint32_t DataChannelConnection::UpdateCurrentStreamIndex() {
 }
 
 uint32_t DataChannelConnection::GetCurrentStreamIndex() {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   if (!mChannels.Get(mCurrentStream)) {
     // The stream muse have been removed, reset
     DC_DEBUG(("Reset mCurrentChannel"));
@@ -1341,7 +1333,6 @@ void DataChannelConnection::HandleOpenRequestMessage(
   uint32_t prValue;
   DataChannelReliabilityPolicy prPolicy;
 
-  ASSERT_WEBRTC(!NS_IsMainThread());
   mLock.AssertCurrentThreadOwns();
 
   const size_t requiredLength = (sizeof(*req) - 1) + ntohs(req->label_length) +
@@ -1699,6 +1690,7 @@ void DataChannelConnection::HandleDCEPMessageChunk(const void* buffer,
 }
 
 void DataChannelConnection::HandleDCEPMessage(IncomingMsg&& aMsg) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   const struct rtcweb_datachannel_open_request* req;
   const struct rtcweb_datachannel_ack* ack;
 
@@ -2068,6 +2060,7 @@ void DataChannelConnection::HandleSendFailedEvent(
 }
 
 void DataChannelConnection::ClearResets() {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   // Clear all pending resets
   if (!mStreamsResetting.IsEmpty()) {
     DC_DEBUG(("Clearing resets for %zu streams", mStreamsResetting.Length()));
@@ -2146,6 +2139,7 @@ void DataChannelConnection::HandleStreamResetEvent(
 
 void DataChannelConnection::OnStreamsReset(std::vector<uint16_t>&& aStreams) {
   mLock.AssertCurrentThreadOwns();
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   for (auto stream : aStreams) {
     auto channel = FindChannelByStream(stream);
     if (channel) {
@@ -2311,7 +2305,7 @@ void DataChannelConnection::HandleNotification(
 int DataChannelConnection::ReceiveCallback(struct socket* sock, void* data,
                                            size_t datalen,
                                            struct sctp_rcvinfo rcv, int flags) {
-  ASSERT_WEBRTC(!NS_IsMainThread());
+  MOZ_ASSERT(!NS_IsMainThread());
   DC_DEBUG(("In ReceiveCallback"));
 
   // libusrsctp just went reentrant on us. Put a stop to this.
@@ -2355,8 +2349,8 @@ already_AddRefed<DataChannel> DataChannelConnection::Open(
     DataChannelReliabilityPolicy prPolicy, bool inOrder, uint32_t prValue,
     DataChannelListener* aListener, nsISupports* aContext,
     bool aExternalNegotiated, uint16_t aStream) {
-  ASSERT_WEBRTC(NS_IsMainThread());
   MutexAutoLock lock(mLock);
+  MOZ_ASSERT(NS_IsMainThread());
   if (!aExternalNegotiated) {
     if (mAllocateEven.isSome()) {
       aStream = FindFreeStream();
@@ -2665,6 +2659,7 @@ class ReadBlobRunnable : public Runnable {
 
 // Returns a POSIX error code.
 int DataChannelConnection::SendBlob(uint16_t stream, nsIInputStream* aBlob) {
+  MOZ_ASSERT(NS_IsMainThread());
   MutexAutoLock lock(mLock);
   RefPtr<DataChannel> channel = mChannels.Get(stream);
   if (NS_WARN_IF(!channel)) {
@@ -2702,7 +2697,7 @@ class DataChannelBlobSendRunnable : public Runnable {
   }
 
   NS_IMETHOD Run() override {
-    ASSERT_WEBRTC(NS_IsMainThread());
+    MOZ_ASSERT(NS_IsMainThread());
 
     mConnection->SendBinaryMessage(mStream, std::move(mData));
     mConnection = nullptr;
@@ -2734,6 +2729,8 @@ void DataChannelConnection::SetState(DataChannelConnectionState aState) {
 void DataChannelConnection::ReadBlob(
     already_AddRefed<DataChannelConnection> aThis, uint16_t aStream,
     nsIInputStream* aBlob) {
+  MOZ_ASSERT(!mSTS->IsOnCurrentThread());
+  MOZ_ASSERT(!NS_IsMainThread());
   // NOTE: 'aThis' has been forgotten by the caller to avoid releasing
   // it off mainthread; if PeerConnectionImpl has released then we want
   // ~DataChannelConnection() to run on MainThread
@@ -2765,8 +2762,8 @@ void DataChannelConnection::ReadBlob(
 
 int DataChannelConnection::SendDataMessage(uint16_t aStream, nsACString&& aMsg,
                                            bool aIsBinary) {
-  ASSERT_WEBRTC(NS_IsMainThread());
   MutexAutoLock lock(mLock);
+  MOZ_ASSERT(NS_IsMainThread());
 
   // Basic validation
   if (mMaxMessageSize != 0 && aMsg.Length() > mMaxMessageSize) {
@@ -2915,7 +2912,7 @@ void DataChannelConnection::Close(DataChannel* aChannel) {
 }
 
 void DataChannelConnection::GracefulClose(DataChannel* aChannel) {
-  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
   // An RTCDataChannel object's underlying data transport may be torn down in a
   // non-abrupt manner by running the closing procedure. When that happens the
   // user agent MUST queue a task to run the following steps:
@@ -3005,7 +3002,7 @@ void DataChannelConnection::FinishClose_s(DataChannel* aChannel) {
 }
 
 void DataChannelConnection::CloseAll() {
-  ASSERT_WEBRTC(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
   DC_DEBUG(("Closing all channels (connection %p)", (void*)this));
 
   // Make sure no more channels will be opened
@@ -3123,18 +3120,17 @@ DataChannel::DataChannel(DataChannelConnection* connection, uint16_t stream,
                          DataChannelListener* aListener, nsISupports* aContext)
     : mListener(aListener),
       mContext(aContext),
-      mConnection(connection),
       mLabel(label),
       mProtocol(protocol),
       mReadyState(state),
       mStream(stream),
       mPrPolicy(policy),
       mPrValue(value),
-      mNegotiated(negotiated),
-      mOrdered(ordered),
-      mIsRecvBinary(false),
       mBufferedThreshold(0),  // default from spec
       mBufferedAmount(0),
+      mConnection(connection),
+      mNegotiated(negotiated),
+      mOrdered(ordered),
       mMainThreadEventTarget(connection->GetNeckoTarget()) {
   NS_ASSERTION(mConnection, "NULL connection");
 }
@@ -3149,6 +3145,7 @@ DataChannel::~DataChannel() {
 }
 
 void DataChannel::Close() {
+  MOZ_ASSERT(NS_IsMainThread());
   if (mConnection) {
     // ensure we don't get deleted
     RefPtr<DataChannelConnection> connection(mConnection);
@@ -3157,13 +3154,13 @@ void DataChannel::Close() {
 }
 
 void DataChannel::ReleaseConnection() {
-  ASSERT_WEBRTC(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
   mConnection = nullptr;
 }
 
 void DataChannel::SetListener(DataChannelListener* aListener,
                               nsISupports* aContext) {
-  ASSERT_WEBRTC(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
   mContext = aContext;
   mListener = aListener;
 }
@@ -3186,7 +3183,7 @@ void DataChannel::SendErrnoToErrorResult(int error, size_t aMessageSize,
 }
 
 void DataChannel::IncrementBufferedAmount(uint32_t aSize, ErrorResult& aRv) {
-  ASSERT_WEBRTC(NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
   if (mBufferedAmount > UINT32_MAX - aSize) {
     aRv.Throw(NS_ERROR_FILE_TOO_BIG);
     return;
@@ -3298,6 +3295,7 @@ void DataChannel::SetReadyState(const DataChannelState aState) {
 }
 
 void DataChannel::SendMsg(nsACString&& aMsg, ErrorResult& aRv) {
+  MOZ_ASSERT(NS_IsMainThread());
   if (!EnsureValidStream(aRv)) {
     return;
   }
@@ -3311,6 +3309,7 @@ void DataChannel::SendMsg(nsACString&& aMsg, ErrorResult& aRv) {
 }
 
 void DataChannel::SendBinaryMsg(nsACString&& aMsg, ErrorResult& aRv) {
+  MOZ_ASSERT(NS_IsMainThread());
   if (!EnsureValidStream(aRv)) {
     return;
   }
@@ -3324,6 +3323,7 @@ void DataChannel::SendBinaryMsg(nsACString&& aMsg, ErrorResult& aRv) {
 }
 
 void DataChannel::SendBinaryBlob(dom::Blob& aBlob, ErrorResult& aRv) {
+  MOZ_ASSERT(NS_IsMainThread());
   if (!EnsureValidStream(aRv)) {
     return;
   }
@@ -3383,10 +3383,12 @@ void DataChannel::SendOrQueue(DataChannelOnMessageAvailable* aMessage) {
 }
 
 DataChannel::TrafficCounters DataChannel::GetTrafficCounters() const {
+  MOZ_ASSERT(NS_IsMainThread());
   return mTrafficCounters;
 }
 
 bool DataChannel::EnsureValidStream(ErrorResult& aRv) {
+  MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mConnection);
   if (mConnection && mStream != INVALID_STREAM) {
     return true;

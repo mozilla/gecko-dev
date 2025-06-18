@@ -399,72 +399,63 @@ class DataChannelConnection : public net::NeckoTargetHolder {
   void HandleDCEPMessageChunk(const void* buffer, size_t length, uint32_t ppid,
                               uint16_t stream, int flags);
 
-  bool IsSTSThread() const {
-    bool on = false;
-    if (mSTS) {
-      mSTS->IsOnCurrentThread(&on);
-    }
-    return on;
-  }
-
   mutable Mutex mLock;
+
+  /******************** Mainthread only **********************/
   // Avoid cycles with PeerConnectionImpl
   // Use from main thread only as WeakPtr is not threadsafe
   WeakPtr<DataConnectionListener> mListener;
-  // STS only
-  bool mSendInterleaved = false;
-  // MainThread only
   bool mMaxMessageSizeSet = false;
-  // Data:
   uint64_t mMaxMessageSize = 0;
   nsTArray<uint16_t> mStreamIds;
-  // NOTE: while this container will auto-expand, increases in the number of
-  // channels available from the stack must be negotiated!
-  // Accessed from both main and sts, API is threadsafe
-  Channels mChannels;
-  // STS only
+  Maybe<bool> mAllocateEven;
+  nsCOMPtr<nsIThread> mInternalIOThread = nullptr;
+  /***********************************************************/
+
+  /*********************** STS only **************************/
+  bool mSendInterleaved = false;
   uint32_t mCurrentStream = 0;
-  // STS and main
-  std::set<RefPtr<DataChannel>> mPending MOZ_GUARDED_BY(mLock);
-  uint16_t mNegotiatedIdLimit MOZ_GUARDED_BY(mLock) = 0;
-  // STS only
+  std::set<RefPtr<DataChannel>> mPending;
+  uint16_t mNegotiatedIdLimit = 0;
   PendingType mPendingType = PendingType::None;
   // holds data that's come in before a channel is open
-  nsTArray<UniquePtr<QueuedDataMessage>> mQueuedData MOZ_GUARDED_BY(mLock);
+  nsTArray<UniquePtr<QueuedDataMessage>> mQueuedData;
   // holds outgoing control messages
-  // STS only
   nsTArray<OutgoingMsg> mBufferedControl;
   // For partial DCEP messages (should be _really_ rare, since they're small)
   Maybe<IncomingMsg> mRecvBuffer MOZ_GUARDED_BY(mLock);
-
-  // Streams pending reset. Accessed from main and STS.
-  AutoTArray<uint16_t, 4> mStreamsResetting MOZ_GUARDED_BY(mLock);
-  // Set once on main in Init, STS-only thereafter
-  struct socket* mSocket = nullptr;
-  // STS only
   bool mSctpConfigured = false;
-  DataChannelConnectionState mState = DataChannelConnectionState::Closed;
-
   std::string mTransportId;
   bool mConnectedToTransportHandler = false;
   RefPtr<MediaTransportHandler> mTransportHandler;
   MediaEventListener mPacketReceivedListener;
   MediaEventListener mStateChangeListener;
-  nsCOMPtr<nsISerialEventTarget> mSTS;
+  // Streams pending reset.
+  AutoTArray<uint16_t, 4> mStreamsResetting;
+  DataChannelConnectionState mState = DataChannelConnectionState::Closed;
+  /***********************************************************/
 
-  // Mainthread only
-  Maybe<bool> mAllocateEven;
-  // Set once on main in ConnectToTransport, and invariant after.
+  // NOTE: while this container will auto-expand, increases in the number of
+  // channels available from the stack must be negotiated!
+  // Accessed from both main and sts, API is threadsafe
+  Channels mChannels;
+
+  // Set once on main in Init, STS-only thereafter
+  struct socket* mSocket = nullptr;
+
+  // Set once on main in Init, invariant thereafter
+  uintptr_t mId = 0;
+
+  // Set once on main in ConnectToTransport, and read only (STS) thereafter.
   // Nothing should be using these before that first ConnectToTransport call.
   uint16_t mLocalPort = 0;
   uint16_t mRemotePort = 0;
 
-  nsCOMPtr<nsIThread> mInternalIOThread = nullptr;
+  nsCOMPtr<nsISerialEventTarget> mSTS;
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  bool mShutdown;
+  bool mShutdown = false;
 #endif
-  uintptr_t mId = 0;
 };
 
 class DataChannel {
@@ -559,10 +550,12 @@ class DataChannel {
   void GetProtocol(nsAString& aProtocol) {
     CopyUTF8toUTF16(mProtocol, aProtocol);
   }
-  uint16_t GetStream() const { return mStream; }
+  uint16_t GetStream() const {
+    MOZ_ASSERT(NS_IsMainThread());
+    return mStream;
+  }
 
-  void SendOrQueue(DataChannelOnMessageAvailable* aMessage)
-      MOZ_REQUIRES(mConnection->mLock);
+  void SendOrQueue(DataChannelOnMessageAvailable* aMessage);
 
   TrafficCounters GetTrafficCounters() const;
 
@@ -571,35 +564,33 @@ class DataChannel {
   bool EnsureValidStream(ErrorResult& aRv);
   void WithTrafficCounters(const std::function<void(TrafficCounters&)>&);
 
-  // These are both mainthread only
+  // Mainthread only
   DataChannelListener* mListener;
   nsCOMPtr<nsISupports> mContext;
-
-  RefPtr<DataChannelConnection> mConnection;
-  // mainthread only
   bool mEverOpened = false;
   const nsCString mLabel;
   const nsCString mProtocol;
-  // This is mainthread only
   DataChannelState mReadyState;
   uint16_t mStream;
   const DataChannelReliabilityPolicy mPrPolicy;
   const uint32_t mPrValue;
-  // Accessed on main and STS
-  const bool mNegotiated;
-  const bool mOrdered;
+  size_t mBufferedThreshold;
+  size_t mBufferedAmount;
+  RefPtr<DataChannelConnection> mConnection;
+  TrafficCounters mTrafficCounters;
+
+  // STS only
   // The channel has been opened, but the peer has not yet acked - ensures that
   // the messages are sent ordered until this is cleared.
   bool mWaitingForAck = false;
-  bool mIsRecvBinary;
-  size_t mBufferedThreshold;
-  // Read/written on main only. Decremented via message-passing, because the
-  // spec requires us to queue a task for this.
-  size_t mBufferedAmount;
   nsTArray<OutgoingMsg> mBufferedData;
-  nsCOMPtr<nsISerialEventTarget> mMainThreadEventTarget;
-  TrafficCounters mTrafficCounters;
   std::map<uint16_t, IncomingMsg> mRecvBuffers;
+
+  // Accessed on main and STS
+  const bool mNegotiated;
+  const bool mOrdered;
+
+  nsCOMPtr<nsISerialEventTarget> mMainThreadEventTarget;
 };
 
 // used to dispatch notifications of incoming data to the main thread
