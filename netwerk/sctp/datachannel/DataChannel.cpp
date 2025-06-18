@@ -362,7 +362,6 @@ static RefPtr<DataChannelConnection> GetConnectionFromSocket(
 int DataChannelConnection::OnThresholdEvent(struct socket* sock,
                                             uint32_t sb_free, void* ulp_info) {
   RefPtr<DataChannelConnection> connection = GetConnectionFromSocket(sock);
-  connection->mLock.AssertCurrentThreadOwns();
   if (connection) {
     connection->SendDeferredMessages();
   } else {
@@ -469,7 +468,6 @@ DataChannelConnection::DataChannelConnection(
     DataChannelConnection::DataConnectionListener* aListener,
     nsISerialEventTarget* aTarget, MediaTransportHandler* aHandler)
     : NeckoTargetHolder(aTarget),
-      mLock("netwerk::sctp::DataChannelConnection"),
       mListener(aListener),
       mTransportHandler(aHandler) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -751,7 +749,6 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
                                                const bool aClient,
                                                const uint16_t aLocalPort,
                                                const uint16_t aRemotePort) {
-  MutexAutoLock lock(mLock);
   MOZ_ASSERT(NS_IsMainThread());
 
   static const auto paramString =
@@ -806,7 +803,6 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
     mSTS->Dispatch(NS_NewRunnableFunction(
         __func__, [this, self = RefPtr<DataChannelConnection>(this),
                    hasStreamId = std::move(hasStreamId)]() {
-          MutexAutoLock lock(mLock);
           SetState(DataChannelConnectionState::Connecting);
           for (auto channel : hasStreamId) {
             OpenFinish(channel);
@@ -824,7 +820,6 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
 }
 
 void DataChannelConnection::SetSignals(const std::string& aTransportId) {
-  MutexAutoLock lock(mLock);
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
   if (mTransportId == aTransportId) {
     // Nothing to do!
@@ -853,7 +848,6 @@ void DataChannelConnection::SetSignals(const std::string& aTransportId) {
 
 void DataChannelConnection::TransportStateChange(
     const std::string& aTransportId, TransportLayer::State aState) {
-  MutexAutoLock lock(mLock);
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
   if (aTransportId == mTransportId) {
     if (aState == TransportLayer::TS_OPEN) {
@@ -870,7 +864,6 @@ void DataChannelConnection::TransportStateChange(
 
 void DataChannelConnection::CompleteConnect() {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  mLock.AssertCurrentThreadOwns();
   DC_DEBUG(("dtls open"));
   if (mSctpConfigured) {
     // mSocket could have been closed by an error or for some other reason,
@@ -958,7 +951,6 @@ void DataChannelConnection::CompleteConnect() {
 // Process any pending Opens
 void DataChannelConnection::ProcessQueuedOpens() {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  mLock.AssertCurrentThreadOwns();
   std::set<RefPtr<DataChannel>> temp(std::move(mPending));
   for (auto channel : temp) {
     DC_DEBUG(("Processing queued open for %p (%u)", channel.get(),
@@ -970,7 +962,6 @@ void DataChannelConnection::ProcessQueuedOpens() {
 void DataChannelConnection::SctpDtlsInput(const std::string& aTransportId,
                                           const MediaPacket& packet) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  MutexAutoLock lock(mLock);
   if ((packet.type() != MediaPacket::SCTP) || (mTransportId != aTransportId)) {
     return;
   }
@@ -1014,11 +1005,6 @@ int DataChannelConnection::SctpDtlsOutput(void* addr, void* buffer,
     }
   }
 
-  // We're async proxying even if on the STSThread because this is called
-  // with internal SCTP locks held in some cases (such as in usrsctp_connect()).
-  // SCTP has an option for Apple, on IP connections only, to release at least
-  // one of the locks before calling a packet output routine; with changes to
-  // the underlying SCTP stack this might remove the need to use an async proxy.
   std::unique_ptr<MediaPacket> packet(new MediaPacket);
   packet->SetType(MediaPacket::SCTP);
   packet->Copy(static_cast<const uint8_t*>(buffer), length);
@@ -1084,7 +1070,6 @@ uint32_t DataChannelConnection::GetCurrentStreamIndex() {
 
 bool DataChannelConnection::RaiseStreamLimitTo(uint16_t aNewLimit) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  mLock.AssertCurrentThreadOwns();
   if (GetState() == DataChannelConnectionState::Closed) {
     // Smile and nod, could end up here via a dispatch
     return true;
@@ -1230,8 +1215,6 @@ void DataChannelConnection::SendDeferredMessages() {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
   RefPtr<DataChannel> channel;  // we may null out the refs to this
 
-  mLock.AssertCurrentThreadOwns();
-
   DC_DEBUG(("SendDeferredMessages called, pending type: %s",
             ToString(mPendingType)));
   if (mPendingType == PendingType::None) {
@@ -1299,7 +1282,6 @@ void DataChannelConnection::SendDeferredMessages() {
 bool DataChannelConnection::SendBufferedMessages(nsTArray<OutgoingMsg>& buffer,
                                                  size_t* aWritten) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  mLock.AssertCurrentThreadOwns();
   do {
     // Re-send message
     const int error = SendMsgInternal(buffer[0], aWritten);
@@ -1329,8 +1311,6 @@ void DataChannelConnection::HandleOpenRequestMessage(
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
   uint32_t prValue;
   DataChannelReliabilityPolicy prPolicy;
-
-  mLock.AssertCurrentThreadOwns();
 
   const size_t requiredLength = (sizeof(*req) - 1) + ntohs(req->label_length) +
                                 ntohs(req->protocol_length);
@@ -1383,7 +1363,6 @@ void DataChannelConnection::HandleOpenRequestMessage(
       "DataChannelConnection::HandleOpenRequestMessage",
       [this, self = RefPtr<DataChannelConnection>(this), stream, prPolicy,
        prValue, ordered, label, protocol]() {
-        MutexAutoLock lock(mLock);
         RefPtr<DataChannel> channel = FindChannelByStream(stream);
         if (channel) {
           if (!channel->mNegotiated) {
@@ -1425,7 +1404,6 @@ void DataChannelConnection::HandleOpenRequestMessage(
         mSTS->Dispatch(NS_NewRunnableFunction(
             "DataChannelConnection::HandleOpenRequestMessage",
             [this, self = RefPtr<DataChannelConnection>(this), channel]() {
-              MutexAutoLock lock(mLock);
               // Note that any message can be buffered; SendOpenAckMessage may
               // error later than this check.
               const auto error = SendOpenAckMessage(*channel);
@@ -1445,10 +1423,8 @@ void DataChannelConnection::HandleOpenRequestMessage(
 // backwards compatibility.
 void DataChannelConnection::DeliverQueuedData(uint16_t stream) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  mLock.AssertCurrentThreadOwns();
 
   mQueuedData.RemoveElementsBy([stream, this](const auto& dataItem) {
-    mLock.AssertCurrentThreadOwns();
     const bool match = dataItem->mStream == stream;
     if (match) {
       DC_DEBUG(("Delivering queued data for stream %u, length %zu", stream,
@@ -1467,8 +1443,6 @@ void DataChannelConnection::HandleOpenAckMessage(
     const struct rtcweb_datachannel_ack* ack, uint32_t length,
     uint16_t stream) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-
-  mLock.AssertCurrentThreadOwns();
 
   RefPtr<DataChannel> channel = FindChannelByStream(stream);
   if (NS_WARN_IF(!channel)) {
@@ -1500,7 +1474,6 @@ void DataChannelConnection::HandleDataMessageChunk(const void* data,
   DC_DEBUG(("%s: stream %u, length %zu, ppid %u, message-id %u", __func__,
             stream, length, ppid, messageId));
 
-  mLock.AssertCurrentThreadOwns();
   RefPtr<DataChannel> channel = FindChannelByStream(stream);
 
   // XXX A closed channel may trip this... check
@@ -1525,10 +1498,6 @@ void DataChannelConnection::HandleDataMessageChunk(const void* data,
                               static_cast<const uint8_t*>(data), length));
     return;
   }
-
-  // Note that `channel->mConnection` is `this`. This is just here to satisfy
-  // the thread safety annotations on DataChannel.
-  channel->mConnection->mLock.AssertCurrentThreadOwns();
 
   const char* type = (ppid == DATA_CHANNEL_PPID_DOMSTRING_PARTIAL ||
                       ppid == DATA_CHANNEL_PPID_DOMSTRING ||
@@ -1587,8 +1556,6 @@ void DataChannelConnection::HandleDataMessage(IncomingMsg&& aMsg) {
 
   size_t data_length = aMsg.GetData().Length();
 
-  mLock.AssertCurrentThreadOwns();
-
   RefPtr<DataChannel> channel = FindChannelByStream(aMsg.GetStreamId());
   if (!channel) {
     MOZ_ASSERT(false,
@@ -1596,10 +1563,6 @@ void DataChannelConnection::HandleDataMessage(IncomingMsg&& aMsg) {
                "HandleDataMessage!");
     return;
   }
-
-  // Note that `channel->mConnection` is `this`. This is just here to satisfy
-  // the thread safety annotations on DataChannel.
-  channel->mConnection->mLock.AssertCurrentThreadOwns();
 
   // Receiving any data implies that the other end has received an OPEN
   // request from us.
@@ -1671,8 +1634,6 @@ void DataChannelConnection::HandleDCEPMessageChunk(const void* buffer,
                                                    uint16_t stream, int flags) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
 
-  mLock.AssertCurrentThreadOwns();
-
   if (!mRecvBuffer.isSome()) {
     mRecvBuffer = Some(IncomingMsg(ppid, stream));
   }
@@ -1697,8 +1658,6 @@ void DataChannelConnection::HandleDCEPMessage(IncomingMsg&& aMsg) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
   const struct rtcweb_datachannel_open_request* req;
   const struct rtcweb_datachannel_ack* ack;
-
-  mLock.AssertCurrentThreadOwns();
 
   req = reinterpret_cast<const struct rtcweb_datachannel_open_request*>(
       aMsg.GetData().BeginReading());
@@ -1800,7 +1759,6 @@ void DataChannelConnection::HandleMessageChunk(const void* buffer,
 void DataChannelConnection::HandleAssociationChangeEvent(
     const struct sctp_assoc_change* sac) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  mLock.AssertCurrentThreadOwns();
 
   uint32_t i, n;
   DataChannelConnectionState state = GetState();
@@ -2076,7 +2034,6 @@ void DataChannelConnection::ClearResets() {
 void DataChannelConnection::MarkStreamForReset(DataChannel& aChannel) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
 
-  mLock.AssertCurrentThreadOwns();
   DC_DEBUG(("%s %p: Resetting outgoing stream %u", __func__, this,
             aChannel.mStream));
   // Rarely has more than a couple items and only for a short time
@@ -2123,8 +2080,6 @@ void DataChannelConnection::ResetStreams(nsTArray<uint16_t>& aStreams) {
 
 void DataChannelConnection::HandleStreamResetEvent(
     const struct sctp_stream_reset_event* strrst) {
-  MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  mLock.AssertCurrentThreadOwns();
   std::vector<uint16_t> streamsReset;
 
   if (!(strrst->strreset_flags & SCTP_STREAM_RESET_DENIED) &&
@@ -2143,7 +2098,6 @@ void DataChannelConnection::HandleStreamResetEvent(
 }
 
 void DataChannelConnection::OnStreamsReset(std::vector<uint16_t>&& aStreams) {
-  mLock.AssertCurrentThreadOwns();
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
   for (auto stream : aStreams) {
     RefPtr<DataChannel> channel = FindChannelByStream(stream);
@@ -2189,7 +2143,6 @@ void DataChannelConnection::OnStreamsReset(std::vector<uint16_t>&& aStreams) {
 void DataChannelConnection::HandleStreamChangeEvent(
     const struct sctp_stream_change_event* strchg) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  mLock.AssertCurrentThreadOwns();
   if (strchg->strchange_flags == SCTP_STREAM_CHANGE_DENIED) {
     DC_ERROR(("*** Failed increasing number of streams from %u (%u/%u)",
               mNegotiatedIdLimit, strchg->strchange_instrms,
@@ -2256,7 +2209,6 @@ void DataChannelConnection::HandleStreamChangeEvent(
 
 void DataChannelConnection::HandleNotification(
     const union sctp_notification* notif, size_t n) {
-  mLock.AssertCurrentThreadOwns();
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
   if (notif->sn_header.sn_length != (uint32_t)n) {
     return;
@@ -2313,7 +2265,6 @@ int DataChannelConnection::ReceiveCallback(struct socket* sock, void* data,
   MOZ_ASSERT(!NS_IsMainThread());
   DC_DEBUG(("In ReceiveCallback"));
 
-  // libusrsctp just went reentrant on us. Put a stop to this.
   mSTS->Dispatch(NS_NewRunnableFunction(
       "DataChannelConnection::ReceiveCallback",
       [data, datalen, rcv, flags, this,
@@ -2321,7 +2272,6 @@ int DataChannelConnection::ReceiveCallback(struct socket* sock, void* data,
         if (!data) {
           DC_DEBUG(("ReceiveCallback: SCTP has finished shutting down"));
         } else {
-          mLock.Lock();
           if (flags & MSG_NOTIFICATION) {
             HandleNotification(static_cast<union sctp_notification*>(data),
                                datalen);
@@ -2332,7 +2282,6 @@ int DataChannelConnection::ReceiveCallback(struct socket* sock, void* data,
             HandleMessageChunk(data, datalen, ntohl(rcv.rcv_ppid), rcv.rcv_sid,
                                rcv.rcv_ssn, flags);
           }
-          mLock.Unlock();
           // sctp allocates 'data' with malloc(), and expects the receiver to
           // free it.
           // It would be nice if it were possible to eliminate a copy by passing
@@ -2353,7 +2302,6 @@ already_AddRefed<DataChannel> DataChannelConnection::Open(
     const nsACString& label, const nsACString& protocol,
     DataChannelReliabilityPolicy prPolicy, bool inOrder, uint32_t prValue,
     bool aExternalNegotiated, uint16_t aStream) {
-  MutexAutoLock lock(mLock);
   MOZ_ASSERT(NS_IsMainThread());
   if (!aExternalNegotiated) {
     if (mAllocateEven.isSome()) {
@@ -2402,7 +2350,6 @@ already_AddRefed<DataChannel> DataChannelConnection::Open(
     mSTS->Dispatch(NS_NewRunnableFunction(
         "DataChannel::OpenFinish",
         [this, self = RefPtr<DataChannelConnection>(this), channel]() mutable {
-          MutexAutoLock lock(mLock);
           OpenFinish(channel);
         }));
   }
@@ -2413,7 +2360,6 @@ already_AddRefed<DataChannel> DataChannelConnection::Open(
 // Separate routine so we can also call it to finish up from pending opens
 void DataChannelConnection::OpenFinish(RefPtr<DataChannel> aChannel) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  mLock.AssertCurrentThreadOwns();
   const uint16_t stream = aChannel->mStream;
 
   // Cases we care about:
@@ -2487,7 +2433,7 @@ void DataChannelConnection::OpenFinish(RefPtr<DataChannel> aChannel) {
 // Returns a POSIX error code directly instead of setting errno.
 int DataChannelConnection::SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  mLock.AssertCurrentThreadOwns();
+
   struct sctp_sendv_spa info = {};
   // General flags
   info.sendv_flags = SCTP_SEND_SNDINFO_VALID;
@@ -2568,7 +2514,6 @@ int DataChannelConnection::SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) {
 }
 
 // Returns a POSIX error code directly instead of setting errno.
-// IMPORTANT: Ensure that the buffer passed is guarded by mLock!
 int DataChannelConnection::SendMsgInternalOrBuffer(
     nsTArray<OutgoingMsg>& buffer, OutgoingMsg&& msg, bool* buffered,
     size_t* aWritten) {
@@ -2578,23 +2523,6 @@ int DataChannelConnection::SendMsgInternalOrBuffer(
   int error = 0;
   bool need_buffering = false;
 
-  // Note: Main-thread IO, but doesn't block!
-  // XXX FIX!  to deal with heavy overruns of JS trying to pass data in
-  // (more than the buffersize) queue data onto another thread to do the
-  // actual sends.  See netwerk/protocol/websocket/WebSocketChannel.cpp
-
-  // Avoid a race between buffer-full-failure (where we have to add the
-  // packet to the buffered-data queue) and the buffer-now-only-half-full
-  // callback, which happens on a different thread.  Otherwise we might
-  // fail here, then before we add it to the queue get the half-full
-  // callback, find nothing to do, then on this thread add it to the
-  // queue - which would sit there.  Also, if we later send more data, it
-  // would arrive ahead of the buffered message, but if the buffer ever
-  // got to 1/2 full, the message would get sent - but at a semi-random
-  // time, after other data it was supposed to be in front of.
-
-  // Must lock before empty check for similar reasons!
-  mLock.AssertCurrentThreadOwns();
   if (buffer.IsEmpty() &&
       (mSendInterleaved || mPendingType == PendingType::None)) {
     error = SendMsgInternal(msg, aWritten);
@@ -2664,7 +2592,6 @@ class ReadBlobRunnable : public Runnable {
 // Returns a POSIX error code.
 int DataChannelConnection::SendBlob(uint16_t stream, nsIInputStream* aBlob) {
   MOZ_ASSERT(NS_IsMainThread());
-  MutexAutoLock lock(mLock);
   RefPtr<DataChannel> channel = mChannels.Get(stream);
   if (NS_WARN_IF(!channel)) {
     return EINVAL;  // TODO: Find a better error code
@@ -2719,7 +2646,6 @@ class DataChannelBlobSendRunnable : public Runnable {
 };
 
 void DataChannelConnection::SetState(DataChannelConnectionState aState) {
-  mLock.AssertCurrentThreadOwns();
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
 
   DC_DEBUG(
@@ -2738,12 +2664,6 @@ void DataChannelConnection::ReadBlob(
   // NOTE: 'aThis' has been forgotten by the caller to avoid releasing
   // it off mainthread; if PeerConnectionImpl has released then we want
   // ~DataChannelConnection() to run on MainThread
-
-  // XXX to do this safely, we must enqueue these atomically onto the
-  // output socket.  We need a sender thread(s?) to enqueue data into the
-  // socket and to avoid main-thread IO that might block.  Even on a
-  // background thread, we may not want to block on one stream's data.
-  // I.e. run non-blocking and service multiple channels.
 
   // Must not let Dispatching it cause the DataChannelConnection to get
   // released on the wrong thread.  Using
@@ -2766,7 +2686,6 @@ void DataChannelConnection::ReadBlob(
 
 int DataChannelConnection::SendDataMessage(uint16_t aStream, nsACString&& aMsg,
                                            bool aIsBinary) {
-  MutexAutoLock lock(mLock);
   MOZ_ASSERT(NS_IsMainThread());
 
   // Basic validation
@@ -2781,7 +2700,6 @@ int DataChannelConnection::SendDataMessage(uint16_t aStream, nsACString&& aMsg,
   mSTS->Dispatch(NS_NewRunnableFunction(
       __func__, [this, self = RefPtr<DataChannelConnection>(this), aStream,
                  msg = std::move(temp), aIsBinary]() mutable {
-        MutexAutoLock lock(mLock);
         RefPtr<DataChannel> channel = FindChannelByStream(aStream);
         if (!channel) {
           // Must have closed due to a transport error?
@@ -2841,9 +2759,6 @@ int DataChannelConnection::SendDataMessage(uint16_t aStream, nsACString&& aMsg,
 int DataChannelConnection::SendMessage(DataChannel& aChannel,
                                        OutgoingMsg&& aMsg) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  // Note that `aChannel->mConnection` is `this`. This is just here to
-  // satisfy the thread safety annotations on DataChannel.
-  aChannel.mConnection->mLock.AssertCurrentThreadOwns();
   bool buffered;
   if (aMsg.GetMetadata().mPpid == DATA_CHANNEL_PPID_CONTROL) {
     int error = SendMsgInternalOrBuffer(mBufferedControl, std::move(aMsg),
@@ -2965,16 +2880,13 @@ void DataChannelConnection::GracefulClose(DataChannel* aChannel) {
 void DataChannelConnection::FinishClose(DataChannel* aChannel) {
   MOZ_ASSERT(NS_IsMainThread());
   mSTS->Dispatch(NS_NewRunnableFunction(
-      __func__, [this, self = RefPtr<DataChannelConnection>(this),
-                 channel = RefPtr<DataChannel>(aChannel)]() {
-        MutexAutoLock lock(mLock);
-        FinishClose_s(channel);
-      }));
+      __func__,
+      [this, self = RefPtr<DataChannelConnection>(this),
+       channel = RefPtr<DataChannel>(aChannel)]() { FinishClose_s(channel); }));
 }
 
 void DataChannelConnection::FinishClose_s(DataChannel* aChannel) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  mLock.AssertCurrentThreadOwns();
 
   // We're removing this from all containers, make sure the passed pointer
   // stays valid.
@@ -3010,20 +2922,16 @@ void DataChannelConnection::CloseAll() {
   DC_DEBUG(("Closing all channels (connection %p)", (void*)this));
 
   // Make sure no more channels will be opened
-  MutexAutoLock lock(mLock);
-
   // Close current channels
   // If there are runnables, they hold a strong ref and keep the channel
   // and/or connection alive (even if in a CLOSED state)
   for (auto& channel : mChannels.GetAll()) {
-    MutexAutoUnlock lock(mLock);
     channel->Close();
   }
 
   mSTS->Dispatch(NS_NewRunnableFunction(
       "DataChannelConnection::CloseAll",
       [this, self = RefPtr<DataChannelConnection>(this)]() {
-        MutexAutoLock lock(mLock);
         // Make sure no more channels will be opened
         SetState(DataChannelConnectionState::Closed);
 
