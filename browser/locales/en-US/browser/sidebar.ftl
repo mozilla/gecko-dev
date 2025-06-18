@@ -74,13 +74,12 @@ sidebar-show-on-the-left =
 # hovers over it.
 expand-sidebar-on-hover =
   .label = Expand sidebar on hover
+sidebar-manage-extensions = Manage Extensions
 
 ## Labels for sidebar context menu items
 
 sidebar-context-menu-manage-extension =
   .label = Manage extension
-sidebar-context-menu-remove-extension =
-  .label = Remove extension
 sidebar-context-menu-report-extension =
   .label = Report extension
 sidebar-context-menu-open-in-tab =
@@ -107,6 +106,10 @@ sidebar-context-menu-customize-sidebar =
 #   $deviceName (String) - The name of the device the user is closing a tab for
 sidebar-context-menu-close-remote-tab =
   .label = Close tab on { $deviceName }
+sidebar-context-menu-remove-extension2 =
+  .label = Remove from { -brand-short-name }
+sidebar-context-menu-unpin-extension =
+  .label = Remove from Sidebar
 
 ## Labels for sidebar history context menu items
 
