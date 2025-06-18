@@ -324,6 +324,8 @@ export class RemoteSettingsExperimentLoader {
    *                  updating. Otherwise locally cached records will be used.
    */
   async #updateImpl(trigger, { forceSync = false } = {}) {
+    lazy.log.debug(`Updating recipes with trigger "${trigger ?? ""}"`);
+
     this.manager.optInRecipes = [];
 
     // The targeting context metrics do not work in artifact builds.
@@ -345,9 +347,6 @@ export class RemoteSettingsExperimentLoader {
         await SCHEMAS.NimbusExperiment
       );
     }
-
-    lazy.log.debug(`Updating recipes with trigger "${trigger ?? ""}"`);
-
     const { recipes: allRecipes, loadingError } =
       await this.getRecipesFromAllCollections({ forceSync, trigger });
 
