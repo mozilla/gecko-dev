@@ -1356,7 +1356,7 @@ add_task(async function test_restorePrefs_experimentAndRollout() {
 
     let i = 1;
     for (const enrollmentKind of unenrollOrder) {
-      await manager.unenroll(slugs[enrollmentKind]);
+      manager.unenroll(slugs[enrollmentKind]);
 
       assertExpectedPrefValues(
         pref,
@@ -3006,7 +3006,7 @@ add_task(async function test_restorePrefs_manifestChanged() {
 
     for (const enrollmentKind of expectedEnrollments) {
       const slug = slugs[enrollmentKind];
-      await manager.unenroll(slug);
+      manager.unenroll(slug);
     }
 
     await cleanup();
@@ -3243,7 +3243,7 @@ add_task(async function test_nested_prefs_enroll_both() {
       "after enrollment"
     );
 
-    await manager.unenroll(experiment.slug);
+    manager.unenroll(experiment.slug);
 
     {
       const enrollments = manager.store
@@ -3273,7 +3273,7 @@ add_task(async function test_nested_prefs_enroll_both() {
       "After experiment unenrollment"
     );
 
-    await manager.unenroll(rollout.slug);
+    manager.unenroll(rollout.slug);
 
     await cleanup();
   }
@@ -3485,7 +3485,7 @@ add_task(async function test_setPref_types_restore() {
   const enrollment = manager.store.getExperimentForFeature(
     TYPED_FEATURE.featureId
   );
-  await manager.unenroll(enrollment.slug);
+  manager.unenroll(enrollment.slug);
 
   await cleanup();
   featureCleanup();
@@ -3503,6 +3503,7 @@ add_task(async function testDb() {
     }),
     "test"
   );
+  await NimbusTestUtils.flushStore();
 
   const conn = await ProfilesDatastoreService.getConnection();
   const [result] = await conn.execute(
@@ -3538,7 +3539,7 @@ add_task(async function testDb() {
     },
   ]);
 
-  await manager.unenroll("slug");
+  manager.unenroll("slug");
   await cleanup();
 
   Services.prefs.deleteBranch("nimbus.qa.pref-1");

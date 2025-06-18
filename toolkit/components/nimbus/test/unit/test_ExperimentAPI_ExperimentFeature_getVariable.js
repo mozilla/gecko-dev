@@ -128,7 +128,7 @@ add_task(async function test_ExperimentFeature_getVariable_precedence() {
 
   Services.prefs.deleteBranch(TEST_PREF_BRANCH);
   doExperimentCleanup();
-  await manager.unenroll(rollout.slug);
+  manager.unenroll(rollout.slug);
   await cleanup();
 });
 
@@ -175,7 +175,7 @@ add_task(async function test_ExperimentFeature_getVariable_partial_values() {
   Services.prefs.getDefaultBranch(null).deleteBranch(TEST_PREF_BRANCH);
   Services.prefs.deleteBranch(TEST_PREF_BRANCH);
   doExperimentCleanup();
-  await manager.unenroll(rollout.slug);
+  manager.unenroll(rollout.slug);
   await cleanup();
 });
 

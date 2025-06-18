@@ -86,7 +86,7 @@ export class FirefoxLabs {
    *
    * @param {string} slug The slug of the opt-in to unenroll.
    */
-  async unenroll(slug) {
+  unenroll(slug) {
     if (!slug) {
       throw new TypeError("slug is required");
     }
@@ -97,7 +97,7 @@ export class FirefoxLabs {
     }
 
     try {
-      await lazy.ExperimentAPI.manager.unenroll(
+      lazy.ExperimentAPI.manager.unenroll(
         slug,
         lazy.UnenrollmentCause.fromReason(
           lazy.NimbusTelemetry.UnenrollReason.LABS_OPT_OUT

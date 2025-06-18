@@ -206,7 +206,7 @@ export class PrefFlipsFeature {
    * @param {string[]} prefs
    *        The prefs that the experiment will set.
    */
-  async _handleSetPrefConflict(conflictingSlug, prefs) {
+  _handleSetPrefConflict(conflictingSlug, prefs) {
     // Suppress feature updates while we unenroll from these enrollments.
     this.#updating = true;
 
@@ -214,7 +214,7 @@ export class PrefFlipsFeature {
       const entry = this.#prefs.get(pref);
       if (entry) {
         for (const slug of entry.slugs) {
-          await this.manager.unenroll(
+          this.manager.unenroll(
             slug,
             lazy.UnenrollmentCause.PrefFlipsConflict(conflictingSlug)
           );
@@ -287,7 +287,7 @@ export class PrefFlipsFeature {
         FEATURE_ID
       ).value.prefs ?? {};
 
-    const originalValues = await this.manager._handlePrefFlipsConflict(
+    const originalValues = this.manager._handlePrefFlipsConflict(
       enrollment.slug,
       Object.entries(prefs).map(([pref, { branch }]) => [pref, branch])
     );

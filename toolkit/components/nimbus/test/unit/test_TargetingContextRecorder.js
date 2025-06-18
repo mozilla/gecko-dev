@@ -348,9 +348,9 @@ add_task(async function testExperimentMetrics() {
     );
   }, recordTargetingContext);
 
-  manager.store.updateExperiment("experiment-1", { active: false });
-  manager.store.updateExperiment("experiment-2", { active: false });
-  manager.store.updateExperiment("rollout-1", { active: false });
+  manager.store.deactivateEnrollment("experiment-1");
+  manager.store.deactivateEnrollment("experiment-2");
+  manager.store.deactivateEnrollment("rollout-1");
 
   await GleanPings.nimbusTargetingContext.testSubmission(() => {
     assertRecordingFailures();

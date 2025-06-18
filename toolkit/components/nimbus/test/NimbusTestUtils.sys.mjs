@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/** @import { NimbusEnrollments } from "../lib/Enrollments.sys.mjs" */
+
 import {
   ExperimentAPI,
   NimbusFeatures,
@@ -15,6 +17,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FeatureManifest: "resource://nimbus/FeatureManifest.sys.mjs",
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
+  NimbusEnrollments: "resource://nimbus/lib/Enrollments.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   ProfilesDatastoreService:
@@ -161,7 +164,7 @@ export const NimbusTestUtils = {
 
       NimbusTestUtils.cleanupStorePrefCache();
 
-      await NimbusTestUtils.cleanupEnrollmentDatabase();
+      await NimbusTestUtils.cleanupEnrollmentDatabase(store?._db);
     },
 
     /**
@@ -376,10 +379,12 @@ export const NimbusTestUtils = {
 
       // We want calls to `store.addEnrollment` to implicitly validate the
       // enrollment before saving to store
-      lazy.sinon.stub(manager.store, "addEnrollment").callsFake(enrollment => {
-        NimbusTestUtils.validateEnrollment(enrollment);
-        return addEnrollment(enrollment);
-      });
+      lazy.sinon
+        .stub(manager.store, "addEnrollment")
+        .callsFake((enrollment, recipe) => {
+          NimbusTestUtils.validateEnrollment(enrollment);
+          return addEnrollment(enrollment, recipe);
+        });
 
       return manager;
     },
@@ -409,6 +414,67 @@ export const NimbusTestUtils = {
 
       return loader;
     },
+  },
+
+  /**
+   * Add an enrollment to the store without going through the entire enroll
+   * flow.
+   *
+   * Using `ExperimentAPI.manager.enroll()` or {@link NimbusTestUtils.enroll}
+   * (or similar hlpers) should be preferred in most cases.
+   *
+   * N.B.: The JSON store will not be immediately saved to disk, nor will the
+   * NimbusEnrollments table. You must call {@link NimbusTestUtils.saveStore} or
+   * wait for it to save on its own.
+   *
+   * @param {object} recipe The recipe to add an enrollment for.
+   * @param {object} options
+   * @param {ExperimentStore} options.store The store to add the enrollment to.
+   * Defaults to the global ExperimentStore (`ExperimentAPI.manager.store`).
+   * @param {string} options.branchSlug The slug of the branch to enroll in.
+   * Must be provided if there is more than once branch.
+   * @param {object} options.extra Extra properties to override on the
+   * enrollment object.
+   *
+   * @returns {object} The enrollment.
+   */
+  addEnrollmentForRecipe(recipe, { store, branchSlug, extra = {} } = {}) {
+    let branch;
+    if (branchSlug) {
+      branch = recipe.branches.find(b => b.slug === branchSlug);
+    } else if (recipe.branches.length === 1) {
+      branch = recipe.branches[0];
+    } else {
+      throw new Error("branchSlug required for recipes with > 1 branch");
+    }
+
+    if (!branch) {
+      throw new Error("No branch");
+    }
+
+    const enrollment = {
+      slug: recipe.slug,
+      branch,
+      active: true,
+      source: "NimbusTestUtils",
+      userFacingName: recipe.userFacingName,
+      userFacingDescription: recipe.userFacingDescription,
+      lastSeen: new Date().toJSON(),
+      featureIds: recipe.featureIds,
+      isRollout: recipe.isRollout,
+      isFirefoxLabsOptIn: recipe.isFirefoxLabsOptIn,
+      firefoxLabsTitle: recipe.firefoxLabsTitle,
+      firefoxLabsDescription: recipe.firefoxLabsDescription,
+      firefoxLabsDescriptionLinks: recipe.firefoxLabsDescriptionLinks,
+      firefoxLabsGroup: recipe.firefoxLabsGroup,
+      requiresRestart: recipe.requiresRestart,
+      localizations: recipe.localizations ?? null,
+      ...extra,
+    };
+
+    (store ?? ExperimentAPI.manager.store).addEnrollment(enrollment, recipe);
+
+    return enrollment;
   },
 
   /**
@@ -484,19 +550,22 @@ export const NimbusTestUtils = {
     const experimentManager = manager ?? ExperimentAPI.manager;
 
     for (const slug of slugs) {
-      await experimentManager.unenroll(slug);
+      experimentManager.unenroll(slug);
     }
 
     await NimbusTestUtils.assert.storeIsEmpty(experimentManager.store);
   },
 
-  async cleanupEnrollmentDatabase() {
-    if (
-      !Services.prefs.getBoolPref(
-        "nimbus.profilesdatastoreservice.enabled",
-        false
-      )
-    ) {
+  /**
+   * Clean up the enrollments database, removing all enrollments for the current
+   * profile ID.
+   *
+   * The database flushing task will be finalized, preventing further writes.
+   *
+   * @param {NimbusEnrollments} db The NimbusEnrollments object.
+   */
+  async cleanupEnrollmentDatabase(db) {
+    if (!lazy.NimbusEnrollments.databaseEnabled) {
       // We are in an xpcshell test that has not initialized the
       // ProfilesDatastoreService.
       //
@@ -504,6 +573,10 @@ export const NimbusTestUtils = {
       // and remove this check.
       return;
     }
+
+    // Wait for all pending writes to complete and clean up shutdown blocker
+    // state.
+    await db.finalize();
 
     const profileId = ExperimentAPI.profileId;
 
@@ -602,8 +675,11 @@ export const NimbusTestUtils = {
     experimentManager.store._syncToChildren({ flush: true });
 
     return async function doEnrollmentCleanup() {
-      await experimentManager.unenroll(enrollment.slug);
+      experimentManager.unenroll(enrollment.slug);
       experimentManager.store._deleteForTests(enrollment.slug);
+      experimentManager.store._db?.updateEnrollment(enrollment.slug);
+
+      await NimbusTestUtils.flushStore(experimentManager.store);
     };
   },
 
@@ -677,6 +753,70 @@ export const NimbusTestUtils = {
   },
 
   /**
+   *
+   * @param {string} slug
+   * @param {object} options
+   * @param {string} options.profileId
+   */
+  async queryEnrollment(slug, { profileId } = {}) {
+    const conn = await lazy.ProfilesDatastoreService.getConnection();
+    const result = await conn.execute(
+      `
+      SELECT
+        profileId,
+        slug,
+        branchSlug,
+        json(recipe) AS recipe,
+        active,
+        unenrollReason,
+        lastSeen,
+        json(setPrefs) AS setPrefs,
+        json(prefFlips) AS prefFlips,
+        source
+      FROM NimbusEnrollments
+      WHERE
+        slug = :slug AND
+        profileId = :profileId;
+      `,
+      {
+        slug,
+        profileId: profileId ?? ExperimentAPI.profileId,
+      }
+    );
+
+    if (!result.length) {
+      return null;
+    }
+
+    const row = result[0];
+
+    const fields = [
+      "profileId",
+      "slug",
+      "branchSlug",
+      "recipe",
+      "active",
+      "unenrollReason",
+      "lastSeen",
+      "setPrefs",
+      "prefFlips",
+      "source",
+    ];
+
+    const enrollment = {};
+
+    for (const field of fields) {
+      enrollment[field] = row.getResultByName(field);
+    }
+
+    enrollment.recipe = JSON.parse(enrollment.recipe);
+    enrollment.setPrefs = JSON.parse(enrollment.setPrefs);
+    enrollment.prefFlips = JSON.parse(enrollment.prefFlips);
+
+    return enrollment;
+  },
+
+  /**
    * Remove the ExperimentStore file.
    *
    * If the store contains active enrollments this function will cause the test
@@ -702,7 +842,9 @@ export const NimbusTestUtils = {
   },
 
   /**
-   * Save the store to disk
+   * Save the store to disk.
+   *
+   * This will also flush the NimbusEnrollments table.
    *
    * @param {ExperimentStore} store
    *        The store to save.
@@ -722,6 +864,7 @@ export const NimbusTestUtils = {
     }
 
     await jsonFile._save();
+    await store._db?._flushNow();
 
     return store._store.path;
   },
@@ -805,6 +948,7 @@ export const NimbusTestUtils = {
       sandbox,
       loader,
       manager,
+      store,
       async cleanup() {
         await NimbusTestUtils.assert.storeIsEmpty(manager.store);
 
@@ -965,6 +1109,12 @@ export const NimbusTestUtils = {
 
       return slugs.length === 0;
     }, "Waiting for unenrollments to sync to database");
+  },
+
+  async flushStore(store = null) {
+    const db = (store ?? ExperimentAPI.manager.store)._db;
+
+    await db?._flushNow();
   },
 };
 
