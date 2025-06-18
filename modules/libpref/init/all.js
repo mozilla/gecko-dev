@@ -2086,12 +2086,12 @@ pref("font.size.monospace.x-math", 13);
   pref("font.name-list.monospace.he", "Fixed Miriam Transparent, Miriam Fixed, Rod, Consolas, Courier New");
   pref("font.name-list.cursive.he", "Guttman Yad, Ktav, Arial");
 
-  pref("font.name-list.serif.ja", "Yu Mincho, MS PMincho, MS Mincho, Meiryo, Yu Gothic, MS PGothic, MS Gothic");
-  pref("font.name-list.sans-serif.ja", "Meiryo, Yu Gothic, MS PGothic, MS Gothic, Yu Mincho, MS PMincho, MS Mincho");
-  pref("font.name-list.monospace.ja", "MS Gothic, MS Mincho, Meiryo, Yu Gothic, Yu Mincho, MS PGothic, MS PMincho");
+  pref("font.name-list.serif.ja", "Noto Serif JP, Noto Serif CJK JP, Yu Mincho, MS PMincho, MS Mincho, Meiryo, Yu Gothic, MS PGothic, MS Gothic");
+  pref("font.name-list.sans-serif.ja", "Noto Sans JP, Noto Sans CJK JP, Meiryo, Yu Gothic, MS PGothic, MS Gothic");
+  pref("font.name-list.monospace.ja", "BIZ UDGothic, MS Gothic, MS Mincho, Meiryo, Yu Gothic, Yu Mincho");
 
-  pref("font.name-list.serif.ko", "Batang, Gulim");
-  pref("font.name-list.sans-serif.ko", "Malgun Gothic, Gulim");
+  pref("font.name-list.serif.ko", "Noto Serif KR, Noto Serif CJK KR, Batang, Gulim");
+  pref("font.name-list.sans-serif.ko", "Noto Sans KR, Noto Sans CJK KR, Malgun Gothic, Gulim");
   pref("font.name-list.monospace.ko", "GulimChe");
   pref("font.name-list.cursive.ko", "Gungsuh");
 
@@ -2115,22 +2115,26 @@ pref("font.size.monospace.x-math", 13);
   pref("font.name-list.monospace.x-western", "Consolas");
   pref("font.name-list.cursive.x-western", "Comic Sans MS");
 
-  pref("font.name-list.serif.zh-CN", "SimSun, MS Song, SimSun-ExtB");
-  pref("font.name-list.sans-serif.zh-CN", "Microsoft YaHei, SimHei");
-  pref("font.name-list.monospace.zh-CN", "SimSun, MS Song, SimSun-ExtB");
+  pref("font.name-list.serif.zh-CN", "Noto Serif SC, Noto Serif CJK SC, SimSun, MS Song, SimSun-ExtB");
+  pref("font.name-list.sans-serif.zh-CN", "Noto Sans SC, Noto Sans CJK SC, Microsoft YaHei, SimHei");
+  pref("font.name-list.monospace.zh-CN", "NSimSun, SimSun, MS Song, SimSun-ExtB");
   pref("font.name-list.cursive.zh-CN", "KaiTi, KaiTi_GB2312");
 
   // Per Taiwanese users' demand. They don't want to use TC fonts for
   // rendering Latin letters. (bug 88579)
-  pref("font.name-list.serif.zh-TW", "Times New Roman, PMingLiu, MingLiU, MingLiU-ExtB");
-  pref("font.name-list.sans-serif.zh-TW", "Arial, Microsoft JhengHei, PMingLiU, MingLiU, MingLiU-ExtB");
+  // Updated (bug 1957317) to prefer Noto fonts; the Latin glyphs in these are pretty reasonable,
+  // so list them ahead of the Latin fonts that were used to override Latin in older CJK fonts.
+  pref("font.name-list.serif.zh-TW", "Noto Serif TC, Noto Serif CJK TC, Times New Roman, PMingLiu, MingLiU, MingLiU-ExtB");
+  pref("font.name-list.sans-serif.zh-TW", "Noto Sans TC, Noto Sans CJK TC, Arial, Microsoft JhengHei, PMingLiU, MingLiU, MingLiU-ExtB");
   pref("font.name-list.monospace.zh-TW", "MingLiU, MingLiU-ExtB");
   pref("font.name-list.cursive.zh-TW", "DFKai-SB");
 
   // hkscsm3u.ttf (HKSCS-2001) :  http://www.microsoft.com/hk/hkscs
   // Hong Kong users have the same demand about glyphs for Latin letters (bug 88579)
-  pref("font.name-list.serif.zh-HK", "Times New Roman, MingLiu_HKSCS, Ming(for ISO10646), MingLiU, MingLiU_HKSCS-ExtB, Microsoft JhengHei");
-  pref("font.name-list.sans-serif.zh-HK", "Arial, MingLiU_HKSCS, Ming(for ISO10646), MingLiU, MingLiU_HKSCS-ExtB, Microsoft JhengHei");
+  // Updated (bug 1957317) to prefer Noto fonts; the Latin glyphs in these are pretty reasonable,
+  // so list them ahead of the Latin fonts that were used to override Latin in older CJK fonts.
+  pref("font.name-list.serif.zh-HK", "Noto Serif HK, Noto Serif CJK HK, Times New Roman, MingLiu_HKSCS, Ming(for ISO10646), MingLiU, MingLiU_HKSCS-ExtB, Microsoft JhengHei");
+  pref("font.name-list.sans-serif.zh-HK", "Noto Sans HK, Noto Sans CJK HK, Arial, MingLiU_HKSCS, Ming(for ISO10646), MingLiU, MingLiU_HKSCS-ExtB, Microsoft JhengHei");
   pref("font.name-list.monospace.zh-HK", "MingLiU_HKSCS, Ming(for ISO10646), MingLiU, MingLiU_HKSCS-ExtB, Microsoft JhengHei");
   pref("font.name-list.cursive.zh-HK", "DFKai-SB");
 
