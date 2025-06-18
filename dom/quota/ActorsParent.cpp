@@ -6349,6 +6349,22 @@ RefPtr<BoolPromise> QuotaManager::InitializePersistentClient(
       ClientStorageScope::CreateFromClient(aClientMetadata.mClientType),
       /* aExclusive */ false);
 
+  auto prepareInfo = directoryLock->Prepare();
+
+  // If the persistent client is initialized but there's a clear storage,
+  // shutdown storage, clear origin, shutdown origin, clear client, or shutdown
+  // client operation already scheduled, we can't immediately resolve the
+  // promise and return from the function. This is because:
+  // - clear and shutdown storage operations uninitialize storage,
+  //   which cascades to origins and clients;
+  // - clear and shutdown origin operations uninitialize origins,
+  //   which also uninitialize clients;
+  // - clear and shutdown client operations uninitialize the client directly.
+  if (IsPersistentClientInitialized(aClientMetadata) &&
+      !prepareInfo.IsBlockedBy(kUninitClientsAndBroaderCategories)) {
+    return BoolPromise::CreateAndResolve(true, __func__);
+  }
+
   return directoryLock->Acquire()->Then(
       GetCurrentSerialEventTarget(), __func__,
       [self = RefPtr(this), aClientMetadata,
@@ -6369,6 +6385,20 @@ RefPtr<BoolPromise> QuotaManager::InitializePersistentClient(
   MOZ_ASSERT(aClientMetadata.mPersistenceType == PERSISTENCE_TYPE_PERSISTENT);
   MOZ_ASSERT(aDirectoryLock);
   MOZ_ASSERT(aDirectoryLock->Acquired());
+
+  // If the persistent client is initialized and the directory lock for the
+  // initialize persistent client operation is acquired, we can immediately
+  // resolve the promise and return from the function because there can't be a
+  // clear storage, shutdown storage, clear origin, shutdown origin, clear
+  // client, or shutdown client operation in progress. These operations would
+  // otherwise uninitialize storage (which cascades to origins and clients),
+  // uninitialize origins (which also uninitialize clients), or uninitialize
+  // the client directly.
+  if (IsPersistentClientInitialized(aClientMetadata)) {
+    DropDirectoryLock(aDirectoryLock);
+
+    return BoolPromise::CreateAndResolve(true, __func__);
+  }
 
   auto initializePersistentClientOp = CreateInitializePersistentClientOp(
       WrapMovingNotNullUnchecked(this), aClientMetadata,
@@ -6431,6 +6461,22 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryClient(
       ClientStorageScope::CreateFromClient(aClientMetadata.mClientType),
       /* aExclusive */ false);
 
+  auto prepareInfo = directoryLock->Prepare();
+
+  // If the temporary client is initialized but there's a clear storage,
+  // shutdown storage, clear origin, shutdown origin, clear client, or shutdown
+  // client operation already scheduled, we can't immediately resolve the
+  // promise and return from the function. This is because:
+  // - clear and shutdown storage operations uninitialize storage,
+  //   which cascades to origins and clients;
+  // - clear and shutdown origin operations uninitialize origins,
+  //   which also uninitialize clients;
+  // - clear and shutdown client operations uninitialize the client directly.
+  if (IsTemporaryClientInitialized(aClientMetadata) &&
+      !prepareInfo.IsBlockedBy(kUninitClientsAndBroaderCategories)) {
+    return BoolPromise::CreateAndResolve(true, __func__);
+  }
+
   return directoryLock->Acquire()->Then(
       GetCurrentSerialEventTarget(), __func__,
       [self = RefPtr(this), aClientMetadata, aCreateIfNonExistent,
@@ -6451,6 +6497,20 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryClient(
   MOZ_ASSERT(aClientMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
   MOZ_ASSERT(aDirectoryLock);
   MOZ_ASSERT(aDirectoryLock->Acquired());
+
+  // If the temporary client is initialized and the directory lock for the
+  // initialize persistent client operation is acquired, we can immediately
+  // resolve the promise and return from the function because there can't be a
+  // clear storage, shutdown storage, clear origin, shutdown origin, clear
+  // client, or shutdown client operation in progress. These operations would
+  // otherwise uninitialize storage (which cascades to origins and clients),
+  // uninitialize origins (which also uninitialize clients), or uninitialize
+  // the client directly.
+  if (IsTemporaryClientInitialized(aClientMetadata)) {
+    DropDirectoryLock(aDirectoryLock);
+
+    return BoolPromise::CreateAndResolve(true, __func__);
+  }
 
   auto initializeTemporaryClientOp = CreateInitializeTemporaryClientOp(
       WrapMovingNotNullUnchecked(this), aClientMetadata, aCreateIfNonExistent,
