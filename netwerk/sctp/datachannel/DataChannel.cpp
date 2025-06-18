@@ -519,10 +519,10 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
       SCTP_SEND_FAILED_EVENT,     SCTP_STREAM_RESET_EVENT,
       SCTP_STREAM_CHANGE_EVENT};
   {
-    // MutexAutoLock lock(mLock); Not needed since we're on mainthread always
+    MutexAutoLock lock(mLock);
     mLocalPort = aLocalPort;
-    SetMaxMessageSize(aMaxMessageSize.isSome(), aMaxMessageSize.valueOr(0));
   }
+  SetMaxMessageSize(aMaxMessageSize.isSome(), aMaxMessageSize.valueOr(0));
 
   mId = DataChannelRegistry::Register(this);
 
@@ -671,7 +671,6 @@ error_cleanup:
 void DataChannelConnection::SetMaxMessageSize(bool aMaxMessageSizeSet,
                                               uint64_t aMaxMessageSize) {
   ASSERT_WEBRTC(NS_IsMainThread());
-  MutexAutoLock lock(mLock);
 
   if (mMaxMessageSizeSet && !aMaxMessageSizeSet) {
     // Don't overwrite already set MMS with default values
@@ -719,7 +718,7 @@ void DataChannelConnection::SetMaxMessageSize(bool aMaxMessageSizeSet,
 }
 
 uint64_t DataChannelConnection::GetMaxMessageSize() {
-  MutexAutoLock lock(mLock);
+  ASSERT_WEBRTC(NS_IsMainThread());
   return mMaxMessageSize;
 }
 
