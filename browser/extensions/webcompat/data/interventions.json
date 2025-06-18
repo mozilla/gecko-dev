@@ -2670,21 +2670,6 @@
       }
     ]
   },
-  "1909448": {
-    "label": "fire.honeywell.com",
-    "bugs": {
-      "1909448": {
-        "issue": "page-fails-to-load",
-        "matches": ["*://fire.honeywell.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "ua_string": ["add_Chrome"]
-      }
-    ]
-  },
   "1911253": {
     "label": "qq.com",
     "bugs": {
