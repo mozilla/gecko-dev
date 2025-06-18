@@ -97,6 +97,7 @@ tasks:
                               to-branch: 'esr140'
                     early-to-late-beta:
                         - early-to-late-beta:
+                              fetch-version-from: "browser/config/version.txt"
                               replacements:
                                   - - build/defines.sh
                                     - EARLY_BETA_OR_EARLIER=1
