@@ -166,12 +166,22 @@ void ModuleLoader::OnModuleLoadComplete(ModuleLoadRequest* aRequest) {
     if (aRequest->GetScriptLoadContext()->mIsInline &&
         aRequest->GetScriptLoadContext()->GetParserCreated() ==
             NOT_FROM_PARSER) {
-      if (aRequest->mImports.Length() == 0) {
-        GetScriptLoader()->RunScriptWhenSafe(aRequest);
-      } else {
-        AsyncExecuteInlineModule(aRequest);
-        return;
-      }
+      // https://html.spec.whatwg.org/#prepare-the-script-element
+      // Step 32.2.
+      //    type: "module":
+      //    3.1. Queue an element task on the networking task source given
+      //         el to perform the following steps:
+      //        1. Mark as ready el given result.
+      //
+      // Step 33. If ... el's type is "module":
+      //    ...
+      //    3. Otherwise, if el is not parser-inserted:
+      //      3. Set el's steps to run when the result is ready to the
+      //         following:
+      //        ...
+      //        2.1. Execute the script element scripts[0].
+      AsyncExecuteInlineModule(aRequest);
+      return;
     } else if (aRequest->GetScriptLoadContext()->mIsInline &&
                aRequest->GetScriptLoadContext()->GetParserCreated() !=
                    NOT_FROM_PARSER &&
