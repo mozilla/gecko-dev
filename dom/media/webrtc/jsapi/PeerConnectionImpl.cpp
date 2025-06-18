@@ -745,7 +745,11 @@ nsresult PeerConnectionImpl::GetDatachannelParameters(
     if (codec->mChannels) {
       *channels = codec->mChannels;
     } else {
-      *channels = WEBRTC_DATACHANNEL_STREAMS_DEFAULT;
+      *channels = std::clamp(
+          Preferences::GetInt("media.peerconnection.sctp.default_max_streams",
+                              WEBRTC_DATACHANNEL_STREAMS_DEFAULT),
+          256, 2048);
+      ;
     }
     const JsepApplicationCodecDescription* appCodec =
         static_cast<const JsepApplicationCodecDescription*>(codec.get());
@@ -986,8 +990,13 @@ PeerConnectionImpl::CreateDataChannel(
       return NS_ERROR_FAILURE;
   }
 
+  uint16_t maxStreams = std::clamp(
+      Preferences::GetInt("media.peerconnection.sctp.default_max_streams",
+                          WEBRTC_DATACHANNEL_STREAMS_DEFAULT),
+      256, 2048);
+
   nsresult rv = EnsureDataConnection(
-      WEBRTC_DATACHANNEL_PORT_DEFAULT, WEBRTC_DATACHANNEL_STREAMS_DEFAULT,
+      WEBRTC_DATACHANNEL_PORT_DEFAULT, maxStreams,
       WEBRTC_DATACHANNEL_MAX_MESSAGE_SIZE_REMOTE_DEFAULT, false);
   if (NS_FAILED(rv)) {
     return rv;

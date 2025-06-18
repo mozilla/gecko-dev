@@ -1090,35 +1090,50 @@ uint32_t DataChannelConnection::GetCurrentStreamIndex() {
   return mCurrentStream;
 }
 
-bool DataChannelConnection::RequestMoreStreams(int32_t aNeeded) {
-  struct sctp_status status = {};
-  struct sctp_add_streams sas = {};
-  uint32_t outStreamsNeeded;
-  socklen_t len;
-
-  if (aNeeded + mNegotiatedIdLimit > MAX_NUM_STREAMS) {
-    aNeeded = MAX_NUM_STREAMS - mNegotiatedIdLimit;
+bool DataChannelConnection::RaiseStreamLimitTo(uint16_t aNewLimit) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
+  mLock.AssertCurrentThreadOwns();
+  if (GetState() == DataChannelConnectionState::Closed) {
+    // Smile and nod, could end up here via a dispatch
+    return true;
   }
-  if (aNeeded <= 0) {
+
+  if (mNegotiatedIdLimit == MAX_NUM_STREAMS) {
+    // We're already maxed out!
     return false;
   }
 
-  len = (socklen_t)sizeof(struct sctp_status);
+  if (aNewLimit <= mNegotiatedIdLimit) {
+    // We already have enough
+    return true;
+  }
+
+  if (aNewLimit > MAX_NUM_STREAMS) {
+    // Hard cap: if someone calls again asking for this much, we'll return
+    // false above
+    aNewLimit = MAX_NUM_STREAMS;
+  }
+
+  struct sctp_status status = {};
+  socklen_t len = (socklen_t)sizeof(struct sctp_status);
   if (usrsctp_getsockopt(mSocket, IPPROTO_SCTP, SCTP_STATUS, &status, &len) <
       0) {
     DC_ERROR(("***failed: getsockopt SCTP_STATUS"));
     return false;
   }
-  outStreamsNeeded = aNeeded;  // number to add
+  const uint16_t outStreamsNeeded =
+      aNewLimit - mNegotiatedIdLimit;  // number to add
 
   // Note: if multiple channel opens happen when we don't have enough space,
-  // we'll call RequestMoreStreams() multiple times
+  // we'll call RaiseStreamLimitTo() multiple times
+  struct sctp_add_streams sas = {};
   sas.sas_instrms = 0;
-  sas.sas_outstrms = (uint16_t)outStreamsNeeded; /* XXX error handling */
+  sas.sas_outstrms = outStreamsNeeded; /* XXX error handling */
   // Doesn't block, we get an event when it succeeds or fails
   if (usrsctp_setsockopt(mSocket, IPPROTO_SCTP, SCTP_ADD_STREAMS, &sas,
                          (socklen_t)sizeof(struct sctp_add_streams)) < 0) {
     if (errno == EALREADY) {
+      // Uhhhh, ok?
       DC_DEBUG(("Already have %u output streams", outStreamsNeeded));
       return true;
     }
@@ -1399,7 +1414,7 @@ void DataChannelConnection::HandleOpenRequestMessage(
     return;
   }
   if (stream >= mNegotiatedIdLimit) {
-    DC_ERROR(("%s: stream %u out of bounds (%zu)", __FUNCTION__, stream,
+    DC_ERROR(("%s: stream %u out of bounds (%u)", __FUNCTION__, stream,
               mNegotiatedIdLimit));
     return;
   }
@@ -1818,10 +1833,9 @@ void DataChannelConnection::HandleAssociationChangeEvent(
                   sac->sac_inbound_streams));
         DC_DEBUG(("Negotiated number of outgoing streams: %" PRIu16,
                   sac->sac_outbound_streams));
-        mNegotiatedIdLimit =
-            std::max(mNegotiatedIdLimit,
-                     static_cast<size_t>(std::max(sac->sac_outbound_streams,
-                                                  sac->sac_inbound_streams)));
+        mNegotiatedIdLimit = std::max(
+            mNegotiatedIdLimit,
+            std::max(sac->sac_outbound_streams, sac->sac_inbound_streams));
 
         Dispatch(do_AddRef(new DataChannelOnMessageAvailable(
             DataChannelOnMessageAvailable::EventType::OnConnection, this)));
@@ -2193,29 +2207,30 @@ void DataChannelConnection::HandleStreamResetEvent(
 
 void DataChannelConnection::HandleStreamChangeEvent(
     const struct sctp_stream_change_event* strchg) {
-  ASSERT_WEBRTC(!NS_IsMainThread());
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
+  mLock.AssertCurrentThreadOwns();
   if (strchg->strchange_flags == SCTP_STREAM_CHANGE_DENIED) {
-    DC_ERROR(("*** Failed increasing number of streams from %zu (%u/%u)",
+    DC_ERROR(("*** Failed increasing number of streams from %u (%u/%u)",
               mNegotiatedIdLimit, strchg->strchange_instrms,
               strchg->strchange_outstrms));
     // XXX FIX! notify pending opens of failure
     return;
   }
   if (strchg->strchange_instrms > mNegotiatedIdLimit) {
-    DC_DEBUG(("Other side increased streams from %zu to %u", mNegotiatedIdLimit,
+    DC_DEBUG(("Other side increased streams from %u to %u", mNegotiatedIdLimit,
               strchg->strchange_instrms));
   }
   uint16_t old_limit = mNegotiatedIdLimit;
   uint16_t new_limit =
-      std::max(strchg->strchange_outstrms, strchg->strchange_instrms);
+      std::min((uint16_t)MAX_NUM_STREAMS,
+               std::max(strchg->strchange_outstrms, strchg->strchange_instrms));
   if (new_limit > mNegotiatedIdLimit) {
     DC_DEBUG(("Increasing number of streams from %u to %u - adding %u (in: %u)",
               old_limit, new_limit, new_limit - old_limit,
               strchg->strchange_instrms));
     // make sure both are the same length
     mNegotiatedIdLimit = new_limit;
-    DC_DEBUG(("New length = %zu (was %d)", mNegotiatedIdLimit, old_limit));
+    DC_DEBUG(("New length = %u (was %u)", mNegotiatedIdLimit, old_limit));
     // Re-process any channels waiting for streams.
     // Linear search, but we don't increase channels often and
     // the array would only get long in case of an app error normally
@@ -2225,17 +2240,20 @@ void DataChannelConnection::HandleStreamChangeEvent(
     auto channels = mChannels.GetAll();
     size_t num_needed =
         channels.Length() ? (channels.LastElement()->mStream + 1) : 0;
+    Maybe<uint16_t> num_desired;
     MOZ_ASSERT(num_needed != INVALID_STREAM);
     if (num_needed > new_limit) {
-      int32_t more_needed = num_needed - ((int32_t)mNegotiatedIdLimit) + 16;
-      DC_DEBUG(("Not enough new streams, asking for %d more", more_needed));
-      // TODO: parameter is an int32_t but we pass size_t
-      RequestMoreStreams(more_needed);
+      // Round up to a multiple of 16, or cap out
+      num_desired =
+          Some(std::min(16 * (num_needed / 16 + 1), (size_t)MAX_NUM_STREAMS));
+      DC_DEBUG(("Not enough new streams, asking for %u", *num_desired));
     } else if (strchg->strchange_outstrms < strchg->strchange_instrms) {
-      DC_DEBUG(("Requesting %d output streams to match partner",
-                strchg->strchange_instrms - strchg->strchange_outstrms));
-      RequestMoreStreams(strchg->strchange_instrms -
-                         strchg->strchange_outstrms);
+      num_desired = Some(strchg->strchange_instrms);
+      DC_DEBUG(("Requesting %u output streams to match partner", *num_desired));
+    }
+
+    if (num_desired.isSome()) {
+      RaiseStreamLimitTo(*num_desired);
     }
 
     ProcessQueuedOpens();
@@ -2412,7 +2430,7 @@ already_AddRefed<DataChannel> DataChannelConnection::OpenFinish(
   //      -> queue open
   //    Open:
   //      Doesn't fit:
-  //         -> RequestMoreStreams && queue
+  //         -> RaiseStreamLimitTo && queue
   //      Does fit:
   //         -> open
   // Not negotiated:
@@ -2421,7 +2439,7 @@ already_AddRefed<DataChannel> DataChannelConnection::OpenFinish(
   //    Open:
   //      -> Try to get a stream
   //      Doesn't fit:
-  //         -> RequestMoreStreams && queue
+  //         -> RaiseStreamLimitTo && queue
   //      Does fit:
   //         -> open
   // So the Open cases are basically the same
@@ -2432,11 +2450,13 @@ already_AddRefed<DataChannel> DataChannelConnection::OpenFinish(
       stream >= mNegotiatedIdLimit) {
     if (state == DataChannelConnectionState::Open) {
       MOZ_ASSERT(stream != INVALID_STREAM);
-      // RequestMoreStreams() limits to MAX_NUM_STREAMS -- allocate extra
+      // RaiseStreamLimitTo() limits to MAX_NUM_STREAMS -- allocate extra
       // streams to avoid going back immediately for more if the ask to N, N+1,
       // etc
-      int32_t more_needed = stream - ((int32_t)mNegotiatedIdLimit) + 16;
-      if (!RequestMoreStreams(more_needed)) {
+      uint16_t num_desired = std::min(16 * (stream / 16 + 1), MAX_NUM_STREAMS);
+      DC_DEBUG(("Attempting to raise stream limit %u -> %u", mNegotiatedIdLimit,
+                num_desired));
+      if (!RaiseStreamLimitTo(num_desired)) {
         // Something bad happened... we're done
         goto request_error_cleanup;
       }
