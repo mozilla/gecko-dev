@@ -3590,27 +3590,15 @@ void PeerConnectionImpl::UpdateDefaultCandidate(
   }
 }
 
-static UniquePtr<dom::RTCStatsCollection> GetDataChannelStats_s(
-    const RefPtr<DataChannelConnection>& aDataConnection,
-    const DOMHighResTimeStamp aTimestamp) {
-  UniquePtr<dom::RTCStatsCollection> report(new dom::RTCStatsCollection);
-  if (aDataConnection) {
-    aDataConnection->AppendStatsToReport(report, aTimestamp);
-  }
-  return report;
-}
-
 RefPtr<dom::RTCStatsPromise> PeerConnectionImpl::GetDataChannelStats(
     const RefPtr<DataChannelConnection>& aDataChannelConnection,
     const DOMHighResTimeStamp aTimestamp) {
-  // Gather stats from DataChannels
-  return InvokeAsync(
-      GetMainThreadSerialEventTarget(), __func__,
-      [aDataChannelConnection, aTimestamp]() {
-        return dom::RTCStatsPromise::CreateAndResolve(
-            GetDataChannelStats_s(aDataChannelConnection, aTimestamp),
-            __func__);
-      });
+  UniquePtr<dom::RTCStatsCollection> report(new dom::RTCStatsCollection);
+  if (aDataChannelConnection) {
+    aDataChannelConnection->AppendStatsToReport(report, aTimestamp);
+  }
+  return RTCStatsPromise::CreateAndResolve(std::move(report), __func__);
+  ;
 }
 
 void PeerConnectionImpl::CollectConduitTelemetryData() {
