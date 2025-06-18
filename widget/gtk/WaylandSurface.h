@@ -60,7 +60,8 @@ class WaylandSurface final {
       bool aEmulateFrameCallback = false);
 
   // Enable/Disable any frame callback emission (includes emulated ones).
-  void SetFrameCallbackState(bool aEnabled);
+  void SetFrameCallbackStateLocked(const WaylandSurfaceLock& aProofOfLock,
+                                   bool aEnabled);
   void SetFrameCallbackStateHandlerLocked(
       const WaylandSurfaceLock& aProofOfLock,
       const std::function<void(bool)>& aFrameCallbackStateHandler);
@@ -124,13 +125,13 @@ class WaylandSurface final {
 
   // Attach WaylandBuffer which shows WaylandBuffer content
   // on screen.
-  bool AttachLocked(WaylandSurfaceLock& aSurfaceLock,
+  bool AttachLocked(const WaylandSurfaceLock& aSurfaceLock,
                     RefPtr<WaylandBuffer> aWaylandBuffer);
 
   // If there's any WaylandBuffer recently attached, detach it.
   // It makes the WaylandSurface invisible and it doesn't have any
   // content.
-  void RemoveAttachedBufferLocked(WaylandSurfaceLock& aProofOfLock);
+  void RemoveAttachedBufferLocked(const WaylandSurfaceLock& aProofOfLock);
 
   // Called from Wayland compostor async handler when wl_buffer is
   // detached or deleted.
@@ -260,6 +261,8 @@ class WaylandSurface final {
   static void ImageDescriptionReady(
       void* aData, struct wp_image_description_v1* aImageDescription,
       uint32_t aIdentity);
+
+  void AssertCurrentThreadOwnsMutex();
 
  private:
   ~WaylandSurface();

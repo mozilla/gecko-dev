@@ -28,7 +28,12 @@ class WaylandSurfaceLock final {
                               bool aForceCommit = false);
   ~WaylandSurfaceLock();
 
-  WaylandSurface* GetWaylandSurface();
+  WaylandSurface* GetWaylandSurface() const;
+  void RequestForceCommit() {
+#ifdef MOZ_WAYLAND
+    mForceCommit = true;
+#endif
+  }
 
  private:
 #ifdef MOZ_WAYLAND

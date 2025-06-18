@@ -374,10 +374,9 @@ void WaylandSurface::SetFrameCallbackLocked(
   RequestFrameCallbackLocked(aProofOfLock);
 }
 
-void WaylandSurface::SetFrameCallbackState(bool aEnabled) {
+void WaylandSurface::SetFrameCallbackStateLocked(
+    const WaylandSurfaceLock& aProofOfLock, bool aEnabled) {
   LOGWAYLAND("WaylandSurface::SetFrameCallbackState() state %d", aEnabled);
-
-  WaylandSurfaceLock lock(this);
   if (mFrameCallbackEnabled == aEnabled) {
     return;
   }
@@ -385,9 +384,9 @@ void WaylandSurface::SetFrameCallbackState(bool aEnabled) {
 
   // If there's any frame callback waiting, register the handler.
   if (mFrameCallbackEnabled) {
-    RequestFrameCallbackLocked(lock);
+    RequestFrameCallbackLocked(aProofOfLock);
   } else {
-    ClearFrameCallbackLocked(lock);
+    ClearFrameCallbackLocked(aProofOfLock);
   }
   if (mFrameCallbackStateHandler) {
     mFrameCallbackStateHandler(aEnabled);
@@ -881,6 +880,7 @@ wl_surface* WaylandSurface::Lock(WaylandSurfaceLock* aWaylandSurfaceLock)
     // which we want.
     MOZ_NO_THREAD_SAFETY_ANALYSIS {
   mMutex.Lock();
+  MOZ_DIAGNOSTIC_ASSERT(!mSurfaceLock);
   mSurfaceLock = aWaylandSurfaceLock;
   return mIsReadyToDraw ? mSurface : nullptr;
 }
@@ -1114,7 +1114,7 @@ static void BufferDetachedCallbackHandler(void* aData, wl_buffer* aBuffer) {
 static const struct wl_buffer_listener sBufferDetachListener = {
     BufferDetachedCallbackHandler};
 
-bool WaylandSurface::AttachLocked(WaylandSurfaceLock& aSurfaceLock,
+bool WaylandSurface::AttachLocked(const WaylandSurfaceLock& aSurfaceLock,
                                   RefPtr<WaylandBuffer> aWaylandBuffer) {
   MOZ_DIAGNOSTIC_ASSERT(&aSurfaceLock == mSurfaceLock);
   MOZ_DIAGNOSTIC_ASSERT(mSurface);
@@ -1166,7 +1166,7 @@ bool WaylandSurface::AttachLocked(WaylandSurfaceLock& aSurfaceLock,
 }
 
 void WaylandSurface::RemoveAttachedBufferLocked(
-    WaylandSurfaceLock& aSurfaceLock) {
+    const WaylandSurfaceLock& aSurfaceLock) {
   MOZ_DIAGNOSTIC_ASSERT(&aSurfaceLock == mSurfaceLock);
   MOZ_DIAGNOSTIC_ASSERT(mSurface);
 
@@ -1328,6 +1328,10 @@ bool WaylandSurface::EnableColorManagementLocked(
                                        &image_description_listener, this);
 
   return true;
+}
+
+void WaylandSurface::AssertCurrentThreadOwnsMutex() {
+  mMutex.AssertCurrentThreadOwns();
 }
 
 }  // namespace mozilla::widget
