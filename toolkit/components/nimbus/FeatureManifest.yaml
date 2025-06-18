@@ -4922,3 +4922,16 @@ ipProtection:
         pref: browser.ipProtection.enabled
       description: >-
         Enables the IP Protection feature.
+
+webApps:
+  description: Enables or disables web apps.
+  owner: nrishel@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.taskbarTabs.enabled
+      description: >-
+        Controls whether web apps can be installed and accessed.
