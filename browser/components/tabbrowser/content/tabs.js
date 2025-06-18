@@ -1240,7 +1240,7 @@
         if (shouldPin || shouldUnpin) {
           for (let item of movingTabs) {
             if (shouldPin) {
-              gBrowser.pinTab(item);
+              gBrowser.pinTab(item, true);
             } else if (shouldUnpin) {
               gBrowser.unpinTab(item);
             }

@@ -826,18 +826,21 @@
       this.tabContainer._updateCloseButtons();
     }
 
-    _notifyPinnedStatus(aTab) {
+    _notifyPinnedStatus(aTab, aDragging = false) {
       // browsingContext is expected to not be defined on discarded tabs.
       if (aTab.linkedBrowser.browsingContext) {
         aTab.linkedBrowser.browsingContext.isAppTab = aTab.pinned;
       }
 
-      let event = document.createEvent("Events");
-      event.initEvent(aTab.pinned ? "TabPinned" : "TabUnpinned", true, false);
+      let event = new CustomEvent(aTab.pinned ? "TabPinned" : "TabUnpinned", {
+        bubbles: true,
+        cancelable: false,
+        detail: { dragging: aDragging },
+      });
       aTab.dispatchEvent(event);
     }
 
-    pinTab(aTab) {
+    pinTab(aTab, aDragging) {
       if (aTab.pinned || aTab == FirefoxViewHandler.tab) {
         return;
       }
@@ -849,7 +852,7 @@
 
       aTab.setAttribute("pinned", "true");
       this._updateTabBarForPinnedTabs();
-      this._notifyPinnedStatus(aTab);
+      this._notifyPinnedStatus(aTab, aDragging);
     }
 
     unpinTab(aTab) {

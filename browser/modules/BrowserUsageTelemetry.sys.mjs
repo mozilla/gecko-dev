@@ -52,6 +52,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
       Glean.browserEngagement.maxConcurrentTabCount.set(tabCount);
       Glean.browserEngagement.maxConcurrentTabPinnedCount.set(pinnedTabCount);
     }
+    BrowserUsageTelemetry.recordPinnedTabsCount(pinnedTabCount);
   }
 );
 
@@ -496,6 +497,7 @@ export let BrowserUsageTelemetry = {
     );
 
     this._recordUITelemetry();
+    this.recordPinnedTabsCount();
 
     this._onTabsOpenedTask = new lazy.DeferredTask(
       () => this._onTabsOpened(),
@@ -538,6 +540,14 @@ export let BrowserUsageTelemetry = {
       } else {
         Glean.browserEngagement.maxConcurrentTabPinnedCount.set(pinnedTabs);
       }
+    }
+  },
+
+  recordPinnedTabsCount(count = getPinnedTabsCount()) {
+    if (lazy.sidebarVerticalTabs) {
+      Glean.pinnedTabs.count.sidebar.set(count);
+    } else {
+      Glean.pinnedTabs.count.horizontalBar.set(count);
     }
   },
 
@@ -614,7 +624,10 @@ export let BrowserUsageTelemetry = {
         this._onTabClosed(event);
         break;
       case "TabPinned":
-        this._onTabPinned();
+        this._onTabPinned(event);
+        break;
+      case "TabUnpinned":
+        this._onTabUnpinned();
         break;
       case "TabGroupCreateByUser":
         this._onTabGroupCreateByUser(event);
@@ -1193,6 +1206,7 @@ export let BrowserUsageTelemetry = {
     win.addEventListener("TabOpen", this, true);
     win.addEventListener("TabClose", this, true);
     win.addEventListener("TabPinned", this, true);
+    win.addEventListener("TabUnpinned", this, true);
     win.addEventListener("TabSelect", this);
     win.addEventListener("TabGroupCreateByUser", this);
     win.addEventListener("TabGroupRemoveRequested", this);
@@ -1216,6 +1230,7 @@ export let BrowserUsageTelemetry = {
     win.removeEventListener("TabOpen", this, true);
     win.removeEventListener("TabClose", this, true);
     win.removeEventListener("TabPinned", this, true);
+    win.removeEventListener("TabUnpinned", this, true);
     win.removeEventListener("TabSelect", this);
     win.removeEventListener("TabGroupCreateByUser", this);
     win.removeEventListener("TabGroupRemoveRequested", this);
@@ -1281,9 +1296,17 @@ export let BrowserUsageTelemetry = {
         Glean.tabgroup.tabInteractions.close_tab_other.add();
       }
     }
+
+    if (event.target?.pinned) {
+      const pinnedTabs = getPinnedTabsCount();
+      this.recordPinnedTabsCount(pinnedTabs - 1);
+      Glean.pinnedTabs.close.record({
+        layout: lazy.sidebarVerticalTabs ? "vertical" : "horizontal",
+      });
+    }
   },
 
-  _onTabPinned() {
+  _onTabPinned(event) {
     const pinnedTabs = getPinnedTabsCount();
 
     // Update the "tab pinned" count and its maximum.
@@ -1293,6 +1316,15 @@ export let BrowserUsageTelemetry = {
       Glean.browserEngagement.tabPinnedEventCount.add(1);
     }
     this.updateMaxTabPinnedCount(pinnedTabs);
+    this.recordPinnedTabsCount(pinnedTabs);
+    Glean.pinnedTabs.pin.record({
+      layout: lazy.sidebarVerticalTabs ? "vertical" : "horizontal",
+      source: event.detail?.dragging ? "drag" : "context_menu",
+    });
+  },
+
+  _onTabUnpinned() {
+    this.recordPinnedTabsCount();
   },
 
   _onTabGroupCreateByUser(event) {
@@ -1520,6 +1552,12 @@ export let BrowserUsageTelemetry = {
   _onTabSelect(event) {
     if (event.target.group) {
       Glean.tabgroup.tabInteractions.activate.add();
+    }
+    if (event.target.pinned) {
+      const counter = lazy.sidebarVerticalTabs
+        ? Glean.pinnedTabs.activations.sidebar
+        : Glean.pinnedTabs.activations.horizontalBar;
+      counter.add();
     }
   },
 

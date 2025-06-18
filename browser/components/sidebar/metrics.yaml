@@ -644,3 +644,81 @@ contextual_manager:
       checked:
         type: boolean
         description: Whether the Passwords box was checked.
+pinned_tabs:
+  activations:
+    type: labeled_counter
+    description: >
+      Records how many times a pinned tab gets activated.
+    bugs:
+      - https://bugzil.la/1966761
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D253888
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - metrics
+    labels:
+      - sidebar
+      - horizontal_bar
+  count:
+    type: labeled_quantity
+    description: >
+      Records how many pinned tabs the user currently has across all windows.
+    bugs:
+      - https://bugzil.la/1966761
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D253888
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - metrics
+    labels:
+      - sidebar
+      - horizontal_bar
+  pin:
+    type: event
+    description: >
+      Recorded when a user pins a tab.
+    bugs:
+      - https://bugzil.la/1966761
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D253888
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      layout:
+        type: string
+        description: Either "horizontal" or "vertical".
+      source:
+        type: string
+        description: Either "context_menu" or "drag".
+  close:
+    type: event
+    description: >
+      Recorded when a user closes a pinned tab.
+    bugs:
+      - https://bugzil.la/1966761
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D253888
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      layout:
+        type: string
+        description: Either "horizontal" or "vertical".

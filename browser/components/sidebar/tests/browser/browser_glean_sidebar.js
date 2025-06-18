@@ -664,3 +664,101 @@ add_task(async function test_icon_click_collapsed_sidebar() {
 add_task(async function test_icon_click_expanded_sidebar() {
   await testIconClick(true);
 });
+
+async function test_pinned_tabs_activations(verticalTabs) {
+  await SpecialPowers.pushPrefEnv({
+    set: [[VERTICAL_TABS_PREF, verticalTabs]],
+  });
+
+  info("Switch to a pinned tab.");
+  const pinnedTab = BrowserTestUtils.addTab(gBrowser, "https://example.com/", {
+    pinned: true,
+  });
+  await BrowserTestUtils.switchTab(gBrowser, pinnedTab);
+
+  const counter = verticalTabs
+    ? Glean.pinnedTabs.activations.sidebar
+    : Glean.pinnedTabs.activations.horizontalBar;
+  Assert.equal(counter.testGetValue(), 1, "Pinned tab activation was counted.");
+
+  gBrowser.removeTab(pinnedTab);
+  await SpecialPowers.popPrefEnv();
+}
+
+add_task(async function test_pinned_tabs_activations_sidebar() {
+  await test_pinned_tabs_activations(true);
+
+  const pinEvent = Glean.pinnedTabs.pin.testGetValue()?.[0];
+  const closeEvent = Glean.pinnedTabs.close.testGetValue()?.[0];
+  Assert.deepEqual(
+    pinEvent?.extra,
+    { layout: "vertical", source: "context_menu" },
+    "Pin event was recorded for vertical tabs."
+  );
+  Assert.deepEqual(
+    closeEvent?.extra,
+    { layout: "vertical" },
+    "Close event was recorded for vertical tabs."
+  );
+});
+
+add_task(async function test_pinned_tabs_activations_horizontal_bar() {
+  await test_pinned_tabs_activations(false);
+
+  const pinEvent = Glean.pinnedTabs.pin.testGetValue()?.[1];
+  const closeEvent = Glean.pinnedTabs.close.testGetValue()?.[1];
+  Assert.deepEqual(
+    pinEvent?.extra,
+    { layout: "horizontal", source: "context_menu" },
+    "Pin event was recorded for horizontal tabs."
+  );
+  Assert.deepEqual(
+    closeEvent?.extra,
+    { layout: "horizontal" },
+    "Close event was recorded for horizontal tabs."
+  );
+});
+
+async function test_pinned_tabs_count(verticalTabs) {
+  await SpecialPowers.pushPrefEnv({
+    set: [[VERTICAL_TABS_PREF, verticalTabs]],
+  });
+
+  info("Add two pinned tabs.");
+  const firstTab = BrowserTestUtils.addTab(gBrowser, "https://example.com/", {
+    pinned: true,
+  });
+  const secondTab = BrowserTestUtils.addTab(gBrowser, "https://example.com/", {
+    pinned: true,
+  });
+
+  const quantity = verticalTabs
+    ? Glean.pinnedTabs.count.sidebar
+    : Glean.pinnedTabs.count.horizontalBar;
+  Assert.equal(quantity.testGetValue(), 2, "Both tabs were counted.");
+
+  gBrowser.unpinTab(firstTab);
+  Assert.equal(
+    quantity.testGetValue(),
+    1,
+    "Count was updated after unpinning a tab."
+  );
+
+  gBrowser.removeTab(secondTab);
+  Assert.equal(
+    quantity.testGetValue(),
+    0,
+    "Count was updated after removing a pinned tab."
+  );
+
+  gBrowser.removeTab(firstTab);
+  await SpecialPowers.popPrefEnv();
+}
+
+add_task(async function test_pinned_tabs_count_sidebar() {
+  await test_pinned_tabs_count(true);
+});
+
+add_task(async function test_pinned_tabs_count_horizontal_bar() {
+  await test_pinned_tabs_count(false);
+});
