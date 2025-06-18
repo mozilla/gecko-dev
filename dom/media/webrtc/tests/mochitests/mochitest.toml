@@ -76,6 +76,8 @@ run-sequentially = "sets prefs that may disrupt other tests"
 ["test_ondevicechange_resistfingerprinting.html"]
 run-sequentially = "sets prefs that may disrupt other tests"
 
+["test_rvfc_timestamp_alignment.html"]
+
 ["test_setSinkId-echoCancellation.html"]
 skip-if = ["os == 'android'"] # bug 1473346 - no setSinkId()
 
