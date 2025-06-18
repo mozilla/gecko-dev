@@ -202,8 +202,7 @@ class DataChannelConnection final : public net::NeckoTargetHolder {
 
   void Destroy();  // So we can spawn refs tied to runnables in shutdown
   // Finish Destroy on STS to avoid SCTP race condition with ABORT from far end
-  void DestroyOnSTS(struct socket* aMasterSocket, struct socket* aSocket);
-  void DestroyOnSTSFinal();
+  void DestroyOnSTS();
 
   int SendMessage(DataChannel& aChannel, OutgoingMsg&& aMsg)
       MOZ_REQUIRES(mLock);
@@ -440,10 +439,10 @@ class DataChannelConnection final : public net::NeckoTargetHolder {
 
   // Streams pending reset. Accessed from main and STS.
   AutoTArray<uint16_t, 4> mStreamsResetting MOZ_GUARDED_BY(mLock);
-  // accessed from STS thread
-  struct socket* mMasterSocket = nullptr;
-  // cloned from mMasterSocket on successful Connect on STS thread
+  // Set once on main in Init, STS-only thereafter
   struct socket* mSocket = nullptr;
+  // STS only
+  bool mSctpConfigured = false;
   DataChannelConnectionState mState MOZ_GUARDED_BY(mLock) =
       DataChannelConnectionState::Closed;
 

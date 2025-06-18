@@ -390,7 +390,6 @@ DataChannelConnection::~DataChannelConnection() {
   // This may die on the MainThread, or on the STS thread, or on an
   // sctp thread if we were in a callback when the DOM side shut things down.
   ASSERT_WEBRTC(mState == DataChannelConnectionState::Closed);
-  MOZ_ASSERT(!mMasterSocket);
   MOZ_ASSERT(mPending.empty());
 
   if (!IsSTSThread()) {
@@ -437,15 +436,8 @@ void DataChannelConnection::Destroy() {
   // disconnect_all())
   RUN_ON_THREAD(mSTS,
                 WrapRunnable(RefPtr<DataChannelConnection>(this),
-                             &DataChannelConnection::DestroyOnSTS, mSocket,
-                             mMasterSocket),
+                             &DataChannelConnection::DestroyOnSTS),
                 NS_DISPATCH_NORMAL);
-
-  // These will be released on STS
-  mSocket = nullptr;
-  mMasterSocket = nullptr;  // also a flag that we've Destroyed this connection
-
-  // We can't get any more *new* callbacks from the SCTP library
 
   // All existing callbacks have refs to DataChannelConnection - however,
   // we need to handle their destroying the object off mainthread/STS
@@ -453,10 +445,11 @@ void DataChannelConnection::Destroy() {
   // nsDOMDataChannel objects have refs to DataChannels that have refs to us
 }
 
-void DataChannelConnection::DestroyOnSTS(struct socket* aMasterSocket,
-                                         struct socket* aSocket) {
-  if (aSocket && aSocket != aMasterSocket) usrsctp_close(aSocket);
-  if (aMasterSocket) usrsctp_close(aMasterSocket);
+void DataChannelConnection::DestroyOnSTS() {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
+
+  if (mSocket) usrsctp_close(mSocket);
+  mSocket = nullptr;
 
   usrsctp_deregister_address(reinterpret_cast<void*>(mId));
   DC_DEBUG(
@@ -535,28 +528,27 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   socklen_t buf_size = 1024 * 1024;
 
   // Open sctp with a callback
-  if ((mMasterSocket =
-           usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, receive_cb,
-                          &DataChannelConnection::OnThresholdEvent,
-                          usrsctp_sysctl_get_sctp_sendspace() / 2,
-                          reinterpret_cast<void*>(mId))) == nullptr) {
+  if ((mSocket = usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, receive_cb,
+                                &DataChannelConnection::OnThresholdEvent,
+                                usrsctp_sysctl_get_sctp_sendspace() / 2,
+                                reinterpret_cast<void*>(mId))) == nullptr) {
     goto error_cleanup;
   }
 
-  if (usrsctp_setsockopt(mMasterSocket, SOL_SOCKET, SO_RCVBUF,
-                         (const void*)&buf_size, sizeof(buf_size)) < 0) {
+  if (usrsctp_setsockopt(mSocket, SOL_SOCKET, SO_RCVBUF, (const void*)&buf_size,
+                         sizeof(buf_size)) < 0) {
     DC_ERROR(("Couldn't change receive buffer size on SCTP socket"));
     goto error_cleanup;
   }
-  if (usrsctp_setsockopt(mMasterSocket, SOL_SOCKET, SO_SNDBUF,
-                         (const void*)&buf_size, sizeof(buf_size)) < 0) {
+  if (usrsctp_setsockopt(mSocket, SOL_SOCKET, SO_SNDBUF, (const void*)&buf_size,
+                         sizeof(buf_size)) < 0) {
     DC_ERROR(("Couldn't change send buffer size on SCTP socket"));
     goto error_cleanup;
   }
 
   // Make non-blocking for bind/connect.  SCTP over UDP defaults to non-blocking
   // in associations for normal IO
-  if (usrsctp_set_non_blocking(mMasterSocket, 1) < 0) {
+  if (usrsctp_set_non_blocking(mSocket, 1) < 0) {
     DC_ERROR(("Couldn't set non_blocking on SCTP socket"));
     // We can't handle connect() safely if it will block, not that this will
     // even happen.
@@ -569,7 +561,7 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   struct linger l;
   l.l_onoff = 1;
   l.l_linger = 0;
-  if (usrsctp_setsockopt(mMasterSocket, SOL_SOCKET, SO_LINGER, (const void*)&l,
+  if (usrsctp_setsockopt(mSocket, SOL_SOCKET, SO_LINGER, (const void*)&l,
                          (socklen_t)sizeof(struct linger)) < 0) {
     DC_ERROR(("Couldn't set SO_LINGER on SCTP socket"));
     // unsafe to allow it to continue if this fails
@@ -581,12 +573,12 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   // implies re-use of the same pseudo-port number, or forcing a renegotiation.
   {
     const int option_value = 1;
-    if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_REUSE_PORT,
+    if (usrsctp_setsockopt(mSocket, IPPROTO_SCTP, SCTP_REUSE_PORT,
                            (const void*)&option_value,
                            (socklen_t)sizeof(option_value)) < 0) {
       DC_WARN(("Couldn't set SCTP_REUSE_PORT on SCTP socket"));
     }
-    if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_NODELAY,
+    if (usrsctp_setsockopt(mSocket, IPPROTO_SCTP, SCTP_NODELAY,
                            (const void*)&option_value,
                            (socklen_t)sizeof(option_value)) < 0) {
       DC_WARN(("Couldn't set SCTP_NODELAY on SCTP socket"));
@@ -596,7 +588,7 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   // Set explicit EOR
   {
     const int option_value = 1;
-    if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_EXPLICIT_EOR,
+    if (usrsctp_setsockopt(mSocket, IPPROTO_SCTP, SCTP_EXPLICIT_EOR,
                            (const void*)&option_value,
                            (socklen_t)sizeof(option_value)) < 0) {
       DC_ERROR(("*** failed to enable explicit EOR mode %d", errno));
@@ -607,17 +599,16 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   // Enable ndata
   av.assoc_id = SCTP_FUTURE_ASSOC;
   av.assoc_value = 1;
-  if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP,
-                         SCTP_INTERLEAVING_SUPPORTED, &av,
-                         (socklen_t)sizeof(struct sctp_assoc_value)) < 0) {
+  if (usrsctp_setsockopt(mSocket, IPPROTO_SCTP, SCTP_INTERLEAVING_SUPPORTED,
+                         &av, (socklen_t)sizeof(struct sctp_assoc_value)) < 0) {
     DC_ERROR(("*** failed enable ndata errno %d", errno));
     goto error_cleanup;
   }
 
   av.assoc_id = SCTP_ALL_ASSOC;
   av.assoc_value = SCTP_ENABLE_RESET_STREAM_REQ | SCTP_ENABLE_CHANGE_ASSOC_REQ;
-  if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET,
-                         &av, (socklen_t)sizeof(struct sctp_assoc_value)) < 0) {
+  if (usrsctp_setsockopt(mSocket, IPPROTO_SCTP, SCTP_ENABLE_STREAM_RESET, &av,
+                         (socklen_t)sizeof(struct sctp_assoc_value)) < 0) {
     DC_ERROR(("*** failed enable stream reset errno %d", errno));
     goto error_cleanup;
   }
@@ -627,7 +618,7 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   event.se_on = 1;
   for (unsigned short event_type : event_types) {
     event.se_type = event_type;
-    if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_EVENT, &event,
+    if (usrsctp_setsockopt(mSocket, IPPROTO_SCTP, SCTP_EVENT, &event,
                            sizeof(event)) < 0) {
       DC_ERROR(("*** failed setsockopt SCTP_EVENT errno %d", errno));
       goto error_cleanup;
@@ -635,8 +626,8 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   }
 
   len = sizeof(initmsg);
-  if (usrsctp_getsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg,
-                         &len) < 0) {
+  if (usrsctp_getsockopt(mSocket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, &len) <
+      0) {
     DC_ERROR(("*** failed getsockopt SCTP_INITMSG"));
     goto error_cleanup;
   }
@@ -644,13 +635,12 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
             initmsg.sinit_num_ostreams, initmsg.sinit_max_instreams));
   initmsg.sinit_num_ostreams = aNumStreams;
   initmsg.sinit_max_instreams = MAX_NUM_STREAMS;
-  if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg,
+  if (usrsctp_setsockopt(mSocket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg,
                          (socklen_t)sizeof(initmsg)) < 0) {
     DC_ERROR(("*** failed setsockopt SCTP_INITMSG, errno %d", errno));
     goto error_cleanup;
   }
 
-  mSocket = nullptr;
   mSTS->Dispatch(
       NS_NewRunnableFunction("DataChannelConnection::Init", [id = mId]() {
         usrsctp_register_address(reinterpret_cast<void*>(id));
@@ -661,9 +651,9 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   return true;
 
 error_cleanup:
+  usrsctp_close(mSocket);
+  mSocket = nullptr;
   DataChannelRegistry::Deregister(mId);
-  usrsctp_close(mMasterSocket);
-  mMasterSocket = nullptr;
   return false;
 }
 
@@ -780,9 +770,6 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
                                                const uint16_t aLocalPort,
                                                const uint16_t aRemotePort) {
   MutexAutoLock lock(mLock);
-
-  MOZ_ASSERT(mMasterSocket,
-             "SCTP wasn't initialized before ConnectToTransport!");
   static const auto paramString =
       [](const std::string& tId, const Maybe<bool>& client,
          const uint16_t localPort, const uint16_t remotePort) -> std::string {
@@ -886,9 +873,13 @@ void DataChannelConnection::CompleteConnect() {
 
   DC_DEBUG(("dtls open"));
   ASSERT_WEBRTC(IsSTSThread());
-  if (!mMasterSocket) {
+  if (mSctpConfigured) {
+    // mSocket could have been closed by an error or for some other reason,
+    // don't open an opportunity to reinit.
     return;
   }
+
+  mSctpConfigured = true;
 
   struct sockaddr_conn addr = {};
   addr.sconn_family = AF_CONN;
@@ -899,7 +890,7 @@ void DataChannelConnection::CompleteConnect() {
   addr.sconn_addr = reinterpret_cast<void*>(mId);
 
   DC_DEBUG(("Calling usrsctp_bind"));
-  int r = usrsctp_bind(mMasterSocket, reinterpret_cast<struct sockaddr*>(&addr),
+  int r = usrsctp_bind(mSocket, reinterpret_cast<struct sockaddr*>(&addr),
                        sizeof(addr));
   if (r < 0) {
     DC_ERROR(("usrsctp_bind failed: %d", r));
@@ -907,15 +898,15 @@ void DataChannelConnection::CompleteConnect() {
     // This is the remote addr
     addr.sconn_port = htons(mRemotePort);
     DC_DEBUG(("Calling usrsctp_connect"));
-    r = usrsctp_connect(
-        mMasterSocket, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+    r = usrsctp_connect(mSocket, reinterpret_cast<struct sockaddr*>(&addr),
+                        sizeof(addr));
     if (r >= 0 || errno == EINPROGRESS) {
       struct sctp_paddrparams paddrparams = {};
       socklen_t opt_len;
 
       memcpy(&paddrparams.spp_address, &addr, sizeof(struct sockaddr_conn));
       opt_len = (socklen_t)sizeof(struct sctp_paddrparams);
-      r = usrsctp_getsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS,
+      r = usrsctp_getsockopt(mSocket, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS,
                              &paddrparams, &opt_len);
       if (r < 0) {
         DC_ERROR(("usrsctp_getsockopt failed: %d", r));
@@ -938,8 +929,8 @@ void DataChannelConnection::CompleteConnect() {
         paddrparams.spp_flags &= ~SPP_PMTUD_ENABLE;
         paddrparams.spp_flags |= SPP_PMTUD_DISABLE;
         opt_len = (socklen_t)sizeof(struct sctp_paddrparams);
-        r = usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP,
-                               SCTP_PEER_ADDR_PARAMS, &paddrparams, opt_len);
+        r = usrsctp_setsockopt(mSocket, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS,
+                               &paddrparams, opt_len);
         if (r < 0) {
           DC_ERROR(("usrsctp_getsockopt failed: %d", r));
         } else {
@@ -1113,8 +1104,8 @@ bool DataChannelConnection::RequestMoreStreams(int32_t aNeeded) {
   }
 
   len = (socklen_t)sizeof(struct sctp_status);
-  if (usrsctp_getsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_STATUS, &status,
-                         &len) < 0) {
+  if (usrsctp_getsockopt(mSocket, IPPROTO_SCTP, SCTP_STATUS, &status, &len) <
+      0) {
     DC_ERROR(("***failed: getsockopt SCTP_STATUS"));
     return false;
   }
@@ -1125,7 +1116,7 @@ bool DataChannelConnection::RequestMoreStreams(int32_t aNeeded) {
   sas.sas_instrms = 0;
   sas.sas_outstrms = (uint16_t)outStreamsNeeded; /* XXX error handling */
   // Doesn't block, we get an event when it succeeds or fails
-  if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_ADD_STREAMS, &sas,
+  if (usrsctp_setsockopt(mSocket, IPPROTO_SCTP, SCTP_ADD_STREAMS, &sas,
                          (socklen_t)sizeof(struct sctp_add_streams)) < 0) {
     if (errno == EALREADY) {
       DC_DEBUG(("Already have %u output streams", outStreamsNeeded));
@@ -1812,6 +1803,7 @@ void DataChannelConnection::HandleMessageChunk(const void* buffer,
 
 void DataChannelConnection::HandleAssociationChangeEvent(
     const struct sctp_assoc_change* sac) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   mLock.AssertCurrentThreadOwns();
 
   uint32_t i, n;
@@ -1820,7 +1812,6 @@ void DataChannelConnection::HandleAssociationChangeEvent(
     case SCTP_COMM_UP:
       DC_DEBUG(("Association change: SCTP_COMM_UP"));
       if (state == DataChannelConnectionState::Connecting) {
-        mSocket = mMasterSocket;
         SetState(DataChannelConnectionState::Open);
 
         DC_DEBUG(("Negotiated number of incoming streams: %" PRIu16,
@@ -2135,7 +2126,7 @@ void DataChannelConnection::SendOutgoingStreamReset() {
   for (i = 0; i < mStreamsResetting.Length(); ++i) {
     srs->srs_stream_list[i] = mStreamsResetting[i];
   }
-  if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_RESET_STREAMS, srs,
+  if (usrsctp_setsockopt(mSocket, IPPROTO_SCTP, SCTP_RESET_STREAMS, srs,
                          (socklen_t)len) < 0) {
     DC_ERROR(("***failed: setsockopt RESET, errno %d", errno));
     // if errno == EALREADY, this is normal - we can't send another reset
