@@ -3344,6 +3344,21 @@
       }
     ]
   },
+  "1948723": {
+    "label": "babel.com",
+    "bugs": {
+      "1948723": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://chat.babel.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
   "1949466": {
     "label": "lapalabradeldia.com",
     "bugs": {
