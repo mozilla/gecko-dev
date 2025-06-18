@@ -14,9 +14,9 @@
 
 #include "mozilla/Array.h"
 #include "mozilla/HashFunctions.h"
+#include "mozilla/Vector.h"
 #ifdef JS_JITSPEW
 #  include "mozilla/Sprintf.h"
-#  include "mozilla/Vector.h"
 #endif
 
 #include <algorithm>

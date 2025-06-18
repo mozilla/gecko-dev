@@ -235,7 +235,9 @@ class SimpleAllocator : protected RegisterAllocator {
   AllocatableRegisterSet fixedTempRegs_;
   AllocatableRegisterSet fixedOutputAndTempRegs_;
 
-  // The set of live GC things at the start of each basic block.
+  // The set of live GC things at the start of each basic block. Although the
+  // VirtualRegBitSet may contain malloced memory, all are owned by the
+  // SimpleAllocator whose destructor will destroy them.
   using VirtualRegBitSet = SparseBitSet<BackgroundSystemAllocPolicy>;
   Vector<VirtualRegBitSet, 0, JitAllocPolicy> liveGCIn_;
 

@@ -14,6 +14,7 @@
 #include <stdint.h>
 
 #include "ds/InlineTable.h"
+#include "ds/LifoAlloc.h"
 
 namespace js::jit {
 
@@ -186,5 +187,15 @@ class SparseBitSet<AllocPolicy>::Iterator {
 };
 
 }  // namespace js::jit
+
+namespace js {
+
+// All current users of SparseBitSets will actively destroy them. Do not use
+// them where they can be dropped when their containing LifoAlloc is cleared,
+// since that could leak memory.
+template <typename T>
+struct CanLifoAlloc<js::jit::SparseBitSet<T>> : std::true_type {};
+
+}  // namespace js
 
 #endif /* jit_SparseBitSet_h */
