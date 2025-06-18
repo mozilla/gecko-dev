@@ -267,39 +267,44 @@ function* testSteps() {
   event = yield undefined;
   is(event.target.result, null, "no more results expected");
 
-  // Note that nan is defined below as '0 / 0'.
-  var invalidKeys = [
-    "nan",
-    "undefined",
-    "null",
-    "/x/",
-    "{}",
-    "new Date(NaN)",
-    'new Date("foopy")',
-    "[nan]",
-    "[undefined]",
-    "[null]",
-    "[/x/]",
-    "[{}]",
-    "[new Date(NaN)]",
-    "[1, nan]",
-    "[1, undefined]",
-    "[1, null]",
-    "[1, /x/]",
-    "[1, {}]",
-    "[1, [nan]]",
-    "[1, [undefined]]",
-    "[1, [null]]",
-    "[1, [/x/]]",
-    "[1, [{}]]",
+  let nan = 0 / 0;
+  let invalidKeys = [
+    nan,
+    undefined,
+    null,
+    /x/,
+    {},
+    new Date(NaN),
+    new Date("foopy"),
+    [nan],
+    [undefined],
+    [null],
+    [/x/],
+    [{}],
+    [new Date(NaN)],
+    [1, nan],
+    [1, undefined],
+    [1, null],
+    [1, /x/],
+    [1, {}],
+    [1, [nan]],
+    [1, [undefined]],
+    [1, [null]],
+    [1, [/x/]],
+    [1, [{}]],
+  ];
+
+  try {
     // ATTENTION, the following key allocates 2GB of memory and might cause
     // subtle failures in some environments, see bug 1796753. We might
     // want to have some common way between IndexeDB mochitests and
     // xpcshell tests how to access AppConstants in order to dynamically
     // exclude this key from some environments, rather than disabling the
     // entire xpcshell variant of this test for ASAN/TSAN.
-    "new Uint8Array(2147483647)",
-  ];
+    invalidKeys.push(new Uint8Array(2147483647));
+  } catch {
+    info("Key instantiation failed, skipping");
+  }
 
   function checkInvalidKeyException(ex, i, callText) {
     let suffix = ` during ${callText} with invalid key ${i}: ${invalidKeys[i]}`;
@@ -310,19 +315,7 @@ function* testSteps() {
     is(ex.code, 0, "Threw with right code" + suffix);
   }
 
-  for (i = 0; i < invalidKeys.length; ++i) {
-    let key_fn = Function(
-      `"use strict"; var nan = 0 / 0; let k = (${invalidKeys[i]}); return k;`
-    );
-    let key;
-    try {
-      key = key_fn();
-    } catch (e) {
-      // If we cannot instantiate the key, we are most likely on a 32 Bit
-      // platform with insufficient memory. Just skip it.
-      info("Key instantiation failed, skipping");
-      continue;
-    }
+  for (let key of invalidKeys) {
     try {
       indexedDB.cmp(key, 1);
       ok(false, "didn't throw");
