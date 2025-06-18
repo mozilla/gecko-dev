@@ -2080,11 +2080,14 @@ var SidebarController = {
       case "popuphidden":
         if (e.composedTarget.id !== "tab-preview-panel") {
           if (this._openPopupsCount < 2) {
-            // Collapse sidebar after context menu if needed
-            if (
-              this._state.launcherExpanded &&
-              !this.sidebarContainer.matches(":hover")
-            ) {
+            let isHovered;
+            MousePosTracker._callListener({
+              onMouseEnter: () => (isHovered = true),
+              onMouseLeave: () => (isHovered = false),
+              getMouseTargetRect: () => this.getMouseTargetRect(),
+            });
+            // Collapse sidebar after context menu is closed if needed
+            if (this._state.launcherExpanded && !isHovered) {
               if (this._animationEnabled && !window.gReduceMotion) {
                 this._animateSidebarMain();
               }
