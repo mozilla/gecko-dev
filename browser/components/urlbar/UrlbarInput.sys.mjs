@@ -1213,7 +1213,10 @@ export class UrlbarInput {
           element,
           searchString,
           searchMode,
-          selType: "tabswitch",
+          selType: this.controller.engagementEvent.typeFromElement(
+            result,
+            element
+          ),
         });
 
         let switched = this.window.switchToTabHavingURI(

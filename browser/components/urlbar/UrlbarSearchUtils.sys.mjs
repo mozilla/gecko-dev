@@ -9,6 +9,10 @@
  * state, and an init method.  A separate object is easier.
  */
 
+/**
+ * @typedef {typeof import("UrlbarUtils.sys.mjs").UrlbarUtils.RESULT_SOURCE} RESULT_SOURCE
+ */
+
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
@@ -265,6 +269,28 @@ class SearchUtils {
     }
 
     return scalarKey;
+  }
+
+  /**
+   *
+   * @param {UrlbarResult} result
+   *   The result to evaluate
+   * @param {Array<RESULT_SOURCE>} [allowedSources]
+   *   Array of allowed result sources. if defined, the result must be from one
+   *   of these sources to be evaluated as a SERP, otherwise this will return
+   *   false.
+   *
+   * @returns {boolean} Whether it may be a SERP
+   */
+  resultIsSERP(result, allowedSources = null) {
+    if (allowedSources && !allowedSources?.includes(result.source)) {
+      return false;
+    }
+    try {
+      return !!Services.search.parseSubmissionURL(result.payload.url)?.engine;
+    } catch (ex) {
+      return false;
+    }
   }
 
   async _initInternal() {

@@ -252,3 +252,45 @@ add_task(async function suggested_index() {
       ]),
   });
 });
+
+add_task(async function history_semantic() {
+  await doSemanticHistoryTest({
+    trigger: () => doBlur(),
+    assert: () =>
+      assertAbandonmentTelemetry([
+        {
+          groups: "heuristic,general",
+          results: "search_engine,history_semantic",
+          n_results: 2,
+        },
+      ]),
+  });
+});
+
+add_task(async function history_serp() {
+  await doSerpHistoryTest({
+    trigger: () => doBlur(),
+    assert: () =>
+      assertAbandonmentTelemetry([
+        {
+          groups: "heuristic,general",
+          results: "search_engine,history_serp",
+          n_results: 2,
+        },
+      ]),
+  });
+});
+
+add_task(async function tab_serp() {
+  await doTabSerpHistoryTest({
+    trigger: () => doBlur(),
+    assert: () =>
+      assertAbandonmentTelemetry([
+        {
+          groups: "heuristic,general",
+          results: "search_engine,tab_serp",
+          n_results: 2,
+        },
+      ]),
+  });
+});

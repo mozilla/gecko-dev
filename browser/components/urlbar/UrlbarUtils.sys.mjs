@@ -1492,6 +1492,22 @@ export var UrlbarUtils = {
       return "experimental_addon";
     }
 
+    // Appends subtype to certain result types.
+    function checkForSubType(type, res) {
+      if (res.providerName == "SemanticHistorySearch") {
+        type += "_semantic";
+      }
+      if (
+        lazy.UrlbarSearchUtils.resultIsSERP(res, [
+          UrlbarUtils.RESULT_SOURCE.HISTORY,
+          UrlbarUtils.RESULT_SOURCE.TABS,
+        ])
+      ) {
+        type += "_serp";
+      }
+      return type;
+    }
+
     switch (result.type) {
       case this.RESULT_TYPE.DYNAMIC:
         switch (result.providerName) {
@@ -1536,7 +1552,7 @@ export var UrlbarUtils = {
         }
         return "search_engine";
       case this.RESULT_TYPE.TAB_SWITCH:
-        return "tab";
+        return checkForSubType("tab", result);
       case this.RESULT_TYPE.TIP:
         if (result.providerName === "UrlbarProviderInterventions") {
           switch (result.payload.type) {
@@ -1584,9 +1600,10 @@ export var UrlbarUtils = {
         if (result.providerName === "UrlbarProviderClipboard") {
           return "clipboard";
         }
-        return result.source === this.RESULT_SOURCE.BOOKMARKS
-          ? "bookmark"
-          : "history";
+        if (result.source === this.RESULT_SOURCE.BOOKMARKS) {
+          return "bookmark";
+        }
+        return checkForSubType("history", result);
       case this.RESULT_TYPE.RESTRICT:
         if (result.payload.keyword === lazy.UrlbarTokenizer.RESTRICT.BOOKMARK) {
           return "restrict_keyword_bookmarks";

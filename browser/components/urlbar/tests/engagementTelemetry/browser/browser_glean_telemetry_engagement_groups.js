@@ -352,3 +352,49 @@ add_task(async function actions_search_mode() {
     assertEngagementTelemetry(expected);
   });
 });
+
+add_task(async function history_semantic() {
+  await doSemanticHistoryTest({
+    trigger: () => doEnter(),
+    assert: () =>
+      assertEngagementTelemetry([
+        {
+          groups: "heuristic,general",
+          results: "search_engine,history_semantic",
+          n_results: 2,
+          selected_result: "history_semantic",
+        },
+      ]),
+  });
+});
+
+add_task(async function history_serp() {
+  await doSerpHistoryTest({
+    trigger: () => doEnter(),
+    assert: () =>
+      assertEngagementTelemetry([
+        {
+          groups: "heuristic,general",
+          results: "search_engine,history_serp",
+          n_results: 2,
+          selected_result: "history_serp",
+        },
+      ]),
+  });
+});
+
+add_task(async function tab_serp() {
+  // Cannot use doEnter as it awaits for load, not tab switch.
+  await doTabSerpHistoryTest({
+    trigger: () => EventUtils.synthesizeKey("KEY_Enter"),
+    assert: () =>
+      assertEngagementTelemetry([
+        {
+          groups: "heuristic,general",
+          results: "search_engine,tab_serp",
+          n_results: 2,
+          selected_result: "tab_serp",
+        },
+      ]),
+  });
+});

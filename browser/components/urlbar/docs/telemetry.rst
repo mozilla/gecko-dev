@@ -640,9 +640,7 @@ Search Engagement Telemetry
 ---------------------------
 
 The search engagement telemetry provided since Firefox 110 is is recorded using
-Glean events. Because of the data size, these events are collected only for a
-subset of the population, using the Glean Sampling feature. Please see the
-following documents for the details.
+Glean events. Please see the following documents for the details.
 
   - `Engagement`_ :
     It is defined as a completed action in urlbar, where a user picked one of
@@ -657,12 +655,19 @@ following documents for the details.
 .. _Abandonment: https://dictionary.telemetry.mozilla.org/apps/firefox_desktop/metrics/urlbar_abandonment
 
 Changelog
+  Firefox 141
+    New result types have been added, in particular sub-types can now be added
+    to `history` and `tab`, indicating whether they are from semantic history,
+    or SERP, e.g. `history_serp`, `history_semantic`, `tab_semantic_serp`.
+    [Bug `1971534`_]
+
   Firefox 128
     The "actions" key was added to the engagement event. [Bug `1893067`_]
 
   Firefox 125
     The "impression" engagement event has been removed. [Bug `1878983`_]
 
+.. _1971534: https://bugzilla.mozilla.org/show_bug.cgi?id=1971534
 .. _1893067: https://bugzilla.mozilla.org/show_bug.cgi?id=1893067
 .. _1878983: https://bugzilla.mozilla.org/show_bug.cgi?id=1878983
 

@@ -312,6 +312,65 @@ async function doRestrictKeywordsTest({ trigger, assert }) {
   await SpecialPowers.popPrefEnv();
 }
 
+async function doSemanticHistoryTest({ trigger, assert }) {
+  const historyUrl = "https://www.example.com/semantic/";
+  await doTestWithSemantic(
+    [
+      {
+        id: 1,
+        title: "Test Page",
+        url: historyUrl,
+        frecency: 100,
+      },
+    ],
+    async () => {
+      // Must be longer than `browser.urlbar.suggest.semanticHistory.minLength`.
+      await openPopup("testing semantic");
+      await selectRowByURL(historyUrl);
+
+      await trigger();
+      await assert();
+    }
+  );
+}
+
+async function doSerpHistoryTest({ trigger, assert }) {
+  let defaultEngine = await Services.search.getDefault();
+  const searchUrl = defaultEngine.getSubmission("serp history", null, "keyword")
+    .uri.spec;
+
+  await doTest(async () => {
+    await PlacesTestUtils.addVisits(searchUrl);
+
+    await openPopup("serp");
+    await selectRowByURL(searchUrl);
+
+    await trigger();
+    await assert();
+  });
+}
+
+async function doTabSerpHistoryTest({ trigger, assert }) {
+  let defaultEngine = await Services.search.getDefault();
+  const searchUrl = defaultEngine.getSubmission("serp history", null, "keyword")
+    .uri.spec;
+  let visited = PlacesTestUtils.waitForNotification("page-visited", visits =>
+    visits.some(({ url }) => url == searchUrl)
+  );
+  let tab = BrowserTestUtils.addTab(gBrowser, searchUrl);
+  await visited;
+
+  await doTest(async () => {
+    await openPopup("serp");
+    await selectRowByURL(searchUrl);
+
+    await trigger();
+    await assert();
+  });
+
+  BrowserTestUtils.removeTab(tab);
+}
+
 /**
  * Creates a search engine that returns tail suggestions and sets it as the
  * default engine.

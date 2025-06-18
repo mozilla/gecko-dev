@@ -899,3 +899,41 @@ add_task(async function selected_result_action() {
   });
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function selected_result_semantic() {
+  const historyUrl = "https://www.example.com/semantic/";
+  let defaultEngine = await Services.search.getDefault();
+  const searchUrl = defaultEngine.getSubmission("semantic", null, "keyword").uri
+    .spec;
+  await doTestWithSemantic(
+    [
+      {
+        id: 1,
+        title: "Test Page",
+        url: historyUrl,
+        frecency: 100,
+      },
+      {
+        id: 2,
+        title: "Test SERP",
+        url: searchUrl,
+        frecency: 10,
+      },
+    ],
+    async () => {
+      // Must be longer than `browser.urlbar.suggest.semanticHistory.minLength`.
+      await openPopup("testing semantic");
+      await selectRowByURL(historyUrl);
+      await doEnter();
+
+      assertEngagementTelemetry([
+        {
+          selected_result: "history_semantic",
+          selected_position: 2,
+          provider: "SemanticHistorySearch",
+          results: "search_engine,history_semantic,history_semantic_serp",
+        },
+      ]);
+    }
+  );
+});
