@@ -29,6 +29,7 @@ UNIFIED_SOURCES += [
     "nsSplitterFrame.cpp",
     "nsXULPopupManager.cpp",
     "nsXULTooltipListener.cpp",
+    "PopupQueue.cpp",
     "SimpleXULLeafFrame.cpp",
 ]
 

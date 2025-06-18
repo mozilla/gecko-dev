@@ -56,10 +56,12 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/PointerLockManager.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_ui.h"
 #include "mozilla/widget/nsAutoRollup.h"
 #include "mozilla/widget/NativeMenuSupport.h"
+#include "PopupQueue.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -112,6 +114,15 @@ PendingPopup::PendingPopup(Element* aPopup, mozilla::dom::Event* aEvent)
     : mPopup(aPopup), mEvent(aEvent), mModifiers(0) {
   InitMousePoint();
 }
+
+namespace {
+
+bool PopupQueueable(Element* aPopup) {
+  MOZ_ASSERT(aPopup);
+  return aPopup->GetBoolAttr(nsGkAtoms::queue);
+}
+
+}  // namespace
 
 void PendingPopup::InitMousePoint() {
   // get the event coordinates relative to the root frame of the document
@@ -882,56 +893,120 @@ void nsXULPopupManager::ShowPopup(Element* aPopup, nsIContent* aAnchorContent,
                                   int32_t aYPos, bool aIsContextMenu,
                                   bool aAttributesOverride,
                                   bool aSelectFirstItem, Event* aTriggerEvent) {
+  RefPtr<PopupQueue> popupQueue = PopupQueue::GetInstance();
+  MOZ_ASSERT(popupQueue);
+
+  auto callback = [aAnchorContent = RefPtr{aAnchorContent},
+                   aPosition = nsString(aPosition), aXPos, aYPos,
+                   aIsContextMenu, aAttributesOverride, aSelectFirstItem,
+                   aTriggerEvent = RefPtr{aTriggerEvent}](Element* aPopup) {
+    RefPtr<PopupQueue> popupQueue = PopupQueue::GetInstance();
+    if (!popupQueue) {
+      return;
+    }
+
+    auto scopeExit =
+        MakeScopeExit([&]() { popupQueue->NotifyDismissed(aPopup); });
+
+    auto self = sInstance;
+    if (!self) {
+      return;
+    }
+
 #ifdef XP_MACOSX
-  // On Mac, use a native menu if possible since the non-native menu looks out
-  // of place. Native menus for anchored popups are not currently implemented,
-  // so fall back to the non-native path below if `aAnchorContent` is given. We
-  // also fall back if the position string is not empty so we don't break tests
-  // that either themselves call or test app features that call
-  // `openPopup(null, "position")`.
-  if (!aAnchorContent && aPosition.IsEmpty() && ShouldUseNativeContextMenus() &&
-      aPopup->IsAnyOfXULElements(nsGkAtoms::menu, nsGkAtoms::menupopup) &&
-      ShowPopupAsNativeMenu(aPopup, aXPos, aYPos, aIsContextMenu,
-                            aTriggerEvent)) {
-    return;
-  }
+    // On Mac, use a native menu if possible since the non-native menu looks out
+    // of place. Native menus for anchored popups are not currently implemented,
+    // so fall back to the non-native path below if `aAnchorContent` is given.
+    // We also fall back if the position string is not empty so we don't break
+    // tests that either themselves call or test app features that call
+    // `openPopup(null, "position")`.
+    if (!aAnchorContent && aPosition.IsEmpty() &&
+        ShouldUseNativeContextMenus() &&
+        aPopup->IsAnyOfXULElements(nsGkAtoms::menu, nsGkAtoms::menupopup) &&
+        self->ShowPopupAsNativeMenu(aPopup, aXPos, aYPos, aIsContextMenu,
+                                    aTriggerEvent)) {
+      return;
+    }
 #endif
 
-  nsMenuPopupFrame* popupFrame = GetPopupFrameForContent(aPopup, true);
-  if (!popupFrame || !MayShowPopup(popupFrame)) {
-    return;
+    nsMenuPopupFrame* popupFrame = self->GetPopupFrameForContent(aPopup, true);
+    if (!popupFrame || !self->MayShowPopup(popupFrame)) {
+      return;
+    }
+
+    PendingPopup pendingPopup(aPopup, aTriggerEvent);
+    nsCOMPtr<nsIContent> triggerContent = pendingPopup.GetTriggerContent();
+
+    popupFrame->InitializePopup(aAnchorContent, triggerContent, aPosition,
+                                aXPos, aYPos, MenuPopupAnchorType::Node,
+                                aAttributesOverride);
+
+    if (!self->BeginShowingPopup(pendingPopup, aIsContextMenu,
+                                 aSelectFirstItem)) {
+      return;
+    }
+
+    scopeExit.release();
+  };
+
+  if (PopupQueueable(aPopup)) {
+    popupQueue->Enqueue(aPopup, callback);
+  } else {
+    DismissQueueableShownPopups();
+    popupQueue->Show(aPopup, callback);
   }
-
-  PendingPopup pendingPopup(aPopup, aTriggerEvent);
-  nsCOMPtr<nsIContent> triggerContent = pendingPopup.GetTriggerContent();
-
-  popupFrame->InitializePopup(aAnchorContent, triggerContent, aPosition, aXPos,
-                              aYPos, MenuPopupAnchorType::Node,
-                              aAttributesOverride);
-
-  BeginShowingPopup(pendingPopup, aIsContextMenu, aSelectFirstItem);
 }
 
 void nsXULPopupManager::ShowPopupAtScreen(Element* aPopup, int32_t aXPos,
                                           int32_t aYPos, bool aIsContextMenu,
                                           Event* aTriggerEvent) {
-  if (aIsContextMenu && ShouldUseNativeContextMenus() &&
-      ShowPopupAsNativeMenu(aPopup, aXPos, aYPos, aIsContextMenu,
-                            aTriggerEvent)) {
-    return;
+  RefPtr<PopupQueue> popupQueue = PopupQueue::GetInstance();
+  MOZ_ASSERT(popupQueue);
+
+  auto callback = [aXPos, aYPos, aIsContextMenu,
+                   aTriggerEvent = RefPtr{aTriggerEvent}](Element* aPopup) {
+    RefPtr<PopupQueue> popupQueue = PopupQueue::GetInstance();
+    if (!popupQueue) {
+      return;
+    }
+
+    auto scopeExit =
+        MakeScopeExit([&]() { popupQueue->NotifyDismissed(aPopup); });
+
+    auto self = sInstance;
+    if (!self) {
+      return;
+    }
+
+    if (aIsContextMenu && ShouldUseNativeContextMenus() &&
+        self->ShowPopupAsNativeMenu(aPopup, aXPos, aYPos, aIsContextMenu,
+                                    aTriggerEvent)) {
+      return;
+    }
+
+    nsMenuPopupFrame* popupFrame = self->GetPopupFrameForContent(aPopup, true);
+    if (!popupFrame || !self->MayShowPopup(popupFrame)) {
+      return;
+    }
+
+    PendingPopup pendingPopup(aPopup, aTriggerEvent);
+    nsCOMPtr<nsIContent> triggerContent = pendingPopup.GetTriggerContent();
+
+    popupFrame->InitializePopupAtScreen(triggerContent, aXPos, aYPos,
+                                        aIsContextMenu);
+    if (!self->BeginShowingPopup(pendingPopup, aIsContextMenu, false)) {
+      return;
+    }
+
+    scopeExit.release();
+  };
+
+  if (PopupQueueable(aPopup)) {
+    popupQueue->Enqueue(aPopup, callback);
+  } else {
+    DismissQueueableShownPopups();
+    popupQueue->Show(aPopup, callback);
   }
-
-  nsMenuPopupFrame* popupFrame = GetPopupFrameForContent(aPopup, true);
-  if (!popupFrame || !MayShowPopup(popupFrame)) {
-    return;
-  }
-
-  PendingPopup pendingPopup(aPopup, aTriggerEvent);
-  nsCOMPtr<nsIContent> triggerContent = pendingPopup.GetTriggerContent();
-
-  popupFrame->InitializePopupAtScreen(triggerContent, aXPos, aYPos,
-                                      aIsContextMenu);
-  BeginShowingPopup(pendingPopup, aIsContextMenu, false);
 }
 
 void ToggleTouchMode(const PendingPopup& aPopup) {
@@ -1097,18 +1172,49 @@ void nsXULPopupManager::OnNativeMenuWillActivateItem(
 void nsXULPopupManager::ShowPopupAtScreenRect(
     Element* aPopup, const nsAString& aPosition, const nsIntRect& aRect,
     bool aIsContextMenu, bool aAttributesOverride, Event* aTriggerEvent) {
-  nsMenuPopupFrame* popupFrame = GetPopupFrameForContent(aPopup, true);
-  if (!popupFrame || !MayShowPopup(popupFrame)) {
-    return;
+  RefPtr<PopupQueue> popupQueue = PopupQueue::GetInstance();
+  MOZ_ASSERT(popupQueue);
+
+  auto callback = [aPosition = nsString(aPosition), aRect, aIsContextMenu,
+                   aAttributesOverride,
+                   aTriggerEvent = RefPtr{aTriggerEvent}](Element* aPopup) {
+    RefPtr<PopupQueue> popupQueue = PopupQueue::GetInstance();
+    if (!popupQueue) {
+      return;
+    }
+
+    auto scopeExit =
+        MakeScopeExit([&]() { popupQueue->NotifyDismissed(aPopup); });
+
+    auto self = sInstance;
+    if (!self) {
+      return;
+    }
+
+    nsMenuPopupFrame* popupFrame = self->GetPopupFrameForContent(aPopup, true);
+    if (!popupFrame || !self->MayShowPopup(popupFrame)) {
+      return;
+    }
+
+    PendingPopup pendingPopup(aPopup, aTriggerEvent);
+    nsCOMPtr<nsIContent> triggerContent = pendingPopup.GetTriggerContent();
+
+    popupFrame->InitializePopupAtRect(triggerContent, aPosition, aRect,
+                                      aAttributesOverride);
+
+    if (!self->BeginShowingPopup(pendingPopup, aIsContextMenu, false)) {
+      return;
+    }
+
+    scopeExit.release();
+  };
+
+  if (PopupQueueable(aPopup)) {
+    popupQueue->Enqueue(aPopup, callback);
+  } else {
+    DismissQueueableShownPopups();
+    popupQueue->Show(aPopup, callback);
   }
-
-  PendingPopup pendingPopup(aPopup, aTriggerEvent);
-  nsCOMPtr<nsIContent> triggerContent = pendingPopup.GetTriggerContent();
-
-  popupFrame->InitializePopupAtRect(triggerContent, aPosition, aRect,
-                                    aAttributesOverride);
-
-  BeginShowingPopup(pendingPopup, aIsContextMenu, false);
 }
 
 void nsXULPopupManager::ShowTooltipAtScreen(
@@ -1243,6 +1349,11 @@ nsMenuChainItem* nsXULPopupManager::FindPopup(Element* aPopup) const {
 
 void nsXULPopupManager::HidePopup(Element* aPopup, HidePopupOptions aOptions,
                                   Element* aLastPopup) {
+  RefPtr<PopupQueue> popupQueue = PopupQueue::GetInstance();
+  MOZ_ASSERT(popupQueue);
+
+  popupQueue->NotifyDismissed(aPopup);
+
   if (mNativeMenu && mNativeMenu->Element() == aPopup) {
     RefPtr<NativeMenu> menu = mNativeMenu;
     (void)menu->Close();
@@ -1677,14 +1788,14 @@ nsEventStatus nsXULPopupManager::FirePopupShowingEvent(
   return status;
 }
 
-void nsXULPopupManager::BeginShowingPopup(const PendingPopup& aPendingPopup,
+bool nsXULPopupManager::BeginShowingPopup(const PendingPopup& aPendingPopup,
                                           bool aIsContextMenu,
                                           bool aSelectFirstItem) {
   RefPtr<Element> popup = aPendingPopup.mPopup;
 
   nsMenuPopupFrame* popupFrame = do_QueryFrame(popup->GetPrimaryFrame());
   if (NS_WARN_IF(!popupFrame)) {
-    return;
+    return false;
   }
 
   RefPtr<nsPresContext> presContext = popupFrame->PresContext();
@@ -1727,7 +1838,7 @@ void nsXULPopupManager::BeginShowingPopup(const PendingPopup& aPendingPopup,
   // get the frame again in case it went away
   popupFrame = do_QueryFrame(popup->GetPrimaryFrame());
   if (!popupFrame) {
-    return;
+    return false;
   }
   // if the event was cancelled or the popup was closed in the mean time, don't
   // open the popup, reset its state back to closed and clear its trigger
@@ -1736,7 +1847,7 @@ void nsXULPopupManager::BeginShowingPopup(const PendingPopup& aPendingPopup,
       status == nsEventStatus_eConsumeNoDefault) {
     popupFrame->SetPopupState(ePopupClosed);
     popupFrame->ClearTriggerContent();
-    return;
+    return false;
   }
   // Now check if we need to fire the popuppositioned event. If not, call
   // ShowPopupCallback directly.
@@ -1749,6 +1860,8 @@ void nsXULPopupManager::BeginShowingPopup(const PendingPopup& aPendingPopup,
   } else {
     ShowPopupCallback(popup, popupFrame, aIsContextMenu, aSelectFirstItem);
   }
+
+  return true;
 }
 
 void nsXULPopupManager::FirePopupHidingEvent(Element* aPopup,
@@ -2057,6 +2170,11 @@ bool nsXULPopupManager::MayShowPopup(nsMenuPopupFrame* aPopup) {
 }
 
 void nsXULPopupManager::PopupDestroyed(nsMenuPopupFrame* aPopup) {
+  RefPtr<PopupQueue> popupQueue = PopupQueue::GetInstance();
+  MOZ_ASSERT(popupQueue);
+
+  popupQueue->NotifyDismissed(&aPopup->PopupElement(), true);
+
   // when a popup frame is destroyed, just unhook it from the list of popups
   CancelMenuTimer(aPopup);
 
@@ -2807,6 +2925,16 @@ nsresult nsXULPopupManager::KeyPress(KeyboardEvent* aKeyEvent) {
   }
 
   return NS_OK;  // I am consuming event
+}
+
+void nsXULPopupManager::DismissQueueableShownPopups() {
+  RefPtr<PopupQueue> popupQueue = PopupQueue::GetInstance();
+  MOZ_ASSERT(popupQueue);
+
+  RefPtr<Element> popup = popupQueue->RetrieveQueueableShownPopup();
+  if (popup) {
+    HidePopup(popup, {HidePopupOption::IsRollup});
+  }
 }
 
 NS_IMETHODIMP
