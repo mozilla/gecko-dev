@@ -545,14 +545,15 @@ export class SidebarState {
       this.#controllerGlobal.windowUtils.getBoundsWithoutFlushing(
         this.#pinnedTabsItemsWrapper
       ).height;
-    if (this.pinnedTabsHeight > itemsWrapperHeight) {
-      this.pinnedTabsHeight = itemsWrapperHeight;
-      if (this.#props.launcherExpanded) {
-        this.expandedPinnedTabsHeight = this.pinnedTabsHeight;
-      } else {
-        this.collapsedPinnedTabsHeight = this.pinnedTabsHeight;
-      }
-    } else if (!active) {
+    let pinnedTabsContainerHeight =
+      this.#controllerGlobal.windowUtils.getBoundsWithoutFlushing(
+        this.#pinnedTabsContainerEl
+      ).height;
+    if (!active) {
+      this.pinnedTabsHeight = Math.min(
+        pinnedTabsContainerHeight,
+        itemsWrapperHeight
+      );
       // Store the user-preferred pinned tabs height.
       if (this.#props.launcherExpanded) {
         this.expandedPinnedTabsHeight = this.pinnedTabsHeight;
