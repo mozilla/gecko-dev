@@ -407,8 +407,6 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
       // Force same-origin tabs to share a single process, to properly test
       // functionality involving multiple tabs within a single process with Fission.
       ["dom.ipc.processCount.webIsolated", 1],
-      // Ensure utility audio decoder is enabled
-      ["media.utility-process.enabled", true],
     ],
   });
 

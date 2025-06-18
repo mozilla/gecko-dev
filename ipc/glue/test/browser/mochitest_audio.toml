@@ -9,12 +9,11 @@ support-files = [
   "../../../../dom/media/test/small-shot.flac",
 ]
 prefs = [
-  "media.utility-process.enabled=false",
   "media.wmf.media-engine.channel-decoder.enabled=false"
 ]
 
-["test_android_audio_off.html"]
+["test_android_audio.html"]
 run-if = ["os == 'android' && !isolated_process"]
 
-["test_utility_audio_off.html"]
+["test_utility_audio.html"]
 run-if = ["os == 'android'"]
