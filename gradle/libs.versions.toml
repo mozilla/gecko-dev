@@ -58,7 +58,7 @@ play-review = "2.0.2"
 play-services-ads-id = "18.2.0"
 play-services-base = "18.7.0"
 play-services-fido = "21.2.0"
-protobuf = "4.30.2" # Keep Protobuf in sync with the version used by AppServices.
+protobuf = "4.31.1" # Keep Protobuf in sync with the version used by AppServices.
 
 # JNA
 jna = "5.14.0" # Don't update until Android 5/6 support is dropped
