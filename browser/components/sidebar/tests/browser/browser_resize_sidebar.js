@@ -219,7 +219,8 @@ add_task(async function test_resize_of_pinned_tabs() {
     gBrowser.pinTab(gBrowser.selectedTab);
   }
   await SidebarController.waitUntilStable();
-
+  await dragPinnedTabs(-200, true);
+  await SidebarController.waitUntilStable();
   info("Resize the pinned tabs container.");
   const originalHeight = getPinnedTabsHeight();
   await dragPinnedTabs(200, true);
