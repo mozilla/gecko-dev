@@ -11,4 +11,5 @@ internal object HomepageTestTag {
     const val PRIVATE_BROWSING_HOMEPAGE_BUTTON = "private.browsing.homepage.button"
     const val HOMEPAGE_STORY = "homepage.story"
     const val HOMEPAGE_SPONSORED_STORY = "homepage.sponsored.story"
+    const val HOMEPAGE_PRIVATE_BROWSING_LEARN_MORE_LINK = "homepage.private.browsing.learn.more.link"
 }

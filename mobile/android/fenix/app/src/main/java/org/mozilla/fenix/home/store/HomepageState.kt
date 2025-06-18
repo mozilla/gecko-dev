@@ -56,14 +56,12 @@ internal sealed class HomepageState {
     /**
      * State type corresponding with private browsing mode.
      *
-     * @property feltPrivateBrowsingEnabled Whether felt private browsing is enabled.
      * @property showPrivateBrowsingButton Whether to show the private browsing button.
      * @property firstFrameDrawn Flag indicating whether the first frame of the homescreen has been drawn.
      * @property bottomSpacerHeight Height in [Dp] for the bottom of the scrollable view, based on
      * what's currently visible on the screen.
      */
     internal data class Private(
-        val feltPrivateBrowsingEnabled: Boolean,
         override val showPrivateBrowsingButton: Boolean,
         override val firstFrameDrawn: Boolean = false,
         override val bottomSpacerHeight: Dp,
@@ -150,7 +148,6 @@ internal sealed class HomepageState {
                 if (browsingModeManager.mode.isPrivate) {
                     Private(
                         showPrivateBrowsingButton = !settings.enableHomepageAsNewTab,
-                        feltPrivateBrowsingEnabled = settings.feltPrivateBrowsingEnabled,
                         firstFrameDrawn = appState.firstFrameDrawn,
                         bottomSpacerHeight = getBottomSpace(),
                     )

@@ -64,7 +64,6 @@ import org.mozilla.fenix.home.recentvisits.view.RecentlyVisited
 import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
 import org.mozilla.fenix.home.sessioncontrol.MessageCardInteractor
 import org.mozilla.fenix.home.sessioncontrol.viewholders.FeltPrivacyModeInfoCard
-import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescription
 import org.mozilla.fenix.home.setup.ui.SetupChecklist
 import org.mozilla.fenix.home.store.HomepageState
 import org.mozilla.fenix.home.store.NimbusMessageState
@@ -116,15 +115,9 @@ internal fun Homepage(
                 when (this) {
                     is HomepageState.Private -> {
                         Box(modifier = Modifier.padding(horizontal = horizontalMargin)) {
-                            if (feltPrivateBrowsingEnabled) {
-                                FeltPrivacyModeInfoCard(
-                                    onLearnMoreClick = interactor::onLearnMoreClicked,
-                                )
-                            } else {
-                                PrivateBrowsingDescription(
-                                    onLearnMoreClick = interactor::onLearnMoreClicked,
-                                )
-                            }
+                            FeltPrivacyModeInfoCard(
+                                onLearnMoreClick = interactor::onLearnMoreClicked,
+                            )
                         }
                     }
 
@@ -522,7 +515,6 @@ private fun PrivateHomepagePreview() {
             Homepage(
                 HomepageState.Private(
                     showPrivateBrowsingButton = true,
-                    feltPrivateBrowsingEnabled = false,
                     firstFrameDrawn = true,
                     bottomSpacerHeight = 188.dp,
                 ),

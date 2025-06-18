@@ -67,7 +67,7 @@ class HomeScreenTest : TestSetup() {
 
         homeScreen {
             verifyPrivateBrowsingHomeScreenItems()
-        }.openCommonMythsLink {
+        }.openPrivateBrowsingModeLearnMoreLink(activityTestRule) {
             verifyUrl("common-myths-about-private-browsing")
         }
     }

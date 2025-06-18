@@ -16,16 +16,21 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
+import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_PRIVATE_BROWSING_LEARN_MORE_LINK
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -33,6 +38,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
  *
  * @param onLearnMoreClick Invoked when the user clicks on the who can see my activity link.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun FeltPrivacyModeInfoCard(
     onLearnMoreClick: () -> Unit,
@@ -56,25 +62,32 @@ fun FeltPrivacyModeInfoCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            LinkText(
-                text = stringResource(
-                    id = R.string.felt_privacy_info_card_subtitle_2,
-                    stringResource(id = R.string.app_name),
-                    stringResource(id = R.string.felt_privacy_info_card_subtitle_link_text),
-                ),
-                linkTextStates = listOf(
-                    LinkTextState(
-                        text = stringResource(id = R.string.felt_privacy_info_card_subtitle_link_text),
-                        url = "",
-                        onClick = { onLearnMoreClick() },
+            Box(
+                modifier = Modifier.semantics {
+                    testTagsAsResourceId = true
+                    testTag = HOMEPAGE_PRIVATE_BROWSING_LEARN_MORE_LINK
+                },
+            ) {
+                LinkText(
+                    text = stringResource(
+                        id = R.string.felt_privacy_info_card_subtitle_2,
+                        stringResource(id = R.string.app_name),
+                        stringResource(id = R.string.felt_privacy_info_card_subtitle_link_text),
                     ),
-                ),
-                style = FirefoxTheme.typography.body2.copy(
-                    color = FirefoxTheme.colors.textPrimary,
-                ),
-                linkTextColor = FirefoxTheme.colors.textPrimary,
-                linkTextDecoration = TextDecoration.Underline,
-            )
+                    linkTextStates = listOf(
+                        LinkTextState(
+                            text = stringResource(id = R.string.felt_privacy_info_card_subtitle_link_text),
+                            url = "",
+                            onClick = { onLearnMoreClick() },
+                        ),
+                    ),
+                    style = FirefoxTheme.typography.body2.copy(
+                        color = FirefoxTheme.colors.textPrimary,
+                    ),
+                    linkTextColor = FirefoxTheme.colors.textPrimary,
+                    linkTextDecoration = TextDecoration.Underline,
+                )
+            }
         }
     }
 }

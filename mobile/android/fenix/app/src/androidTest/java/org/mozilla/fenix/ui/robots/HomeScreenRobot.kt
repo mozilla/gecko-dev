@@ -75,6 +75,7 @@ import org.mozilla.fenix.helpers.ext.waitNotNull
 import org.mozilla.fenix.home.topsites.TopSitesTestTag
 import org.mozilla.fenix.home.topsites.TopSitesTestTag.TOP_SITE_CARD_FAVICON
 import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE
+import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_PRIVATE_BROWSING_LEARN_MORE_LINK
 import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_STORY
 import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_WORDMARK_LOGO
 import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_WORDMARK_TEXT
@@ -93,13 +94,9 @@ class HomeScreenRobot {
         verifyHomeScreenAppBarItems()
         assertUIObjectExists(
             itemContainingText(
-                "$appName clears your search and browsing history from private tabs when you close them" +
-                    " or quit the app. While this doesn’t make you anonymous to websites or your internet" +
-                    " service provider, it makes it easier to keep what you do online private from anyone" +
-                    " else who uses this device.",
+                getStringResource(R.string.felt_privacy_desc_card_title),
             ),
         )
-        verifyCommonMythsLink()
     }
 
     fun verifyHomeScreenAppBarItems() =
@@ -267,9 +264,6 @@ class HomeScreenRobot {
         testRule.onNode(hasContentDescription("Close")).performClick()
         Log.i(TAG, "clickCloseButton: Clicked close onboarding button")
     }
-
-    fun verifyCommonMythsLink() =
-        assertUIObjectExists(itemContainingText(getStringResource(R.string.private_browsing_common_myths)))
 
     @OptIn(ExperimentalTestApi::class)
     fun verifyExistingTopSitesList(composeTestRule: ComposeTestRule) {
@@ -817,15 +811,10 @@ class HomeScreenRobot {
             return SettingsSubMenuHomepageRobot.Transition()
         }
 
-        fun openCommonMythsLink(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
-            Log.i(TAG, "openCommonMythsLink: Trying to click private browsing home screen common myths link")
-            mDevice.findObject(
-                UiSelector()
-                    .textContains(
-                        getStringResource(R.string.private_browsing_common_myths),
-                    ),
-            ).also { it.click() }
-            Log.i(TAG, "openCommonMythsLink: Clicked private browsing home screen common myths link")
+        fun openPrivateBrowsingModeLearnMoreLink(composeTestRule: ComposeTestRule, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "openPrivateBrowsingModeLearnMoreLink: Trying to click private browsing home screen link")
+            composeTestRule.onNodeWithTag(HOMEPAGE_PRIVATE_BROWSING_LEARN_MORE_LINK).performClick()
+            Log.i(TAG, "openPrivateBrowsingModeLearnMoreLink: Clicked private browsing home screen link")
 
             BrowserRobot().interact()
             return BrowserRobot.Transition()
