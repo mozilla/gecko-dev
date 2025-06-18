@@ -178,13 +178,13 @@ void nsDOMDataChannel::Send(const nsAString& aData, ErrorResult& aRv) {
     return;
   }
 
-  nsAutoCString msgString;
+  nsCString msgString;
   if (!AppendUTF16toUTF8(aData, msgString, mozilla::fallible_t())) {
     aRv.Throw(NS_ERROR_FILE_TOO_BIG);
     return;
   }
 
-  mDataChannel->SendMsg(msgString, aRv);
+  mDataChannel->SendMsg(std::move(msgString), aRv);
 }
 
 void nsDOMDataChannel::Send(Blob& aData, ErrorResult& aRv) {
@@ -226,7 +226,7 @@ void nsDOMDataChannel::Send(const ArrayBuffer& aData, ErrorResult& aRv) {
     return;
   }
 
-  mDataChannel->SendBinaryMsg(msgString, aRv);
+  mDataChannel->SendBinaryMsg(std::move(msgString), aRv);
 }
 
 void nsDOMDataChannel::Send(const ArrayBufferView& aData, ErrorResult& aRv) {
@@ -242,7 +242,7 @@ void nsDOMDataChannel::Send(const ArrayBufferView& aData, ErrorResult& aRv) {
     return;
   }
 
-  mDataChannel->SendBinaryMsg(msgString, aRv);
+  mDataChannel->SendBinaryMsg(std::move(msgString), aRv);
 }
 
 bool nsDOMDataChannel::CheckReadyState(ErrorResult& aRv) {
