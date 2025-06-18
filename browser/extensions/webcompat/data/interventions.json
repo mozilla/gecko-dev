@@ -781,18 +781,18 @@
       }
     ]
   },
-  "1842767": {
-    "label": "passport.bilibili.com",
+  "1800880": {
+    "label": "clipchamp.com",
     "bugs": {
-      "1842767": {
-        "issue": "desktop-layout-not-mobile",
-        "matches": ["*://*.passport.bilibili.com/*"]
+      "1800880": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.clipchamp.com/*"]
       }
     },
     "interventions": [
       {
-        "platforms": ["android"],
-        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
+        "platforms": ["desktop"],
+        "ua_string": ["Chrome_with_FxQuantum"]
       }
     ]
   },
@@ -1426,6 +1426,21 @@
         "content_scripts": {
           "js": ["bug1842437-www.youtube.com-performance-now-precision.js"]
         }
+      }
+    ]
+  },
+  "1842767": {
+    "label": "passport.bilibili.com",
+    "bugs": {
+      "1842767": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://*.passport.bilibili.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
       }
     ]
   },
