@@ -204,6 +204,8 @@ class DataChannelConnection : public net::NeckoTargetHolder {
   // Finish Destroy on STS to avoid SCTP race condition with ABORT from far end
   void DestroyOnSTS();
   virtual bool RaiseStreamLimitTo(uint16_t aNewLimit);
+  // Called when the base class is closing streams
+  virtual void ResetStreams(nsTArray<uint16_t>& aStreams);
 
   int SendMessage(DataChannel& aChannel, OutgoingMsg&& aMsg)
       MOZ_REQUIRES(mLock);
@@ -212,6 +214,7 @@ class DataChannelConnection : public net::NeckoTargetHolder {
   uint64_t GetMaxMessageSize();
   void HandleDataMessage(IncomingMsg&& aMsg) MOZ_REQUIRES(mLock);
   void HandleDCEPMessage(IncomingMsg&& aMsg) MOZ_REQUIRES(mLock);
+  void OnStreamsReset(std::vector<uint16_t>&& aStreams) MOZ_REQUIRES(mLock);
 
   void AppendStatsToReport(const UniquePtr<dom::RTCStatsCollection>& aReport,
                            const DOMHighResTimeStamp aTimestamp) const;
@@ -232,7 +235,9 @@ class DataChannelConnection : public net::NeckoTargetHolder {
 
   void Stop();
   void Close(DataChannel* aChannel);
-  void CloseLocked(DataChannel* aChannel) MOZ_REQUIRES(mLock);
+  void GracefulClose(DataChannel* aChannel);
+  void FinishClose(DataChannel* aChannel);
+  void FinishClose_s(DataChannel* aChannel) MOZ_REQUIRES(mLock);
   void CloseAll();
 
   // Returns a POSIX error code.
@@ -352,8 +357,7 @@ class DataChannelConnection : public net::NeckoTargetHolder {
 
   void ProcessQueuedOpens() MOZ_REQUIRES(mLock);
   void ClearResets() MOZ_REQUIRES(mLock);
-  void SendOutgoingStreamReset() MOZ_REQUIRES(mLock);
-  void ResetOutgoingStream(DataChannel& aChannel) MOZ_REQUIRES(mLock);
+  void MarkStreamForReset(DataChannel& aChannel) MOZ_REQUIRES(mLock);
   void HandleOpenRequestMessage(
       const struct rtcweb_datachannel_open_request* req, uint32_t length,
       uint16_t stream) MOZ_REQUIRES(mLock);
@@ -449,7 +453,7 @@ class DataChannelConnection : public net::NeckoTargetHolder {
   RefPtr<MediaTransportHandler> mTransportHandler;
   MediaEventListener mPacketReceivedListener;
   MediaEventListener mStateChangeListener;
-  nsCOMPtr<nsIEventTarget> mSTS;
+  nsCOMPtr<nsISerialEventTarget> mSTS;
 
   // Mainthread only
   Maybe<bool> mAllocateEven;
@@ -497,9 +501,6 @@ class DataChannel {
 
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DataChannel)
-
-  // when we disconnect from the connection after stream RESET
-  void StreamClosedLocked();
 
   // Complete dropping of the link between DataChannel and the connection.
   // After this, except for a few methods below listed to be safe, you can't
@@ -550,7 +551,6 @@ class DataChannel {
   void SetBufferedAmountLowThreshold(uint32_t aThreshold);
 
   void AnnounceOpen();
-  // TODO(bug 843625): Optionally pass an error here.
   void AnnounceClosed();
 
   // Find out state
@@ -572,9 +572,6 @@ class DataChannel {
       MOZ_REQUIRES(mConnection->mLock);
 
   TrafficCounters GetTrafficCounters() const;
-
-  bool HasSentStreamReset() const { return mHasSentStreamReset; }
-  void SetHasSentStreamReset() { mHasSentStreamReset = true; }
 
  private:
   nsresult AddDataToBinaryMsg(const char* data, uint32_t size);
@@ -604,13 +601,12 @@ class DataChannel {
   // The channel has been opened, but the peer has not yet acked - ensures that
   // the messages are sent ordered until this is cleared.
   bool mWaitingForAck = false;
-  bool mHasSentStreamReset = false;
   bool mIsRecvBinary;
   size_t mBufferedThreshold;
   // Read/written on main only. Decremented via message-passing, because the
   // spec requires us to queue a task for this.
   size_t mBufferedAmount;
-  nsTArray<OutgoingMsg> mBufferedData MOZ_GUARDED_BY(mConnection->mLock);
+  nsTArray<OutgoingMsg> mBufferedData;
   nsCOMPtr<nsISerialEventTarget> mMainThreadEventTarget;
   mutable Mutex mStatsLock;
   TrafficCounters mTrafficCounters MOZ_GUARDED_BY(mStatsLock);
