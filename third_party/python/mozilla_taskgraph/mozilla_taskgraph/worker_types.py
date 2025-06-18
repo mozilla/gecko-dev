@@ -297,6 +297,10 @@ def process_l10n_bump_info(info):
                 {
                     Required("early-to-late-beta"): {
                         Required("to-branch"): str,
+                        # technically not used, but passing it keeps landoscript
+                        # code cleaner, so we may as well require a real value
+                        # for it.
+                        Required("fetch-version-from"): str,
                         Optional("replacements"): [[str]],
                     },
                 },

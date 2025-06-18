@@ -834,14 +834,14 @@ wheels = [
 
 [[package]]
 name = "mozilla-taskgraph"
-version = "3.3.1"
+version = "3.3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "taskcluster-taskgraph" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/94/e7/c289671e789de44febe6e4f7ef5f6ecd1fe24df8213900093db2cd9101a4/mozilla_taskgraph-3.3.1.tar.gz", hash = "sha256:e95b3ce407a052feaf24d84eb9820249ec0fb72151f95f532d6ea1b763b729a7", size = 80695, upload-time = "2025-06-06T11:59:44.638Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/7d/37bb9f6acd48d936f4750dd886aad544091db262a26201ffa6f3fdf4cea4/mozilla_taskgraph-3.3.2.tar.gz", hash = "sha256:418c7086815ba8dea75badd4557bc39142ebfc0c858cf246b769db1d1d6b5209", size = 80825, upload-time = "2025-06-16T15:26:21.872Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b1/6e/73833f6e07f85d3b18d26b600d9ec83e80e816200b253baae8da72f94878/mozilla_taskgraph-3.3.1-py3-none-any.whl", hash = "sha256:0e1b7fda7b3bfb4cc6aa08618d1100e1df407732b63eec7c0e34457b56d0e613", size = 18996, upload-time = "2025-06-06T11:59:42.996Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/8f/34fe249a00e6720250861c8bc05fc7786cb4d1acd9c8adaedbb322594a74/mozilla_taskgraph-3.3.2-py3-none-any.whl", hash = "sha256:f6d0a0b6d85eef57d7b42c7a83cb594a9173910464a6dab57499e117b5e9f9b6", size = 19082, upload-time = "2025-06-16T15:26:20.575Z" },
 ]
 
 [[package]]
