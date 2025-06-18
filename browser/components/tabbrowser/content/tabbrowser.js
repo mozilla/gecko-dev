@@ -4529,7 +4529,12 @@
      * @param {boolean} [options.skipGroupCheck]
      *   Skip separate processing of whole tab groups from the set of tabs.
      *   Used by removeTabGroup.
-     * TODO add docs
+     * @param {boolean} [options.isUserTriggered]
+     *   Whether or not the removal is the direct result of a user action.
+     *   Used for telemetry.
+     * @param {string} [options.telemetrySource]
+     *   The system, surface, or control the user used to take this action.
+     *   @see TabMetrics.METRIC_SOURCE for possible values.
      */
     removeTabs(
       tabs,
