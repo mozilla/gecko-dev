@@ -9,10 +9,12 @@ EXPORTS.mozilla.net += [
     "DataChannelListener.h",
     "DataChannelLog.h",
     "DataChannelProtocol.h",
+    "DataChannelUsrsctp.h",
 ]
 
 SOURCES += [
     "DataChannel.cpp",
+    "DataChannelUsrsctp.cpp",
 ]
 
 include("/ipc/chromium/chromium-config.mozbuild")
