@@ -101,7 +101,7 @@ add_task(
     // Now the listener triggers again and the metric re-enables. We should see
     // telemetry for this unenrollment but not setting the targeting context
     // value.
-    manager.unenroll(experiment.slug, { reason: "recipe-not-seen" });
+    await manager.unenroll(experiment.slug, { reason: "recipe-not-seen" });
 
     Glean.nimbusTargetingEnvironment.targetingContextValue.set(
       "rollout-active-3"

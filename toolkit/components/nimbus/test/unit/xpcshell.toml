@@ -12,8 +12,6 @@ prefs = [
 ]
 run-sequentially = "very high failure rate in parallel"
 
-["test_Enrollments.js"]
-
 ["test_ExperimentAPI.js"]
 
 ["test_ExperimentAPI_ExperimentFeature.js"]

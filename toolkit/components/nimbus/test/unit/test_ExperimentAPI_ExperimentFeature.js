@@ -145,7 +145,7 @@ add_task(async function test_record_exposure_event() {
 
   sandbox.restore();
 
-  manager.unenroll("blah");
+  await manager.unenroll("blah");
   await cleanup();
 });
 
@@ -177,7 +177,7 @@ add_task(async function test_record_exposure_event_once() {
   // We expect only one event
   Assert.equal(1, exposureEvents.length);
 
-  manager.unenroll("blah");
+  await manager.unenroll("blah");
   await cleanup();
 });
 

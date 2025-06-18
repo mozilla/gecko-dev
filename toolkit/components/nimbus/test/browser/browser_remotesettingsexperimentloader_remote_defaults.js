@@ -223,7 +223,6 @@ add_task(async function test_remote_fetch_and_ready() {
   ExperimentAPI.manager.store._deleteForTests("bar");
   ExperimentAPI.manager.store._deleteForTests(REMOTE_CONFIGURATION_FOO.slug);
   ExperimentAPI.manager.store._deleteForTests(REMOTE_CONFIGURATION_BAR.slug);
-  await NimbusTestUtils.flushStore();
   sandbox.restore();
 
   cleanup();
@@ -374,7 +373,6 @@ add_task(async function test_finalizeRemoteConfigs_cleanup() {
   // only sets the recipe as inactive
   ExperimentAPI.manager.store._deleteForTests("bar-rollout");
   ExperimentAPI.manager.store._deleteForTests("foo-rollout");
-  await NimbusTestUtils.flushStore();
 
   cleanupTestFeatures();
   cleanup();
@@ -406,6 +404,8 @@ add_task(async function remote_defaults_no_mutation() {
 });
 
 add_task(async function remote_defaults_active_remote_defaults() {
+  ExperimentAPI.manager.store._deleteForTests("foo");
+  ExperimentAPI.manager.store._deleteForTests("bar");
   let barFeature = new ExperimentFeature("bar", {
     description: "mochitest",
     variables: { enabled: { type: "boolean" } },
@@ -460,7 +460,6 @@ add_task(async function remote_defaults_active_remote_defaults() {
   await NimbusTestUtils.cleanupManager(["foo", "bar"]);
   ExperimentAPI.manager.store._deleteForTests("foo");
   ExperimentAPI.manager.store._deleteForTests("bar");
-  await NimbusTestUtils.flushStore();
 
   cleanup();
   cleanupTestFeatures();
@@ -537,7 +536,6 @@ add_task(async function remote_defaults_variables_storage() {
   Assert.ok(!barFeature.getVariable("string"), "Variable is no longer defined");
   ExperimentAPI.manager.store._deleteForTests("bar");
   ExperimentAPI.manager.store._deleteForTests("bar-rollout");
-  await NimbusTestUtils.flushStore();
 
   delete NimbusFeatures.bar;
   featureCleanup();

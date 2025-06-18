@@ -55,7 +55,7 @@ add_task(async function test_add_to_store() {
   );
   Assert.equal(experiment.active, true, "should set .active = true");
 
-  manager.unenroll("foo");
+  await manager.unenroll("foo");
 
   await cleanup();
 });
@@ -87,7 +87,7 @@ add_task(async function test_add_rollout_to_store() {
   );
   Assert.equal(experiment.isRollout, true, "should have .isRollout");
 
-  manager.unenroll("rollout-slug");
+  await manager.unenroll("rollout-slug");
 
   await cleanup();
 });
@@ -209,7 +209,7 @@ add_task(async function test_setExperimentActive_recordEnrollment_called() {
     "Glean.nimbusEvents.enrollment recorded with correct branch slug"
   );
 
-  manager.unenroll("foo");
+  await manager.unenroll("foo");
 
   await cleanup();
 });
@@ -301,7 +301,7 @@ add_task(async function test_setRolloutActive_recordEnrollment_called() {
     ]
   );
 
-  manager.unenroll("rollout");
+  await manager.unenroll("rollout");
 
   await cleanup();
 });
@@ -369,7 +369,7 @@ add_task(async function test_failure_name_conflict() {
     "enrollmentStatus telemetry recorded correctly"
   );
 
-  manager.unenroll("foo");
+  await manager.unenroll("foo");
 
   await cleanup();
 });
@@ -442,7 +442,7 @@ add_task(async function test_failure_group_conflict() {
     "Glean.nimbusEvents.enroll_failed recorded with correct reason"
   );
 
-  manager.unenroll("foo");
+  await manager.unenroll("foo");
 
   await cleanup();
 });
@@ -503,7 +503,7 @@ add_task(async function test_rollout_failure_group_conflict() {
     "Glean.nimbusEvents.enroll_failed recorded with correct reason"
   );
 
-  manager.unenroll("rollout-recipe");
+  await manager.unenroll("rollout-recipe");
 
   await cleanup();
 });
@@ -656,7 +656,7 @@ add_task(async function enroll_in_reference_aw_experiment() {
   // in prefs.
   Assert.ok(prefValue.length < 3498, "Make sure we don't bloat the prefs");
 
-  manager.unenroll(recipe.slug);
+  await manager.unenroll(recipe.slug);
 
   await cleanup();
 });
@@ -734,7 +734,7 @@ add_task(async function test_forceEnroll_cleanup() {
     "Enrolled in forced experiment"
   );
 
-  manager.unenroll(`optin-bar`);
+  await manager.unenroll(`optin-bar`);
 
   await cleanup();
 });
@@ -775,7 +775,7 @@ add_task(async function test_rollout_unenroll_conflict() {
     "Rollout should be active"
   );
 
-  manager.unenroll(`optin-${rollout.slug}`);
+  await manager.unenroll(`optin-${rollout.slug}`);
 
   await cleanup();
 });
@@ -843,7 +843,7 @@ add_task(async function test_forceEnroll() {
     }
 
     for (const { slug } of expected) {
-      manager.unenroll(`optin-${slug}`);
+      await manager.unenroll(`optin-${slug}`);
     }
   }
 
@@ -961,13 +961,13 @@ add_task(async function test_reEnroll() {
     "Should enroll in rollout"
   );
 
-  manager.unenroll(experiment.slug);
+  await manager.unenroll(experiment.slug);
   Assert.ok(
     !manager.store.getExperimentForFeature("testFeature"),
     "Should unenroll from experiment"
   );
 
-  manager.unenroll(rollout.slug);
+  await manager.unenroll(rollout.slug);
   Assert.ok(
     !manager.store.getRolloutForFeature("testFeature"),
     "Should unenroll from rollout"
@@ -986,7 +986,7 @@ add_task(async function test_reEnroll() {
     "Should re-enroll in rollout"
   );
 
-  manager.unenroll(rollout.slug);
+  await manager.unenroll(rollout.slug);
 
   await cleanup();
 });
@@ -1053,7 +1053,7 @@ add_task(async function test_group_enrollment() {
       "Should have enrolled in the expected branch"
     );
 
-    manager.unenroll(recipe.slug);
+    await manager.unenroll(recipe.slug);
 
     await cleanup();
   }
@@ -1237,10 +1237,10 @@ add_task(async function testCoenrolling() {
   Assert.ok(manager.store.get("experiment-1").active, "experiment-1 is active");
   Assert.ok(manager.store.get("experiment-2").active, "experiment-2 is active");
 
-  manager.unenroll("rollout-1");
-  manager.unenroll("rollout-2");
-  manager.unenroll("experiment-1");
-  manager.unenroll("experiment-2");
+  await manager.unenroll("rollout-1");
+  await manager.unenroll("rollout-2");
+  await manager.unenroll("experiment-1");
+  await manager.unenroll("experiment-2");
 
   await cleanup();
 });

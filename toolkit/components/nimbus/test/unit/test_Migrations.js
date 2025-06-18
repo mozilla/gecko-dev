@@ -52,6 +52,9 @@ add_setup(async function setup() {
  * @param {object} options
  * @param {number?} options.legacyMigrationState
  *        The value of the legacy migration pref.
+ * @param {Record<Phase, number>?} options.migrationState
+ *        The value that should be set for the Nimbus migration prefs. If
+ *        not provided, the pref will be unset.
  * @param {Record<Phase, Migration[]>} options.migrations
  *        An array of migrations that will replace the regular set of migrations
  *        for the duration of the test.
@@ -64,6 +67,7 @@ add_setup(async function setup() {
 
 async function setupTest({
   legacyMigrationState,
+  migrationState,
   migrations,
   init = true,
   ...args
@@ -87,6 +91,12 @@ async function setupTest({
   });
 
   const { sandbox } = ctx;
+
+  if (migrationState) {
+    for (const [phase, value] of Object.entries(migrationState)) {
+      Services.prefs.setIntPref(NIMBUS_MIGRATION_PREFS[phase], value);
+    }
+  }
 
   if (typeof legacyMigrationState !== "undefined") {
     Services.prefs.setIntPref(
@@ -755,7 +765,7 @@ add_task(async function test_migration_firefoxLabsEnrollments() {
           `Pref ${pref} should be set after enrollment`
         );
 
-        manager.unenroll(slug);
+        await manager.unenroll(slug);
         Assert.equal(
           Services.prefs.getBoolPref(pref),
           false,
@@ -909,7 +919,7 @@ add_task(async function test_migration_firefoxLabsEnrollments_idempotent() {
   );
 
   for (const { slug } of recipes) {
-    manager.unenroll(slug);
+    await manager.unenroll(slug);
   }
 
   await cleanup();
@@ -1007,8 +1017,7 @@ add_task(async function testMigrateEnrollmentsToSql() {
 
     await store.init();
 
-    store.set(
-      "inactive-1",
+    store.addEnrollment(
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "inactive-1",
         { featureId: "no-feature-firefox-desktop" },
@@ -1019,8 +1028,7 @@ add_task(async function testMigrateEnrollmentsToSql() {
         }
       )
     );
-    store.set(
-      "inactive-2",
+    store.addEnrollment(
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "inactive-2",
         { branchSlug: "treatment-a", featureId: "no-feature-firefox-desktop" },
@@ -1031,8 +1039,7 @@ add_task(async function testMigrateEnrollmentsToSql() {
         }
       )
     );
-    store.set(
-      "expired-but-active",
+    store.addEnrollment(
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "expired-but-active",
         { featureId: "no-feature-firefox-desktop" },
@@ -1040,8 +1047,7 @@ add_task(async function testMigrateEnrollmentsToSql() {
       )
     );
 
-    store.set(
-      "experiment-1",
+    store.addEnrollment(
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "experiment-1",
         {
@@ -1051,8 +1057,7 @@ add_task(async function testMigrateEnrollmentsToSql() {
         { source: NimbusTelemetry.EnrollmentSource.RS_LOADER }
       )
     );
-    store.set(
-      "rollout-1",
+    store.addEnrollment(
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "rollout-1",
         { featureId: "no-feature-firefox-desktop" },
@@ -1070,8 +1075,7 @@ add_task(async function testMigrateEnrollmentsToSql() {
         }
       )
     );
-    store.set(
-      "prefFlips-experiment",
+    store.addEnrollment(
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "prefFlips-experiment",
         {
@@ -1088,8 +1092,7 @@ add_task(async function testMigrateEnrollmentsToSql() {
         }
       )
     );
-    store.set(
-      "setPref-experiment",
+    store.addEnrollment(
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "setPref-experiment",
         {
@@ -1110,8 +1113,7 @@ add_task(async function testMigrateEnrollmentsToSql() {
         }
       )
     );
-    store.set(
-      "devtools",
+    store.addEnrollment(
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "devtools",
         {
@@ -1121,8 +1123,7 @@ add_task(async function testMigrateEnrollmentsToSql() {
         { source: "nimbus-devtools" }
       )
     );
-    store.set(
-      "optin",
+    store.addEnrollment(
       NimbusTestUtils.factories.experiment.withFeatureConfig(
         "optin",
         {
@@ -1492,21 +1493,6 @@ add_task(async function testMigrateEnrollmentsToSql() {
   if (importMigrationError) {
     throw importMigrationError;
   }
-
-  Assert.deepEqual(
-    Glean.nimbusEvents.startupDatabaseConsistency
-      .testGetValue("events")
-      .map(ev => ev.extra),
-    [
-      {
-        total_db_count: "9",
-        total_store_count: "9",
-        db_active_count: "7",
-        store_active_count: "7",
-        trigger: "migration",
-      },
-    ]
-  );
 
   await NimbusTestUtils.cleanupManager([
     "experiment-1",

@@ -44,7 +44,7 @@ add_task(async function test_experimentEnrollment() {
   let meta = NimbusFeatures.testFeature.getEnrollmentMetadata();
   Assert.equal(meta.slug, recipe.slug, "Enrollment active");
 
-  ExperimentAPI.manager.unenroll(recipe.slug);
+  await ExperimentAPI.manager.unenroll(recipe.slug);
 
   meta = NimbusFeatures.testFeature.getEnrollmentMetadata();
   Assert.ok(!meta, "Experiment is no longer active");

@@ -189,6 +189,9 @@ add_task(async function testNimbusTargetingContextAllKeysPresent() {
     }
   }, recordTargetingContext);
 
+  manager.store._deleteForTests("experiment");
+  manager.store._deleteForTests("rollout");
+
   await cleanup();
 });
 
@@ -345,9 +348,9 @@ add_task(async function testExperimentMetrics() {
     );
   }, recordTargetingContext);
 
-  manager.store.deactivateEnrollment("experiment-1");
-  manager.store.deactivateEnrollment("experiment-2");
-  manager.store.deactivateEnrollment("rollout-1");
+  manager.store.updateExperiment("experiment-1", { active: false });
+  manager.store.updateExperiment("experiment-2", { active: false });
+  manager.store.updateExperiment("rollout-1", { active: false });
 
   await GleanPings.nimbusTargetingContext.testSubmission(() => {
     assertRecordingFailures();
@@ -365,6 +368,10 @@ add_task(async function testExperimentMetrics() {
       ].sort()
     );
   }, recordTargetingContext);
+
+  manager.store._deleteForTests("experiment-1");
+  manager.store._deleteForTests("experiment-2");
+  manager.store._deleteForTests("rollout-1");
 
   await cleanup();
 });

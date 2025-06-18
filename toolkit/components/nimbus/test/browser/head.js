@@ -29,9 +29,9 @@ add_setup(async function () {
   );
   sandbox
     .stub(ExperimentAPI.manager.store, "addEnrollment")
-    .callsFake((enrollment, recipe) => {
+    .callsFake(enrollment => {
       NimbusTestUtils.validateEnrollment(enrollment);
-      return origAddExperiment(enrollment, recipe);
+      return origAddExperiment(enrollment);
     });
 
   // Ensure the inner callback runs after all other registered cleanup

@@ -1052,19 +1052,10 @@ nimbus_events:
          The number of active enrollments in the ExperimentStore JSON file.
         type: quantity
         unit: enrollments
-
-      trigger:
-        description: >
-          What triggered the database consistency check. This is either
-          "migration" or "startup".
-        type: string
-
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1956080
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972427
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1956080
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972427
     notification_emails:
       - beth@mozilla.com
       - project-nimbus@mozilla.com

@@ -15,11 +15,6 @@ const {
   ExperimentAPI,
   NimbusFeatures,
 } = ChromeUtils.importESModule("resource://nimbus/ExperimentAPI.sys.mjs");
-
-const { NimbusEnrollments } = ChromeUtils.importESModule(
-  "resource://nimbus/lib/Enrollments.sys.mjs"
-);
-
 const { NimbusTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/NimbusTestUtils.sys.mjs"
 );
@@ -38,14 +33,11 @@ add_setup(async function () {
 
   // TODO(bug 1967779): require the ProfilesDatastoreService to be initialized
   Services.prefs.setBoolPref("nimbus.profilesdatastoreservice.enabled", true);
-  NimbusEnrollments._reloadPrefsForTests();
-
   registerCleanupFunction(() => {
     Services.prefs.setBoolPref(
       "nimbus.profilesdatastoreservice.enabled",
       false
     );
-    NimbusEnrollments._reloadPrefsForTests();
   });
 });
 

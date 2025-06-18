@@ -422,7 +422,7 @@ add_task(async function test_experiment_optin_targeting() {
     "Should enroll in experiment"
   );
 
-  manager.unenroll(`optin-${recipe.slug}`);
+  await manager.unenroll(`optin-${recipe.slug}`);
 
   Services.prefs.clearUserPref(DEBUG_PREF);
 

@@ -185,7 +185,7 @@ add_task(
 
     Services.prefs.clearUserPref(TEST_FALLBACK_PREF);
 
-    manager.unenroll(rollout.slug);
+    await manager.unenroll(rollout.slug);
     await cleanup();
   }
 );

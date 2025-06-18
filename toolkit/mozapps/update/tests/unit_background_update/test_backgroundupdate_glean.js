@@ -183,14 +183,14 @@ add_task(async function test_targeting_exists() {
     }),
     "test"
   );
-  manager.unenroll("foo");
+  await manager.unenroll("foo");
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("bar", {
       featureId: "testFeature",
     }),
     "test"
   );
-  manager.unenroll("bar");
+  await manager.unenroll("bar");
   await manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("baz", {
       featureId: "testFeature",
@@ -202,7 +202,7 @@ add_task(async function test_targeting_exists() {
     NimbusTestUtils.factories.recipe("rol1", { isRollout: true }),
     "test"
   );
-  manager.unenroll("rol1");
+  await manager.unenroll("rol1");
   await manager.enroll(
     NimbusTestUtils.factories.recipe("rol2", { isRollout: true }),
     "test"
@@ -292,7 +292,7 @@ add_task(async function test_targeting_exists() {
     }
   });
 
-  manager.unenroll("baz");
-  manager.unenroll("rol2");
+  await manager.unenroll("baz");
+  await manager.unenroll("rol2");
   await cleanup();
 });
