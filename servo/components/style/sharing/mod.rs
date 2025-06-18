@@ -809,6 +809,11 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
+        if target.implemented_pseudo_element() != candidate.implemented_pseudo_element() {
+            trace!("Miss: Element backed pseudo-element");
+            return None;
+        }
+
         if target.element.shadow_root().is_some() {
             trace!("Miss: Shadow host");
             return None;
