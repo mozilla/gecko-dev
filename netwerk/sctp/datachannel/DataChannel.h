@@ -316,13 +316,12 @@ class DataChannelConnection : public net::NeckoTargetHolder {
   bool Init(const uint16_t aLocalPort, const uint16_t aNumStreams,
             const Maybe<uint64_t>& aMaxMessageSize);
 
-  DataChannelConnectionState GetState() const MOZ_REQUIRES(mLock) {
-    mLock.AssertCurrentThreadOwns();
-
+  DataChannelConnectionState GetState() const {
+    MOZ_ASSERT(mSTS->IsOnCurrentThread());
     return mState;
   }
 
-  void SetState(DataChannelConnectionState aState) MOZ_REQUIRES(mLock);
+  void SetState(DataChannelConnectionState aState);
   static int OnThresholdEvent(struct socket* sock, uint32_t sb_free,
                               void* ulp_info);
 
@@ -444,8 +443,7 @@ class DataChannelConnection : public net::NeckoTargetHolder {
   struct socket* mSocket = nullptr;
   // STS only
   bool mSctpConfigured = false;
-  DataChannelConnectionState mState MOZ_GUARDED_BY(mLock) =
-      DataChannelConnectionState::Closed;
+  DataChannelConnectionState mState = DataChannelConnectionState::Closed;
 
   std::string mTransportId;
   bool mConnectedToTransportHandler = false;

@@ -2728,6 +2728,7 @@ class DataChannelBlobSendRunnable : public Runnable {
 
 void DataChannelConnection::SetState(DataChannelConnectionState aState) {
   mLock.AssertCurrentThreadOwns();
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
 
   DC_DEBUG(
       ("DataChannelConnection labeled %s (%p) switching connection state %s -> "
@@ -3016,7 +3017,6 @@ void DataChannelConnection::CloseAll() {
 
   // Make sure no more channels will be opened
   MutexAutoLock lock(mLock);
-  SetState(DataChannelConnectionState::Closed);
 
   // Close current channels
   // If there are runnables, they hold a strong ref and keep the channel
