@@ -510,10 +510,7 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
       SCTP_ADAPTATION_INDICATION, SCTP_PARTIAL_DELIVERY_EVENT,
       SCTP_SEND_FAILED_EVENT,     SCTP_STREAM_RESET_EVENT,
       SCTP_STREAM_CHANGE_EVENT};
-  {
-    MutexAutoLock lock(mLock);
-    mLocalPort = aLocalPort;
-  }
+
   SetMaxMessageSize(aMaxMessageSize.isSome(), aMaxMessageSize.valueOr(0));
 
   mId = DataChannelRegistry::Register(this);
@@ -769,6 +766,8 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
                                                const uint16_t aLocalPort,
                                                const uint16_t aRemotePort) {
   MutexAutoLock lock(mLock);
+  ASSERT_WEBRTC(NS_IsMainThread());
+
   static const auto paramString =
       [](const std::string& tId, const Maybe<bool>& client,
          const uint16_t localPort, const uint16_t remotePort) -> std::string {
@@ -785,41 +784,29 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
   DC_DEBUG(("ConnectToTransport connecting DTLS transport with parameters: %s",
             params.c_str()));
 
-  DataChannelConnectionState state = GetState();
-  if (state == DataChannelConnectionState::Open) {
-    if (aTransportId == mTransportId && mAllocateEven.isSome() &&
-        mAllocateEven.value() == aClient && mLocalPort == aLocalPort &&
-        mRemotePort == aRemotePort) {
-      DC_WARN(
-          ("Skipping attempt to connect to an already OPEN transport with "
-           "identical parameters."));
-      return true;
-    }
-    DC_WARN(
-        ("Attempting to connect to an already OPEN transport, because "
-         "different parameters were provided."));
-    DC_WARN(("Original transport parameters: %s",
-             paramString(mTransportId, mAllocateEven, mLocalPort, aRemotePort)
-                 .c_str()));
-    DC_WARN(("New transport parameters: %s", params.c_str()));
-  }
+  DC_WARN(("New transport parameters: %s", params.c_str()));
   if (NS_WARN_IF(aTransportId.empty())) {
     return false;
   }
 
-  mLocalPort = aLocalPort;
-  mRemotePort = aRemotePort;
-  SetState(DataChannelConnectionState::Connecting);
-  mAllocateEven = Some(aClient);
-
-  // Could be faster. Probably doesn't matter.
-  while (auto channel = mChannels.Get(INVALID_STREAM)) {
-    mChannels.Remove(channel);
-    channel->mStream = FindFreeStream();
-    if (channel->mStream != INVALID_STREAM) {
-      mChannels.Insert(channel);
+  if (!mAllocateEven.isSome()) {
+    // Do this stuff once.
+    mLocalPort = aLocalPort;
+    mRemotePort = aRemotePort;
+    mAllocateEven = Some(aClient);
+    // Could be faster. Probably doesn't matter.
+    while (auto channel = mChannels.Get(INVALID_STREAM)) {
+      mChannels.Remove(channel);
+      channel->mStream = FindFreeStream();
+      if (channel->mStream != INVALID_STREAM) {
+        mChannels.Insert(channel);
+      }
     }
+    SetState(DataChannelConnectionState::Connecting);
   }
+
+  // We do not check whether this is a new transport id here, that happens on
+  // STS.
   RUN_ON_THREAD(mSTS,
                 WrapRunnable(RefPtr<DataChannelConnection>(this),
                              &DataChannelConnection::SetSignals, aTransportId),
@@ -829,10 +816,14 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
 
 void DataChannelConnection::SetSignals(const std::string& aTransportId) {
   ASSERT_WEBRTC(IsSTSThread());
-  {
-    MutexAutoLock lock(mLock);
-    mTransportId = aTransportId;
+  MutexAutoLock lock(mLock);
+  if (mTransportId == aTransportId) {
+    // Nothing to do!
+    return;
   }
+
+  mTransportId = aTransportId;
+
   if (!mConnectedToTransportHandler) {
     mPacketReceivedListener =
         mTransportHandler->GetSctpPacketReceived().Connect(
@@ -854,6 +845,7 @@ void DataChannelConnection::SetSignals(const std::string& aTransportId) {
 void DataChannelConnection::TransportStateChange(
     const std::string& aTransportId, TransportLayer::State aState) {
   ASSERT_WEBRTC(IsSTSThread());
+  MutexAutoLock lock(mLock);
   if (aTransportId == mTransportId) {
     if (aState == TransportLayer::TS_OPEN) {
       DC_DEBUG(("Transport is open!"));
@@ -868,10 +860,9 @@ void DataChannelConnection::TransportStateChange(
 }
 
 void DataChannelConnection::CompleteConnect() {
-  MutexAutoLock lock(mLock);
-
   DC_DEBUG(("dtls open"));
   ASSERT_WEBRTC(IsSTSThread());
+  mLock.AssertCurrentThreadOwns();
   if (mSctpConfigured) {
     // mSocket could have been closed by an error or for some other reason,
     // don't open an opportunity to reinit.
