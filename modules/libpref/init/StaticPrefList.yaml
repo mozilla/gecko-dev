@@ -6945,9 +6945,17 @@
   mirror: always
 
 # Whether OTS validation should be applied to OpenType Layout (OTL) tables.
+#   0 - no validation
+#   1 - validate (logging errors to console) but drop table without rejecting
+#       font resource if errors are found
+#   2 (or other) - validate, and reject font if errors are found
 - name: gfx.downloadable_fonts.otl_validation
-  type: RelaxedAtomicBool
-  value: @IS_NOT_RELEASE_OR_BETA@
+  type: RelaxedAtomicUint32
+#if defined(RELEASE_OR_BETA)
+  value: 0
+#else
+  value: 1
+#endif
   mirror: always
 
 - name: gfx.e10s.font-list.shared
