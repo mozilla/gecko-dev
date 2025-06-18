@@ -1036,11 +1036,6 @@ int DataChannelConnection::SctpDtlsOutput(void* addr, void* buffer,
   packet->SetType(MediaPacket::SCTP);
   packet->Copy(static_cast<const uint8_t*>(buffer), length);
 
-  if (NS_IsMainThread() && mDeferSend) {
-    mDeferredSend.emplace_back(std::move(packet));
-    return 0;
-  }
-
   SendPacket(std::move(packet));
   return 0;  // cheat!  Packets can always be dropped later anyways
 }
@@ -1290,18 +1285,10 @@ bool DataChannelConnection::SendDeferredMessages() {
     //          likely the cause (an explicit EOR message partially sent whose
     //          remaining chunks are still being waited for).
     size_t written = 0;
-    mDeferSend = true;
     blocked = SendBufferedMessages(channel->mBufferedData, &written);
-    mDeferSend = false;
     if (written) {
       channel->DecrementBufferedAmount(written);
     }
-
-    for (auto&& packet : mDeferredSend) {
-      MOZ_ASSERT(written);
-      SendPacket(std::move(packet));
-    }
-    mDeferredSend.clear();
 
     // Update current stream index
     // Note: If ndata is not active, the outstanding data messages on this
