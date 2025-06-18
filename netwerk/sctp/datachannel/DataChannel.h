@@ -414,11 +414,10 @@ class DataChannelConnection final : public net::NeckoTargetHolder {
   bool mSendInterleaved MOZ_GUARDED_BY(mLock) = false;
   // MainThread only
   bool mMaxMessageSizeSet = false;
-  // mMaxMessageSize is only set on MainThread, but read off-main-thread
-  uint64_t mMaxMessageSize MOZ_GUARDED_BY(mLock) = 0;
   // Main thread only
   Maybe<bool> mAllocateEven;
   // Data:
+  uint64_t mMaxMessageSize = 0;
   // NOTE: while this container will auto-expand, increases in the number of
   // channels available from the stack must be negotiated!
   // Accessed from both main and sts, API is threadsafe
