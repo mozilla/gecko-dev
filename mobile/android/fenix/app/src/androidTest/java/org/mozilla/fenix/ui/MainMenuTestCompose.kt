@@ -82,7 +82,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860835
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun webpageRedesignedMenuItemsTest() {
@@ -371,14 +370,14 @@ class MainMenuTestCompose : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.url) {
             verifyPageContent(testPage.content)
         }.openThreeDotMenu(composeTestRule) {
-            clickSaveButton()
+            openMoreMenu()
         }.clickAddToShortcutsButton {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
         }.goToHomescreen(composeTestRule) {
             verifyExistingTopSitesTabs(composeTestRule, testPage.title)
         }.openTopSiteTabWithTitle(composeTestRule, testPage.title) {
         }.openThreeDotMenu(composeTestRule) {
-            clickSaveButton()
+            openMoreMenu()
         }.clickRemoveFromShortcutsButton {
             verifySnackBarText(getStringResource(R.string.snackbar_top_site_removed))
         }.goToHomescreen(composeTestRule) {
@@ -396,13 +395,13 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
         }.openThreeDotMenu(composeTestRule) {
-            clickSaveButton()
+            openMoreMenu()
         }.clickAddToHomeScreenButton {
             clickCancelShortcutButton()
         }
         browserScreen {
         }.openThreeDotMenu(composeTestRule) {
-            clickSaveButton()
+            openMoreMenu()
         }.clickAddToHomeScreenButton {
             clickAddShortcutButton()
             clickSystemHomeScreenShortcutAddButton()
@@ -435,7 +434,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(secondTestPage.url) {
         }.openThreeDotMenu(composeTestRule) {
-            clickSaveButton()
+            openMoreMenu()
         }.clickSaveToCollectionButton {
         }.selectExistingCollection(collectionTitle) {
             verifySnackBarText("Tab saved!")
@@ -475,18 +474,18 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURL(testPage.url) {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.clickTranslateButton {
             verifyTranslationSheetIsDisplayed(isDisplayed = true)
         }.clickTranslateButton {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
-        }.clickTranslatedToButton("English") {
+            openMoreMenu()
+        }.clickTranslatedButton {
             verifyTranslationSheetIsDisplayed(isDisplayed = true)
         }.clickShowOriginalButton {
             verifyPageContent(testPage.content)
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }
     }
 
@@ -501,7 +500,6 @@ class MainMenuTestCompose : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.url) {
             verifyPageContent(testPage.content)
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
         }.clickShareButton {
             verifyShareTabLayout()
             verifySharingWithSelectedApp(
@@ -523,7 +521,7 @@ class MainMenuTestCompose : TestSetup() {
         }.enterURLAndEnterToBrowser(youtubeURL) {
             waitForPageToLoad(waitingTime)
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
             verifyOpenInAppButtonIsEnabled(appName = "YouTube", isEnabled = true)
             clickOpenInAppButton(appName = "YouTube")
             assertYoutubeAppOpens()
@@ -567,7 +565,7 @@ class MainMenuTestCompose : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             mDevice.waitForIdle()
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
             clickPrintContentButton()
             assertNativeAppOpens(PRINT_SPOOLER)
         }
@@ -875,7 +873,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860800
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1807268")
     @Test
     fun verifyTheReportBrokenSiteOptionTest() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
@@ -883,7 +881,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.clickReportBrokenSiteButton {
             verifyWebCompatReporterViewItems(composeTestRule, websiteURL = defaultWebPage.url.toString())
         }.closeWebCompatReporter {
@@ -898,7 +896,7 @@ class MainMenuTestCompose : TestSetup() {
 
         browserScreen {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.clickReportBrokenSiteButton {
             verifyUrl("webcompat.com/issues/new")
         }
@@ -913,7 +911,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.openReportBrokenSite {
             verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
             verifyWhatIsBrokenField(composeTestRule)
@@ -934,14 +932,14 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.openReportBrokenSite {
             verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
             clickChooseReasonField(composeTestRule)
             clickSiteDoesNotLoadReason(composeTestRule)
             clickBrokenSiteFormCancelButton(composeTestRule)
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.openReportBrokenSite {
             verifyWhatIsBrokenField(composeTestRule)
         }
@@ -983,7 +981,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.openReportBrokenSite {
             verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
             clickChooseReasonField(composeTestRule)
@@ -991,7 +989,7 @@ class MainMenuTestCompose : TestSetup() {
             describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
         }.closeWebCompatReporter {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.openReportBrokenSite {
             verifyBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time", isDisplayed = true)
         }
@@ -1007,7 +1005,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(firstWebPage.url) {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.openReportBrokenSite {
             verifyWebCompatReporterViewItems(composeTestRule, firstWebPage.url.toString())
             clickChooseReasonField(composeTestRule)
@@ -1018,7 +1016,7 @@ class MainMenuTestCompose : TestSetup() {
         }.openNewTab {
         }.submitQuery(secondWebPage.url.toString()) {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.openReportBrokenSite {
             verifyWhatIsBrokenField(composeTestRule)
             verifyBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time", isDisplayed = false)
@@ -1034,7 +1032,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.openReportBrokenSite {
             verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
             clickChooseReasonField(composeTestRule)
@@ -1046,7 +1044,7 @@ class MainMenuTestCompose : TestSetup() {
 
         browserScreen {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.openReportBrokenSite {
             verifyWhatIsBrokenField(composeTestRule)
             verifyBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time", isDisplayed = false)
@@ -1054,7 +1052,7 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939182
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1807268")
     @Test
     fun verifyReportBrokenSiteFormNotDisplayedWhenTelemetryIsDisabledTest() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
@@ -1070,7 +1068,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
+            openMoreMenu()
         }.openReportBrokenSite {
             verifyUrl("webcompat.com/issues/new")
         }

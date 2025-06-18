@@ -66,8 +66,6 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
         composeTestRule.bookmarkPageButton().assertIsDisplayed()
         composeTestRule.desktopSiteButton().assertIsDisplayed()
         composeTestRule.findInPageButton().assertIsDisplayed()
-        composeTestRule.toolsMenuButton().assertIsDisplayed()
-        composeTestRule.saveMenuButton().assertIsDisplayed()
         composeTestRule.extensionsButton().assertIsDisplayed()
         composeTestRule.moreButton().assertIsDisplayed()
 
@@ -197,6 +195,12 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
         Log.i(TAG, "clickSaveButton: Trying to click the \"Save\" button from the new main menu design.")
         composeTestRule.saveMenuButton().performClick()
         Log.i(TAG, "clickSaveButton: Clicked the \"Save\" button from the new main menu design.")
+    }
+
+    fun openMoreMenu() {
+        Log.i(TAG, "openMoreMenu: Trying to click the \"More\" button from the new main menu design.")
+        composeTestRule.moreButton().performClick()
+        Log.i(TAG, "openMoreMenu: Clicked the \"More\" button from the new main menu design.")
     }
 
     fun verifyBookmarkThisPageButton() {
@@ -381,13 +385,13 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
             return TranslationsRobot.Transition(composeTestRule)
         }
 
-        fun clickTranslatedToButton(language: String, interact: TranslationsRobot.() -> Unit): TranslationsRobot.Transition {
+        fun clickTranslatedButton(interact: TranslationsRobot.() -> Unit): TranslationsRobot.Transition {
             Log.i(
                 TAG,
                 "clickTranslateButton: Trying to click the Translate button from the new main menu design.",
             )
-            composeTestRule.translatedToButton(language).assertIsDisplayed()
-            composeTestRule.translatedToButton(language).performClick()
+            composeTestRule.translatedButton().assertIsDisplayed()
+            composeTestRule.translatedButton().performClick()
             Log.i(
                 TAG,
                 "clickTranslateButton: Clicked the Translate button from the new main menu design.",
@@ -397,15 +401,10 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
         }
 
         fun clickShareButton(interact: ShareOverlayRobot.() -> Unit): ShareOverlayRobot.Transition {
-            Log.i(
-                TAG,
-                "clickShareButton: Trying to click the Share button from the new main menu design.",
-            )
-            composeTestRule.toolsShareButton().performClick()
-            Log.i(
-                TAG,
-                "clickShareButton: Clicked the Share button from the new main menu design.",
-            )
+            Log.i(TAG, "clickShareButton: Trying to click the Share button from the new main menu design.")
+            composeTestRule.shareButton().performClick()
+            Log.i(TAG, "clickShareButton: Clicked the Share button from the new main menu design.")
+
             ShareOverlayRobot().interact()
             return ShareOverlayRobot.Transition()
         }
@@ -518,8 +517,6 @@ private fun ComposeTestRule.desktopSiteButton() = onNodeWithContentDescription(g
 
 private fun ComposeTestRule.mobileSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_switch_to_mobile_site))
 
-// Save sub menu items
-
 private fun ComposeTestRule.editBookmarkButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_edit_bookmark))
 
 private fun ComposeTestRule.addToShortcutsButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_add_to_shortcuts))
@@ -532,16 +529,13 @@ private fun ComposeTestRule.saveToCollectionButton() = onNodeWithContentDescript
 
 private fun ComposeTestRule.saveAsPDFButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_save_as_pdf_2))
 
-// Tools menu items
 private fun ComposeTestRule.translatePageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_translations))
 
-private fun ComposeTestRule.translatedToButton(language: String) = onNodeWithContentDescription(getStringResource(R.string.browser_menu_translated_to, language))
+private fun ComposeTestRule.translatedButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_translated))
 
 private fun ComposeTestRule.reportBrokenSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_webcompat_reporter_2))
 
 private fun ComposeTestRule.printContentButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_print_2))
-
-private fun ComposeTestRule.toolsShareButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_share))
 
 private fun ComposeTestRule.defaultOpenInAppButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_open_app_link))
 
