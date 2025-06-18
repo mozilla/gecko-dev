@@ -97,3 +97,11 @@ tasks:
             build_platform: win64-shippable
         extra:
             platform: win64
+    firefox-next-win64-aarch64:
+        shipping-product: firefox
+        treeherder:
+            platform: windows2012-aarch64-shippable/opt
+        attributes:
+            build_platform: win64-aarch64-shippable
+        extra:
+            platform: win64-aarch64
