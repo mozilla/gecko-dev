@@ -561,9 +561,6 @@ PopupNotifications.prototype = {
    *        popupOptions:
    *                     An optional object containing popup options passed to
    *                     `openPopup()` when defined.
-   *        queue:
-   *                     A boolean. Set it to true if this dialog can be queued
-   *                     in case there is another popup already visible.
    *        recordTelemetryInPrivateBrowsing:
    *                     An optional boolean indicating whether popup telemetry
    *                     should be recorded in private browsing windows. By default,
@@ -647,12 +644,6 @@ PopupNotifications.prototype = {
           this.panel.removeAttribute("noautofocus");
         } else {
           this.panel.setAttribute("noautofocus", "true");
-        }
-
-        if (options && options.queue) {
-          this.panel.setAttribute("queue", "true");
-        } else {
-          this.panel.removeAttribute("queue");
         }
 
         // show panel now
@@ -1284,12 +1275,6 @@ PopupNotifications.prototype = {
         this.panel.setAttribute("noautohide", "true");
       } else {
         this.panel.removeAttribute("noautohide");
-      }
-
-      if (notificationsToShow.some(n => n.options.queue)) {
-        this.panel.setAttribute("queue", "true");
-      } else {
-        this.panel.removeAttribute("queue");
       }
 
       // Let tests know that the panel was updated and what notifications it was
