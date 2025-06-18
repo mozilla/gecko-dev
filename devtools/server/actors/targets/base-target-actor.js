@@ -155,9 +155,7 @@ class BaseTargetActor extends Actor {
     // Otherwise we might emit some other RDP event (outside of resources),
     // which will be cleared by the throttled/delayed will-navigate.
     // * we receive NETWORK_EVENT_STACKTRACE which are meant to be dispatched *before*
-    // the related NETWORK_EVENT fired from the parent process. (we aren't throttling
-    // resources from the parent process, so it is even more likely to be dispatched
-    // in the wrong order)
+    // the related NETWORK_EVENT fired from the parent process which are also throttled.
     if (shouldEmitSynchronously) {
       this.emitResources();
     } else {
