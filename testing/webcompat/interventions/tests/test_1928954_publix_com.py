@@ -4,7 +4,7 @@ import pytest
 
 URL = "https://www.publix.com/"
 
-HERO_CSS = "button.store-button"
+HERO_CSS = ".widget.banner.standard"
 LINKS_CSS = "a[href^='javascript:']"
 POPUP_CLOSE_BUTTON_CSS = ".external-site-popup #stay-button"
 
@@ -13,7 +13,7 @@ async def does_click_navigate_away(client):
     await client.make_preload_script(
         "navigator.geolocation.getCurrentPosition = () => {}"
     )
-    await client.navigate(URL)
+    await client.navigate(URL, wait="none")
     client.await_css(HERO_CSS, is_displayed=True)
     links = client.find_css(LINKS_CSS, is_displayed=True, all=True)
     assert len(links) > 0
@@ -39,3 +39,10 @@ async def test_enabled(client):
 @pytest.mark.without_interventions
 async def test_disabled(client):
     assert await does_click_navigate_away(client)
+
+
+@pytest.mark.only_firefox_versions(min=140)
+@pytest.mark.asyncio
+@pytest.mark.without_interventions
+async def test_regression(client):
+    assert not await does_click_navigate_away(client)

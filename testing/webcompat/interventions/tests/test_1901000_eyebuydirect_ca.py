@@ -1,16 +1,19 @@
 import time
 
 import pytest
+from webdriver.error import NoSuchElementException
 
 URL = "https://www.eyebuydirect.ca/sunglasses"
 
+POPUP_CSS = ".ebd-modal-root"
+GOOGLE_LOGIN_CSS = "#credential_picker_container"
 FIRST_PRODUCT_CSS = "a[href^='https://www.eyebuydirect.ca/sunglasses/frames/']"
 FIRST_FRAME_SIZE_CSS = "button[class*='size-list_size']"
 SELECTED_FRAME_SIZE_CSS = "button[class*='size-list_size'][class*='size-list_current']"
 SELECT_LENSES_CSS = "[aria-label='Select Lenses']"
 NON_PRESCRIPTION_CSS = ".use-for-non-rx"
 FIRST_COLOR_TYPE_CSS = "#color-type-container [data-option-name]"
-BASIC_TYPE_CSS = "#sunglasses"
+BASIC_TYPE_CSS = "#sunglasses, #sunglasses-non-rx"
 FIRST_COLOR_OPT_CSS = "[data-color-value-id]"
 FIRST_COLOR_OPT_SELECTED_CSS = "[data-color-value-id].current"
 CONFIRM_COLOR_BTN_CSS = "button.color-confirm"
@@ -28,6 +31,16 @@ NON_PRESCRIPTION_OPT_SELECTED_CSS = (
 
 
 async def can_click_paypal_button(client):
+    await client.make_preload_script(
+        f"""
+           document.addEventListener("DOMContentLoaded", () => {{
+             const s = document.createElement("style");
+             s.textContent = "{POPUP_CSS}, {GOOGLE_LOGIN_CSS} {{ opacity:0 !important; pointer-events:none !important; }}";
+             document.head.appendChild(s);
+           }});
+        """
+    )
+
     await client.navigate(URL)
     client.soft_click(client.await_css(FIRST_PRODUCT_CSS))
 
@@ -40,13 +53,18 @@ async def can_click_paypal_button(client):
         non_rx.click()
         time.sleep(0.5)
 
-    first_frame_size = client.await_css(FIRST_FRAME_SIZE_CSS, is_displayed=True)
-    if first_frame_size:
-        for tries in range(10):
-            first_frame_size.click()
-            time.sleep(0.5)
-            if client.find_css(SELECTED_FRAME_SIZE_CSS, is_displayed=True):
-                break
+    try:
+        first_frame_size = client.await_css(
+            FIRST_FRAME_SIZE_CSS, is_displayed=True, timeout=4
+        )
+        if first_frame_size:
+            for tries in range(10):
+                first_frame_size.click()
+                time.sleep(0.5)
+                if client.find_css(SELECTED_FRAME_SIZE_CSS, is_displayed=True):
+                    break
+    except NoSuchElementException:
+        pass
 
     client.click(client.await_css(SELECT_LENSES_CSS, is_displayed=True), force=True)
     client.soft_click(client.await_css(FIRST_COLOR_TYPE_CSS, is_displayed=True))
@@ -114,3 +132,11 @@ async def test_enabled(client):
 @pytest.mark.without_interventions
 async def test_disabled(client):
     assert not await can_click_paypal_button(client)
+
+
+@pytest.mark.skip_platforms("android")
+@pytest.mark.only_firefox_versions(min=135)
+@pytest.mark.asyncio
+@pytest.mark.without_interventions
+async def test_regression(client):
+    assert await can_click_paypal_button(client)

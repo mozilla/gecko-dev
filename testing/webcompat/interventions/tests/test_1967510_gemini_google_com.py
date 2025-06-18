@@ -4,6 +4,7 @@ URL = "https://gemini.google.com/"
 
 ADD_PROMPT_CSS = ".ql-editor.textarea.new-input-ui"
 SEND_CSS = "[data-mat-icon-name=send]"
+SIGNED_OUT_TEXT = "been signed out"
 RESPONSE_CSS = "message-content"
 EDIT_OLD_PROMPT_CSS = "[data-mat-icon-name=edit]"
 OLD_PROMPT_CSS = "textarea[id^=mat-input-]"
@@ -15,7 +16,12 @@ async def check_paste_works(client):
     await client.navigate(URL)
     client.await_css(ADD_PROMPT_CSS, is_displayed=True).send_keys("hello")
     client.await_css(SEND_CSS, is_displayed=True).click()
-    client.await_css(RESPONSE_CSS, is_displayed=True)
+    signed_out, _ = client.await_first_element_of(
+        [client.text(SIGNED_OUT_TEXT), client.css(RESPONSE_CSS)], is_displayed=True
+    )
+    if signed_out:
+        pytest.skip("Blocked from accessing site. Please try testing manually.")
+        return
     client.soft_click(client.await_css(EDIT_OLD_PROMPT_CSS))
     client.await_css(OLD_PROMPT_CSS, is_displayed=True).click()
     client.execute_script("document.execCommand('selectAll')")
