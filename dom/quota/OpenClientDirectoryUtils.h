@@ -25,12 +25,14 @@ namespace mozilla::dom::quota {
 template <typename UninitChecker, typename PromiseArrayIter>
 RefPtr<UniversalDirectoryLock> CreateDirectoryLockForInitialization(
     QuotaManager& aQuotaManager, const PersistenceScope& aPersistenceScope,
-    const OriginScope& aOriginScope, const bool aAlreadyInitialized,
-    UninitChecker&& aUninitChecker, PromiseArrayIter&& aPromiseArrayIter) {
+    const OriginScope& aOriginScope,
+    const ClientStorageScope& aClientStorageScope,
+    const bool aAlreadyInitialized, UninitChecker&& aUninitChecker,
+    PromiseArrayIter&& aPromiseArrayIter) {
   RefPtr<UniversalDirectoryLock> directoryLock =
-      aQuotaManager.CreateDirectoryLockInternal(
-          aPersistenceScope, aOriginScope, ClientStorageScope::CreateFromNull(),
-          /* aExclusive */ false);
+      aQuotaManager.CreateDirectoryLockInternal(aPersistenceScope, aOriginScope,
+                                                aClientStorageScope,
+                                                /* aExclusive */ false);
 
   auto prepareInfo = directoryLock->Prepare();
 

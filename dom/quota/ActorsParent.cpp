@@ -5355,7 +5355,8 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
   RefPtr<UniversalDirectoryLock> storageDirectoryLock =
       CreateDirectoryLockForInitialization(
           *this, PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
-          mStorageInitialized, MakeBlockedByChecker(kUninitStorageOnlyCategory),
+          ClientStorageScope::CreateFromNull(), mStorageInitialized,
+          MakeBlockedByChecker(kUninitStorageOnlyCategory),
           MakeBackInserter(promises));
 
   RefPtr<UniversalDirectoryLock> persistentStorageDirectoryLock;
@@ -5366,7 +5367,8 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
     if (MatchesPersistentPersistenceScope(aPersistenceScope)) {
       persistentStorageDirectoryLock = CreateDirectoryLockForInitialization(
           *this, PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-          OriginScope::FromNull(), mPersistentStorageInitialized,
+          OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
+          mPersistentStorageInitialized,
           MakeBlockedByChecker(kUninitStorageOnlyCategory),
           MakeBackInserter(promises));
     }
@@ -5382,7 +5384,8 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
           *this,
           PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                           PERSISTENCE_TYPE_DEFAULT),
-          OriginScope::FromNull(), mTemporaryStorageInitialized,
+          OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
+          mTemporaryStorageInitialized,
           MakeBlockedByChecker(kUninitStorageOnlyCategory),
           MakeBackInserter(promises));
     }
@@ -5477,7 +5480,8 @@ QuotaManager::OpenClientDirectoryImpl(
   RefPtr<UniversalDirectoryLock> storageDirectoryLock =
       CreateDirectoryLockForInitialization(
           *this, PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
-          mStorageInitialized, MakeBlockedByChecker(kUninitStorageOnlyCategory),
+          ClientStorageScope::CreateFromNull(), mStorageInitialized,
+          MakeBlockedByChecker(kUninitStorageOnlyCategory),
           MakeBackInserter(promises));
 
   RefPtr<UniversalDirectoryLock> temporaryStorageDirectoryLock;
@@ -5489,7 +5493,8 @@ QuotaManager::OpenClientDirectoryImpl(
         *this,
         PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                         PERSISTENCE_TYPE_DEFAULT),
-        OriginScope::FromNull(), mTemporaryStorageInitialized,
+        OriginScope::FromNull(), ClientStorageScope::CreateFromNull(),
+        mTemporaryStorageInitialized,
         MakeBlockedByChecker(kUninitStorageOnlyCategory),
         MakeBackInserter(promises));
 
@@ -5499,7 +5504,8 @@ QuotaManager::OpenClientDirectoryImpl(
         *this,
         PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                         PERSISTENCE_TYPE_DEFAULT),
-        OriginScope::FromGroup(aClientMetadata.mGroup), groupInitialized,
+        OriginScope::FromGroup(aClientMetadata.mGroup),
+        ClientStorageScope::CreateFromNull(), groupInitialized,
         MakeBlockedByChecker(kUninitStorageOnlyCategory),
         MakeBackInserter(promises));
   }
@@ -5514,7 +5520,8 @@ QuotaManager::OpenClientDirectoryImpl(
 
     originDirectoryLock = CreateDirectoryLockForInitialization(
         *this, PersistenceScope::CreateFromValue(persistenceType),
-        OriginScope::FromOrigin(aClientMetadata), originInitialized,
+        OriginScope::FromOrigin(aClientMetadata),
+        ClientStorageScope::CreateFromNull(), originInitialized,
         MakeBlockedByChecker(kUninitOriginsAndBroaderCategories),
         MakeBackInserter(promises));
   }
