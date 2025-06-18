@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "mozilla/SharedThreadPool.h"
@@ -12,6 +13,9 @@
 #include "VideoUtils.h"
 
 using namespace mozilla;
+using testing::InSequence;
+using testing::MockFunction;
+using testing::StrEq;
 
 /*
  * Test if listeners receive the event data correctly.
@@ -487,4 +491,43 @@ TEST(MediaEventSource, ResetTargetAfterDisconnect)
   // `queue` should be the last reference to the TaskQueue, meaning that this
   // Release destroys it.
   EXPECT_EQ(queue.forget().take()->Release(), 0u);
+}
+
+TEST(MediaEventSource, TailDispatch)
+{
+  MockFunction<void(const char*)> checkpoint;
+  {
+    InSequence seq;
+    EXPECT_CALL(checkpoint, Call(StrEq("normal runnable")));
+    EXPECT_CALL(checkpoint, Call(StrEq("source1")));
+    EXPECT_CALL(checkpoint, Call(StrEq("tail-dispatched runnable")));
+    EXPECT_CALL(checkpoint, Call(StrEq("source2")));
+  }
+
+  MediaEventProducer<void> source1;
+  MediaEventListener listener1 = source1.Connect(
+      AbstractThread::MainThread(), [&] { checkpoint.Call("source1"); });
+  MediaEventProducer<void> source2;
+  MediaEventListener listener2 = source2.Connect(
+      AbstractThread::MainThread(), [&] { checkpoint.Call("source2"); });
+
+  AbstractThread::MainThread()->Dispatch(NS_NewRunnableFunction(__func__, [&] {
+    // Notify, using tail-dispatch.
+    source1.Notify();
+    // Dispatch runnable, using tail-dispatch.
+    AbstractThread::MainThread()->Dispatch(NS_NewRunnableFunction(
+        __func__, [&] { checkpoint.Call("tail-dispatched runnable"); }));
+    // Notify other event, using tail-dispatch.
+    source2.Notify();
+    // Dispatch runnable to the underlying event target, i.e. without
+    // tail-dispatch. Doesn't dispatch from a direct task so should run before
+    // tail-dispatched tasks.
+    GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
+        __func__, [&] { checkpoint.Call("normal runnable"); }));
+  }));
+
+  NS_ProcessPendingEvents(nullptr);
+
+  listener1.Disconnect();
+  listener2.Disconnect();
 }
