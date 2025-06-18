@@ -5526,14 +5526,20 @@ QuotaManager::OpenClientDirectoryImpl(
         MakeBackInserter(promises));
   }
 
-  RefPtr<UniversalDirectoryLock> clientInitDirectoryLock =
-      CreateDirectoryLockInternal(
-          PersistenceScope::CreateFromValue(aClientMetadata.mPersistenceType),
-          OriginScope::FromOrigin(aClientMetadata),
-          ClientStorageScope::CreateFromClient(aClientMetadata.mClientType),
-          /* aExclusive */ false);
+  RefPtr<UniversalDirectoryLock> clientInitDirectoryLock;
 
-  promises.AppendElement(clientInitDirectoryLock->Acquire());
+  const bool clientInitialized =
+      persistenceType == PERSISTENCE_TYPE_PERSISTENT
+          ? IsPersistentClientInitialized(aClientMetadata)
+          : IsTemporaryClientInitialized(aClientMetadata);
+
+  clientInitDirectoryLock = CreateDirectoryLockForInitialization(
+      *this, PersistenceScope::CreateFromValue(persistenceType),
+      OriginScope::FromOrigin(aClientMetadata),
+      ClientStorageScope::CreateFromClient(aClientMetadata.mClientType),
+      clientInitialized,
+      MakeBlockedByChecker(kUninitClientsAndBroaderCategories),
+      MakeBackInserter(promises));
 
   RefPtr<ClientDirectoryLock> clientDirectoryLock =
       CreateDirectoryLock(aClientMetadata, /* aExclusive */ false);
