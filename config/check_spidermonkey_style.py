@@ -58,11 +58,18 @@ included_inclnames_to_ignore = set(
     [
         "ffi.h",  # generated in ctypes/libffi/
         "devtools/Instruments.h",  # we ignore devtools/ in general
+        "diplomat_runtime.hpp",  # ICU4X
         "double-conversion/double-conversion.h",  # strange MFBT case
         "javascript-trace.h",  # generated in $OBJDIR if HAVE_DTRACE is defined
         "frontend/ReservedWordsGenerated.h",  # generated in $OBJDIR
         "gc/StatsPhasesGenerated.h",  # generated in $OBJDIR
         "gc/StatsPhasesGenerated.inc",  # generated in $OBJDIR
+        "icu4x/Calendar.hpp",  # ICU4X
+        "icu4x/Date.hpp",  # ICU4X
+        "icu4x/GraphemeClusterSegmenter.hpp",  # ICU4X
+        "icu4x/IsoDate.hpp",  # ICU4X
+        "icu4x/SentenceSegmenter.hpp",  # ICU4X
+        "icu4x/WordSegmenter.hpp",  # ICU4X
         "jit/ABIFunctionTypeGenerated.h",  # generated in $OBJDIR"
         "jit/AtomicOperationsGenerated.h",  # generated in $OBJDIR
         "jit/CacheIROpsGenerated.h",  # generated in $OBJDIR
@@ -77,16 +84,6 @@ included_inclnames_to_ignore = set(
         "fdlibm.h",  # fdlibm
         "FuzzerDefs.h",  # included without a path
         "FuzzingInterface.h",  # included without a path
-        "diplomat_runtime.h",  # ICU4X
-        "ICU4XAnyCalendarKind.h",  # ICU4X
-        "ICU4XCalendar.h",  # ICU4X
-        "ICU4XDate.h",  # ICU4X
-        "ICU4XError.h",  # ICU4X
-        "ICU4XGraphemeClusterSegmenter.h",  # ICU4X
-        "ICU4XIsoDate.h",  # ICU4X
-        "ICU4XIsoWeekday.h",  # ICU4X
-        "ICU4XSentenceSegmenter.h",  # ICU4X
-        "ICU4XWordSegmenter.h",  # ICU4X
         "mozmemory.h",  # included without a path
         "mozmemory_stall.h",  # included without a path
         "pratom.h",  # NSPR
