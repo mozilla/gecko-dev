@@ -41,3 +41,6 @@ user_pref("places.history.floodingPrevention.enabled", false);
 // permission, and we can open it and wait for the user to give permission, then
 // don't do that.
 user_pref("geo.prompt.open_system_prefs", false);
+
+// Enable Nimbus debug logging.
+user_pref("messaging-system.log", "all");

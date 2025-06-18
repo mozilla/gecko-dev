@@ -55,3 +55,6 @@ user_pref("javascript.options.asyncstack_capture_debuggee_only", false);
 // TODO(bug 1967779): Require the ProfileDatastoreService by default and remove
 // this.
 user_pref("nimbus.profilesdatastoreservice.enabled", false);
+
+// Enable Nimbus debug logging.
+user_pref("messaging-system.log", "all");
