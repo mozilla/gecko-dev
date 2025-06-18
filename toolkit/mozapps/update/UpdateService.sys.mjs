@@ -1374,14 +1374,15 @@ async function cleanupDownloadingUpdate() {
   // Now trash the update download directory, since we're done with it
   cleanUpDownloadingUpdateDir();
 
-  // If the update status file says we are downloading, we should remove that
+  // If the update state says we are downloading, we should change that
   // too, since we aren't doing that anymore.
-  let readyUpdateDir = getReadyUpdateDir();
-  let status = readStatusFile(readyUpdateDir);
-  if (status == STATE_DOWNLOADING) {
-    let statusFile = readyUpdateDir.clone();
+  if (
+    lazy.AUS.currentState == Ci.nsIApplicationUpdateService.STATE_DOWNLOADING
+  ) {
+    let statusFile = getReadyUpdateDir().clone();
     statusFile.append(FILE_UPDATE_STATUS);
     statusFile.remove(false);
+    transitionState(Ci.nsIApplicationUpdateService.STATE_IDLE);
   }
 }
 
