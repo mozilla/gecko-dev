@@ -23,6 +23,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/WindowGlobalParent.h"
+#include "mozilla/glean/ContentanalysisMetrics.h"
 #include "mozilla/Logging.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Services.h"
@@ -77,6 +78,16 @@ const char* kPipePathNamePref = "browser.contentanalysis.pipe_path_name";
 const char* kClientSignature = "browser.contentanalysis.client_signature";
 const char* kAllowUrlPref = "browser.contentanalysis.allow_url_regex_list";
 const char* kDenyUrlPref = "browser.contentanalysis.deny_url_regex_list";
+const char* kAgentNamePref = "browser.contentanalysis.agent_name";
+const char* kInterceptionPointPrefNames[] = {
+    "browser.contentanalysis.interception_point.clipboard.enabled",
+    "browser.contentanalysis.interception_point.download.enabled",
+    "browser.contentanalysis.interception_point.drag_and_drop.enabled",
+    "browser.contentanalysis.interception_point.file_upload.enabled",
+    "browser.contentanalysis.interception_point.print.enabled",
+};
+const char* kDefaultResultPref = "browser.contentanalysis.default_result";
+const char* kTimeoutResultPref = "browser.contentanalysis.timeout_result";
 
 // Allow up to this many threads to be concurrently engaged in synchronous
 // communcations with the agent.  That limit is set by
@@ -1445,6 +1456,10 @@ bool ContentAnalysis::IsShutDown() {
   return *lock;
 }
 
+NS_IMETHODIMP ContentAnalysis::ForceRecreateClientForTest() {
+  return CreateClientIfNecessary(/* aForceCreate */ true);
+}
+
 nsresult ContentAnalysis::CreateClientIfNecessary(
     bool aForceCreate /* = false */) {
   AssertIsOnMainThread();
@@ -1479,6 +1494,7 @@ nsresult ContentAnalysis::CreateClientIfNecessary(
   nsString clientSignature;
   // It's OK if this fails, we will default to the empty string
   Preferences::GetString(kClientSignature, clientSignature);
+  RecordConnectionSettingsTelemetry(clientSignature);
   LOGD("Dispatching background task to create Content Analysis client");
   rv = NS_DispatchBackgroundTask(NS_NewCancelableRunnableFunction(
       "ContentAnalysis::CreateContentAnalysisClient",
@@ -1492,6 +1508,59 @@ nsresult ContentAnalysis::CreateClientIfNecessary(
     return rv;
   }
   return NS_OK;
+}
+
+void ContentAnalysis::RecordConnectionSettingsTelemetry(
+    const nsString& clientSignature) {
+  AssertIsOnMainThread();
+  {
+    nsCString agentName;
+    Preferences::GetCString(kAgentNamePref, agentName);
+    glean::content_analysis::agent_name.Set(agentName);
+  }
+  AutoTArray<nsCString, 1> interceptionPointsOff;
+  for (const char* interceptionPointPrefName : kInterceptionPointPrefNames) {
+    bool interceptionPointPrefValue;
+    Preferences::GetBool(interceptionPointPrefName,
+                         &interceptionPointPrefValue);
+    if (!interceptionPointPrefValue) {
+      interceptionPointsOff.AppendElement(interceptionPointPrefName);
+    }
+  }
+  if (!interceptionPointsOff.IsEmpty()) {
+    glean::content_analysis::interception_points_turned_off.Set(
+        interceptionPointsOff);
+  }
+  glean::content_analysis::show_blocked_result.Set(
+      StaticPrefs::browser_contentanalysis_show_blocked_result());
+  glean::content_analysis::default_result.Set(
+      StaticPrefs::browser_contentanalysis_default_result());
+  glean::content_analysis::timeout_result.Set(
+      StaticPrefs::browser_contentanalysis_timeout_result());
+  if (!clientSignature.IsEmpty()) {
+    glean::content_analysis::client_signature.Set(
+        NS_ConvertUTF16toUTF8(clientSignature));
+  }
+  glean::content_analysis::bypass_for_same_tab_operations.Set(
+      StaticPrefs::browser_contentanalysis_bypass_for_same_tab_operations());
+  {
+    nsCString allowUrlRegexList;
+    Preferences::GetCString(kAllowUrlPref, allowUrlRegexList);
+    // Unfortunately because of the way enterprise policies set and lock prefs,
+    // we can't check if the value is different than the default in
+    // StaticPrefList.yaml, and instead we have to duplicate that value here. At
+    // least we have a test around this so we can update this value if the
+    // default changes.
+    const char* defaultAllowUrlRegexList = "^about:(?!blank|srcdoc).*";
+    glean::content_analysis::allow_url_regex_list_set.Set(
+        !allowUrlRegexList.Equals(defaultAllowUrlRegexList));
+  }
+  {
+    nsCString denyUrlRegexList;
+    Preferences::GetCString(kDenyUrlPref, denyUrlRegexList);
+    glean::content_analysis::deny_url_regex_list_set.Set(
+        !denyUrlRegexList.IsEmpty());
+  }
 }
 
 NS_IMETHODIMP

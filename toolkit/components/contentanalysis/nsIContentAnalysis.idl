@@ -509,4 +509,8 @@ interface nsIContentAnalysis : nsISupports
    */
   void sendCancelToAgent(in ACString aUserActionId);
 
+  /**
+   * Force the content analysis client to be recreated. For use in tests only.
+   */
+  void forceRecreateClientForTest();
 };
