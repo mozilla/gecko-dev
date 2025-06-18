@@ -13,7 +13,6 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 
 import filters
-import six
 from logger.logger import RaptorLogger
 from utils import flatten
 
@@ -38,8 +37,7 @@ METRIC_BLOCKLIST = [
 ]
 
 
-@six.add_metaclass(ABCMeta)
-class PerftestOutput:
+class PerftestOutput(metaclass=ABCMeta):
     """Abstract base class to handle output of perftest results"""
 
     def __init__(

@@ -18,7 +18,6 @@ from abc import ABCMeta, abstractmethod
 import mozinfo
 import mozproxy.utils as mpu
 import mozversion
-import six
 from mozprofile import create_profile
 from mozproxy import get_playback
 
@@ -64,8 +63,7 @@ POST_DELAY_DEBUG = 3000
 POST_DELAY_DEFAULT = 30000
 
 
-@six.add_metaclass(ABCMeta)
-class Perftest:
+class Perftest(metaclass=ABCMeta):
     """Abstract base class for perftests that execute via a subharness,
     either Raptor or browsertime."""
 

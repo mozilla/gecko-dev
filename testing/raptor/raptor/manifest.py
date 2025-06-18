@@ -5,12 +5,18 @@ import json
 import os
 import pathlib
 import re
+from urllib.parse import (
+    parse_qs,
+    unquote,
+    urlencode,
+    urlsplit,
+    urlunsplit,
+)
 
 from cmdline import DESKTOP_APPS, GECKO_PROFILER_APPS, TRACE_APPS
 from constants.raptor_tests_constants import YOUTUBE_PLAYBACK_MEASURE
 from logger.logger import RaptorLogger
 from manifestparser import TestManifest
-from six.moves.urllib.parse import parse_qs, unquote, urlencode, urlsplit, urlunsplit
 from support_class_utils import import_support_class
 from utils import (
     bool_from_str,

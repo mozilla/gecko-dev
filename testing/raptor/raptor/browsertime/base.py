@@ -16,7 +16,6 @@ from copy import deepcopy
 
 import mozcrash
 import mozprocess
-import six
 from benchmark import Benchmark
 from cmdline import CHROME_ANDROID_APPS, DESKTOP_APPS, FIREFOX_ANDROID_APPS
 from logger.logger import RaptorLogger
@@ -34,8 +33,7 @@ BROWSERTIME_BENCHMARK_OUTPUT_TIMEOUT = (
 )
 
 
-@six.add_metaclass(ABCMeta)
-class Browsertime(Perftest):
+class Browsertime(Perftest, metaclass=ABCMeta):
     """Abstract base class for Browsertime"""
 
     @property
