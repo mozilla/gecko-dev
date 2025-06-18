@@ -11,10 +11,11 @@
 
 [package]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.82"
 name = "icu_capi"
-version = "1.5.0"
+version = "2.0.0"
 authors = ["The ICU4X Project Developers"]
+build = false
 include = [
     "bindings/**/*",
     "!bindings/dart/**/*",
@@ -24,6 +25,11 @@ include = [
     "LICENSE",
     "README.md",
 ]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "C interface to ICU4X"
 homepage = "https://icu4x.unicode.org"
 readme = "README.md"
@@ -33,139 +39,13 @@ repository = "https://github.com/unicode-org/icu4x"
 
 [package.metadata.cargo-all-features]
 denylist = [
-    "bench",
-    "cpp_default",
-    "wasm_default",
-    "provider_test",
+    "looping_panic_handler",
+    "libc_alloc",
 ]
 max_combination_size = 2
 
 [package.metadata.docs.rs]
 all-features = true
-
-[dependencies.diplomat]
-version = "0.8"
-
-[dependencies.diplomat-runtime]
-version = "0.8"
-
-[dependencies.fixed_decimal]
-version = "0.5.6"
-features = ["ryu"]
-optional = true
-default-features = false
-
-[dependencies.icu_calendar]
-version = "~1.5.0"
-optional = true
-default-features = false
-
-[dependencies.icu_casemap]
-version = "~1.5.0"
-optional = true
-default-features = false
-
-[dependencies.icu_collator]
-version = "~1.5.0"
-optional = true
-default-features = false
-
-[dependencies.icu_collections]
-version = "~1.5.0"
-optional = true
-default-features = false
-
-[dependencies.icu_datetime]
-version = "~1.5.0"
-optional = true
-default-features = false
-
-[dependencies.icu_decimal]
-version = "~1.5.0"
-optional = true
-default-features = false
-
-[dependencies.icu_experimental]
-version = "~0.1.0"
-optional = true
-default-features = false
-
-[dependencies.icu_list]
-version = "~1.5.0"
-optional = true
-default-features = false
-
-[dependencies.icu_locid]
-version = "~1.5.0"
-default-features = false
-
-[dependencies.icu_locid_transform]
-version = "~1.5.0"
-optional = true
-default-features = false
-
-[dependencies.icu_normalizer]
-version = "~1.5.0"
-optional = true
-default-features = false
-
-[dependencies.icu_plurals]
-version = "~1.5.0"
-optional = true
-default-features = false
-
-[dependencies.icu_properties]
-version = "~1.5.0"
-features = ["bidi"]
-optional = true
-default-features = false
-
-[dependencies.icu_provider]
-version = "~1.5.0"
-default-features = false
-
-[dependencies.icu_provider_adapters]
-version = "~1.5.0"
-default-features = false
-
-[dependencies.icu_provider_blob]
-version = "~1.5.0"
-optional = true
-default-features = false
-
-[dependencies.icu_segmenter]
-version = "~1.5.0"
-features = ["auto"]
-optional = true
-default-features = false
-
-[dependencies.icu_timezone]
-version = "~1.5.0"
-optional = true
-default-features = false
-
-[dependencies.log]
-version = "0.4.17"
-optional = true
-default-features = false
-
-[dependencies.serde]
-version = "1.0.110"
-optional = true
-default-features = false
-
-[dependencies.tinystr]
-version = "0.7.5"
-default-features = false
-
-[dependencies.unicode-bidi]
-version = "0.3.11"
-optional = true
-default-features = false
-
-[dependencies.writeable]
-version = "0.5.5"
-default-features = false
 
 [features]
 any_provider = []
@@ -178,23 +58,41 @@ buffer_provider = [
     "icu_datetime?/serde",
     "icu_decimal?/serde",
     "icu_list?/serde",
-    "icu_locid_transform?/serde",
-    "icu_locid/serde",
+    "icu_locale?/serde",
+    "icu_locale_core/serde",
     "icu_normalizer?/serde",
     "icu_plurals?/serde",
     "icu_properties?/serde",
     "icu_provider/serde",
     "icu_provider_adapters/serde",
     "icu_segmenter?/serde",
-    "icu_timezone?/serde",
+    "icu_time?/serde",
     "icu_experimental?/serde",
 ]
+calendar = [
+    "dep:icu_calendar",
+    "dep:icu_time",
+]
+casemap = ["dep:icu_casemap"]
+collator = ["dep:icu_collator"]
 compiled_data = [
     "icu_calendar?/compiled_data",
+    "icu_normalizer?/compiled_data",
     "icu_properties?/compiled_data",
     "icu_segmenter?/compiled_data",
 ]
-cpp_default = ["logging"]
+datetime = [
+    "dep:icu_datetime",
+    "dep:icu_calendar",
+    "dep:icu_time",
+    "dep:icu_decimal",
+    "dep:icu_plurals",
+    "icu_datetime?/experimental",
+]
+decimal = [
+    "dep:icu_decimal",
+    "dep:fixed_decimal",
+]
 default = [
     "compiled_data",
     "default_components",
@@ -203,52 +101,23 @@ default = [
     "std",
 ]
 default_components = [
-    "icu_calendar",
-    "icu_casemap",
-    "icu_collator",
-    "icu_datetime",
-    "icu_decimal",
-    "icu_list",
-    "icu_locid_transform",
-    "icu_normalizer",
-    "icu_plurals",
-    "icu_properties",
-    "icu_segmenter",
-    "icu_timezone",
+    "calendar",
+    "casemap",
+    "collator",
+    "datetime",
+    "decimal",
+    "list",
+    "locale",
+    "normalizer",
+    "plurals",
+    "properties",
+    "segmenter",
+    "timezone",
 ]
-experimental_components = ["dep:icu_experimental"]
-icu_calendar = ["dep:icu_calendar"]
-icu_casemap = ["dep:icu_casemap"]
-icu_collator = ["dep:icu_collator"]
-icu_datetime = [
-    "dep:icu_datetime",
-    "dep:icu_calendar",
-    "dep:icu_timezone",
-    "dep:icu_decimal",
-    "dep:icu_plurals",
-]
-icu_decimal = [
-    "dep:icu_decimal",
-    "dep:fixed_decimal",
-]
-icu_list = ["dep:icu_list"]
-icu_locid_transform = ["dep:icu_locid_transform"]
-icu_normalizer = ["dep:icu_normalizer"]
-icu_plurals = [
-    "dep:icu_plurals",
-    "dep:fixed_decimal",
-]
-icu_properties = [
-    "dep:icu_properties",
-    "dep:icu_collections",
-    "dep:unicode-bidi",
-]
-icu_segmenter = ["dep:icu_segmenter"]
-icu_timezone = [
-    "dep:icu_timezone",
-    "dep:icu_calendar",
-]
+experimental = ["dep:icu_experimental"]
 libc_alloc = ["dep:libc_alloc"]
+list = ["dep:icu_list"]
+locale = ["dep:icu_locale"]
 logging = [
     "icu_provider/logging",
     "dep:log",
@@ -256,30 +125,197 @@ logging = [
     "std",
 ]
 looping_panic_handler = []
+normalizer = [
+    "dep:icu_normalizer",
+    "icu_normalizer?/utf8_iter",
+    "icu_normalizer?/utf16_iter",
+]
+plurals = [
+    "dep:icu_plurals",
+    "dep:fixed_decimal",
+]
+properties = [
+    "dep:icu_properties",
+    "dep:icu_collections",
+    "dep:unicode-bidi",
+]
 provider_fs = [
     "dep:icu_provider_fs",
     "buffer_provider",
     "std",
 ]
-provider_test = ["compiled_data"]
+segmenter = ["dep:icu_segmenter"]
 simple_logger = [
     "dep:simple_logger",
     "logging",
 ]
 std = []
-wasm_default = ["logging"]
+timezone = [
+    "dep:icu_time",
+    "dep:icu_calendar",
+]
 
-[target."cfg(not(any(target_arch = \"wasm32\", target_os = \"none\")))".dependencies.icu_provider_fs]
-version = "~1.5.0"
+[lib]
+name = "icu_capi"
+path = "src/lib.rs"
+
+[dependencies.diplomat]
+version = "0.11.0"
+default-features = false
+
+[dependencies.diplomat-runtime]
+version = "0.11.0"
+default-features = false
+
+[dependencies.fixed_decimal]
+version = "0.7.0"
+features = ["ryu"]
 optional = true
 default-features = false
 
-[target."cfg(not(any(target_arch = \"wasm32\", target_os = \"none\")))".dependencies.libc_alloc]
+[dependencies.icu_calendar]
+version = "~2.0.0"
+features = [
+    "alloc",
+    "ixdtf",
+]
+optional = true
+default-features = false
+
+[dependencies.icu_casemap]
+version = "~2.0.0"
+optional = true
+default-features = false
+
+[dependencies.icu_collator]
+version = "~2.0.0"
+optional = true
+default-features = false
+
+[dependencies.icu_collections]
+version = "~2.0.0"
+optional = true
+default-features = false
+
+[dependencies.icu_datetime]
+version = "~2.0.0"
+optional = true
+default-features = false
+
+[dependencies.icu_decimal]
+version = "~2.0.0"
+optional = true
+default-features = false
+
+[dependencies.icu_experimental]
+version = "~0.3.0"
+optional = true
+default-features = false
+
+[dependencies.icu_list]
+version = "~2.0.0"
+optional = true
+default-features = false
+
+[dependencies.icu_locale]
+version = "~2.0.0"
+optional = true
+default-features = false
+
+[dependencies.icu_locale_core]
+version = "2.0.0"
+default-features = false
+
+[dependencies.icu_normalizer]
+version = "~2.0.0"
+optional = true
+default-features = false
+
+[dependencies.icu_plurals]
+version = "~2.0.0"
+optional = true
+default-features = false
+
+[dependencies.icu_properties]
+version = "~2.0.0"
+features = [
+    "alloc",
+    "unicode_bidi",
+]
+optional = true
+default-features = false
+
+[dependencies.icu_provider]
+version = "2.0.0"
+default-features = false
+
+[dependencies.icu_provider_adapters]
+version = "~2.0.0"
+default-features = false
+
+[dependencies.icu_provider_blob]
+version = "~2.0.0"
+optional = true
+default-features = false
+
+[dependencies.icu_segmenter]
+version = "~2.0.0"
+features = ["auto"]
+optional = true
+default-features = false
+
+[dependencies.icu_time]
+version = "~2.0.0"
+features = [
+    "alloc",
+    "ixdtf",
+]
+optional = true
+default-features = false
+
+[dependencies.log]
+version = "0.4.17"
+optional = true
+default-features = false
+
+[dependencies.potential_utf]
+version = "0.1.1"
+features = ["writeable"]
+default-features = false
+
+[dependencies.serde]
+version = "1.0.110"
+optional = true
+default-features = false
+
+[dependencies.tinystr]
+version = "0.8.0"
+default-features = false
+
+[dependencies.unicode-bidi]
+version = "0.3.11"
+optional = true
+default-features = false
+
+[dependencies.writeable]
+version = "0.6.0"
+default-features = false
+
+[dependencies.zerovec]
+version = "0.11.1"
+default-features = false
+
+[target.'cfg(not(any(target_arch = "wasm32", target_os = "none")))'.dependencies.icu_provider_fs]
+version = "~2.0.0"
+optional = true
+default-features = false
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.libc_alloc]
 version = "1.0.6"
 features = ["global"]
 optional = true
 default-features = false
 
-[target."cfg(not(target_arch = \"wasm32\"))".dependencies.simple_logger]
-version = "4.0.0"
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.simple_logger]
+version = "5.0.0"
 optional = true

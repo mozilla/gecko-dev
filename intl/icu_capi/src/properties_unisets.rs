@@ -3,152 +3,67 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 #[diplomat::bridge]
+#[diplomat::abi_rename = "icu4x_{0}_mv1"]
+#[diplomat::attr(auto, namespace = "icu4x")]
 pub mod ffi {
-    use crate::locale::ffi::ICU4XLocale;
-    use crate::provider::ffi::ICU4XDataProvider;
     use alloc::boxed::Box;
-    use core::str;
-    use icu_properties::{exemplar_chars, sets};
+    #[cfg(any(feature = "compiled_data", feature = "buffer_provider"))]
+    use icu_properties::props::BasicEmoji;
 
-    use crate::errors::ffi::ICU4XError;
+    #[cfg(feature = "buffer_provider")]
+    use crate::unstable::{errors::ffi::DataError, provider::ffi::DataProvider};
 
     #[diplomat::opaque]
     /// An ICU4X Unicode Set Property object, capable of querying whether a code point is contained in a set based on a Unicode property.
     #[diplomat::rust_link(icu::properties, Mod)]
-    #[diplomat::rust_link(icu::properties::sets::UnicodeSetData, Struct)]
-    #[diplomat::rust_link(icu::properties::sets::UnicodeSetData::from_data, FnInStruct, hidden)]
-    #[diplomat::rust_link(icu::properties::sets::UnicodeSetDataBorrowed, Struct)]
-    pub struct ICU4XUnicodeSetData(pub sets::UnicodeSetData);
+    #[diplomat::rust_link(icu::properties::EmojiSetData, Struct)]
+    #[diplomat::rust_link(icu::properties::EmojiSetData::new, FnInStruct)]
+    #[diplomat::rust_link(icu::properties::EmojiSetDataBorrowed::new, FnInStruct, hidden)]
+    #[diplomat::rust_link(icu::properties::EmojiSetDataBorrowed, Struct)]
+    pub struct EmojiSetData(pub icu_properties::EmojiSetData);
 
-    impl ICU4XUnicodeSetData {
+    impl EmojiSetData {
         /// Checks whether the string is in the set.
-        #[diplomat::rust_link(icu::properties::sets::UnicodeSetDataBorrowed::contains, FnInStruct)]
-        pub fn contains(&self, s: &DiplomatStr) -> bool {
-            let s = if let Ok(s) = str::from_utf8(s) {
-                s
-            } else {
+        #[diplomat::rust_link(icu::properties::EmojiSetDataBorrowed::contains_str, FnInStruct)]
+        #[diplomat::attr(supports = method_overloading, rename = "contains")]
+        pub fn contains_str(&self, s: &DiplomatStr) -> bool {
+            let Ok(s) = core::str::from_utf8(s) else {
                 return false;
             };
-            self.0.as_borrowed().contains(s)
+            self.0.as_borrowed().contains_str(s)
         }
         /// Checks whether the code point is in the set.
+        #[diplomat::rust_link(icu::properties::EmojiSetDataBorrowed::contains, FnInStruct)]
         #[diplomat::rust_link(
-            icu::properties::sets::UnicodeSetDataBorrowed::contains_char,
-            FnInStruct
-        )]
-        pub fn contains_char(&self, cp: DiplomatChar) -> bool {
-            self.0.as_borrowed().contains32(cp)
-        }
-        /// Checks whether the code point (specified as a 32 bit integer, in UTF-32) is in the set.
-        #[diplomat::rust_link(
-            icu::properties::sets::UnicodeSetDataBorrowed::contains32,
+            icu::properties::EmojiSetDataBorrowed::contains32,
             FnInStruct,
             hidden
         )]
-        #[diplomat::attr(dart, disable)]
-        pub fn contains32(&self, cp: u32) -> bool {
-            self.contains_char(cp)
+        pub fn contains(&self, cp: DiplomatChar) -> bool {
+            self.0.as_borrowed().contains32(cp)
         }
 
-        #[diplomat::rust_link(icu::properties::sets::basic_emoji, Fn)]
-        #[diplomat::rust_link(icu::properties::sets::load_basic_emoji, Fn, hidden)]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "basic_emoji")]
-        pub fn load_basic_emoji(
-            provider: &ICU4XDataProvider,
-        ) -> Result<Box<ICU4XUnicodeSetData>, ICU4XError> {
-            Ok(Box::new(ICU4XUnicodeSetData(call_constructor_unstable!(
-                sets::basic_emoji [r => Ok(r.static_to_owned())],
-                sets::load_basic_emoji,
-                provider,
-            )?)))
+        /// Create a map for the `Basic_Emoji` property, using compiled data.
+        #[diplomat::rust_link(icu::properties::props::BasicEmoji, Struct)]
+        #[diplomat::attr(auto, named_constructor = "basic")]
+        #[cfg(feature = "compiled_data")]
+        pub fn create_basic() -> Box<EmojiSetData> {
+            Box::new(EmojiSetData(
+                icu_properties::EmojiSetData::new::<BasicEmoji>().static_to_owned(),
+            ))
         }
-
-        #[diplomat::rust_link(icu::properties::exemplar_chars::exemplars_main, Fn)]
-        #[diplomat::rust_link(icu::properties::exemplar_chars::load_exemplars_main, Fn, hidden)]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "exemplars_main")]
-        pub fn load_exemplars_main(
-            provider: &ICU4XDataProvider,
-            locale: &ICU4XLocale,
-        ) -> Result<Box<ICU4XUnicodeSetData>, ICU4XError> {
-            let locale = locale.to_datalocale();
-            Ok(Box::new(ICU4XUnicodeSetData(call_constructor_unstable!(
-                exemplar_chars::exemplars_main,
-                exemplar_chars::load_exemplars_main,
-                provider,
-                &locale
-            )?)))
-        }
-
-        #[diplomat::rust_link(icu::properties::exemplar_chars::exemplars_auxiliary, Fn)]
-        #[diplomat::rust_link(
-            icu::properties::exemplar_chars::load_exemplars_auxiliary,
-            Fn,
-            hidden
-        )]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "exemplars_auxiliary")]
-        pub fn load_exemplars_auxiliary(
-            provider: &ICU4XDataProvider,
-            locale: &ICU4XLocale,
-        ) -> Result<Box<ICU4XUnicodeSetData>, ICU4XError> {
-            let locale = locale.to_datalocale();
-            Ok(Box::new(ICU4XUnicodeSetData(call_constructor_unstable!(
-                exemplar_chars::exemplars_auxiliary,
-                exemplar_chars::load_exemplars_auxiliary,
-                provider,
-                &locale
-            )?)))
-        }
-
-        #[diplomat::rust_link(icu::properties::exemplar_chars::exemplars_punctuation, Fn)]
-        #[diplomat::rust_link(
-            icu::properties::exemplar_chars::load_exemplars_punctuation,
-            Fn,
-            hidden
-        )]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "exemplars_punctuation")]
-        pub fn load_exemplars_punctuation(
-            provider: &ICU4XDataProvider,
-            locale: &ICU4XLocale,
-        ) -> Result<Box<ICU4XUnicodeSetData>, ICU4XError> {
-            let locale = locale.to_datalocale();
-            Ok(Box::new(ICU4XUnicodeSetData(call_constructor_unstable!(
-                exemplar_chars::exemplars_punctuation,
-                exemplar_chars::load_exemplars_punctuation,
-                provider,
-                &locale
-            )?)))
-        }
-
-        #[diplomat::rust_link(icu::properties::exemplar_chars::exemplars_numbers, Fn)]
-        #[diplomat::rust_link(icu::properties::exemplar_chars::load_exemplars_numbers, Fn, hidden)]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "exemplars_numbers")]
-        pub fn load_exemplars_numbers(
-            provider: &ICU4XDataProvider,
-            locale: &ICU4XLocale,
-        ) -> Result<Box<ICU4XUnicodeSetData>, ICU4XError> {
-            let locale = locale.to_datalocale();
-            Ok(Box::new(ICU4XUnicodeSetData(call_constructor_unstable!(
-                exemplar_chars::exemplars_numbers,
-                exemplar_chars::load_exemplars_numbers,
-                provider,
-                &locale
-            )?)))
-        }
-
-        #[diplomat::rust_link(icu::properties::exemplar_chars::exemplars_index, Fn)]
-        #[diplomat::rust_link(icu::properties::exemplar_chars::load_exemplars_index, Fn, hidden)]
-        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "exemplars_index")]
-        pub fn load_exemplars_index(
-            provider: &ICU4XDataProvider,
-            locale: &ICU4XLocale,
-        ) -> Result<Box<ICU4XUnicodeSetData>, ICU4XError> {
-            let locale = locale.to_datalocale();
-            Ok(Box::new(ICU4XUnicodeSetData(call_constructor_unstable!(
-                exemplar_chars::exemplars_index,
-                exemplar_chars::load_exemplars_index,
-                provider,
-                &locale
-            )?)))
+        /// Create a map for the `Basic_Emoji` property, using a particular data source.
+        #[diplomat::rust_link(icu::properties::props::BasicEmoji, Struct)]
+        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "basic_with_provider")]
+        #[cfg(feature = "buffer_provider")]
+        pub fn create_basic_with_provider(
+            provider: &DataProvider,
+        ) -> Result<Box<EmojiSetData>, DataError> {
+            Ok(Box::new(EmojiSetData(
+                icu_properties::EmojiSetData::try_new_unstable::<BasicEmoji>(
+                    &provider.get_unstable()?,
+                )?,
+            )))
         }
     }
 }
