@@ -43,15 +43,12 @@
       margin-inline-end: 2px;
     }
 
-    &[disabled] > .toolbarbutton-icon,
-    &:not(:hover):-moz-window-inactive > .toolbarbutton-icon,
-    &[type="menu"][disabled] > .toolbarbutton-menu-dropmarker,
-    &:not(:hover):-moz-window-inactive[type="menu"] > .toolbarbutton-menu-dropmarker {
+    &[disabled],
+    &:not(:hover):-moz-window-inactive {
       opacity: 0.5;
     }
 
-    &:-moz-window-inactive[disabled] > .toolbarbutton-icon,
-    &:-moz-window-inactive[type="menu"][disabled] > .toolbarbutton-menu-dropmarker {
+    &[disabled]:-moz-window-inactive {
       opacity: 0.25;
     }
 
