@@ -91,6 +91,8 @@ class ExternalTexture {
 
   virtual void onBeforeQueueSubmit(RawId aQueueId) {}
 
+  virtual void CleanForRecycling() {}
+
   const uint32_t mWidth;
   const uint32_t mHeight;
   const struct ffi::WGPUTextureFormat mFormat;

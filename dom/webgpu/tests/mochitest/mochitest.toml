@@ -79,3 +79,5 @@ scheme = "http"
 ["test_submit_render_empty.worker.html"]
 
 ["test_adapter_enabled.html"]
+
+["test_submit_render_multiple.html"]

@@ -9,6 +9,7 @@
 #include "mozilla/gfx/FileHandleWrapper.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/webgpu/ExternalTexture.h"
+#include "nsTArrayForwardDeclare.h"
 
 class DMABufSurface;
 
@@ -44,6 +45,8 @@ class ExternalTextureDMABuf final : public ExternalTexture {
 
   void onBeforeQueueSubmit(RawId aQueueId) override;
 
+  void CleanForRecycling() override;
+
   UniqueFileHandle CloneDmaBufFd();
 
   const ffi::WGPUVkImageHandle* GetHandle();
@@ -52,10 +55,10 @@ class ExternalTextureDMABuf final : public ExternalTexture {
   const WeakPtr<WebGPUParent> mParent;
   const RawId mDeviceId;
   UniquePtr<VkImageHandle> mVkImageHandle;
-  UniquePtr<VkSemaphoreHandle> mVkSemaphoreHandle;
+  nsTArray<UniquePtr<VkSemaphoreHandle>> mVkSemaphoreHandles;
   RefPtr<DMABufSurface> mSurface;
   const layers::SurfaceDescriptorDMABuf mSurfaceDescriptor;
-  RefPtr<gfx::FileHandleWrapper> mSemaphoreFd;
+  nsTArray<RefPtr<gfx::FileHandleWrapper>> mSemaphoreFds;
 };
 
 }  // namespace webgpu

@@ -1433,6 +1433,7 @@ void WebGPUParent::PostExternalTexture(
   auto recycledTexture = mRemoteTextureOwner->GetRecycledExternalTexture(
       size, surfaceFormat, desc->type(), aOwnerId);
   if (recycledTexture) {
+    recycledTexture->CleanForRecycling();
     data->mRecycledExternalTextures.push_back(recycledTexture);
   }
 }
