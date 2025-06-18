@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">পড়ুন এবং গোপনীয়তা সেটিংস পরিবর্তন করুন</string>
   <!-- Description for all_urls add-on permission. -->
@@ -87,7 +87,7 @@
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">চালু</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">ব্যক্তিগত ব্রাউজিংয়ে অনুমতি দিন</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">ব্যক্তিগত ব্রাউজিংয়ে অনুমতি দিন</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">ব্যক্তিগত ব্রাউজিংয়ে চালু করুন</string>
   <!-- Indicates the add-on is enabled. -->
@@ -109,9 +109,9 @@
   <!-- This is a button to remove (i.e. uninstall) an add-on. -->
   <string name="mozac_feature_addons_remove">মুছে ফেলুন</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_permissions_dialog_title">%1$s যোগ করবেন?</string>
+  <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">%1$s যোগ করবেন?</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle">এটিতে আপনার অনুমতি দরকার:</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">এটিতে আপনার অনুমতি দরকার:</string>
   <!-- This is a button to add (install) an add-on . -->
   <string name="mozac_feature_addons_permissions_dialog_add">যোগ করুন</string>
   <!-- This is a button to cancel the add-on installation . -->
@@ -155,7 +155,7 @@
   <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
   <string name="mozac_feature_addons_failed_to_install">%1$s ইনস্টল করতে ব্যর্থ</string>
   <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_successfully_enabled">সফলভাবে %1$s  সক্রিয় করা হয়েছে</string>
+  <string name="mozac_feature_addons_successfully_enabled">সফলভাবে %1$s সক্রিয় করা হয়েছে</string>
   <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_failed_to_enable">%1$s সক্রিয় করতে ব্যর্থ হয়েছে</string>
   <!-- Text shown after successfully disabled an add-on. %1$s is the add-on name. -->

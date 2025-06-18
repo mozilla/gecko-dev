@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">Nastajenja priwatnosće čitać a změnić</string>
   <!-- Description for all_urls add-on permission. -->
@@ -84,12 +84,40 @@
   <string name="mozac_feature_addons_permissions_user_scripts_description">Njepřepruwowanym skriptam třećich poskićowarjow přistup k wašim datam dowolić</string>
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Njepřepruwowane skripty móža rizika za wěstotu a priwatnosć być. Wuwjedźće jenož skripty z rozšěrjenjow abo žórłow, kotrymž dowěrjeće.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description">Wuwiwar praji, zo tute rozšěrjenje hromadźi: %1$s.</string>
+  <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
+  <string name="mozac_feature_addons_permissions_none_required_data_collection_description">Wuwiwar praji, zo tute rozšěrjenje hromadźenje datow njetrjeba.</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Rozšěrće wuwiwarske nastroje, zo byšće přistup k swojim datam we wočinjenych rajtarkach měł</string>
   <!-- Description for text button that expands the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_all_sites">Wšě sydła pokazać</string>
   <!-- Description for text button that hides the majority of the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_fewer_sites">Mjenje sydłow pokazać</string>
+  <!-- Short description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_short_description">informacije awtentifikacije</string>
+  <!-- Short description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_short_description">zapołožki</string>
+  <!-- Short description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_short_description">přehladowanska aktiwita</string>
+  <!-- Short description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_short_description">financielne a płaćenske informacije</string>
+  <!-- Short description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_short_description">strowotne informacije</string>
+  <!-- Short description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_short_description">městno</string>
+  <!-- Short description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_short_description">wosobinske komunikacije</string>
+  <!-- Short description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_short_description">informacije, kotrež wosoby identifikuja</string>
+  <!-- Short description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_short_description">pytanske wurazy</string>
+  <!-- Short description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_short_description">techniske daty a daty interakcije</string>
+  <!-- Short description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">aktiwita websydła</string>
+  <!-- Short description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">wobsah websydła</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Wersija</string>
   <!-- The author of an add-on. -->
@@ -109,7 +137,9 @@
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">Zapinjeny</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">W priwatnym modusu dowolić</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">W priwatnym modusu dowolić</string>
+  <!-- Indicates the add-on is allowed in private browsing mode. -->
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing_2">Wuwjedźenje rozšěrjenja w priwatnym modusu dowolić</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">W priwatnym modusu wuwjesć</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -135,11 +165,19 @@
   <!-- This is a button to report an add-on. -->
   <string name="mozac_feature_addons_report">Zdźělić</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_permissions_dialog_title">%1$s přidać?</string>
+  <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">%1$s přidać?</string>
+  <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_permissions_dialog_title_2">%1$s přidać</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s wo přidatne prawa prosy.</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle">Waša dowolnosć je trěbna za:</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">Waša dowolnosć je trěbna za:</string>
+  <!-- Heading for the data collection permissions section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_required_permissions">Trěbne prawa:</string>
+  <!-- Heading for the data collection permissions section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_required_data_collection">Trěbne hromadźenje datow:</string>
+  <!-- Heading for the optional settings section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_settings">Wólbne nastajenja:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">Požadane prawa:</string>
   <!-- This is a button to add (install) an add-on . -->

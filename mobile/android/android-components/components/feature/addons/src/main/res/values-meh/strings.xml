@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">Ka´vi je nake´i nánuku yu´u</string>
   <!-- Description for all_urls add-on permission. -->
@@ -97,7 +97,7 @@
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">Tɨɨn</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">Jia\'a kaka yu\'unu</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">Jia\'a kaka yu\'unu</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">Kua\'a sá´á kaka yu\'unu</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -123,11 +123,11 @@
   <!-- This is a button to report an add-on. -->
   <string name="mozac_feature_addons_report">Reportar</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_permissions_dialog_title">¿Tee %1$s?</string>
+  <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">¿Tee %1$s?</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s jiniñu´u kua´a inka permisos.</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle">Jini´ñudani kachinu dee kuvi sá´á:</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">Jini´ñudani kachinu dee kuvi sá´á:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">Kuní:</string>
   <!-- This is a button to add (install) an add-on . -->
@@ -167,9 +167,9 @@
   <!-- The tile of the notification, this will be shown to the user when an add-on needs new permissions, to be updated. %1$s is the name of the add-ons -->
   <string name="mozac_feature_addons_updater_notification_title">%1$s íyo iin actualización jía</string>
   <!-- The content of the notification, this will be shown when an add-on needs new permissions, to be updated. %1$d is the amount of new permissions -->
-  <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">Jiniñu\'u %1$d permisos jía </string>
+  <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">Jiniñu\'u %1$d permisos jía</string>
   <!-- The content of the notification displayed when an add-on needs a new permission -->
-  <string name="mozac_feature_addons_updater_notification_content_singular">Jiniñu\'u iin permiso jía </string>
+  <string name="mozac_feature_addons_updater_notification_content_singular">Jiniñu\'u iin permiso jía</string>
   <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_addons_updater_notification_channel_2">Daa a jíía extensiones</string>
   <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->

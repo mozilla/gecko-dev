@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">Sazkariyên nihêniyê bixwîne û biguherîne</string>
   <!-- Description for all_urls add-on permission. -->
@@ -79,7 +79,7 @@
   <!-- Description for top_sites permission. -->
   <string name="mozac_feature_addons_permissions_top_sites_description">Xwegihandina raboriya gerînê</string>
   <!-- Description for trialML permission. -->
-  <string name="mozac_feature_addons_permissions_trial_ml_description">Modelên AI`ê bar bike ser cîhaza xwe  û bixebitîne</string>
+  <string name="mozac_feature_addons_permissions_trial_ml_description">Modelên AI`ê bar bike ser cîhaza xwe û bixebitîne</string>
   <!-- Description for userScripts permission. -->
   <string name="mozac_feature_addons_permissions_user_scripts_description">Destûrê bide skrîptên partiya sêyemîn ên nepesendkirî ku xwe bigihînin daneyên te</string>
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
@@ -109,7 +109,7 @@
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">Vekirî</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">Di gerîna veşartî de destûrê bide</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">Di gerîna veşartî de destûrê bide</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">Di gerîna veşartî de bixebitîne</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -135,11 +135,11 @@
   <!-- This is a button to report an add-on. -->
   <string name="mozac_feature_addons_report">Gilî bike</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_permissions_dialog_title">%1$s’ê tevlî bike?</string>
+  <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">%1$s’ê tevlî bike?</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s destûrên zûdetir dixwaze.</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle">Ji bo tevlîkirinê, destûrên li jêrê tên xwestin:</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">Ji bo tevlîkirinê, destûrên li jêrê tên xwestin:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">Ew dixwaze:</string>
   <!-- This is a button to add (install) an add-on . -->
@@ -153,7 +153,7 @@
   <!-- This is a button to cancel the add-on installation . -->
   <string name="mozac_feature_addons_permissions_dialog_cancel">Betal bike</string>
   <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_install_addon_content_description_2"> %1$s saz bike</string>
+  <string name="mozac_feature_addons_install_addon_content_description_2">%1$s saz bike</string>
   <!-- This is the label of a button to cancel an ongoing add-on installation. -->
   <string name="mozac_feature_addons_install_addon_dialog_cancel">Betal bike</string>
   <!-- Indicates how many users have rated an add-on. %1$s will be replaced with number of reviews -->

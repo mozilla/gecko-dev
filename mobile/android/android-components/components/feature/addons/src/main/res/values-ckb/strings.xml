@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">ڕێکخستنەکانی تایبەتمەندی بخوێنەوە و دەستکاریبکە</string>
   <!-- Description for all_urls add-on permission. -->
@@ -12,13 +12,13 @@
     When an add-on requires access to more than 4 sites, for example the add-on requires access for 5 sites. We will show the first 4 sites in individual entries, as in mozac_feature_addons_permissions_one_site_description,
     then we will show another collapsed entry saying "Access your data on 1 other site". This entry it's for the singular case, when the add-on is only accessing one extra site.
   -->
-  <string name="mozac_feature_addons_permissions_one_extra_site_description" tools:ignore="PluralsCandidate">چوونەناو زانیارییەکانت لە لە 1 ماڵپەڕی تر </string>
+  <string name="mozac_feature_addons_permissions_one_extra_site_description" tools:ignore="PluralsCandidate">چوونەناو زانیارییەکانت لە لە 1 ماڵپەڕی تر</string>
   <!--
     When an add-on requires access to more than 4 sites, for example the add-on requires access for 6 sites. We will show the first 4 sites in individual entries, as in mozac_feature_addons_permissions_one_site_description,
     then we will show another collapsed entry saying "Access your data on 2 other sites". This entry it's for the plural case, when the add-on is accessing more than one extra site.
     %1$d will be replaced by an integer indicating the number of additional hosts for which this web extension is requesting permission.
   -->
-  <string name="mozac_feature_addons_permissions_extra_sites_description" tools:ignore="PluralsCandidate">چوونەناو زانیارییەکانت لە %1$d ماڵپەڕی تر </string>
+  <string name="mozac_feature_addons_permissions_extra_sites_description" tools:ignore="PluralsCandidate">چوونەناو زانیارییەکانت لە %1$d ماڵپەڕی تر</string>
   <!--
     When an add-on requires access to more than 4 domains, for example the add-on requires access for 5 domains. We will show the first 4 domains in individual entries, as in mozac_feature_addons_permissions_sites_in_domain_description,
     then we will show another collapsed entry saying "Access your data on 1 other domain". This entry it's for the singular case, when the add-on is only accessing one extra domain.
@@ -75,7 +75,7 @@
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">کارا</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">ڕێگەی پێبدە لە وێبگەڕی تایبەتی</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">ڕێگەی پێبدە لە وێبگەڕی تایبەتی</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">جێبەجێکردن لە وێبگەڕی تایبەت</string>
   <!-- Indicates the add-on is enabled. -->
@@ -97,9 +97,9 @@
   <!-- This is a button to remove (i.e. uninstall) an add-on. -->
   <string name="mozac_feature_addons_remove">بیسڕەوە</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_permissions_dialog_title">زیادکردنی %1$s ؟</string>
+  <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">زیادکردنی %1$s ؟</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle">داوای ڕێپێدانت دەکات بۆ:</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">داوای ڕێپێدانت دەکات بۆ:</string>
   <!-- This is a button to add (install) an add-on . -->
   <string name="mozac_feature_addons_permissions_dialog_add">زیادکردنی</string>
   <!-- This is a button to cancel the add-on installation . -->

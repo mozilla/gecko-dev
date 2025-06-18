@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">گیزلیلیک تنظیم‌لرینی اوخویون و ایصلاح ائله‌یین</string>
   <!-- Description for all_urls add-on permission. -->
@@ -37,7 +37,7 @@
   <!-- Description for navigation permission. -->
   <string name="mozac_feature_addons_permissions_web_navigation_description">گزینمه زامانی موروچو فعالیتینه ال چاتما</string>
   <!-- Description for bookmarks permission. -->
-  <string name="mozac_feature_addons_permissions_bookmarks_description">بوکمارک‌لاری اوخوما  و ایصلاح ائتمه</string>
+  <string name="mozac_feature_addons_permissions_bookmarks_description">بوکمارک‌لاری اوخوما و ایصلاح ائتمه</string>
   <!-- Description for browser_setting permission. -->
   <string name="mozac_feature_addons_permissions_browser_setting_description">مورورچو تنظیم‌لرینی اوخویون و ایصلاح ائله‌یین</string>
   <!-- Description for browser_data permission. -->
@@ -97,7 +97,7 @@
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">آچیق</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">اؤزل مورورچویا ایجازه وئر</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">اؤزل مورورچویا ایجازه وئر</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">اؤزل موروردا چالیشدیر</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -123,11 +123,11 @@
   <!-- This is a button to report an add-on. -->
   <string name="mozac_feature_addons_report">راپورت</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_permissions_dialog_title">%1$s اکلنسین؟</string>
+  <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">%1$s اکلنسین؟</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s داها آرتیق ایجازه‌لر ایستییر.</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle">بونون اوچون سیزین ایجازه‌ز لازیم:</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">بونون اوچون سیزین ایجازه‌ز لازیم:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">ایسته‌نن‌لر:</string>
   <!-- This is a button to add (install) an add-on . -->
@@ -135,7 +135,7 @@
   <!-- This is a button to allow the optional permissions requested by an add-on . -->
   <string name="mozac_feature_addons_permissions_dialog_allow">ایجازه</string>
   <!-- This is a button to deny the optional permissions requested by an add-on . -->
-  <string name="mozac_feature_addons_permissions_dialog_deny">رد </string>
+  <string name="mozac_feature_addons_permissions_dialog_deny">رد</string>
   <!-- This is a button to cancel the add-on installation . -->
   <string name="mozac_feature_addons_permissions_dialog_cancel">لغو</string>
   <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
@@ -153,7 +153,7 @@
   <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on -->
   <string name="mozac_feature_addons_updater_notification_allow_button">ایجازه</string>
   <!-- The label of the deny button on a notification, this will be shown to the user when an add-on needs new permissions. Indicates the user denies the new permissions and prevents the add-on from be updated -->
-  <string name="mozac_feature_addons_updater_notification_deny_button">رد </string>
+  <string name="mozac_feature_addons_updater_notification_deny_button">رد</string>
   <!-- The tile of the notification, this will be shown to the user when an add-on needs new permissions, to be updated. %1$s is the name of the add-ons -->
   <string name="mozac_feature_addons_updater_notification_title">%1$s -ین یئنی گونجلله‌مه‌سی وار</string>
   <!-- The content of the notification, this will be shown when an add-on needs new permissions, to be updated. %1$d is the amount of new permissions -->
@@ -175,7 +175,7 @@
   <!-- This is the caption for not yet supported screen caption -->
   <string name="mozac_feature_addons_not_yet_supported_caption2">ایندی توصیه اولونان اوزانتی‌لارین ایلک سئچیمی اوچون ساپورت وئریریق.</string>
   <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
-  <string name="mozac_feature_addons_failed_to_translate">یئرلی %1$s اوچون و %2$s وارساییلان دیل اوچون ترجومه تاپیلمادی. </string>
+  <string name="mozac_feature_addons_failed_to_translate">یئرلی %1$s اوچون و %2$s وارساییلان دیل اوچون ترجومه تاپیلمادی.</string>
   <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_successfully_installed">باشاریلی قورولدو %1$s</string>
   <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->

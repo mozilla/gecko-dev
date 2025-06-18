@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">ଗୋପନୀୟତା ସଂରଚନା ପଢ଼ି ବଦଳାନ୍ତୁ</string>
   <!-- Description for find permission. -->
@@ -29,7 +29,7 @@
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">ଅନ</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">ପ୍ରାଇଭେଟ ବ୍ରାଉଜିଂକୁ ଅନୁମତି ଦିଅନ୍ତୁ</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">ପ୍ରାଇଭେଟ ବ୍ରାଉଜିଂକୁ ଅନୁମତି ଦିଅନ୍ତୁ</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">ବ୍ୟକ୍ତିଗତ ବ୍ରାଉଜିଂରେ ଚଲାନ୍ତୁ</string>
   <!-- Indicates the add-on is enabled. -->
@@ -51,7 +51,7 @@
   <!-- This is a button to remove (i.e. uninstall) an add-on. -->
   <string name="mozac_feature_addons_remove">କାଢ଼ନ୍ତୁ</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_permissions_dialog_title">%1$s କୁ ଯୋଡ଼ିବେ?</string>
+  <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">%1$s କୁ ଯୋଡ଼ିବେ?</string>
   <!-- This is a button to add (install) an add-on . -->
   <string name="mozac_feature_addons_permissions_dialog_add">ଯୋଡ଼ନ୍ତୁ</string>
   <!-- This is a button to cancel the add-on installation . -->

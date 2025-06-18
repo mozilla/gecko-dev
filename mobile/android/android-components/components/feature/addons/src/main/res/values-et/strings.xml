@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
   <!-- Description for privacy add-on permission. -->
   <string name="mozac_feature_addons_permissions_privacy_description">privaatsussätete vaatamine ja muutmine</string>
   <!-- Description for all_urls add-on permission. -->
@@ -103,13 +103,13 @@
   <!-- The rating of the add-on. -->
   <string name="mozac_feature_addons_rating">Hinnang</string>
   <!-- A link that points to the detail page of the extension. -->
-  <string name="mozac_feature_addons_more_info_link_2"> Selle laienduse lisateave</string>
+  <string name="mozac_feature_addons_more_info_link_2">Selle laienduse lisateave</string>
   <!-- The settings of the add-on. -->
   <string name="mozac_feature_addons_settings">Sätted</string>
   <!-- Indicates the add-on is enabled. -->
   <string name="mozac_feature_addons_settings_on">Sees</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
-  <string name="mozac_feature_addons_settings_allow_in_private_browsing">Lubatakse privaatse veebilehitsemise režiimis</string>
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">Lubatakse privaatse veebilehitsemise režiimis</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">Käivitatakse privaatse veebilehitsemise režiimis</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -135,11 +135,11 @@
   <!-- This is a button to report an add-on. -->
   <string name="mozac_feature_addons_report">Raporteeri</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
-  <string name="mozac_feature_addons_permissions_dialog_title">Kas paigaldada lisa %1$s?</string>
+  <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">Kas paigaldada lisa %1$s?</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s nõuab täiendavaid õigusi.</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle">See lisa nõuab järgmisi õigusi:</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">See lisa nõuab järgmisi õigusi:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">Nõutud õigused:</string>
   <!-- This is a button to add (install) an add-on . -->
@@ -167,7 +167,7 @@
   <!-- The title of the "crash" notification in the extensions manager -->
   <string name="mozac_feature_extensions_manager_notification_title_text">Laiendused on ajutiselt keelatud</string>
   <!-- The content of the "crash" notification in the extensions manager -->
-  <string name="mozac_feature_extensions_manager_notification_content_text">Üks või mitu laiendust lakkasid töötamast, muutes  süsteemi ebastabiilseks.</string>
+  <string name="mozac_feature_extensions_manager_notification_content_text">Üks või mitu laiendust lakkasid töötamast, muutes süsteemi ebastabiilseks.</string>
   <!-- Button to re-enable the extensions in the "crash" notification -->
   <string name="mozac_feature_extensions_manager_notification_restart_button">Taaskäivita laiendused</string>
   <!-- Button in the extensions manager that opens AMO in a tab -->
@@ -265,7 +265,7 @@
   <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
   <string name="mozac_feature_addons_installed_dialog_title">%2$sile paigaldati lisa %1$s</string>
   <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
-  <string name="mozac_feature_addons_installed_dialog_description_2">Laiendusele  %1$s pääsed ligi %2$s menüüst.</string>
+  <string name="mozac_feature_addons_installed_dialog_description_2">Laiendusele %1$s pääsed ligi %2$s menüüst.</string>
   <!-- Confirmation button text for the dialog when add-on installation is completed. -->
   <string name="mozac_feature_addons_installed_dialog_okay_button_2">Sobib</string>
   <!-- "Learn more" link displayed below an add-on status message. -->
