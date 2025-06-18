@@ -126,6 +126,7 @@ add_task(async function testGetFromChildNewEnrollment() {
   });
 
   ExperimentAPI.manager.store._deleteForTests("foo");
+  await NimbusTestUtils.flushStore();
 
   BrowserTestUtils.removeTab(tab);
 
@@ -195,6 +196,7 @@ add_task(async function testGetFromChildExistingEnrollment() {
 
   ExperimentAPI.manager.unenroll("qux");
   ExperimentAPI.manager.store._deleteForTests("qux");
+  await NimbusTestUtils.flushStore();
   BrowserTestUtils.removeTab(tab);
 
   Services.ppmm.sharedData.flush();

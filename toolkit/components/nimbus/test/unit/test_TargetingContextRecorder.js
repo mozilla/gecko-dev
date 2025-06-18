@@ -160,11 +160,20 @@ add_task(async function testNimbusTargetingContextAllKeysPresent() {
 
   // Glean doesn't serialize empty arrays, so lets put some entries into activeExperiments and
   // activeRollouts so that they appear in the context.
-  manager.store.set(
-    "experiment",
-    NimbusTestUtils.factories.experiment("experiment")
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("experiment", {
+      featureId: "no-feature-firefox-desktop",
+    }),
+    "test"
   );
-  manager.store.set("rollout", NimbusTestUtils.factories.rollout("rollout"));
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "rollout",
+      { featureId: "no-feature-firefox-desktop" },
+      { isRollout: true }
+    ),
+    "test"
+  );
 
   // Stub this for userMonthlyActivity
   sandbox
@@ -189,8 +198,8 @@ add_task(async function testNimbusTargetingContextAllKeysPresent() {
     }
   }, recordTargetingContext);
 
-  manager.store._deleteForTests("experiment");
-  manager.store._deleteForTests("rollout");
+  manager.unenroll("experiment");
+  manager.unenroll("rollout");
 
   await cleanup();
 });
@@ -306,26 +315,32 @@ add_task(async function testExperimentMetrics() {
     Assert.deepEqual(values.enrollmentsMap, []);
   }, recordTargetingContext);
 
-  manager.store.set(
-    "experiment-1",
-    NimbusTestUtils.factories.experiment("experiment-1", {
-      branch: NimbusTestUtils.factories.recipe.branches[0],
-    })
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-1", {
+      branchSlug: "control",
+      featureId: "no-feature-firefox-desktop",
+    }),
+    "test"
   );
-  manager.store.set(
-    "experiment-2",
-    NimbusTestUtils.factories.experiment("experiment-2", {
-      branch: NimbusTestUtils.factories.recipe.branches[1],
-    })
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-2", {
+      branchSlug: "treatment",
+      featureId: "no-feature-firefox-desktop",
+    }),
+    "test"
   );
-  manager.store.set(
-    "rollout-1",
-    NimbusTestUtils.factories.rollout("rollout-1", {
-      branch: {
-        ...NimbusTestUtils.factories.recipe.branches[0],
-        slug: "rollout",
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "rollout-1",
+      {
+        branchSlug: "rollout",
+        featureId: "no-feature-firefox-desktop",
       },
-    })
+      {
+        isRollout: true,
+      }
+    ),
+    "test"
   );
 
   await GleanPings.nimbusTargetingContext.testSubmission(() => {
@@ -348,9 +363,9 @@ add_task(async function testExperimentMetrics() {
     );
   }, recordTargetingContext);
 
-  manager.store.deactivateEnrollment("experiment-1");
-  manager.store.deactivateEnrollment("experiment-2");
-  manager.store.deactivateEnrollment("rollout-1");
+  manager.unenroll("experiment-1", { reason: "test" });
+  manager.unenroll("experiment-2", { reason: "test" });
+  manager.unenroll("rollout-1", { reason: "test" });
 
   await GleanPings.nimbusTargetingContext.testSubmission(() => {
     assertRecordingFailures();
@@ -368,10 +383,6 @@ add_task(async function testExperimentMetrics() {
       ].sort()
     );
   }, recordTargetingContext);
-
-  manager.store._deleteForTests("experiment-1");
-  manager.store._deleteForTests("experiment-2");
-  manager.store._deleteForTests("rollout-1");
 
   await cleanup();
 });

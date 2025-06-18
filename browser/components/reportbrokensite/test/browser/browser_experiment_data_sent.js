@@ -42,8 +42,10 @@ add_setup(async function () {
       { featureId: "no-feature-firefox-desktop", value: {} },
       { slug: "test-experiment-rollout", isRollout: true, branchSlug: "branch" }
     ),
-    () =>
-      ExperimentAPI.manager.store._deleteForTests("test-experiment-disabled"),
+    async () => {
+      ExperimentAPI.manager.store._deleteForTests("test-experiment-disabled");
+      await NimbusTestUtils.flushStore();
+    },
   ];
 
   await NimbusTestUtils.enrollWithFeatureConfig(

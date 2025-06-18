@@ -520,13 +520,28 @@ export class ExperimentStore extends SharedDataMap {
   /**
    * Test only helper for cleanup
    *
-   * @param slugOrFeatureId Can be called with slug (which removes the SharedDataMap entry) or
+   * @param {string} slugOrFeatureId Can be called with slug (which removes the SharedDataMap entry) or
    * with featureId which removes the SyncDataStore entry for the feature
+   *
+   * @param {object} options
+   * @param {boolean} removeFromNimbusEnrollments If true (the default), this
+   * will also queue a deletion from the NimbusEnrollments table.
    */
-  _deleteForTests(slugOrFeatureId) {
+  _deleteForTests(
+    slugOrFeatureId,
+    { removeFromNimbusEnrollments = true } = {}
+  ) {
+    const isEnrollment = this.has(slugOrFeatureId);
+
     super._deleteForTests(slugOrFeatureId);
     lazy.syncDataStore.deleteDefault(slugOrFeatureId);
     lazy.syncDataStore.delete(slugOrFeatureId);
+
+    // removeFromNimbusEnrollments must default to true becuase Nimbus DevTools
+    // uses this function to remove entries from the store.
+    if (isEnrollment && removeFromNimbusEnrollments) {
+      this._db?.updateEnrollment(slugOrFeatureId);
+    }
   }
 
   async _reportStartupDatabaseConsistency() {
