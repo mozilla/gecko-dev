@@ -8990,8 +8990,26 @@ main section {
   }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .search-inner-wrapper:has(.trending-searches-pill-wrapper.hover-only):hover .hover-only, .search-inner-wrapper:has(.trending-searches-pill-wrapper.hover-only):focus-within .hover-only, .search-inner-wrapper:has(.trending-searches-pill-wrapper.hover-only):focus-visible .hover-only {
+    max-height: 100px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fake-focus .search-inner-wrapper:has(.trending-searches-pill-wrapper.hover-only) .hover-only {
+    max-height: 100px;
+  }
+}
+
 .fixed-search .trending-searches-pill-wrapper {
   display: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .trending-searches-pill-wrapper.hover-only {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+  }
 }
 .trending-searches-pill-wrapper .trending-searches-title-wrapper {
   display: flex;
@@ -9002,6 +9020,7 @@ main section {
 .trending-searches-pill-wrapper .trending-searches-title-wrapper .trending-searches-title {
   margin: 0;
   font-size: var(--font-size-root);
+  color: var(--newtab-contextual-text-primary-color);
 }
 .trending-searches-pill-wrapper .trending-searches-title-wrapper .close-open-trending-searches {
   margin-inline-start: auto;
@@ -9089,7 +9108,7 @@ main section {
   align-items: center;
 }
 .trending-searches-list-view:not(.placeholder) .trending-searches-list-item .trending-searches-icon {
-  color: var(--newtab-text-primary-color);
+  color: var(--newtab-contextual-text-primary-color);
   margin-inline: var(--space-medium) var(--space-large);
 }
 .trending-searches-list-view:not(.placeholder) .trending-searches-list-item .trending-info-wrapper {

@@ -178,9 +178,9 @@ export class _Search extends React.PureComponent {
                 data-l10n-id="newtab-search-box-search-button"
                 onClick={this.onSearchClick}
               />
-              {trendingSearchEnabled && trendingSearchVariant === "a" && (
-                <TrendingSearches />
-              )}
+              {trendingSearchEnabled &&
+                (trendingSearchVariant === "a" ||
+                  trendingSearchVariant === "c") && <TrendingSearches />}
             </div>
           )}
           {this.props.handoffEnabled && (
@@ -208,9 +208,9 @@ export class _Search extends React.PureComponent {
                   }}
                 />
               </button>
-              {trendingSearchEnabled && trendingSearchVariant === "a" && (
-                <TrendingSearches />
-              )}
+              {trendingSearchEnabled &&
+                (trendingSearchVariant === "a" ||
+                  trendingSearchVariant === "c") && <TrendingSearches />}
             </div>
           )}
         </div>

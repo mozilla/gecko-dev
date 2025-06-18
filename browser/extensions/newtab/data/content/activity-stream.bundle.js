@@ -5002,12 +5002,15 @@ function TrendingSearches() {
   const ref = useIntersectionObserver(handleIntersection);
   if (!suggestions?.length) {
     return null;
-  } else if (variant === "a") {
+  } else if (variant === "a" || variant === "c") {
     return /*#__PURE__*/React.createElement("section", {
       ref: el => {
         ref.current = [el];
-      },
-      className: "trending-searches-pill-wrapper"
+      }
+      // Variant C matches the design of variant A but should only
+      // appear on hover
+      ,
+      className: `trending-searches-pill-wrapper ${variant === "c" ? "hover-only" : ""}`
     }, /*#__PURE__*/React.createElement("div", {
       className: "trending-searches-title-wrapper"
     }, /*#__PURE__*/React.createElement("span", {
@@ -13586,7 +13589,7 @@ class _Search extends (external_React_default()).PureComponent {
       className: "search-button",
       "data-l10n-id": "newtab-search-box-search-button",
       onClick: this.onSearchClick
-    }), trendingSearchEnabled && trendingSearchVariant === "a" && /*#__PURE__*/external_React_default().createElement(TrendingSearches, null)), this.props.handoffEnabled && /*#__PURE__*/external_React_default().createElement("div", {
+    }), trendingSearchEnabled && (trendingSearchVariant === "a" || trendingSearchVariant === "c") && /*#__PURE__*/external_React_default().createElement(TrendingSearches, null)), this.props.handoffEnabled && /*#__PURE__*/external_React_default().createElement("div", {
       className: "search-inner-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("button", {
       className: "search-handoff-button",
@@ -13608,7 +13611,7 @@ class _Search extends (external_React_default()).PureComponent {
       ref: el => {
         this.fakeCaret = el;
       }
-    })), trendingSearchEnabled && trendingSearchVariant === "a" && /*#__PURE__*/external_React_default().createElement(TrendingSearches, null))));
+    })), trendingSearchEnabled && (trendingSearchVariant === "a" || trendingSearchVariant === "c") && /*#__PURE__*/external_React_default().createElement(TrendingSearches, null))));
   }
 }
 const Search_Search = (0,external_ReactRedux_namespaceObject.connect)(state => ({

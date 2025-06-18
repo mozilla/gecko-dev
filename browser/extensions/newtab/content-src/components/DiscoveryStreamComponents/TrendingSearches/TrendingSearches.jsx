@@ -111,13 +111,15 @@ function TrendingSearches() {
 
   if (!suggestions?.length) {
     return null;
-  } else if (variant === "a") {
+  } else if (variant === "a" || variant === "c") {
     return (
       <section
         ref={el => {
           ref.current = [el];
         }}
-        className="trending-searches-pill-wrapper"
+        // Variant C matches the design of variant A but should only
+        // appear on hover
+        className={`trending-searches-pill-wrapper ${variant === "c" ? "hover-only" : ""}`}
       >
         <div className="trending-searches-title-wrapper">
           <span className="trending-searches-icon icon icon-arrow-trending"></span>
