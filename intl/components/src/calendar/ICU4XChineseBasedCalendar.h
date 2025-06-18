@@ -19,9 +19,9 @@ namespace mozilla::intl::calendar {
  */
 class ICU4XChineseBasedCalendar : public ICU4XCalendar {
  protected:
-  ICU4XChineseBasedCalendar(capi::ICU4XAnyCalendarKind kind,
+  ICU4XChineseBasedCalendar(icu4x::capi::CalendarKind kind,
                             const icu::Locale& locale, UErrorCode& success);
-  ICU4XChineseBasedCalendar(capi::ICU4XAnyCalendarKind kind,
+  ICU4XChineseBasedCalendar(icu4x::capi::CalendarKind kind,
                             const icu::TimeZone& timeZone,
                             const icu::Locale& locale, UErrorCode& success);
   ICU4XChineseBasedCalendar(const ICU4XChineseBasedCalendar& other);
