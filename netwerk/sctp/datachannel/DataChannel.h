@@ -411,7 +411,8 @@ class DataChannelConnection final : public net::NeckoTargetHolder {
   // Avoid cycles with PeerConnectionImpl
   // Use from main thread only as WeakPtr is not threadsafe
   WeakPtr<DataConnectionListener> mListener;
-  bool mSendInterleaved MOZ_GUARDED_BY(mLock) = false;
+  // STS only
+  bool mSendInterleaved = false;
   // MainThread only
   bool mMaxMessageSizeSet = false;
   // Main thread only
@@ -427,11 +428,13 @@ class DataChannelConnection final : public net::NeckoTargetHolder {
   // STS and main
   std::set<RefPtr<DataChannel>> mPending MOZ_GUARDED_BY(mLock);
   size_t mNegotiatedIdLimit MOZ_GUARDED_BY(mLock) = 0;
-  PendingType mPendingType MOZ_GUARDED_BY(mLock) = PendingType::None;
+  // STS only
+  PendingType mPendingType = PendingType::None;
   // holds data that's come in before a channel is open
   nsTArray<UniquePtr<QueuedDataMessage>> mQueuedData MOZ_GUARDED_BY(mLock);
   // holds outgoing control messages
-  nsTArray<OutgoingMsg> mBufferedControl MOZ_GUARDED_BY(mLock);
+  // STS only
+  nsTArray<OutgoingMsg> mBufferedControl;
   // For partial DCEP messages (should be _really_ rare, since they're small)
   Maybe<IncomingMsg> mRecvBuffer MOZ_GUARDED_BY(mLock);
 
