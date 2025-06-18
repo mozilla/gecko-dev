@@ -2518,7 +2518,7 @@ static void EmitInitDependentStringBase(MacroAssembler& masm,
     //
     // but further modified to combine the initial move with an OR:
     //
-    //   flags |= ~(flags & ~ATOM_BIT) << (DEPENDED_ON_BIT - ATOM_BIT)
+    //   flags |= ~(flags | ~ATOM_BIT) << (DEPENDED_ON_BIT - ATOM_BIT)
     //
     masm.or32(Imm32(~JSString::ATOM_BIT), temp1, temp2);
     masm.not32(temp2);
