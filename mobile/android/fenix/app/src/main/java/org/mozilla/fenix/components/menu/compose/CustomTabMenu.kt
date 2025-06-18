@@ -88,19 +88,16 @@ internal fun CustomTabMenu(
     ) {
         MenuGroup {
             val badgeText: String
-            val iconId: Int
             val menuItemState: MenuItemState
             val badgeBackgroundColor: Color
 
             if (isDesktopMode) {
                 badgeText = stringResource(id = R.string.browser_feature_desktop_site_on)
                 badgeBackgroundColor = FirefoxTheme.colors.badgeActive
-                iconId = R.drawable.mozac_ic_device_mobile_24
                 menuItemState = MenuItemState.ACTIVE
             } else {
                 badgeText = stringResource(id = R.string.browser_feature_desktop_site_off)
                 badgeBackgroundColor = FirefoxTheme.colors.layerSearch
-                iconId = R.drawable.mozac_ic_device_desktop_24
                 menuItemState = if (isPdf) MenuItemState.DISABLED else MenuItemState.ENABLED
             }
 
@@ -126,7 +123,7 @@ internal fun CustomTabMenu(
 
             MenuItem(
                 label = stringResource(id = R.string.browser_menu_desktop_site),
-                beforeIconPainter = painterResource(id = iconId),
+                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_device_mobile_24),
                 state = menuItemState,
                 onClick = onSwitchToDesktopSiteMenuClick,
             ) {
