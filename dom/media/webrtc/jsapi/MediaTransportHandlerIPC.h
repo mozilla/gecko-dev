@@ -16,7 +16,7 @@ class MediaTransportChild;
 // talk to mtransport on another process.
 class MediaTransportHandlerIPC final : public MediaTransportHandler {
  public:
-  explicit MediaTransportHandlerIPC();
+  explicit MediaTransportHandlerIPC(nsISerialEventTarget* aCallbackThread);
   void Initialize() override;
   RefPtr<IceLogPromise> GetIceLog(const nsCString& aPattern) override;
   void ClearIceLog() override;
@@ -89,7 +89,6 @@ class MediaTransportHandlerIPC final : public MediaTransportHandler {
   // API call we get, instead of creating another promise each time.
   typedef MozPromise<bool, nsCString, false> InitPromise;
   RefPtr<InitPromise> mInitPromise;
-  nsCOMPtr<nsISerialEventTarget> mThread;
 };
 
 }  // namespace mozilla

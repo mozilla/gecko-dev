@@ -462,7 +462,9 @@ nsresult PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
   mSTSThread = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &res);
   MOZ_ASSERT(mSTSThread);
 
-  RefPtr transportHandler = MediaTransportHandler::Create();
+  // We do callback handling on STS instead of main to avoid media jank.
+  // Someday, we may have a dedicated thread for this.
+  RefPtr transportHandler = MediaTransportHandler::Create(mSTSThread);
   if (mPrivateWindow) {
     transportHandler->EnterPrivateMode();
   }
@@ -555,28 +557,9 @@ nsresult PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
   // setup the stun local addresses IPC async call
   InitLocalAddrs();
 
-  PeerConnectionCtx::GetInstance()->AddPeerConnection(mHandle, this);
+  mSignalHandler = MakeUnique<SignalHandler>(this, mTransportHandler.get());
 
-  mGatheringStateChangeListener =
-      mTransportHandler->GetGatheringStateChange().Connect(
-          GetMainThreadSerialEventTarget(), this,
-          &PeerConnectionImpl::IceGatheringStateChange);
-  mConnectionStateChangeListener =
-      mTransportHandler->GetConnectionStateChange().Connect(
-          GetMainThreadSerialEventTarget(), this,
-          &PeerConnectionImpl::IceConnectionStateChange);
-  mCandidateListener = mTransportHandler->GetCandidateGathered().Connect(
-      GetMainThreadSerialEventTarget(), this,
-      &PeerConnectionImpl::OnCandidateFound);
-  mAlpnNegotiatedListener = mTransportHandler->GetAlpnNegotiated().Connect(
-      GetMainThreadSerialEventTarget(), this,
-      &PeerConnectionImpl::OnAlpnNegotiated);
-  mStateChangeListener = mTransportHandler->GetStateChange().Connect(
-      GetMainThreadSerialEventTarget(), this,
-      &PeerConnectionImpl::OnDtlsStateChange);
-  mRtcpStateChangeListener = mTransportHandler->GetRtcpStateChange().Connect(
-      GetMainThreadSerialEventTarget(), this,
-      &PeerConnectionImpl::OnDtlsStateChange);
+  PeerConnectionCtx::GetInstance()->AddPeerConnection(mHandle, this);
 
   return NS_OK;
 }
@@ -745,11 +728,7 @@ nsresult PeerConnectionImpl::GetDatachannelParameters(
     if (codec->mChannels) {
       *channels = codec->mChannels;
     } else {
-      *channels = std::clamp(
-          Preferences::GetInt("media.peerconnection.sctp.default_max_streams",
-                              WEBRTC_DATACHANNEL_STREAMS_DEFAULT),
-          256, 2048);
-      ;
+      *channels = WEBRTC_DATACHANNEL_STREAMS_DEFAULT;
     }
     const JsepApplicationCodecDescription* appCodec =
         static_cast<const JsepApplicationCodecDescription*>(codec.get());
@@ -990,13 +969,8 @@ PeerConnectionImpl::CreateDataChannel(
       return NS_ERROR_FAILURE;
   }
 
-  uint16_t maxStreams = std::clamp(
-      Preferences::GetInt("media.peerconnection.sctp.default_max_streams",
-                          WEBRTC_DATACHANNEL_STREAMS_DEFAULT),
-      256, 2048);
-
   nsresult rv = EnsureDataConnection(
-      WEBRTC_DATACHANNEL_PORT_DEFAULT, maxStreams,
+      WEBRTC_DATACHANNEL_PORT_DEFAULT, WEBRTC_DATACHANNEL_STREAMS_DEFAULT,
       WEBRTC_DATACHANNEL_MAX_MESSAGE_SIZE_REMOTE_DEFAULT, false);
   if (NS_FAILED(rv)) {
     return rv;
@@ -1009,7 +983,7 @@ PeerConnectionImpl::CreateDataChannel(
           : (prPolicy == DataChannelReliabilityPolicy::LimitedLifetime
                  ? aMaxTime
                  : 0),
-      aExternalNegotiated, aStream);
+      nullptr, nullptr, aExternalNegotiated, aStream);
   NS_ENSURE_TRUE(dataChannel, NS_ERROR_NOT_AVAILABLE);
 
   CSFLogDebug(LOGTAG, "%s: making DOMDataChannel", __FUNCTION__);
@@ -1829,13 +1803,11 @@ PeerConnectionImpl::SetPeerIdentity(const nsAString& aPeerIdentity) {
   return NS_OK;
 }
 
-nsresult PeerConnectionImpl::OnAlpnNegotiated(const std::string& aAlpn,
-                                              bool aPrivacyRequested) {
+nsresult PeerConnectionImpl::OnAlpnNegotiated(bool aPrivacyRequested) {
   PC_AUTO_ENTER_API_CALL(false);
   MOZ_DIAGNOSTIC_ASSERT(!mRequestedPrivacy ||
                         (*mRequestedPrivacy == PrincipalPrivacy::Private) ==
                             aPrivacyRequested);
-  Unused << aAlpn;
 
   mRequestedPrivacy = Some(aPrivacyRequested ? PrincipalPrivacy::Private
                                              : PrincipalPrivacy::NonPrivate);
@@ -2351,6 +2323,7 @@ PeerConnectionImpl::Close() {
              "%s: Closing PeerConnectionImpl %s; "
              "ending call",
              __FUNCTION__, mHandle.c_str());
+  mRtcpReceiveListener.DisconnectIfExists();
   if (mJsepSession) {
     mJsepSession->Close();
   }
@@ -2396,13 +2369,6 @@ PeerConnectionImpl::Close() {
     return NS_OK;
   }
 
-  mGatheringStateChangeListener.DisconnectIfExists();
-  mConnectionStateChangeListener.DisconnectIfExists();
-  mCandidateListener.DisconnectIfExists();
-  mAlpnNegotiatedListener.DisconnectIfExists();
-  mStateChangeListener.DisconnectIfExists();
-  mRtcpStateChangeListener.DisconnectIfExists();
-
   // Clear any resources held by libwebrtc through our Call instance.
   RefPtr<GenericPromise> callDestroyPromise;
   if (mCall) {
@@ -2437,12 +2403,24 @@ PeerConnectionImpl::Close() {
   // 1. Allow final stats query to complete.
   // 2. Tear down call, if necessary. We do this before we shut down the
   //    transport handler, so RTCP BYE can be sent.
-  // 3. Tear down the transport handler, and deregister from PeerConnectionCtx.
+  // 3. Unhook from the signal handler (sigslot) for transport stuff. This must
+  //    be done before we tear down the transport handler.
+  // 4. Tear down the transport handler, and deregister from PeerConnectionCtx.
   //    When we deregister from PeerConnectionCtx, our final stats (if any)
   //    will be stored.
+  MOZ_RELEASE_ASSERT(mSTSThread);
   mFinalStatsQuery
       ->Then(GetMainThreadSerialEventTarget(), __func__,
              [callDestroyPromise]() mutable { return callDestroyPromise; })
+      ->Then(
+          mSTSThread, __func__,
+          [signalHandler = std::move(mSignalHandler)]() mutable {
+            CSFLogDebug(
+                LOGTAG,
+                "Destroying PeerConnectionImpl::SignalHandler on STS thread");
+            return GenericPromise::CreateAndResolve(
+                true, "PeerConnectionImpl::~SignalHandler");
+          })
       ->Then(
           GetMainThreadSerialEventTarget(), __func__,
           [this, self = RefPtr<PeerConnectionImpl>(this)]() mutable {
@@ -3590,15 +3568,27 @@ void PeerConnectionImpl::UpdateDefaultCandidate(
   }
 }
 
+static UniquePtr<dom::RTCStatsCollection> GetDataChannelStats_s(
+    const RefPtr<DataChannelConnection>& aDataConnection,
+    const DOMHighResTimeStamp aTimestamp) {
+  UniquePtr<dom::RTCStatsCollection> report(new dom::RTCStatsCollection);
+  if (aDataConnection) {
+    aDataConnection->AppendStatsToReport(report, aTimestamp);
+  }
+  return report;
+}
+
 RefPtr<dom::RTCStatsPromise> PeerConnectionImpl::GetDataChannelStats(
     const RefPtr<DataChannelConnection>& aDataChannelConnection,
     const DOMHighResTimeStamp aTimestamp) {
-  UniquePtr<dom::RTCStatsCollection> report(new dom::RTCStatsCollection);
-  if (aDataChannelConnection) {
-    aDataChannelConnection->AppendStatsToReport(report, aTimestamp);
-  }
-  return RTCStatsPromise::CreateAndResolve(std::move(report), __func__);
-  ;
+  // Gather stats from DataChannels
+  return InvokeAsync(
+      GetMainThreadSerialEventTarget(), __func__,
+      [aDataChannelConnection, aTimestamp]() {
+        return dom::RTCStatsPromise::CreateAndResolve(
+            GetDataChannelStats_s(aDataChannelConnection, aTimestamp),
+            __func__);
+      });
 }
 
 void PeerConnectionImpl::CollectConduitTelemetryData() {
@@ -4366,6 +4356,36 @@ bool PeerConnectionImpl::GetPrefObfuscateHostAddresses() const {
   return obfuscate_host_addresses;
 }
 
+PeerConnectionImpl::SignalHandler::SignalHandler(PeerConnectionImpl* aPc,
+                                                 MediaTransportHandler* aSource)
+    : mHandle(aPc->GetHandle()),
+      mSource(aSource),
+      mSTSThread(aPc->GetSTSThread()),
+      mPacketDumper(aPc->GetPacketDumper()) {
+  ConnectSignals();
+}
+
+PeerConnectionImpl::SignalHandler::~SignalHandler() {
+  ASSERT_ON_THREAD(mSTSThread);
+}
+
+void PeerConnectionImpl::SignalHandler::ConnectSignals() {
+  mSource->SignalGatheringStateChange.connect(
+      this, &PeerConnectionImpl::SignalHandler::IceGatheringStateChange_s);
+  mSource->SignalConnectionStateChange.connect(
+      this, &PeerConnectionImpl::SignalHandler::IceConnectionStateChange_s);
+  mSource->SignalCandidate.connect(
+      this, &PeerConnectionImpl::SignalHandler::OnCandidateFound_s);
+  mSource->SignalAlpnNegotiated.connect(
+      this, &PeerConnectionImpl::SignalHandler::AlpnNegotiated_s);
+  mSource->SignalStateChange.connect(
+      this, &PeerConnectionImpl::SignalHandler::ConnectionStateChange_s);
+  mSource->SignalRtcpStateChange.connect(
+      this, &PeerConnectionImpl::SignalHandler::ConnectionStateChange_s);
+  mSource->SignalPacketReceived.connect(
+      this, &PeerConnectionImpl::SignalHandler::OnPacketReceived_s);
+}
+
 void PeerConnectionImpl::AddIceCandidate(const std::string& aCandidate,
                                          const std::string& aTransportId,
                                          const std::string& aUfrag) {
@@ -4557,6 +4577,15 @@ already_AddRefed<dom::RTCRtpTransceiver> PeerConnectionImpl::CreateTransceiver(
             u"WebrtcCallWrapper shutdown blocker"_ns,
             NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__),
         ctx->GetSharedWebrtcState());
+    mRtcpReceiveListener = mSignalHandler->RtcpReceiveEvent().Connect(
+        mCall->mCallThread, [call = mCall](MediaPacket aPacket) {
+          // This might not be initted yet, because the task to do that is tail
+          // dispatched, and STS might beat it to the punch.
+          if (call->Call()) {
+            call->Call()->Receiver()->DeliverRtcpPacket(
+                rtc::CopyOnWriteBuffer(aPacket.data(), aPacket.len()));
+          }
+        });
   }
 
   if (aAddTrackMagic) {
@@ -4598,6 +4627,118 @@ std::string PeerConnectionImpl::GetTransportIdMatchingSendTrack(
     }
   }
   return std::string();
+}
+
+void PeerConnectionImpl::SignalHandler::IceGatheringStateChange_s(
+    const std::string& aTransportId, dom::RTCIceGathererState aState) {
+  ASSERT_ON_THREAD(mSTSThread);
+  GetMainThreadSerialEventTarget()->Dispatch(
+      NS_NewRunnableFunction(__func__,
+                             [handle = mHandle, aTransportId, aState] {
+                               PeerConnectionWrapper wrapper(handle);
+                               if (wrapper.impl()) {
+                                 wrapper.impl()->IceGatheringStateChange(
+                                     aTransportId, aState);
+                               }
+                             }),
+      NS_DISPATCH_NORMAL);
+}
+
+void PeerConnectionImpl::SignalHandler::IceConnectionStateChange_s(
+    const std::string& aTransportId, dom::RTCIceTransportState aState) {
+  ASSERT_ON_THREAD(mSTSThread);
+
+  GetMainThreadSerialEventTarget()->Dispatch(
+      NS_NewRunnableFunction(__func__,
+                             [handle = mHandle, aTransportId, aState] {
+                               PeerConnectionWrapper wrapper(handle);
+                               if (wrapper.impl()) {
+                                 wrapper.impl()->IceConnectionStateChange(
+                                     aTransportId, aState);
+                               }
+                             }),
+      NS_DISPATCH_NORMAL);
+}
+
+void PeerConnectionImpl::SignalHandler::OnCandidateFound_s(
+    const std::string& aTransportId, const CandidateInfo& aCandidateInfo) {
+  ASSERT_ON_THREAD(mSTSThread);
+  CSFLogDebug(LOGTAG, "%s: %s", __FUNCTION__, aTransportId.c_str());
+
+  MOZ_ASSERT(!aCandidateInfo.mUfrag.empty());
+
+  GetMainThreadSerialEventTarget()->Dispatch(
+      NS_NewRunnableFunction(__func__,
+                             [handle = mHandle, aTransportId, aCandidateInfo] {
+                               PeerConnectionWrapper wrapper(handle);
+                               if (wrapper.impl()) {
+                                 wrapper.impl()->OnCandidateFound(
+                                     aTransportId, aCandidateInfo);
+                               }
+                             }),
+      NS_DISPATCH_NORMAL);
+}
+
+void PeerConnectionImpl::SignalHandler::AlpnNegotiated_s(
+    const std::string& aAlpn, bool aPrivacyRequested) {
+  MOZ_DIAGNOSTIC_ASSERT((aAlpn == "c-webrtc") == aPrivacyRequested);
+  GetMainThreadSerialEventTarget()->Dispatch(
+      NS_NewRunnableFunction(__func__,
+                             [handle = mHandle, aPrivacyRequested] {
+                               PeerConnectionWrapper wrapper(handle);
+                               if (wrapper.impl()) {
+                                 wrapper.impl()->OnAlpnNegotiated(
+                                     aPrivacyRequested);
+                               }
+                             }),
+      NS_DISPATCH_NORMAL);
+}
+
+void PeerConnectionImpl::SignalHandler::ConnectionStateChange_s(
+    const std::string& aTransportId, TransportLayer::State aState) {
+  GetMainThreadSerialEventTarget()->Dispatch(
+      NS_NewRunnableFunction(__func__,
+                             [handle = mHandle, aTransportId, aState] {
+                               PeerConnectionWrapper wrapper(handle);
+                               if (wrapper.impl()) {
+                                 wrapper.impl()->OnDtlsStateChange(aTransportId,
+                                                                   aState);
+                               }
+                             }),
+      NS_DISPATCH_NORMAL);
+}
+
+void PeerConnectionImpl::SignalHandler::OnPacketReceived_s(
+    const std::string& aTransportId, const MediaPacket& aPacket) {
+  ASSERT_ON_THREAD(mSTSThread);
+
+  if (!aPacket.len()) {
+    return;
+  }
+
+  if (aPacket.type() != MediaPacket::RTCP) {
+    return;
+  }
+
+  CSFLogVerbose(LOGTAG, "%s received RTCP packet.", mHandle.c_str());
+
+  RtpLogger::LogPacket(aPacket, true, mHandle);
+
+  // Might be nice to pass ownership of the buffer in this case, but it is a
+  // small optimization in a rare case.
+  mPacketDumper->Dump(SIZE_MAX, dom::mozPacketDumpType::Srtcp, false,
+                      aPacket.encrypted_data(), aPacket.encrypted_len());
+
+  mPacketDumper->Dump(SIZE_MAX, dom::mozPacketDumpType::Rtcp, false,
+                      aPacket.data(), aPacket.len());
+
+  if (StaticPrefs::media_webrtc_net_force_disable_rtcp_reception()) {
+    CSFLogVerbose(LOGTAG, "%s RTCP packet forced to be dropped",
+                  mHandle.c_str());
+    return;
+  }
+
+  mRtcpReceiveEvent.Notify(aPacket.Clone());
 }
 
 /**

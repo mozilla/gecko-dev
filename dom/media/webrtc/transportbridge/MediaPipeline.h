@@ -27,8 +27,6 @@
 #include "jsapi/PacketDumper.h"
 #include "PerformanceRecorder.h"
 
-#include "rtc_base/copy_on_write_buffer.h"
-
 // Should come from MediaEngine.h, but that's a pain to include here
 // because of the MOZILLA_EXTERNAL_LINKAGE stuff.
 #define WEBRTC_MAX_SAMPLE_RATE 48000
@@ -190,9 +188,8 @@ class MediaPipeline : public sigslot::has_slots<> {
   void RtpStateChange(const std::string& aTransportId, TransportLayer::State);
   void RtcpStateChange(const std::string& aTransportId, TransportLayer::State);
   virtual void CheckTransportStates();
-  void PacketReceived(std::string& aTransportId, MediaPacket& packet);
-  void RtpPacketReceived(std::string& aTransportId, MediaPacket& packet);
-  void RtcpPacketReceived(std::string& aTransportId, MediaPacket& packet);
+  void PacketReceived(const std::string& aTransportId,
+                      const MediaPacket& packet);
   void AlpnNegotiated(const std::string& aAlpn, bool aPrivacyRequested);
 
   void EncryptedPacketSending(const std::string& aTransportId,
@@ -248,16 +245,10 @@ class MediaPipeline : public sigslot::has_slots<> {
 
   MediaEventProducerExc<webrtc::RtpPacketReceived, webrtc::RTPHeader>
       mRtpReceiveEvent;
-  MediaEventProducerExc<rtc::CopyOnWriteBuffer> mRtcpReceiveEvent;
 
   MediaEventListener mRtpSendEventListener;
   MediaEventListener mSenderRtcpSendEventListener;
   MediaEventListener mReceiverRtcpSendEventListener;
-  MediaEventListener mRtpPacketReceivedListener;
-  MediaEventListener mStateChangeListener;
-  MediaEventListener mRtcpStateChangeListener;
-  MediaEventListener mEncryptedSendingListener;
-  MediaEventListener mAlpnNegotiatedListener;
 
  private:
   bool IsRtp(const unsigned char* aData, size_t aLen) const;

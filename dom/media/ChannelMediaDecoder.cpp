@@ -343,7 +343,7 @@ bool ChannelMediaDecoder::CanPlayThroughImpl() {
   return mCanPlayThrough;
 }
 
-void ChannelMediaDecoder::OnPlaybackEvent(const MediaPlaybackEvent& aEvent) {
+void ChannelMediaDecoder::OnPlaybackEvent(MediaPlaybackEvent&& aEvent) {
   MOZ_ASSERT(NS_IsMainThread());
   switch (aEvent.mType) {
     case MediaPlaybackEvent::PlaybackStarted:
@@ -366,7 +366,7 @@ void ChannelMediaDecoder::OnPlaybackEvent(const MediaPlaybackEvent& aEvent) {
     default:
       break;
   }
-  MediaDecoder::OnPlaybackEvent(aEvent);
+  MediaDecoder::OnPlaybackEvent(std::move(aEvent));
 }
 
 void ChannelMediaDecoder::DurationChanged() {

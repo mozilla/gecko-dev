@@ -143,7 +143,7 @@ void RunOnSts(Function&& aFunction) {
 
 class LoopbackTransport : public MediaTransportHandler {
  public:
-  LoopbackTransport() : MediaTransportHandler() {
+  LoopbackTransport() : MediaTransportHandler(nullptr) {
     RunOnSts([&] {
       SetState("mux", TransportLayer::TS_INIT);
       SetRtcpState("mux", TransportLayer::TS_INIT);
@@ -244,7 +244,7 @@ class LoopbackTransport : public MediaTransportHandler {
     if (aPacket.len() && aPacket.type() == MediaPacket::RTCP) {
       ++rtcp_packets_received_;
     }
-    mRtpPacketReceived.Notify(aTransportId, aPacket);
+    SignalPacketReceived(aTransportId, aPacket);
   }
 
   int RtcpPacketsReceived() const { return rtcp_packets_received_; }

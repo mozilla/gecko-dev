@@ -508,7 +508,7 @@ class PeerConnectionImpl final
   bool IsClosed() const;
 
   // called when DTLS connects; we only need this once
-  nsresult OnAlpnNegotiated(const std::string& aAlpn, bool aPrivacyRequested);
+  nsresult OnAlpnNegotiated(bool aPrivacyRequested);
 
   void OnDtlsStateChange(const std::string& aTransportId,
                          TransportLayer::State aState);
@@ -933,12 +933,45 @@ class PeerConnectionImpl final
   };
   std::map<std::string, std::list<PendingIceCandidate>> mQueriedMDNSHostnames;
 
-  MediaEventListener mGatheringStateChangeListener;
-  MediaEventListener mConnectionStateChangeListener;
-  MediaEventListener mCandidateListener;
-  MediaEventListener mAlpnNegotiatedListener;
-  MediaEventListener mStateChangeListener;
-  MediaEventListener mRtcpStateChangeListener;
+  // Connecting PCImpl to sigslot is not safe, because sigslot takes strong
+  // references without any reference counting, and JS holds refcounted strong
+  // references to PCImpl (meaning JS can cause PCImpl to be destroyed).  This
+  // is not ref-counted (since sigslot holds onto non-refcounted strong refs)
+  // Must be destroyed on STS. Holds a weak reference to PCImpl.
+  class SignalHandler : public sigslot::has_slots<> {
+   public:
+    SignalHandler(PeerConnectionImpl* aPc, MediaTransportHandler* aSource);
+    virtual ~SignalHandler();
+
+    void ConnectSignals();
+
+    // ICE events
+    void IceGatheringStateChange_s(const std::string& aTransportId,
+                                   dom::RTCIceGathererState aState);
+    void IceConnectionStateChange_s(const std::string& aTransportId,
+                                    dom::RTCIceTransportState aState);
+    void OnCandidateFound_s(const std::string& aTransportId,
+                            const CandidateInfo& aCandidateInfo);
+    void AlpnNegotiated_s(const std::string& aAlpn, bool aPrivacyRequested);
+    void ConnectionStateChange_s(const std::string& aTransportId,
+                                 TransportLayer::State aState);
+    void OnPacketReceived_s(const std::string& aTransportId,
+                            const MediaPacket& aPacket);
+
+    MediaEventSourceExc<MediaPacket>& RtcpReceiveEvent() {
+      return mRtcpReceiveEvent;
+    }
+
+   private:
+    const std::string mHandle;
+    RefPtr<MediaTransportHandler> mSource;
+    RefPtr<nsISerialEventTarget> mSTSThread;
+    RefPtr<PacketDumper> mPacketDumper;
+    MediaEventProducerExc<MediaPacket> mRtcpReceiveEvent;
+  };
+
+  mozilla::UniquePtr<SignalHandler> mSignalHandler;
+  MediaEventListener mRtcpReceiveListener;
 
   // Make absolutely sure our refcount does not go to 0 before Close() is called
   // This is because Close does a stats query, which needs the

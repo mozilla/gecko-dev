@@ -241,13 +241,11 @@ pref("media.videocontrols.keyboard-tab-to-all-controls", true);
     pref("media.peerconnection.sdp.alternate_parse_mode", "parallel");
     pref("media.peerconnection.sdp.strict_success", false);
     pref("media.navigator.video.red_ulpfec_enabled", true);
-    pref("media.peerconnection.sctp.use_dcsctp", true);
   #else
     pref("media.peerconnection.sdp.parser", "sipcc");
     pref("media.peerconnection.sdp.alternate_parse_mode", "never");
     pref("media.peerconnection.sdp.strict_success", false);
     pref("media.navigator.video.red_ulpfec_enabled", true);
-    pref("media.peerconnection.sctp.use_dcsctp", false);
   #endif
 
   pref("media.peerconnection.sdp.disable_stereo_fmtp", false);
@@ -319,8 +317,6 @@ pref("media.videocontrols.keyboard-tab-to-all-controls", true);
   // 770 = DTLS 1.0, 771 = DTLS 1.2, 772 = DTLS 1.3
   pref("media.peerconnection.dtls.version.min", 771);
   pref("media.peerconnection.dtls.version.max", 772);
-
-  pref("media.peerconnection.sctp.default_max_streams", 2048);
 
 #if defined(XP_MACOSX)
   pref("media.getusermedia.audio.processing.platform.enabled", true);

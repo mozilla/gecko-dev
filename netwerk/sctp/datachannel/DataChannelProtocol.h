@@ -16,7 +16,7 @@
 #  error "Unsupported compiler"
 #endif
 
-#define WEBRTC_DATACHANNEL_STREAMS_DEFAULT 2048
+#define WEBRTC_DATACHANNEL_STREAMS_DEFAULT 256
 // Do not change this value!
 #define WEBRTC_DATACHANNEL_PORT_DEFAULT 5000
 // TODO: Bug 1381146, change once we resolve the nsCString limitation

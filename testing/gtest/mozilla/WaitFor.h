@@ -32,38 +32,20 @@ inline auto WaitFor(MediaEventSourceImpl<Lp, First, Rest...>& aEvent) {
   using Storage =
       std::conditional_t<num_params == 1, First, std::tuple<First, Rest...>>;
   Maybe<Storage> value;
-  if constexpr (Lp == ListenerPolicy::NonExclusive) {
-    MediaEventListener listener =
-        aEvent.Connect(AbstractThread::GetCurrent(),
-                       [&value](const First& aFirst, const Rest&... aRest) {
-                         if constexpr (num_params == 1) {
-                           value = Some(aFirst);
-                         } else {
-                           value = Some<Storage>({aFirst, aRest...});
-                         }
-                       });
-    SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
-        "WaitFor(MediaEventSource<T>& aEvent)"_ns,
-        [&] { return value.isSome(); });
-    listener.Disconnect();
-    return value.value();
-  } else {
-    MediaEventListener listener = aEvent.Connect(
-        AbstractThread::GetCurrent(),
-        [&value](First&& aFirst, Rest&&... aRest) {
-          if constexpr (num_params == 1) {
-            value = Some<Storage>(std::forward<First>(aFirst));
-          } else {
-            value = Some<Storage>(
-                {std::forward<First>(aFirst), std::forward<Rest...>(aRest...)});
-          }
-        });
-    SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
-        "WaitFor(MediaEventSource<T>& aEvent)"_ns,
-        [&] { return value.isSome(); });
-    listener.Disconnect();
-    return value.value();
-  }
+  MediaEventListener listener = aEvent.Connect(
+      AbstractThread::GetCurrent(), [&value](First&& aFirst, Rest&&... aRest) {
+        if constexpr (num_params == 1) {
+          value = Some<Storage>(std::forward<First>(aFirst));
+        } else {
+          value = Some<Storage>(
+              {std::forward<First>(aFirst), std::forward<Rest...>(aRest...)});
+        }
+      });
+  SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
+      "WaitFor(MediaEventSource<T>& aEvent)"_ns,
+      [&] { return value.isSome(); });
+  listener.Disconnect();
+  return value.value();
 }
 
 /**

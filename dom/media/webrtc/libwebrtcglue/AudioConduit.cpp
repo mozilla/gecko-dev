@@ -121,9 +121,6 @@ RefPtr<GenericPromise> WebrtcAudioConduit::Shutdown() {
   MOZ_ASSERT(NS_IsMainThread());
 
   mControl.mOnDtmfEventListener.DisconnectIfExists();
-  mReceiverRtpEventListener.DisconnectIfExists();
-  mReceiverRtcpEventListener.DisconnectIfExists();
-  mSenderRtcpEventListener.DisconnectIfExists();
 
   return InvokeAsync(
       mCallThread, "WebrtcAudioConduit::Shutdown (main thread)",
@@ -505,6 +502,23 @@ void WebrtcAudioConduit::SetTransportActive(bool aActive) {
 
   // If false, This stops us from sending
   mTransportActive = aActive;
+
+  // We queue this because there might be notifications to these listeners
+  // pending, and we don't want to drop them by letting this jump ahead of
+  // those notifications. We move the listeners into the lambda in case the
+  // transport comes back up before we disconnect them. (The Connect calls
+  // happen in MediaPipeline)
+  // We retain a strong reference to ourself, because the listeners are holding
+  // a non-refcounted reference to us, and moving them into the lambda could
+  // conceivably allow them to outlive us.
+  if (!aActive) {
+    MOZ_ALWAYS_SUCCEEDS(mCallThread->Dispatch(NS_NewRunnableFunction(
+        __func__,
+        [self = RefPtr<WebrtcAudioConduit>(this),
+         recvRtpListener = std::move(mReceiverRtpEventListener)]() mutable {
+          recvRtpListener.DisconnectIfExists();
+        })));
+  }
 }
 
 // AudioSessionConduit Implementation
@@ -650,15 +664,6 @@ void WebrtcAudioConduit::OnRtpReceived(webrtc::RtpPacketReceived&& aPacket,
               self.get(), packet.Ssrc(), packet.SequenceNumber());
           return false;
         });
-  }
-}
-
-void WebrtcAudioConduit::OnRtcpReceived(rtc::CopyOnWriteBuffer&& aPacket) {
-  MOZ_ASSERT(mCallThread->IsOnCurrentThread());
-
-  if (mCall->Call()) {
-    mCall->Call()->Receiver()->DeliverRtcpPacket(
-        std::forward<rtc::CopyOnWriteBuffer>(aPacket));
   }
 }
 

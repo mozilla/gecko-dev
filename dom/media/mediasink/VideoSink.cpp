@@ -314,7 +314,7 @@ void VideoSink::Shutdown() {
   mAudioSink->Shutdown();
 }
 
-void VideoSink::OnVideoQueuePushed(const RefPtr<VideoData>& aSample) {
+void VideoSink::OnVideoQueuePushed(RefPtr<VideoData>&& aSample) {
   AssertOwnerThread();
   // Listen to push event, VideoSink should try rendering ASAP if first frame
   // arrives but update scheduler is not triggered yet.

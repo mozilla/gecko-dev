@@ -305,7 +305,9 @@ PeerConnectionTest.prototype.send = async function (data, options) {
     `Buffered amount should be ${expectedSizeInBytes}`
   );
 
-  const resultReceived = new Promise(resolve => {
+  await new Promise(resolve => (source.onbufferedamountlow = resolve));
+
+  return new Promise(resolve => {
     // Register event handler for the target channel
     target.onmessage = e => {
       is(
@@ -316,10 +318,6 @@ PeerConnectionTest.prototype.send = async function (data, options) {
       resolve({ channel: target, data: e.data });
     };
   });
-
-  await new Promise(resolve => (source.onbufferedamountlow = resolve));
-
-  return resultReceived;
 };
 
 /**

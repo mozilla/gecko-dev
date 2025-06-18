@@ -77,7 +77,7 @@ class VideoSink : public MediaSink {
   virtual ~VideoSink();
 
   // VideoQueue listener related.
-  void OnVideoQueuePushed(const RefPtr<VideoData>& aSample);
+  void OnVideoQueuePushed(RefPtr<VideoData>&& aSample);
   void OnVideoQueueFinished();
   void ConnectListener();
   void DisconnectListener();

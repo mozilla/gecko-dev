@@ -205,7 +205,6 @@ class WebrtcVideoConduit : public VideoSessionConduit,
 
   void OnRtpReceived(webrtc::RtpPacketReceived&& aPacket,
                      webrtc::RTPHeader&& aHeader);
-  void OnRtcpReceived(rtc::CopyOnWriteBuffer&& aPacket);
 
   void OnRtcpBye() override;
   void OnRtcpTimeout() override;
@@ -226,16 +225,6 @@ class WebrtcVideoConduit : public VideoSessionConduit,
       override {
     mReceiverRtpEventListener =
         aEvent.Connect(mCallThread, this, &WebrtcVideoConduit::OnRtpReceived);
-  }
-  void ConnectReceiverRtcpEvent(
-      MediaEventSourceExc<rtc::CopyOnWriteBuffer>& aEvent) override {
-    mReceiverRtcpEventListener =
-        aEvent.Connect(mCallThread, this, &WebrtcVideoConduit::OnRtcpReceived);
-  }
-  void ConnectSenderRtcpEvent(
-      MediaEventSourceExc<rtc::CopyOnWriteBuffer>& aEvent) override {
-    mSenderRtcpEventListener =
-        aEvent.Connect(mCallThread, this, &WebrtcVideoConduit::OnRtcpReceived);
   }
 
   std::vector<webrtc::RtpSource> GetUpstreamRtpSources() const override;
@@ -506,9 +495,7 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   MediaEventProducerExc<MediaPacket> mReceiverRtcpSendEvent;
 
   // Assigned and revoked on mStsThread. Listeners for receiving packets.
-  MediaEventListener mReceiverRtpEventListener;   // Rtp-receiving pipeline
-  MediaEventListener mReceiverRtcpEventListener;  // Rctp-receiving pipeline
-  MediaEventListener mSenderRtcpEventListener;    // Rctp-sending pipeline
+  MediaEventListener mReceiverRtpEventListener;  // Rtp-receiving pipeline
 };
 }  // namespace mozilla
 

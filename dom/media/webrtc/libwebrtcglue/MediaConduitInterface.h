@@ -135,12 +135,6 @@ class MediaSessionConduit {
       MediaEventSourceExc<webrtc::RtpPacketReceived, webrtc::RTPHeader>&
           aEvent) = 0;
 
-  virtual void ConnectReceiverRtcpEvent(
-      MediaEventSourceExc<rtc::CopyOnWriteBuffer>& aEvent) = 0;
-
-  virtual void ConnectSenderRtcpEvent(
-      MediaEventSourceExc<rtc::CopyOnWriteBuffer>& aEvent) = 0;
-
   // Sts thread only.
   virtual Maybe<uint16_t> RtpSendBaseSeqFor(uint32_t aSsrc) const = 0;
 
