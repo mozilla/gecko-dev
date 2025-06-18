@@ -143,11 +143,11 @@ int GetEffectiveContentSandboxLevel() {
     return 0;
   }
   int level = StaticPrefs::security_sandbox_content_level_DoNotUseDirectly();
-#if !defined(NIGHTLY_BUILD) && (defined(XP_WIN) || defined(XP_MACOSX))
-  // On non-Nightly Windows and macOS, enforce a minimum sandbox level of 1.
+#if !defined(NIGHTLY_BUILD) && defined(XP_MACOSX)
+  // On non-Nightly macOS, enforce a minimum sandbox level of 1.
   static const int minimumLevel = 1;
-#elif defined(NIGHTLY_BUILD) && defined(XP_WIN)
-  // On Windows Nightly, enforce a minimum sandbox level of 6.
+#elif defined(XP_WIN)
+  // On Windows, enforce a minimum sandbox level of 6.
   static const int minimumLevel = 6;
 #else
   static const int minimumLevel = 0;
