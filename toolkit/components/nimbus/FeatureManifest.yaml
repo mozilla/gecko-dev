@@ -79,6 +79,20 @@ prefFlips:
     uri: resource://nimbus/schemas/PrefFlipsFeature.schema.json
     path: toolkit/components/nimbus/schemas/PrefFlipsFeature.schema.json
 
+# TODO(bug 1972426): Remove this feature.
+nimbusStore:
+  description: Configuration for the Nimbus ExperimentStore.
+  owner: beth@mozilla.com
+  hasExposure: false
+  variables:
+    dbEnabled:
+      type: boolean
+      description: >
+        If enabled, the NimbusEnrollments database table will be used as the
+        primary enrollment store.
+      setPref:
+        branch: user
+        pref: nimbus.profilesdatastoreservice.read.enabled
 
 search:
   description: Search service related features.
