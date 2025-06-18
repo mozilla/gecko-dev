@@ -8,11 +8,20 @@
 
 #include <processthreadsapi.h>
 #include <errhandlingapi.h>
+#include <vector>
 
+#include "ContentAnalysis.h"
 #include "content_analysis/sdk/analysis_client.h"
 #include "gtest/gtest.h"
 
 #include "mozilla/media/MediaUtils.h"
+#include "mozilla/Services.h"
+#include "mozilla/SpinEventLoopUntil.h"
+#include "nsCOMArray.h"
+#include "nsIContentAnalysis.h"
+#include "nsIObserver.h"
+#include "nsIObserverService.h"
+#include "nsNetUtil.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
 
@@ -61,6 +70,11 @@ MozAgentInfo LaunchAgentNormal(const wchar_t* aToBlock,
 MozAgentInfo LaunchAgentNormal(const wchar_t* aToBlock, const wchar_t* aToWarn,
                                const nsString& pipeName);
 
+inline nsCString GenerateUUID() {
+  nsID id = nsID::GenerateUUID();
+  return nsCString(id.ToString().get());
+}
+
 inline RefPtr<mozilla::CancelableRunnable> QueueTimeoutToMainThread(
     RefPtr<mozilla::media::Refcountable<BoolStruct>> aTimedOut) {
   RefPtr<mozilla::CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
@@ -74,6 +88,12 @@ inline RefPtr<mozilla::CancelableRunnable> QueueTimeoutToMainThread(
   EXPECT_EQ(NS_OK,
             NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kCATimeout));
   return timer;
+}
+
+inline nsCOMPtr<nsIURI> GetExampleDotComURI() {
+  nsCOMPtr<nsIURI> uri;
+  MOZ_ALWAYS_SUCCEEDS(NS_NewURI(getter_AddRefs(uri), "https://example.com"));
+  return uri;
 }
 
 #endif

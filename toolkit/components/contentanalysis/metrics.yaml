@@ -197,3 +197,63 @@ content_analysis:
       - gstoll@mozilla.com
       - haftandilian@mozilla.com
       - dparks@mozilla.com
+  request_allowed_by_allow_url:
+    type: counter
+    description: Recorded when a request is allowed by the
+     allow_url_regex_list.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  request_blocked_by_deny_url:
+    type: counter
+    description: Recorded when a request is blocked by the
+     deny_url_regex_list.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  request_sent_by_analysis_type:
+    type: labeled_counter
+    description: Recorded when a request is sent to the DLP agent.
+     The label is the analysisType of the request.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  request_sent_by_reason:
+    type: labeled_counter
+    description: Recorded when a request is sent to the DLP agent.
+     The label is the reason of the request.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
