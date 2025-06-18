@@ -20,6 +20,7 @@ task-defaults:
     fetches:
         toolchain:
             - linux64-dump_syms
+            - linux64-7zz
     treeherder:
         platform: symbols/opt
         kind: other
@@ -222,8 +223,6 @@ tasks:
         fetches:
             fetch:
                 - symbol-scrapers
-            toolchain:
-                - linux64-7zz
     opensuse:
         description: Extract OpenSUSE system symbols found in crashreports
         attributes:
@@ -248,8 +247,6 @@ tasks:
         fetches:
             fetch:
                 - symbol-scrapers
-            toolchain:
-                - linux64-7zz
     ubuntu:
         description: Extract Ubuntu system symbols found in crashreports
         attributes:
@@ -300,7 +297,6 @@ tasks:
                 - symbol-scrapers
             toolchain:
                 - linux64-cabextract
-                - linux64-7zz
     alpine:
         description: Extract Alpine Linux system symbols found in crashreports
         attributes:
