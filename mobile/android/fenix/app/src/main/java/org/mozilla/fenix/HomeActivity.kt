@@ -442,7 +442,10 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             // Unless the activity is recreated, navigate to home first (without rendering it)
             // to add it to the back stack.
             if (savedInstanceState == null) {
-                navigateToHome(navHost.navController)
+                val intent = intent.toSafeIntent()
+                val focusOnAddressBar = intent.getStringExtra(OPEN_TO_SEARCH) != null
+
+                navigateToHome(navHost.navController, focusOnAddressBar)
             }
 
             if (shouldNavigateToBrowserOnColdStart(savedInstanceState)) {
@@ -1254,12 +1257,12 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
     }
 
     @VisibleForTesting
-    internal fun navigateToHome(navController: NavController) {
+    internal fun navigateToHome(navController: NavController, focusOnAddressBar: Boolean) {
         if (this is ExternalAppBrowserActivity) {
             return
         }
 
-        navController.navigate(NavGraphDirections.actionStartupHome())
+        navController.navigate(NavGraphDirections.actionStartupHome(focusOnAddressBar = focusOnAddressBar))
     }
 
     final override fun attachBaseContext(base: Context) {
