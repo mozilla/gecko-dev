@@ -6,6 +6,7 @@
 
 #include "FFmpegVideoDecoder.h"
 
+#include "EncoderConfig.h"
 #include "FFmpegLog.h"
 #include "FFmpegUtils.h"
 #include "ImageContainer.h"
@@ -1599,8 +1600,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImage(
       auto surface =
           mVideoFramePool->GetVideoFrameSurface(*yuvData, mCodecContext);
       if (surface) {
-        FFMPEG_LOGV("Uploaded video data to DMABuf surface UID %d HDR %d",
-                    surface->GetDMABufSurface()->GetUID(), IsLinuxHDR());
         surface->SetYUVColorSpace(GetFrameColorSpace());
         surface->SetColorRange(GetFrameColorRange());
         if (mInfo.mColorPrimaries) {
@@ -1609,6 +1608,17 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImage(
         if (mInfo.mTransferFunction) {
           surface->SetTransferFunction(mInfo.mTransferFunction.value());
         }
+        FFMPEG_LOGV(
+            "Uploaded frame DMABuf surface UID %d HDR %d color space %s/%s "
+            "transfer %s",
+            surface->GetDMABufSurface()->GetUID(), IsLinuxHDR(),
+            YUVColorSpaceToString(GetFrameColorSpace()),
+            mInfo.mColorPrimaries
+                ? ColorSpace2ToString(mInfo.mColorPrimaries.value())
+                : "unknown",
+            mInfo.mTransferFunction
+                ? TransferFunctionToString(mInfo.mTransferFunction.value())
+                : "unknown");
         v = VideoData::CreateFromImage(
             mInfo.mDisplay, aOffset, TimeUnit::FromMicroseconds(aPts),
             TimeUnit::FromMicroseconds(aDuration), surface->GetAsImage(),
@@ -1647,11 +1657,12 @@ bool FFmpegVideoDecoder<LIBAV_VER>::GetVAAPISurfaceDescriptor(
       mDisplay, surface_id, VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME_2,
       VA_EXPORT_SURFACE_READ_ONLY | VA_EXPORT_SURFACE_SEPARATE_LAYERS, aVaDesc);
   if (vas != VA_STATUS_SUCCESS) {
+    FFMPEG_LOG("GetVAAPISurfaceDescriptor(): vaExportSurfaceHandle failed");
     return false;
   }
   vas = VALibWrapper::sFuncs.vaSyncSurface(mDisplay, surface_id);
   if (vas != VA_STATUS_SUCCESS) {
-    NS_WARNING("vaSyncSurface() failed.");
+    FFMPEG_LOG("GetVAAPISurfaceDescriptor(): vaSyncSurface failed");
   }
   return true;
 }
@@ -1659,10 +1670,6 @@ bool FFmpegVideoDecoder<LIBAV_VER>::GetVAAPISurfaceDescriptor(
 MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageVAAPI(
     int64_t aOffset, int64_t aPts, int64_t aDuration,
     MediaDataDecoder::DecodedData& aResults) {
-  FFMPEG_LOG("VA-API Got one frame output with pts=%" PRId64 " dts=%" PRId64
-             " duration=%" PRId64,
-             aPts, mFrame->pkt_dts, aDuration);
-
   VADRMPRIMESurfaceDescriptor vaDesc;
   if (!GetVAAPISurfaceDescriptor(&vaDesc)) {
     return MediaResult(
@@ -1682,6 +1689,7 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageVAAPI(
   auto surface = mVideoFramePool->GetVideoFrameSurface(
       vaDesc, mFrame->width, mFrame->height, mCodecContext, mFrame, mLib);
   if (!surface) {
+    FFMPEG_LOG("CreateImageVAAPI(): failed to get VideoFrameSurface");
     return MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR,
                        RESULT_DETAIL("VAAPI dmabuf allocation error"));
   }
@@ -1694,6 +1702,17 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::CreateImageVAAPI(
   if (mInfo.mTransferFunction) {
     surface->SetTransferFunction(mInfo.mTransferFunction.value());
   }
+
+  FFMPEG_LOG("VA-API frame pts=%" PRId64 " dts=%" PRId64 " duration=%" PRId64
+             " color space %s/%s transfer %s",
+             aPts, mFrame->pkt_dts, aDuration,
+             YUVColorSpaceToString(GetFrameColorSpace()),
+             mInfo.mColorPrimaries
+                 ? ColorSpace2ToString(mInfo.mColorPrimaries.value())
+                 : "unknown",
+             mInfo.mTransferFunction
+                 ? TransferFunctionToString(mInfo.mTransferFunction.value())
+                 : "unknown");
 
   RefPtr<VideoData> vp = VideoData::CreateFromImage(
       mInfo.mDisplay, aOffset, TimeUnit::FromMicroseconds(aPts),
