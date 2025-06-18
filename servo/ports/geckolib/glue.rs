@@ -4449,11 +4449,29 @@ pub extern "C" fn Servo_ComputedValues_SpecifiesAnimationsOrTransitions(
     ui.specifies_animations() || ui.specifies_transitions()
 }
 
+#[repr(u8)]
+pub enum MatchingDeclarationBlockOrigin {
+    UserAgent,
+    User,
+    Author,
+    PresHints,
+    Animations,
+    Transitions,
+    SMIL,
+}
+
+#[repr(C)]
+pub struct MatchingDeclarationBlock {
+    block: *const LockedDeclarationBlock,
+    origin: MatchingDeclarationBlockOrigin,
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetMatchingDeclarations(
     values: &ComputedValues,
-    rules: &mut nsTArray<*const LockedDeclarationBlock>,
+    rules: &mut nsTArray<MatchingDeclarationBlock>,
 ) {
+    use style::rule_tree::CascadeLevel;
     let rule_node = match values.rules {
         Some(ref r) => r,
         None => return,
@@ -4470,7 +4488,20 @@ pub extern "C" fn Servo_ComputedValues_GetMatchingDeclarations(
 
         let Some(source) = node.style_source() else { continue };
 
-        rules.push(&**source.get());
+        let origin = match node.cascade_level() {
+            CascadeLevel::UANormal | CascadeLevel::UAImportant => MatchingDeclarationBlockOrigin::UserAgent,
+            CascadeLevel::UserNormal | CascadeLevel::UserImportant => MatchingDeclarationBlockOrigin::User,
+            CascadeLevel::AuthorNormal { .. } | CascadeLevel::AuthorImportant { .. }=> MatchingDeclarationBlockOrigin::Author,
+            CascadeLevel::PresHints => MatchingDeclarationBlockOrigin::PresHints,
+            CascadeLevel::Animations => MatchingDeclarationBlockOrigin::Animations,
+            CascadeLevel::Transitions => MatchingDeclarationBlockOrigin::Transitions,
+            CascadeLevel::SMILOverride => MatchingDeclarationBlockOrigin::SMIL,
+        };
+
+        rules.push(MatchingDeclarationBlock {
+            block: &**source.get(),
+            origin,
+        });
     }
 }
 

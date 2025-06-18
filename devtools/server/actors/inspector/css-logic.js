@@ -615,6 +615,10 @@ class CssLogic {
         // through the rules backward.
         for (let i = domRules.length - 1; i >= 0; i--) {
           const domRule = domRules[i];
+          if (domRule.declarationOrigin) {
+            // TODO(bug 1212289): Handle these rules.
+            continue;
+          }
           const sheet = this.getSheet(domRule.parentStyleSheet, -1);
           if (sheet._passId !== this._passId) {
             sheet.index = sheetIndex++;

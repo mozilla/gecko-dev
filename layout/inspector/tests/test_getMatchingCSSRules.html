@@ -21,18 +21,41 @@ let iframe = document.getElementById("test");
 
 SimpleTest.waitForExplicitFinish();
 
-function* getStyleRules(elem) {
-  let rules = InspectorUtils.getMatchingCSSRules(elem);
-  for (let i = 0; i < rules.length; i++) {
-    yield rules[i];
+function getStyleRules(elem) {
+  return InspectorUtils.getMatchingCSSRules(elem);
+}
+
+function getDeclarationWithOrigin(target, origin) {
+  for (let rule of getStyleRules(target)) {
+    if (rule.declarationOrigin == origin) {
+      return rule;
+    }
   }
+  return null;
+}
+
+function checkDeclaration(target, origin, props) {
+  ok(!!props, "Should pass some properties to check");
+  let decl = getDeclarationWithOrigin(target, origin);
+  ok(!!decl, "Should find a declaration for " + origin);
+  info(decl.style.cssText);
+  for (let [k, v] of Object.entries(props)) {
+    is(decl.style[k], v, `Should see ${k}: ${v}`);
+  }
+  let modificationThrew = false;
+  try {
+    presHintDecl.style.width = "0px";
+  } catch (e) {
+    modificationThrew = true;
+  }
+  ok(modificationThrew, "Should not be mutable");
 }
 
 // This will check that value of z-index property declarations in the
 // rules from getMatchingCSSRules matches the given content.
 function checkRules(doc, rulesContent, queryStr = "unknowntagname") {
   let elem = doc.querySelector(queryStr);
-  let rules = [...getStyleRules(elem)];
+  let rules = getStyleRules(elem);
   is(rules.length, rulesContent.length, "Rule length should match");
   if (rules.length != rulesContent.length) {
     return;
@@ -179,6 +202,15 @@ const tests = [
       checkRules(doc, [1, 5]);
     },
   },
+  {
+    title: "Check pres hints",
+    async run(doc, win) {
+      checkDeclaration(doc.querySelector("img"), "pres-hints", { width: "10px", height: "15px" });
+      checkDeclaration(doc.querySelector(".anim"), "animations", {zIndex: "1"});
+      checkDeclaration(doc.querySelector("[style]"), "style-attribute", {zIndex: "1"});
+      // TODO: transitions/SMIL are a bit more annoying to test.
+    },
+  }
 ];
 
 add_task(async function runTests() {

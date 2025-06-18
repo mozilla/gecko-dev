@@ -31,8 +31,6 @@ class InspectorFontFace;
 }  // namespace mozilla
 
 namespace mozilla::dom {
-class CSSStyleRule;
-
 /**
  * A collection of utility methods for use by devtools.
  */
@@ -41,11 +39,10 @@ class InspectorUtils {
   static void GetAllStyleSheets(GlobalObject& aGlobal, Document& aDocument,
                                 bool aDocumentOnly,
                                 nsTArray<RefPtr<StyleSheet>>& aResult);
-  static void GetMatchingCSSRules(GlobalObject& aGlobal, Element& aElement,
-                                  const nsAString& aPseudo,
-                                  bool aIncludeVisitedStyle,
-                                  bool aWithStartingStyle,
-                                  nsTArray<RefPtr<css::Rule>>& aResult);
+  static void GetMatchingCSSRules(
+      GlobalObject& aGlobal, Element& aElement, const nsAString& aPseudo,
+      bool aIncludeVisitedStyle, bool aWithStartingStyle,
+      nsTArray<OwningCSSRuleOrInspectorDeclaration>& aResult);
 
   /**
    * Get the line number of a rule.

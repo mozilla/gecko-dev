@@ -14,7 +14,7 @@
 namespace InspectorUtils {
   // documentOnly tells whether user and UA sheets should get included.
   sequence<StyleSheet> getAllStyleSheets(Document document, optional boolean documentOnly = false);
-  sequence<CSSRule> getMatchingCSSRules(
+  sequence<(CSSRule or InspectorDeclaration)> getMatchingCSSRules(
     Element element,
     optional [LegacyNullToEmptyString] DOMString pseudo = "",
     optional boolean relevantLinkVisited = false,
@@ -112,6 +112,21 @@ namespace InspectorUtils {
     unsigned long line,
     unsigned long column,
     UTF8String newBodyText);
+};
+
+enum DeclarationOrigin {
+  "user",
+  "user-agent",
+  "pres-hints",
+  "style-attribute",
+  "animations",
+  "transitions",
+  "smil",
+};
+
+dictionary InspectorDeclaration {
+  required CSSStyleDeclaration style;
+  required DeclarationOrigin declarationOrigin;
 };
 
 dictionary SupportsOptions {

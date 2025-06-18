@@ -83,7 +83,7 @@ class CSSStyleRule final : public css::GroupRule {
   nsICSSDeclaration* Style() { return &mDecls; }
 
   StyleLockedStyleRule* Raw() const { return mRawRule; }
-  StyleLockedDeclarationBlock* RawStyle() const;
+  const StyleLockedDeclarationBlock* RawStyle() const;
   void SetRawAfterClone(RefPtr<StyleLockedStyleRule>);
   already_AddRefed<StyleLockedCssRules> GetOrCreateRawRules() final;
 

@@ -1069,7 +1069,7 @@ already_AddRefed<DOMSVGAnimatedString> SVGElement::ClassName() {
 
 /* static */
 bool SVGElement::UpdateDeclarationBlockFromLength(
-    StyleLockedDeclarationBlock& aBlock, nsCSSPropertyID aPropId,
+    const StyleLockedDeclarationBlock& aBlock, nsCSSPropertyID aPropId,
     const SVGAnimatedLength& aLength, ValToUse aValToUse) {
   float value;
   uint8_t units;
@@ -1102,8 +1102,8 @@ bool SVGElement::UpdateDeclarationBlockFromLength(
 
 /* static */
 bool SVGElement::UpdateDeclarationBlockFromPath(
-    StyleLockedDeclarationBlock& aBlock, const SVGAnimatedPathSegList& aPath,
-    ValToUse aValToUse) {
+    const StyleLockedDeclarationBlock& aBlock,
+    const SVGAnimatedPathSegList& aPath, ValToUse aValToUse) {
   const SVGPathData& pathData =
       aValToUse == ValToUse::Anim ? aPath.GetAnimValue() : aPath.GetBaseValue();
 
@@ -1179,7 +1179,7 @@ static void SVGTransformToCSS(const SVGTransform& aTransform,
 
 /* static */
 bool SVGElement::UpdateDeclarationBlockFromTransform(
-    StyleLockedDeclarationBlock& aBlock,
+    const StyleLockedDeclarationBlock& aBlock,
     const SVGAnimatedTransformList* aTransform,
     const gfx::Matrix* aAnimateMotionTransform, ValToUse aValToUse) {
   MOZ_ASSERT(aTransform || aAnimateMotionTransform);

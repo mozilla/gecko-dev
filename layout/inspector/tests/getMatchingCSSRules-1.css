@@ -1,3 +1,16 @@
 unknowntagname {
   z-index: 1;
 }
+
+@keyframes anim {
+  from {
+    z-index: 1;
+  }
+  to {
+    z-index: 1;
+  }
+}
+
+.anim {
+  animation: anim 1s infinite linear;
+}
