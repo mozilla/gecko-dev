@@ -328,7 +328,8 @@ class DataChannelConnection : public net::NeckoTargetHolder {
   void SendPacket(std::unique_ptr<MediaPacket>&& packet);
   void SctpDtlsInput(const std::string& aTransportId,
                      const MediaPacket& packet);
-  DataChannel* FindChannelByStream(uint16_t stream) MOZ_REQUIRES(mLock);
+  already_AddRefed<DataChannel> FindChannelByStream(uint16_t stream)
+      MOZ_REQUIRES(mLock);
   uint16_t FindFreeStream() const MOZ_REQUIRES(mLock);
   uint32_t UpdateCurrentStreamIndex() MOZ_REQUIRES(mLock);
   uint32_t GetCurrentStreamIndex() MOZ_REQUIRES(mLock);
@@ -599,7 +600,6 @@ class DataChannelOnMessageAvailable : public Runnable {
   enum class EventType {
     OnConnection,
     OnDisconnected,
-    OnChannelCreated,
     OnDataString,
     OnDataBinary,
   };

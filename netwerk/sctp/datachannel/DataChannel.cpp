@@ -113,8 +113,6 @@ static constexpr const char* ToString(
       return "ON_CONNECTION";
     case DataChannelOnMessageAvailable::EventType::OnDisconnected:
       return "ON_DISCONNECTED";
-    case DataChannelOnMessageAvailable::EventType::OnChannelCreated:
-      return "ON_CHANNEL_CREATED";
     case DataChannelOnMessageAvailable::EventType::OnDataString:
       return "ON_DATA_STRING";
     case DataChannelOnMessageAvailable::EventType::OnDataBinary:
@@ -1030,9 +1028,9 @@ int DataChannelConnection::SctpDtlsOutput(void* addr, void* buffer,
 }
 #endif
 
-DataChannel* DataChannelConnection::FindChannelByStream(uint16_t stream) {
-  MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  return mChannels.Get(stream).get();
+already_AddRefed<DataChannel> DataChannelConnection::FindChannelByStream(
+    uint16_t stream) {
+  return mChannels.Get(stream).forget();
 }
 
 uint16_t DataChannelConnection::FindFreeStream() const {
@@ -1329,7 +1327,6 @@ void DataChannelConnection::HandleOpenRequestMessage(
     const struct rtcweb_datachannel_open_request* req, uint32_t length,
     uint16_t stream) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  RefPtr<DataChannel> channel;
   uint32_t prValue;
   DataChannelReliabilityPolicy prPolicy;
 
@@ -1369,68 +1366,78 @@ void DataChannelConnection::HandleOpenRequestMessage(
       /* XXX error handling */
       return;
   }
-  prValue = ntohl(req->reliability_param);
-  bool ordered = !(req->channel_type & 0x80);
 
-  if ((channel = FindChannelByStream(stream))) {
-    if (!channel->mNegotiated) {
-      DC_ERROR(
-          ("HandleOpenRequestMessage: channel for pre-existing stream "
-           "%u that was not externally negotiated. JS is lying to us, or "
-           "there's an id collision.",
-           stream));
-      /* XXX: some error handling */
-    } else {
-      DC_DEBUG(("Open for externally negotiated channel %u", stream));
-      // XXX should also check protocol, maybe label
-      if (prPolicy != channel->mPrPolicy || prValue != channel->mPrValue ||
-          ordered != channel->mOrdered) {
-        DC_WARN(
-            ("external negotiation mismatch with OpenRequest:"
-             "channel %u, policy %s/%s, value %u/%u, ordered %d/%d",
-             stream, ToString(prPolicy), ToString(channel->mPrPolicy), prValue,
-             channel->mPrValue, static_cast<int>(ordered),
-             static_cast<int>(channel->mOrdered)));
-      }
-    }
-    return;
-  }
   if (stream >= mNegotiatedIdLimit) {
     DC_ERROR(("%s: stream %u out of bounds (%u)", __FUNCTION__, stream,
               mNegotiatedIdLimit));
     return;
   }
 
-  nsCString label(
-      nsDependentCSubstring(&req->label[0], ntohs(req->label_length)));
-  nsCString protocol(nsDependentCSubstring(
-      &req->label[ntohs(req->label_length)], ntohs(req->protocol_length)));
+  prValue = ntohl(req->reliability_param);
+  const bool ordered = !(req->channel_type & 0x80);
+  const nsCString label(&req->label[0], ntohs(req->label_length));
+  const nsCString protocol(&req->label[ntohs(req->label_length)],
+                           ntohs(req->protocol_length));
 
-  channel = new DataChannel(this, stream, DataChannelState::Open, label,
-                            protocol, prPolicy, prValue, ordered, false);
-  mChannels.Insert(channel);
+  Dispatch(NS_NewRunnableFunction(
+      "DataChannelConnection::HandleOpenRequestMessage",
+      [this, self = RefPtr<DataChannelConnection>(this), stream, prPolicy,
+       prValue, ordered, label, protocol]() {
+        MutexAutoLock lock(mLock);
+        RefPtr<DataChannel> channel = FindChannelByStream(stream);
+        if (channel) {
+          if (!channel->mNegotiated) {
+            DC_ERROR(
+                ("HandleOpenRequestMessage: channel for pre-existing stream "
+                 "%u that was not externally negotiated. JS is lying to us, or "
+                 "there's an id collision.",
+                 stream));
+            /* XXX: some error handling */
+          } else {
+            DC_DEBUG(("Open for externally negotiated channel %u", stream));
+            // XXX should also check protocol, maybe label
+            if (prPolicy != channel->mPrPolicy ||
+                prValue != channel->mPrValue || ordered != channel->mOrdered) {
+              DC_WARN(
+                  ("external negotiation mismatch with OpenRequest:"
+                   "channel %u, policy %s/%s, value %u/%u, ordered %d/%d",
+                   stream, ToString(prPolicy), ToString(channel->mPrPolicy),
+                   prValue, channel->mPrValue, static_cast<int>(ordered),
+                   static_cast<int>(channel->mOrdered)));
+            }
+          }
+          return;
+        }
+        channel = new DataChannel(this, stream, DataChannelState::Open, label,
+                                  protocol, prPolicy, prValue, ordered, false);
+        mChannels.Insert(channel);
+        mStreamIds.InsertElementSorted(stream);
 
-  DC_DEBUG(("%s: sending ON_CHANNEL_CREATED for %s/%s: %u", __FUNCTION__,
-            channel->mLabel.get(), channel->mProtocol.get(), stream));
-  Dispatch(do_AddRef(new DataChannelOnMessageAvailable(
-      DataChannelOnMessageAvailable::EventType::OnChannelCreated, this,
-      channel)));
+        DC_DEBUG(("%s: sending ON_CHANNEL_CREATED for %s/%s: %u", __FUNCTION__,
+                  channel->mLabel.get(), channel->mProtocol.get(), stream));
+        if (mListener) {
+          // important to give it an already_AddRefed pointer!
+          mListener->NotifyDataChannel(do_AddRef(channel));
+          // Spec says to queue this in the queued task for ondatachannel
+          channel->AnnounceOpen();
+        }
 
-  // Note that any message can be buffered; SendOpenAckMessage may
-  // error later than this check.
-  const auto error = SendOpenAckMessage(*channel);
-  if (error) {
-    DC_ERROR(("SendOpenRequest failed, error = %d", error));
-    Dispatch(NS_NewRunnableFunction(
-        "DataChannelConnection::HandleOpenRequestMessage",
-        [channel, connection = RefPtr<DataChannelConnection>(this)]() {
-          // Close the channel on failure
-          connection->Close(channel);
-        }));
-    return;
-  }
-  channel->mWaitingForAck = false;
-  DeliverQueuedData(channel->mStream);
+        mSTS->Dispatch(NS_NewRunnableFunction(
+            "DataChannelConnection::HandleOpenRequestMessage",
+            [this, self = RefPtr<DataChannelConnection>(this), channel]() {
+              MutexAutoLock lock(mLock);
+              // Note that any message can be buffered; SendOpenAckMessage may
+              // error later than this check.
+              const auto error = SendOpenAckMessage(*channel);
+              if (error) {
+                DC_ERROR(("SendOpenAckMessage failed, error = %d", error));
+                FinishClose_s(channel);
+                return;
+              }
+              channel->mWaitingForAck = false;
+              DeliverQueuedData(channel->mStream);
+            }));
+      }));
 }
 
 // NOTE: the updated spec from the IETF says we should set in-order until we
@@ -1460,11 +1467,10 @@ void DataChannelConnection::HandleOpenAckMessage(
     const struct rtcweb_datachannel_ack* ack, uint32_t length,
     uint16_t stream) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  DataChannel* channel;
 
   mLock.AssertCurrentThreadOwns();
 
-  channel = FindChannelByStream(stream);
+  RefPtr<DataChannel> channel = FindChannelByStream(stream);
   if (NS_WARN_IF(!channel)) {
     return;
   }
@@ -1493,10 +1499,9 @@ void DataChannelConnection::HandleDataMessageChunk(const void* data,
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
   DC_DEBUG(("%s: stream %u, length %zu, ppid %u, message-id %u", __func__,
             stream, length, ppid, messageId));
-  DataChannel* channel;
 
   mLock.AssertCurrentThreadOwns();
-  channel = FindChannelByStream(stream);
+  RefPtr<DataChannel> channel = FindChannelByStream(stream);
 
   // XXX A closed channel may trip this... check
   // NOTE: the updated spec from the IETF says we should set in-order until we
@@ -2012,7 +2017,8 @@ void DataChannelConnection::HandlePartialDeliveryEvent(
   }
 
   // Find channel and reset buffer
-  DataChannel* channel = FindChannelByStream((uint16_t)spde->pdapi_stream);
+  RefPtr<DataChannel> channel =
+      FindChannelByStream((uint16_t)spde->pdapi_stream);
   if (channel) {
     auto it = channel->mRecvBuffers.find(spde->pdapi_seq);
     if (it != channel->mRecvBuffers.end()) {
@@ -2140,7 +2146,7 @@ void DataChannelConnection::OnStreamsReset(std::vector<uint16_t>&& aStreams) {
   mLock.AssertCurrentThreadOwns();
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
   for (auto stream : aStreams) {
-    auto channel = FindChannelByStream(stream);
+    RefPtr<DataChannel> channel = FindChannelByStream(stream);
     if (channel) {
       // The other side closed the channel
       // We could be in three states:
@@ -3428,18 +3434,6 @@ nsresult DataChannelOnMessageAvailable::Run() {
         mConnection->mListener->NotifySctpClosed();
       }
       mConnection->CloseAll();
-      break;
-    case EventType::OnChannelCreated:
-      if (!mConnection->mListener) {
-        DC_ERROR(("DataChannelOnMessageAvailable (%s) with null Listener!",
-                  ToString(mType)));
-        return NS_OK;
-      }
-
-      // important to give it an already_AddRefed pointer!
-      mConnection->mListener->NotifyDataChannel(do_AddRef(mChannel));
-      // Spec says to queue this in the queued task for ondatachannel
-      mChannel->AnnounceOpen();
       break;
     case EventType::OnConnection:
       if (mConnection->mListener) {
