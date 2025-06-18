@@ -4347,9 +4347,9 @@ ContentAnalysis::GetURIForDropEvent(dom::DragEvent* aEvent, nsIURI** aURI) {
              widgetEvent->mMessage == eDrop);
   auto* bp =
       dom::BrowserParent::GetBrowserParentFromLayersId(widgetEvent->mLayersId);
-  NS_ENSURE_TRUE(bp, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(bp, NS_ERROR_NOT_AVAILABLE);
   auto* bc = bp->GetBrowsingContext();
-  NS_ENSURE_TRUE(bc, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(bc, NS_ERROR_NO_CONTENT);
   return GetURIForBrowsingContext(bc, aURI);
 }
 
