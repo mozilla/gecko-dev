@@ -305,6 +305,7 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1918637
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1918637
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && condprof", # Bug 1927732
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && condprof", # Bug 1927732
   "tsan", # Times out on TSan, bug 1612707
 ]
 

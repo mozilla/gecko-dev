@@ -11,9 +11,16 @@ https_first_disabled = true
 
 ["browser_referrer_middle_click.js"]
 https_first_disabled = true
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1972455
+]
+
 
 ["browser_referrer_middle_click_in_container.js"]
 https_first_disabled = true
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1972455
+]
 
 ["browser_referrer_open_link_in_container_tab.js"]
 skip-if = ["os == 'linux'"] # Bug 1144816

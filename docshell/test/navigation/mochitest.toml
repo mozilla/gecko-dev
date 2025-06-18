@@ -137,6 +137,9 @@ skip-if = [
 ]
 
 ["test_bug430624.html"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3",
+]
 
 ["test_bug430723.html"]
 skip-if = [

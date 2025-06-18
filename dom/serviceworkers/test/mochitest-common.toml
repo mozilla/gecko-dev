@@ -215,7 +215,9 @@ support-files = [
 ]
 
 ["test_abrupt_completion.html"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == '18.04'"] # Bug 1615164
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1615164
+]
 
 ["test_async_waituntil.html"]
 

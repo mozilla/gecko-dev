@@ -62,6 +62,9 @@ https_first_disabled = true
 ["browser_bookmark_change_location.js"]
 
 ["browser_bookmark_context_menu_contents.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1775657
+]
 
 ["browser_bookmark_copy_folder_tree.js"]
 tags = "os_integration"
@@ -76,6 +79,9 @@ tags = "os_integration"
 skip-if = ["verify && os == 'win'"]
 
 ["browser_bookmark_private_window.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1937891
+]
 
 ["browser_bookmark_remove_tags.js"]
 

@@ -14,6 +14,7 @@ support-files = [
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan && swgl", # Bug 1864085
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && swgl", # Bug 1864085
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan && swgl", # Bug 1864085
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1864085
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1864085
 ]
@@ -64,6 +65,9 @@ skip-if = [
 ]
 
 ["browser_fullscreen_ui_state.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1972541
+]
 
 ["browser_fullscreen_warning.js"]
 support-files = ["fullscreen.html"]

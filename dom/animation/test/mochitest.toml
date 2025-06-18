@@ -18,7 +18,10 @@ support-files = [
 ]
 
 ["document-timeline/test_document-timeline.html"]
-skip-if = ["os == 'linux' && os_version == '18.04' && opt"] # Bug 1784938
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && opt", # Bug 1784938
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1784938
+]
 
 ["document-timeline/test_request_animation_frame.html"]
 

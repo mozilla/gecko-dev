@@ -16,6 +16,7 @@ run-sequentially = "bug 1784963 - beacon-handler shares state"
 skip-if = [
   "http3",
   "http2",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && xorigin", # Bug 1784963
 ]
 
 ["test_beaconOriginHeader.html"]

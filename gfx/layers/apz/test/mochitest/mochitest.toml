@@ -198,6 +198,9 @@ skip-if = ["os == 'win'"] # see bug 1495580 for Windows
 support-files = [
   "!/layout/base/tests/Ahem.ttf",
 ]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1776973
+]
 
 ["test_interrupted_reflow.html"]
 

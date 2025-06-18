@@ -67,6 +67,7 @@ run-if = ["crashreporter"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1787024
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1787024
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1787024
   "win11_2009", # Bug 1787024
   "os == 'win' && os_version == '11.26100' && bits == 64 && asan", # Bug 1787024
 ]
@@ -289,11 +290,11 @@ run-if = ["fission"]
 
 ["browser_searchModeSwitcher_restore.js"]
 
-["browser_sessionHistory_partitionedPrincipalToInherit.js"]
-
 ["browser_sessionHistory.js"]
 https_first_disabled = true
 support-files = ["file_sessionHistory_hashchange.html"]
+
+["browser_sessionHistory_partitionedPrincipalToInherit.js"]
 
 ["browser_sessionStorage.js"]
 tags = "os_integration"

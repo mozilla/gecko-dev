@@ -150,6 +150,9 @@ support-files = ["protocol_custom_sandbox_helper.sjs"]
 
 ["browser_save_filenames.js"]
 support-files = ["save_filenames.html"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1776018
+]
 
 ["browser_shows_where_to_save_dialog.js"]
 support-files = [

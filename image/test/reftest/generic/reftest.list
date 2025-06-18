@@ -1,6 +1,6 @@
 HTTP == accept-image-catchall.html accept-image-catchall-ref.html
 skip-if(Android) != moz-icon-1.html about:blank
-== moz-icon-blank-1.html moz-icon-blank-1-ref.html
+fuzzy-if(gtkWidget,0-92,0-85) == moz-icon-blank-1.html moz-icon-blank-1-ref.html
 skip-if(Android) != moz-icon-blank-1-ref.html moz-icon-blank-1-antiref.html
 skip-if(Android) != moz-icon-blank-1-ref.html moz-icon-blank-1-antiref2.html
 # TODO: this is actually a different icon

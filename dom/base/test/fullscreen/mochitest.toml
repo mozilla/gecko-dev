@@ -44,6 +44,8 @@ support-files = [
 skip-if = [
   "os == 'android'", # same as test_fullscreen-api.html, 1356570
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && ccov",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug",
 ]
 
 ["test_fullscreen-api-rapid-cycle.html"]

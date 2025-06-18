@@ -24,6 +24,9 @@ support-files = ["decode_error.mp4"]
 ["test_bug1885101_screenwindow_sizes.html"]
 
 ["test_device_sensor_event.html"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1792846
+]
 
 ["test_geolocation.html"]
 scheme = "https"

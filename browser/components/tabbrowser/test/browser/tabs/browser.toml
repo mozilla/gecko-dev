@@ -37,7 +37,10 @@ https_first_disabled = true
 
 ["browser_bfcache_exemption_about_pages.js"]
 run-if = ["fission"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug"] # Bug 1934436
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1934436
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1934436
+]
 
 ["browser_blank_tab_label.js"]
 tags = "vertical-tabs"
@@ -111,6 +114,9 @@ tags = "vertical-tabs"
 
 ["browser_lastSeenActive.js"]
 tags = "vertical-tabs"
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1889774
+]
 
 ["browser_lazy_tab_browser_events.js"]
 tags = "vertical-tabs"
@@ -205,6 +211,10 @@ tags = "vertical-tabs"
 
 ["browser_multiselect_tabs_close_using_shortcuts.js"]
 tags = "vertical-tabs"
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && swgl", # Bug 1970731
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1970731
+]
 
 ["browser_multiselect_tabs_copy_through_drag_and_drop.js"]
 tags = "vertical-tabs"
@@ -259,6 +269,7 @@ tags = "vertical-tabs"
 ["browser_multiselect_tabs_unload_telemetry.js"]
 skip-if = [
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1929417
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1935293
 ]
 tags = "vertical-tabs"
 
@@ -515,8 +526,14 @@ tags = "vertical-tabs"
 
 ["browser_tab_groups_tabContextMenu.js"]
 tags = "vertical-tabs"
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1947600
+]
 
 ["browser_tab_groups_tab_interactions_telemetry.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && swgl", # Bug 1968371
+]
 
 ["browser_tab_groups_telemetry.js"]
 skip-if = [
@@ -593,6 +610,9 @@ tags = "vertical-tabs"
 
 ["browser_tabswitch_contextmenu.js"]
 tags = "vertical-tabs"
+skip-if = [
+  "os == 'linux'&& os_version == '24.04' && processor == 'x86_64' && display == 'x11' && vertical_tab", # Bug 1971008
+]
 
 ["browser_tabswitch_select.js"]
 support-files = ["open_window_in_new_tab.html"]

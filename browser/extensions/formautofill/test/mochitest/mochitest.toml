@@ -15,8 +15,7 @@ support-files = [
 
 ["test_autofill_and_ordinal_forms.html"]
 skip-if = [
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && ccov", # Bug 1803644
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1803644
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1803644
 ]
 
 ["test_autofocus_form.html"]

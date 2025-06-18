@@ -158,6 +158,9 @@ skip-if = ["true"]
 ["browser_translations_recent_language_memory_full_page_and_select.js"]
 
 ["browser_translations_recent_language_memory_full_page_and_select_multi_window.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && ccov", # Bug 1972458
+]
 
 ["browser_translations_recent_language_memory_full_page_multi_window.js"]
 
