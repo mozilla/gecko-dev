@@ -1,4 +1,21 @@
 {
+  "1287715": {
+    "label": "littlealchemy2.com",
+    "bugs": {
+      "1287715": {
+        "issue": "broken-audio",
+        "matches": ["https://littlealchemy2.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1287715-littlealchemy2.com-fix-audio-race-condition.js"]
+        }
+      }
+    ]
+  },
   "1385206": {
     "label": "rakuten.co.jp",
     "bugs": {
