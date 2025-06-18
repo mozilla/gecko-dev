@@ -28,6 +28,7 @@ panel[type="autocomplete-richlistbox"] {
   appearance: none;
   margin: 1px;
   background-color: transparent;
+  border: 0;
 }
 
 .autocomplete-richlistitem[selected] {
