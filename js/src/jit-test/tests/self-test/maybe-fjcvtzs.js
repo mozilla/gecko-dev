@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !hasDisassembler() || !getBuildConfiguration("arm64")
+// |jit-test| skip-if: !hasDisassembler() || !getBuildConfiguration("arm64") || !this.getJitCompilerOptions() || !getJitCompilerOptions()['ion.enable']
 
 function checkAssembly() {
   let output = disnative(f);
