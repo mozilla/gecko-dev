@@ -60,7 +60,7 @@ class ChannelMediaDecoder
 
  protected:
   void ShutdownInternal() override;
-  void OnPlaybackEvent(MediaPlaybackEvent&& aEvent) override;
+  void OnPlaybackEvent(const MediaPlaybackEvent& aEvent) override;
   void DurationChanged() override;
   void MetadataLoaded(UniquePtr<MediaInfo> aInfo, UniquePtr<MetadataTags> aTags,
                       MediaDecoderEventVisibility aEventVisibility) override;

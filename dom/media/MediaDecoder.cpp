@@ -338,7 +338,7 @@ MediaDecoder::~MediaDecoder() {
   MediaMemoryTracker::RemoveMediaDecoder(this);
 }
 
-void MediaDecoder::OnPlaybackEvent(MediaPlaybackEvent&& aEvent) {
+void MediaDecoder::OnPlaybackEvent(const MediaPlaybackEvent& aEvent) {
   switch (aEvent.mType) {
     case MediaPlaybackEvent::PlaybackEnded:
       PlaybackEnded();
