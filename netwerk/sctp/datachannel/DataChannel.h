@@ -351,9 +351,7 @@ class DataChannelConnection : public net::NeckoTargetHolder {
                   uint32_t ppidPartial, uint32_t ppidFinal) MOZ_REQUIRES(mLock);
 
   void DeliverQueuedData(uint16_t stream) MOZ_REQUIRES(mLock);
-
-  already_AddRefed<DataChannel> OpenFinish(
-      already_AddRefed<DataChannel>&& aChannel) MOZ_REQUIRES(mLock);
+  void OpenFinish(RefPtr<DataChannel> aChannel) MOZ_REQUIRES(mLock);
 
   void ProcessQueuedOpens() MOZ_REQUIRES(mLock);
   void ClearResets() MOZ_REQUIRES(mLock);
