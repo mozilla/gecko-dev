@@ -586,8 +586,8 @@ function generatePreviewsForTrace(state, trace) {
   if (argumentNames && argumentValues) {
     const frameIndex = trace[TRACER_FIELDS_INDEXES.FRAME_INDEX];
     const frame = state.mutableFrames[frameIndex];
-    // Subtracting 1 from line as codemirror lines are 0 indexed
-    const line = frame.line - 1;
+    // CM6 are 1-based
+    const line = frame.line;
     const column = frame.column;
 
     const preview = [];

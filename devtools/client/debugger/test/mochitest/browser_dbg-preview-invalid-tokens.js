@@ -32,8 +32,7 @@ add_task(async function () {
   // Wait for all the updates to the document to complete to make all
   // token elements have been rendered
   await waitForDocumentLoadComplete(dbg);
-
-  const inlinePreviewEl = findElement(dbg, "inlinePreview");
+  const inlinePreviewEl = findElement(dbg, "inlinePreviewsOnLine", 74);
   is(inlinePreviewEl.innerText, `myVar:"foo"`, "got expected inline preview");
 
   const racePromise = Promise.any([

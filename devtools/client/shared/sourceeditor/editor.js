@@ -2338,15 +2338,31 @@ class Editor extends EventEmitter {
   }
 
   /**
-   * Gets the location and meta details of all the references
-   * (within the scope of the immediate enclosing function of the specified location)
-   * which are related to the bindings specified.
+   * Gets all the bindings and generates the related references for
+   * the specified platform scope and its ancestry
    *
-   * @param {Object} location
-   * @param {Array<String>} bindings -  list of binding names
-   * @returns {Function}
+   * @param {Object} location - The currently paused location
+   * @param {Object} scope - The innermost scope node for the tree. This is provided by the
+   *                         platform.
+   * @returns {Object} Binding references
+   *                  Structure
+   *                  ==========
+   *                  {
+   *                    0: { // Levels
+   *                      a: { // Binding
+   *                        enumerable: true,
+   *                        configurable: false
+   *                        value: "foo"
+   *                        refs: [{ // References
+   *                          start: { line: 1, column: 4 }
+   *                          end: { line: 3, column: 5 }
+   *                          meta: {...} // For details see https://searchfox.org/mozilla-central/rev/ba7293cb2710f015fcd34f2b9919d00e27a9c2f6/devtools/client/shared/sourceeditor/lezer-utils.js#414-420
+   *                        }]
+   *                      },
+   *                      ...
+   *                    }
    **/
-  async getBindingReferences(location, bindings) {
+  async getBindingReferences(location, scope) {
     const cm = editors.get(this);
     const {
       codemirrorLanguage: { syntaxTree },
@@ -2357,50 +2373,79 @@ class Editor extends EventEmitter {
       syntaxTree(cm.state),
       location
     );
+
     if (!token) {
       return null;
     }
 
-    const enclosingScope = lezerUtils.getEnclosingFunction(
-      cm.state.doc,
-      token,
-      { includeAnonymousFunctions: true }
-    );
-
-    if (!enclosingScope) {
-      return null;
-    }
-
+    let scopeNode = null;
+    let level = 0;
     const bindingReferences = {};
-    // This should find location and meta information for the binding name specified.
-    await lezerUtils.walkCursor(enclosingScope.node.cursor(), {
-      filterSet: lezerUtils.nodeTypeSets.bindingReferences,
-      enterVisitor: node => {
-        const bindingName = cm.state.doc.sliceString(node.from, node.to);
-        if (!bindings.includes(bindingName)) {
-          return;
-        }
-        const ref = {
-          start: lezerUtils.positionToLocation(cm.state.doc, node.from),
-          end: lezerUtils.positionToLocation(cm.state.doc, node.to),
-        };
-        const syntaxNode = node.node;
-        // Previews for member expressions are built of the meta property which is
-        // reference of the child property and so on. e.g a.b.c
-        if (syntaxNode.parent.name == lezerUtils.nodeTypes.MemberExpression) {
-          ref.meta = lezerUtils.getMetaBindings(
-            cm.state.doc,
-            syntaxNode.parent
-          );
-        }
 
-        if (!bindingReferences[bindingName]) {
-          bindingReferences[bindingName] = { refs: [] };
-        }
-        bindingReferences[bindingName].refs.push(ref);
-      },
-    });
+    // Walk up the scope tree and generate the bindings and references
+    while (scope && scope.bindings) {
+      const bindings = lezerUtils.getScopeBindings(scope.bindings);
+      const seen = new Set();
+      scopeNode = lezerUtils.getParentScopeOfType(
+        scopeNode || token,
+        scope.type
+      );
+      if (!scopeNode) {
+        break;
+      }
+      await lezerUtils.walkCursor(scopeNode.node.cursor(), {
+        filterSet: lezerUtils.nodeTypeSets.bindingReferences,
+        enterVisitor: node => {
+          let bindingName = cm.state.doc.sliceString(node.from, node.to);
+          if (!(bindingName in bindings) || seen.has(bindingName)) {
+            return;
+          }
+          const bindingData = bindings[bindingName];
+          const ref = {
+            start: lezerUtils.positionToLocation(cm.state.doc, node.from),
+            end: lezerUtils.positionToLocation(cm.state.doc, node.to),
+          };
+          const syntaxNode = node.node;
+          // Previews for member expressions are built of the meta property which is
+          // reference of the child property and so on. e.g a.b.c
+          if (syntaxNode.parent.name == lezerUtils.nodeTypes.MemberExpression) {
+            ref.meta = lezerUtils.getMetaBindings(
+              cm.state.doc,
+              syntaxNode.parent
+            );
+            // For member expressions use the name of the parent object as the binding name
+            // i.e for `obj.a.b` the binding name should be `obj`
+            bindingName = cm.state.doc.sliceString(
+              syntaxNode.parent.from,
+              syntaxNode.parent.to
+            );
+            const dotIndex = bindingName.indexOf(".");
+            if (dotIndex > -1) {
+              bindingName = bindingName.substring(0, dotIndex);
+            }
+          }
 
+          if (!bindingReferences[level]) {
+            bindingReferences[level] = {};
+          }
+          if (!bindingReferences[level][bindingName]) {
+            // Put the binding info and related references together for
+            // easy and efficient access.
+            bindingReferences[level][bindingName] = {
+              ...bindingData,
+              refs: [],
+            };
+          }
+          bindingReferences[level][bindingName].refs.push(ref);
+          seen.add(bindingName);
+        },
+      });
+      if (scope.type === "function") {
+        break;
+      }
+      level++;
+      scope = scope.parent;
+    }
     return bindingReferences;
   }
 
