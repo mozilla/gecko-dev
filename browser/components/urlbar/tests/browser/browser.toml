@@ -92,6 +92,9 @@ tags = "persisted-search"
 ["browser_UrlbarInput_searchTerms_telemetry.js"]
 tags = "persisted-search"
 
+["browser_UrlbarInput_searchTerms_uri_mismatch.js"]
+tags = "persisted-search"
+
 ["browser_UrlbarInput_setURI.js"]
 https_first_disabled = true
 skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug"] # Bug 1773790

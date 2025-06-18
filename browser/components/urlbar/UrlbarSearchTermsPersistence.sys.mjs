@@ -242,6 +242,20 @@ class _UrlbarSearchTermsPersistence {
       return false;
     }
 
+    let origin;
+    try {
+      origin = URL.fromURI(uri)?.origin;
+    } catch (ex) {
+      return false;
+    }
+
+    // Bug 1972464: Prevent search terms from persisting across different origin
+    // due to a possible race condition. This check prevents cross-origin
+    // persistence until the persistence logic is refactored.
+    if (origin !== state.persist.origin) {
+      return false;
+    }
+
     return true;
   }
 
@@ -250,6 +264,10 @@ class _UrlbarSearchTermsPersistence {
     state.persist = {
       // Whether the engine that loaded the URI is the default search engine.
       isDefaultEngine: null,
+
+      // Temporary until we resolve Bug 1972464: Cache origin for validation
+      // checks. This should be removed once the architecture is refactored.
+      origin: null,
 
       // The name of the engine that was used to load the URI.
       originalEngineName: null,
@@ -260,15 +278,27 @@ class _UrlbarSearchTermsPersistence {
       provider: null,
 
       // The search string within the URI.
-      searchTerms: this.getSearchTerm(uri),
+      searchTerms: "",
 
       // Whether the search terms should persist.
       shouldPersist: null,
     };
 
-    if (!state.persist.searchTerms) {
+    let origin;
+    try {
+      origin = URL.fromURI(uri)?.origin;
+    } catch (ex) {
       return;
     }
+
+    let searchTerms = this.getSearchTerm(uri);
+    // Avoid setting state if either are missing.
+    if (!searchTerms || !origin) {
+      return;
+    }
+
+    state.persist.origin = origin;
+    state.persist.searchTerms = searchTerms;
 
     let provider = this.#getProviderInfoForURL(uri?.spec);
     // If we have specific Remote Settings defined providers for the URL,

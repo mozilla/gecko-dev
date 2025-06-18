@@ -326,7 +326,7 @@ function assertSearchStringIsInUrlbar(
   );
   let state = win.gURLBar.getBrowserState(win.gBrowser.selectedBrowser);
   Assert.equal(
-    state.persist.searchTerms,
+    state.persist?.searchTerms,
     searchString,
     `Search terms should match.`
   );
