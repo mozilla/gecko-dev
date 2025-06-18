@@ -23,6 +23,9 @@ reason = "test depends on update channel"
 
 ["browser_csp_blocks.js"]
 
+["browser_csp_module.js"]
+support-files = ["file_csp_module.sys.mjs"]
+
 ["browser_csp_violation_telemetry.js"]
 
 ["browser_default_bookmark_toolbar_visibility.js"]
