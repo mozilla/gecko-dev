@@ -5,26 +5,6 @@
 #ifndef OPENTYPE_SANITISER_H_
 #define OPENTYPE_SANITISER_H_
 
-#if defined(_WIN32) || defined(__CYGWIN__)
-  #define OTS_DLL_IMPORT __declspec(dllimport)
-  #define OTS_DLL_EXPORT __declspec(dllexport)
-#else
-  #if __GNUC__ >= 4
-    #define OTS_DLL_IMPORT __attribute__((visibility ("default")))
-    #define OTS_DLL_EXPORT __attribute__((visibility ("default")))
-  #endif
-#endif
-
-#ifdef OTS_DLL
-  #ifdef OTS_DLL_EXPORTS
-    #define OTS_API OTS_DLL_EXPORT
-  #else
-    #define OTS_API OTS_DLL_IMPORT
-  #endif
-#else
-  #define OTS_API
-#endif
-
 #if defined(_WIN32)
 #include <stdlib.h>
 typedef signed char int8_t;
@@ -192,10 +172,12 @@ enum TableAction {
   TABLE_ACTION_DEFAULT,  // Use OTS's default action for that table
   TABLE_ACTION_SANITIZE, // Sanitize the table, potentially dropping it
   TABLE_ACTION_PASSTHRU, // Serialize the table unchanged
-  TABLE_ACTION_DROP      // Drop the table
+  TABLE_ACTION_DROP,     // Drop the table
+  TABLE_ACTION_SANITIZE_SOFT, // Sanitize the table, but without failing overall
+                              // sanitzation even if this table fails/is dropped
 };
 
-class OTS_API OTSContext {
+class OTSContext {
   public:
     OTSContext() {}
     virtual ~OTSContext() {}

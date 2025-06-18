@@ -14,7 +14,7 @@
 #include <map>
 #include <vector>
 
-#include "../RLBoxWOFF2Host.h"
+#include <woff2/decode.h>
 
 // The OpenType Font File
 // http://www.microsoft.com/typography/otspec/otff.htm
@@ -525,9 +525,44 @@ bool ProcessWOFF(ots::FontFile *header,
   return ProcessGeneric(header, font, woff_tag, output, data, length, tables, file);
 }
 
-bool ProcessWOFF2(ots::FontFile* header, ots::OTSStream* output,
-                  const uint8_t* data, size_t length, uint32_t index) {
-  return RLBoxProcessWOFF2(header, output, data, length, index, ProcessTTC, ProcessTTF);
+bool ProcessWOFF2(ots::FontFile *header,
+                  ots::OTSStream *output,
+                  const uint8_t *data,
+                  size_t length,
+                  uint32_t index) {
+  size_t decompressed_size = woff2::ComputeWOFF2FinalSize(data, length);
+
+  if (decompressed_size < length) {
+    return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 is less than compressed size");
+  }
+
+  if (decompressed_size == 0) {
+    return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 is set to 0");
+  }
+  // decompressed font must be <= OTS_MAX_DECOMPRESSED_FILE_SIZE
+  if (decompressed_size > OTS_MAX_DECOMPRESSED_FILE_SIZE) {
+    return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 font exceeds %gMB",
+                               OTS_MAX_DECOMPRESSED_FILE_SIZE / (1024.0 * 1024.0));
+  }
+
+  if (decompressed_size > output->size()) {
+    return OTS_FAILURE_MSG_HDR("Size of decompressed WOFF 2.0 font exceeds output size (%gMB)", output->size() / (1024.0 * 1024.0));
+  }
+
+  std::string buf(decompressed_size, 0);
+  woff2::WOFF2StringOut out(&buf);
+  out.SetMaxSize(decompressed_size);
+  if (!woff2::ConvertWOFF2ToTTF(data, length, &out)) {
+    return OTS_FAILURE_MSG_HDR("Failed to convert WOFF 2.0 font to SFNT");
+  }
+  const uint8_t *decompressed = reinterpret_cast<const uint8_t*>(buf.data());
+
+  if (data[4] == 't' && data[5] == 't' && data[6] == 'c' && data[7] == 'f') {
+    return ProcessTTC(header, output, decompressed, out.Size(), index);
+  } else {
+    ots::Font font(header);
+    return ProcessTTF(header, &font, output, decompressed, out.Size());
+  }
 }
 
 ots::TableAction GetTableAction(const ots::FontFile *header, uint32_t tag) {
@@ -1010,6 +1045,12 @@ bool Font::ParseTable(const TableEntry& table_entry, const uint8_t* data,
       ret = table->Parse(table_data, table_length);
       if (ret)
         AddTable(table_entry, table);
+      else if (action == TABLE_ACTION_SANITIZE_SOFT) {
+        // We're dropping the table (having reported whatever errors we found),
+        // but do not return failure, so that processing continues.
+        delete table;
+        ret = true;
+      }
     }
   }
 
