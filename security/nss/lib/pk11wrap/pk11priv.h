@@ -105,8 +105,6 @@ PRBool PK11_DoesMechanismFlag(PK11SlotInfo *, CK_MECHANISM_TYPE type, CK_FLAGS f
 /**********************************************************************
  *                   Symetric, Public, and Private Keys
  **********************************************************************/
-/* Key Generation specialized for SDR (fixed DES3 key) */
-PK11SymKey *PK11_GenDES3TokenKey(PK11SlotInfo *slot, SECItem *keyid, void *cx);
 SECKEYPublicKey *PK11_ExtractPublicKey(PK11SlotInfo *slot, KeyType keyType,
                                        CK_OBJECT_HANDLE id);
 CK_OBJECT_HANDLE PK11_FindObjectForCert(CERTCertificate *cert,

@@ -1,0 +1,5 @@
+
+1 Added function:
+
+  'function SECStatus PK11SDR_EncryptWithMechanism(PK11SlotInfo*, SECItem*, CK_MECHANISM_TYPE, SECItem*, SECItem*, void*)'    {PK11SDR_EncryptWithMechanism@@NSS_3.113}
+

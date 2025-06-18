@@ -596,17 +596,20 @@ PK11SymKey *
 PK11_FindFixedKey(PK11SlotInfo *slot, CK_MECHANISM_TYPE type, SECItem *keyID,
                   void *wincx)
 {
-    CK_ATTRIBUTE findTemp[4];
+    CK_ATTRIBUTE findTemp[5];
     CK_ATTRIBUTE *attrs;
     CK_BBOOL ckTrue = CK_TRUE;
     CK_OBJECT_CLASS keyclass = CKO_SECRET_KEY;
     size_t tsize = 0;
     CK_OBJECT_HANDLE key_id;
+    CK_KEY_TYPE keyType = PK11_GetKeyType(type, 0);
 
     attrs = findTemp;
     PK11_SETATTRS(attrs, CKA_CLASS, &keyclass, sizeof(keyclass));
     attrs++;
     PK11_SETATTRS(attrs, CKA_TOKEN, &ckTrue, sizeof(ckTrue));
+    attrs++;
+    PK11_SETATTRS(attrs, CKA_KEY_TYPE, &keyType, sizeof(keyType));
     attrs++;
     if (keyID) {
         PK11_SETATTRS(attrs, CKA_ID, keyID->data, keyID->len);
@@ -1236,13 +1239,6 @@ PK11_KeyGenWithTemplate(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
     }
 
     return symKey;
-}
-
-/* --- */
-PK11SymKey *
-PK11_GenDES3TokenKey(PK11SlotInfo *slot, SECItem *keyid, void *cx)
-{
-    return PK11_TokenKeyGen(slot, CKM_DES3_CBC, 0, 0, keyid, PR_TRUE, cx);
 }
 
 PK11SymKey *
