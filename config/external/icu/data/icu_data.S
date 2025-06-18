@@ -13,7 +13,9 @@
 #endif
 
 .global ICU_DATA_SYMBOL
-#if defined(__APPLE__)
+#if defined(_WIN32)
+.section .rodata, "dr"
+#elif defined(__APPLE__)
 .data
 .const
 #elif defined(__wasi__)
