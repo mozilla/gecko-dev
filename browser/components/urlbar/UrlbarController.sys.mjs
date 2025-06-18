@@ -7,7 +7,6 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
   getPlacesSemanticHistoryManager:
     "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
@@ -1013,9 +1012,7 @@ class TelemetryEvent {
       browserWindow.isBlankPageURL(browserWindow.gBrowser.currentURI.spec)
     ) {
       sap = "urlbar_newtab";
-    } else if (
-      lazy.ExtensionUtils.isExtensionUrl(browserWindow.gBrowser.currentURI)
-    ) {
+    } else if (browserWindow.gBrowser.currentURI.schemeIs("moz-extension")) {
       sap = "urlbar_addonpage";
     }
 

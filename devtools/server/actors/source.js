@@ -16,6 +16,7 @@ const {
 const {
   getDebuggerSourceURL,
 } = require("resource://devtools/server/actors/utils/source-url.js");
+
 loader.lazyRequireGetter(
   this,
   "ArrayBufferActor",
@@ -33,14 +34,6 @@ loader.lazyRequireGetter(
   this,
   "DevToolsUtils",
   "resource://devtools/shared/DevToolsUtils.js"
-);
-
-ChromeUtils.defineESModuleGetters(
-  this,
-  {
-    ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
-  },
-  { global: "contextual" }
 );
 
 const windowsDrive = /^([a-zA-Z]:)/;
@@ -167,7 +160,7 @@ class SourceActor extends Actor {
 
       // Cu is not available for workers and so we are not able to get a
       // WebExtensionPolicy object
-      if (!isWorker && ExtensionUtils.isExtensionUrl(this.url)) {
+      if (!isWorker && this.url?.startsWith("moz-extension:")) {
         try {
           const extURI = Services.io.newURI(this.url);
           const policy = WebExtensionPolicy.getByURI(extURI);

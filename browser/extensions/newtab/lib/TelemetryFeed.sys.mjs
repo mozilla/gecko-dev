@@ -10,6 +10,7 @@
 // environment already stubs out XPCOMUtils, AppConstants and RemoteSettings,
 // and overrides importESModule to be a no-op (which can't be done for a static
 // import statement).
+
 // eslint-disable-next-line mozilla/use-static-import
 const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
@@ -32,7 +33,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ContextId: "moz-src:///browser/modules/ContextId.sys.mjs",
   ExtensionSettingsStore:
     "resource://gre/modules/ExtensionSettingsStore.sys.mjs",
-  ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
@@ -999,9 +999,7 @@ export class TelemetryFeed {
         newtabCategory = "enabled";
         if (
           lazy.AboutNewTab.newTabURLOverridden &&
-          ((Object.hasOwn(lazy.ExtensionUtils, "isExtensionUrl") &&
-            !lazy.ExtensionUtils.isExtensionUrl(lazy.AboutNewTab.newTabURL)) ||
-            !lazy.AboutNewTab.newTabURL.startsWith("moz-extension://"))
+          !lazy.AboutNewTab.newTabURL.startsWith("moz-extension://")
         ) {
           value.newtab_url_category = await this._classifySite(
             lazy.AboutNewTab.newTabURL
@@ -1025,9 +1023,7 @@ export class TelemetryFeed {
         !["about:home", "about:blank", BLANK_HOMEPAGE_URL].includes(
           homePageURL
         ) &&
-        ((Object.hasOwn(lazy.ExtensionUtils, "isExtensionUrl") &&
-          !lazy.ExtensionUtils.isExtensionUrl(homePageURL)) ||
-          !homePageURL.startsWith("moz-extension://"))
+        !homePageURL.startsWith("moz-extension://")
       ) {
         value.home_url_category = await this._classifySite(homePageURL);
         homeAffected = true;
