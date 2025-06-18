@@ -596,9 +596,6 @@ class DataChannel {
   // Accessed on main and STS
   const bool mNegotiated;
   const bool mOrdered;
-  // The data channel has completed the open procedure and the client has been
-  // notified about it.
-  bool mHasFinishedOpen = false;
   // The channel has been opened, but the peer has not yet acked - ensures that
   // the messages are sent ordered until this is cleared.
   bool mWaitingForAck = false;
