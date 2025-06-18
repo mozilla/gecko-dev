@@ -29,17 +29,45 @@ class ContentAnalysisTelemetryTest : public testing::Test {
     MOZ_ASSERT(caSvc);
     mContentAnalysis = static_cast<ContentAnalysis*>(caSvc.get());
     MOZ_ALWAYS_SUCCEEDS(mContentAnalysis->TestOnlySetCACmdLineArg(true));
+  }
+
+  // Note that the constructor (and SetUp() method) get called once per test,
+  // not once for the whole fixture. To make running these tests faster,
+  // start the agent once here. A test or two may restart it, but this will
+  // be faster than starting it for every test that wants it.
+  static void SetUpTestSuite() {
+    if (sAgentInfo.processInfo.hProcess != nullptr) {
+      // Agent is already running, no need to start it again.
+      return;
+    }
     GeneratePipeName(L"contentanalysissdk-gtest-", sPipeName);
     MOZ_ALWAYS_SUCCEEDS(Preferences::SetBool(kIsDLPEnabledPref, true));
     MOZ_ALWAYS_SUCCEEDS(
         Preferences::SetString(kPipePathNamePref, sPipeName.get()));
+    EnsureAgentStarted();
+  }
+
+  static void EnsureAgentStarted() {
+    if (sAgentInfo.processInfo.hProcess != nullptr) {
+      // Agent is already running, no need to start it again.
+      return;
+    }
+    sAgentInfo = LaunchAgentNormal(L"block", L"warn", sPipeName);
+  }
+  static void EnsureAgentTerminated() {
+    sAgentInfo.TerminateProcess();
+    sAgentInfo = MozAgentInfo();
+  }
+
+  static void TearDownTestSuite() {
+    EnsureAgentTerminated();
+
+    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kPipePathNamePref));
+    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kIsDLPEnabledPref));
   }
 
   void TearDown() override {
     MOZ_ALWAYS_SUCCEEDS(mContentAnalysis->TestOnlySetCACmdLineArg(false));
-
-    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kPipePathNamePref));
-    MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kIsDLPEnabledPref));
   }
   void AttemptToConnectAndMeasureTelemetry(const nsCString& expectedError);
 
@@ -47,9 +75,11 @@ class ContentAnalysisTelemetryTest : public testing::Test {
   // the agent.
   RefPtr<ContentAnalysis> mContentAnalysis;
   static nsString sPipeName;
+  static MozAgentInfo sAgentInfo;
 };
 
 MOZ_RUNINIT nsString ContentAnalysisTelemetryTest::sPipeName;
+MOZ_RUNINIT MozAgentInfo ContentAnalysisTelemetryTest::sAgentInfo;
 
 void ContentAnalysisTelemetryTest::AttemptToConnectAndMeasureTelemetry(
     const nsCString& expectedError) {
@@ -111,22 +141,19 @@ void ContentAnalysisTelemetryTest::AttemptToConnectAndMeasureTelemetry(
 }
 
 TEST_F(ContentAnalysisTelemetryTest, TestConnectionSuccess) {
-  auto agentInfo = LaunchAgentNormal(L"block", L"warn", sPipeName);
-  ASSERT_TRUE(agentInfo.client);
-  auto terminateAgent = MakeScopeExit([&] { agentInfo.TerminateProcess(); });
+  EnsureAgentStarted();
 
   AttemptToConnectAndMeasureTelemetry(""_ns);
 }
 
 TEST_F(ContentAnalysisTelemetryTest, TestConnectionFailureBecauseNoAgent) {
+  EnsureAgentTerminated();
   AttemptToConnectAndMeasureTelemetry("NS_ERROR_CONNECTION_REFUSED"_ns);
 }
 
 TEST_F(ContentAnalysisTelemetryTest,
        TestConnectionFailureBecauseSignatureVerification) {
-  auto agentInfo = LaunchAgentNormal(L"block", L"warn", sPipeName);
-  ASSERT_TRUE(agentInfo.client);
-  auto terminateAgent = MakeScopeExit([&] { agentInfo.TerminateProcess(); });
+  EnsureAgentStarted();
   MOZ_ALWAYS_SUCCEEDS(
       Preferences::SetCString(kClientSignaturePref, "anInvalidSignature"));
   auto restorePref =
@@ -209,9 +236,7 @@ void SendRequestAndWaitForResponse(
 }
 
 TEST_F(ContentAnalysisTelemetryTest, TestSimpleRequest) {
-  auto agentInfo = LaunchAgentNormal(L"block", L"warn", mPipeName);
-  ASSERT_TRUE(agentInfo.client);
-  auto terminateAgent = MakeScopeExit([&] { agentInfo.TerminateProcess(); });
+  EnsureAgentStarted();
 
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
   nsString allow(L"allowSimple");
