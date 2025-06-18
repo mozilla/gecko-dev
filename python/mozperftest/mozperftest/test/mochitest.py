@@ -246,7 +246,13 @@ class Mochitest(Layer):
 
         manifest_path = Path(test.parent, manifest_name)
         manifest = TestManifest([str(manifest_path)], strict=False)
-        manifest.active_tests(paths=[str(test)])
+        test_list = manifest.active_tests(paths=[str(test)])
+
+        subsuite = None
+        for parsed_test in test_list or []:
+            if str(test) in str(Path(parsed_test.get("path", ""))):
+                subsuite = parsed_test.get("subsuite", None)
+                break
 
         # Use the mochitest argument parser to parse the extra argument
         # options, and produce an `args` object that has all the defaults
@@ -262,6 +268,9 @@ class Mochitest(Layer):
         args.topobjdir = self.topobjdir
         args.topsrcdir = self.topsrcdir
         args.flavor = manifest_flavor
+
+        if subsuite:
+            args.subsuite = subsuite
 
         fetch_dir = os.getenv("MOZ_FETCHES_DIR")
         if self.get_arg("android"):
