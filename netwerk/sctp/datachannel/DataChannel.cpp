@@ -1236,8 +1236,7 @@ int DataChannelConnection::SendOpenRequestMessage(DataChannel& aChannel) {
 // Better yet, use the SCTP stack's notifications on buffer state to avoid
 // filling the SCTP's buffers.
 
-// returns if we're still blocked (true)
-bool DataChannelConnection::SendDeferredMessages() {
+void DataChannelConnection::SendDeferredMessages() {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
   RefPtr<DataChannel> channel;  // we may null out the refs to this
 
@@ -1246,7 +1245,7 @@ bool DataChannelConnection::SendDeferredMessages() {
   DC_DEBUG(("SendDeferredMessages called, pending type: %s",
             ToString(mPendingType)));
   if (mPendingType == PendingType::None) {
-    return false;
+    return;
   }
 
   // Send pending control messages
@@ -1256,7 +1255,7 @@ bool DataChannelConnection::SendDeferredMessages() {
   if (!mBufferedControl.IsEmpty() &&
       (mSendInterleaved || mPendingType == PendingType::Dcep)) {
     if (SendBufferedMessages(mBufferedControl, nullptr)) {
-      return true;
+      return;
     }
 
     // Note: There may or may not be pending data messages
@@ -1303,7 +1302,6 @@ bool DataChannelConnection::SendDeferredMessages() {
     mPendingType =
         mBufferedControl.IsEmpty() ? PendingType::None : PendingType::Dcep;
   }
-  return blocked;
 }
 
 // buffer MUST have at least one item!
