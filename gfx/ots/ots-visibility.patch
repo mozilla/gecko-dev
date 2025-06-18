@@ -37,13 +37,13 @@ diff --git a/include/opentype-sanitiser.h b/include/opentype-sanitiser.h
  typedef unsigned short uint16_t;
  typedef int int32_t;
  typedef unsigned int uint32_t;
-@@ -170,17 +190,17 @@ class OTSStream {
- 
- enum TableAction {
+@@ -172,17 +192,17 @@ class OTSStream {
    TABLE_ACTION_DEFAULT,  // Use OTS's default action for that table
    TABLE_ACTION_SANITIZE, // Sanitize the table, potentially dropping it
    TABLE_ACTION_PASSTHRU, // Serialize the table unchanged
-   TABLE_ACTION_DROP      // Drop the table
+   TABLE_ACTION_DROP,     // Drop the table
+   TABLE_ACTION_SANITIZE_SOFT, // Sanitize the table, but without failing overall
+                               // sanitzation even if this table fails/is dropped
  };
  
 -class OTSContext {
