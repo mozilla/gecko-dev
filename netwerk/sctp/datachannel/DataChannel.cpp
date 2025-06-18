@@ -397,8 +397,7 @@ static RefPtr<DataChannelConnection> GetConnectionFromSocket(
 }
 
 // Called when the buffer empties to the threshold value.  This is called
-// from SctpDtlsInput() through the sctp stack.  SctpDtlsInput() calls
-// usrsctp_conninput() under lock
+// from OnSctpPacketReceived() through the sctp stack.
 int DataChannelConnection::OnThresholdEvent(struct socket* sock,
                                             uint32_t sb_free, void* ulp_info) {
   RefPtr<DataChannelConnection> connection = GetConnectionFromSocket(sock);
@@ -631,16 +630,14 @@ bool DataChannelConnection::Init(const uint16_t aLocalPort,
   }
 
   // Enable ndata
-  // TODO: Bug 1381145, enable this once ndata has been deployed
-#if 0
   av.assoc_id = SCTP_FUTURE_ASSOC;
   av.assoc_value = 1;
-  if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_INTERLEAVING_SUPPORTED, &av,
+  if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP,
+                         SCTP_INTERLEAVING_SUPPORTED, &av,
                          (socklen_t)sizeof(struct sctp_assoc_value)) < 0) {
     DC_ERROR(("*** failed enable ndata errno %d", errno));
     goto error_cleanup;
   }
-#endif
 
   av.assoc_id = SCTP_ALL_ASSOC;
   av.assoc_value = SCTP_ENABLE_RESET_STREAM_REQ | SCTP_ENABLE_CHANGE_ASSOC_REQ;
@@ -1499,8 +1496,9 @@ void DataChannelConnection::DeliverQueuedData(uint16_t stream) {
       DC_DEBUG(("Delivering queued data for stream %u, length %zu", stream,
                 dataItem->mData.Length()));
       // Deliver the queued data
-      HandleDataMessage(dataItem->mData.Elements(), dataItem->mData.Length(),
-                        dataItem->mPpid, dataItem->mStream, dataItem->mFlags);
+      HandleDataMessageChunk(
+          dataItem->mData.Elements(), dataItem->mData.Length(), dataItem->mPpid,
+          dataItem->mStream, dataItem->mMessageId, dataItem->mFlags);
     }
     return match;
   });
@@ -1534,57 +1532,17 @@ void DataChannelConnection::HandleUnknownMessage(uint32_t ppid, uint32_t length,
   // XXX Log to JS error console if possible
 }
 
-uint8_t DataChannelConnection::BufferMessage(nsACString& recvBuffer,
-                                             const void* data, uint32_t length,
-                                             uint32_t ppid, int flags) {
-  const char* buffer = (const char*)data;
-  uint8_t bufferFlags = 0;
-
-  if ((flags & MSG_EOR) && ppid != DATA_CHANNEL_PPID_BINARY_PARTIAL &&
-      ppid != DATA_CHANNEL_PPID_DOMSTRING_PARTIAL) {
-    bufferFlags |= DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_COMPLETE;
-
-    // Return directly if nothing has been buffered
-    if (recvBuffer.IsEmpty()) {
-      return bufferFlags;
-    }
-  }
-
-  // Ensure it doesn't blow up our buffer
-  // TODO: Change 'WEBRTC_DATACHANNEL_MAX_MESSAGE_SIZE_LOCAL' to whatever the
-  //       new buffer is capable of holding.
-  if (((uint64_t)recvBuffer.Length()) + ((uint64_t)length) >
-      WEBRTC_DATACHANNEL_MAX_MESSAGE_SIZE_LOCAL) {
-    bufferFlags |= DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_TOO_LARGE;
-    return bufferFlags;
-  }
-
-  // Copy & add to receive buffer
-  recvBuffer.Append(buffer, length);
-  bufferFlags |= DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_BUFFERED;
-  return bufferFlags;
-}
-
-void DataChannelConnection::HandleDataMessage(const void* data, size_t length,
-                                              uint32_t ppid, uint16_t stream,
-                                              int flags) {
+void DataChannelConnection::HandleDataMessageChunk(const void* data,
+                                                   size_t length, uint32_t ppid,
+                                                   uint16_t stream,
+                                                   uint16_t messageId,
+                                                   int flags) {
+  DC_DEBUG(("%s: stream %u, length %zu, ppid %u, message-id %u", __func__,
+            stream, length, ppid, messageId));
   DataChannel* channel;
-  const char* buffer = (const char*)data;
 
   mLock.AssertCurrentThreadOwns();
   channel = FindChannelByStream(stream);
-
-  // Note: Until we support SIZE_MAX sized messages, we need this check
-#if (SIZE_MAX > UINT32_MAX)
-  if (length > UINT32_MAX) {
-    DC_ERROR(("DataChannel: Cannot handle message of size %zu (max=%" PRIu32
-              ")",
-              length, UINT32_MAX));
-    CloseLocked(channel);
-    return;
-  }
-#endif
-  uint32_t data_length = (uint32_t)length;
 
   // XXX A closed channel may trip this... check
   // NOTE: the updated spec from the IETF says we should set in-order until we
@@ -1601,10 +1559,11 @@ void DataChannelConnection::HandleDataMessage(const void* data, size_t length,
 
     // Since this is rare and non-performance, keep a single list of queued
     // data messages to deliver once the channel opens.
-    DC_DEBUG(("Queuing data for stream %u, length %u", stream, data_length));
+    DC_DEBUG(("Queuing data for stream %u, length %zu", stream, length));
     // Copies data
-    mQueuedData.AppendElement(new QueuedDataMessage(
-        stream, ppid, flags, static_cast<const uint8_t*>(data), data_length));
+    mQueuedData.AppendElement(
+        new QueuedDataMessage(stream, ppid, messageId, flags,
+                              static_cast<const uint8_t*>(data), length));
     return;
   }
 
@@ -1619,124 +1578,120 @@ void DataChannelConnection::HandleDataMessage(const void* data, size_t length,
   // channel is ordered initially.
   channel->mWaitingForAck = false;
 
-  bool is_binary = true;
-  uint8_t bufferFlags;
-  DataChannelOnMessageAvailable::EventType type;
-  const char* info = "";
+  const char* type = (ppid == DATA_CHANNEL_PPID_DOMSTRING_PARTIAL ||
+                      ppid == DATA_CHANNEL_PPID_DOMSTRING ||
+                      ppid == DATA_CHANNEL_PPID_DOMSTRING_EMPTY)
+                         ? "string"
+                         : "binary";
 
-  if (ppid == DATA_CHANNEL_PPID_DOMSTRING_PARTIAL ||
-      ppid == DATA_CHANNEL_PPID_DOMSTRING ||
-      ppid == DATA_CHANNEL_PPID_DOMSTRING_EMPTY) {
-    is_binary = false;
-  }
-  if (is_binary != channel->mIsRecvBinary && !channel->mRecvBuffer.IsEmpty()) {
-    NS_WARNING("DataChannel message aborted by fragment type change!");
-    // TODO: Maybe closing would be better as this is a hard to detect protocol
-    // violation?
-    channel->mRecvBuffer.Truncate(0);
-  }
-  channel->mIsRecvBinary = is_binary;
-
-  // Remaining chunks of previously truncated message (due to the buffer being
-  // full)?
-  if (channel->mClosingTooLarge) {
-    DC_ERROR(
-        ("DataChannel: Ignoring partial message of length %u, buffer full and "
-         "closing",
-         data_length));
-    // Only unblock if unordered
-    if (!channel->mOrdered && (flags & MSG_EOR)) {
-      channel->mClosingTooLarge = false;
+  auto it = channel->mRecvBuffers.find(messageId);
+  if (it != channel->mRecvBuffers.end()) {
+    IncomingMsg& msg(it->second);
+    if (!ReassembleMessageChunk(msg, data, length, ppid, stream)) {
+      CloseLocked(channel);
+      return;
     }
+
+    if (flags & MSG_EOR) {
+      DC_DEBUG(
+          ("%s: last chunk of multi-chunk %s message, id %u, "
+           "stream %u, length %zu",
+           __func__, type, messageId, stream, length));
+      HandleDataMessage(std::move(msg));
+      channel->mRecvBuffers.erase(messageId);
+    } else {
+      DC_DEBUG(
+          ("%s: middle chunk of multi-chunk %s message, id %u, "
+           "stream %u, length %zu",
+           __func__, type, messageId, stream, length));
+    }
+    return;
   }
 
-  // Buffer message until complete
-  bufferFlags =
-      BufferMessage(channel->mRecvBuffer, buffer, data_length, ppid, flags);
-  if (bufferFlags & DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_TOO_LARGE) {
-    DC_ERROR(
-        ("DataChannel: Buffered message would become too large to handle, "
-         "closing channel"));
-    channel->mRecvBuffer.Truncate(0);
-    channel->mClosingTooLarge = true;
+  IncomingMsg msg(ppid, stream);
+  if (!ReassembleMessageChunk(msg, data, length, ppid, stream)) {
     CloseLocked(channel);
     return;
   }
-  if (!(bufferFlags & DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_COMPLETE)) {
+
+  if (flags & MSG_EOR) {
     DC_DEBUG(
-        ("DataChannel: Partial %s message of length %u (total %zu) on channel "
-         "id %u",
-         is_binary ? "binary" : "string", data_length,
-         channel->mRecvBuffer.Length(), channel->mStream));
-    return;  // Not ready to notify application
+        ("%s: single-chunk %s message, id %u, stream %u, "
+         "length %zu",
+         __func__, type, messageId, stream, length));
+    HandleDataMessage(std::move(msg));
+  } else {
+    DC_DEBUG(
+        ("%s: first chunk of multi-chunk %s message, id %u, "
+         "stream %u, length %zu",
+         __func__, type, messageId, stream, length));
+    channel->mRecvBuffers.insert({messageId, std::move(msg)});
   }
-  if (bufferFlags & DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_BUFFERED) {
-    data_length = channel->mRecvBuffer.Length();
+}
+
+void DataChannelConnection::HandleDataMessage(IncomingMsg&& aMsg) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
+  DataChannelOnMessageAvailable::EventType type;
+
+  size_t data_length = aMsg.GetData().Length();
+
+  mLock.AssertCurrentThreadOwns();
+
+  RefPtr<DataChannel> channel = FindChannelByStream(aMsg.GetStreamId());
+  if (!channel) {
+    MOZ_ASSERT(false,
+               "Wait until OnStreamOpenAck is called before calling "
+               "HandleDataMessage!");
+    return;
   }
 
-  // Complain about large messages (only complain - we can handle it)
-  if (data_length > WEBRTC_DATACHANNEL_MAX_MESSAGE_SIZE_LOCAL) {
-    DC_WARN(
-        ("DataChannel: Received message of length %u is > announced maximum "
-         "message size (%u)",
-         data_length, WEBRTC_DATACHANNEL_MAX_MESSAGE_SIZE_LOCAL));
-  }
+  // Note that `channel->mConnection` is `this`. This is just here to satisfy
+  // the thread safety annotations on DataChannel.
+  channel->mConnection->mLock.AssertCurrentThreadOwns();
 
-  bool is_empty = false;
-
-  switch (ppid) {
+  switch (aMsg.GetPpid()) {
     case DATA_CHANNEL_PPID_DOMSTRING:
+    case DATA_CHANNEL_PPID_DOMSTRING_PARTIAL:
       DC_DEBUG(
-          ("DataChannel: Received string message of length %u on channel %u",
+          ("DataChannel: Received string message of length %zu on "
+           "channel %u",
            data_length, channel->mStream));
       type = DataChannelOnMessageAvailable::EventType::OnDataString;
-      if (bufferFlags & DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_BUFFERED) {
-        info = " (string fragmented)";
-      }
-      // else send using recvData normally
-
       // WebSockets checks IsUTF8() here; we can try to deliver it
       break;
 
     case DATA_CHANNEL_PPID_DOMSTRING_EMPTY:
-      DC_DEBUG(
-          ("DataChannel: Received empty string message of length %u on channel "
-           "%u",
-           data_length, channel->mStream));
+      DC_DEBUG((
+          "DataChannel: Received empty string message of length %zu on channel "
+          "%u",
+          data_length, channel->mStream));
+      // Just in case.
+      aMsg.GetData().Truncate(0);
       type = DataChannelOnMessageAvailable::EventType::OnDataString;
-      if (bufferFlags & DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_BUFFERED) {
-        info = " (string fragmented)";
-      }
-      is_empty = true;
       break;
 
     case DATA_CHANNEL_PPID_BINARY:
+    case DATA_CHANNEL_PPID_BINARY_PARTIAL:
       DC_DEBUG(
-          ("DataChannel: Received binary message of length %u on channel id %u",
+          ("DataChannel: Received binary message of length %zu on "
+           "channel id %u",
            data_length, channel->mStream));
       type = DataChannelOnMessageAvailable::EventType::OnDataBinary;
-      if (bufferFlags & DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_BUFFERED) {
-        info = " (binary fragmented)";
-      }
-
-      // else send using recvData normally
       break;
 
     case DATA_CHANNEL_PPID_BINARY_EMPTY:
-      DC_DEBUG(
-          ("DataChannel: Received empty binary message of length %u on channel "
-           "id %u",
-           data_length, channel->mStream));
+      DC_DEBUG((
+          "DataChannel: Received empty binary message of length %zu on channel "
+          "id %u",
+          data_length, channel->mStream));
+      // Just in case.
+      aMsg.GetData().Truncate(0);
       type = DataChannelOnMessageAvailable::EventType::OnDataBinary;
-      if (bufferFlags & DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_BUFFERED) {
-        info = " (binary fragmented)";
-      }
-      is_empty = true;
       break;
 
     default:
       NS_ERROR("Unknown data PPID");
-      DC_ERROR(("Unknown data PPID %" PRIu32, ppid));
+      DC_ERROR(("Unknown data PPID %" PRIu32, aMsg.GetPpid()));
       return;
   }
 
@@ -1748,63 +1703,55 @@ void DataChannelConnection::HandleDataMessage(const void* data, size_t length,
 
   // Notify onmessage
   DC_DEBUG(
-      ("%s: sending %s%s for %p", __FUNCTION__, ToString(type), info, channel));
-  if (bufferFlags & DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_BUFFERED) {
-    channel->SendOrQueue(new DataChannelOnMessageAvailable(
-        type, this, channel, channel->mRecvBuffer));
-    channel->mRecvBuffer.Truncate(0);
-  } else {
-    nsAutoCString recvData(is_empty ? "" : buffer,
-                           is_empty ? 0 : data_length);  // allocates >64
-    channel->SendOrQueue(
-        new DataChannelOnMessageAvailable(type, this, channel, recvData));
-  }
+      ("%s: sending %s for %p", __FUNCTION__, ToString(type), channel.get()));
+  channel->SendOrQueue(new DataChannelOnMessageAvailable(
+      type, this, channel, std::move(aMsg.GetData())));
 }
 
-void DataChannelConnection::HandleDCEPMessage(const void* buffer, size_t length,
-                                              uint32_t ppid, uint16_t stream,
-                                              int flags) {
-  const struct rtcweb_datachannel_open_request* req;
-  const struct rtcweb_datachannel_ack* ack;
-
-  // Note: Until we support SIZE_MAX sized messages, we need this check
-#if (SIZE_MAX > UINT32_MAX)
-  if (length > UINT32_MAX) {
-    DC_ERROR(("DataChannel: Cannot handle message of size %zu (max=%u)", length,
-              UINT32_MAX));
-    Stop();
-    return;
-  }
-#endif
-  uint32_t data_length = (uint32_t)length;
+// A sane endpoint should not be fragmenting DCEP, but I think it is allowed
+// technically? Use the same chunk reassembly logic that we use for DATA.
+void DataChannelConnection::HandleDCEPMessageChunk(const void* buffer,
+                                                   size_t length, uint32_t ppid,
+                                                   uint16_t stream, int flags) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
 
   mLock.AssertCurrentThreadOwns();
 
-  // Buffer message until complete
-  const uint8_t bufferFlags =
-      BufferMessage(mRecvBuffer, buffer, data_length, ppid, flags);
-  if (bufferFlags & DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_TOO_LARGE) {
-    DC_ERROR(
-        ("DataChannel: Buffered message would become too large to handle, "
-         "closing connection"));
-    mRecvBuffer.Truncate(0);
+  if (!mRecvBuffer.isSome()) {
+    mRecvBuffer = Some(IncomingMsg(ppid, stream));
+  }
+
+  if (!ReassembleMessageChunk(*mRecvBuffer, buffer, length, ppid, stream)) {
     Stop();
     return;
   }
-  if (!(bufferFlags & DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_COMPLETE)) {
-    DC_DEBUG(("Buffered partial DCEP message of length %u", data_length));
+
+  if (!(flags & MSG_EOR)) {
+    DC_DEBUG(("%s: No EOR, waiting for more chunks", __func__));
     return;
   }
-  if (bufferFlags & DATA_CHANNEL_BUFFER_MESSAGE_FLAGS_BUFFERED) {
-    buffer = reinterpret_cast<const void*>(mRecvBuffer.BeginReading());
-    data_length = mRecvBuffer.Length();
-  }
 
-  req = static_cast<const struct rtcweb_datachannel_open_request*>(buffer);
-  DC_DEBUG(("Handling DCEP message of length %u", data_length));
+  DC_DEBUG(("%s: EOR, handling", __func__));
+  // Last chunk, ready to go.
+  HandleDCEPMessage(std::move(*mRecvBuffer));
+  mRecvBuffer = Nothing();
+}
+
+void DataChannelConnection::HandleDCEPMessage(IncomingMsg&& aMsg) {
+  const struct rtcweb_datachannel_open_request* req;
+  const struct rtcweb_datachannel_ack* ack;
+
+  mLock.AssertCurrentThreadOwns();
+
+  req = reinterpret_cast<const struct rtcweb_datachannel_open_request*>(
+      aMsg.GetData().BeginReading());
+
+  size_t data_length = aMsg.GetLength();
+
+  DC_DEBUG(("Handling DCEP message of length %zu", data_length));
 
   // Ensure minimum message size (ack is the smallest DCEP message)
-  if ((size_t)data_length < sizeof(*ack)) {
+  if (data_length < sizeof(*ack)) {
     DC_WARN(("Ignored invalid DCEP message (too short)"));
     return;
   }
@@ -1813,35 +1760,69 @@ void DataChannelConnection::HandleDCEPMessage(const void* buffer, size_t length,
     case DATA_CHANNEL_OPEN_REQUEST:
       // structure includes a possibly-unused char label[1] (in a packed
       // structure)
-      if (NS_WARN_IF((size_t)data_length < sizeof(*req) - 1)) {
+      if (NS_WARN_IF(data_length < sizeof(*req) - 1)) {
         return;
       }
 
-      HandleOpenRequestMessage(req, data_length, stream);
+      HandleOpenRequestMessage(req, data_length, aMsg.GetStreamId());
       break;
     case DATA_CHANNEL_ACK:
       // >= sizeof(*ack) checked above
 
-      ack = static_cast<const struct rtcweb_datachannel_ack*>(buffer);
-      HandleOpenAckMessage(ack, data_length, stream);
+      ack = reinterpret_cast<const struct rtcweb_datachannel_ack*>(
+          aMsg.GetData().BeginReading());
+      HandleOpenAckMessage(ack, data_length, aMsg.GetStreamId());
       break;
     default:
-      HandleUnknownMessage(ppid, data_length, stream);
+      HandleUnknownMessage(aMsg.GetPpid(), data_length, aMsg.GetStreamId());
       break;
   }
-
-  // Reset buffer
-  mRecvBuffer.Truncate(0);
 }
 
-void DataChannelConnection::HandleMessage(const void* buffer, size_t length,
-                                          uint32_t ppid, uint16_t stream,
-                                          int flags) {
-  mLock.AssertCurrentThreadOwns();
+bool DataChannelConnection::ReassembleMessageChunk(IncomingMsg& aReassembled,
+                                                   const void* buffer,
+                                                   size_t length, uint32_t ppid,
+                                                   uint16_t stream) {
+  // Note: Until we support SIZE_MAX sized messages, we need this check
+#if (SIZE_MAX > UINT32_MAX)
+  if (length > UINT32_MAX) {
+    DC_ERROR(("DataChannel: Cannot handle message of size %zu (max=%u)", length,
+              UINT32_MAX));
+    return false;
+  }
+#endif
+
+  // Ensure it doesn't blow up our buffer
+  // TODO: Change 'WEBRTC_DATACHANNEL_MAX_MESSAGE_SIZE_LOCAL' to whatever the
+  //       new buffer is capable of holding.
+  if (length + aReassembled.GetLength() >
+      WEBRTC_DATACHANNEL_MAX_MESSAGE_SIZE_LOCAL) {
+    DC_ERROR(
+        ("DataChannel: Buffered message would become too large to handle, "
+         "closing connection"));
+    return false;
+  }
+
+  if (aReassembled.GetPpid() != ppid) {
+    NS_WARNING("DataChannel message aborted by fragment type change!");
+    return false;
+  }
+
+  aReassembled.Append((uint8_t*)buffer, length);
+
+  return true;
+}
+
+void DataChannelConnection::HandleMessageChunk(const void* buffer,
+                                               size_t length, uint32_t ppid,
+                                               uint16_t stream,
+                                               uint16_t messageId, int flags) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
 
   switch (ppid) {
     case DATA_CHANNEL_PPID_CONTROL:
-      HandleDCEPMessage(buffer, length, ppid, stream, flags);
+      DC_DEBUG(("%s: Got DCEP message size %zu", __func__, length));
+      HandleDCEPMessageChunk(buffer, length, ppid, stream, flags);
       break;
     case DATA_CHANNEL_PPID_DOMSTRING_PARTIAL:
     case DATA_CHANNEL_PPID_DOMSTRING:
@@ -1849,7 +1830,7 @@ void DataChannelConnection::HandleMessage(const void* buffer, size_t length,
     case DATA_CHANNEL_PPID_BINARY_PARTIAL:
     case DATA_CHANNEL_PPID_BINARY:
     case DATA_CHANNEL_PPID_BINARY_EMPTY:
-      HandleDataMessage(buffer, length, ppid, stream, flags);
+      HandleDataMessageChunk(buffer, length, ppid, stream, messageId, flags);
       break;
     default:
       DC_ERROR((
@@ -2077,9 +2058,17 @@ void DataChannelConnection::HandlePartialDeliveryEvent(
   // Find channel and reset buffer
   DataChannel* channel = FindChannelByStream((uint16_t)spde->pdapi_stream);
   if (channel) {
-    DC_WARN(("Abort partially delivered message of %zu bytes\n",
-             channel->mRecvBuffer.Length()));
-    channel->mRecvBuffer.Truncate(0);
+    auto it = channel->mRecvBuffers.find(spde->pdapi_seq);
+    if (it != channel->mRecvBuffers.end()) {
+      DC_WARN(("Abort partially delivered message of %zu bytes\n",
+               it->second.GetLength()));
+      channel->mRecvBuffers.erase(it);
+    } else {
+      // Uhhh, ok?
+      DC_WARN(
+          ("Abort partially delivered message that we've never seen any "
+           "of? What?"));
+    }
   }
 }
 
@@ -2368,14 +2357,21 @@ int DataChannelConnection::ReceiveCallback(
             HandleNotification(static_cast<union sctp_notification*>(data),
                                datalen);
           } else {
-            HandleMessage(data, datalen, ntohl(rcv.rcv_ppid), rcv.rcv_sid,
-                          flags);
+            // NOTE: When interleaved mode is in use, rcv.rcv_ssn holds the
+            // message id instead of the stream sequence number, based on a read
+            // of the usrsctp code.
+            HandleMessageChunk(data, datalen, ntohl(rcv.rcv_ppid), rcv.rcv_sid,
+                               rcv.rcv_ssn, flags);
           }
           mLock.Unlock();
           // sctp allocates 'data' with malloc(), and expects the receiver to
-          // free it (presumably with free).
-          // XXX future optimization: try to deliver messages without an
-          // internal alloc/copy, and if so delay the free until later.
+          // free it.
+          // It would be nice if it were possible to eliminate a copy by passing
+          // ownership here, but because DATA messages end up in an nsCString,
+          // and ncCString requires null termination (which usrsctp does not
+          // do), we _have_ to make a copy somewhere. That might as well be
+          // here. The downstream code can avoid further copies in whatever way
+          // makes sense.
           free(data);
         }
       }));
