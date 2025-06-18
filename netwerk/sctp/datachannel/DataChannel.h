@@ -262,7 +262,7 @@ class DataChannelConnection : public net::NeckoTargetHolder {
   void ReadBlob(already_AddRefed<DataChannelConnection> aThis, uint16_t aStream,
                 nsIInputStream* aBlob);
 
-  bool SendDeferredMessages() MOZ_REQUIRES(mLock);
+  void SendDeferredMessages() MOZ_REQUIRES(mLock);
 
   int SctpDtlsOutput(void* addr, void* buffer, size_t length, uint8_t tos,
                      uint8_t set_df);
