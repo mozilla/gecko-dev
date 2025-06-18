@@ -5,6 +5,23 @@ const { Service } = ChromeUtils.importESModule(
   "resource://services-sync/service.sys.mjs"
 );
 
+let prefsWithUserValue = new Set();
+add_setup(function record_prefsWithUserValue() {
+  for (const pref of Services.prefs.getChildList("")) {
+    if (Services.prefs.prefHasUserValue(pref)) {
+      prefsWithUserValue.add(pref);
+    }
+  }
+});
+
+function clearValues() {
+  for (const pref of Services.prefs.getChildList("")) {
+    if (!prefsWithUserValue.has(pref)) {
+      Services.prefs.clearUserPref(pref);
+    }
+  }
+}
+
 add_task(async function run_test() {
   let engine = Service.engineManager.get("prefs");
   let tracker = engine._tracker;
@@ -86,8 +103,6 @@ add_task(async function run_test() {
     Assert.equal(tracker.modified, false);
   } finally {
     await tracker.stop();
-    for (const pref of Services.prefs.getChildList("")) {
-      Services.prefs.clearUserPref(pref);
-    }
+    clearValues();
   }
 });
