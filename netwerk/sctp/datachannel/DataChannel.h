@@ -598,8 +598,7 @@ class DataChannel {
   size_t mBufferedAmount;
   nsTArray<OutgoingMsg> mBufferedData;
   nsCOMPtr<nsISerialEventTarget> mMainThreadEventTarget;
-  mutable Mutex mStatsLock;
-  TrafficCounters mTrafficCounters MOZ_GUARDED_BY(mStatsLock);
+  TrafficCounters mTrafficCounters;
   std::map<uint16_t, IncomingMsg> mRecvBuffers;
 };
 

@@ -1664,11 +1664,11 @@ void DataChannelConnection::HandleDataMessage(IncomingMsg&& aMsg) {
       return;
   }
 
-  channel->WithTrafficCounters(
-      [&data_length](DataChannel::TrafficCounters& counters) {
-        counters.mMessagesReceived++;
-        counters.mBytesReceived += data_length;
-      });
+  Dispatch(NS_NewRunnableFunction(
+      "DataChannelConnection::HandleDataMessage", [channel, data_length]() {
+        channel->mTrafficCounters.mMessagesReceived++;
+        channel->mTrafficCounters.mBytesReceived += data_length;
+      }));
 
   // Notify onmessage
   DC_DEBUG(
@@ -2833,11 +2833,11 @@ int DataChannelConnection::SendDataMessage(uint16_t aStream, nsACString&& aMsg,
         OutgoingMsg outgoing(std::move(msg), metadata);
 
         if (!SendMessage(*channel, std::move(outgoing))) {
-          channel->WithTrafficCounters(
-              [len = msg.Length()](DataChannel::TrafficCounters& counters) {
-                counters.mMessagesSent++;
-                counters.mBytesSent += len;
-              });
+          Dispatch(
+              NS_NewRunnableFunction(__func__, [channel, len = msg.Length()]() {
+                channel->mTrafficCounters.mMessagesSent++;
+                channel->mTrafficCounters.mBytesSent += len;
+              }));
         }
       }));
 
@@ -3142,8 +3142,7 @@ DataChannel::DataChannel(DataChannelConnection* connection, uint16_t stream,
       mIsRecvBinary(false),
       mBufferedThreshold(0),  // default from spec
       mBufferedAmount(0),
-      mMainThreadEventTarget(connection->GetNeckoTarget()),
-      mStatsLock("netwer::sctp::DataChannel::mStatsLock") {
+      mMainThreadEventTarget(connection->GetNeckoTarget()) {
   NS_ASSERTION(mConnection, "NULL connection");
 }
 
@@ -3391,7 +3390,6 @@ void DataChannel::SendOrQueue(DataChannelOnMessageAvailable* aMessage) {
 }
 
 DataChannel::TrafficCounters DataChannel::GetTrafficCounters() const {
-  MutexAutoLock lock(mStatsLock);
   return mTrafficCounters;
 }
 
@@ -3402,12 +3400,6 @@ bool DataChannel::EnsureValidStream(ErrorResult& aRv) {
   }
   aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
   return false;
-}
-
-void DataChannel::WithTrafficCounters(
-    const std::function<void(TrafficCounters&)>& aFn) {
-  MutexAutoLock lock(mStatsLock);
-  aFn(mTrafficCounters);
 }
 
 nsresult DataChannelOnMessageAvailable::Run() {
