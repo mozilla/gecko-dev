@@ -884,7 +884,7 @@ class HomeFragment : Fragment() {
         toolbarView.updateTabCounter(requireComponents.core.store.state)
 
         val focusOnAddressBar = bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR) ||
-            FxNimbus.features.oneClickSearch.value().enabled
+                FxNimbus.features.oneClickSearch.value().enabled
 
         if (focusOnAddressBar) {
             // If the fragment gets recreated by the activity, the search fragment might get recreated as well. Changing
@@ -1097,7 +1097,9 @@ class HomeFragment : Fragment() {
         _bottomToolbarContainerView = null
         _binding = null
 
-        bundleArgs.clear()
+        if (!requireContext().components.appStore.state.isPrivateScreenLocked) {
+            bundleArgs.clear()
+        }
         lastAppliedWallpaperName = Wallpaper.DEFAULT
     }
 
