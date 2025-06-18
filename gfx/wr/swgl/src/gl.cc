@@ -412,10 +412,14 @@ struct Texture {
     // utilized by depth buffers which need to know when depth runs have reset
     // to a valid row state. When unset, the depth runs may contain garbage.
     CLEARED = 1 << 2,
+    // The texture was deleted while still locked and must stay alive until all
+    // locks are released.
+    ZOMBIE = 1 << 3,
   };
   int flags = SHOULD_FREE;
   bool should_free() const { return bool(flags & SHOULD_FREE); }
   bool cleared() const { return bool(flags & CLEARED); }
+  bool zombie() const { return bool(flags & ZOMBIE); }
 
   void set_flag(int flag, bool val) {
     if (val) {
@@ -432,6 +436,7 @@ struct Texture {
     set_flag(SHOULD_FREE, val);
   }
   void set_cleared(bool val) { set_flag(CLEARED, val); }
+  void set_zombie(bool val) { set_flag(ZOMBIE, val); }
 
   // Delayed-clearing state. When a clear of an FB is requested, we don't
   // immediately clear each row, as the rows may be subsequently overwritten
@@ -748,10 +753,12 @@ struct ObjectStore {
     o->on_erase();
   }
 
-  bool erase(size_t i) {
+  bool erase(size_t i, bool should_delete = true) {
     if (i < size && objects[i]) {
       on_erase(objects[i], nullptr);
-      delete objects[i];
+      if (should_delete) {
+        delete objects[i];
+      }
       objects[i] = nullptr;
       if (i < first_free) first_free = i;
       return true;
@@ -2014,6 +2021,58 @@ void TexParameteri(GLenum target, GLenum pname, GLint param) {
   SetTextureParameter(ctx->get_binding(target), pname, param);
 }
 
+typedef Texture LockedTexture;
+
+// Lock the given texture to prevent modification.
+LockedTexture* LockTexture(GLuint texId) {
+  Texture& tex = ctx->textures[texId];
+  if (!tex.buf) {
+    assert(tex.buf != nullptr);
+    return nullptr;
+  }
+  if (__sync_fetch_and_add(&tex.locked, 1) == 0) {
+    // If this is the first time locking the texture, flush any delayed clears.
+    prepare_texture(tex);
+  }
+  return (LockedTexture*)&tex;
+}
+
+// Lock the given framebuffer's color attachment to prevent modification.
+LockedTexture* LockFramebuffer(GLuint fboId) {
+  Framebuffer& fb = ctx->framebuffers[fboId];
+  // Only allow locking a framebuffer if it has a valid color attachment.
+  if (!fb.color_attachment) {
+    assert(fb.color_attachment != 0);
+    return nullptr;
+  }
+  return LockTexture(fb.color_attachment);
+}
+
+// Reference an already locked resource
+void LockResource(LockedTexture* resource) {
+  if (!resource) {
+    return;
+  }
+  __sync_fetch_and_add(&resource->locked, 1);
+}
+
+// Remove a lock on a texture that has been previously locked
+int32_t UnlockResource(LockedTexture* resource) {
+  if (!resource) {
+    return -1;
+  }
+  int32_t locked = __sync_fetch_and_add(&resource->locked, -1);
+  if (locked <= 0) {
+    // The lock should always be non-zero before unlocking.
+    assert(0);
+  } else if (locked == 1 && resource->zombie()) {
+    // If the resource is being kept alive by locks and this is the last lock,
+    // then delete the resource now.
+    delete resource;
+  }
+  return locked - 1;
+}
+
 void GenTextures(int n, GLuint* result) {
   for (int i = 0; i < n; i++) {
     Texture t;
@@ -2022,10 +2081,27 @@ void GenTextures(int n, GLuint* result) {
 }
 
 void DeleteTexture(GLuint n) {
-  if (n && ctx->textures.erase(n)) {
+  if (!n) {
+    return;
+  }
+  LockedTexture* tex = (LockedTexture*)ctx->textures.find(n);
+  if (!tex) {
+    return;
+  }
+  // Lock the texture so that it can't be deleted by another thread yet.
+  LockResource(tex);
+  // Forget the existing binding to the texture but keep it alive in case there
+  // are any other locks on it.
+  if (ctx->textures.erase(n, false)) {
     for (size_t i = 0; i < MAX_TEXTURE_UNITS; i++) {
       ctx->texture_units[i].unlink(n);
     }
+  }
+  // Mark the texture as a zombie so that it will be freed if there are no other
+  // existing locks on it.
+  tex->set_zombie(true);
+  if (int32_t locked = UnlockResource(tex)) {
+    debugf("DeleteTexture(%u) with %d locks\n", n, locked);
   }
 }
 

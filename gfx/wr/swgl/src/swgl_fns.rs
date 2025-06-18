@@ -265,7 +265,7 @@ extern "C" {
     fn LockFramebuffer(fbo: GLuint) -> *mut LockedTexture;
     fn LockTexture(tex: GLuint) -> *mut LockedTexture;
     fn LockResource(resource: *mut LockedTexture);
-    fn UnlockResource(resource: *mut LockedTexture);
+    fn UnlockResource(resource: *mut LockedTexture) -> i32;
     fn GetResourceBuffer(
         resource: *mut LockedTexture,
         width: *mut i32,

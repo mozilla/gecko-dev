@@ -513,52 +513,6 @@ void BlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
   }
 }
 
-typedef Texture LockedTexture;
-
-// Lock the given texture to prevent modification.
-LockedTexture* LockTexture(GLuint texId) {
-  Texture& tex = ctx->textures[texId];
-  if (!tex.buf) {
-    assert(tex.buf != nullptr);
-    return nullptr;
-  }
-  if (__sync_fetch_and_add(&tex.locked, 1) == 0) {
-    // If this is the first time locking the texture, flush any delayed clears.
-    prepare_texture(tex);
-  }
-  return (LockedTexture*)&tex;
-}
-
-// Lock the given framebuffer's color attachment to prevent modification.
-LockedTexture* LockFramebuffer(GLuint fboId) {
-  Framebuffer& fb = ctx->framebuffers[fboId];
-  // Only allow locking a framebuffer if it has a valid color attachment.
-  if (!fb.color_attachment) {
-    assert(fb.color_attachment != 0);
-    return nullptr;
-  }
-  return LockTexture(fb.color_attachment);
-}
-
-// Reference an already locked resource
-void LockResource(LockedTexture* resource) {
-  if (!resource) {
-    return;
-  }
-  __sync_fetch_and_add(&resource->locked, 1);
-}
-
-// Remove a lock on a texture that has been previously locked
-void UnlockResource(LockedTexture* resource) {
-  if (!resource) {
-    return;
-  }
-  if (__sync_fetch_and_add(&resource->locked, -1) <= 0) {
-    // The lock should always be non-zero before unlocking.
-    assert(0);
-  }
-}
-
 // Get the underlying buffer for a locked resource
 void* GetResourceBuffer(LockedTexture* resource, int32_t* width,
                         int32_t* height, int32_t* stride) {
