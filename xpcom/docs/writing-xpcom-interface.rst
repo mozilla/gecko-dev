@@ -55,6 +55,9 @@ And hook it up to the :code:`path/to/moz.build`
     XPIDL_SOURCES += [
         "nsIComponentName.idl",
     ]
+    XPIDL_MODULE = "nsIComponentName"
+
+    FINAL_LIBRARY = "xul"
 
 Next write the initial :code:`.idl` file: :code:`path/to/nsIComponentName.idl`
 
@@ -85,7 +88,7 @@ Next write the initial :code:`.idl` file: :code:`path/to/nsIComponentName.idl`
       /**
        * Make sure to document your attributes.
        */
-      readonly attribute bool isAlive;
+      readonly attribute boolean isAlive;
     };
 
 This definition only includes one attribute, :code:`isAlive`, which will demonstrate that we've done our work correctly at the end. For a more comprehensive guide for this syntax, see the :ref:`XPIDL` docs.
@@ -278,6 +281,8 @@ At this point the full :code:`moz.build` file should look like:
     UNIFIED_SOURCES += [
         "ComponentName.cpp",
     ]
+
+    FINAL_LIBRARY = "xul"
 
 This completes the implementation of a basic XPCOM Interface using C++. The component should be available via the `Browser Console`_ or other chrome contexts.
 

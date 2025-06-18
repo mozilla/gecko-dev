@@ -8,4 +8,23 @@ TEST_DIRS += [
     "tests/gtest",
 ]
 
+XPIDL_SOURCES += [
+    "nsIInstallationDirLayout.idl",
+]
+XPIDL_MODULE = "nsIInstallationDirLayout"
+
+EXPORTS.mozilla += [
+    "nsInstallationDirLayout.h",
+]
+
+UNIFIED_SOURCES += [
+    "nsInstallationDirLayout.cpp",
+]
+
+XPCOM_MANIFESTS += [
+    "components.conf",
+]
+
+FINAL_LIBRARY = "xul"
+
 SPHINX_TREES["/installation_dir_layout"] = "docs"
