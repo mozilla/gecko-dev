@@ -56,40 +56,57 @@ enum class DataChannelReliabilityPolicy {
   LimitedLifetime
 };
 
-// For sending outgoing messages.
-// This class only holds a reference to the data and the info structure but does
-// not copy it.
-class OutgoingMsg {
+class DataChannelMessageMetadata {
  public:
-  OutgoingMsg(struct sctp_sendv_spa& info, Span<const uint8_t> data);
+  DataChannelMessageMetadata(uint16_t aStreamId, uint32_t aPpid,
+                             bool aUnordered,
+                             Maybe<uint16_t> aMaxRetransmissions = Nothing(),
+                             Maybe<uint16_t> aMaxLifetimeMs = Nothing())
+      : mStreamId(aStreamId),
+        mPpid(aPpid),
+        mUnordered(aUnordered),
+        mMaxRetransmissions(aMaxRetransmissions),
+        mMaxLifetimeMs(aMaxLifetimeMs) {}
 
-  void Advance(size_t offset);
-  struct sctp_sendv_spa& GetInfo() const { return *mInfo; };
-  size_t GetLength() const { return mData.Length(); };
-  Span<const uint8_t> GetRemainingData() const { return mData.From(mPos); }
+  DataChannelMessageMetadata(const DataChannelMessageMetadata& aOrig) = default;
+  DataChannelMessageMetadata(DataChannelMessageMetadata&& aOrig) = default;
+  DataChannelMessageMetadata& operator=(
+      const DataChannelMessageMetadata& aOrig) = default;
+  DataChannelMessageMetadata& operator=(DataChannelMessageMetadata&& aOrig) =
+      default;
 
- protected:
-  const Span<const uint8_t> mData;
-  struct sctp_sendv_spa* const mInfo;
-  size_t mPos = 0;
+  uint16_t mStreamId;
+  uint32_t mPpid;
+  bool mUnordered;
+  Maybe<uint16_t> mMaxRetransmissions;
+  Maybe<uint16_t> mMaxLifetimeMs;
 };
 
-// For queuing outgoing messages
-// This class copies data of an outgoing message.
-class BufferedOutgoingMsg : public OutgoingMsg {
+class OutgoingMsg {
  public:
-  static UniquePtr<BufferedOutgoingMsg> CopyFrom(const OutgoingMsg& msg);
+  OutgoingMsg(nsACString&& data, const DataChannelMessageMetadata& aMetadata);
+  OutgoingMsg(OutgoingMsg&& aOrig) = default;
+  OutgoingMsg& operator=(OutgoingMsg&& aOrig) = default;
+  OutgoingMsg(const OutgoingMsg&) = delete;
+  OutgoingMsg& operator=(const OutgoingMsg&) = delete;
 
- private:
-  BufferedOutgoingMsg(nsTArray<uint8_t>&& data,
-                      UniquePtr<struct sctp_sendv_spa>&& info);
-  const nsTArray<uint8_t> mDataStorage;
-  const UniquePtr<struct sctp_sendv_spa> mInfoStorage;
+  void Advance(size_t offset);
+  const DataChannelMessageMetadata& GetMetadata() const { return mMetadata; };
+  size_t GetLength() const { return mData.Length(); };
+  Span<const uint8_t> GetRemainingData() const {
+    auto span = Span<const uint8_t>(mData);
+    return span.From(mPos);
+  }
+
+ protected:
+  nsCString mData;
+  DataChannelMessageMetadata mMetadata;
+  size_t mPos = 0;
 };
 
 class IncomingMsg {
  public:
-  explicit IncomingMsg(uint16_t aPpid, uint16_t aStreamId)
+  explicit IncomingMsg(uint32_t aPpid, uint16_t aStreamId)
       : mPpid(aPpid), mStreamId(aStreamId) {}
   IncomingMsg(IncomingMsg&& aOrig) = default;
   IncomingMsg& operator=(IncomingMsg&& aOrig) = default;
@@ -104,13 +121,13 @@ class IncomingMsg {
   nsCString& GetData() { return mData; }
   size_t GetLength() const { return mData.Length(); };
   uint16_t GetStreamId() const { return mStreamId; }
-  uint16_t GetPpid() const { return mPpid; }
+  uint32_t GetPpid() const { return mPpid; }
 
  protected:
   // TODO(bug 1949918): We've historically passed this around as a c-string, but
   // that's not really appropriate for binary messages.
   nsCString mData;
-  uint16_t mPpid;
+  uint32_t mPpid;
   uint16_t mStreamId;
 };
 
@@ -188,6 +205,9 @@ class DataChannelConnection final : public net::NeckoTargetHolder {
   void DestroyOnSTS(struct socket* aMasterSocket, struct socket* aSocket);
   void DestroyOnSTSFinal();
 
+  int SendMessage(DataChannel& aChannel, OutgoingMsg&& aMsg)
+      MOZ_REQUIRES(mLock);
+
   void SetMaxMessageSize(bool aMaxMessageSizeSet, uint64_t aMaxMessageSize);
   uint64_t GetMaxMessageSize();
   void HandleDataMessage(IncomingMsg&& aMsg) MOZ_REQUIRES(mLock);
@@ -216,13 +236,13 @@ class DataChannelConnection final : public net::NeckoTargetHolder {
   void CloseAll();
 
   // Returns a POSIX error code.
-  int SendMsg(uint16_t stream, const nsACString& aMsg) {
-    return SendDataMsgCommon(stream, aMsg, false);
+  int SendMessage(uint16_t stream, nsACString&& aMsg) {
+    return SendDataMessage(stream, std::move(aMsg), false);
   }
 
   // Returns a POSIX error code.
-  int SendBinaryMsg(uint16_t stream, const nsACString& aMsg) {
-    return SendDataMsgCommon(stream, aMsg, true);
+  int SendBinaryMessage(uint16_t stream, nsACString&& aMsg) {
+    return SendDataMessage(stream, std::move(aMsg), true);
   }
 
   // Returns a POSIX error code.
@@ -287,6 +307,7 @@ class DataChannelConnection final : public net::NeckoTargetHolder {
                         nsISerialEventTarget* aTarget,
                         MediaTransportHandler* aHandler);
 
+  int SendDataMessage(uint16_t aStream, nsACString&& aMsg, bool aIsBinary);
   bool Init(const uint16_t aLocalPort, const uint16_t aNumStreams,
             const Maybe<uint64_t>& aMaxMessageSize);
 
@@ -309,26 +330,21 @@ class DataChannelConnection final : public net::NeckoTargetHolder {
   bool RequestMoreStreams(int32_t aNeeded = 16) MOZ_REQUIRES(mLock);
   uint32_t UpdateCurrentStreamIndex() MOZ_REQUIRES(mLock);
   uint32_t GetCurrentStreamIndex() MOZ_REQUIRES(mLock);
-  int SendControlMessage(const uint8_t* data, uint32_t len, uint16_t stream)
+  int SendControlMessage(DataChannel& aChannel, const uint8_t* data,
+                         uint32_t len) MOZ_REQUIRES(mLock);
+  int SendOpenAckMessage(DataChannel& aChannel) MOZ_REQUIRES(mLock);
+  int SendOpenRequestMessage(DataChannel& aChannel) MOZ_REQUIRES(mLock);
+  bool SendBufferedMessages(nsTArray<OutgoingMsg>& buffer, size_t* aWritten)
       MOZ_REQUIRES(mLock);
-  int SendOpenAckMessage(uint16_t stream) MOZ_REQUIRES(mLock);
-  int SendOpenRequestMessage(const nsACString& label,
-                             const nsACString& protocol, uint16_t stream,
-                             bool unordered,
-                             DataChannelReliabilityPolicy prPolicy,
-                             uint32_t prValue) MOZ_REQUIRES(mLock);
-  bool SendBufferedMessages(nsTArray<UniquePtr<BufferedOutgoingMsg>>& buffer,
-                            size_t* aWritten) MOZ_REQUIRES(mLock);
   int SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) MOZ_REQUIRES(mLock);
-  int SendMsgInternalOrBuffer(nsTArray<UniquePtr<BufferedOutgoingMsg>>& buffer,
-                              OutgoingMsg& msg, bool& buffered,
-                              size_t* aWritten) MOZ_REQUIRES(mLock);
+  int SendMsgInternalOrBuffer(nsTArray<OutgoingMsg>& buffer, OutgoingMsg&& msg,
+                              bool* buffered, size_t* aWritten)
+      MOZ_REQUIRES(mLock);
   int SendDataMsgInternalOrBuffer(DataChannel& channel, const uint8_t* data,
                                   size_t len, uint32_t ppid)
       MOZ_REQUIRES(mLock);
   int SendDataMsg(DataChannel& channel, const uint8_t* data, size_t len,
                   uint32_t ppidPartial, uint32_t ppidFinal) MOZ_REQUIRES(mLock);
-  int SendDataMsgCommon(uint16_t stream, const nsACString& aMsg, bool isBinary);
 
   void DeliverQueuedData(uint16_t stream) MOZ_REQUIRES(mLock);
 
@@ -416,8 +432,7 @@ class DataChannelConnection final : public net::NeckoTargetHolder {
   // holds data that's come in before a channel is open
   nsTArray<UniquePtr<QueuedDataMessage>> mQueuedData MOZ_GUARDED_BY(mLock);
   // holds outgoing control messages
-  nsTArray<UniquePtr<BufferedOutgoingMsg>> mBufferedControl
-      MOZ_GUARDED_BY(mLock);
+  nsTArray<OutgoingMsg> mBufferedControl MOZ_GUARDED_BY(mLock);
   // For partial DCEP messages (should be _really_ rare, since they're small)
   Maybe<IncomingMsg> mRecvBuffer MOZ_GUARDED_BY(mLock);
 
@@ -499,10 +514,10 @@ class DataChannel {
                                      ErrorResult& aRv);
 
   // Send a string
-  void SendMsg(const nsACString& aMsg, ErrorResult& aRv);
+  void SendMsg(nsACString&& aMsg, ErrorResult& aRv);
 
   // Send a binary message (TypedArray)
-  void SendBinaryMsg(const nsACString& aMsg, ErrorResult& aRv);
+  void SendBinaryMsg(nsACString&& aMsg, ErrorResult& aRv);
 
   // Send a binary blob
   void SendBinaryBlob(dom::Blob& aBlob, ErrorResult& aRv);
@@ -591,8 +606,7 @@ class DataChannel {
   // Read/written on main only. Decremented via message-passing, because the
   // spec requires us to queue a task for this.
   size_t mBufferedAmount;
-  nsTArray<UniquePtr<BufferedOutgoingMsg>> mBufferedData
-      MOZ_GUARDED_BY(mConnection->mLock);
+  nsTArray<OutgoingMsg> mBufferedData MOZ_GUARDED_BY(mConnection->mLock);
   nsCOMPtr<nsISerialEventTarget> mMainThreadEventTarget;
   mutable Mutex mStatsLock;
   TrafficCounters mTrafficCounters MOZ_GUARDED_BY(mStatsLock);
