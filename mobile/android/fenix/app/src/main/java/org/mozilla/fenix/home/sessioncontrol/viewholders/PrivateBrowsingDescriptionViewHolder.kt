@@ -11,6 +11,7 @@ import androidx.lifecycle.LifecycleOwner
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.ComposeViewHolder
 import org.mozilla.fenix.home.privatebrowsing.interactor.PrivateBrowsingInteractor
+import org.mozilla.fenix.home.ui.PrivateBrowsingDescription
 
 /**
  * View holder for a private browsing description.
@@ -33,7 +34,7 @@ class PrivateBrowsingDescriptionViewHolder(
 
     @Composable
     override fun Content() {
-        FeltPrivacyModeInfoCard(
+        PrivateBrowsingDescription(
             onLearnMoreClick = interactor::onLearnMoreClicked,
         )
     }

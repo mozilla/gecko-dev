@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.home.sessioncontrol.viewholders
+package org.mozilla.fenix.home.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -40,7 +40,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun FeltPrivacyModeInfoCard(
+fun PrivateBrowsingDescription(
     onLearnMoreClick: () -> Unit,
 ) {
     Box(
@@ -100,7 +100,7 @@ private fun FeltPrivacyModeDescriptionPreview() {
             modifier = Modifier.background(FirefoxTheme.colors.layer1)
                 .fillMaxSize(),
         ) {
-            FeltPrivacyModeInfoCard(
+            PrivateBrowsingDescription(
                 onLearnMoreClick = {},
             )
         }
