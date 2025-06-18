@@ -722,7 +722,8 @@ bool FFmpegVideoDecoder<LIBAV_VER>::IsLinuxHDR() const {
     return false;
   }
   return mInfo.mColorPrimaries.value() == gfx::ColorSpace2::BT2020 &&
-         mInfo.mTransferFunction.value() == gfx::TransferFunction::PQ;
+         (mInfo.mTransferFunction.value() == gfx::TransferFunction::PQ ||
+          mInfo.mTransferFunction.value() == gfx::TransferFunction::HLG);
 }
 #  endif
 

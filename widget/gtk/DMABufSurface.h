@@ -457,7 +457,8 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   }
   bool IsHDRSurface() override {
     return mColorPrimaries == mozilla::gfx::ColorSpace2::BT2020 &&
-           mTransferFunction == mozilla::gfx::TransferFunction::PQ;
+           (mTransferFunction == mozilla::gfx::TransferFunction::PQ ||
+            mTransferFunction == mozilla::gfx::TransferFunction::HLG);
   }
 
   DMABufSurfaceYUV();
