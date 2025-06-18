@@ -167,161 +167,6 @@ TEST_F(ContentAnalysisTelemetryTest,
   AttemptToConnectAndMeasureTelemetry("NS_ERROR_INVALID_SIGNATURE"_ns);
 }
 
-// Sends a request that is expected to return an early result
-// because the allow or deny lists will handle it. This means
-// this method does not wait for an agent acknowlegement, since
-// one will not be sent.
-void SendRequestAndWaitForEarlyResult(
-    RefPtr<ContentAnalysis> contentAnalysis,
-    const nsCOMPtr<nsIContentAnalysisRequest>& request,
-    Maybe<bool> expectedShouldAllow) {
-  bool gotResponse = false;
-  nsCString requestToken;
-  MOZ_ALWAYS_SUCCEEDS(request->GetRequestToken(requestToken));
-  if (requestToken.IsEmpty()) {
-    MOZ_ALWAYS_SUCCEEDS(request->SetRequestToken(GenerateUUID()));
-  }
-
-  // Make timedOut a RefPtr so if we get a response from content analysis
-  // after this function has finished we can safely check that (and don't
-  // start accessing stack values that don't exist anymore)
-  RefPtr timedOut = MakeRefPtr<media::Refcountable<BoolStruct>>();
-  auto callback = MakeRefPtr<ContentAnalysisCallback>(
-      [&, timedOut](nsIContentAnalysisResult* result) {
-        if (timedOut->mValue) {
-          return;
-        }
-        EXPECT_TRUE(result);
-        if (expectedShouldAllow.isSome()) {
-          EXPECT_EQ(*expectedShouldAllow, result->GetShouldAllowContent());
-        }
-        gotResponse = true;
-      },
-      [&gotResponse, timedOut](nsresult error) {
-        if (timedOut->mValue) {
-          return;
-        }
-        const char* errorName = mozilla::GetStaticErrorName(error);
-        errorName = errorName ? errorName : "";
-        printf("Got error response code %s(%x)\n", errorName, error);
-        // Errors should not have errorCode NS_OK
-        EXPECT_NE(NS_OK, error);
-        gotResponse = true;
-        FAIL() << "Got error response";
-      });
-
-  AutoTArray<RefPtr<nsIContentAnalysisRequest>, 1> requests{request.get()};
-  MOZ_ALWAYS_SUCCEEDS(contentAnalysis->AnalyzeContentRequestsCallback(
-      requests, true, callback));
-  RefPtr<CancelableRunnable> timer = QueueTimeoutToMainThread(timedOut);
-
-  mozilla::SpinEventLoopUntil("Waiting for ContentAnalysis result"_ns,
-                              [&, timedOut]() {
-                                if (timedOut->mValue) {
-                                  return true;
-                                }
-                                return gotResponse;
-                              });
-  timer->Cancel();
-  EXPECT_TRUE(gotResponse);
-  EXPECT_FALSE(timedOut->mValue);
-}
-
-void SendRequestAndWaitForResponse(
-    RefPtr<ContentAnalysis> contentAnalysis,
-    const nsCOMPtr<nsIContentAnalysisRequest>& request,
-    Maybe<bool> expectedShouldAllow,
-    Maybe<nsIContentAnalysisResponse::Action> expectedAction) {
-  bool gotResponse = false;
-  bool gotAcknowledgement = false;
-  nsCString requestToken;
-  MOZ_ALWAYS_SUCCEEDS(request->GetRequestToken(requestToken));
-  if (requestToken.IsEmpty()) {
-    MOZ_ALWAYS_SUCCEEDS(request->SetRequestToken(GenerateUUID()));
-  }
-
-  // Make timedOut a RefPtr so if we get a response from content analysis
-  // after this function has finished we can safely check that (and don't
-  // start accessing stack values that don't exist anymore)
-  RefPtr timedOut = MakeRefPtr<media::Refcountable<BoolStruct>>();
-  auto callback = MakeRefPtr<ContentAnalysisCallback>(
-      [&, timedOut](nsIContentAnalysisResult* result) {
-        if (timedOut->mValue) {
-          return;
-        }
-        nsCOMPtr<nsIContentAnalysisResponse> response =
-            do_QueryInterface(result);
-        EXPECT_TRUE(response);
-        if (expectedShouldAllow.isSome()) {
-          EXPECT_EQ(*expectedShouldAllow, response->GetShouldAllowContent());
-        }
-        if (expectedAction.isSome()) {
-          EXPECT_EQ(*expectedAction, response->GetAction());
-        }
-        nsCString requestToken, originalRequestToken;
-        MOZ_ALWAYS_SUCCEEDS(response->GetRequestToken(requestToken));
-        MOZ_ALWAYS_SUCCEEDS(request->GetRequestToken(originalRequestToken));
-        EXPECT_EQ(originalRequestToken, requestToken);
-        nsCString userActionId, originalUserActionId;
-        MOZ_ALWAYS_SUCCEEDS(response->GetUserActionId(userActionId));
-        MOZ_ALWAYS_SUCCEEDS(request->GetUserActionId(originalUserActionId));
-        EXPECT_EQ(originalUserActionId, userActionId);
-        gotResponse = true;
-      },
-      [&gotResponse, &gotAcknowledgement, timedOut](nsresult error) {
-        if (timedOut->mValue) {
-          return;
-        }
-        const char* errorName = mozilla::GetStaticErrorName(error);
-        errorName = errorName ? errorName : "";
-        printf("Got error response code %s(%x)\n", errorName, error);
-        // Errors should not have errorCode NS_OK
-        EXPECT_NE(NS_OK, error);
-        gotResponse = true;
-        gotAcknowledgement = true;
-        FAIL() << "Got error response";
-      });
-
-  nsCOMPtr<nsIObserverService> obsServ =
-      mozilla::services::GetObserverService();
-  auto rawAcknowledgementObserver = MakeRefPtr<RawAcknowledgementObserver>();
-  MOZ_ALWAYS_SUCCEEDS(obsServ->AddObserver(
-      rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw", false));
-
-  AutoTArray<RefPtr<nsIContentAnalysisRequest>, 1> requests{request.get()};
-  MOZ_ALWAYS_SUCCEEDS(contentAnalysis->AnalyzeContentRequestsCallback(
-      requests, true, callback));
-  RefPtr<CancelableRunnable> timer = QueueTimeoutToMainThread(timedOut);
-
-  mozilla::SpinEventLoopUntil(
-      "Waiting for ContentAnalysis result"_ns, [&, timedOut]() {
-        if (timedOut->mValue) {
-          return true;
-        }
-
-        auto acknowledgements =
-            rawAcknowledgementObserver->GetAcknowledgements();
-        nsCString requestToken;
-        MOZ_ALWAYS_SUCCEEDS(request->GetRequestToken(requestToken));
-        for (const auto& acknowledgement : acknowledgements) {
-          if (nsCString(acknowledgement.request_token()) == requestToken) {
-            // Wait for the acknowledgement to happen to avoid background
-            // activity that might interfere with other tests.
-            gotAcknowledgement = true;
-            break;
-          }
-        }
-
-        return gotResponse && gotAcknowledgement;
-      });
-  timer->Cancel();
-  EXPECT_TRUE(gotResponse);
-  EXPECT_TRUE(gotAcknowledgement);
-  EXPECT_FALSE(timedOut->mValue);
-  obsServ->RemoveObserver(rawAcknowledgementObserver,
-                          "dlp-acknowledgement-sent-raw");
-}
-
 TEST_F(ContentAnalysisTelemetryTest, TestSimpleRequest) {
   EnsureAgentStarted();
 
@@ -347,8 +192,9 @@ TEST_F(ContentAnalysisTelemetryTest, TestSimpleRequest) {
           .unwrap()
           .valueOr(0);
 
-  SendRequestAndWaitForResponse(mContentAnalysis, request, Some(true),
-                                Some(nsIContentAnalysisResponse::eAllow));
+  SendRequestAndExpectResponse(mContentAnalysis, request, Some(true),
+                               Some(nsIContentAnalysisResponse::eAllow),
+                               Nothing());
 
   EXPECT_EQ(glean::content_analysis::request_sent_by_analysis_type
                 .Get(analysisTypeString)
@@ -428,8 +274,9 @@ TEST_F(ContentAnalysisTelemetryTest, TestSimpleAllowResponse) {
           .unwrap()
           .valueOr(0);
 
-  SendRequestAndWaitForResponse(mContentAnalysis, request, Some(true),
-                                Some(nsIContentAnalysisResponse::eAllow));
+  SendRequestAndExpectResponse(mContentAnalysis, request, Some(true),
+                               Some(nsIContentAnalysisResponse::eAllow),
+                               Nothing());
 
   EXPECT_EQ(glean::content_analysis::response_action.Get(allowString)
                 .TestGetValue()
@@ -456,8 +303,9 @@ TEST_F(ContentAnalysisTelemetryTest, TestSimpleBlockResponse) {
           .unwrap()
           .valueOr(0);
 
-  SendRequestAndWaitForResponse(mContentAnalysis, request, Some(false),
-                                Some(nsIContentAnalysisResponse::eBlock));
+  SendRequestAndExpectResponse(mContentAnalysis, request, Some(false),
+                               Some(nsIContentAnalysisResponse::eBlock),
+                               Nothing());
 
   EXPECT_EQ(glean::content_analysis::response_action.Get(blockString)
                 .TestGetValue()
@@ -480,8 +328,9 @@ TEST_F(ContentAnalysisTelemetryTest, TestConnectionRetry) {
       nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
       false, EmptyCString(), uri,
       nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
-  SendRequestAndWaitForResponse(mContentAnalysis, request, Some(true),
-                                Some(nsIContentAnalysisResponse::eAllow));
+  SendRequestAndExpectResponse(mContentAnalysis, request, Some(true),
+                               Some(nsIContentAnalysisResponse::eAllow),
+                               Nothing());
 
   EnsureAgentTerminated();
   EnsureAgentStarted();
@@ -495,8 +344,9 @@ TEST_F(ContentAnalysisTelemetryTest, TestConnectionRetry) {
           .unwrap()
           .valueOr(0);
 
-  SendRequestAndWaitForResponse(mContentAnalysis, request, Some(true),
-                                Some(nsIContentAnalysisResponse::eAllow));
+  SendRequestAndExpectResponse(mContentAnalysis, request, Some(true),
+                               Some(nsIContentAnalysisResponse::eAllow),
+                               Nothing());
 
   EXPECT_EQ(glean::content_analysis::connection_attempt.TestGetValue()
                 .unwrap()

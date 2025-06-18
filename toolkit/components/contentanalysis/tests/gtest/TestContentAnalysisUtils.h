@@ -62,6 +62,11 @@ struct MozAgentInfo {
     BOOL terminateResult = ::TerminateProcess(processInfo.hProcess, 0);
     ASSERT_NE(FALSE, terminateResult)
         << "Failed to terminate content_analysis_sdk_agent process";
+    // Wait for process to exit
+    const DWORD PROCESS_EXIT_TIMEOUT_IN_MS = 2000;
+    EXPECT_EQ(WAIT_OBJECT_0, ::WaitForSingleObject(processInfo.hProcess,
+                                                   PROCESS_EXIT_TIMEOUT_IN_MS))
+        << "Failed to wait for content_analysis_sdk_agent process to exit";
     CloseHandle(processInfo.hProcess);
     processInfo.hProcess = nullptr;
   }
@@ -100,6 +105,31 @@ inline nsCOMPtr<nsIURI> GetExampleDotComURI() {
   nsCOMPtr<nsIURI> uri;
   MOZ_ALWAYS_SUCCEEDS(NS_NewURI(getter_AddRefs(uri), "https://example.com"));
   return uri;
+}
+
+void SendRequestAndExpectResponse(
+    RefPtr<mozilla::contentanalysis::ContentAnalysis> contentAnalysis,
+    const nsCOMPtr<nsIContentAnalysisRequest>& request,
+    mozilla::Maybe<bool> expectedShouldAllow,
+    mozilla::Maybe<nsIContentAnalysisResponse::Action> expectedAction,
+    mozilla::Maybe<bool> expectedIsCached);
+void SendRequestAndExpectResponseInternal(
+    RefPtr<mozilla::contentanalysis::ContentAnalysis> contentAnalysis,
+    const nsCOMPtr<nsIContentAnalysisRequest>& request,
+    mozilla::Maybe<bool> expectedShouldAllow,
+    mozilla::Maybe<nsIContentAnalysisResponse::Action> expectedAction,
+    mozilla::Maybe<bool> expectedIsCached, bool aIsEarlyResponse);
+// Sends a request that is expected to return an early result
+// because the allow or deny lists will handle it. This means
+// this method does not wait for an agent acknowlegement, since
+// one will not be sent.
+inline void SendRequestAndWaitForEarlyResult(
+    RefPtr<mozilla::contentanalysis::ContentAnalysis> contentAnalysis,
+    const nsCOMPtr<nsIContentAnalysisRequest>& request,
+    mozilla::Maybe<bool> expectedShouldAllow) {
+  SendRequestAndExpectResponseInternal(contentAnalysis, request,
+                                       expectedShouldAllow, mozilla::Nothing(),
+                                       mozilla::Nothing(), true);
 }
 
 class RawAcknowledgementObserver final : public nsIObserver {
