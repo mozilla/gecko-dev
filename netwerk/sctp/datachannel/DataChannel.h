@@ -230,7 +230,6 @@ class DataChannelConnection : public net::NeckoTargetHolder {
   [[nodiscard]] already_AddRefed<DataChannel> Open(
       const nsACString& label, const nsACString& protocol,
       DataChannelReliabilityPolicy prPolicy, bool inOrder, uint32_t prValue,
-      DataChannelListener* aListener, nsISupports* aContext,
       bool aExternalNegotiated, uint16_t aStream);
 
   void Stop();
@@ -473,8 +472,7 @@ class DataChannel {
   DataChannel(DataChannelConnection* connection, uint16_t stream,
               DataChannelState state, const nsACString& label,
               const nsACString& protocol, DataChannelReliabilityPolicy policy,
-              uint32_t value, bool ordered, bool negotiated,
-              DataChannelListener* aListener, nsISupports* aContext);
+              uint32_t value, bool ordered, bool negotiated);
   DataChannel(const DataChannel&) = delete;
   DataChannel(DataChannel&&) = delete;
   DataChannel& operator=(const DataChannel&) = delete;
@@ -565,7 +563,7 @@ class DataChannel {
   void WithTrafficCounters(const std::function<void(TrafficCounters&)>&);
 
   // Mainthread only
-  DataChannelListener* mListener;
+  DataChannelListener* mListener = nullptr;
   nsCOMPtr<nsISupports> mContext;
   bool mEverOpened = false;
   const nsCString mLabel;

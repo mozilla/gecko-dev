@@ -1009,7 +1009,7 @@ PeerConnectionImpl::CreateDataChannel(
           : (prPolicy == DataChannelReliabilityPolicy::LimitedLifetime
                  ? aMaxTime
                  : 0),
-      nullptr, nullptr, aExternalNegotiated, aStream);
+      aExternalNegotiated, aStream);
   NS_ENSURE_TRUE(dataChannel, NS_ERROR_NOT_AVAILABLE);
 
   CSFLogDebug(LOGTAG, "%s: making DOMDataChannel", __FUNCTION__);
