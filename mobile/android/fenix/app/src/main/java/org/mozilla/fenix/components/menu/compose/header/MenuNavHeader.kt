@@ -10,8 +10,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -28,6 +30,8 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -69,6 +73,7 @@ internal fun MenuNavHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .background(
                 color = if (isExtensionsExpanded || isMoreMenuExpanded) {
                     FirefoxTheme.colors.layerSearch
@@ -79,7 +84,7 @@ internal fun MenuNavHeader(
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .verticalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
     ) {
         MenuNavItem(
             state = goBackState,
@@ -135,7 +140,7 @@ private fun MenuNavItem(
     Column(
         modifier = Modifier
             .width(64.dp)
-            .height(48.dp)
+            .fillMaxHeight()
             .combinedClickable(
                 interactionSource = null,
                 indication = LocalIndication.current,
@@ -143,7 +148,7 @@ private fun MenuNavItem(
                 onClick = onClick,
                 onLongClick = onLongClick,
             ),
-        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
@@ -152,13 +157,18 @@ private fun MenuNavItem(
             tint = getIconTint(state = state),
         )
 
+        Spacer(modifier = Modifier.height(4.dp))
+
         Text(
             text = label,
-            color = getLabelTextColor(state = state),
-            maxLines = 2,
             style = FirefoxTheme.typography.caption.merge(
                 platformStyle = PlatformTextStyle(includeFontPadding = true),
-            ),
+            ).copy(hyphens = Hyphens.Auto),
+            color = getLabelTextColor(state = state),
+            maxLines = 2,
+            softWrap = true,
+            textAlign = TextAlign.Center,
+
         )
     }
 }
