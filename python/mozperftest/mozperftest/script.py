@@ -139,6 +139,7 @@ class ScriptInfo(defaultdict):
 
         if self.get("options", {}).get("default", {}).get("manifest_flavor"):
             # Only mochitest tests have a manifest flavor
+            self["test"] = "mochitest"
             self.script_type = ScriptType.mochitest
 
     def _parse_script_content(self):
