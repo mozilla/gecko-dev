@@ -4,6 +4,7 @@
 
 #include "MediaTransportHandler.h"
 #include "MediaTransportHandlerIPC.h"
+#include "transport/sigslot.h"
 #include "transport/nricemediastream.h"
 #include "transport/nriceresolver.h"
 #include "transport/transportflow.h"
@@ -70,7 +71,7 @@ static const char* mthLogTag = "MediaTransportHandler";
 class MediaTransportHandlerSTS : public MediaTransportHandler,
                                  public sigslot::has_slots<> {
  public:
-  explicit MediaTransportHandlerSTS(nsISerialEventTarget* aCallbackThread);
+  explicit MediaTransportHandlerSTS();
 
   RefPtr<IceLogPromise> GetIceLog(const nsCString& aPattern) override;
   void ClearIceLog() override;
@@ -134,7 +135,6 @@ class MediaTransportHandlerSTS : public MediaTransportHandler,
 
  private:
   void Destroy() override;
-  void Destroy_s();
   void DestroyFinal();
   void Shutdown_s();
   RefPtr<TransportFlow> CreateTransportFlow(
@@ -193,15 +193,14 @@ class MediaTransportHandlerSTS : public MediaTransportHandler,
 };
 
 /* static */
-already_AddRefed<MediaTransportHandler> MediaTransportHandler::Create(
-    nsISerialEventTarget* aCallbackThread) {
+already_AddRefed<MediaTransportHandler> MediaTransportHandler::Create() {
   RefPtr<MediaTransportHandler> result;
   if (XRE_IsContentProcess() &&
       Preferences::GetBool("media.peerconnection.mtransport_process") &&
       StaticPrefs::network_process_enabled()) {
-    result = new MediaTransportHandlerIPC(aCallbackThread);
+    result = new MediaTransportHandlerIPC();
   } else {
-    result = new MediaTransportHandlerSTS(aCallbackThread);
+    result = new MediaTransportHandlerSTS();
   }
   result->Initialize();
   return result.forget();
@@ -268,9 +267,7 @@ class STSShutdownHandler : public nsISTSShutdownObserver {
 
 NS_IMPL_ISUPPORTS(STSShutdownHandler, nsISTSShutdownObserver);
 
-MediaTransportHandlerSTS::MediaTransportHandlerSTS(
-    nsISerialEventTarget* aCallbackThread)
-    : MediaTransportHandler(aCallbackThread) {
+MediaTransportHandlerSTS::MediaTransportHandlerSTS() {
   nsresult rv;
   mStsThread = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
   if (!mStsThread) {
@@ -678,7 +675,6 @@ void MediaTransportHandlerSTS::Shutdown() {
 
 void MediaTransportHandlerSTS::Shutdown_s() {
   CSFLogDebug(LOGTAG, "%s", __func__);
-  disconnect_all();
   // Clear the transports before destroying the ice ctx so that
   // the close_notify alerts have a chance to be sent as the
   // TransportFlow destructors execute.
@@ -712,30 +708,16 @@ void MediaTransportHandlerSTS::Destroy() {
   }
 
   // mIceCtx still has a reference to us via sigslot! We must dispach to STS,
-  // and clean up there. However, by the time _that_ happens, we may have
-  // dispatched a signal callback to mCallbackThread, so we have to dispatch
-  // the final destruction to mCallbackThread.
+  // and clean up there.
   nsresult rv = mStsThread->Dispatch(
-      NewNonOwningRunnableMethod("MediaTransportHandlerSTS::Destroy_s", this,
-                                 &MediaTransportHandlerSTS::Destroy_s));
+      NewNonOwningRunnableMethod("MediaTransportHandlerSTS::DestroyFinal", this,
+                                 &MediaTransportHandlerSTS::DestroyFinal));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     CSFLogError(LOGTAG,
                 "Unable to dispatch to STS: why has the XPCOM shutdown handler "
                 "not been invoked?");
     delete this;
   }
-}
-
-void MediaTransportHandlerSTS::Destroy_s() {
-  if (mCallbackThread && !mCallbackThread->IsOnCurrentThread()) {
-    nsresult rv = mCallbackThread->Dispatch(NewNonOwningRunnableMethod(
-        __func__, this, &MediaTransportHandlerSTS::DestroyFinal));
-    if (NS_SUCCEEDED(rv)) {
-      return;
-    }
-  }
-
-  DestroyFinal();
 }
 
 void MediaTransportHandlerSTS::DestroyFinal() { delete this; }
@@ -1139,12 +1121,7 @@ void MediaTransportHandlerSTS::SendPacket(const std::string& aTransportId,
 
 TransportLayer::State MediaTransportHandler::GetState(
     const std::string& aTransportId, bool aRtcp) const {
-  // TODO Bug 1520692: we should allow Datachannel to connect without
-  // DTLS SRTP keys
-  if (mCallbackThread) {
-    MOZ_ASSERT(mCallbackThread->IsOnCurrentThread());
-  }
-
+  MutexAutoLock lock(mStateCacheMutex);
   const std::map<std::string, TransportLayer::State>* cache = nullptr;
   if (aRtcp) {
     cache = &mRtcpStateCache;
@@ -1160,124 +1137,75 @@ TransportLayer::State MediaTransportHandler::GetState(
 }
 
 void MediaTransportHandler::OnCandidate(const std::string& aTransportId,
-                                        const CandidateInfo& aCandidateInfo) {
-  if (mCallbackThread && !mCallbackThread->IsOnCurrentThread()) {
-    mCallbackThread->Dispatch(
-        // This is being called from sigslot, which does not hold a strong ref.
-        WrapRunnable(this, &MediaTransportHandler::OnCandidate, aTransportId,
-                     aCandidateInfo),
-        NS_DISPATCH_NORMAL);
-    return;
-  }
-
-  SignalCandidate(aTransportId, aCandidateInfo);
+                                        CandidateInfo&& aCandidateInfo) {
+  mCandidateGathered.Notify(aTransportId, std::move(aCandidateInfo));
 }
 
 void MediaTransportHandler::OnAlpnNegotiated(const std::string& aAlpn) {
-  if (mCallbackThread && !mCallbackThread->IsOnCurrentThread()) {
-    mCallbackThread->Dispatch(
-        // This is being called from sigslot, which does not hold a strong ref.
-        WrapRunnable(this, &MediaTransportHandler::OnAlpnNegotiated, aAlpn),
-        NS_DISPATCH_NORMAL);
-    return;
-  }
-
   const bool privacyRequested = aAlpn == "c-webrtc";
-  SignalAlpnNegotiated(aAlpn, privacyRequested);
+  mAlpnNegotiated.Notify(aAlpn, privacyRequested);
 }
 
 void MediaTransportHandler::OnGatheringStateChange(
     const std::string& aTransportId, dom::RTCIceGathererState aState) {
-  if (mCallbackThread && !mCallbackThread->IsOnCurrentThread()) {
-    mCallbackThread->Dispatch(
-        // This is being called from sigslot, which does not hold a strong ref.
-        WrapRunnable(this, &MediaTransportHandler::OnGatheringStateChange,
-                     aTransportId, aState),
-        NS_DISPATCH_NORMAL);
-    return;
-  }
-
-  SignalGatheringStateChange(aTransportId, aState);
+  mGatheringStateChange.Notify(aTransportId, aState);
 }
 
 void MediaTransportHandler::OnConnectionStateChange(
     const std::string& aTransportId, dom::RTCIceTransportState aState) {
-  if (mCallbackThread && !mCallbackThread->IsOnCurrentThread()) {
-    mCallbackThread->Dispatch(
-        // This is being called from sigslot, which does not hold a strong ref.
-        WrapRunnable(this, &MediaTransportHandler::OnConnectionStateChange,
-                     aTransportId, aState),
-        NS_DISPATCH_NORMAL);
-    return;
-  }
-
-  SignalConnectionStateChange(aTransportId, aState);
+  mConnectionStateChange.Notify(aTransportId, aState);
 }
 
-void MediaTransportHandler::OnPacketReceived(const std::string& aTransportId,
-                                             const MediaPacket& aPacket) {
-  if (mCallbackThread && !mCallbackThread->IsOnCurrentThread()) {
-    mCallbackThread->Dispatch(
-        // This is being called from sigslot, which does not hold a strong ref.
-        WrapRunnable(this, &MediaTransportHandler::OnPacketReceived,
-                     aTransportId, aPacket.Clone()),
-        NS_DISPATCH_NORMAL);
-    return;
+void MediaTransportHandler::OnPacketReceived(std::string&& aTransportId,
+                                             MediaPacket&& aPacket) {
+  switch (aPacket.type()) {
+    case MediaPacket::UNCLASSIFIED:
+    case MediaPacket::DTLS:
+    case MediaPacket::SRTP:
+    case MediaPacket::SRTCP:
+      // Shouldn't happen, and nothing would care if it did
+      break;
+    case MediaPacket::RTP:
+    case MediaPacket::RTCP:
+      mRtpPacketReceived.Notify(std::forward<std::string>(aTransportId),
+                                std::forward<MediaPacket>(aPacket));
+      break;
+    case MediaPacket::SCTP:
+      mSctpPacketReceived.Notify(std::forward<std::string>(aTransportId),
+                                 std::forward<MediaPacket>(aPacket));
+      break;
   }
-
-  SignalPacketReceived(aTransportId, aPacket);
 }
 
 void MediaTransportHandler::OnEncryptedSending(const std::string& aTransportId,
-                                               const MediaPacket& aPacket) {
-  if (mCallbackThread && !mCallbackThread->IsOnCurrentThread()) {
-    mCallbackThread->Dispatch(
-        // This is being called from sigslot, which does not hold a strong ref.
-        WrapRunnable(this, &MediaTransportHandler::OnEncryptedSending,
-                     aTransportId, aPacket.Clone()),
-        NS_DISPATCH_NORMAL);
-    return;
-  }
-
-  SignalEncryptedSending(aTransportId, aPacket);
+                                               MediaPacket&& aPacket) {
+  mEncryptedSending.Notify(aTransportId, std::move(aPacket));
 }
 
 void MediaTransportHandler::OnStateChange(const std::string& aTransportId,
                                           TransportLayer::State aState) {
-  if (mCallbackThread && !mCallbackThread->IsOnCurrentThread()) {
-    mCallbackThread->Dispatch(
-        // This is being called from sigslot, which does not hold a strong ref.
-        WrapRunnable(this, &MediaTransportHandler::OnStateChange, aTransportId,
-                     aState),
-        NS_DISPATCH_NORMAL);
-    return;
+  {
+    MutexAutoLock lock(mStateCacheMutex);
+    if (aState == TransportLayer::TS_NONE) {
+      mStateCache.erase(aTransportId);
+    } else {
+      mStateCache[aTransportId] = aState;
+    }
   }
-
-  if (aState == TransportLayer::TS_NONE) {
-    mStateCache.erase(aTransportId);
-  } else {
-    mStateCache[aTransportId] = aState;
-  }
-  SignalStateChange(aTransportId, aState);
+  mStateChange.Notify(aTransportId, aState);
 }
 
 void MediaTransportHandler::OnRtcpStateChange(const std::string& aTransportId,
                                               TransportLayer::State aState) {
-  if (mCallbackThread && !mCallbackThread->IsOnCurrentThread()) {
-    mCallbackThread->Dispatch(
-        // This is being called from sigslot, which does not hold a strong ref.
-        WrapRunnable(this, &MediaTransportHandler::OnRtcpStateChange,
-                     aTransportId, aState),
-        NS_DISPATCH_NORMAL);
-    return;
+  {
+    MutexAutoLock lock(mStateCacheMutex);
+    if (aState == TransportLayer::TS_NONE) {
+      mRtcpStateCache.erase(aTransportId);
+    } else {
+      mRtcpStateCache[aTransportId] = aState;
+    }
   }
-
-  if (aState == TransportLayer::TS_NONE) {
-    mRtcpStateCache.erase(aTransportId);
-  } else {
-    mRtcpStateCache[aTransportId] = aState;
-  }
-  SignalRtcpStateChange(aTransportId, aState);
+  mRtcpStateChange.Notify(aTransportId, aState);
 }
 
 RefPtr<dom::RTCStatsPromise> MediaTransportHandlerSTS::GetIceStats(
@@ -1674,7 +1602,7 @@ void MediaTransportHandlerSTS::OnCandidateFound(
   info.mMDNSAddress = aMDNSAddr;
   info.mActualAddress = aActualAddr;
 
-  OnCandidate(aStream->GetId(), info);
+  OnCandidate(aStream->GetId(), std::move(info));
 }
 
 void MediaTransportHandlerSTS::OnStateChange(TransportLayer* aLayer,
@@ -1698,12 +1626,12 @@ void MediaTransportHandlerSTS::OnRtcpStateChange(TransportLayer* aLayer,
 void MediaTransportHandlerSTS::PacketReceived(TransportLayer* aLayer,
                                               MediaPacket& aPacket) {
   MEDIA_TRANSPORT_HANDLER_PACKET_RECEIVED(aPacket);
-  OnPacketReceived(aLayer->flow_id(), aPacket);
+  OnPacketReceived(std::string(aLayer->flow_id()), std::move(aPacket));
 }
 
 void MediaTransportHandlerSTS::EncryptedPacketSending(TransportLayer* aLayer,
                                                       MediaPacket& aPacket) {
-  OnEncryptedSending(aLayer->flow_id(), aPacket);
+  OnEncryptedSending(aLayer->flow_id(), std::move(aPacket));
 }
 
 }  // namespace mozilla

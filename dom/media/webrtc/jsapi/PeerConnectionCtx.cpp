@@ -556,8 +556,7 @@ void PeerConnectionCtx::ClearClosedStats() {
 PeerConnectionCtx::PeerConnectionCtx()
     : mGMPReady(false),
       mLogHandle(EnsureWebrtcLogging()),
-      mTransportHandler(
-          MediaTransportHandler::Create(GetMainThreadSerialEventTarget())) {}
+      mTransportHandler(MediaTransportHandler::Create()) {}
 
 nsresult PeerConnectionCtx::Initialize() {
   MOZ_ASSERT(NS_IsMainThread());

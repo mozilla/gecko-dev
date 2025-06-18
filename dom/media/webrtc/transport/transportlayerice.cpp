@@ -105,8 +105,10 @@ void TransportLayerIce::PostSetup() {
 
 TransportResult TransportLayerIce::SendPacket(MediaPacket& packet) {
   CheckThread();
-  SignalPacketSending(this, packet);
   nsresult res = stream_->SendPacket(component_, packet.data(), packet.len());
+  int len = packet.len();
+  // We're done with packet.
+  SignalPacketSending(this, packet);
 
   if (!NS_SUCCEEDED(res)) {
     return (res == NS_BASE_STREAM_WOULD_BLOCK) ? TE_WOULDBLOCK : TE_ERROR;
@@ -115,7 +117,7 @@ TransportResult TransportLayerIce::SendPacket(MediaPacket& packet) {
   MOZ_MTLOG(ML_DEBUG,
             LAYER_INFO << " SendPacket(" << packet.len() << ") succeeded");
 
-  return packet.len();
+  return len;
 }
 
 void TransportLayerIce::IceCandidate(NrIceMediaStream* stream,

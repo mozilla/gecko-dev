@@ -22,13 +22,12 @@ void MediaPacket::Copy(const uint8_t* data, size_t len, size_t capacity) {
   memcpy(data_.get(), data, len);
 }
 
-MediaPacket MediaPacket::Clone() const {
-  MediaPacket newPacket;
-  newPacket.type_ = type_;
-  newPacket.sdp_level_ = sdp_level_;
-  newPacket.Copy(data_.get(), len_, capacity_);
-  return newPacket;
+MediaPacket::MediaPacket(const MediaPacket& orig)
+    : sdp_level_(orig.sdp_level_), type_(orig.type_) {
+  Copy(orig.data_.get(), orig.len_, orig.capacity_);
 }
+
+MediaPacket MediaPacket::Clone() const { return MediaPacket(*this); }
 
 void MediaPacket::Serialize(IPC::MessageWriter* aWriter) const {
   aWriter->WriteUInt32(len_);

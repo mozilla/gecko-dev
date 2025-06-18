@@ -31,6 +31,7 @@ class MediaPacket {
   MediaPacket() = default;
   MediaPacket(MediaPacket&& orig) = default;
   MediaPacket& operator=(MediaPacket&& orig) = default;
+  MediaPacket(const MediaPacket& orig);
 
   MediaPacket Clone() const;
 

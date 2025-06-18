@@ -7,6 +7,7 @@
 
 #include "transport/sigslot.h"
 #include "common/browser_logging/CSFLog.h"
+#include "MediaEventSource.h"
 
 namespace mozilla {
 
@@ -15,28 +16,49 @@ namespace mozilla {
 class MediaTransportParent::Impl : public sigslot::has_slots<> {
  public:
   explicit Impl(MediaTransportParent* aParent)
-      : mHandler(MediaTransportHandler::Create(GetCurrentSerialEventTarget())),
-        mParent(aParent) {
-    mHandler->SignalCandidate.connect(this,
-                                      &MediaTransportParent::Impl::OnCandidate);
-    mHandler->SignalAlpnNegotiated.connect(
-        this, &MediaTransportParent::Impl::OnAlpnNegotiated);
-    mHandler->SignalGatheringStateChange.connect(
-        this, &MediaTransportParent::Impl::OnGatheringStateChange);
-    mHandler->SignalConnectionStateChange.connect(
-        this, &MediaTransportParent::Impl::OnConnectionStateChange);
-    mHandler->SignalPacketReceived.connect(
-        this, &MediaTransportParent::Impl::OnPacketReceived);
-    mHandler->SignalEncryptedSending.connect(
-        this, &MediaTransportParent::Impl::OnEncryptedSending);
-    mHandler->SignalStateChange.connect(
-        this, &MediaTransportParent::Impl::OnStateChange);
-    mHandler->SignalRtcpStateChange.connect(
-        this, &MediaTransportParent::Impl::OnRtcpStateChange);
+      : mHandler(MediaTransportHandler::Create()), mParent(aParent) {
+    mCandidateListener = mHandler->GetCandidateGathered().Connect(
+        GetCurrentSerialEventTarget(), this,
+        &MediaTransportParent::Impl::OnCandidate);
+    mAlpnNegotiatedListener = mHandler->GetAlpnNegotiated().Connect(
+        GetCurrentSerialEventTarget(), this,
+        &MediaTransportParent::Impl::OnAlpnNegotiated);
+    mGatheringStateChangeListener = mHandler->GetGatheringStateChange().Connect(
+        GetCurrentSerialEventTarget(), this,
+        &MediaTransportParent::Impl::OnGatheringStateChange);
+    mConnectionStateChangeListener =
+        mHandler->GetConnectionStateChange().Connect(
+            GetCurrentSerialEventTarget(), this,
+            &MediaTransportParent::Impl::OnConnectionStateChange);
+    mRtpPacketListener = mHandler->GetRtpPacketReceived().Connect(
+        GetCurrentSerialEventTarget(), this,
+        &MediaTransportParent::Impl::OnPacketReceived);
+    mSctpPacketListener = mHandler->GetSctpPacketReceived().Connect(
+        GetCurrentSerialEventTarget(), this,
+        &MediaTransportParent::Impl::OnPacketReceived);
+    mEncryptedSendingListener = mHandler->GetEncryptedSending().Connect(
+        GetCurrentSerialEventTarget(), this,
+        &MediaTransportParent::Impl::OnEncryptedSending);
+    mStateChangeListener = mHandler->GetStateChange().Connect(
+        GetCurrentSerialEventTarget(), this,
+        &MediaTransportParent::Impl::OnStateChange);
+    mRtcpStateChangeListener = mHandler->GetRtcpStateChange().Connect(
+        GetCurrentSerialEventTarget(), this,
+        &MediaTransportParent::Impl::OnRtcpStateChange);
+    mTarget = GetCurrentSerialEventTarget();
   }
 
   virtual ~Impl() {
-    disconnect_all();
+    MOZ_ASSERT(mTarget->IsOnCurrentThread());
+    mCandidateListener.DisconnectIfExists();
+    mAlpnNegotiatedListener.DisconnectIfExists();
+    mGatheringStateChangeListener.DisconnectIfExists();
+    mConnectionStateChangeListener.DisconnectIfExists();
+    mRtpPacketListener.DisconnectIfExists();
+    mSctpPacketListener.DisconnectIfExists();
+    mEncryptedSendingListener.DisconnectIfExists();
+    mStateChangeListener.DisconnectIfExists();
+    mRtcpStateChangeListener.DisconnectIfExists();
     mHandler = nullptr;
   }
 
@@ -85,6 +107,16 @@ class MediaTransportParent::Impl : public sigslot::has_slots<> {
 
  private:
   MediaTransportParent* mParent;
+  MediaEventListener mCandidateListener;
+  MediaEventListener mAlpnNegotiatedListener;
+  MediaEventListener mGatheringStateChangeListener;
+  MediaEventListener mConnectionStateChangeListener;
+  MediaEventListener mRtpPacketListener;
+  MediaEventListener mSctpPacketListener;
+  MediaEventListener mEncryptedSendingListener;
+  MediaEventListener mStateChangeListener;
+  MediaEventListener mRtcpStateChangeListener;
+  RefPtr<nsISerialEventTarget> mTarget;
 };
 
 MediaTransportParent::MediaTransportParent() : mImpl(new Impl(this)) {}

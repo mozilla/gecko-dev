@@ -35,8 +35,9 @@ class MockConduit : public MediaSessionConduit {
       ConnectReceiverRtpEvent,
       void(MediaEventSourceExc<webrtc::RtpPacketReceived, webrtc::RTPHeader>&));
   MOCK_METHOD1(ConnectReceiverRtcpEvent,
-               void(MediaEventSourceExc<MediaPacket>&));
-  MOCK_METHOD1(ConnectSenderRtcpEvent, void(MediaEventSourceExc<MediaPacket>&));
+               void(MediaEventSourceExc<rtc::CopyOnWriteBuffer>&));
+  MOCK_METHOD1(ConnectSenderRtcpEvent,
+               void(MediaEventSourceExc<rtc::CopyOnWriteBuffer>&));
   MOCK_CONST_METHOD0(LastRtcpReceived, Maybe<DOMHighResTimeStamp>());
   MOCK_CONST_METHOD1(RtpSendBaseSeqFor, Maybe<uint16_t>(uint32_t));
   MOCK_CONST_METHOD0(GetNow, DOMHighResTimeStamp());
