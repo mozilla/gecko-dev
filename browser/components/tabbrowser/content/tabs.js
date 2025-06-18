@@ -2779,7 +2779,11 @@
         //    to drop next to.
         //
         // 3) all of the elements in the tab strip are moving, in which case there can't
-        //    be a drop element and it should stay `undefined`
+        //    be a drop element and it should stay `undefined`.
+        //
+        // 4) we just started dragging and the `oldDropElementIndex` has its default
+        //    valuë of `movingTabs[0].elementIndex`. In this case, the drop element
+        //    shouldn't be a moving tab, so keep it `undefined`.
         let lastPossibleDropElement = this.#rtlMode
           ? tabs.find(t => t != draggedTab)
           : tabs.findLast(t => t != draggedTab);
@@ -2790,7 +2794,10 @@
             oldDropElementIndex,
             maxElementIndexForDropElement
           );
-          dropElement = this.ariaFocusableItems.at(index);
+          let oldDropElementCandidate = this.ariaFocusableItems.at(index);
+          if (!movingTabsSet.has(oldDropElementCandidate)) {
+            dropElement = oldDropElementCandidate;
+          }
         }
       }
 
@@ -2892,6 +2899,7 @@
         // When dragging tab(s) over an ungrouped tab, signal to the user
         // that dropping the tab(s) will create a new tab group.
         shouldCreateGroupOnDrop =
+          !movingTabsSet.has(dropElement) &&
           isTab(dropElement) &&
           !dropElement?.group &&
           overlapPercent > dragOverGroupingThreshold;
