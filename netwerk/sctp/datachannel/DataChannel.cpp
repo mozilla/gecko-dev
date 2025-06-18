@@ -794,6 +794,7 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
     mLocalPort = aLocalPort;
     mRemotePort = aRemotePort;
     mAllocateEven = Some(aClient);
+    nsTArray<RefPtr<DataChannel>> hasStreamId;
     // Could be faster. Probably doesn't matter.
     while (auto channel = mChannels.Get(INVALID_STREAM)) {
       mChannels.Remove(channel);
@@ -804,6 +805,7 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
         DC_DEBUG(("%s %p: Inserting auto-selected id %u", __func__, this,
                   static_cast<unsigned>(id)));
         mStreamIds.InsertElementSorted(id);
+        hasStreamId.AppendElement(channel);
       } else {
         // Spec language is very similar to AnnounceClosed, the differences
         // being a lack of a closed check at the top, a different error event,
@@ -815,7 +817,15 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
       }
     }
 
-    SetState(DataChannelConnectionState::Connecting);
+    mSTS->Dispatch(NS_NewRunnableFunction(
+        __func__, [this, self = RefPtr<DataChannelConnection>(this),
+                   hasStreamId = std::move(hasStreamId)]() {
+          MutexAutoLock lock(mLock);
+          SetState(DataChannelConnectionState::Connecting);
+          for (auto channel : hasStreamId) {
+            OpenFinish(channel);
+          }
+        }));
   }
 
   // We do not check whether this is a new transport id here, that happens on
@@ -961,13 +971,13 @@ void DataChannelConnection::CompleteConnect() {
 
 // Process any pending Opens
 void DataChannelConnection::ProcessQueuedOpens() {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
+  mLock.AssertCurrentThreadOwns();
   std::set<RefPtr<DataChannel>> temp(std::move(mPending));
   for (auto channel : temp) {
     DC_DEBUG(("Processing queued open for %p (%u)", channel.get(),
               channel->mStream));
-    // OpenFinish returns a reference itself, so we need to take it can
-    // Release it
-    channel = OpenFinish(channel.forget());  // may reset the flag and re-push
+    OpenFinish(channel);  // may end up back in mPending
   }
 }
 
@@ -1148,6 +1158,7 @@ bool DataChannelConnection::RaiseStreamLimitTo(uint16_t aNewLimit) {
 int DataChannelConnection::SendControlMessage(DataChannel& aChannel,
                                               const uint8_t* data,
                                               uint32_t len) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   // Create message instance and send
   // Note: Main-thread IO, but doesn't block
 #if (UINT32_MAX > SIZE_MAX)
@@ -1312,6 +1323,7 @@ bool DataChannelConnection::SendDeferredMessages() {
 // returns if we're still blocked (true)
 bool DataChannelConnection::SendBufferedMessages(nsTArray<OutgoingMsg>& buffer,
                                                  size_t* aWritten) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   mLock.AssertCurrentThreadOwns();
   do {
     // Re-send message
@@ -2365,7 +2377,7 @@ already_AddRefed<DataChannel> DataChannelConnection::Open(
     DataChannelListener* aListener, nsISupports* aContext,
     bool aExternalNegotiated, uint16_t aStream) {
   ASSERT_WEBRTC(NS_IsMainThread());
-  MutexAutoLock lock(mLock);  // OpenFinish assumes this
+  MutexAutoLock lock(mLock);
   if (!aExternalNegotiated) {
     if (mAllocateEven.isSome()) {
       aStream = FindFreeStream();
@@ -2392,10 +2404,13 @@ already_AddRefed<DataChannel> DataChannelConnection::Open(
 
   if (aStream != INVALID_STREAM) {
     if (mStreamIds.ContainsSorted(aStream)) {
-      // This should have been caught earlier!
       DC_ERROR(("external negotiation of already-open channel %u", aStream));
+      // This is the only place where duplicate id checking is performed. The
+      // JSImpl code assumes that any error is due to id-related problems. This
+      // probably needs some cleanup.
       return nullptr;
     }
+
     DC_DEBUG(("%s %p: Inserting externally-negotiated id %u", __func__, this,
               static_cast<unsigned>(aStream)));
     mStreamIds.InsertElementSorted(aStream);
@@ -2406,18 +2421,23 @@ already_AddRefed<DataChannel> DataChannelConnection::Open(
       prValue, inOrder, aExternalNegotiated, aListener, aContext));
   mChannels.Insert(channel);
 
-  return OpenFinish(channel.forget());
+  if (aStream != INVALID_STREAM) {
+    mSTS->Dispatch(NS_NewRunnableFunction(
+        "DataChannel::OpenFinish",
+        [this, self = RefPtr<DataChannelConnection>(this), channel]() mutable {
+          MutexAutoLock lock(mLock);
+          OpenFinish(channel);
+        }));
+  }
+
+  return channel.forget();
 }
 
 // Separate routine so we can also call it to finish up from pending opens
-already_AddRefed<DataChannel> DataChannelConnection::OpenFinish(
-    already_AddRefed<DataChannel>&& aChannel) {
-  RefPtr<DataChannel> channel(aChannel);  // takes the reference passed in
-  // Normally 1 reference if called from ::Open(), or 2 if called from
-  // ProcessQueuedOpens() unless the DOMDataChannel was gc'd
-  const uint16_t stream = channel->mStream;
-
+void DataChannelConnection::OpenFinish(RefPtr<DataChannel> aChannel) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   mLock.AssertCurrentThreadOwns();
+  const uint16_t stream = aChannel->mStream;
 
   // Cases we care about:
   // Pre-negotiated:
@@ -2448,58 +2468,47 @@ already_AddRefed<DataChannel> DataChannelConnection::OpenFinish(
     if (state == DataChannelConnectionState::Open) {
       MOZ_ASSERT(stream != INVALID_STREAM);
       // RaiseStreamLimitTo() limits to MAX_NUM_STREAMS -- allocate extra
-      // streams to avoid going back immediately for more if the ask to N, N+1,
-      // etc
+      // streams to avoid asking for more every time we want a higher limit.
       uint16_t num_desired = std::min(16 * (stream / 16 + 1), MAX_NUM_STREAMS);
       DC_DEBUG(("Attempting to raise stream limit %u -> %u", mNegotiatedIdLimit,
                 num_desired));
       if (!RaiseStreamLimitTo(num_desired)) {
         NS_ERROR("Failed to request more streams");
-        FinishClose_s(channel);
-        return nullptr;
+        FinishClose_s(aChannel);
+        return;
       }
     }
-    DC_DEBUG(("Queuing channel %p (%u) to finish open", channel.get(), stream));
-    mPending.insert(channel);
-    return channel.forget();
+    DC_DEBUG(
+        ("Queuing channel %p (%u) to finish open", aChannel.get(), stream));
+    mPending.insert(aChannel);
+    return;
   }
 
   MOZ_ASSERT(stream != INVALID_STREAM);
   MOZ_ASSERT(stream < mNegotiatedIdLimit);
 
-#ifdef TEST_QUEUED_DATA
-  // It's painful to write a test for this...
-  channel->AnnounceOpen();
-  SendDataMsgInternalOrBuffer(channel, "Help me!", 8,
-                              DATA_CHANNEL_PPID_DOMSTRING);
-#endif
-
-  if (!channel->mNegotiated) {
-    if (!channel->mOrdered) {
+  if (!aChannel->mNegotiated) {
+    if (!aChannel->mOrdered) {
       // Don't send unordered until this gets cleared.
-      channel->mWaitingForAck = true;
+      aChannel->mWaitingForAck = true;
     }
 
-    const int error = SendOpenRequestMessage(*channel);
+    const int error = SendOpenRequestMessage(*aChannel);
     if (error) {
       DC_ERROR(("SendOpenRequest failed, error = %d", error));
-      // If we haven't returned the channel yet, it will get destroyed when we
-      // exit this function.
-      mChannels.Remove(channel);
-      // we'll be destroying the channel
-      FinishClose_s(channel);
-      return nullptr;
+      FinishClose_s(aChannel);
+      return;
     }
   }
 
   // Either externally negotiated or we sent Open
   // FIX?  Move into DOMDataChannel?  I don't think we can send it yet here
-  channel->AnnounceOpen();
-  return channel.forget();
+  aChannel->AnnounceOpen();
 }
 
 // Returns a POSIX error code directly instead of setting errno.
 int DataChannelConnection::SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   mLock.AssertCurrentThreadOwns();
   struct sctp_sendv_spa info = {};
   // General flags
@@ -2585,6 +2594,7 @@ int DataChannelConnection::SendMsgInternal(OutgoingMsg& msg, size_t* aWritten) {
 int DataChannelConnection::SendMsgInternalOrBuffer(
     nsTArray<OutgoingMsg>& buffer, OutgoingMsg&& msg, bool* buffered,
     size_t* aWritten) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   NS_WARNING_ASSERTION(msg.GetLength() > 0, "Length is 0?!");
 
   int error = 0;
@@ -2848,6 +2858,7 @@ int DataChannelConnection::SendDataMessage(uint16_t aStream, nsACString&& aMsg,
 
 int DataChannelConnection::SendMessage(DataChannel& aChannel,
                                        OutgoingMsg&& aMsg) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   // Note that `aChannel->mConnection` is `this`. This is just here to
   // satisfy the thread safety annotations on DataChannel.
   aChannel.mConnection->mLock.AssertCurrentThreadOwns();
