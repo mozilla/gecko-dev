@@ -228,9 +228,6 @@ skip-if = ["os == 'linux' && os_version == '18.04'"]
 ["test_overlay_scrollbar_position.html"]
 
 ["test_page_scroll_overlap.html"]
-skip-if = [
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968678
-]
 
 ["test_page_scroll_with_fixed_pos.html"]
 support-files = ["page_scroll_with_fixed_pos_window.html"]
