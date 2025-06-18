@@ -14,15 +14,29 @@
 [scriptable, uuid(8753A413-3ED6-4A61-A1DC-B31A7E69B796)]
 interface nsIUrlClassifierExceptionListEntry : nsISupports
 {
+    cenum Category : 8 {
+        // Used for allow-list entries set via prefs. These entries always
+        // apply, independently of the user's category selection.
+        CATEGORY_INTERNAL_PREF,
+        // Allow-list for fixing severe site breakage (e.g. blank page).
+        CATEGORY_BASELINE,
+        // Allow-list for less severe site breakage (e.g. embeds or images
+        // missing).
+        CATEGORY_CONVENIENCE,
+    };
+
     /**
      * Initialize all fields of the exception list entry.
+     * @param aCategory - The category of this exception entry.
      * @param aUrlPattern - The urlPattern for the url to be loaded. See https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Match_patterns for more info.
      * @param aTopLevelUrlPattern - Optional top-level url pattern to filter for this exception. If not set the exception applies to all top level sites.
      * @param aIsPrivateBrowsingOnly - Whether this applies only to private browsing
      * @param aFilterContentBlockingCategories - The content blocking categories to filter for this exception.
      * @param aClassifierFeatures - The list of url classifier features to apply this exception to.
+
      */
-    void init(in ACString aUrlPattern,
+    void init(in nsIUrlClassifierExceptionListEntry_Category aCategory,
+              in ACString aUrlPattern,
               in ACString aTopLevelUrlPattern,
               in boolean aIsPrivateBrowsingOnly,
               in Array<ACString> aFilterContentBlockingCategories,
@@ -37,6 +51,12 @@ interface nsIUrlClassifierExceptionListEntry : nsISupports
      *         should be skipped from classification, false otherwise
      */
     boolean matches(in nsIURI aURI, in nsIURI aTopLevelURI, in boolean aIsPrivateBrowsing);
+
+    /**
+     * The category of this exception entry.
+     * This is used for filtering exception list entries based on user configuration.
+     */
+    readonly attribute nsIUrlClassifierExceptionListEntry_Category category;
 
     /**
      * The urlPattern name for this exception entry.

@@ -70,6 +70,7 @@ class Feature {
     ].createInstance(Ci.nsIUrlClassifierExceptionListEntry);
 
     let {
+      category: categoryStr,
       urlPattern,
       topLevelUrlPattern = "",
       isPrivateBrowsingOnly = false,
@@ -77,8 +78,26 @@ class Feature {
       classifierFeatures = [],
     } = rsObject;
 
+    const CATEGORY_STR_TO_ENUM = {
+      "internal-pref":
+        Ci.nsIUrlClassifierExceptionListEntry.CATEGORY_INTERNAL_PREF,
+      baseline: Ci.nsIUrlClassifierExceptionListEntry.CATEGORY_BASELINE,
+      convenience: Ci.nsIUrlClassifierExceptionListEntry.CATEGORY_CONVENIENCE,
+    };
+
+    let category = CATEGORY_STR_TO_ENUM[categoryStr];
+    if (category == null) {
+      console.error(
+        "Invalid or unknown category",
+        { rsObject },
+        { categories: Object.keys(CATEGORY_STR_TO_ENUM) }
+      );
+      return null;
+    }
+
     try {
       entry.init(
+        category,
         urlPattern,
         topLevelUrlPattern,
         isPrivateBrowsingOnly,
@@ -89,7 +108,7 @@ class Feature {
       console.error(
         "Error initializing url classifier exception list entry " + e.message,
         e,
-        rsObject
+        { rsObject }
       );
       return null;
     }
@@ -102,6 +121,7 @@ class Feature {
     if (this.prefValue) {
       for (let prefEntry of this.prefValue.split(",")) {
         let entry = Feature.rsObjectToEntry({
+          category: "internal-pref",
           urlPattern: prefEntry,
           classifierFeatures: [this.name],
         });

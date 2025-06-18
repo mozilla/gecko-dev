@@ -15807,6 +15807,20 @@
   value: true
   mirror: always
 
+# Enable the "baseline" allow-list for fixing severe site breakage (e.g. blank
+# page).
+- name: privacy.trackingprotection.allow_list.baseline.enabled
+  type: bool
+  value: true
+  mirror: always
+
+# Enable the "convenience" allow-list for less severe site breakage (e.g. embeds
+# or images missing).
+- name: privacy.trackingprotection.allow_list.convenience.enabled
+  type: bool
+  value: true
+  mirror: always
+
 # Whether to spoof user locale to English (used as part of Resist
 # Fingerprinting).
 # 0 - will prompt

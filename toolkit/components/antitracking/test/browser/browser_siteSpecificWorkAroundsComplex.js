@@ -167,6 +167,7 @@ async function setExceptions(entries) {
 
   let entriesPromises = entries.map(e =>
     db.create({
+      category: "baseline",
       urlPattern: e.urlPattern,
       classifierFeatures: e.classifierFeatures,
       // Only apply to private browsing in ETP "standard" mode.
