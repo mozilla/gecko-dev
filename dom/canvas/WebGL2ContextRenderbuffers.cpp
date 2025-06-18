@@ -14,7 +14,7 @@ namespace mozilla {
 
 Maybe<std::vector<int32_t>> WebGL2Context::GetInternalformatParameter(
     GLenum target, GLenum internalformat, GLenum pname) const {
-  const FuncScope funcScope(*this, "getInternalfomratParameter");
+  const FuncScope funcScope(*this, "getInternalformatParameter");
   if (IsContextLost()) return Nothing();
 
   if (target != LOCAL_GL_RENDERBUFFER) {
