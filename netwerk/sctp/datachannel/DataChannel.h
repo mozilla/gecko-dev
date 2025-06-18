@@ -420,6 +420,7 @@ class DataChannelConnection : public net::NeckoTargetHolder {
   bool mMaxMessageSizeSet = false;
   // Data:
   uint64_t mMaxMessageSize = 0;
+  nsTArray<uint16_t> mStreamIds;
   // NOTE: while this container will auto-expand, increases in the number of
   // channels available from the stack must be negotiated!
   // Accessed from both main and sts, API is threadsafe
