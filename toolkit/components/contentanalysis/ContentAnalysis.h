@@ -279,6 +279,13 @@ class ContentAnalysis final : public nsIContentAnalysis,
   static constexpr const char* kKnownClipboardTypes[] = {
       kTextMime, kHTMLMime, kCustomTypesMime, kFileMime};
 
+  // Returns whether we are currently creating a client. Only to be called
+  // from tests.
+  bool GetCreatingClientForTest() {
+    AssertIsOnMainThread();
+    return mCreatingClient;
+  }
+
  private:
   virtual ~ContentAnalysis();
   // Remove unneeded copy constructor/assignment
