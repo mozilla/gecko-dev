@@ -5,10 +5,11 @@
 
 #include "mozilla/intl/LineBreaker.h"
 
-#include "ICU4XDataProvider.h"
-#include "ICU4XLineBreakIteratorLatin1.hpp"
-#include "ICU4XLineBreakIteratorUtf16.hpp"
-#include "ICU4XLineSegmenter.h"
+#include "diplomat_runtime.hpp"
+#include "icu4x/LineBreakIteratorLatin1.hpp"
+#include "icu4x/LineBreakIteratorUtf16.hpp"
+#include "icu4x/LineSegmenter.hpp"
+#include "icu4x/Locale.hpp"
 #include "jisx4051class.h"
 #include "LineBreakCache.h"
 #include "nsComplexBreaker.h"
@@ -18,13 +19,13 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/intl/ICU4XGeckoDataProvider.h"
 #include "mozilla/intl/Segmenter.h"
 #include "mozilla/intl/UnicodeProperties.h"
 #include "mozilla/StaticPrefs_intl.h"
 
 #include <mutex>
 
+using namespace icu4x;
 using namespace mozilla;
 using namespace mozilla::intl;
 using namespace mozilla::unicode;
@@ -997,66 +998,45 @@ static bool SuppressBreakForKeepAll(uint32_t aPrev, uint32_t aCh) {
          affectedByKeepAll(GetLineBreakClass(aCh));
 }
 
-static capi::ICU4XLineBreakStrictness ConvertLineBreakRuleToICU4X(
-    LineBreakRule aLevel) {
+static LineBreakStrictness ConvertLineBreakRuleToICU4X(LineBreakRule aLevel) {
   switch (aLevel) {
     case LineBreakRule::Auto:
-      return capi::ICU4XLineBreakStrictness_Strict;
+      return LineBreakStrictness::Strict;
     case LineBreakRule::Strict:
-      return capi::ICU4XLineBreakStrictness_Strict;
+      return LineBreakStrictness::Strict;
     case LineBreakRule::Loose:
-      return capi::ICU4XLineBreakStrictness_Loose;
+      return LineBreakStrictness::Loose;
     case LineBreakRule::Normal:
-      return capi::ICU4XLineBreakStrictness_Normal;
+      return LineBreakStrictness::Normal;
     case LineBreakRule::Anywhere:
-      return capi::ICU4XLineBreakStrictness_Anywhere;
+      return LineBreakStrictness::Anywhere;
   }
   MOZ_ASSERT_UNREACHABLE("should have been handled already");
-  return capi::ICU4XLineBreakStrictness_Normal;
+  return LineBreakStrictness::Normal;
 }
 
-static capi::ICU4XLineBreakWordOption ConvertWordBreakRuleToICU4X(
+static LineBreakWordOption ConvertWordBreakRuleToICU4X(
     WordBreakRule aWordBreak) {
   switch (aWordBreak) {
     case WordBreakRule::Normal:
-      return capi::ICU4XLineBreakWordOption_Normal;
+      return LineBreakWordOption::Normal;
     case WordBreakRule::BreakAll:
-      return capi::ICU4XLineBreakWordOption_BreakAll;
+      return LineBreakWordOption::BreakAll;
     case WordBreakRule::KeepAll:
-      return capi::ICU4XLineBreakWordOption_KeepAll;
+      return LineBreakWordOption::KeepAll;
   }
   MOZ_ASSERT_UNREACHABLE("should have been handled already");
-  return capi::ICU4XLineBreakWordOption_Normal;
+  return LineBreakWordOption::Normal;
 }
 
-static capi::ICU4XLineSegmenter* sLineSegmenter = nullptr;
+static capi::LineSegmenter* sLineSegmenter = nullptr;
+static capi::Locale* sZhLocale = nullptr;
 
-static capi::ICU4XLineSegmenter* GetDefaultLineSegmenter() {
+static capi::LineSegmenter* GetDefaultLineSegmenter() {
   static std::once_flag sOnce;
 
   std::call_once(sOnce, [] {
-    auto result = capi::ICU4XLineSegmenter_create_auto(GetDataProvider());
-    MOZ_ASSERT(result.is_ok);
-    sLineSegmenter = result.ok;
-
-    if (NS_IsMainThread()) {
-      mozilla::RunOnShutdown([] {
-        if (sLineSegmenter) {
-          capi::ICU4XLineSegmenter_destroy(sLineSegmenter);
-        }
-        sLineSegmenter = nullptr;
-      });
-      return;
-    }
-    NS_DispatchToMainThread(
-        NS_NewRunnableFunction("GetDefaultLineSegmenter", [] {
-          mozilla::RunOnShutdown([] {
-            if (sLineSegmenter) {
-              capi::ICU4XLineSegmenter_destroy(sLineSegmenter);
-            }
-            sLineSegmenter = nullptr;
-          });
-        }));
+    sLineSegmenter = capi::icu4x_LineSegmenter_create_auto_mv1();
   });
 
   return sLineSegmenter;
@@ -1070,25 +1050,38 @@ static bool UseDefaultLineSegmenter(WordBreakRule aWordBreak,
          !aIsChineseOrJapanese;
 }
 
-static capi::ICU4XLineSegmenter* GetLineSegmenter(bool aUseDefault,
-                                                  WordBreakRule aWordBreak,
-                                                  LineBreakRule aLevel,
-                                                  bool aIsChineseOrJapanese) {
+static void InitDefaultLocale() {
+  static std::once_flag sOnce;
+  std::call_once(sOnce, [] {
+    auto locale = capi::icu4x_Locale_from_string_mv1(
+        diplomat::capi::DiplomatStringView{"zh", 2});
+    if (locale.is_ok) {
+      sZhLocale = locale.ok;
+    }
+  });
+}
+
+static capi::LineSegmenter* GetLineSegmenter(bool aUseDefault,
+                                             WordBreakRule aWordBreak,
+                                             LineBreakRule aLevel,
+                                             bool aIsChineseOrJapanese) {
   if (aUseDefault) {
     MOZ_ASSERT(
         UseDefaultLineSegmenter(aWordBreak, aLevel, aIsChineseOrJapanese));
     return GetDefaultLineSegmenter();
   }
 
-  capi::ICU4XLineBreakOptionsV1 options;
+  if (!sZhLocale && aIsChineseOrJapanese) {
+    InitDefaultLocale();
+  }
+
+  LineBreakOptionsV2 options;
   options.word_option = ConvertWordBreakRuleToICU4X(aWordBreak);
   options.strictness = ConvertLineBreakRuleToICU4X(aLevel);
-  options.ja_zh = aIsChineseOrJapanese;
+  auto locale = aIsChineseOrJapanese ? sZhLocale : nullptr;
 
-  auto result = capi::ICU4XLineSegmenter_create_lstm_with_options_v1(
-      GetDataProvider(), options);
-  MOZ_ASSERT(result.is_ok);
-  return result.ok;
+  return capi::icu4x_LineSegmenter_create_lstm_with_options_v2_mv1(
+      locale, options.AsFFI());
 }
 
 void LineBreaker::ComputeBreakPositions(
@@ -1135,14 +1128,14 @@ void LineBreaker::ComputeBreakPositions(
     if (length.isValid()) {
       const bool useDefault =
           UseDefaultLineSegmenter(aWordBreak, aLevel, aIsChineseOrJapanese);
-      capi::ICU4XLineSegmenter* lineSegmenter = GetLineSegmenter(
-          useDefault, aWordBreak, aLevel, aIsChineseOrJapanese);
-      ICU4XLineBreakIteratorUtf16 iterator(
-          capi::ICU4XLineSegmenter_segment_utf16(lineSegmenter, aChars,
-                                                 aLength));
+      auto lineSegmenter = GetLineSegmenter(useDefault, aWordBreak, aLevel,
+                                            aIsChineseOrJapanese);
+      auto segmenter = LineSegmenter::FromFFI(lineSegmenter);
+      auto iterator =
+          segmenter->segment16(std::u16string_view{aChars, aLength});
 
       while (true) {
-        const int32_t nextPos = iterator.next();
+        const int32_t nextPos = iterator->next();
         if (nextPos < 0 || nextPos >= length.value()) {
           break;
         }
@@ -1150,7 +1143,7 @@ void LineBreaker::ComputeBreakPositions(
       }
 
       if (!useDefault) {
-        capi::ICU4XLineSegmenter_destroy(lineSegmenter);
+        capi::icu4x_LineSegmenter_destroy_mv1(lineSegmenter);
       }
     }
 
@@ -1321,14 +1314,13 @@ void LineBreaker::ComputeBreakPositions(const uint8_t* aChars, uint32_t aLength,
 
     const bool useDefault =
         UseDefaultLineSegmenter(aWordBreak, aLevel, aIsChineseOrJapanese);
-    capi::ICU4XLineSegmenter* lineSegmenter =
+    auto lineSegmenter =
         GetLineSegmenter(useDefault, aWordBreak, aLevel, aIsChineseOrJapanese);
-    ICU4XLineBreakIteratorLatin1 iterator(
-        capi::ICU4XLineSegmenter_segment_latin1(
-            lineSegmenter, (const uint8_t*)aChars, aLength));
+    auto segmenter = icu4x::LineSegmenter::FromFFI(lineSegmenter);
+    auto iterator = segmenter->segment_latin1(diplomat::span{aChars, aLength});
 
     while (true) {
-      const int32_t nextPos = iterator.next();
+      const int32_t nextPos = iterator->next();
       if (nextPos < 0 || nextPos >= length.value()) {
         break;
       }
@@ -1336,7 +1328,7 @@ void LineBreaker::ComputeBreakPositions(const uint8_t* aChars, uint32_t aLength,
     }
 
     if (!useDefault) {
-      capi::ICU4XLineSegmenter_destroy(lineSegmenter);
+      capi::icu4x_LineSegmenter_destroy_mv1(lineSegmenter);
     }
     return;
   }
@@ -1381,4 +1373,16 @@ void LineBreaker::ComputeBreakPositions(const uint8_t* aChars, uint32_t aLength,
     if (allowBreak) state.NotifyBreakBefore();
     lastClass = cl;
   }
+}
+
+void LineBreaker::Shutdown() {
+  if (sLineSegmenter) {
+    capi::icu4x_LineSegmenter_destroy_mv1(sLineSegmenter);
+  }
+  if (sZhLocale) {
+    capi::icu4x_Locale_destroy_mv1(sZhLocale);
+  }
+
+  sLineSegmenter = nullptr;
+  sZhLocale = nullptr;
 }

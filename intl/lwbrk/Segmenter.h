@@ -15,16 +15,16 @@
 #include "mozilla/Span.h"
 #include "mozilla/UniquePtr.h"
 
-namespace capi {
-struct ICU4XLineSegmenter;
-struct ICU4XLineBreakIteratorUtf16;
-struct ICU4XWordSegmenter;
-struct ICU4XWordBreakIteratorUtf16;
-struct ICU4XGraphemeClusterSegmenter;
-struct ICU4XGraphemeClusterBreakIteratorUtf16;
-struct ICU4XSentenceSegmenter;
-struct ICU4XSentenceBreakIteratorUtf16;
-}  // namespace capi
+namespace icu4x::capi {
+struct LineSegmenter;
+struct LineBreakIteratorUtf16;
+struct WordSegmenter;
+struct WordBreakIteratorUtf16;
+struct GraphemeClusterSegmenter;
+struct GraphemeClusterBreakIteratorUtf16;
+struct SentenceSegmenter;
+struct SentenceBreakIteratorUtf16;
+}  // namespace icu4x::capi
 
 namespace mozilla::intl {
 
@@ -123,8 +123,8 @@ class LineBreakIteratorUtf16 final : public SegmentIteratorUtf16 {
  private:
   LineBreakOptions mOptions;
 
-  capi::ICU4XLineSegmenter* mSegmenter = nullptr;
-  capi::ICU4XLineBreakIteratorUtf16* mIterator = nullptr;
+  icu4x::capi::LineSegmenter* mSegmenter = nullptr;
+  icu4x::capi::LineBreakIteratorUtf16* mIterator = nullptr;
 };
 
 /**
@@ -140,8 +140,8 @@ class WordBreakIteratorUtf16 final : public SegmentIteratorUtf16 {
   Maybe<uint32_t> Seek(uint32_t aPos) override;
 
  private:
-  capi::ICU4XWordSegmenter* mSegmenter = nullptr;
-  capi::ICU4XWordBreakIteratorUtf16* mIterator = nullptr;
+  icu4x::capi::WordSegmenter* mSegmenter = nullptr;
+  icu4x::capi::WordBreakIteratorUtf16* mIterator = nullptr;
 };
 
 /**
@@ -156,8 +156,8 @@ class GraphemeClusterBreakIteratorUtf16 final : public SegmentIteratorUtf16 {
   Maybe<uint32_t> Seek(uint32_t aPos) override;
 
  private:
-  static capi::ICU4XGraphemeClusterSegmenter* sSegmenter;
-  capi::ICU4XGraphemeClusterBreakIteratorUtf16* mIterator = nullptr;
+  static icu4x::capi::GraphemeClusterSegmenter* sSegmenter;
+  icu4x::capi::GraphemeClusterBreakIteratorUtf16* mIterator = nullptr;
 };
 
 /**
@@ -187,8 +187,8 @@ class SentenceBreakIteratorUtf16 final : public SegmentIteratorUtf16 {
   Maybe<uint32_t> Seek(uint32_t aPos) override;
 
  private:
-  capi::ICU4XSentenceSegmenter* mSegmenter = nullptr;
-  capi::ICU4XSentenceBreakIteratorUtf16* mIterator = nullptr;
+  icu4x::capi::SentenceSegmenter* mSegmenter = nullptr;
+  icu4x::capi::SentenceBreakIteratorUtf16* mIterator = nullptr;
 };
 
 /**
