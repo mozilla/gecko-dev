@@ -52,9 +52,6 @@ add_setup(async function setup() {
  * @param {object} options
  * @param {number?} options.legacyMigrationState
  *        The value of the legacy migration pref.
- * @param {Record<Phase, number>?} options.migrationState
- *        The value that should be set for the Nimbus migration prefs. If
- *        not provided, the pref will be unset.
  * @param {Record<Phase, Migration[]>} options.migrations
  *        An array of migrations that will replace the regular set of migrations
  *        for the duration of the test.
@@ -67,7 +64,6 @@ add_setup(async function setup() {
 
 async function setupTest({
   legacyMigrationState,
-  migrationState,
   migrations,
   init = true,
   ...args
@@ -91,12 +87,6 @@ async function setupTest({
   });
 
   const { sandbox } = ctx;
-
-  if (migrationState) {
-    for (const [phase, value] of Object.entries(migrationState)) {
-      Services.prefs.setIntPref(NIMBUS_MIGRATION_PREFS[phase], value);
-    }
-  }
 
   if (typeof legacyMigrationState !== "undefined") {
     Services.prefs.setIntPref(
@@ -1502,6 +1492,21 @@ add_task(async function testMigrateEnrollmentsToSql() {
   if (importMigrationError) {
     throw importMigrationError;
   }
+
+  Assert.deepEqual(
+    Glean.nimbusEvents.startupDatabaseConsistency
+      .testGetValue("events")
+      .map(ev => ev.extra),
+    [
+      {
+        total_db_count: "9",
+        total_store_count: "9",
+        db_active_count: "7",
+        store_active_count: "7",
+        trigger: "migration",
+      },
+    ]
+  );
 
   await NimbusTestUtils.cleanupManager([
     "experiment-1",

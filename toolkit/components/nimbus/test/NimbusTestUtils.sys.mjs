@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /** @import { NimbusEnrollments } from "../lib/Enrollments.sys.mjs" */
+/** @import { _ExperimentFeature } from "../ExperimentAPI.sys.mjs" */
+/** @import { Phase } from "../lib/Migrations.sys.mjs" */
 
 import {
   ExperimentAPI,
@@ -18,6 +20,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   NimbusEnrollments: "resource://nimbus/lib/Enrollments.sys.mjs",
+  NimbusMigrations: "resource://nimbus/lib/Migrations.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   ProfilesDatastoreService:
@@ -418,6 +421,36 @@ export const NimbusTestUtils = {
 
       return loader;
     },
+  },
+
+  migrationState: {
+    get IMPORTED_ENROLLMENTS_TO_SQL() {
+      const { Phase } = lazy.NimbusMigrations;
+
+      return NimbusTestUtils.makeMigrationState({
+        [Phase.INIT_STARTED]: "multi-phase-migrations",
+        [Phase.AFTER_STORE_INITIALIZED]: "import-enrollments-to-sql",
+        [Phase.AFTER_REMOTE_SETTINGS_UPDATE]: "firefox-labs-enrollments",
+      });
+    },
+  },
+
+  /**
+   * Create a migration state to pass to NimbusTestUtils.setupTest.
+   *
+   * @param {Record<Phase, string>} migrationsByPhase A map of the latest
+   * completed migration by phase.
+   */
+  makeMigrationState(migrationsByPhase) {
+    const state = {};
+
+    for (const [phase, migrationName] of Object.entries(migrationsByPhase)) {
+      state[phase] = lazy.NimbusMigrations.MIGRATIONS[phase].findIndex(
+        m => m.name === migrationName
+      );
+    }
+
+    return state;
   },
 
   /**
@@ -894,7 +927,7 @@ export const NimbusTestUtils = {
    */
 
   /**
-   * @param {object?} options
+   * @param {object} options
    * @param {boolean?} options.init
    *        Initialize the Experiment API.
    *
@@ -913,8 +946,15 @@ export const NimbusTestUtils = {
    *        If provided, these recipes will be returned by the RemoteSetings
    *        secureExperiments client.
    *
-   * @param {boolean?} clearTelemetry
+   * @param {boolean?} options.clearTelemetry
    *        If true, telemetry will be reset in the cleanup function.
+   *
+   * @param {_ExperimentFeature[] | undefined} options.features
+   *        Features to add to NimbusFeatures.
+   *
+   * @param {Record<Phase, number>?} options.migrationState
+   *        The value that should be set for the Nimbus migration prefs. If
+   *        not provided, the pref will be unset.
    *
    * @returns {TestContext}
    *          Everything you need to write a test using Nimbus.
@@ -926,6 +966,7 @@ export const NimbusTestUtils = {
     secureExperiments,
     clearTelemetry = false,
     features,
+    migrationState,
   } = {}) {
     const sandbox = lazy.sinon.createSandbox();
 
@@ -946,6 +987,15 @@ export const NimbusTestUtils = {
     sandbox
       .stub(loader.remoteSettingsClients.secureExperiments, "get")
       .resolves(Array.isArray(secureExperiments) ? secureExperiments : []);
+
+    if (migrationState) {
+      for (const [phase, value] of Object.entries(migrationState)) {
+        Services.prefs.setIntPref(
+          lazy.NimbusMigrations.NIMBUS_MIGRATION_PREFS[phase],
+          value
+        );
+      }
+    }
 
     const ctx = {
       sandbox,
