@@ -1163,6 +1163,7 @@ int DataChannelConnection::SendControlMessage(DataChannel& aChannel,
 
 // Returns a POSIX error code.
 int DataChannelConnection::SendOpenAckMessage(DataChannel& aChannel) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   struct rtcweb_datachannel_ack ack = {};
   ack.msg_type = DATA_CHANNEL_ACK;
 
@@ -1228,11 +1229,9 @@ int DataChannelConnection::SendOpenRequestMessage(DataChannel& aChannel) {
 
 // returns if we're still blocked (true)
 bool DataChannelConnection::SendDeferredMessages() {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   RefPtr<DataChannel> channel;  // we may null out the refs to this
 
-  // This may block while something is modifying channels, but should not block
-  // for IO
-  ASSERT_WEBRTC(!NS_IsMainThread());
   mLock.AssertCurrentThreadOwns();
 
   DC_DEBUG(("SendDeferredMessages called, pending type: %s",
@@ -1340,6 +1339,7 @@ bool DataChannelConnection::SendBufferedMessages(nsTArray<OutgoingMsg>& buffer,
 void DataChannelConnection::HandleOpenRequestMessage(
     const struct rtcweb_datachannel_open_request* req, uint32_t length,
     uint16_t stream) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   RefPtr<DataChannel> channel;
   uint32_t prValue;
   DataChannelReliabilityPolicy prPolicy;
@@ -1453,6 +1453,7 @@ void DataChannelConnection::HandleOpenRequestMessage(
 // receive an ACK. That would make this code moot.  Keep it for now for
 // backwards compatibility.
 void DataChannelConnection::DeliverQueuedData(uint16_t stream) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   mLock.AssertCurrentThreadOwns();
 
   mQueuedData.RemoveElementsBy([stream, this](const auto& dataItem) {
@@ -1474,6 +1475,7 @@ void DataChannelConnection::DeliverQueuedData(uint16_t stream) {
 void DataChannelConnection::HandleOpenAckMessage(
     const struct rtcweb_datachannel_ack* ack, uint32_t length,
     uint16_t stream) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   DataChannel* channel;
 
   mLock.AssertCurrentThreadOwns();
@@ -1492,6 +1494,7 @@ void DataChannelConnection::HandleOpenAckMessage(
 // Caller must ensure that length <= SIZE_MAX
 void DataChannelConnection::HandleUnknownMessage(uint32_t ppid, uint32_t length,
                                                  uint16_t stream) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   /* XXX: Send an error message? */
   DC_ERROR(("unknown DataChannel message received: %u, len %u on stream %d",
             ppid, length, stream));
@@ -1503,6 +1506,7 @@ void DataChannelConnection::HandleDataMessageChunk(const void* data,
                                                    uint16_t stream,
                                                    uint16_t messageId,
                                                    int flags) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   DC_DEBUG(("%s: stream %u, length %zu, ppid %u, message-id %u", __func__,
             stream, length, ppid, messageId));
   DataChannel* channel;
@@ -1919,6 +1923,7 @@ void DataChannelConnection::HandleAssociationChangeEvent(
 
 void DataChannelConnection::HandlePeerAddressChangeEvent(
     const struct sctp_paddr_change* spc) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   const char* addr = "";
 #if !defined(__Userspace_os_Windows)
   char addr_buf[INET6_ADDRSTRLEN];
@@ -1976,6 +1981,7 @@ void DataChannelConnection::HandlePeerAddressChangeEvent(
 
 void DataChannelConnection::HandleRemoteErrorEvent(
     const struct sctp_remote_error* sre) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   size_t i, n;
 
   n = sre->sre_length - sizeof(struct sctp_remote_error);
@@ -1987,6 +1993,7 @@ void DataChannelConnection::HandleRemoteErrorEvent(
 
 void DataChannelConnection::HandleShutdownEvent(
     const struct sctp_shutdown_event* sse) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   DC_DEBUG(("Shutdown event."));
   /* XXX: notify all channels. */
   // Attempts to actually send anything will fail
@@ -1994,6 +2001,7 @@ void DataChannelConnection::HandleShutdownEvent(
 
 void DataChannelConnection::HandleAdaptationIndication(
     const struct sctp_adaptation_event* sai) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   DC_DEBUG(("Adaptation indication: %x.", sai->sai_adaptation_ind));
 }
 
@@ -2002,6 +2010,7 @@ void DataChannelConnection::HandlePartialDeliveryEvent(
   // Note: Be aware that stream and sequence number being u32 instead of u16 is
   //       a bug in the SCTP API. This may change in the future.
 
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   DC_DEBUG(("Partial delivery event: "));
   switch (spde->pdapi_indication) {
     case SCTP_PARTIAL_DELIVERY_ABORTED:
@@ -2040,6 +2049,7 @@ void DataChannelConnection::HandlePartialDeliveryEvent(
 
 void DataChannelConnection::HandleSendFailedEvent(
     const struct sctp_send_failed_event* ssfe) {
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   size_t i, n;
 
   if (ssfe->ssfe_flags & SCTP_DATA_UNSENT) {
@@ -2143,6 +2153,7 @@ void DataChannelConnection::HandleStreamResetEvent(
     const struct sctp_stream_reset_event* strrst) {
   uint32_t n, i;
   RefPtr<DataChannel> channel;  // since we may null out the ref to the channel
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
 
   if (!(strrst->strreset_flags & SCTP_STREAM_RESET_DENIED) &&
       !(strrst->strreset_flags & SCTP_STREAM_RESET_FAILED)) {
@@ -2192,6 +2203,7 @@ void DataChannelConnection::HandleStreamResetEvent(
 void DataChannelConnection::HandleStreamChangeEvent(
     const struct sctp_stream_change_event* strchg) {
   ASSERT_WEBRTC(!NS_IsMainThread());
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   if (strchg->strchange_flags == SCTP_STREAM_CHANGE_DENIED) {
     DC_ERROR(("*** Failed increasing number of streams from %zu (%u/%u)",
               mNegotiatedIdLimit, strchg->strchange_instrms,
@@ -2255,6 +2267,7 @@ void DataChannelConnection::HandleStreamChangeEvent(
 void DataChannelConnection::HandleNotification(
     const union sctp_notification* notif, size_t n) {
   mLock.AssertCurrentThreadOwns();
+  MOZ_ASSERT(mSTS->IsOnCurrentThread());
   if (notif->sn_header.sn_length != (uint32_t)n) {
     return;
   }
@@ -2304,9 +2317,9 @@ void DataChannelConnection::HandleNotification(
   }
 }
 
-int DataChannelConnection::ReceiveCallback(
-    struct socket* sock, void* data, size_t datalen, struct sctp_rcvinfo rcv,
-    int flags) MOZ_NO_THREAD_SAFETY_ANALYSIS {
+int DataChannelConnection::ReceiveCallback(struct socket* sock, void* data,
+                                           size_t datalen,
+                                           struct sctp_rcvinfo rcv, int flags) {
   ASSERT_WEBRTC(!NS_IsMainThread());
   DC_DEBUG(("In ReceiveCallback"));
 
