@@ -4,18 +4,10 @@ Firefox supports auto-generating JS bindings for Rust components using [UniFFI](
 
 ## How it works
 
-The Rust crate contains a
-[UniFFI Definition Language (UDL) file](https://mozilla.github.io/uniffi-rs/udl_file_spec.html), which describes the
-interface to generate bindings for.
-
-The UniFFI core generates the scaffolding: Rust code which acts as the FFI layer from the UDL file.  The functions of
-this layer all use the C calling convention and all structs use a C layout, this is the de facto standard for FFI
-interoperability.
-
 The [`uniffi-bindgen-gecko-js`](https://searchfox.org/mozilla-central/source/toolkit/components/uniffi-bindgen-gecko-js)
 tool, which lives in the Firefox source tree, generates 2 things:
-  - A JS interface for the scaffolding code, which uses [WebIDL](/dom/bindings/webidl/index.rst)
-  - A module that uses the scaffolding to provide the bindings API.
+  - JS bindings for your Rust crate.
+  - C++ code that the JS bindings use to handle the low-level details, like calling into Rust.
 
 Currently, this generated code gets checked in to source control.  We are working on a system to avoid this and
 auto-generate it at build time instead (see [bugzilla 1756214](https://bugzilla.mozilla.org/show_bug.cgi?id=1756214)).

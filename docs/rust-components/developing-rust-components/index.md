@@ -43,3 +43,5 @@ Error reports are currently only available for Android, but we will soon be exte
 
 example-component
 uniffi
+threading
+other-desktop-specific-concerns
