@@ -11,11 +11,10 @@
 
 [package]
 edition = "2021"
-rust-version = "1.82"
+rust-version = "1.67"
 name = "icu_segmenter"
-version = "2.0.0"
+version = "1.5.0"
 authors = ["The ICU4X Project Developers"]
-build = false
 include = [
     "data/**/*",
     "src/**/*",
@@ -25,13 +24,7 @@ include = [
     "Cargo.toml",
     "LICENSE",
     "README.md",
-    "build.rs",
 ]
-autolib = false
-autobins = false
-autoexamples = false
-autotests = false
-autobenches = false
 description = "Unicode line breaking and text segmentation algorithms for text boundaries analysis"
 homepage = "https://icu4x.unicode.org"
 readme = "README.md"
@@ -42,68 +35,15 @@ repository = "https://github.com/unicode-org/icu4x"
 [package.metadata.docs.rs]
 all-features = true
 
-[features]
-auto = ["lstm"]
-compiled_data = [
-    "dep:icu_segmenter_data",
-    "dep:icu_locale",
-    "icu_locale?/compiled_data",
-    "icu_provider/baked",
-]
-datagen = [
-    "serde",
-    "dep:databake",
-    "potential_utf/databake",
-    "zerovec/databake",
-    "icu_collections/databake",
-    "icu_provider/export",
-]
-default = [
-    "compiled_data",
-    "auto",
-]
-lstm = ["dep:core_maths"]
-serde = [
-    "dep:serde",
-    "potential_utf/serde",
-    "zerovec/serde",
-    "icu_collections/serde",
-    "icu_provider/serde",
-]
-
 [lib]
-name = "icu_segmenter"
-path = "src/lib.rs"
 bench = false
 
 [[test]]
 name = "complex_word"
-path = "tests/complex_word.rs"
 required-features = ["auto"]
-
-[[test]]
-name = "css_line_break"
-path = "tests/css_line_break.rs"
-
-[[test]]
-name = "css_word_break"
-path = "tests/css_word_break.rs"
-
-[[test]]
-name = "locale"
-path = "tests/locale.rs"
-
-[[test]]
-name = "spec_test"
-path = "tests/spec_test.rs"
-
-[[test]]
-name = "word_rule_status"
-path = "tests/word_rule_status.rs"
 
 [[bench]]
 name = "bench"
-path = "benches/bench.rs"
 harness = false
 
 [dependencies.core_maths]
@@ -112,7 +52,7 @@ optional = true
 default-features = false
 
 [dependencies.databake]
-version = "0.2.0"
+version = "0.1.8"
 features = ["derive"]
 optional = true
 default-features = false
@@ -122,33 +62,27 @@ version = "0.2.3"
 default-features = false
 
 [dependencies.icu_collections]
-version = "~2.0.0"
+version = "~1.5.0"
 default-features = false
 
-[dependencies.icu_locale]
-version = "~2.0.0"
+[dependencies.icu_locid]
+version = "~1.5.0"
+default-features = false
+
+[dependencies.icu_locid_transform]
+version = "~1.5.0"
+features = ["compiled_data"]
 optional = true
-default-features = false
-
-[dependencies.icu_locale_core]
-version = "2.0.0"
 default-features = false
 
 [dependencies.icu_provider]
-version = "2.0.0"
+version = "~1.5.0"
+features = ["macros"]
 default-features = false
 
 [dependencies.icu_segmenter_data]
-version = "~2.0.0"
+version = "~1.5.0"
 optional = true
-default-features = false
-
-[dependencies.potential_utf]
-version = "0.1.1"
-features = [
-    "alloc",
-    "zerovec",
-]
 default-features = false
 
 [dependencies.serde]
@@ -165,15 +99,12 @@ version = "1.0.2"
 default-features = false
 
 [dependencies.zerovec]
-version = "0.11.1"
-features = [
-    "alloc",
-    "yoke",
-]
+version = "0.10.2"
+features = ["yoke"]
 default-features = false
 
 [dev-dependencies.itertools]
-version = "0.14.0"
+version = "0.10.3"
 
 [dev-dependencies.serde]
 version = "1.0.110"
@@ -183,5 +114,32 @@ default-features = false
 [dev-dependencies.serde_json]
 version = "1.0.45"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies.criterion]
+[features]
+auto = ["lstm"]
+bench = []
+compiled_data = ["dep:icu_segmenter_data"]
+datagen = [
+    "serde",
+    "dep:databake",
+    "zerovec/databake",
+    "icu_collections/databake",
+]
+default = [
+    "compiled_data",
+    "auto",
+]
+lstm = ["dep:core_maths"]
+serde = [
+    "dep:serde",
+    "zerovec/serde",
+    "icu_collections/serde",
+    "icu_provider/serde",
+]
+std = [
+    "icu_collections/std",
+    "icu_locid/std",
+    "icu_provider/std",
+]
+
+[target."cfg(not(target_arch = \"wasm32\"))".dev-dependencies.criterion]
 version = "0.5.0"

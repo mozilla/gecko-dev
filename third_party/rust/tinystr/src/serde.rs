@@ -72,7 +72,7 @@ impl<'de, const N: usize> Visitor<'de> for TinyAsciiStrVisitor<N> {
             *out = byte;
         }
 
-        Ok(unsafe { TinyAsciiStr::from_utf8_unchecked(bytes) })
+        Ok(unsafe { TinyAsciiStr::from_bytes_unchecked(bytes) })
     }
 }
 
@@ -83,7 +83,7 @@ impl<'de, const N: usize> Deserialize<'de> for TinyAsciiStr<N> {
     {
         if deserializer.is_human_readable() {
             let x: Cow<'de, str> = Deserialize::deserialize(deserializer)?;
-            TinyAsciiStr::try_from_str(&x).map_err(|e| Error::custom(e.to_string()))
+            TinyAsciiStr::from_str(&x).map_err(|e| Error::custom(e.to_string()))
         } else {
             deserializer.deserialize_tuple(N, TinyAsciiStrVisitor::<N>::new())
         }

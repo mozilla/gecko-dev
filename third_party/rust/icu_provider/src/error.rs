@@ -2,8 +2,9 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::log;
-use crate::{marker::DataMarkerId, prelude::*};
+use crate::_internal::log;
+use crate::buf::BufferFormat;
+use crate::prelude::*;
 use core::fmt;
 use displaydoc::Display;
 
@@ -14,42 +15,63 @@ use displaydoc::Display;
 #[derive(Clone, Copy, Eq, PartialEq, Display, Debug)]
 #[non_exhaustive]
 pub enum DataErrorKind {
-    /// No data for the requested data marker. This is only returned by [`DynamicDataProvider`].
-    #[displaydoc("Missing data for marker")]
-    MarkerNotFound,
+    /// No data for the provided resource key.
+    #[displaydoc("Missing data for key")]
+    MissingDataKey,
 
-    /// There is data for the data marker, but not for this particular data identifier.
-    #[displaydoc("Missing data for identifier")]
-    IdentifierNotFound,
+    /// There is data for the key, but not for this particular locale.
+    #[displaydoc("Missing data for locale")]
+    MissingLocale,
 
-    /// The request is invalid, such as a request for a singleton marker containing a data identifier.
-    #[displaydoc("Invalid request")]
-    InvalidRequest,
+    /// The request should include a locale.
+    #[displaydoc("Request needs a locale")]
+    NeedsLocale,
 
-    /// The data for two [`DataMarker`]s is not consistent.
-    #[displaydoc("The data for two markers is not consistent: {0:?} (were they generated in different datagen invocations?)")]
-    InconsistentData(DataMarkerInfo),
+    /// The request should not contain a locale.
+    #[displaydoc("Request has an extraneous locale")]
+    ExtraneousLocale,
 
-    /// An error occured during [`Any`](core::any::Any) downcasting.
-    #[displaydoc("Downcast: expected {0}, found")]
-    Downcast(&'static str),
+    /// The resource was blocked by a filter. The resource may or may not be available.
+    #[displaydoc("Resource blocked by filter")]
+    FilteredResource,
 
-    /// An error occured during [`serde`] deserialization.
-    ///
-    /// Check debug logs for potentially more information.
-    #[displaydoc("Deserialize")]
-    Deserialize,
+    /// The generic type parameter does not match the TypeId. The expected type name is stored
+    /// as context when this error is returned.
+    #[displaydoc("Mismatched types: tried to downcast with {0}, but actual type is different")]
+    MismatchedType(&'static str),
 
-    /// An unspecified error occurred.
+    /// The payload is missing. This is usually caused by a previous error.
+    #[displaydoc("Missing payload")]
+    MissingPayload,
+
+    /// A data provider object was given to an operation in an invalid state.
+    #[displaydoc("Invalid state")]
+    InvalidState,
+
+    /// The syntax of the [`DataKey`] or [`DataLocale`] was invalid.
+    #[displaydoc("Parse error for data key or data locale")]
+    KeyLocaleSyntax,
+
+    /// An unspecified error occurred, such as a Serde error.
     ///
     /// Check debug logs for potentially more information.
     #[displaydoc("Custom")]
     Custom,
 
     /// An error occurred while accessing a system resource.
-    #[displaydoc("I/O: {0:?}")]
+    #[displaydoc("I/O error: {0:?}")]
     #[cfg(feature = "std")]
     Io(std::io::ErrorKind),
+
+    /// An unspecified data source containing the required data is unavailable.
+    #[displaydoc("Missing source data")]
+    #[cfg(feature = "datagen")]
+    MissingSourceData,
+
+    /// An error indicating that the desired buffer format is not available. This usually
+    /// means that a required Cargo feature was not enabled
+    #[displaydoc("Unavailable buffer format: {0:?} (does icu_provider need to be compiled with an additional Cargo feature?)")]
+    UnavailableBufferFormat(BufferFormat),
 }
 
 /// The error type for ICU4X data provider operations.
@@ -58,13 +80,13 @@ pub enum DataErrorKind {
 ///
 /// # Example
 ///
-/// Create a IdentifierNotFound error and attach a data request for context:
+/// Create a NeedsLocale error and attach a data request for context:
 ///
 /// ```no_run
 /// # use icu_provider::prelude::*;
-/// let marker: DataMarkerInfo = unimplemented!();
+/// let key: DataKey = unimplemented!();
 /// let req: DataRequest = unimplemented!();
-/// DataErrorKind::IdentifierNotFound.with_req(marker, req);
+/// DataErrorKind::NeedsLocale.with_req(key, req);
 /// ```
 ///
 /// Create a named custom error:
@@ -79,8 +101,8 @@ pub struct DataError {
     /// Broad category of the error.
     pub kind: DataErrorKind,
 
-    /// The data marker of the request, if available.
-    pub marker: Option<DataMarkerId>,
+    /// The data key of the request, if available.
+    pub key: Option<DataKey>,
 
     /// Additional context, if available.
     pub str_context: Option<&'static str>,
@@ -95,8 +117,8 @@ impl fmt::Display for DataError {
         if self.kind != DataErrorKind::Custom {
             write!(f, ": {}", self.kind)?;
         }
-        if let Some(marker) = self.marker {
-            write!(f, " (marker: {marker:?})")?;
+        if let Some(key) = self.key {
+            write!(f, " (key: {key})")?;
         }
         if let Some(str_context) = self.str_context {
             write!(f, ": {str_context}")?;
@@ -113,16 +135,16 @@ impl DataErrorKind {
     pub const fn into_error(self) -> DataError {
         DataError {
             kind: self,
-            marker: None,
+            key: None,
             str_context: None,
             silent: false,
         }
     }
 
-    /// Creates a DataError with a data marker context.
+    /// Creates a DataError with a resource key context.
     #[inline]
-    pub const fn with_marker(self, marker: DataMarkerInfo) -> DataError {
-        self.into_error().with_marker(marker)
+    pub const fn with_key(self, key: DataKey) -> DataError {
+        self.into_error().with_key(key)
     }
 
     /// Creates a DataError with a string context.
@@ -139,8 +161,8 @@ impl DataErrorKind {
 
     /// Creates a DataError with a request context.
     #[inline]
-    pub fn with_req(self, marker: DataMarkerInfo, req: DataRequest) -> DataError {
-        self.into_error().with_req(marker, req)
+    pub fn with_req(self, key: DataKey, req: DataRequest) -> DataError {
+        self.into_error().with_req(key, req)
     }
 }
 
@@ -150,18 +172,18 @@ impl DataError {
     pub const fn custom(str_context: &'static str) -> Self {
         Self {
             kind: DataErrorKind::Custom,
-            marker: None,
+            key: None,
             str_context: Some(str_context),
             silent: false,
         }
     }
 
-    /// Sets the data marker of a DataError, returning a modified error.
+    /// Sets the resource key of a DataError, returning a modified error.
     #[inline]
-    pub const fn with_marker(self, marker: DataMarkerInfo) -> Self {
+    pub const fn with_key(self, key: DataKey) -> Self {
         Self {
             kind: self.kind,
-            marker: Some(marker.id),
+            key: Some(key),
             str_context: self.str_context,
             silent: self.silent,
         }
@@ -172,7 +194,7 @@ impl DataError {
     pub const fn with_str_context(self, context: &'static str) -> Self {
         Self {
             kind: self.kind,
-            marker: self.marker,
+            key: self.key,
             str_context: Some(context),
             silent: self.silent,
         }
@@ -187,19 +209,19 @@ impl DataError {
         self.with_str_context(core::any::type_name::<T>())
     }
 
-    /// Logs the data error with the given request, returning an error containing the data marker.
+    /// Logs the data error with the given request, returning an error containing the resource key.
     ///
     /// If the "logging" Cargo feature is enabled, this logs the whole request. Either way,
-    /// it returns an error with the data marker portion of the request as context.
-    pub fn with_req(mut self, marker: DataMarkerInfo, req: DataRequest) -> Self {
+    /// it returns an error with the resource key portion of the request as context.
+    pub fn with_req(mut self, key: DataKey, req: DataRequest) -> Self {
         if req.metadata.silent {
             self.silent = true;
         }
-        // Don't write out a log for MissingDataMarker since there is no context to add
-        if !self.silent && self.kind != DataErrorKind::MarkerNotFound {
-            log::warn!("{self} (marker: {marker:?}, request: {})", req.id);
+        // Don't write out a log for MissingDataKey since there is no context to add
+        if !self.silent && self.kind != DataErrorKind::MissingDataKey {
+            log::warn!("{} (key: {}, request: {})", self, key, req);
         }
-        self.with_marker(marker)
+        self.with_key(key)
     }
 
     /// Logs the data error with the given context, then return self.
@@ -207,9 +229,9 @@ impl DataError {
     /// This does not modify the error, but if the "logging" Cargo feature is enabled,
     /// it will print out the context.
     #[cfg(feature = "std")]
-    pub fn with_path_context(self, _path: &std::path::Path) -> Self {
+    pub fn with_path_context<P: AsRef<std::path::Path> + ?Sized>(self, _path: &P) -> Self {
         if !self.silent {
-            log::warn!("{self} (path: {_path:?})");
+            log::warn!("{} (path: {:?})", self, _path.as_ref());
         }
         self
     }
@@ -243,39 +265,21 @@ impl DataError {
     #[inline]
     pub(crate) fn for_type<T>() -> DataError {
         DataError {
-            kind: DataErrorKind::Downcast(core::any::type_name::<T>()),
-            marker: None,
+            kind: DataErrorKind::MismatchedType(core::any::type_name::<T>()),
+            key: None,
             str_context: None,
             silent: false,
         }
     }
 }
 
-impl core::error::Error for DataError {}
+#[cfg(feature = "std")]
+impl std::error::Error for DataError {}
 
 #[cfg(feature = "std")]
 impl From<std::io::Error> for DataError {
     fn from(e: std::io::Error) -> Self {
         log::warn!("I/O error: {}", e);
         DataErrorKind::Io(e.kind()).into_error()
-    }
-}
-
-/// Extension trait for `Result<T, DataError>`.
-pub trait ResultDataError<T>: Sized {
-    /// Propagates all errors other than [`DataErrorKind::IdentifierNotFound`], and returns `None` in that case.
-    fn allow_identifier_not_found(self) -> Result<Option<T>, DataError>;
-}
-
-impl<T> ResultDataError<T> for Result<T, DataError> {
-    fn allow_identifier_not_found(self) -> Result<Option<T>, DataError> {
-        match self {
-            Ok(t) => Ok(Some(t)),
-            Err(DataError {
-                kind: DataErrorKind::IdentifierNotFound,
-                ..
-            }) => Ok(None),
-            Err(e) => Err(e),
-        }
     }
 }

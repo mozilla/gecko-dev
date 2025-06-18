@@ -11,7 +11,7 @@ use icu_provider::prelude::*;
 /// [`ForkByErrorProvider`]: super::ForkByErrorProvider
 pub trait ForkByErrorPredicate {
     /// The error to return if there are zero providers.
-    const UNIT_ERROR: DataErrorKind = DataErrorKind::MarkerNotFound;
+    const UNIT_ERROR: DataErrorKind = DataErrorKind::MissingDataKey;
 
     /// This function is called when a data request fails and there are additional providers
     /// that could possibly fulfill the request.
@@ -19,37 +19,41 @@ pub trait ForkByErrorPredicate {
     /// Arguments:
     ///
     /// - `&self` = Reference to the struct implementing the trait (for data capture)
-    /// - `marker` = The [`DataMarkerInfo`] associated with the request
+    /// - `key` = The [`DataKey`] associated with the request
     /// - `req` = The [`DataRequest`]. This may be `None` if there is no request, such as
-    ///   inside [`IterableDynamicDataProvider`].
+    ///           inside [`IterableDynamicDataProvider`].
     /// - `err` = The error that occurred.
     ///
     /// Return value:
     ///
     /// - `true` to discard the error and attempt the request with the next provider.
     /// - `false` to return the error and not perform any additional requests.
-    fn test(&self, marker: DataMarkerInfo, req: Option<DataRequest>, err: DataError) -> bool;
+    ///
+    /// [`DataKey`]: icu_provider::DataKey
+    /// [`DataRequest`]: icu_provider::DataRequest
+    /// [`IterableDynamicDataProvider`]: icu_provider::datagen::IterableDynamicDataProvider
+    fn test(&self, key: DataKey, req: Option<DataRequest>, err: DataError) -> bool;
 }
 
 /// A predicate that allows forking providers to search for a provider that supports a
-/// particular data marker.
+/// particular data key.
 ///
-/// This is normally used implicitly by [`ForkByMarkerProvider`].
+/// This is normally used implicitly by [`ForkByKeyProvider`].
 ///
-/// [`ForkByMarkerProvider`]: super::ForkByMarkerProvider
+/// [`ForkByKeyProvider`]: super::ForkByKeyProvider
 #[derive(Debug, PartialEq, Eq)]
 #[non_exhaustive] // Not intended to be constructed
-pub struct MarkerNotFoundPredicate;
+pub struct MissingDataKeyPredicate;
 
-impl ForkByErrorPredicate for MarkerNotFoundPredicate {
-    const UNIT_ERROR: DataErrorKind = DataErrorKind::MarkerNotFound;
+impl ForkByErrorPredicate for MissingDataKeyPredicate {
+    const UNIT_ERROR: DataErrorKind = DataErrorKind::MissingDataKey;
 
     #[inline]
-    fn test(&self, _: DataMarkerInfo, _: Option<DataRequest>, err: DataError) -> bool {
+    fn test(&self, _: DataKey, _: Option<DataRequest>, err: DataError) -> bool {
         matches!(
             err,
             DataError {
-                kind: DataErrorKind::MarkerNotFound,
+                kind: DataErrorKind::MissingDataKey,
                 ..
             }
         )
@@ -57,77 +61,83 @@ impl ForkByErrorPredicate for MarkerNotFoundPredicate {
 }
 
 /// A predicate that allows forking providers to search for a provider that supports a
-/// particular locale, based on whether it returns [`DataErrorKind::IdentifierNotFound`].
+/// particular locale, based on whether it returns [`DataErrorKind::MissingLocale`].
 ///
 /// # Examples
 ///
+/// Configure a multi-language data provider pointing at two language packs:
+///
 /// ```
 /// use icu_provider_adapters::fork::ForkByErrorProvider;
-/// use icu_provider_adapters::fork::predicates::IdentifierNotFoundPredicate;
+/// use icu_provider_adapters::fork::predicates::MissingLocalePredicate;
+/// use icu_provider_fs::FsDataProvider;
 /// use icu_provider::prelude::*;
-/// use icu_provider::hello_world::*;
-/// use icu_locale::langid;
+/// use icu_provider::hello_world::HelloWorldV1Marker;
+/// use icu_locid::langid;
 ///
-/// struct SingleLocaleProvider(DataLocale);
-/// impl DataProvider<HelloWorldV1> for SingleLocaleProvider {
-///     fn load(&self, req: DataRequest) -> Result<DataResponse<HelloWorldV1>, DataError> {
-///         if *req.id.locale != self.0 {
-///             return Err(DataErrorKind::IdentifierNotFound.with_req(HelloWorldV1::INFO, req));
-///         }
-///         HelloWorldProvider.load(req)
-///     }
-/// }
-///
-/// let provider_de = SingleLocaleProvider(langid!("de").into());
-/// let provider_ro = SingleLocaleProvider(langid!("ro").into());
+/// // The `tests` directory contains two separate "language packs" for Hello World data.
+/// let provider_de = FsDataProvider::try_new("tests/data/langtest/de").unwrap();
+/// let provider_ro = FsDataProvider::try_new("tests/data/langtest/ro").unwrap();
 ///
 /// // Create the forking provider:
 /// let provider = ForkByErrorProvider::new_with_predicate(
 ///     provider_de,
 ///     provider_ro,
-///     IdentifierNotFoundPredicate
+///     MissingLocalePredicate
 /// );
 ///
 /// // Test that we can load both "de" and "ro" data:
 ///
-/// let german_hello_world: DataResponse<HelloWorldV1> = provider
+/// let german_hello_world: DataPayload<HelloWorldV1Marker> = provider
+///     .as_deserializing()
 ///     .load(DataRequest {
-///         id: DataIdentifierBorrowed::for_locale(&langid!("de").into()),
-///         ..Default::default()
+///         locale: &langid!("de").into(),
+///         metadata: Default::default(),
 ///     })
-///     .expect("Loading should succeed");
+///     .expect("Loading should succeed")
+///     .take_payload()
+///     .expect("Data should be present");
 ///
-/// assert_eq!("Hallo Welt", german_hello_world.payload.get().message);
+/// assert_eq!("Hallo Welt", german_hello_world.get().message);
 ///
-/// let romanian_hello_world: DataResponse<HelloWorldV1> = provider
+/// let romanian_hello_world: DataPayload<HelloWorldV1Marker> = provider
+///     .as_deserializing()
 ///     .load(DataRequest {
-///         id: DataIdentifierBorrowed::for_locale(&langid!("ro").into()),
-///         ..Default::default()
+///         locale: &langid!("ro").into(),
+///         metadata: Default::default(),
 ///     })
-///     .expect("Loading should succeed");
+///     .expect("Loading should succeed")
+///     .take_payload()
+///     .expect("Data should be present");
 ///
-/// assert_eq!("Salut, lume", romanian_hello_world.payload.get().message);
+/// assert_eq!("Salut, lume", romanian_hello_world.get().message);
 ///
-/// // We should not be able to load "en" data because it is not in either provider:
+/// // We should not be able to load "en" data because it is not in the provider:
 ///
-/// DataProvider::<HelloWorldV1>::load(
-///     &provider,
+/// DataProvider::<HelloWorldV1Marker>::load(
+///     &provider.as_deserializing(),
 ///     DataRequest {
-///         id: DataIdentifierBorrowed::for_locale(&langid!("en").into()),
-///         ..Default::default()
+///         locale: &langid!("en").into(),
+///         metadata: Default::default(),
 ///     }
 /// )
 /// .expect_err("No English data");
 /// ```
 #[derive(Debug, PartialEq, Eq)]
 #[allow(clippy::exhaustive_structs)] // empty type
-pub struct IdentifierNotFoundPredicate;
+pub struct MissingLocalePredicate;
 
-impl ForkByErrorPredicate for IdentifierNotFoundPredicate {
-    const UNIT_ERROR: DataErrorKind = DataErrorKind::IdentifierNotFound;
+impl ForkByErrorPredicate for MissingLocalePredicate {
+    const UNIT_ERROR: DataErrorKind = DataErrorKind::MissingLocale;
 
     #[inline]
-    fn test(&self, _: DataMarkerInfo, _: Option<DataRequest>, err: DataError) -> bool {
-        Err::<(), _>(err).allow_identifier_not_found().is_ok()
+    fn test(&self, _: DataKey, _: Option<DataRequest>, err: DataError) -> bool {
+        matches!(
+            err,
+            DataError {
+                kind: DataErrorKind::MissingLocale,
+                ..
+            }
+        )
     }
 }

@@ -45,7 +45,7 @@ impl<'a, K: 'a, V: 'a> Store<K, V> for &'a [(K, V)] {
     }
 }
 
-impl<K, V> StoreSlice<K, V> for &[(K, V)] {
+impl<'a, K, V> StoreSlice<K, V> for &'a [(K, V)] {
     type Slice = [(K, V)];
 
     fn lm_get_range(&self, range: Range<usize>) -> Option<&Self::Slice> {

@@ -4,8 +4,10 @@
 
 //! Options to define fallback behaviour.
 //!
-//! These options are consumed by the `LocaleFallbacker` in the `icu_locales` crate
-//! (or the `icu::locales` module), but are defined here because they are used by `DataMarkerInfo`.
+//! These options are consumed by the `LocaleFallbacker` in the `icu_locid_transforms` crate
+//! (or the `icu::locid_transforms` module), but are defined here because they are used by `DataKey`.
+
+use icu_locid::extensions::unicode::Key;
 
 /// Hint for which subtag to prioritize during fallback.
 ///
@@ -18,27 +20,35 @@ pub enum LocaleFallbackPriority {
     ///
     /// For example, `"en-US"` should go to `"en"` and then `"und"`.
     Language,
-    /// Prioritize the script.
-    ///
-    /// For example, `"en-US"` should go to `"en"` and then `"und-Latn"` and then `"und"`.
-    Script,
     /// Prioritize the region.
     ///
     /// For example, `"en-US"` should go to `"und-US"` and then `"und"`.
     Region,
+    /// Collation-specific fallback rules. Similar to language priority.
+    ///
+    /// For example, `"zh-Hant"` goes to `"zh"` before `"und"`.
+    Collation,
 }
 
 impl LocaleFallbackPriority {
     /// Const-friendly version of [`Default::default`].
-    pub const fn default() -> Self {
+    pub const fn const_default() -> Self {
         Self::Language
     }
 }
 
 impl Default for LocaleFallbackPriority {
     fn default() -> Self {
-        Self::default()
+        Self::const_default()
     }
+}
+
+/// What additional data is required to load when performing fallback.
+#[derive(Debug, PartialEq, Eq, Copy, Clone, PartialOrd, Ord)]
+#[non_exhaustive]
+pub enum LocaleFallbackSupplement {
+    /// Collation supplement
+    Collation,
 }
 
 /// Configuration settings for a particular fallback operation.
@@ -52,10 +62,10 @@ pub struct LocaleFallbackConfig {
     /// Retain the language and script subtags until the final step:
     ///
     /// ```
-    /// use icu::locale::fallback::LocaleFallbackConfig;
-    /// use icu::locale::fallback::LocaleFallbackPriority;
-    /// use icu::locale::locale;
-    /// use icu::locale::LocaleFallbacker;
+    /// use icu::locid::locale;
+    /// use icu::locid_transform::fallback::LocaleFallbackConfig;
+    /// use icu::locid_transform::fallback::LocaleFallbackPriority;
+    /// use icu::locid_transform::LocaleFallbacker;
     ///
     /// // Set up the fallback iterator.
     /// let fallbacker = LocaleFallbacker::new();
@@ -80,10 +90,10 @@ pub struct LocaleFallbackConfig {
     /// Retain the region subtag until the final step:
     ///
     /// ```
-    /// use icu::locale::fallback::LocaleFallbackConfig;
-    /// use icu::locale::fallback::LocaleFallbackPriority;
-    /// use icu::locale::locale;
-    /// use icu::locale::LocaleFallbacker;
+    /// use icu::locid::locale;
+    /// use icu::locid_transform::fallback::LocaleFallbackConfig;
+    /// use icu::locid_transform::fallback::LocaleFallbackPriority;
+    /// use icu::locid_transform::LocaleFallbacker;
     ///
     /// // Set up the fallback iterator.
     /// let fallbacker = LocaleFallbacker::new();
@@ -105,19 +115,88 @@ pub struct LocaleFallbackConfig {
     /// assert_eq!(fallback_iterator.get(), &locale!("und").into());
     /// ```
     pub priority: LocaleFallbackPriority,
+    /// An extension keyword to retain during locale fallback.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use icu::locid::locale;
+    /// use icu::locid_transform::fallback::LocaleFallbackConfig;
+    /// use icu::locid_transform::LocaleFallbacker;
+    ///
+    /// // Set up the fallback iterator.
+    /// let fallbacker = LocaleFallbacker::new();
+    /// let mut config = LocaleFallbackConfig::default();
+    /// config.extension_key = Some(icu::locid::extensions::unicode::key!("nu"));
+    /// let mut fallback_iterator = fallbacker
+    ///     .for_config(config)
+    ///     .fallback_for(locale!("ar-EG-u-nu-latn").into());
+    ///
+    /// // Run the algorithm and check the results.
+    /// assert_eq!(fallback_iterator.get(), &locale!("ar-EG-u-nu-latn").into());
+    /// fallback_iterator.step();
+    /// assert_eq!(fallback_iterator.get(), &locale!("ar-EG").into());
+    /// fallback_iterator.step();
+    /// assert_eq!(fallback_iterator.get(), &locale!("ar-u-nu-latn").into());
+    /// fallback_iterator.step();
+    /// assert_eq!(fallback_iterator.get(), &locale!("ar").into());
+    /// fallback_iterator.step();
+    /// assert_eq!(fallback_iterator.get(), &locale!("und").into());
+    /// ```
+    pub extension_key: Option<Key>,
+    /// Fallback supplement data key to customize fallback rules.
+    ///
+    /// For example, most data keys for collation add additional parent locales, such as
+    /// "yue" to "zh-Hant", and data used for the `"-u-co"` extension keyword fallback.
+    ///
+    /// Currently the only supported fallback supplement is `LocaleFallbackSupplement::Collation`, but more may be
+    /// added in the future.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use icu::locid::locale;
+    /// use icu::locid_transform::fallback::LocaleFallbackConfig;
+    /// use icu::locid_transform::fallback::LocaleFallbackPriority;
+    /// use icu::locid_transform::fallback::LocaleFallbackSupplement;
+    /// use icu::locid_transform::LocaleFallbacker;
+    ///
+    /// // Set up the fallback iterator.
+    /// let fallbacker = LocaleFallbacker::new();
+    /// let mut config = LocaleFallbackConfig::default();
+    /// config.priority = LocaleFallbackPriority::Collation;
+    /// config.fallback_supplement = Some(LocaleFallbackSupplement::Collation);
+    /// let mut fallback_iterator = fallbacker
+    ///     .for_config(config)
+    ///     .fallback_for(locale!("yue-HK").into());
+    ///
+    /// // Run the algorithm and check the results.
+    /// assert_eq!(fallback_iterator.get(), &locale!("yue-HK").into());
+    /// fallback_iterator.step();
+    /// assert_eq!(fallback_iterator.get(), &locale!("yue").into());
+    /// fallback_iterator.step();
+    /// assert_eq!(fallback_iterator.get(), &locale!("zh-Hant").into());
+    /// fallback_iterator.step();
+    /// assert_eq!(fallback_iterator.get(), &locale!("zh").into());
+    /// fallback_iterator.step();
+    /// assert_eq!(fallback_iterator.get(), &locale!("und").into());
+    /// ```
+    pub fallback_supplement: Option<LocaleFallbackSupplement>,
 }
 
 impl LocaleFallbackConfig {
     /// Const version of [`Default::default`].
-    pub const fn default() -> Self {
+    pub const fn const_default() -> Self {
         Self {
-            priority: LocaleFallbackPriority::default(),
+            priority: LocaleFallbackPriority::const_default(),
+            extension_key: None,
+            fallback_supplement: None,
         }
     }
 }
 
 impl Default for LocaleFallbackConfig {
     fn default() -> Self {
-        Self::default()
+        Self::const_default()
     }
 }

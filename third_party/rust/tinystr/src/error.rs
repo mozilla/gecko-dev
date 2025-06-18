@@ -4,15 +4,16 @@
 
 use displaydoc::Display;
 
-impl core::error::Error for ParseError {}
+#[cfg(feature = "std")]
+impl std::error::Error for TinyStrError {}
 
 #[derive(Display, Debug, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum ParseError {
+pub enum TinyStrError {
     #[displaydoc("found string of larger length {len} when constructing string of length {max}")]
-    TooLong { max: usize, len: usize },
+    TooLarge { max: usize, len: usize },
     #[displaydoc("tinystr types do not support strings with null bytes")]
     ContainsNull,
-    #[displaydoc("attempted to construct TinyAsciiStr from a non-ASCII string")]
+    #[displaydoc("attempted to construct TinyStrAuto from a non-ascii string")]
     NonAscii,
 }

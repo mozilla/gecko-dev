@@ -3,8 +3,8 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use super::*;
-use crate::ule::{AsULE, EncodeAsVarULE, UleError, VarULE};
-use crate::{VarZeroVec, ZeroSlice, ZeroVec};
+use crate::ule::{AsULE, EncodeAsVarULE, VarULE};
+use crate::{VarZeroVec, ZeroSlice, ZeroVec, ZeroVecError};
 use alloc::borrow::Borrow;
 use alloc::boxed::Box;
 use core::cmp::Ordering;
@@ -323,8 +323,9 @@ where
 
 impl<'a, K, V> ZeroMap<'a, K, V>
 where
-    K: AsULE + ZeroMapKV<'a, Container = ZeroVec<'a, K>>,
+    K: ZeroMapKV<'a, Container = ZeroVec<'a, K>> + ?Sized,
     V: ZeroMapKV<'a> + ?Sized,
+    K: AsULE,
 {
     /// Cast a `ZeroMap<K, V>` to `ZeroMap<P, V>` where `K` and `P` are [`AsULE`] types
     /// with the same representation.
@@ -334,7 +335,7 @@ where
     /// If `K` and `P` have different ordering semantics, unexpected behavior may occur.
     pub fn cast_zv_k_unchecked<P>(self) -> ZeroMap<'a, P, V>
     where
-        P: AsULE<ULE = K::ULE> + ZeroMapKV<'a, Container = ZeroVec<'a, P>>,
+        P: AsULE<ULE = K::ULE> + ZeroMapKV<'a, Container = ZeroVec<'a, P>> + ?Sized,
     {
         ZeroMap {
             keys: self.keys.cast(),
@@ -352,9 +353,9 @@ where
     /// # Panics
     ///
     /// Panics if `K::ULE` and `P::ULE` are not the same size.
-    pub fn try_convert_zv_k_unchecked<P>(self) -> Result<ZeroMap<'a, P, V>, UleError>
+    pub fn try_convert_zv_k_unchecked<P>(self) -> Result<ZeroMap<'a, P, V>, ZeroVecError>
     where
-        P: AsULE + ZeroMapKV<'a, Container = ZeroVec<'a, P>>,
+        P: AsULE + ZeroMapKV<'a, Container = ZeroVec<'a, P>> + ?Sized,
     {
         Ok(ZeroMap {
             keys: self.keys.try_into_converted()?,
@@ -366,7 +367,8 @@ where
 impl<'a, K, V> ZeroMap<'a, K, V>
 where
     K: ZeroMapKV<'a> + ?Sized,
-    V: AsULE + ZeroMapKV<'a, Container = ZeroVec<'a, V>>,
+    V: ZeroMapKV<'a, Container = ZeroVec<'a, V>> + ?Sized,
+    V: AsULE,
 {
     /// Cast a `ZeroMap<K, V>` to `ZeroMap<K, P>` where `V` and `P` are [`AsULE`] types
     /// with the same representation.
@@ -376,7 +378,7 @@ where
     /// If `V` and `P` have different ordering semantics, unexpected behavior may occur.
     pub fn cast_zv_v_unchecked<P>(self) -> ZeroMap<'a, K, P>
     where
-        P: AsULE<ULE = V::ULE> + ZeroMapKV<'a, Container = ZeroVec<'a, P>>,
+        P: AsULE<ULE = V::ULE> + ZeroMapKV<'a, Container = ZeroVec<'a, P>> + ?Sized,
     {
         ZeroMap {
             keys: self.keys,
@@ -394,9 +396,9 @@ where
     /// # Panics
     ///
     /// Panics if `V::ULE` and `P::ULE` are not the same size.
-    pub fn try_convert_zv_v_unchecked<P>(self) -> Result<ZeroMap<'a, K, P>, UleError>
+    pub fn try_convert_zv_v_unchecked<P>(self) -> Result<ZeroMap<'a, K, P>, ZeroVecError>
     where
-        P: AsULE + ZeroMapKV<'a, Container = ZeroVec<'a, P>>,
+        P: AsULE + ZeroMapKV<'a, Container = ZeroVec<'a, P>> + ?Sized,
     {
         Ok(ZeroMap {
             keys: self.keys,
@@ -466,7 +468,8 @@ where
 impl<'a, K, V> ZeroMap<'a, K, V>
 where
     K: ZeroMapKV<'a> + ?Sized + Ord,
-    V: Copy + ZeroMapKV<'a>,
+    V: ZeroMapKV<'a> + ?Sized,
+    V: Copy,
 {
     /// For cases when `V` is fixed-size, obtain a direct copy of `V` instead of `V::ULE`.
     ///
@@ -520,7 +523,8 @@ where
 impl<'a, K, V> ZeroMap<'a, K, V>
 where
     K: ZeroMapKV<'a> + ?Sized,
-    V: AsULE + ZeroMapKV<'a, Container = ZeroVec<'a, V>>,
+    V: ZeroMapKV<'a, Container = ZeroVec<'a, V>> + ?Sized,
+    V: AsULE + Copy,
 {
     /// Similar to [`Self::iter()`] except it returns a direct copy of the values instead of references
     /// to `V::ULE`, in cases when `V` is fixed-size
@@ -540,8 +544,10 @@ where
 
 impl<'a, K, V> ZeroMap<'a, K, V>
 where
-    K: AsULE + ZeroMapKV<'a, Container = ZeroVec<'a, K>>,
-    V: AsULE + ZeroMapKV<'a, Container = ZeroVec<'a, V>>,
+    K: ZeroMapKV<'a, Container = ZeroVec<'a, K>> + ?Sized,
+    V: ZeroMapKV<'a, Container = ZeroVec<'a, V>> + ?Sized,
+    K: AsULE + Copy,
+    V: AsULE + Copy,
 {
     /// Similar to [`Self::iter()`] except it returns a direct copy of the keys values instead of references
     /// to `K::ULE` and `V::ULE`, in cases when `K` and `V` are fixed-size

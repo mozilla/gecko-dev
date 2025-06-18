@@ -141,6 +141,12 @@ where
     populate_litemap(&mut litemap_std);
     check_equivalence(litemap_test.clone().values, litemap_std.clone().values);
 
+    litemap_test.retain(|_, v| v % 2 == 0);
+    litemap_std.retain(|_, v| v % 2 == 0);
+    assert_eq!(11, litemap_test.len());
+    assert_eq!(11, litemap_std.len());
+    check_equivalence(litemap_test.clone().values, litemap_std.clone().values);
+
     litemap_test
         .remove(&175)
         .ok_or(())
@@ -152,8 +158,8 @@ where
         .expect_err("does not exist");
     litemap_std.remove(&147).ok_or(()).expect("exists");
 
-    assert_eq!(19, litemap_test.len());
-    assert_eq!(19, litemap_std.len());
+    assert_eq!(10, litemap_test.len());
+    assert_eq!(10, litemap_std.len());
     check_equivalence(litemap_test.clone().values, litemap_std.clone().values);
 
     litemap_test.clear();
@@ -162,7 +168,7 @@ where
 }
 
 /// Similar to [`check_store`] function, but also checks the validitiy of [`StoreIterableMut`]
-/// and [`StoreBulkMut`] traits.
+/// trait.
 // Test code
 #[allow(clippy::expect_used)]
 pub fn check_store_full<'a, S>()
@@ -171,7 +177,6 @@ where
         + StoreIterableMut<'a, u32, u64>
         + StoreIntoIterator<u32, u64>
         + StoreFromIterator<u32, u64>
-        + StoreBulkMut<u32, u64>
         + Clone
         + Debug
         + PartialEq
@@ -194,7 +199,6 @@ where
     check_equivalence(litemap_test.clone().values, litemap_std.clone().values);
     check_into_iter_equivalence(litemap_test.clone().values, litemap_std.clone().values);
 
-    assert_eq!(20, litemap_test.len());
     litemap_test.retain(|_, v| v % 2 == 0);
     litemap_std.retain(|_, v| v % 2 == 0);
     assert_eq!(11, litemap_test.len());
@@ -213,20 +217,8 @@ where
     assert_eq!(20, litemap_test.len());
     assert_eq!(20, litemap_std.len());
     check_equivalence(litemap_test.clone().values, litemap_std.clone().values);
-
-    assert_eq!(20, litemap_test.len());
-    litemap_test.retain(|_, v| v % 2 == 0);
-    litemap_std.retain(|_, v| v % 2 == 0);
-    assert_eq!(11, litemap_test.len());
-    assert_eq!(11, litemap_std.len());
-    let mut extras = LiteMap::<u32, u64>::new();
-    populate_litemap(&mut extras);
-    litemap_test.extend(extras.clone());
-    litemap_std.extend(extras);
-    assert_eq!(20, litemap_test.len());
-    assert_eq!(20, litemap_std.len());
-
     check_into_iter_equivalence(litemap_test.clone().values, litemap_std.clone().values);
+
     litemap_test
         .remove(&175)
         .ok_or(())
@@ -246,56 +238,4 @@ where
     litemap_std.clear();
     check_equivalence(litemap_test.clone().values, litemap_std.clone().values);
     check_into_iter_equivalence(litemap_test.values, litemap_std.values);
-
-    test_extend::<S>();
-}
-
-fn test_extend<'a, S>()
-where
-    S: StoreConstEmpty<u32, u64>
-        + StoreIterableMut<'a, u32, u64>
-        + StoreIntoIterator<u32, u64>
-        + StoreFromIterator<u32, u64>
-        + StoreBulkMut<u32, u64>
-        + Clone
-        + Debug
-        + PartialEq
-        + 'a,
-{
-    // Extend an empty BTreeMap with initial entries.
-    let mut map: LiteMap<u32, u64, S> = LiteMap::new();
-    let initial_entries = [(1, 1), (2, 2), (3, 3)];
-    map.extend(initial_entries);
-    assert_eq!(map.len(), 3);
-    assert_eq!(map.get(&1), Some(&1));
-    assert_eq!(map.get(&2), Some(&2));
-    assert_eq!(map.get(&3), Some(&3));
-
-    // Extend with entries that contain keys already present.
-    // For repeated keys, the last value should remain.
-    let overlapping_entries = [(2, 22), (4, 44), (1, 11)];
-    map.extend(overlapping_entries);
-    assert_eq!(map.len(), 4);
-    assert_eq!(map.get(&1), Some(&11));
-    assert_eq!(map.get(&2), Some(&22));
-    assert_eq!(map.get(&3), Some(&3));
-    assert_eq!(map.get(&4), Some(&44));
-
-    // Extend with an iterator that includes duplicate key entries.
-    // The very last occurrence for a key should be the final value.
-    let duplicate_entries = [(3, 333), (3, 3333), (5, 5)];
-    map.extend(duplicate_entries);
-    assert_eq!(map.len(), 5);
-    assert_eq!(map.get(&3), Some(&3333));
-    assert_eq!(map.get(&5), Some(&5));
-
-    // Extend with an empty iterator: the map should remain unchanged.
-    let empty_entries: Vec<(u32, u64)> = Vec::new();
-    let map_clone = map.clone();
-    map.extend(empty_entries);
-    check_equivalence(map.values.clone(), map_clone.values.clone());
-
-    // Extend with the same values: the map should remain unchanged.
-    map.extend(map_clone.clone());
-    check_equivalence(map.values.clone(), map_clone.values);
 }

@@ -34,10 +34,10 @@ use crate::map::{MutableZeroVecLike, ZeroVecLike};
 /// use zerovec::ZeroMap2d;
 ///
 /// // Example byte buffer representing the map { 1: {2: "three" } }
-/// let BINCODE_BYTES: &[u8; 47] = &[
+/// let BINCODE_BYTES: &[u8; 51] = &[
 ///     2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 4, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0,
-///     0, 0, 0, 0, 0, 0, 2, 0, 7, 0, 0, 0, 0, 0, 0, 0, 1, 0, 116, 104, 114,
-///     101, 101,
+///     0, 0, 0, 0, 0, 0, 2, 0, 11, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 116,
+///     104, 114, 101, 101,
 /// ];
 ///
 /// // Deserializing to ZeroMap requires no heap allocations.

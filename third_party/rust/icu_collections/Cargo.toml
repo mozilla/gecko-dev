@@ -11,11 +11,10 @@
 
 [package]
 edition = "2021"
-rust-version = "1.82"
+rust-version = "1.67"
 name = "icu_collections"
-version = "2.0.0"
+version = "1.5.0"
 authors = ["The ICU4X Project Developers"]
-build = false
 include = [
     "data/**/*",
     "src/**/*",
@@ -25,13 +24,7 @@ include = [
     "Cargo.toml",
     "LICENSE",
     "README.md",
-    "build.rs",
 ]
-autolib = false
-autobins = false
-autoexamples = false
-autotests = false
-autobenches = false
 description = "Collection of API for use in ICU libraries."
 homepage = "https://icu4x.unicode.org"
 readme = "README.md"
@@ -39,38 +32,14 @@ categories = ["internationalization"]
 license = "Unicode-3.0"
 repository = "https://github.com/unicode-org/icu4x"
 
+[package.metadata.cargo-all-features]
+denylist = ["bench"]
+
 [package.metadata.docs.rs]
 all-features = true
 
-[features]
-alloc = ["zerovec/alloc"]
-databake = [
-    "dep:databake",
-    "zerovec/databake",
-]
-serde = [
-    "dep:serde",
-    "zerovec/serde",
-    "potential_utf/serde",
-    "alloc",
-]
-
 [lib]
-name = "icu_collections"
-path = "src/lib.rs"
 bench = false
-
-[[example]]
-name = "unicode_bmp_blocks_selector"
-path = "examples/unicode_bmp_blocks_selector.rs"
-
-[[test]]
-name = "char16trie"
-path = "tests/char16trie.rs"
-
-[[test]]
-name = "cpt"
-path = "tests/cpt.rs"
 
 [[bench]]
 name = "codepointtrie"
@@ -81,6 +50,7 @@ harness = false
 name = "iai_cpt"
 path = "benches/iai_cpt.rs"
 harness = false
+required-features = ["bench"]
 
 [[bench]]
 name = "inv_list"
@@ -88,18 +58,13 @@ path = "benches/inv_list.rs"
 harness = false
 
 [dependencies.databake]
-version = "0.2.0"
+version = "0.1.8"
 features = ["derive"]
 optional = true
 default-features = false
 
 [dependencies.displaydoc]
 version = "0.2.3"
-default-features = false
-
-[dependencies.potential_utf]
-version = "0.1.1"
-features = ["zerovec"]
 default-features = false
 
 [dependencies.serde]
@@ -112,7 +77,7 @@ optional = true
 default-features = false
 
 [dependencies.yoke]
-version = "0.8.0"
+version = "0.7.4"
 features = ["derive"]
 default-features = false
 
@@ -122,7 +87,7 @@ features = ["derive"]
 default-features = false
 
 [dependencies.zerovec]
-version = "0.11.1"
+version = "0.10.2"
 features = [
     "derive",
     "yoke",
@@ -133,7 +98,7 @@ default-features = false
 version = "0.1.1"
 
 [dev-dependencies.postcard]
-version = "1.0.3"
+version = "1.0.1"
 features = ["alloc"]
 default-features = false
 
@@ -146,9 +111,19 @@ default-features = false
 version = "1.0.45"
 
 [dev-dependencies.toml]
-version = "0.8.0"
-features = ["parse"]
-default-features = false
+version = "0.5.8"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies.criterion]
+[features]
+bench = []
+databake = [
+    "dep:databake",
+    "zerovec/databake",
+]
+serde = [
+    "dep:serde",
+    "zerovec/serde",
+]
+std = []
+
+[target."cfg(not(target_arch = \"wasm32\"))".dev-dependencies.criterion]
 version = "0.5.0"

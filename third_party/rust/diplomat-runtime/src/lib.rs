@@ -8,20 +8,11 @@ use alloc::alloc::Layout;
 // defines `extern "C" diplomat_init()`
 mod wasm_glue;
 
-mod write;
-pub use write::DiplomatWrite;
-pub use write::{diplomat_buffer_write_create, diplomat_buffer_write_destroy};
-mod slices;
-pub use slices::{
-    DiplomatOwnedSlice, DiplomatOwnedStr16Slice, DiplomatOwnedStrSlice, DiplomatOwnedUTF8StrSlice,
-    DiplomatSlice, DiplomatSliceMut, DiplomatStr16Slice, DiplomatStrSlice, DiplomatUtf8StrSlice,
-};
-
-mod callback;
-pub use callback::DiplomatCallback;
+mod writeable;
+pub use writeable::DiplomatWriteable;
 
 mod result;
-pub use result::{DiplomatOption, DiplomatResult};
+pub use result::DiplomatResult;
 
 /// Like [`char`], but unvalidated.
 pub type DiplomatChar = u32;
@@ -52,12 +43,4 @@ pub unsafe extern "C" fn diplomat_alloc(size: usize, align: usize) -> *mut u8 {
 #[no_mangle]
 pub unsafe extern "C" fn diplomat_free(ptr: *mut u8, size: usize, align: usize) {
     alloc::alloc::dealloc(ptr, Layout::from_size_align(size, align).unwrap())
-}
-
-/// Whether a `&[u8]` is a `&str`
-/// # Safety
-/// - `ptr` and `size` must be a valid `&[u8]`
-#[no_mangle]
-pub unsafe extern "C" fn diplomat_is_str(ptr: *const u8, size: usize) -> bool {
-    core::str::from_utf8(core::slice::from_raw_parts(ptr, size)).is_ok()
 }

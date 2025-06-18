@@ -11,8 +11,7 @@ use core::ops::{Deref, DerefMut};
 /// The effect of this is that in Rust's safety model, types inside here are not
 /// expected to have any memory dependent validity properties (`dereferenceable`, `noalias`).
 ///
-/// See [#3696] for a testcase where `Yoke` fails under miri's field-retagging mode if not using
-/// KindaSortaDangling.
+/// See [#3696] for a testcase where `Yoke` fails this under miri's field-retagging mode.
 ///
 /// This has `T: 'static` since we don't need anything
 /// else and we don't want to have to think (more) about variance over lifetimes or dropck.
@@ -60,8 +59,8 @@ impl<T: 'static> Deref for KindaSortaDangling<T> {
     type Target = T;
     #[inline]
     fn deref(&self) -> &T {
-        // Safety: Due to the safety invariant on `dangle`, it is guaranteed to be always
-        // initialized as deref is never called during drop.
+        // Safety: Safe due to the safety invariant on `dangle`;
+        // we can always assume initialized
         unsafe { self.dangle.assume_init_ref() }
     }
 }
@@ -69,8 +68,8 @@ impl<T: 'static> Deref for KindaSortaDangling<T> {
 impl<T: 'static> DerefMut for KindaSortaDangling<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut T {
-        // Safety: Due to the safety invariant on `dangle`, it is guaranteed to be always
-        // initialized as deref_mut is never called during drop.
+        // Safety: Safe due to the safety invariant on `dangle`;
+        // we can always assume initialized
         unsafe { self.dangle.assume_init_mut() }
     }
 }
@@ -78,17 +77,17 @@ impl<T: 'static> DerefMut for KindaSortaDangling<T> {
 impl<T: 'static> Drop for KindaSortaDangling<T> {
     #[inline]
     fn drop(&mut self) {
-        // Safety: We are reading and dropping a valid initialized T.
-        //
-        // As `drop_in_place()` is a `read()`-like duplication operation we must be careful that the original value isn't
-        // used afterwards. It won't be because this is drop and the only
-        // code that will run after this is `self`'s drop glue, and that drop glue is empty
-        // because MaybeUninit has no drop.
-        //
-        // We use `drop_in_place()` instead of `let _ = ... .assume_init_read()` to avoid creating a move
-        // of the inner `T` (without `KindaSortaDangling` protection!) type into a local -- we don't want to
-        // assert any of `T`'s memory-related validity properties here.
         unsafe {
+            // Safety: We are reading and dropping a valid initialized T.
+            //
+            // As `drop_in_place()` is a `read()`-like duplication operation we must be careful that the original value isn't
+            // used afterwards. It won't be because this is drop and the only
+            // code that will run after this is `self`'s drop glue, and that drop glue is empty
+            // because MaybeUninit has no drop.
+            //
+            // We use `drop_in_place()` instead of `let _ = ... .assume_init_read()` to avoid creating a move
+            // of the inner `T` (without `KindaSortaDangling` protection!) type into a local -- we don't want to
+            // assert any of `T`'s memory-related validity properties here.
             self.dangle.as_mut_ptr().drop_in_place();
         }
     }

@@ -81,7 +81,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::hir::{self, Method, StructDef, StructPath, TyPosition, TypeContext};
+use crate::hir::{self, Method, StructDef, TyPosition, TypeContext};
 
 use crate::hir::lifetimes::{Lifetime, LifetimeEnv, MaybeStatic};
 use crate::hir::ty_position::StructPathLike;
@@ -115,12 +115,10 @@ pub enum LifetimeEdgeKind<'tcx> {
     /// A slice being converted and then borrowed. These often need to be handled differently
     /// when they are borrowed as the borrow will need to create an edge
     SliceParam,
-    /// A lifetime parameter of a struct, given the lifetime context and the struct-def lifetime for that struct.
-    ///
-    /// The boolean is whether or not the struct is optional.
+    /// A lifetime parameter of a struct, given the lifetime context and the struct-def lifetime for that struct
     ///
     /// Using this, you can generate code that "asks" the struct for the lifetime-relevant field edges
-    StructLifetime(&'tcx LifetimeEnv, Lifetime, bool),
+    StructLifetime(&'tcx LifetimeEnv, Lifetime),
 }
 
 #[non_exhaustive]
@@ -135,45 +133,8 @@ pub struct BorrowedLifetimeInfo<'tcx> {
 }
 
 impl<'tcx> BorrowingParamVisitor<'tcx> {
-    pub(crate) fn new(
-        method: &'tcx Method,
-        tcx: &'tcx TypeContext,
-        force_include_slices: bool,
-    ) -> Self {
-        let mut used_method_lifetimes = method.output.used_method_lifetimes();
-
-        // If we need to track the lifetime of slices, we just need to make sure to add a slice's
-        // lifetime to the used_method_lifetimes set.
-        //
-        // Currently this is done recursively, but as mentioned in
-        // https://github.com/rust-diplomat/diplomat/pull/839#discussion_r2031764206,
-        // a long term solution would involve re-designing the lifetimes map to track lifetimes
-        // that involve slices.
-        if force_include_slices {
-            if let Some(s) = &method.param_self {
-                if let hir::SelfType::Struct(s) = &s.ty {
-                    let st = s.resolve(tcx);
-                    for f in &st.fields {
-                        BorrowingParamVisitor::add_slices_to_used_lifetimes(
-                            &mut used_method_lifetimes,
-                            method,
-                            tcx,
-                            &f.ty,
-                        );
-                    }
-                }
-            }
-
-            for p in &method.params {
-                BorrowingParamVisitor::add_slices_to_used_lifetimes(
-                    &mut used_method_lifetimes,
-                    method,
-                    tcx,
-                    &p.ty,
-                );
-            }
-        }
-
+    pub(crate) fn new(method: &'tcx Method, tcx: &'tcx TypeContext) -> Self {
+        let used_method_lifetimes = method.output.used_method_lifetimes();
         let borrow_map = used_method_lifetimes
             .iter()
             .map(|lt| {
@@ -196,33 +157,6 @@ impl<'tcx> BorrowingParamVisitor<'tcx> {
         }
     }
 
-    /// Given a specific [hir::Type] `ty`, find the lifetimes of slices associated with `ty` and add them to `set`.
-    ///
-    /// We're only interested in non-static, bounded lifetimes (since those are ones we can explicitly de-allocate).
-    fn add_slices_to_used_lifetimes<P: TyPosition<StructPath = StructPath>>(
-        set: &mut BTreeSet<Lifetime>,
-        method: &'tcx Method,
-        tcx: &'tcx TypeContext,
-        ty: &hir::Type<P>,
-    ) {
-        match ty {
-            hir::Type::Struct(s) => {
-                let st = s.resolve(tcx);
-                for f in &st.fields {
-                    BorrowingParamVisitor::add_slices_to_used_lifetimes(set, method, tcx, &f.ty);
-                }
-            }
-            hir::Type::Slice(s) => {
-                if let Some(MaybeStatic::NonStatic(lt)) = s.lifetime() {
-                    if method.lifetime_env.get_bounds(*lt).is_some() {
-                        set.insert(*lt);
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-
     /// Get the cached list of used method lifetimes. Same as calling `.used_method_lifetimes()` on `method.output`
     pub fn used_method_lifetimes(&self) -> &BTreeSet<Lifetime> {
         &self.used_method_lifetimes
@@ -239,11 +173,7 @@ impl<'tcx> BorrowingParamVisitor<'tcx> {
     /// lifetime or lifetimes longer than it are used by this parameter. In other words, check if
     /// it is possible for data in the return type with this lifetime to have been borrowed from this parameter.
     /// If so, add code that will yield the ownership-relevant parts of this object to incoming_edges for that lifetime.
-    pub fn visit_param<P: TyPosition<StructPath = StructPath>>(
-        &mut self,
-        ty: &hir::Type<P>,
-        param_name: &str,
-    ) -> ParamBorrowInfo<'tcx> {
+    pub fn visit_param(&mut self, ty: &hir::Type, param_name: &str) -> ParamBorrowInfo<'tcx> {
         let mut is_borrowed = false;
         if self.used_method_lifetimes.is_empty() {
             if let hir::Type::Slice(..) = *ty {
@@ -275,11 +205,7 @@ impl<'tcx> BorrowingParamVisitor<'tcx> {
                         if method_lifetime_info.all_longer_lifetimes.contains(&use_lt) {
                             let edge = LifetimeEdge {
                                 param_name: param_name.into(),
-                                kind: LifetimeEdgeKind::StructLifetime(
-                                    link.def_env(),
-                                    def_lt,
-                                    ty.is_option(),
-                                ),
+                                kind: LifetimeEdgeKind::StructLifetime(link.def_env(), def_lt),
                             };
                             method_lifetime_info.incoming_edges.push(edge);
 

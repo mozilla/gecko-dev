@@ -105,7 +105,7 @@ pub fn make_varule_impl(ule_name: Ident, mut input: DeriveInput) -> TokenStream2
         .to_compile_error();
     }
 
-    let unsized_field_info = UnsizedFields::new(unsized_fields, attrs.vzv_format);
+    let unsized_field_info = UnsizedFields::new(unsized_fields);
 
     let mut field_inits = crate::ule::make_ule_fields(&sized_fields);
     let last_field_ule = unsized_field_info.varule_ty();
@@ -141,7 +141,7 @@ pub fn make_varule_impl(ule_name: Ident, mut input: DeriveInput) -> TokenStream2
         &maybe_lt_bound,
     );
 
-    let zf_and_from_impl = make_zf_and_from_impl(
+    let zf_impl = make_zf_impl(
         &sized_fields,
         &unsized_field_info,
         fields,
@@ -149,7 +149,6 @@ pub fn make_varule_impl(ule_name: Ident, mut input: DeriveInput) -> TokenStream2
         &ule_name,
         lt,
         input_span,
-        attrs.skip_from,
     );
 
     let eq_impl = quote!(
@@ -157,8 +156,8 @@ pub fn make_varule_impl(ule_name: Ident, mut input: DeriveInput) -> TokenStream2
             fn eq(&self, other: &Self) -> bool {
                 // The VarULE invariants allow us to assume that equality is byte equality
                 // in non-safety-critical contexts
-                <Self as zerovec::ule::VarULE>::as_bytes(&self)
-                == <Self as zerovec::ule::VarULE>::as_bytes(&other)
+                <Self as zerovec::ule::VarULE>::as_byte_slice(&self)
+                == <Self as zerovec::ule::VarULE>::as_byte_slice(&other)
             }
         }
 
@@ -201,19 +200,6 @@ pub fn make_varule_impl(ule_name: Ident, mut input: DeriveInput) -> TokenStream2
         quote!()
     };
 
-    let maybe_toowned = if !attrs.skip_toowned {
-        quote!(
-            impl zerovec::__zerovec_internal_reexport::borrow::ToOwned for #ule_name {
-                type Owned = zerovec::__zerovec_internal_reexport::boxed::Box<Self>;
-                fn to_owned(&self) -> Self::Owned {
-                    zerovec::ule::encode_varule_to_box(self)
-                }
-            }
-        )
-    } else {
-        quote!()
-    };
-
     let zmkv = if attrs.skip_kv {
         quote!()
     } else {
@@ -233,12 +219,8 @@ pub fn make_varule_impl(ule_name: Ident, mut input: DeriveInput) -> TokenStream2
         quote!(
             impl #serde_path::Serialize for #ule_name {
                 fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: #serde_path::Serializer {
-                    if serializer.is_human_readable() {
-                        let this = #zerofrom_fq_path::zero_from(self);
-                        <#name as #serde_path::Serialize>::serialize(&this, serializer)
-                    } else {
-                        serializer.serialize_bytes(zerovec::ule::VarULE::as_bytes(self))
-                    }
+                    let this = #zerofrom_fq_path::zero_from(self);
+                    <#name as #serde_path::Serialize>::serialize(&this, serializer)
                 }
             }
         )
@@ -246,30 +228,12 @@ pub fn make_varule_impl(ule_name: Ident, mut input: DeriveInput) -> TokenStream2
         quote!()
     };
 
-    let deserialize_error = format!("&{ule_name} can only deserialize in zero-copy ways");
-
     let maybe_de = if attrs.deserialize {
         quote!(
             impl<'de> #serde_path::Deserialize<'de> for zerovec::__zerovec_internal_reexport::boxed::Box<#ule_name> {
                 fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: #serde_path::Deserializer<'de> {
-                    if deserializer.is_human_readable() {
-                        let this = <#name as #serde_path::Deserialize>::deserialize(deserializer)?;
-                        Ok(zerovec::ule::encode_varule_to_box(&this))
-                    } else {
-                        // This branch should usually not be hit, since Cow-like use cases will hit the Deserialize impl for &'a ULEType instead.
-                        let deserialized = <& #ule_name>::deserialize(deserializer)?;
-                        Ok(zerovec::ule::VarULE::to_boxed(deserialized))
-                    }
-                }
-            }
-            impl<'a, 'de: 'a> #serde_path::Deserialize<'de> for &'a #ule_name {
-                fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: #serde_path::Deserializer<'de> {
-                    if !deserializer.is_human_readable() {
-                        let bytes = <&[u8]>::deserialize(deserializer)?;
-                        <#ule_name as zerovec::ule::VarULE>::parse_bytes(bytes).map_err(#serde_path::de::Error::custom)
-                    } else {
-                        Err(#serde_path::de::Error::custom(#deserialize_error))
-                    }
+                    let this = <#name as #serde_path::Deserialize>::deserialize(deserializer)?;
+                    Ok(zerovec::ule::encode_varule_to_box(&this))
                 }
             }
         )
@@ -282,7 +246,7 @@ pub fn make_varule_impl(ule_name: Ident, mut input: DeriveInput) -> TokenStream2
             #[allow(clippy::derive_hash_xor_eq)]
             impl core::hash::Hash for #ule_name {
                 fn hash<H>(&self, state: &mut H) where H: core::hash::Hasher {
-                    state.write(<#ule_name as zerovec::ule::VarULE>::as_bytes(&self));
+                    state.write(<#ule_name as zerovec::ule::VarULE>::as_byte_slice(&self));
                 }
             }
         )
@@ -309,7 +273,7 @@ pub fn make_varule_impl(ule_name: Ident, mut input: DeriveInput) -> TokenStream2
 
         #encode_impl
 
-        #zf_and_from_impl
+        #zf_impl
 
         #derived
 
@@ -325,14 +289,11 @@ pub fn make_varule_impl(ule_name: Ident, mut input: DeriveInput) -> TokenStream2
 
         #maybe_debug
 
-        #maybe_toowned
-
         #maybe_hash
     )
 }
 
-#[allow(clippy::too_many_arguments)] // Internal function. Could refactor later to use some kind of context type.
-fn make_zf_and_from_impl(
+fn make_zf_impl(
     sized_fields: &[FieldInfo],
     unsized_field_info: &UnsizedFields,
     fields: &Fields,
@@ -340,7 +301,6 @@ fn make_zf_and_from_impl(
     ule_name: &Ident,
     maybe_lt: Option<&Lifetime>,
     span: Span,
-    skip_from: bool,
 ) -> TokenStream2 {
     if !unsized_field_info.has_zf() {
         return quote!();
@@ -370,26 +330,12 @@ fn make_zf_and_from_impl(
 
     let field_inits = utils::wrap_field_inits(&field_inits, fields);
     let zerofrom_trait = quote!(zerovec::__zerovec_internal_reexport::ZeroFrom);
-
-    let maybe_from = if skip_from {
-        quote!()
-    } else {
-        quote!(
-            impl<#lt> From<&#lt #ule_name> for #name<#lt> {
-                fn from(other: &#lt #ule_name) -> Self {
-                    <Self as #zerofrom_trait<#lt, #ule_name>>::zero_from(other)
-                }
-            }
-        )
-    };
     quote!(
         impl <#lt> #zerofrom_trait <#lt, #ule_name> for #name <#lt> {
             fn zero_from(other: &#lt #ule_name) -> Self {
                 Self #field_inits
             }
         }
-
-        #maybe_from
     )
 }
 
@@ -414,13 +360,11 @@ fn make_encode_impl(
             let ty = &field.field.ty;
             let accessor = &field.accessor;
             quote!(
-                // generate_per_field_offsets produces valid indices,
-                // and we don't care about panics in Encode impls
-                #[allow(clippy::indexing_slicing)]
+                #[allow(clippy::indexing_slicing)] // generate_per_field_offsets produces valid indices
                 let out = &mut dst[#prev_offset_ident .. #prev_offset_ident + #size_ident];
                 let unaligned = zerovec::ule::AsULE::to_unaligned(self.#accessor);
                 let unaligned_slice = &[unaligned];
-                let src = <<#ty as zerovec::ule::AsULE>::ULE as zerovec::ule::ULE>::slice_as_bytes(unaligned_slice);
+                let src = <<#ty as zerovec::ule::AsULE>::ULE as zerovec::ule::ULE>::as_byte_slice(unaligned_slice);
                 out.copy_from_slice(src);
             )
         },
@@ -445,10 +389,7 @@ fn make_encode_impl(
                 debug_assert_eq!(self.encode_var_ule_len(), dst.len());
                 #encoders
 
-
-                // generate_per_field_offsets produces valid remainders,
-                // and we don't care about panics in Encode impls
-                #[allow(clippy::indexing_slicing)]
+                #[allow(clippy::indexing_slicing)] // generate_per_field_offsets produces valid remainder
                 let out = &mut dst[#remaining_offset..];
                 #last_encode_write
             }
@@ -491,7 +432,6 @@ enum OwnULETy<'a> {
 #[derive(Clone, Debug)]
 enum UnsizedFieldKind<'a> {
     Cow(OwnULETy<'a>),
-    VarZeroCow(OwnULETy<'a>),
     ZeroVec(&'a Type),
     VarZeroVec(&'a Type),
     /// Custom VarULE type, and the identifier corresponding to the VarULE type
@@ -511,29 +451,20 @@ struct UnsizedField<'a> {
 
 struct UnsizedFields<'a> {
     fields: Vec<UnsizedField<'a>>,
-    format_param: TokenStream2,
 }
 
 impl<'a> UnsizedFields<'a> {
-    /// The format_param is an optional tokenstream describing a VZVFormat argument needed by MultiFieldsULE
-    fn new(fields: Vec<UnsizedField<'a>>, format_param: Option<TokenStream2>) -> Self {
+    fn new(fields: Vec<UnsizedField<'a>>) -> Self {
         assert!(!fields.is_empty(), "Must have at least one unsized field");
-
-        let format_param = format_param.unwrap_or_else(|| quote!(zerovec::vecs::Index16));
-        Self {
-            fields,
-            format_param,
-        }
+        Self { fields }
     }
 
     // Get the corresponding VarULE type that can store all of these
     fn varule_ty(&self) -> TokenStream2 {
-        let len = self.fields.len();
-        let format_param = &self.format_param;
-        if len == 1 {
+        if self.fields.len() == 1 {
             self.fields[0].kind.varule_ty()
         } else {
-            quote!(zerovec::ule::MultiFieldsULE::<#len, #format_param>)
+            quote!(zerovec::ule::MultiFieldsULE)
         }
     }
 
@@ -576,9 +507,7 @@ impl<'a> UnsizedFields<'a> {
 
     // Takes all unsized fields on self and encodes them into a byte slice `out`
     fn encode_write(&self, out: TokenStream2) -> TokenStream2 {
-        let len = self.fields.len();
-        let format_param = &self.format_param;
-        if len == 1 {
+        if self.fields.len() == 1 {
             self.fields[0].encode_func(quote!(encode_var_ule_write), quote!(#out))
         } else {
             let mut lengths = vec![];
@@ -593,8 +522,7 @@ impl<'a> UnsizedFields<'a> {
 
             quote!(
                 let lengths = [#(#lengths),*];
-                // Todo: index type should be settable by attribute
-                let mut multi = zerovec::ule::MultiFieldsULE::<#len, #format_param>::new_from_lengths_partially_initialized(lengths, #out);
+                let mut multi = zerovec::ule::MultiFieldsULE::new_from_lengths_partially_initialized(&lengths, #out);
                 unsafe {
                     #(#writers;)*
                 }
@@ -604,17 +532,14 @@ impl<'a> UnsizedFields<'a> {
 
     // Takes all unsized fields on self and returns the length needed for encoding into a byte slice
     fn encode_len(&self) -> TokenStream2 {
-        let len = self.fields.len();
-        let format_param = &self.format_param;
-        if len == 1 {
+        if self.fields.len() == 1 {
             self.fields[0].encode_func(quote!(encode_var_ule_len), quote!())
         } else {
             let mut lengths = vec![];
             for field in self.fields.iter() {
                 lengths.push(field.encode_func(quote!(encode_var_ule_len), quote!()));
             }
-            // Todo: index type should be settable by attribute
-            quote!(zerovec::ule::MultiFieldsULE::<#len, #format_param>::compute_encoded_len_for([#(#lengths),*]))
+            quote!(zerovec::ule::MultiFieldsULE::compute_encoded_len_for(&[#(#lengths),*]))
         }
     }
 
@@ -670,9 +595,7 @@ impl<'a> UnsizedFields<'a> {
     ///
     /// The code will validate a variable known as `last_field_bytes`
     fn varule_validator(&self) -> Option<TokenStream2> {
-        let len = self.fields.len();
-        let format_param = &self.format_param;
-        if len == 1 {
+        if self.fields.len() == 1 {
             None
         } else {
             let mut validators = vec![];
@@ -682,7 +605,7 @@ impl<'a> UnsizedFields<'a> {
             }
 
             Some(quote!(
-                let multi = zerovec::ule::MultiFieldsULE::<#len, #format_param>::parse_bytes(last_field_bytes)?;
+                let multi = zerovec::ule::MultiFieldsULE::parse_byte_slice(last_field_bytes)?;
                 unsafe {
                     #(#validators)*
                 }
@@ -785,7 +708,6 @@ impl<'a> UnsizedFieldKind<'a> {
                                 "ZeroVec" => Ok(UnsizedFieldKind::ZeroVec(generic)),
                                 "VarZeroVec" => Ok(UnsizedFieldKind::VarZeroVec(generic)),
                                 "Cow" => OwnULETy::new(generic, "Cow").map(UnsizedFieldKind::Cow),
-                                "VarZeroCow" => OwnULETy::new(generic, "VarZeroCow").map(UnsizedFieldKind::VarZeroCow),
                                 _ => Err(PATH_TYPE_IDENTITY_ERROR.into()),
                             }
                         } else {
@@ -808,7 +730,6 @@ impl<'a> UnsizedFieldKind<'a> {
         match *self {
             Self::Ref(ref inner)
             | Self::Cow(ref inner)
-            | Self::VarZeroCow(ref inner)
             | Self::Boxed(ref inner)
             | Self::Growable(ref inner) => {
                 let inner_ule = inner.varule_ty();
@@ -823,11 +744,7 @@ impl<'a> UnsizedFieldKind<'a> {
     // Takes expr `value` and returns it as a value that can be encoded via EncodeAsVarULE
     fn encodeable_value(&self, value: TokenStream2) -> TokenStream2 {
         match *self {
-            Self::Ref(_)
-            | Self::Cow(_)
-            | Self::VarZeroCow(_)
-            | Self::Growable(_)
-            | Self::Boxed(_) => quote!(&*#value),
+            Self::Ref(_) | Self::Cow(_) | Self::Growable(_) | Self::Boxed(_) => quote!(&*#value),
 
             Self::Custom(..) => quote!(&#value),
             Self::ZeroVec(_) | Self::VarZeroVec(_) => quote!(&*#value),
@@ -839,7 +756,6 @@ impl<'a> UnsizedFieldKind<'a> {
         match *self {
             Self::Ref(ref inner)
             | Self::Cow(ref inner)
-            | Self::VarZeroCow(ref inner)
             | Self::Growable(ref inner)
             | Self::Boxed(ref inner) => inner.varule_ty(),
 
@@ -852,12 +768,7 @@ impl<'a> UnsizedFieldKind<'a> {
     fn has_zf(&self) -> bool {
         matches!(
             *self,
-            Self::Ref(_)
-                | Self::Cow(_)
-                | Self::VarZeroCow(_)
-                | Self::ZeroVec(_)
-                | Self::VarZeroVec(_)
-                | Self::Custom(..)
+            Self::Ref(_) | Self::Cow(_) | Self::ZeroVec(_) | Self::VarZeroVec(_) | Self::Custom(..)
         )
     }
 }

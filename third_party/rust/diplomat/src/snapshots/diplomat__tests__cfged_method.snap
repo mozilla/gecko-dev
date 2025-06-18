@@ -1,9 +1,10 @@
 ---
 source: macro/src/lib.rs
-expression: "pretty_print_code(gen_bridge(parse_quote!\n{\n    mod ffi\n    {\n        struct Foo {} impl Foo\n        { #[cfg(feature = \"foo\")] pub fn bar(s: u8) { unimplemented!() } }\n    }\n}).to_token_stream())"
+expression: "rustfmt_code(&gen_bridge(parse_quote! {\n                            mod ffi\n                            {\n                                struct Foo {} impl Foo\n                                {\n                                    #[cfg(feature = \"foo\")] pub fn bar(s : u8)\n                                    { unimplemented! () }\n                                }\n                            }\n                        }).to_token_stream().to_string())"
 ---
 mod ffi {
     #[repr(C)]
+    #[derive(Clone, Copy)]
     struct Foo {}
     impl Foo {
         #[cfg(feature = "foo")]
@@ -12,10 +13,12 @@ mod ffi {
         }
     }
     use diplomat_runtime::*;
-    use core::ffi::c_void;
     #[no_mangle]
     #[cfg(feature = "foo")]
     extern "C" fn Foo_bar(s: u8) {
         Foo::bar(s)
     }
+    #[no_mangle]
+    extern "C" fn Foo_destroy(this: Box<Foo>) {}
 }
+

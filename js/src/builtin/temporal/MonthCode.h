@@ -177,22 +177,23 @@ class MonthCodes final {
 //
 // https://tc39.es/proposal-intl-era-monthcode/#table-additional-month-codes
 //
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.Buddhist.html#month-codes
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.Indian.html#month-codes
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.HijriSimulated.html#month-codes
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.HijriTabular.html#month-codes
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.HijriUmmAlQura.html#month-codes
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.Japanese.html#month-codes
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.Persian.html#month-codes
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.Roc.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/buddhist/struct.Buddhist.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/indian/struct.Indian.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/islamic/struct.IslamicCivil.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/islamic/struct.IslamicObservational.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/islamic/struct.IslamicTabular.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/islamic/struct.IslamicUmmAlQura.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/japanese/struct.Japanese.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/persian/struct.Persian.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/roc/struct.Roc.html#month-codes
 //
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.Chinese.html#month-codes
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.Dangi.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/chinese/struct.Chinese.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/dangi/struct.Dangi.html#month-codes
 //
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.Coptic.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/coptic/struct.Coptic.html#month-codes
 //
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.Ethiopian.html#month-codes
-// https://docs.rs/icu/latest/icu/calendar/cal/struct.Hebrew.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/ethiopian/struct.Ethiopian.html#month-codes
+// https://docs.rs/icu/latest/icu/calendar/hebrew/struct.Hebrew.html#month-codes
 namespace monthcodes {
 inline constexpr MonthCodes ISO8601 = {};
 

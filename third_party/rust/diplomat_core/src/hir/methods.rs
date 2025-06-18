@@ -3,10 +3,7 @@
 use std::collections::BTreeSet;
 use std::ops::Deref;
 
-use super::{
-    Attrs, Docs, Ident, IdentBuf, InputOnly, OutType, OutputOnly, SelfType, TraitPath, Type,
-    TypeContext,
-};
+use super::{Attrs, Docs, Ident, IdentBuf, OutType, SelfType, Type, TypeContext};
 
 use super::lifetimes::{Lifetime, LifetimeEnv, Lifetimes, MaybeStatic};
 
@@ -20,76 +17,22 @@ pub mod borrowing_param;
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct Method {
-    /// Documentation specified on the method
     pub docs: Docs,
-    /// The name of the method as initially declared.
     pub name: IdentBuf,
-    /// The name of the generated `extern "C"` function
-    pub abi_name: IdentBuf,
-    /// The lifetimes introduced in this method and surrounding impl block.
     pub lifetime_env: LifetimeEnv,
 
-    /// An &self, &mut self, or Self parameter
     pub param_self: Option<ParamSelf>,
-    /// The parameters of the method
     pub params: Vec<Param>,
-    /// The output type, including whether it returns a Result/Option/Writeable/etc
     pub output: ReturnType,
-    /// Resolved (and inherited) diplomat::attr attributes on this method
     pub attrs: Attrs,
-}
-
-pub trait CallbackInstantiationFunctionality {
-    #[allow(clippy::result_unit_err)]
-    fn get_inputs(&self) -> Result<&[CallbackParam], ()>; // the types of the parameters
-    #[allow(clippy::result_unit_err)]
-    fn get_output_type(&self) -> Result<&Option<Type>, ()>;
-}
-
-#[derive(Debug)]
-#[non_exhaustive]
-// Note: we do not support borrowing across callbacks
-pub struct Callback {
-    pub param_self: Option<TraitParamSelf>, // this is None for callbacks as method arguments
-    pub params: Vec<CallbackParam>,
-    pub output: Box<Option<Type>>, // this will be used in Rust (note: can technically be a callback, or void)
-    pub name: Option<IdentBuf>,
-    pub attrs: Option<Attrs>,
-    pub docs: Option<Docs>,
-}
-
-// uninstantiatable; represents no callback allowed
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub enum NoCallback {}
-
-impl CallbackInstantiationFunctionality for Callback {
-    fn get_inputs(&self) -> Result<&[CallbackParam], ()> {
-        Ok(&self.params)
-    }
-    fn get_output_type(&self) -> Result<&Option<Type>, ()> {
-        Ok(&self.output)
-    }
-}
-
-impl CallbackInstantiationFunctionality for NoCallback {
-    fn get_inputs(&self) -> Result<&[CallbackParam], ()> {
-        Err(())
-    }
-    fn get_output_type(&self) -> Result<&Option<Type>, ()> {
-        Err(())
-    }
 }
 
 /// Type that the method returns.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub enum SuccessType {
-    /// Conceptually returns a string, which gets written to the `write: DiplomatWrite` argument
-    Write,
-    /// A Diplomat type. Some types can be outputs, but not inputs, which is expressed by the `OutType` parameter.
+    Writeable,
     OutType(OutType),
-    /// A `()` type in Rust.
     Unit,
 }
 
@@ -107,13 +50,6 @@ pub enum ReturnType {
 #[non_exhaustive]
 pub struct ParamSelf {
     pub ty: SelfType,
-    pub attrs: Attrs,
-}
-
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub struct TraitParamSelf {
-    pub trait_path: TraitPath,
 }
 
 /// A parameter in a method.
@@ -121,23 +57,13 @@ pub struct TraitParamSelf {
 #[non_exhaustive]
 pub struct Param {
     pub name: IdentBuf,
-    pub ty: Type<InputOnly>,
-    pub attrs: Attrs,
-}
-
-/// A parameter in a callback
-/// No name, since all we get is the callback type signature
-#[derive(Debug)]
-#[non_exhaustive]
-pub struct CallbackParam {
-    pub ty: Type<OutputOnly>,
-    pub name: Option<IdentBuf>,
+    pub ty: Type,
 }
 
 impl SuccessType {
-    /// Returns whether the variant is `Write`.
-    pub fn is_write(&self) -> bool {
-        matches!(self, SuccessType::Write)
+    /// Returns whether the variant is `Writeable`.
+    pub fn is_writeable(&self) -> bool {
+        matches!(self, SuccessType::Writeable)
     }
 
     /// Returns whether the variant is `Unit`.
@@ -165,11 +91,11 @@ impl Deref for ReturnType {
 
 impl ReturnType {
     /// Returns `true` if the FFI function returns `void`. Not that this is different from `is_unit`,
-    /// which will be true for `DiplomatResult<(), E>` and false for infallible write.
+    /// which will be true for `DiplomatResult<(), E>` and false for infallible writeable.
     pub fn is_ffi_unit(&self) -> bool {
         matches!(
             self,
-            ReturnType::Infallible(SuccessType::Unit | SuccessType::Write)
+            ReturnType::Infallible(SuccessType::Unit | SuccessType::Writeable)
         )
     }
 
@@ -230,8 +156,8 @@ impl ReturnType {
 }
 
 impl ParamSelf {
-    pub(super) fn new(ty: SelfType, attrs: Attrs) -> Self {
-        Self { ty, attrs }
+    pub(super) fn new(ty: SelfType) -> Self {
+        Self { ty }
     }
 
     /// Return the number of fields and leaves that will show up in the [`BorrowingFieldVisitor`].
@@ -249,15 +175,9 @@ impl ParamSelf {
     }
 }
 
-impl TraitParamSelf {
-    pub(super) fn new(trait_path: TraitPath) -> Self {
-        Self { trait_path }
-    }
-}
-
 impl Param {
-    pub(super) fn new(name: IdentBuf, ty: Type<InputOnly>, attrs: Attrs) -> Self {
-        Self { name, ty, attrs }
+    pub(super) fn new(name: IdentBuf, ty: Type) -> Self {
+        Self { name, ty }
     }
 }
 
@@ -272,17 +192,11 @@ impl Method {
     ///
     /// This is useful for backends which wish to have lifetime codegen for methods only handle the local
     /// method lifetime, and delegate to generated code on structs for handling the internals of struct lifetimes.
-    ///
-    /// `force_include_slices` is right now *just* for the JS backend.
-    /// Because the JS backend requires us to know information about the allocation of each slice,
-    /// then we need to grab that information in the [`BorrowingParamVisitor`].
-    /// See [`BorrowingParamVisitor::new`] for more.
     pub fn borrowing_param_visitor<'tcx>(
         &'tcx self,
         tcx: &'tcx TypeContext,
-        force_include_slices: bool,
     ) -> BorrowingParamVisitor<'tcx> {
-        BorrowingParamVisitor::new(self, tcx, force_include_slices)
+        BorrowingParamVisitor::new(self, tcx)
     }
 
     /// Returns a new [`BorrowingFieldVisitor`], which allocates memory to

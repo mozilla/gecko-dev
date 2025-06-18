@@ -1,8 +1,7 @@
 use super::lifetimes::{Lifetime, Lifetimes, MaybeStatic};
 use super::{
-    Borrow, Callback, CallbackInstantiationFunctionality, LinkedLifetimes, MaybeOwn, Mutability,
-    NoCallback, NoTraitPath, OutStructId, ReturnableStructPath, StructDef, StructId, StructPath,
-    TraitId, TraitPath, TypeContext, TypeDef, TypeId,
+    Borrow, LinkedLifetimes, MaybeOwn, Mutability, OutStructId, ReturnableStructPath, StructId,
+    StructPath, TypeContext, TypeId,
 };
 use core::fmt::Debug;
 
@@ -88,12 +87,8 @@ use core::fmt::Debug;
 /// Therefore, this trait allows be extremely precise about making invalid states
 /// unrepresentable, while also reducing duplicated code.
 ///
-pub trait TyPosition: Debug + Copy
-where
-    for<'tcx> TypeDef<'tcx>: From<&'tcx StructDef<Self>>,
-{
-    const IN_OUT_STATUS: InputOrOutput;
-    type CallbackInstantiation: Debug + CallbackInstantiationFunctionality;
+pub trait TyPosition: Debug + Copy {
+    const IS_OUT_ONLY: bool;
 
     /// Type representing how we can point to opaques, which must always be behind a pointer.
     ///
@@ -107,105 +102,36 @@ where
     type StructId: Debug;
 
     type StructPath: Debug + StructPathLike;
-
-    type TraitPath: Debug + TraitIdGetter;
-
-    fn wrap_struct_def<'tcx>(def: &'tcx StructDef<Self>) -> TypeDef<'tcx>;
-    fn build_callback(cb: Callback) -> Self::CallbackInstantiation;
-    fn build_trait_path(trait_path: TraitPath) -> Self::TraitPath;
 }
 
-/// Directionality of the type
-#[non_exhaustive]
-pub enum InputOrOutput {
-    Input,
-    Output,
-    InputOutput,
-}
-
-pub trait TraitIdGetter {
-    fn id(&self) -> TraitId;
-}
-
-/// One of 3 types implementing [`TyPosition`], representing types that can be
+/// One of two types implementing [`TyPosition`], representing types that can be
 /// used as both input and output to functions.
 ///
-/// The restricted versions of this type are [`OutputOnly`] and [`InputOnly`].
+/// The complement of this type is [`OutputOnly`].
 #[derive(Debug, Copy, Clone)]
 #[non_exhaustive]
 pub struct Everywhere;
 
-/// One of 3 types implementing [`TyPosition`], representing types that can
+/// One of two types implementing [`TyPosition`], representing types that can
 /// only be used as return types in functions.
 ///
-/// The directional opposite of this type is [`InputOnly`].
+/// The complement of this type is [`Everywhere`].
 #[derive(Debug, Copy, Clone)]
 #[non_exhaustive]
 pub struct OutputOnly;
 
-/// One of 3 types implementing [`TyPosition`], representing types that can
-/// only be used as input types in functions.
-///
-/// The directional opposite of this type is [`OutputOnly`].
-#[derive(Debug, Copy, Clone)]
-#[non_exhaustive]
-pub struct InputOnly;
-
 impl TyPosition for Everywhere {
-    const IN_OUT_STATUS: InputOrOutput = InputOrOutput::InputOutput;
+    const IS_OUT_ONLY: bool = false;
     type OpaqueOwnership = Borrow;
     type StructId = StructId;
     type StructPath = StructPath;
-    type CallbackInstantiation = NoCallback;
-    type TraitPath = NoTraitPath;
-
-    fn wrap_struct_def<'tcx>(def: &'tcx StructDef<Self>) -> TypeDef<'tcx> {
-        TypeDef::Struct(def)
-    }
-    fn build_callback(_cb: Callback) -> Self::CallbackInstantiation {
-        panic!("Callbacks must be input-only");
-    }
-    fn build_trait_path(_trait_path: TraitPath) -> Self::TraitPath {
-        panic!("Traits must be input-only");
-    }
 }
 
 impl TyPosition for OutputOnly {
-    const IN_OUT_STATUS: InputOrOutput = InputOrOutput::Output;
+    const IS_OUT_ONLY: bool = true;
     type OpaqueOwnership = MaybeOwn;
     type StructId = OutStructId;
     type StructPath = ReturnableStructPath;
-    type CallbackInstantiation = NoCallback;
-    type TraitPath = NoTraitPath;
-
-    fn wrap_struct_def<'tcx>(def: &'tcx StructDef<Self>) -> TypeDef<'tcx> {
-        TypeDef::OutStruct(def)
-    }
-    fn build_callback(_cb: Callback) -> Self::CallbackInstantiation {
-        panic!("Callbacks must be input-only");
-    }
-    fn build_trait_path(_trait_path: TraitPath) -> Self::TraitPath {
-        panic!("Traits must be input-only");
-    }
-}
-
-impl TyPosition for InputOnly {
-    const IN_OUT_STATUS: InputOrOutput = InputOrOutput::Input;
-    type OpaqueOwnership = Borrow;
-    type StructId = StructId;
-    type StructPath = StructPath;
-    type CallbackInstantiation = Callback;
-    type TraitPath = TraitPath;
-
-    fn wrap_struct_def<'tcx>(_def: &'tcx StructDef<Self>) -> TypeDef<'tcx> {
-        panic!("Input-only structs are not currently supported");
-    }
-    fn build_callback(cb: Callback) -> Self::CallbackInstantiation {
-        cb
-    }
-    fn build_trait_path(trait_path: TraitPath) -> Self::TraitPath {
-        trait_path
-    }
 }
 
 pub trait StructPathLike {
@@ -259,19 +185,6 @@ impl StructPathLike for ReturnableStructPath {
         }
     }
 }
-
-impl TraitIdGetter for TraitPath {
-    fn id(&self) -> TraitId {
-        self.tcx_id
-    }
-}
-
-impl TraitIdGetter for NoTraitPath {
-    fn id(&self) -> TraitId {
-        panic!("Trait path not allowed here, no trait ID valid");
-    }
-}
-
 /// Abstraction over how a type can hold a pointer to an opaque.
 ///
 /// This trait is designed as a helper abstraction for the `OpaqueOwnership`

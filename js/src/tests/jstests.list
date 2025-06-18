@@ -938,12 +938,3 @@ skip-if(release_or_beta) script test262/intl402/Temporal/PlainMonthDay/from/cons
 # Try re-enabling when Bug 1954138 or Bug 1955545 are fixed.
 skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-islamic.js
 skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-islamic-rgsa.js
-
-# https://github.com/tc39/proposal-intl-era-monthcode/issues/23. ICU4X 2.0 doesn't have inverse type
-skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-coptic.js
-
-# https://github.com/tc39/proposal-intl-era-monthcode/issues/4. ICU4X 2.0 doesn't have inverse type
-skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-ethiopic.js
-
-# https://github.com/tc39/proposal-intl-era-monthcode/issues/23 and https://github.com/tc39/proposal-intl-era-monthcode/issues/4
-skip script test262/staging/sm/Temporal/PlainDate/non-positive-era-year.js

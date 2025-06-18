@@ -11,11 +11,10 @@
 
 [package]
 edition = "2021"
-rust-version = "1.82"
+rust-version = "1.67"
 name = "calendrical_calculations"
-version = "0.2.0"
+version = "0.1.1"
 authors = ["The ICU4X Project Developers"]
-build = false
 include = [
     "data/**/*",
     "src/**/*",
@@ -25,13 +24,7 @@ include = [
     "Cargo.toml",
     "LICENSE",
     "README.md",
-    "build.rs",
 ]
-autolib = false
-autobins = false
-autoexamples = false
-autotests = false
-autobenches = false
 description = "Calendrical calculations in Rust"
 readme = "README.md"
 keywords = [
@@ -50,18 +43,14 @@ categories = [
 license = "Apache-2.0"
 repository = "https://github.com/unicode-org/icu4x"
 
+[package.metadata.cargo-all-features]
+denylist = ["bench"]
+
 [package.metadata.docs.rs]
 all-features = true
 
 [package.metadata.workspaces]
 independent = true
-
-[features]
-logging = ["dep:log"]
-
-[lib]
-name = "calendrical_calculations"
-path = "src/lib.rs"
 
 [dependencies.core_maths]
 version = "0.1.0"
@@ -75,3 +64,7 @@ default-features = false
 version = "0.4.17"
 optional = true
 default-features = false
+
+[features]
+logging = ["dep:log"]
+std = []

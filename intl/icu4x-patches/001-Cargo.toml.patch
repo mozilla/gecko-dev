@@ -1,14 +1,8 @@
-diff --git a/intl/icu_capi/Cargo.toml b/intl/icu_capi/Cargo.toml
-index 1c824dae38a6..6db0b1df433b 100644
---- a/intl/icu_capi/Cargo.toml
-+++ b/intl/icu_capi/Cargo.toml
-@@ -72,28 +72,19 @@ buffer_provider = [
- calendar = [
-     "dep:icu_calendar",
-     "dep:icu_time",
+--- a/intl/icu_capi/Cargo.toml	2023-11-23 00:55:29.801649858 +0900
++++ b/intl/icu_capi/Cargo.toml	2023-11-23 00:57:49.528753911 +0900
+@@ -190,20 +190,10 @@
+     "icu_experimental?/serde",
  ]
- casemap = ["dep:icu_casemap"]
- collator = ["dep:icu_collator"]
  compiled_data = [
      "icu_calendar?/compiled_data",
 -    "icu_casemap?/compiled_data",
@@ -16,18 +10,14 @@ index 1c824dae38a6..6db0b1df433b 100644
 -    "icu_datetime?/compiled_data",
 -    "icu_decimal?/compiled_data",
 -    "icu_list?/compiled_data",
--    "icu_locale?/compiled_data",
-     "icu_normalizer?/compiled_data",
+-    "icu_locid_transform?/compiled_data",
+-    "icu_normalizer?/compiled_data",
 -    "icu_plurals?/compiled_data",
      "icu_properties?/compiled_data",
      "icu_segmenter?/compiled_data",
--    "icu_time?/compiled_data",
+-    "icu_timezone?/compiled_data",
 -    "icu_experimental?/compiled_data",
  ]
- datetime = [
-     "dep:icu_datetime",
-     "dep:icu_calendar",
-     "dep:icu_time",
-     "dep:icu_decimal",
-     "dep:icu_plurals",
-     "icu_datetime?/experimental",
+ cpp_default = ["logging"]
+ default = [
+     "compiled_data",

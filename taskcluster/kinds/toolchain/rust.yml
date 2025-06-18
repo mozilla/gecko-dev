@@ -116,7 +116,6 @@ linux64-rust-1.81-dev:
             '--patch', 'stabilize-option-is-none-or-1.82.patch',
             '--patch', 'stabilize-unsafe-attributes.patch',
             '--patch', 'stabilize-iter_repeat_n.patch',
-            '--patch', 'stabilize-const_fn_floating_point_arithmetic.patch',
             '--channel', 'dev',
             '--host', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-unknown-linux-gnu',
@@ -128,7 +127,6 @@ linux64-rust-1.81-dev:
             - build/build-rust/stabilize-option-is-none-or-1.82.patch
             - build/build-rust/stabilize-unsafe-attributes.patch
             - build/build-rust/stabilize-iter_repeat_n.patch
-            - build/build-rust/stabilize-const_fn_floating_point_arithmetic.patch
         toolchain-alias:
             by-project:
                 toolchains: null

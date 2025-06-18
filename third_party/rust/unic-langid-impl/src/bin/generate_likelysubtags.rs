@@ -76,7 +76,7 @@ fn main() {
 
         match (lang, script, region) {
             (None, None, None) => lang_only.push((
-                u64::from_le_bytes(*TinyStr8::try_from_str("und").unwrap().all_bytes()),
+                u64::from_le_bytes(*TinyStr8::from_str("und").unwrap().all_bytes()),
                 (val_lang, val_script, val_region),
             )),
             (Some(l), None, None) => lang_only.push((

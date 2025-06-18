@@ -5,8 +5,11 @@
 
 #include "mozilla/intl/WordBreaker.h"
 
-#include "icu4x/WordBreakIteratorUtf16.hpp"
+#include "ICU4XDataProvider.h"
+#include "ICU4XWordBreakIteratorUtf16.hpp"
+#include "ICU4XWordSegmenter.hpp"
 #include "mozilla/CheckedInt.h"
+#include "mozilla/intl/ICU4XGeckoDataProvider.h"
 #include "mozilla/intl/UnicodeProperties.h"
 #include "mozilla/StaticPrefs_intl.h"
 #include "mozilla/StaticPrefs_layout.h"
@@ -95,13 +98,16 @@ WordRange WordBreaker::FindWord(const nsAString& aText, uint32_t aPos,
   WordRange range{0, len.value()};
 
   if (StaticPrefs::intl_icu4x_segmenter_enabled()) {
-    auto segmenter = icu4x::WordSegmenter::create_auto();
-    auto iterator = segmenter->segment16(
+    auto result =
+        capi::ICU4XWordSegmenter_create_auto(mozilla::intl::GetDataProvider());
+    MOZ_ASSERT(result.is_ok);
+    ICU4XWordSegmenter segmenter(result.ok);
+    ICU4XWordBreakIteratorUtf16 iterator = segmenter.segment_utf16(
         std::u16string_view(aText.BeginReading(), aText.Length()));
 
     uint32_t previousPos = 0;
     while (true) {
-      const int32_t nextPos = iterator->next();
+      const int32_t nextPos = iterator.next();
       if (nextPos < 0) {
         range.mBegin = previousPos;
         range.mEnd = len.value();

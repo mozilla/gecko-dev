@@ -68,8 +68,6 @@ writeable::impl_display_with_writeable!(ComplexWriteable<'_>);
 const SHORT_STR: &str = "short";
 const MEDIUM_STR: &str = "this is a medium-length string";
 const LONG_STR: &str = "this string is very very very very very very very very very very very very very very very very very very very very very very very very long";
-const LONG_OVERLAP_STR: &str =
-    "this string is very very very very very very very long but different";
 
 fn overview_bench(c: &mut Criterion) {
     c.bench_function("writeable/overview", |b| {
@@ -90,6 +88,7 @@ fn overview_bench(c: &mut Criterion) {
         });
     });
 
+    #[cfg(feature = "bench")]
     {
         writeable_benches(c);
         writeable_dyn_benches(c);
@@ -98,6 +97,7 @@ fn overview_bench(c: &mut Criterion) {
     }
 }
 
+#[cfg(feature = "bench")]
 fn writeable_benches(c: &mut Criterion) {
     c.bench_function("writeable/to_string/short", |b| {
         b.iter(|| {
@@ -126,22 +126,9 @@ fn writeable_benches(c: &mut Criterion) {
             .into_owned()
         });
     });
-    c.bench_function("writeable/cmp_str", |b| {
-        b.iter(|| {
-            let short = black_box(SHORT_STR);
-            let medium = black_box(MEDIUM_STR);
-            let long = black_box(LONG_STR);
-            let long_overlap = black_box(LONG_OVERLAP_STR);
-            [short, medium, long, long_overlap].map(|s1| {
-                [short, medium, long, long_overlap].map(|s2| {
-                    let message = WriteableMessage { message: s1 };
-                    writeable::cmp_str(&message, s2)
-                })
-            })
-        });
-    });
 }
 
+#[cfg(feature = "bench")]
 fn writeable_dyn_benches(c: &mut Criterion) {
     // Same as `write_to_string`, but casts to a `dyn fmt::Write`
     fn writeable_dyn_to_string(w: &impl Writeable) -> String {
@@ -174,6 +161,7 @@ fn writeable_dyn_benches(c: &mut Criterion) {
     });
 }
 
+#[cfg(feature = "bench")]
 fn display_benches(c: &mut Criterion) {
     c.bench_function("display/to_string/short", |b| {
         b.iter(|| {
@@ -201,6 +189,7 @@ fn display_benches(c: &mut Criterion) {
     });
 }
 
+#[cfg(feature = "bench")]
 fn complex_benches(c: &mut Criterion) {
     const COMPLEX_WRITEABLE_MEDIUM: ComplexWriteable = ComplexWriteable {
         prefix: "There are ",
@@ -218,20 +207,6 @@ fn complex_benches(c: &mut Criterion) {
     });
     c.bench_function("complex/display_to_string/medium", |b| {
         b.iter(|| black_box(COMPLEX_WRITEABLE_MEDIUM).to_string());
-    });
-    const REFERENCE_STRS: [&str; 6] = [
-        "There are 55 apples and 8124 oranges",
-        "There are 55 apples and 0 oranges",
-        "There are no apples",
-        SHORT_STR,
-        MEDIUM_STR,
-        LONG_STR,
-    ];
-    c.bench_function("complex/cmp_str", |b| {
-        b.iter(|| {
-            black_box(REFERENCE_STRS)
-                .map(|s| writeable::cmp_str(black_box(&COMPLEX_WRITEABLE_MEDIUM), s))
-        });
     });
 }
 

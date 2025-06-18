@@ -11,11 +11,10 @@
 
 [package]
 edition = "2021"
-rust-version = "1.82"
+rust-version = "1.67"
 name = "icu_calendar"
-version = "2.0.2"
+version = "1.5.2"
 authors = ["The ICU4X Project Developers"]
-build = false
 include = [
     "data/**/*",
     "src/**/*",
@@ -25,72 +24,48 @@ include = [
     "Cargo.toml",
     "LICENSE",
     "README.md",
-    "build.rs",
 ]
-autolib = false
-autobins = false
-autoexamples = false
-autotests = false
-autobenches = false
-description = "Date APIs for Gregorian and non-Gregorian calendars"
+description = "API for supporting various types of calendars"
 homepage = "https://icu4x.unicode.org"
 readme = "README.md"
 categories = ["internationalization"]
 license = "Unicode-3.0"
 repository = "https://github.com/unicode-org/icu4x"
 
+[package.metadata.cargo-all-features]
+denylist = ["bench"]
+
 [package.metadata.docs.rs]
 all-features = true
 
-[features]
-alloc = []
-compiled_data = [
-    "dep:icu_calendar_data",
-    "dep:icu_locale",
-    "icu_locale?/compiled_data",
-    "icu_provider/baked",
-]
-datagen = [
-    "serde",
-    "dep:databake",
-    "zerovec/databake",
-    "tinystr/databake",
-    "alloc",
-    "icu_provider/export",
-]
-default = [
-    "compiled_data",
-    "ixdtf",
-]
-ixdtf = ["dep:ixdtf"]
-logging = ["calendrical_calculations/logging"]
-serde = [
-    "dep:serde",
-    "zerovec/serde",
-    "tinystr/serde",
-    "icu_provider/serde",
-]
+[[example]]
+name = "iso_date_manipulations"
 
-[lib]
-name = "icu_calendar"
-path = "src/lib.rs"
-
-[[bench]]
-name = "convert"
-path = "benches/convert.rs"
-harness = false
+[[example]]
+name = "iso_datetime_manipulations"
 
 [[bench]]
 name = "date"
-path = "benches/date.rs"
+harness = false
+
+[[bench]]
+name = "datetime"
+harness = false
+
+[[bench]]
+name = "iso"
+harness = false
+
+[[bench]]
+name = "convert"
 harness = false
 
 [dependencies.calendrical_calculations]
-version = "0.2.0"
+version = "0.1.1"
 default-features = false
 
 [dependencies.databake]
-version = "0.2.0"
+version = "0.1.8"
 features = ["derive"]
 optional = true
 default-features = false
@@ -100,27 +75,23 @@ version = "0.2.3"
 default-features = false
 
 [dependencies.icu_calendar_data]
-version = "~2.0.0"
+version = "~1.5.0"
 optional = true
 default-features = false
 
-[dependencies.icu_locale]
-version = "~2.0.0"
-optional = true
+[dependencies.icu_locid]
+version = "~1.5.0"
 default-features = false
 
-[dependencies.icu_locale_core]
-version = "2.0.0"
-features = ["alloc"]
+[dependencies.icu_locid_transform]
+version = "~1.5.0"
+features = ["compiled_data"]
+optional = true
 default-features = false
 
 [dependencies.icu_provider]
-version = "2.0.0"
-default-features = false
-
-[dependencies.ixdtf]
-version = "0.5.0"
-optional = true
+version = "~1.5.0"
+features = ["macros"]
 default-features = false
 
 [dependencies.serde]
@@ -133,7 +104,7 @@ optional = true
 default-features = false
 
 [dependencies.tinystr]
-version = "0.8.0"
+version = "0.7.5"
 features = [
     "alloc",
     "zerovec",
@@ -141,11 +112,11 @@ features = [
 default-features = false
 
 [dependencies.writeable]
-version = "0.6.0"
+version = "0.5.5"
 default-features = false
 
 [dependencies.zerovec]
-version = "0.11.1"
+version = "0.10.2"
 features = ["derive"]
 default-features = false
 
@@ -161,7 +132,33 @@ default-features = false
 version = "1.0.45"
 
 [dev-dependencies.simple_logger]
-version = "5.0.0"
+version = "4.0.0"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies.criterion]
+[features]
+bench = []
+compiled_data = [
+    "dep:icu_calendar_data",
+    "dep:icu_locid_transform",
+]
+datagen = [
+    "serde",
+    "dep:databake",
+    "zerovec/databake",
+    "tinystr/databake",
+]
+default = ["compiled_data"]
+logging = ["calendrical_calculations/logging"]
+serde = [
+    "dep:serde",
+    "zerovec/serde",
+    "tinystr/serde",
+    "icu_provider/serde",
+]
+std = [
+    "icu_provider/std",
+    "icu_locid/std",
+    "calendrical_calculations/std",
+]
+
+[target."cfg(not(target_arch = \"wasm32\"))".dev-dependencies.criterion]
 version = "0.5.0"

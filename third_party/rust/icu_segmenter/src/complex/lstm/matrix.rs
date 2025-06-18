@@ -159,7 +159,7 @@ pub(super) struct MatrixBorrowedMut<'a, const D: usize> {
     pub(super) dims: [usize; D],
 }
 
-impl<const D: usize> MatrixBorrowedMut<'_, D> {
+impl<'a, const D: usize> MatrixBorrowedMut<'a, D> {
     pub(super) fn as_borrowed(&self) -> MatrixBorrowed<D> {
         MatrixBorrowed {
             data: self.data,
@@ -258,7 +258,7 @@ impl<const D: usize> MatrixBorrowedMut<'_, D> {
     }
 }
 
-impl MatrixBorrowed<'_, 1> {
+impl<'a> MatrixBorrowed<'a, 1> {
     #[allow(dead_code)] // could be useful
     pub(super) fn dot_1d(&self, other: MatrixZero<1>) -> f32 {
         debug_assert_eq!(self.dims, other.dims);
@@ -266,7 +266,7 @@ impl MatrixBorrowed<'_, 1> {
     }
 }
 
-impl MatrixBorrowedMut<'_, 1> {
+impl<'a> MatrixBorrowedMut<'a, 1> {
     /// Calculate the dot product of a and b, adding the result to self.
     ///
     /// Note: For better dot product efficiency, if `b` is MxN, then `a` should be N;
@@ -301,7 +301,7 @@ impl MatrixBorrowedMut<'_, 1> {
     }
 }
 
-impl MatrixBorrowedMut<'_, 2> {
+impl<'a> MatrixBorrowedMut<'a, 2> {
     /// Calculate the dot product of a and b, adding the result to self.
     ///
     /// Self should be _MxN_; `a`, _O_; and `b`, _MxNxO_.

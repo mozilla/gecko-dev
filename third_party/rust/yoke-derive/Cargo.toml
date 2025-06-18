@@ -12,14 +12,8 @@
 [package]
 edition = "2021"
 name = "yoke-derive"
-version = "0.8.0"
+version = "0.7.4"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
-build = false
-autolib = false
-autobins = false
-autoexamples = false
-autotests = false
-autobenches = false
 description = "Custom derive for the yoke crate"
 readme = "README.md"
 keywords = [
@@ -42,13 +36,8 @@ repository = "https://github.com/unicode-org/icu4x"
 independent = true
 
 [lib]
-name = "yoke_derive"
 path = "src/lib.rs"
 proc-macro = true
-
-[[example]]
-name = "yoke_derive"
-path = "examples/yoke_derive.rs"
 
 [dependencies.proc-macro2]
 version = "1.0.61"

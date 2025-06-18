@@ -1,7 +1,7 @@
 use super::lifetimes::{Lifetimes, LinkedLifetimes};
 use super::{
     Borrow, EnumDef, EnumId, Everywhere, OpaqueDef, OpaqueId, OpaqueOwner, OutStructDef,
-    OutputOnly, ReturnableStructDef, StructDef, TraitId, TyPosition, TypeContext,
+    OutputOnly, ReturnableStructDef, StructDef, TyPosition, TypeContext,
 };
 
 /// Path to a struct that may appear as an output.
@@ -23,19 +23,6 @@ pub struct StructPath<P: TyPosition = Everywhere> {
     pub tcx_id: P::StructId,
 }
 
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub struct TraitPath {
-    pub lifetimes: Lifetimes,
-    pub tcx_id: TraitId,
-}
-
-/// Non-instantiable enum to denote the trait path in
-/// TyPositions that don't allow traits (anything not InputOnly)
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub enum NoTraitPath {}
-
 /// Path to an opaque.
 ///
 /// There are three kinds of opaques that Diplomat uses, so this type has two
@@ -44,12 +31,12 @@ pub enum NoTraitPath {}
 /// Diplomat uses are:
 ///
 /// 1. `OpaquePath<Optional, MaybeOwn>`: Opaques in return types,
-///    which can be optional and either owned or borrowed.
+/// which can be optional and either owned or borrowed.
 /// 2. `OpaquePath<Optional, Borrow>`: Opaques in method parameters, which can
-///    be optional but must be borrowed, since most languages don't have a way to
-///    entirely give up ownership of a value.
+/// be optional but must be borrowed, since most languages don't have a way to
+/// entirely give up ownership of a value.
 /// 3. `OpaquePath<NonOptional, Borrow>`: Opaques in the `&self` position, which
-///    cannot be optional and must be borrowed for the same reason as above.
+/// cannot be optional and must be borrowed for the same reason as above.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct OpaquePath<Opt, Owner> {
@@ -69,10 +56,6 @@ pub struct NonOptional;
 impl<Owner: OpaqueOwner> OpaquePath<Optional, Owner> {
     pub fn is_optional(&self) -> bool {
         self.optional.0
-    }
-
-    pub fn is_owned(&self) -> bool {
-        self.owner.is_owned()
     }
 }
 
@@ -175,7 +158,7 @@ impl OutStructPath {
 }
 
 impl<Opt, Owner> OpaquePath<Opt, Owner> {
-    /// Returns a new [`OpaquePath`].
+    /// Returns a new [`EnumPath`].
     pub(super) fn new(lifetimes: Lifetimes, optional: Opt, owner: Owner, tcx_id: OpaqueId) -> Self {
         Self {
             lifetimes,
@@ -213,12 +196,5 @@ impl EnumPath {
     /// Returns the [`EnumDef`] that this path references.
     pub fn resolve<'tcx>(&self, tcx: &'tcx TypeContext) -> &'tcx EnumDef {
         tcx.resolve_enum(self.tcx_id)
-    }
-}
-
-impl TraitPath {
-    /// Returns a new [`TraitPath`].
-    pub(super) fn new(lifetimes: Lifetimes, tcx_id: TraitId) -> Self {
-        Self { lifetimes, tcx_id }
     }
 }

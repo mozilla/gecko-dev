@@ -14,7 +14,7 @@ use crate::rata_die::RataDie;
 const EPOCH: RataDie = RataDie::new(1);
 
 /// Whether or not `year` is a leap year
-pub const fn is_leap_year(year: i32) -> bool {
+pub fn is_leap_year(year: i32) -> bool {
     year % 4 == 0 && (year % 400 == 0 || year % 100 != 0)
 }
 
@@ -22,7 +22,7 @@ pub const fn is_leap_year(year: i32) -> bool {
 // The fixed calculations algorithms are from the Calendrical Calculations book.
 //
 /// Lisp code reference: <https://github.com/EdReingold/calendar-code2/blob/1ee51ecfaae6f856b0d7de3e36e9042100b4f424/calendar.l#L1167-L1189>
-pub const fn const_fixed_from_iso(year: i32, month: u8, day: u8) -> RataDie {
+pub fn fixed_from_iso(year: i32, month: u8, day: u8) -> RataDie {
     let prev_year = (year as i64) - 1;
     // Calculate days per year
     let mut fixed: i64 = (EPOCH.to_i64_date() - 1) + 365 * prev_year;
@@ -45,15 +45,10 @@ pub const fn const_fixed_from_iso(year: i32, month: u8, day: u8) -> RataDie {
     RataDie::new(fixed)
 }
 
-/// Non-const version of [`const_fixed_from_iso`]
-pub fn fixed_from_iso(year: i32, month: u8, day: u8) -> RataDie {
-    const_fixed_from_iso(year, month, day)
-}
-
 /// Lisp code reference: <https://github.com/EdReingold/calendar-code2/blob/1ee51ecfaae6f856b0d7de3e36e9042100b4f424/calendar.l#L1191-L1217>
-pub(crate) const fn iso_year_from_fixed(date: RataDie) -> i64 {
+pub(crate) fn iso_year_from_fixed(date: RataDie) -> i64 {
     // Shouldn't overflow because it's not possbile to construct extreme values of RataDie
-    let date = date.until(EPOCH);
+    let date = date - EPOCH;
 
     // 400 year cycles have 146097 days
     let (n_400, date) = (date.div_euclid(146097), date.rem_euclid(146097));

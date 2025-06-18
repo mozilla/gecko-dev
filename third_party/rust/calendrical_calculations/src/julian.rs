@@ -96,9 +96,7 @@ pub fn julian_from_fixed(date: RataDie) -> Result<(i32, u8, u8), I32CastError> {
     Ok((adjusted_year, month, day))
 }
 
-/// Get a fixed date from the ymd of a Julian date.
-///
-/// Years are counted as in _Calendrical Calculations_ by Reingold & Dershowitz,
+/// Get a fixed date from the ymd of a Julian date; years are counted as in _Calendrical Calculations_ by Reingold & Dershowitz,
 /// meaning there is no year 0. For instance, near the epoch date, years are counted: -3, -2, -1, 1, 2, 3 instead of -2, -1, 0, 1, 2, 3.
 ///
 /// Primarily useful for use with code constructing epochs specified in the bookg

@@ -2,8 +2,7 @@
 
 use super::lifetimes::LifetimeEnv;
 use super::{
-    Attrs, Callback, Everywhere, IdentBuf, Method, OutputOnly, SpecialMethodPresence, TyPosition,
-    Type,
+    Attrs, Everywhere, IdentBuf, Method, OutputOnly, SpecialMethodPresence, TyPosition, Type,
 };
 use crate::ast::Docs;
 
@@ -20,17 +19,6 @@ pub enum TypeDef<'tcx> {
     OutStruct(&'tcx OutStructDef),
     Opaque(&'tcx OpaqueDef),
     Enum(&'tcx EnumDef),
-}
-
-#[derive(Debug)]
-#[non_exhaustive]
-pub struct TraitDef {
-    // TyPosition: InputOnly
-    pub docs: Docs,
-    pub name: IdentBuf,
-    pub methods: Vec<Callback>,
-    pub attrs: Attrs,
-    pub lifetimes: LifetimeEnv,
 }
 
 /// Structs that can only be returned from methods.
@@ -66,9 +54,6 @@ pub struct OpaqueDef {
     pub attrs: Attrs,
     pub lifetimes: LifetimeEnv,
     pub special_method_presence: SpecialMethodPresence,
-
-    /// The ABI name of the generated destructor
-    pub dtor_abi_name: IdentBuf,
 }
 
 /// The enum type.
@@ -93,7 +78,6 @@ pub struct StructField<P: TyPosition = Everywhere> {
     pub docs: Docs,
     pub name: IdentBuf,
     pub ty: Type<P>,
-    pub attrs: Attrs,
 }
 
 /// A variant of an [`Enum`].
@@ -104,24 +88,6 @@ pub struct EnumVariant {
     pub name: IdentBuf,
     pub discriminant: isize,
     pub attrs: Attrs,
-}
-
-impl TraitDef {
-    pub(super) fn new(
-        docs: Docs,
-        name: IdentBuf,
-        methods: Vec<Callback>,
-        attrs: Attrs,
-        lifetimes: LifetimeEnv,
-    ) -> Self {
-        Self {
-            docs,
-            name,
-            methods,
-            attrs,
-            lifetimes,
-        }
-    }
 }
 
 impl<P: TyPosition> StructDef<P> {
@@ -154,7 +120,6 @@ impl OpaqueDef {
         attrs: Attrs,
         lifetimes: LifetimeEnv,
         special_method_presence: SpecialMethodPresence,
-        dtor_abi_name: IdentBuf,
     ) -> Self {
         Self {
             docs,
@@ -163,7 +128,6 @@ impl OpaqueDef {
             attrs,
             lifetimes,
             special_method_presence,
-            dtor_abi_name,
         }
     }
 }
@@ -188,9 +152,15 @@ impl EnumDef {
     }
 }
 
-impl<'a, P: TyPosition> From<&'a StructDef<P>> for TypeDef<'a> {
-    fn from(x: &'a StructDef<P>) -> Self {
-        P::wrap_struct_def(x)
+impl<'a> From<&'a StructDef> for TypeDef<'a> {
+    fn from(x: &'a StructDef) -> Self {
+        TypeDef::Struct(x)
+    }
+}
+
+impl<'a> From<&'a OutStructDef> for TypeDef<'a> {
+    fn from(x: &'a OutStructDef) -> Self {
+        TypeDef::OutStruct(x)
     }
 }
 

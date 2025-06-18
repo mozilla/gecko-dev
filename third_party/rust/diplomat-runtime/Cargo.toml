@@ -10,46 +10,27 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2021"
-rust-version = "1.81"
+edition = "2018"
 name = "diplomat-runtime"
-version = "0.11.0"
+version = "0.8.0"
 authors = [
     "Shadaj Laddad <shadaj@users.noreply.github.com>",
     "Manish Goregaokar <manishsmail@gmail.com>",
     "Quinn Okabayashi <QnnOkabayashi@users.noreply.github.com>",
 ]
-build = false
-autolib = false
-autobins = false
-autoexamples = false
-autotests = false
-autobenches = false
 description = "Common runtime utilities used by diplomat codegen"
-readme = "README.md"
+documentation = "https://docs.rs/diplomat_core/"
 keywords = [
     "ffi",
     "codegen",
 ]
-categories = [
-    "development-tools",
-    "compilers",
-]
+categories = ["development-tools"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-diplomat/diplomat"
 
 [lib]
-name = "diplomat_runtime"
 path = "src/lib.rs"
-
-[dependencies.jni]
-version = "0.21"
-optional = true
 
 [dependencies.log]
 version = "0.4"
 optional = true
-
-[features]
-jvm-callback-support = ["dep:jni"]
-log = ["dep:log"]

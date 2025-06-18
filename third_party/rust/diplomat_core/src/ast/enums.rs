@@ -39,9 +39,6 @@ impl Enum {
                 .variants
                 .iter()
                 .map(|v| {
-                    if !matches!(v.fields, syn::Fields::Unit) {
-                        panic!("Enums cannot have fields, we only support C-like enums");
-                    }
                     let new_discriminant = v
                         .discriminant
                         .as_ref()

@@ -3,16 +3,14 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 #[diplomat::bridge]
-#[diplomat::abi_rename = "icu4x_{0}_mv1"]
-#[diplomat::attr(auto, namespace = "icu4x")]
 pub mod ffi {
     use alloc::boxed::Box;
 
     #[diplomat::opaque]
     /// An object allowing control over the logging used
-    pub struct Logger;
+    pub struct ICU4XLogger;
 
-    impl Logger {
+    impl ICU4XLogger {
         /// Initialize the logger using `simple_logger`
         ///
         /// Requires the `simple_logger` Cargo feature.
@@ -22,5 +20,16 @@ pub mod ffi {
         pub fn init_simple_logger() -> bool {
             simple_logger::init().is_ok()
         }
+
+        /// Deprecated: since ICU4X 1.4, this now happens automatically if the `log` feature is enabled.
+        #[cfg(target_arch = "wasm32")]
+        pub fn init_console_logger() -> bool {
+            false
+        }
     }
 }
+
+// semver?
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub unsafe extern "C" fn icu4x_init() {}

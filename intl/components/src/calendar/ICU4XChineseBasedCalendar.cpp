@@ -7,12 +7,12 @@
 namespace mozilla::intl::calendar {
 
 ICU4XChineseBasedCalendar::ICU4XChineseBasedCalendar(
-    icu4x::capi::CalendarKind kind, const icu::Locale& locale,
+    capi::ICU4XAnyCalendarKind kind, const icu::Locale& locale,
     UErrorCode& success)
     : ICU4XCalendar(kind, locale, success) {}
 
 ICU4XChineseBasedCalendar::ICU4XChineseBasedCalendar(
-    icu4x::capi::CalendarKind kind, const icu::TimeZone& timeZone,
+    capi::ICU4XAnyCalendarKind kind, const icu::TimeZone& timeZone,
     const icu::Locale& locale, UErrorCode& success)
     : ICU4XCalendar(kind, timeZone, locale, success) {}
 
@@ -98,10 +98,10 @@ void ICU4XChineseBasedCalendar::handleComputeFields(int32_t julianDay,
     return;
   }
 
-  int32_t extendedYear = icu4x::capi::icu4x_Date_extended_year_mv1(date.get());
-  int32_t month = icu4x::capi::icu4x_Date_ordinal_month_mv1(date.get());
-  int32_t dayOfMonth = icu4x::capi::icu4x_Date_day_of_month_mv1(date.get());
-  int32_t dayOfYear = icu4x::capi::icu4x_Date_day_of_year_mv1(date.get());
+  int32_t extendedYear = capi::ICU4XDate_year_in_era(date.get());
+  int32_t month = capi::ICU4XDate_ordinal_month(date.get());
+  int32_t dayOfMonth = capi::ICU4XDate_day_of_month(date.get());
+  int32_t dayOfYear = capi::ICU4XDate_day_of_year(date.get());
 
   MOZ_ASSERT(1 <= month && month <= 13);
   MOZ_ASSERT(1 <= dayOfMonth && dayOfMonth <= 30);

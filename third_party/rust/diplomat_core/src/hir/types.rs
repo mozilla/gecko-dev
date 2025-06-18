@@ -20,21 +20,8 @@ pub enum Type<P: TyPosition = Everywhere> {
     Primitive(PrimitiveType),
     Opaque(OpaquePath<Optional, P::OpaqueOwnership>),
     Struct(P::StructPath),
-    ImplTrait(P::TraitPath),
     Enum(EnumPath),
     Slice(Slice),
-    Callback(P::CallbackInstantiation), // only a Callback if P == InputOnly
-    /// `DiplomatOption<T>`, for  a primitive, struct, or enum `T`.
-    ///
-    /// In some cases this can be specified as `Option<T>`, but under the hood it gets translated to
-    /// the DiplomatOption FFI-compatible union type.
-    ///
-    /// This is *different* from `Option<&T>` and `Option<Box<T>` for an opaque `T`: That is represented as
-    /// a nullable pointer.
-    ///
-    /// This does not get used when the user writes `-> Option<T>` (for non-opaque T):
-    /// that will always use [`ReturnType::Nullable`](crate::hir::ReturnType::Nullable).
-    DiplomatOption(Box<Type<P>>),
 }
 
 /// Type that can appear in the `self` position.
@@ -67,7 +54,7 @@ pub enum Slice {
     /// pass `&[bool]` anyway.
     Primitive(Option<Borrow>, PrimitiveType),
 
-    /// A `&[DiplomatStrSlice]`. This type of slice always needs to be
+    /// A `&[&DiplomatStr]]`. This type of slice always needs to be
     /// allocated before passing it into Rust, as it has to conform to the
     /// Rust ABI. In other languages this is the idiomatic list of string
     /// views, i.e. `std::span<std::string_view>` or `core.List<core.String>`.
@@ -89,9 +76,7 @@ pub struct Borrow {
     pub mutability: Mutability,
 }
 
-// This is implemented on InputOnly and Everywhere types. Could be extended
-// if we genericize .resolve() later.
-impl<P: TyPosition<StructPath = StructPath>> Type<P> {
+impl Type {
     /// Return the number of fields and leaves that will show up in the [`LifetimeTree`]
     /// returned by [`Param::lifetime_tree`] and [`ParamSelf::lifetime_tree`].
     ///
@@ -102,9 +87,8 @@ impl<P: TyPosition<StructPath = StructPath>> Type<P> {
                 let inner = field.ty.field_leaf_lifetime_counts(tcx);
                 (acc.0 + inner.0, acc.1 + inner.1)
             }),
-            Type::Opaque(_) | Type::Slice(_) | Type::Callback(_) | Type::ImplTrait(_) => (1, 1),
+            Type::Opaque(_) | Type::Slice(_) => (1, 1),
             Type::Primitive(_) | Type::Enum(_) => (0, 0),
-            Type::DiplomatOption(ty) => ty.field_leaf_lifetime_counts(tcx),
         }
     }
 }
@@ -128,8 +112,6 @@ impl<P: TyPosition> Type<P> {
                     .map(|lt| std::slice::from_ref(lt).iter().copied())
                     .unwrap_or([].iter().copied()),
             ),
-            Type::DiplomatOption(ty) => ty.lifetimes(),
-            // TODO the Callback case
             _ => Either::Left([].iter().copied()),
         }
     }
@@ -143,23 +125,6 @@ impl<P: TyPosition> Type<P> {
             _ => return None,
         })
     }
-
-    /// Unwrap to the inner type if `self` is `DiplomatOption`
-    pub fn unwrap_option(&self) -> &Type<P> {
-        match self {
-            Self::DiplomatOption(ref o) => o,
-            _ => self,
-        }
-    }
-
-    /// Whether this type is a `DiplomatOption` or optional Opaque
-    pub fn is_option(&self) -> bool {
-        match self {
-            Self::DiplomatOption(..) => true,
-            Self::Opaque(ref o) if o.is_optional() => true,
-            _ => false,
-        }
-    }
 }
 
 impl SelfType {
@@ -167,13 +132,10 @@ impl SelfType {
     ///
     /// Curently this can only happen with opaque types.
     pub fn is_immutably_borrowed(&self) -> bool {
-        matches!(self, SelfType::Opaque(opaque_path) if opaque_path.owner.mutability == Mutability::Immutable)
-    }
-    /// Returns whether the self parameter is consuming.
-    ///
-    /// Currently this can only (and must) only happen for non-opaque types.
-    pub fn is_consuming(&self) -> bool {
-        matches!(self, SelfType::Enum(_) | SelfType::Struct(_))
+        match self {
+            SelfType::Opaque(opaque_path) => opaque_path.owner.mutability == Mutability::Immutable,
+            _ => false,
+        }
     }
 }
 

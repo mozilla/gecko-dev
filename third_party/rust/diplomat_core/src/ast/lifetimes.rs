@@ -3,7 +3,7 @@ use quote::{quote, ToTokens};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-use super::{Attrs, Docs, Ident, Param, SelfParam, TraitSelfParam, TypeName};
+use super::{Docs, Ident, Param, SelfParam, TypeName};
 
 /// A named lifetime, e.g. `'a`.
 ///
@@ -123,60 +123,13 @@ impl LifetimeEnv {
         this
     }
 
-    pub fn from_trait_item(
-        trait_fct_item: &syn::TraitItem,
-        self_param: Option<&TraitSelfParam>,
-        params: &[Param],
-        return_type: Option<&TypeName>,
-    ) -> Self {
-        let mut this = LifetimeEnv::new();
-        if let syn::TraitItem::Fn(_) = trait_fct_item {
-            if let Some(self_param) = self_param {
-                this.extend_implicit_lifetime_bounds(&self_param.to_typename(), None);
-            }
-            for param in params {
-                this.extend_implicit_lifetime_bounds(&param.ty, None);
-            }
-            if let Some(return_type) = return_type {
-                this.extend_implicit_lifetime_bounds(return_type, None);
-            }
-        } else {
-            panic!(
-                "Diplomat traits can only have associated methods and no other associated items."
-            )
-        }
-        this
-    }
-
-    pub fn from_trait(trt: &syn::ItemTrait) -> Self {
-        if trt.generics.lifetimes().next().is_some() {
-            panic!("Diplomat traits are not allowed to have any lifetime parameters")
-        }
-        LifetimeEnv::new()
-    }
-
-    pub fn from_enum_item(
-        enm: &syn::ItemEnum,
-        variant_fields: &[(Option<Ident>, TypeName, Docs, Attrs)],
-    ) -> Self {
-        let mut this = LifetimeEnv::new();
-        this.extend_generics(&enm.generics);
-        for (_, typ, _, _) in variant_fields {
-            this.extend_implicit_lifetime_bounds(typ, None);
-        }
-        this
-    }
-
     /// Returns a [`LifetimeEnv`] for a struct, accounding for lifetimes and bounds
     /// defined in the struct generics, as well as implicit lifetime bounds in
     /// the struct's fields. For example, the field `&'a Foo<'b>` implies `'b: 'a`.
-    pub fn from_struct_item(
-        strct: &syn::ItemStruct,
-        fields: &[(Ident, TypeName, Docs, Attrs)],
-    ) -> Self {
+    pub fn from_struct_item(strct: &syn::ItemStruct, fields: &[(Ident, TypeName, Docs)]) -> Self {
         let mut this = LifetimeEnv::new();
         this.extend_generics(&strct.generics);
-        for (_, typ, _, _) in fields {
+        for (_, typ, _) in fields {
             this.extend_implicit_lifetime_bounds(typ, None);
         }
         this
@@ -220,7 +173,7 @@ impl LifetimeEnv {
                 };
                 self.extend_implicit_lifetime_bounds(typ, behind_ref);
             }
-            TypeName::Option(typ, _) => self.extend_implicit_lifetime_bounds(typ, None),
+            TypeName::Option(typ) => self.extend_implicit_lifetime_bounds(typ, None),
             TypeName::Result(ok, err, _) => {
                 self.extend_implicit_lifetime_bounds(ok, None);
                 self.extend_implicit_lifetime_bounds(err, None);

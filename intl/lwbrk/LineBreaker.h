@@ -46,8 +46,6 @@ class LineBreaker final {
                                     LineBreakRule aLevel,
                                     bool aIsChineseOrJapanese,
                                     uint8_t* aBreakBefore);
-
-  static void Shutdown();
 };
 
 static inline bool NS_IsSpace(char16_t u) {

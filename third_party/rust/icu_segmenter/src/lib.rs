@@ -29,7 +29,7 @@
 //!```rust
 //! use icu::segmenter::LineSegmenter;
 //!
-//! let segmenter = LineSegmenter::new_auto(Default::default());
+//! let segmenter = LineSegmenter::new_auto();
 //!
 //! let breakpoints: Vec<usize> = segmenter
 //!     .segment_str("Hello World. Xin chào thế giới!")
@@ -67,10 +67,9 @@
 //! Find all word boundaries:
 //!
 //!```rust
-//! use icu::segmenter::{options::WordBreakInvariantOptions, WordSegmenter};
+//! use icu::segmenter::WordSegmenter;
 //!
-//! let segmenter =
-//!     WordSegmenter::new_auto(WordBreakInvariantOptions::default());
+//! let segmenter = WordSegmenter::new_auto();
 //!
 //! let breakpoints: Vec<usize> = segmenter
 //!     .segment_str("Hello World. Xin chào thế giới!")
@@ -88,12 +87,9 @@
 //! Segment the string into sentences:
 //!
 //!```rust
-//! use icu::segmenter::{
-//!     options::SentenceBreakInvariantOptions, SentenceSegmenter,
-//! };
+//! use icu::segmenter::SentenceSegmenter;
 //!
-//! let segmenter =
-//!     SentenceSegmenter::new(SentenceBreakInvariantOptions::default());
+//! let segmenter = SentenceSegmenter::new();
 //!
 //! let breakpoints: Vec<usize> = segmenter
 //!     .segment_str("Hello World. Xin chào thế giới!")
@@ -104,7 +100,7 @@
 //! See [`SentenceSegmenter`] for more examples.
 
 // https://github.com/unicode-org/icu4x/blob/main/documents/process/boilerplate.md#library-annotations
-#![cfg_attr(not(any(test, doc)), no_std)]
+#![cfg_attr(not(any(test, feature = "std")), no_std)]
 #![cfg_attr(
     not(test),
     deny(
@@ -114,7 +110,6 @@
         clippy::panic,
         clippy::exhaustive_structs,
         clippy::exhaustive_enums,
-        clippy::trivially_copy_pass_by_ref,
         missing_debug_implementations,
     )
 )]
@@ -123,60 +118,53 @@
 extern crate alloc;
 
 mod complex;
+mod error;
 mod indices;
 mod iterator_helpers;
 mod rule_segmenter;
 
-/// [`GraphemeClusterSegmenter`] and its related iterators, borrowed types, and options.
 mod grapheme;
-/// [`LineSegmenter`] and its related iterators, borrowed types, and options.
 mod line;
-/// [`SentenceSegmenter`] and its related iterators, borrowed types, and options.
 mod sentence;
-/// [`WordSegmenter`] and its related iterators, borrowed types, and options.
 mod word;
 
 pub mod provider;
 
 // Main Segmenter and BreakIterator public types
+pub use crate::grapheme::GraphemeClusterBreakIterator;
 pub use crate::grapheme::GraphemeClusterSegmenter;
-pub use crate::grapheme::GraphemeClusterSegmenterBorrowed;
+pub use crate::line::LineBreakIterator;
 pub use crate::line::LineSegmenter;
-pub use crate::line::LineSegmenterBorrowed;
+pub use crate::sentence::SentenceBreakIterator;
 pub use crate::sentence::SentenceSegmenter;
-pub use crate::sentence::SentenceSegmenterBorrowed;
+pub use crate::word::WordBreakIterator;
 pub use crate::word::WordSegmenter;
-pub use crate::word::WordSegmenterBorrowed;
 
-/// Options structs and enums
-pub mod options {
-    pub use crate::line::LineBreakOptions;
-    pub use crate::line::LineBreakStrictness;
-    pub use crate::line::LineBreakWordOption;
-    pub use crate::sentence::SentenceBreakInvariantOptions;
-    pub use crate::sentence::SentenceBreakOptions;
-    pub use crate::word::WordBreakInvariantOptions;
-    pub use crate::word::WordBreakOptions;
-    pub use crate::word::WordType;
-}
+// Options structs and enums
+pub use crate::line::LineBreakOptions;
+pub use crate::line::LineBreakStrictness;
+pub use crate::line::LineBreakWordOption;
+pub use crate::word::WordType;
 
-/// Largely-internal scaffolding types (You should very rarely need to reference these directly)
-pub mod scaffold {
-    pub use crate::line::LineBreakType;
-    pub use crate::rule_segmenter::{Latin1, PotentiallyIllFormedUtf8, RuleBreakType, Utf16, Utf8};
-    pub use crate::word::WordBreakType;
-}
+// Typedefs
+pub use crate::grapheme::GraphemeClusterBreakIteratorLatin1;
+pub use crate::grapheme::GraphemeClusterBreakIteratorPotentiallyIllFormedUtf8;
+pub use crate::grapheme::GraphemeClusterBreakIteratorUtf16;
+pub use crate::grapheme::GraphemeClusterBreakIteratorUtf8;
+pub use crate::line::LineBreakIteratorLatin1;
+pub use crate::line::LineBreakIteratorPotentiallyIllFormedUtf8;
+pub use crate::line::LineBreakIteratorUtf16;
+pub use crate::line::LineBreakIteratorUtf8;
+pub use crate::sentence::SentenceBreakIteratorLatin1;
+pub use crate::sentence::SentenceBreakIteratorPotentiallyIllFormedUtf8;
+pub use crate::sentence::SentenceBreakIteratorUtf16;
+pub use crate::sentence::SentenceBreakIteratorUtf8;
+pub use crate::word::WordBreakIteratorLatin1;
+pub use crate::word::WordBreakIteratorPotentiallyIllFormedUtf8;
+pub use crate::word::WordBreakIteratorUtf16;
+pub use crate::word::WordBreakIteratorUtf8;
 
-/// Types supporting iteration over segments. Obtained from the segmenter types.
-pub mod iterators {
-    pub use crate::grapheme::GraphemeClusterBreakIterator;
-    pub use crate::line::LineBreakIterator;
-    pub use crate::sentence::SentenceBreakIterator;
-    pub use crate::word::{WordBreakIterator, WordBreakIteratorWithWordType};
-}
+pub use error::SegmenterError;
 
-pub(crate) mod private {
-    /// Trait marking other traits that are considered unstable and should not generally be
-    /// implemented outside of the segmenter crate.
-    pub trait Sealed {}
-}
+#[doc(no_inline)]
+pub use SegmenterError as Error;

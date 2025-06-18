@@ -29,8 +29,7 @@ const strings = {
   "ab": ["ab"],
 
   // WB6, WB7
-  // Colon might be different rules per locale. (https://unicode-org.atlassian.net/browse/ICU-22112)
-  // "a:b": ["a:b"],
+  "a:b": ["a:b"],
   "a·b": ["a·b"],
   "a.b": ["a.b"],
   "a'b": ["a'b"],
@@ -109,8 +108,7 @@ for (let string of [
   "a", "ab",
 
   // WB6, WB7
-  // Colon might be different rules per locale. (https://unicode-org.atlassian.net/browse/ICU-22112)
-  // "a:b",
+  "a:b",
   "a·b",
   "a.b",
   "a'b",

@@ -1,6 +1,6 @@
 ---
 source: core/src/ast/types.rs
-expression: "TypeName::from_syn(&syn::parse_quote! { Result<OkRef<'a, 'b>, ErrRef<'c>> },\n    None)"
+expression: "TypeName::from_syn(&syn::parse_quote! {\n                Result < OkRef < 'a, 'b >, ErrRef < 'c >>\n            }, None)"
 ---
 Result:
   - Named:
@@ -16,4 +16,5 @@ Result:
           - ErrRef
       lifetimes:
         - Named: c
-  - Stdlib
+  - true
+

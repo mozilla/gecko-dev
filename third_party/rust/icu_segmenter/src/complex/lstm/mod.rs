@@ -2,25 +2,24 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::grapheme::GraphemeClusterSegmenterBorrowed;
+use crate::grapheme::GraphemeClusterSegmenter;
 use crate::provider::*;
 use alloc::vec::Vec;
 use core::char::{decode_utf16, REPLACEMENT_CHARACTER};
-use potential_utf::PotentialUtf8;
-use zerovec::maps::ZeroMapBorrowed;
+use zerovec::{maps::ZeroMapBorrowed, ule::UnvalidatedStr};
 
 mod matrix;
 use matrix::*;
 
 // A word break iterator using LSTM model. Input string have to be same language.
 
-pub(super) struct LstmSegmenterIterator<'s, 'data> {
+struct LstmSegmenterIterator<'s> {
     input: &'s str,
     pos_utf8: usize,
-    bies: BiesIterator<'s, 'data>,
+    bies: BiesIterator<'s>,
 }
 
-impl Iterator for LstmSegmenterIterator<'_, '_> {
+impl Iterator for LstmSegmenterIterator<'_> {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -35,12 +34,12 @@ impl Iterator for LstmSegmenterIterator<'_, '_> {
     }
 }
 
-pub(super) struct LstmSegmenterIteratorUtf16<'s, 'data> {
-    bies: BiesIterator<'s, 'data>,
+struct LstmSegmenterIteratorUtf16<'s> {
+    bies: BiesIterator<'s>,
     pos: usize,
 }
 
-impl Iterator for LstmSegmenterIteratorUtf16<'_, '_> {
+impl Iterator for LstmSegmenterIteratorUtf16<'_> {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -53,28 +52,25 @@ impl Iterator for LstmSegmenterIteratorUtf16<'_, '_> {
     }
 }
 
-pub(super) struct LstmSegmenter<'data> {
-    dic: ZeroMapBorrowed<'data, PotentialUtf8, u16>,
-    embedding: MatrixZero<'data, 2>,
-    fw_w: MatrixZero<'data, 3>,
-    fw_u: MatrixZero<'data, 3>,
-    fw_b: MatrixZero<'data, 2>,
-    bw_w: MatrixZero<'data, 3>,
-    bw_u: MatrixZero<'data, 3>,
-    bw_b: MatrixZero<'data, 2>,
-    timew_fw: MatrixZero<'data, 2>,
-    timew_bw: MatrixZero<'data, 2>,
-    time_b: MatrixZero<'data, 1>,
-    grapheme: Option<GraphemeClusterSegmenterBorrowed<'data>>,
+pub(super) struct LstmSegmenter<'l> {
+    dic: ZeroMapBorrowed<'l, UnvalidatedStr, u16>,
+    embedding: MatrixZero<'l, 2>,
+    fw_w: MatrixZero<'l, 3>,
+    fw_u: MatrixZero<'l, 3>,
+    fw_b: MatrixZero<'l, 2>,
+    bw_w: MatrixZero<'l, 3>,
+    bw_u: MatrixZero<'l, 3>,
+    bw_b: MatrixZero<'l, 2>,
+    timew_fw: MatrixZero<'l, 2>,
+    timew_bw: MatrixZero<'l, 2>,
+    time_b: MatrixZero<'l, 1>,
+    grapheme: Option<&'l RuleBreakDataV1<'l>>,
 }
 
-impl<'data> LstmSegmenter<'data> {
+impl<'l> LstmSegmenter<'l> {
     /// Returns `Err` if grapheme data is required but not present
-    pub(super) fn new(
-        lstm: &'data LstmData<'data>,
-        grapheme: GraphemeClusterSegmenterBorrowed<'data>,
-    ) -> Self {
-        let LstmData::Float32(lstm) = lstm;
+    pub(super) fn new(lstm: &'l LstmDataV1<'l>, grapheme: &'l RuleBreakDataV1<'l>) -> Self {
+        let LstmDataV1::Float32(lstm) = lstm;
         let time_w = MatrixZero::from(&lstm.time_w);
         #[allow(clippy::unwrap_used)] // shape (2, 4, hunits)
         let timew_fw = time_w.submatrix(0).unwrap();
@@ -97,10 +93,14 @@ impl<'data> LstmSegmenter<'data> {
     }
 
     /// Create an LSTM based break iterator for an `str` (a UTF-8 string).
-    pub(super) fn segment_str<'a>(&'a self, input: &'a str) -> LstmSegmenterIterator<'a, 'data> {
+    pub(super) fn segment_str(&'l self, input: &'l str) -> impl Iterator<Item = usize> + 'l {
+        self.segment_str_p(input)
+    }
+
+    // For unit testing as we cannot inspect the opaque type's bies
+    fn segment_str_p(&'l self, input: &'l str) -> LstmSegmenterIterator<'l> {
         let input_seq = if let Some(grapheme) = self.grapheme {
-            grapheme
-                .segment_str(input)
+            GraphemeClusterSegmenter::new_and_segment_str(input, grapheme)
                 .collect::<Vec<usize>>()
                 .windows(2)
                 .map(|chunk| {
@@ -116,7 +116,7 @@ impl<'data> LstmSegmenter<'data> {
                     };
 
                     self.dic
-                        .get_copied(PotentialUtf8::from_str(grapheme_cluster))
+                        .get_copied(UnvalidatedStr::from_str(grapheme_cluster))
                         .unwrap_or_else(|| self.dic.len() as u16)
                 })
                 .collect()
@@ -125,7 +125,7 @@ impl<'data> LstmSegmenter<'data> {
                 .chars()
                 .map(|c| {
                     self.dic
-                        .get_copied(PotentialUtf8::from_str(c.encode_utf8(&mut [0; 4])))
+                        .get_copied(UnvalidatedStr::from_str(c.encode_utf8(&mut [0; 4])))
                         .unwrap_or_else(|| self.dic.len() as u16)
                 })
                 .collect()
@@ -138,13 +138,9 @@ impl<'data> LstmSegmenter<'data> {
     }
 
     /// Create an LSTM based break iterator for a UTF-16 string.
-    pub(super) fn segment_utf16<'a>(
-        &'a self,
-        input: &[u16],
-    ) -> LstmSegmenterIteratorUtf16<'a, 'data> {
+    pub(super) fn segment_utf16(&'l self, input: &[u16]) -> impl Iterator<Item = usize> + 'l {
         let input_seq = if let Some(grapheme) = self.grapheme {
-            grapheme
-                .segment_utf16(input)
+            GraphemeClusterSegmenter::new_and_segment_utf16(input, grapheme)
                 .collect::<Vec<usize>>()
                 .windows(2)
                 .map(|chunk| {
@@ -180,7 +176,7 @@ impl<'data> LstmSegmenter<'data> {
                 .map(|c| c.unwrap_or(REPLACEMENT_CHARACTER))
                 .map(|c| {
                     self.dic
-                        .get_copied(PotentialUtf8::from_str(c.encode_utf8(&mut [0; 4])))
+                        .get_copied(UnvalidatedStr::from_str(c.encode_utf8(&mut [0; 4])))
                         .unwrap_or_else(|| self.dic.len() as u16)
                 })
                 .collect()
@@ -192,18 +188,18 @@ impl<'data> LstmSegmenter<'data> {
     }
 }
 
-struct BiesIterator<'l, 'data> {
-    segmenter: &'l LstmSegmenter<'data>,
+struct BiesIterator<'l> {
+    segmenter: &'l LstmSegmenter<'l>,
     input_seq: core::iter::Enumerate<alloc::vec::IntoIter<u16>>,
     h_bw: MatrixOwned<2>,
     curr_fw: MatrixOwned<1>,
     c_fw: MatrixOwned<1>,
 }
 
-impl<'l, 'data> BiesIterator<'l, 'data> {
+impl<'l> BiesIterator<'l> {
     // input_seq is a sequence of id numbers that represents grapheme clusters or code points in the input line. These ids are used later
     // in the embedding layer of the model.
-    fn new(segmenter: &'l LstmSegmenter<'data>, input_seq: Vec<u16>) -> Self {
+    fn new(segmenter: &'l LstmSegmenter<'l>, input_seq: Vec<u16>) -> Self {
         let hunits = segmenter.fw_u.dim().1;
 
         // Backward LSTM
@@ -234,13 +230,13 @@ impl<'l, 'data> BiesIterator<'l, 'data> {
     }
 }
 
-impl ExactSizeIterator for BiesIterator<'_, '_> {
+impl ExactSizeIterator for BiesIterator<'_> {
     fn len(&self) -> usize {
         self.input_seq.len()
     }
 }
 
-impl Iterator for BiesIterator<'_, '_> {
+impl Iterator for BiesIterator<'_> {
     type Item = bool;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -324,7 +320,7 @@ fn compute_hc<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::GraphemeClusterSegmenter;
+    use icu_locid::langid;
     use icu_provider::prelude::*;
     use serde::Deserialize;
 
@@ -351,17 +347,18 @@ mod tests {
 
     #[test]
     fn segment_file_by_lstm() {
-        let lstm: DataResponse<SegmenterLstmAutoV1> = crate::provider::Baked
+        let lstm: DataPayload<LstmForWordLineAutoV1Marker> = crate::provider::Baked
             .load(DataRequest {
-                id: DataIdentifierBorrowed::for_marker_attributes(
-                    DataMarkerAttributes::from_str_or_panic(
-                        "Thai_codepoints_exclusive_model4_heavy",
-                    ),
-                ),
-                ..Default::default()
+                locale: &langid!("th").into(),
+                metadata: Default::default(),
             })
+            .unwrap()
+            .take_payload()
             .unwrap();
-        let lstm = LstmSegmenter::new(lstm.payload.get(), GraphemeClusterSegmenter::new());
+        let lstm = LstmSegmenter::new(
+            lstm.get(),
+            crate::provider::Baked::SINGLETON_SEGMENTER_GRAPHEME_V1,
+        );
 
         // Importing the test data
         let test_text_data = serde_json::from_str(if lstm.grapheme.is_some() {
@@ -377,7 +374,7 @@ mod tests {
         // Testing
         for test_case in &test_text.data.testcases {
             let lstm_output = lstm
-                .segment_str(&test_case.unseg)
+                .segment_str_p(&test_case.unseg)
                 .bies
                 .map(|is_e| if is_e { 'e' } else { '?' })
                 .collect::<String>();

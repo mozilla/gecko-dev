@@ -5,9 +5,6 @@
 //! See [`VarZeroVec`](crate::VarZeroVec) for details
 
 pub(crate) mod components;
-pub(crate) mod error;
-pub(crate) mod lengthless;
-#[cfg(feature = "alloc")]
 pub(crate) mod owned;
 pub(crate) mod slice;
 pub(crate) mod vec;
@@ -20,12 +17,10 @@ mod serde;
 
 pub use crate::{VarZeroSlice, VarZeroVec};
 
+#[cfg(feature = "bench")]
 #[doc(hidden)]
 pub use components::VarZeroVecComponents;
 
-pub use components::{Index16, Index32, Index8, VarZeroSliceIter, VarZeroVecFormat};
+pub use components::{Index16, Index32, VarZeroVecFormat};
 
-#[cfg(feature = "alloc")]
 pub use owned::VarZeroVecOwned;
-
-pub use error::VarZeroVecFormatError;

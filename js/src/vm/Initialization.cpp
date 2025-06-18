@@ -11,6 +11,7 @@
 #include "mozilla/Assertions.h"
 #if JS_HAS_INTL_API
 #  include "mozilla/intl/ICU4CLibrary.h"
+#  include "mozilla/intl/ICU4XGeckoDataProvider.h"
 #endif
 #include "mozilla/TextUtils.h"
 
@@ -273,6 +274,7 @@ static void ShutdownImpl(JS::detail::FrontendOnly frontendOnly) {
 
 #if JS_HAS_INTL_API
   mozilla::intl::ICU4CLibrary::Cleanup();
+  mozilla::intl::CleanupDataProvider();
 #endif  // JS_HAS_INTL_API
 
   if (frontendOnly == FrontendOnly::No) {

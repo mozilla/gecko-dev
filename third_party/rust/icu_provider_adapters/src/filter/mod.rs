@@ -4,42 +4,55 @@
 
 //! Providers that filter resource requests.
 //!
-//! Requests that fail a filter test will return [`DataError`] of kind [`Filtered`](
-//! DataErrorKind::IdentifierNotFound) and will not appear in [`IterableDynamicDataProvider`] iterators.
+//! Requests that fail a filter test will return [`DataError`] of kind [`FilteredResource`](
+//! DataErrorKind::FilteredResource) and will not appear in [`IterableDynamicDataProvider`] iterators.
+//!
+//! The main struct is [`RequestFilterDataProvider`]. Although that struct can be created
+//! directly, the traits in this module provide helper functions for common filtering patterns.
+//!
+//! To create a `RequestFilterDataProvider`, you can use the [`Filterable`] blanket function:
+//!
+//! ```
+//! use icu_provider_adapters::filter::Filterable;
+//!
+//! // now call .filterable() on any object to get a RequestFilterDataProvider
+//! ```
 //!
 //! # Examples
 //!
 //! ```
-//! use icu_locale::subtags::language;
+//! use icu_locid::subtags::language;
 //! use icu_provider::hello_world::*;
 //! use icu_provider::prelude::*;
-//! use icu_provider_adapters::filter::FilterDataProvider;
+//! use icu_provider_adapters::filter::Filterable;
 //!
 //! // Only return German data from a HelloWorldProvider:
-//! FilterDataProvider::new(HelloWorldProvider, "Demo German-only filter")
-//!     .with_filter(|id| id.locale.language == language!("de"));
+//! HelloWorldProvider
+//!     .filterable("Demo German-only filter")
+//!     .filter_by_langid(|langid| langid.language == language!("de"));
 //! ```
+//!
+//! [`IterableDynamicDataProvider`]: icu_provider::datagen::IterableDynamicDataProvider
 
 mod impls;
 
-use alloc::collections::BTreeSet;
-#[cfg(feature = "export")]
-use icu_provider::export::ExportableProvider;
+#[cfg(feature = "datagen")]
+use icu_provider::datagen;
 use icu_provider::prelude::*;
 
 /// A data provider that selectively filters out data requests.
 ///
 /// Data requests that are rejected by the filter will return a [`DataError`] with kind
-/// [`Filtered`](DataErrorKind::IdentifierNotFound), and they will not be returned
-/// by [`IterableDynamicDataProvider::iter_ids_for_marker`].
+/// [`FilteredResource`](DataErrorKind::FilteredResource), and they will not be returned
+/// by [`datagen::IterableDynamicDataProvider::supported_locales_for_key`].
 ///
 /// Although this struct can be created directly, the traits in this module provide helper
 /// functions for common filtering patterns.
 #[allow(clippy::exhaustive_structs)] // this type is stable
 #[derive(Debug)]
-pub struct FilterDataProvider<D, F>
+pub struct RequestFilterDataProvider<D, F>
 where
-    F: Fn(DataIdentifierBorrowed) -> bool,
+    F: Fn(DataRequest) -> bool,
 {
     /// The data provider to which we delegate requests.
     pub inner: D,
@@ -52,119 +65,177 @@ where
     pub filter_name: &'static str,
 }
 
-impl<D, F> FilterDataProvider<D, F>
+impl<D, F, M> DynamicDataProvider<M> for RequestFilterDataProvider<D, F>
 where
-    F: Fn(DataIdentifierBorrowed) -> bool,
-{
-    fn check(&self, marker: DataMarkerInfo, req: DataRequest) -> Result<(), DataError> {
-        if !(self.predicate)(req.id) {
-            return Err(DataErrorKind::IdentifierNotFound
-                .with_str_context(self.filter_name)
-                .with_req(marker, req));
-        }
-        Ok(())
-    }
-}
-
-impl<D, F, M> DynamicDataProvider<M> for FilterDataProvider<D, F>
-where
-    F: Fn(DataIdentifierBorrowed) -> bool,
-    M: DynamicDataMarker,
+    F: Fn(DataRequest) -> bool,
+    M: DataMarker,
     D: DynamicDataProvider<M>,
 {
-    fn load_data(
-        &self,
-        marker: DataMarkerInfo,
-        req: DataRequest,
-    ) -> Result<DataResponse<M>, DataError> {
-        self.check(marker, req)?;
-        self.inner.load_data(marker, req)
+    fn load_data(&self, key: DataKey, req: DataRequest) -> Result<DataResponse<M>, DataError> {
+        if (self.predicate)(req) {
+            self.inner.load_data(key, req)
+        } else {
+            Err(DataErrorKind::FilteredResource
+                .with_str_context(self.filter_name)
+                .with_req(key, req))
+        }
     }
 }
 
-impl<D, F, M> DynamicDryDataProvider<M> for FilterDataProvider<D, F>
+impl<D, F, M> DataProvider<M> for RequestFilterDataProvider<D, F>
 where
-    F: Fn(DataIdentifierBorrowed) -> bool,
-    M: DynamicDataMarker,
-    D: DynamicDryDataProvider<M>,
-{
-    fn dry_load_data(
-        &self,
-        marker: DataMarkerInfo,
-        req: DataRequest,
-    ) -> Result<DataResponseMetadata, DataError> {
-        self.check(marker, req)?;
-        self.inner.dry_load_data(marker, req)
-    }
-}
-
-impl<D, F, M> DataProvider<M> for FilterDataProvider<D, F>
-where
-    F: Fn(DataIdentifierBorrowed) -> bool,
-    M: DataMarker,
+    F: Fn(DataRequest) -> bool,
+    M: KeyedDataMarker,
     D: DataProvider<M>,
 {
     fn load(&self, req: DataRequest) -> Result<DataResponse<M>, DataError> {
-        self.check(M::INFO, req)?;
-        self.inner.load(req)
+        if (self.predicate)(req) {
+            self.inner.load(req)
+        } else {
+            Err(DataErrorKind::FilteredResource
+                .with_str_context(self.filter_name)
+                .with_req(M::KEY, req))
+        }
     }
 }
 
-impl<D, F, M> DryDataProvider<M> for FilterDataProvider<D, F>
+impl<D, F> BufferProvider for RequestFilterDataProvider<D, F>
 where
-    F: Fn(DataIdentifierBorrowed) -> bool,
-    M: DataMarker,
-    D: DryDataProvider<M>,
+    F: Fn(DataRequest) -> bool,
+    D: BufferProvider,
 {
-    fn dry_load(&self, req: DataRequest) -> Result<DataResponseMetadata, DataError> {
-        self.check(M::INFO, req)?;
-        self.inner.dry_load(req)
-    }
-}
-
-impl<M, D, F> IterableDynamicDataProvider<M> for FilterDataProvider<D, F>
-where
-    M: DynamicDataMarker,
-    F: Fn(DataIdentifierBorrowed) -> bool,
-    D: IterableDynamicDataProvider<M>,
-{
-    fn iter_ids_for_marker(
+    fn load_buffer(
         &self,
-        marker: DataMarkerInfo,
-    ) -> Result<BTreeSet<DataIdentifierCow>, DataError> {
-        self.inner.iter_ids_for_marker(marker).map(|set| {
-            // Use filter_map instead of filter to avoid cloning the locale
-            set.into_iter()
-                .filter(|id| (self.predicate)(id.as_borrowed()))
-                .collect()
-        })
+        key: DataKey,
+        req: DataRequest,
+    ) -> Result<DataResponse<BufferMarker>, DataError> {
+        if (self.predicate)(req) {
+            self.inner.load_buffer(key, req)
+        } else {
+            Err(DataErrorKind::FilteredResource
+                .with_str_context(self.filter_name)
+                .with_req(key, req))
+        }
     }
 }
 
-impl<M, D, F> IterableDataProvider<M> for FilterDataProvider<D, F>
+impl<D, F> AnyProvider for RequestFilterDataProvider<D, F>
+where
+    F: Fn(DataRequest) -> bool,
+    D: AnyProvider,
+{
+    fn load_any(&self, key: DataKey, req: DataRequest) -> Result<AnyResponse, DataError> {
+        if (self.predicate)(req) {
+            self.inner.load_any(key, req)
+        } else {
+            Err(DataErrorKind::FilteredResource
+                .with_str_context(self.filter_name)
+                .with_req(key, req))
+        }
+    }
+}
+
+#[cfg(feature = "datagen")]
+impl<M, D, F> datagen::IterableDynamicDataProvider<M> for RequestFilterDataProvider<D, F>
 where
     M: DataMarker,
-    F: Fn(DataIdentifierBorrowed) -> bool,
-    D: IterableDataProvider<M>,
+    F: Fn(DataRequest) -> bool,
+    D: datagen::IterableDynamicDataProvider<M>,
 {
-    fn iter_ids(&self) -> Result<BTreeSet<DataIdentifierCow>, DataError> {
-        self.inner.iter_ids().map(|vec| {
+    fn supported_locales_for_key(
+        &self,
+        key: DataKey,
+    ) -> Result<alloc::vec::Vec<DataLocale>, DataError> {
+        self.inner.supported_locales_for_key(key).map(|vec| {
             // Use filter_map instead of filter to avoid cloning the locale
             vec.into_iter()
-                .filter(|id| (self.predicate)(id.as_borrowed()))
+                .filter_map(|locale| {
+                    if (self.predicate)(DataRequest {
+                        locale: &locale,
+                        metadata: Default::default(),
+                    }) {
+                        Some(locale)
+                    } else {
+                        None
+                    }
+                })
                 .collect()
         })
     }
 }
 
-#[cfg(feature = "export")]
-impl<P0, F> ExportableProvider for FilterDataProvider<P0, F>
+#[cfg(feature = "datagen")]
+impl<M, D, F> datagen::IterableDataProvider<M> for RequestFilterDataProvider<D, F>
 where
-    P0: ExportableProvider,
-    F: Fn(DataIdentifierBorrowed) -> bool + Sync,
+    M: KeyedDataMarker,
+    F: Fn(DataRequest) -> bool,
+    D: datagen::IterableDataProvider<M>,
 {
-    fn supported_markers(&self) -> alloc::collections::BTreeSet<DataMarkerInfo> {
-        // The predicate only takes DataIdentifier, not DataMarker, so we are not impacted
-        self.inner.supported_markers()
+    fn supported_locales(&self) -> Result<alloc::vec::Vec<DataLocale>, DataError> {
+        self.inner.supported_locales().map(|vec| {
+            // Use filter_map instead of filter to avoid cloning the locale
+            vec.into_iter()
+                .filter_map(|locale| {
+                    if (self.predicate)(DataRequest {
+                        locale: &locale,
+                        metadata: Default::default(),
+                    }) {
+                        Some(locale)
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        })
+    }
+}
+
+#[cfg(feature = "datagen")]
+impl<D, F, MFrom, MTo> datagen::DataConverter<MFrom, MTo> for RequestFilterDataProvider<D, F>
+where
+    D: datagen::DataConverter<MFrom, MTo>,
+    MFrom: DataMarker,
+    MTo: DataMarker,
+    F: Fn(DataRequest) -> bool,
+{
+    fn convert(
+        &self,
+        key: DataKey,
+        from: DataPayload<MFrom>,
+    ) -> Result<DataPayload<MTo>, (DataPayload<MFrom>, DataError)> {
+        // Conversions are type-agnostic
+        self.inner.convert(key, from)
+    }
+}
+
+/// A blanket-implemented trait exposing the [`Self::filterable()`] function.
+///
+/// For more details, see [`icu_provider_adapters::filter`](crate::filter).
+pub trait Filterable: Sized {
+    /// Creates a filterable data provider with the given name for debugging.
+    ///
+    /// For more details, see [`icu_provider_adapters::filter`](crate::filter).
+    fn filterable(
+        self,
+        filter_name: &'static str,
+    ) -> RequestFilterDataProvider<Self, fn(DataRequest) -> bool>;
+}
+
+impl<T> Filterable for T
+where
+    T: Sized,
+{
+    fn filterable(
+        self,
+        filter_name: &'static str,
+    ) -> RequestFilterDataProvider<Self, fn(DataRequest) -> bool> {
+        fn noop(_: DataRequest) -> bool {
+            true
+        }
+        RequestFilterDataProvider {
+            inner: self,
+            predicate: noop,
+            filter_name,
+        }
     }
 }

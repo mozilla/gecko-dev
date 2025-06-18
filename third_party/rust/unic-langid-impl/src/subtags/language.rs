@@ -11,7 +11,7 @@ impl Language {
     pub fn from_bytes(v: &[u8]) -> Result<Self, ParserError> {
         let slen = v.len();
 
-        let s = TinyStr8::try_from_utf8(v).map_err(|_| ParserError::InvalidLanguage)?;
+        let s = TinyStr8::from_bytes(v).map_err(|_| ParserError::InvalidLanguage)?;
         if !(2..=8).contains(&slen) || slen == 4 || !s.is_ascii_alphabetic() {
             return Err(ParserError::InvalidLanguage);
         }
@@ -34,7 +34,7 @@ impl Language {
     /// This function accepts any u64 that is exected to be a valid
     /// `TinyStr8` and a valid `Language` subtag.
     pub const unsafe fn from_raw_unchecked(v: u64) -> Self {
-        Self(Some(TinyStr8::from_utf8_unchecked(v.to_le_bytes())))
+        Self(Some(TinyStr8::from_bytes_unchecked(v.to_le_bytes())))
     }
 
     pub fn matches<O: Borrow<Self>>(

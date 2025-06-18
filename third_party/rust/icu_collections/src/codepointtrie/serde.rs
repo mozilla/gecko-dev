@@ -16,7 +16,7 @@ pub struct CodePointTrieSerde<'trie, T: TrieValue> {
     data: ZeroVec<'trie, T>,
 }
 
-impl<T: TrieValue + Serialize> Serialize for CodePointTrie<'_, T> {
+impl<'trie, T: TrieValue + Serialize> Serialize for CodePointTrie<'trie, T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

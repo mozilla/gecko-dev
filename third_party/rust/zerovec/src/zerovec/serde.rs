@@ -39,7 +39,7 @@ where
     where
         E: de::Error,
     {
-        ZeroVec::parse_bytes(bytes).map_err(de::Error::custom)
+        ZeroVec::parse_byte_slice(bytes).map_err(de::Error::custom)
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>

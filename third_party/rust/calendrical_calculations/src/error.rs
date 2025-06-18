@@ -25,5 +25,3 @@ pub enum LocationOutOfBoundsError {
     #[displaydoc("Offset {0} outside bounds of {1} to {2}")]
     Offset(f64, f64, f64),
 }
-
-impl core::error::Error for LocationOutOfBoundsError {}

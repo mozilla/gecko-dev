@@ -4,10 +4,10 @@
 
 //! Helpers for switching between multiple providers.
 
-use alloc::collections::BTreeSet;
-#[cfg(feature = "export")]
-use icu_provider::export::ExportableProvider;
 use icu_provider::prelude::*;
+
+#[cfg(feature = "datagen")]
+use icu_provider::datagen;
 
 /// A provider that is one of two types determined at runtime.
 ///
@@ -22,41 +22,46 @@ pub enum EitherProvider<P0, P1> {
     B(P1),
 }
 
-impl<M: DynamicDataMarker, P0: DynamicDataProvider<M>, P1: DynamicDataProvider<M>>
-    DynamicDataProvider<M> for EitherProvider<P0, P1>
-{
+impl<P0: AnyProvider, P1: AnyProvider> AnyProvider for EitherProvider<P0, P1> {
     #[inline]
-    fn load_data(
-        &self,
-        marker: DataMarkerInfo,
-        req: DataRequest,
-    ) -> Result<DataResponse<M>, DataError> {
+    fn load_any(&self, key: DataKey, req: DataRequest) -> Result<AnyResponse, DataError> {
         use EitherProvider::*;
         match self {
-            A(p) => p.load_data(marker, req),
-            B(p) => p.load_data(marker, req),
+            A(p) => p.load_any(key, req),
+            B(p) => p.load_any(key, req),
         }
     }
 }
 
-impl<M: DynamicDataMarker, P0: DynamicDryDataProvider<M>, P1: DynamicDryDataProvider<M>>
-    DynamicDryDataProvider<M> for EitherProvider<P0, P1>
-{
+impl<P0: BufferProvider, P1: BufferProvider> BufferProvider for EitherProvider<P0, P1> {
     #[inline]
-    fn dry_load_data(
+    fn load_buffer(
         &self,
-        marker: DataMarkerInfo,
+        key: DataKey,
         req: DataRequest,
-    ) -> Result<DataResponseMetadata, DataError> {
+    ) -> Result<DataResponse<BufferMarker>, DataError> {
         use EitherProvider::*;
         match self {
-            A(p) => p.dry_load_data(marker, req),
-            B(p) => p.dry_load_data(marker, req),
+            A(p) => p.load_buffer(key, req),
+            B(p) => p.load_buffer(key, req),
         }
     }
 }
 
-impl<M: DataMarker, P0: DataProvider<M>, P1: DataProvider<M>> DataProvider<M>
+impl<M: DataMarker, P0: DynamicDataProvider<M>, P1: DynamicDataProvider<M>> DynamicDataProvider<M>
+    for EitherProvider<P0, P1>
+{
+    #[inline]
+    fn load_data(&self, key: DataKey, req: DataRequest) -> Result<DataResponse<M>, DataError> {
+        use EitherProvider::*;
+        match self {
+            A(p) => p.load_data(key, req),
+            B(p) => p.load_data(key, req),
+        }
+    }
+}
+
+impl<M: KeyedDataMarker, P0: DataProvider<M>, P1: DataProvider<M>> DataProvider<M>
     for EitherProvider<P0, P1>
 {
     #[inline]
@@ -69,62 +74,39 @@ impl<M: DataMarker, P0: DataProvider<M>, P1: DataProvider<M>> DataProvider<M>
     }
 }
 
-impl<M: DataMarker, P0: DryDataProvider<M>, P1: DryDataProvider<M>> DryDataProvider<M>
-    for EitherProvider<P0, P1>
-{
-    #[inline]
-    fn dry_load(&self, req: DataRequest) -> Result<DataResponseMetadata, DataError> {
-        use EitherProvider::*;
-        match self {
-            A(p) => p.dry_load(req),
-            B(p) => p.dry_load(req),
-        }
-    }
-}
-
+#[cfg(feature = "datagen")]
 impl<
-        M: DynamicDataMarker,
-        P0: IterableDynamicDataProvider<M>,
-        P1: IterableDynamicDataProvider<M>,
-    > IterableDynamicDataProvider<M> for EitherProvider<P0, P1>
+        M: DataMarker,
+        P0: datagen::IterableDynamicDataProvider<M>,
+        P1: datagen::IterableDynamicDataProvider<M>,
+    > datagen::IterableDynamicDataProvider<M> for EitherProvider<P0, P1>
 {
     #[inline]
-    fn iter_ids_for_marker(
+    fn supported_locales_for_key(
         &self,
-        marker: DataMarkerInfo,
-    ) -> Result<BTreeSet<DataIdentifierCow>, DataError> {
+        key: DataKey,
+    ) -> Result<alloc::vec::Vec<DataLocale>, DataError> {
         use EitherProvider::*;
         match self {
-            A(p) => p.iter_ids_for_marker(marker),
-            B(p) => p.iter_ids_for_marker(marker),
+            A(p) => p.supported_locales_for_key(key),
+            B(p) => p.supported_locales_for_key(key),
         }
     }
 }
 
-impl<M: DataMarker, P0: IterableDataProvider<M>, P1: IterableDataProvider<M>>
-    IterableDataProvider<M> for EitherProvider<P0, P1>
+#[cfg(feature = "datagen")]
+impl<
+        M: KeyedDataMarker,
+        P0: datagen::IterableDataProvider<M>,
+        P1: datagen::IterableDataProvider<M>,
+    > datagen::IterableDataProvider<M> for EitherProvider<P0, P1>
 {
     #[inline]
-    fn iter_ids(&self) -> Result<BTreeSet<DataIdentifierCow>, DataError> {
+    fn supported_locales(&self) -> Result<alloc::vec::Vec<DataLocale>, DataError> {
         use EitherProvider::*;
         match self {
-            A(p) => p.iter_ids(),
-            B(p) => p.iter_ids(),
-        }
-    }
-}
-
-#[cfg(feature = "export")]
-impl<P0, P1> ExportableProvider for EitherProvider<P0, P1>
-where
-    P0: ExportableProvider,
-    P1: ExportableProvider,
-{
-    fn supported_markers(&self) -> alloc::collections::BTreeSet<DataMarkerInfo> {
-        use EitherProvider::*;
-        match self {
-            A(p) => p.supported_markers(),
-            B(p) => p.supported_markers(),
+            A(p) => p.supported_locales(),
+            B(p) => p.supported_locales(),
         }
     }
 }

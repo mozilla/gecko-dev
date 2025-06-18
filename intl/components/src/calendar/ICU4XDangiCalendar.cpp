@@ -8,13 +8,13 @@ namespace mozilla::intl::calendar {
 
 ICU4XDangiCalendar::ICU4XDangiCalendar(const icu::Locale& locale,
                                        UErrorCode& success)
-    : ICU4XChineseBasedCalendar(icu4x::capi::CalendarKind_Dangi, locale,
+    : ICU4XChineseBasedCalendar(capi::ICU4XAnyCalendarKind_Dangi, locale,
                                 success) {}
 
 ICU4XDangiCalendar::ICU4XDangiCalendar(const icu::TimeZone& timeZone,
                                        const icu::Locale& locale,
                                        UErrorCode& success)
-    : ICU4XChineseBasedCalendar(icu4x::capi::CalendarKind_Dangi, timeZone,
+    : ICU4XChineseBasedCalendar(capi::ICU4XAnyCalendarKind_Dangi, timeZone,
                                 locale, success) {}
 
 ICU4XDangiCalendar::ICU4XDangiCalendar(const ICU4XDangiCalendar& other)
@@ -33,7 +33,7 @@ const char* ICU4XDangiCalendar::getType() const { return "dangi"; }
 ////////////////////////////////////////////
 
 std::string_view ICU4XDangiCalendar::eraName(int32_t extendedYear) const {
-  return "";
+  return "dangi";
 }
 
 ////////////////////////////////////////////

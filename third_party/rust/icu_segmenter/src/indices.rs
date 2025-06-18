@@ -22,7 +22,7 @@ impl<'a> Latin1Indices<'a> {
     }
 }
 
-impl Iterator for Latin1Indices<'_> {
+impl<'a> Iterator for Latin1Indices<'a> {
     type Item = (usize, u8);
 
     #[inline]
@@ -55,7 +55,7 @@ impl<'a> Utf16Indices<'a> {
     }
 }
 
-impl Iterator for Utf16Indices<'_> {
+impl<'a> Iterator for Utf16Indices<'a> {
     type Item = (usize, u32);
 
     #[inline]

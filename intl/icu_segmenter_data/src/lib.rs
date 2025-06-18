@@ -6,4 +6,4 @@
 
 #![no_std]
 
-include!("../data/mod.rs");
+include!("../data/macros.rs");

@@ -17,7 +17,7 @@ struct TypeVisitor<'a> {
     found_lifetimes: bool,
 }
 
-impl<'ast> Visit<'ast> for TypeVisitor<'_> {
+impl<'a, 'ast> Visit<'ast> for TypeVisitor<'a> {
     fn visit_lifetime(&mut self, lt: &'ast Lifetime) {
         if lt.ident != "static" {
             self.found_lifetimes = true;

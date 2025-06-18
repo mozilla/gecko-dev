@@ -122,7 +122,6 @@
 #include "mozilla/css/ImageLoader.h"
 #include "gfxUserFontSet.h"
 #include "RestoreTabContentObserver.h"
-#include "mozilla/intl/LineBreaker.h"
 #include "mozilla/intl/LineBreakCache.h"
 
 #include "nsRLBoxExpatDriver.h"
@@ -404,7 +403,6 @@ void nsLayoutStatics::Shutdown() {
 
   RestoreTabContentObserver::Shutdown();
 
-  mozilla::intl::LineBreaker::Shutdown();
   mozilla::intl::LineBreakCache::Shutdown();
 
   mozilla::intl::EncodingToLang::Shutdown();

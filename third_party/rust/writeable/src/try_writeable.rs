@@ -4,7 +4,7 @@
 
 use super::*;
 use crate::parts_write_adapter::CoreWriteAsPartsWrite;
-use core::convert::Infallible;
+use core::{cmp::Ordering, convert::Infallible};
 
 /// A writeable object that can fail while writing.
 ///
@@ -206,6 +206,87 @@ pub trait TryWriteable {
             Err(e) => Err((e, Cow::Owned(output))),
         }
     }
+
+    /// Compares the content of this writeable to a byte slice.
+    ///
+    /// This function compares the "lossy mode" string; for more information,
+    /// see [`TryWriteable::try_write_to()`].
+    ///
+    /// For more information, see [`Writeable::writeable_cmp_bytes()`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use core::cmp::Ordering;
+    /// use core::fmt;
+    /// use writeable::TryWriteable;
+    /// # use writeable::PartsWrite;
+    /// # use writeable::LengthHint;
+    ///
+    /// #[derive(Debug, PartialEq, Eq)]
+    /// enum HelloWorldWriteableError {
+    ///     MissingName
+    /// }
+    ///
+    /// #[derive(Debug, PartialEq, Eq)]
+    /// struct HelloWorldWriteable {
+    ///     pub name: Option<&'static str>
+    /// }
+    ///
+    /// impl TryWriteable for HelloWorldWriteable {
+    ///     type Error = HelloWorldWriteableError;
+    ///     // see impl in TryWriteable docs
+    /// #    fn try_write_to_parts<S: PartsWrite + ?Sized>(
+    /// #        &self,
+    /// #        sink: &mut S,
+    /// #    ) -> Result<Result<(), Self::Error>, fmt::Error> {
+    /// #        sink.write_str("Hello, ")?;
+    /// #        // Use `impl TryWriteable for Result` to generate the error part:
+    /// #        let _ = self.name.ok_or("nobody").try_write_to_parts(sink)?;
+    /// #        sink.write_char('!')?;
+    /// #        // Return a doubly-wrapped Result.
+    /// #        // The outer Result is for fmt::Error, handled by the `?`s above.
+    /// #        // The inner Result is for our own Self::Error.
+    /// #        if self.name.is_some() {
+    /// #            Ok(Ok(()))
+    /// #        } else {
+    /// #            Ok(Err(HelloWorldWriteableError::MissingName))
+    /// #        }
+    /// #    }
+    /// }
+    ///
+    /// // Success case:
+    /// let writeable = HelloWorldWriteable { name: Some("Alice") };
+    /// let writeable_str = writeable.try_write_to_string().expect("name is Some");
+    ///
+    /// assert_eq!(Ordering::Equal, writeable.writeable_cmp_bytes(b"Hello, Alice!"));
+    ///
+    /// assert_eq!(Ordering::Greater, writeable.writeable_cmp_bytes(b"Alice!"));
+    /// assert_eq!(Ordering::Greater, (*writeable_str).cmp("Alice!"));
+    ///
+    /// assert_eq!(Ordering::Less, writeable.writeable_cmp_bytes(b"Hello, Bob!"));
+    /// assert_eq!(Ordering::Less, (*writeable_str).cmp("Hello, Bob!"));
+    ///
+    /// // Failure case:
+    /// let writeable = HelloWorldWriteable { name: None };
+    /// let mut writeable_str = String::new();
+    /// let _ = writeable.try_write_to(&mut writeable_str).expect("write to String is infallible");
+    ///
+    /// assert_eq!(Ordering::Equal, writeable.writeable_cmp_bytes(b"Hello, nobody!"));
+    ///
+    /// assert_eq!(Ordering::Greater, writeable.writeable_cmp_bytes(b"Hello, alice!"));
+    /// assert_eq!(Ordering::Greater, (*writeable_str).cmp("Hello, alice!"));
+    ///
+    /// assert_eq!(Ordering::Less, writeable.writeable_cmp_bytes(b"Hello, zero!"));
+    /// assert_eq!(Ordering::Less, (*writeable_str).cmp("Hello, zero!"));
+    /// ```
+    fn writeable_cmp_bytes(&self, other: &[u8]) -> Ordering {
+        let mut wc = cmp::WriteComparator::new(other);
+        let _ = self
+            .try_write_to(&mut wc)
+            .unwrap_or_else(|fmt::Error| Ok(()));
+        wc.finish().reverse()
+    }
 }
 
 impl<T, E> TryWriteable for Result<T, E>
@@ -254,6 +335,14 @@ where
             Err(e) => Err((e.clone(), e.write_to_string())),
         }
     }
+
+    #[inline]
+    fn writeable_cmp_bytes(&self, other: &[u8]) -> Ordering {
+        match self {
+            Ok(t) => t.writeable_cmp_bytes(other),
+            Err(e) => e.writeable_cmp_bytes(other),
+        }
+    }
 }
 
 /// A wrapper around [`TryWriteable`] that implements [`Writeable`]
@@ -296,6 +385,11 @@ where
             Ok(s) => s,
             Err((infallible, _)) => match infallible {},
         }
+    }
+
+    #[inline]
+    fn writeable_cmp_bytes(&self, other: &[u8]) -> core::cmp::Ordering {
+        self.0.writeable_cmp_bytes(other)
     }
 }
 
@@ -347,6 +441,11 @@ where
     fn try_write_to_string(&self) -> Result<Cow<str>, (Infallible, Cow<str>)> {
         Ok(self.0.write_to_string())
     }
+
+    #[inline]
+    fn writeable_cmp_bytes(&self, other: &[u8]) -> core::cmp::Ordering {
+        self.0.writeable_cmp_bytes(other)
+    }
 }
 
 /// Testing macros for types implementing [`TryWriteable`].
@@ -365,6 +464,7 @@ where
 /// - Equality of string content
 /// - Equality of parts ([`*_parts_eq`] only)
 /// - Validity of size hint
+/// - Reflexivity of `cmp_bytes` and order against largest and smallest strings
 ///
 /// For a usage example, see [`TryWriteable`].
 ///
@@ -409,6 +509,14 @@ macro_rules! assert_try_writeable_eq {
                 "hint upper bound {} smaller than actual length {}: {}",
                 length_hint.0, actual_str.len(), format!($($arg)*),
             );
+        }
+        let ordering = actual_writeable.writeable_cmp_bytes($expected_str.as_bytes());
+        assert_eq!(ordering, core::cmp::Ordering::Equal, $($arg)*);
+        let ordering = actual_writeable.writeable_cmp_bytes("\u{10FFFF}".as_bytes());
+        assert_eq!(ordering, core::cmp::Ordering::Less, $($arg)*);
+        if $expected_str != "" {
+            let ordering = actual_writeable.writeable_cmp_bytes("".as_bytes());
+            assert_eq!(ordering, core::cmp::Ordering::Greater, $($arg)*);
         }
         actual_parts // return for assert_try_writeable_parts_eq
     }};

@@ -3,7 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use std::fmt::Debug;
-use ule::ULE;
 use zerovec::*;
 
 #[make_ule(StructULE)]
@@ -40,13 +39,14 @@ enum Enum {
     F = 5,
 }
 
-#[make_ule(OutOfOrderMissingZeroEnumULE)]
+#[make_ule(OutOfOrderEnumULE)]
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Debug)]
 #[allow(unused)]
-enum OutOfOrderMissingZeroEnum {
-    E = 3,
+enum OutOfOrderEnum {
+    A = 0,
     B = 1,
+    E = 3,
     FooBar = 4,
     D = 2,
     F = 5,
@@ -69,8 +69,8 @@ fn test_zerovec<T: ule::AsULE + Debug + PartialEq>(slice: &[T]) {
 
     let bytes = zerovec.as_bytes();
     let name = std::any::type_name::<T>();
-    let reparsed: ZeroVec<T> =
-        ZeroVec::parse_bytes(bytes).unwrap_or_else(|_| panic!("Parsing {name} should succeed"));
+    let reparsed: ZeroVec<T> = ZeroVec::parse_byte_slice(bytes)
+        .unwrap_or_else(|_| panic!("Parsing {name} should succeed"));
 
     assert_eq!(reparsed, slice);
 }
@@ -79,15 +79,6 @@ fn main() {
     test_zerovec(TEST_SLICE_STRUCT);
     test_zerovec(TEST_SLICE_TUPLESTRUCT);
     test_zerovec(TEST_SLICE_ENUM);
-
-    assert!(EnumULE::parse_bytes_to_slice(&[0]).is_ok());
-    assert!(EnumULE::parse_bytes_to_slice(&[1]).is_ok());
-    assert!(EnumULE::parse_bytes_to_slice(&[5]).is_ok());
-    assert!(EnumULE::parse_bytes_to_slice(&[6]).is_err());
-    assert!(OutOfOrderMissingZeroEnumULE::parse_bytes_to_slice(&[0]).is_err());
-    assert!(OutOfOrderMissingZeroEnumULE::parse_bytes_to_slice(&[1]).is_ok());
-    assert!(OutOfOrderMissingZeroEnumULE::parse_bytes_to_slice(&[5]).is_ok());
-    assert!(OutOfOrderMissingZeroEnumULE::parse_bytes_to_slice(&[6]).is_err());
 }
 
 const TEST_SLICE_STRUCT: &[Struct] = &[

@@ -5,14 +5,13 @@
 use crate::grapheme::*;
 use crate::indices::Utf16Indices;
 use crate::provider::*;
-use crate::scaffold::{Utf16, Utf8};
 use core::str::CharIndices;
 use icu_collections::char16trie::{Char16Trie, TrieResult};
 
 /// A trait for dictionary based iterator
-trait DictionaryType {
+trait DictionaryType<'l, 's> {
     /// The iterator over characters.
-    type IterAttr<'s>: Iterator<Item = (usize, Self::CharType)> + Clone;
+    type IterAttr: Iterator<Item = (usize, Self::CharType)> + Clone;
 
     /// The character type.
     type CharType: Copy + Into<u32>;
@@ -24,11 +23,11 @@ trait DictionaryType {
 struct DictionaryBreakIterator<
     'l,
     's,
-    Y: DictionaryType + ?Sized,
+    Y: DictionaryType<'l, 's> + ?Sized,
     X: Iterator<Item = usize> + ?Sized,
 > {
     trie: Char16Trie<'l>,
-    iter: Y::IterAttr<'s>,
+    iter: Y::IterAttr,
     len: usize,
     grapheme_iter: X,
     // TODO transform value for byte trie
@@ -42,8 +41,8 @@ struct DictionaryBreakIterator<
 /// - `'s` = lifetime of the string being segmented
 ///
 /// [`Iterator`]: core::iter::Iterator
-impl<Y: DictionaryType + ?Sized, X: Iterator<Item = usize> + ?Sized> Iterator
-    for DictionaryBreakIterator<'_, '_, Y, X>
+impl<'l, 's, Y: DictionaryType<'l, 's> + ?Sized, X: Iterator<Item = usize> + ?Sized> Iterator
+    for DictionaryBreakIterator<'l, 's, Y, X>
 {
     type Item = usize;
 
@@ -107,8 +106,8 @@ impl<Y: DictionaryType + ?Sized, X: Iterator<Item = usize> + ?Sized> Iterator
     }
 }
 
-impl DictionaryType for u32 {
-    type IterAttr<'s> = Utf16Indices<'s>;
+impl<'l, 's> DictionaryType<'l, 's> for u32 {
+    type IterAttr = Utf16Indices<'s>;
     type CharType = u32;
 
     fn to_char(c: u32) -> char {
@@ -124,8 +123,8 @@ impl DictionaryType for u32 {
     }
 }
 
-impl DictionaryType for char {
-    type IterAttr<'s> = CharIndices<'s>;
+impl<'l, 's> DictionaryType<'l, 's> for char {
+    type IterAttr = CharIndices<'s>;
     type CharType = char;
 
     fn to_char(c: char) -> char {
@@ -138,14 +137,14 @@ impl DictionaryType for char {
 }
 
 pub(super) struct DictionarySegmenter<'l> {
-    dict: &'l UCharDictionaryBreakData<'l>,
-    grapheme: GraphemeClusterSegmenterBorrowed<'l>,
+    dict: &'l UCharDictionaryBreakDataV1<'l>,
+    grapheme: &'l RuleBreakDataV1<'l>,
 }
 
 impl<'l> DictionarySegmenter<'l> {
     pub(super) fn new(
-        dict: &'l UCharDictionaryBreakData<'l>,
-        grapheme: GraphemeClusterSegmenterBorrowed<'l>,
+        dict: &'l UCharDictionaryBreakDataV1<'l>,
+        grapheme: &'l RuleBreakDataV1<'l>,
     ) -> Self {
         // TODO: no way to verify trie data
         Self { dict, grapheme }
@@ -153,8 +152,8 @@ impl<'l> DictionarySegmenter<'l> {
 
     /// Create a dictionary based break iterator for an `str` (a UTF-8 string).
     pub(super) fn segment_str(&'l self, input: &'l str) -> impl Iterator<Item = usize> + 'l {
-        let grapheme_iter = self.grapheme.segment_str(input);
-        DictionaryBreakIterator::<char, GraphemeClusterBreakIterator<Utf8>> {
+        let grapheme_iter = GraphemeClusterSegmenter::new_and_segment_str(input, self.grapheme);
+        DictionaryBreakIterator::<char, GraphemeClusterBreakIteratorUtf8> {
             trie: Char16Trie::new(self.dict.trie_data.clone()),
             iter: input.char_indices(),
             len: input.len(),
@@ -164,8 +163,8 @@ impl<'l> DictionarySegmenter<'l> {
 
     /// Create a dictionary based break iterator for a UTF-16 string.
     pub(super) fn segment_utf16(&'l self, input: &'l [u16]) -> impl Iterator<Item = usize> + 'l {
-        let grapheme_iter = self.grapheme.segment_utf16(input);
-        DictionaryBreakIterator::<u32, GraphemeClusterBreakIterator<Utf16>> {
+        let grapheme_iter = GraphemeClusterSegmenter::new_and_segment_utf16(input, self.grapheme);
+        DictionaryBreakIterator::<u32, GraphemeClusterBreakIteratorUtf16> {
             trie: Char16Trie::new(self.dict.trie_data.clone()),
             iter: Utf16Indices::new(input),
             len: input.len(),
@@ -178,12 +177,12 @@ impl<'l> DictionarySegmenter<'l> {
 #[cfg(feature = "serde")]
 mod tests {
     use super::*;
-    use crate::{GraphemeClusterSegmenter, LineSegmenter, WordSegmenter};
+    use crate::{LineSegmenter, WordSegmenter};
     use icu_provider::prelude::*;
 
     #[test]
     fn burmese_dictionary_test() {
-        let segmenter = LineSegmenter::new_dictionary(Default::default());
+        let segmenter = LineSegmenter::new_dictionary();
         // From css/css-text/word-break/word-break-normal-my-000.html
         let s = "မြန်မာစာမြန်မာစာမြန်မာစာ";
         let result: Vec<usize> = segmenter.segment_str(s).collect();
@@ -196,17 +195,19 @@ mod tests {
 
     #[test]
     fn cj_dictionary_test() {
-        let response: DataResponse<SegmenterDictionaryAutoV1> = crate::provider::Baked
+        let dict_payload: DataPayload<DictionaryForWordOnlyAutoV1Marker> = crate::provider::Baked
             .load(DataRequest {
-                id: DataIdentifierBorrowed::for_marker_attributes(
-                    DataMarkerAttributes::from_str_or_panic("cjdict"),
-                ),
-                ..Default::default()
+                locale: &icu_locid::langid!("ja").into(),
+                metadata: Default::default(),
             })
+            .unwrap()
+            .take_payload()
             .unwrap();
-        let word_segmenter = WordSegmenter::new_dictionary(Default::default());
-        let dict_segmenter =
-            DictionarySegmenter::new(response.payload.get(), GraphemeClusterSegmenter::new());
+        let word_segmenter = WordSegmenter::new_dictionary();
+        let dict_segmenter = DictionarySegmenter::new(
+            dict_payload.get(),
+            crate::provider::Baked::SINGLETON_SEGMENTER_GRAPHEME_V1,
+        );
 
         // Match case
         let s = "龟山岛龟山岛";
@@ -243,7 +244,7 @@ mod tests {
 
     #[test]
     fn khmer_dictionary_test() {
-        let segmenter = LineSegmenter::new_dictionary(Default::default());
+        let segmenter = LineSegmenter::new_dictionary();
         let s = "ភាសាខ្មែរភាសាខ្មែរភាសាខ្មែរ";
         let result: Vec<usize> = segmenter.segment_str(s).collect();
         assert_eq!(result, vec![0, 27, 54, 81]);
@@ -255,7 +256,7 @@ mod tests {
 
     #[test]
     fn lao_dictionary_test() {
-        let segmenter = LineSegmenter::new_dictionary(Default::default());
+        let segmenter = LineSegmenter::new_dictionary();
         let s = "ພາສາລາວພາສາລາວພາສາລາວ";
         let r: Vec<usize> = segmenter.segment_str(s).collect();
         assert_eq!(r, vec![0, 12, 21, 33, 42, 54, 63]);

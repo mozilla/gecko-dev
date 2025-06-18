@@ -38,4 +38,11 @@ where
             Either::Right(w) => w.write_to_string(),
         }
     }
+
+    fn writeable_cmp_bytes(&self, other: &[u8]) -> core::cmp::Ordering {
+        match self {
+            Either::Left(w) => w.writeable_cmp_bytes(other),
+            Either::Right(w) => w.writeable_cmp_bytes(other),
+        }
+    }
 }

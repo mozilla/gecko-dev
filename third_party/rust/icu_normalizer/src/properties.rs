@@ -12,19 +12,15 @@
 //! glyph-availability-guided custom normalizer.
 
 use crate::char_from_u16;
-use crate::char_from_u32;
+use crate::error::NormalizerError;
 use crate::in_inclusive_range;
-use crate::provider::CanonicalCompositions;
-use crate::provider::DecompositionData;
-use crate::provider::DecompositionTables;
-use crate::provider::NonRecursiveDecompositionSupplement;
-use crate::provider::NormalizerNfcV1;
-use crate::provider::NormalizerNfdDataV1;
-use crate::provider::NormalizerNfdSupplementV1;
-use crate::provider::NormalizerNfdTablesV1;
+use crate::provider::CanonicalCompositionsV1Marker;
+use crate::provider::CanonicalDecompositionDataV1Marker;
+use crate::provider::CanonicalDecompositionTablesV1Marker;
+use crate::provider::NonRecursiveDecompositionSupplementV1Marker;
 use crate::trie_value_has_ccc;
-use crate::CanonicalCombiningClass;
-use crate::BACKWARD_COMBINING_MARKER;
+use crate::trie_value_indicates_special_non_starter_decomposition;
+use crate::BACKWARD_COMBINING_STARTER_MARKER;
 use crate::FDFA_MARKER;
 use crate::HANGUL_L_BASE;
 use crate::HANGUL_N_COUNT;
@@ -33,54 +29,32 @@ use crate::HANGUL_S_COUNT;
 use crate::HANGUL_T_BASE;
 use crate::HANGUL_T_COUNT;
 use crate::HANGUL_V_BASE;
-use crate::HIGH_ZEROS_MASK;
-use crate::LOW_ZEROS_MASK;
 use crate::NON_ROUND_TRIP_MARKER;
+use crate::SPECIAL_NON_STARTER_DECOMPOSITION_MARKER_U16;
+/// want access to the underlying properties e.g. for use in a
+/// glyph-availability-guided custom normalizer.
+use icu_properties::CanonicalCombiningClass;
 use icu_provider::prelude::*;
 
-/// Borrowed version of the raw canonical composition operation.
+/// The raw canonical composition operation.
 ///
 /// Callers should generally use `ComposingNormalizer` instead of this API.
 /// However, this API is provided for callers such as HarfBuzz that specifically
 /// want access to the raw canonical composition operation e.g. for use in a
 /// glyph-availability-guided custom normalizer.
-#[derive(Debug, Copy, Clone)]
-pub struct CanonicalCompositionBorrowed<'a> {
-    canonical_compositions: &'a CanonicalCompositions<'a>,
+#[derive(Debug)]
+pub struct CanonicalComposition {
+    canonical_compositions: DataPayload<CanonicalCompositionsV1Marker>,
 }
 
 #[cfg(feature = "compiled_data")]
-impl Default for CanonicalCompositionBorrowed<'static> {
+impl Default for CanonicalComposition {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl CanonicalCompositionBorrowed<'static> {
-    /// Cheaply converts a [`CanonicalCompositionBorrowed<'static>`] into a [`CanonicalComposition`].
-    ///
-    /// Note: Due to branching and indirection, using [`CanonicalComposition`] might inhibit some
-    /// compile-time optimizations that are possible with [`CanonicalCompositionBorrowed`].
-    pub const fn static_to_owned(self) -> CanonicalComposition {
-        CanonicalComposition {
-            canonical_compositions: DataPayload::from_static_ref(self.canonical_compositions),
-        }
-    }
-
-    /// Constructs a new `CanonicalComposition` using compiled data.
-    ///
-    /// ✨ *Enabled with the `compiled_data` Cargo feature.*
-    ///
-    /// [📚 Help choosing a constructor](icu_provider::constructors)
-    #[cfg(feature = "compiled_data")]
-    pub const fn new() -> Self {
-        Self {
-            canonical_compositions: crate::provider::Baked::SINGLETON_NORMALIZER_NFC_V1,
-        }
-    }
-}
-
-impl CanonicalCompositionBorrowed<'_> {
+impl CanonicalComposition {
     /// Performs canonical composition (including Hangul) on a pair of
     /// characters or returns `None` if these characters don't compose.
     /// Composition exclusions are taken into account.
@@ -88,7 +62,7 @@ impl CanonicalCompositionBorrowed<'_> {
     /// # Examples
     ///
     /// ```
-    /// let comp = icu::normalizer::properties::CanonicalCompositionBorrowed::new();
+    /// let comp = icu::normalizer::properties::CanonicalComposition::new();
     ///
     /// assert_eq!(comp.compose('a', 'b'), None); // Just two non-composing starters
     /// assert_eq!(comp.compose('a', '\u{0308}'), Some('ä'));
@@ -99,68 +73,49 @@ impl CanonicalCompositionBorrowed<'_> {
     /// assert_eq!(comp.compose('가', 'ᆨ'), Some('각')); // Hangul LVT
     /// ```
     #[inline(always)]
-    pub fn compose(self, starter: char, second: char) -> Option<char> {
+    pub fn compose(&self, starter: char, second: char) -> Option<char> {
         crate::compose(
-            self.canonical_compositions.canonical_compositions.iter(),
+            self.canonical_compositions
+                .get()
+                .canonical_compositions
+                .iter(),
             starter,
             second,
         )
     }
-}
 
-/// The raw canonical composition operation.
-///
-/// Callers should generally use `ComposingNormalizer` instead of this API.
-/// However, this API is provided for callers such as HarfBuzz that specifically
-/// want access to the raw canonical composition operation e.g. for use in a
-/// glyph-availability-guided custom normalizer.
-#[derive(Debug)]
-pub struct CanonicalComposition {
-    canonical_compositions: DataPayload<NormalizerNfcV1>,
-}
-
-#[cfg(feature = "compiled_data")]
-impl Default for CanonicalComposition {
-    fn default() -> Self {
-        Self::new().static_to_owned()
-    }
-}
-
-impl CanonicalComposition {
-    /// Constructs a borrowed version of this type for more efficient querying.
-    pub fn as_borrowed(&self) -> CanonicalCompositionBorrowed<'_> {
-        CanonicalCompositionBorrowed {
-            canonical_compositions: self.canonical_compositions.get(),
-        }
-    }
-
-    /// Constructs a new `CanonicalCompositionBorrowed` using compiled data.
+    /// Constructs a new `CanonicalComposition` using compiled data.
     ///
     /// ✨ *Enabled with the `compiled_data` Cargo feature.*
     ///
     /// [📚 Help choosing a constructor](icu_provider::constructors)
     #[cfg(feature = "compiled_data")]
-    #[allow(clippy::new_ret_no_self)]
-    pub const fn new() -> CanonicalCompositionBorrowed<'static> {
-        CanonicalCompositionBorrowed::new()
+    pub const fn new() -> Self {
+        Self {
+            canonical_compositions: DataPayload::from_static_ref(
+                crate::provider::Baked::SINGLETON_NORMALIZER_COMP_V1,
+            ),
+        }
     }
 
-    icu_provider::gen_buffer_data_constructors!(() -> error: DataError,
+    icu_provider::gen_any_buffer_data_constructors!(locale: skip, options: skip, error: NormalizerError,
+        #[cfg(skip)]
         functions: [
-            new: skip,
+            new,
+            try_new_with_any_provider,
             try_new_with_buffer_provider,
             try_new_unstable,
             Self,
         ]
     );
 
-    #[doc = icu_provider::gen_buffer_unstable_docs!(UNSTABLE, Self::new)]
-    pub fn try_new_unstable<D>(provider: &D) -> Result<Self, DataError>
+    #[doc = icu_provider::gen_any_buffer_unstable_docs!(UNSTABLE, Self::new)]
+    pub fn try_new_unstable<D>(provider: &D) -> Result<Self, NormalizerError>
     where
-        D: DataProvider<NormalizerNfcV1> + ?Sized,
+        D: DataProvider<CanonicalCompositionsV1Marker> + ?Sized,
     {
-        let canonical_compositions: DataPayload<NormalizerNfcV1> =
-            provider.load(Default::default())?.payload;
+        let canonical_compositions: DataPayload<CanonicalCompositionsV1Marker> =
+            provider.load(Default::default())?.take_payload()?;
         Ok(CanonicalComposition {
             canonical_compositions,
         })
@@ -179,71 +134,32 @@ pub enum Decomposed {
     Expansion(char, char),
 }
 
-/// Borrowed version of the raw (non-recursive) canonical decomposition operation.
+/// The raw (non-recursive) canonical decomposition operation.
 ///
 /// Callers should generally use `DecomposingNormalizer` instead of this API.
 /// However, this API is provided for callers such as HarfBuzz that specifically
 /// want access to non-recursive canonical decomposition e.g. for use in a
 /// glyph-availability-guided custom normalizer.
 #[derive(Debug)]
-pub struct CanonicalDecompositionBorrowed<'a> {
-    decompositions: &'a DecompositionData<'a>,
-    tables: &'a DecompositionTables<'a>,
-    non_recursive: &'a NonRecursiveDecompositionSupplement<'a>,
+pub struct CanonicalDecomposition {
+    decompositions: DataPayload<CanonicalDecompositionDataV1Marker>,
+    tables: DataPayload<CanonicalDecompositionTablesV1Marker>,
+    non_recursive: DataPayload<NonRecursiveDecompositionSupplementV1Marker>,
 }
 
 #[cfg(feature = "compiled_data")]
-impl Default for CanonicalDecompositionBorrowed<'static> {
+impl Default for CanonicalDecomposition {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl CanonicalDecompositionBorrowed<'static> {
-    /// Cheaply converts a [`CanonicalDecompositionBorrowed<'static>`] into a [`CanonicalDecomposition`].
-    ///
-    /// Note: Due to branching and indirection, using [`CanonicalDecomposition`] might inhibit some
-    /// compile-time optimizations that are possible with [`CanonicalDecompositionBorrowed`].
-    pub const fn static_to_owned(self) -> CanonicalDecomposition {
-        CanonicalDecomposition {
-            decompositions: DataPayload::from_static_ref(self.decompositions),
-            tables: DataPayload::from_static_ref(self.tables),
-            non_recursive: DataPayload::from_static_ref(self.non_recursive),
-        }
-    }
-
-    /// Construct from compiled data.
-    ///
-    /// ✨ *Enabled with the `compiled_data` Cargo feature.*
-    ///
-    /// [📚 Help choosing a constructor](icu_provider::constructors)
-    #[cfg(feature = "compiled_data")]
-    pub const fn new() -> Self {
-        const _: () = assert!(
-            crate::provider::Baked::SINGLETON_NORMALIZER_NFD_TABLES_V1
-                .scalars16
-                .const_len()
-                + crate::provider::Baked::SINGLETON_NORMALIZER_NFD_TABLES_V1
-                    .scalars24
-                    .const_len()
-                <= 0xFFF,
-            "future extension"
-        );
-
-        Self {
-            decompositions: crate::provider::Baked::SINGLETON_NORMALIZER_NFD_DATA_V1,
-            tables: crate::provider::Baked::SINGLETON_NORMALIZER_NFD_TABLES_V1,
-            non_recursive: crate::provider::Baked::SINGLETON_NORMALIZER_NFD_SUPPLEMENT_V1,
-        }
-    }
-}
-
-impl CanonicalDecompositionBorrowed<'_> {
+impl CanonicalDecomposition {
     /// Performs non-recursive canonical decomposition (including for Hangul).
     ///
     /// ```
     ///     use icu::normalizer::properties::Decomposed;
-    ///     let decomp = icu::normalizer::properties::CanonicalDecompositionBorrowed::new();
+    ///     let decomp = icu::normalizer::properties::CanonicalDecomposition::new();
     ///
     ///     assert_eq!(decomp.decompose('e'), Decomposed::Default);
     ///     assert_eq!(
@@ -261,27 +177,19 @@ impl CanonicalDecompositionBorrowed<'_> {
         if lvt >= HANGUL_S_COUNT {
             return self.decompose_non_hangul(c);
         }
-        // Invariant: lvt ≤ HANGUL_S_COUNT = 1172
         let t = lvt % HANGUL_T_COUNT;
-        // Invariant: t ≤ (1172 / HANGUL_T_COUNT = 1172 / 28 = 41)
         if t == 0 {
             let l = lvt / HANGUL_N_COUNT;
-            // Invariant: v ≤ (1172 / HANGUL_N_COUNT = 1172 / 588 ≈ 2)
             let v = (lvt % HANGUL_N_COUNT) / HANGUL_T_COUNT;
-            // Invariant: v < (HANGUL_N_COUNT / HANGUL_T_COUNT = 588 / 28 = 21)
+            // Safe because values known to be in range
             return Decomposed::Expansion(
-                // Safety: HANGUL_*_BASE are 0x1nnn, addding numbers that are 21 and 41
-                // max will keep it in range, less than 0xD800
                 unsafe { char::from_u32_unchecked(HANGUL_L_BASE + l) },
                 unsafe { char::from_u32_unchecked(HANGUL_V_BASE + v) },
             );
         }
         let lv = lvt - t;
-        // Invariant: lvt < 1172
         // Safe because values known to be in range
         Decomposed::Expansion(
-            // Safety: HANGUL_*_BASE are 0x1nnn, addding numbers that are 1172 and 41
-            // max will keep it in range, less than 0xD800
             unsafe { char::from_u32_unchecked(HANGUL_S_BASE + lv) },
             unsafe { char::from_u32_unchecked(HANGUL_T_BASE + t) },
         )
@@ -291,31 +199,31 @@ impl CanonicalDecompositionBorrowed<'_> {
     /// are reported as `Decomposed::Default`.
     #[inline(always)]
     fn decompose_non_hangul(&self, c: char) -> Decomposed {
-        let decomposition = self.decompositions.trie.get(c);
-        // The REPLACEMENT CHARACTER has `NON_ROUND_TRIP_MARKER` set,
-        // and that flag needs to be ignored here.
-        if (decomposition & !(BACKWARD_COMBINING_MARKER | NON_ROUND_TRIP_MARKER)) == 0 {
+        let decomposition = self.decompositions.get().trie.get(c);
+        if decomposition <= BACKWARD_COMBINING_STARTER_MARKER {
             return Decomposed::Default;
         }
         // The loop is only broken out of as goto forward
         #[allow(clippy::never_loop)]
         loop {
-            let high_zeros = (decomposition & HIGH_ZEROS_MASK) == 0;
-            let low_zeros = (decomposition & LOW_ZEROS_MASK) == 0;
-            if !high_zeros && !low_zeros {
+            let trail_or_complex = (decomposition >> 16) as u16;
+            let lead = decomposition as u16;
+            if lead > NON_ROUND_TRIP_MARKER && trail_or_complex != 0 {
                 // Decomposition into two BMP characters: starter and non-starter
                 if in_inclusive_range(c, '\u{1F71}', '\u{1FFB}') {
                     // Look in the other trie due to oxia singleton
                     // mappings to corresponding character with tonos.
                     break;
                 }
-                let starter = char_from_u32(decomposition & 0x7FFF);
-                let combining = char_from_u32((decomposition >> 15) & 0x7FFF);
-                return Decomposed::Expansion(starter, combining);
+                return Decomposed::Expansion(char_from_u16(lead), char_from_u16(trail_or_complex));
             }
-            if high_zeros {
+            if lead > NON_ROUND_TRIP_MARKER {
                 // Decomposition into one BMP character or non-starter
-                if trie_value_has_ccc(decomposition) {
+                debug_assert_ne!(
+                    lead, FDFA_MARKER,
+                    "How come we got the U+FDFA NFKD marker here?"
+                );
+                if lead == SPECIAL_NON_STARTER_DECOMPOSITION_MARKER_U16 {
                     // Non-starter
                     if !in_inclusive_range(c, '\u{0340}', '\u{0F81}') {
                         return Decomposed::Default;
@@ -352,24 +260,35 @@ impl CanonicalDecompositionBorrowed<'_> {
                         _ => Decomposed::Default,
                     };
                 }
-                let singleton = decomposition as u16;
-                debug_assert_ne!(
-                    singleton, FDFA_MARKER,
-                    "How come we got the U+FDFA NFKD marker here?"
-                );
-                return Decomposed::Singleton(char_from_u16(singleton));
+                return Decomposed::Singleton(char_from_u16(lead));
             }
+            // The recursive decomposition of ANGSTROM SIGN is in the complex
+            // decomposition structure to avoid a branch in `potential_passthrough`
+            // for the BMP case.
             if c == '\u{212B}' {
                 // ANGSTROM SIGN
                 return Decomposed::Singleton('\u{00C5}');
             }
-            // Only 12 of 14 bits used as of Unicode 16.
-            let offset = (((decomposition & !(0b11 << 30)) >> 16) as usize) - 1;
-            // Only 3 of 4 bits used as of Unicode 16.
-            let len_bits = decomposition & 0b1111;
-            let tables = self.tables;
+            // Complex decomposition
+            // Format for 16-bit value:
+            // 15..13: length minus two for 16-bit case and length minus one for
+            //         the 32-bit case. Length 8 needs to fit in three bits in
+            //         the 16-bit case, and this way the value is future-proofed
+            //         up to 9 in the 16-bit case. Zero is unused and length one
+            //         in the 16-bit case goes directly into the trie.
+            //     12: 1 if all trailing characters are guaranteed non-starters,
+            //         0 if no guarantees about non-starterness.
+            //         Note: The bit choice is this way around to allow for
+            //         dynamically falling back to not having this but instead
+            //         having one more bit for length by merely choosing
+            //         different masks.
+            //  11..0: Start offset in storage. The offset is to the logical
+            //         sequence of scalars16, scalars32, supplementary_scalars16,
+            //         supplementary_scalars32.
+            let offset = usize::from(trail_or_complex & 0xFFF);
+            let tables = self.tables.get();
             if offset < tables.scalars16.len() {
-                if len_bits != 0 {
+                if usize::from(trail_or_complex >> 13) != 0 {
                     // i.e. logical len isn't 2
                     break;
                 }
@@ -383,14 +302,24 @@ impl CanonicalDecompositionBorrowed<'_> {
                 debug_assert!(false);
                 return Decomposed::Default;
             }
-            let len = len_bits + 1;
+            let len = usize::from(trail_or_complex >> 13) + 1;
             if len > 2 {
                 break;
             }
             let offset24 = offset - tables.scalars16.len();
             if let Some(first_c) = tables.scalars24.get(offset24) {
                 if len == 1 {
-                    return Decomposed::Singleton(first_c);
+                    if c != first_c {
+                        return Decomposed::Singleton(first_c);
+                    } else {
+                        // Singleton representation used to avoid
+                        // NFC passthrough of characters that combine
+                        // with starters that can occur as the first
+                        // character of an expansion decomposition.
+                        // See section 5 of
+                        // https://www.unicode.org/L2/L2024/24009-utc178-properties-recs.pdf
+                        return Decomposed::Default;
+                    }
                 }
                 if let Some(second_c) = tables.scalars24.get(offset24 + 1) {
                     return Decomposed::Expansion(first_c, second_c);
@@ -400,7 +329,7 @@ impl CanonicalDecompositionBorrowed<'_> {
             debug_assert!(false);
             return Decomposed::Default;
         }
-        let non_recursive = self.non_recursive;
+        let non_recursive = self.non_recursive.get();
         let non_recursive_decomposition = non_recursive.trie.get(c);
         if non_recursive_decomposition == 0 {
             // GIGO case
@@ -429,37 +358,6 @@ impl CanonicalDecompositionBorrowed<'_> {
         debug_assert!(false);
         Decomposed::Default
     }
-}
-
-/// The raw (non-recursive) canonical decomposition operation.
-///
-/// Callers should generally use `DecomposingNormalizer` instead of this API.
-/// However, this API is provided for callers such as HarfBuzz that specifically
-/// want access to non-recursive canonical decomposition e.g. for use in a
-/// glyph-availability-guided custom normalizer.
-#[derive(Debug)]
-pub struct CanonicalDecomposition {
-    decompositions: DataPayload<NormalizerNfdDataV1>,
-    tables: DataPayload<NormalizerNfdTablesV1>,
-    non_recursive: DataPayload<NormalizerNfdSupplementV1>,
-}
-
-#[cfg(feature = "compiled_data")]
-impl Default for CanonicalDecomposition {
-    fn default() -> Self {
-        Self::new().static_to_owned()
-    }
-}
-
-impl CanonicalDecomposition {
-    /// Constructs a borrowed version of this type for more efficient querying.
-    pub fn as_borrowed(&self) -> CanonicalDecompositionBorrowed<'_> {
-        CanonicalDecompositionBorrowed {
-            decompositions: self.decompositions.get(),
-            tables: self.tables.get(),
-            non_recursive: self.non_recursive.get(),
-        }
-    }
 
     /// Construct from compiled data.
     ///
@@ -467,31 +365,54 @@ impl CanonicalDecomposition {
     ///
     /// [📚 Help choosing a constructor](icu_provider::constructors)
     #[cfg(feature = "compiled_data")]
-    #[allow(clippy::new_ret_no_self)]
-    pub const fn new() -> CanonicalDecompositionBorrowed<'static> {
-        CanonicalDecompositionBorrowed::new()
+    pub const fn new() -> Self {
+        const _: () = assert!(
+            crate::provider::Baked::SINGLETON_NORMALIZER_NFDEX_V1
+                .scalars16
+                .const_len()
+                + crate::provider::Baked::SINGLETON_NORMALIZER_NFDEX_V1
+                    .scalars24
+                    .const_len()
+                <= 0xFFF,
+            "NormalizerError::FutureExtension"
+        );
+
+        Self {
+            decompositions: DataPayload::from_static_ref(
+                crate::provider::Baked::SINGLETON_NORMALIZER_NFD_V1,
+            ),
+            tables: DataPayload::from_static_ref(
+                crate::provider::Baked::SINGLETON_NORMALIZER_NFDEX_V1,
+            ),
+            non_recursive: DataPayload::from_static_ref(
+                crate::provider::Baked::SINGLETON_NORMALIZER_DECOMP_V1,
+            ),
+        }
     }
 
-    icu_provider::gen_buffer_data_constructors!(() -> error: DataError,
+    icu_provider::gen_any_buffer_data_constructors!(locale: skip, options: skip, error: NormalizerError,
+        #[cfg(skip)]
         functions: [
-            new: skip,
+            new,
+            try_new_with_any_provider,
             try_new_with_buffer_provider,
             try_new_unstable,
             Self,
         ]
     );
 
-    #[doc = icu_provider::gen_buffer_unstable_docs!(UNSTABLE, Self::new)]
-    pub fn try_new_unstable<D>(provider: &D) -> Result<Self, DataError>
+    #[doc = icu_provider::gen_any_buffer_unstable_docs!(UNSTABLE, Self::new)]
+    pub fn try_new_unstable<D>(provider: &D) -> Result<Self, NormalizerError>
     where
-        D: DataProvider<NormalizerNfdDataV1>
-            + DataProvider<NormalizerNfdTablesV1>
-            + DataProvider<NormalizerNfdSupplementV1>
+        D: DataProvider<CanonicalDecompositionDataV1Marker>
+            + DataProvider<CanonicalDecompositionTablesV1Marker>
+            + DataProvider<NonRecursiveDecompositionSupplementV1Marker>
             + ?Sized,
     {
-        let decompositions: DataPayload<NormalizerNfdDataV1> =
-            provider.load(Default::default())?.payload;
-        let tables: DataPayload<NormalizerNfdTablesV1> = provider.load(Default::default())?.payload;
+        let decompositions: DataPayload<CanonicalDecompositionDataV1Marker> =
+            provider.load(Default::default())?.take_payload()?;
+        let tables: DataPayload<CanonicalDecompositionTablesV1Marker> =
+            provider.load(Default::default())?.take_payload()?;
 
         if tables.get().scalars16.len() + tables.get().scalars24.len() > 0xFFF {
             // The data is from a future where there exists a normalization flavor whose
@@ -500,11 +421,11 @@ impl CanonicalDecomposition {
             // dynamically change the bit masks so that the length mask becomes 0x1FFF instead
             // of 0xFFF and the all-non-starters mask becomes 0 instead of 0x1000. However,
             // since for now the masks are hard-coded, error out.
-            return Err(DataError::custom("future extension"));
+            return Err(NormalizerError::FutureExtension);
         }
 
-        let non_recursive: DataPayload<NormalizerNfdSupplementV1> =
-            provider.load(Default::default())?.payload;
+        let non_recursive: DataPayload<NonRecursiveDecompositionSupplementV1Marker> =
+            provider.load(Default::default())?.take_payload()?;
 
         Ok(CanonicalDecomposition {
             decompositions,
@@ -514,39 +435,52 @@ impl CanonicalDecomposition {
     }
 }
 
-/// Borrowed version of lookup of the Canonical_Combining_Class Unicode property.
+/// Lookup of the Canonical_Combining_Class Unicode property.
 ///
 /// # Example
 ///
 /// ```
-/// use icu::properties::props::CanonicalCombiningClass;
-/// use icu::normalizer::properties::CanonicalCombiningClassMapBorrowed;
+/// use icu::properties::CanonicalCombiningClass;
+/// use icu::normalizer::properties::CanonicalCombiningClassMap;
 ///
-/// let map = CanonicalCombiningClassMapBorrowed::new();
+/// let map = CanonicalCombiningClassMap::new();
 /// assert_eq!(map.get('a'), CanonicalCombiningClass::NotReordered); // U+0061: LATIN SMALL LETTER A
 /// assert_eq!(map.get32(0x0301), CanonicalCombiningClass::Above); // U+0301: COMBINING ACUTE ACCENT
 /// ```
 #[derive(Debug)]
-pub struct CanonicalCombiningClassMapBorrowed<'a> {
+pub struct CanonicalCombiningClassMap {
     /// The data trie
-    decompositions: &'a DecompositionData<'a>,
+    decompositions: DataPayload<CanonicalDecompositionDataV1Marker>,
 }
 
 #[cfg(feature = "compiled_data")]
-impl Default for CanonicalCombiningClassMapBorrowed<'static> {
+impl Default for CanonicalCombiningClassMap {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl CanonicalCombiningClassMapBorrowed<'static> {
-    /// Cheaply converts a [`CanonicalCombiningClassMapBorrowed<'static>`] into a [`CanonicalCombiningClassMap`].
-    ///
-    /// Note: Due to branching and indirection, using [`CanonicalCombiningClassMap`] might inhibit some
-    /// compile-time optimizations that are possible with [`CanonicalCombiningClassMapBorrowed`].
-    pub const fn static_to_owned(self) -> CanonicalCombiningClassMap {
-        CanonicalCombiningClassMap {
-            decompositions: DataPayload::from_static_ref(self.decompositions),
+impl CanonicalCombiningClassMap {
+    /// Look up the canonical combining class for a scalar value
+    #[inline(always)]
+    pub fn get(&self, c: char) -> CanonicalCombiningClass {
+        self.get32(u32::from(c))
+    }
+
+    /// Look up the canonical combining class for a scalar value
+    /// represented as `u32`. If the argument is outside the scalar
+    /// value range, `CanonicalCombiningClass::NotReordered` is returned.
+    pub fn get32(&self, c: u32) -> CanonicalCombiningClass {
+        let trie_value = self.decompositions.get().trie.get32(c);
+        if trie_value_has_ccc(trie_value) {
+            CanonicalCombiningClass(trie_value as u8)
+        } else if trie_value_indicates_special_non_starter_decomposition(trie_value) {
+            match c {
+                0x0340 | 0x0341 | 0x0343 | 0x0344 => CanonicalCombiningClass::Above,
+                _ => CanonicalCombiningClass::NotReordered,
+            }
+        } else {
+            CanonicalCombiningClass::NotReordered
         }
     }
 
@@ -557,107 +491,30 @@ impl CanonicalCombiningClassMapBorrowed<'static> {
     /// [📚 Help choosing a constructor](icu_provider::constructors)
     #[cfg(feature = "compiled_data")]
     pub const fn new() -> Self {
-        CanonicalCombiningClassMapBorrowed {
-            decompositions: crate::provider::Baked::SINGLETON_NORMALIZER_NFD_DATA_V1,
-        }
-    }
-}
-
-impl CanonicalCombiningClassMapBorrowed<'_> {
-    /// Look up the canonical combining class for a scalar value.
-    ///
-    /// The return value is a u8 representing the canonical combining class,
-    /// you may enable the `"icu_properties"` feature if you would like to use a typed
-    /// `CanonicalCombiningClass`.
-    #[inline(always)]
-    pub fn get_u8(&self, c: char) -> u8 {
-        self.get32_u8(u32::from(c))
-    }
-
-    /// Look up the canonical combining class for a scalar value
-    /// represented as `u32`. If the argument is outside the scalar
-    /// value range, `Not_Reordered` is returned.
-    ///
-    /// The return value is a u8 representing the canonical combining class,
-    /// you may enable the `"icu_properties"` feature if you would like to use a typed
-    /// `CanonicalCombiningClass`.
-    pub fn get32_u8(&self, c: u32) -> u8 {
-        let trie_value = self.decompositions.trie.get32(c);
-        if trie_value_has_ccc(trie_value) {
-            trie_value as u8
-        } else {
-            ccc!(NotReordered, 0).to_icu4c_value()
+        CanonicalCombiningClassMap {
+            decompositions: DataPayload::from_static_ref(
+                crate::provider::Baked::SINGLETON_NORMALIZER_NFD_V1,
+            ),
         }
     }
 
-    /// Look up the canonical combining class for a scalar value
-    ///
-    /// ✨ *Enabled with the `icu_properties` Cargo feature.*
-    #[inline(always)]
-    #[cfg(feature = "icu_properties")]
-    pub fn get(&self, c: char) -> CanonicalCombiningClass {
-        CanonicalCombiningClass::from_icu4c_value(self.get_u8(c))
-    }
-
-    /// Look up the canonical combining class for a scalar value
-    /// represented as `u32`. If the argument is outside the scalar
-    /// value range, `CanonicalCombiningClass::NotReordered` is returned.
-    ///
-    /// ✨ *Enabled with the `icu_properties` Cargo feature.*
-    #[cfg(feature = "icu_properties")]
-    pub fn get32(&self, c: u32) -> CanonicalCombiningClass {
-        CanonicalCombiningClass::from_icu4c_value(self.get32_u8(c))
-    }
-}
-
-/// Lookup of the Canonical_Combining_Class Unicode property.
-#[derive(Debug)]
-pub struct CanonicalCombiningClassMap {
-    /// The data trie
-    decompositions: DataPayload<NormalizerNfdDataV1>,
-}
-
-#[cfg(feature = "compiled_data")]
-impl Default for CanonicalCombiningClassMap {
-    fn default() -> Self {
-        Self::new().static_to_owned()
-    }
-}
-
-impl CanonicalCombiningClassMap {
-    /// Constructs a borrowed version of this type for more efficient querying.
-    pub fn as_borrowed(&self) -> CanonicalCombiningClassMapBorrowed<'_> {
-        CanonicalCombiningClassMapBorrowed {
-            decompositions: self.decompositions.get(),
-        }
-    }
-
-    /// Construct from compiled data.
-    ///
-    /// ✨ *Enabled with the `compiled_data` Cargo feature.*
-    ///
-    /// [📚 Help choosing a constructor](icu_provider::constructors)
-    #[cfg(feature = "compiled_data")]
-    #[allow(clippy::new_ret_no_self)]
-    pub const fn new() -> CanonicalCombiningClassMapBorrowed<'static> {
-        CanonicalCombiningClassMapBorrowed::new()
-    }
-
-    icu_provider::gen_buffer_data_constructors!(() -> error: DataError,
+    icu_provider::gen_any_buffer_data_constructors!(locale: skip, options: skip, error: NormalizerError,
+        #[cfg(skip)]
         functions: [
-            new: skip,
+            new,
+            try_new_with_any_provider,
             try_new_with_buffer_provider,
             try_new_unstable,
             Self,
     ]);
 
-    #[doc = icu_provider::gen_buffer_unstable_docs!(UNSTABLE, Self::new)]
-    pub fn try_new_unstable<D>(provider: &D) -> Result<Self, DataError>
+    #[doc = icu_provider::gen_any_buffer_unstable_docs!(UNSTABLE, Self::new)]
+    pub fn try_new_unstable<D>(provider: &D) -> Result<Self, NormalizerError>
     where
-        D: DataProvider<NormalizerNfdDataV1> + ?Sized,
+        D: DataProvider<CanonicalDecompositionDataV1Marker> + ?Sized,
     {
-        let decompositions: DataPayload<NormalizerNfdDataV1> =
-            provider.load(Default::default())?.payload;
+        let decompositions: DataPayload<CanonicalDecompositionDataV1Marker> =
+            provider.load(Default::default())?.take_payload()?;
         Ok(CanonicalCombiningClassMap { decompositions })
     }
 }

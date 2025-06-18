@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::ops::ControlFlow;
 
 use super::docs::Docs;
@@ -16,8 +16,8 @@ pub struct Method {
     /// Lines of documentation for the method.
     pub docs: Docs,
 
-    /// The name of the generated `extern "C"` function
-    pub abi_name: Ident,
+    /// The name of the FFI function wrapping around the method.
+    pub full_path_name: Ident,
 
     /// The `self` param of the method, if any.
     pub self_param: Option<SelfParam>,
@@ -95,7 +95,7 @@ impl Method {
         Method {
             name: Ident::from(method_ident),
             docs: Docs::from_attrs(&m.attrs),
-            abi_name: Ident::from(&extern_ident),
+            full_path_name: Ident::from(&extern_ident),
             self_param,
             params: all_params,
             return_type: return_ty,
@@ -173,7 +173,7 @@ impl Method {
                             ControlFlow::Continue(())
                         })
                         .is_break()
-                        .then_some((param, lt_kind))
+                        .then(|| (param, lt_kind))
                 })
                 .collect();
 
@@ -183,34 +183,33 @@ impl Method {
         }
     }
 
-    /// Checks whether the method qualifies for special write handling.
+    /// Checks whether the method qualifies for special writeable handling.
     /// To qualify, a method must:
     ///  - not return any value
-    ///  - have the last argument be an `&mut diplomat_runtime::DiplomatWrite`
+    ///  - have the last argument be an `&mut diplomat_runtime::DiplomatWriteable`
     ///
     /// Typically, methods of this form will be transformed in the bindings to a
-    /// method that doesn't take the write as an argument but instead creates
+    /// method that doesn't take the writeable as an argument but instead creates
     /// one locally and just returns the final string.
-    pub fn is_write_out(&self) -> bool {
+    pub fn is_writeable_out(&self) -> bool {
         let return_compatible = self
             .return_type
             .as_ref()
             .map(|return_type| match return_type {
                 TypeName::Unit => true,
-                TypeName::Result(ok, _, _) | TypeName::Option(ok, _) => {
+                TypeName::Result(ok, _, _) => {
                     matches!(ok.as_ref(), TypeName::Unit)
                 }
-
                 _ => false,
             })
             .unwrap_or(true);
 
-        return_compatible && self.params.last().map(Param::is_write).unwrap_or(false)
+        return_compatible && self.params.last().map(Param::is_writeable).unwrap_or(false)
     }
 
-    /// Checks if any parameters are write (regardless of other compatibilities for write output)
-    pub fn has_write_param(&self) -> bool {
-        self.params.iter().any(|p| p.is_write())
+    /// Checks if any parameters are writeable (regardless of other compatibilities for writeable output)
+    pub fn has_writeable_param(&self) -> bool {
+        self.params.iter().any(|p| p.is_writeable())
     }
 
     /// Returns the documentation block
@@ -229,9 +228,6 @@ pub struct SelfParam {
     /// The type of the parameter, which will be a named reference to
     /// the associated struct,
     pub path_type: PathType,
-
-    /// Associated attributes with this self parameter. Used in Demo Generation, mostly.
-    pub attrs: Attrs,
 }
 
 impl SelfParam {
@@ -250,39 +246,6 @@ impl SelfParam {
                 .as_ref()
                 .map(|(_, lt)| (lt.into(), Mutability::from_syn(&rec.mutability))),
             path_type,
-            attrs: Attrs::from_attrs(&rec.attrs),
-        }
-    }
-}
-
-/// The `self` parameter taken by a [`TraitMethod`].
-#[derive(Clone, PartialEq, Eq, Hash, Serialize, Debug, Deserialize)]
-#[non_exhaustive]
-pub struct TraitSelfParam {
-    /// The lifetime and mutability of the `self` param, if it's a reference.
-    pub reference: Option<(Lifetime, Mutability)>,
-
-    /// The trait of the parameter, which will be a named reference to
-    /// the associated trait,
-    pub path_trait: PathType,
-}
-
-impl TraitSelfParam {
-    pub fn to_typename(&self) -> TypeName {
-        let typ = TypeName::ImplTrait(self.path_trait.clone());
-        if let Some((ref lifetime, ref mutability)) = self.reference {
-            return TypeName::Reference(lifetime.clone(), *mutability, Box::new(typ));
-        }
-        typ
-    }
-
-    pub fn from_syn(rec: &syn::Receiver, path_trait: PathType) -> Self {
-        TraitSelfParam {
-            reference: rec
-                .reference
-                .as_ref()
-                .map(|(_, lt)| (lt.into(), Mutability::from_syn(&rec.mutability))),
-            path_trait,
         }
     }
 }
@@ -296,16 +259,13 @@ pub struct Param {
 
     /// The type of the parameter.
     pub ty: TypeName,
-
-    /// Parameter attributes (like #[diplomat::demo(label = "Out")])
-    pub attrs: Attrs,
 }
 
 impl Param {
-    /// Check if this parameter is a Write
-    pub fn is_write(&self) -> bool {
+    /// Check if this parameter is a Writeable
+    pub fn is_writeable(&self) -> bool {
         match self.ty {
-            TypeName::Reference(_, Mutability::Mutable, ref w) => **w == TypeName::Write,
+            TypeName::Reference(_, Mutability::Mutable, ref w) => **w == TypeName::Writeable,
             _ => false,
         }
     }
@@ -316,12 +276,9 @@ impl Param {
             _ => panic!("Unexpected param type"),
         };
 
-        let attrs = Attrs::from_attrs(&t.attrs);
-
         Param {
             name: (&ident.ident).into(),
             ty: TypeName::from_syn(&t.ty, Some(self_path_type)),
-            attrs,
         }
     }
 }

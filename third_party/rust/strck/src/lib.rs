@@ -17,10 +17,8 @@
 //!
 //! This crate abstracts the idea of type-level invariants on strings by
 //! introducing the immutable [`Check`] and [`Ck`] types, where the invariants
-//! are determined by a generic [`Invariant`] type parameter. It offers
-//! [`UnicodeIdent`](crate::ident::unicode::UnicodeIdent)
-//! and [`RustIdent`](crate::ident::rust::RustIdent) [`Invariant`]s,
-//! which are enabled by the `ident` feature flag.
+//! are determined by a generic [`Invariant`] type parameter. Implementing
+//! the [`Invariant`] trait is left to other crates, such as [`strck_ident`].
 //!
 //! "strck" comes from "str check", similar to how rustc has typeck and
 //! borrowck for type check and borrow check respectively.
@@ -50,7 +48,7 @@
 //! [`Ck`] type without having to allocate in the result.
 //!
 //! ```rust
-//! use strck::{Ck, IntoCk, ident::rust::RustIdent};
+//! use strck_ident::{Ck, IntoCk, rust::RustIdent};
 //!
 //! let this_ident: &Ck<RustIdent> = "this".ck().unwrap();
 //! ```
@@ -63,7 +61,7 @@
 //!
 //! ```rust
 //! # use serde::{Serialize, Deserialize};
-//! use strck::{Ck, ident::unicode::UnicodeIdent};
+//! use strck_ident::{Ck, unicode::UnicodeIdent};
 //!
 //! #[derive(Serialize, Deserialize)]
 //! struct Player<'a> {
@@ -74,7 +72,7 @@
 //! ```
 //!
 //! Note that this code sample explicitly uses `Ck<UnicodeIdent>` to demonstrate
-//! that the type is a [`Ck`]. However, `strck` provides [`Ident`] as an
+//! that the type is a [`Ck`]. However, [`strck_ident`] provides [`Ident`] as an
 //! alias for `Ck<UnicodeIdent>`, which should be used in practice.
 //!
 //! ### Infallible parsing
@@ -90,7 +88,7 @@
 //! [`Ck`]s and [`Check`]s respectively:
 //!
 //! ```rust
-//! use strck::{IntoCheck, IntoCk, ident::unicode::UnicodeIdent};
+//! use strck_ident::{IntoCheck, IntoCk, unicode::UnicodeIdent};
 //!
 //! let this_ident = "this".ck::<UnicodeIdent>().unwrap();
 //! let this_foo_ident = format!("{}_foo", this_ident).check::<UnicodeIdent>().unwrap();
@@ -102,14 +100,13 @@
 //! where the invariants are checked during deserialization. Disabled by default.
 //!
 //! [`syn::Ident`]: https://docs.rs/syn/latest/syn/struct.Ident.html
-//! [`Ident`]: https://docs.rs/strck/latest/strck/ident/unicode/type.Ident.html
+//! [`strck_ident`]: https://docs.rs/strck_ident
+//! [`Ident`]: https://docs.rs/strck_ident/latest/strck_ident/unicode/type.Ident.html
 //! [borrow]: https://serde.rs/lifetimes.html#borrowing-data-in-a-derived-impl
 //! [`.ck()`]: IntoCk::ck
 //! [`.check()`]: IntoCheck::check
 use core::{borrow, cmp, fmt, hash, marker, ops, str};
 
-#[cfg(feature = "ident")]
-pub mod ident;
 mod partial_eq;
 #[cfg(feature = "serde")]
 mod serde;
@@ -202,7 +199,7 @@ pub trait IntoCk: Sized + AsRef<str> {
     ///
     /// Creating an Rust ident containing `this`:
     /// ```rust
-    /// use strck::{IntoCk, ident::rust::Ident};
+    /// use strck_ident::{IntoCk, rust::Ident};
     ///
     /// let this_ident: &Ident = "this".ck().unwrap();
     /// ```
@@ -228,7 +225,7 @@ pub trait IntoCheck: Sized + AsRef<str> + 'static {
     ///
     /// Creating a Unicode ident from a formatted string:
     /// ```rust
-    /// use strck::{Check, Ck, IntoCheck, ident::unicode::UnicodeIdent};
+    /// use strck_ident::{Check, Ck, IntoCheck, unicode::UnicodeIdent};
     ///
     /// fn wrapper_name(name: &Ck<UnicodeIdent>) -> Check<UnicodeIdent> {
     ///     format!("lil_{name}").check().unwrap()
@@ -250,17 +247,26 @@ impl<I: Invariant, B: AsRef<str>> Check<I, B> {
     pub fn from_buf(buf: B) -> Result<Self, I::Error> {
         I::check(buf.as_ref())?;
 
-        Ok(Check {
+        // SAFETY: invariants are upheld.
+        unsafe { Ok(Self::from_buf_unchecked(buf)) }
+    }
+
+    /// Create a new [`Check`] without validating the buffer.
+    ///
+    /// # Safety
+    ///
+    /// The buffer must contain a valid string.
+    pub unsafe fn from_buf_unchecked(buf: B) -> Self {
+        Check {
             _marker: marker::PhantomData,
             buf,
-        })
+        }
     }
 
     /// Returns a [`&Ck`](Ck) that borrows from `self`.
     pub fn as_ck(&self) -> &Ck<I> {
-        // SAFETY: `self` has the same invariants as `&Ck<I>`, and `Ck` has the
-        // same ABI as `str` by `#[repr(transparent)]`.
-        unsafe { core::mem::transmute(self.buf.as_ref()) }
+        // SAFETY: `self` has the same invariants as `&Ck<I>`.
+        unsafe { Ck::from_str_unchecked(self.buf.as_ref()) }
     }
 
     /// Returns the inner representation.
@@ -286,7 +292,7 @@ where
     B2: AsRef<str>,
 {
     fn eq(&self, other: &Check<I, B2>) -> bool {
-        self.as_str() == other.as_str()
+        self == other
     }
 }
 
@@ -376,8 +382,18 @@ impl<I: Invariant> Ck<I> {
     pub fn from_slice(slice: &str) -> Result<&Self, I::Error> {
         I::check(slice)?;
 
-        // SAFETY: invariants are upheld, and `Ck` has the same ABI as `str` by `#[repr(transparent)]`.
-        unsafe { Ok(core::mem::transmute::<&str, &Ck<I>>(slice)) }
+        // SAFETY: invariants are upheld.
+        unsafe { Ok(Self::from_str_unchecked(slice)) }
+    }
+
+    /// Create a new [`&Ck`](Ck) without validating the `&str`.
+    ///
+    /// # Safety
+    ///
+    /// The string must be valid.
+    pub unsafe fn from_str_unchecked(slice: &str) -> &Self {
+        // SAFETY: `Ck` has the same ABI as `str` by `#[repr(transparent)]`.
+        core::mem::transmute(slice)
     }
 
     /// Returns an owned [`Check`] from `&self`.
@@ -385,10 +401,8 @@ impl<I: Invariant> Ck<I> {
     where
         B: AsRef<str> + From<&'a str>,
     {
-        Check {
-            _marker: marker::PhantomData,
-            buf: self.as_str().into(),
-        }
+        // SAFETY: `self` has the same invariants as `Check<I, B>`.
+        unsafe { Check::from_buf_unchecked(self.as_str().into()) }
     }
 
     /// Returns the `&str` representation.
@@ -411,7 +425,7 @@ impl<I: Invariant> PartialEq for Ck<I> {
 
 impl<I: Invariant> PartialOrd for Ck<I> {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(other))
+        self.slice.partial_cmp(&other.slice)
     }
 }
 
@@ -487,58 +501,8 @@ mod tests {
     #[test]
     fn test_debug_impl() {
         let this = "this".ck::<NoInvariant>().unwrap();
-        let fmt_debug = format!("{this:?}");
+        let fmt_debug = format!("{:?}", this);
 
         assert_eq!(fmt_debug, "\"this\"");
-    }
-
-    #[test]
-    fn test_ck_partial_eq() {
-        let this = "this".ck::<NoInvariant>().unwrap();
-        let still_this = "this".ck::<NoInvariant>().unwrap();
-        let other = "other".ck::<NoInvariant>().unwrap();
-
-        // With other different instance
-        assert_ne!(this, other);
-        assert_ne!(this, &other);
-        assert_ne!(&this, other);
-        assert_ne!(&this, &other);
-
-        // With other equal instance
-        assert_eq!(this, still_this);
-        assert_eq!(this, &still_this);
-        assert_eq!(&this, still_this);
-        assert_eq!(&this, &still_this);
-
-        // With itself
-        assert_eq!(this, this);
-        assert_eq!(this, &this);
-        assert_eq!(&this, this);
-        assert_eq!(&this, &this);
-    }
-
-    #[test]
-    fn test_check_partial_eq() {
-        let this = "this".check::<NoInvariant>().unwrap();
-        let still_this = "this".check::<NoInvariant>().unwrap();
-        let other = "other".check::<NoInvariant>().unwrap();
-
-        // With other different instance
-        assert_ne!(this, other);
-        assert_ne!(this, &other);
-        assert_ne!(&this, other);
-        assert_ne!(&this, &other);
-
-        // With other equal instance
-        assert_eq!(this, still_this);
-        assert_eq!(this, &still_this);
-        assert_eq!(&this, still_this);
-        assert_eq!(&this, &still_this);
-
-        // With itself
-        assert_eq!(this, this);
-        assert_eq!(this, &this);
-        assert_eq!(&this, this);
-        assert_eq!(&this, &this);
     }
 }

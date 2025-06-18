@@ -2,29 +2,28 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use crate::complex::ComplexPayloadsBorrowed;
+use crate::complex::ComplexPayloads;
 use crate::indices::{Latin1Indices, Utf16Indices};
-use crate::options::WordType;
 use crate::provider::*;
+use crate::WordType;
 use core::str::CharIndices;
 use utf8_iter::Utf8CharIndices;
 
 /// A trait allowing for RuleBreakIterator to be generalized to multiple string
 /// encoding methods and granularity such as grapheme cluster, word, etc.
-///
-/// <div class="stab unstable">
-/// 🚫 This trait is sealed; it cannot be implemented by user code. If an API requests an item that implements this
-/// trait, please consider using a type from the implementors listed below.
-/// </div>
-pub trait RuleBreakType: crate::private::Sealed + Sized {
+pub trait RuleBreakType<'l, 's> {
     /// The iterator over characters.
-    type IterAttr<'s>: Iterator<Item = (usize, Self::CharType)> + Clone + core::fmt::Debug;
+    type IterAttr: Iterator<Item = (usize, Self::CharType)> + Clone + core::fmt::Debug;
 
     /// The character type.
     type CharType: Copy + Into<u32> + core::fmt::Debug;
 
-    #[doc(hidden)]
-    fn char_len(ch: Self::CharType) -> usize;
+    fn get_current_position_character_len(iter: &RuleBreakIterator<'l, 's, Self>) -> usize;
+
+    fn handle_complex_language(
+        iter: &mut RuleBreakIterator<'l, 's, Self>,
+        left_codepoint: Self::CharType,
+    ) -> Option<usize>;
 }
 
 /// Implements the [`Iterator`] trait over the segmenter boundaries of the given string.
@@ -32,41 +31,23 @@ pub trait RuleBreakType: crate::private::Sealed + Sized {
 /// Lifetimes:
 ///
 /// - `'l` = lifetime of the segmenter object from which this iterator was created
-/// - `'data` = lifetime of data borrowed by segmenter object
-///   (this largely exists because segmenter data is invariant due to ZeroMap constraints,
-///   think of it as a second 'l)
 /// - `'s` = lifetime of the string being segmented
 ///
 /// The [`Iterator::Item`] is an [`usize`] representing index of a code unit
 /// _after_ the boundary (for a boundary at the end of text, this index is the length
 /// of the [`str`] or array of code units).
 #[derive(Debug)]
-pub struct RuleBreakIterator<'data, 's, Y: RuleBreakType> {
-    pub(crate) iter: Y::IterAttr<'s>,
+pub struct RuleBreakIterator<'l, 's, Y: RuleBreakType<'l, 's> + ?Sized> {
+    pub(crate) iter: Y::IterAttr,
     pub(crate) len: usize,
     pub(crate) current_pos_data: Option<(usize, Y::CharType)>,
     pub(crate) result_cache: alloc::vec::Vec<usize>,
-    pub(crate) data: &'data RuleBreakData<'data>,
-    pub(crate) complex: Option<ComplexPayloadsBorrowed<'data>>,
+    pub(crate) data: &'l RuleBreakDataV1<'l>,
+    pub(crate) complex: Option<&'l ComplexPayloads>,
     pub(crate) boundary_property: u8,
-    pub(crate) locale_override: Option<&'data RuleBreakDataOverride<'data>>,
-    // Should return None if there is no complex language handling
-    pub(crate) handle_complex_language:
-        fn(&mut RuleBreakIterator<'data, 's, Y>, Y::CharType) -> Option<usize>,
 }
 
-pub(crate) fn empty_handle_complex_language<Y: RuleBreakType>(
-    _i: &mut RuleBreakIterator<'_, '_, Y>,
-    _c: Y::CharType,
-) -> Option<usize> {
-    debug_assert!(
-        false,
-        "grapheme/sentence segmenters should never need complex language handling"
-    );
-    None
-}
-
-impl<Y: RuleBreakType> Iterator for RuleBreakIterator<'_, '_, Y> {
+impl<'l, 's, Y: RuleBreakType<'l, 's> + ?Sized> Iterator for RuleBreakIterator<'l, 's, Y> {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -78,7 +59,7 @@ impl<Y: RuleBreakType> Iterator for RuleBreakIterator<'_, '_, Y> {
                     self.result_cache = self.result_cache.iter().skip(1).map(|r| r - i).collect();
                     return self.get_current_position();
                 }
-                i += self.get_current_codepoint().map_or(0, Y::char_len);
+                i += Y::get_current_position_character_len(self);
                 self.advance_iter();
                 if self.is_eof() {
                     self.result_cache.clear();
@@ -131,7 +112,7 @@ impl<Y: RuleBreakType> Iterator for RuleBreakIterator<'_, '_, Y> {
                     self.boundary_property = left_prop;
                     return self.get_current_position();
                 }
-                let break_offset = (self.handle_complex_language)(self, left_codepoint);
+                let break_offset = Y::handle_complex_language(self, left_codepoint);
                 if break_offset.is_some() {
                     return break_offset;
                 }
@@ -205,7 +186,7 @@ impl<Y: RuleBreakType> Iterator for RuleBreakIterator<'_, '_, Y> {
     }
 }
 
-impl<Y: RuleBreakType> RuleBreakIterator<'_, '_, Y> {
+impl<'l, 's, Y: RuleBreakType<'l, 's> + ?Sized> RuleBreakIterator<'l, 's, Y> {
     pub(crate) fn advance_iter(&mut self) {
         self.current_pos_data = self.iter.next();
     }
@@ -229,14 +210,6 @@ impl<Y: RuleBreakType> RuleBreakIterator<'_, '_, Y> {
 
     fn get_break_property(&self, codepoint: Y::CharType) -> u8 {
         // Note: Default value is 0 == UNKNOWN
-        if let Some(locale_override) = &self.locale_override {
-            let property = locale_override
-                .property_table_override
-                .get32(codepoint.into());
-            if property != 0 {
-                return property;
-            }
-        }
         self.data.property_table.get32(codepoint.into())
     }
 
@@ -252,7 +225,7 @@ impl<Y: RuleBreakType> RuleBreakIterator<'_, '_, Y> {
     /// Return the status value of break boundary.
     /// If segmenter isn't word, always return WordType::None
     pub fn word_type(&self) -> WordType {
-        if !self.result_cache.is_empty() {
+        if self.result_cache.first().is_some() {
             // Dictionary type (CJ and East Asian) is letter.
             return WordType::Letter;
         }
@@ -274,69 +247,81 @@ impl<Y: RuleBreakType> RuleBreakIterator<'_, '_, Y> {
 }
 
 #[derive(Debug)]
-#[non_exhaustive]
-/// [`RuleBreakType`] for UTF-8 strings
-pub struct Utf8;
+pub struct RuleBreakTypeUtf8;
 
-impl crate::private::Sealed for Utf8 {}
-
-impl RuleBreakType for Utf8 {
-    type IterAttr<'s> = CharIndices<'s>;
+impl<'l, 's> RuleBreakType<'l, 's> for RuleBreakTypeUtf8 {
+    type IterAttr = CharIndices<'s>;
     type CharType = char;
 
-    fn char_len(ch: Self::CharType) -> usize {
-        ch.len_utf8()
+    fn get_current_position_character_len(iter: &RuleBreakIterator<Self>) -> usize {
+        iter.get_current_codepoint().map_or(0, |c| c.len_utf8())
     }
-}
 
-#[derive(Debug)]
-#[non_exhaustive]
-/// [`RuleBreakType`] for potentially ill-formed UTF-8 strings
-pub struct PotentiallyIllFormedUtf8;
-
-impl crate::private::Sealed for PotentiallyIllFormedUtf8 {}
-
-impl RuleBreakType for PotentiallyIllFormedUtf8 {
-    type IterAttr<'s> = Utf8CharIndices<'s>;
-    type CharType = char;
-
-    fn char_len(ch: Self::CharType) -> usize {
-        ch.len_utf8()
-    }
-}
-
-#[derive(Debug)]
-#[non_exhaustive]
-/// [`RuleBreakType`] for Latin-1 strings
-pub struct Latin1;
-
-impl crate::private::Sealed for Latin1 {}
-
-impl RuleBreakType for Latin1 {
-    type IterAttr<'s> = Latin1Indices<'s>;
-    type CharType = u8;
-
-    fn char_len(_ch: Self::CharType) -> usize {
+    fn handle_complex_language(
+        _: &mut RuleBreakIterator<Self>,
+        _: Self::CharType,
+    ) -> Option<usize> {
         unreachable!()
     }
 }
 
 #[derive(Debug)]
-#[non_exhaustive]
-/// [`RuleBreakType`] for UTF-16 strings
-pub struct Utf16;
+pub struct RuleBreakTypePotentiallyIllFormedUtf8;
 
-impl crate::private::Sealed for Utf16 {}
+impl<'l, 's> RuleBreakType<'l, 's> for RuleBreakTypePotentiallyIllFormedUtf8 {
+    type IterAttr = Utf8CharIndices<'s>;
+    type CharType = char;
 
-impl RuleBreakType for Utf16 {
-    type IterAttr<'s> = Utf16Indices<'s>;
+    fn get_current_position_character_len(iter: &RuleBreakIterator<Self>) -> usize {
+        iter.get_current_codepoint().map_or(0, |c| c.len_utf8())
+    }
+
+    fn handle_complex_language(
+        _: &mut RuleBreakIterator<Self>,
+        _: Self::CharType,
+    ) -> Option<usize> {
+        unreachable!()
+    }
+}
+
+#[derive(Debug)]
+pub struct RuleBreakTypeLatin1;
+
+impl<'l, 's> RuleBreakType<'l, 's> for RuleBreakTypeLatin1 {
+    type IterAttr = Latin1Indices<'s>;
+    type CharType = u8;
+
+    fn get_current_position_character_len(_: &RuleBreakIterator<Self>) -> usize {
+        unreachable!()
+    }
+
+    fn handle_complex_language(
+        _: &mut RuleBreakIterator<Self>,
+        _: Self::CharType,
+    ) -> Option<usize> {
+        unreachable!()
+    }
+}
+
+#[derive(Debug)]
+pub struct RuleBreakTypeUtf16;
+
+impl<'l, 's> RuleBreakType<'l, 's> for RuleBreakTypeUtf16 {
+    type IterAttr = Utf16Indices<'s>;
     type CharType = u32;
 
-    fn char_len(ch: Self::CharType) -> usize {
-        if ch >= 0x10000 {
-            2
-        } else {
-            1
+    fn get_current_position_character_len(iter: &RuleBreakIterator<Self>) -> usize {
+        match iter.get_current_codepoint() {
+            None => 0,
+            Some(ch) if ch >= 0x10000 => 2,
+            _ => 1,
         }
+    }
+
+    fn handle_complex_language(
+        _: &mut RuleBreakIterator<Self>,
+        _: Self::CharType,
+    ) -> Option<usize> {
+        unreachable!()
     }
 }

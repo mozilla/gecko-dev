@@ -115,6 +115,11 @@ impl Writeable for str {
     fn write_to_string(&self) -> Cow<str> {
         Cow::Borrowed(self)
     }
+
+    #[inline]
+    fn writeable_cmp_bytes(&self, other: &[u8]) -> core::cmp::Ordering {
+        self.as_bytes().cmp(other)
+    }
 }
 
 impl Writeable for String {
@@ -131,6 +136,11 @@ impl Writeable for String {
     #[inline]
     fn write_to_string(&self) -> Cow<str> {
         Cow::Borrowed(self)
+    }
+
+    #[inline]
+    fn writeable_cmp_bytes(&self, other: &[u8]) -> core::cmp::Ordering {
+        self.as_bytes().cmp(other)
     }
 }
 
@@ -150,6 +160,11 @@ impl Writeable for char {
         let mut s = String::with_capacity(self.len_utf8());
         s.push(*self);
         Cow::Owned(s)
+    }
+
+    #[inline]
+    fn writeable_cmp_bytes(&self, other: &[u8]) -> core::cmp::Ordering {
+        self.encode_utf8(&mut [0u8; 4]).as_bytes().cmp(other)
     }
 }
 
@@ -173,6 +188,11 @@ impl<T: Writeable + ?Sized> Writeable for &T {
     fn write_to_string(&self) -> Cow<str> {
         (*self).write_to_string()
     }
+
+    #[inline]
+    fn writeable_cmp_bytes(&self, other: &[u8]) -> core::cmp::Ordering {
+        (*self).writeable_cmp_bytes(other)
+    }
 }
 
 macro_rules! impl_write_smart_pointer {
@@ -193,6 +213,10 @@ macro_rules! impl_write_smart_pointer {
             #[inline]
             fn write_to_string(&self) -> Cow<str> {
                 core::borrow::Borrow::<T>::borrow(self).write_to_string()
+            }
+            #[inline]
+            fn writeable_cmp_bytes(&self, other: &[u8]) -> core::cmp::Ordering {
+                core::borrow::Borrow::<T>::borrow(self).writeable_cmp_bytes(other)
             }
         }
     };
@@ -231,7 +255,7 @@ fn test_string_impls() {
         assert_writeable_eq!(&chars[i], s);
         for j in 0..chars.len() {
             assert_eq!(
-                crate::cmp_str(&chars[j], &s),
+                chars[j].writeable_cmp_bytes(s.as_bytes()),
                 chars[j].cmp(&chars[i]),
                 "{:?} vs {:?}",
                 chars[j],

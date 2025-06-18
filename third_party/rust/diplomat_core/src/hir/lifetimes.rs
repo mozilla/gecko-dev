@@ -48,6 +48,7 @@ impl LifetimeEnv {
 
     /// Get an iterator of all lifetimes that this must live as long as (including itself)
     /// with the first lifetime always being returned first
+
     pub fn all_shorter_lifetimes(
         &self,
         lt: impl Borrow<Lifetime>,

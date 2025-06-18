@@ -515,7 +515,7 @@ else:
 
 if CONFIG["JS_HAS_INTL_API"]:
     LOCAL_INCLUDES += [
-        "/intl/icu_capi/bindings/cpp",
+        "/intl/icu_capi/bindings/c",
     ]
 
 if CONFIG["JS_HAS_CTYPES"]:

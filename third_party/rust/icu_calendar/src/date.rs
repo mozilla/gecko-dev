@@ -3,16 +3,10 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use crate::any_calendar::{AnyCalendar, IntoAnyCalendar};
-use crate::calendar_arithmetic::CalendarArithmetic;
-use crate::error::DateError;
-use crate::types::{CyclicYear, EraYear, IsoWeekOfYear};
-use crate::week::{RelativeUnit, WeekCalculator, WeekOf};
-use crate::{types, Calendar, DateDuration, DateDurationUnit, Iso};
-#[cfg(feature = "alloc")]
+use crate::week::{WeekCalculator, WeekOf};
+use crate::{types, Calendar, CalendarError, DateDuration, DateDurationUnit, Iso};
 use alloc::rc::Rc;
-#[cfg(feature = "alloc")]
 use alloc::sync::Arc;
-use calendrical_calculations::rata_die::RataDie;
 use core::fmt;
 use core::ops::Deref;
 
@@ -35,21 +29,19 @@ impl<C: Calendar> AsCalendar for C {
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<C: AsCalendar> AsCalendar for Rc<C> {
-    type Calendar = C::Calendar;
+impl<C: Calendar> AsCalendar for Rc<C> {
+    type Calendar = C;
     #[inline]
-    fn as_calendar(&self) -> &Self::Calendar {
-        self.as_ref().as_calendar()
+    fn as_calendar(&self) -> &C {
+        self
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<C: AsCalendar> AsCalendar for Arc<C> {
-    type Calendar = C::Calendar;
+impl<C: Calendar> AsCalendar for Arc<C> {
+    type Calendar = C;
     #[inline]
-    fn as_calendar(&self) -> &Self::Calendar {
-        self.as_ref().as_calendar()
+    fn as_calendar(&self) -> &C {
+        self
     }
 }
 
@@ -74,15 +66,15 @@ impl<C> Clone for Ref<'_, C> {
     }
 }
 
-impl<C: AsCalendar> AsCalendar for Ref<'_, C> {
-    type Calendar = C::Calendar;
+impl<C: Calendar> AsCalendar for Ref<'_, C> {
+    type Calendar = C;
     #[inline]
-    fn as_calendar(&self) -> &Self::Calendar {
-        self.0.as_calendar()
+    fn as_calendar(&self) -> &C {
+        self.0
     }
 }
 
-impl<C> Deref for Ref<'_, C> {
+impl<'a, C> Deref for Ref<'a, C> {
     type Target = C;
     fn deref(&self) -> &C {
         self.0
@@ -91,23 +83,21 @@ impl<C> Deref for Ref<'_, C> {
 
 /// A date for a given calendar.
 ///
-/// **The primary definition of this type is in the [`icu_calendar`](https://docs.rs/icu_calendar) crate. Other ICU4X crates re-export it for convenience.**
-///
 /// This can work with wrappers around [`Calendar`] types,
 /// e.g. `Rc<C>`, via the [`AsCalendar`] trait.
 ///
 /// This can be constructed  constructed
 /// from its fields via [`Self::try_new_from_codes()`], or can be constructed with one of the
-/// `new_<calendar>_date()` per-calendar methods (and then freely converted between calendars).
+/// `new_<calendar>_datetime()` per-calendar methods (and then freely converted between calendars).
 ///
 /// ```rust
 /// use icu::calendar::Date;
 ///
 /// // Example: creation of ISO date from integers.
-/// let date_iso = Date::try_new_iso(1970, 1, 2)
+/// let date_iso = Date::try_new_iso_date(1970, 1, 2)
 ///     .expect("Failed to initialize ISO Date instance.");
 ///
-/// assert_eq!(date_iso.era_year().year, 1970);
+/// assert_eq!(date_iso.year().number, 1970);
 /// assert_eq!(date_iso.month().ordinal, 1);
 /// assert_eq!(date_iso.day_of_month().0, 2);
 /// ```
@@ -118,48 +108,31 @@ pub struct Date<A: AsCalendar> {
 
 impl<A: AsCalendar> Date<A> {
     /// Construct a date from from era/month codes and fields, and some calendar representation
-    ///
-    /// The year is `extended_year` if no era is provided
     #[inline]
     pub fn try_new_from_codes(
-        era: Option<&str>,
+        era: types::Era,
         year: i32,
         month_code: types::MonthCode,
         day: u8,
         calendar: A,
-    ) -> Result<Self, DateError> {
+    ) -> Result<Self, CalendarError> {
         let inner = calendar
             .as_calendar()
-            .from_codes(era, year, month_code, day)?;
+            .date_from_codes(era, year, month_code, day)?;
         Ok(Date { inner, calendar })
-    }
-
-    /// Construct a date from a [`RataDie`] and some calendar representation
-    #[inline]
-    pub fn from_rata_die(rd: RataDie, calendar: A) -> Self {
-        Date {
-            inner: calendar.as_calendar().from_rata_die(rd),
-            calendar,
-        }
-    }
-
-    /// Convert the date to a [`RataDie`]
-    #[inline]
-    pub fn to_rata_die(&self) -> RataDie {
-        self.calendar.as_calendar().to_rata_die(self.inner())
     }
 
     /// Construct a date from an ISO date and some calendar representation
     #[inline]
     pub fn new_from_iso(iso: Date<Iso>, calendar: A) -> Self {
-        let inner = calendar.as_calendar().from_iso(iso.inner);
+        let inner = calendar.as_calendar().date_from_iso(iso);
         Date { inner, calendar }
     }
 
     /// Convert the Date to an ISO Date
     #[inline]
     pub fn to_iso(&self) -> Date<Iso> {
-        Date::from_raw(self.calendar.as_calendar().to_iso(self.inner()), Iso)
+        self.calendar.as_calendar().date_to_iso(self.inner())
     }
 
     /// Convert the Date to a date in a different calendar
@@ -187,13 +160,17 @@ impl<A: AsCalendar> Date<A> {
     }
 
     /// The day of the week for this date
+    ///
+    /// Monday is 1, Sunday is 7, according to ISO
     #[inline]
-    pub fn day_of_week(&self) -> types::Weekday {
-        self.to_rata_die().into()
+    pub fn day_of_week(&self) -> types::IsoWeekday {
+        self.calendar.as_calendar().day_of_week(self.inner())
     }
 
     /// Add a `duration` to this date, mutating it
-    #[doc(hidden)] // unstable
+    ///
+    /// Currently unstable for ICU4X 1.0
+    #[doc(hidden)]
     #[inline]
     pub fn add(&mut self, duration: DateDuration<A::Calendar>) {
         self.calendar
@@ -202,7 +179,9 @@ impl<A: AsCalendar> Date<A> {
     }
 
     /// Add a `duration` to this date, returning the new one
-    #[doc(hidden)] // unstable
+    ///
+    /// Currently unstable for ICU4X 1.0
+    #[doc(hidden)]
     #[inline]
     pub fn added(mut self, duration: DateDuration<A::Calendar>) -> Self {
         self.add(duration);
@@ -210,7 +189,9 @@ impl<A: AsCalendar> Date<A> {
     }
 
     /// Calculating the duration between `other - self`
-    #[doc(hidden)] // unstable
+    ///
+    /// Currently unstable for ICU4X 1.0
+    #[doc(hidden)]
     #[inline]
     pub fn until<B: AsCalendar<Calendar = A::Calendar>>(
         &self,
@@ -227,22 +208,10 @@ impl<A: AsCalendar> Date<A> {
         )
     }
 
-    /// The calendar-specific year-info.
-    ///
-    /// This returns an enum, see [`Date::era_year()`] and [`Date::cyclic_year()`] which are available
-    /// for concrete calendar types and return concrete types.
+    /// The calendar-specific year represented by `self`
     #[inline]
-    pub fn year(&self) -> types::YearInfo {
-        self.calendar.as_calendar().year_info(&self.inner).into()
-    }
-
-    /// The "extended year", typically anchored with year 1 as the year 1 of either the most modern or
-    /// otherwise some "major" era for the calendar
-    ///
-    /// See [`Self::year()`] for more information about the year.
-    #[inline]
-    pub fn extended_year(&self) -> i32 {
-        self.calendar.as_calendar().extended_year(&self.inner)
+    pub fn year(&self) -> types::FormattableYear {
+        self.calendar.as_calendar().year(&self.inner)
     }
 
     /// Returns whether `self` is in a calendar-specific leap year
@@ -253,7 +222,7 @@ impl<A: AsCalendar> Date<A> {
 
     /// The calendar-specific month represented by `self`
     #[inline]
-    pub fn month(&self) -> types::MonthInfo {
+    pub fn month(&self) -> types::FormattableMonth {
         self.calendar.as_calendar().month(&self.inner)
     }
 
@@ -265,8 +234,60 @@ impl<A: AsCalendar> Date<A> {
 
     /// The calendar-specific day-of-month represented by `self`
     #[inline]
-    pub fn day_of_year(&self) -> types::DayOfYear {
-        self.calendar.as_calendar().day_of_year(&self.inner)
+    pub fn day_of_year_info(&self) -> types::DayOfYearInfo {
+        self.calendar.as_calendar().day_of_year_info(&self.inner)
+    }
+
+    /// The week of the month containing this date.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use icu::calendar::types::IsoWeekday;
+    /// use icu::calendar::types::WeekOfMonth;
+    /// use icu::calendar::Date;
+    ///
+    /// let date = Date::try_new_iso_date(2022, 8, 10).unwrap(); // second Wednesday
+    ///
+    /// // The following info is usually locale-specific
+    /// let first_weekday = IsoWeekday::Sunday;
+    ///
+    /// assert_eq!(date.week_of_month(first_weekday), WeekOfMonth(2));
+    /// ```
+    pub fn week_of_month(&self, first_weekday: types::IsoWeekday) -> types::WeekOfMonth {
+        let config = WeekCalculator {
+            first_weekday,
+            min_week_days: 0, // ignored
+            weekend: None,
+        };
+        config.week_of_month(self.day_of_month(), self.day_of_week())
+    }
+
+    /// The week of the year containing this date.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use icu::calendar::week::RelativeUnit;
+    /// use icu::calendar::week::WeekCalculator;
+    /// use icu::calendar::week::WeekOf;
+    /// use icu::calendar::Date;
+    ///
+    /// let date = Date::try_new_iso_date(2022, 8, 26).unwrap();
+    ///
+    /// // The following info is usually locale-specific
+    /// let week_calculator = WeekCalculator::default();
+    ///
+    /// assert_eq!(
+    ///     date.week_of_year(&week_calculator),
+    ///     Ok(WeekOf {
+    ///         week: 35,
+    ///         unit: RelativeUnit::Current
+    ///     })
+    /// );
+    /// ```
+    pub fn week_of_year(&self, config: &WeekCalculator) -> Result<WeekOf, CalendarError> {
+        config.week_of_year(self.day_of_year_info(), self.day_of_week())
     }
 
     /// Construct a date from raw values for a given calendar. This does not check any
@@ -301,102 +322,34 @@ impl<A: AsCalendar> Date<A> {
     pub fn calendar_wrapper(&self) -> &A {
         &self.calendar
     }
-}
 
-impl<A: AsCalendar<Calendar = C>, C: Calendar<Year = EraYear>> Date<A> {
-    /// Returns information about the era for calendars using eras.
-    pub fn era_year(&self) -> EraYear {
-        self.calendar.as_calendar().year_info(self.inner())
+    #[cfg(test)]
+    pub(crate) fn to_fixed(&self) -> calendrical_calculations::rata_die::RataDie {
+        Iso::fixed_from_iso(self.to_iso().inner)
     }
 }
 
-impl<A: AsCalendar<Calendar = C>, C: Calendar<Year = CyclicYear>> Date<A> {
-    /// Returns information about the year cycle, for cyclic calendars.
-    pub fn cyclic_year(&self) -> CyclicYear {
-        self.calendar.as_calendar().year_info(self.inner())
-    }
-}
-
-impl Date<Iso> {
-    /// The ISO week of the year containing this date.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use icu::calendar::types::IsoWeekOfYear;
-    /// use icu::calendar::Date;
-    ///
-    /// let date = Date::try_new_iso(2022, 8, 26).unwrap();
-    ///
-    /// assert_eq!(
-    ///     date.week_of_year(),
-    ///     IsoWeekOfYear {
-    ///         week_number: 34,
-    ///         iso_year: 2022,
-    ///     }
-    /// );
-    /// ```
-    pub fn week_of_year(&self) -> IsoWeekOfYear {
-        let week_of = WeekCalculator::ISO
-            .week_of(
-                Iso::days_in_provided_year(self.inner.0.year.saturating_sub(1)),
-                self.days_in_year(),
-                self.day_of_year().0,
-                self.day_of_week(),
-            )
-            .unwrap_or_else(|_| {
-                // ISO calendar has more than 14 days per year
-                debug_assert!(false);
-                WeekOf {
-                    week: 1,
-                    unit: crate::week::RelativeUnit::Current,
-                }
-            });
-
-        IsoWeekOfYear {
-            week_number: week_of.week,
-            iso_year: match week_of.unit {
-                RelativeUnit::Current => self.inner.0.year,
-                RelativeUnit::Next => self.inner.0.year.saturating_add(1),
-                RelativeUnit::Previous => self.inner.0.year.saturating_sub(1),
-            },
-        }
-    }
-}
-
-impl<C: IntoAnyCalendar> Date<C> {
+impl<C: IntoAnyCalendar, A: AsCalendar<Calendar = C>> Date<A> {
     /// Type-erase the date, converting it to a date for [`AnyCalendar`]
-    pub fn to_any(self) -> Date<AnyCalendar> {
-        Date::from_raw(
-            self.calendar.date_to_any(&self.inner),
-            self.calendar.to_any(),
-        )
+    pub fn to_any(&self) -> Date<AnyCalendar> {
+        let cal = self.calendar();
+        Date::from_raw(cal.date_to_any(self.inner()), cal.to_any_cloned())
     }
 }
 
-impl<A: AsCalendar> Date<A> {
-    /// Wrap the contained calendar type in `Rc<T>`, making it cheaper to clone.
+impl<C: Calendar> Date<C> {
+    /// Wrap the calendar type in `Rc<T>`
     ///
     /// Useful when paired with [`Self::to_any()`] to obtain a `Date<Rc<AnyCalendar>>`
-    #[cfg(feature = "alloc")]
-    pub fn into_ref_counted(self) -> Date<Rc<A>> {
+    pub fn wrap_calendar_in_rc(self) -> Date<Rc<C>> {
         Date::from_raw(self.inner, Rc::new(self.calendar))
     }
 
-    /// Wrap the contained calendar type in `Arc<T>`, making it cheaper to clone in a thread-safe manner.
+    /// Wrap the calendar type in `Arc<T>`
     ///
-    /// Useful when paired with [`Self::to_any()`] to obtain a `Date<Arc<AnyCalendar>>`
-    #[cfg(feature = "alloc")]
-    pub fn into_atomic_ref_counted(self) -> Date<Arc<A>> {
+    /// Useful when paired with [`Self::to_any()`] to obtain a `Date<Rc<AnyCalendar>>`
+    pub fn wrap_calendar_in_arc(self) -> Date<Arc<C>> {
         Date::from_raw(self.inner, Arc::new(self.calendar))
-    }
-
-    /// Wrap the calendar type in `Ref<T>`, making it cheaper to clone (by introducing a borrow)
-    ///
-    /// Useful for converting a `&Date<C>` into an equivalent `Date<D>` without cloning
-    /// the calendar.
-    pub fn as_borrowed(&self) -> Date<Ref<A>> {
-        Date::from_raw(self.inner, Ref(&self.calendar))
     }
 }
 
@@ -438,60 +391,56 @@ where
 
 impl<A: AsCalendar> fmt::Debug for Date<A> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        let month = self.month().ordinal;
-        let day = self.day_of_month().0;
-        let calendar = self.calendar.as_calendar().debug_name();
-        match self.year() {
-            types::YearInfo::Era(EraYear { year, era, .. }) => {
-                write!(
-                    f,
-                    "Date({year}-{month}-{day}, {era} era, for calendar {calendar})"
-                )
-            }
-            types::YearInfo::Cyclic(CyclicYear { year, related_iso }) => {
-                write!(
-                    f,
-                    "Date({year}-{month}-{day}, ISO year {related_iso}, for calendar {calendar})"
-                )
-            }
-        }
+        write!(
+            f,
+            "Date({}-{}-{}, {} era, for calendar {})",
+            self.year().number,
+            self.month().ordinal,
+            self.day_of_month().0,
+            self.year().era.0,
+            self.calendar.as_calendar().debug_name()
+        )
     }
 }
 
 impl<A: AsCalendar + Clone> Clone for Date<A> {
     fn clone(&self) -> Self {
         Self {
-            inner: self.inner,
+            inner: self.inner.clone(),
             calendar: self.calendar.clone(),
         }
     }
 }
 
-impl<A> Copy for Date<A> where A: AsCalendar + Copy {}
+impl<A> Copy for Date<A>
+where
+    A: AsCalendar + Copy,
+    <<A as AsCalendar>::Calendar as Calendar>::DateInner: Copy,
+{
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::Weekday;
 
     #[test]
     fn test_ord() {
         let dates_in_order = [
-            Date::try_new_iso(-10, 1, 1).unwrap(),
-            Date::try_new_iso(-10, 1, 2).unwrap(),
-            Date::try_new_iso(-10, 2, 1).unwrap(),
-            Date::try_new_iso(-1, 1, 1).unwrap(),
-            Date::try_new_iso(-1, 1, 2).unwrap(),
-            Date::try_new_iso(-1, 2, 1).unwrap(),
-            Date::try_new_iso(0, 1, 1).unwrap(),
-            Date::try_new_iso(0, 1, 2).unwrap(),
-            Date::try_new_iso(0, 2, 1).unwrap(),
-            Date::try_new_iso(1, 1, 1).unwrap(),
-            Date::try_new_iso(1, 1, 2).unwrap(),
-            Date::try_new_iso(1, 2, 1).unwrap(),
-            Date::try_new_iso(10, 1, 1).unwrap(),
-            Date::try_new_iso(10, 1, 2).unwrap(),
-            Date::try_new_iso(10, 2, 1).unwrap(),
+            Date::try_new_iso_date(-10, 1, 1).unwrap(),
+            Date::try_new_iso_date(-10, 1, 2).unwrap(),
+            Date::try_new_iso_date(-10, 2, 1).unwrap(),
+            Date::try_new_iso_date(-1, 1, 1).unwrap(),
+            Date::try_new_iso_date(-1, 1, 2).unwrap(),
+            Date::try_new_iso_date(-1, 2, 1).unwrap(),
+            Date::try_new_iso_date(0, 1, 1).unwrap(),
+            Date::try_new_iso_date(0, 1, 2).unwrap(),
+            Date::try_new_iso_date(0, 2, 1).unwrap(),
+            Date::try_new_iso_date(1, 1, 1).unwrap(),
+            Date::try_new_iso_date(1, 1, 2).unwrap(),
+            Date::try_new_iso_date(1, 2, 1).unwrap(),
+            Date::try_new_iso_date(10, 1, 1).unwrap(),
+            Date::try_new_iso_date(10, 1, 2).unwrap(),
+            Date::try_new_iso_date(10, 2, 1).unwrap(),
         ];
         for (i, i_date) in dates_in_order.iter().enumerate() {
             for (j, j_date) in dates_in_order.iter().enumerate() {
@@ -501,24 +450,5 @@ mod tests {
                 assert_eq!(i.cmp(&j), i_date.cmp(j_date));
             }
         }
-    }
-
-    #[test]
-    fn test_day_of_week() {
-        // June 23, 2021 is a Wednesday
-        assert_eq!(
-            Date::try_new_iso(2021, 6, 23).unwrap().day_of_week(),
-            Weekday::Wednesday,
-        );
-        // Feb 2, 1983 was a Wednesday
-        assert_eq!(
-            Date::try_new_iso(1983, 2, 2).unwrap().day_of_week(),
-            Weekday::Wednesday,
-        );
-        // Jan 21, 2021 was a Tuesday
-        assert_eq!(
-            Date::try_new_iso(2020, 1, 21).unwrap().day_of_week(),
-            Weekday::Tuesday,
-        );
     }
 }

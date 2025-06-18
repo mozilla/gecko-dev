@@ -8,11 +8,13 @@
 
 #include "mozilla/intl/Segmenter.h"
 
-#include "icu4x/GraphemeClusterSegmenter.hpp"
-#include "icu4x/LineSegmenter.hpp"
-#include "icu4x/SentenceSegmenter.hpp"
-#include "icu4x/WordSegmenter.hpp"
+#include "ICU4XDataProvider.h"
+#include "ICU4XGraphemeClusterSegmenter.h"
+#include "ICU4XLineSegmenter.h"
+#include "ICU4XSentenceSegmenter.h"
+#include "ICU4XWordSegmenter.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/intl/ICU4XGeckoDataProvider.h"
 #include "mozilla/intl/LineBreaker.h"
 #include "mozilla/intl/WordBreaker.h"
 #include "mozilla/intl/UnicodeProperties.h"
@@ -23,7 +25,6 @@
 
 #include <mutex>
 
-using namespace icu4x;
 using namespace mozilla::unicode;
 
 namespace mozilla::intl {
@@ -44,24 +45,26 @@ LineBreakIteratorUtf16::LineBreakIteratorUtf16(Span<const char16_t> aText,
   if (!StaticPrefs::intl_icu4x_segmenter_enabled()) {
     return;
   }
-  mSegmenter = capi::icu4x_LineSegmenter_create_auto_mv1();
-  mIterator = capi::icu4x_LineSegmenter_segment_utf16_mv1(
-      mSegmenter, {mText.Elements(), mText.Length()});
+  auto result =
+      capi::ICU4XLineSegmenter_create_auto(mozilla::intl::GetDataProvider());
+  MOZ_RELEASE_ASSERT(result.is_ok);
+  mSegmenter = result.ok;
+  mIterator = capi::ICU4XLineSegmenter_segment_utf16(
+      mSegmenter, mText.Elements(), mText.Length());
 }
 
 LineBreakIteratorUtf16::~LineBreakIteratorUtf16() {
   if (mIterator) {
-    capi::icu4x_LineBreakIteratorUtf16_destroy_mv1(mIterator);
+    capi::ICU4XLineBreakIteratorUtf16_destroy(mIterator);
   }
   if (mSegmenter) {
-    capi::icu4x_LineSegmenter_destroy_mv1(mSegmenter);
+    capi::ICU4XLineSegmenter_destroy(mSegmenter);
   }
 }
 
 Maybe<uint32_t> LineBreakIteratorUtf16::Next() {
   if (mIterator) {
-    const int32_t nextPos =
-        capi::icu4x_LineBreakIteratorUtf16_next_mv1(mIterator);
+    const int32_t nextPos = capi::ICU4XLineBreakIteratorUtf16_next(mIterator);
     if (nextPos < 0) {
       return Nothing();
     }
@@ -87,8 +90,7 @@ Maybe<uint32_t> LineBreakIteratorUtf16::Seek(uint32_t aPos) {
     }
 
     while (mPos < aPos) {
-      const int32_t nextPos =
-          capi::icu4x_LineBreakIteratorUtf16_next_mv1(mIterator);
+      const int32_t nextPos = capi::ICU4XLineBreakIteratorUtf16_next(mIterator);
       if (nextPos < 0) {
         return Nothing();
       }
@@ -109,17 +111,20 @@ WordBreakIteratorUtf16::WordBreakIteratorUtf16(Span<const char16_t> aText)
   if (!StaticPrefs::intl_icu4x_segmenter_enabled()) {
     return;
   }
-  mSegmenter = capi::icu4x_WordSegmenter_create_auto_mv1();
-  mIterator = capi::icu4x_WordSegmenter_segment_utf16_mv1(
-      mSegmenter, {mText.Elements(), mText.Length()});
+  auto result =
+      capi::ICU4XWordSegmenter_create_auto(mozilla::intl::GetDataProvider());
+  MOZ_RELEASE_ASSERT(result.is_ok);
+  mSegmenter = result.ok;
+  mIterator = capi::ICU4XWordSegmenter_segment_utf16(
+      mSegmenter, mText.Elements(), mText.Length());
 }
 
 WordBreakIteratorUtf16::~WordBreakIteratorUtf16() {
   if (mIterator) {
-    capi::icu4x_WordBreakIteratorUtf16_destroy_mv1(mIterator);
+    capi::ICU4XWordBreakIteratorUtf16_destroy(mIterator);
   }
   if (mSegmenter) {
-    capi::icu4x_WordSegmenter_destroy_mv1(mSegmenter);
+    capi::ICU4XWordSegmenter_destroy(mSegmenter);
   }
 }
 
@@ -127,20 +132,19 @@ void WordBreakIteratorUtf16::Reset(Span<const char16_t> aText) {
   mPos = 0;
   mText = aText;
   if (mIterator) {
-    capi::icu4x_WordBreakIteratorUtf16_destroy_mv1(mIterator);
+    capi::ICU4XWordBreakIteratorUtf16_destroy(mIterator);
     mIterator = nullptr;
   }
   if (!StaticPrefs::intl_icu4x_segmenter_enabled()) {
     return;
   }
-  mIterator = capi::icu4x_WordSegmenter_segment_utf16_mv1(
-      mSegmenter, {mText.Elements(), mText.Length()});
+  mIterator = capi::ICU4XWordSegmenter_segment_utf16(
+      mSegmenter, mText.Elements(), mText.Length());
 }
 
 Maybe<uint32_t> WordBreakIteratorUtf16::Next() {
   if (mIterator) {
-    const int32_t nextPos =
-        capi::icu4x_WordBreakIteratorUtf16_next_mv1(mIterator);
+    const int32_t nextPos = capi::ICU4XWordBreakIteratorUtf16_next(mIterator);
     if (nextPos < 0) {
       return Nothing();
     }
@@ -166,8 +170,7 @@ Maybe<uint32_t> WordBreakIteratorUtf16::Seek(uint32_t aPos) {
     }
 
     while (mPos < aPos) {
-      const int32_t nextPos =
-          capi::icu4x_WordBreakIteratorUtf16_next_mv1(mIterator);
+      const int32_t nextPos = capi::ICU4XWordBreakIteratorUtf16_next(mIterator);
       if (nextPos < 0) {
         return Nothing();
       }
@@ -183,8 +186,8 @@ Maybe<uint32_t> WordBreakIteratorUtf16::Seek(uint32_t aPos) {
   return SegmentIteratorUtf16::Seek(aPos);
 }
 
-capi::GraphemeClusterSegmenter* GraphemeClusterBreakIteratorUtf16::sSegmenter =
-    nullptr;
+capi::ICU4XGraphemeClusterSegmenter*
+    GraphemeClusterBreakIteratorUtf16::sSegmenter = nullptr;
 
 GraphemeClusterBreakIteratorUtf16::GraphemeClusterBreakIteratorUtf16(
     Span<const char16_t> aText)
@@ -195,26 +198,28 @@ GraphemeClusterBreakIteratorUtf16::GraphemeClusterBreakIteratorUtf16(
   static std::once_flag sOnce;
 
   std::call_once(sOnce, [] {
-    auto result = capi::icu4x_GraphemeClusterSegmenter_create_mv1();
-    sSegmenter = result;
+    auto result = capi::ICU4XGraphemeClusterSegmenter_create(
+        mozilla::intl::GetDataProvider());
+    MOZ_RELEASE_ASSERT(result.is_ok);
+    sSegmenter = result.ok;
 
     NS_DispatchToMainThread(
         NS_NewRunnableFunction("GraphemeClusterBreakIteratorUtf16", [] {
           RunOnShutdown([] {
-            capi::icu4x_GraphemeClusterSegmenter_destroy_mv1(sSegmenter);
+            capi::ICU4XGraphemeClusterSegmenter_destroy(sSegmenter);
             sSegmenter = nullptr;
           });
         }));
   });
 
   MOZ_RELEASE_ASSERT(sSegmenter);
-  mIterator = capi::icu4x_GraphemeClusterSegmenter_segment_utf16_mv1(
-      sSegmenter, {mText.Elements(), mText.Length()});
+  mIterator = capi::ICU4XGraphemeClusterSegmenter_segment_utf16(
+      sSegmenter, mText.Elements(), mText.Length());
 }
 
 GraphemeClusterBreakIteratorUtf16::~GraphemeClusterBreakIteratorUtf16() {
   if (mIterator) {
-    capi::icu4x_GraphemeClusterBreakIteratorUtf16_destroy_mv1(mIterator);
+    capi::ICU4XGraphemeClusterBreakIteratorUtf16_destroy(mIterator);
   }
 }
 
@@ -236,7 +241,7 @@ Maybe<uint32_t> GraphemeClusterBreakIteratorUtf16::Next() {
   const auto len = mText.Length();
   if (mIterator) {
     const int32_t nextPos =
-        capi::icu4x_GraphemeClusterBreakIteratorUtf16_next_mv1(mIterator);
+        capi::ICU4XGraphemeClusterBreakIteratorUtf16_next(mIterator);
     if (nextPos < 0) {
       return Nothing();
     }
@@ -374,7 +379,7 @@ Maybe<uint32_t> GraphemeClusterBreakIteratorUtf16::Seek(uint32_t aPos) {
 
     while (mPos < aPos) {
       const int32_t nextPos =
-          capi::icu4x_GraphemeClusterBreakIteratorUtf16_next_mv1(mIterator);
+          capi::ICU4XGraphemeClusterBreakIteratorUtf16_next(mIterator);
       if (nextPos < 0) {
         return Nothing();
       }
@@ -429,17 +434,20 @@ Maybe<uint32_t> GraphemeClusterBreakReverseIteratorUtf16::Seek(uint32_t aPos) {
 SentenceBreakIteratorUtf16::SentenceBreakIteratorUtf16(
     Span<const char16_t> aText)
     : SegmentIteratorUtf16(aText) {
-  mSegmenter = capi::icu4x_SentenceSegmenter_create_mv1();
-  mIterator = capi::icu4x_SentenceSegmenter_segment_utf16_mv1(
-      mSegmenter, {mText.Elements(), mText.Length()});
+  auto result =
+      capi::ICU4XSentenceSegmenter_create(mozilla::intl::GetDataProvider());
+  MOZ_RELEASE_ASSERT(result.is_ok);
+  mSegmenter = result.ok;
+  mIterator = capi::ICU4XSentenceSegmenter_segment_utf16(
+      mSegmenter, mText.Elements(), mText.Length());
 }
 
 SentenceBreakIteratorUtf16::~SentenceBreakIteratorUtf16() {
   if (mIterator) {
-    capi::icu4x_SentenceBreakIteratorUtf16_destroy_mv1(mIterator);
+    capi::ICU4XSentenceBreakIteratorUtf16_destroy(mIterator);
   }
   if (mSegmenter) {
-    capi::icu4x_SentenceSegmenter_destroy_mv1(mSegmenter);
+    capi::ICU4XSentenceSegmenter_destroy(mSegmenter);
   }
 }
 
@@ -454,7 +462,7 @@ Maybe<uint32_t> SentenceBreakIteratorUtf16::Seek(uint32_t aPos) {
 
   while (mPos < aPos) {
     const int32_t nextPos =
-        capi::icu4x_SentenceBreakIteratorUtf16_next_mv1(mIterator);
+        capi::ICU4XSentenceBreakIteratorUtf16_next(mIterator);
     if (nextPos < 0) {
       return Nothing();
     }
@@ -473,8 +481,7 @@ Maybe<uint32_t> SentenceBreakIteratorUtf16::Next() {
     return Nothing();
   }
 
-  const int32_t nextPos =
-      capi::icu4x_SentenceBreakIteratorUtf16_next_mv1(mIterator);
+  const int32_t nextPos = capi::ICU4XSentenceBreakIteratorUtf16_next(mIterator);
   if (nextPos < 0) {
     return Nothing();
   }

@@ -146,7 +146,7 @@ fn fast_persian_year_from_fixed(date: RataDie) -> i64 {
 /// Lisp code reference: https://github.com/EdReingold/calendar-code2/blob/main/calendar.l#L4789
 /// Not used, but kept for comparative purposes
 #[allow(dead_code)]
-fn is_arithmetic_leap_year(p_year: i32) -> bool {
+fn is_arithmetic_leap_year(p_year: i32, _data: ()) -> bool {
     let mut p_year = p_year as i64;
     if 0 < p_year {
         p_year -= 474;
@@ -159,7 +159,7 @@ fn is_arithmetic_leap_year(p_year: i32) -> bool {
 }
 
 /// Calculated using the 33-year rule
-pub fn is_leap_year(p_year: i32) -> bool {
+pub fn is_leap_year(p_year: i32, _data: ()) -> bool {
     if p_year >= MIN_NON_LEAP_CORRECTION && NON_LEAP_CORRECTION.binary_search(&p_year).is_ok() {
         false
     } else if p_year > MIN_NON_LEAP_CORRECTION

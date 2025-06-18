@@ -2,13 +2,12 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
-use icu_segmenter::options::WordBreakInvariantOptions;
-use icu_segmenter::options::WordType;
 use icu_segmenter::WordSegmenter;
+use icu_segmenter::WordType;
 
 #[test]
 fn rule_status() {
-    let segmenter = WordSegmenter::new_auto(WordBreakInvariantOptions::default());
+    let segmenter = WordSegmenter::new_auto();
     let mut iter = segmenter.segment_str("hello world 123");
 
     assert_eq!(iter.next(), Some(0), "SOT");
@@ -42,7 +41,7 @@ fn rule_status() {
 
 #[test]
 fn rule_status_letter_eof() {
-    let segmenter = WordSegmenter::new_auto(WordBreakInvariantOptions::default());
+    let segmenter = WordSegmenter::new_auto();
     let mut iter = segmenter.segment_str("one.");
 
     assert_eq!(iter.next(), Some(0), "SOT");
@@ -64,7 +63,7 @@ fn rule_status_letter_eof() {
 
 #[test]
 fn rule_status_numeric_eof() {
-    let segmenter = WordSegmenter::new_auto(WordBreakInvariantOptions::default());
+    let segmenter = WordSegmenter::new_auto();
     let mut iter = segmenter.segment_str("42.");
 
     assert_eq!(iter.next(), Some(0), "SOT");
@@ -86,7 +85,7 @@ fn rule_status_numeric_eof() {
 
 #[test]
 fn rule_status_th() {
-    let segmenter = WordSegmenter::new_auto(WordBreakInvariantOptions::default());
+    let segmenter = WordSegmenter::new_auto();
     let mut iter = segmenter.segment_str("ภาษาไทยภาษาไทย");
 
     assert_eq!(iter.next(), Some(0), "SOT");

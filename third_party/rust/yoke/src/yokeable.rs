@@ -4,12 +4,10 @@
 
 #[cfg(feature = "alloc")]
 use alloc::borrow::{Cow, ToOwned};
-use core::{marker::PhantomData, mem};
+use core::mem;
 
 /// The `Yokeable<'a>` trait is implemented on the `'static` version of any zero-copy type; for
-/// example, `Cow<'static, T>` implements `Yokeable<'a>` (for all `'a`).
-///
-/// One can use
+/// example, `Cow<'static, T>` implements `Yokeable<'a>` (for all `'a`). One can use
 /// `Yokeable::Output` on this trait to obtain the "lifetime'd" value of the `Cow<'static, T>`,
 /// e.g. `<Cow<'static, T> as Yokeable<'a>'>::Output` is `Cow<'a, T>`.
 ///
@@ -38,9 +36,13 @@ use core::{marker::PhantomData, mem};
 /// This trait must be implemented on the `'static` version of such a type, e.g. one should
 /// implement `Yokeable<'a>` (for all `'a`) on `Cow<'static, T>`.
 ///
-/// This trait is also safe to implement on types that do not borrow memory.
-///
 /// There are further constraints on implementation safety on individual methods.
+///
+/// # Trait bounds
+///
+/// [Compiler bug #85636](https://github.com/rust-lang/rust/issues/85636) makes it tricky to add
+/// trait bounds on `Yokeable::Output`. For more information and for workarounds, see
+/// [`crate::trait_hack`].
 ///
 /// # Implementation example
 ///
@@ -227,19 +229,6 @@ pub unsafe trait Yokeable<'a>: 'static {
     ///     foo.cow.transform_mut(move |cow| cow.to_mut().push('a'));
     /// }
     /// ```
-    ///
-    /// More formally, a reference to an object that `f` assigns to a reference
-    /// in Self<'a> could be obtained from:
-    ///  - a local variable: the compiler rejects the assignment because 'a certainly
-    ///    outlives local variables in f.
-    ///  - a field in its argument: because of the for<'b> bound, the call to `f`
-    ///    must be valid for a particular 'b that is strictly shorter than 'a. Thus,
-    ///    the compiler rejects the assignment.
-    ///  - a reference field in Self<'a>: this does not extend the set of
-    ///    non-static lifetimes reachable from Self<'a>, so this is fine.
-    ///  - one of f's captures: since F: 'static, the resulting reference must refer
-    ///    to 'static data.
-    ///  - a static or thread_local variable: ditto.
     fn transform_mut<F>(&'a mut self, f: F)
     where
         // be VERY CAREFUL changing this signature, it is very nuanced (see above)
@@ -247,7 +236,6 @@ pub unsafe trait Yokeable<'a>: 'static {
 }
 
 #[cfg(feature = "alloc")]
-// Safety: Cow<'a, _> is covariant in 'a.
 unsafe impl<'a, T: 'static + ToOwned + ?Sized> Yokeable<'a> for Cow<'static, T>
 where
     <T as ToOwned>::Owned: Sized,
@@ -270,10 +258,8 @@ where
         // are the same
         debug_assert!(mem::size_of::<Cow<'a, T>>() == mem::size_of::<Self>());
         let ptr: *const Self = (&from as *const Self::Output).cast();
-        let _ = core::mem::ManuallyDrop::new(from);
-        // Safety: `ptr` is certainly valid, aligned and points to a properly initialized value, as
-        // it comes from a value that was moved into a ManuallyDrop.
-        unsafe { core::ptr::read(ptr) }
+        mem::forget(from);
+        core::ptr::read(ptr)
     }
     #[inline]
     fn transform_mut<F>(&'a mut self, f: F)
@@ -281,13 +267,10 @@ where
         F: 'static + for<'b> FnOnce(&'b mut Self::Output),
     {
         // Cast away the lifetime of Self
-        // Safety: this is equivalent to f(transmute(self)), and the documentation of the trait
-        // method explains why doing so is sound.
         unsafe { f(mem::transmute::<&'a mut Self, &'a mut Self::Output>(self)) }
     }
 }
 
-// Safety: &'a T is covariant in 'a.
 unsafe impl<'a, T: 'static + ?Sized> Yokeable<'a> for &'static T {
     type Output = &'a T;
     #[inline]
@@ -302,9 +285,7 @@ unsafe impl<'a, T: 'static + ?Sized> Yokeable<'a> for &'static T {
     }
     #[inline]
     unsafe fn make(from: &'a T) -> Self {
-        // Safety: function safety invariant guarantees that the returned reference
-        // will never be used beyond its original lifetime.
-        unsafe { mem::transmute(from) }
+        mem::transmute(from)
     }
     #[inline]
     fn transform_mut<F>(&'a mut self, f: F)
@@ -312,22 +293,21 @@ unsafe impl<'a, T: 'static + ?Sized> Yokeable<'a> for &'static T {
         F: 'static + for<'b> FnOnce(&'b mut Self::Output),
     {
         // Cast away the lifetime of Self
-        // Safety: this is equivalent to f(transmute(self)), and the documentation of the trait
-        // method explains why doing so is sound.
         unsafe { f(mem::transmute::<&'a mut Self, &'a mut Self::Output>(self)) }
     }
 }
 
 #[cfg(feature = "alloc")]
-// Safety: Vec<T: 'static> never borrows.
 unsafe impl<'a, T: 'static> Yokeable<'a> for alloc::vec::Vec<T> {
     type Output = alloc::vec::Vec<T>;
     #[inline]
     fn transform(&'a self) -> &'a alloc::vec::Vec<T> {
+        // Doesn't need unsafe: `'a` is covariant so this lifetime cast is always safe
         self
     }
     #[inline]
     fn transform_owned(self) -> alloc::vec::Vec<T> {
+        // Doesn't need unsafe: `'a` is covariant so this lifetime cast is always safe
         self
     }
     #[inline]
@@ -339,31 +319,7 @@ unsafe impl<'a, T: 'static> Yokeable<'a> for alloc::vec::Vec<T> {
     where
         F: 'static + for<'b> FnOnce(&'b mut Self::Output),
     {
-        f(self)
-    }
-}
-
-// Safety: PhantomData is a ZST.
-unsafe impl<'a, T: ?Sized + 'static> Yokeable<'a> for PhantomData<T> {
-    type Output = PhantomData<T>;
-
-    fn transform(&'a self) -> &'a Self::Output {
-        self
-    }
-
-    fn transform_owned(self) -> Self::Output {
-        self
-    }
-
-    unsafe fn make(from: Self::Output) -> Self {
-        from
-    }
-
-    fn transform_mut<F>(&'a mut self, f: F)
-    where
-        // be VERY CAREFUL changing this signature, it is very nuanced (see above)
-        F: 'static + for<'b> FnOnce(&'b mut Self::Output),
-    {
+        // Doesn't need unsafe: `'a` is covariant so this lifetime cast is always safe
         f(self)
     }
 }

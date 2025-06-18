@@ -3,61 +3,73 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 #[diplomat::bridge]
-#[diplomat::abi_rename = "icu4x_{0}_mv1"]
-#[diplomat::attr(auto, namespace = "icu4x")]
 pub mod ffi {
+    use crate::provider::ffi::ICU4XDataProvider;
     use alloc::boxed::Box;
-    #[cfg(any(feature = "compiled_data", feature = "buffer_provider"))]
-    use icu_properties::props::{
-        BidiClass, CanonicalCombiningClass, EastAsianWidth, GeneralCategory, GraphemeClusterBreak,
-        HangulSyllableType, IndicSyllabicCategory, JoiningType, LineBreak, Script, SentenceBreak,
-        VerticalOrientation, WordBreak,
-    };
+    use icu_collections::codepointtrie::TrieValue;
+    use icu_properties::{maps, GeneralCategory, GeneralCategoryGroup};
 
-    use crate::unstable::properties_enums::ffi::GeneralCategoryGroup;
-    use crate::unstable::properties_iter::ffi::CodePointRangeIterator;
-    use crate::unstable::properties_sets::ffi::CodePointSetData;
-    #[cfg(feature = "buffer_provider")]
-    use crate::unstable::{errors::ffi::DataError, provider::ffi::DataProvider};
+    use crate::errors::ffi::ICU4XError;
+    use crate::properties_iter::ffi::CodePointRangeIterator;
+    use crate::properties_sets::ffi::ICU4XCodePointSetData;
 
     #[diplomat::opaque]
     /// An ICU4X Unicode Map Property object, capable of querying whether a code point (key) to obtain the Unicode property value, for a specific Unicode property.
     ///
     /// For properties whose values fit into 8 bits.
     #[diplomat::rust_link(icu::properties, Mod)]
-    #[diplomat::rust_link(icu::properties::CodePointMapData, Struct)]
-    #[diplomat::rust_link(icu::properties::CodePointMapDataBorrowed, Struct)]
-    #[diplomat::rust_link(icu::properties::CodePointMapData::new, FnInStruct, hidden)]
-    #[diplomat::rust_link(icu::properties::CodePointMapDataBorrowed::new, FnInStruct, hidden)]
+    #[diplomat::rust_link(icu::properties::maps::CodePointMapData, Struct)]
+    #[diplomat::rust_link(icu::properties::maps::CodePointMapData::from_data, FnInStruct, hidden)]
     #[diplomat::rust_link(
-        icu::properties::CodePointMapData::try_into_converted,
+        icu::properties::maps::CodePointMapData::try_into_converted,
         FnInStruct,
         hidden
     )]
-    pub struct CodePointMapData8(icu_properties::CodePointMapData<u8>);
+    #[diplomat::rust_link(icu::properties::maps::CodePointMapDataBorrowed, Struct)]
+    pub struct ICU4XCodePointMapData8(maps::CodePointMapData<u8>);
 
-    #[cfg(any(feature = "compiled_data", feature = "buffer_provider"))]
-    fn convert_8<P: icu_collections::codepointtrie::TrieValue>(
-        data: icu_properties::CodePointMapData<P>,
-    ) -> Box<CodePointMapData8> {
+    fn convert_8<P: TrieValue>(data: maps::CodePointMapData<P>) -> Box<ICU4XCodePointMapData8> {
         #[allow(clippy::unwrap_used)] // infallible for the chosen properties
-        Box::new(CodePointMapData8(
+        Box::new(ICU4XCodePointMapData8(
             data.try_into_converted().map_err(|_| ()).unwrap(),
         ))
     }
 
-    impl CodePointMapData8 {
+    impl ICU4XCodePointMapData8 {
         /// Gets the value for a code point.
-        #[diplomat::rust_link(icu::properties::CodePointMapDataBorrowed::get, FnInStruct)]
-        #[diplomat::rust_link(icu::properties::CodePointMapDataBorrowed::get32, FnInStruct, hidden)]
-        #[diplomat::attr(auto, indexer)]
+        #[diplomat::rust_link(icu::properties::maps::CodePointMapDataBorrowed::get, FnInStruct)]
+        #[diplomat::attr(supports = indexing, indexer)]
         pub fn get(&self, cp: DiplomatChar) -> u8 {
             self.0.as_borrowed().get32(cp)
         }
 
+        /// Gets the value for a code point (specified as a 32 bit integer, in UTF-32)
+        #[diplomat::rust_link(
+            icu::properties::maps::CodePointMapDataBorrowed::get32,
+            FnInStruct,
+            hidden
+        )]
+        #[diplomat::attr(dart, disable)]
+        pub fn get32(&self, cp: u32) -> u8 {
+            self.get(cp)
+        }
+
+        /// Converts a general category to its corresponding mask value
+        ///
+        /// Nonexistent general categories will map to the empty mask
+        #[diplomat::rust_link(icu::properties::GeneralCategoryGroup, Struct)]
+        pub fn general_category_to_mask(gc: u8) -> u32 {
+            if let Ok(gc) = GeneralCategory::try_from(gc) {
+                let group: GeneralCategoryGroup = gc.into();
+                group.into()
+            } else {
+                0
+            }
+        }
+
         /// Produces an iterator over ranges of code points that map to `value`
         #[diplomat::rust_link(
-            icu::properties::CodePointMapDataBorrowed::iter_ranges_for_value,
+            icu::properties::maps::CodePointMapDataBorrowed::iter_ranges_for_value,
             FnInStruct
         )]
         pub fn iter_ranges_for_value<'a>(&'a self, value: u8) -> Box<CodePointRangeIterator<'a>> {
@@ -68,7 +80,7 @@ pub mod ffi {
 
         /// Produces an iterator over ranges of code points that do not map to `value`
         #[diplomat::rust_link(
-            icu::properties::CodePointMapDataBorrowed::iter_ranges_for_value_complemented,
+            icu::properties::maps::CodePointMapDataBorrowed::iter_ranges_for_value_complemented,
             FnInStruct
         )]
         pub fn iter_ranges_for_value_complemented<'a>(
@@ -86,295 +98,164 @@ pub mod ffi {
         /// whose property values are contained in the mask.
         ///
         /// The main mask property supported is that for General_Category, which can be obtained via `general_category_to_mask()` or
-        /// by using `GeneralCategoryNameToMaskMapper`
+        /// by using `ICU4XGeneralCategoryNameToMaskMapper`
         ///
         /// Should only be used on maps for properties with values less than 32 (like Generak_Category),
         /// other maps will have unpredictable results
         #[diplomat::rust_link(
-            icu::properties::CodePointMapDataBorrowed::iter_ranges_for_group,
+            icu::properties::maps::CodePointMapDataBorrowed::iter_ranges_for_group,
             FnInStruct
         )]
-        pub fn iter_ranges_for_group<'a>(
-            &'a self,
-            group: GeneralCategoryGroup,
-        ) -> Box<CodePointRangeIterator<'a>> {
+        pub fn iter_ranges_for_mask<'a>(&'a self, mask: u32) -> Box<CodePointRangeIterator<'a>> {
             let ranges = self
                 .0
                 .as_borrowed()
                 .iter_ranges_mapped(move |v| {
                     let val_mask = 1_u32.checked_shl(v.into()).unwrap_or(0);
-                    val_mask & group.mask != 0
+                    val_mask & mask != 0
                 })
                 .filter(|v| v.value)
                 .map(|v| v.range);
             Box::new(CodePointRangeIterator(Box::new(ranges)))
         }
 
-        /// Gets a [`CodePointSetData`] representing all entries in this map that map to the given value
+        /// Gets a [`ICU4XCodePointSetData`] representing all entries in this map that map to the given value
         #[diplomat::rust_link(
-            icu::properties::CodePointMapDataBorrowed::get_set_for_value,
+            icu::properties::maps::CodePointMapDataBorrowed::get_set_for_value,
             FnInStruct
         )]
-        pub fn get_set_for_value(&self, value: u8) -> Box<CodePointSetData> {
-            Box::new(CodePointSetData(
+        pub fn get_set_for_value(&self, value: u8) -> Box<ICU4XCodePointSetData> {
+            Box::new(ICU4XCodePointSetData(
                 self.0.as_borrowed().get_set_for_value(value),
             ))
         }
 
-        /// Create a map for the `General_Category` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::GeneralCategory, Enum)]
-        #[diplomat::attr(auto, named_constructor = "general_category")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_general_category() -> Box<CodePointMapData8> {
-            convert_8(icu_properties::CodePointMapData::<GeneralCategory>::new().static_to_owned())
-        }
-
-        /// Create a map for the `General_Category` property, using a particular data source
-        #[diplomat::rust_link(icu::properties::props::GeneralCategory, Enum)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "general_category_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_general_category_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData8>, DataError> {
-            Ok(convert_8(icu_properties::CodePointMapData::<
-                GeneralCategory,
-            >::try_new_unstable(
-                &provider.get_unstable()?
+        #[diplomat::rust_link(icu::properties::maps::general_category, Fn)]
+        #[diplomat::rust_link(icu::properties::maps::load_general_category, Fn, hidden)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "general_category")]
+        pub fn load_general_category(
+            provider: &ICU4XDataProvider,
+        ) -> Result<Box<ICU4XCodePointMapData8>, ICU4XError> {
+            Ok(convert_8(call_constructor_unstable!(
+                maps::general_category [r => Ok(r.static_to_owned())],
+                maps::load_general_category,
+                provider,
             )?))
         }
 
-        /// Create a map for the `Bidi_Class` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::BidiClass, Struct)]
-        #[diplomat::attr(auto, named_constructor = "bidi_class")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_bidi_class() -> Box<CodePointMapData8> {
-            convert_8(icu_properties::CodePointMapData::<BidiClass>::new().static_to_owned())
+        #[diplomat::rust_link(icu::properties::maps::bidi_class, Fn)]
+        #[diplomat::rust_link(icu::properties::maps::load_bidi_class, Fn, hidden)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "bidi_class")]
+        pub fn load_bidi_class(
+            provider: &ICU4XDataProvider,
+        ) -> Result<Box<ICU4XCodePointMapData8>, ICU4XError> {
+            Ok(convert_8(call_constructor_unstable!(
+                maps::bidi_class [r => Ok(r.static_to_owned())],
+                maps::load_bidi_class,
+                provider,
+            )?))
         }
 
-        /// Create a map for the `Bidi_Class` property, using a particular data source.
-        #[diplomat::rust_link(icu::properties::props::BidiClass, Struct)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "bidi_class_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_bidi_class_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData8>, DataError> {
-            Ok(convert_8(
-                icu_properties::CodePointMapData::<BidiClass>::try_new_unstable(
-                    &provider.get_unstable()?,
-                )?,
-            ))
-        }
-        /// Create a map for the `East_Asian_Width` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::EastAsianWidth, Struct)]
-        #[diplomat::attr(auto, named_constructor = "east_asian_width")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_east_asian_width() -> Box<CodePointMapData8> {
-            convert_8(icu_properties::CodePointMapData::<EastAsianWidth>::new().static_to_owned())
+        #[diplomat::rust_link(icu::properties::maps::east_asian_width, Fn)]
+        #[diplomat::rust_link(icu::properties::maps::load_east_asian_width, Fn, hidden)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "east_asian_width")]
+        pub fn load_east_asian_width(
+            provider: &ICU4XDataProvider,
+        ) -> Result<Box<ICU4XCodePointMapData8>, ICU4XError> {
+            Ok(convert_8(call_constructor_unstable!(
+                maps::east_asian_width [r => Ok(r.static_to_owned())],
+                maps::load_east_asian_width,
+                provider,
+            )?))
         }
 
-        /// Create a map for the `East_Asian_Width` property, using a particular data source.
-        #[diplomat::rust_link(icu::properties::props::EastAsianWidth, Struct)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "east_asian_width_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_east_asian_width_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData8>, DataError> {
-            Ok(convert_8(
-                icu_properties::CodePointMapData::<EastAsianWidth>::try_new_unstable(
-                    &provider.get_unstable()?,
-                )?,
-            ))
-        }
-        /// Create a map for the `Hangul_Syllable_Type` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::HangulSyllableType, Struct)]
-        #[diplomat::attr(auto, named_constructor = "hangul_syllable_type")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_hangul_syllable_type() -> Box<CodePointMapData8> {
-            convert_8(
-                icu_properties::CodePointMapData::<HangulSyllableType>::new().static_to_owned(),
-            )
-        }
-        /// Create a map for the `Hangul_Syllable_Type` property, using a particular data source.
-        #[diplomat::rust_link(icu::properties::props::HangulSyllableType, Struct)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "hangul_syllable_type_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_hangul_syllable_type_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData8>, DataError> {
-            Ok(convert_8(icu_properties::CodePointMapData::<
-                HangulSyllableType,
-            >::try_new_unstable(
-                &provider.get_unstable()?
+        #[diplomat::rust_link(icu::properties::maps::hangul_syllable_type, Fn)]
+        #[diplomat::rust_link(icu::properties::maps::load_hangul_syllable_type, Fn, hidden)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "hangul_syllable_type")]
+        pub fn load_hangul_syllable_type(
+            provider: &ICU4XDataProvider,
+        ) -> Result<Box<ICU4XCodePointMapData8>, ICU4XError> {
+            Ok(convert_8(call_constructor_unstable!(
+                maps::hangul_syllable_type [r => Ok(r.static_to_owned())],
+                maps::load_hangul_syllable_type,
+                provider,
             )?))
-        }
-        /// Create a map for the `Indic_Syllabic_Property` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::IndicSyllabicCategory, Struct)]
-        #[diplomat::attr(auto, named_constructor = "indic_syllabic_category")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_indic_syllabic_category() -> Box<CodePointMapData8> {
-            convert_8(
-                icu_properties::CodePointMapData::<IndicSyllabicCategory>::new().static_to_owned(),
-            )
-        }
-        /// Create a map for the `Indic_Syllabic_Property` property, using a particular data source.
-        #[diplomat::rust_link(icu::properties::props::IndicSyllabicCategory, Struct)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "indic_syllabic_category_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_indic_syllabic_category_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData8>, DataError> {
-            Ok(convert_8(icu_properties::CodePointMapData::<
-                IndicSyllabicCategory,
-            >::try_new_unstable(
-                &provider.get_unstable()?
-            )?))
-        }
-        /// Create a map for the `Line_Break` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::LineBreak, Struct)]
-        #[diplomat::attr(auto, named_constructor = "line_break")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_line_break() -> Box<CodePointMapData8> {
-            convert_8(icu_properties::CodePointMapData::<LineBreak>::new().static_to_owned())
-        }
-        /// Create a map for the `Line_Break` property, using a particular data source.
-        #[diplomat::rust_link(icu::properties::props::LineBreak, Struct)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "line_break_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_line_break_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData8>, DataError> {
-            Ok(convert_8(
-                icu_properties::CodePointMapData::<LineBreak>::try_new_unstable(
-                    &provider.get_unstable()?,
-                )?,
-            ))
-        }
-        /// Create a map for the `Grapheme_Cluster_Break` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::GraphemeClusterBreak, Struct)]
-        #[diplomat::attr(auto, named_constructor = "grapheme_cluster_break")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_grapheme_cluster_break() -> Box<CodePointMapData8> {
-            convert_8(
-                icu_properties::CodePointMapData::<GraphemeClusterBreak>::new().static_to_owned(),
-            )
-        }
-        /// Create a map for the `Grapheme_Cluster_Break` property, using a particular data source.
-        #[diplomat::rust_link(icu::properties::props::GraphemeClusterBreak, Struct)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "grapheme_cluster_break_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_grapheme_cluster_break_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData8>, DataError> {
-            Ok(convert_8(icu_properties::CodePointMapData::<
-                GraphemeClusterBreak,
-            >::try_new_unstable(
-                &provider.get_unstable()?
-            )?))
-        }
-        /// Create a map for the `Word_Break` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::WordBreak, Struct)]
-        #[diplomat::attr(auto, named_constructor = "word_break")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_word_break() -> Box<CodePointMapData8> {
-            convert_8(icu_properties::CodePointMapData::<WordBreak>::new().static_to_owned())
-        }
-        /// Create a map for the `Word_Break` property, using a particular data source.
-        #[diplomat::rust_link(icu::properties::props::WordBreak, Struct)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "word_break_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_word_break_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData8>, DataError> {
-            Ok(convert_8(
-                icu_properties::CodePointMapData::<WordBreak>::try_new_unstable(
-                    &provider.get_unstable()?,
-                )?,
-            ))
-        }
-        /// Create a map for the `Sentence_Break` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::SentenceBreak, Struct)]
-        #[diplomat::attr(auto, named_constructor = "sentence_break")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_sentence_break() -> Box<CodePointMapData8> {
-            convert_8(icu_properties::CodePointMapData::<SentenceBreak>::new().static_to_owned())
-        }
-        /// Create a map for the `Sentence_Break` property, using a particular data source.
-        #[diplomat::rust_link(icu::properties::props::SentenceBreak, Struct)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "sentence_break_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_sentence_break_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData8>, DataError> {
-            Ok(convert_8(
-                icu_properties::CodePointMapData::<SentenceBreak>::try_new_unstable(
-                    &provider.get_unstable()?,
-                )?,
-            ))
-        }
-        /// Create a map for the `Joining_Type` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::JoiningType, Struct)]
-        #[diplomat::attr(auto, named_constructor = "joining_type")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_joining_type() -> Box<CodePointMapData8> {
-            convert_8(icu_properties::CodePointMapData::<JoiningType>::new().static_to_owned())
         }
 
-        /// Create a map for the `Joining_Type` property, using a particular data source.
-        #[diplomat::rust_link(icu::properties::props::JoiningType, Struct)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "joining_type_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_joining_type_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData8>, DataError> {
-            Ok(convert_8(
-                icu_properties::CodePointMapData::<JoiningType>::try_new_unstable(
-                    &provider.get_unstable()?,
-                )?,
-            ))
-        }
-        /// Create a map for the `Canonical_Combining_Class` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::CanonicalCombiningClass, Struct)]
-        #[diplomat::attr(auto, named_constructor = "canonical_combining_class")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_canonical_combining_class() -> Box<CodePointMapData8> {
-            convert_8(
-                icu_properties::CodePointMapData::<CanonicalCombiningClass>::new()
-                    .static_to_owned(),
-            )
-        }
-        /// Create a map for the `Canonical_Combining_Class` property, using a particular data source.
-        #[diplomat::rust_link(icu::properties::props::CanonicalCombiningClass, Struct)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "canonical_combining_class_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_canonical_combining_class_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData8>, DataError> {
-            Ok(convert_8(icu_properties::CodePointMapData::<
-                CanonicalCombiningClass,
-            >::try_new_unstable(
-                &provider.get_unstable()?
+        #[diplomat::rust_link(icu::properties::maps::indic_syllabic_category, Fn)]
+        #[diplomat::rust_link(icu::properties::maps::load_indic_syllabic_category, Fn, hidden)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "indic_syllabic_category")]
+        pub fn load_indic_syllabic_category(
+            provider: &ICU4XDataProvider,
+        ) -> Result<Box<ICU4XCodePointMapData8>, ICU4XError> {
+            Ok(convert_8(call_constructor_unstable!(
+                maps::indic_syllabic_category [r => Ok(r.static_to_owned())],
+                maps::load_indic_syllabic_category,
+                provider,
             )?))
         }
-        /// Create a map for the `Vertical_Orientation` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::VerticalOrientation, Struct)]
-        #[diplomat::attr(auto, named_constructor = "vertical_orientation")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_vertical_orientation() -> Box<CodePointMapData8> {
-            convert_8(
-                icu_properties::CodePointMapData::<VerticalOrientation>::new().static_to_owned(),
-            )
+
+        #[diplomat::rust_link(icu::properties::maps::line_break, Fn)]
+        #[diplomat::rust_link(icu::properties::maps::load_line_break, Fn, hidden)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "line_break")]
+        pub fn load_line_break(
+            provider: &ICU4XDataProvider,
+        ) -> Result<Box<ICU4XCodePointMapData8>, ICU4XError> {
+            Ok(convert_8(call_constructor_unstable!(
+                maps::line_break [r => Ok(r.static_to_owned())],
+                maps::load_line_break,
+                provider,
+            )?))
         }
-        /// Create a map for the `Vertical_Orientation` property, using a particular data source.
-        #[diplomat::rust_link(icu::properties::props::VerticalOrientation, Struct)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "vertical_orientation_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_vertical_orientation_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData8>, DataError> {
-            Ok(convert_8(icu_properties::CodePointMapData::<
-                VerticalOrientation,
-            >::try_new_unstable(
-                &provider.get_unstable()?
+
+        #[diplomat::rust_link(icu::properties::maps::grapheme_cluster_break, Fn)]
+        #[diplomat::rust_link(icu::properties::maps::load_grapheme_cluster_break, Fn, hidden)]
+        pub fn try_grapheme_cluster_break(
+            provider: &ICU4XDataProvider,
+        ) -> Result<Box<ICU4XCodePointMapData8>, ICU4XError> {
+            Ok(convert_8(call_constructor_unstable!(
+                maps::grapheme_cluster_break [r => Ok(r.static_to_owned())],
+                maps::load_grapheme_cluster_break,
+                provider,
+            )?))
+        }
+
+        #[diplomat::rust_link(icu::properties::maps::word_break, Fn)]
+        #[diplomat::rust_link(icu::properties::maps::load_word_break, Fn, hidden)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "word_break")]
+        pub fn load_word_break(
+            provider: &ICU4XDataProvider,
+        ) -> Result<Box<ICU4XCodePointMapData8>, ICU4XError> {
+            Ok(convert_8(call_constructor_unstable!(
+                maps::word_break [r => Ok(r.static_to_owned())],
+                maps::load_word_break,
+                provider,
+            )?))
+        }
+
+        #[diplomat::rust_link(icu::properties::maps::sentence_break, Fn)]
+        #[diplomat::rust_link(icu::properties::maps::load_sentence_break, Fn, hidden)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "sentence_break")]
+        pub fn load_sentence_break(
+            provider: &ICU4XDataProvider,
+        ) -> Result<Box<ICU4XCodePointMapData8>, ICU4XError> {
+            Ok(convert_8(call_constructor_unstable!(
+                maps::sentence_break [r => Ok(r.static_to_owned())],
+                maps::load_sentence_break,
+                provider,
+            )?))
+        }
+
+        #[diplomat::rust_link(icu::properties::maps::joining_type, Fn)]
+        #[diplomat::rust_link(icu::properties::maps::load_joining_type, Fn, hidden)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "joining_type")]
+        pub fn load_joining_type(
+            provider: &ICU4XDataProvider,
+        ) -> Result<Box<ICU4XCodePointMapData8>, ICU4XError> {
+            Ok(convert_8(call_constructor_unstable!(
+                maps::joining_type [r => Ok(r.static_to_owned())],
+                maps::load_joining_type,
+                provider,
             )?))
         }
     }
@@ -384,22 +265,32 @@ pub mod ffi {
     ///
     /// For properties whose values fit into 16 bits.
     #[diplomat::rust_link(icu::properties, Mod)]
-    #[diplomat::rust_link(icu::properties::CodePointMapData, Struct)]
-    #[diplomat::rust_link(icu::properties::CodePointMapDataBorrowed, Struct)]
-    pub struct CodePointMapData16(icu_properties::CodePointMapData<u16>);
+    #[diplomat::rust_link(icu::properties::maps::CodePointMapData, Struct)]
+    #[diplomat::rust_link(icu::properties::maps::CodePointMapDataBorrowed, Struct)]
+    pub struct ICU4XCodePointMapData16(maps::CodePointMapData<u16>);
 
-    impl CodePointMapData16 {
+    impl ICU4XCodePointMapData16 {
         /// Gets the value for a code point.
-        #[diplomat::rust_link(icu::properties::CodePointMapDataBorrowed::get, FnInStruct)]
-        #[diplomat::rust_link(icu::properties::CodePointMapDataBorrowed::get32, FnInStruct, hidden)]
-        #[diplomat::attr(auto, indexer)]
+        #[diplomat::rust_link(icu::properties::maps::CodePointMapDataBorrowed::get, FnInStruct)]
+        #[diplomat::attr(supports = indexing, indexer)]
         pub fn get(&self, cp: DiplomatChar) -> u16 {
             self.0.as_borrowed().get32(cp)
         }
 
+        /// Gets the value for a code point (specified as a 32 bit integer, in UTF-32)
+        #[diplomat::rust_link(
+            icu::properties::maps::CodePointMapDataBorrowed::get32,
+            FnInStruct,
+            hidden
+        )]
+        #[diplomat::attr(dart, disable)]
+        pub fn get32(&self, cp: u32) -> u16 {
+            self.get(cp)
+        }
+
         /// Produces an iterator over ranges of code points that map to `value`
         #[diplomat::rust_link(
-            icu::properties::CodePointMapDataBorrowed::iter_ranges_for_value,
+            icu::properties::maps::CodePointMapDataBorrowed::iter_ranges_for_value,
             FnInStruct
         )]
         pub fn iter_ranges_for_value<'a>(&'a self, value: u16) -> Box<CodePointRangeIterator<'a>> {
@@ -410,7 +301,7 @@ pub mod ffi {
 
         /// Produces an iterator over ranges of code points that do not map to `value`
         #[diplomat::rust_link(
-            icu::properties::CodePointMapDataBorrowed::iter_ranges_for_value_complemented,
+            icu::properties::maps::CodePointMapDataBorrowed::iter_ranges_for_value_complemented,
             FnInStruct
         )]
         pub fn iter_ranges_for_value_complemented<'a>(
@@ -424,42 +315,29 @@ pub mod ffi {
             )))
         }
 
-        /// Gets a [`CodePointSetData`] representing all entries in this map that map to the given value
+        /// Gets a [`ICU4XCodePointSetData`] representing all entries in this map that map to the given value
         #[diplomat::rust_link(
-            icu::properties::CodePointMapDataBorrowed::get_set_for_value,
+            icu::properties::maps::CodePointMapDataBorrowed::get_set_for_value,
             FnInStruct
         )]
-        pub fn get_set_for_value(&self, value: u16) -> Box<CodePointSetData> {
-            Box::new(CodePointSetData(
+        pub fn get_set_for_value(&self, value: u16) -> Box<ICU4XCodePointSetData> {
+            Box::new(ICU4XCodePointSetData(
                 self.0.as_borrowed().get_set_for_value(value),
             ))
         }
 
-        /// Create a map for the `Script` property, using compiled data.
-        #[diplomat::rust_link(icu::properties::props::Script, Struct)]
-        #[diplomat::attr(auto, named_constructor = "script")]
-        #[cfg(feature = "compiled_data")]
-        pub fn create_script() -> Box<CodePointMapData16> {
+        #[diplomat::rust_link(icu::properties::maps::script, Fn)]
+        #[diplomat::rust_link(icu::properties::maps::load_script, Fn, hidden)]
+        #[diplomat::attr(all(supports = constructors, supports = fallible_constructors, supports = named_constructors), named_constructor = "script")]
+        pub fn load_script(
+            provider: &ICU4XDataProvider,
+        ) -> Result<Box<ICU4XCodePointMapData16>, ICU4XError> {
             #[allow(clippy::unwrap_used)] // script is a 16-bit property
-            let data = icu_properties::CodePointMapData::<Script>::new()
-                .static_to_owned()
-                .try_into_converted()
-                .map_err(|_| ())
-                .unwrap();
-            Box::new(CodePointMapData16(data))
-        }
-
-        /// Create a map for the `Script` property, using a particular data source.
-        #[diplomat::rust_link(icu::properties::props::Script, Struct)]
-        #[diplomat::attr(all(supports = fallible_constructors, supports = named_constructors), named_constructor = "script_with_provider")]
-        #[cfg(feature = "buffer_provider")]
-        pub fn create_script_with_provider(
-            provider: &DataProvider,
-        ) -> Result<Box<CodePointMapData16>, DataError> {
-            #[allow(clippy::unwrap_used)] // script is a 16-bit property
-            Ok(Box::new(CodePointMapData16(
-                icu_properties::CodePointMapData::<Script>::try_new_unstable(
-                    &provider.get_unstable()?,
+            Ok(Box::new(ICU4XCodePointMapData16(
+                call_constructor_unstable!(
+                    maps::script [r => Ok(r.static_to_owned())],
+                    maps::load_script,
+                    provider,
                 )?
                 .try_into_converted()
                 .map_err(|_| ())

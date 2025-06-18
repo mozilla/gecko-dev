@@ -1,6 +1,6 @@
 ---
 source: core/src/ast/types.rs
-expression: "TypeName::from_syn(&syn::parse_quote! { Result<(), MyLocalStruct> }, None)"
+expression: "TypeName::from_syn(&syn::parse_quote! { Result < (), MyLocalStruct > }, None)"
 ---
 Result:
   - Unit
@@ -9,4 +9,5 @@ Result:
         elements:
           - MyLocalStruct
       lifetimes: []
-  - Stdlib
+  - true
+

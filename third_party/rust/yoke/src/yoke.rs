@@ -7,6 +7,7 @@ use crate::either::EitherCart;
 #[cfg(feature = "alloc")]
 use crate::erased::{ErasedArcCart, ErasedBoxCart, ErasedRcCart};
 use crate::kinda_sorta_dangling::KindaSortaDangling;
+use crate::trait_hack::YokeTraitHack;
 use crate::Yokeable;
 use core::marker::PhantomData;
 use core::ops::Deref;
@@ -80,14 +81,10 @@ pub struct Yoke<Y: for<'a> Yokeable<'a>, C> {
     // this will have a 'static lifetime parameter, that parameter is a lie
     yokeable: KindaSortaDangling<Y>,
     // Safety invariant: this type can be anything, but `yokeable` may only contain references to
-    // StableDeref parts of this cart, and the targets of those references must be valid for the
-    // lifetime of this cart (it must own or borrow them). It's ok for this cart to contain stack
-    // data as long as it is not referenced by `yokeable` during construction. `attach_to_cart`,
-    // the typical constructor of this type, upholds this invariant, but other constructors like
-    // `replace_cart` need to uphold it.
-    // The implementation guarantees that there are no live `yokeable`s that reference data
-    // in a `cart` when the `cart` is dropped; this is guaranteed in the drop glue through field
-    // order.
+    // StableDeref parts of this cart, and those references must be valid for the lifetime of
+    // this cart (it must own or borrow them). It's ok for this cart to contain stack data as long as it
+    // is not referenced by `yokeable` during construction. `attach_to_cart`, the typical constructor
+    // of this type, upholds this invariant, but other constructors like `replace_cart` need to uphold it.
     cart: C,
 }
 
@@ -202,12 +199,7 @@ where
     {
         let deserialized = f(cart.deref());
         Self {
-            yokeable: KindaSortaDangling::new(
-                // Safety: the resulting `yokeable` is dropped before the `cart` because
-                // of the Yoke invariant. See the safety docs at the bottom of this file
-                // for the justification of why yokeable could only borrow from the Cart.
-                unsafe { Y::make(deserialized) },
-            ),
+            yokeable: KindaSortaDangling::new(unsafe { Y::make(deserialized) }),
             cart,
         }
     }
@@ -220,16 +212,10 @@ where
     pub fn try_attach_to_cart<E, F>(cart: C, f: F) -> Result<Self, E>
     where
         F: for<'de> FnOnce(&'de <C as Deref>::Target) -> Result<<Y as Yokeable<'de>>::Output, E>,
-        <C as Deref>::Target: 'static,
     {
         let deserialized = f(cart.deref())?;
         Ok(Self {
-            yokeable: KindaSortaDangling::new(
-                // Safety: the resulting `yokeable` is dropped before the `cart` because
-                // of the Yoke invariant. See the safety docs at the bottom of this file
-                // for the justification of why yokeable could only borrow from the Cart.
-                unsafe { Y::make(deserialized) },
-            ),
+            yokeable: KindaSortaDangling::new(unsafe { Y::make(deserialized) }),
             cart,
         })
     }
@@ -381,9 +367,6 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     #[inline]
     pub unsafe fn replace_cart<C2>(self, f: impl FnOnce(C) -> C2) -> Yoke<Y, C2> {
         Yoke {
-            // Safety note: the safety invariant of this function guarantees that
-            // the data that the yokeable references has its ownership (if any)
-            // transferred to the new cart before self.cart is dropped.
             yokeable: self.yokeable,
             cart: f(self.cart),
         }
@@ -482,9 +465,10 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     /// Helper function allowing one to wrap the cart type `C` in an `Option<T>`.
     #[inline]
     pub fn wrap_cart_in_option(self) -> Yoke<Y, Option<C>> {
-        // Safety: the cart is preserved (since it is just wrapped into a Some),
-        // so any data it owns is too.
-        unsafe { self.replace_cart(Some) }
+        unsafe {
+            // safe because the cart is preserved, just wrapped
+            self.replace_cart(Some)
+        }
     }
 }
 
@@ -512,8 +496,6 @@ impl<Y: for<'a> Yokeable<'a>> Yoke<Y, ()> {
     /// ```
     pub fn new_always_owned(yokeable: Y) -> Self {
         Self {
-            // Safety note: this `yokeable` certainly does not reference data owned by (), so we do
-            // not have to worry about when the `yokeable` is dropped.
             yokeable: KindaSortaDangling::new(yokeable),
             cart: (),
         }
@@ -525,8 +507,6 @@ impl<Y: for<'a> Yokeable<'a>> Yoke<Y, ()> {
     /// fine for `Yoke<Y, ()>` since there are no actual internal
     /// references
     pub fn into_yokeable(self) -> Y {
-        // Safety note: since `yokeable` cannot reference data owned by `()`, this is certainly
-        // safe.
         self.yokeable.into_inner()
     }
 }
@@ -560,7 +540,6 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, Option<C>> {
     /// ```
     pub const fn new_owned(yokeable: Y) -> Self {
         Self {
-            // Safety note: this `yokeable` is known not to borrow from the cart.
             yokeable: KindaSortaDangling::new(yokeable),
             cart: None,
         }
@@ -632,13 +611,10 @@ impl<Y: for<'a> Yokeable<'a>, C: CartablePointerLike> Yoke<Y, Option<C>> {
     pub fn convert_cart_into_option_pointer(self) -> Yoke<Y, CartableOptionPointer<C>> {
         match self.cart {
             Some(cart) => Yoke {
-                // Safety note: CartableOptionPointer::from_cartable only wraps the `cart`,
-                // so the data referenced by the yokeable is still live.
                 yokeable: self.yokeable,
                 cart: CartableOptionPointer::from_cartable(cart),
             },
             None => Yoke {
-                // Safety note: this Yokeable cannot refer to any data since self.cart is None.
                 yokeable: self.yokeable,
                 cart: CartableOptionPointer::none(),
             },
@@ -679,17 +655,11 @@ impl<Y: for<'a> Yokeable<'a>, C: CartablePointerLike> Yoke<Y, CartableOptionPoin
 pub unsafe trait CloneableCart: Clone {}
 
 #[cfg(feature = "alloc")]
-// Safety: Rc<T> implements CloneStableDeref.
 unsafe impl<T: ?Sized> CloneableCart for Rc<T> {}
 #[cfg(feature = "alloc")]
-// Safety: Arc<T> implements CloneStableDeref.
 unsafe impl<T: ?Sized> CloneableCart for Arc<T> {}
-// Safety: Option<T> cannot deref to anything that T doesn't already deref to.
 unsafe impl<T: CloneableCart> CloneableCart for Option<T> {}
-// Safety: &'a T is indeed StableDeref, and cloning it refers to the same data.
-// &'a T does not own in the first place, so ownership is preserved.
 unsafe impl<'a, T: ?Sized> CloneableCart for &'a T {}
-// Safety: () cannot deref to anything.
 unsafe impl CloneableCart for () {}
 
 /// Clone requires that the cart type `C` derefs to the same address after it is cloned. This works for
@@ -703,17 +673,14 @@ unsafe impl CloneableCart for () {}
 /// (e.g., from `.with_mut()`), that data will need to be cloned.
 impl<Y: for<'a> Yokeable<'a>, C: CloneableCart> Clone for Yoke<Y, C>
 where
-    for<'a> <Y as Yokeable<'a>>::Output: Clone,
+    for<'a> YokeTraitHack<<Y as Yokeable<'a>>::Output>: Clone,
 {
     fn clone(&self) -> Self {
-        // We have an &T not a T, and we can clone T
-        let this = self.get().clone();
+        let this: &Y::Output = self.get();
+        // We have an &T not a T, and we can clone YokeTraitHack<T>
+        let this_hack = YokeTraitHack(this).into_ref();
         Yoke {
-            yokeable: KindaSortaDangling::new(
-                // Safety: C being a CloneableCart guarantees that the data referenced by the
-                // `yokeable` is kept alive by the clone of the cart.
-                unsafe { Y::make(this) },
-            ),
+            yokeable: KindaSortaDangling::new(unsafe { Y::make(this_hack.clone().0) }),
             cart: self.cart.clone(),
         }
     }
@@ -817,7 +784,7 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     /// # }
     /// ```
     //
-    // Safety docs can be found at the end of the file.
+    // Safety docs can be found below on `__project_safety_docs()`
     pub fn map_project<P, F>(self, f: F) -> Yoke<P, C>
     where
         P: for<'a> Yokeable<'a>,
@@ -828,12 +795,7 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     {
         let p = f(self.yokeable.into_inner().transform_owned(), PhantomData);
         Yoke {
-            yokeable: KindaSortaDangling::new(
-                // Safety: the resulting `yokeable` is dropped before the `cart` because
-                // of the Yoke invariant. See the safety docs below for the justification of why
-                // yokeable could only borrow from the Cart.
-                unsafe { P::make(p) },
-            ),
+            yokeable: KindaSortaDangling::new(unsafe { P::make(p) }),
             cart: self.cart,
         }
     }
@@ -854,12 +816,7 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     {
         let p = f(self.get(), PhantomData);
         Yoke {
-            yokeable: KindaSortaDangling::new(
-                // Safety: the resulting `yokeable` is dropped before the `cart` because
-                // of the Yoke invariant. See the safety docs below for the justification of why
-                // yokeable could only borrow from the Cart.
-                unsafe { P::make(p) },
-            ),
+            yokeable: KindaSortaDangling::new(unsafe { P::make(p) }),
             cart: self.cart.clone(),
         }
     }
@@ -935,12 +892,7 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     {
         let p = f(self.yokeable.into_inner().transform_owned(), PhantomData)?;
         Ok(Yoke {
-            yokeable: KindaSortaDangling::new(
-                // Safety: the resulting `yokeable` is dropped before the `cart` because
-                // of the Yoke invariant. See the safety docs below for the justification of why
-                // yokeable could only borrow from the Cart.
-                unsafe { P::make(p) },
-            ),
+            yokeable: KindaSortaDangling::new(unsafe { P::make(p) }),
             cart: self.cart,
         })
     }
@@ -961,12 +913,7 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     {
         let p = f(self.get(), PhantomData)?;
         Ok(Yoke {
-            yokeable: KindaSortaDangling::new(
-                // Safety: the resulting `yokeable` is dropped before the `cart` because
-                // of the Yoke invariant. See the safety docs below for the justification of why
-                // yokeable could only borrow from the Cart.
-                unsafe { P::make(p) },
-            ),
+            yokeable: KindaSortaDangling::new(unsafe { P::make(p) }),
             cart: self.cart.clone(),
         })
     }
@@ -993,12 +940,7 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
             PhantomData,
         );
         Yoke {
-            yokeable: KindaSortaDangling::new(
-                // Safety: the resulting `yokeable` is dropped before the `cart` because
-                // of the Yoke invariant. See the safety docs below for the justification of why
-                // yokeable could only borrow from the Cart.
-                unsafe { P::make(p) },
-            ),
+            yokeable: KindaSortaDangling::new(unsafe { P::make(p) }),
             cart: self.cart,
         }
     }
@@ -1023,12 +965,7 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     {
         let p = f(self.get(), capture, PhantomData);
         Yoke {
-            yokeable: KindaSortaDangling::new(
-                // Safety: the resulting `yokeable` is dropped before the `cart` because
-                // of the Yoke invariant. See the safety docs below for the justification of why
-                // yokeable could only borrow from the Cart.
-                unsafe { P::make(p) },
-            ),
+            yokeable: KindaSortaDangling::new(unsafe { P::make(p) }),
             cart: self.cart.clone(),
         }
     }
@@ -1057,12 +994,7 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
             PhantomData,
         )?;
         Ok(Yoke {
-            yokeable: KindaSortaDangling::new(
-                // Safety: the resulting `yokeable` is dropped before the `cart` because
-                // of the Yoke invariant. See the safety docs below for the justification of why
-                // yokeable could only borrow from the Cart.
-                unsafe { P::make(p) },
-            ),
+            yokeable: KindaSortaDangling::new(unsafe { P::make(p) }),
             cart: self.cart,
         })
     }
@@ -1088,12 +1020,7 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     {
         let p = f(self.get(), capture, PhantomData)?;
         Ok(Yoke {
-            yokeable: KindaSortaDangling::new(
-                // Safety: the resulting `yokeable` is dropped before the `cart` because
-                // of the Yoke invariant. See the safety docs below for the justification of why
-                // yokeable could only borrow from the Cart.
-                unsafe { P::make(p) },
-            ),
+            yokeable: KindaSortaDangling::new(unsafe { P::make(p) }),
             cart: self.cart.clone(),
         })
     }
@@ -1137,8 +1064,11 @@ impl<Y: for<'a> Yokeable<'a>, C: 'static + Sized> Yoke<Y, Rc<C>> {
     /// // Now erased1 and erased2 have the same type!
     /// ```
     pub fn erase_rc_cart(self) -> Yoke<Y, ErasedRcCart> {
-        // Safety: safe because the cart is preserved, as it is just type-erased
-        unsafe { self.replace_cart(|c| c as ErasedRcCart) }
+        unsafe {
+            // safe because the cart is preserved, just
+            // type-erased
+            self.replace_cart(|c| c as ErasedRcCart)
+        }
     }
 }
 
@@ -1180,8 +1110,11 @@ impl<Y: for<'a> Yokeable<'a>, C: 'static + Sized + Send + Sync> Yoke<Y, Arc<C>> 
     /// // Now erased1 and erased2 have the same type!
     /// ```
     pub fn erase_arc_cart(self) -> Yoke<Y, ErasedArcCart> {
-        // Safety: safe because the cart is preserved, as it is just type-erased
-        unsafe { self.replace_cart(|c| c as ErasedArcCart) }
+        unsafe {
+            // safe because the cart is preserved, just
+            // type-erased
+            self.replace_cart(|c| c as ErasedArcCart)
+        }
     }
 }
 
@@ -1223,8 +1156,11 @@ impl<Y: for<'a> Yokeable<'a>, C: 'static + Sized> Yoke<Y, Box<C>> {
     /// // Now erased1 and erased2 have the same type!
     /// ```
     pub fn erase_box_cart(self) -> Yoke<Y, ErasedBoxCart> {
-        // Safety: safe because the cart is preserved, as it is just type-erased
-        unsafe { self.replace_cart(|c| c as ErasedBoxCart) }
+        unsafe {
+            // safe because the cart is preserved, just
+            // type-erased
+            self.replace_cart(|c| c as ErasedBoxCart)
+        }
     }
 }
 
@@ -1236,8 +1172,10 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     /// ✨ *Enabled with the `alloc` Cargo feature.*
     #[inline]
     pub fn wrap_cart_in_box(self) -> Yoke<Y, Box<C>> {
-        // Safety: safe because the cart is preserved, as it is just wrapped.
-        unsafe { self.replace_cart(Box::new) }
+        unsafe {
+            // safe because the cart is preserved, just wrapped
+            self.replace_cart(Box::new)
+        }
     }
     /// Helper function allowing one to wrap the cart type `C` in an `Rc<T>`.
     /// Can be paired with [`Yoke::erase_rc_cart()`], or generally used
@@ -1246,8 +1184,10 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     /// ✨ *Enabled with the `alloc` Cargo feature.*
     #[inline]
     pub fn wrap_cart_in_rc(self) -> Yoke<Y, Rc<C>> {
-        // Safety: safe because the cart is preserved, as it is just wrapped
-        unsafe { self.replace_cart(Rc::new) }
+        unsafe {
+            // safe because the cart is preserved, just wrapped
+            self.replace_cart(Rc::new)
+        }
     }
     /// Helper function allowing one to wrap the cart type `C` in an `Rc<T>`.
     /// Can be paired with [`Yoke::erase_arc_cart()`], or generally used
@@ -1256,8 +1196,10 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     /// ✨ *Enabled with the `alloc` Cargo feature.*
     #[inline]
     pub fn wrap_cart_in_arc(self) -> Yoke<Y, Arc<C>> {
-        // Safety: safe because the cart is preserved, as it is just wrapped
-        unsafe { self.replace_cart(Arc::new) }
+        unsafe {
+            // safe because the cart is preserved, just wrapped
+            self.replace_cart(Arc::new)
+        }
     }
 }
 
@@ -1270,8 +1212,10 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     /// For an example, see [`EitherCart`].
     #[inline]
     pub fn wrap_cart_in_either_a<B>(self) -> Yoke<Y, EitherCart<C, B>> {
-        // Safety: safe because the cart is preserved, as it is just wrapped.
-        unsafe { self.replace_cart(EitherCart::A) }
+        unsafe {
+            // safe because the cart is preserved, just wrapped
+            self.replace_cart(EitherCart::A)
+        }
     }
     /// Helper function allowing one to wrap the cart type `C` in an [`EitherCart`].
     ///
@@ -1281,8 +1225,10 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
     /// For an example, see [`EitherCart`].
     #[inline]
     pub fn wrap_cart_in_either_b<A>(self) -> Yoke<Y, EitherCart<A, C>> {
-        // Safety: safe because the cart is preserved, as it is just wrapped.
-        unsafe { self.replace_cart(EitherCart::B) }
+        unsafe {
+            // safe because the cart is preserved, just wrapped
+            self.replace_cart(EitherCart::B)
+        }
     }
 }
 
@@ -1292,8 +1238,6 @@ impl<Y: for<'a> Yokeable<'a>, C> Yoke<Y, C> {
 ///
 /// This is safe to perform because of the choice of lifetimes on `f`, that is,
 /// `for<a> fn(<Y as Yokeable<'a>>::Output, &'a ()) -> <P as Yokeable<'a>>::Output`.
-///
-/// Note that correctness arguments are similar if you replace `fn` with `FnOnce`.
 ///
 /// What we want this function to do is take a Yokeable (`Y`) that is borrowing from the cart, and
 /// produce another Yokeable (`P`) that also borrows from the same cart. There are a couple potential

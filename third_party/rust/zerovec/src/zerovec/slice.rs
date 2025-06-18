@@ -3,12 +3,11 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use super::*;
+use alloc::boxed::Box;
 use core::cmp::Ordering;
 use core::ops::Range;
 
-/// A zero-copy "slice", i.e. the zero-copy version of `[T]`.
-///
-/// This behaves
+/// A zero-copy "slice", i.e. the zero-copy version of `[T]`. This behaves
 /// similarly to [`ZeroVec<T>`], however [`ZeroVec<T>`] is allowed to contain
 /// owned data and as such is ideal for deserialization since most human readable
 /// serialization formats cannot unconditionally deserialize zero-copy.
@@ -55,8 +54,8 @@ where
 
     /// Attempt to construct a `&ZeroSlice<T>` from a byte slice, returning an error
     /// if it's not a valid byte sequence
-    pub fn parse_bytes(bytes: &[u8]) -> Result<&Self, UleError> {
-        T::ULE::parse_bytes_to_slice(bytes).map(Self::from_ule_slice)
+    pub fn parse_byte_slice(bytes: &[u8]) -> Result<&Self, ZeroVecError> {
+        T::ULE::parse_byte_slice(bytes).map(Self::from_ule_slice)
     }
 
     /// Uses a `&[u8]` buffer as a `ZeroVec<T>` without any verification.
@@ -87,11 +86,10 @@ where
 
     /// Construct a `Box<ZeroSlice<T>>` from a boxed slice of ULEs
     #[inline]
-    #[cfg(feature = "alloc")]
-    pub fn from_boxed_slice(slice: alloc::boxed::Box<[T::ULE]>) -> alloc::boxed::Box<Self> {
+    pub fn from_boxed_slice(slice: Box<[T::ULE]>) -> Box<Self> {
         // This is safe because ZeroSlice is transparent over [T::ULE]
         // so Box<ZeroSlice<T>> can be safely cast from Box<[T::ULE]>
-        unsafe { alloc::boxed::Box::from_raw(alloc::boxed::Box::into_raw(slice) as *mut Self) }
+        unsafe { Box::from_raw(Box::into_raw(slice) as *mut Self) }
     }
 
     /// Returns this slice as its underlying `&[u8]` byte buffer representation.
@@ -113,7 +111,7 @@ where
     /// ```
     #[inline]
     pub fn as_bytes(&self) -> &[u8] {
-        T::ULE::slice_as_bytes(self.as_ule_slice())
+        T::ULE::as_byte_slice(self.as_ule_slice())
     }
 
     /// Dereferences this slice as `&[T::ULE]`.
@@ -132,7 +130,7 @@ where
     ///
     /// let bytes: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
     /// let zerovec: ZeroVec<u16> =
-    ///     ZeroVec::parse_bytes(bytes).expect("infallible");
+    ///     ZeroVec::parse_byte_slice(bytes).expect("infallible");
     ///
     /// assert_eq!(4, zerovec.len());
     /// assert_eq!(
@@ -154,10 +152,11 @@ where
     ///
     /// let bytes: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
     /// let zerovec: ZeroVec<u16> =
-    ///     ZeroVec::parse_bytes(bytes).expect("infallible");
+    ///     ZeroVec::parse_byte_slice(bytes).expect("infallible");
     /// assert!(!zerovec.is_empty());
     ///
-    /// let emptyvec: ZeroVec<u16> = ZeroVec::parse_bytes(&[]).expect("infallible");
+    /// let emptyvec: ZeroVec<u16> =
+    ///     ZeroVec::parse_byte_slice(&[]).expect("infallible");
     /// assert!(emptyvec.is_empty());
     /// ```
     #[inline]
@@ -179,7 +178,7 @@ where
     ///
     /// let bytes: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
     /// let zerovec: ZeroVec<u16> =
-    ///     ZeroVec::parse_bytes(bytes).expect("infallible");
+    ///     ZeroVec::parse_byte_slice(bytes).expect("infallible");
     ///
     /// assert_eq!(zerovec.get(2), Some(421));
     /// assert_eq!(zerovec.get(4), None);
@@ -202,7 +201,7 @@ where
     ///
     /// let bytes: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
     /// let zerovec: ZeroVec<u16> =
-    ///     ZeroVec::parse_bytes(bytes).expect("infallible");
+    ///     ZeroVec::parse_byte_slice(bytes).expect("infallible");
     /// let array: [u16; 4] =
     ///     zerovec.get_as_array().expect("should be 4 items in array");
     ///
@@ -223,7 +222,7 @@ where
     ///
     /// let bytes: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
     /// let zerovec: ZeroVec<u16> =
-    ///     ZeroVec::parse_bytes(bytes).expect("infallible");
+    ///     ZeroVec::parse_byte_slice(bytes).expect("infallible");
     ///
     /// assert_eq!(
     ///     zerovec.get_subslice(1..3),
@@ -303,8 +302,8 @@ where
     /// assert_eq!(zs_u8_4.get(0), Some([0x7F, 0xF3, 0x01, 0x00]));
     /// ```
     #[inline]
-    pub fn try_as_converted<P: AsULE>(&self) -> Result<&ZeroSlice<P>, UleError> {
-        let new_slice = P::ULE::parse_bytes_to_slice(self.as_bytes())?;
+    pub fn try_as_converted<P: AsULE>(&self) -> Result<&ZeroSlice<P>, ZeroVecError> {
+        let new_slice = P::ULE::parse_byte_slice(self.as_bytes())?;
         Ok(ZeroSlice::from_ule_slice(new_slice))
     }
 
@@ -317,7 +316,7 @@ where
     ///
     /// let bytes: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
     /// let zerovec: ZeroVec<u16> =
-    ///     ZeroVec::parse_bytes(bytes).expect("infallible");
+    ///     ZeroVec::parse_byte_slice(bytes).expect("infallible");
     ///
     /// assert_eq!(zerovec.first(), Some(211));
     /// ```
@@ -335,7 +334,7 @@ where
     ///
     /// let bytes: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
     /// let zerovec: ZeroVec<u16> =
-    ///     ZeroVec::parse_bytes(bytes).expect("infallible");
+    ///     ZeroVec::parse_byte_slice(bytes).expect("infallible");
     ///
     /// assert_eq!(zerovec.last(), Some(32973));
     /// ```
@@ -353,7 +352,7 @@ where
     ///
     /// let bytes: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
     /// let zerovec: ZeroVec<u16> =
-    ///     ZeroVec::parse_bytes(bytes).expect("infallible");
+    ///     ZeroVec::parse_byte_slice(bytes).expect("infallible");
     /// let mut it = zerovec.iter();
     ///
     /// assert_eq!(it.next(), Some(211));
@@ -363,8 +362,8 @@ where
     /// assert_eq!(it.next(), None);
     /// ```
     #[inline]
-    pub fn iter<'a>(&'a self) -> ZeroSliceIter<'a, T> {
-        ZeroSliceIter(self.as_ule_slice().iter())
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = T> + ExactSizeIterator<Item = T> + '_ {
+        self.as_ule_slice().iter().copied().map(T::from_unaligned)
     }
 
     /// Returns a tuple with the first element and a subslice of the remaining elements.
@@ -401,29 +400,6 @@ where
     }
 }
 
-/// An iterator over elements in a VarZeroVec
-#[derive(Debug)]
-pub struct ZeroSliceIter<'a, T: AsULE>(core::slice::Iter<'a, T::ULE>);
-
-impl<'a, T: AsULE> Iterator for ZeroSliceIter<'a, T> {
-    type Item = T;
-    fn next(&mut self) -> Option<T> {
-        self.0.next().copied().map(T::from_unaligned)
-    }
-}
-
-impl<'a, T: AsULE> ExactSizeIterator for ZeroSliceIter<'a, T> {
-    fn len(&self) -> usize {
-        self.0.len()
-    }
-}
-
-impl<'a, T: AsULE> DoubleEndedIterator for ZeroSliceIter<'a, T> {
-    fn next_back(&mut self) -> Option<T> {
-        self.0.next_back().copied().map(T::from_unaligned)
-    }
-}
-
 impl<T> ZeroSlice<T>
 where
     T: AsULE + Ord,
@@ -438,7 +414,7 @@ where
     ///
     /// let bytes: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
     /// let zerovec: ZeroVec<u16> =
-    ///     ZeroVec::parse_bytes(bytes).expect("infallible");
+    ///     ZeroVec::parse_byte_slice(bytes).expect("infallible");
     ///
     /// assert_eq!(zerovec.binary_search(&281), Ok(1));
     /// assert_eq!(zerovec.binary_search(&282), Err(2));
@@ -466,7 +442,7 @@ where
     ///
     /// let bytes: &[u8] = &[0xD3, 0x00, 0x19, 0x01, 0xA5, 0x01, 0xCD, 0x80];
     /// let zerovec: ZeroVec<u16> =
-    ///     ZeroVec::parse_bytes(bytes).expect("infallible");
+    ///     ZeroVec::parse_byte_slice(bytes).expect("infallible");
     ///
     /// assert_eq!(zerovec.binary_search_by(|x| x.cmp(&281)), Ok(1));
     /// assert_eq!(zerovec.binary_search_by(|x| x.cmp(&282)), Err(2));
@@ -487,20 +463,20 @@ where
 // (`ZeroSlice<T>` is a transparent wrapper around [T::ULE])
 //  1. [T::ULE] does not include any uninitialized or padding bytes (achieved by being a slice of a ULE type)
 //  2. [T::ULE] is aligned to 1 byte (achieved by being a slice of a ULE type)
-//  3. The impl of `validate_bytes()` returns an error if any byte is not valid.
-//  4. The impl of `validate_bytes()` returns an error if the slice cannot be used in its entirety
-//  5. The impl of `from_bytes_unchecked()` returns a reference to the same data.
-//  6. `as_bytes()` and `parse_bytes()` are defaulted
+//  3. The impl of `validate_byte_slice()` returns an error if any byte is not valid.
+//  4. The impl of `validate_byte_slice()` returns an error if the slice cannot be used in its entirety
+//  5. The impl of `from_byte_slice_unchecked()` returns a reference to the same data.
+//  6. `as_byte_slice()` and `parse_byte_slice()` are defaulted
 //  7. `[T::ULE]` byte equality is semantic equality (relying on the guideline of the underlying `ULE` type)
 unsafe impl<T: AsULE + 'static> VarULE for ZeroSlice<T> {
     #[inline]
-    fn validate_bytes(bytes: &[u8]) -> Result<(), UleError> {
-        T::ULE::validate_bytes(bytes)
+    fn validate_byte_slice(bytes: &[u8]) -> Result<(), ZeroVecError> {
+        T::ULE::validate_byte_slice(bytes)
     }
 
     #[inline]
-    unsafe fn from_bytes_unchecked(bytes: &[u8]) -> &Self {
-        Self::from_ule_slice(T::ULE::slice_from_bytes_unchecked(bytes))
+    unsafe fn from_byte_slice_unchecked(bytes: &[u8]) -> &Self {
+        Self::from_ule_slice(T::ULE::from_byte_slice_unchecked(bytes))
     }
 }
 
@@ -567,8 +543,7 @@ impl<T: AsULE + Ord> Ord for ZeroSlice<T> {
     }
 }
 
-#[cfg(feature = "alloc")]
-impl<T: AsULE> AsRef<ZeroSlice<T>> for alloc::vec::Vec<T::ULE> {
+impl<T: AsULE> AsRef<ZeroSlice<T>> for Vec<T::ULE> {
     fn as_ref(&self) -> &ZeroSlice<T> {
         ZeroSlice::<T>::from_ule_slice(self)
     }

@@ -12,14 +12,8 @@
 [package]
 edition = "2021"
 name = "zerovec-derive"
-version = "0.11.1"
+version = "0.10.3"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
-build = false
-autolib = false
-autobins = false
-autoexamples = false
-autotests = false
-autobenches = false
 description = "Custom derive for the zerovec crate"
 readme = "README.md"
 keywords = [
@@ -42,27 +36,8 @@ repository = "https://github.com/unicode-org/icu4x"
 independent = true
 
 [lib]
-name = "zerovec_derive"
 path = "src/lib.rs"
 proc-macro = true
-
-[[example]]
-name = "derives"
-path = "examples/derives.rs"
-test = true
-harness = false
-
-[[example]]
-name = "make"
-path = "examples/make.rs"
-test = true
-harness = false
-
-[[example]]
-name = "make_var"
-path = "examples/make_var.rs"
-test = true
-harness = false
 
 [dependencies.proc-macro2]
 version = "1.0.61"

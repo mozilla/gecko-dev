@@ -1,6 +1,6 @@
 ---
 source: core/src/ast/types.rs
-expression: "TypeName::from_syn(&syn::parse_quote! { Result<MyLocalStruct, i32> }, None)"
+expression: "TypeName::from_syn(&syn::parse_quote! { Result < MyLocalStruct, i32 > }, None)"
 ---
 Result:
   - Named:
@@ -9,4 +9,5 @@ Result:
           - MyLocalStruct
       lifetimes: []
   - Primitive: i32
-  - Stdlib
+  - true
+
