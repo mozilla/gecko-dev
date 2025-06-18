@@ -7,6 +7,7 @@
 #include "CookieCommons.h"
 #include "CookieLogging.h"
 #include "CookiePersistentStorage.h"
+#include "CookieValidation.h"
 
 #include "mozilla/FileUtils.h"
 #include "mozilla/StaticPrefs_network.h"
@@ -448,6 +449,46 @@ class CloseCookieDBListener final : public mozIStorageCompletionCallback {
 };
 
 NS_IMPL_ISUPPORTS(CloseCookieDBListener, mozIStorageCompletionCallback)
+
+static nsLiteralCString ValidationErrorToLabel(
+    nsICookieValidation::ValidationError aError) {
+  switch (aError) {
+    case nsICookieValidation::eOK:
+      return "eOK"_ns;
+    case nsICookieValidation::eRejectedEmptyNameAndValue:
+      return "eRejectedEmptyNameAndValue"_ns;
+    case nsICookieValidation::eRejectedNameValueOversize:
+      return "eRejectedNameValueOversize"_ns;
+    case nsICookieValidation::eRejectedInvalidCharName:
+      return "eRejectedInvalidCharName"_ns;
+    case nsICookieValidation::eRejectedInvalidCharValue:
+      return "eRejectedInvalidCharValue"_ns;
+    case nsICookieValidation::eRejectedInvalidPath:
+      return "eRejectedInvalidPath"_ns;
+    case nsICookieValidation::eRejectedInvalidDomain:
+      return "eRejectedInvalidDomain"_ns;
+    case nsICookieValidation::eRejectedInvalidPrefix:
+      return "eRejectedInvalidPrefix"_ns;
+    case nsICookieValidation::eRejectedNoneRequiresSecure:
+      return "eRejectedNoneRequiresSecure"_ns;
+    case nsICookieValidation::eRejectedPartitionedRequiresSecure:
+      return "eRejectedPartitionedRequiresSecure"_ns;
+    case nsICookieValidation::eRejectedHttpOnlyButFromScript:
+      return "eRejectedHttpOnlyButFromScript"_ns;
+    case nsICookieValidation::eRejectedSecureButNonHttps:
+      return "eRejectedSecureButNonHttps"_ns;
+    case nsICookieValidation::eRejectedForNonSameSiteness:
+      return "eRejectedForNonSameSiteness"_ns;
+    case nsICookieValidation::eRejectedAttributePathOversize:
+      return "eRejectedAttributePathOversize"_ns;
+    case nsICookieValidation::eRejectedAttributeDomainOversize:
+      return "eRejectedAttributeDomainOversize"_ns;
+    case nsICookieValidation::eRejectedAttributeExpiryOversize:
+      return "eRejectedAttributeExpiryOversize"_ns;
+    default:
+      return "eOK"_ns;
+  }
+}
 
 }  // namespace
 
@@ -2039,7 +2080,7 @@ void CookiePersistentStorage::InitDBConn() {
   }
 
   // We will have migrated CHIPS cookies if the pref is set, and .unset it
-  // to prevent dupliacted work. This has to happen in the main thread though,
+  // to prevent duplicated work. This has to happen in the main thread though,
   // so we waited to this point.
   if (StaticPrefs::network_cookie_CHIPS_enabled()) {
     Preferences::SetUint(
@@ -2052,6 +2093,13 @@ void CookiePersistentStorage::InitDBConn() {
     os->NotifyObservers(nullptr, "cookie-db-read", nullptr);
     mReadArray.Clear();
   }
+
+  // Let's count the valid/invalid cookies when in idle.
+  nsCOMPtr<nsIRunnable> idleRunnable = NS_NewRunnableFunction(
+      "CookiePersistentStorage::RecordValidationTelemetry",
+      [self = RefPtr{this}]() { self->RecordValidationTelemetry(); });
+  Unused << NS_DispatchToMainThreadQueue(do_AddRef(idleRunnable),
+                                         EventQueuePriority::Idle);
 }
 
 nsresult CookiePersistentStorage::InitDBConnInternal() {
@@ -2324,6 +2372,23 @@ void CookiePersistentStorage::CollectCookieJarSizeData() {
       sumPartitioned);
   mozilla::glean::networking::cookie_count_unpartitioned.AccumulateSingleSample(
       sumUnpartitioned);
+}
+
+void CookiePersistentStorage::RecordValidationTelemetry() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsTArray<RefPtr<nsICookie>> cookies;
+  GetAll(cookies);
+
+  for (nsICookie* rawCookie : cookies) {
+    Cookie* cookie = Cookie::Cast(rawCookie);
+
+    RefPtr<CookieValidation> validation =
+        CookieValidation::Validate(cookie->ToIPC());
+    mozilla::glean::networking::cookie_db_validation
+        .Get(ValidationErrorToLabel(validation->Result()))
+        .Add(1);
+  }
 }
 
 }  // namespace net

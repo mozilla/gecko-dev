@@ -319,6 +319,37 @@ networking:
       - edgul@mozilla.com
     expires: 146
 
+  cookie_db_validation:
+    type: labeled_counter
+    description: >
+      Counts cookies loaded from the DB grouped by validation result.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972513
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972513
+    notification_emails:
+      - necko@mozilla.com
+      - edgul@mozilla.com
+      - baku@mozilla.com
+    expires: 147
+    labels:
+      - eOK
+      - eRejectedEmptyNameAndValue
+      - eRejectedNameValueOversize
+      - eRejectedInvalidCharName
+      - eRejectedInvalidCharValue
+      - eRejectedInvalidPath
+      - eRejectedInvalidDomain
+      - eRejectedInvalidPrefix
+      - eRejectedNoneRequiresSecure
+      - eRejectedPartitionedRequiresSecure
+      - eRejectedHttpOnlyButFromScript
+      - eRejectedSecureButNonHttps
+      - eRejectedForNonSameSiteness
+      - eRejectedAttributePathOversize
+      - eRejectedAttributeDomainOversize
+      - eRejectedAttributeExpiryOversize
+
   sqlite_cookies_block_main_thread:
     type: timing_distribution
     time_unit: millisecond

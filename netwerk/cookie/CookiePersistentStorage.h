@@ -99,6 +99,8 @@ class CookiePersistentStorage final : public CookieStorage {
   OpenDBResult Read();
   void MoveUnpartitionedChipsCookies();
 
+  void RecordValidationTelemetry();
+
   nsresult CreateTableWorker(const char* aName);
   nsresult CreateTable();
   nsresult CreateTableForSchemaVersion6();
