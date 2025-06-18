@@ -62,7 +62,7 @@ new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.8", optional = true}
 euclid = "0.22"
 fxhash = "0.2"
-icu_segmenter = { version = "1.5", default-features = false, features = ["auto", "compiled_data"] }
+icu_segmenter = { version = "2.0", default-features = false, features = ["auto", "compiled_data"] }
 indexmap = {version = "2", features = ["std"]}
 itertools = "0.14"
 itoa = "1.0"

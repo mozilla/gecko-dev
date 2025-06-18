@@ -7,7 +7,9 @@ use std::fmt::{self, Write};
 
 use smallvec::SmallVec;
 
-use crate::hir::{paths, Ident, Method, SelfType, Slice, Type, TypeContext};
+use crate::hir::{
+    paths, Borrow, Ident, Method, SelfType, Slice, StructPath, TyPosition, Type, TypeContext,
+};
 
 use crate::hir::lifetimes::{Lifetime, Lifetimes, MaybeStatic};
 
@@ -180,8 +182,8 @@ impl<'m> BorrowingFieldVisitor<'m> {
     }
 
     /// Returns a new [`BorrowingFieldsVisitor`] corresponding to a type.
-    fn from_type(
-        ty: &'m Type,
+    fn from_type<P: TyPosition<StructPath = StructPath, OpaqueOwnership = Borrow>>(
+        ty: &'m Type<P>,
         tcx: &'m TypeContext,
         parent: ParentId,
         method_lifetimes: &Lifetimes,

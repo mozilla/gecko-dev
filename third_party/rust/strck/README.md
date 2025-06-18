@@ -10,8 +10,9 @@ are valid UTF-8.
 
 This crate abstracts the idea of type-level invariants on strings by
 introducing the immutable `Check` and `Ck` types, where the invariants
-are determined by a generic `Invariant` type parameter. Implementing
-the `Invariant` trait is left to other crates, such as [`strck_ident`].
+are determined by a generic `Invariant` type parameter. It offers
+`UnicodeIdent` and `RustIdent` `Invariant`s, which are enabled by the
+`ident` feature flag.
 
 "strck" comes from "str check", similar to how rustc has typeck and
 borrowck for type check and borrow check respectively.
@@ -43,7 +44,7 @@ The main benefit `strck` offers is validating borrowed strings via the
 `Ck` type without having to allocate in the result.
 
 ```rust
-use strck_ident::{Ck, IntoCk, rust::RustIdent};
+use strck::{Ck, IntoCk, ident::rust::RustIdent};
 
 let this_ident: &Ck<RustIdent> = "this".ck().unwrap();
 ```
@@ -55,7 +56,7 @@ checked zero-copy deserialization, which requires the
 `#[serde(borrow)]` attribute.
 
 ```rust
-use strck_ident::{Ck, unicode::UnicodeIdent};
+use strck::{Ck, ident::unicode::UnicodeIdent};
 
 #[derive(Serialize, Deserialize)]
 struct Player<'a> {
@@ -66,7 +67,7 @@ struct Player<'a> {
 ```
 
 Note that this code sample explicitly uses `Ck<UnicodeIdent>` to demonstrate
-that the type is a `Ck`. However, `strck_ident` provides `Ident` as an
+that the type is a `Ck`. However, `strck` provides `Ident` as an
 alias for `Ck<UnicodeIdent>`, which should be used in practice.
 
 
@@ -83,7 +84,7 @@ scope, the `.ck()` and `.check()` functions can be used to create
 `Ck`s and `Check`s respectively:
 
 ```rust
-use strck_ident::{IntoCheck, IntoCk, unicode::UnicodeIdent};
+use strck::{IntoCheck, IntoCk, ident::unicode::UnicodeIdent};
 
 let this_ident = "this".ck::<UnicodeIdent>().unwrap();
 let this_foo_ident = format!("{}_foo", this_ident).check::<UnicodeIdent>().unwrap();
@@ -92,8 +93,6 @@ let this_foo_ident = format!("{}_foo", this_ident).check::<UnicodeIdent>().unwra
 # Documentation
 
 See the [crate-level documentation][docs-url] for more details.
-
-[`strck_ident`]: https://docs.rs/strck_ident
 
 [github-url]: https://github.com/QnnOkabayashi/strck
 [crates-url]: https://crates.io/crates/strck

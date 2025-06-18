@@ -18,12 +18,14 @@ modules:
           methods: []
           output_only: false
           attrs: {}
+    declared_traits: {}
     sub_modules: []
     attrs: {}
   other:
     name: other
     imports: []
     declared_types: {}
+    declared_traits: {}
     sub_modules: []
     attrs: {}
 

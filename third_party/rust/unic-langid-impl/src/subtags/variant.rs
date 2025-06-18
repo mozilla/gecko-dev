@@ -13,7 +13,7 @@ impl Variant {
             return Err(ParserError::InvalidSubtag);
         }
 
-        let s = TinyStr8::from_bytes(v).map_err(|_| ParserError::InvalidSubtag)?;
+        let s = TinyStr8::try_from_utf8(v).map_err(|_| ParserError::InvalidSubtag)?;
 
         if (slen >= 5 && !s.is_ascii_alphanumeric())
             || (slen == 4
@@ -35,7 +35,7 @@ impl Variant {
     /// This function accepts any u64 that is exected to be a valid
     /// `TinyStr8` and a valid `Variant` subtag.
     pub const unsafe fn from_raw_unchecked(v: u64) -> Self {
-        Self(TinyStr8::from_bytes_unchecked(v.to_le_bytes()))
+        Self(TinyStr8::from_utf8_unchecked(v.to_le_bytes()))
     }
 }
 

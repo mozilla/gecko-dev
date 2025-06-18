@@ -45,6 +45,7 @@ assert_writeable_eq!(&message, "Hello, Alice!");
 // Types implementing `Writeable` are recommended to also implement `fmt::Display`.
 // This can be simply done by redirecting to the `Writeable` implementation:
 writeable::impl_display_with_writeable!(WelcomeMessage<'_>);
+assert_eq!(message.to_string(), "Hello, Alice!");
 ```
 
 [`ICU4X`]: ../icu/index.html

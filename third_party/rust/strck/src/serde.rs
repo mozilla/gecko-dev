@@ -48,10 +48,10 @@ impl<'de: 'a, 'a, I: Invariant> Deserialize<'de> for &'a Ck<I> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test))]
 mod tests {
+    use crate::{ident::unicode::Ident, IntoCk};
     use serde::{Deserialize, Serialize};
-    use strck_ident::{Ident, IntoCk};
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     struct Player<'a> {
@@ -69,7 +69,7 @@ mod tests {
 
         fn get() -> Player<'static> {
             let ser = r#"{"username":"qnn","level":100}"#;
-            serde_json::from_str(&ser).unwrap()
+            serde_json::from_str(ser).unwrap()
         }
 
         let de = get();

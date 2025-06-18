@@ -1,8 +1,4 @@
-use criterion::black_box;
-use criterion::criterion_group;
-use criterion::criterion_main;
-use criterion::Criterion;
-use criterion::Fun;
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use unic_langid_impl::subtags;
 use unic_langid_impl::LanguageIdentifier;
@@ -32,52 +28,41 @@ static STRINGS: &[&str] = &[
 ];
 
 fn language_identifier_construct_bench(c: &mut Criterion) {
-    let langids: Vec<LanguageIdentifier> = STRINGS
+    let mut group = c.benchmark_group("language_identifier_construct");
+
+    let slices: Vec<&[u8]> = STRINGS.iter().map(|s| s.as_bytes()).collect();
+    let langids: Vec<LanguageIdentifier> = STRINGS.iter().map(|s| s.parse().unwrap()).collect();
+    let entries: Vec<_> = langids
         .iter()
-        .map(|s| -> LanguageIdentifier { s.parse().unwrap() })
+        .cloned()
+        .map(|langid| langid.into_parts())
         .collect();
 
-    let funcs = vec![
-        Fun::new("from_str", |b, _| {
-            b.iter(|| {
-                for s in STRINGS {
-                    let _: Result<LanguageIdentifier, _> = black_box(s).parse();
-                }
-            })
-        }),
-        Fun::new("from_bytes", |b, _| {
-            let slices: Vec<&[u8]> = STRINGS.iter().map(|s| s.as_bytes()).collect();
-            b.iter(|| {
-                for s in &slices {
-                    let _ = LanguageIdentifier::from_bytes(black_box(s));
-                }
-            })
-        }),
-        Fun::new("from_parts", |b, langids: &Vec<LanguageIdentifier>| {
-            let entries: Vec<(
-                subtags::Language,
-                Option<subtags::Script>,
-                Option<subtags::Region>,
-                Vec<subtags::Variant>,
-            )> = langids
-                .iter()
-                .cloned()
-                .map(|langid| langid.into_parts())
-                .collect();
-            b.iter(|| {
-                for (language, script, region, variants) in &entries {
-                    let _ = LanguageIdentifier::from_parts(
-                        language.clone(),
-                        script.clone(),
-                        region.clone(),
-                        variants,
-                    );
-                }
-            })
-        }),
-    ];
+    group.bench_function("from_str", |b| {
+        b.iter(|| {
+            for s in STRINGS {
+                let _: Result<LanguageIdentifier, _> = black_box(s).parse();
+            }
+        })
+    });
 
-    c.bench_functions("language_identifier_construct", funcs, langids);
+    group.bench_function("from_bytes", |b| {
+        b.iter(|| {
+            for s in &slices {
+                let _ = LanguageIdentifier::from_bytes(black_box(s));
+            }
+        })
+    });
+
+    group.bench_function("from_parts", |b| {
+        b.iter(|| {
+            for (language, script, region, variants) in &entries {
+                let _ = LanguageIdentifier::from_parts(*language, *script, *region, variants);
+            }
+        })
+    });
+
+    group.finish();
 }
 
 criterion_group!(benches, language_identifier_construct_bench,);

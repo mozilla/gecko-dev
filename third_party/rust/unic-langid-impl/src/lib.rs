@@ -500,7 +500,7 @@ fn subtag_matches<P: PartialEq>(
 }
 
 fn is_option_empty<P: PartialEq>(subtag: &Option<Box<[P]>>) -> bool {
-    subtag.as_ref().map_or(true, |t| t.is_empty())
+    subtag.as_ref().is_none_or(|t| t.is_empty())
 }
 
 fn subtags_match<P: PartialEq>(

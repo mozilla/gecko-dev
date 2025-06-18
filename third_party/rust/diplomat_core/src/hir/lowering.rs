@@ -1,16 +1,17 @@
 use super::{
-    AttributeContext, AttributeValidator, Attrs, Borrow, BoundedLifetime, EnumDef, EnumPath,
-    EnumVariant, IdentBuf, IntType, Lifetime, LifetimeEnv, LifetimeLowerer, LookupId, MaybeOwn,
-    Method, NonOptional, OpaqueDef, OpaquePath, Optional, OutStructDef, OutStructField,
-    OutStructPath, OutType, Param, ParamLifetimeLowerer, ParamSelf, PrimitiveType,
-    ReturnLifetimeLowerer, ReturnType, ReturnableStructPath, SelfParamLifetimeLowerer, SelfType,
-    Slice, SpecialMethod, SpecialMethodPresence, StructDef, StructField, StructPath, SuccessType,
-    Type, TypeDef, TypeId,
+    AttributeContext, AttributeValidator, Attrs, Borrow, BoundedLifetime, Callback, CallbackParam,
+    EnumDef, EnumPath, EnumVariant, Everywhere, IdentBuf, InputOnly, IntType, Lifetime,
+    LifetimeEnv, LifetimeLowerer, LookupId, MaybeOwn, Method, NonOptional, OpaqueDef, OpaquePath,
+    Optional, OutStructDef, OutStructField, OutStructPath, OutType, Param, ParamLifetimeLowerer,
+    ParamSelf, PrimitiveType, ReturnLifetimeLowerer, ReturnType, ReturnableStructPath,
+    SelfParamLifetimeLowerer, SelfType, Slice, SpecialMethod, SpecialMethodPresence, StructDef,
+    StructField, StructPath, SuccessType, SymbolId, TraitDef, TraitParamSelf, TraitPath,
+    TyPosition, Type, TypeDef, TypeId,
 };
 use crate::ast::attrs::AttrInheritContext;
 use crate::{ast, Env};
 use core::fmt;
-use strck_ident::IntoCk;
+use strck::IntoCk;
 
 /// An error from lowering the AST to the HIR.
 #[derive(Debug)]
@@ -104,6 +105,7 @@ pub(super) struct LoweringContext<'ast> {
     pub errors: ErrorStore<'ast>,
     pub env: &'ast Env,
     pub attr_validator: Box<dyn AttributeValidator>,
+    pub cfg: super::LoweringConfig,
 }
 
 /// An item and the info needed to
@@ -115,7 +117,7 @@ pub(crate) struct ItemAndInfo<'ast, Ast> {
 
     /// Any parent attributes resolved from the module, for a method context
     pub(crate) method_parent_attrs: Attrs,
-    pub(crate) id: TypeId,
+    pub(crate) id: SymbolId,
 }
 
 impl<'ast> LoweringContext<'ast> {
@@ -178,9 +180,15 @@ impl<'ast> LoweringContext<'ast> {
     }
     pub(super) fn lower_all_opaques(
         &mut self,
-        ast_defs: impl ExactSizeIterator<Item = ItemAndInfo<'ast, ast::OpaqueStruct>>,
+        ast_defs: impl ExactSizeIterator<Item = ItemAndInfo<'ast, ast::OpaqueType>>,
     ) -> Result<Vec<OpaqueDef>, ()> {
         self.lower_all(ast_defs, Self::lower_opaque)
+    }
+    pub(super) fn lower_all_traits(
+        &mut self,
+        ast_defs: impl ExactSizeIterator<Item = ItemAndInfo<'ast, ast::Trait>>,
+    ) -> Result<Vec<TraitDef>, ()> {
+        self.lower_all(ast_defs, Self::lower_trait)
     }
 
     fn lower_enum(&mut self, item: ItemAndInfo<'ast, ast::Enum>) -> Result<EnumDef, ()> {
@@ -227,7 +235,7 @@ impl<'ast> LoweringContext<'ast> {
                 &ast_enum.methods[..],
                 item.in_path,
                 &item.method_parent_attrs,
-                item.id,
+                item.id.try_into()?,
                 &mut special_method_presence,
             )?
         };
@@ -250,13 +258,11 @@ impl<'ast> LoweringContext<'ast> {
         Ok(def)
     }
 
-    fn lower_opaque(
-        &mut self,
-        item: ItemAndInfo<'ast, ast::OpaqueStruct>,
-    ) -> Result<OpaqueDef, ()> {
+    fn lower_opaque(&mut self, item: ItemAndInfo<'ast, ast::OpaqueType>) -> Result<OpaqueDef, ()> {
         let ast_opaque = item.item;
         self.errors.set_item(ast_opaque.name.as_str());
         let name = self.lower_ident(&ast_opaque.name, "opaque name");
+        let dtor_abi_name = self.lower_ident(&ast_opaque.dtor_abi_name, "opaque dtor abi name");
 
         let attrs = self.attr_validator.attr_from_ast(
             &ast_opaque.attrs,
@@ -271,7 +277,7 @@ impl<'ast> LoweringContext<'ast> {
                 &ast_opaque.methods[..],
                 item.in_path,
                 &item.method_parent_attrs,
-                item.id,
+                item.id.try_into()?,
                 &mut special_method_presence,
             )?
         };
@@ -284,6 +290,7 @@ impl<'ast> LoweringContext<'ast> {
             attrs,
             lifetimes?,
             special_method_presence,
+            dtor_abi_name?,
         );
         self.attr_validator.validate(
             &def.attrs,
@@ -296,55 +303,80 @@ impl<'ast> LoweringContext<'ast> {
     fn lower_struct(&mut self, item: ItemAndInfo<'ast, ast::Struct>) -> Result<StructDef, ()> {
         let ast_struct = item.item;
         self.errors.set_item(ast_struct.name.as_str());
-        let name = self.lower_ident(&ast_struct.name, "struct name");
+        let struct_name = self.lower_ident(&ast_struct.name, "struct name")?;
 
-        let fields = if ast_struct.fields.is_empty() {
-            self.errors.push(LoweringError::Other(format!(
-                "struct `{}` is a ZST because it has no fields",
-                ast_struct.name
-            )));
-            Err(())
-        } else {
-            let mut fields = Ok(Vec::with_capacity(ast_struct.fields.len()));
+        let mut fields = Ok(Vec::with_capacity(ast_struct.fields.len()));
 
-            for (name, ty, docs) in ast_struct.fields.iter() {
-                let name = self.lower_ident(name, "struct field name");
-                let ty = self.lower_type(ty, &mut &ast_struct.lifetimes, item.in_path);
-
-                match (name, ty, &mut fields) {
-                    (Ok(name), Ok(ty), Ok(fields)) => fields.push(StructField {
-                        docs: docs.clone(),
-                        name,
-                        ty,
-                    }),
-                    _ => fields = Err(()),
-                }
-            }
-
-            fields
-        };
         let attrs = self.attr_validator.attr_from_ast(
             &ast_struct.attrs,
             &item.ty_parent_attrs,
             &mut self.errors,
         );
+        // Only compute fields if the type isn't disabled, otherwise we may encounter forbidden types
+        if !attrs.disable {
+            for (name, ty, docs, attrs) in ast_struct.fields.iter() {
+                let name = self.lower_ident(name, "struct field name")?;
+                if !ty.is_ffi_safe() {
+                    let ffisafe = ty.ffi_safe_version();
+                    self.errors.push(LoweringError::Other(format!(
+                        "Found FFI-unsafe type {ty} in struct field {struct_name}.{name}, consider using {ffisafe}",
+                    )));
+                }
+                let ty = self.lower_type::<Everywhere>(
+                    ty,
+                    &mut &ast_struct.lifetimes,
+                    false,
+                    item.in_path,
+                );
+
+                let field_attrs =
+                    self.attr_validator
+                        .attr_from_ast(attrs, &Attrs::default(), &mut self.errors);
+
+                self.attr_validator.validate(
+                    &field_attrs,
+                    AttributeContext::Field,
+                    &mut self.errors,
+                );
+
+                match (ty, &mut fields) {
+                    (Ok(ty), Ok(fields)) => fields.push(StructField {
+                        docs: docs.clone(),
+                        name,
+                        ty,
+                        attrs: field_attrs,
+                    }),
+                    _ => fields = Err(()),
+                }
+            }
+        }
         let lifetimes = self.lower_type_lifetime_env(&ast_struct.lifetimes);
 
         let mut special_method_presence = SpecialMethodPresence::default();
         let methods = if attrs.disable {
             Vec::new()
+        } else if ast_struct.fields.is_empty() {
+            if !ast_struct.methods.is_empty() {
+                self.errors.push(LoweringError::Other(format!(
+                    "Methods on ZST structs are not yet implemented: {}",
+                    ast_struct.name
+                )));
+                return Err(());
+            } else {
+                Vec::new()
+            }
         } else {
             self.lower_all_methods(
                 &ast_struct.methods[..],
                 item.in_path,
                 &item.method_parent_attrs,
-                item.id,
+                item.id.try_into()?,
                 &mut special_method_presence,
             )?
         };
         let def = StructDef::new(
             ast_struct.docs.clone(),
-            name?,
+            struct_name,
             fields?,
             methods,
             attrs,
@@ -360,6 +392,88 @@ impl<'ast> LoweringContext<'ast> {
         Ok(def)
     }
 
+    fn lower_trait(&mut self, item: ItemAndInfo<'ast, ast::Trait>) -> Result<TraitDef, ()> {
+        let ast_trait = item.item;
+        self.errors.set_item(ast_trait.name.as_str());
+        let trait_name = self.lower_ident(&ast_trait.name, "trait name")?;
+
+        let attrs = self.attr_validator.attr_from_ast(
+            &ast_trait.attrs,
+            &item.ty_parent_attrs,
+            &mut self.errors,
+        );
+
+        if ast_trait.is_send && !self.attr_validator.attrs_supported().traits_are_send {
+            self.errors.push(LoweringError::Other(
+                "Traits are not safe to std::marker::Send in this backend".into(),
+            ));
+        }
+        if ast_trait.is_sync && !self.attr_validator.attrs_supported().traits_are_sync {
+            self.errors.push(LoweringError::Other(
+                "Traits are not safe to std::marker::Send in this backend".into(),
+            ));
+        }
+
+        let fcts = if attrs.disable {
+            Vec::new()
+        } else {
+            let mut fcts = Vec::with_capacity(ast_trait.methods.len());
+            for ast_trait_method in ast_trait.methods.iter() {
+                fcts.push(self.lower_trait_method(ast_trait_method, item.in_path, &attrs)?);
+            }
+            fcts
+        };
+        let lifetimes = self.lower_type_lifetime_env(&ast_trait.lifetimes);
+        let def = TraitDef::new(ast_trait.docs.clone(), trait_name, fcts, attrs, lifetimes?);
+
+        self.attr_validator
+            .validate(&def.attrs, AttributeContext::Trait(&def), &mut self.errors);
+        Ok(def)
+    }
+
+    fn lower_trait_method(
+        &mut self,
+        ast_trait_method: &'ast ast::TraitMethod,
+        in_path: &ast::Path,
+        parent_trait_attrs: &Attrs,
+    ) -> Result<Callback, ()> {
+        self.errors.set_subitem(ast_trait_method.name.as_str());
+        let name = ast_trait_method.name.clone();
+        let self_param_ltl = SelfParamLifetimeLowerer::new(&ast_trait_method.lifetimes, self)?;
+        let (param_self, mut param_ltl) =
+            if let Some(self_param) = ast_trait_method.self_param.as_ref() {
+                let (param_self, param_ltl) =
+                    self.lower_trait_self_param(self_param, self_param_ltl, in_path)?;
+                (Some(param_self), param_ltl)
+            } else {
+                (None, SelfParamLifetimeLowerer::no_self_ref(self_param_ltl))
+            };
+
+        let params =
+            self.lower_many_callback_params(&ast_trait_method.params, &mut param_ltl, in_path)?;
+
+        let output = if let Some(out_ty) = &ast_trait_method.output_type {
+            Some(self.lower_type(out_ty, &mut param_ltl, false /* in_struct */, in_path)?)
+        } else {
+            None
+        };
+
+        let attrs = self.attr_validator.attr_from_ast(
+            &ast_trait_method.attrs,
+            parent_trait_attrs,
+            &mut self.errors,
+        );
+
+        Ok(Callback {
+            param_self,
+            params,
+            output: Box::new(output),
+            name: Some(self.lower_ident(&name, "trait name")?),
+            attrs: Some(attrs),
+            docs: Some(ast_trait_method.docs.clone()),
+        })
+    }
+
     fn lower_out_struct(
         &mut self,
         item: ItemAndInfo<'ast, ast::Struct>,
@@ -368,6 +482,11 @@ impl<'ast> LoweringContext<'ast> {
         self.errors.set_item(ast_out_struct.name.as_str());
         let name = self.lower_ident(&ast_out_struct.name, "out-struct name");
 
+        let attrs = self.attr_validator.attr_from_ast(
+            &ast_out_struct.attrs,
+            &item.ty_parent_attrs,
+            &mut self.errors,
+        );
         let fields = if ast_out_struct.fields.is_empty() {
             self.errors.push(LoweringError::Other(format!(
                 "struct `{}` is a ZST because it has no fields",
@@ -376,29 +495,36 @@ impl<'ast> LoweringContext<'ast> {
             Err(())
         } else {
             let mut fields = Ok(Vec::with_capacity(ast_out_struct.fields.len()));
-
-            for (name, ty, docs) in ast_out_struct.fields.iter() {
-                let name = self.lower_ident(name, "out-struct field name");
-                let ty =
-                    self.lower_out_type(ty, &mut &ast_out_struct.lifetimes, item.in_path, true);
-
-                match (name, ty, &mut fields) {
-                    (Ok(name), Ok(ty), Ok(fields)) => fields.push(OutStructField {
-                        docs: docs.clone(),
-                        name,
+            // Only compute fields if the type isn't disabled, otherwise we may encounter forbidden types
+            if !attrs.disable {
+                for (name, ty, docs, attrs) in ast_out_struct.fields.iter() {
+                    let name = self.lower_ident(name, "out-struct field name");
+                    let ty = self.lower_out_type(
                         ty,
-                    }),
-                    _ => fields = Err(()),
+                        &mut &ast_out_struct.lifetimes,
+                        item.in_path,
+                        true,
+                        false,
+                    );
+
+                    match (name, ty, &mut fields) {
+                        (Ok(name), Ok(ty), Ok(fields)) => fields.push(OutStructField {
+                            docs: docs.clone(),
+                            name,
+                            ty,
+                            attrs: self.attr_validator.attr_from_ast(
+                                attrs,
+                                &Attrs::default(),
+                                &mut self.errors,
+                            ),
+                        }),
+                        _ => fields = Err(()),
+                    }
                 }
             }
 
             fields
         };
-        let attrs = self.attr_validator.attr_from_ast(
-            &ast_out_struct.attrs,
-            &item.ty_parent_attrs,
-            &mut self.errors,
-        );
         let mut special_method_presence = SpecialMethodPresence::default();
         let methods = if attrs.disable {
             Vec::new()
@@ -407,7 +533,7 @@ impl<'ast> LoweringContext<'ast> {
                 &ast_out_struct.methods[..],
                 item.in_path,
                 &item.method_parent_attrs,
-                item.id,
+                item.id.try_into()?,
                 &mut special_method_presence,
             )?
         };
@@ -438,15 +564,14 @@ impl<'ast> LoweringContext<'ast> {
         &mut self,
         method: &'ast ast::Method,
         in_path: &ast::Path,
-        method_parent_attrs: &Attrs,
+        attrs: Attrs,
         self_id: TypeId,
         special_method_presence: &mut SpecialMethodPresence,
     ) -> Result<Method, ()> {
-        self.errors.set_subitem(method.name.as_str());
         let name = self.lower_ident(&method.name, "method name");
 
-        let (ast_params, takes_writeable) = match method.params.split_last() {
-            Some((last, remaining)) if last.is_writeable() => (remaining, true),
+        let (ast_params, takes_write) = match method.params.split_last() {
+            Some((last, remaining)) if last.is_write() => (remaining, true),
             _ => (&method.params[..], false),
         };
 
@@ -454,7 +579,7 @@ impl<'ast> LoweringContext<'ast> {
 
         let (param_self, param_ltl) = if let Some(self_param) = method.self_param.as_ref() {
             let (param_self, param_ltl) =
-                self.lower_self_param(self_param, self_param_ltl, &method.full_path_name, in_path)?;
+                self.lower_self_param(self_param, self_param_ltl, &method.abi_name, in_path)?;
             (Some(param_self), param_ltl)
         } else {
             (None, SelfParamLifetimeLowerer::no_self_ref(self_param_ltl))
@@ -464,18 +589,16 @@ impl<'ast> LoweringContext<'ast> {
 
         let (output, lifetime_env) = self.lower_return_type(
             method.return_type.as_ref(),
-            takes_writeable,
+            takes_write,
             return_ltl,
             in_path,
         )?;
 
-        let attrs =
-            self.attr_validator
-                .attr_from_ast(&method.attrs, method_parent_attrs, &mut self.errors);
-
+        let abi_name = self.lower_ident(&method.abi_name, "method abi name")?;
         let hir_method = Method {
             docs: method.docs.clone(),
             name: name?,
+            abi_name,
             lifetime_env,
             param_self,
             params,
@@ -516,17 +639,37 @@ impl<'ast> LoweringContext<'ast> {
     ) -> Result<Vec<Method>, ()> {
         let mut methods = Ok(Vec::with_capacity(ast_methods.len()));
 
+        let mut has_unnamed_constructor = false;
         for method in ast_methods {
-            let method = self.lower_method(
-                method,
-                in_path,
+            self.errors.set_subitem(method.name.as_str());
+            let attrs = self.attr_validator.attr_from_ast(
+                &method.attrs,
                 method_parent_attrs,
-                self_id,
-                special_method_presence,
+                &mut self.errors,
             );
+            if attrs.disable {
+                continue;
+            }
+            let method =
+                self.lower_method(method, in_path, attrs, self_id, special_method_presence);
             match (method, &mut methods) {
                 (Ok(method), Ok(methods)) => {
-                    methods.push(method);
+                    if matches!(
+                        method.attrs.special_method,
+                        Some(SpecialMethod::Constructor)
+                    ) {
+                        if !has_unnamed_constructor {
+                            methods.push(method);
+                            has_unnamed_constructor = true;
+                        } else {
+                            self.errors.push(LoweringError::Other(format!(
+                                "At most one unnamed constructor is allowed, see https://github.com/rust-diplomat/diplomat/issues/234 if you need overloading (extra abi_name: {})",
+                                method.abi_name.as_str()
+                            )));
+                        }
+                    } else {
+                        methods.push(method);
+                    }
                 }
                 _ => methods = Err(()),
             }
@@ -535,53 +678,76 @@ impl<'ast> LoweringContext<'ast> {
         methods
     }
 
-    /// Lowers an [`ast::TypeName`]s into a [`hir::Type`].
+    /// Lowers an [`ast::TypeName`]s into a [`hir::Type`] (for non-output types)
     ///
     /// If there are any errors, they're pushed to `errors` and `None` is returned.
-    fn lower_type(
+    fn lower_type<P: TyPosition<StructPath = StructPath, OpaqueOwnership = Borrow>>(
         &mut self,
         ty: &ast::TypeName,
         ltl: &mut impl LifetimeLowerer,
+        in_struct: bool,
         in_path: &ast::Path,
-    ) -> Result<Type, ()> {
+    ) -> Result<Type<P>, ()> {
         match ty {
             ast::TypeName::Primitive(prim) => Ok(Type::Primitive(PrimitiveType::from_ast(*prim))),
             ast::TypeName::Ordering => {
                 self.errors.push(LoweringError::Other("Found cmp::Ordering in parameter or struct field, it is only allowed in return types".to_string()));
                 Err(())
             }
-            ast::TypeName::Named(path) | ast::TypeName::SelfType(path) => {
-                match path.resolve(in_path, self.env) {
-                    ast::CustomType::Struct(strct) => {
-                        if let Some(tcx_id) = self.lookup_id.resolve_struct(strct) {
-                            let lifetimes = ltl.lower_generics(
-                                &path.lifetimes[..],
-                                &strct.lifetimes,
-                                ty.is_self(),
-                            );
-
-                            Ok(Type::Struct(StructPath::new(lifetimes, tcx_id)))
-                        } else if self.lookup_id.resolve_out_struct(strct).is_some() {
-                            self.errors.push(LoweringError::Other(format!("found struct in input that is marked with #[diplomat::out]: {ty} in {path}")));
-                            Err(())
-                        } else {
-                            unreachable!("struct `{}` wasn't found in the set of structs or out-structs, this is a bug.", strct.name);
-                        }
-                    }
-                    ast::CustomType::Opaque(_) => {
+            ast::TypeName::Named(path) | ast::TypeName::SelfType(path) => match path
+                .resolve(in_path, self.env)
+            {
+                ast::CustomType::Struct(strct) => {
+                    if strct.fields.is_empty() {
                         self.errors.push(LoweringError::Other(format!(
-                            "Opaque passed by value: {path}"
+                            "zero-size types are not allowed as method arguments: {ty} in {path}"
                         )));
-                        Err(())
+                        return Err(());
                     }
-                    ast::CustomType::Enum(enm) => {
-                        let tcx_id = self.lookup_id.resolve_enum(enm).expect(
-                            "can't find enum in lookup map, which contains all enums from env",
-                        );
+                    if let Some(tcx_id) = self.lookup_id.resolve_struct(strct) {
+                        let lifetimes =
+                            ltl.lower_generics(&path.lifetimes[..], &strct.lifetimes, ty.is_self());
 
-                        Ok(Type::Enum(EnumPath::new(tcx_id)))
+                        Ok(Type::Struct(StructPath::new(lifetimes, tcx_id)))
+                    } else if self.lookup_id.resolve_out_struct(strct).is_some() {
+                        self.errors.push(LoweringError::Other(format!("found struct in input that is marked with #[diplomat::out]: {ty} in {path}")));
+                        Err(())
+                    } else {
+                        unreachable!("struct `{}` wasn't found in the set of structs or out-structs, this is a bug.", strct.name);
                     }
                 }
+                ast::CustomType::Opaque(_) => {
+                    self.errors.push(LoweringError::Other(format!(
+                        "Opaque passed by value: {path}"
+                    )));
+                    Err(())
+                }
+                ast::CustomType::Enum(enm) => {
+                    let tcx_id = self
+                        .lookup_id
+                        .resolve_enum(enm)
+                        .expect("can't find enum in lookup map, which contains all enums from env");
+
+                    Ok(Type::Enum(EnumPath::new(tcx_id)))
+                }
+            },
+            ast::TypeName::ImplTrait(path) => {
+                if !self.attr_validator.attrs_supported().traits {
+                    self.errors.push(LoweringError::Other(
+                        "Traits are not supported by this backend".into(),
+                    ));
+                }
+                let trt = path.resolve_trait(in_path, self.env);
+                let tcx_id = self
+                    .lookup_id
+                    .resolve_trait(&trt)
+                    .expect("can't find trait in lookup map, which contains all traits from env");
+                let lifetimes =
+                    ltl.lower_generics(&path.lifetimes[..], &trt.lifetimes, ty.is_self());
+
+                Ok(Type::ImplTrait(P::build_trait_path(TraitPath::new(
+                    lifetimes, tcx_id,
+                ))))
             }
             ast::TypeName::Reference(lifetime, mutability, ref_ty) => match ref_ty.as_ref() {
                 ast::TypeName::Named(path) | ast::TypeName::SelfType(path) => {
@@ -627,7 +793,7 @@ impl<'ast> LoweringContext<'ast> {
             });
                 Err(())
             }
-            ast::TypeName::Option(opt_ty) => {
+            ast::TypeName::Option(opt_ty, stdlib) => {
                 match opt_ty.as_ref() {
                     ast::TypeName::Reference(lifetime, mutability, ref_ty) => match ref_ty.as_ref()
                     {
@@ -635,6 +801,10 @@ impl<'ast> LoweringContext<'ast> {
                             .resolve(in_path, self.env)
                         {
                             ast::CustomType::Opaque(opaque) => {
+                                if *stdlib == ast::StdlibOrDiplomat::Diplomat {
+                                    self.errors.push(LoweringError::Other("found DiplomatOption<&T>, please use Option<&T> (DiplomatOption is for primitives, structs, and enums)".to_string()));
+                                    return Err(());
+                                }
                                 let borrow = Borrow::new(ltl.lower_lifetime(lifetime), *mutability);
                                 let lifetimes = ltl.lower_generics(
                                     &path.lifetimes,
@@ -662,6 +832,47 @@ impl<'ast> LoweringContext<'ast> {
                             Err(())
                         }
                     },
+                    ast::TypeName::Named(path) | ast::TypeName::SelfType(path) => {
+                        match path.resolve(in_path, self.env) {
+                            ast::CustomType::Opaque(_) => {
+                                self.errors.push(LoweringError::Other("Found Option<T> where T is opaque, opaque types must be behind a reference".into()));
+                                Err(())
+                            }
+                            _ => {
+                                if in_struct && *stdlib == ast::StdlibOrDiplomat::Stdlib {
+                                    self.errors.push(LoweringError::Other("Found Option<T> for struct/enum T in a struct field, please use DiplomatOption<T>".into()));
+                                    return Err(());
+                                }
+                                if !self.attr_validator.attrs_supported().option {
+                                    self.errors.push(LoweringError::Other("Options of structs/enums/primitives not supported by this backend".into()));
+                                }
+                                let inner = self.lower_type(opt_ty, ltl, in_struct, in_path)?;
+                                Ok(Type::DiplomatOption(Box::new(inner)))
+                            }
+                        }
+                    }
+                    ast::TypeName::Primitive(prim) => {
+                        if in_struct && *stdlib == ast::StdlibOrDiplomat::Stdlib {
+                            self.errors.push(LoweringError::Other("Found Option<T> for primitive T in a struct field, please use DiplomatOption<T>".into()));
+                            return Err(());
+                        }
+                        if !self.attr_validator.attrs_supported().option {
+                            self.errors.push(LoweringError::Other(
+                                "Options of structs/enums/primitives not supported by this backend"
+                                    .into(),
+                            ));
+                        }
+                        Ok(Type::DiplomatOption(Box::new(Type::Primitive(
+                            PrimitiveType::from_ast(*prim),
+                        ))))
+                    }
+                    ast::TypeName::StrSlice(encoding, _stdlib) => Ok(Type::DiplomatOption(
+                        Box::new(Type::Slice(Slice::Strs(*encoding))),
+                    )),
+                    ast::TypeName::StrReference(..) | ast::TypeName::PrimitiveSlice(..) => {
+                        let inner = self.lower_type(opt_ty, ltl, in_struct, in_path)?;
+                        Ok(Type::DiplomatOption(Box::new(inner)))
+                    }
                     ast::TypeName::Box(box_ty) => {
                         // we could see whats in the box here too
                         self.errors.push(LoweringError::Other(format!("found Option<Box<T>> in input, but box isn't allowed in inputs. T = {box_ty}")));
@@ -679,22 +890,75 @@ impl<'ast> LoweringContext<'ast> {
                 ));
                 Err(())
             }
-            ast::TypeName::Writeable => {
+            ast::TypeName::Write => {
                 self.errors.push(LoweringError::Other(
-                    "Writeables can only appear as the last parameter of a method".into(),
+                    "DiplomatWrite can only appear as the last parameter of a method".into(),
                 ));
                 Err(())
             }
-            ast::TypeName::StrReference(lifetime, encoding) => Ok(Type::Slice(Slice::Str(
-                lifetime.as_ref().map(|lt| ltl.lower_lifetime(lt)),
-                *encoding,
-            ))),
-            ast::TypeName::StrSlice(encoding) => Ok(Type::Slice(Slice::Strs(*encoding))),
-            ast::TypeName::PrimitiveSlice(lm, prim) => Ok(Type::Slice(Slice::Primitive(
-                lm.as_ref()
-                    .map(|(lt, m)| Borrow::new(ltl.lower_lifetime(lt), *m)),
-                PrimitiveType::from_ast(*prim),
-            ))),
+            ast::TypeName::StrReference(lifetime, encoding, _stdlib) => {
+                let new_lifetime = lifetime.as_ref().map(|lt| ltl.lower_lifetime(lt));
+                if let Some(super::MaybeStatic::Static) = new_lifetime {
+                    if !self.attr_validator.attrs_supported().static_slices {
+                        self.errors.push(LoweringError::Other(
+                            "'static string slice types are not supported. Try #[diplomat::attr(not(supports = static_slices), disable)]".into()
+                        ));
+                    }
+                }
+                Ok(Type::Slice(Slice::Str(new_lifetime, *encoding)))
+            }
+            ast::TypeName::StrSlice(encoding, _stdlib) => Ok(Type::Slice(Slice::Strs(*encoding))),
+            ast::TypeName::PrimitiveSlice(lm, prim, _stdlib) => {
+                let new_lifetime = lm
+                    .as_ref()
+                    .map(|(lt, m)| Borrow::new(ltl.lower_lifetime(lt), *m));
+
+                if let Some(b) = new_lifetime {
+                    if let super::MaybeStatic::Static = b.lifetime {
+                        if !self.attr_validator.attrs_supported().static_slices {
+                            self.errors.push(LoweringError::Other(
+                                format!("'static {prim:?} slice types not supported. Try #[diplomat::attr(not(supports = static_slices), disable)]")
+                            ));
+                        }
+                    }
+                }
+
+                Ok(Type::Slice(Slice::Primitive(
+                    new_lifetime,
+                    PrimitiveType::from_ast(*prim),
+                )))
+            }
+            ast::TypeName::Function(input_types, out_type, _mutability) => {
+                if !self.attr_validator.attrs_supported().callbacks {
+                    self.errors.push(LoweringError::Other(
+                        "Callback arguments are not supported by this backend".into(),
+                    ));
+                }
+                if in_struct {
+                    self.errors.push(LoweringError::Other(
+                        "Callbacks currently unsupported in structs".into(),
+                    ));
+                    return Err(());
+                }
+                let mut params: Vec<CallbackParam> = Vec::new();
+                for in_ty in input_types.iter() {
+                    let param =
+                        self.lower_callback_param(/* anonymous */ None, in_ty, ltl, in_path)?;
+
+                    params.push(param)
+                }
+                Ok(Type::Callback(P::build_callback(Callback {
+                    param_self: None,
+                    params,
+                    output: Box::new(match **out_type {
+                        ast::TypeName::Unit => None,
+                        _ => Some(self.lower_type(out_type, ltl, in_struct, in_path)?),
+                    }),
+                    name: None,
+                    attrs: None,
+                    docs: None,
+                })))
+            }
             ast::TypeName::Unit => {
                 self.errors.push(LoweringError::Other("Unit types can only appear as the return value of a method, or as the Ok/Err variants of a returned result".into()));
                 Err(())
@@ -711,6 +975,7 @@ impl<'ast> LoweringContext<'ast> {
         ltl: &mut impl LifetimeLowerer,
         in_path: &ast::Path,
         in_struct: bool,
+        in_result_option: bool,
     ) -> Result<OutType, ()> {
         match ty {
             ast::TypeName::Primitive(prim) => {
@@ -730,6 +995,10 @@ impl<'ast> LoweringContext<'ast> {
             ast::TypeName::Named(path) | ast::TypeName::SelfType(path) => {
                 match path.resolve(in_path, self.env) {
                     ast::CustomType::Struct(strct) => {
+                        if !in_result_option && strct.fields.is_empty() {
+                            self.errors.push(LoweringError::Other(format!("Found zero-size struct outside a `Result` or `Option`: {ty} in {in_path}")));
+                            return Err(());
+                        }
                         let lifetimes =
                             ltl.lower_generics(&path.lifetimes, &strct.lifetimes, ty.is_self());
 
@@ -788,7 +1057,7 @@ impl<'ast> LoweringContext<'ast> {
                     }
                 }
                 _ => {
-                    self.errors.push(LoweringError::Other(format!("found &T in output where T isn't a custom type and therefore not opaque. T = {ref_ty}")));
+                    self.errors.push(LoweringError::Other(format!("found &T in output where T isn't a custom type and therefore not opaque. T = {ref_ty}, path = {:?}", in_path)));
                     Err(())
                 }
             },
@@ -825,11 +1094,15 @@ impl<'ast> LoweringContext<'ast> {
                     Err(())
                 }
             },
-            ast::TypeName::Option(opt_ty) => match opt_ty.as_ref() {
+            ast::TypeName::Option(opt_ty, stdlib) => match opt_ty.as_ref() {
                 ast::TypeName::Reference(lifetime, mutability, ref_ty) => match ref_ty.as_ref() {
                     ast::TypeName::Named(path) | ast::TypeName::SelfType(path) => {
                         match path.resolve(in_path, self.env) {
                             ast::CustomType::Opaque(opaque) => {
+                                if *stdlib == ast::StdlibOrDiplomat::Diplomat {
+                                    self.errors.push(LoweringError::Other("found DiplomatOption<&T>, please use Option<&T> (DiplomatOption is for primitives, structs, and enums)".to_string()));
+                                    return Err(());
+                                }
                                 let borrow = Borrow::new(ltl.lower_lifetime(lifetime), *mutability);
                                 let lifetimes = ltl.lower_generics(
                                     &path.lifetimes,
@@ -862,6 +1135,10 @@ impl<'ast> LoweringContext<'ast> {
                     ast::TypeName::Named(path) | ast::TypeName::SelfType(path) => {
                         match path.resolve(in_path, self.env) {
                             ast::CustomType::Opaque(opaque) => {
+                                if *stdlib == ast::StdlibOrDiplomat::Diplomat {
+                                    self.errors.push(LoweringError::Other("found DiplomatOption<Box<T>>, please use Option<Box<T>> (DiplomatOption is for primitives, structs, and enums)".to_string()));
+                                    return Err(());
+                                }
                                 let lifetimes = ltl.lower_generics(
                                     &path.lifetimes,
                                     &opaque.lifetimes,
@@ -889,6 +1166,41 @@ impl<'ast> LoweringContext<'ast> {
                         Err(())
                     }
                 },
+                ast::TypeName::Named(path) | ast::TypeName::SelfType(path) => {
+                    match path.resolve(in_path, self.env) {
+                        ast::CustomType::Opaque(_) => {
+                            self.errors.push(LoweringError::Other("Found Option<T> where T is opaque, opaque types must be behind a reference".into()));
+                            Err(())
+                        }
+                        _ => {
+                            if in_struct && *stdlib == ast::StdlibOrDiplomat::Stdlib {
+                                self.errors.push(LoweringError::Other("Found Option<T> for struct/enum T in a struct field, please use DiplomatOption<T>".into()));
+                                return Err(());
+                            }
+                            if !self.attr_validator.attrs_supported().option {
+                                self.errors.push(LoweringError::Other("Options of structs/enums/primitives not supported by this backend".into()));
+                            }
+                            let inner =
+                                self.lower_out_type(opt_ty, ltl, in_path, in_struct, true)?;
+                            Ok(Type::DiplomatOption(Box::new(inner)))
+                        }
+                    }
+                }
+                ast::TypeName::Primitive(prim) => {
+                    if in_struct && *stdlib == ast::StdlibOrDiplomat::Stdlib {
+                        self.errors.push(LoweringError::Other("Found Option<T> for primitive T in a struct field, please use DiplomatOption<T>".into()));
+                        return Err(());
+                    }
+                    if !self.attr_validator.attrs_supported().option {
+                        self.errors.push(LoweringError::Other(
+                            "Options of structs/enums/primitives not supported by this backend"
+                                .into(),
+                        ));
+                    }
+                    Ok(Type::DiplomatOption(Box::new(Type::Primitive(
+                        PrimitiveType::from_ast(*prim),
+                    ))))
+                }
                 _ => {
                     self.errors.push(LoweringError::Other(format!("found Option<T>, where T isn't a reference but Option<T> requires that T is a reference to an opaque. T = {opt_ty}")));
                     Err(())
@@ -900,29 +1212,48 @@ impl<'ast> LoweringContext<'ast> {
                 ));
                 Err(())
             }
-            ast::TypeName::Writeable => {
+            ast::TypeName::Write => {
                 self.errors.push(LoweringError::Other(
-                    "Writeables can only appear as the last parameter of a method".into(),
+                    "DiplomatWrite can only appear as the last parameter of a method".into(),
                 ));
                 Err(())
             }
-            ast::TypeName::StrReference(lifetime, encoding) => Ok(OutType::Slice(Slice::Str(
-                lifetime.as_ref().map(|l| ltl.lower_lifetime(l)),
-                *encoding,
-            ))),
-            ast::TypeName::StrSlice(..) => {
+            ast::TypeName::PrimitiveSlice(None, _, _stdlib)
+            | ast::TypeName::StrReference(None, _, _stdlib) => {
+                self.errors.push(LoweringError::Other(
+                    "Owned slices cannot be returned".into(),
+                ));
+                Err(())
+            }
+            ast::TypeName::StrReference(Some(l), encoding, _stdlib) => Ok(OutType::Slice(
+                Slice::Str(Some(ltl.lower_lifetime(l)), *encoding),
+            )),
+            ast::TypeName::StrSlice(.., _stdlib) => {
                 self.errors.push(LoweringError::Other(
                     "String slices can only be an input type".into(),
                 ));
                 Err(())
             }
-            ast::TypeName::PrimitiveSlice(lm, prim) => Ok(OutType::Slice(Slice::Primitive(
-                lm.as_ref()
-                    .map(|(lt, m)| Borrow::new(ltl.lower_lifetime(lt), *m)),
-                PrimitiveType::from_ast(*prim),
-            ))),
+            ast::TypeName::PrimitiveSlice(Some((lt, m)), prim, _stdlib) => {
+                Ok(OutType::Slice(Slice::Primitive(
+                    Some(Borrow::new(ltl.lower_lifetime(lt), *m)),
+                    PrimitiveType::from_ast(*prim),
+                )))
+            }
             ast::TypeName::Unit => {
                 self.errors.push(LoweringError::Other("Unit types can only appear as the return value of a method, or as the Ok/Err variants of a returned result".into()));
+                Err(())
+            }
+            ast::TypeName::Function(..) => {
+                self.errors.push(LoweringError::Other(
+                    "Function types can only be an input type".into(),
+                ));
+                Err(())
+            }
+            ast::TypeName::ImplTrait(_) => {
+                self.errors.push(LoweringError::Other(
+                    "Trait impls can only be an input type".into(),
+                ));
                 Err(())
             }
         }
@@ -956,11 +1287,23 @@ impl<'ast> LoweringContext<'ast> {
                             true,
                         );
 
+                        let attrs = self.attr_validator.attr_from_ast(
+                            &self_param.attrs,
+                            &Attrs::default(),
+                            &mut self.errors,
+                        );
+
+                        self.attr_validator.validate(
+                            &attrs,
+                            AttributeContext::SelfParam,
+                            &mut self.errors,
+                        );
+
                         Ok((
-                            ParamSelf::new(SelfType::Struct(StructPath::new(
-                                type_lifetimes,
-                                tcx_id,
-                            ))),
+                            ParamSelf::new(
+                                SelfType::Struct(StructPath::new(type_lifetimes, tcx_id)),
+                                attrs,
+                            ),
                             param_ltl,
                         ))
                     }
@@ -994,13 +1337,28 @@ impl<'ast> LoweringContext<'ast> {
                         true,
                     );
 
+                    let attrs = self.attr_validator.attr_from_ast(
+                        &self_param.attrs,
+                        &Attrs::default(),
+                        &mut self.errors,
+                    );
+
+                    self.attr_validator.validate(
+                        &attrs,
+                        AttributeContext::SelfParam,
+                        &mut self.errors,
+                    );
+
                     Ok((
-                        ParamSelf::new(SelfType::Opaque(OpaquePath::new(
-                            lifetimes,
-                            NonOptional,
-                            borrow,
-                            tcx_id,
-                        ))),
+                        ParamSelf::new(
+                            SelfType::Opaque(OpaquePath::new(
+                                lifetimes,
+                                NonOptional,
+                                borrow,
+                                tcx_id,
+                            )),
+                            attrs,
+                        ),
                         param_ltl,
                     ))
                 } else {
@@ -1011,11 +1369,63 @@ impl<'ast> LoweringContext<'ast> {
             ast::CustomType::Enum(enm) => {
                 let tcx_id = self.lookup_id.resolve_enum(enm).expect("enum is in env");
 
+                let attrs = self.attr_validator.attr_from_ast(
+                    &self_param.attrs,
+                    &Attrs::default(),
+                    &mut self.errors,
+                );
+
+                self.attr_validator
+                    .validate(&attrs, AttributeContext::SelfParam, &mut self.errors);
+
                 Ok((
-                    ParamSelf::new(SelfType::Enum(EnumPath::new(tcx_id))),
+                    ParamSelf::new(SelfType::Enum(EnumPath::new(tcx_id)), attrs),
                     self_param_ltl.no_self_ref(),
                 ))
             }
+        }
+    }
+
+    fn lower_trait_self_param(
+        &mut self,
+        self_param: &ast::TraitSelfParam,
+        self_param_ltl: SelfParamLifetimeLowerer<'ast>,
+        in_path: &ast::Path,
+    ) -> Result<(TraitParamSelf, ParamLifetimeLowerer<'ast>), ()> {
+        let trt = self_param.path_trait.resolve_trait(in_path, self.env);
+        if let Some(tcx_id) = self.lookup_id.resolve_trait(&trt) {
+            // check this -- I think we should be able to have both self and non-self
+            if let Some((lifetime, _)) = &self_param.reference {
+                let (_, mut param_ltl) = self_param_ltl.lower_self_ref(lifetime);
+                let lifetimes = param_ltl.lower_generics(
+                    &self_param.path_trait.lifetimes,
+                    &trt.lifetimes,
+                    true,
+                );
+
+                Ok((
+                    TraitParamSelf::new(TraitPath::new(lifetimes, tcx_id)),
+                    param_ltl,
+                ))
+            } else {
+                let mut param_ltl = self_param_ltl.no_self_ref();
+
+                let type_lifetimes = param_ltl.lower_generics(
+                    &self_param.path_trait.lifetimes[..],
+                    &trt.lifetimes,
+                    true,
+                );
+
+                Ok((
+                    TraitParamSelf::new(TraitPath::new(type_lifetimes, tcx_id)),
+                    param_ltl,
+                ))
+            }
+        } else {
+            unreachable!(
+                "Trait `{}` wasn't found in the set of traits; this is a bug.",
+                trt.name
+            );
         }
     }
 
@@ -1023,7 +1433,7 @@ impl<'ast> LoweringContext<'ast> {
     ///
     /// If there are any errors, they're pushed to `errors` and `None` is returned.
     ///
-    /// Note that this expects that if there was a writeable param at the end in
+    /// Note that this expects that if there was a DiplomatWrite param at the end in
     /// the method, it's not passed into here.
     fn lower_param(
         &mut self,
@@ -1032,16 +1442,24 @@ impl<'ast> LoweringContext<'ast> {
         in_path: &ast::Path,
     ) -> Result<Param, ()> {
         let name = self.lower_ident(&param.name, "param name");
-        let ty = self.lower_type(&param.ty, ltl, in_path);
+        let ty = self.lower_type::<InputOnly>(&param.ty, ltl, false, in_path);
 
-        Ok(Param::new(name?, ty?))
+        // No parent attrs because parameters do not have a strictly clear parent.
+        let attrs =
+            self.attr_validator
+                .attr_from_ast(&param.attrs, &Attrs::default(), &mut self.errors);
+
+        self.attr_validator
+            .validate(&attrs, AttributeContext::Param, &mut self.errors);
+
+        Ok(Param::new(name?, ty?, attrs))
     }
 
     /// Lowers many [`ast::Param`]s into a vector of [`hir::Param`]s.
     ///
     /// If there are any errors, they're pushed to `errors` and `None` is returned.
     ///
-    /// Note that this expects that if there was a writeable param at the end in
+    /// Note that this expects that if there was a DiplomatWrite param at the end in
     /// the method, `ast_params` was sliced to not include it. This happens in
     /// `self.lower_method`, the caller of this function.
     fn lower_many_params(
@@ -1066,33 +1484,81 @@ impl<'ast> LoweringContext<'ast> {
         Ok((params?, param_ltl.into_return_ltl()))
     }
 
+    fn lower_callback_param(
+        &mut self,
+        name: Option<IdentBuf>,
+        ty: &ast::TypeName,
+        ltl: &mut impl LifetimeLowerer,
+        in_path: &ast::Path,
+    ) -> Result<CallbackParam, ()> {
+        let ty = self.lower_out_type(
+            ty, ltl, in_path, false, /* in_struct */
+            false, /* in_result_option */
+        )?;
+
+        if !self.cfg.unsafe_references_in_callbacks
+            && ty
+                .lifetimes()
+                .any(|lt| matches!(lt, super::MaybeStatic::NonStatic(..)))
+        {
+            // Slices are copied in non-memory sharing backends
+            if !matches!(ty, Type::Slice(_)) {
+                self.errors.push(LoweringError::Other("Callbacks cannot take references since they can be unsafely persisted, set `unsafe_references_in_callbacks` config to override.".into() ));
+            }
+        }
+
+        Ok(CallbackParam { name, ty })
+    }
+
+    fn lower_many_callback_params(
+        &mut self,
+        ast_params: &[ast::Param],
+        param_ltl: &mut ParamLifetimeLowerer<'ast>,
+        in_path: &ast::Path,
+    ) -> Result<Vec<CallbackParam>, ()> {
+        let mut params = Ok(Vec::with_capacity(ast_params.len()));
+
+        for param in ast_params {
+            let name = self.lower_ident(&param.name, "param name")?;
+            let param = self.lower_callback_param(Some(name), &param.ty, param_ltl, in_path);
+
+            match (param, &mut params) {
+                (Ok(param), Ok(params)) => {
+                    params.push(param);
+                }
+                _ => params = Err(()),
+            }
+        }
+        params
+    }
+
     /// Lowers the return type of an [`ast::Method`] into a [`hir::ReturnFallability`].
     ///
     /// If there are any errors, they're pushed to `errors` and `None` is returned.
     fn lower_return_type(
         &mut self,
         return_type: Option<&ast::TypeName>,
-        takes_writeable: bool,
+        takes_write: bool,
         mut return_ltl: ReturnLifetimeLowerer<'_>,
         in_path: &ast::Path,
     ) -> Result<(ReturnType, LifetimeEnv), ()> {
-        let writeable_or_unit = if takes_writeable {
-            SuccessType::Writeable
+        let write_or_unit = if takes_write {
+            SuccessType::Write
         } else {
             SuccessType::Unit
         };
         match return_type.unwrap_or(&ast::TypeName::Unit) {
             ast::TypeName::Result(ok_ty, err_ty, _) => {
                 let ok_ty = match ok_ty.as_ref() {
-                    ast::TypeName::Unit => Ok(writeable_or_unit),
+                    ast::TypeName::Unit => Ok(write_or_unit),
                     ty => self
-                        .lower_out_type(ty, &mut return_ltl, in_path, false)
+                        .lower_out_type(ty, &mut return_ltl, in_path, false, true)
                         .map(SuccessType::OutType),
                 };
                 let err_ty = match err_ty.as_ref() {
                     ast::TypeName::Unit => Ok(None),
                     ty => self
-                        .lower_out_type(ty, &mut return_ltl, in_path, false)
+                        .lower_out_type(ty, &mut return_ltl, in_path, false, true)
                         .map(Some),
                 };
 
@@ -1101,19 +1567,20 @@ impl<'ast> LoweringContext<'ast> {
                     _ => Err(()),
                 }
             }
-            ty @ ast::TypeName::Option(value_ty) => match &**value_ty {
+            ty @ ast::TypeName::Option(value_ty, _stdlib) => match &**value_ty {
                 ast::TypeName::Box(..) | ast::TypeName::Reference(..) => self
-                    .lower_out_type(ty, &mut return_ltl, in_path, false)
+                    .lower_out_type(ty, &mut return_ltl, in_path, false, true)
                     .map(SuccessType::OutType)
                     .map(ReturnType::Infallible),
+                ast::TypeName::Unit => Ok(ReturnType::Nullable(write_or_unit)),
                 _ => self
-                    .lower_out_type(value_ty, &mut return_ltl, in_path, false)
+                    .lower_out_type(value_ty, &mut return_ltl, in_path, false, true)
                     .map(SuccessType::OutType)
                     .map(ReturnType::Nullable),
             },
-            ast::TypeName::Unit => Ok(ReturnType::Infallible(writeable_or_unit)),
+            ast::TypeName::Unit => Ok(ReturnType::Infallible(write_or_unit)),
             ty => self
-                .lower_out_type(ty, &mut return_ltl, in_path, false)
+                .lower_out_type(ty, &mut return_ltl, in_path, false, false)
                 .map(|ty| ReturnType::Infallible(SuccessType::OutType(ty))),
         }
         .map(|r_ty| (r_ty, return_ltl.finish()))

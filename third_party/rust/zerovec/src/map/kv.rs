@@ -4,7 +4,6 @@
 
 use super::vecs::{MutableZeroVecLike, ZeroVecLike};
 use crate::ule::*;
-use crate::vecs::{FlexZeroSlice, FlexZeroVec};
 use crate::vecs::{VarZeroSlice, VarZeroVec};
 use crate::zerovec::{ZeroSlice, ZeroVec};
 use alloc::boxed::Box;
@@ -42,7 +41,7 @@ pub trait ZeroMapKV<'a> {
 }
 
 macro_rules! impl_sized_kv {
-    ($ty:ident) => {
+    ($ty:path) => {
         impl<'a> ZeroMapKV<'a> for $ty {
             type Container = ZeroVec<'a, $ty>;
             type Slice = ZeroSlice<$ty>;
@@ -66,12 +65,8 @@ impl_sized_kv!(char);
 impl_sized_kv!(f32);
 impl_sized_kv!(f64);
 
-impl<'a> ZeroMapKV<'a> for usize {
-    type Container = FlexZeroVec<'a>;
-    type Slice = FlexZeroSlice;
-    type GetType = [u8];
-    type OwnedType = usize;
-}
+impl_sized_kv!(core::num::NonZeroU8);
+impl_sized_kv!(core::num::NonZeroI8);
 
 impl<'a, T> ZeroMapKV<'a> for Option<T>
 where

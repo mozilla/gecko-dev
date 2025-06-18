@@ -147,7 +147,9 @@ const INDEX_ARRAY_AS_BYTES: &[u8] = &[
 ];
 
 /// Return a [`CodePointTrie`] that returns the Unicode plane number, an
-/// integer from 0-16 inclusive, for each code point. This `CodePointTrie`
+/// integer from 0-16 inclusive, for each code point.
+///
+/// This `CodePointTrie`
 /// does not actually represent any Unicode property, but it is provided in
 /// case it is useful to users of `CodePointTrie` for testing or other
 /// purposes. See <https://www.unicode.org/glossary/#plane>.
@@ -171,9 +173,9 @@ pub fn get_planes_trie() -> CodePointTrie<'static, u8> {
         0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0x10, 0x10, 0x10, 0,
     ];
     #[allow(clippy::unwrap_used)] // valid bytes
-    let index: ZeroVec<u16> = ZeroVec::parse_byte_slice(index_array_as_bytes).unwrap();
+    let index: ZeroVec<u16> = ZeroVec::parse_bytes(index_array_as_bytes).unwrap();
     #[allow(clippy::unwrap_used)] // valid bytes
-    let data: ZeroVec<u8> = ZeroVec::parse_byte_slice(data_8_array).unwrap();
+    let data: ZeroVec<u8> = ZeroVec::parse_bytes(data_8_array).unwrap();
     let high_start = 0x100000;
     let shifted12_high_start = 0x100;
     let index3_null_offset = 0x2;
@@ -287,7 +289,7 @@ mod tests {
     fn test_index_byte_array_literal() {
         let index_array_as_bytes: &[u8] = super::INDEX_ARRAY_AS_BYTES;
         let index_zv_bytes: ZeroVec<u16> =
-            ZeroVec::parse_byte_slice(index_array_as_bytes).expect("infallible");
+            ZeroVec::parse_bytes(index_array_as_bytes).expect("infallible");
         let index_zv_aligned: ZeroVec<u16> = ZeroVec::from_slice_or_alloc(INDEX_ARRAY);
         assert_eq!(index_zv_bytes, index_zv_aligned);
     }

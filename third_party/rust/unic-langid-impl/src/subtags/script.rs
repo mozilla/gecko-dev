@@ -9,7 +9,7 @@ impl Script {
     pub fn from_bytes(v: &[u8]) -> Result<Self, ParserError> {
         let slen = v.len();
 
-        let s = TinyStr4::from_bytes(v).map_err(|_| ParserError::InvalidSubtag)?;
+        let s = TinyStr4::try_from_utf8(v).map_err(|_| ParserError::InvalidSubtag)?;
         if slen != 4 || !s.is_ascii_alphabetic() {
             return Err(ParserError::InvalidSubtag);
         }
@@ -25,7 +25,7 @@ impl Script {
     /// This function accepts any u64 that is exected to be a valid
     /// `TinyStr4` and a valid `Script` subtag.
     pub const unsafe fn from_raw_unchecked(v: u32) -> Self {
-        Self(TinyStr4::from_bytes_unchecked(v.to_le_bytes()))
+        Self(TinyStr4::from_utf8_unchecked(v.to_le_bytes()))
     }
 }
 
