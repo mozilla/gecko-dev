@@ -843,9 +843,20 @@ export var UrlbarTestUtils = {
         "browser.urlbar.placeholderName" +
         (lazy.PrivateBrowsingUtils.isWindowPrivate(window) ? ".private" : "");
       let engineName = Services.prefs.getStringPref(prefName, "");
-      let expectedPlaceholder = engineName
-        ? { id: "urlbar-placeholder-with-name", args: { name: engineName } }
-        : { id: "urlbar-placeholder", args: null };
+      let keywordEnabled = Services.prefs.getBoolPref("keyword.enabled");
+
+      let expectedPlaceholder;
+      if (keywordEnabled && engineName) {
+        expectedPlaceholder = {
+          id: "urlbar-placeholder-with-name",
+          args: { name: engineName },
+        };
+      } else if (keywordEnabled && !engineName) {
+        expectedPlaceholder = { id: "urlbar-placeholder" };
+      } else {
+        expectedPlaceholder = { id: "urlbar-placeholder-keyword-disabled" };
+      }
+
       await lazy.BrowserTestUtils.waitForCondition(() => {
         let l10nAttributes = window.document.l10n.getAttributes(
           window.gURLBar.inputField

@@ -29,10 +29,11 @@ const CONFIG = [
   },
 ];
 
-var appDefaultEngine, extraEngine, extraPrivateEngine, expectedString;
-var tabs = [];
+let appDefaultEngine, extraEngine, extraPrivateEngine, expectedString;
+let tabs = [];
 
-var noEngineString;
+let noEngineString;
+let keywordDisabledString;
 SearchTestUtils.init(this);
 
 add_setup(async function () {
@@ -42,13 +43,14 @@ add_setup(async function () {
   let originalOrder = (await Services.search.getEngines()).map(e => e.id);
   await SearchTestUtils.updateRemoteSettingsConfig(CONFIG);
   appDefaultEngine = await Services.search.getDefault();
-  [noEngineString, expectedString] = (
+  [noEngineString, expectedString, keywordDisabledString] = (
     await document.l10n.formatMessages([
       { id: "urlbar-placeholder" },
       {
         id: "urlbar-placeholder-with-name",
         args: { name: appDefaultEngine.name },
       },
+      { id: "urlbar-placeholder-keyword-disabled" },
     ])
   ).map(msg => msg.attributes[0].value);
 
@@ -368,6 +370,22 @@ add_task(async function test_change_default_engine_updates_placeholder() {
   Assert.equal(gURLBar.placeholder, expectedString);
 
   notificationBox.close();
+});
+
+add_task(async function test_keyword_disabled() {
+  tabs.push(await BrowserTestUtils.openNewForegroundTab(gBrowser));
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["keyword.enabled", false]],
+  });
+  await TestUtils.waitForCondition(
+    () => gURLBar.placeholder == keywordDisabledString
+  );
+  Assert.ok(true, "Updated the placeholder to the keyword disabled one.");
+
+  await SpecialPowers.popPrefEnv();
+  await TestUtils.waitForCondition(() => gURLBar.placeholder == expectedString);
+  Assert.ok(true, "Updated the placeholder to the keyword enabled one.");
 });
 
 /**
