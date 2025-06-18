@@ -413,6 +413,8 @@ static void GetCSSRulesFromComputedValues(
           case StyleMatchingDeclarationBlockOrigin::PresHints:
             return DeclarationOrigin::Pres_hints;
         }
+        MOZ_ASSERT_UNREACHABLE("Unkown origin?");
+        return DeclarationOrigin::Pres_hints;
       }();
     }
   }
