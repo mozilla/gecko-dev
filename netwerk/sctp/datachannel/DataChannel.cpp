@@ -1439,6 +1439,7 @@ void DataChannelConnection::HandleOpenRequestMessage(
         }));
     return;
   }
+  channel->mWaitingForAck = false;
   DeliverQueuedData(channel->mStream);
 }
 
@@ -1534,13 +1535,6 @@ void DataChannelConnection::HandleDataMessageChunk(const void* data,
   // the thread safety annotations on DataChannel.
   channel->mConnection->mLock.AssertCurrentThreadOwns();
 
-  // RFC8832: "MUST be sent ordered, ... After the DATA_CHANNEL_ACK **or any
-  // other message** has been received on the data channel".
-  // If the channel was opened on this side, and a message is received, this
-  // indicates that the peer has already received the DATA_CHANNEL_ACK, as the
-  // channel is ordered initially.
-  channel->mWaitingForAck = false;
-
   const char* type = (ppid == DATA_CHANNEL_PPID_DOMSTRING_PARTIAL ||
                       ppid == DATA_CHANNEL_PPID_DOMSTRING ||
                       ppid == DATA_CHANNEL_PPID_DOMSTRING_EMPTY)
@@ -1611,6 +1605,10 @@ void DataChannelConnection::HandleDataMessage(IncomingMsg&& aMsg) {
   // Note that `channel->mConnection` is `this`. This is just here to satisfy
   // the thread safety annotations on DataChannel.
   channel->mConnection->mLock.AssertCurrentThreadOwns();
+
+  // Receiving any data implies that the other end has received an OPEN
+  // request from us.
+  channel->mWaitingForAck = false;
 
   switch (aMsg.GetPpid()) {
     case DATA_CHANNEL_PPID_DOMSTRING:
