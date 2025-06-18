@@ -433,8 +433,14 @@ void GlobalDMABufFormats::GetModifiersFromGfxVars() {
       new DRMFormat(GBM_FORMAT_XRGB8888, gfxVars::DMABufModifiersXRGB());
   mFormatRGBA =
       new DRMFormat(GBM_FORMAT_ARGB8888, gfxVars::DMABufModifiersARGB());
-  mFormatP010 = new DRMFormat(GBM_FORMAT_P010, gfxVars::DMABufModifiersP010());
-  mFormatNV12 = new DRMFormat(GBM_FORMAT_NV12, gfxVars::DMABufModifiersNV12());
+  if (!gfxVars::DMABufModifiersP010().IsEmpty()) {
+    mFormatP010 =
+        new DRMFormat(GBM_FORMAT_P010, gfxVars::DMABufModifiersP010());
+  }
+  if (!gfxVars::DMABufModifiersNV12().IsEmpty()) {
+    mFormatNV12 =
+        new DRMFormat(GBM_FORMAT_NV12, gfxVars::DMABufModifiersNV12());
+  }
 }
 
 DRMFormat* GlobalDMABufFormats::GetDRMFormat(int32_t aFOURCCFormat) {
