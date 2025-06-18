@@ -234,6 +234,12 @@ class StringBuilder {
                       : twoByteChars().reserve(lenWithHeader.value());
   }
   [[nodiscard]] bool growByUninitialized(size_t incr) {
+    auto newLenWithHeader =
+        mozilla::CheckedInt<size_t>(length()) + numHeaderChars_ + incr;
+    if (MOZ_UNLIKELY(!newLenWithHeader.isValid())) {
+      ReportAllocationOverflow(maybeCx_);
+      return false;
+    }
     return isLatin1() ? latin1Chars().growByUninitialized(incr)
                       : twoByteChars().growByUninitialized(incr);
   }
