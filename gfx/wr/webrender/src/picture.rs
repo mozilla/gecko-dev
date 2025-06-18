@@ -513,9 +513,6 @@ struct TileUpdateDirtyState<'a> {
     /// Allow access to the texture cache for requesting tiles
     resource_cache: &'a mut ResourceCache,
 
-    /// Current configuration and setup for compositing all the picture cache tiles in renderer.
-    composite_state: &'a mut CompositeState,
-
     /// A cache of comparison results to avoid re-computation during invalidation.
     compare_cache: &'a mut FastHashMap<PrimitiveComparisonKey, PrimitiveCompareResult>,
 
@@ -924,8 +921,9 @@ impl Tile {
         // TODO(gw): We can avoid invalidating the whole tile in some cases here,
         //           but it should be a fairly rare invalidation case.
         if self.current_descriptor.local_valid_rect != self.prev_descriptor.local_valid_rect {
-            self.invalidate(None, InvalidationReason::ValidRectChanged);
-            state.composite_state.dirty_rects_are_valid = false;
+            let dirty_rect = self.current_descriptor.local_valid_rect
+                .union(&self.prev_descriptor.local_valid_rect);
+            self.invalidate(Some(dirty_rect), InvalidationReason::ValidRectChanged);
         }
     }
 
@@ -3936,7 +3934,6 @@ impl TileCacheInstance {
 
         let mut state = TileUpdateDirtyState {
             resource_cache,
-            composite_state,
             compare_cache: &mut self.compare_cache,
             spatial_node_comparer: &mut self.spatial_node_comparer,
         };
@@ -5381,9 +5378,15 @@ impl PicturePrimitive {
 
                 for (sub_slice_index, sub_slice) in tile_cache.sub_slices.iter_mut().enumerate() {
                     for tile in sub_slice.tiles.values_mut() {
+                        let max_dirty_rect = if tile.current_descriptor.local_valid_rect != tile.prev_descriptor.local_valid_rect {
+                            tile.current_descriptor.local_valid_rect
+                                .union(&tile.prev_descriptor.local_valid_rect)
+                        } else {
+                            tile.current_descriptor.local_valid_rect
+                        };
                         // Ensure that the dirty rect doesn't extend outside the local valid rect.
                         tile.local_dirty_rect = tile.local_dirty_rect
-                            .intersection(&tile.current_descriptor.local_valid_rect)
+                            .intersection(&max_dirty_rect)
                             .unwrap_or_else(|| { tile.is_valid = true; PictureRect::zero() });
 
                         let valid_rect = frame_state.composite_state.get_surface_rect(
@@ -5514,7 +5517,7 @@ impl PicturePrimitive {
                         // Ensure - again - that the dirty rect doesn't extend outside the local valid rect,
                         // as the tile could have been invalidated since the first computation.
                         tile.local_dirty_rect = tile.local_dirty_rect
-                            .intersection(&tile.current_descriptor.local_valid_rect)
+                            .intersection(&max_dirty_rect)
                             .unwrap_or_else(|| { tile.is_valid = true; PictureRect::zero() });
 
                         surface_local_dirty_rect = surface_local_dirty_rect.union(&tile.local_dirty_rect);
