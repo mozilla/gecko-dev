@@ -85,8 +85,10 @@
     <string name="preferences_debug_settings_menu_redesign" translatable="false">Enable Menu Redesign</string>
     <!-- Label for enabling Firefox Suggest -->
     <string name="preferences_debug_settings_fxsuggest" translatable="false">Enable Firefox Suggest</string>
-    <!-- Label for enabling the redesigned toolbar -->
+    <!-- Label for enabling the composable toolbar -->
     <string name="preferences_debug_settings_composable_toolbar" translatable="false">Enable Composable Toolbar</string>
+    <!-- Label for enabling the redesigned toolbar options -->
+    <string name="preferences_debug_settings_toolbar_redesign" translatable="false">Enable Redesigned Toolbar Options</string>
     <!-- Label for enabling Felt Privacy -->
     <string name="preferences_debug_felt_privacy" translatable="false">Enable Felt Privacy</string>
     <!-- Label for enabling the Debug Drawer -->

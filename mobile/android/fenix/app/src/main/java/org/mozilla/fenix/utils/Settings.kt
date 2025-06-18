@@ -1060,6 +1060,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         persistDefaultIfNotExists = true,
     )
 
+    var shouldUseExpandedToolbar by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_expanded),
+        default = false,
+        persistDefaultIfNotExists = true,
+    )
+
     val toolbarPosition: ToolbarPosition
         get() = if (appContext.isTabStripEnabled()) {
             ToolbarPosition.TOP
@@ -1865,6 +1871,15 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         key = appContext.getPreferenceKey(R.string.pref_key_enable_composable_toolbar),
         default = { FxNimbus.features.composableToolbar.value().enabled },
         featureFlag = true,
+    )
+
+    /**
+     * Indicates if the user have access to the toolbar redesign option in settings.
+     */
+    @VisibleForTesting
+    internal var toolbarRedesignEnabled by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_enable_toolbar_redesign),
+        default = { FxNimbus.features.toolbarRedesignOption.value().showOptions },
     )
 
     /**
