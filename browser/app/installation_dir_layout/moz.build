@@ -7,6 +7,7 @@ DIRS += ["single", "versioned"]
 TEST_DIRS += [
     "tests/gtest",
 ]
+XPCSHELL_TESTS_MANIFESTS += ["tests/xpcshell/xpcshell.toml"]
 
 XPIDL_SOURCES += [
     "nsIInstallationDirLayout.idl",
