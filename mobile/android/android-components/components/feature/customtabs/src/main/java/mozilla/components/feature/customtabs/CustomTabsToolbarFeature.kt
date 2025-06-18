@@ -373,7 +373,7 @@ class CustomTabsToolbarFeature(
      */
     @VisibleForTesting
     internal fun addMenuItems() {
-        toolbar.display.menuBuilder = menuBuilder.addCustomMenuItems(context, store, sessionId, menuItemIndex)
+        toolbar.display.menuBuilder = menuBuilder?.addCustomMenuItems(context, store, sessionId, menuItemIndex)
     }
 
     /**

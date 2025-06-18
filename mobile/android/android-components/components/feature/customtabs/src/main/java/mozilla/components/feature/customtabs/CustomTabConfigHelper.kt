@@ -159,12 +159,12 @@ fun createCustomTabConfigFromIntent(
  * @param customTabSessionId ID of the custom tab session. No-op if null or invalid.
  * @param customTabMenuInsertIndex Optional index at which the custom menu items should be inserted.
  */
-fun BrowserMenuBuilder?.addCustomMenuItems(
+fun BrowserMenuBuilder.addCustomMenuItems(
     context: Context,
     browserStore: BrowserStore,
     customTabSessionId: String?,
     customTabMenuInsertIndex: Int = 0,
-): BrowserMenuBuilder? {
+): BrowserMenuBuilder {
     val customTab = customTabSessionId?.let { browserStore.state.findCustomTab(it) } ?: return this
 
     val customMenuItems = customTab.config.menuItems.map { item ->

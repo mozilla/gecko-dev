@@ -1235,6 +1235,7 @@ class CustomTabsToolbarFeatureTest {
                 toolbar,
                 sessionId = "mozilla",
                 useCases = useCases,
+                menuBuilder = BrowserMenuBuilder(listOf()),
             ) {},
         )
 
@@ -1424,7 +1425,15 @@ class CustomTabsToolbarFeatureTest {
             store = store,
             loadUrlUseCase = SessionUseCases(store).loadUrl,
         )
-        val feature = spy(CustomTabsToolbarFeature(store, toolbar, sessionId = "mozilla", useCases = useCases) {})
+        val feature = spy(
+            CustomTabsToolbarFeature(
+                store,
+                toolbar,
+                sessionId = "mozilla",
+                useCases = useCases,
+                menuBuilder = BrowserMenuBuilder(listOf()),
+            ) {},
+        )
 
         feature.start()
 
@@ -1935,6 +1944,41 @@ class CustomTabsToolbarFeatureTest {
         ).joinBlocking()
 
         assertEquals("https://github.com/mozilla-mobile/fenix", toolbar.title)
+    }
+
+    @Test
+    fun `WHEN menuBuilder is not passed in as a parameter THEN feature does not create a menu and add items to it`() {
+        val tab = createCustomTab(
+            "https://www.mozilla.org",
+            id = "mozilla",
+            config = CustomTabConfig(
+                menuItems = listOf(
+                    CustomTabMenuItem("Share", mock()),
+                ),
+            ),
+        )
+        val store = BrowserStore(
+            BrowserState(
+                customTabs = listOf(tab),
+            ),
+        )
+        val toolbar = spy(BrowserToolbar(testContext))
+        val useCases = CustomTabsUseCases(
+            store = store,
+            loadUrlUseCase = SessionUseCases(store).loadUrl,
+        )
+        val feature = spy(
+            CustomTabsToolbarFeature(
+                store,
+                toolbar,
+                sessionId = "mozilla",
+                useCases = useCases,
+            ) {},
+        )
+
+        feature.start()
+
+        assertEquals(null, toolbar.display.menuBuilder)
     }
 
     private fun extractActionView(
