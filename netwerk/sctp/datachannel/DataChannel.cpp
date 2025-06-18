@@ -797,11 +797,24 @@ bool DataChannelConnection::ConnectToTransport(const std::string& aTransportId,
     // Could be faster. Probably doesn't matter.
     while (auto channel = mChannels.Get(INVALID_STREAM)) {
       mChannels.Remove(channel);
-      channel->mStream = FindFreeStream();
-      if (channel->mStream != INVALID_STREAM) {
+      auto id = FindFreeStream();
+      if (id != INVALID_STREAM) {
+        channel->mStream = id;
         mChannels.Insert(channel);
+        DC_DEBUG(("%s %p: Inserting auto-selected id %u", __func__, this,
+                  static_cast<unsigned>(id)));
+        mStreamIds.InsertElementSorted(id);
+      } else {
+        // Spec language is very similar to AnnounceClosed, the differences
+        // being a lack of a closed check at the top, a different error event,
+        // and no removal of the channel from the [[DataChannels]] slot.
+        // We don't support firing errors right now, and we probabaly want the
+        // closed check anyway, and we don't really have something equivalent
+        // to the [[DataChannels]] slot, so just use AnnounceClosed for now.
+        channel->AnnounceClosed();
       }
     }
+
     SetState(DataChannelConnectionState::Connecting);
   }
 
@@ -1035,30 +1048,31 @@ DataChannel* DataChannelConnection::FindChannelByStream(uint16_t stream) {
 }
 
 uint16_t DataChannelConnection::FindFreeStream() const {
-  ASSERT_WEBRTC(NS_IsMainThread());
-  uint16_t i, limit;
-
-  limit = MAX_NUM_STREAMS;
+  MOZ_ASSERT(NS_IsMainThread());
 
   MOZ_ASSERT(mAllocateEven.isSome());
-  for (i = (*mAllocateEven ? 0 : 1); i < limit; i += 2) {
-    if (mChannels.Get(i)) {
-      continue;
+  if (!mAllocateEven.isSome()) {
+    return INVALID_STREAM;
+  }
+
+  uint16_t i = (*mAllocateEven ? 0 : 1);
+
+  // Find the lowest odd/even id that is not present in mStreamIds
+  for (auto id : mStreamIds) {
+    if (i >= MAX_NUM_STREAMS) {
+      return INVALID_STREAM;
     }
 
-    // Verify it's not still in the process of closing
-    size_t j;
-    for (j = 0; j < mStreamsResetting.Length(); ++j) {
-      if (mStreamsResetting[j] == i) {
-        break;
-      }
-    }
-
-    if (j == mStreamsResetting.Length()) {
-      return i;
+    if (id == i) {
+      // i is in use, try the next one
+      i += 2;
+    } else if (id > i) {
+      // i is definitely not in use
+      break;
     }
   }
-  return INVALID_STREAM;
+
+  return i;
 }
 
 uint32_t DataChannelConnection::UpdateCurrentStreamIndex() {
@@ -2173,6 +2187,15 @@ void DataChannelConnection::OnStreamsReset(std::vector<uint16_t>&& aStreams) {
     }
   }
 
+  Dispatch(
+      NS_NewRunnableFunction("DataChannelConnection::HandleStreamResetEvent",
+                             [this, self = RefPtr<DataChannelConnection>(this),
+                              streamsReset = std::move(aStreams)]() {
+                               for (auto stream : streamsReset) {
+                                 mStreamIds.RemoveElementSorted(stream);
+                               }
+                             }));
+
   // Process pending resets in bulk
   if (!mStreamsResetting.IsEmpty()) {
     DC_DEBUG(("Sending %zu pending resets", mStreamsResetting.Length()));
@@ -2374,9 +2397,15 @@ already_AddRefed<DataChannel> DataChannelConnection::Open(
     return nullptr;
   }
 
-  if (aStream != INVALID_STREAM && mChannels.Get(aStream)) {
-    DC_ERROR(("external negotiation of already-open channel %u", aStream));
-    return nullptr;
+  if (aStream != INVALID_STREAM) {
+    if (mStreamIds.ContainsSorted(aStream)) {
+      // This should have been caught earlier!
+      DC_ERROR(("external negotiation of already-open channel %u", aStream));
+      return nullptr;
+    }
+    DC_DEBUG(("%s %p: Inserting externally-negotiated id %u", __func__, this,
+              static_cast<unsigned>(aStream)));
+    mStreamIds.InsertElementSorted(aStream);
   }
 
   RefPtr<DataChannel> channel(new DataChannel(

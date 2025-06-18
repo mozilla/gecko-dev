@@ -60,6 +60,9 @@ skip-if = [
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1961560
 ]
 
+["test_dataChannel_id.html"]
+scheme = "http"
+
 ["test_dataChannel_noOffer.html"]
 scheme = "http"
 
