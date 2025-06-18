@@ -61,8 +61,10 @@
 #searchFilter {
   margin: var(--toolbar-item-margin);
   --input-text-min-height: var(--toolbar-item-height);
-  --input-text-background-color: transparent;
-  --input-text-color: currentColor;
+  @media (-moz-mac-big-sur-theme) {
+    --input-text-background-color: transparent;
+    --input-text-color: currentColor;
+  }
   --input-text-border-color: ButtonBorder;
 }
 
