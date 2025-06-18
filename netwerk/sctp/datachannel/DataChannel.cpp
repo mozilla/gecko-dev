@@ -411,26 +411,28 @@ DataChannelConnection::~DataChannelConnection() {
 }
 
 void DataChannelConnection::Destroy() {
-  // Though it's probably ok to do this and close the sockets;
-  // if we really want it to do true clean shutdowns it can
-  // create a dependant Internal object that would remain around
-  // until the network shut down the association or timed out.
-  DC_DEBUG(("Destroying DataChannelConnection %p", (void*)this));
   ASSERT_WEBRTC(NS_IsMainThread());
+  DC_DEBUG(("Destroying DataChannelConnection %p", (void*)this));
   CloseAll();
-
-  MutexAutoLock lock(mLock);
-  // If we had a pending reset, we aren't waiting for it - clear the list so
-  // we can deregister this DataChannelConnection without leaking.
-  ClearResets();
-
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   MOZ_DIAGNOSTIC_ASSERT(mSTS);
+#endif
+  mListener = nullptr;
+  mSTS->Dispatch(NS_NewRunnableFunction(
+      __func__, [this, self = RefPtr<DataChannelConnection>(this)]() {
+        mPacketReceivedListener.DisconnectIfExists();
+        mStateChangeListener.DisconnectIfExists();
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+        mShutdown = true;
+        DC_DEBUG(("Shutting down connection %p, id %p", this, (void*)mId));
+#endif
+      }));
+
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   auto self = DataChannelRegistry::Lookup(mId);
   MOZ_DIAGNOSTIC_ASSERT(self);
   MOZ_DIAGNOSTIC_ASSERT(this == self.get());
 #endif
-  mListener = nullptr;
   // Finish Destroy on STS thread to avoid bug 876167 - once that's fixed,
   // the usrsctp_close() calls can move back here (and just proxy the
   // disconnect_all())
@@ -454,17 +456,14 @@ void DataChannelConnection::DestroyOnSTS() {
   usrsctp_deregister_address(reinterpret_cast<void*>(mId));
   DC_DEBUG(
       ("Deregistered %p from the SCTP stack.", reinterpret_cast<void*>(mId)));
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  mShutdown = true;
-  DC_DEBUG(("Shutting down connection %p, id %p", this, (void*)mId));
-#endif
 
-  mPacketReceivedListener.DisconnectIfExists();
-  mStateChangeListener.DisconnectIfExists();
-  mTransportHandler = nullptr;
-  GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
+  // We do this at the very last because it might tear down usrsctp, and we
+  // don't want that to happen before the usrsctp_close call above
+  Dispatch(NS_NewRunnableFunction(
       "DataChannelConnection::Destroy",
-      [id = mId]() { DataChannelRegistry::Deregister(id); }));
+      [this, self = RefPtr<DataChannelConnection>(this)]() {
+        DataChannelRegistry::Deregister(mId);
+      }));
 }
 
 Maybe<RefPtr<DataChannelConnection>> DataChannelConnection::Create(
