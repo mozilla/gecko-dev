@@ -1,0 +1,19 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, you can obtain one at https://mozilla.org/MPL/2.0/.
+
+DEFINES["UNICODE"] = True
+DEFINES["_UNICODE"] = True
+LOCAL_INCLUDES += [
+    "/browser/app/installation_dir_layout",
+]
+
+Library("installation_dir_layout_test")
+
+UNIFIED_SOURCES += [
+    "InstallationDirLayoutTest.cpp",
+]
+
+FINAL_LIBRARY = "xul-gtest"
