@@ -51,9 +51,10 @@ class InlinePreviews extends Component {
       id: markerTypes.INLINE_PREVIEW_MARKER,
       lines: Object.keys(previews).map(line => {
         // CM6 line is 1-based.
-        // The preview keys line numbers as strings so cast to number
+        // The preview keys line numbers as strings so cast to number to avoid string concatenation
+        line = Number(line);
         return {
-          line: Number(line),
+          line: line + 1,
           value: previews[line],
         };
       }),
