@@ -11,7 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ASRouterTargeting:
     // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
     "resource:///modules/asrouter/ASRouterTargeting.sys.mjs",
-  CleanupManager: "resource://normandy/lib/CleanupManager.sys.mjs",
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
@@ -164,6 +164,14 @@ export const CheckRecipeResult = {
 };
 
 export class RemoteSettingsExperimentLoader {
+  /**
+   * A shutdown blocker that will try to ensure that any ongoing update will
+   * finish.
+   *
+   * @type {function(): Promise<void>}
+   */
+  #shutdownBlocker;
+
   get LOCK_ID() {
     return "remote-settings-experiment-loader:update";
   }
@@ -243,8 +251,28 @@ export class RemoteSettingsExperimentLoader {
       return;
     }
 
+    if (
+      Services.startup.isInOrBeyondShutdownPhase(
+        Ci.nsIAppStartup.SHUTDOWN_PHASE_APPSHUTDOWNCONFIRMED
+      )
+    ) {
+      lazy.log.debug(
+        "Not enabling RemoteSettingsExperimentLoader: shutting down"
+      );
+      return;
+    }
+
+    this.#shutdownBlocker = async () => {
+      await this.finishedUpdating();
+      this.disable();
+    };
+
+    lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
+      "RemoteSettingsExperimentLoader: disabling",
+      this.#shutdownBlocker
+    );
+
     this.setTimer();
-    lazy.CleanupManager.addCleanupHandler(() => this.disable());
     this._enabled = true;
 
     await this.updateRecipes("enabled", { forceSync });
@@ -254,6 +282,12 @@ export class RemoteSettingsExperimentLoader {
     if (!this._enabled) {
       return;
     }
+
+    lazy.AsyncShutdown.appShutdownConfirmed.removeBlocker(
+      this.#shutdownBlocker
+    );
+    this.#shutdownBlocker = null;
+
     lazy.timerManager.unregisterTimer(TIMER_NAME);
     this._enabled = false;
     this._updating = false;
@@ -292,6 +326,17 @@ export class RemoteSettingsExperimentLoader {
    */
   async updateRecipes(trigger, options) {
     if (this._updating || !this._enabled) {
+      return;
+    }
+
+    // If we've started shutting down, prevent an update from being triggered,
+    // which we might not complete in time and could result in partial state
+    // written to the database.
+    if (
+      Services.startup.isInOrBeyondShutdownPhase(
+        Ci.nsIAppStartup.SHUTDOWN_PHASE_APPSHUTDOWNCONFIRMED
+      )
+    ) {
       return;
     }
 
@@ -676,10 +721,12 @@ export class RemoteSettingsExperimentLoader {
    * Resolves when the RemoteSettingsExperimentLoader has updated at least once
    * and is not in the middle of an update.
    *
-   * If studies are disabled, then this will always resolve immediately.
+   * If studies are disabled or the RemoteSettingsExperimentLoader has been
+   * disabled (i.e., during shutdown), then this will always resolve
+   * immediately.
    */
   finishedUpdating() {
-    if (!lazy.ExperimentAPI.studiesEnabled) {
+    if (!lazy.ExperimentAPI.studiesEnabled || !this._enabled) {
       return Promise.resolve();
     }
 
