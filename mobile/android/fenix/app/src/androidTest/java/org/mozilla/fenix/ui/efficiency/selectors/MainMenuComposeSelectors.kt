@@ -52,7 +52,7 @@ object MainMenuComposeSelectors {
 
     val SIGN_IN_BUTTON = Selector(
         strategy = SelectorStrategy.COMPOSE_BY_CONTENT_DESCRIPTION,
-        value = getStringResource(R.string.browser_menu_sign_in) + getStringResource(R.string.browser_menu_sign_in_caption_2),
+        value = getStringResource(R.string.browser_menu_sign_in) + getStringResource(R.string.browser_menu_sign_in_caption_3),
         description = "Main menu Sign in button",
         groups = listOf("requiredForPage"),
     )

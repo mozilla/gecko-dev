@@ -687,7 +687,7 @@ internal fun MozillaAccountMenuItem(
     when (accountState) {
         NotAuthenticated -> {
             label = stringResource(id = R.string.browser_menu_sign_in)
-            description = stringResource(id = R.string.browser_menu_sign_in_caption_2)
+            description = stringResource(id = R.string.browser_menu_sign_in_caption_3)
         }
 
         AuthenticationProblem -> {

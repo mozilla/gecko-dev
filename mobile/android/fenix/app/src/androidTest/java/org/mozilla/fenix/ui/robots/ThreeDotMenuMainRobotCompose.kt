@@ -475,7 +475,7 @@ private fun ComposeTestRule.refreshButton() = onNodeWithText("Refresh")
 
 private fun ComposeTestRule.shareButton() = onNodeWithText("Share")
 
-private fun ComposeTestRule.signInButton() = onNodeWithContentDescription("Sign inSync bookmarks, passwords, tabs, and more")
+private fun ComposeTestRule.signInButton() = onNodeWithContentDescription("Sign inSync passwords, bookmarks, and more")
 
 private fun ComposeTestRule.customizeHomeButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_customize_home_1))
 
