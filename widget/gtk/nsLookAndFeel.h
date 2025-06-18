@@ -242,6 +242,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   TitlebarAction mMiddleClickAction = TitlebarAction::None;
   float mTextScaleFactor = 1.0f;
 
+  int32_t mRoundedCornerProviderRadius = 0;
   RefPtr<GtkCssProvider> mRoundedCornerProvider;
   void UpdateRoundedBottomCornerStyles();
 

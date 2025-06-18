@@ -1348,7 +1348,6 @@ void nsLookAndFeel::RestoreSystemTheme() {
                  mSystemTheme.mPreferDarkTheme, nullptr);
   }
   mSystemThemeOverridden = false;
-  UpdateRoundedBottomCornerStyles();
   moz_gtk_refresh();
 }
 
@@ -1576,7 +1575,6 @@ void nsLookAndFeel::ConfigureAndInitializeAltTheme() {
   // Right now we're using the opposite color-scheme theme, make sure to record
   // it.
   mSystemThemeOverridden = true;
-  UpdateRoundedBottomCornerStyles();
 }
 
 void nsLookAndFeel::ClearRoundedCornerProvider() {
@@ -1590,13 +1588,17 @@ void nsLookAndFeel::ClearRoundedCornerProvider() {
 }
 
 void nsLookAndFeel::UpdateRoundedBottomCornerStyles() {
-  ClearRoundedCornerProvider();
-  if (!StaticPrefs::widget_gtk_rounded_bottom_corners_enabled()) {
+  int32_t radius = StaticPrefs::widget_gtk_rounded_bottom_corners_enabled()
+                       ? EffectiveTheme().mTitlebarRadius
+                       : 0;
+  LOGLNF("UpdateRoundedBottomCornerStyles(%dpx -> %dpx)",
+         mRoundedCornerProviderRadius, radius);
+  if (radius == mRoundedCornerProviderRadius) {
     return;
   }
-  int32_t radius = EffectiveTheme().mTitlebarRadius;
+  mRoundedCornerProviderRadius = radius;
   if (!radius) {
-    return;
+    return ClearRoundedCornerProvider();
   }
   mRoundedCornerProvider = dont_AddRef(gtk_css_provider_new());
   nsPrintfCString string(
@@ -1676,6 +1678,9 @@ void nsLookAndFeel::Initialize() {
   // Go back to the system theme or keep the alt theme configured, depending on
   // Firefox theme or user color-scheme preference.
   ConfigureFinalEffectiveTheme();
+
+  // The current rounded corner radii depends on the effective theme.
+  UpdateRoundedBottomCornerStyles();
 
   RecordTelemetry();
 }
@@ -1830,7 +1835,6 @@ void nsLookAndFeel::ConfigureFinalEffectiveTheme() {
                    mAltTheme.mPreferDarkTheme, nullptr);
     }
     mSystemThemeOverridden = true;
-    UpdateRoundedBottomCornerStyles();
     moz_gtk_refresh();
   }
 }
