@@ -111,8 +111,11 @@ android {
         }
     }
     testOptions {
-        execution = 'ANDROIDX_TEST_ORCHESTRATOR'
         animationsDisabled = true
+        execution = 'ANDROIDX_TEST_ORCHESTRATOR'
+        testCoverage {
+            jacocoVersion = libs.versions.jacoco.get()
+        }
         unitTests {
             includeAndroidResources = true
         }

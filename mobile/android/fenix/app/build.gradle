@@ -196,9 +196,24 @@ android {
     }
 
     testOptions {
-        execution = 'ANDROIDX_TEST_ORCHESTRATOR'
-        unitTests.includeAndroidResources = true
         animationsDisabled = true
+        execution = 'ANDROIDX_TEST_ORCHESTRATOR'
+        testCoverage {
+            jacocoVersion = libs.versions.jacoco.get()
+        }
+        unitTests {
+            all {
+                // We keep running into memory issues when running our tests. With this config we
+                // reserve more memory and also create a new process after every 80 test classes. This
+                // is a band-aid solution and eventually we should try to find and fix the leaks
+                // instead. :)
+                forkEvery = 80
+                maxHeapSize = "3072m"
+                minHeapSize = "1024m"
+            }
+            includeAndroidResources = true
+            returnDefaultValues = true
+        }
     }
 
     flavorDimensions.add("product")
@@ -270,21 +285,6 @@ android {
         }
         jniLibs {
             useLegacyPackaging = true
-        }
-    }
-
-
-    testOptions {
-        unitTests.returnDefaultValues = true
-
-        unitTests.all {
-            // We keep running into memory issues when running our tests. With this config we
-            // reserve more memory and also create a new process after every 80 test classes. This
-            // is a band-aid solution and eventually we should try to find and fix the leaks
-            // instead. :)
-            forkEvery = 80
-            maxHeapSize = "3072m"
-            minHeapSize = "1024m"
         }
     }
 
@@ -783,10 +783,6 @@ if (project.hasProperty("coverage")) {
     tasks.withType(Test).configureEach {
         jacoco.includeNoLocationClasses = true
         jacoco.excludes = ['jdk.internal.*']
-    }
-
-    jacoco {
-        toolVersion = libs.versions.jacoco.get()
     }
 
     android.applicationVariants.configureEach { variant ->

@@ -98,10 +98,6 @@ subprojects {
 
     afterEvaluate {
         if (it.hasProperty('android')) {
-            jacoco {
-                toolVersion = libs.versions.jacoco.get()
-            }
-
             // Format test output
             tasks.matching {it instanceof Test}.configureEach() {
                 systemProperty "robolectric.logging", "stdout"
@@ -162,6 +158,9 @@ subprojects {
                 buildToolsVersion gradle.mozconfig.substs.ANDROID_BUILD_TOOLS_VERSION
 
                 testOptions {
+                    testCoverage {
+                        jacocoVersion = libs.versions.jacoco.get()
+                    }
                     unitTests {
                         includeAndroidResources = true
                     }
