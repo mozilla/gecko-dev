@@ -1406,9 +1406,8 @@ void DataChannelConnection::HandleOpenRequestMessage(
   nsCString protocol(nsDependentCSubstring(
       &req->label[ntohs(req->label_length)], ntohs(req->protocol_length)));
 
-  channel =
-      new DataChannel(this, stream, DataChannelState::Open, label, protocol,
-                      prPolicy, prValue, ordered, false, nullptr, nullptr);
+  channel = new DataChannel(this, stream, DataChannelState::Open, label,
+                            protocol, prPolicy, prValue, ordered, false);
   mChannels.Insert(channel);
 
   DC_DEBUG(("%s: sending ON_CHANNEL_CREATED for %s/%s: %u", __FUNCTION__,
@@ -2347,7 +2346,6 @@ int DataChannelConnection::ReceiveCallback(struct socket* sock, void* data,
 already_AddRefed<DataChannel> DataChannelConnection::Open(
     const nsACString& label, const nsACString& protocol,
     DataChannelReliabilityPolicy prPolicy, bool inOrder, uint32_t prValue,
-    DataChannelListener* aListener, nsISupports* aContext,
     bool aExternalNegotiated, uint16_t aStream) {
   MutexAutoLock lock(mLock);
   MOZ_ASSERT(NS_IsMainThread());
@@ -2365,10 +2363,10 @@ already_AddRefed<DataChannel> DataChannelConnection::Open(
   }
 
   DC_DEBUG(
-      ("DC Open: label %s/%s, type %s, inorder %d, prValue %u, listener %p, "
-       "context %p, external: %s, stream %u",
+      ("DC Open: label %s/%s, type %s, inorder %d, prValue %u, "
+       "external: %s, stream %u",
        PromiseFlatCString(label).get(), PromiseFlatCString(protocol).get(),
-       ToString(prPolicy), inOrder, prValue, aListener, aContext,
+       ToString(prPolicy), inOrder, prValue,
        aExternalNegotiated ? "true" : "false", aStream));
 
   if ((prPolicy == DataChannelReliabilityPolicy::Reliable) && (prValue != 0)) {
@@ -2391,7 +2389,7 @@ already_AddRefed<DataChannel> DataChannelConnection::Open(
 
   RefPtr<DataChannel> channel(new DataChannel(
       this, aStream, DataChannelState::Connecting, label, protocol, prPolicy,
-      prValue, inOrder, aExternalNegotiated, aListener, aContext));
+      prValue, inOrder, aExternalNegotiated));
   mChannels.Insert(channel);
 
   if (aStream != INVALID_STREAM) {
@@ -3116,11 +3114,8 @@ DataChannel::DataChannel(DataChannelConnection* connection, uint16_t stream,
                          DataChannelState state, const nsACString& label,
                          const nsACString& protocol,
                          DataChannelReliabilityPolicy policy, uint32_t value,
-                         bool ordered, bool negotiated,
-                         DataChannelListener* aListener, nsISupports* aContext)
-    : mListener(aListener),
-      mContext(aContext),
-      mLabel(label),
+                         bool ordered, bool negotiated)
+    : mLabel(label),
       mProtocol(protocol),
       mReadyState(state),
       mStream(stream),
