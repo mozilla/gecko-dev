@@ -752,7 +752,7 @@ bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data) {
   // clang-format on
 #  endif  // JS_SIMULATOR
 
-  bool ok = res;
+  bool ok = (res & 255) != 0;  // need only low byte
   suspender->setActive(cx);
   cx->wasm().promiseIntegration.setActiveSuspender(suspender);
 
