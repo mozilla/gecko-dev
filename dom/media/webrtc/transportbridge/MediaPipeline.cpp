@@ -264,7 +264,20 @@ MediaPipeline::MediaPipeline(const std::string& aPc,
       mRtpBytesReceived(0),
       mPc(aPc),
       mRtpHeaderExtensionMap(new webrtc::RtpHeaderExtensionMap()),
-      mPacketDumper(PacketDumper::GetPacketDumper(mPc)) {}
+      mPacketDumper(PacketDumper::GetPacketDumper(mPc)) {
+  if (mDirection == DirectionType::TRANSMIT) {
+    mRtpSendEventListener = mConduit->SenderRtpSendEvent().Connect(
+        mStsThread, this, &MediaPipeline::SendPacket);
+    mSenderRtcpSendEventListener = mConduit->SenderRtcpSendEvent().Connect(
+        mStsThread, this, &MediaPipeline::SendPacket);
+    mConduit->ConnectSenderRtcpEvent(mRtcpReceiveEvent);
+  } else {
+    mConduit->ConnectReceiverRtpEvent(mRtpReceiveEvent);
+    mConduit->ConnectReceiverRtcpEvent(mRtcpReceiveEvent);
+    mReceiverRtcpSendEventListener = mConduit->ReceiverRtcpSendEvent().Connect(
+        mStsThread, this, &MediaPipeline::SendPacket);
+  }
+}
 
 #undef INIT_MIRROR
 
@@ -297,6 +310,11 @@ void MediaPipeline::DetachTransport_s() {
   mRtpSendEventListener.DisconnectIfExists();
   mSenderRtcpSendEventListener.DisconnectIfExists();
   mReceiverRtcpSendEventListener.DisconnectIfExists();
+  mRtpPacketReceivedListener.DisconnectIfExists();
+  mStateChangeListener.DisconnectIfExists();
+  mRtcpStateChangeListener.DisconnectIfExists();
+  mEncryptedSendingListener.DisconnectIfExists();
+  mAlpnNegotiatedListener.DisconnectIfExists();
 }
 
 void MediaPipeline::UpdateTransport_m(const std::string& aTransportId,
@@ -315,17 +333,23 @@ void MediaPipeline::UpdateTransport_s(const std::string& aTransportId,
                                       UniquePtr<MediaPipelineFilter>&& aFilter,
                                       bool aSignalingStable) {
   ASSERT_ON_THREAD(mStsThread);
+  // TODO: Now that this no longer uses sigslot, we can handle these events on
+  // threads other than STS, when it makes sense to. It might be worthwhile to
+  // do the packet handling on the call thread only, to save a thread dispatch.
   if (!mSignalsConnected) {
-    mTransportHandler->SignalStateChange.connect(
-        this, &MediaPipeline::RtpStateChange);
-    mTransportHandler->SignalRtcpStateChange.connect(
-        this, &MediaPipeline::RtcpStateChange);
-    mTransportHandler->SignalEncryptedSending.connect(
-        this, &MediaPipeline::EncryptedPacketSending);
-    mTransportHandler->SignalPacketReceived.connect(
-        this, &MediaPipeline::PacketReceived);
-    mTransportHandler->SignalAlpnNegotiated.connect(
-        this, &MediaPipeline::AlpnNegotiated);
+    mStateChangeListener = mTransportHandler->GetStateChange().Connect(
+        mStsThread, this, &MediaPipeline::RtpStateChange);
+    mRtcpStateChangeListener = mTransportHandler->GetRtcpStateChange().Connect(
+        mStsThread, this, &MediaPipeline::RtcpStateChange);
+    // Probably want to only conditionally register this
+    mEncryptedSendingListener =
+        mTransportHandler->GetEncryptedSending().Connect(
+            mStsThread, this, &MediaPipeline::EncryptedPacketSending);
+    mRtpPacketReceivedListener =
+        mTransportHandler->GetRtpPacketReceived().Connect(
+            mStsThread, this, &MediaPipeline::PacketReceived);
+    mAlpnNegotiatedListener = mTransportHandler->GetAlpnNegotiated().Connect(
+        mStsThread, this, &MediaPipeline::AlpnNegotiated);
     mSignalsConnected = true;
   }
 
@@ -428,17 +452,6 @@ void MediaPipeline::CheckTransportStates() {
   }
 
   if (mRtpState == TransportLayer::TS_OPEN && mRtcpState == mRtpState) {
-    if (mDirection == DirectionType::TRANSMIT) {
-      mRtpSendEventListener = mConduit->SenderRtpSendEvent().Connect(
-          mStsThread, this, &MediaPipeline::SendPacket);
-      mSenderRtcpSendEventListener = mConduit->SenderRtcpSendEvent().Connect(
-          mStsThread, this, &MediaPipeline::SendPacket);
-    } else {
-      mConduit->ConnectReceiverRtpEvent(mRtpReceiveEvent);
-      mReceiverRtcpSendEventListener =
-          mConduit->ReceiverRtcpSendEvent().Connect(mStsThread, this,
-                                                    &MediaPipeline::SendPacket);
-    }
     mConduit->SetTransportActive(true);
     TransportReady_s();
   }
@@ -514,8 +527,8 @@ void MediaPipeline::IncrementRtpPacketsReceived(int32_t aBytes) {
   }
 }
 
-void MediaPipeline::PacketReceived(const std::string& aTransportId,
-                                   const MediaPacket& packet) {
+void MediaPipeline::PacketReceived(std::string& aTransportId,
+                                   MediaPacket& packet) {
   ASSERT_ON_THREAD(mStsThread);
 
   if (!mActiveSts) {
@@ -528,19 +541,33 @@ void MediaPipeline::PacketReceived(const std::string& aTransportId,
 
   MOZ_ASSERT(mRtpState == TransportLayer::TS_OPEN);
 
-  if (packet.type() != MediaPacket::RTP) {
+  if (!packet.len() || !packet.data()) {
     return;
   }
 
+  switch (packet.type()) {
+    case MediaPacket::RTP:
+      RtpPacketReceived(aTransportId, packet);
+      break;
+    case MediaPacket::RTCP:
+      RtcpPacketReceived(aTransportId, packet);
+      break;
+    default:;
+  }
+}
+
+void MediaPipeline::RtpPacketReceived(std::string& aTransportId,
+                                      MediaPacket& packet) {
   if (mDirection == DirectionType::TRANSMIT) {
     return;
   }
 
-  if (!packet.len()) {
-    return;
-  }
-
   webrtc::RTPHeader header;
+
+  // It is really, really lame that CopyOnWriteBuffer cannot take ownership of
+  // a buffer. Conceivably, we could avoid the copy by using CopyOnWriteBuffer
+  // inside MediaPacket, but that would let libwebrtc stuff leak into all parts
+  // of our codebase.
   rtc::CopyOnWriteBuffer packet_buffer(packet.data(), packet.len());
   webrtc::RtpPacketReceived parsedPacket(mRtpHeaderExtensionMap.get());
   if (!parsedPacket.Parse(packet_buffer)) {
@@ -599,6 +626,38 @@ void MediaPipeline::PacketReceived(const std::string& aTransportId,
                       packet.len());
 
   mRtpReceiveEvent.Notify(std::move(parsedPacket), header);
+}
+
+void MediaPipeline::RtcpPacketReceived(std::string& aTransportId,
+                                       MediaPacket& aPacket) {
+  // The first MediaPipeline to get this notification handles the packet, all
+  // others will see an empty packet and ignore it. It does not matter whether
+  // the pipeline is transmit or receive, or which m-section it is associated
+  // with.
+  MediaPacket packet(std::move(aPacket));
+
+  MOZ_LOG(gMediaPipelineLog, LogLevel::Debug,
+          ("%s received RTCP packet.", mDescription.c_str()));
+
+  RtpLogger::LogPacket(packet, true, mDescription);
+
+  // Might be nice to pass ownership of the buffer in this case, but it is a
+  // small optimization in a rare case.
+  mPacketDumper->Dump(SIZE_MAX, dom::mozPacketDumpType::Srtcp, false,
+                      packet.encrypted_data(), packet.encrypted_len());
+
+  mPacketDumper->Dump(SIZE_MAX, dom::mozPacketDumpType::Rtcp, false,
+                      packet.data(), packet.len());
+
+  if (StaticPrefs::media_webrtc_net_force_disable_rtcp_reception()) {
+    MOZ_LOG(gMediaPipelineLog, LogLevel::Debug,
+            ("%s RTCP packet forced to be dropped", mDescription.c_str()));
+    return;
+  }
+
+  // CopyOnWriteBuffer cannot take ownership of an existing buffer. Sadface.
+  // But, this is RTCP, so the packets are relatively small and infrequent.
+  mRtcpReceiveEvent.Notify(rtc::CopyOnWriteBuffer(packet.data(), packet.len()));
 }
 
 void MediaPipeline::AlpnNegotiated(const std::string& aAlpn,

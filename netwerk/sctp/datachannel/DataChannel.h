@@ -24,8 +24,8 @@
 #include "DataChannelProtocol.h"
 #include "DataChannelListener.h"
 #include "mozilla/net/NeckoTargetHolder.h"
+#include "MediaEventSource.h"
 
-#include "transport/sigslot.h"
 #include "transport/transportlayer.h"  // For TransportLayer::State
 
 #ifndef EALREADY
@@ -102,8 +102,7 @@ class QueuedDataMessage {
 };
 
 // One per PeerConnection
-class DataChannelConnection final : public net::NeckoTargetHolder,
-                                    public sigslot::has_slots<> {
+class DataChannelConnection final : public net::NeckoTargetHolder {
   friend class DataChannel;
   friend class DataChannelOnMessageAvailable;
   friend class DataChannelConnectRunnable;
@@ -390,6 +389,8 @@ class DataChannelConnection final : public net::NeckoTargetHolder,
   std::string mTransportId;
   bool mConnectedToTransportHandler = false;
   RefPtr<MediaTransportHandler> mTransportHandler;
+  MediaEventListener mPacketReceivedListener;
+  MediaEventListener mStateChangeListener;
   nsCOMPtr<nsIEventTarget> mSTS;
   uint16_t mLocalPort = 0;  // Accessed from connect thread
   uint16_t mRemotePort = 0;

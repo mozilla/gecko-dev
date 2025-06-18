@@ -7,7 +7,6 @@
 
 #include "mozilla/RefPtr.h"
 #include "nsISupportsImpl.h"
-#include "transport/sigslot.h"
 #include "transport/transportlayer.h"  // Need the State enum
 #include "transport/dtlsidentity.h"    // For DtlsDigest
 #include "mozilla/dom/RTCPeerConnectionBinding.h"
@@ -17,6 +16,7 @@
 #include "common/CandidateInfo.h"
 #include "transport/nr_socket_proxy_config.h"
 #include "RTCStatsReport.h"
+#include "MediaEventSource.h"
 
 #include "nsString.h"
 
@@ -39,15 +39,11 @@ struct RTCStatsReportInternal;
 class MediaTransportHandler {
  public:
   // Creates either a MediaTransportHandlerSTS or a MediaTransportHandlerIPC,
-  // as appropriate. If you want signals to fire on a specific thread, pass
-  // the event target here, otherwise they will fire on whatever is convenient.
-  // Note: This also determines what thread the state cache is updated on!
-  // Don't call GetState on any other thread!
-  static already_AddRefed<MediaTransportHandler> Create(
-      nsISerialEventTarget* aCallbackThread);
+  // as appropriate.
+  static already_AddRefed<MediaTransportHandler> Create();
 
-  explicit MediaTransportHandler(nsISerialEventTarget* aCallbackThread)
-      : mCallbackThread(aCallbackThread) {}
+  explicit MediaTransportHandler()
+      : mStateCacheMutex("MediaTransportHandler::mStateCacheMutex") {}
 
   // Exposed so we can synchronously validate ICE servers from PeerConnection
   static nsresult ConvertIceServers(
@@ -121,47 +117,84 @@ class MediaTransportHandler {
   virtual RefPtr<dom::RTCStatsPromise> GetIceStats(
       const std::string& aTransportId, DOMHighResTimeStamp aNow) = 0;
 
-  sigslot::signal2<const std::string&, const CandidateInfo&> SignalCandidate;
-  sigslot::signal2<const std::string&, bool> SignalAlpnNegotiated;
-  sigslot::signal2<const std::string&, dom::RTCIceGathererState>
-      SignalGatheringStateChange;
-  sigslot::signal2<const std::string&, dom::RTCIceTransportState>
-      SignalConnectionStateChange;
-
-  sigslot::signal2<const std::string&, const MediaPacket&> SignalPacketReceived;
-  sigslot::signal2<const std::string&, const MediaPacket&>
-      SignalEncryptedSending;
-  sigslot::signal2<const std::string&, TransportLayer::State> SignalStateChange;
-  sigslot::signal2<const std::string&, TransportLayer::State>
-      SignalRtcpStateChange;
-
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_DESTROY(MediaTransportHandler,
                                                      Destroy())
 
   TransportLayer::State GetState(const std::string& aTransportId,
                                  bool aRtcp) const;
 
+  MediaEventSourceOneCopyPerThread<std::string, MediaPacket>&
+  GetRtpPacketReceived() {
+    return mRtpPacketReceived;
+  }
+
+  MediaEventSourceOneCopyPerThread<std::string, MediaPacket>&
+  GetSctpPacketReceived() {
+    return mSctpPacketReceived;
+  }
+
+  MediaEventSource<std::string, CandidateInfo>& GetCandidateGathered() {
+    return mCandidateGathered;
+  }
+
+  MediaEventSource<std::string, bool>& GetAlpnNegotiated() {
+    return mAlpnNegotiated;
+  }
+
+  MediaEventSource<std::string, dom::RTCIceGathererState>&
+  GetGatheringStateChange() {
+    return mGatheringStateChange;
+  }
+  MediaEventSource<std::string, dom::RTCIceTransportState>&
+  GetConnectionStateChange() {
+    return mConnectionStateChange;
+  }
+  MediaEventSource<std::string, MediaPacket>& GetEncryptedSending() {
+    return mEncryptedSending;
+  }
+  MediaEventSource<std::string, TransportLayer::State>& GetStateChange() {
+    return mStateChange;
+  }
+  MediaEventSource<std::string, TransportLayer::State>& GetRtcpStateChange() {
+    return mRtcpStateChange;
+  }
+
  protected:
   void OnCandidate(const std::string& aTransportId,
-                   const CandidateInfo& aCandidateInfo);
+                   CandidateInfo&& aCandidateInfo);
   void OnAlpnNegotiated(const std::string& aAlpn);
   void OnGatheringStateChange(const std::string& aTransportId,
                               dom::RTCIceGathererState aState);
   void OnConnectionStateChange(const std::string& aTransportId,
                                dom::RTCIceTransportState aState);
-  void OnPacketReceived(const std::string& aTransportId,
-                        const MediaPacket& aPacket);
+  void OnPacketReceived(std::string&& aTransportId, MediaPacket&& aPacket);
   void OnEncryptedSending(const std::string& aTransportId,
-                          const MediaPacket& aPacket);
+                          MediaPacket&& aPacket);
   void OnStateChange(const std::string& aTransportId,
                      TransportLayer::State aState);
   void OnRtcpStateChange(const std::string& aTransportId,
                          TransportLayer::State aState);
   virtual void Destroy() = 0;
   virtual ~MediaTransportHandler() = default;
+  mutable Mutex mStateCacheMutex;
   std::map<std::string, TransportLayer::State> mStateCache;
   std::map<std::string, TransportLayer::State> mRtcpStateCache;
-  RefPtr<nsISerialEventTarget> mCallbackThread;
+
+  // Just RTP/RTCP
+  MediaEventProducerOneCopyPerThread<std::string, MediaPacket>
+      mRtpPacketReceived;
+  // Just SCTP
+  MediaEventProducerOneCopyPerThread<std::string, MediaPacket>
+      mSctpPacketReceived;
+  MediaEventProducer<std::string, CandidateInfo> mCandidateGathered;
+  MediaEventProducer<std::string, bool> mAlpnNegotiated;
+  MediaEventProducer<std::string, dom::RTCIceGathererState>
+      mGatheringStateChange;
+  MediaEventProducer<std::string, dom::RTCIceTransportState>
+      mConnectionStateChange;
+  MediaEventProducer<std::string, MediaPacket> mEncryptedSending;
+  MediaEventProducer<std::string, TransportLayer::State> mStateChange;
+  MediaEventProducer<std::string, TransportLayer::State> mRtcpStateChange;
 };
 
 void TokenizeCandidate(const std::string& aCandidate,

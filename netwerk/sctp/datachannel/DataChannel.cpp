@@ -492,7 +492,8 @@ void DataChannelConnection::DestroyOnSTS(struct socket* aMasterSocket,
   DC_DEBUG(("Shutting down connection %p, id %p", this, (void*)mId));
 #endif
 
-  disconnect_all();
+  mPacketReceivedListener.DisconnectIfExists();
+  mStateChangeListener.DisconnectIfExists();
   mTransportHandler = nullptr;
   GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
       "DataChannelConnection::Destroy",
@@ -876,10 +877,11 @@ void DataChannelConnection::SetSignals(const std::string& aTransportId) {
     mTransportId = aTransportId;
   }
   if (!mConnectedToTransportHandler) {
-    mTransportHandler->SignalPacketReceived.connect(
-        this, &DataChannelConnection::SctpDtlsInput);
-    mTransportHandler->SignalStateChange.connect(
-        this, &DataChannelConnection::TransportStateChange);
+    mPacketReceivedListener =
+        mTransportHandler->GetSctpPacketReceived().Connect(
+            mSTS, this, &DataChannelConnection::SctpDtlsInput);
+    mStateChangeListener = mTransportHandler->GetStateChange().Connect(
+        mSTS, this, &DataChannelConnection::TransportStateChange);
     mConnectedToTransportHandler = true;
   }
   // SignalStateChange() doesn't call you with the initial state
