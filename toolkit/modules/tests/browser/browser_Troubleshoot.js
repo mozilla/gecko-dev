@@ -662,16 +662,9 @@ const SNAPSHOT_SCHEMA = {
           type: "object",
         },
         failures: {
-          type: "object",
-          properties: {
-            key: {
-              required: true,
-              type: "string",
-            },
-            args: {
-              required: false,
-              type: "object",
-            },
+          type: "array",
+          items: {
+            type: "string",
           },
         },
         indices: {
