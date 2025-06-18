@@ -47,4 +47,5 @@
 % http://localhost/tests/perf-reftest-singletons/thai-reflow.html
 % http://localhost/tests/perf-reftest-singletons/deeply-nested-grid-1.html
 % http://localhost/tests/perf-reftest-singletons/deeply-nested-grid-2.html
+% http://localhost/tests/perf-reftest-singletons/insert-subtree-not-nth-edge-has-pseudo.html
 # When modifying this list, please also update build/pgo/index.html (If relevant to profile-guided optimzation).

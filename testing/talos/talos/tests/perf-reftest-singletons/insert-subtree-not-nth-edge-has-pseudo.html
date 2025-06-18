@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<style>
+.cls-0 {
+  color: red;
+}
+</style>
+<div class=cls-0 id=insert></div>
+<script src="util.js"></script>
+<script>
+function create_tree(depth, width) {
+  const d = document.createElement("div");
+  if (depth != 0) {
+    for (let i = 0; i < width; i++) {
+      d.appendChild(create_tree(depth - 1, width));
+    }
+  }
+  return d;
+}
+
+function create_rules(n, sheet) {
+  for (let i = 0; i < n; i++) {
+    sheet.insertRule(
+      `.cls-${i}:has(:not(:first-child)) { color: green; }`,
+      sheet.cssRules.length
+    );
+  }
+}
+
+window.onload = function() {
+  const to_insert = create_tree(3, 7);
+  const s = document.createElement("style");
+  document.head.appendChild(s);
+  create_rules(60, s.sheet);
+  document.documentElement.offsetHeight;
+  flush_layout();
+  perf_start();
+  insert.appendChild(to_insert);
+  flush_layout();
+  perf_finish();
+};
+</script>
