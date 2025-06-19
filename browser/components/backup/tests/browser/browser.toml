@@ -11,6 +11,10 @@ support-files = [
 ["browser_password_validation_inputs.js"]
 
 ["browser_settings.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1911904
+  "os == 'mac' && os_version == '15.00' && processor == 'aarch64'", # Bug 1911904
+]
 
 ["browser_settings_enable_backup_encryption.js"]
 

@@ -797,9 +797,14 @@ run-if = [
   "os == 'win'",
   "os == 'mac' && os_version != '10.15'" # Bug 1942396
 ]
-skip-if = ["!mda_gpu"]
 scheme = "https"
 tags = "os_integration"
+skip-if = [
+  "!mda_gpu",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1862181
+  "os == 'mac' && os_version == '15.00' && processor == 'aarch64' && opt && socketprocess_networking", # Bug 1862181
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1862181
+]
 
 ["test_imagecapture.html"]
 scheme = "https"

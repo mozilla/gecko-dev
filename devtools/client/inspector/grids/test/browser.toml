@@ -74,6 +74,9 @@ skip-if = [
 ["browser_grids_highlighter-toggle-telemetry.js"]
 
 ["browser_grids_number-of-css-grids-telemetry.js"]
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt && socketprocess_networking", # Bug 1971598
+]
 
 ["browser_grids_persist-color-palette.js"]
 

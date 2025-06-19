@@ -16,13 +16,19 @@ https_first_disabled = true
 
 ["browser_asrouter_group_frequency.js"]
 https_first_disabled = true
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1775851
+  "os == 'mac' && os_version == '15.00' && processor == 'aarch64'", # Bug 1775851
+]
 
 ["browser_asrouter_group_userprefs.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan && swgl", # Bug 1775852
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && swgl", # Bug 1775852
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && swgl && socketprocess_networking", # Bug 1775852
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1775852
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1775852
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1775852
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt && socketprocess_networking", # Bug 1775852
+  "os == 'mac' && os_version == '15.00' && processor == 'aarch64'", # Bug 1775852
 ]
 
 ["browser_asrouter_infobar.js"]

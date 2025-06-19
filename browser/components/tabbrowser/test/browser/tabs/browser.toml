@@ -537,7 +537,13 @@ skip-if = [
 
 ["browser_tab_groups_telemetry.js"]
 skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1961033
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1961033
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan && swgl", # Bug 1961033
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1961033
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1961033
+  "os == 'mac' && os_version == '15.00' && processor == 'aarch64'", # Bug 1961033
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1961033
 ]
 
 ["browser_tab_label_during_reload.js"]

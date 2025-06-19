@@ -68,6 +68,10 @@ support-files = [
   "!/dom/events/test/browser_dragdrop_inner.html",
   "!/dom/events/test/browser_dragdrop_outer.html",
 ]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1936521
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1936521
+]
 
 ["browser_content_analysis_dnd_same_origin.js"]
 support-files = [

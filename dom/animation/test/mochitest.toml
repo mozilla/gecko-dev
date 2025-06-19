@@ -21,6 +21,7 @@ support-files = [
 skip-if = [
   "os == 'linux' && os_version == '18.04' && opt", # Bug 1784938
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1784938
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1784938
 ]
 
 ["document-timeline/test_request_animation_frame.html"]

@@ -6,6 +6,10 @@ support-files = ["head.js"]
 ["browser_avatar_menu_signin_cta_variants.js"]
 
 ["browser_contextmenu_sendpage.js"]
+skip-if = [
+  "os == 'mac' && os_version == '15.00' && processor == 'aarch64'", # Bug 1886299
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1886299
+]
 
 ["browser_contextmenu_sendtab.js"]
 
