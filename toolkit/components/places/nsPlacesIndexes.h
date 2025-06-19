@@ -124,4 +124,13 @@
   CREATE_PLACES_IDX("newtab_impression_timestampindex", \
                     "moz_newtab_story_impression", "timestamp_s", "")
 
+// moz_newtab_shortcuts
+#define CREATE_IDX_MOZ_NEWTAB_SHORTCUTS_TIMESTAMP                         \
+  CREATE_PLACES_IDX("timestampindex", "moz_newtab_shortcuts_interaction", \
+                    "timestamp_s", "")
+
+#define CREATE_IDX_MOZ_NEWTAB_SHORTCUTS_PLACEID                         \
+  CREATE_PLACES_IDX("placeidindex", "moz_newtab_shortcuts_interaction", \
+                    "place_id", "")
+
 #endif  // nsPlacesIndexes_h__

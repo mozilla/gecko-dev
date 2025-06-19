@@ -906,7 +906,7 @@ interface nsINavHistoryService : nsISupports
   // The current database schema version.
   // To migrate to a new version bump this, add a MigrateVXXUp function to
   // Database.cpp/h, and a test into tests/migration/
-  const unsigned long DATABASE_SCHEMA_VERSION = 81;
+  const unsigned long DATABASE_SCHEMA_VERSION = 82;
 
   /**
    * System Notifications:

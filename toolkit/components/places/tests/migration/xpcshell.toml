@@ -18,6 +18,7 @@ support-files = [
   "places_v78.sqlite",
   "places_v79.sqlite",
   "places_v81.sqlite",
+  "places_v82.sqlite",
 ]
 
 ["test_current_from_downgraded.js"]
@@ -45,3 +46,5 @@ support-files = [
 ["test_current_from_v78.js"]
 
 ["test_current_from_v79.js"]
+
+["test_current_from_v81.js"]

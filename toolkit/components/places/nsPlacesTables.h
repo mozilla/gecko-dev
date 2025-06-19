@@ -332,4 +332,16 @@
       "  feature_value REAL NOT NULL DEFAULT 1 "    \
       ")")
 
+#define CREATE_MOZ_NEWTAB_SHORTCUTS_INTERACTION                          \
+  nsLiteralCString(                                                      \
+      "CREATE TABLE moz_newtab_shortcuts_interaction ( "                 \
+      "  id INTEGER PRIMARY KEY, "                                       \
+      "  place_id INTEGER NOT NULL REFERENCES moz_places(id) ON DELETE " \
+      "CASCADE, "                                                        \
+      "  event_type INTEGER NOT NULL, "                                  \
+      "  timestamp_s INTEGER NOT NULL, "                                 \
+      "  pinned INTEGER NOT NULL CHECK (pinned IN (0, 1)), "             \
+      "  tile_position INTEGER NOT NULL"                                 \
+      ")")
+
 #endif  // __nsPlacesTables_h__
