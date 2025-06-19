@@ -122,7 +122,12 @@ class BookmarksRobot(private val composeTestRule: ComposeTestRule) {
         navigateUp()
     }
 
+    @OptIn(ExperimentalTestApi::class)
     fun clickAddFolderButton() {
+        Log.i(TAG, "clickAddFolderButton: Waiting for $waitingTime for the add bookmarks folder button to exist")
+        composeTestRule.waitUntilAtLeastOneExists(hasContentDescription(getStringResource(R.string.bookmark_select_folder_new_folder_button_title)), waitingTime)
+        Log.i(TAG, "clickAddFolderButton: Waited for $waitingTime for the add bookmarks folder button to exist")
+        Log.i(TAG, "clickAddFolderButton: Clicked add bookmarks folder button")
         Log.i(TAG, "clickAddFolderButton: Trying to click add bookmarks folder button")
         composeTestRule.addFolderButton().performClick()
         Log.i(TAG, "clickAddFolderButton: Clicked add bookmarks folder button")
