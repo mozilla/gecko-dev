@@ -165,22 +165,15 @@ class SearchDialogController(
     override fun handleTextChanged(text: String) {
         fragmentStore.dispatch(SearchFragmentAction.UpdateQuery(text))
 
-        // For felt private browsing mode we're no longer going to prompt the user to enable search
-        // suggestions while using private browsing mode. The preference to enable them will still
-        // remain in settings.
-        val isFeltPrivacyEnabled = settings.feltPrivateBrowsingEnabled
-
-        if (!isFeltPrivacyEnabled) {
-            fragmentStore.dispatch(
-                SearchFragmentAction.AllowSearchSuggestionsInPrivateModePrompt(
-                    text.isNotEmpty() &&
-                        activity.browsingModeManager.mode.isPrivate &&
-                        settings.shouldShowSearchSuggestions &&
-                        !settings.shouldShowSearchSuggestionsInPrivate &&
-                        !settings.showSearchSuggestionsInPrivateOnboardingFinished,
-                ),
-            )
-        }
+        fragmentStore.dispatch(
+            SearchFragmentAction.AllowSearchSuggestionsInPrivateModePrompt(
+                text.isNotEmpty() &&
+                    activity.browsingModeManager.mode.isPrivate &&
+                    settings.shouldShowSearchSuggestions &&
+                    !settings.shouldShowSearchSuggestionsInPrivate &&
+                    !settings.showSearchSuggestionsInPrivateOnboardingFinished,
+            ),
+        )
     }
 
     override fun handleUrlTapped(url: String, flags: LoadUrlFlags) {

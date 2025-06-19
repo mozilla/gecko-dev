@@ -419,6 +419,10 @@ class SearchDialogControllerTest {
 
         verify { store.dispatch(SearchFragmentAction.UpdateQuery(text)) }
 
+        val actionSlot = mutableListOf<SearchFragmentAction>()
+        verify { store.dispatch(capture(actionSlot)) }
+        assertTrue(actionSlot.any { it is SearchFragmentAction.AllowSearchSuggestionsInPrivateModePrompt })
+
         middleware.assertNotDispatched(AwesomeBarAction.EngagementFinished::class)
     }
 
@@ -431,40 +435,6 @@ class SearchDialogControllerTest {
         browserStore.waitUntilIdle()
 
         verify { store.dispatch(SearchFragmentAction.UpdateQuery(text)) }
-
-        middleware.assertNotDispatched(AwesomeBarAction.EngagementFinished::class)
-    }
-
-    @Test
-    fun `WHEN felt privacy is enabled THEN do not dispatch AllowSearchSuggestionsInPrivateModePrompt`() {
-        every { settings.feltPrivateBrowsingEnabled } returns true
-
-        val text = "mozilla"
-
-        createController().handleTextChanged(text)
-
-        browserStore.waitUntilIdle()
-
-        val actionSlot = mutableListOf<SearchFragmentAction>()
-        verify { store.dispatch(capture(actionSlot)) }
-        assertFalse(actionSlot.any { it is SearchFragmentAction.AllowSearchSuggestionsInPrivateModePrompt })
-
-        middleware.assertNotDispatched(AwesomeBarAction.EngagementFinished::class)
-    }
-
-    @Test
-    fun `WHEN felt privacy is disabled THEN dispatch AllowSearchSuggestionsInPrivateModePrompt`() {
-        every { settings.feltPrivateBrowsingEnabled } returns false
-
-        val text = "mozilla"
-
-        createController().handleTextChanged(text)
-
-        browserStore.waitUntilIdle()
-
-        val actionSlot = mutableListOf<SearchFragmentAction>()
-        verify { store.dispatch(capture(actionSlot)) }
-        assertTrue(actionSlot.any { it is SearchFragmentAction.AllowSearchSuggestionsInPrivateModePrompt })
 
         middleware.assertNotDispatched(AwesomeBarAction.EngagementFinished::class)
     }
