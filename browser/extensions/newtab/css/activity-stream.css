@@ -3893,7 +3893,7 @@ main section {
 /* stylelint-disable max-nesting-depth */
 .discoverystream-admin-toggle {
   position: fixed;
-  inset-block-end: calc(var(--button-size-icon) + var(--space-xxlarge));
+  inset-block-end: calc(var(--button-size-icon) + var(--space-xxlarge) + var(--space-small));
   inset-inline-end: var(--space-xlarge);
   border: 0;
   background: none;
