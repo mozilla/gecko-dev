@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s te da el control.&lt;/p&gt;
-&lt;p&gt;Usalo como navegador privado:
-  &lt;ul&gt;
-    &lt;li&gt;Buscar y navegar directamente en la aplicación&lt;/li&gt;
-    &lt;li&gt;Bloquear rastreadores (o actualizar los ajustes para permitir rastreadores)&lt;/li&gt;
-    &lt;li&gt;Borrar para eliminar cookies e historial de búsqueda y navegación&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s es producido por Mozilla. Nuestra misión es promover una Internet saludable y abierta.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Conocer más&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s te da el control.</p> <p>Usalo como navegador privado: <ul> <li>Buscar y navegar directamente en la aplicación</li> <li>Bloquear rastreadores (o actualizar los ajustes para permitir rastreadores)</li> <li>Borrar para eliminar cookies e historial de búsqueda y navegación</li> </ul> </p> <p>%1$s es producido por Mozilla. Nuestra misión es promover una Internet saludable y abierta.<br/> <a href=\"%2$s\">Conocer más</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Privacidad y seguridad</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,29 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Al continuar, aceptás los %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Al continuar, aceptás los %1$s</string>
+  <!-- %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text -->
+  <string name="onboarding_first_screen_terms_of_use_text_2" tools:ignore="UnusedResources">Al continuar, aceptás los %1$s.</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Términos de uso de Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Términos de uso de Firefox.</string>
+  <!-- Text for the link used in onboarding_first_screen_terms_of_use_text -->
+  <string name="onboarding_first_screen_terms_of_use_link_2" tools:ignore="BrandUsage">Términos de uso de Firefox</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox se preocupa por tu privacidad. Conocé más en nuestra %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox se preocupa por tu privacidad. Conocé más en nuestra %1$s</string>
+  <!-- %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text -->
+  <string name="onboarding_first_screen_privacy_notice_text_2" tools:ignore="BrandUsage">Firefox se preocupa por tu privacidad. Conocé más en nuestra %1$s.</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Nota de privacidad.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Nota de privacidad.</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link_2">Nota de privacidad</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Aceptar y continuar</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +677,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Ir a Ajustes de Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Presionar &lt;b&gt;Permisos&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Presionar <b>Permisos</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Ir a Ajustes</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Cambiar &lt;b&gt;%1$s&lt;/b&gt; a Habilitado</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Cambiar <b>%1$s</b> a Habilitado]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Cámara</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -752,7 +751,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> Para obtener sugerencias, %1$s necesita enviar lo que escribás en la barra de direcciones al buscador.</string>
+  <string name="enable_search_suggestion_description">Para obtener sugerencias, %1$s necesita enviar lo que escribás en la barra de direcciones al buscador.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">No</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -767,7 +766,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">¿El sitio se comporta de manera inesperada?\n Pruebe desactivar la Protección de rastreo</string>
+  <string name="tip_disable_tracking_protection">¿El sitio se comporta de manera inesperada?\nPruebe desactivar la Protección de rastreo</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,17 +777,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Abrir todos los enlaces en %1$s\n Configure %1$s como su navegador predeterminado</string>
+  <string name="tip_set_default_browser">Abrir todos los enlaces en %1$s\nConfigure %1$s como su navegador predeterminado</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Autocomplete las URLs para los sitios que más usa\n Mantenga presionada cualquier URL en la barra de direcciones</string>
+  <string name="tip_autocomplete_url">Autocomplete las URLs para los sitios que más usa\nMantenga presionada cualquier URL en la barra de direcciones</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Abra un enlace en una nueva pestaña\n Mantenga presionado cualquier enlace en una página</string>
+  <string name="tip_open_in_new_tab">Abra un enlace en una nueva pestaña\nMantenga presionado cualquier enlace en una página</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Desactivar los consejos en la pantalla de inicio</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -869,7 +868,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Las imágenes guardadas y compartidas &lt;b&gt;no serán&lt;/b&gt; borradas al borrar el historial de %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Las imágenes guardadas y compartidas <b>no serán</b> borradas al borrar el historial de %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -890,21 +889,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s trata de usar una conexión HTTPS cuando sea posible para mayor seguridad.
-     &lt;a href="%2$s"&gt;Conocer más&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Se puede cambiar en Configuración &gt; Privacidad y seguridad &gt; Seguridad.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s trata de usar una conexión HTTPS cuando sea posible para mayor seguridad. <a href=\"%2$s\">Conocer más</a> <br/><br/> Se puede cambiar en Configuración > Privacidad y seguridad > Seguridad.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Conexión insegura</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">  Ésto podría ser un problema con la configuración del servidor o podría ser alguien tratando de hacerse pasar por el servidor.&lt;br/&gt;&lt;br/&gt;
- Si te conectaste a este servidor exitosamente en el pasado, el error puede ser temporal.
-</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Ésto podría ser un problema con la configuración del servidor o podría ser alguien tratando de hacerse pasar por el servidor.<br/><br/> Si te conectaste a este servidor exitosamente en el pasado, el error puede ser temporal.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Alguien podría estar intentando imitar el sitio y continuar podría ser riesgoso.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s no confía en &lt;b&gt;%2$s&lt;/b&gt; porque el emisor del certificado es desconocido, el certificado está autofirmado o el servidor no envía los certificados intermedios correctos.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Alguien podría estar intentando imitar el sitio y continuar podría ser riesgoso.</label> <br><br> <label>%1$s no confía en <b>%2$s</b> porque el emisor del certificado es desconocido, el certificado está autofirmado o el servidor no envía los certificados intermedios correctos.</label>]]></string>
   <!--
     Sessions List
 

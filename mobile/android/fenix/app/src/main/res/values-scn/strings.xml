@@ -336,7 +336,7 @@
   -->
   <string name="browser_menu_new_in_firefox">Nuvità di %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">Cancia ô situ dû scagnu</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Cancia ô situ dû scagnu</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Cancia ô situ mòbbili</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

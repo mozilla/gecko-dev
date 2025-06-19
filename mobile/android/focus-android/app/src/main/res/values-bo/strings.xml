@@ -104,7 +104,7 @@
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">གསང་དོན་དང་བདེ་འཇགས།</string>
   <!-- Preference summary for settings related to privacy and security -->
-  <string name="preference_privacy_and_security_summary">"རྗེས་འདེད།  cookies གཞི་གྲངས་འདེམས་པ།"</string>
+  <string name="preference_privacy_and_security_summary">\"རྗེས་འདེད། cookies གཞི་གྲངས་འདེམས་པ།\"</string>
   <!--
     Preference category description for settings related to search, set default
     and autocomplete are settings a user can find and change inside the "search" settings screen
@@ -153,7 +153,7 @@
   <!-- Item in autocomplete settings that will open a new preference screen for adding and removing URLs to the user-defined list -->
   <string name="preference_autocomplete_subitem_manage_sites">དྲ་ཚིགས་དོ་དམ།</string>
   <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
-  <string name="preference_autocomplete_action_add">"+  རང་བཅོས་དྲ་ཚིཊ་ཁ་བྱང་སྣོན།"</string>
+  <string name="preference_autocomplete_action_add">\"+ རང་བཅོས་དྲ་ཚིཊ་ཁ་བྱང་སྣོན།\"</string>
   <!-- Title of the screen for adding custom autocomplete URLs. -->
   <string name="preference_autocomplete_title_add">རང་བཅོས་དྲ་ཚིཊ་ཁ་བྱང་སྣོན།</string>
   <!-- Label for the button to quick add custom autocomplete URLs. -->
@@ -213,7 +213,7 @@
     how to set Focus as a default browser.
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="preference_default_browser2">" %1$s སྔོན་སྒྲིག་བཤར་ཆས་སུ་བཀོད་པ།"</string>
+  <string name="preference_default_browser2">\" %1$s སྔོན་སྒྲིག་བཤར་ཆས་སུ་བཀོད་པ།\"</string>
   <string name="preference_category_mozilla">Mozilla</string>
   <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->
   <string name="preference_mozilla_telemetry_summary">དེ་བས་མང་།</string>
@@ -237,7 +237,7 @@
   <string name="search_add_manually_name_hint">འཚོལ་བཤེར་དྲ་བའི་མིང་།</string>
   <string name="search_add_manually_save">ཉར་གསོག</string>
   <!-- Example of search engine url. %s represents the search query and should be kept as-is. -->
-  <string name="search_add_manually_example">"དཔེར་ན།  example.com/search/?q=%s"</string>
+  <string name="search_add_manually_example">\"དཔེར་ན། example.com/search/?q=%s\"</string>
   <string name="search_add_confirmation">འཚོལ་བཤེར་དྲ་ངོས་གསར་པ་སྣོན་ཟིན།</string>
   <string name="search_add_error_empty_name">འཚོལ་བཤེར་དྲ་ངོས་མིང་འདིར་འཇུག་རོགས།</string>
   <string name="search_add_error_duplicate_name">འཚོལ་བཤེར་སྒྲིག་འཇུག་ཟིན་པའི་མིང་རེད་འདུག</string>
@@ -374,7 +374,7 @@
     results found in the page and the position the user is at. %1$d is the
     position, %2$d is the total number of results.
   -->
-  <string name="accessibility_find_in_page_result">"%1$d ནང་ནས་ %1$d "</string>
+  <string name="accessibility_find_in_page_result">\"%1$d ནང་ནས་ %1$d \"</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
   <string name="accessibility_next_result">ཤོག་ངོས་ཞོལ་མ།</string>
   <!-- String to be read by the accessibility service when focusing the previous result button -->
@@ -413,7 +413,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">དྲ་ཚིགས་རྒྱུན་གཏན་ལྟར་མི་འདུག་གམ།\n རྗེས་འདེད་སྲུང་སྐྱོབ་གསོད་དེ་བསྐྱར་ཞིག་བྱོས།</string>
+  <string name="tip_disable_tracking_protection">དྲ་ཚིགས་རྒྱུན་གཏན་ལྟར་མི་འདུག་གམ།\nརྗེས་འདེད་སྲུང་སྐྱོབ་གསོད་དེ་བསྐྱར་ཞིག་བྱོས།</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.

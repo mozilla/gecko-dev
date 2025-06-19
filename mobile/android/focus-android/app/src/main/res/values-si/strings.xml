@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ඔබව පාලනයේ තබයි.&lt;/p&gt;
-&lt;p&gt;පෞද්. අතිරික්සුවක් ලෙස යොදාගන්න:
-  &lt;ul&gt;
-  &lt;li&gt;යෙදුමෙහි සොයන්න සහ පිරික්සන්න&lt;/li&gt;
-  &lt;li&gt;ලුහුබැඳීම් අවහිර කරන්න (හෝ සැකසුම් තුළින් ඉඩ දෙන්න)&lt;/li&gt;
-  &lt;li&gt;දත්තකඩ මෙන්ම සෙවුම් හා පිරික්සුම් ඉතිහාසය ඉවත් කිරීමට මකන්න&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;මොසිල්ලා හරහා %1$s නිෂ්පාදනය කෙරේ. හිතකර, විවෘත අන්තර්ජාලයකට පිහිටාධාර සැපයීම අපගේ මෙහෙවරයි.&lt;br/&gt;
-&lt;a href="%2$s"&gt;තව දැනගන්න&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ඔබව පාලනයේ තබයි.</p> <p>පෞද්. අතිරික්සුවක් ලෙස යොදාගන්න: <ul> <li>යෙදුමෙහි සොයන්න සහ පිරික්සන්න</li> <li>ලුහුබැඳීම් අවහිර කරන්න (හෝ සැකසුම් තුළින් ඉඩ දෙන්න)</li> <li>දත්තකඩ මෙන්ම සෙවුම් හා පිරික්සුම් ඉතිහාසය ඉවත් කිරීමට මකන්න</li> </ul> </p> <p>මොසිල්ලා හරහා %1$s නිෂ්පාදනය කෙරේ. හිතකර, විවෘත අන්තර්ජාලයකට පිහිටාධාර සැපයීම අපගේ මෙහෙවරයි.<br/> <a href=\"%2$s\">තව දැනගන්න</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">පෞද්ගලිකත්‍වය හා ආරක්‍ෂාව</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">ඉදිරියට යාමෙන් ඔබ %1$s සඳහා එකඟ වේ</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">ඉදිරියට යාමෙන් ඔබ %1$s සඳහා එකඟ වේ</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් භාවිත නියම</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් භාවිත නියම</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් ඔබගේ පෞද්ගලිකත්‍වය ගැන සැලකිලිමත් වේ. අපගේ %1$s ගැන තව දැනගන්න.</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් ඔබගේ පෞද්ගලිකත්‍වය ගැන සැලකිලිමත් වේ. අපගේ %1$s ගැන තව දැනගන්න.</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">රහස්‍යතා දැන්වීම</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">රහස්‍යතා දැන්වීම</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">එකඟ වී ඉදිරියට</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
@@ -676,11 +667,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. ඇන්ඩ්‍රොයිඩ් සැකසුම් වෙත යන්න</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;අවසර&lt;/b&gt; තට්ටු කරන්න</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b>අවසර</b> තට්ටු කරන්න]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">සැකසුම් වෙත යන්න</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; සබල කරන්න</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> සබල කරන්න]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">රූගතය</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -765,8 +756,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">අඩවිය අනපේක්‍ෂිත ලෙස හැසිරෙන්නේද?\n
-    ලුහුබැඳීමේ රැකවරණය අක්‍රිය කර බලන්න</string>
+  <string name="tip_disable_tracking_protection">අඩවිය අනපේක්‍ෂිත ලෙස හැසිරෙන්නේද?\nලුහුබැඳීමේ රැකවරණය අක්‍රිය කර බලන්න</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -777,23 +767,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">සෑම සබැඳියක්ම %1$s\n හි විවෘත කරන්න
-   %1$s පෙරනිමි අතිරික්සුව ලෙස සකසන්න
-    </string>
+  <string name="tip_set_default_browser">සෑම සබැඳියක්ම %1$s\nහි විවෘත කරන්න %1$s පෙරනිමි අතිරික්සුව ලෙස සකසන්න</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">නිතර භාවිතා කරන අඩවි සඳහා ඒ.ස.නි. ස්වයං පිරවීම\n
-   ලිපින තීරුවේ ඕනෑම ඒ.ස.නි. මත මද වේලාවක් ඔබන්න
-    </string>
+  <string name="tip_autocomplete_url">නිතර භාවිතා කරන අඩවි සඳහා ඒ.ස.නි. ස්වයං පිරවීම\nලිපින තීරුවේ ඕනෑම ඒ.ස.නි. මත මද වේලාවක් ඔබන්න</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">සබැඳියක් නව පටිත්තක විවෘත කරන්න\n
-   පිටුවක ඇති ඕනෑම සබැඳියක් මද වේලාවක් ඔබන්න
-    </string>
+  <string name="tip_open_in_new_tab">සබැඳියක් නව පටිත්තක විවෘත කරන්න\nපිටුවක ඇති ඕනෑම සබැඳියක් මද වේලාවක් ඔබන්න</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">ආරම්භක තිරය මත ඉඟි අක්‍රිය කරන්න</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -874,7 +858,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">ඔබ %1$s ඉතිහාසය මකන විට සුරකින ලද සහ බෙදා ගත් රූප &lt;b&gt;මකනු නොලැබේ&lt;/b&gt;</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[ඔබ %1$s ඉතිහාසය මකන විට සුරකින ලද සහ බෙදා ගත් රූප <b>මකනු නොලැබේ</b>]]></string>
   <!--
     Theme Preferences
 
@@ -895,22 +879,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">වැඩි ආරක්‍ෂාවක් සඳහා %1$s හැකි සෑම විටම HTTPS සම්බන්ධතාවක් භාවිතයට උත්සාහ කරයි.
- &lt;a href="%2$s"&gt;තව දැනගන්න&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
- සැකසුම් &gt; පෞද්ගලිකත්‍වය හා ආරක්‍ෂාව &gt; ආරක්‍ෂාව හරහා සැකසුම වෙනස් කරන්න.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[වැඩි ආරක්‍ෂාවක් සඳහා %1$s හැකි සෑම විටම HTTPS සම්බන්ධතාවක් භාවිතයට උත්සාහ කරයි. <a href=\"%2$s\">තව දැනගන්න</a> <br/><br/> සැකසුම් > පෞද්ගලිකත්‍වය හා ආරක්‍ෂාව > ආරක්‍ෂාව හරහා සැකසුම වෙනස් කරන්න.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">සම්බන්‍ධතාව අනාරක්‍ෂිතයි</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
- මෙය සේවාදායකයේ වින්‍යාසයෙහි ගැටලුවක් විය හැකිය, හෝ යමෙක් සේවාදායකය ලෙස වංචනිකව පෙනී සිටීමට තැත් කරනවා විය හැකිය. &lt;br/&gt;&lt;br/&gt;
- ඔබ කලින් මෙම සේවාදායකයට සාර්ථකව සම්බන්‍ධ වී ඇත්නම්, මෙය තාවකාලික දෝෂයක් විය හැකිය.
- </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[මෙය සේවාදායකයේ වින්‍යාසයෙහි ගැටලුවක් විය හැකිය, හෝ යමෙක් සේවාදායකය ලෙස වංචනිකව පෙනී සිටීමට තැත් කරනවා විය හැකිය. <br/><br/> ඔබ කලින් මෙම සේවාදායකයට සාර්ථකව සම්බන්‍ධ වී ඇත්නම්, මෙය තාවකාලික දෝෂයක් විය හැකිය.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
- &lt;label&gt;යමෙක් වංචනිකව මෙම අඩවිය හසුරුවීමට තැත් කරන හෙයින් ඉදිරියට යාම අවදානම් සහගතය.&lt;/label&gt;
- &lt;br&gt;&lt;br&gt;
- &lt;label&gt;&lt;b&gt;%2$s&lt;/b&gt; හි සහතිකයේ නිකුත්කරු නොදන්නා නිසා %1$s එය විශ්වාස නොකරයි, සහතිකය ස්වයං-අත්සන් කර හෝ සේවාදායකය නිවැරදි අතරමැදි සහතිකය එවන්නේ නැත.&lt;/label&gt;
- </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>යමෙක් වංචනිකව මෙම අඩවිය හසුරුවීමට තැත් කරන හෙයින් ඉදිරියට යාම අවදානම් සහගතය.</label> <br><br> <label><b>%2$s</b> හි සහතිකයේ නිකුත්කරු නොදන්නා නිසා %1$s එය විශ්වාස නොකරයි, සහතිකය ස්වයං-අත්සන් කර හෝ සේවාදායකය නිවැරදි අතරමැදි සහතිකය එවන්නේ නැත.</label>]]></string>
   <!--
     Sessions List
 

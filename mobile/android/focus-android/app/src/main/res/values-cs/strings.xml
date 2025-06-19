@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s vám dává kontrolu.&lt;/p&gt;
-&lt;p&gt;Používejte ho jako soukromý prohlížeč:
-  &lt;ul&gt;
-    &lt;li&gt;Vyhledávejte a prohlížejte přímo v aplikaci&lt;/li&gt;
-    &lt;li&gt;Blokujte sledovací prvky (nebo aktualizujte nastavení pro povolení sledovacích prvků)&lt;/li&gt;
-    &lt;li&gt;Tlačítkem smažte cookies a historii vyhledávání a prohlížení&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s je vyvíjen Mozillou. Naší misí je podporovat zdravý a otevřený internet.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Zjistěte více&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s vám dává kontrolu.</p> <p>Používejte ho jako soukromý prohlížeč: <ul> <li>Vyhledávejte a prohlížejte přímo v aplikaci</li> <li>Blokujte sledovací prvky (nebo aktualizujte nastavení pro povolení sledovacích prvků)</li> <li>Tlačítkem smažte cookies a historii vyhledávání a prohlížení</li> </ul> </p> <p>%1$s je vyvíjen Mozillou. Naší misí je podporovat zdravý a otevřený internet.<br/> <a href=\"%2$s\">Zjistěte více</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Soukromí a zabezpečení</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Pokračováním souhlasíte s dokumentem %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Pokračováním souhlasíte s dokumentem %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Podmínky používání Firefoxu.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Podmínky používání Firefoxu.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefoxu záleží na vašem soukromí. Zjistěte více v dokumentu %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefoxu záleží na vašem soukromí. Zjistěte více v dokumentu %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Zásady ochrany osobních údajů.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Zásady ochrany osobních údajů.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Souhlasím a pokračovat</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Otevřete nastavení systému Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Zvolte &lt;b&gt;Oprávnění&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Zvolte <b>Oprávnění</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Přejít do nastavení</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Přepněte nastavení u &lt;b&gt;%1$s&lt;/b&gt; na ZAP</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Přepněte nastavení u <b>%1$s</b> na ZAP]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Fotoaparát</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -767,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Nechová se stránka podle očekávání?\n Zkuste vypnout ochranu proti sledování</string>
+  <string name="tip_disable_tracking_protection">Nechová se stránka podle očekávání?\nZkuste vypnout ochranu proti sledování</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Otevírejte v aplikaci %1$s všechny odkazy\n Nastavte si %1$s jako výchozí prohlížeč</string>
+  <string name="tip_set_default_browser">Otevírejte v aplikaci %1$s všechny odkazy\nNastavte si %1$s jako výchozí prohlížeč</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Nechcete si doplňovat nejpoužívanější adresy\n Podržte prst na adrese v adresním řádku</string>
+  <string name="tip_autocomplete_url">Nechcete si doplňovat nejpoužívanější adresy\nPodržte prst na adrese v adresním řádku</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Otevírejte si odkazy v novém panelu\n Podržte prst na jakémkoliv odkazu na stránce</string>
+  <string name="tip_open_in_new_tab">Otevírejte si odkazy v novém panelu\nPodržte prst na jakémkoliv odkazu na stránce</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Vypnout tipy na domovské stránce</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Uložené a sdílené obrázky &lt;b&gt;nebudou&lt;/b&gt; smazány když smažete historii aplikace %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Uložené a sdílené obrázky <b>nebudou</b> smazány když smažete historii aplikace %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s se pro větší bezpečnost pokouší používat zabezpečené připojení skrze protokol HTTPS vždy, kdy je to možné.
-&lt;a href="%2$s"&gt;Dozvědět se více&lt;/a&gt;&lt;br/&gt;&lt;br/&gt;
-Toto nastavení můžete změnit v části Nastavení -&gt; Soukromí a zabezpečení &gt; Zabezpečení.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s se pro větší bezpečnost pokouší používat zabezpečené připojení skrze protokol HTTPS vždy, kdy je to možné. <a href=\"%2$s\">Dozvědět se více</a><br/><br/> Toto nastavení můžete změnit v části Nastavení -> Soukromí a zabezpečení > Zabezpečení.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Spojení není zabezpečené</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Tato chyba může být způsobena chybnou konfigurací serveru nebo někým, kdo se snaží vydávat za server. &lt;br/&gt;&lt;br/&gt;
-    Pokud jste se k tomuto serveru už v minulosti úspěšně připojili, je možná chyba jenom dočasná, a můžete to zkusit znovu později.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Tato chyba může být způsobena chybnou konfigurací serveru nebo někým, kdo se snaží vydávat za server. <br/><br/> Pokud jste se k tomuto serveru už v minulosti úspěšně připojili, je možná chyba jenom dočasná, a můžete to zkusit znovu později.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Někdo se může snažit vydávat za zmiňovaný server a pokračovaní může být riskantní.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s serveru &lt;b&gt;%2$s&lt;/b&gt; nedůvěřuje, protože vydavatel zaslaného certifikátu je neznámý, certifikát je podepsaný sám sebou nebo server neposílá správné mezilehlé certifikáty.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Někdo se může snažit vydávat za zmiňovaný server a pokračovaní může být riskantní.</label> <br><br> <label>%1$s serveru <b>%2$s</b> nedůvěřuje, protože vydavatel zaslaného certifikátu je neznámý, certifikát je podepsaný sám sebou nebo server neposílá správné mezilehlé certifikáty.</label>]]></string>
   <!--
     Sessions List
 

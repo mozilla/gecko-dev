@@ -320,6 +320,8 @@
   <string name="browser_menu_sign_in">Log ind</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Synkroniser adgangskoder, faneblade med mere</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_2">Synkroniser bogmærker, adgangskoder, faneblade med mere</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Log ind igen for at synkronisere</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -334,7 +336,7 @@
   -->
   <string name="browser_menu_new_in_firefox">Nyheder i %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">Skift til desktop-version</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Skift til desktop-version</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Skift til mobil-version</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
@@ -378,6 +380,8 @@
   <string name="browser_menu_edit_bookmark">Rediger bogmærke</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">Gem som PDF…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">Gem som PDF</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
   <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Slå læsevisning til</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
@@ -386,8 +390,12 @@
   <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">Flyt til ikke-privat faneblad</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Oversæt side…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">Oversæt side</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Rapporter probl. m. websted…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">Rapporter probl. m. websted</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -397,6 +405,8 @@
   <string name="browser_menu_translated">Oversat</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Udskriv…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">Udskriv</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -407,6 +417,8 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_default_banner_title">Gør %1$s til din standard-browser</string>
+  <!-- Label text within the set as default banner -->
+  <string name="browser_menu_default_banner_subtitle">Tager sekunder. Skift når som helst.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
   <string name="browser_menu_default_banner_dismiss">Afvis</string>
   <!--
@@ -1509,6 +1521,8 @@
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">Elementer slettet: %1$d</string>
+  <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
+  <string name="download_app_dialog_title">Hent file med:</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Slettet “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -1555,6 +1569,16 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Naviger op</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Tilbage og luk søgning</string>
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">Pause</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">Genoptag</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">Prøv igen</string>
   <string name="download_clear_search_description">Ryd</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Del URL</string>

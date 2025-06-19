@@ -281,7 +281,7 @@
   -->
   <string name="browser_menu_new_in_firefox">Nou in %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">Càmbia a situ de iscrivania</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Càmbia a situ de iscrivania</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Passa a su situ mòbile</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

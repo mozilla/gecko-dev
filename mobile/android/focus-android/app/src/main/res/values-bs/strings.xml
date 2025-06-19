@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s daje ti kontrolu.&lt;/p&gt;
-&lt;p&gt;Koristi ga kao privatni pretraživač:
-  &lt;ul&gt;
-    &lt;li&gt;traži i pretražuj direktno u aplikaciji&lt;/li&gt;
-    &lt;li&gt;blokiraj programe za praćenje (ili ih omogući u postavkama)&lt;/li&gt;
-    &lt;li&gt;izbriši sve kolačiće kao i historiju traženja i surfanja&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s je kreirala Mozilla. Naša misija je njegovanje zdravog i otvorenog interneta.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Saznajte više&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s daje ti kontrolu.</p> <p>Koristi ga kao privatni pretraživač: <ul> <li>traži i pretražuj direktno u aplikaciji</li> <li>blokiraj programe za praćenje (ili ih omogući u postavkama)</li> <li>izbriši sve kolačiće kao i historiju traženja i surfanja</li> </ul> </p> <p>%1$s je kreirala Mozilla. Naša misija je njegovanje zdravog i otvorenog interneta.<br/> <a href=\"%2$s\">Saznajte više</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Privatnost i sigurnost</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Ako nastavite, prihvatate %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Ako nastavite, prihvatate %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Uslovi korištenja Firefoxa.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Uslovi korištenja Firefoxa.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox brine o vašoj privatnosti. Saznajte više u našem %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox brine o vašoj privatnosti. Saznajte više u našem %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Napomena o privatnosti.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Napomena o privatnosti.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Slažem se, nastavi</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Idi na Android postavke</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Dodirni &lt;b&gt;Dozvole&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Dodirni <b>Dozvole</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Idi na Postavke</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Promijeni &lt;b&gt;%1$s&lt;/b&gt; na UKLJUČENO</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Promijeni <b>%1$s</b> na UKLJUČENO]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -752,7 +743,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> Da dobijete prijedloge, %1$s treba da pošalje pretraživaču ono što unesete u adresnu traku.</string>
+  <string name="enable_search_suggestion_description">Da dobijete prijedloge, %1$s treba da pošalje pretraživaču ono što unesete u adresnu traku.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">Ne</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -767,8 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Stranica se ponaša neočekivano?\n
-    Pokušajte isključiti zaštitu od praćenja</string>
+  <string name="tip_disable_tracking_protection">Stranica se ponaša neočekivano?\nPokušajte isključiti zaštitu od praćenja</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -779,23 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Otvorite svaki link u %1$su\n
-        Postavite %1$s kao zadani pretraživač
-    </string>
+  <string name="tip_set_default_browser">Otvorite svaki link u %1$su\nPostavite %1$s kao zadani pretraživač</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Automatsko dovršavanje URL-ova za web stranice koje najčešće koristite\n
-        Dugo pritisnite bilo koji URL u adresnoj traci
-    </string>
+  <string name="tip_autocomplete_url">Automatsko dovršavanje URL-ova za web stranice koje najčešće koristite\nDugo pritisnite bilo koji URL u adresnoj traci</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Otvorite link u novom tabu\n
-        Dugo pritisnite bilo koji link na stranici
-    </string>
+  <string name="tip_open_in_new_tab">Otvorite link u novom tabu\nDugo pritisnite bilo koji link na stranici</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Isključite savjete na početnom ekranu</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -876,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Sačuvane i podijeljene slike &lt;b&gt;neće biti&lt;/b&gt; izbrisane kada izbrišete %1$s historiju</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Sačuvane i podijeljene slike <b>neće biti</b> izbrisane kada izbrišete %1$s historiju]]></string>
   <!--
     Theme Preferences
 
@@ -897,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s pokušava koristiti HTTPS vezu kad god je to moguće radi veće sigurnosti.
-     &lt;a href="%2$s"&gt;Saznajte više&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Promijenite ovu postavku u Postavke &gt; Privatnost i sigurnost &gt; Sigurnost.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s pokušava koristiti HTTPS vezu kad god je to moguće radi veće sigurnosti. <a href=\"%2$s\">Saznajte više</a> <br/><br/> Promijenite ovu postavku u Postavke > Privatnost i sigurnost > Sigurnost.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Veza nije sigurna</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Ovo može biti problem s konfiguracijom servera, ili može biti da neko pokušava imitirati server. &lt;br/&gt;&lt;br/&gt;
-    Ako ste se u prošlosti uspješno povezali s ovim serverom, greška može biti privremena.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Ovo može biti problem s konfiguracijom servera, ili može biti da neko pokušava imitirati server. <br/><br/> Ako ste se u prošlosti uspješno povezali s ovim serverom, greška može biti privremena.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Neko se možda pokušava lažno predstavljati za web stranicu i nastavak bi mogao biti rizičan.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s nema povjerenja u &lt;b&gt;%2$s&lt;/b&gt; jer je njegov izdavalac certifikata nepoznat, certifikat je samopotpisan ili server ne šalje ispravne posredničke certifikate.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Neko se možda pokušava lažno predstavljati za web stranicu i nastavak bi mogao biti rizičan.</label> <br><br> <label>%1$s nema povjerenja u <b>%2$s</b> jer je njegov izdavalac certifikata nepoznat, certifikat je samopotpisan ili server ne šalje ispravne posredničke certifikate.</label>]]></string>
   <!--
     Sessions List
 

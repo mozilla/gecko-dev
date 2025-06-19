@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s သည် သင့်ကို ထိန်းချုပ်မှု ပေးထားပါသည်။&lt;/p&gt;
-&lt;p&gt;သီးသန့်တစ်ကိုယ်ရေသုံး ဘရောင်ဇာအနေနှင့် အသုံးပြုပါ
-  &lt;ul&gt;
-    &lt;li&gt;ရှာဖွေကြည့်ရှုပါ&lt;/li&gt;
-    &lt;li&gt;နောက်ယောင်ခံများကို တားဆီးပါ (သို့မဟုတ် နောက်ယောင်ခံများကို ခွင့်ပြုရန် သတ်မှတ်ပြင်ဆင်ပါ)&lt;/li&gt;
-    &lt;li&gt;ကွတ်ကီးများ၊ ရှာဖွေကြည့်ရှုမှုမှတ်တမ်းများကို ရှင်းလင်းပါ&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s ကို Mozilla မှ ထုတ်လုပ်ပါသည်။ ကျွန်ုပ်တို့၏ ရည်မှန်းချက်သည် ကောင်းမွန်ပွင့်လင်းသော အင်တာနက်ကို တည်ဆောက်ရန် ဖြစ်သည်။&lt;br/&gt;
-&lt;a href="%2$s"&gt;Learn more&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s သည် သင့်ကို ထိန်းချုပ်မှု ပေးထားပါသည်။</p> <p>သီးသန့်တစ်ကိုယ်ရေသုံး ဘရောင်ဇာအနေနှင့် အသုံးပြုပါ <ul> <li>ရှာဖွေကြည့်ရှုပါ</li> <li>နောက်ယောင်ခံများကို တားဆီးပါ (သို့မဟုတ် နောက်ယောင်ခံများကို ခွင့်ပြုရန် သတ်မှတ်ပြင်ဆင်ပါ)</li> <li>ကွတ်ကီးများ၊ ရှာဖွေကြည့်ရှုမှုမှတ်တမ်းများကို ရှင်းလင်းပါ</li> </ul> </p> <p>%1$s ကို Mozilla မှ ထုတ်လုပ်ပါသည်။ ကျွန်ုပ်တို့၏ ရည်မှန်းချက်သည် ကောင်းမွန်ပွင့်လင်းသော အင်တာနက်ကို တည်ဆောက်ရန် ဖြစ်သည်။<br/> <a href=\"%2$s\">Learn more</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">ကိုယ်ရေးကာကွယ်မှုနှင့် လုံခြုံရေး</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">ရှေ့ဆက်ခြင်းဖြင့် သင်သည် %1$s ကို သဘောတူပါသည်</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">ရှေ့ဆက်ခြင်းဖြင့် သင်သည် %1$s ကို သဘောတူပါသည်</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Firefox အသုံးပြုမှုသဘောတူညီချက်များ</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Firefox အသုံးပြုမှုသဘောတူညီချက်များ</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox သည် သင်၏ privacy ကို ဂရုစိုက်သည်။ ကျွန်ုပ်တို့၏ %1$s တွင် ပိုမိုလေ့လာပါ</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox သည် သင်၏ privacy ကို ဂရုစိုက်သည်။ ကျွန်ုပ်တို့၏ %1$s တွင် ပိုမိုလေ့လာပါ</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">ကိုယ်ရေးကာကွယ်မှု သတိပေးချက်</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">ကိုယ်ရေးကာကွယ်မှု သတိပေးချက်</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">သဘောတူပြီး ဆက်လုပ်ပါ</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
@@ -642,7 +633,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">ဝဘ်ဆိုက်သည် မူမမှန်ဖြစ်နေပါသလား။\n ခြေရာခံကာကွယ်မှုစနစ်ကို ပိတ်ပြီး ပြန်စမ်းကြည့်ပါ။</string>
+  <string name="tip_disable_tracking_protection">ဝဘ်ဆိုက်သည် မူမမှန်ဖြစ်နေပါသလား။\nခြေရာခံကာကွယ်မှုစနစ်ကို ပိတ်ပြီး ပြန်စမ်းကြည့်ပါ။</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -653,17 +644,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">%1$s ရှိ လင့်ခ်တိုင်းကို ဖွင့်ပါ\n %1$s ကို မူသေဘရောက်ဇာအဖြစ် သတ်မှတ်ပါ</string>
+  <string name="tip_set_default_browser">%1$s ရှိ လင့်ခ်တိုင်းကို ဖွင့်ပါ\n%1$s ကို မူသေဘရောက်ဇာအဖြစ် သတ်မှတ်ပါ</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">သင်အသုံးပြုများသော ဆိုက်များ၏ URLs ကို အလိုအလျောက်ဖြည့်ပါမည်\n လိပ်စာဘားတန်းထဲတွင် မည်သည့် URL ကိုမဆို ကြာကြာဖိပြီး ဖွင့်နိုင်သည်</string>
+  <string name="tip_autocomplete_url">သင်အသုံးပြုများသော ဆိုက်များ၏ URLs ကို အလိုအလျောက်ဖြည့်ပါမည်\nလိပ်စာဘားတန်းထဲတွင် မည်သည့် URL ကိုမဆို ကြာကြာဖိပြီး ဖွင့်နိုင်သည်</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">လင့်ခ်ကို တဗ်ပ်အသစ်တွင် ဖွင့်ပါ\n စာမျက်နှာရှိ မည်သည့်လင့်ခ်တွင်မဆို ကြာကြာဖိပြီး ဖွင့်နိုင်သည်</string>
+  <string name="tip_open_in_new_tab">လင့်ခ်ကို တဗ်ပ်အသစ်တွင် ဖွင့်ပါ\nစာမျက်နှာရှိ မည်သည့်လင့်ခ်တွင်မဆို ကြာကြာဖိပြီး ဖွင့်နိုင်သည်</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">စတင်အသုံးရန် မျက်နှာပြင်တွင် အကြံပြုချက်များ ပြသခြင်းကို ပိတ်ပါ</string>
   <!-- Label for the snackbar when a user opens a new tab -->

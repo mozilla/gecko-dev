@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s надає вам контроль.&lt;/p&gt;
-&lt;p&gt;Використовуйте його як приватний браузер:
-  &lt;ul&gt;
-    &lt;li&gt;Шукайте і переглядайте безпосередньо в програмі&lt;/li&gt;
-    &lt;li&gt;Блокуйте стеження (або змініть налаштування, щоб дозволити його)&lt;/li&gt;
-    &lt;li&gt;Видаляйте файли cookie, а також історію пошуку та перегляду&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s створено в Mozilla. Наша місія – розвивати здоровий та відкритий Інтернет.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Докладніше&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s надає вам контроль.</p> <p>Використовуйте його як приватний браузер: <ul> <li>Шукайте і переглядайте безпосередньо в програмі</li> <li>Блокуйте стеження (або змініть налаштування, щоб дозволити його)</li> <li>Видаляйте файли cookie, а також історію пошуку та перегляду</li> </ul> </p> <p>%1$s створено в Mozilla. Наша місія – розвивати здоровий та відкритий Інтернет.<br/> <a href=\"%2$s\">Докладніше</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Приватність і безпека</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Продовжуючи, ви погоджуєтеся з %1$s.</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Продовжуючи, ви погоджуєтеся з %1$s.</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">умовами користування Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">умовами користування Firefox.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox піклується про вашу приватність. Прочитайте %1$s, щоб дізнатися більше</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox піклується про вашу приватність. Прочитайте %1$s, щоб дізнатися більше</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Положення про приватність.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Положення про приватність.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Погодитись і продовжити</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Відкрийте налаштування Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Торкніться &lt;b&gt;Дозволи&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Торкніться <b>Дозволи</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Перейти до налаштувань</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Увімкніть перемикач &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Увімкніть перемикач <b>%1$s</b>]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Камера</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -752,7 +743,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> Для отримання пропозицій %1$s повинен відправляти пошуковій системі введений в адресному рядку текст.</string>
+  <string name="enable_search_suggestion_description">Для отримання пропозицій %1$s повинен відправляти пошуковій системі введений в адресному рядку текст.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">Ні</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -767,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Неочікувана поведінка сайту?\n Спробуйте вимкнути захист від стеження</string>
+  <string name="tip_disable_tracking_protection">Неочікувана поведінка сайту?\nСпробуйте вимкнути захист від стеження</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Відкривайте всі посилання в %1$s\n Встановіть %1$s типовим браузером</string>
+  <string name="tip_set_default_browser">Відкривайте всі посилання в %1$s\nВстановіть %1$s типовим браузером</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Автозавершення популярних URL-адрес\n Тривалий дотик до URL в адресному рядку</string>
+  <string name="tip_autocomplete_url">Автозавершення популярних URL-адрес\nТривалий дотик до URL в адресному рядку</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Відкривайте посилання в новій вкладці\n Тривалий дотик до посилання на сторінці</string>
+  <string name="tip_open_in_new_tab">Відкривайте посилання в новій вкладці\nТривалий дотик до посилання на сторінці</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Вимкнути поради у домівці</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Збережені та спільні зображення &lt;b&gt;не будуть видалені&lt;/b&gt;, якщо ви зітрете історію %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Збережені та спільні зображення <b>не будуть видалені</b>, якщо ви зітрете історію %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s намагається використовувати HTTPS-з’єднання, коли це можливо для підвищення безпеки.
-     &lt;a href="%2$s"&gt;Докладніше&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Змініть це налаштування перейшовши до Налаштування &gt; Приватність і безпека &gt; Безпека.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s намагається використовувати HTTPS-з’єднання, коли це можливо для підвищення безпеки. <a href=\"%2$s\">Докладніше</a> <br/><br/> Змініть це налаштування перейшовши до Налаштування > Приватність і безпека > Безпека.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Незахищене зʼєднання</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Це може бути проблема з конфігурацією сервера, або, можливо, хтось намагається імітувати той сервер. &lt;br/&gt;&lt;br/&gt;
-    Якщо ви раніше отримували доступ до цього сервера, то це може бути тимчасова помилка.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Це може бути проблема з конфігурацією сервера, або, можливо, хтось намагається імітувати той сервер. <br/><br/> Якщо ви раніше отримували доступ до цього сервера, то це може бути тимчасова помилка.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Хтось може намагатися видати себе за сайт. Подальший перехід може бути ризикованим.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s не довіряє &lt;b&gt;%2$s&lt;/b&gt;, тому що видавець його сертифіката невідомий, сертифікат самопідписаний, або сервер не надсилає правильні посередницькі сертифікати&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Хтось може намагатися видати себе за сайт. Подальший перехід може бути ризикованим.</label> <br><br> <label>%1$s не довіряє <b>%2$s</b>, тому що видавець його сертифіката невідомий, сертифікат самопідписаний, або сервер не надсилає правильні посередницькі сертифікати</label>]]></string>
   <!--
     Sessions List
 
@@ -970,11 +952,11 @@
 
     This text should be as short as possible, max 68 chars
   -->
-  <string name="exit_fullscreen_with_gesture_short">Щоб вийти, потягніть зверху і скористайтеся жестом "Назад"</string>
+  <string name="exit_fullscreen_with_gesture_short">Щоб вийти, потягніть зверху і скористайтеся жестом \"Назад\"</string>
   <!--
     Message shown to explain how to exit fullscreen mode when using back button navigation.
 
     This text should be as short as possible, max 68 chars
   -->
-  <string name="exit_fullscreen_with_back_button_short">Щоб вийти, потягніть зверху і натисніть "Назад"</string>
+  <string name="exit_fullscreen_with_back_button_short">Щоб вийти, потягніть зверху і натисніть \"Назад\"</string>
 </resources>

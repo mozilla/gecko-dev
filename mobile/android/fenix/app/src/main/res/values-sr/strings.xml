@@ -326,7 +326,7 @@
   -->
   <string name="browser_menu_new_in_firefox">Ново у %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">Пребаци на сајт радне површине</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Пребаци на сајт радне површине</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Пребаци на мобилни сајт</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

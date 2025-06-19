@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s asettaa sinut ohjaimiin.&lt;/p&gt;
-&lt;p&gt;Käytä sitä yksityiseen selaamiseen:
-  &lt;ul&gt;
-    &lt;li&gt;Hae ja selaa suoraan sovelluksessa&lt;/li&gt;
-    &lt;li&gt;Estä seuranta (tai muokkaa asetuksia salliaksesi seuraimet)&lt;/li&gt;
-    &lt;li&gt;Poista evästeet ja haku- sekä selaushistoria&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s on Mozillan kehittämä. Tehtävämme on edesauttaa tervettä, avointa Internetiä&lt;br/&gt;
-&lt;a href="%2$s"&gt;Lue lisää&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s asettaa sinut ohjaimiin.</p> <p>Käytä sitä yksityiseen selaamiseen: <ul> <li>Hae ja selaa suoraan sovelluksessa</li> <li>Estä seuranta (tai muokkaa asetuksia salliaksesi seuraimet)</li> <li>Poista evästeet ja haku- sekä selaushistoria</li> </ul> </p> <p>%1$s on Mozillan kehittämä. Tehtävämme on edesauttaa tervettä, avointa Internetiä<br/> <a href=\"%2$s\">Lue lisää</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Tietosuoja ja turvallisuus</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Jatkamalla hyväksyt %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Jatkamalla hyväksyt %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Firefoxin käyttöehdot.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Firefoxin käyttöehdot.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox välittää yksityisyydestäsi. Lisätietoja on %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox välittää yksityisyydestäsi. Lisätietoja on %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">tietosuojakäytännössä.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">tietosuojakäytännössä.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Hyväksy ja jatka</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Mene Androidin asetuksiin</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Napauta &lt;b&gt;Käyttöoikeudet&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Napauta <b>Käyttöoikeudet</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Mene asetuksiin</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Aseta &lt;b&gt;%1$s&lt;/b&gt; PÄÄLLÄ-asentoon</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Aseta <b>%1$s</b> PÄÄLLÄ-asentoon]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -767,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Käyttäytyykö sivusto odottamattomasti?\n Kokeile kytkeä seurannan suojaus pois päältä</string>
+  <string name="tip_disable_tracking_protection">Käyttäytyykö sivusto odottamattomasti?\nKokeile kytkeä seurannan suojaus pois päältä</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Avaa jokainen linkki selaimella %1$s\n Aseta %1$s oletusselaimeksi</string>
+  <string name="tip_set_default_browser">Avaa jokainen linkki selaimella %1$s\nAseta %1$s oletusselaimeksi</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Täydennä osoitteet sivustoille, joita käytät eniten\n Paina pitkään osoitekentässä olevia osoitteita</string>
+  <string name="tip_autocomplete_url">Täydennä osoitteet sivustoille, joita käytät eniten\nPaina pitkään osoitekentässä olevia osoitteita</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Avaa linkki uuteen välilehteen\n Paina pitkään mitä tahansa linkkiä sivulla</string>
+  <string name="tip_open_in_new_tab">Avaa linkki uuteen välilehteen\nPaina pitkään mitä tahansa linkkiä sivulla</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Älä näytä vinkkejä aloitusnäytössä</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Tallennettuja ja jaettuja kuvia &lt;b&gt;ei poisteta&lt;/b&gt; kun tyhjennät %1$sin historian</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Tallennettuja ja jaettuja kuvia <b>ei poisteta</b> kun tyhjennät %1$sin historian]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s yrittää käyttää HTTPS aina kun mahdollista turvallisuuden lisäämiseksi.
-     &lt;a href="%2$s"&gt;Lue lisää&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Muuta tätä asetusta kohdassa Asetukset &gt; Tietosuoja ja turvallisuus &gt; Turvallisuus.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s yrittää käyttää HTTPS aina kun mahdollista turvallisuuden lisäämiseksi. <a href=\"%2$s\">Lue lisää</a> <br/><br/> Muuta tätä asetusta kohdassa Asetukset > Tietosuoja ja turvallisuus > Turvallisuus.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Yhteys ei ole suojattu</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Ongelma voi johtua palvelimen asetuksista tai jonkin toisen palvelimen vilpillisestä yrityksestä tekeytyä palvelimeksi. &lt;br/&gt;&lt;br/&gt;
-    Jos yhteyden muodostaminen palvelimeen on aiemmin onnistunut, vika voi olla väliaikainen.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Ongelma voi johtua palvelimen asetuksista tai jonkin toisen palvelimen vilpillisestä yrityksestä tekeytyä palvelimeksi. <br/><br/> Jos yhteyden muodostaminen palvelimeen on aiemmin onnistunut, vika voi olla väliaikainen.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Jokin toinen osapuoli saattaa tekeytyä sivustoksi, jatkaminen voi olla riskialtista.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s ei luota sivustoon &lt;b&gt;%2$s&lt;/b&gt;, koska sen varmenteen myöntäjä on tuntematon, varmenne on itse allekirjoitettu tai palvelin ei lähetä oikeita välivarmenteita.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Jokin toinen osapuoli saattaa tekeytyä sivustoksi, jatkaminen voi olla riskialtista.</label> <br><br> <label>%1$s ei luota sivustoon <b>%2$s</b>, koska sen varmenteen myöntäjä on tuntematon, varmenne on itse allekirjoitettu tai palvelin ei lähetä oikeita välivarmenteita.</label>]]></string>
   <!--
     Sessions List
 

@@ -311,7 +311,7 @@
   -->
   <string name="browser_menu_new_in_firefox">الجديد في %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">انتقل إلى نسخة الحاسوب</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">انتقل إلى نسخة الحاسوب</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">التبديل إلى الموقع المحمول</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

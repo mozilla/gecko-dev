@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ເຮັດໃຫ້ທ່ານສາມາດຄວບຄູມໄດ້.&lt;/p&gt;
-&lt;p&gt;ໃຊ້ເປັນແບບບຣາວເຊີສ່ວນຕົວ:
-  &lt;ul&gt;
-    &lt;li&gt;ຄົ້ນຫາ ແລະ ທ່ອງເວັບພາຍໃນແອັບ&lt;/li&gt;
-    &lt;li&gt;ບັອກຕົວຕິດຕາມ (ຫລື ອັບເດດການຕັ້ງຄ່າເພື່ອອະນຸຍາດຕົວຕິດຕາມ)&lt;/li&gt;
-    &lt;li&gt;ລຶບຄຸກກີ້ລວມທັງປະຫວັດການຄົ້ນຫາ ແລະ ການທ່ອງເວັບອອກ&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s ໄດ້ຮັບການສ້າງຂື້ນມາຈາກ Mozilla. ພາລະກິດຂອງພວກເຮົາແມ່ນສົ່ງເສີມການນຳໃຊ້ອິນເຕີເນັດທີ່ສົມບູນ ແລະ ເປີດກ້ວາງ&lt;br/&gt;
-&lt;a href="%2$s"&gt;ຮຽນຮູ້ເພີ່ມເຕີ່ມ&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ເຮັດໃຫ້ທ່ານສາມາດຄວບຄູມໄດ້.</p> <p>ໃຊ້ເປັນແບບບຣາວເຊີສ່ວນຕົວ: <ul> <li>ຄົ້ນຫາ ແລະ ທ່ອງເວັບພາຍໃນແອັບ</li> <li>ບັອກຕົວຕິດຕາມ (ຫລື ອັບເດດການຕັ້ງຄ່າເພື່ອອະນຸຍາດຕົວຕິດຕາມ)</li> <li>ລຶບຄຸກກີ້ລວມທັງປະຫວັດການຄົ້ນຫາ ແລະ ການທ່ອງເວັບອອກ</li> </ul> </p> <p>%1$s ໄດ້ຮັບການສ້າງຂື້ນມາຈາກ Mozilla. ພາລະກິດຂອງພວກເຮົາແມ່ນສົ່ງເສີມການນຳໃຊ້ອິນເຕີເນັດທີ່ສົມບູນ ແລະ ເປີດກ້ວາງ<br/> <a href=\"%2$s\">ຮຽນຮູ້ເພີ່ມເຕີ່ມ</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">ຄວາມເປັນສ່ວນຕົວ ແລະ ຄວາມປອດໄພ</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">ໂດຍການດຳເນີນການຕໍ່, ທ່ານເຫັນດີນຳ %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">ໂດຍການດຳເນີນການຕໍ່, ທ່ານເຫັນດີນຳ %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">ເງື່ອນໄຂການນໍາໃຊ້ Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">ເງື່ອນໄຂການນໍາໃຊ້ Firefox.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox ເປັນຫ່ວງກ່ຽວກັບຄວາມເປັນສ່ວນຕົວຂອງທ່ານ. ສຶກສາເພີ່ມເຕີມໃນ %1$s ຂອງພວກເຮົາ</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox ເປັນຫ່ວງກ່ຽວກັບຄວາມເປັນສ່ວນຕົວຂອງທ່ານ. ສຶກສາເພີ່ມເຕີມໃນ %1$s ຂອງພວກເຮົາ</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">ເຫັນດີ ແລະ ສືບຕໍ່</string>
   <!-- New Onboarding flow first screen button label -->
@@ -551,7 +542,7 @@
     * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
     * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
   -->
-  <string name="notification_browsing_session_channel_name">"ເຊສຊັນການທ່ອງເວັບແບບສ່ວນຕົວ "</string>
+  <string name="notification_browsing_session_channel_name">\"ເຊສຊັນການທ່ອງເວັບແບບສ່ວນຕົວ \"</string>
   <!--
     The user visible description of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
     The recommended maximum length is 300 characters; the value may be truncated if it is too long. %1$s will be replaced with the name of the app (e.g. Firefox Focus).
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. ໄປທີ່ການຕັ້ງຄ່າ Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. ແຕະທີ່ &lt;b&gt;ສິດ&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. ແຕະທີ່ <b>ສິດ</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">ໄປທີ່ການຕັ້ງຄ່າ</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. ສະລັບ &lt;b&gt;%1$s&lt;/b&gt; ເປັນເປີດ</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. ສະລັບ <b>%1$s</b> ເປັນເປີດ]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">ກ້ອງຖ່າຍຮູບ</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -752,7 +743,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> ເພື່ອຮັບເອົາຄຳແນະນຳ, %1$s ຕ້ອງການສົ່ງສິ່ງທີ່ທ່ານພິມໃນແຖບທີ່ຢູ່ໄປຫາເຄື່ອງມືຊອກຫາ.</string>
+  <string name="enable_search_suggestion_description">ເພື່ອຮັບເອົາຄຳແນະນຳ, %1$s ຕ້ອງການສົ່ງສິ່ງທີ່ທ່ານພິມໃນແຖບທີ່ຢູ່ໄປຫາເຄື່ອງມືຊອກຫາ.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">ບໍ່</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -767,28 +758,28 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">ໄຊເຮັດວຽກຢ່າງບໍ່ຄາດຄິດ?\n ລອງປິດການປົກປ້ອງການຕິດຕາມ</string>
+  <string name="tip_disable_tracking_protection">ໄຊເຮັດວຽກຢ່າງບໍ່ຄາດຄິດ?\nລອງປິດການປົກປ້ອງການຕິດຕາມ</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
   -->
-  <string name="tip_add_to_homescreen">"ຮັບການເຂົ້າເຖິງດ້ວຍການແຕະຄັ້ງດຽວໄປຍັງໄຊທີ່ທ່ານໃຊ້ຫຼາຍທີ່ສຸດ %1$s ເມນູ &gt; ເພີ່ມໄປສູ່ໜ້າຈໍຫຼັກ "</string>
+  <string name="tip_add_to_homescreen">\"ຮັບການເຂົ້າເຖິງດ້ວຍການແຕະຄັ້ງດຽວໄປຍັງໄຊທີ່ທ່ານໃຊ້ຫຼາຍທີ່ສຸດ %1$s ເມນູ &gt; ເພີ່ມໄປສູ່ໜ້າຈໍຫຼັກ \"</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">ເປີດທຸກລີ້ງໃນ%1$s\n ຕັ້ງ %1$s ເປັນບ່າວເຊີເລີ່ມຕົ້ນ</string>
+  <string name="tip_set_default_browser">ເປີດທຸກລີ້ງໃນ%1$s\nຕັ້ງ %1$s ເປັນບ່າວເຊີເລີ່ມຕົ້ນ</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">ເຕີມ URLs ໂດຍອັດຕະໂນມັດສຳລັບເວັບໄຊທີ່ທ່ານໃຊ້ຫຼາຍທີ່ສຸດ\n ແຕະຄ້າງທີ່ URL ໃດໆ ໃນແທບທີ່ຢູ່</string>
+  <string name="tip_autocomplete_url">ເຕີມ URLs ໂດຍອັດຕະໂນມັດສຳລັບເວັບໄຊທີ່ທ່ານໃຊ້ຫຼາຍທີ່ສຸດ\nແຕະຄ້າງທີ່ URL ໃດໆ ໃນແທບທີ່ຢູ່</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">ເປີດລີ້ງໃນແທບໃໝ່\n ແຕະຄ້າງທີ່ລີ້ງໃດໆໃນໜ້າ</string>
+  <string name="tip_open_in_new_tab">ເປີດລີ້ງໃນແທບໃໝ່\nແຕະຄ້າງທີ່ລີ້ງໃດໆໃນໜ້າ</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">ປິດເຄັດລັບໃນໜ້າຈໍເລີ່ມຕົ້ນ</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -850,7 +841,7 @@
   <!-- Label that indicates a site is using a insecure connection. -->
   <string name="insecure_connection">ການເຊື່ອມຕໍ່ບໍ່ປອດໄພ</string>
   <!-- Title for the list of trackers enhanced tracking protection can block. -->
-  <string name="trackers_and_scripts"> ຕົວຕິດຕາມແລະສະຄິບຈະຖືກບ໋ອກ</string>
+  <string name="trackers_and_scripts">ຕົວຕິດຕາມແລະສະຄິບຈະຖືກບ໋ອກ</string>
   <!-- Content description (not visible, for screen readers etc.): Navigate back button description. -->
   <string name="go_back">ກັບຄືນ</string>
   <!--
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">&lt;b&gt;ຈະບໍ່ລຶບ&lt;/b&gt;ພາບທີບັນທືກໄວ້ ແລະ ແບ່ງປັນເມືອທ່ານລ້າງປະຫວັດຂອງ  %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[<b>ຈະບໍ່ລຶບ</b>ພາບທີບັນທືກໄວ້ ແລະ ແບ່ງປັນເມືອທ່ານລ້າງປະຫວັດຂອງ %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s ພະຍາຍາມໃຊ້ການເຊື່ອມຕໍ່ HTTPS ທຸກຄັ້ງທີ່ເປັນໄປໄດ້ເພື່ອຄວາມປອດໄພຫຼາຍຂຶ້ນ.
-     &lt;a href="%2$s"&gt;ສຶກສາເພີ່ມເຕີມ&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     ປ່ຽນການຕັ້ງຄ່ານີ້ໃນການຕັ້ງຄ່າ &gt; ຄວາມເປັນສ່ວນຕົວ &amp; amp; ຄວາມປອດໄພ &gt; ຄວາມປອດໄພ.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ພະຍາຍາມໃຊ້ການເຊື່ອມຕໍ່ HTTPS ທຸກຄັ້ງທີ່ເປັນໄປໄດ້ເພື່ອຄວາມປອດໄພຫຼາຍຂຶ້ນ. <a href=\"%2$s\">ສຶກສາເພີ່ມເຕີມ</a> <br/><br/> ປ່ຽນການຕັ້ງຄ່ານີ້ໃນການຕັ້ງຄ່າ > ຄວາມເປັນສ່ວນຕົວ & amp; ຄວາມປອດໄພ > ຄວາມປອດໄພ.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">ການເຊື່ອມຕໍ່ບໍ່ປອດໄພ</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-ສິງນີ້ອາດຈະເປັນບັນຫາທີ່ເກີດມາຈາກການຄອນຟິກເຊີເວີຜິດ ຫລື ມັນອາດຈະເກີດມາຈາກການທີ່ມີບາງຄົນພະຍາຍາມປອມແປງເຊີເວີ.&lt;br/&gt;&lt;br/&gt;
-ຖ້າຫາກວ່າທ່ານເຄີຍເຊື່ອມຕໍ່ກັບເຊີເວີນີ້ໄດ້ສຳເລັດມາກ່ອນ ຂໍ້ຜິດພາດນີ້ອາດຈະເກີດຂື້ນພຽງຊົ່ວຄາວ ແລະ ທ່ານສາມາດລອງເຂົ້າໃຫມ່ໃນພາຍຫລັງ.
-</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[\u0020ສິງນີ້ອາດຈະເປັນບັນຫາທີ່ເກີດມາຈາກການຄອນຟິກເຊີເວີຜິດ ຫລື ມັນອາດຈະເກີດມາຈາກການທີ່ມີບາງຄົນພະຍາຍາມປອມແປງເຊີເວີ.<br/><br/> ຖ້າຫາກວ່າທ່ານເຄີຍເຊື່ອມຕໍ່ກັບເຊີເວີນີ້ໄດ້ສຳເລັດມາກ່ອນ ຂໍ້ຜິດພາດນີ້ອາດຈະເກີດຂື້ນພຽງຊົ່ວຄາວ ແລະ ທ່ານສາມາດລອງເຂົ້າໃຫມ່ໃນພາຍຫລັງ.\u0020]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;ມີບາງຄົນອາດຈະກຳລັງປອມແປງເວັບໄຊທ ແລະ ທ່ານບໍ່ຄວນຈະເຂົ້າໄປ.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;ເວັບໄຊທຈະຢັ້ງຢືນຕົວຕົນຜ່ານທາງໃບຮັບຮອງ. %1$s ບໍ່ຫນ້າເຊື່ອຖື &lt;b&gt;%2$s&lt;/b&gt; ເພາະວ່າຜູ້ອອກໃບຮັບຮອງຂອງພວກເຂົາແມ່ນບໍເປັນທີ່ຮູ້ຈັກ, ໃບຮັບຮອງແມ່ນສ້າງຂື້ນມາເອງ ຫລື ເຊີເວີບໍ່ໄດ້ສົ່ງໃບຮັບຮອງທີ່ຖືກຕ້ອງມາໃຫ້.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>ມີບາງຄົນອາດຈະກຳລັງປອມແປງເວັບໄຊທ ແລະ ທ່ານບໍ່ຄວນຈະເຂົ້າໄປ.</label> <br><br> <label>ເວັບໄຊທຈະຢັ້ງຢືນຕົວຕົນຜ່ານທາງໃບຮັບຮອງ. %1$s ບໍ່ຫນ້າເຊື່ອຖື <b>%2$s</b> ເພາະວ່າຜູ້ອອກໃບຮັບຮອງຂອງພວກເຂົາແມ່ນບໍເປັນທີ່ຮູ້ຈັກ, ໃບຮັບຮອງແມ່ນສ້າງຂື້ນມາເອງ ຫລື ເຊີເວີບໍ່ໄດ້ສົ່ງໃບຮັບຮອງທີ່ຖືກຕ້ອງມາໃຫ້.</label>]]></string>
   <!--
     Sessions List
 

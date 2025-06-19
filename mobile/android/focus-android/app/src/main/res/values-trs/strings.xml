@@ -142,16 +142,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s sò\' \'nïnj rā\'a daran\' sa \'iát.&lt;/p&gt;
-&lt;p&gt;Nāgi\'iaj \'ngō nabegado huìi man:
-  &lt;ul&gt;
-    &lt;li&gt;Nānà\'uì\' nī gāchē nu āsìj riña aplikasiun dan&lt;/li&gt;
-    &lt;li&gt;Nārán riña nej sa naga\'nāj a (asi nāgi\'iaj nākàt man sisī dādan achín man)&lt;/li&gt;
-    &lt;li&gt;Nādure\' nej koki nī nej sa atāj na\'ānj danè\' gaché nunt&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s si rāsūn Mozilla huin man. Nù huin ñunj da\' gā ni\'nïnj internter riñant.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Gāhuin chrūn doj&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s sò\' \'nïnj rā\'a daran\' sa \'iát.</p> <p>Nāgi\'iaj \'ngō nabegado huìi man: <ul> <li>Nānà\'uì\' nī gāchē nu āsìj riña aplikasiun dan</li> <li>Nārán riña nej sa naga\'nāj a (asi nāgi\'iaj nākàt man sisī dādan achín man)</li> <li>Nādure\' nej koki nī nej sa atāj na\'ānj danè\' gaché nunt</li> </ul> </p> <p>%1$s si rāsūn Mozilla huin man. Nù huin ñunj da\' gā ni\'nïnj internter riñant.<br/> <a href=\"%2$s\">Gāhuin chrūn doj</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Sa huìi nī sa dugumin</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -205,7 +196,7 @@
     Summary for the toggle to enable autocomplete for the topsites list
     %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
-  <string name="preference_autocomplete_topsite_summary2">Nāchrūn man %s da’ nūtà\’ mān\’an man 450 URLs sa nīhià\’ ruhuâ ni gīni\’iāj ni.</string>
+  <string name="preference_autocomplete_topsite_summary2">Nāchrūn man %s da’ nūtà\\’ mān\\’an man 450 URLs sa nīhià\\’ ruhuâ ni gīni\\’iāj ni.</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">Guendâ nej sitiô nuta\'t huajt</string>
   <!--
@@ -585,7 +576,7 @@
   <!-- Preference summary for the cookie banner. If the cookie banner option is not disabled. -->
   <string name="preferences_cookie_banner_summary_on">Nāchrūn</string>
   <!-- Preference summary for the cookie banner. If the cookie banner option is disabled. -->
-  <string name="preferences_cookie_banner_summary_off">Dūnâ\’àj</string>
+  <string name="preferences_cookie_banner_summary_off">Dūnâ\\’àj</string>
   <!-- Title preference inside Cookie banner reduction screen. Here you can set the cookie banner option to disabled or reject_all. -->
   <string name="cookie_banner_reject_all_option_title">Nadugua\' si Banêr Kôki</string>
   <!-- Preference summary inside Cookie banner reduction screen. Here you can set the cookie banner option to disabled or reject_all. -->
@@ -637,11 +628,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Gūij riña gā\'hue nāgi\'iát Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Gūru\'man ra\'a riña &lt;b&gt;nej sa achín nì\'hiát&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Gūru\'man ra\'a riña <b>nej sa achín nì\'hiát</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Gūij riña gā\'ue Nāgi\'hiô\'</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Nāchrūn &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Nāchrūn <b>%1$s</b>]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kâmara</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -742,7 +733,7 @@
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">"Nagi\'iaj chre\' nej URL guenda nej sitio rajsun yitïnjt\nRu\'ma ra\'à riña URL \'na\' riña dukuán direksiôn "</string>
+  <string name="tip_autocomplete_url">\"Nagi\'iaj chre\' nej URL guenda nej sitio rajsun yitïnjt\nRu\'ma ra\'à riña URL \'na\' riña dukuán direksiôn \"</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
@@ -773,7 +764,7 @@
   <!-- Button to remove all websites from the exception list -->
   <string name="preference_exceptions_remove_all_button_label">Guxun daran\' nej sîtio</string>
   <!-- Title for Preference screen for cookie blocking for exceptions tracking protection -->
-  <string name="preference_block_cookies_title">Nārûn\’ riña nej kôki</string>
+  <string name="preference_block_cookies_title">Nārûn\\’ riña nej kôki</string>
   <!-- Message for Preference screen for cookie blocking for exceptions tracking protection -->
   <string name="preference_category_block_cookies">Nāránt riña nej kôki aj</string>
   <!-- Title for the tab crash report screen -->
@@ -789,11 +780,11 @@
   <!-- Tracking protection bottom sheet -->
 
   <!-- Label for the total number of trackers blocked. %s is the app install date. -->
-  <string name="trackers_count_note">Ganarán riña nej sa naga\’nāj a āsìj %s</string>
+  <string name="trackers_count_note">Ganarán riña nej sa naga\\’nāj a āsìj %s</string>
   <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection. -->
   <string name="content">Sa màn</string>
   <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection. -->
-  <string name="advertising">Sa duyinga\’ nuguan\’ an</string>
+  <string name="advertising">Sa duyinga\\’ nuguan\\’ an</string>
   <!-- Category of trackers (social media) that can be blocked by Enhanced Tracking Protection. -->
   <string name="social">Sa yūmàn’an</string>
   <!-- Category of trackers (analytics) that can be blocked by Enhanced Tracking Protection. -->
@@ -811,7 +802,7 @@
   <!-- Title for the list of trackers enhanced tracking protection can block. -->
   <string name="trackers_and_scripts">Nej sa naga’nāj a nī nej skrip gā’ue nāránt riña</string>
   <!-- Content description (not visible, for screen readers etc.): Navigate back button description. -->
-  <string name="go_back">Nānīkāj ne\’ rūkùu</string>
+  <string name="go_back">Nānīkāj ne\\’ rūkùu</string>
   <!--
     Top Sites
 
@@ -828,7 +819,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Nej ñadu’hua ngà na’nïn sà’t &lt;b&gt;sê sī&lt;/b&gt; nārè’ nej man si ruhuât nādurê’t nej sa ni’hiājt ngà gaché nut riña %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Nej ñadu’hua ngà na’nïn sà’t <b>sê sī</b> nārè’ nej man si ruhuât nādurê’t nej sa ni’hiājt ngà gaché nut riña %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -840,7 +831,7 @@
   <!-- Preference for using dark theme -->
   <string name="preference_dark_theme">Huā rūmin\' man</string>
   <!-- Preference for using using dark or light theme automatically set by battery -->
-  <string name="preference_auto_battery_theme">Nanûn man da\’ dūguminj batería </string>
+  <string name="preference_auto_battery_theme">Nanûn man da\\’ dūguminj batería</string>
   <!-- Preference for using following device theme -->
   <string name="preference_follow_device_theme">Gānikò\' si tema aga\' dan</string>
   <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
@@ -849,13 +840,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s ginùn huin gārasunj HTTPS da’ gā nïn doj gāchē nunt.&lt;a href="%2$s"&gt;Gāhuin chrūn doj&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;     Nadunā dàj gā riña hiūj nan riña tàj sa nadunāt&gt; Sa huìi &amp;amp; Sa dugumîn&gt; Sa dugumîn.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ginùn huin gārasunj HTTPS da’ gā nïn doj gāchē nunt.<a href=\"%2$s\">Gāhuin chrūn doj</a> <br/><br/> Nadunā dàj gā riña hiūj nan riña tàj sa nadunāt> Sa huìi &amp; Sa dugumîn> Sa dugumîn.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Nitāj seguridâ nikāj koneksiôn</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">Si gūruhuaj nī huā a’nan’ riña nagi’hiát dàj gā servidor, así huā ‘ngō sa yī’ì natûj riña servidor. &lt;br/&gt;&lt;br/&gt; Sisī nitāj si gi’hiaj chìj gatût riña servidor nan ganïnj ïn, nī sê sa ahīi huin, dòj nī nāhuin man.</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Si gūruhuaj nī huā a’nan’ riña nagi’hiát dàj gā servidor, así huā ‘ngō sa yī’ì natûj riña servidor. <br/><br/> Sisī nitāj si gi’hiaj chìj gatût riña servidor nan ganïnj ïn, nī sê sa ahīi huin, dòj nī nāhuin man.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">&lt;label&gt;Huā ‘ngō sa yī’ì natût riña sitio nī da’huît gāhuīt dadin’ gā’hue gā’huì’ yī’ìj sòj.&lt;/label&gt;&lt;br&gt;&lt;br&gt;&lt;label&gt;%1$s nitāj si nani’in &lt;b&gt;%2$s&lt;/b&gt; man dadin’ nitāj si huā hia danè’ gurugui’ij, rû’huāj si sertifikâdo digañu’ūnj un huin man rû’ huaj, así na’hue gā’nïnj servidor sertifikadô huā hue’ê.&lt;/label&gt;</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Huā ‘ngō sa yī’ì natût riña sitio nī da’huît gāhuīt dadin’ gā’hue gā’huì’ yī’ìj sòj.</label><br><br><label>%1$s nitāj si nani’in <b>%2$s</b> man dadin’ nitāj si huā hia danè’ gurugui’ij, rû’huāj si sertifikâdo digañu’ūnj un huin man rû’ huaj, así na’hue gā’nïnj servidor sertifikadô huā hue’ê.</label>]]></string>
   <!--
     Sessions List
 

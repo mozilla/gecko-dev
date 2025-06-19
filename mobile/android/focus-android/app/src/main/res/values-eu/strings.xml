@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s(e)k agintea ematen dizu.&lt;/p&gt;
-&lt;p&gt;Erabili nabigatzaile pribatu gisa:
-  &lt;ul&gt;
-    &lt;li&gt;Bilatu eta nabigatu aplikaziotik zuzenean&lt;/li&gt;
-    &lt;li&gt;Blokeatu jarraipen-elementuak (edo eguneratu ezarpenak jarraipen-elementuak baimentzeko)&lt;/li&gt;
-    &lt;li&gt;Ezabatu cookieak eta bilaketa- eta nabigatze-historia&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;Mozillak egina da %1$s. Internet osasuntsu eta irekia sustatzea da gure misioa.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Argibide gehiago&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s(e)k agintea ematen dizu.</p> <p>Erabili nabigatzaile pribatu gisa: <ul> <li>Bilatu eta nabigatu aplikaziotik zuzenean</li> <li>Blokeatu jarraipen-elementuak (edo eguneratu ezarpenak jarraipen-elementuak baimentzeko)</li> <li>Ezabatu cookieak eta bilaketa- eta nabigatze-historia</li> </ul> </p> <p>Mozillak egina da %1$s. Internet osasuntsu eta irekia sustatzea da gure misioa.<br/> <a href=\"%2$s\">Argibide gehiago</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Pribatutasuna eta segurtasuna</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Jarraitzearekin bat, %1$s onartzen dituzu.</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Jarraitzearekin bat, %1$s onartzen dituzu.</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Firefoxen erabilera-baldintzak</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Firefoxen erabilera-baldintzak</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefoxi zure pribatutasunak axola dio. Irakurri gehiago gure %1$s.</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefoxi zure pribatutasunak axola dio. Irakurri gehiago gure %1$s.</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Pribatutasun-oharrean</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Pribatutasun-oharrean</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Onartu eta jarraitu</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
@@ -676,11 +667,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Zoaz Android sistemako ezarpenetara</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Sakatu &lt;b&gt;Baimenak&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Sakatu <b>Baimenak</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Joan ezarpenetara</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Txandakatu &lt;b&gt;%1$s&lt;/b&gt; piztuta egon dadin</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Txandakatu <b>%1$s</b> piztuta egon dadin]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -765,7 +756,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Guneak espero gabeko portaera du?\n Saiatu jarraipenaren babesa itzaltzen</string>
+  <string name="tip_disable_tracking_protection">Guneak espero gabeko portaera du?\nSaiatu jarraipenaren babesa itzaltzen</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -776,17 +767,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Ireki lotura guztiak %1$s aplikazioarekin\n Egin %1$s nabigatzaile lehenetsia</string>
+  <string name="tip_set_default_browser">Ireki lotura guztiak %1$s aplikazioarekin\nEgin %1$s nabigatzaile lehenetsia</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Osatu automatikoki gehien bisitatzen dituzun guneetako URLak\n Mantendu sakatuta helbide-barran edozein URL</string>
+  <string name="tip_autocomplete_url">Osatu automatikoki gehien bisitatzen dituzun guneetako URLak\nMantendu sakatuta helbide-barran edozein URL</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Ireki lotura fitxa berri batean\n Mantendu sakatuta orri bateko edozein lotura</string>
+  <string name="tip_open_in_new_tab">Ireki lotura fitxa berri batean\nMantendu sakatuta orri bateko edozein lotura</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Desgaitu hasierako pantailako aholkuak</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -867,7 +858,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Deskargatutako eta partekatutako irudiak &lt;b&gt;ez dira&lt;/b&gt; ezabatuko %1$s(r)en historia ezabatzean.</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Deskargatutako eta partekatutako irudiak <b>ez dira</b> ezabatuko %1$s(r)en historia ezabatzean.]]></string>
   <!--
     Theme Preferences
 
@@ -888,22 +879,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s saiatzen da ahal denean HTTPS konexioa erabiltzen segurtasun hobeagorako.
-     &lt;a href="%2$s"&gt;Argibide gehiago&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Aldatu ezarpen hau Ezarpenak &gt; Pribatutasuna eta Segurtasuna &gt; Segurtasuna atalean.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s saiatzen da ahal denean HTTPS konexioa erabiltzen segurtasun hobeagorako. <a href=\"%2$s\">Argibide gehiago</a> <br/><br/> Aldatu ezarpen hau Ezarpenak > Pribatutasuna eta Segurtasuna > Segurtasuna atalean.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Konexio ez-segurua</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Hau zerbitzariaren konfigurazio-errore batengatik edo norbait zerbitzariaren nortasuna hartzen ari delako izan daiteke. &lt;br/&gt;&lt;br/&gt;
-    Aurretik zerbitzari honetara behar bezala konektatu bazara, errorea behin-behinekoa izan daiteke.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Hau zerbitzariaren konfigurazio-errore batengatik edo norbait zerbitzariaren nortasuna hartzen ari delako izan daiteke. <br/><br/> Aurretik zerbitzari honetara behar bezala konektatu bazara, errorea behin-behinekoa izan daiteke.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Baten bat gunea ordezten saiatzen egon liteke eta jarraitzea arriskutsua izan liteke.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$sek ez du &lt;b&gt;%2$s&lt;/b&gt; fidagarritzat jotzen ziurtagiriaren jaulkitzailea ezezaguna delako, ziurtagiria guneak berak sinatutakoa delako, edo zerbitzariak ez dituelako tarteko ziurtagiriak egoki bidaltzen.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Baten bat gunea ordezten saiatzen egon liteke eta jarraitzea arriskutsua izan liteke.</label> <br><br> <label>%1$sek ez du <b>%2$s</b> fidagarritzat jotzen ziurtagiriaren jaulkitzailea ezezaguna delako, ziurtagiria guneak berak sinatutakoa delako, edo zerbitzariak ez dituelako tarteko ziurtagiriak egoki bidaltzen.</label>]]></string>
   <!--
     Sessions List
 

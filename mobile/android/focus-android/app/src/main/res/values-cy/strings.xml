@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;Gyda %1$s chi sy’n rheoli.&lt;/p&gt;
-&lt;p&gt;Defnyddiwch ef fel porwr preifat:
-  &lt;ul&gt;
-  &lt;li&gt;Chwilio a phori o fewn yr ap&lt;/li&gt;
-  &lt;li&gt;Rhwystro tracwyr (neu ddiweddaru’ch gosodiadau i ganiatáu tracwyr)&lt;/li&gt;
-  &lt;li&gt;Dileu er mwyn dileu cwcis yn ogystal â hanes chwilio a phori&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;Mae %1$s yn cael ei gynhyrchu gan Mozilla. Ein cenhadaeth yw meithrin Rhyngrwyd iach ac agored.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Dysgu rhagor&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>Gyda %1$s chi sy’n rheoli.</p> <p>Defnyddiwch ef fel porwr preifat: <ul> <li>Chwilio a phori o fewn yr ap</li> <li>Rhwystro tracwyr (neu ddiweddaru’ch gosodiadau i ganiatáu tracwyr)</li> <li>Dileu er mwyn dileu cwcis yn ogystal â hanes chwilio a phori</li> </ul> </p> <p>Mae %1$s yn cael ei gynhyrchu gan Mozilla. Ein cenhadaeth yw meithrin Rhyngrwyd iach ac agored.<br/> <a href=\"%2$s\">Dysgu rhagor</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Preifatrwydd a Diogelwch</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Drwy barhau, rydych yn cytuno i %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Drwy barhau, rydych yn cytuno i %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Amodau Defnyddio Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Amodau Defnyddio Firefox.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Mae Firefox yn ofalus o\'ch preifatrwydd. Darllenwch fwy yn ein %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Mae Firefox yn ofalus o\'ch preifatrwydd. Darllenwch fwy yn ein %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Hysbysiad Preifatrwydd.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Hysbysiad Preifatrwydd.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Cytuno a pharhau</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Ewch i Gosodiadau Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Tapiwch &lt;b&gt;Caniatâd&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Tapiwch <b>Caniatâd</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Mynd i’r gosodiadau</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Toglo &lt;b&gt;%1$s&lt;/b&gt; i YMLAEN</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Toglo <b>%1$s</b> i YMLAEN]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Camera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -767,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Gwefan yn ymddwyn yn anisgwyl?\n Ceisiwch ddiffodd Diogelwch rhag Tracio</string>
+  <string name="tip_disable_tracking_protection">Gwefan yn ymddwyn yn anisgwyl?\nCeisiwch ddiffodd Diogelwch rhag Tracio</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Agor pob dolen yn %1$s\n Gosod %1$s fel y porwr rhagosodedig</string>
+  <string name="tip_set_default_browser">Agor pob dolen yn %1$s\nGosod %1$s fel y porwr rhagosodedig</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Gosod URLau awtogwblhau i\'ch gwefannau gorau\n Pwyso\'n hir unrhyw URL yn y bar cyfeiriad</string>
+  <string name="tip_autocomplete_url">Gosod URLau awtogwblhau i\'ch gwefannau gorau\nPwyso\'n hir unrhyw URL yn y bar cyfeiriad</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Agor dolen mewn tab newydd\n Pwyso\'n hir ar unrhyw ddolen ar dudalen</string>
+  <string name="tip_open_in_new_tab">Agor dolen mewn tab newydd\nPwyso\'n hir ar unrhyw ddolen ar dudalen</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Diffodd awgrymiadau ar y sgrin cychwyn</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Fydd delweddau sydd wedi eu cadw a’u rhannu &lt;b&gt;ddim yn cael eu dileu&lt;/b&gt; pan fyddwch yn dileu hanes %1$s.</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Fydd delweddau sydd wedi eu cadw a’u rhannu <b>ddim yn cael eu dileu</b> pan fyddwch yn dileu hanes %1$s.]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">Mae %1$s yn ceisio defnyddio cysylltiad HTTPS pryd bynnag y bo modd i fod yn fwy diogel.
-     &lt;a href="%2$s"&gt;Dysgu rhagor&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Newidiwch y gosodiad hwn yn Gosodiadau &gt; Preifatrwydd a Diogelwch &gt; Diogelwch.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Mae %1$s yn ceisio defnyddio cysylltiad HTTPS pryd bynnag y bo modd i fod yn fwy diogel. <a href=\"%2$s\">Dysgu rhagor</a> <br/><br/> Newidiwch y gosodiad hwn yn Gosodiadau > Preifatrwydd a Diogelwch > Diogelwch.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Nid yw’r cysylltiad yn ddiogel</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Gall hyn fod yn broblem gyda ffurfweddiad y gweinydd, neu gall fod yn rhywun sy’n ceisio dynwared y gweinydd. &lt;br/&gt;&lt;br/&gt;
-    Os ydych wedi cysylltu â’r gweinydd hwn yn llwyddiannus yn y gorffennol, gall y gwall fod yn un dros dro.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Gall hyn fod yn broblem gyda ffurfweddiad y gweinydd, neu gall fod yn rhywun sy’n ceisio dynwared y gweinydd. <br/><br/> Os ydych wedi cysylltu â’r gweinydd hwn yn llwyddiannus yn y gorffennol, gall y gwall fod yn un dros dro.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Gall rhywun fod yn ceisio dynwared y wefan a gall mynd ymlaen fod yn beryglus.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt; Nid yw %1$s yn ymddiried yn &lt;b&gt;%2$s&lt;/b&gt; oherwydd bod cyhoeddwr ei dystysgrif yn anhysbys, maer dystysgrif wedi’i hunan-lofnodi, neu nid yw’r gweinydd yn anfon y tystysgrifau canolradd cywir.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Gall rhywun fod yn ceisio dynwared y wefan a gall mynd ymlaen fod yn beryglus.</label> <br><br> <label> Nid yw %1$s yn ymddiried yn <b>%2$s</b> oherwydd bod cyhoeddwr ei dystysgrif yn anhysbys, maer dystysgrif wedi’i hunan-lofnodi, neu nid yw’r gweinydd yn anfon y tystysgrifau canolradd cywir.</label>]]></string>
   <!--
     Sessions List
 

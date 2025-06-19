@@ -118,16 +118,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s आपल्याला नियंत्रण देतो.&lt;/p&gt;
-&lt;p&gt;खाजगी ब्राउझर म्हणून वापरा:
-&lt;ul&gt;
-&lt;li&gt;अँप मध्येच शोध व ब्राउझ करा&lt;/li&gt;
-&lt;li&gt;मागोवा यंत्रणा अडवा(किंवा सेटिंग बदलून मागोवा यंत्रणेला परवानगी द्या)&lt;/li&gt;
-&lt;li&gt;कुकीज, सर्च व ब्राऊझिंग इतिहास नष्ट करण्यासाठी खोडून टाका&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s Mozilla ने उत्पादित केला आहे. खुले व सुधृढ इंटरनेट जोपासणे आमचे ध्येय आहे.&lt;br/&gt;
-&lt;a href="%2$s"&gt;अधिक जाणून घ्या&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s आपल्याला नियंत्रण देतो.</p> <p>खाजगी ब्राउझर म्हणून वापरा: <ul> <li>अँप मध्येच शोध व ब्राउझ करा</li> <li>मागोवा यंत्रणा अडवा(किंवा सेटिंग बदलून मागोवा यंत्रणेला परवानगी द्या)</li> <li>कुकीज, सर्च व ब्राऊझिंग इतिहास नष्ट करण्यासाठी खोडून टाका</li> </ul> </p> <p>%1$s Mozilla ने उत्पादित केला आहे. खुले व सुधृढ इंटरनेट जोपासणे आमचे ध्येय आहे.<br/> <a href=\"%2$s\">अधिक जाणून घ्या</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">गोपनीयता आणि सुरक्षा</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -531,7 +522,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">साइट अनपेक्षितरित्या वागत आहे?\n ट्रॅकिंग संरक्षण बंद करण्याचा प्रयत्न करा</string>
+  <string name="tip_disable_tracking_protection">साइट अनपेक्षितरित्या वागत आहे?\nट्रॅकिंग संरक्षण बंद करण्याचा प्रयत्न करा</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -552,7 +543,7 @@
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">एका नवीन टॅबमध्ये एक दुवा उघडा\n एका पृष्ठावर कोणताही दुवा दीर्घ-दाबून ठेवा</string>
+  <string name="tip_open_in_new_tab">एका नवीन टॅबमध्ये एक दुवा उघडा\nएका पृष्ठावर कोणताही दुवा दीर्घ-दाबून ठेवा</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">आरंभ पटलावर सूचना बंद करा</string>
   <!-- Label for the snackbar when a user opens a new tab -->

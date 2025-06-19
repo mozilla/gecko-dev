@@ -149,18 +149,9 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ad k-d-yefk afus ad teqqimeḍ d aqeṛṛu.&lt;/p&gt;
-&lt;p&gt;Seqdec-it d iminig uslig:
-  &lt;ul&gt;
-    &lt;li&gt;Nadi sakin snirem akken iwata deg usnas&lt;/li&gt;
-    &lt;li&gt;Sewḥel ineḍfaren (neɣ leqqem iɣewwaren akken ad tsirgeḍ ineḍfaren)&lt;/li&gt;
-    &lt;li&gt;Sfeḍ inagan n tuqqna akked uzray n tunigin d unadi&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s yesnulfa-t-id Mozilla. Tuɣdaṭ-nneɣ ad nḥareb γef internet yeldin d tezmert-is.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Issin ugar&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ad k-d-yefk afus ad teqqimeḍ d aqeṛṛu.</p> <p>Seqdec-it d iminig uslig: <ul> <li>Nadi sakin snirem akken iwata deg usnas</li> <li>Sewḥel ineḍfaren (neɣ leqqem iɣewwaren akken ad tsirgeḍ ineḍfaren)</li> <li>Sfeḍ inagan n tuqqna akked uzray n tunigin d unadi</li> </ul> </p> <p>%1$s yesnulfa-t-id Mozilla. Tuɣdaṭ-nneɣ ad nḥareb γef internet yeldin d tezmert-is.<br/> <a href=\"%2$s\">Issin ugar</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
-  <string name="preference_privacy_and_security_header">"Tabaḍnit  &amp; Taɣellist"</string>
+  <string name="preference_privacy_and_security_header">\"Tabaḍnit &amp; Taɣellist\"</string>
   <!-- Preference summary for settings related to privacy and security -->
   <string name="preference_privacy_and_security_summary">Aḍfaṛ, inagan n tuqqna, isefka yettwaleqḍen</string>
   <!--
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">S ukemmel, ad tqebleḍ %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">S ukemmel, ad tqebleḍ %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Tiwtiln n useqdec n Fiefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Tiwtiln n useqdec n Fiefox.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox terḥa-t tudert-ik tabaḍnit. Issin ugar deg %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox terḥa-t tudert-ik tabaḍnit. Issin ugar deg %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Tasertit n tbaḍnit.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Tasertit n tbaḍnit.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Qbel syen kemmel</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Ddu ɣer iɣewwaṛen Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Senned &lt;b&gt;Tisirag&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Senned <b>Tisirag</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Ddu ɣer iɣewwaṛen</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Nṭew&lt;b&gt;%1$s&lt;/b&gt; ɣer  IRMED</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Nṭew<b>%1$s</b> ɣer IRMED]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Takamiṛat</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -767,28 +758,28 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Tigawin ur nettwerǧu sɣur usmel?\n Ɛṛeḍ ad tsenseḍ ammesten n usfuɣel</string>
+  <string name="tip_disable_tracking_protection">Tigawin ur nettwerǧu sɣur usmel?\nƐṛeḍ ad tsenseḍ ammesten n usfuɣel</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
   -->
-  <string name="tip_add_to_homescreen">"Awi anekcum fessusen ɣer ismal  i tseqdaceḍ aṭas %1$s Umuɣ &gt; Rnu ɣer ugdil agejdan"</string>
+  <string name="tip_add_to_homescreen">\"Awi anekcum fessusen ɣer ismal i tseqdaceḍ aṭas %1$s Umuɣ &gt; Rnu ɣer ugdil agejdan\"</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Ldi yal aseɣwen deg %1$s\n Sbadu %1$s d iming amezwar</string>
+  <string name="tip_set_default_browser">Ldi yal aseɣwen deg %1$s\nSbadu %1$s d iming amezwar</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Taččarant tawurmant URLs i yismal i tseqdaceḍ aṭas \n Asenned ɣezzifen ɣef URL ibɣu yilli deg ufeggag n tansiwin</string>
+  <string name="tip_autocomplete_url">Taččarant tawurmant URLs i yismal i tseqdaceḍ aṭas \nAsenned ɣezzifen ɣef URL ibɣu yilli deg ufeggag n tansiwin</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Ldi aseɣwen deg iccer amaynut\n Asenned ɣezzifen ɣef useɣwen deg usebter</string>
+  <string name="tip_open_in_new_tab">Ldi aseɣwen deg iccer amaynut\nAsenned ɣezzifen ɣef useɣwen deg usebter</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Sens timahaltin deg ugdil n tnekra</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Tugniwin yettwaskelsen akked yettwabḍan &lt;b&gt;ur ttwakkasent ara&lt;/b&gt; mi ara ad tekkseḍ %1$s azray.</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Tugniwin yettwaskelsen akked yettwabḍan <b>ur ttwakkasent ara</b> mi ara ad tekkseḍ %1$s azray.]]></string>
   <!--
     Theme Preferences
 
@@ -890,21 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s iɛerreḍ ad yesseqdec tuqqna HTTPS yal mi ara yili wamek i wugar n tɣellist.
-     &lt;a href="%2$s"&gt;Issin ugar&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Beddel aɣewwaṛ-a deg Iɣewwaṛen &gt; Tabaḍnit &amp;amp; Taɣellist.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s iɛerreḍ ad yesseqdec tuqqna HTTPS yal mi ara yili wamek i wugar n tɣellist. <a href=\"%2$s\">Issin ugar</a> <br/><br/> Beddel aɣewwaṛ-a deg Iɣewwaṛen > Tabaḍnit &amp; Taɣellist.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Tuqqna d taraɣellsant</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Aya yezmer ad yili d ugur deg twila n uqeddac, neɣ yezmer ad yili d ḥedd i iɛerrḍen ad yaker tamagit n uqeddac. &lt;br/&gt;&lt;br/&gt;
-    Ma teqqneḍ ɣer uqeddac-a akken ilaq yakan, tuccḍa tezmer ad tili d taskudant.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Aya yezmer ad yili d ugur deg twila n uqeddac, neɣ yezmer ad yili d ḥedd i iɛerrḍen ad yaker tamagit n uqeddac. <br/><br/> Ma teqqneḍ ɣer uqeddac-a akken ilaq yakan, tuccḍa tezmer ad tili d taskudant.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">&lt;label&gt;Ahat yella ḥedd i iɛerrḍen ad yaker tamagit n usmel, ur ilaq ara ad tkemmleḍ.&lt;/label&gt;
-&lt;br&gt;&lt;br&gt;
-&lt;label&gt;%1$s ur yumin ara &lt;b&gt;%2$s&lt;/b&gt; acku tasiregt d tarussint, tasiregt tesɛa azmul-is, neɣ aqeddac ur d-yuzin ara tisirag timeɣta.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Ahat yella ḥedd i iɛerrḍen ad yaker tamagit n usmel, ur ilaq ara ad tkemmleḍ.</label> <br><br> <label>%1$s ur yumin ara <b>%2$s</b> acku tasiregt d tarussint, tasiregt tesɛa azmul-is, neɣ aqeddac ur d-yuzin ara tisirag timeɣta.</label>]]></string>
   <!--
     Sessions List
 

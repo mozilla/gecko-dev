@@ -326,7 +326,7 @@
   -->
   <string name="browser_menu_new_in_firefox">Nevez e %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">Mont d\'ar stumm evit an urzhiataer</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Mont d\'ar stumm evit an urzhiataer</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Lec’hienn hezoug</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

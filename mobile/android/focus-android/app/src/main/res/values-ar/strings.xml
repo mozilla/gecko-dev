@@ -97,7 +97,7 @@
     Notification action to erase the current browsing session AND switch to Focus (bring it
     to the foreground)
   -->
-  <string name="notification_action_erase_and_open">امسح و افتح</string>
+  <string name="notification_action_erase_and_open">امسح و افتح</string>
   <!--
     On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
     This is the label for this shortcut. Android recommends a maximum length of 10 characters.
@@ -149,20 +149,11 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;يعطيك %1$s الدفّة.&lt;/p&gt;
-&lt;p&gt;استعمله كمتصفّح خاص:
-  &lt;ul&gt;
-    &lt;li&gt;ابحث وتصفّح مباشرة في التطبيق&lt;/li&gt;
-    &lt;li&gt;احجب المتعقّبات (أو حدّث الإعدادات للسماح بها)&lt;/li&gt;
-    &lt;li&gt;امسح الكعكات بالإضافة إلى حذف تأريخ البحث والتصفّح&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s منتج من Mozilla. مهمتنا تكمن في التشجيع نحو إنترنت مفتوح وصحّي.&lt;br/&gt;
-&lt;a href="%2$s"&gt;اطّلع على المزيد&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>يعطيك %1$s الدفّة.</p> <p>استعمله كمتصفّح خاص: <ul> <li>ابحث وتصفّح مباشرة في التطبيق</li> <li>احجب المتعقّبات (أو حدّث الإعدادات للسماح بها)</li> <li>امسح الكعكات بالإضافة إلى حذف تأريخ البحث والتصفّح</li> </ul> </p> <p>%1$s منتج من Mozilla. مهمتنا تكمن في التشجيع نحو إنترنت مفتوح وصحّي.<br/> <a href=\"%2$s\">اطّلع على المزيد</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">الخصوصية والسريّة</string>
   <!-- Preference summary for settings related to privacy and security -->
-  <string name="preference_privacy_and_security_summary">التّعقّب، و الكعكات، و اختيار البيانات</string>
+  <string name="preference_privacy_and_security_summary">التّعقّب، و الكعكات، و اختيار البيانات</string>
   <!--
     Preference category description for settings related to search, set default
     and autocomplete are settings a user can find and change inside the "search" settings screen
@@ -328,7 +319,7 @@
   <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->
   <string name="preference_mozilla_telemetry_summary">اطّلع على المزيد</string>
   <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-  <string name="preference_mozilla_telemetry_summary2">تحاول موزيلا ألا تجمع أكثر مما تحتاجه لإتاحة %1$s و تحسينه للجميع.</string>
+  <string name="preference_mozilla_telemetry_summary2">تحاول موزيلا ألا تجمع أكثر مما تحتاجه لإتاحة %1$s و تحسينه للجميع.</string>
   <string name="preference_daily_usage_ping_description">يساعد هذا Mozilla على تقدير عدد المستخدمين النشطين.</string>
   <string name="preference_daily_usage_ping_learn_more">اطلع على المزيد</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
@@ -469,21 +460,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">بالاستمرار فإنك توافق على %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">بالاستمرار فإنك توافق على %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">شروط استخدام Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">شروط استخدام Firefox.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">يهتم Firefox بخصوصيتك. تعرّف على المزيد في قسم %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">يهتم Firefox بخصوصيتك. تعرّف على المزيد في قسم %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">تنويه الخصوصية.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">تنويه الخصوصية.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">موافقة ومتابعة</string>
   <!--
@@ -672,11 +663,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. انتقل إلى إعدادات أندرويد</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. انقر على &lt;b&gt;الأذونات&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. انقر على <b>الأذونات</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">انتقل إلى الإعدادات</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. اضبط &lt;b&gt;%1$s&lt;/b&gt; على مفعّل/مفعّلة</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. اضبط <b>%1$s</b> على مفعّل/مفعّلة]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">الكاميرا</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -863,7 +854,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">الصور المحفوظة و المُشاركة &lt;b&gt;لن تُحذف&lt;/b&gt; عندما تمسح تأريخ %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[الصور المحفوظة و المُشاركة <b>لن تُحذف</b> عندما تمسح تأريخ %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -884,22 +875,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">يحاول %1$s استخدام اتصال HTTPS كلما أمكن ذلك لزيادة الأمان.
-&lt;a href="%2$s"&gt;تعرف على المزيد&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-يمكنك تغيير هذا الإعداد في الإعدادات &gt; الخصوصية والأمان &gt; الأمان.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[يحاول %1$s استخدام اتصال HTTPS كلما أمكن ذلك لزيادة الأمان. <a href=\"%2$s\">تعرف على المزيد</a> <br/><br/> يمكنك تغيير هذا الإعداد في الإعدادات > الخصوصية والأمان > الأمان.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">الاتصال غير آمن</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    قد تكون هذه مشكلة في تكوين الخادم، أو قد يوجد من يحاول انتحال شخصية الخادم.&lt;br/&gt;&lt;br/&gt;
-    إذا اتصلت بهذا الخادم بنجاح مسبقًا، فقد يكون الخطأ مؤقتًا.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[قد تكون هذه مشكلة في تكوين الخادم، أو قد يوجد من يحاول انتحال شخصية الخادم.<br/><br/> إذا اتصلت بهذا الخادم بنجاح مسبقًا، فقد يكون الخطأ مؤقتًا.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;قد يحاول أحد ما انتحال هوية الموقع، فالاستمرار هنا محفوفٌ بالمخاطر.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;لا يثق %1$s بـ&lt;b&gt;%2$s&lt;/b&gt; لأن الجهة المصدرة للشهادة غير معروفة، أو لأن الشهادة موقعة ذاتيًا، أو لأن الخادم لم يرسل الشهادات الوسيطة الصحيحة.&lt;/label&gt;
-</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>قد يحاول أحد ما انتحال هوية الموقع، فالاستمرار هنا محفوفٌ بالمخاطر.</label> <br><br> <label>لا يثق %1$s بـ<b>%2$s</b> لأن الجهة المصدرة للشهادة غير معروفة، أو لأن الشهادة موقعة ذاتيًا، أو لأن الخادم لم يرسل الشهادات الوسيطة الصحيحة.</label>]]></string>
   <!--
     Sessions List
 

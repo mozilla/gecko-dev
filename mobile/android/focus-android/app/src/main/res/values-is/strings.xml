@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s setur þig við stjórnvölinn.&lt;/p&gt;
-&lt;p&gt;Notaðu það sem huliðsvafra:
-  &lt;ul&gt;
-    &lt;li&gt;Leitaðu og flettu beint í forritinu&lt;/li&gt;
-    &lt;li&gt;Lokaðu á rekjara (eða uppfærðu stillingar til að leyfa rekjara)&lt;/li&gt;
-    &lt;li&gt;Hreinsaðu til að eyða vefkökum sem og leitar- og vafraferli&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s er framleitt af Mozilla. Markmið okkar er að hlúa að heilbrigðu, opnu interneti.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Frekari upplýsingar&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s setur þig við stjórnvölinn.</p> <p>Notaðu það sem huliðsvafra: <ul> <li>Leitaðu og flettu beint í forritinu</li> <li>Lokaðu á rekjara (eða uppfærðu stillingar til að leyfa rekjara)</li> <li>Hreinsaðu til að eyða vefkökum sem og leitar- og vafraferli</li> </ul> </p> <p>%1$s er framleitt af Mozilla. Markmið okkar er að hlúa að heilbrigðu, opnu interneti.<br/> <a href=\"%2$s\">Frekari upplýsingar</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Friðhelgi og öryggi</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Með því að halda áfram, samþykkir þú %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Með því að halda áfram, samþykkir þú %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">notkunarskilmála Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">notkunarskilmála Firefox.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox er annt um friðhelgi þína. Lestu meira í %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox er annt um friðhelgi þína. Lestu meira í %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">stefnu okkar um meðferð persónuupplýsinga.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">stefnu okkar um meðferð persónuupplýsinga.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Samþykkja og halda áfram</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Farðu í Android-stillingar</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Ýttu á &lt;b&gt;Heimildir&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Ýttu á <b>Heimildir</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Farðu í Stillingar</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Breyttu &lt;b&gt;%1$s&lt;/b&gt; yfir í VIRKT</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Breyttu <b>%1$s</b> yfir í VIRKT]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Myndavél</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -767,8 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Vefsvæði hagar sér óvænt?\n
-    Prófaðu að slökkva á rakningarvörn</string>
+  <string name="tip_disable_tracking_protection">Vefsvæði hagar sér óvænt?\nPrófaðu að slökkva á rakningarvörn</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -779,23 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Opnaðu alla tengla í %1$s\n
-        Stilltu %1$s sem sjálfgefinn vafra
-    </string>
+  <string name="tip_set_default_browser">Opnaðu alla tengla í %1$s\nStilltu %1$s sem sjálfgefinn vafra</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Sjálfvirk útfylling vefslóða fyrir vefsvæði sem þú notar mest\n
-        Ýttu lengi á hvaða vefslóð sem er í veffangastikunni
-    </string>
+  <string name="tip_autocomplete_url">Sjálfvirk útfylling vefslóða fyrir vefsvæði sem þú notar mest\nÝttu lengi á hvaða vefslóð sem er í veffangastikunni</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Opnaðu tengil í nýjum flipa\n
-        Ýttu lengi á hvaða tengil sem er á síðu
-    </string>
+  <string name="tip_open_in_new_tab">Opnaðu tengil í nýjum flipa\nÝttu lengi á hvaða tengil sem er á síðu</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Slökkva á ábendingum á upphafsskjánum</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -876,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Vistuðum og deildum myndum &lt;b&gt;verður ekki&lt;/b&gt; eytt þegar þú eyðir ferli %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Vistuðum og deildum myndum <b>verður ekki</b> eytt þegar þú eyðir ferli %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -897,21 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s reynir að nota HTTPS tengingu þegar mögulegt er til að auka öryggi.
-     &lt;a href="%2$s"&gt;Frekari upplýsingar&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Breyttu þessari stillingu í Stillingar &gt; Persónuvernd og öryggi &gt; Öryggi.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s reynir að nota HTTPS tengingu þegar mögulegt er til að auka öryggi. <a href=\"%2$s\">Frekari upplýsingar</a> <br/><br/> Breyttu þessari stillingu í Stillingar > Persónuvernd og öryggi > Öryggi.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Tenging er ekki örugg</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-Þetta gæti verið vegna vandamála í stillingum netþjóns, eða einhver gæti verið að reyna að þykjast vera þessi netþjónn.&lt;br/&gt;&lt;br/&gt;
-Ef þú hefur getað tengst þessum netþjóni án vandamála áður, gæti verið að vandamálið sé aðeins tímabundið, þannig að þú gætir reynt aftur seinna.
- </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Þetta gæti verið vegna vandamála í stillingum netþjóns, eða einhver gæti verið að reyna að þykjast vera þessi netþjónn.<br/><br/> Ef þú hefur getað tengst þessum netþjóni án vandamála áður, gæti verið að vandamálið sé aðeins tímabundið, þannig að þú gætir reynt aftur seinna.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Einhver gæti verið að reyna að þykjast vera þetta vefsvæði og þú ættir ekki að halda áfram.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s treystir ekki &lt;b&gt;%2$s&lt;/b&gt; vegna þess að útgefandi skilríkisins er óþekktur, skilríkið er gefið út af sjálfu sér eða þjóninn er ekki að senda rétt milliskilríki.&lt;/label&gt;</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Einhver gæti verið að reyna að þykjast vera þetta vefsvæði og þú ættir ekki að halda áfram.</label> <br><br> <label>%1$s treystir ekki <b>%2$s</b> vegna þess að útgefandi skilríkisins er óþekktur, skilríkið er gefið út af sjálfu sér eða þjóninn er ekki að senda rétt milliskilríki.</label>]]></string>
   <!--
     Sessions List
 

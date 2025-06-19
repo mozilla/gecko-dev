@@ -336,7 +336,7 @@
   -->
   <string name="browser_menu_new_in_firefox">%1$s uygulamasındaki yenilikler</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">Masaüstü sitesine geç</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Masaüstü sitesine geç</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Mobil siteye geç</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

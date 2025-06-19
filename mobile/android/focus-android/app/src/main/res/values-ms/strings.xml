@@ -478,7 +478,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Laman berkelakuan tidak dijangka?\n Cuba nyahaktifkan Perlindungan Penjejakan</string>
+  <string name="tip_disable_tracking_protection">Laman berkelakuan tidak dijangka?\nCuba nyahaktifkan Perlindungan Penjejakan</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -489,17 +489,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Buka pautan dalam %1$s\n Tetapkan %1$s sebagai pelayar piawai</string>
+  <string name="tip_set_default_browser">Buka pautan dalam %1$s\nTetapkan %1$s sebagai pelayar piawai</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Autolengkap URL untuk laman yang kerap dilawati\n Tekan lama-lama URL dalam bar alamat</string>
+  <string name="tip_autocomplete_url">Autolengkap URL untuk laman yang kerap dilawati\nTekan lama-lama URL dalam bar alamat</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Buka pautan dalam tab baru\n Tekan lama-lama pautan atau halaman</string>
+  <string name="tip_open_in_new_tab">Buka pautan dalam tab baru\nTekan lama-lama pautan atau halaman</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Nyahaktifkan panduan pada skrin mula</string>
   <!-- Label for the snackbar when a user opens a new tab -->

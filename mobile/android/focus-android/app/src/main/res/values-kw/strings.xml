@@ -148,16 +148,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;Gans %1$s yth esos\'ta ow kul maystri.&lt;/p&gt;
-&lt;p&gt;Gwra hy usya avel peurell brivedh:
-  &lt;ul&gt;
-    &lt;li&gt;Hwilas ha peuri a-berth y\'n dowlen&lt;/li&gt;
-    &lt;li&gt;Lettya helerghellow (po nowedhi settyansow dhe amyttya helerghellow)&lt;/li&gt;
-    &lt;li&gt;Dilea pastiow, keffrys hag istori hwilas ha peuri&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;Askorrys gans Mozilla yw %1$s. Agan amkan yw maga kesrosweyth yagh hag ygor.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Dyski moy&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>Gans %1$s yth esos\'ta ow kul maystri.</p> <p>Gwra hy usya avel peurell brivedh: <ul> <li>Hwilas ha peuri a-berth y\'n dowlen</li> <li>Lettya helerghellow (po nowedhi settyansow dhe amyttya helerghellow)</li> <li>Dilea pastiow, keffrys hag istori hwilas ha peuri</li> </ul> </p> <p>Askorrys gans Mozilla yw %1$s. Agan amkan yw maga kesrosweyth yagh hag ygor.<br/> <a href=\"%2$s\">Dyski moy</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Privetter &amp; Diogeledh</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -273,7 +264,7 @@
   <string name="preference_privacy_block_analytics">Lettya helerghellow dielvenna</string>
   <string name="preference_privacy_block_analytics_summary">Usys dhe guntel, dielvenna, ha musura gwriansow kepar ha tappya ha rolya</string>
   <string name="preference_privacy_block_social">Lettya helerghellow sosyel</string>
-  <string name="preference_privacy_block_social_summary">Goworrys yn gwiasvaow dhe helerghi dha vysytyansow ha displetya nasweyth kepar ha botonys kevrenna </string>
+  <string name="preference_privacy_block_social_summary">Goworrys yn gwiasvaow dhe helerghi dha vysytyansow ha displetya nasweyth kepar ha botonys kevrenna</string>
   <string name="preference_privacy_block_content">Lettya helerghellow dalgh erel</string>
   <string name="preference_privacy_block_content_summary2">Gallosegi a yll lettya nebes folennow rag omdhegi yn hwaytyadow</string>
   <string name="preference_privacy_category_cookies">Lettya pastiow</string>
@@ -643,11 +634,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Ke dhe Dewisyow Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Tapp war &lt;b&gt;Kumyasow&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Tapp war <b>Kumyasow</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Ke dhe Dewisyow</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Hig &lt;b&gt;%1$s&lt;/b&gt; dhe BYW</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Hig <b>%1$s</b> dhe BYW]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -732,7 +723,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Gwiva owth omdhegi yn anwaytyadow?\n Assay disweythresa Difresyans Helerghi</string>
+  <string name="tip_disable_tracking_protection">Gwiva owth omdhegi yn anwaytyadow?\nAssay disweythresa Difresyans Helerghi</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -743,13 +734,12 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Ygeri pub kevren yn %1$s\n Sett %1$s avel peurell skwir</string>
+  <string name="tip_set_default_browser">Ygeri pub kevren yn %1$s\nSett %1$s avel peurell skwir</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Eskowlwul DAK rag gwivaow a usydh yn fenowgh\n
-        Hirwask py DAK pynag y\'n barr trigva</string>
+  <string name="tip_autocomplete_url">Eskowlwul DAK rag gwivaow a usydh yn fenowgh\nHirwask py DAK pynag y\'n barr trigva</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
@@ -835,7 +825,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">&lt;b&gt;Ny vydh diles&lt;/b&gt; imajys gwithys ha kevrennys pan dhilei istori %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[<b>Ny vydh diles</b> imajys gwithys ha kevrennys pan dhilei istori %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -856,22 +846,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s a assay usya junyans HTTPS peskweyth may fo possybyl a-barth gwell diogeledh.
- &lt;a href="%2$s"&gt;Dyski moy&lt;/a&gt;&lt;br/&gt;&lt;br/&gt;
- Chanjya an dewis ma yn Dewisyow &gt;Privetter &amp;amp; Diogeledh &gt; Diogeledh.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s a assay usya junyans HTTPS peskweyth may fo possybyl a-barth gwell diogeledh. <a href=\"%2$s\">Dyski moy</a><br/><br/> Chanjya an dewis ma yn Dewisyow >Privetter &amp; Diogeledh > Diogeledh.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Junyans andhiogel</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
- Martesen yth yw problem gans kefurvyans an servyer, po bos nebonan owth assaya omwul an servyer. &lt;br/&gt;&lt;br/&gt;
- Mar kwruss\'ta junya dhe\'n servyer ma yn sewen seulabrys, martesen yth yw an gwall anparghus.
- </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Martesen yth yw problem gans kefurvyans an servyer, po bos nebonan owth assaya omwul an servyer. <br/><br/> Mar kwruss\'ta junya dhe\'n servyer ma yn sewen seulabrys, martesen yth yw an gwall anparghus.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
- &lt;label&gt;Martesen yma nebonan owth assaya omwul an wiasva ha peryllus via pesya.&lt;/label&gt;
- &lt;br&gt;&lt;br&gt;
- &lt;label&gt;Ny wra %1$s trestya dhe &lt;b&gt;%2$s&lt;/b&gt; rag bos anwodhvos y dyller y destskrif, bos omsinys an testskrif, po nag usi an servyer ow tanvon an testskrifow kresel ewn.&lt;/label&gt;
- </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Martesen yma nebonan owth assaya omwul an wiasva ha peryllus via pesya.</label> <br><br> <label>Ny wra %1$s trestya dhe <b>%2$s</b> rag bos anwodhvos y dyller y destskrif, bos omsinys an testskrif, po nag usi an servyer ow tanvon an testskrifow kresel ewn.</label>]]></string>
   <!--
     Sessions List
 

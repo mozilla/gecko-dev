@@ -211,7 +211,7 @@
   <string name="preference_privacy_block_content_summary2">সক্রিয় করলে কিছু পাতা অপ্রত্যাশিত আচরণ করতে পারে</string>
   <string name="preference_privacy_category_cookies">কুকি ব্লক কর</string>
   <string name="preference_privacy_should_block_cookies_third_party_tracker_cookies_option">শুধুমাত্র তৃতীয় পক্ষের ট্র্যাকার কুকিজ ব্লক কর</string>
-  <string name="preference_privacy_should_block_cookies_third_party_only_option">"কেবল ৩য়-পক্ষীয় কুকি ব্লক কর "</string>
+  <string name="preference_privacy_should_block_cookies_third_party_only_option">\"কেবল ৩য়-পক্ষীয় কুকি ব্লক কর \"</string>
   <!-- Preference Title: Biometrics can be used to unlock Focus if the previous session's data was not erased by the user. -->
   <string name="preference_security_biometric">অ্যাপ আনলক করার জন্য আঙ্গুলের ছাপ ব্যবহার করুন</string>
   <!--
@@ -478,7 +478,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">সাইট অপ্রত্যাশিত আচরণ করছে?\n ট্র্যাকিং সুরক্ষা বন্ধ করে দেখুন</string>
+  <string name="tip_disable_tracking_protection">সাইট অপ্রত্যাশিত আচরণ করছে?\nট্র্যাকিং সুরক্ষা বন্ধ করে দেখুন</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -489,17 +489,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">%1$s এর মধ্যে প্রতিটি লিঙ্ক খুলুন\n ডিফল্ট ব্রাউজার হিসাবে %1$s সেট করুন</string>
+  <string name="tip_set_default_browser">%1$s এর মধ্যে প্রতিটি লিঙ্ক খুলুন\nডিফল্ট ব্রাউজার হিসাবে %1$s সেট করুন</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">আপনার সবচে বেশী ব্যবহৃত স্বয়ংপূরণ URLs\n অ্যাড্রেস বারে যেকোনো URL লং-প্রেস করুন</string>
+  <string name="tip_autocomplete_url">আপনার সবচে বেশী ব্যবহৃত স্বয়ংপূরণ URLs\nঅ্যাড্রেস বারে যেকোনো URL লং-প্রেস করুন</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">একটি নতুন ট্যাব একটি লিঙ্ক খুলুন\n কোন পেজে কোন লিংক লং-প্রেস করুন</string>
+  <string name="tip_open_in_new_tab">একটি নতুন ট্যাব একটি লিঙ্ক খুলুন\nকোন পেজে কোন লিংক লং-প্রেস করুন</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">স্টার্ট স্ক্রিনে টিপস বন্ধ করুন</string>
   <!-- Label for the snackbar when a user opens a new tab -->

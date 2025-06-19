@@ -298,7 +298,7 @@
     Content description (not visible, for screen readers etc.): This is the description for the ImageView in the menu that displays
     the number of trackers blocked for the current session
   -->
-  <string name="content_description_trackers_blocked">"Jáy i alim kubadh "</string>
+  <string name="content_description_trackers_blocked">\"Jáy i alim kubadh \"</string>
   <!--
     Content description (not visible, for screen readers etc.): This is the description for the switch in the menu that temporarily disables/enables
     content blocking for the current session
@@ -447,7 +447,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">An xeklek yab u alwa\' t\'ojnal \n Ka exa\' ka kuba\' an k\'anix abal yab kit kedhmayat</string>
+  <string name="tip_disable_tracking_protection">An xeklek yab u alwa\' t\'ojnal \nKa exa\' ka kuba\' an k\'anix abal yab kit kedhmayat</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -463,12 +463,12 @@
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">"Ka eyendha\' an kweten putundhach URLs abal an xeklek axi a eyendal\n Ka ni\'a\' jawakits tum URLs ti alimtaláb\n "</string>
+  <string name="tip_autocomplete_url">\"Ka eyendha\' an kweten putundhach URLs abal an xeklek axi a eyendal\nKa ni\'a\' jawakits tum URLs ti alimtaláb\n\"</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Ka japiy jun i ne\'dhach al jun i it xeklek\n Ka jila\' ni\'adh jawakitsk\'ij tum ne\'dhach al jun i xeklek</string>
+  <string name="tip_open_in_new_tab">Ka japiy jun i ne\'dhach al jun i it xeklek\nKa jila\' ni\'adh jawakitsk\'ij tum ne\'dhach al jun i xeklek</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Ka tepdha\' an kawchix axi ti olchal ti ok\'ox xeklek</string>
   <!-- Preference for switching to a new tab immediately after opening -->

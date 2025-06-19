@@ -148,16 +148,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ni taq’ teq’ol isuuchil.&lt;/p&gt;
-&lt;p&gt;B’anb’e u chukb’al uva’ eetz kuxhtu’:
-  &lt;ul&gt;
-    &lt;li&gt;Chuka as ti kuxh u aplicación la atin kat axh&lt;/li&gt;
-    &lt;li&gt;La majpu ivatz unq’a chukunaal (moj la b’anax tuche’ aq’al uva’ la uch tok u chukunaal)&lt;/li&gt;
-    &lt;li&gt;Sojsa aq’al uva’ la eesa-el u cookies as unq’a vee’ chukeltu ve’te’&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s a’ u Mozilla kat aq’on. U qitz’ab’al nisa’ taq’at Internet b’a’n as jajlukan unpajte.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Ootzi unka’te&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ni taq’ teq’ol isuuchil.</p> <p>B’anb’e u chukb’al uva’ eetz kuxhtu’: <ul> <li>Chuka as ti kuxh u aplicación la atin kat axh</li> <li>La majpu ivatz unq’a chukunaal (moj la b’anax tuche’ aq’al uva’ la uch tok u chukunaal)</li> <li>Sojsa aq’al uva’ la eesa-el u cookies as unq’a vee’ chukeltu ve’te’</li> </ul> </p> <p>%1$s a’ u Mozilla kat aq’on. U qitz’ab’al nisa’ taq’at Internet b’a’n as jajlukan unpajte.<br/> <a href=\"%2$s\">Ootzi unka’te</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Ye\'xhib\'il unka\'te la ootzin as tii tatine\'</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -645,11 +636,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. La oon axh uve’ ni b’anax kat tuch tetz Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Laaku’ uve’ &lt;b&gt;La uch kat&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Laaku’ uve’ <b>La uch kat</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">La b’en axh uve’ la b’anax kat tuche’</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Oypisa &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Oypisa <b>%1$s</b>]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Eesan vatzib’al</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -734,7 +725,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Ni kuxh iyane\'?\n Eesa u kach\'ub\' chukb\'al tetze\'</string>
+  <string name="tip_disable_tracking_protection">Ni kuxh iyane\'?\nEesa u kach\'ub\' chukb\'al tetze\'</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -745,17 +736,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Jaj Junun u k\'uchb\'al chukb\'al tetze\' tu %1$s\n Aq\'kan u %1$se\' uva\' a\' chite\' la b\'anb\'e</string>
+  <string name="tip_set_default_browser">Jaj Junun u k\'uchb\'al chukb\'al tetze\' tu %1$s\nAq\'kan u %1$se\' uva\' a\' chite\' la b\'anb\'e</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">B\'an atz\'ajsat unq\'a URLs ti\' unq\'a vee\' uve\' pal chit ab\'anb\'eta\'\n Laaku\' kam kuxh URL tan u k\'uchb\'al ixaansal tetze\'</string>
+  <string name="tip_autocomplete_url">B\'an atz\'ajsat unq\'a URLs ti\' unq\'a vee\' uve\' pal chit ab\'anb\'eta\'\nLaaku\' kam kuxh URL tan u k\'uchb\'al ixaansal tetze\'</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Jaj uma\'t ak\' chukb\'al tetz\n Laaku\' ab\'iste kuxh chukb\'al tetz</string>
+  <string name="tip_open_in_new_tab">Jaj uma\'t ak\' chukb\'al tetz\nLaaku\' ab\'iste kuxh chukb\'al tetz</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Jupkan unq’a alb’al txumb’ale’ uve’ ni tul svatz</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -836,7 +827,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Jank’al unq’a vatzib’ale’ uve’ kolel as paxsamal unpajte &lt;b&gt;ye’xh kam&lt;/b&gt; la mox sojsal-el tul uva’ la sojsa-el unq’a vee’ chukel tu %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Jank’al unq’a vatzib’ale’ uve’ kolel as paxsamal unpajte <b>ye’xh kam</b> la mox sojsal-el tul uva’ la sojsa-el unq’a vee’ chukel tu %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -857,22 +848,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s nisa’ tok ti’ u HTTPS as la chit ilaxi asoj la uchi aq’al uva’ b’a’n tatine’
- &lt;a href="%2$s"&gt;La ootzi ka’te&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
- Jalpu u vaa’ uve’ ni b’anax kat tuche’ &gt; Eetz kuxhtu’ &amp;amp; Kach’ub’al tetz &gt; Kach’ub’al tetz.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s nisa’ tok ti’ u HTTPS as la chit ilaxi asoj la uchi aq’al uva’ b’a’n tatine’ <a href=\"%2$s\">La ootzi ka’te</a> <br/><br/> Jalpu u vaa’ uve’ ni b’anax kat tuche’ > Eetz kuxhtu’ &amp; Kach’ub’al tetz > Kach’ub’al tetz.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Ye’xh kam b’a’n koj taq’onve’</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
- Kamal tu b’anb’al tuche’ ni yanik kat tzan moj umaj uxhchil q’a ni sa’on tok tzitza’.&lt;br/&gt;&lt;br/&gt;
- Asoj b’a’nik kuxh tatin u vaa’ b’axa, u vaa’ neel cheel tuk kuxh paloje’.
- </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Kamal tu b’anb’al tuche’ ni yanik kat tzan moj umaj uxhchil q’a ni sa’on tok tzitza’.<br/><br/> Asoj b’a’nik kuxh tatin u vaa’ b’axa, u vaa’ neel cheel tuk kuxh paloje’.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
- &lt;label&gt;At umaj uxchil ni tokch’u’l ib’anat ivatz u atinb’ale’ vaa’ asoj la yakeb’ axh at iva’laxhil.&lt;/label&gt;
- &lt;br&gt;&lt;br&gt;
- &lt;label&gt;%1$s ye’ ni k’ujb’a’ ik’u’l ti’ u &lt;b&gt;%2$s&lt;/b&gt; tan ye’ ootzimal ab’il ni aq’onvan, as ankuxhe’ ni b’anb’ela je’ tib’ as ye’ ni taq’ tzan unq’a u’uje’ ti jikil.&lt;/label&gt;
-</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>At umaj uxchil ni tokch’u’l ib’anat ivatz u atinb’ale’ vaa’ asoj la yakeb’ axh at iva’laxhil.</label> <br><br> <label>%1$s ye’ ni k’ujb’a’ ik’u’l ti’ u <b>%2$s</b> tan ye’ ootzimal ab’il ni aq’onvan, as ankuxhe’ ni b’anb’ela je’ tib’ as ye’ ni taq’ tzan unq’a u’uje’ ti jikil.</label>]]></string>
   <!--
     Sessions List
 

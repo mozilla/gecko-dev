@@ -478,7 +478,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Site yaita zvisingatarisirwi?\n Edza kubvisa Kuchengetedzwa Kwekutevera</string>
+  <string name="tip_disable_tracking_protection">Site yaita zvisingatarisirwi?\nEdza kubvisa Kuchengetedzwa Kwekutevera</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -489,17 +489,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Vhura mazano ose mu %1$s\n Ita %1$s sechekutsvagisa</string>
+  <string name="tip_set_default_browser">Vhura mazano ose mu %1$s\nIta %1$s sechekutsvagisa</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Ma URLs echikwata zvemasayiti aunonyanya kushandisa\n Dhinda kwenguva ipi neipi URL mubhare rekero</string>
+  <string name="tip_autocomplete_url">Ma URLs echikwata zvemasayiti aunonyanya kushandisa\nDhinda kwenguva ipi neipi URL mubhare rekero</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Vhura lingi mune imwe tebhu\n Dhinda kwenguva refu chero chibatanidza pane peji</string>
+  <string name="tip_open_in_new_tab">Vhura lingi mune imwe tebhu\nDhinda kwenguva refu chero chibatanidza pane peji</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Dzima mazano papeji yekutangisa</string>
   <!-- Label for the snackbar when a user opens a new tab -->

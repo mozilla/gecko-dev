@@ -334,7 +334,7 @@
   -->
   <string name="browser_menu_new_in_firefox">%1$s ᱨᱮ ᱱᱟᱶᱟ</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">ᱰᱮᱥᱠᱴᱚᱯ ᱥᱟᱭᱤᱴ ᱛᱮ ᱪᱟᱞᱟᱜ ᱢᱮ</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">ᱰᱮᱥᱠᱴᱚᱯ ᱥᱟᱭᱤᱴ ᱛᱮ ᱪᱟᱞᱟᱜ ᱢᱮ</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">ᱢᱳᱵᱟᱭᱤᱞ ᱥᱟᱭᱤᱴ ᱛᱮ ᱩᱪᱟᱹᱲᱚᱜ ᱢᱮ</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

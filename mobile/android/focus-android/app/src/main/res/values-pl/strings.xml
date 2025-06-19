@@ -37,7 +37,7 @@
     replaced with the name of the browser like: "Open in Firefox" or "Open in Chrome". Some
     links can be opened by native apps that aren't a browser, e.g. "Open in YouTube"
   -->
-  <string name="menu_open_with_default_browser2">Otwórz w aplikacji %1$s</string>
+  <string name="menu_open_with_default_browser2">Otwórz w aplikacji %1$s</string>
   <!--
     Menu item: Switch to another browser to open the currently visible page. This menu item
     will be shown if there are multiple browsers and we do not know which one is the default
@@ -53,7 +53,7 @@
   <string name="menu_remove_from_shortcuts">Usuń ze skrótów</string>
   <!-- Menu item: Shows information about features and changes that are new to this version -->
   <string name="menu_settings">Ustawienia</string>
-  <string name="menu_about">O programie</string>
+  <string name="menu_about">O programie</string>
   <string name="menu_help">Pomoc</string>
   <string name="menu_terms_of_use">Warunki korzystania</string>
   <!--
@@ -97,7 +97,7 @@
     Notification action to erase the current browsing session AND switch to Focus (bring it
     to the foreground)
   -->
-  <string name="notification_action_erase_and_open">Usuń i otwórz</string>
+  <string name="notification_action_erase_and_open">Usuń i otwórz</string>
   <!--
     On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
     This is the label for this shortcut. Android recommends a maximum length of 10 characters.
@@ -113,54 +113,45 @@
     On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
     This is the label for this shortcut. Android recommends a maximum length of 10 characters.
   -->
-  <string name="shortcut_erase_and_open_short_label">Usuń i otwórz</string>
+  <string name="shortcut_erase_and_open_short_label">Usuń i otwórz</string>
   <!--
     The same as 'shortcut_erase_short_label' but more descriptive. The launcher shows this
     instead of the short title when it has enough space. Android recommends a maximum length
     of 25 characters.
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="shortcut_erase_and_open_long_label">Usuń i otwórz %1$s</string>
+  <string name="shortcut_erase_and_open_long_label">Usuń i otwórz %1$s</string>
   <!--
     This is the label of an action we offer when the user selects text in other third-party apps.
     Focus is hard coded since we can't use variables in this context.
     Do not translate or transliterate Focus.
   -->
-  <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Wyszukaj w Focus</string>
+  <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Wyszukaj w Focus</string>
   <!--
     This is the label of an action we offer when the user selects text in other third-party apps.
     Klar is hard coded since we can't use variables in this context.
     Do not translate or transliterate Klar.
   -->
-  <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Wyszukaj w Klar</string>
+  <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Wyszukaj w Klar</string>
   <!--
     This is the label of an action we offer when the user selects text in other third-party apps.
     Focus Beta is hard coded since we can't use variables in this context.
     Do not translate or transliterate Focus Beta.
   -->
-  <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Wyszukaj w Focus Beta</string>
+  <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Wyszukaj w Focus Beta</string>
   <!--
     This is the label of an action we offer when the user selects text in other third-party apps.
     Focus Nightly is hard coded since we can't use variables in this context.
     Do not translate or transliterate Focus Nightly.
   -->
-  <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Wyszukaj w Focus Nightly</string>
+  <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Wyszukaj w Focus Nightly</string>
   <!--
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s daje większą kontrolę.&lt;/p&gt;
-&lt;p&gt;Jako prywatna przeglądarka umożliwia:
-  &lt;ul&gt;
-    &lt;li&gt;wyszukiwanie i przeglądanie prosto z aplikacji&lt;/li&gt;
-    &lt;li&gt;blokowanie elementów śledzących (można to zmienić w ustawieniach)&lt;/li&gt;
-    &lt;li&gt;usuwanie ciasteczek oraz całej historii wyszukiwania i przeglądania&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s jest tworzony przez Mozillę. Naszym celem jest wspieranie zdrowego i otwartego Internetu.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Więcej informacji&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s daje większą kontrolę.</p> <p>Jako prywatna przeglądarka umożliwia: <ul> <li>wyszukiwanie i przeglądanie prosto z aplikacji</li> <li>blokowanie elementów śledzących (można to zmienić w ustawieniach)</li> <li>usuwanie ciasteczek oraz całej historii wyszukiwania i przeglądania</li> </ul> </p> <p>%1$s jest tworzony przez Mozillę. Naszym celem jest wspieranie zdrowego i otwartego Internetu.<br/> <a href=\"%2$s\">Więcej informacji</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
-  <string name="preference_privacy_and_security_header">Prywatność i bezpieczeństwo</string>
+  <string name="preference_privacy_and_security_header">Prywatność i bezpieczeństwo</string>
   <!-- Preference summary for settings related to privacy and security -->
   <string name="preference_privacy_and_security_summary">Śledzenie, ciasteczka, udostępniane dane</string>
   <!--
@@ -175,7 +166,7 @@
 
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="preference_mozilla_summary">O programie %1$s, pomoc</string>
+  <string name="preference_mozilla_summary">O programie %1$s, pomoc</string>
   <!-- Preference category for ad blocking and enhanced tracking protection settings -->
   <string name="preference_category_tracking_protection3">Wzmocniona ochrona przed śledzeniem</string>
   <!-- Preference category for settings related to controlling web content -->
@@ -187,7 +178,7 @@
   <!-- Preference summary for General Settings category; the two things users can find in this category -->
   <string name="preference_general_summary2">Domyślna przeglądarka, język</string>
   <!-- Preference category for settings about sending usage data -->
-  <string name="preference_category_data_collection_use">Zbieranie i wykorzystywanie danych</string>
+  <string name="preference_category_data_collection_use">Zbieranie i wykorzystywanie danych</string>
   <string name="preference_category_search">Wyszukiwanie</string>
   <!-- Title of "switch" preference that enables/disables search suggestions -->
   <string name="preference_show_search_suggestions">Podpowiedzi wyszukiwania</string>
@@ -237,7 +228,7 @@
   <!-- Label for the button to quick add the current URL to the custom autocomplete list -->
   <string name="add_custom_autocomplete_label">Dodaj odnośnik do automatycznego uzupełniania</string>
   <!-- Preference category for settings about cookies and site data -->
-  <string name="preference_category_cookies">Ciasteczka i dane witryn</string>
+  <string name="preference_category_cookies">Ciasteczka i dane witryn</string>
   <!-- Preference category for settings about data choices -->
   <string name="preference_category_data_choices">Udostępniane dane</string>
   <!-- Title of the screen for removing custom autocomplete URLs. -->
@@ -245,7 +236,7 @@
   <!-- A link to SUMO at autocomplete settings. -->
   <string name="preference_autocomplete_learn_more">Więcej informacji</string>
   <!-- Preference summary: Custom (user-defined) autocomplete URLs. -->
-  <string name="preference_autocomplete_custom_summary">Dodawanie i zarządzenie innymi adresami automatycznego uzupełniania.</string>
+  <string name="preference_autocomplete_custom_summary">Dodawanie i zarządzenie innymi adresami automatycznego uzupełniania.</string>
   <!-- Label for the "custom autocomplete URL" input field -->
   <string name="preference_autocomplete_add_title">Adres do dodania</string>
   <!-- "Hint" text for the "custom autocomplete URL" input field. Shown when the field is empty. -->
@@ -272,9 +263,9 @@
   <string name="preference_privacy_block_ads">Blokowanie śledzących reklam</string>
   <string name="preference_privacy_block_ads_summary">Niektóre reklamy (nawet niekliknięte) śledzą odwiedziny zawierających je stron</string>
   <string name="preference_privacy_block_analytics">Blokowanie śledzących statystyk</string>
-  <string name="preference_privacy_block_analytics_summary">Używane do zbierania, analizowania i mierzenia działań użytkownika, takich jak stuknięcia i przewijanie</string>
+  <string name="preference_privacy_block_analytics_summary">Używane do zbierania, analizowania i mierzenia działań użytkownika, takich jak stuknięcia i przewijanie</string>
   <string name="preference_privacy_block_social">Blokowanie śledzących społecznościowych</string>
-  <string name="preference_privacy_block_social_summary">Osadzane na stronach, aby śledzić ich odwiedziny i dodawać np. przyciski udostępniania</string>
+  <string name="preference_privacy_block_social_summary">Osadzane na stronach, aby śledzić ich odwiedziny i dodawać np. przyciski udostępniania</string>
   <string name="preference_privacy_block_content">Blokowanie pozostałych śledzących</string>
   <string name="preference_privacy_block_content_summary2">Włączenie może spowodować nieoczekiwane zachowanie niektórych stron</string>
   <string name="preference_privacy_category_cookies">Blokowanie ciasteczek</string>
@@ -295,7 +286,7 @@
     %s is the name of the app (for example "Firefox Focus" or "Firefox Klar")
     Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them.
   -->
-  <string name="preference_security_biometric_summary2">Odblokowywanie za pomocą odcisku palca, jeśli dodano skróty lub kiedy witryna jest już otwarta w %s.</string>
+  <string name="preference_security_biometric_summary2">Odblokowywanie za pomocą odcisku palca, jeśli dodano skróty lub kiedy witryna jest już otwarta w %s.</string>
   <!--
     Preference Title: Secure Mode is a setting that prevents the app's content to show up in the "recent apps" screen
     and prevents the user from taking screenshots or casting the app to other displays.
@@ -307,7 +298,7 @@
     screen. Additionally Android will prevent the user from taking screenshots or casting the app
     to other displays.
   -->
-  <string name="preference_privacy_stealth_summary">Ukrywanie stron podczas przełączania aplikacji i blokowanie wykonywania zrzutów ekranu.</string>
+  <string name="preference_privacy_stealth_summary">Ukrywanie stron podczas przełączania aplikacji i blokowanie wykonywania zrzutów ekranu.</string>
   <string name="preference_category_security">Bezpieczeństwo</string>
   <string name="preference_category_performance">Wydajność</string>
   <string name="preference_performance_block_webfonts">Blokowanie czcionek sieciowych</string>
@@ -324,13 +315,13 @@
   -->
   <string name="preference_default_browser2">Ustaw %1$s jako domyślną przeglądarkę</string>
   <string name="preference_category_mozilla">Mozilla</string>
-  <string name="preference_mozilla_telemetry2">Przesyłanie danych o użyciu</string>
+  <string name="preference_mozilla_telemetry2">Przesyłanie danych o użyciu</string>
   <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->
   <string name="preference_mozilla_telemetry_summary">Więcej informacji</string>
   <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-  <string name="preference_mozilla_telemetry_summary2">Mozilla zbiera wyłącznie informacje niezbędne do udostępniania i ulepszania %1$s.</string>
+  <string name="preference_mozilla_telemetry_summary2">Mozilla zbiera wyłącznie informacje niezbędne do udostępniania i ulepszania %1$s.</string>
   <!-- Preference switch for daily usage ping data collection -->
-  <string name="preference_daily_usage_ping_title">Dzienny sygnał o użyciu</string>
+  <string name="preference_daily_usage_ping_title">Dzienny sygnał o użyciu</string>
   <string name="preference_daily_usage_ping_description">To pomaga Mozilli oszacować liczbę aktywnych użytkowników.</string>
   <string name="preference_daily_usage_ping_learn_more">Więcej informacji</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
@@ -342,9 +333,9 @@
   <!-- Link to Focus Crash reports list. -->
   <string name="preference_crashes">Awarie</string>
   <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
-  <string name="open_source_licenses_title">%s | Biblioteki open source</string>
+  <string name="open_source_licenses_title">%s | Biblioteki open source</string>
   <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
-  <string name="preference_about">O programie %1$s</string>
+  <string name="preference_about">O programie %1$s</string>
   <!-- Header for the list of installed search engines -->
   <string name="preference_search_installed_search_engines">Zainstalowane wyszukiwarki</string>
   <!-- Header for the list of installed search engines -->
@@ -373,7 +364,7 @@
   <string name="search_add_error_empty_name">Wpisz nazwę wyszukiwarki</string>
   <string name="search_add_error_duplicate_name">Zainstalowana wyszukiwarka już używa tej nazwy.</string>
   <string name="search_add_error_empty_search">Wpisz ciąg wyszukiwania</string>
-  <string name="search_add_error_format">Upewnij się, że ciąg wyszukiwania zgadza się z formatem przykładu</string>
+  <string name="search_add_error_format">Upewnij się, że ciąg wyszukiwania zgadza się z formatem przykładu</string>
   <!-- Content description (not visible, for screen readers etc.): Clear text in URL bar -->
   <string name="content_description_clear_input">Usuń tekst</string>
   <!--
@@ -435,22 +426,22 @@
     content blocking for the current session
   -->
   <string name="content_description_blocking_switch">Blokowanie elementów śledzących</string>
-  <string name="your_rights">O prawach użytkownika</string>
-  <string name="external_app_prompt_title">Otwórz odnośnik w innej aplikacji</string>
+  <string name="your_rights">O prawach użytkownika</string>
+  <string name="external_app_prompt_title">Otwórz odnośnik w innej aplikacji</string>
   <!--
     This string is shown when the user has clicked a link that needs to be opened in a different app.
     %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
-  <string name="external_app_prompt">Można wyjść z %1$s, aby otworzyć ten odnośnik w aplikacji %2$s.</string>
+  <string name="external_app_prompt">Można wyjść z %1$s, aby otworzyć ten odnośnik w aplikacji %2$s.</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">Wyszukiwanie aplikacji mogącej otworzyć odnośnik</string>
   <!--
     This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
-  <string name="external_app_prompt_no_app">Żadna aplikacja na urządzeniu nie może otworzyć tego odnośnika. Można wyjść z %1$s, aby wyszukać odpowiednią aplikację w „%2$s”.</string>
+  <string name="external_app_prompt_no_app">Żadna aplikacja na urządzeniu nie może otworzyć tego odnośnika. Można wyjść z %1$s, aby wyszukać odpowiednią aplikację w „%2$s”.</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
-  <string name="external_multiple_apps_matched_exit">Wyjść z trybu prywatnego?</string>
+  <string name="external_multiple_apps_matched_exit">Wyjść z trybu prywatnego?</string>
   <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
   <string name="download_snackbar_finished">Ukończono „%1$s”</string>
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
@@ -463,7 +454,7 @@
 
     %1$s is the app name and build variant (for example "Firefox Focus", "Firefox Klar Nightly").
   -->
-  <string name="onboarding_first_screen_title">Witamy w przeglądarce %1$s</string>
+  <string name="onboarding_first_screen_title">Witamy w przeglądarce %1$s</string>
   <!-- New Onboarding flow first screen subtitle the one that appears under title -->
   <string name="onboarding_first_screen_subtitle">Szybka. Prywatna. Skupiona na celu.</string>
   <!--
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Kontynuując, zgadzasz się na %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Kontynuując, zgadzasz się na %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">warunki korzystania z Firefoksa.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">warunki korzystania z Firefoksa.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox dba o Twoją prywatność. Dowiedz się więcej w naszych %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox dba o Twoją prywatność. Dowiedz się więcej w naszych %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">zasadach ochrony prywatności.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">zasadach ochrony prywatności.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Zgadzam się, kontynuuj</string>
   <!-- New Onboarding flow first screen button label -->
@@ -513,19 +504,19 @@
   <!-- First run tour (Default browser): Title -->
   <string name="firstrun_defaultbrowser_title">Nowy poziom prywatności</string>
   <!-- First run tour (Default browser): Text. -->
-  <string name="firstrun_defaultbrowser_text2">Przejdź na wyższy poziom prywatności. Blokuj reklamy i inne elementy mogące Cię śledzić między witrynami i wydłużające wczytywanie się stron.</string>
+  <string name="firstrun_defaultbrowser_text2">Przejdź na wyższy poziom prywatności. Blokuj reklamy i inne elementy mogące Cię śledzić między witrynami i wydłużające wczytywanie się stron.</string>
   <!-- First run tour (Search): Title -->
   <string name="firstrun_search_title">Wyszukuj po swojemu</string>
   <!-- First run tour (Search): Text -->
-  <string name="firstrun_search_text">Szukasz czegoś innego? Wybierz inną domyślną wyszukiwarkę w ustawieniach.</string>
+  <string name="firstrun_search_text">Szukasz czegoś innego? Wybierz inną domyślną wyszukiwarkę w ustawieniach.</string>
   <!-- First run tour (Shortcut): Title -->
   <string name="firstrun_shortcut_title">Dodawaj skróty do ekranu głównego</string>
   <!-- First run tour (Shortcut): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-  <string name="firstrun_shortcut_text">Szybko wracaj do ulubionych stron w %1$s. Po prostu wybierz „Dodaj do ekranu głównego” z menu.</string>
+  <string name="firstrun_shortcut_text">Szybko wracaj do ulubionych stron w %1$s. Po prostu wybierz „Dodaj do ekranu głównego” z menu.</string>
   <!-- First run tour (Privacy): Title -->
   <string name="firstrun_privacy_title">Prywatność na co dzień</string>
   <!-- First run tour (Privacy): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-  <string name="firstrun_privacy_text">Ustaw %1$s jako domyślną przeglądarkę i korzystaj z zalet przeglądania prywatnego podczas otwierania stron z innych aplikacji.</string>
+  <string name="firstrun_privacy_text">Ustaw %1$s jako domyślną przeglądarkę i korzystaj z zalet przeglądania prywatnego podczas otwierania stron z innych aplikacji.</string>
   <string name="firstrun_close_button">OK</string>
   <string name="firstrun_skip_button">Pomiń</string>
   <string name="firstrun_next_button">Dalej</string>
@@ -559,7 +550,7 @@
     * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
     * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
   -->
-  <string name="notification_browsing_session_channel_description">Powiadomienia umożliwiają usunięcie sesji %1$s jednym dotknięciem. Nie trzeba otwierać aplikacji ani widzieć, co jest otwarte w przeglądarce.</string>
+  <string name="notification_browsing_session_channel_description">Powiadomienia umożliwiają usunięcie sesji %1$s jednym dotknięciem. Nie trzeba otwierać aplikacji ani widzieć, co jest otwarte w przeglądarce.</string>
   <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
   <string name="tabs_tray_action_erase">Usuń historię przeglądania</string>
   <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
@@ -600,7 +591,7 @@
     results found in the page and the position the user is at. %1$d is the
     position, %2$d is the total number of results.
   -->
-  <string name="accessibility_find_in_page_result">%1$d z %2$d</string>
+  <string name="accessibility_find_in_page_result">%1$d z %2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button -->
   <string name="accessibility_next_result">Znajdź następny wynik</string>
   <!-- String to be read by the accessibility service when focusing the previous result button -->
@@ -616,23 +607,23 @@
   <!-- Description of what a user may find in the Advanced Setting category, used for debugging -->
   <string name="preference_advanced_summary">Narzędzia dla programistów</string>
   <!-- Preference for open links in third party apps -->
-  <string name="preferences_open_links_in_apps">Otwieranie odnośników w aplikacjach</string>
+  <string name="preferences_open_links_in_apps">Otwieranie odnośników w aplikacjach</string>
   <!-- Title of Advanced Setting category -->
   <string name="preference_category_advanced">Zaawansowane</string>
   <!-- Preference for site permissions -->
   <string name="preference_site_permissions">Uprawnienia witryn</string>
   <!-- Preference for cookie banner. The name of the item from settings screen and the title of the cookie banner screen. -->
-  <string name="preferences_cookie_banner">Ograniczanie informacji o ciasteczkach</string>
+  <string name="preferences_cookie_banner">Ograniczanie informacji o ciasteczkach</string>
   <!-- Preference summary for the cookie banner. If the cookie banner option is not disabled. -->
   <string name="preferences_cookie_banner_summary_on">Włączone</string>
   <!-- Preference summary for the cookie banner. If the cookie banner option is disabled. -->
   <string name="preferences_cookie_banner_summary_off">Wyłączone</string>
   <!-- Title preference inside Cookie banner reduction screen. Here you can set the cookie banner option to disabled or reject_all. -->
-  <string name="cookie_banner_reject_all_option_title">Ograniczanie informacji o ciasteczkach</string>
+  <string name="cookie_banner_reject_all_option_title">Ograniczanie informacji o ciasteczkach</string>
   <!-- Preference summary inside Cookie banner reduction screen. Here you can set the cookie banner option to disabled or reject_all. -->
-  <string name="cookie_banner_reject_all_option_summary">Wyświetla mniej informacji o ciasteczkach przez automatyczne odrzucanie próśb o ich zaakceptowanie, kiedy to możliwe.</string>
+  <string name="cookie_banner_reject_all_option_summary">Wyświetla mniej informacji o ciasteczkach przez automatyczne odrzucanie próśb o ich zaakceptowanie, kiedy to możliwe.</string>
   <!-- Preference for removing cookie/consent banners from sites automatically, this is shown as part of the protections panel with the tracking protection toggle. -->
-  <string name="cookie_banner_exception_item_title">Ograniczanie informacji o ciasteczkach</string>
+  <string name="cookie_banner_exception_item_title">Ograniczanie informacji o ciasteczkach</string>
   <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle. -->
   <string name="cookie_banner_exception_item_description_state_on">Włączone na tej witrynie</string>
   <!-- Text for indicating cookie reducer is not supported on the current site, this is shown as part of the protections panel with the tracking protection toggle. -->
@@ -640,35 +631,35 @@
   <!-- Text for indicating cookie banner handling is off this site, this is shown as part of the protections panel with the tracking protection toggle. -->
   <string name="cookie_banner_exception_item_description_state_off">Wyłączone na tej witrynie</string>
   <!-- Preference for removing cookie/consent banners from sites automatically, this is shown when the user enters in details after he clicks on the item from protection panel. -->
-  <string name="cookie_banner_exception_panel_switch_title">Ograniczanie informacji o ciasteczkach</string>
+  <string name="cookie_banner_exception_panel_switch_title">Ograniczanie informacji o ciasteczkach</string>
   <!-- Text for indicating cookie banner handling is off this site, this is shown when the user enters in details after he clicks on the item from protection panel. -->
   <string name="cookie_banner_exception_panel_switch_state_off">Wyłączone na tej witrynie</string>
   <!-- Text for indicating cookie banner handling is on this site, this is shown when the user enters in details after he clicks on the item from protection panel. -->
   <string name="cookie_banner_exception_panel_switch_state_on">Włączone na tej witrynie</string>
   <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
-  <string name="cookie_banner_exception_panel_title_state_on_for_site">Włączyć ograniczanie informacji o ciasteczkach na witrynie %1$s?</string>
+  <string name="cookie_banner_exception_panel_title_state_on_for_site">Włączyć ograniczanie informacji o ciasteczkach na witrynie %1$s?</string>
   <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
-  <string name="cookie_banner_exception_panel_title_state_off_for_site">Wyłączyć ograniczanie informacji o ciasteczkach na witrynie %1$s?</string>
+  <string name="cookie_banner_exception_panel_title_state_off_for_site">Wyłączyć ograniczanie informacji o ciasteczkach na witrynie %1$s?</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
-  <string name="cookie_banner_exception_panel_description_state_on_for_site">%1$s usunie ciasteczka tej witryny i odświeży stronę. Usunięcie wszystkich ciasteczek może spowodować wylogowanie ze strony lub opróżnienie koszyka w sklepie.</string>
+  <string name="cookie_banner_exception_panel_description_state_on_for_site">%1$s usunie ciasteczka tej witryny i odświeży stronę. Usunięcie wszystkich ciasteczek może spowodować wylogowanie ze strony lub opróżnienie koszyka w sklepie.</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
-  <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s może próbować automatycznie odrzucać prośby o akceptację ciasteczek.</string>
+  <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s może próbować automatycznie odrzucać prośby o akceptację ciasteczek.</string>
   <!-- Long text for a detail explanation indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
-  <string name="cookie_banner_exception_panel_description_site_is_not_supported">Ta witryna nie jest obecnie obsługiwana przez funkcję ograniczania informacji o ciasteczkach. Czy chcesz poprosić nasz zespół o sprawdzenie tej witryny i dodanie jej obsługi w przyszłości?</string>
+  <string name="cookie_banner_exception_panel_description_site_is_not_supported">Ta witryna nie jest obecnie obsługiwana przez funkcję ograniczania informacji o ciasteczkach. Czy chcesz poprosić nasz zespół o sprawdzenie tej witryny i dodanie jej obsługi w przyszłości?</string>
   <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
   <string name="cookie_banner_exception_panel_site_is_not_supported_cancel_button">Anuluj</string>
   <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
-  <string name="cookie_banner_exception_panel_site_is_not_supported_request_support_button">Poproś o dodanie obsługi</string>
+  <string name="cookie_banner_exception_panel_site_is_not_supported_request_support_button">Poproś o dodanie obsługi</string>
   <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
-  <string name="cookie_banner_report_a_site_snackbar_label">Przesłano prośbę o dodanie obsługi witryny.</string>
+  <string name="cookie_banner_report_a_site_snackbar_label">Przesłano prośbę o dodanie obsługi witryny.</string>
   <!-- Label for cookie banner item from tracking protection, after the user reports with success a website where cookie banner reducer did not work -->
-  <string name="cookie_banner_the_site_was_reported">Przesłano prośbę o dodanie obsługi witryny.</string>
+  <string name="cookie_banner_the_site_was_reported">Przesłano prośbę o dodanie obsługi witryny.</string>
   <!--
     Contextual Feature Recommendation Popups
 
     CFR for Cookie Banner (Banner Info Message). %1$s will be replaced by the app name, %2$s will be an active link using the string cfr_cookie_banner_link as text.
   -->
-  <string name="cfr_cookie_banner">%1$s próbuje odrzucać irytujące prośby o akceptację ciasteczek.\n\nZarządzaj preferencjami odrzucania w %2$s.</string>
+  <string name="cfr_cookie_banner">%1$s próbuje odrzucać irytujące prośby o akceptację ciasteczek.\n\nZarządzaj preferencjami odrzucania w %2$s.</string>
   <!-- CFR for Cookie Banner (Banner Info Message). This string is used as text for a link in cfr_cookie_banner and takes the user to the app settings. -->
   <string name="cfr_cookie_banner_link">ustawieniach</string>
   <!-- Preference for autoplay -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Przejdź do ustawień Androida</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Stuknij &lt;b&gt;Uprawnienia&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Stuknij <b>Uprawnienia</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Przejdź do ustawień</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Włącz &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Włącz <b>%1$s</b>]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Aparat</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -694,7 +685,7 @@
   <!-- Preference for altering the EME access for all websites -->
   <string name="preference_phone_feature_media_key_system_access">Treści chronione przez DRM</string>
   <!-- Label that indicates that a permission must be asked always -->
-  <string name="preference_option_phone_feature_ask_to_allow">Pytanie o zezwolenie</string>
+  <string name="preference_option_phone_feature_ask_to_allow">Pytanie o zezwolenie</string>
   <!-- Label that indicates that a permission must be blocked -->
   <string name="preference_option_phone_feature_blocked">Zablokowane</string>
   <!-- Label that indicates that a permission must be allowed -->
@@ -702,17 +693,17 @@
   <!-- Label that indicates a permission is by the Android OS -->
   <string name="phone_feature_blocked_by_android">Zablokowane przez Androida</string>
   <!-- Preference for allow autoplay audio and video -->
-  <string name="preference_allow_audio_video_autoplay">Zezwalaj na dźwięk i wideo</string>
+  <string name="preference_allow_audio_video_autoplay">Zezwalaj na dźwięk i wideo</string>
   <!-- Preference for block autoplay audio only -->
   <string name="preference_block_autoplay_audio_only">Blokuj tylko dźwięk</string>
   <!-- Preference summary for block autoplay audio only -->
   <string name="preference_block_autoplay_audio_only_summary">Zalecane</string>
   <!-- Preference for block autoplay audio and video -->
-  <string name="preference_block_autoplay_audio_video">Blokuj dźwięk i wideo</string>
+  <string name="preference_block_autoplay_audio_video">Blokuj dźwięk i wideo</string>
   <!-- Preference for studies -->
   <string name="preference_studies" moz:removedIn="140">Badania</string>
   <!-- Preference for studies summary -->
-  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox może od czasu do czasu instalować i przeprowadzać badania.</string>
+  <string name="preference_studies_summary" tools:ignore="BrandUsage" moz:removedIn="140">Firefox może od czasu do czasu instalować i przeprowadzać badania.</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more" moz:removedIn="140">Więcej informacji</string>
   <!-- Title of the remove studies button -->
@@ -733,7 +724,7 @@
     Button for the fingerprint authentication dialog box that is shown to the user when sharing a link to the app
     while the user has biometric authentication enabled. When pressed, the user's previous session is cleared, and the shared link is opened.
   -->
-  <string name="biometric_auth_open_link_new_session">Otwórz odnośnik w nowej sesji</string>
+  <string name="biometric_auth_open_link_new_session">Otwórz odnośnik w nowej sesji</string>
   <!-- Description for the fingerprint authentication image. Used for accessibility purposes. -->
   <string name="biometric_auth_image_description">Ikona odcisku palca</string>
   <!--
@@ -752,7 +743,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> Aby uzyskać podpowiedzi, %1$s musi wysłać słowa wpisywane na pasku adresu do wyszukiwarki.</string>
+  <string name="enable_search_suggestion_description">Aby uzyskać podpowiedzi, %1$s musi wysłać słowa wpisywane na pasku adresu do wyszukiwarki.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">Nie</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -767,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Strona zachowuje się nie tak, jak powinna?\n Spróbuj wyłączyć ochronę przed śledzeniem</string>
+  <string name="tip_disable_tracking_protection">Strona zachowuje się nie tak, jak powinna?\nSpróbuj wyłączyć ochronę przed śledzeniem</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Otwieraj każdy odnośnik w %1$s\n Ustaw %1$s jako domyślną przeglądarkę</string>
+  <string name="tip_set_default_browser">Otwieraj każdy odnośnik w %1$s\nUstaw %1$s jako domyślną przeglądarkę</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Automatycznie uzupełniaj adresy najczęściej odwiedzanych stron\n Przytrzymaj dowolny adres na pasku adresu</string>
+  <string name="tip_autocomplete_url">Automatycznie uzupełniaj adresy najczęściej odwiedzanych stron\nPrzytrzymaj dowolny adres na pasku adresu</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Otwórz odnośnik w nowej karcie\n Przytrzymaj dowolny odnośnik na stronie</string>
+  <string name="tip_open_in_new_tab">Otwórz odnośnik w nowej karcie\nPrzytrzymaj dowolny odnośnik na stronie</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Wyłącz wskazówki na ekranie głównym</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -796,15 +787,15 @@
   <!-- Label for the button in the snackbar that switches to the newly opened tab -->
   <string name="open_new_tab_snackbar">Przejdź</string>
   <!-- Preference for switching to a new tab immediately after opening -->
-  <string name="preference_open_new_tab">Przechodzenie do odnośnika w nowej karcie bez pytania</string>
+  <string name="preference_open_new_tab">Przechodzenie do odnośnika w nowej karcie bez pytania</string>
   <!-- Preference title for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
-  <string name="preference_safe_browsing_title">Blokowanie potencjalnie niebezpiecznych i podejrzanych stron</string>
+  <string name="preference_safe_browsing_title">Blokowanie potencjalnie niebezpiecznych i podejrzanych stron</string>
   <!-- Preference summary for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
-  <string name="preference_safe_browsing_summary">Blokowanie zgłoszonych podejrzanych i stanowiących zagrożenie stron oraz stron ze złośliwym i niechcianym oprogramowaniem.</string>
+  <string name="preference_safe_browsing_summary">Blokowanie zgłoszonych podejrzanych i stanowiących zagrożenie stron oraz stron ze złośliwym i niechcianym oprogramowaniem.</string>
   <!-- Title of the preference to enable "HTTPS-Only" mode -->
   <string name="preference_https_only_title">Tryb używania wyłącznie protokołu HTTPS</string>
   <!-- Description of the preference to enable "HTTPS-Only" mode. -->
-  <string name="preference_https_only_summary3">Automatycznie próbuje łączyć się ze stronami za pomocą protokołu szyfrowania HTTPS w celu zwiększenia bezpieczeństwa.</string>
+  <string name="preference_https_only_summary3">Automatycznie próbuje łączyć się ze stronami za pomocą protokołu szyfrowania HTTPS w celu zwiększenia bezpieczeństwa.</string>
   <!-- Preference for exceptions tracking protection -->
   <string name="preference_exceptions">Wyjątki</string>
   <!-- Description for the exceptions preference screen -->
@@ -820,7 +811,7 @@
   <!-- Title for the tab crash report screen -->
   <string name="tab_crash_report_title">Karta uległa awarii</string>
   <!-- Headline for the tab crash report screen -->
-  <string name="tab_crash_report_headline">Wystąpił problem z tą kartą.</string>
+  <string name="tab_crash_report_headline">Wystąpił problem z tą kartą.</string>
   <!-- Subtitle for the tab crash report screen -->
   <string name="tab_crash_report_description">Prywatna przeglądarka nigdy nic nie zapisuje, więc nie można przywrócić tej karty.</string>
   <!-- Label for button to close the tab -->
@@ -850,7 +841,7 @@
   <!-- Label that indicates a site is using a insecure connection. -->
   <string name="insecure_connection">Połączenie nie jest zabezpieczone</string>
   <!-- Title for the list of trackers enhanced tracking protection can block. -->
-  <string name="trackers_and_scripts">Elementy śledzące i skrypty do blokowania</string>
+  <string name="trackers_and_scripts">Elementy śledzące i skrypty do blokowania</string>
   <!-- Content description (not visible, for screen readers etc.): Navigate back button description. -->
   <string name="go_back">Wstecz</string>
   <!--
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Zapisane i udostępnione obrazy &lt;b&gt;nie zostaną&lt;/b&gt; usunięte po wyczyszczeniu historii %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Zapisane i udostępnione obrazy <b>nie zostaną</b> usunięte po wyczyszczeniu historii %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s próbuje używać połączenia HTTPS, kiedy tylko jest to możliwe, aby zwiększyć bezpieczeństwo.
-     &lt;a href="%2$s"&gt;Więcej informacji&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Można to zmienić w Ustawienia → Prywatność i bezpieczeństwo → Bezpieczeństwo.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s próbuje używać połączenia HTTPS, kiedy tylko jest to możliwe, aby zwiększyć bezpieczeństwo. <a href=\"%2$s\">Więcej informacji</a> <br/><br/> Można to zmienić w Ustawienia → Prywatność i bezpieczeństwo → Bezpieczeństwo.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Niezabezpieczone połączenie</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Może to być problem konfiguracji serwera lub próba podania się za ten serwer przez podmiot nieuprawniony. &lt;br/&gt;&lt;br/&gt;
-    Jeśli łączono się wcześniej z tym serwerem, błąd może być tymczasowy.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Może to być problem konfiguracji serwera lub próba podania się za ten serwer przez podmiot nieuprawniony. <br/><br/> Jeśli łączono się wcześniej z tym serwerem, błąd może być tymczasowy.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Ktoś może próbować podszywać się pod tę witrynę. Kontynuacja może być ryzykowna.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s nie ufa certyfikatowi witryny &lt;b&gt;%2$s&lt;/b&gt;, ponieważ jego wystawca jest nieznany, jest samopodpisany lub serwer nie przesyła właściwych certyfikatów pośrednich.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Ktoś może próbować podszywać się pod tę witrynę. Kontynuacja może być ryzykowna.</label> <br><br> <label>%1$s nie ufa certyfikatowi witryny <b>%2$s</b>, ponieważ jego wystawca jest nieznany, jest samopodpisany lub serwer nie przesyła właściwych certyfikatów pośrednich.</label>]]></string>
   <!--
     Sessions List
 
@@ -917,7 +899,7 @@
 
     CFR for Toolbar Shield Icon (Banner Info Message)
   -->
-  <string name="cfr_for_toolbar_shield_icon2">Uniemożliwiliśmy tej witrynie szpiegowanie Cię. Stuknij tarczę w dowolnej chwili, aby zobaczyć, co blokujemy.</string>
+  <string name="cfr_for_toolbar_shield_icon2">Uniemożliwiliśmy tej witrynie szpiegowanie Cię. Stuknij tarczę w dowolnej chwili, aby zobaczyć, co blokujemy.</string>
   <!-- Content description (not visible, for screen readers etc.): Button that closes the CFR popup -->
   <string name="cfr_close_button_description">Zamknij</string>
   <!--
@@ -931,7 +913,7 @@
   <!-- Tool Tip "X" button Content description (not visible, for screen readers etc.) :Button that closes the tool tip -->
   <string name="tool_tip_dismiss_button_content_description">Zamknij</string>
   <!-- CFR for Toolbar Delete Icon (Banner Info Message) -->
-  <string name="cfr_for_toolbar_delete_icon2">Stuknij tutaj, aby wyrzucić wszystko — historię, ciasteczka, wszystko — i zacząć od nowa na nowej karcie.</string>
+  <string name="cfr_for_toolbar_delete_icon2">Stuknij tutaj, aby wyrzucić wszystko — historię, ciasteczka, wszystko — i zacząć od nowa na nowej karcie.</string>
   <!-- Promote SearchWidget Dialog -->
 
   <!--
@@ -947,7 +929,7 @@
   <!-- This is the title of promote search widget dialog. -->
   <string name="promote_search_widget_dialog_title">Usunięto historię przeglądania! 🎉</string>
   <!-- Banner Info Message than will appear when user first enters in the app. The location is at the toolbar. -->
-  <string name="cfr_for_start_browsing">Zacznij przeglądać w trybie prywatnym, a będziemy blokować elementy śledzące i inne złe rzeczy.</string>
+  <string name="cfr_for_start_browsing">Zacznij przeglądać w trybie prywatnym, a będziemy blokować elementy śledzące i inne złe rzeczy.</string>
   <!--
     This is the subtitle of promote search widget dialog. %1$s will get replaced with the name
     of the app (e.g. "Focus")
@@ -970,11 +952,11 @@
 
     This text should be as short as possible, max 68 chars
   -->
-  <string name="exit_fullscreen_with_gesture_short">Przeciągnij od góry i użyj gestu Wstecz, aby wyjść</string>
+  <string name="exit_fullscreen_with_gesture_short">Przeciągnij od góry i użyj gestu Wstecz, aby wyjść</string>
   <!--
     Message shown to explain how to exit fullscreen mode when using back button navigation.
 
     This text should be as short as possible, max 68 chars
   -->
-  <string name="exit_fullscreen_with_back_button_short">Przeciągnij od góry i naciśnij Wstecz, aby wyjść</string>
+  <string name="exit_fullscreen_with_back_button_short">Przeciągnij od góry i naciśnij Wstecz, aby wyjść</string>
 </resources>

@@ -71,7 +71,7 @@
   <!-- Menu item: This is the label for turning off content blocking for the current website. -->
   <string name="menu_content_blocking">مواد روکݨ</string>
   <!-- This is the subtitle content blocking toggle -->
-  <string name="menu_content_blocking_subtitle">کجھ سائٹاں کوں ٹھیک کرݨ کیتے  بند کرو</string>
+  <string name="menu_content_blocking_subtitle">کجھ سائٹاں کوں ٹھیک کرݨ کیتے بند کرو</string>
   <!--
     This is a small text at the bottom of the menu shown in a "custom tab" for branding purposes.
     See https://github.com/mozilla-mobile/focus-android/issues/2106
@@ -148,16 +148,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s تہاکوں کنٹرول ݙیندی ہے &lt;/p&gt;
-&lt;p&gt; ایں کوں نجی براؤزر وانگوں ورتو:
-  &lt;ul&gt; 
-    &lt;li&gt; ایپ وچ لبھو تے براؤز کرو &lt;/li&gt;
-    &lt;li&gt;ٹریکراں کوں بلاک کرو (یا ترتیباں دی تازہ کاری کر تے ٹریکراں کوں اجازت ݙیوو)۔ &lt;/li&gt;
-    &lt;li&gt; کوکیاں دے نال نال ڳولݨ تے براؤزنگ تاریخ کوں وی مٹاؤ &lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s موزلّا دی پیداوار ہے۔ ساݙی مہم ہک صحت مند کھلے انٹرنیٹ کوں فروعٰ ݙیوݨ ہے۔ &lt;br/&gt;
-&lt;a href="%2$s"&gt; ٻیا سِکھو &lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s تہاکوں کنٹرول ݙیندی ہے </p> <p> ایں کوں نجی براؤزر وانگوں ورتو: <ul> <li> ایپ وچ لبھو تے براؤز کرو </li> <li>ٹریکراں کوں بلاک کرو (یا ترتیباں دی تازہ کاری کر تے ٹریکراں کوں اجازت ݙیوو)۔ </li> <li> کوکیاں دے نال نال ڳولݨ تے براؤزنگ تاریخ کوں وی مٹاؤ </li> </ul> </p> <p>%1$s موزلّا دی پیداوار ہے۔ ساݙی مہم ہک صحت مند کھلے انٹرنیٹ کوں فروعٰ ݙیوݨ ہے۔ <br/> <a href=\"%2$s\"> ٻیا سِکھو </a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">رازداری تے سلامتی</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -194,7 +185,7 @@
     Description of the preference that enables/disables search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="preference_show_search_suggestions_summary">تساں جہڑا کجھ تساں ڳولݨ انجݨ دی پتہ پٹی وچ ٹائپ کریسو  تہاکوں %1$s بھیڄ ݙیسی</string>
+  <string name="preference_show_search_suggestions_summary">تساں جہڑا کجھ تساں ڳولݨ انجݨ دی پتہ پٹی وچ ٹائپ کریسو تہاکوں %1$s بھیڄ ݙیسی</string>
   <!-- This label is shown below the name of the default search engine in settings -->
   <string name="preference_search_engine_default">ڈیفالٹ</string>
   <!-- This label is shown above the currently selected search engine in settings -->
@@ -211,14 +202,14 @@
     Summary for the toggle to enable autocomplete for the topsites list
     %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
-  <string name="preference_autocomplete_topsite_summary2">پتہ پٹی وچ ٤٥٠ کنوں ودھ مقبول یوآرایل آں  کیتے %s خودکار تکمیل کوں فعال کرو۔</string>
+  <string name="preference_autocomplete_topsite_summary2">پتہ پٹی وچ ٤٥٠ کنوں ودھ مقبول یوآرایل آں کیتے %s خودکار تکمیل کوں فعال کرو۔</string>
   <!-- Title of "switch" preference that enables/disables autocomplete for the user-defined list -->
   <string name="preference_switch_autocomplete_user_list">سائٹاں کیتے جہڑیاں تساں شامل کرو</string>
   <!--
     Summary for the toggle to enable autocomplete for the user-defined list
     %s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
-  <string name="preference_autocomplete_user_list_summary2">آپݨی پسندیدہ یوآرایلاں  کوں %s خودکار مکمل کرݨ کیتے فعال کرو</string>
+  <string name="preference_autocomplete_user_list_summary2">آپݨی پسندیدہ یوآرایلاں کوں %s خودکار مکمل کرݨ کیتے فعال کرو</string>
   <!-- Preference category: Manage (user-defined) sites -->
   <string name="preference_category_autocomplete_manage_sites">سائٹاں دا بندوبست کرو</string>
   <!-- Item in autocomplete settings that will open a new preference screen for adding and removing URLs to the user-defined list -->
@@ -270,7 +261,7 @@
   <string name="preference_category_privacy">رازداری</string>
   <string name="preference_privacy_block_ads">اشتہار ٹریکر کوں بلاک کرو</string>
   <string name="preference_privacy_block_ads_summary">کجھ اشتہار سائٹ دے دورے کوں ٹریک کریندن، بھان٘ویں تساں مشہوریاں تے کلک وی نہ کرو۔</string>
-  <string name="preference_privacy_block_analytics">تجزیاتی ٹریکر  بلاک کرو</string>
+  <string name="preference_privacy_block_analytics">تجزیاتی ٹریکر بلاک کرو</string>
   <string name="preference_privacy_block_analytics_summary">انگل پھیرݨ تے سکرول کرݨ جیہاں سرگرمیاں کوݨ مِݨݨ، کٹھا کرݨ تے تجزیہ کرݨ کیتے ورتِیندے</string>
   <string name="preference_privacy_block_social">سماجی ٹریکراں کوں بلاک کرو</string>
   <string name="preference_privacy_block_social_summary">تہاݙے دوریاں کوں ٹریک کرݨ تے شیئر بٹݨ وانگوں فعالیت ظاہر کرݨ کیتے سائٹاں تے ایمبیڈ تھئے</string>
@@ -282,8 +273,8 @@
     only (Only 3rd-party Cookies Blocked), No (No cookies blocked)
   -->
   <string name="preference_privacy_should_block_cookies_no_option2">کو، شکریہ</string>
-  <string name="preference_privacy_should_block_cookies_third_party_tracker_cookies_option">صرف تریجھا فریق ٹریکر کوکیاں بلاک کرو </string>
-  <string name="preference_privacy_should_block_cookies_third_party_only_option">صرف تریجھا فریق کوکیاں بلاک کرو </string>
+  <string name="preference_privacy_should_block_cookies_third_party_tracker_cookies_option">صرف تریجھا فریق ٹریکر کوکیاں بلاک کرو</string>
+  <string name="preference_privacy_should_block_cookies_third_party_only_option">صرف تریجھا فریق کوکیاں بلاک کرو</string>
   <string name="preference_privacy_should_block_cookies_cross_site_option">کراس سائٹ کوکیاں بلاک کرو</string>
   <string name="preference_privacy_should_block_cookies_yes_option2">جیا سوہݨا</string>
   <!-- Preference Title: Biometrics can be used to unlock Focus if the previous session's data was not erased by the user. -->
@@ -306,7 +297,7 @@
     screen. Additionally Android will prevent the user from taking screenshots or casting the app
     to other displays.
   -->
-  <string name="preference_privacy_stealth_summary">ایپاں سوئچ کرݨ ویلے ویب ورقیاں کوں لُکاؤ تے سکرین شاٹ گھنݨ بلاک کرو۔ </string>
+  <string name="preference_privacy_stealth_summary">ایپاں سوئچ کرݨ ویلے ویب ورقیاں کوں لُکاؤ تے سکرین شاٹ گھنݨ بلاک کرو۔</string>
   <string name="preference_category_security">سلامتی</string>
   <string name="preference_category_performance">کارکردگی</string>
   <string name="preference_performance_block_webfonts">ویب فونٹ بلاک کرو</string>
@@ -434,14 +425,14 @@
     This string is shown when the user has clicked a link that needs to be opened in a different app.
     %2$s is the external app name, %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
   -->
-  <string name="external_app_prompt">ایں لنک کوں  %2$s وچ کھولݨ کیتے تساں %1$s چھوڑ سڳدے ہو۔</string>
+  <string name="external_app_prompt">ایں لنک کوں %2$s وچ کھولݨ کیتے تساں %1$s چھوڑ سڳدے ہو۔</string>
   <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
   <string name="external_app_prompt_no_app_title">ہک ایپ لبھو جہڑی لنک کوں کھول سڳے</string>
   <!--
     This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
-  <string name="external_app_prompt_no_app">تہاݙی ڈیوائس تے کوئی ایپ ایں کوں کھولݨ دی اہل کائنی۔  اہل ایپ کیتے تساں %1$s کوں چھوڑ تے %2$s کوں ڳولو۔</string>
+  <string name="external_app_prompt_no_app">تہاݙی ڈیوائس تے کوئی ایپ ایں کوں کھولݨ دی اہل کائنی۔ اہل ایپ کیتے تساں %1$s کوں چھوڑ تے %2$s کوں ڳولو۔</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">نجی براؤزنگ وچوں نکلوں؟</string>
   <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
@@ -472,7 +463,7 @@
 
     %1$s will be replaced by the app short name(Focus)
   -->
-  <string name="onboarding_second_screen_subtitle_two">تساں جہڑے وی لنک کھولو آپݨے ڈیٹا دی حفاظت کیتے %1$s کوں آپݨا ڈیفالٹ براؤزر بݨاؤ۔ </string>
+  <string name="onboarding_second_screen_subtitle_two">تساں جہڑے وی لنک کھولو آپݨے ڈیٹا دی حفاظت کیتے %1$s کوں آپݨا ڈیفالٹ براؤزر بݨاؤ۔</string>
   <!-- New Onboarding flow second screen make Focus default browser button label -->
   <string name="onboarding_second_screen_default_browser_button_text">پہلوں مقرر براؤز تے طور تے سیٹ کرو</string>
   <!-- New Onboarding flow second screen skip onboarding button label -->
@@ -635,7 +626,7 @@
 
     CFR for Cookie Banner (Banner Info Message). %1$s will be replaced by the app name, %2$s will be an active link using the string cfr_cookie_banner_link as text.
   -->
-  <string name="cfr_cookie_banner">%1$s پریشان کن کوکی بینراں کوں برخواست کرݨ دیاں کوکی ارداساں کوں مسترد کرݨ دی کوشش کریندے۔ \n\n %2$s وچ کوکی بینر ترجیحاں دا بندوبست کرو۔</string>
+  <string name="cfr_cookie_banner">%1$s پریشان کن کوکی بینراں کوں برخواست کرݨ دیاں کوکی ارداساں کوں مسترد کرݨ دی کوشش کریندے۔ \n\n%2$s وچ کوکی بینر ترجیحاں دا بندوبست کرو۔</string>
   <!-- CFR for Cookie Banner (Banner Info Message). This string is used as text for a link in cfr_cookie_banner and takes the user to the app settings. -->
   <string name="cfr_cookie_banner_link">ترتیباں</string>
   <!-- Preference for autoplay -->
@@ -645,11 +636,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">١۔ اینڈرائیڈ ترتیباں تے ون٘ڄو</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">٢. &lt;b&gt;اجازتاں&lt;/b&gt; تے دباؤ</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[٢. <b>اجازتاں</b> تے دباؤ]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">ترتیباں تے ون٘ڄو</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; کوں چالو کرݨ  کیتے  ٹوگل کرو</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> کوں چالو کرݨ کیتے ٹوگل کرو]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">کیمرہ</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -719,7 +710,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description">تجویزاں  گھنݨ کیتے، %1$s کوں، تساں جہڑا کجھ تساں ڳولݨ انجݨ دی پتہ پٹی وچ ٹائپ کریندے ہو، بھیڄݨ دی ضرورت ہے۔</string>
+  <string name="enable_search_suggestion_description">تجویزاں گھنݨ کیتے، %1$s کوں، تساں جہڑا کجھ تساں ڳولݨ انجݨ دی پتہ پٹی وچ ٹائپ کریندے ہو، بھیڄݨ دی ضرورت ہے۔</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">کو</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -734,8 +725,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">بھلا سائٹ غیر متوقع سلوک کریندی پئی ہے؟\n
-    ٹریکنگ حفاظت بند کر تے ݙیکھو</string>
+  <string name="tip_disable_tracking_protection">بھلا سائٹ غیر متوقع سلوک کریندی پئی ہے؟\nٹریکنگ حفاظت بند کر تے ݙیکھو</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -746,23 +736,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">سارے لنک %1$s وچ کھولو \n
-         %1$s کوں ڈیفالٹ براؤزر مقرر کرو
-    </string>
+  <string name="tip_set_default_browser">سارے لنک %1$s وچ کھولو \n%1$s کوں ڈیفالٹ براؤزر مقرر کرو</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">جہہڑیاں سائٹاں تساں ودھ ورتیاں ہن انہاں کیتے خودکار تکمیل یوآرایل آں\n
-        پتہ پٹی تے کہیں وی یوآرایل تے لمبا دباؤ
-    </string>
+  <string name="tip_autocomplete_url">جہہڑیاں سائٹاں تساں ودھ ورتیاں ہن انہاں کیتے خودکار تکمیل یوآرایل آں\nپتہ پٹی تے کہیں وی یوآرایل تے لمبا دباؤ</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">لنک نویں ٹیب وچ کھولو\n
-        ورقے تے کہیں لنک کوں لمبا دباؤ
-    </string>
+  <string name="tip_open_in_new_tab">لنک نویں ٹیب وچ کھولو\nورقے تے کہیں لنک کوں لمبا دباؤ</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">موہری سکرین تے تجویزاں بند کرو</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -843,7 +827,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">تساں جہڑے ویلے %1$s تاریخ مٹیسو تاں محفوظ  تے شیئر تھیاں تصویراں &lt;b&gt;کائناں مٹسن&lt;/b&gt;</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[تساں جہڑے ویلے %1$s تاریخ مٹیسو تاں محفوظ تے شیئر تھیاں تصویراں <b>کائناں مٹسن</b>]]></string>
   <!--
     Theme Preferences
 
@@ -864,20 +848,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">ڄݙݨ ممکن ہووے ودھیک سلامتی سانگے %1$s ایچ ٹی ٹی پی ایس کنکشن ورتݨ دی کوشش کریندے۔
- &lt;a href="%2$s"&gt;ٻیا سکھو&lt;/a&gt;&lt;br/&gt;&lt;br/&gt;
-  ایہ ترتیباں وٹاؤ، ترتیباں &gt; رازداری &amp;amp; سلامتی &gt; سلامتی۔</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ڄݙݨ ممکن ہووے ودھیک سلامتی سانگے %1$s ایچ ٹی ٹی پی ایس کنکشن ورتݨ دی کوشش کریندے۔ <a href=\"%2$s\">ٻیا سکھو</a><br/><br/> ایہ ترتیباں وٹاؤ، ترتیباں > رازداری &amp; سلامتی > سلامتی۔]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">ناقابل بھروسا کنکشن</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-   ایہ سرور دی کنفیگریشن وِچ مسئلہ تھی سڳدا ہے، یا ایہ تھی سڳدا ہے جو کوئی سرور دی نقل کرݨ دی کوشش کریندا پیا ہووے۔ &lt;br/&gt;&lt;br/&gt;
-    جے تساں پچھوکڑ وِچ ایں سرور نال کامیابی دے نال جڑ چکے او، تاں غلطی عارضی تھی سڳدی ہے، تے تساں بعد اِچ دوبارہ کوشش کر سڳدے او۔ 
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[ایہ سرور دی کنفیگریشن وِچ مسئلہ تھی سڳدا ہے، یا ایہ تھی سڳدا ہے جو کوئی سرور دی نقل کرݨ دی کوشش کریندا پیا ہووے۔ <br/><br/> جے تساں پچھوکڑ وِچ ایں سرور نال کامیابی دے نال جڑ چکے او، تاں غلطی عارضی تھی سڳدی ہے، تے تساں بعد اِچ دوبارہ کوشش کر سڳدے او۔]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">&lt;label&gt;تھی  سڳدا ہے جو کوئی سائٹ دی نقل بݨاوݨ دی کوشش کریندا پیا ہووے تے  جاری رکھݨ نال خدشہ تھی سڳدے۔&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt; %1$s، ایں &lt;b&gt;%2$s&lt;/b&gt; تے  بھروسہ کائنی کریندا کیوں جو سرٹیفکیٹ جاری کرݨ آلا نامعلوم ہے، سرٹیفکیٹ تے  خود آپ دستخط کیتے ہوئے ہن یا سرور صحیح درمیانی سرٹیفیکیٹ کائنی پٹھیندا پیا۔&lt;/label&gt;</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>تھی سڳدا ہے جو کوئی سائٹ دی نقل بݨاوݨ دی کوشش کریندا پیا ہووے تے جاری رکھݨ نال خدشہ تھی سڳدے۔</label> <br><br> <label> %1$s، ایں <b>%2$s</b> تے بھروسہ کائنی کریندا کیوں جو سرٹیفکیٹ جاری کرݨ آلا نامعلوم ہے، سرٹیفکیٹ تے خود آپ دستخط کیتے ہوئے ہن یا سرور صحیح درمیانی سرٹیفیکیٹ کائنی پٹھیندا پیا۔</label>]]></string>
   <!--
     Sessions List
 
@@ -924,7 +901,7 @@
     This is the subtitle of promote search widget dialog. %1$s will get replaced with the name
     of the app (e.g. "Focus")
   -->
-  <string name="promote_search_widget_dialog_subtitle">اساں تہاکوں تہاݙی نجی براؤزنگ تے چھوڑ ݙیسوں، پر تساں اڳلی واری آپݨی ہوم سکرین تے %1$s ویجٹ نال تکھیرا شروع کرو۔ </string>
+  <string name="promote_search_widget_dialog_subtitle">اساں تہاکوں تہاݙی نجی براؤزنگ تے چھوڑ ݙیسوں، پر تساں اڳلی واری آپݨی ہوم سکرین تے %1$s ویجٹ نال تکھیرا شروع کرو۔</string>
   <!--
     This is te text from add search widget to home screen button .The button is located on
     promote search widget dialog.

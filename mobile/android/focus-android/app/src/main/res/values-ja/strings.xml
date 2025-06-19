@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ではあなたがすべてをコントロールできます。&lt;/p&gt;
-&lt;p&gt;次のようにプライベートブラウザーとして使えます。
-  &lt;ul&gt;
-    &lt;li&gt;アプリで適切に検索、閲覧&lt;/li&gt;
-    &lt;li&gt;トラッカーをブロック （あるいは設定を更新して許可）&lt;/li&gt;
-    &lt;li&gt;検索履歴、閲覧履歴の消去だけでなく Cookie を削除&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s は Mozilla が開発しています。私たちのミッションは健全で開かれたインターネットを発展させることです。&lt;br/&gt;
-&lt;a href="%2$s"&gt;詳しくはこちら&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ではあなたがすべてをコントロールできます。</p> <p>次のようにプライベートブラウザーとして使えます。 <ul> <li>アプリで適切に検索、閲覧</li> <li>トラッカーをブロック （あるいは設定を更新して許可）</li> <li>検索履歴、閲覧履歴の消去だけでなく Cookie を削除</li> </ul> </p> <p>%1$s は Mozilla が開発しています。私たちのミッションは健全で開かれたインターネットを発展させることです。<br/> <a href=\"%2$s\">詳しくはこちら</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">プライバシーとセキュリティ</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">続けると、%1$s に同意したものとみなされます。</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">続けると、%1$s に同意したものとみなされます。</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Firefox 利用規約</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Firefox 利用規約</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox はあなたのプライバシーを重視します。詳細は %1$s をご覧ください。</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox はあなたのプライバシーを重視します。詳細は %1$s をご覧ください。</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">プライバシー通知</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">プライバシー通知</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">同意して続ける</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Android の設定を開きます</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;権限&lt;/b&gt; をタップします</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b>権限</b> をタップします]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">設定を開く</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; をオンに切り替えます</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> をオンに切り替えます]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">カメラ</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -767,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">サイトが予期せぬ挙動をしますか？\n トラッキング防止機能を無効化してみてください</string>
+  <string name="tip_disable_tracking_protection">サイトが予期せぬ挙動をしますか？\nトラッキング防止機能を無効化してみてください</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">すべてのリンクを %1$s で開くには\n %1$s を既定のブラウザーに設定してください</string>
+  <string name="tip_set_default_browser">すべてのリンクを %1$s で開くには\n%1$s を既定のブラウザーに設定してください</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">よく使うサイトで URL を自動補完するには\n アドレスバー内で URL を長押しします</string>
+  <string name="tip_autocomplete_url">よく使うサイトで URL を自動補完するには\nアドレスバー内で URL を長押しします</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">リンクを新しいタブで開くには\n ページ上でリンクを長押しします</string>
+  <string name="tip_open_in_new_tab">リンクを新しいタブで開くには\nページ上でリンクを長押しします</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">スタート画面上のヒント表示をオフにする</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">保存、共有された画像は %1$s の履歴を消去しても &lt;b&gt;削除されません&lt;/b&gt;。</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[保存、共有された画像は %1$s の履歴を消去しても <b>削除されません</b>。]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">セキュリティ強化のため、%1$s は可能な限り HTTPS 接続を試みます。
-     &lt;a href="%2$s"&gt;詳細情報&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     この設定は、[設定] &gt; [プライバシーとセキュリティ] &gt; [セキュリティ] から変更できます。</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[セキュリティ強化のため、%1$s は可能な限り HTTPS 接続を試みます。 <a href=\"%2$s\">詳細情報</a> <br/><br/> この設定は、[設定] > [プライバシーとセキュリティ] > [セキュリティ] から変更できます。]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">安全でない接続</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    サーバーの設定に問題があるか、誰かが正規のサーバーになりすましている可能性があります。&lt;br/&gt;&lt;br/&gt;
-    以前は正常に接続できていた場合、この問題は恐らく一時的なものですので、後で再度試してみてください。
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[サーバーの設定に問題があるか、誰かが正規のサーバーになりすましている可能性があります。<br/><br/> 以前は正常に接続できていた場合、この問題は恐らく一時的なものですので、後で再度試してみてください。]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;誰かがサイトになりすまそうとしている可能性があるため、この先へ進むと危険です。&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;証明書の発行者が不明か、証明書が自己署名されているか、サーバーが正しい中間証明書を送信していないため、%1$s は &lt;b&gt;%2$s&lt;/b&gt; を信頼できません。&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>誰かがサイトになりすまそうとしている可能性があるため、この先へ進むと危険です。</label> <br><br> <label>証明書の発行者が不明か、証明書が自己署名されているか、サーバーが正しい中間証明書を送信していないため、%1$s は <b>%2$s</b> を信頼できません。</label>]]></string>
   <!--
     Sessions List
 

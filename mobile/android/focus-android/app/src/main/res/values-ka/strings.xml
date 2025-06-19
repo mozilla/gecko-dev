@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s სრულად გიბრუნებთ მართვის სადავეებს.&lt;/p&gt;
-&lt;p&gt;გამოიყენეთ პირად ბრაუზერად:
-  &lt;ul&gt;
-    &lt;li&gt;მოძებნეთ და დაათვალიერეთ გვერდები პროგრამაშივე&lt;/li&gt;
-    &lt;li&gt;შეზღუდეთ მეთვალყურეები (პარამეტრებიდან დაშვებაც შეიძლება)&lt;/li&gt;
-    &lt;li&gt;გაასუფთავეთ და წაშალეთ ფუნთუშები, ძიებისა და თვალიერების ისტორია&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s შექმნილია Mozilla-ს მიერ. ჩვენი მიზანი, ჯანსაღ და ღია ინტერნეტზე ზრუნვაა.&lt;br/&gt;
-&lt;a href="%2$s"&gt;ვრცლად&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s სრულად გიბრუნებთ მართვის სადავეებს.</p> <p>გამოიყენეთ პირად ბრაუზერად: <ul> <li>მოძებნეთ და დაათვალიერეთ გვერდები პროგრამაშივე</li> <li>შეზღუდეთ მეთვალყურეები (პარამეტრებიდან დაშვებაც შეიძლება)</li> <li>გაასუფთავეთ და წაშალეთ ფუნთუშები, ძიებისა და თვალიერების ისტორია</li> </ul> </p> <p>%1$s შექმნილია Mozilla-ს მიერ. ჩვენი მიზანი, ჯანსაღ და ღია ინტერნეტზე ზრუნვაა.<br/> <a href=\"%2$s\">ვრცლად</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">პირადულობა და უსაფრთხოება</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">თუ განაგრძობთ, თანახმა ხართ მიიღოთ %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">თუ განაგრძობთ, თანახმა ხართ მიიღოთ %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">გამოყენების პირობები, რომელსაც გთავაზობთ Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">გამოყენების პირობები, რომელსაც გთავაზობთ Firefox.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox ზრუნავს თქვენს პირადულობაზე. ვრცლად იხილეთ %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox ზრუნავს თქვენს პირადულობაზე. ვრცლად იხილეთ %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">პირადულობის განაცხადი.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">პირადულობის განაცხადი.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">თანხმობა და გაგრძელება</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. გადადით Android-პარამეტრებში</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. შეეხეთ &lt;b&gt;ნებართვებს&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. შეეხეთ <b>ნებართვებს</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">პარამეტრებში გადასვლა</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. გადართეთ &lt;b&gt;%1$s&lt;/b&gt; ჩართულზე</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. გადართეთ <b>%1$s</b> ჩართულზე]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">კამერა</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -752,7 +743,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> შემოთავაზებების მისაღებად, %1$s საჭიროებს მისამართების ველში აკრეფილი ტექსტის, შერჩეული საძიებოსთვის გადაგზავნას.</string>
+  <string name="enable_search_suggestion_description">შემოთავაზებების მისაღებად, %1$s საჭიროებს მისამართების ველში აკრეფილი ტექსტის, შერჩეული საძიებოსთვის გადაგზავნას.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">არა</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -767,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">საიტი ხარვეზებით მუშაობს?\n სცადეთ თვალთვალისგან დაცვის გამორთვა</string>
+  <string name="tip_disable_tracking_protection">საიტი ხარვეზებით მუშაობს?\nსცადეთ თვალთვალისგან დაცვის გამორთვა</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">გახსნეთი ყველა ბმული %1$s-ით\n დააყენეთ %1$s ნაგულისხმევ ბრაუზერად</string>
+  <string name="tip_set_default_browser">გახსნეთი ყველა ბმული %1$s-ით\nდააყენეთ %1$s ნაგულისხმევ ბრაუზერად</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">URL-ბმულების თვითშევსება სასურველი საიტებისთვის\n ნებისმიერ URL-ბმულზე ხანგრძლივი დაჭერით მისამართების ველში</string>
+  <string name="tip_autocomplete_url">URL-ბმულების თვითშევსება სასურველი საიტებისთვის\nნებისმიერ URL-ბმულზე ხანგრძლივი დაჭერით მისამართების ველში</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">გახსენით ბმული ახალ ჩანართში\n გვერდის ნებისმიერ ბმულზე ხანგრძლივი დაჭერით</string>
+  <string name="tip_open_in_new_tab">გახსენით ბმული ახალ ჩანართში\nგვერდის ნებისმიერ ბმულზე ხანგრძლივი დაჭერით</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">რჩევების ჩვენების შეწყვეტა საწყის ეკრანზე</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">შენახული და გაზიარებული სურათები &lt;b&gt;არ წაიშლება&lt;/b&gt;, როცა %1$s გასუფთავდება</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[შენახული და გაზიარებული სურათები <b>არ წაიშლება</b>, როცა %1$s გასუფთავდება]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s ცდილობს გამოიყენოს HTTPS-კავშირი, როცა კი შესაძლებელია უსაფრთხოებისთვის.
-     &lt;a href="%2$s"&gt;ვრცლად&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     შესაცვლელად იხილეთ პარამეტრები &gt; პირადულობა და უსაფრთხოება &gt; უსაფრთხოება.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ცდილობს გამოიყენოს HTTPS-კავშირი, როცა კი შესაძლებელია უსაფრთხოებისთვის. <a href=\"%2$s\">ვრცლად</a> <br/><br/> შესაცვლელად იხილეთ პარამეტრები > პირადულობა და უსაფრთხოება > უსაფრთხოება.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">დაუცველი კავშირი</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    ამას შესაძლოა, საიტის გაუმართაობა ან სხვა საიტად გასაღების მცდელობა იწვევდეს. &lt;br/&gt;&lt;br/&gt;
-    თუ აღნიშნულ საიტს მანამდე წარმატებით უკავშირდებოდით, ხარვეზი შეიძლება დროებითი იყოს.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[ამას შესაძლოა, საიტის გაუმართაობა ან სხვა საიტად გასაღების მცდელობა იწვევდეს. <br/><br/> თუ აღნიშნულ საიტს მანამდე წარმატებით უკავშირდებოდით, ხარვეზი შეიძლება დროებითი იყოს.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;შესაძლოა, ვიღაც ამ საიტის სხვა საიტად გასაღებას ცდილობდეს და ჯობია, აღარ განაგრძოთ.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s არ ენდობა &lt;b&gt;%2$s&lt;/b&gt;-ს, რადგან მისი უსაფრთხოების სერტიფიკატის გამომცემი უცნობია, შეიძლება თავადვე აქვთ ხელმოწერილი ან სერვერი სათანადოდ არ აგზავნის შუალედურ სერტიფიკატებს.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>შესაძლოა, ვიღაც ამ საიტის სხვა საიტად გასაღებას ცდილობდეს და ჯობია, აღარ განაგრძოთ.</label> <br><br> <label>%1$s არ ენდობა <b>%2$s</b>-ს, რადგან მისი უსაფრთხოების სერტიფიკატის გამომცემი უცნობია, შეიძლება თავადვე აქვთ ხელმოწერილი ან სერვერი სათანადოდ არ აგზავნის შუალედურ სერტიფიკატებს.</label>]]></string>
   <!--
     Sessions List
 

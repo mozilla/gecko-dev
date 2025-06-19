@@ -142,16 +142,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s metztekipanultia.&lt;/p&gt;
-&lt;p&gt;Shikwi kenha ken se ichtaka tajtachialis:
-  &lt;ul&gt;
-    &lt;li&gt;Shitatejtemu wan shipashalu tik ne app&lt;/li&gt;
-    &lt;li&gt;Shiktentzakwa ne tapachiwiani (ush shitajshitia uksenpa pal tikajkawa tekiti ne tapachiwiani)&lt;/li&gt;
-    &lt;li&gt;Shikpupu pal tikpulua cookies wan tay tiktemuj wan kan tipashaluj yewa&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;Mozilla kichiwtuk ne %1$s. Tiknekit tikajsit tikpiat ne Wey Matat yek wan tapujtuk.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Shikmatiuk&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s metztekipanultia.</p> <p>Shikwi kenha ken se ichtaka tajtachialis: <ul> <li>Shitatejtemu wan shipashalu tik ne app</li> <li>Shiktentzakwa ne tapachiwiani (ush shitajshitia uksenpa pal tikajkawa tekiti ne tapachiwiani)</li> <li>Shikpupu pal tikpulua cookies wan tay tiktemuj wan kan tipashaluj yewa</li> </ul> </p> <p>Mozilla kichiwtuk ne %1$s. Tiknekit tikajsit tikpiat ne Wey Matat yek wan tapujtuk.<br/> <a href=\"%2$s\">Shikmatiuk</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Ichtakachiwalis wan tamanawilis</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -170,7 +161,7 @@
   -->
   <string name="preference_mozilla_summary">Ipanpa %1$s, tapalewilis</string>
   <!-- Preference category for ad blocking and enhanced tracking protection settings -->
-  <string name="preference_category_tracking_protection3">Timutajpiya  ukchupi yek keman kinekit yawit mupan</string>
+  <string name="preference_category_tracking_protection3">Timutajpiya ukchupi yek keman kinekit yawit mupan</string>
   <!-- Preference category for settings related to controlling web content -->
   <string name="preference_category_web_content">Tay nemi ijtik ne Matapan</string>
   <!-- Preference category: stealth settings for while switching apps -->
@@ -617,11 +608,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Shu tik ne tajtachiwalis Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Shikpachu &lt;b&gt;Panulis&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Shikpachu <b>Panulis</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Shu tik tachijchiwalis</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Shikpata &lt;b&gt;%1$s&lt;/b&gt; pal nemi TIMAKATUK</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Shikpata <b>%1$s</b> pal nemi TIMAKATUK]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Cámaraj</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -706,7 +697,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Kan titajtachia te tekiti ken tikneki?\n Anka su tiksewia Tamanawalis itech Tapachiwiani</string>
+  <string name="tip_disable_tracking_protection">Kan titajtachia te tekiti ken tikneki?\nAnka su tiksewia Tamanawalis itech Tapachiwiani</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -717,17 +708,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Shiktapu sejse ilpika %1$s\n Shikchiwa %1$s ken ne achtutalijtuk tajtachialis</string>
+  <string name="tip_set_default_browser">Shiktapu sejse ilpika %1$s\nShikchiwa %1$s ken ne achtutalijtuk tajtachialis</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Ma temit isel ne URLs ipal kan taja sejsenpa tipashalua\n Shikpajpachu ne URL tay tikneki ijtik ne barraj ipal dirección</string>
+  <string name="tip_autocomplete_url">Ma temit isel ne URLs ipal kan taja sejsenpa tipashalua\nShikpajpachu ne URL tay tikneki ijtik ne barraj ipal dirección</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Shiktapu se ilpika tik ukse itzun\n Shikpajpachu yek ne ilpika taja tikneki tik se iswat</string>
+  <string name="tip_open_in_new_tab">Shiktapu se ilpika tik ukse itzun\nShikpajpachu yek ne ilpika taja tikneki tik se iswat</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Ma musewi ne tajtanawatial ijpak ne achtu iswat</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -741,7 +732,7 @@
   <!-- Preference summary for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
   <string name="preference_safe_browsing_summary">Shiktentzakwa ne sijsitioj tesajsay wan tashijshikuani, sitioj malware. wan sitioj ipal software tesu tikneki.</string>
   <!-- Title of the preference to enable "HTTPS-Only" mode -->
-  <string name="preference_https_only_title">Modoj HTTPS-Only </string>
+  <string name="preference_https_only_title">Modoj HTTPS-Only</string>
   <!-- Description of the preference to enable "HTTPS-Only" mode. -->
   <string name="preference_https_only_summary3">Kiejekua musalua isel tech sijsitioj, kikwi ne protocoloj ipal ne inashtuk HTTPS pal mumanawia uk yek.</string>
   <!-- Preference for exceptions tracking protection -->
@@ -808,7 +799,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Ne kwikwil tikanki wan tiktakulij &lt;b&gt;tesu yawit&lt;/b&gt; mupupuat keman tikpupua %1$s tay tiktemuj yewa</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Ne kwikwil tikanki wan tiktakulij <b>tesu yawit</b> mupupuat keman tikpupua %1$s tay tiktemuj yewa]]></string>
   <!--
     Theme Preferences
 
@@ -829,22 +820,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s kiejekua kikwi se musalulis HTTPS keman weli pal nejmachnemi.
-     &lt;a href="%2$s"&gt;Shitamati ukchupi&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Shikpata ini tachijchiwalis tik Tachijchiwalis &gt; Ichtakayu &amp;amp; Nejmachnemilis&gt; Nejmachnemilis.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s kiejekua kikwi se musalulis HTTPS keman weli pal nejmachnemi. <a href=\"%2$s\">Shitamati ukchupi</a> <br/><br/> Shikpata ini tachijchiwalis tik Tachijchiwalis > Ichtakayu &amp; Nejmachnemilis> Nejmachnemilis.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Ne Musalulis tesu nejmach</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Ini weli mukwepa ne uijkayu iwan ne iconfiguración ne servidor, u anka se akaj kiejekua tashijshikua mukwepa ne servidor. &lt;br/&gt;&lt;br/&gt;
-    Asu timusalujtuk yek itech ini servidor ikman, ne tajtakul anka ishtuna chupi.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Ini weli mukwepa ne uijkayu iwan ne iconfiguración ne servidor, u anka se akaj kiejekua tashijshikua mukwepa ne servidor. <br/><br/> Asu timusalujtuk yek itech ini servidor ikman, ne tajtakul anka ishtuna chupi.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Se akaj anka kiejekua tashijshikua mukwepa ne sitioj wan asu tipanu weli tesajsay.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s tesu kichiwa confianzaj tik &lt;b&gt;%2$s&lt;/b&gt; ika ne emisor pal ne certificadoj tesu mumati, ne certificadoj kijkwiluj ne ifirmaj isel wan ne servidor tesu kititania ne yejyek cejcertificadoj intermedios.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Se akaj anka kiejekua tashijshikua mukwepa ne sitioj wan asu tipanu weli tesajsay.</label> <br><br> <label>%1$s tesu kichiwa confianzaj tik <b>%2$s</b> ika ne emisor pal ne certificadoj tesu mumati, ne certificadoj kijkwiluj ne ifirmaj isel wan ne servidor tesu kititania ne yejyek cejcertificadoj intermedios.</label>]]></string>
   <!--
     Sessions List
 

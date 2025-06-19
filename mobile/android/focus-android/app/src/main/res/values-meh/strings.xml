@@ -148,16 +148,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s taji kajinu.&lt;/p&gt;
-&lt;p&gt;Ni´ima kua iin nuu nánuku yu´u:
-  &lt;ul&gt;
-    &lt;li&gt;Nánuku jee kaka nuu ka̱a̱ ya´a&lt;/li&gt;
-    &lt;li&gt;Chiyu´u daa a nita no´o (a xíín kaji kuvi kuntadaja noo´o)&lt;/li&gt;
-    &lt;li&gt;Xina saa kuvi naá cokies jii daa tu´un nnánukunu&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s kuviji iin nsa´a Mozilla. Nukudani iin internet vii jee va´a.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Ka´vi ku´eka&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s taji kajinu.</p> <p>Ni´ima kua iin nuu nánuku yu´u: <ul> <li>Nánuku jee kaka nuu ka̱a̱ ya´a</li> <li>Chiyu´u daa a nita no´o (a xíín kaji kuvi kuntadaja noo´o)</li> <li>Xina saa kuvi naá cokies jii daa tu´un nnánukunu</li> </ul> </p> <p>%1$s kuviji iin nsa´a Mozilla. Nukudani iin internet vii jee va´a.<br/> <a href=\"%2$s\">Ka´vi ku´eka</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Privacidad jii seguridad</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -639,8 +630,7 @@
 
     CFR for Cookie Banner (Banner Info Message). %1$s will be replaced by the app name, %2$s will be an active link using the string cfr_cookie_banner_link as text.
   -->
-  <string name="cfr_cookie_banner">%1$s Nkua\'anu jia\'a daa solicitudes cookies saa naa daa banners cokies.\n
-\n Ke\'i daa preferencias banners cookies nu %2$s.</string>
+  <string name="cfr_cookie_banner">%1$s Nkua\'anu jia\'a daa solicitudes cookies saa naa daa banners cokies.\n\nKe\'i daa preferencias banners cookies nu %2$s.</string>
   <!-- CFR for Cookie Banner (Banner Info Message). This string is used as text for a link in cfr_cookie_banner and takes the user to the app settings. -->
   <string name="cfr_cookie_banner_link">Da nu ke´i</string>
   <!-- Preference for autoplay -->
@@ -650,11 +640,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Kua´an nuu ke´i Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Kuaxin &lt;b&gt;Permisos&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Kuaxin <b>Permisos</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Kua´an nuu da ke´i</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Sama &lt;b&gt;%1$s&lt;/b&gt; a stuu</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Sama <b>%1$s</b> a stuu]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Ka̱a̱ natava</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -739,7 +729,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">¿Ntu satiñu vii sitio ya´a?\n Xita a kumi nkuntada-ja noo´o</string>
+  <string name="tip_disable_tracking_protection">¿Ntu satiñu vii sitio ya´a?\nXita a kumi nkuntada-ja noo´o</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -750,17 +740,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Sine daa enlace nuu %1$s\n Tee %1$s kua ka̱a̱ xinañu´u</string>
+  <string name="tip_set_default_browser">Sine daa enlace nuu %1$s\nTee %1$s kua ka̱a̱ xinañu´u</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Tee saa kuvi naku´un ini kaa daa URLs\n Kuaxin iin URL nuu chu´un daa direcciones</string>
+  <string name="tip_autocomplete_url">Tee saa kuvi naku´un ini kaa daa URLs\nKuaxin iin URL nuu chu´un daa direcciones</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Sine iin enlace nuu pestaña jíía\n Kuaxin iin enlace nuu página</string>
+  <string name="tip_open_in_new_tab">Sine iin enlace nuu pestaña jíía\nKuaxin iin enlace nuu página</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Xita tu´un chineí nánukunu nuu kajie´e</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -841,7 +831,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Da tutu nátava a nchuva´a je nsajia&lt;b&gt;nná&lt;/b&gt; de xinanu da tu´un nnánukunu %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Da tutu nátava a nchuva´a je nsajia<b>nná</b> de xinanu da tu´un nnánukunu %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -862,22 +852,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s Ni\'i iin conexión HTTPS ntaka kuvinu koo kue\'e a kumiji noo\'o
-     &lt;a href="%2$s"&gt;Kuni kue\'eka jiee&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Sama configuración nuu ajustes &gt; Privacidad &amp;amp; Seguridad &gt; Seguridad.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s Ni\'i iin conexión HTTPS ntaka kuvinu koo kue\'e a kumiji noo\'o <a href=\"%2$s\">Kuni kue\'eka jiee</a> <br/><br/> Sama configuración nuu ajustes > Privacidad &amp; Seguridad > Seguridad.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Conexión ntu va´a</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
- Sa̱na kuvi iin problema jii configuración ka̱a̱ servidor a xíín íyo neva kuvi sa´a xeen.&lt;br/&gt;&lt;br/&gt;
- Dee a kivɨ-nu servidor ya´a íchi yata sa̱naan kuvi iin error nkene ntañu\'u, kuvi nakivɨ-nu íchika dee nníní.
- </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Sa̱na kuvi iin problema jii configuración ka̱a̱ servidor a xíín íyo neva kuvi sa´a xeen.<br/><br/> Dee a kivɨ-nu servidor ya´a íchi yata sa̱naan kuvi iin error nkene ntañu\'u, kuvi nakivɨ-nu íchika dee nníní.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
- &lt;label&gt;Sana íyo ñivɨ kuvi kantu\'un noo\'o nuu sitio ya\'a de jia\'nu kuvi koo tixi.&lt;/label&gt;
- &lt;br&gt;&lt;br&gt;
- &lt;label&gt;%1$s no confía en &lt;b&gt;%2$s&lt;/b&gt; porque el emisor del certificado es desconocido, el certificado está autofirmado o el servidor no envía los certificados intermedios correctos.&lt;/label&gt;
- </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Sana íyo ñivɨ kuvi kantu\'un noo\'o nuu sitio ya\'a de jia\'nu kuvi koo tixi.</label> <br><br> <label>%1$s no confía en <b>%2$s</b> porque el emisor del certificado es desconocido, el certificado está autofirmado o el servidor no envía los certificados intermedios correctos.</label>]]></string>
   <!--
     Sessions List
 
@@ -889,7 +870,7 @@
 
     CFR for Toolbar Shield Icon (Banner Info Message)
   -->
-  <string name="cfr_for_toolbar_shield_icon2">¡Vatu! Nsá´ádani a página web ya´a  nkune´ya a sá´ánu. Kuaxin nu escudo saa kuvi kuninu da a nakasɨdani.</string>
+  <string name="cfr_for_toolbar_shield_icon2">¡Vatu! Nsá´ádani a página web ya´a nkune´ya a sá´ánu. Kuaxin nu escudo saa kuvi kuninu da a nakasɨdani.</string>
   <!-- Content description (not visible, for screen readers etc.): Button that closes the CFR popup -->
   <string name="cfr_close_button_description">Nakasɨ elemento emergente</string>
   <!--
