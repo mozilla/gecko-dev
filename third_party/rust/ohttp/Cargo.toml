@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.63.0"
+rust-version = "1.81.0"
 name = "ohttp"
-version = "0.5.4"
+version = "0.6.0"
 authors = ["Martin Thomson <mt@lowentropy.net>"]
 build = "build.rs"
 autolib = false
@@ -22,7 +22,19 @@ autoexamples = false
 autotests = false
 autobenches = false
 description = "Oblivious HTTP"
+homepage = "https://github.com/martinthomson/ohttp"
 readme = "README.md"
+keywords = [
+    "ohttp",
+    "http",
+    "bhttp",
+    "ietf",
+]
+categories = [
+    "network-programming",
+    "web-programming",
+    "security",
+]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/martinthomson/ohttp"
 
@@ -39,16 +51,8 @@ gecko = [
     "nss",
     "mozbuild",
 ]
-nss = [
-    "bindgen",
-    "regex-mess",
-]
+nss = ["bindgen"]
 pq = ["hpke-pq"]
-regex-mess = [
-    "regex",
-    "regex-automata",
-    "regex-syntax",
-]
 rust-hpke = [
     "rand",
     "aead",
@@ -59,6 +63,7 @@ rust-hpke = [
     "hpke",
 ]
 server = []
+unsafe-print-secrets = []
 
 [lib]
 name = "ohttp"
@@ -107,9 +112,6 @@ optional = true
 default-features = false
 package = "hpke_pq"
 
-[dependencies.lazy_static]
-version = "1.4"
-
 [dependencies.log]
 version = "0.4"
 default-features = false
@@ -119,15 +121,7 @@ version = "0.8"
 optional = true
 
 [dependencies.regex]
-version = "~1.9"
-optional = true
-
-[dependencies.regex-automata]
-version = "~0.3"
-optional = true
-
-[dependencies.regex-syntax]
-version = "~0.7"
+version = "~1.11"
 optional = true
 
 [dependencies.sha2]

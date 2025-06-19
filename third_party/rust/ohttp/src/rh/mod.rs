@@ -38,10 +38,11 @@ impl AsRef<[u8]> for SymKey {
 
 impl std::fmt::Debug for SymKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if let Ok(b) = self.key_data() {
-            write!(f, "SymKey {}", hex::encode(b))
-        } else {
-            write!(f, "Opaque SymKey")
+        if cfg!(feature = "unsafe-print-secrets") {
+            if let Ok(b) = self.key_data() {
+                return write!(f, "SymKey {}", hex::encode(b));
+            }
         }
+        write!(f, "Opaque SymKey")
     }
 }

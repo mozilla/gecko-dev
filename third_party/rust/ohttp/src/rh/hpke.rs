@@ -1,15 +1,13 @@
-use super::SymKey;
-use crate::{
-    hpke::{Aead, Kdf, Kem},
-    Error, Res,
-};
+use std::ops::Deref;
 
 #[cfg(not(feature = "pq"))]
 use ::hpke as rust_hpke;
-
 #[cfg(feature = "pq")]
 use ::hpke_pq as rust_hpke;
-
+use ::rand::thread_rng;
+use log::trace;
+#[cfg(feature = "pq")]
+use rust_hpke::kem::X25519Kyber768Draft00;
 use rust_hpke::{
     aead::{AeadCtxR, AeadCtxS, AeadTag, AesGcm128, ChaCha20Poly1305},
     kdf::HkdfSha256,
@@ -17,12 +15,11 @@ use rust_hpke::{
     setup_receiver, setup_sender, Deserializable, OpModeR, OpModeS, Serializable,
 };
 
-#[cfg(feature = "pq")]
-use rust_hpke::kem::X25519Kyber768Draft00;
-
-use ::rand::thread_rng;
-use log::trace;
-use std::ops::Deref;
+use super::SymKey;
+use crate::{
+    hpke::{Aead, Kdf, Kem},
+    Error, Res,
+};
 
 /// Configuration for `Hpke`.
 #[derive(Clone, Copy)]
@@ -119,11 +116,12 @@ impl PrivateKey {
 
 impl std::fmt::Debug for PrivateKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if let Ok(b) = self.key_data() {
-            write!(f, "PrivateKey {}", hex::encode(b))
-        } else {
-            write!(f, "Opaque PrivateKey")
+        if cfg!(feature = "unsafe-print-secrets") {
+            if let Ok(b) = self.key_data() {
+                return write!(f, "PrivateKey {}", hex::encode(b));
+            }
         }
+        write!(f, "Opaque PrivateKey")
     }
 }
 

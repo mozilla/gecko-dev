@@ -241,7 +241,7 @@ impl KeyConfig {
             r.consume(len);
             match res {
                 Ok(config) => configs.push(config),
-                Err(Error::Unsupported) => continue,
+                Err(Error::Unsupported) => {}
                 Err(e) => return Err(e),
             }
         }

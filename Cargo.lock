@@ -4943,19 +4943,15 @@ dependencies = [
 
 [[package]]
 name = "ohttp"
-version = "0.5.4"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10a20082b908632960d0aa59af61e2771502b40249d55986e8bdbcd06d723ea5"
+checksum = "a4a87f4e4cd78d1619b98b6119cde887d20489f70339b9425af080b00db714b6"
 dependencies = [
  "bindgen",
  "byteorder",
  "hex",
- "lazy_static",
  "log",
  "mozbuild",
- "regex",
- "regex-automata",
- "regex-syntax",
  "serde",
  "serde_derive",
  "thiserror 1.999.999",
