@@ -41,6 +41,10 @@ let DATABASE_ENABLED = Services.prefs.getBoolPref(
   "nimbus.profilesdatastoreservice.enabled",
   false
 );
+let READ_FROM_DATABASE_ENABLED = Services.prefs.getBoolPref(
+  "nimbus.profilesdatastoreservice.read.enabled",
+  false
+);
 
 /**
  * Handles queueing changes to the NimbusEnrollments database table in the
@@ -418,6 +422,109 @@ export class NimbusEnrollments {
   }
 
   /**
+   * Whether or not reading from the NimbusEnrollments table is enabled.
+   *
+   * This is true by default in Nightly, except in xpcshell tests.
+   */
+  static get readFromDatabaseEnabled() {
+    // TODO(bug 1972426): Enable this behaviour by default and remove this pref.
+    return READ_FROM_DATABASE_ENABLED;
+  }
+
+  /**
+   * Load the enrollments from the NimbusEnrollments table.
+   *
+   * @returns {Promise<Record<string, object>>} The enrollments from the
+   * NimbusEnrollments table.
+   */
+  static async loadEnrollments() {
+    function copyProperties(target, src, properties) {
+      for (const property of properties) {
+        target[property] = src[property];
+      }
+    }
+
+    function processRow(row) {
+      const enrollment = {};
+
+      for (const key of ["slug", "lastSeen", "source"]) {
+        enrollment[key] = row.getResultByName(key);
+      }
+
+      enrollment.active = Boolean(row.getResultByName("active"));
+
+      const unenrollReason = row.getResultByName("unenrollReason");
+      if (unenrollReason) {
+        enrollment.unenrollReason = unenrollReason;
+      }
+
+      const setPrefs = JSON.parse(row.getResultByName("setPrefs"));
+      if (setPrefs) {
+        enrollment.prefs = setPrefs;
+      }
+
+      const prefFlips = JSON.parse(row.getResultByName("prefFlips"));
+      if (prefFlips) {
+        enrollment.prefFlips = prefFlips;
+      }
+
+      const recipe = JSON.parse(row.getResultByName("recipe"));
+      const branchSlug = row.getResultByName("branchSlug");
+
+      enrollment.branch = recipe.branches.find(b => b.slug === branchSlug);
+
+      copyProperties(enrollment, recipe, [
+        "userFacingName",
+        "userFacingDescription",
+        "featureIds",
+        "isRollout",
+        "localizations",
+      ]);
+
+      if (typeof recipe.isFirefoxLabsOptIn !== "undefined") {
+        copyProperties(enrollment, recipe, [
+          "isFirefoxLabsOptIn",
+          "firefoxLabsTitle",
+          "firefoxLabsDescription",
+          "firefoxLabsDescriptionLinks",
+          "firefoxLabsGroup",
+          "requiresRestart",
+        ]);
+      }
+
+      return [enrollment.slug, enrollment];
+    }
+
+    const conn = await lazy.ProfilesDatastoreService.getConnection();
+    const rows = await conn.execute(
+      `
+      SELECT
+        slug,
+        branchSlug,
+        active,
+        unenrollReason,
+        lastSeen,
+        json(recipe) AS recipe,
+        json(setPrefs) AS setPrefs,
+        json(prefFlips) AS prefFlips,
+        source
+      FROM NimbusEnrollments
+      WHERE
+        profileId = :profileId;
+      `,
+      {
+        profileId: lazy.ExperimentAPI.profileId,
+      }
+    );
+
+    const enrollments = rows.map(processRow);
+
+    lazy.log.debug(`Loaded ${enrollments.length} enrollments`);
+
+    return Object.fromEntries(enrollments);
+  }
+
+  /**
    * Reload the database-related prefs
    *
    * ** TEST ONLY **
@@ -425,6 +532,10 @@ export class NimbusEnrollments {
   static _reloadPrefsForTests() {
     DATABASE_ENABLED = Services.prefs.getBoolPref(
       "nimbus.profilesdatastoreservice.enabled",
+      false
+    );
+    READ_FROM_DATABASE_ENABLED = Services.prefs.getBoolPref(
+      "nimbus.profilesdatastoreservice.read.enabled",
       false
     );
   }

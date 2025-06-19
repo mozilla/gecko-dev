@@ -923,7 +923,7 @@ const IMPORT_TO_SQL_MIGRATION = NimbusMigrations.MIGRATIONS[
   NimbusMigrations.Phase.AFTER_STORE_INITIALIZED
 ].find(m => m.name === "import-enrollments-to-sql");
 
-add_task(async function testMigrateEnrollmentsToSql() {
+async function testMigrateEnrollmentsToSql(primary = "jsonfile") {
   const PREFFLIPS_EXPERIMENT_VALUE = {
     prefs: {
       "foo.bar.baz": {
@@ -943,12 +943,21 @@ add_task(async function testMigrateEnrollmentsToSql() {
       },
       {
         bogus: "foobar",
+        userFacingName: "experiment-1",
+        userFacingDescription: "experiment-1 description",
       }
     ),
-    NimbusTestUtils.factories.recipe.withFeatureConfig("experiment-2", {
-      branchSlug: "experiment-2",
-      featureId: "no-feature-firefox-desktop",
-    }),
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "experiment-2",
+      {
+        branchSlug: "experiment-2",
+        featureId: "no-feature-firefox-desktop",
+      },
+      {
+        userFacingName: "experiment-2",
+        userFacingDescription: "experiment-2 description",
+      }
+    ),
     NimbusTestUtils.factories.recipe.withFeatureConfig(
       "rollout-1",
       {
@@ -964,6 +973,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
         },
         firefoxLabsGroup: "group",
         requiresRestart: true,
+        userFacingName: "rollout-1",
+        userFacingDescription: "rollout-1 description",
       }
     ),
     NimbusTestUtils.factories.recipe.withFeatureConfig(
@@ -971,14 +982,25 @@ add_task(async function testMigrateEnrollmentsToSql() {
       {
         featureId: "no-feature-firefox-desktop",
       },
-      { isRollout: true }
+      {
+        isRollout: true,
+        userFacingName: "rollout-2",
+        userFacingDescription: "rollout-2 description",
+      }
     ),
-    NimbusTestUtils.factories.recipe.withFeatureConfig("setPref-experiment", {
-      featureId: "nimbus-qa-1",
-      value: {
-        value: "qa-1",
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "setPref-experiment",
+      {
+        featureId: "nimbus-qa-1",
+        value: {
+          value: "qa-1",
+        },
       },
-    }),
+      {
+        userFacingName: "setPref-experiment",
+        userFacingDescription: "setPref-experiment description",
+      }
+    ),
     NimbusTestUtils.factories.recipe.withFeatureConfig(
       "setPref-rollout",
       {
@@ -987,18 +1009,34 @@ add_task(async function testMigrateEnrollmentsToSql() {
           value: "qa-2",
         },
       },
-      { isRollout: true }
+      {
+        isRollout: true,
+        userFacingName: "setPref-rollout",
+        userFacingDescription: "setPref-rollout description",
+      }
     ),
   ];
   const secureExperiments = [
-    NimbusTestUtils.factories.recipe.withFeatureConfig("prefFlips-experiment", {
-      featureId: "prefFlips",
-      value: PREFFLIPS_EXPERIMENT_VALUE,
-    }),
+    NimbusTestUtils.factories.recipe.withFeatureConfig(
+      "prefFlips-experiment",
+      {
+        featureId: "prefFlips",
+        value: PREFFLIPS_EXPERIMENT_VALUE,
+      },
+      {
+        userFacingName: "prefFlips-experiment",
+        userFacingDescription: "prefFlips-experiment description",
+      }
+    ),
     NimbusTestUtils.factories.recipe.withFeatureConfig(
       "prefFlips-rollout",
       { featureId: "prefFlips", value: { prefs: {} } },
-      { isRollout: true }
+      {
+        isRollout: true,
+
+        userFacingName: "prefFlips-rollout",
+        userFacingDescription: "prefFlips-rollout description",
+      }
     ),
   ];
 
@@ -1048,7 +1086,11 @@ add_task(async function testMigrateEnrollmentsToSql() {
           branchSlug: "experiment-1",
           featureId: "no-feature-firefox-desktop",
         },
-        { source: NimbusTelemetry.EnrollmentSource.RS_LOADER }
+        {
+          source: NimbusTelemetry.EnrollmentSource.RS_LOADER,
+          userFacingName: "experiment-1",
+          userFacingDescription: "experiment-1 description",
+        }
       )
     );
     store.set(
@@ -1067,6 +1109,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
           },
           firefoxLabsGroup: "group",
           requiresRestart: true,
+          userFacingName: "rollout-1",
+          userFacingDescription: "rollout-1 description",
         }
       )
     );
@@ -1085,6 +1129,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
               "foo.bar.baz": "original-value",
             },
           },
+          userFacingName: "prefFlips-experiment",
+          userFacingDescription: "prefFlips-experiment description",
         }
       )
     );
@@ -1107,6 +1153,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
               originalValue: "original-value",
             },
           ],
+          userFacingName: "setPref-experiment",
+          userFacingDescription: "setPref-experiment description",
         }
       )
     );
@@ -1118,7 +1166,11 @@ add_task(async function testMigrateEnrollmentsToSql() {
           branchSlug: "devtools",
           featureId: "no-feature-firefox-desktop",
         },
-        { source: "nimbus-devtools" }
+        {
+          source: "nimbus-devtools",
+          userFacingName: "devtools",
+          userFacingDescription: "devtools-description",
+        }
       )
     );
     store.set(
@@ -1136,6 +1188,8 @@ add_task(async function testMigrateEnrollmentsToSql() {
               foo: "foo",
             },
           },
+          userFacingName: "optin",
+          userFacingDescription: "optin-description",
         }
       )
     );
@@ -1471,6 +1525,16 @@ add_task(async function testMigrateEnrollmentsToSql() {
         },
         "optin: localizations is captured in recipe"
       );
+
+      if (NimbusEnrollments.readFromDatabaseEnabled) {
+        // store._data is a structuredClone of the ._jsonFile.data, so we need
+        // to reload the NimbusEnrollments table and compare against that instead.
+        const dbContents = await NimbusEnrollments.loadEnrollments();
+        Assert.deepEqual(
+          ExperimentAPI.manager.store._jsonFile.data,
+          dbContents
+        );
+      }
     } catch (e) {
       importMigrationError = e;
     }
@@ -1504,6 +1568,7 @@ add_task(async function testMigrateEnrollmentsToSql() {
         db_active_count: "7",
         store_active_count: "7",
         trigger: "migration",
+        primary,
       },
     ]
   );
@@ -1539,6 +1604,13 @@ add_task(async function testMigrateEnrollmentsToSql() {
     "nimbus.qa.pref-2 restored"
   );
   Services.prefs.deleteBranch("foo.bar.baz");
-  Services.prefs.deleteBranch("nimbus.qa.pref-1");
-  Services.prefs.deleteBranch("nimbus.qa.pref-2");
+}
+
+add_task(testMigrateEnrollmentsToSql);
+add_task(async function testMigrateEnrollmentsToSqlDb() {
+  const resetNimbusEnrollmentPrefs = NimbusTestUtils.enableNimbusEnrollments({
+    read: true,
+  });
+  await testMigrateEnrollmentsToSql("database");
+  resetNimbusEnrollmentPrefs();
 });

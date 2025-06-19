@@ -584,7 +584,9 @@ export class ExperimentStore extends SharedDataMap {
     );
 
     const dbEnrollments = rows.map(row => row.getResultByName("active"));
-    const storeEnrollments = this.getAll().map(e => e.active);
+    const storeEnrollments = Object.values(this._jsonFile.data).map(
+      e => e.active
+    );
 
     function countActive(sum, active) {
       return sum + Number(active);
@@ -599,6 +601,9 @@ export class ExperimentStore extends SharedDataMap {
       db_active_count: dbActiveCount,
       store_active_count: storeActiveCount,
       trigger,
+      primary: lazy.NimbusEnrollments.readFromDatabaseEnabled
+        ? "database"
+        : "jsonfile",
     });
   }
 }
