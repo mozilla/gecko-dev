@@ -2160,12 +2160,12 @@ add_task(async function test_prefFlips_cacheOriginalValues() {
     },
   });
 
-  const storePath = manager.store._store.path;
+  const storePath = manager.store._jsonFile.path;
 
   // We are intentionally *not* forcing a save -- we are only flushing a pending
   // save to disk.
   {
-    const jsonFile = manager.store._store;
+    const jsonFile = manager.store._jsonFile;
     if (jsonFile._saver.isRunning) {
       await jsonFile._saver._runningPromise;
     } else if (jsonFile._saver.isArmed) {

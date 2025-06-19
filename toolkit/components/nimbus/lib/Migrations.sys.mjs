@@ -293,7 +293,7 @@ async function migrateFirefoxLabsEnrollments() {
         // structures without using set().
         // We do not have to sync these changes to child processes because the
         // data is only used in the parent process.
-        lazy.ExperimentAPI.manager.store._store.saveSoon();
+        lazy.ExperimentAPI.manager.store._jsonFile.saveSoon();
       }
     },
     { mode: "shared" }

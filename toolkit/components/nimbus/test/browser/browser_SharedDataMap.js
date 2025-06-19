@@ -36,10 +36,10 @@ function setupTest({ multiprocess = false } = {}) {
   return {
     sdm,
     async cleanup() {
-      sdm._removeEntriesByKeys(Object.keys(sdm._store.data));
+      sdm._removeEntriesByKeys(Object.keys(sdm._jsonFile.data));
 
       // Wait for the store to finish writing to disk, then delete the file on disk.
-      await sdm._store.finalize();
+      await sdm._jsonFile.finalize();
       await IOUtils.remove(PATH);
 
       if (multiprocess) {
@@ -54,12 +54,12 @@ add_task(async function testSetSaves() {
   const { sdm, cleanup } = setupTest();
   await sdm.init();
 
-  sinon.spy(sdm._store, "saveSoon");
+  sinon.spy(sdm._jsonFile, "saveSoon");
 
   sdm.set("foo", "bar");
 
   Assert.ok(
-    sdm._store.saveSoon.calledOnce,
+    sdm._jsonFile.saveSoon.calledOnce,
     "Should call saveSoon when setting a value"
   );
 
@@ -94,13 +94,13 @@ add_task(async function testInitSafe() {
   const { sdm, cleanup } = setupTest();
   await sdm.init();
 
-  sinon.stub(sdm._store, "load");
-  sinon.replaceGetter(sdm._store, "data", () => {
+  sinon.stub(sdm._jsonFile, "load");
+  sinon.replaceGetter(sdm._jsonFile, "data", () => {
     throw new Error("uh oh");
   });
 
   await sdm.init();
-  Assert.ok(sdm._store.load.calledOnce, "should have called load");
+  Assert.ok(sdm._jsonFile.load.calledOnce, "should have called load");
 
   await cleanup();
 }).skip();
@@ -108,16 +108,16 @@ add_task(async function testInitSafe() {
 add_task(async function testInitMultiple() {
   const { sdm, cleanup } = setupTest();
 
-  sinon.spy(sdm._store, "load");
+  sinon.spy(sdm._jsonFile, "load");
 
   await sdm.init();
   await sdm.ready();
 
-  Assert.ok(sdm._store.load.calledOnce, "load called");
+  Assert.ok(sdm._jsonFile.load.calledOnce, "load called");
 
   await sdm.init();
 
-  Assert.ok(sdm._store.load.calledOnce, "load called only once");
+  Assert.ok(sdm._jsonFile.load.calledOnce, "load called only once");
 
   await cleanup();
 });
@@ -134,7 +134,7 @@ add_task(async function testChildInit() {
     const childSdm = new SharedDataMap(key);
 
     Assert.ok(
-      !Object.hasOwn(childSdm, "_store"),
+      !Object.hasOwn(childSdm, "_jsonFile"),
       "child SharedDataMap does not have a store"
     );
   });
