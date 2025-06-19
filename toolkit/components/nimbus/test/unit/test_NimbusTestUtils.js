@@ -45,6 +45,7 @@ add_task(async function test_enrollmentHelper() {
 });
 
 add_task(async function test_enrollWithFeatureConfig() {
+  Services.prefs.setBoolPref("nimbus.telemetry.targetingContextEnabled", false);
   const { manager, cleanup } = await NimbusTestUtils.setupTest({
     features: [new ExperimentFeature("enrollWithFeatureConfig", {})],
   });
@@ -70,4 +71,5 @@ add_task(async function test_enrollWithFeatureConfig() {
   );
 
   await cleanup();
+  Services.prefs.clearUserPref("nimbus.telemetry.targetingContextEnabled");
 });
