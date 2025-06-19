@@ -313,14 +313,7 @@ template <typename Pred>
 void BufferAllocator::FreeLists::eraseIf(Pred&& pred) {
   for (size_t i = 0; i < MediumAllocClasses; i++) {
     FreeList& freeList = lists[i];
-    FreeRegion* region = freeList.getFirst();
-    while (region) {
-      FreeRegion* next = region->getNext();
-      if (pred(region)) {
-        freeList.remove(region);
-      }
-      region = next;
-    }
+    freeList.eraseIf(std::forward<Pred>(pred));
     available[i] = !freeList.isEmpty();
   }
 }

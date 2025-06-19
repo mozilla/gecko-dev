@@ -131,6 +131,11 @@ bool TestList() {
   list.remove(&two);
   CHECK(CheckListValues(list, std::array{1, 3}));
 
+  // Test eraseIf.
+  list.pushBack(&two);
+  list.eraseIf([] (IntElement* element) { return element->value % 2 == 1; });
+  CHECK(CheckListValues(list, std::array{2}));
+
   // Test clear.
   list.clear();
   CHECK(list.isEmpty());

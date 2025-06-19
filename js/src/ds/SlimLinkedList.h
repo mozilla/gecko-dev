@@ -414,6 +414,21 @@ class SlimLinkedList {
     }
   }
 
+  /*
+   * Remove all the elements from the list that match a predicate.
+   */
+  template <typename F>
+  void eraseIf(F&& pred) {
+    ElementPtr element = getFirst();
+    while (element) {
+      ElementPtr next = element->getNext();
+      if (pred(element)) {
+        remove(element);
+      }
+      element = next;
+    }
+  }
+
   /**
    * Return the length of elements in the list.
    */
