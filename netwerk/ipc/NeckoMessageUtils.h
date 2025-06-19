@@ -20,6 +20,7 @@
 #include "nsPrintfCString.h"
 #include "nsString.h"
 #include "prio.h"
+#include "mozilla/net/HttpTransactionShell.h"
 
 namespace IPC {
 
@@ -180,6 +181,30 @@ struct ParamTraits<mozilla::net::ClassOfService> {
     return true;
   }
 };
+
+template <>
+struct ParamTraits<struct mozilla::net::LNAPerms> {
+  typedef struct mozilla::net::LNAPerms paramType;
+
+  static void Write(MessageWriter* aWriter, const paramType& aParam) {
+    WriteParam(aWriter, aParam.mLocalHostPermission);
+    WriteParam(aWriter, aParam.mLocalNetworkPermission);
+  }
+
+  static bool Read(MessageReader* aReader, paramType* aResult) {
+    if (!ReadParam(aReader, &aResult->mLocalHostPermission) ||
+        !ReadParam(aReader, &aResult->mLocalNetworkPermission))
+      return false;
+
+    return true;
+  }
+};
+
+template <>
+struct ParamTraits<mozilla::net::LNAPermission>
+    : public ContiguousEnumSerializerInclusive<mozilla::net::LNAPermission,
+                                      mozilla::net::LNAPermission::Granted,
+                                      mozilla::net::LNAPermission::Pending> {};
 
 }  // namespace IPC
 
