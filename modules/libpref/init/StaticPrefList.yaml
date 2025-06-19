@@ -5399,7 +5399,7 @@
 
 - name: dom.webkitBlink.dirPicker.enabled
   type: RelaxedAtomicBool
-  value: @IS_NOT_MOBILE@
+  value: true
   mirror: always
 
 # Whether allowing selection across the boundary
@@ -5499,7 +5499,7 @@
 # Is support for HTMLInputElement.webkitEntries enabled?
 - name: dom.webkitBlink.filesystem.enabled
   type: bool
-  value: @IS_NOT_MOBILE@
+  value: true
   mirror: always
 
 # Whether the WebMIDI API is enabled
