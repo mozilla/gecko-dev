@@ -1943,7 +1943,7 @@
     <!-- Text shown in snackbar when user closes a private tab -->
     <string name="snackbar_private_tab_closed">Private tab closed</string>
     <!-- Text shown in snackbar when user closes all private tabs -->
-    <string name="snackbar_private_tabs_closed">Private tabs closed</string>
+    <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Private tabs closed</string>
     <!-- Text shown in snackbar when user erases their private browsing data -->
     <string name="snackbar_private_data_deleted">Private browsing data deleted</string>
     <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
