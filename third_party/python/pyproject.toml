@@ -10,7 +10,7 @@ dependencies = [
     "attrs~=23.1",
     "blessed~=1.19",
     "cbor2~=4.0",
-    "certifi==2024.7.4",
+    "certifi==2025.6.15",
     "click==8.1.7",
     "colorama==0.4.6",
     "compare-locales~=9.0",
