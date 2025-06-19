@@ -450,6 +450,8 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "URL",
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  "URLPattern",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   "URLSearchParams",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "WebSocket",
