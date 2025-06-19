@@ -591,26 +591,18 @@ function showOnboarding(length) {
 }
 
 async function summarizeCurrentPage() {
-  Services.prefs.setCharPref(
-    "browser.ml.chat.prompt.prefix",
-    'I\'m on page "%tabTitle%" from "%url%". Use this "%selection|8000%" as my selection.'
-  );
-
   let browser = topChromeWindow.gBrowser.selectedBrowser;
   let actor = browser.browsingContext.currentWindowContext.getActor("GenAI");
   let articleTextContent = await actor.sendQuery("GetReadableText");
 
   await lazy.GenAI.addAskChatItems(
     browser,
-    { selection: articleTextContent },
+    { contentType: "page", selection: articleTextContent },
     (promptObj, context) => {
       if (promptObj.id === "summarize") {
         lazy.GenAI.handleAskChat(promptObj, context);
       }
     },
-    "page"
+    "footer"
   );
-
-  // reset prefix to default
-  Services.prefs.clearUserPref("browser.ml.chat.prompt.prefix");
 }

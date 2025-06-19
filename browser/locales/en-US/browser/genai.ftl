@@ -46,16 +46,30 @@ genai-prompts-proofread =
 
 ## Chatbot menu shortcuts
 
+genai-menu-no-provider =
+    .label = Ask an AI Chatbot
+genai-menu-choose-chatbot =
+    .label = Choose an AI Chatbot
 genai-menu-ask-generic =
-    .label = Ask AI chatbot
+    .label = Ask AI Chatbot
 # $provider (string) - name of the provider
 genai-menu-ask-provider =
     .label = Ask { $provider }
+genai-menu-open-generic =
+    .label = Open AI Chatbot
+# $provider (string) - name of the provider
+genai-menu-open-provider =
+    .label = Open { $provider }
 genai-menu-remove-generic =
-    .label = Remove AI chatbot
+    .label = Remove AI Chatbot
 # $provider (string) - name of the provider
 genai-menu-remove-provider =
     .label = Remove { $provider }
+genai-menu-remove-sidebar =
+    .label = Remove from Sidebar
+
+genai-menu-new-badge = New
+genai-menu-summarize-page = Summarize Page
 
 genai-input-ask-generic =
     .placeholder = Ask AI chatbot…
@@ -104,6 +118,10 @@ genai-options-hide-shortcut =
     .label = Hide shortcut when selecting text
 genai-options-about-chatbot =
     .label = About AI chatbots in { -brand-short-name }
+
+## Chatbot footer
+
+genai-page-button-summarize = Summarize page
 
 ## Chatbot onboarding
 
