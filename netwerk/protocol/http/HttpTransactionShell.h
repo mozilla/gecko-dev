@@ -12,6 +12,7 @@
 #include "mozilla/UniquePtr.h"
 #include "nsIClassOfService.h"
 #include "nsIEarlyHintObserver.h"
+#include "nsContentPermissionHelper.h"
 #include "nsILoadInfo.h"
 #include "nsISupports.h"
 #include "nsITransportSecurityInfo.h"
@@ -36,17 +37,6 @@ class nsHttpRequestHead;
 class nsHttpTransaction;
 class TransactionObserverResult;
 union NetAddr;
-
-enum class LNAPermission {
-  Granted,
-  Denied,
-  Pending,
-};
-
-struct LNAPerms {
-  LNAPermission mLocalHostPermission{LNAPermission::Pending};
-  LNAPermission mLocalNetworkPermission{LNAPermission::Pending};
-};
 
 //----------------------------------------------------------------------------
 // Abstract base class for a HTTP transaction in the chrome process
@@ -94,7 +84,7 @@ class HttpTransactionShell : public nsISupports {
       bool responseTimeoutEnabled, uint64_t channelId,
       TransactionObserverFunc&& transactionObserver,
       nsILoadInfo::IPAddressSpace aParentIPAddressSpace,
-      const LNAPerms& aLnaPermissionStatus) = 0;
+      dom::ContentPermissionRequestBase::PromptResult aLnaPermissionStatus) = 0;
 
   // @param aListener
   //        receives notifications.
@@ -194,7 +184,8 @@ class HttpTransactionShell : public nsISupports {
       bool responseTimeoutEnabled, uint64_t channelId,                         \
       TransactionObserverFunc&& transactionObserver,                           \
       nsILoadInfo::IPAddressSpace aParentIPAddressSpace,                       \
-      const LNAPerms& aLnaPermissionStatus) override;                          \
+      dom::ContentPermissionRequestBase::PromptResult aLnaPermissionStatus)    \
+      override;                                                                \
   virtual nsresult AsyncRead(nsIStreamListener* listener, nsIRequest** pump)   \
       override;                                                                \
   virtual UniquePtr<nsHttpResponseHead> TakeResponseHeadAndConnInfo(           \

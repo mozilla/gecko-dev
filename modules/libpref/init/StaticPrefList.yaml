@@ -14146,13 +14146,6 @@
   value: false
   mirror: always
 
-# When this pref is true, loads triggered by scripts classified as trackers
-# will automatically be blocked.
-- name: network.lna.block_trackers
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 # The proxy type. See nsIProtocolProxyService.idl
 #     PROXYCONFIG_DIRECT   = 0
 #     PROXYCONFIG_MANUAL   = 1

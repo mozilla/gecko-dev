@@ -25,8 +25,6 @@ const ALLOWED_PERMISSION_VALUES = {
   "https-only-load-insecure": [
     Ci.nsIHttpsOnlyModePermission.HTTPSFIRST_LOAD_INSECURE_ALLOW,
   ],
-  localhost: ["*"],
-  "local-network": ["*"],
 };
 
 /**

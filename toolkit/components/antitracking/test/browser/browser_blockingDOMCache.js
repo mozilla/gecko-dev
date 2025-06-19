@@ -69,10 +69,7 @@ AntiTracking.runTest(
       );
     });
   },
-  [
-    ["dom.caches.testing.enabled", true],
-    ["network.lna.block_trackers", false],
-  ],
+  [["dom.caches.testing.enabled", true]],
   false,
   false
 );
