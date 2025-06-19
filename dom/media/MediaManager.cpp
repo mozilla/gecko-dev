@@ -3568,7 +3568,9 @@ void MediaManager::OnCameraMute(bool aMute) {
   mCamerasMuted = aMute;
   // This is safe since we're on main-thread, and the windowlist can only
   // be added to from the main-thread
-  for (const auto& window : mActiveWindows.Values()) {
+  for (const auto& window :
+       ToTArray<AutoTArray<RefPtr<GetUserMediaWindowListener>, 2>>(
+           mActiveWindows.Values())) {
     window->MuteOrUnmuteCameras(aMute);
   }
 }
@@ -3579,7 +3581,9 @@ void MediaManager::OnMicrophoneMute(bool aMute) {
   mMicrophonesMuted = aMute;
   // This is safe since we're on main-thread, and the windowlist can only
   // be added to from the main-thread
-  for (const auto& window : mActiveWindows.Values()) {
+  for (const auto& window :
+       ToTArray<AutoTArray<RefPtr<GetUserMediaWindowListener>, 2>>(
+           mActiveWindows.Values())) {
     window->MuteOrUnmuteMicrophones(aMute);
   }
 }
@@ -4768,7 +4772,7 @@ void GetUserMediaWindowListener::MuteOrUnmuteCameras(bool aMute) {
   }
   mCamerasAreMuted = aMute;
 
-  for (auto& l : mActiveListeners) {
+  for (auto& l : mActiveListeners.Clone()) {
     if (l->GetDevice()->Kind() == MediaDeviceKind::Videoinput) {
       l->MuteOrUnmuteCamera(aMute);
     }
@@ -4783,7 +4787,7 @@ void GetUserMediaWindowListener::MuteOrUnmuteMicrophones(bool aMute) {
   }
   mMicrophonesAreMuted = aMute;
 
-  for (auto& l : mActiveListeners) {
+  for (auto& l : mActiveListeners.Clone()) {
     if (l->GetDevice()->Kind() == MediaDeviceKind::Audioinput) {
       l->MuteOrUnmuteMicrophone(aMute);
     }
