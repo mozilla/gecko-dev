@@ -102,11 +102,6 @@ if CONFIG["OS_TARGET"] == "Android":
     ]
 if CONFIG["FUZZING"]:
     pref_groups += ["fuzzing"]
-if CONFIG["MOZ_THUNDERBIRD"]:
-    pref_groups += [
-        "mail",
-        "mailnews",
-    ]
 pref_groups = tuple(sorted(pref_groups))
 
 # Note: generate_static_pref_list.py relies on StaticPrefListAll.h being first.
@@ -135,14 +130,11 @@ UNIFIED_SOURCES += [
 
 gen_all_tuple = tuple(gen_h + gen_cpp + gen_rs)
 
-gen_inputs = ["init/StaticPrefList.yaml"]
-if CONFIG["MOZ_THUNDERBIRD"]:
-    gen_inputs += ["/comm/mail/app/StaticPrefList.yaml"]
 GeneratedFile(
     *gen_all_tuple,
     script="init/generate_static_pref_list.py",
     entry_point="emit_code",
-    inputs=gen_inputs
+    inputs=["init/StaticPrefList.yaml"]
 )
 
 PYTHON_UNITTEST_MANIFESTS += [
