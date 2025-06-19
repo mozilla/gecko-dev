@@ -14,6 +14,14 @@
   background-color: transparent;
   color: var(--sidebar-text-color);
   height: 100%;
+
+  &[lwt-sidebar="light"] {
+    color-scheme: light;
+  }
+
+  &[lwt-sidebar="dark"] {
+    color-scheme: dark;
+  }
 }
 
 body {

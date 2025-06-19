@@ -11,9 +11,6 @@ import { PlacesUtils } from "resource://gre/modules/PlacesUtils.sys.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/sidebar/sidebar-panel-header.mjs";
 
-const { LightweightThemeConsumer } = ChromeUtils.importESModule(
-  "resource://gre/modules/LightweightThemeConsumer.sys.mjs"
-);
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   PlacesUIUtils: "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs",
@@ -29,8 +26,6 @@ export class SidebarPage extends MozLitElement {
     super.connectedCallback();
     this.ownerGlobal.addEventListener("beforeunload", this.clearDocument);
     this.ownerGlobal.addEventListener("unload", this.clearDocument);
-
-    new LightweightThemeConsumer(document);
 
     this._contextMenu = this.topWindow.SidebarController.currentContextMenu;
   }
