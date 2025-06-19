@@ -232,7 +232,7 @@ support-files = [
 ["browser_test_local_network_trackers.js"]
 support-files = [
   "page_with_trackers.html",
-  "fetch_from_tracker.js",
+  "fetch_from_tracker.sjs",
 ]
 
 ["browser_test_offline_tab.js"]

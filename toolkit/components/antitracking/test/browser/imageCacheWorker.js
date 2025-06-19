@@ -54,7 +54,7 @@ AntiTracking.runTest(
     },
   },
   null, // cleanup function
-  null, // no extra prefs
+  [["network.lna.block_trackers", false]],
   false, // no window open test
   false, // no user-interaction test
   expectedBlockingNotifications
