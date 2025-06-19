@@ -100,6 +100,9 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
         if kwargs["stackfix_dir"] is None:
             kwargs["stackfix_dir"] = self.bindir
 
+        if kwargs["symbols_path"] is None:
+            kwargs["symbols_path"] = os.path.join(self.distdir, "crashreporter-symbols")
+
         kwargs["gmp_path"] = os.pathsep.join(
             os.path.join(self.distdir, "bin", p, "1.0")
             for p in ("gmp-fake", "gmp-fakeopenh264")
