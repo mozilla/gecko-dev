@@ -212,3 +212,11 @@ perplexity-callout-theme-2-subtitle-2 = Ask questions. Get complete, well-cited 
 perplexity-callout-primary-label = Ask Perplexity
 perplexity-callout-secondary-label-1 = Dismiss
 perplexity-callout-secondary-label-2 = Got it
+
+## Account Adoption Passwords callout strings
+
+# Suggestion to backup passwords by signing up for Mozilla account and using sync
+fxa-adoption-passwords-title = Password saved. Let’s back it up.
+fxa-adoption-passwords-subtitle = Protect your passwords by syncing them to your devices with encryption.
+# Opens Mozilla accounts sign-up page
+fxa-adoption-passwords-primary-button-label = Sign up
