@@ -5,11 +5,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsOpenWindowInfo.h"
-#include "mozilla/OriginAttributes.h"
-#include "mozilla/dom/ToJSValue.h"
-#include "mozilla/dom/BrowserParent.h"
 
-NS_IMPL_ISUPPORTS(nsOpenWindowInfo, nsIOpenWindowInfo)
+#include "mozilla/dom/BrowserParent.h"
+#include "mozilla/dom/ToJSValue.h"
+#include "nsIClassInfoImpl.h"
+
+NS_IMPL_CLASSINFO(nsOpenWindowInfo, nullptr, 0, NS_OPENWINDOWINFO_CID)
+NS_IMPL_ISUPPORTS_CI(nsOpenWindowInfo, nsIOpenWindowInfo);
+
+nsOpenWindowInfo::nsOpenWindowInfo() = default;
+nsOpenWindowInfo::~nsOpenWindowInfo() = default;
 
 NS_IMETHODIMP nsOpenWindowInfo::GetParent(
     mozilla::dom::BrowsingContext** aParent) {
