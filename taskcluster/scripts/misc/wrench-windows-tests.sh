@@ -14,6 +14,9 @@ export PATH=$PATH:$(cd $MOZ_FETCHES_DIR && pwd)/rustc/bin
 
 .  taskcluster/scripts/misc/vs-setup.sh
 
+# Bindgen (via mozangle) needs to be able to find libclang to compile
+export LIBCLANG_PATH="$MOZ_FETCHES_DIR/clang/bin"
+
 # Move the wrench-deps vendored crates into place
 mv ${MOZ_FETCHES_DIR}/wrench-deps/{vendor,.cargo} gfx/wr
 cd gfx/wr
@@ -23,6 +26,7 @@ powershell.exe 'iex (Get-Content -Raw ci-scripts\set-screenresolution.ps1); Set-
 
 # Run the CI scripts
 export CARGOFLAGS='--verbose --frozen'
-cmd.exe /c 'ci-scripts\windows-tests.cmd'
+# MSYS interprets `/c` as `C:`, so we must escape it with a double slash
+cmd.exe //c 'ci-scripts\windows-tests.cmd'
 
 . $GECKO_PATH/taskcluster/scripts/misc/vs-cleanup.sh
