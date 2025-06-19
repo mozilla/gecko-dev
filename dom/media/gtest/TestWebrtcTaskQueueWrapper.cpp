@@ -4,26 +4,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "CallWorkerThread.h"
+#include "WebrtcTaskQueueWrapper.h"
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "mozilla/TaskQueue.h"
+#include "nsThreadUtils.h"
 
 using testing::InSequence;
 using testing::MockFunction;
 
 namespace mozilla {
 
-RefPtr<CallWorkerThread> MakeTestCallWorkerThread() {
-  return new CallWorkerThread(
-      MakeUnique<WebrtcTaskQueueWrapper<DeletionPolicy::NonBlocking>>(
-          do_AddRef(GetCurrentSerialEventTarget()), "TestCallWorkerThread"_ns,
-          true));
+RefPtr<TaskQueue> MakeTestWebrtcTaskQueueWrapper() {
+  return CreateWebrtcTaskQueueWrapper(do_AddRef(GetCurrentSerialEventTarget()),
+                                      "TestWebrtcTaskQueueWrapper"_ns, true);
 }
 
-TEST(TestCallWorkerThread, TestCurrent)
+TEST(TestWebrtcTaskQueueWrapper, TestCurrent)
 {
-  auto wt = MakeTestCallWorkerThread();
+  auto wt = MakeTestWebrtcTaskQueueWrapper();
 
   MockFunction<void(int)> checkpoint;
   {
@@ -32,17 +32,17 @@ TEST(TestCallWorkerThread, TestCurrent)
     EXPECT_CALL(checkpoint, Call(2));
   }
 
-  wt->Dispatch(NS_NewRunnableFunction(__func__, [&] {
+  EXPECT_TRUE(NS_SUCCEEDED(wt->Dispatch(NS_NewRunnableFunction(__func__, [&] {
     checkpoint.Call(2);
     EXPECT_TRUE(wt->IsCurrentThreadIn());
-  }));
+  }))));
   checkpoint.Call(1);
   NS_ProcessPendingEvents(nullptr);
 }
 
-TEST(TestCallWorkerThread, TestDispatchDirectTask)
+TEST(TestWebrtcTaskQueueWrapper, TestDispatchDirectTask)
 {
-  auto wt = MakeTestCallWorkerThread();
+  auto wt = MakeTestWebrtcTaskQueueWrapper();
 
   MockFunction<void(int)> checkpoint;
   {
@@ -53,19 +53,19 @@ TEST(TestCallWorkerThread, TestDispatchDirectTask)
     EXPECT_CALL(checkpoint, Call(4));
   }
 
-  wt->Dispatch(NS_NewRunnableFunction(__func__, [&] {
+  EXPECT_TRUE(NS_SUCCEEDED(wt->Dispatch(NS_NewRunnableFunction(__func__, [&] {
     checkpoint.Call(2);
     AbstractThread::DispatchDirectTask(
         NS_NewRunnableFunction("TestDispatchDirectTask Inner", [&] {
           checkpoint.Call(3);
           EXPECT_TRUE(wt->IsCurrentThreadIn());
         }));
-  }));
+  }))));
 
-  wt->Dispatch(NS_NewRunnableFunction(__func__, [&] {
+  EXPECT_TRUE(NS_SUCCEEDED(wt->Dispatch(NS_NewRunnableFunction(__func__, [&] {
     checkpoint.Call(4);
     EXPECT_TRUE(wt->IsCurrentThreadIn());
-  }));
+  }))));
   checkpoint.Call(1);
   NS_ProcessPendingEvents(nullptr);
 }
