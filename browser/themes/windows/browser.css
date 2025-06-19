@@ -33,6 +33,13 @@
       /* For acrylic, do the same we do for popups to guarantee some contrast */
       background-color: light-dark(rgba(255, 255, 255, 0.6), rgba(0, 0, 0, 0.6));
     }
+
+    /* Using a semitransparent background preserves the tinting from the backdrop.
+     * Note that the toolbar text color from browser-colors.css should be ok,
+     * as the backdrop matches our color scheme. The .6 matches what we do for
+     * acrylic, and the .15 matches the 85% we do for the default toolbar
+     * background on the native theme. */
+    --toolbar-bgcolor: light-dark(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.15));
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */
