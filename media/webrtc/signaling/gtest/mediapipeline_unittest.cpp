@@ -46,10 +46,8 @@ class MainAsCurrent
     : public WebrtcTaskQueueWrapper<DeletionPolicy::NonBlocking> {
  public:
   MainAsCurrent()
-      : WebrtcTaskQueueWrapper(
-            TaskQueue::Create(do_AddRef(GetMainThreadSerialEventTarget()),
-                              "MainAsCurrentTaskQueue"),
-            "MainAsCurrent"_ns),
+      : WebrtcTaskQueueWrapper(do_AddRef(GetMainThreadSerialEventTarget()),
+                               "MainAsCurrent"_ns, false),
         mSetter(this) {
     MOZ_RELEASE_ASSERT(NS_IsMainThread());
   }

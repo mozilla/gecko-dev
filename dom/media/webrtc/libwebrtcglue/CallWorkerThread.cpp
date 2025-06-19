@@ -17,9 +17,7 @@ NS_IMPL_ISUPPORTS(CallWorkerThread, nsIDirectTaskDispatcher,
 
 nsresult CallWorkerThread::Dispatch(already_AddRefed<nsIRunnable> aRunnable,
                                     DispatchReason aReason) {
-  RefPtr<nsIRunnable> runnable = aRunnable;
-  return mWebrtcTaskQueue->mTaskQueue->Dispatch(
-      mWebrtcTaskQueue->CreateTaskRunner(std::move(runnable)), aReason);
+  return mWebrtcTaskQueue->mTaskQueue->Dispatch(std::move(aRunnable), aReason);
 }
 
 bool CallWorkerThread::IsCurrentThreadIn() const {
@@ -38,9 +36,8 @@ nsIEventTarget* CallWorkerThread::AsEventTarget() {
 NS_IMETHODIMP
 CallWorkerThread::DelayedDispatch(already_AddRefed<nsIRunnable> aEvent,
                                   uint32_t aDelayMs) {
-  RefPtr<nsIRunnable> event = aEvent;
-  return mWebrtcTaskQueue->mTaskQueue->DelayedDispatch(
-      mWebrtcTaskQueue->CreateTaskRunner(std::move(event)), aDelayMs);
+  return mWebrtcTaskQueue->mTaskQueue->DelayedDispatch(std::move(aEvent),
+                                                       aDelayMs);
 }
 
 NS_IMETHODIMP CallWorkerThread::RegisterShutdownTask(
@@ -59,9 +56,7 @@ NS_IMETHODIMP CallWorkerThread::UnregisterShutdownTask(
 
 NS_IMETHODIMP
 CallWorkerThread::DispatchDirectTask(already_AddRefed<nsIRunnable> aEvent) {
-  nsCOMPtr<nsIRunnable> event = aEvent;
-  return mWebrtcTaskQueue->mTaskQueue->DispatchDirectTask(
-      mWebrtcTaskQueue->CreateTaskRunner(std::move(event)));
+  return mWebrtcTaskQueue->mTaskQueue->DispatchDirectTask(std::move(aEvent));
 }
 
 NS_IMETHODIMP CallWorkerThread::DrainDirectTasks() {
