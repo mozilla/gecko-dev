@@ -1,9 +1,5 @@
-import os
-import sys
 import platform
-
-from typing import Union
-
+import sys
 
 __all__ = ['install', 'NullFinder']
 
@@ -41,7 +37,7 @@ def disable_stdlib_finder():
 
 class NullFinder:
     """
-    A "Finder" (aka "MetaClassFinder") that never finds any modules,
+    A "Finder" (aka "MetaPathFinder") that never finds any modules,
     but may find distributions.
     """
 
@@ -58,10 +54,3 @@ def pypy_partial(val):
     """
     is_pypy = platform.python_implementation() == 'PyPy'
     return val + is_pypy
-
-
-if sys.version_info >= (3, 9):
-    StrPath = Union[str, os.PathLike[str]]
-else:
-    # PathLike is only subscriptable at runtime in 3.9+
-    StrPath = Union[str, "os.PathLike[str]"]  # pragma: no cover
