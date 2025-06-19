@@ -2649,6 +2649,7 @@ dependencies = [
  "uniffi-bindgen-gecko-js-test-fixtures",
  "url",
  "urlpattern",
+ "urlpattern_glue",
  "viaduct",
  "webext-storage",
  "webrender_bindings",
@@ -7216,6 +7217,19 @@ dependencies = [
  "serde",
  "unic-ucd-ident",
  "url",
+]
+
+[[package]]
+name = "urlpattern_glue"
+version = "0.0.1"
+dependencies = [
+ "log",
+ "mozurl",
+ "nsstring",
+ "regex",
+ "thin-vec",
+ "url",
+ "urlpattern",
 ]
 
 [[package]]

@@ -7,6 +7,7 @@
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
 #include "nsURLHelper.h"
+#include "urlpattern_glue/URLPatternGlue.h"
 
 #include "mozilla/ipc/URIParams.h"
 
