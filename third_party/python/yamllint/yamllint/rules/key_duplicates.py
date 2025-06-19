@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,6 +15,19 @@
 
 """
 Use this rule to prevent multiple entries with the same key in mappings.
+
+.. rubric:: Options
+
+* Use ``forbid-duplicated-merge-keys`` to forbid the usage of
+  multiple merge keys ``<<``.
+
+.. rubric:: Default values (when enabled)
+
+.. code-block:: yaml
+
+ rules:
+   key-duplicates:
+     forbid-duplicated-merge-keys: false
 
 .. rubric:: Examples
 
@@ -52,20 +64,44 @@ Use this rule to prevent multiple entries with the same key in mappings.
         other
         duplication
     : 2
+
+#. With ``key-duplicates: {forbid-duplicated-merge-keys: true}``
+
+   the following code snippet would **PASS**:
+   ::
+
+    anchor_one: &anchor_one
+      one: one
+    anchor_two: &anchor_two
+      two: two
+    anchor_reference:
+      <<: [*anchor_one, *anchor_two]
+
+   the following code snippet would **FAIL**:
+   ::
+
+    anchor_one: &anchor_one
+      one: one
+    anchor_two: &anchor_two
+      two: two
+    anchor_reference:
+      <<: *anchor_one
+      <<: *anchor_two
 """
 
 import yaml
 
 from yamllint.linter import LintProblem
 
-
 ID = 'key-duplicates'
 TYPE = 'token'
+CONF = {'forbid-duplicated-merge-keys': bool}
+DEFAULT = {'forbid-duplicated-merge-keys': False}
 
 MAP, SEQ = range(2)
 
 
-class Parent(object):
+class Parent:
     def __init__(self, type):
         self.type = type
         self.keys = []
@@ -84,7 +120,8 @@ def check(conf, token, prev, next, nextnext, context):
     elif isinstance(token, (yaml.BlockEndToken,
                             yaml.FlowMappingEndToken,
                             yaml.FlowSequenceEndToken)):
-        context['stack'].pop()
+        if len(context['stack']) > 0:
+            context['stack'].pop()
     elif (isinstance(token, yaml.KeyToken) and
           isinstance(next, yaml.ScalarToken)):
         # This check is done because KeyTokens can be found inside flow
@@ -92,9 +129,10 @@ def check(conf, token, prev, next, nextnext, context):
         if len(context['stack']) > 0 and context['stack'][-1].type == MAP:
             if (next.value in context['stack'][-1].keys and
                     # `<<` is "merge key", see http://yaml.org/type/merge.html
-                    next.value != '<<'):
+                    (next.value != '<<' or
+                        conf['forbid-duplicated-merge-keys'])):
                 yield LintProblem(
                     next.start_mark.line + 1, next.start_mark.column + 1,
-                    'duplication of key "%s" in mapping' % next.value)
+                    f'duplication of key "{next.value}" in mapping')
             else:
                 context['stack'][-1].keys.append(next.value)

@@ -4,26 +4,24 @@
 
 import re
 
-from .base import (
-    Entity, OffsetComment, Whitespace,
-    Parser
-)
+from .base import Entity, OffsetComment, Whitespace, Parser
 
 
 class PropertiesEntityMixin:
-    escape = re.compile(r'\\((?P<uni>u[0-9a-fA-F]{1,4})|'
-                        '(?P<nl>\n[ \t]*)|(?P<single>.))', re.M)
-    known_escapes = {'n': '\n', 'r': '\r', 't': '\t', '\\': '\\'}
+    escape = re.compile(
+        r"\\((?P<uni>u[0-9a-fA-F]{1,4})|" "(?P<nl>\n[ \t]*)|(?P<single>.))", re.M
+    )
+    known_escapes = {"n": "\n", "r": "\r", "t": "\t", "\\": "\\"}
 
     @property
     def val(self):
         def unescape(m):
             found = m.groupdict()
-            if found['uni']:
-                return chr(int(found['uni'][1:], 16))
-            if found['nl']:
-                return ''
-            return self.known_escapes.get(found['single'], found['single'])
+            if found["uni"]:
+                return chr(int(found["uni"][1:], 16))
+            if found["nl"]:
+                return ""
+            return self.known_escapes.get(found["single"], found["single"])
 
         return self.escape.sub(unescape, self.raw_val)
 
@@ -33,15 +31,13 @@ class PropertiesEntity(PropertiesEntityMixin, Entity):
 
 
 class PropertiesParser(Parser):
-
     Comment = OffsetComment
 
     def __init__(self):
-        self.reKey = re.compile(
-            '(?P<key>[^#! \t\r\n][^=:\n]*?)[ \t]*[:=][ \t]*', re.M)
-        self.reComment = re.compile('(?:[#!][^\n]*\n)*(?:[#!][^\n]*)', re.M)
-        self._escapedEnd = re.compile(r'\\+$')
-        self._trailingWS = re.compile(r'[ \t\r\n]*(?:\n|\Z)', re.M)
+        self.reKey = re.compile("(?P<key>[^#! \t\r\n][^=:\n]*?)[ \t]*[:=][ \t]*", re.M)
+        self.reComment = re.compile("(?:[#!][^\n]*\n)*(?:[#!][^\n]*)", re.M)
+        self._escapedEnd = re.compile(r"\\+$")
+        self._trailingWS = re.compile(r"[ \t\r\n]*(?:\n|\Z)", re.M)
         Parser.__init__(self)
 
     def getNext(self, ctx, offset):
@@ -52,7 +48,7 @@ class PropertiesParser(Parser):
         m = self.reComment.match(contents, offset)
         if m:
             current_comment = self.Comment(ctx, m.span())
-            if offset == 0 and 'License' in current_comment.val:
+            if offset == 0 and "License" in current_comment.val:
                 # Heuristic. A early comment with "License" is probably
                 # a license header, and should be standalone.
                 return current_comment
@@ -64,10 +60,7 @@ class PropertiesParser(Parser):
         if m:
             white_space = Whitespace(ctx, m.span())
             offset = m.end()
-            if (
-                current_comment is not None
-                and white_space.raw_val.count('\n') > 1
-            ):
+            if current_comment is not None and white_space.raw_val.count("\n") > 1:
                 # standalone comment
                 return current_comment
             if current_comment is None:
@@ -79,7 +72,7 @@ class PropertiesParser(Parser):
         if m:
             startline = offset = m.end()
             while True:
-                endval = nextline = contents.find('\n', offset)
+                endval = nextline = contents.find("\n", offset)
                 if nextline == -1:
                     endval = offset = len(contents)
                     break
@@ -99,10 +92,13 @@ class PropertiesParser(Parser):
                 endval = ws.start()
 
             entity = PropertiesEntity(
-                ctx, current_comment, white_space,
-                (m.start(), endval),   # full span
-                m.span('key'),
-                (m.end(), endval))   # value span
+                ctx,
+                current_comment,
+                white_space,
+                (m.start(), endval),  # full span
+                m.span("key"),
+                (m.end(), endval),
+            )  # value span
             return entity
 
         if current_comment is not None:

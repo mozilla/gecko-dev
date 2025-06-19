@@ -8,4 +8,4 @@
 
 
 def parseLocales(content):
-    return sorted(l.split()[0] for l in content.splitlines() if l)
+    return sorted(line.split()[0] for line in content.splitlines() if line)

@@ -17,23 +17,22 @@ from xml.dom.minidom import Node
 
 from .base import (
     CAN_SKIP,
-    Entity, Comment, Junk, Whitespace,
-    StickyEntry, LiteralEntity,
-    Parser
+    Entity,
+    Comment,
+    Junk,
+    Whitespace,
+    StickyEntry,
+    LiteralEntity,
+    Parser,
 )
 
 
 class AndroidEntity(Entity):
-    def __init__(
-        self, ctx, pre_comment, white_space, node, all, key, raw_val, val
-    ):
+    def __init__(self, ctx, pre_comment, white_space, node, all, key, raw_val, val):
         # fill out superclass as good as we can right now
         # most span can get modified at endElement
         super().__init__(
-            ctx, pre_comment, white_space,
-            (None, None),
-            (None, None),
-            (None, None)
+            ctx, pre_comment, white_space, (None, None), (None, None), (None, None)
         )
         self.node = node
         self._all_literal = all
@@ -49,7 +48,7 @@ class AndroidEntity(Entity):
         if self.inner_white is not None:
             chunks.append(self.inner_white.all)
         chunks.append(self._all_literal)
-        return ''.join(chunks)
+        return "".join(chunks)
 
     @property
     def key(self):
@@ -80,7 +79,7 @@ class AndroidEntity(Entity):
         if self.inner_white is not None:
             all.append(self.inner_white.all)
         all.append(clone.toxml())
-        return LiteralEntity(self.key, raw_val, ''.join(all))
+        return LiteralEntity(self.key, raw_val, "".join(all))
 
 
 class NodeMixin:
@@ -152,24 +151,24 @@ class XMLJunk(Junk):
 
 def textContent(node):
     if node.childNodes.length == 0:
-        return ''
+        return ""
     for child in node.childNodes:
         if child.nodeType == minidom.Node.CDATA_SECTION_NODE:
             return child.data
     if (
-            node.childNodes.length != 1 or
-            node.childNodes[0].nodeType != minidom.Node.TEXT_NODE
+        node.childNodes.length != 1
+        or node.childNodes[0].nodeType != minidom.Node.TEXT_NODE
     ):
         # Return something, we'll fail in checks on this
         return node.toxml()
     return node.childNodes[0].data
 
 
-NEWLINE = re.compile(r'[ \t]*\n[ \t]*')
+NEWLINE = re.compile(r"[ \t]*\n[ \t]*")
 
 
 def normalize(val):
-    return NEWLINE.sub('\n', val.strip(' \t'))
+    return NEWLINE.sub("\n", val.strip(" \t"))
 
 
 class AndroidParser(Parser):
@@ -187,26 +186,23 @@ class AndroidParser(Parser):
         ctx = self.ctx
         contents = ctx.contents
         try:
-            doc = minidom.parseString(contents.encode('utf-8'))
+            doc = minidom.parseString(contents.encode("utf-8"))
         except Exception:
             yield XMLJunk(contents)
             return
         docElement = doc.documentElement
-        if docElement.nodeName != 'resources':
+        if docElement.nodeName != "resources":
             yield XMLJunk(doc.toxml())
             return
         root_children = docElement.childNodes
         if not only_localizable:
             yield DocumentWrapper(
-                '<?xml?><resources>',
-                '<?xml version="1.0" encoding="utf-8"?>\n<resources'
+                "<?xml?><resources>",
+                '<?xml version="1.0" encoding="utf-8"?>\n<resources',
             )
             for attr_name, attr_value in docElement.attributes.items():
-                yield DocumentWrapper(
-                    attr_name,
-                    f' {attr_name}="{attr_value}"'
-                )
-            yield DocumentWrapper('>', '>')
+                yield DocumentWrapper(attr_name, f' {attr_name}="{attr_value}"')
+            yield DocumentWrapper(">", ">")
         child_num = 0
         while child_num < len(root_children):
             node = root_children[child_num]
@@ -229,7 +225,7 @@ class AndroidParser(Parser):
                     if not only_localizable:
                         yield white_space
                     continue
-                if node.nodeValue.count('\n') > 1:
+                if node.nodeValue.count("\n") > 1:
                     if not only_localizable:
                         if current_comment is not None:
                             yield current_comment
@@ -255,19 +251,19 @@ class AndroidParser(Parser):
                         yield white_space
             child_num += 1
         if not only_localizable:
-            yield DocumentWrapper('</resources>', '</resources>\n')
+            yield DocumentWrapper("</resources>", "</resources>\n")
 
     def handleElement(self, element, current_comment, white_space):
-        if element.nodeName == 'string' and element.hasAttribute('name'):
+        if element.nodeName == "string" and element.hasAttribute("name"):
             return AndroidEntity(
                 self.ctx,
                 current_comment,
                 white_space,
                 element,
                 element.toxml(),
-                element.getAttribute('name'),
+                element.getAttribute("name"),
                 textContent(element),
-                ''.join(c.toxml() for c in element.childNodes)
+                "".join(c.toxml() for c in element.childNodes),
             )
         else:
             return XMLJunk(element.toxml())
@@ -281,7 +277,7 @@ class AndroidParser(Parser):
                 break
             node = root_children[child_num]
             if node.nodeType == Node.TEXT_NODE:
-                if node.nodeValue.count('\n') > 1:
+                if node.nodeValue.count("\n") > 1:
                     break
                 white = node
                 child_num += 1

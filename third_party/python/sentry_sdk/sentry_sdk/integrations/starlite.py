@@ -69,7 +69,6 @@ def patch_app_init() -> None:
     old__init__ = Starlite.__init__
 
     def injection_wrapper(self: "Starlite", *args: "Any", **kwargs: "Any") -> None:
-
         after_exception = kwargs.pop("after_exception", [])
         kwargs.update(
             after_exception=[
@@ -82,7 +81,7 @@ def patch_app_init() -> None:
             ]
         )
 
-        SentryStarliteASGIMiddleware.__call__ = SentryStarliteASGIMiddleware._run_asgi3
+        SentryStarliteASGIMiddleware.__call__ = SentryStarliteASGIMiddleware._run_asgi3  # type: ignore
         middleware = kwargs.pop("middleware", None) or []
         kwargs["middleware"] = [SentryStarliteASGIMiddleware, *middleware]
         old__init__(self, *args, **kwargs)
@@ -220,7 +219,11 @@ def patch_http_route_handle() -> None:
                     tx_info = {"source": TRANSACTION_SOURCE_ROUTE}
 
                 event.update(
-                    request=request_info, transaction=tx_name, transaction_info=tx_info
+                    {
+                        "request": request_info,
+                        "transaction": tx_name,
+                        "transaction_info": tx_info,
+                    }
                 )
                 return event
 

@@ -11,40 +11,69 @@ import functools
 from inspect import isfunction, isbuiltin
 
 operators = {}
-IDENTIFIER_RE = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*$')
+IDENTIFIER_RE = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
 
 
 class SyntaxError(TemplateError):
-
     @classmethod
     def unexpected(cls, got):
-        return cls('Found: {} token, expected one of: !=, &&, (, *, **, +, -, ., /, <, <=, ==, >, >=, [, in,'
-                   ' ||'.format(got.value))
+        return cls(
+            "Found: {} token, expected one of: !=, &&, (, *, **, +, -, ., /, <, <=, ==, >, >=, [, in,"
+            " ||".format(got.value)
+        )
 
 
 def operator(name):
     def wrap(fn):
         operators[name] = fn
         return fn
+
     return wrap
 
 
 tokenizer = Tokenizer(
-    '\\s+',
+    "\\s+",
     {
-        'number': '[0-9]+(?:\\.[0-9]+)?',
-        'identifier': '[a-zA-Z_][a-zA-Z_0-9]*',
-        'string': '\'[^\']*\'|"[^"]*"',
+        "number": "[0-9]+(?:\\.[0-9]+)?",
+        "identifier": "[a-zA-Z_][a-zA-Z_0-9]*",
+        "string": "'[^']*'|\"[^\"]*\"",
         # avoid matching these as prefixes of identifiers e.g., `insinutations`
-        'true': 'true(?![a-zA-Z_0-9])',
-        'false': 'false(?![a-zA-Z_0-9])',
-        'in': 'in(?![a-zA-Z_0-9])',
-        'null': 'null(?![a-zA-Z_0-9])',
+        "true": "true(?![a-zA-Z_0-9])",
+        "false": "false(?![a-zA-Z_0-9])",
+        "in": "in(?![a-zA-Z_0-9])",
+        "null": "null(?![a-zA-Z_0-9])",
     },
     [
-        '**', '+', '-', '*', '/', '[', ']', '.', '(', ')', '{', '}', ':', ',',
-        '>=', '<=', '<', '>', '==', '!=', '!', '&&', '||', 'true', 'false', 'in',
-        'null', 'number', 'identifier', 'string',
+        "**",
+        "+",
+        "-",
+        "*",
+        "/",
+        "[",
+        "]",
+        ".",
+        "(",
+        ")",
+        "{",
+        "}",
+        ":",
+        ",",
+        ">=",
+        "<=",
+        "<",
+        ">",
+        "==",
+        "!=",
+        "!",
+        "&&",
+        "||",
+        "true",
+        "false",
+        "in",
+        "null",
+        "number",
+        "identifier",
+        "string",
     ],
 )
 
@@ -63,6 +92,8 @@ def parse(source, context):
 def parse_until_terminator(source, context, terminator):
     parser = Parser(source, tokenizer)
     tree = parser.parse()
+    if not parser.current_token:
+        raise SyntaxError("unterminated ${..} expression")
     if parser.current_token.kind != terminator:
         raise SyntaxError.unexpected(parser.current_token)
     interp = Interpreter(context)
@@ -70,7 +101,7 @@ def parse_until_terminator(source, context, terminator):
     return result, parser.current_token.start
 
 
-_interpolation_start_re = re.compile(r'\$?\${')
+_interpolation_start_re = re.compile(r"\$?\${")
 
 
 def interpolate(string, context):
@@ -81,53 +112,58 @@ def interpolate(string, context):
     result = []
 
     while True:
-        result.append(string[:mo.start()])
-        if mo.group() != '$${':
-            string = string[mo.end():]
-            parsed, offset = parse_until_terminator(string, context, '}')
+        result.append(string[: mo.start()])
+        if mo.group() != "$${":
+            string = string[mo.end() :]
+            parsed, offset = parse_until_terminator(string, context, "}")
             if isinstance(parsed, (list, dict)):
                 raise TemplateError(
-                    "interpolation of '{}' produced an array or object".format(string[:offset]))
+                    "interpolation of '{}' produced an array or object".format(
+                        string[:offset]
+                    )
+                )
             if parsed is None:
                 result.append("")
             else:
                 result.append(to_str(parsed))
-            string = string[offset + 1:]
+            string = string[offset + 1 :]
         else:  # found `$${`
-            result.append('${')
-            string = string[mo.end():]
+            result.append("${")
+            string = string[mo.end() :]
 
         mo = _interpolation_start_re.search(string)
         if not mo:
             result.append(string)
             break
-    return ''.join(result)
+    return "".join(result)
 
 
 def checkUndefinedProperties(template, allowed):
     unknownKeys = []
     combined = "|".join(allowed) + "$"
-    unknownKeys = [key for key in sorted(template)
-                   if not re.match(combined, key)]
+    unknownKeys = [key for key in sorted(template) if not re.match(combined, key)]
     if unknownKeys:
-        raise TemplateError(allowed[0].replace('\\', '') +
-                            " has undefined properties: " + " ".join(unknownKeys))
+        raise TemplateError(
+            allowed[0].replace("\\", "")
+            + " has undefined properties: "
+            + " ".join(unknownKeys)
+        )
 
 
-@operator('$eval')
+@operator("$eval")
 def eval(template, context):
-    checkUndefinedProperties(template, [r'\$eval'])
-    if not isinstance(template['$eval'], string):
+    checkUndefinedProperties(template, [r"\$eval"])
+    if not isinstance(template["$eval"], string):
         raise TemplateError("$eval must be given a string expression")
-    return parse(template['$eval'], context)
+    return parse(template["$eval"], context)
 
 
-@operator('$flatten')
+@operator("$flatten")
 def flatten(template, context):
-    checkUndefinedProperties(template, [r'\$flatten'])
-    value = renderValue(template['$flatten'], context)
+    checkUndefinedProperties(template, [r"\$flatten"])
+    value = renderValue(template["$flatten"], context)
     if not isinstance(value, list):
-        raise TemplateError('$flatten value must evaluate to an array')
+        raise TemplateError("$flatten value must evaluate to an array")
 
     def gen():
         for e in value:
@@ -136,15 +172,16 @@ def flatten(template, context):
                     yield e2
             else:
                 yield e
+
     return list(gen())
 
 
-@operator('$flattenDeep')
+@operator("$flattenDeep")
 def flattenDeep(template, context):
-    checkUndefinedProperties(template, [r'\$flattenDeep'])
-    value = renderValue(template['$flattenDeep'], context)
+    checkUndefinedProperties(template, [r"\$flattenDeep"])
+    value = renderValue(template["$flattenDeep"], context)
     if not isinstance(value, list):
-        raise TemplateError('$flattenDeep value must evaluate to an array')
+        raise TemplateError("$flattenDeep value must evaluate to an array")
 
     def gen(value):
         if isinstance(value, list):
@@ -157,79 +194,83 @@ def flattenDeep(template, context):
     return list(gen(value))
 
 
-@operator('$fromNow')
+@operator("$fromNow")
 def fromNow(template, context):
-    checkUndefinedProperties(template, [r'\$fromNow', 'from'])
-    offset = renderValue(template['$fromNow'], context)
-    reference = renderValue(
-        template['from'], context) if 'from' in template else context.get('now')
+    checkUndefinedProperties(template, [r"\$fromNow", "from"])
+    offset = renderValue(template["$fromNow"], context)
+    reference = (
+        renderValue(template["from"], context)
+        if "from" in template
+        else context.get("now")
+    )
 
     if not isinstance(offset, string):
         raise TemplateError("$fromNow expects a string")
     return shared.fromNow(offset, reference)
 
 
-@operator('$if')
+@operator("$if")
 def ifConstruct(template, context):
-    checkUndefinedProperties(template, [r'\$if', 'then', 'else'])
-    condition = parse(template['$if'], context)
+    checkUndefinedProperties(template, [r"\$if", "then", "else"])
+    condition = parse(template["$if"], context)
     try:
         if condition:
-            rv = template['then']
+            rv = template["then"]
         else:
-            rv = template['else']
+            rv = template["else"]
     except KeyError:
         return DeleteMarker
     return renderValue(rv, context)
 
 
-@operator('$json')
+@operator("$json")
 def jsonConstruct(template, context):
-    checkUndefinedProperties(template, [r'\$json'])
-    value = renderValue(template['$json'], context)
+    checkUndefinedProperties(template, [r"\$json"])
+    value = renderValue(template["$json"], context)
     if containsFunctions(value):
-        raise TemplateError('evaluated template contained uncalled functions')
-    return json.dumps(value, separators=(',', ':'), sort_keys=True, ensure_ascii=False)
+        raise TemplateError("evaluated template contained uncalled functions")
+    return json.dumps(value, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
 
 
-@operator('$let')
+@operator("$let")
 def let(template, context):
-    checkUndefinedProperties(template, [r'\$let', 'in'])
-    if not isinstance(template['$let'], dict):
+    checkUndefinedProperties(template, [r"\$let", "in"])
+    if not isinstance(template["$let"], dict):
         raise TemplateError("$let value must be an object")
 
     subcontext = context.copy()
-    initial_result = renderValue(template['$let'], context)
+    initial_result = renderValue(template["$let"], context)
     if not isinstance(initial_result, dict):
         raise TemplateError("$let value must be an object")
     for k, v in initial_result.items():
         if not IDENTIFIER_RE.match(k):
-            raise TemplateError("top level keys of $let must follow /[a-zA-Z_][a-zA-Z0-9_]*/")
+            raise TemplateError(
+                "top level keys of $let must follow /[a-zA-Z_][a-zA-Z0-9_]*/"
+            )
         else:
             subcontext[k] = v
     try:
-        in_expression = template['in']
+        in_expression = template["in"]
     except KeyError:
         raise TemplateError("$let operator requires an `in` clause")
     return renderValue(in_expression, subcontext)
 
 
-@operator('$map')
+@operator("$map")
 def map(template, context):
-    EACH_RE = r'each\([a-zA-Z_][a-zA-Z0-9_]*(,\s*([a-zA-Z_][a-zA-Z0-9_]*))?\)'
-    checkUndefinedProperties(template, [r'\$map', EACH_RE])
-    value = renderValue(template['$map'], context)
+    EACH_RE = r"each\([a-zA-Z_][a-zA-Z0-9_]*(,\s*([a-zA-Z_][a-zA-Z0-9_]*))?\)"
+    checkUndefinedProperties(template, [r"\$map", EACH_RE])
+    value = renderValue(template["$map"], context)
     if not isinstance(value, list) and not isinstance(value, dict):
         raise TemplateError("$map value must evaluate to an array or object")
 
     is_obj = isinstance(value, dict)
 
-    each_keys = [k for k in template if k.startswith('each(')]
+    each_keys = [k for k in template if k.startswith("each(")]
     if len(each_keys) != 1:
-        raise TemplateError(
-            "$map requires exactly one other property, each(..)")
+        raise TemplateError("$map requires exactly one other property, each(..)")
     each_key = each_keys[0]
-    each_args = [x.strip() for x in each_key[5:-1].split(',')]
+    each_args = [x.strip() for x in each_key[5:-1].split(",")]
     each_var = each_args[0]
     each_idx = each_args[1] if len(each_args) > 1 else None
 
@@ -241,81 +282,157 @@ def map(template, context):
             if each_idx is None:
                 subcontext[each_var] = elt
             else:
-                subcontext[each_var] = elt['val'] if is_obj else elt
-                subcontext[each_idx] = elt['key'] if is_obj else i
+                subcontext[each_var] = elt["val"] if is_obj else elt
+                subcontext[each_idx] = elt["key"] if is_obj else i
             elt = renderValue(each_template, subcontext)
             if elt is not DeleteMarker:
                 yield elt
+
     if is_obj:
-        value = [{'key': v[0], 'val': v[1]} for v in value.items()]
+        value = [{"key": v[0], "val": v[1]} for v in value.items()]
         v = dict()
         for e in gen(value):
             if not isinstance(e, dict):
                 raise TemplateError(
-                    "$map on objects expects {0} to evaluate to an object".format(each_key))
+                    "$map on objects expects {0} to evaluate to an object".format(
+                        each_key
+                    )
+                )
             v.update(e)
         return v
     else:
         return list(gen(value))
 
 
-@operator('$match')
-def matchConstruct(template, context):
-    checkUndefinedProperties(template, [r'\$match'])
+@operator("$reduce")
+def reduce(template, context):
+    EACH_RE = r"each\([a-zA-Z_][a-zA-Z0-9_]*,\s*[a-zA-Z_][a-zA-Z0-9_]*(,\s*([a-zA-Z_][a-zA-Z0-9_]*))?\)"
+    checkUndefinedProperties(template, [r"\$reduce", "initial", EACH_RE])
+    value = renderValue(template["$reduce"], context)
+    if not isinstance(value, list):
+        raise TemplateError("$reduce value must evaluate to an array")
 
-    if not isinstance(template['$match'], dict):
+    if len(template) != 3:
+        raise TemplateError("$reduce must have exactly three properties")
+
+    each_keys = [k for k in template if k.startswith("each(")]
+    if len(each_keys) != 1:
+        raise TemplateError("$reduce requires each(..)")
+    each_key = each_keys[0]
+    each_args = [x.strip() for x in each_key[5:-1].split(",")]
+    each_acc = each_args[0]
+    each_var = each_args[1]
+    each_idx = each_args[2] if len(each_args) > 2 else None
+
+    each_template = template[each_key]
+    resultValue = template["initial"]
+
+    subcontext = context.copy()
+    for i, elt in enumerate(value):
+        if each_idx is None:
+            subcontext[each_acc] = resultValue
+            subcontext[each_var] = elt
+        else:
+            subcontext[each_acc] = resultValue
+            subcontext[each_var] = elt
+            subcontext[each_idx] = i
+        r = renderValue(each_template, subcontext)
+        if r is not DeleteMarker:
+            resultValue = r
+
+    return resultValue
+
+
+@operator("$find")
+def find(template, context):
+    EACH_RE = r"each\([a-zA-Z_][a-zA-Z0-9_]*(,\s*([a-zA-Z_][a-zA-Z0-9_]*))?\)"
+    checkUndefinedProperties(template, [r"\$find", EACH_RE])
+    value = renderValue(template["$find"], context)
+    if not isinstance(value, list):
+        raise TemplateError("$find value must evaluate to an array")
+
+    each_keys = [k for k in template if k.startswith("each(")]
+    if len(each_keys) != 1:
+        raise TemplateError("$find requires exactly one other property, each(..)")
+    each_key = each_keys[0]
+    each_args = [x.strip() for x in each_key[5:-1].split(",")]
+    each_var = each_args[0]
+    each_idx = each_args[1] if len(each_args) > 1 else None
+
+    each_template = template[each_key]
+
+    if not isinstance(each_template, string):
+        raise TemplateError("each can evaluate string expressions only")
+
+    subcontext = context.copy()
+    for i, elt in enumerate(value):
+        if each_idx is None:
+            subcontext[each_var] = elt
+        else:
+            subcontext[each_var] = elt
+            subcontext[each_idx] = i
+
+        if parse(each_template, subcontext):
+            return renderValue(elt, subcontext)
+
+    return DeleteMarker
+
+
+@operator("$match")
+def matchConstruct(template, context):
+    checkUndefinedProperties(template, [r"\$match"])
+
+    if not isinstance(template["$match"], dict):
         raise TemplateError("$match can evaluate objects only")
 
     result = []
-    for condition in sorted(template['$match']):
+    for condition in sorted(template["$match"]):
         if parse(condition, context):
-            result.append(renderValue(template['$match'][condition], context))
+            result.append(renderValue(template["$match"][condition], context))
 
     return result
 
 
-@operator('$switch')
+@operator("$switch")
 def switch(template, context):
-    checkUndefinedProperties(template, [r'\$switch'])
+    checkUndefinedProperties(template, [r"\$switch"])
 
-    if not isinstance(template['$switch'], dict):
+    if not isinstance(template["$switch"], dict):
         raise TemplateError("$switch can evaluate objects only")
 
     result = []
-    for condition in template['$switch']:
-        if not condition == '$default' and parse(condition, context):
-            result.append(renderValue(template['$switch'][condition], context))
+    for condition in template["$switch"]:
+        if not condition == "$default" and parse(condition, context):
+            result.append(renderValue(template["$switch"][condition], context))
 
     if len(result) > 1:
         raise TemplateError("$switch can only have one truthy condition")
 
     if len(result) == 0:
-        if '$default' in template['$switch']:
-            result.append(renderValue(template['$switch']['$default'], context))
+        if "$default" in template["$switch"]:
+            result.append(renderValue(template["$switch"]["$default"], context))
 
     return result[0] if len(result) > 0 else DeleteMarker
 
 
-@operator('$merge')
+@operator("$merge")
 def merge(template, context):
-    checkUndefinedProperties(template, [r'\$merge'])
-    value = renderValue(template['$merge'], context)
+    checkUndefinedProperties(template, [r"\$merge"])
+    value = renderValue(template["$merge"], context)
     if not isinstance(value, list) or not all(isinstance(e, dict) for e in value):
-        raise TemplateError(
-            "$merge value must evaluate to an array of objects")
+        raise TemplateError("$merge value must evaluate to an array of objects")
     v = dict()
     for e in value:
         v.update(e)
     return v
 
 
-@operator('$mergeDeep')
+@operator("$mergeDeep")
 def merge(template, context):
-    checkUndefinedProperties(template, [r'\$mergeDeep'])
-    value = renderValue(template['$mergeDeep'], context)
+    checkUndefinedProperties(template, [r"\$mergeDeep"])
+    value = renderValue(template["$mergeDeep"], context)
     if not isinstance(value, list) or not all(isinstance(e, dict) for e in value):
-        raise TemplateError(
-            "$mergeDeep value must evaluate to an array of objects")
+        raise TemplateError("$mergeDeep value must evaluate to an array of objects")
 
     def merge(l, r):
         if isinstance(l, list) and isinstance(r, list):
@@ -329,30 +446,31 @@ def merge(template, context):
                     res[k] = v
             return res
         return r
+
     if len(value) == 0:
         return {}
     return functools.reduce(merge, value[1:], value[0])
 
 
-@operator('$reverse')
+@operator("$reverse")
 def reverse(template, context):
-    checkUndefinedProperties(template, [r'\$reverse'])
-    value = renderValue(template['$reverse'], context)
+    checkUndefinedProperties(template, [r"\$reverse"])
+    value = renderValue(template["$reverse"], context)
     if not isinstance(value, list):
         raise TemplateError("$reverse value must evaluate to an array of objects")
     return list(reversed(value))
 
 
-@operator('$sort')
+@operator("$sort")
 def sort(template, context):
-    BY_RE = r'by\([a-zA-Z_][a-zA-Z0-9_]*\)'
-    checkUndefinedProperties(template, [r'\$sort', BY_RE])
-    value = renderValue(template['$sort'], context)
+    BY_RE = r"by\([a-zA-Z_][a-zA-Z0-9_]*\)"
+    checkUndefinedProperties(template, [r"\$sort", BY_RE])
+    value = renderValue(template["$sort"], context)
     if not isinstance(value, list):
-        raise TemplateError('$sorted values to be sorted must have the same type')
+        raise TemplateError("$sorted values to be sorted must have the same type")
 
-    # handle by(..) if given, applying the schwartzian transform
-    by_keys = [k for k in template if k.startswith('by(')]
+    # handle by(..) if given, producing a list of keys to be sorted
+    by_keys = [k for k in template if k.startswith("by(")]
     if len(by_keys) == 1:
         by_key = by_keys[0]
         by_var = by_key[3:-1]
@@ -362,29 +480,37 @@ def sort(template, context):
             subcontext = context.copy()
             for e in value:
                 subcontext[by_var] = e
-                yield parse(by_expr, subcontext), e
-        to_sort = list(xform())
-    elif len(by_keys) == 0:
-        to_sort = [(e, e) for e in value]
-    else:
-        raise TemplateError('only one by(..) is allowed')
+                yield parse(by_expr, subcontext)
 
-    # check types
+        sort_keys = list(xform())
+    elif len(by_keys) == 0:
+        sort_keys = value
+    else:
+        raise TemplateError("only one by(..) is allowed")
+
+    # check types of the values to be sorted all match
     try:
-        eltype = type(to_sort[0][0])
+        eltype = type(sort_keys[0])
     except IndexError:
         return []
     if eltype in (list, dict, bool, type(None)):
-        raise TemplateError('$sorted values to be sorted must have the same type')
-    if not all(isinstance(e[0], eltype) for e in to_sort):
-        raise TemplateError('$sorted values to be sorted must have the same type')
+        raise TemplateError("$sorted values to be sorted must have the same type")
+    if not all(isinstance(e, eltype) for e in sort_keys):
+        raise TemplateError("$sorted values to be sorted must have the same type")
 
-    # unzip the schwartzian transform
-    return list(e[1] for e in sorted(to_sort))
+    # If not using `by(..)`, just sort the values.
+    if sort_keys is value:
+        return sorted(value)
+
+    # Otherwise, index into the sort_keys array for each element.
+    return list(
+        pair[1]
+        for pair in sorted(enumerate(value), key=lambda pair: sort_keys[pair[0]])
+    )
 
 
 def containsFunctions(rendered):
-    if hasattr(rendered, '__call__'):
+    if hasattr(rendered, "__call__"):
         return True
     elif isinstance(rendered, list):
         for e in rendered:
@@ -413,11 +539,10 @@ def renderValue(template, context):
 
         def updated():
             for k, v in viewitems(template):
-                if k.startswith('$$'):
+                if k.startswith("$$"):
                     k = k[1:]
-                elif k.startswith('$') and IDENTIFIER_RE.match(k[1:]):
-                    raise TemplateError(
-                        '$<identifier> is reserved; use $$<identifier>')
+                elif k.startswith("$") and IDENTIFIER_RE.match(k[1:]):
+                    raise TemplateError("$<identifier> is reserved; use $$<identifier>")
                 else:
                     k = interpolate(k, context)
 
@@ -425,15 +550,17 @@ def renderValue(template, context):
                     v = renderValue(v, context)
                 except JSONTemplateError as e:
                     if IDENTIFIER_RE.match(k):
-                        e.add_location('.{}'.format(k))
+                        e.add_location(".{}".format(k))
                     else:
-                        e.add_location('[{}]'.format(json.dumps(k)))
+                        e.add_location("[{}]".format(json.dumps(k)))
                     raise
                 if v is not DeleteMarker:
                     yield k, v
+
         return dict(updated())
 
     elif isinstance(template, list):
+
         def updated():
             for i, e in enumerate(template):
                 try:
@@ -441,7 +568,7 @@ def renderValue(template, context):
                     if v is not DeleteMarker:
                         yield v
                 except JSONTemplateError as e:
-                    e.add_location('[{}]'.format(i))
+                    e.add_location("[{}]".format(i))
                     raise
 
         return list(updated())

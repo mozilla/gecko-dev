@@ -27,8 +27,9 @@ from tomlkit.api import value
 from tomlkit.api import ws
 
 
-__version__ = "0.12.3"
+__version__ = "0.13.3"
 __all__ = [
+    "TOMLDocument",
     "aot",
     "array",
     "boolean",
@@ -48,12 +49,11 @@ __all__ = [
     "loads",
     "nl",
     "parse",
+    "register_encoder",
     "string",
     "table",
     "time",
-    "TOMLDocument",
+    "unregister_encoder",
     "value",
     "ws",
-    "register_encoder",
-    "unregister_encoder",
 ]

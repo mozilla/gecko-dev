@@ -264,7 +264,7 @@ class Parser:
                 # The comment itself
                 while not self.end() and not self._current.is_nl():
                     code = ord(self._current)
-                    if code == CHR_DEL or code <= CTRL_CHAR_LIMIT and code != CTRL_I:
+                    if code == CHR_DEL or (code <= CTRL_CHAR_LIMIT and code != CTRL_I):
                         raise self.parse_error(InvalidControlChar, code, "comments")
 
                     if not self.inc():
@@ -481,7 +481,7 @@ class Parser:
                             raw,
                         )
                     except ValueError:
-                        raise self.parse_error(InvalidDateTimeError)
+                        raise self.parse_error(InvalidDateTimeError) from None
 
                 if m.group(1):
                     try:
@@ -513,7 +513,7 @@ class Parser:
                             raw + time_part,
                         )
                     except ValueError:
-                        raise self.parse_error(InvalidDateError)
+                        raise self.parse_error(InvalidDateError) from None
 
                 if m.group(5):
                     try:
@@ -529,7 +529,7 @@ class Parser:
                             raw,
                         )
                     except ValueError:
-                        raise self.parse_error(InvalidTimeError)
+                        raise self.parse_error(InvalidTimeError) from None
 
             item = self._parse_number(raw, trivia)
             if item is not None:
@@ -595,7 +595,11 @@ class Parser:
             # consume comma
             if prev_value and self._current == ",":
                 self.inc(exception=UnexpectedEofError)
-                elems.append(Whitespace(","))
+                # If the previous item is Whitespace, add to it
+                if isinstance(elems[-1], Whitespace):
+                    elems[-1]._s = elems[-1].s + ","
+                else:
+                    elems.append(Whitespace(","))
                 prev_value = False
                 continue
 
@@ -636,10 +640,8 @@ class Parser:
                     self.inc()
                     break
 
-                if (
-                    trailing_comma is False
-                    or trailing_comma is None
-                    and self._current == ","
+                if trailing_comma is False or (
+                    trailing_comma is None and self._current == ","
                 ):
                     # Either the previous key-value pair was not followed by a comma
                     # or the table has an unexpected leading comma.
@@ -675,10 +677,8 @@ class Parser:
             raw = raw[1:]
 
         if len(raw) > 1 and (
-            raw.startswith("0")
-            and not raw.startswith(("0.", "0o", "0x", "0b", "0e"))
-            or sign
-            and raw.startswith(".")
+            (raw.startswith("0") and not raw.startswith(("0.", "0o", "0x", "0b", "0e")))
+            or (sign and raw.startswith("."))
         ):
             return None
 
@@ -703,10 +703,8 @@ class Parser:
         if "_" in clean:
             return None
 
-        if (
-            clean.endswith(".")
-            or not clean.startswith("0x")
-            and clean.split("e", 1)[0].endswith(".")
+        if clean.endswith(".") or (
+            not clean.startswith("0x") and clean.split("e", 1)[0].endswith(".")
         ):
             return None
 
@@ -817,14 +815,15 @@ class Parser:
             if (
                 delim.is_singleline()
                 and not escaped
-                and (code == CHR_DEL or code <= CTRL_CHAR_LIMIT and code != CTRL_I)
+                and (code == CHR_DEL or (code <= CTRL_CHAR_LIMIT and code != CTRL_I))
             ) or (
                 delim.is_multiline()
                 and not escaped
                 and (
                     code == CHR_DEL
-                    or code <= CTRL_CHAR_LIMIT
-                    and code not in [CTRL_I, CTRL_J, CTRL_M]
+                    or (
+                        code <= CTRL_CHAR_LIMIT and code not in [CTRL_I, CTRL_J, CTRL_M]
+                    )
                 )
             ):
                 raise self.parse_error(InvalidControlChar, code, "strings")
@@ -981,9 +980,9 @@ class Parser:
                         is_aot and i == len(name_parts) - 2,
                         is_super_table=i < len(name_parts) - 2,
                         name=_name.key,
-                        display_name=full_key.as_string()
-                        if i == len(name_parts) - 2
-                        else None,
+                        display_name=(
+                            full_key.as_string() if i == len(name_parts) - 2 else None
+                        ),
                     ),
                 )
 

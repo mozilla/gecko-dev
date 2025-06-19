@@ -13,9 +13,9 @@ from opentelemetry.propagators.textmap import (  # type: ignore
     default_setter,
 )
 from opentelemetry.trace import (  # type: ignore
-    TraceFlags,
     NonRecordingSpan,
     SpanContext,
+    TraceFlags,
 )
 from sentry_sdk.integrations.opentelemetry.consts import (
     SENTRY_BAGGAGE_KEY,
@@ -30,9 +30,9 @@ from sentry_sdk.tracing import (
     SENTRY_TRACE_HEADER_NAME,
 )
 from sentry_sdk.tracing_utils import Baggage, extract_sentrytrace_data
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 
-if MYPY:
+if TYPE_CHECKING:
     from typing import Optional
     from typing import Set
 
@@ -90,11 +90,12 @@ class SentryPropagator(TextMapPropagator):  # type: ignore
             context = get_current()
 
         current_span = trace.get_current_span(context)
+        current_span_context = current_span.get_span_context()
 
-        if not current_span.context.is_valid:
+        if not current_span_context.is_valid:
             return
 
-        span_id = trace.format_span_id(current_span.context.span_id)
+        span_id = trace.format_span_id(current_span_context.span_id)
 
         span_map = SentrySpanProcessor().otel_span_map
         sentry_span = span_map.get(span_id, None)
@@ -103,9 +104,10 @@ class SentryPropagator(TextMapPropagator):  # type: ignore
 
         setter.set(carrier, SENTRY_TRACE_HEADER_NAME, sentry_span.to_traceparent())
 
-        baggage = sentry_span.containing_transaction.get_baggage()
-        if baggage:
-            setter.set(carrier, BAGGAGE_HEADER_NAME, baggage.serialize())
+        if sentry_span.containing_transaction:
+            baggage = sentry_span.containing_transaction.get_baggage()
+            if baggage:
+                setter.set(carrier, BAGGAGE_HEADER_NAME, baggage.serialize())
 
     @property
     def fields(self):

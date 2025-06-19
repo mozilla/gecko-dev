@@ -1,8 +1,8 @@
 #
 # This file is part of pyasn1 software.
 #
-# Copyright (c) 2005-2019, Ilya Etingof <etingof@gmail.com>
-# License: http://snmplabs.com/pyasn1/license.html
+# Copyright (c) 2005-2020, Ilya Etingof <etingof@gmail.com>
+# License: https://pyasn1.readthedocs.io/en/latest/license.html
 #
 from pyasn1 import error
 
@@ -46,7 +46,7 @@ class TagMap(object):
             return self.__presentTypes[tagSet]
         except KeyError:
             if self.__defaultType is None:
-                raise KeyError()
+                raise
             elif tagSet in self.__skipTypes:
                 raise error.PyAsn1Error('Key in negative map')
             else:

@@ -1,11 +1,13 @@
-from datetime import datetime, timedelta
-from os import environ
 import sys
-from sentry_sdk.consts import OP
+from copy import deepcopy
+from datetime import timedelta
+from os import environ
 
+from sentry_sdk.api import continue_trace
+from sentry_sdk.consts import OP
 from sentry_sdk.hub import Hub, _should_send_default_pii
-from sentry_sdk.tracing import TRANSACTION_SOURCE_COMPONENT, Transaction
-from sentry_sdk._compat import reraise
+from sentry_sdk.tracing import TRANSACTION_SOURCE_COMPONENT
+from sentry_sdk._compat import datetime_utcnow, duration_in_milliseconds, reraise
 from sentry_sdk.utils import (
     AnnotatedValue,
     capture_internal_exceptions,
@@ -16,13 +18,14 @@ from sentry_sdk.utils import (
 from sentry_sdk.integrations import Integration
 from sentry_sdk.integrations._wsgi_common import _filter_headers
 
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 
 # Constants
 TIMEOUT_WARNING_BUFFER = 1.5  # Buffer time required to send timeout warning to Sentry
 MILLIS_TO_SECONDS = 1000.0
 
-if MYPY:
+if TYPE_CHECKING:
+    from datetime import datetime
     from typing import Any
     from typing import TypeVar
     from typing import Callable
@@ -55,7 +58,7 @@ def _wrap_func(func):
 
         configured_time = int(configured_time)
 
-        initial_time = datetime.utcnow()
+        initial_time = datetime_utcnow()
 
         with hub.push_scope() as scope:
             with capture_internal_exceptions():
@@ -81,7 +84,8 @@ def _wrap_func(func):
             headers = {}
             if hasattr(gcp_event, "headers"):
                 headers = gcp_event.headers
-            transaction = Transaction.continue_from_headers(
+
+            transaction = continue_trace(
                 headers,
                 op=OP.FUNCTION_GCP,
                 name=environ.get("FUNCTION_NAME", ""),
@@ -151,10 +155,10 @@ def _make_request_event_processor(gcp_event, configured_timeout, initial_time):
     def event_processor(event, hint):
         # type: (Event, Hint) -> Optional[Event]
 
-        final_time = datetime.utcnow()
+        final_time = datetime_utcnow()
         time_diff = final_time - initial_time
 
-        execution_duration_in_millis = time_diff.microseconds / MILLIS_TO_SECONDS
+        execution_duration_in_millis = duration_in_milliseconds(time_diff)
 
         extra = event.setdefault("extra", {})
         extra["google cloud functions"] = {
@@ -193,7 +197,7 @@ def _make_request_event_processor(gcp_event, configured_timeout, initial_time):
                 # event. Meaning every body is unstructured to us.
                 request["data"] = AnnotatedValue.removed_because_raw_data()
 
-        event["request"] = request
+        event["request"] = deepcopy(request)
 
         return event
 

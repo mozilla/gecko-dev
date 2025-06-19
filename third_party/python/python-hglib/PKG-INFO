@@ -1,8 +1,8 @@
 Metadata-Version: 1.1
 Name: python-hglib
-Version: 2.4
+Version: 2.6.2
 Summary: Mercurial Python library
-Home-page: http://selenic.com/repo/python-hglib
+Home-page: https://www.mercurial-scm.org/wiki/PythonHglibs
 Author: Idan Kamara
 Author-email: idankk86@gmail.com
 License: MIT

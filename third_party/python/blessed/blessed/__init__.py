@@ -20,4 +20,4 @@ if (3, 0, 0) <= _sys.version_info[:3] < (3, 2, 3):
                       'support due to http://bugs.python.org/issue10570.')
 
 __all__ = ('Terminal',)
-__version__ = "1.19.1"
+__version__ = "1.21.0"

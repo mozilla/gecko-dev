@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,10 +16,6 @@
 """
 Use this rule to set a limit to lines length.
 
-Note: with Python 2, the ``line-length`` rule may not work properly with
-unicode characters because of the way strings are represented in bytes. We
-recommend running yamllint with Python 3.
-
 .. rubric:: Options
 
 * ``max`` defines the maximal (inclusive) length of lines.
@@ -29,6 +24,16 @@ recommend running yamllint with Python 3.
   instance. Use ``true`` to allow, ``false`` to forbid.
 * ``allow-non-breakable-inline-mappings`` implies ``allow-non-breakable-words``
   and extends it to also allow non-breakable words in inline mappings.
+
+.. rubric:: Default values (when enabled)
+
+.. code-block:: yaml
+
+ rules:
+   line-length:
+     max: 80
+     allow-non-breakable-words: true
+     allow-non-breakable-inline-mappings: false
 
 .. rubric:: Examples
 
@@ -96,7 +101,6 @@ import yaml
 
 from yamllint.linter import LintProblem
 
-
 ID = 'line-length'
 TYPE = 'line'
 CONF = {'max': int,
@@ -134,7 +138,11 @@ def check(conf, line):
                 start += 1
 
             if start != line.end:
-                if line.buffer[start] in ('#', '-'):
+                if line.buffer[start] == '#':
+                    while line.buffer[start] == '#':
+                        start += 1
+                    start += 1
+                elif line.buffer[start] == '-':
                     start += 2
 
                 if line.buffer.find(' ', start, line.end) == -1:

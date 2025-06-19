@@ -24,13 +24,13 @@ def rgb_to_xyz(red, green, blue):
     """
     Convert standard RGB color to XYZ color.
 
+    D65/2° standard illuminant.
+
     :arg int red: RGB value of Red.
     :arg int green: RGB value of Green.
     :arg int blue: RGB value of Blue.
     :returns: Tuple (X, Y, Z) representing XYZ color
     :rtype: tuple
-
-    D65/2° standard illuminant
     """
     rgb = []
     for val in red, green, blue:
@@ -58,9 +58,7 @@ def xyz_to_lab(x_val, y_val, z_val):
     :arg float y_val: XYZ value of Y.
     :arg float z_val: XYZ value of Z.
     :returns: Tuple (L, a, b) representing CIE-Lab color
-    :rtype: tuple
-
-    D65/2° standard illuminant
+    :rtype: tuple  D65/2° standard illuminant
     """
     xyz = []
     for val, ref in (x_val, 95.047), (y_val, 100.0), (z_val, 108.883):
@@ -85,9 +83,7 @@ def rgb_to_lab(red, green, blue):
     :arg int green: RGB value of Green.
     :arg int blue: RGB value of Blue.
     :returns: Tuple (L, a, b) representing CIE-Lab color
-    :rtype: tuple
-
-    D65/2° standard illuminant
+    :rtype: tuple  D65/2° standard illuminant
     """
     return xyz_to_lab(*rgb_to_xyz(red, green, blue))
 
@@ -120,13 +116,9 @@ def dist_rgb_weighted(rgb1, rgb2):
     :arg tuple rgb1: RGB color definition
     :arg tuple rgb2: RGB color definition
     :returns: Square of the distance between provided colors
-    :rtype: float
-
-    Similar to a standard distance formula, the values are weighted
-    to approximate human perception of color differences
-
-    For efficiency, the square of the distance is returned
-    which is sufficient for comparisons
+    :rtype: float Similar to a standard distance formula, the values are weighted to approximate
+        human perception of color differences For efficiency, the square of the distance is returned
+        which is sufficient for comparisons
     """
     red_mean = (rgb1[0] + rgb2[0]) / 2.0
 
@@ -137,15 +129,13 @@ def dist_rgb_weighted(rgb1, rgb2):
 
 def dist_cie76(rgb1, rgb2):
     """
-    Determine distance between two rgb colors using the CIE94 algorithm.
+    Determine distance between two rgb colors using the CIE76 algorithm.
 
     :arg tuple rgb1: RGB color definition
     :arg tuple rgb2: RGB color definition
     :returns: Square of the distance between provided colors
-    :rtype: float
-
-    For efficiency, the square of the distance is returned
-    which is sufficient for comparisons
+    :rtype: float For efficiency, the square of the distance is returned which is sufficient for
+        comparisons
     """
     l_1, a_1, b_1 = rgb_to_lab(*rgb1)
     l_2, a_2, b_2 = rgb_to_lab(*rgb2)
@@ -160,10 +150,8 @@ def dist_cie94(rgb1, rgb2):
     :arg tuple rgb1: RGB color definition
     :arg tuple rgb2: RGB color definition
     :returns: Square of the distance between provided colors
-    :rtype: float
-
-    For efficiency, the square of the distance is returned
-    which is sufficient for comparisons
+    :rtype: float For efficiency, the square of the distance is returned which is sufficient for
+        comparisons
     """
     l_1, a_1, b_1 = rgb_to_lab(*rgb1)
     l_2, a_2, b_2 = rgb_to_lab(*rgb2)
@@ -195,10 +183,8 @@ def dist_cie2000(rgb1, rgb2):
     :arg tuple rgb1: RGB color definition
     :arg tuple rgb2: RGB color definition
     :returns: Square of the distance between provided colors
-    :rtype: float
-
-    For efficiency, the square of the distance is returned
-    which is sufficient for comparisons
+    :rtype: float For efficiency, the square of the distance is returned which is sufficient for
+        comparisons
     """
     s_l = k_l = k_c = k_h = 1
 

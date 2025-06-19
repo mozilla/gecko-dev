@@ -318,5 +318,6 @@ def cli():
     args = parser.parse_args()
     issues = Validator.validate(args.migration)["issues"]
     for issue in issues:
-        print(issue["msg"], "at line", issue["line"])
+        # bright red fg
+        print(f"\x1b[1;31m{issue['msg']} at line {issue['line']}\x1b[0m")
     return 1 if issues else 0

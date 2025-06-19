@@ -6,7 +6,7 @@
 # Modified by Russ Housley to add a maps for CMC Control Attributes
 #   and CMC Content Types for use with opentypes.
 #
-# Copyright (c) 2005-2019, Ilya Etingof <etingof@gmail.com>
+# Copyright (c) 2005-2020, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pyasn1/license.html
 #
 # Certificate Management over CMS (CMC) Updates

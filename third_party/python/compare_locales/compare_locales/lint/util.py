@@ -10,29 +10,31 @@ def default_reference_and_tests(path):
 
 
 def mirror_reference_and_tests(files, basedir):
-    '''Get reference files to check for conflicts in android-l10n and friends.
-    '''
+    """Get reference files to check for conflicts in android-l10n and friends."""
+
     def get_reference_and_tests(path):
         for matchers in files.matchers:
-            if 'reference' not in matchers:
+            if "reference" not in matchers:
                 continue
-            matcher = matchers['reference']
+            matcher = matchers["reference"]
             if matcher.match(path) is None:
                 continue
             ref_matcher = paths.Matcher(matcher, root=basedir)
             ref_path = matcher.sub(ref_matcher, path)
-            return ref_path, matchers.get('test')
+            return ref_path, matchers.get("test")
         return None, None
+
     return get_reference_and_tests
 
 
 def l10n_base_reference_and_tests(files):
-    '''Get reference files to check for conflicts in gecko-strings and friends.
-    '''
+    """Get reference files to check for conflicts in gecko-strings and friends."""
+
     def get_reference_and_tests(path):
         match = files.match(path)
         if match is None:
             return None, None
         ref, _, _, extra_tests = match
         return ref, extra_tests
+
     return get_reference_and_tests

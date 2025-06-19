@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
 from sentry_sdk import Hub
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 from sentry_sdk.integrations import Integration, DidNotEnable
 from sentry_sdk.scope import add_global_event_processor
 from sentry_sdk.utils import walk_exception_chain, iter_stacks
 
-if MYPY:
+if TYPE_CHECKING:
     from typing import Optional
 
     from sentry_sdk._types import Event, Hint

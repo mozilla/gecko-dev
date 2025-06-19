@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -24,6 +23,16 @@ Use this rule to set a maximal number of allowed consecutive blank lines.
   beginning of the file. This option takes precedence over ``max``.
 * ``max-end`` defines the maximal number of empty lines allowed at the end of
   the file.  This option takes precedence over ``max``.
+
+.. rubric:: Default values (when enabled)
+
+.. code-block:: yaml
+
+ rules:
+   empty-lines:
+     max: 2
+     max-start: 0
+     max-end: 0
 
 .. rubric:: Examples
 
@@ -51,7 +60,6 @@ Use this rule to set a maximal number of allowed consecutive blank lines.
 
 
 from yamllint.linter import LintProblem
-
 
 ID = 'empty-lines'
 TYPE = 'line'
@@ -104,5 +112,5 @@ def check(conf, line):
             max = conf['max-end']
 
         if blank_lines > max:
-            yield LintProblem(line.line_no, 1, 'too many blank lines (%d > %d)'
-                                               % (blank_lines, max))
+            yield LintProblem(line.line_no, 1,
+                              f'too many blank lines ({blank_lines} > {max})')

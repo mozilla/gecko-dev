@@ -10,9 +10,13 @@ from fluent.syntax.serializer import serialize_comment
 from fluent.syntax.visitor import Visitor
 from .base import (
     CAN_SKIP,
-    Entry, Entity, Comment, Junk, Whitespace,
+    Entry,
+    Entity,
+    Comment,
+    Junk,
+    Whitespace,
     LiteralEntity,
-    Parser
+    Parser,
 )
 
 
@@ -21,10 +25,7 @@ class WordCounter(Visitor):
         self.word_count = 0
 
     def generic_visit(self, node):
-        if isinstance(
-            node,
-            (ftl.Span, ftl.Annotation, ftl.BaseComment)
-        ):
+        if isinstance(node, (ftl.Span, ftl.Annotation, ftl.BaseComment)):
             return
         super().generic_visit(node)
 
@@ -37,7 +38,7 @@ class WordCounter(Visitor):
 
 
 class FluentAttribute(Entry):
-    ignored_fields = ['span']
+    ignored_fields = ["span"]
 
     def __init__(self, entity, attr_node):
         self.ctx = entity.ctx
@@ -48,13 +49,12 @@ class FluentAttribute(Entry):
     def equals(self, other):
         if not isinstance(other, FluentAttribute):
             return False
-        return self.attr.equals(
-            other.attr, ignored_fields=self.ignored_fields)
+        return self.attr.equals(other.attr, ignored_fields=self.ignored_fields)
 
 
 class FluentEntity(Entity):
     # Fields ignored when comparing two entities.
-    ignored_fields = ['comment', 'span']
+    ignored_fields = ["comment", "span"]
 
     def __init__(self, ctx, entry):
         start = entry.span.start
@@ -86,10 +86,10 @@ class FluentEntity(Entity):
 
     @property
     def root_node(self):
-        '''AST node at which to start traversal for count_words.
+        """AST node at which to start traversal for count_words.
 
         By default we count words in the value and in all attributes.
-        '''
+        """
         return self.entry
 
     _word_count = None
@@ -103,8 +103,7 @@ class FluentEntity(Entity):
         return self._word_count
 
     def equals(self, other):
-        return self.entry.equals(
-            other.entry, ignored_fields=self.ignored_fields)
+        return self.entry.equals(other.entry, ignored_fields=self.ignored_fields)
 
     # In Fluent we treat entries as a whole.  FluentChecker reports errors at
     # offsets calculated from the beginning of the entry.
@@ -144,15 +143,15 @@ class FluentMessage(FluentEntity):
 
 class FluentTerm(FluentEntity):
     # Fields ignored when comparing two terms.
-    ignored_fields = ['attributes', 'comment', 'span']
+    ignored_fields = ["attributes", "comment", "span"]
 
     @property
     def root_node(self):
-        '''AST node at which to start traversal for count_words.
+        """AST node at which to start traversal for count_words.
 
         In Fluent Terms we only count words in the value. Attributes are
         private and do not count towards the word total.
-        '''
+        """
         return self.entry.value
 
 
@@ -181,8 +180,7 @@ class FluentParser(Parser):
         for entry in resource.body:
             if not only_localizable:
                 if entry.span.start > last_span_end:
-                    yield Whitespace(
-                        self.ctx, (last_span_end, entry.span.start))
+                    yield Whitespace(self.ctx, (last_span_end, entry.span.start))
 
             if isinstance(entry, ftl.Message):
                 yield FluentMessage(self.ctx, entry)
@@ -192,19 +190,15 @@ class FluentParser(Parser):
                 start = entry.span.start
                 end = entry.span.end
                 # strip leading whitespace
-                start += re.match('[ \t\r\n]*', entry.content).end()
+                start += re.match("[ \t\r\n]*", entry.content).end()
                 if not only_localizable and entry.span.start < start:
-                    yield Whitespace(
-                        self.ctx, (entry.span.start, start)
-                    )
+                    yield Whitespace(self.ctx, (entry.span.start, start))
                 # strip trailing whitespace
-                ws, we = re.search('[ \t\r\n]*$', entry.content).span()
+                ws, we = re.search("[ \t\r\n]*$", entry.content).span()
                 end -= we - ws
                 yield Junk(self.ctx, (start, end))
                 if not only_localizable and end < entry.span.end:
-                    yield Whitespace(
-                        self.ctx, (end, entry.span.end)
-                    )
+                    yield Whitespace(self.ctx, (end, entry.span.end))
             elif isinstance(entry, ftl.BaseComment) and not only_localizable:
                 span = (entry.span.start, entry.span.end)
                 yield FluentComment(self.ctx, span, entry)

@@ -4,15 +4,12 @@
 
 import re
 
-from .base import (
-    Entry, OffsetComment,
-    Parser
-)
+from .base import Entry, OffsetComment, Parser
 
 
 class IniSection(Entry):
-    '''Entity-like object representing sections in ini files
-    '''
+    """Entity-like object representing sections in ini files"""
+
     def __init__(self, ctx, span, val_span):
         self.ctx = ctx
         self.span = span
@@ -23,7 +20,7 @@ class IniSection(Entry):
 
 
 class IniParser(Parser):
-    '''
+    """
     Parse files of the form:
     # initial comment
     [cat]
@@ -31,21 +28,21 @@ class IniParser(Parser):
     #comment
     string=value
     ...
-    '''
+    """
 
     Comment = OffsetComment
 
     def __init__(self):
-        self.reComment = re.compile('(?:^[;#][^\n]*\n)*(?:^[;#][^\n]*)', re.M)
-        self.reSection = re.compile(r'\[(?P<val>.*?)\]', re.M)
-        self.reKey = re.compile('(?P<key>.+?)=(?P<val>.*)', re.M)
+        self.reComment = re.compile("(?:^[;#][^\n]*\n)*(?:^[;#][^\n]*)", re.M)
+        self.reSection = re.compile(r"\[(?P<val>.*?)\]", re.M)
+        self.reKey = re.compile("(?P<key>.+?)=(?P<val>.*)", re.M)
         Parser.__init__(self)
 
     def getNext(self, ctx, offset):
         contents = ctx.contents
         m = self.reSection.match(contents, offset)
         if m:
-            return IniSection(ctx, m.span(), m.span('val'))
+            return IniSection(ctx, m.span(), m.span("val"))
 
         return super().getNext(ctx, offset)
 

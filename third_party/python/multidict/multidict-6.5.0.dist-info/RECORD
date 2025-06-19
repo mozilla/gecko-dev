@@ -1,0 +1,10 @@
+multidict/__init__.py,sha256=W5lKQcV494btmuxnLkcVNeja8zikiYGVPFjQ-hw1wyA,1227
+multidict/_abc.py,sha256=DLHvqOvMJdHSdtoeYcBll6TaFMh2D9XRCEB1VNnPO1k,2244
+multidict/_compat.py,sha256=TcRjCStk2iIY1_DwDNj8kNpJRQ9rtLj92Xvk1z2G_ak,422
+multidict/_multidict_py.py,sha256=qH2SdprN9lq1PeOBaMaJ8wjsZFhul0iMqgCobNGoWzI,38541
+multidict/py.typed,sha256=e9bmbH3UFxsabQrnNFPG9qxIXztwbcM6IKDYnvZwprY,15
+multidict-6.5.0.dist-info/licenses/LICENSE,sha256=k9Ealo4vDzY3PECBH_bSDhc_WMPKtYhM1mF7v9eVSSo,611
+multidict-6.5.0.dist-info/METADATA,sha256=pZ11442Lr_Wcece9qtiJTjJlvggycInW_kaMYQ5rOp0,5323
+multidict-6.5.0.dist-info/WHEEL,sha256=_zCd3N1l69ArxyTb8rzEoP9TpbYXkqRFSNOD5OuxnTs,91
+multidict-6.5.0.dist-info/top_level.txt,sha256=-euDElkk5_qkmfIJ7WiqCab02ZlSFZWynejKg59qZQQ,10
+multidict-6.5.0.dist-info/RECORD,,

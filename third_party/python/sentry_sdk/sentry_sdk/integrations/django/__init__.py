@@ -1,21 +1,26 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import inspect
 import sys
 import threading
 import weakref
+from importlib import import_module
 
-from sentry_sdk._types import MYPY
-from sentry_sdk.consts import OP, SENSITIVE_DATA_SUBSTITUTE
+from sentry_sdk._compat import string_types, text_type
+from sentry_sdk._types import TYPE_CHECKING
+from sentry_sdk.consts import OP, SPANDATA
+from sentry_sdk.db.explain_plan.django import attach_explain_plan_to_span
 from sentry_sdk.hub import Hub, _should_send_default_pii
 from sentry_sdk.scope import add_global_event_processor
 from sentry_sdk.serializer import add_global_repr_processor
 from sentry_sdk.tracing import SOURCE_FOR_STYLE, TRANSACTION_SOURCE_URL
-from sentry_sdk.tracing_utils import record_sql_queries
+from sentry_sdk.tracing_utils import add_query_source, record_sql_queries
 from sentry_sdk.utils import (
     AnnotatedValue,
     HAS_REAL_CONTEXTVARS,
     CONTEXTVARS_ERROR_MESSAGE,
+    SENSITIVE_DATA_SUBSTITUTE,
     logger,
     capture_internal_exceptions,
     event_from_exception,
@@ -31,14 +36,26 @@ try:
     from django import VERSION as DJANGO_VERSION
     from django.conf import settings as django_settings
     from django.core import signals
+    from django.conf import settings
 
     try:
         from django.urls import resolve
     except ImportError:
         from django.core.urlresolvers import resolve
+
+    try:
+        from django.urls import Resolver404
+    except ImportError:
+        from django.core.urlresolvers import Resolver404
+
+    # Only available in Django 3.0+
+    try:
+        from django.core.handlers.asgi import ASGIRequest
+    except Exception:
+        ASGIRequest = None
+
 except ImportError:
     raise DidNotEnable("Django not installed")
-
 
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.integrations.django.templates import (
@@ -49,8 +66,13 @@ from sentry_sdk.integrations.django.middleware import patch_django_middlewares
 from sentry_sdk.integrations.django.signals_handlers import patch_signals
 from sentry_sdk.integrations.django.views import patch_views
 
+if DJANGO_VERSION[:2] > (1, 8):
+    from sentry_sdk.integrations.django.caching import patch_caching
+else:
+    patch_caching = None  # type: ignore
 
-if MYPY:
+
+if TYPE_CHECKING:
     from typing import Any
     from typing import Callable
     from typing import Dict
@@ -63,6 +85,7 @@ if MYPY:
     from django.http.request import QueryDict
     from django.utils.datastructures import MultiValueDict
 
+    from sentry_sdk.tracing import Span
     from sentry_sdk.scope import Scope
     from sentry_sdk.integrations.wsgi import _ScopedResponse
     from sentry_sdk._types import Event, Hint, EventProcessor, NotImplementedType
@@ -89,9 +112,19 @@ class DjangoIntegration(Integration):
 
     transaction_style = ""
     middleware_spans = None
+    signals_spans = None
+    cache_spans = None
+    signals_denylist = []  # type: list[signals.Signal]
 
-    def __init__(self, transaction_style="url", middleware_spans=True):
-        # type: (str, bool) -> None
+    def __init__(
+        self,
+        transaction_style="url",
+        middleware_spans=True,
+        signals_spans=True,
+        cache_spans=False,
+        signals_denylist=None,
+    ):
+        # type: (str, bool, bool, bool, Optional[list[signals.Signal]]) -> None
         if transaction_style not in TRANSACTION_STYLE_VALUES:
             raise ValueError(
                 "Invalid value for transaction_style: %s (must be in %s)"
@@ -99,6 +132,9 @@ class DjangoIntegration(Integration):
             )
         self.transaction_style = transaction_style
         self.middleware_spans = middleware_spans
+        self.signals_spans = signals_spans
+        self.cache_spans = cache_spans
+        self.signals_denylist = signals_denylist or []
 
     @staticmethod
     def setup_once():
@@ -217,6 +253,9 @@ class DjangoIntegration(Integration):
         patch_views()
         patch_templates()
         patch_signals()
+
+        if patch_caching is not None:
+            patch_caching()
 
 
 _DRF_PATCHED = False
@@ -351,6 +390,18 @@ def _set_transaction_name_and_source(scope, transaction_style, request):
             transaction_name,
             source=source,
         )
+    except Resolver404:
+        urlconf = import_module(settings.ROOT_URLCONF)
+        # This exception only gets thrown when transaction_style is `function_name`
+        # So we don't check here what style is configured
+        if hasattr(urlconf, "handler404"):
+            handler = urlconf.handler404
+            if isinstance(handler, string_types):
+                scope.transaction = handler
+            else:
+                scope.transaction = transaction_from_function(
+                    getattr(handler, "view_class", handler)
+                )
     except Exception:
         pass
 
@@ -369,7 +420,7 @@ def _before_get_response(request):
         _set_transaction_name_and_source(scope, integration.transaction_style, request)
 
         scope.add_event_processor(
-            _make_event_processor(weakref.ref(request), integration)
+            _make_wsgi_request_event_processor(weakref.ref(request), integration)
         )
 
 
@@ -421,15 +472,20 @@ def _patch_get_response():
         patch_get_response_async(BaseHandler, _before_get_response)
 
 
-def _make_event_processor(weak_request, integration):
+def _make_wsgi_request_event_processor(weak_request, integration):
     # type: (Callable[[], WSGIRequest], DjangoIntegration) -> EventProcessor
-    def event_processor(event, hint):
-        # type: (Dict[str, Any], Dict[str, Any]) -> Dict[str, Any]
+    def wsgi_request_event_processor(event, hint):
+        # type: (Event, dict[str, Any]) -> Event
         # if the request is gone we are fine not logging the data from
         # it.  This might happen if the processor is pushed away to
         # another thread.
         request = weak_request()
         if request is None:
+            return event
+
+        django_3 = ASGIRequest is not None
+        if django_3 and type(request) == ASGIRequest:
+            # We have a `asgi_request_event_processor` for this.
             return event
 
         try:
@@ -448,7 +504,7 @@ def _make_event_processor(weak_request, integration):
 
         return event
 
-    return event_processor
+    return wsgi_request_event_processor
 
 
 def _got_request_exception(request=None, **kwargs):
@@ -456,7 +512,6 @@ def _got_request_exception(request=None, **kwargs):
     hub = Hub.current
     integration = hub.get_integration(DjangoIntegration)
     if integration is not None:
-
         if request is not None and integration.transaction_style == "url":
             with hub.configure_scope() as scope:
                 _attempt_resolve_again(request, scope, integration.transaction_style)
@@ -485,7 +540,7 @@ class DjangoRequestExtractor(RequestExtractor):
         ]
 
         clean_cookies = {}  # type: Dict[str, Union[str, AnnotatedValue]]
-        for (key, val) in self.request.COOKIES.items():
+        for key, val in self.request.COOKIES.items():
             if key in privacy_cookies:
                 clean_cookies[key] = SENSITIVE_DATA_SUBSTITUTE
             else:
@@ -518,7 +573,7 @@ class DjangoRequestExtractor(RequestExtractor):
 
 
 def _set_user_info(request, event):
-    # type: (WSGIRequest, Dict[str, Any]) -> None
+    # type: (WSGIRequest, Event) -> None
     user_info = event.setdefault("user", {})
 
     user = getattr(request, "user", None)
@@ -573,8 +628,25 @@ def install_sql_hook():
 
         with record_sql_queries(
             hub, self.cursor, sql, params, paramstyle="format", executemany=False
-        ):
-            return real_execute(self, sql, params)
+        ) as span:
+            _set_db_data(span, self)
+            if hub.client:
+                options = hub.client.options["_experiments"].get("attach_explain_plans")
+                if options is not None:
+                    attach_explain_plan_to_span(
+                        span,
+                        self.cursor.connection,
+                        sql,
+                        params,
+                        self.mogrify,
+                        options,
+                    )
+            result = real_execute(self, sql, params)
+
+        with capture_internal_exceptions():
+            add_query_source(hub, span)
+
+        return result
 
     def executemany(self, sql, param_list):
         # type: (CursorWrapper, Any, List[Any]) -> Any
@@ -584,8 +656,15 @@ def install_sql_hook():
 
         with record_sql_queries(
             hub, self.cursor, sql, param_list, paramstyle="format", executemany=True
-        ):
-            return real_executemany(self, sql, param_list)
+        ) as span:
+            _set_db_data(span, self)
+
+            result = real_executemany(self, sql, param_list)
+
+        with capture_internal_exceptions():
+            add_query_source(hub, span)
+
+        return result
 
     def connect(self):
         # type: (BaseDatabaseWrapper) -> None
@@ -596,10 +675,59 @@ def install_sql_hook():
         with capture_internal_exceptions():
             hub.add_breadcrumb(message="connect", category="query")
 
-        with hub.start_span(op=OP.DB, description="connect"):
+        with hub.start_span(op=OP.DB, description="connect") as span:
+            _set_db_data(span, self)
             return real_connect(self)
 
     CursorWrapper.execute = execute
     CursorWrapper.executemany = executemany
     BaseDatabaseWrapper.connect = connect
     ignore_logger("django.db.backends")
+
+
+def _set_db_data(span, cursor_or_db):
+    # type: (Span, Any) -> None
+
+    db = cursor_or_db.db if hasattr(cursor_or_db, "db") else cursor_or_db
+    vendor = db.vendor
+    span.set_data(SPANDATA.DB_SYSTEM, vendor)
+
+    # Some custom backends override `__getattr__`, making it look like `cursor_or_db`
+    # actually has a `connection` and the `connection` has a `get_dsn_parameters`
+    # attribute, only to throw an error once you actually want to call it.
+    # Hence the `inspect` check whether `get_dsn_parameters` is an actual callable
+    # function.
+    is_psycopg2 = (
+        hasattr(cursor_or_db, "connection")
+        and hasattr(cursor_or_db.connection, "get_dsn_parameters")
+        and inspect.isroutine(cursor_or_db.connection.get_dsn_parameters)
+    )
+    if is_psycopg2:
+        connection_params = cursor_or_db.connection.get_dsn_parameters()
+    else:
+        is_psycopg3 = (
+            hasattr(cursor_or_db, "connection")
+            and hasattr(cursor_or_db.connection, "info")
+            and hasattr(cursor_or_db.connection.info, "get_parameters")
+            and inspect.isroutine(cursor_or_db.connection.info.get_parameters)
+        )
+        if is_psycopg3:
+            connection_params = cursor_or_db.connection.info.get_parameters()
+        else:
+            connection_params = db.get_connection_params()
+
+    db_name = connection_params.get("dbname") or connection_params.get("database")
+    if db_name is not None:
+        span.set_data(SPANDATA.DB_NAME, db_name)
+
+    server_address = connection_params.get("host")
+    if server_address is not None:
+        span.set_data(SPANDATA.SERVER_ADDRESS, server_address)
+
+    server_port = connection_params.get("port")
+    if server_port is not None:
+        span.set_data(SPANDATA.SERVER_PORT, text_type(server_port))
+
+    server_socket_address = connection_params.get("unix_socket")
+    if server_socket_address is not None:
+        span.set_data(SPANDATA.SERVER_SOCKET_ADDRESS, server_socket_address)

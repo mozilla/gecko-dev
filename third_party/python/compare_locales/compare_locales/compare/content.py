@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-'Mozilla l10n compare locales tool'
+"Mozilla l10n compare locales tool"
 
 import codecs
 import os
@@ -19,24 +19,34 @@ from .utils import AddRemove
 
 
 class ContentComparer:
-    keyRE = re.compile('[kK]ey')
-    nl = re.compile('\n', re.M)
+    keyRE = re.compile("[kK]ey")
+    nl = re.compile("\n", re.M)
 
     def __init__(self, quiet=0):
-        '''Create a ContentComparer.
+        """Create a ContentComparer.
         observer is usually a instance of Observer. The return values
         of the notify method are used to control the handling of missing
         entities.
-        '''
+        """
         self.observers = ObserverList(quiet=quiet)
 
     def create_merge_dir(self, merge_file):
         outdir = mozpath.dirname(merge_file)
         os.makedirs(outdir, exist_ok=True)
 
-    def merge(self, ref_entities, ref_file, l10n_file, merge_file,
-              missing, skips, ctx, capabilities, encoding):
-        '''Create localized file in merge dir
+    def merge(
+        self,
+        ref_entities,
+        ref_file,
+        l10n_file,
+        merge_file,
+        missing,
+        skips,
+        ctx,
+        capabilities,
+        encoding,
+    ):
+        """Create localized file in merge dir
 
         `ref_entities` and `ref_map` are the parser result of the
         reference file
@@ -50,7 +60,7 @@ class ContentComparer:
         `ctx` is the parsing context
         `capabilities` are the capabilities for the merge algorithm
         `encoding` is the encoding to be used when serializing, usually utf-8
-        '''
+        """
 
         if not merge_file:
             return
@@ -81,11 +91,11 @@ class ContentComparer:
             skips.sort(key=lambda s: s.span[0])
 
             # we need to skip a few erroneous blocks in the input, copy by hand
-            f = codecs.open(merge_file, 'wb', encoding)
+            f = codecs.open(merge_file, "wb", encoding)
             offset = 0
             for skip in skips:
                 chunk = skip.span
-                f.write(ctx.contents[offset:chunk[0]])
+                f.write(ctx.contents[offset : chunk[0]])
                 offset = chunk[1]
             f.write(ctx.contents[offset:])
 
@@ -100,32 +110,44 @@ class ContentComparer:
 
         if skips or missing:
             if f is None:
-                f = codecs.open(merge_file, 'ab', encoding)
-            trailing = (['\n'] +
-                        [ref_entities[key].all for key in missing] +
-                        [ref_entities[skip.key].all for skip in skips
-                         if not isinstance(skip, parser.Junk)])
+                f = codecs.open(merge_file, "ab", encoding)
+            trailing = (
+                ["\n"]
+                + [ref_entities[key].all for key in missing]
+                + [
+                    ref_entities[skip.key].all
+                    for skip in skips
+                    if not isinstance(skip, parser.Junk)
+                ]
+            )
 
             def ensureNewline(s):
-                if not s.endswith('\n'):
-                    return s + '\n'
+                if not s.endswith("\n"):
+                    return s + "\n"
                 return s
 
             print("adding to " + merge_file)
-            f.write(''.join(map(ensureNewline, trailing)))
+            f.write("".join(map(ensureNewline, trailing)))
 
         if f is not None:
             f.close()
 
     def remove(self, ref_file, l10n, merge_file):
-        '''Obsolete l10n file.
+        """Obsolete l10n file.
 
         Copy to merge stage if we can.
-        '''
-        self.observers.notify('obsoleteFile', l10n, None)
+        """
+        self.observers.notify("obsoleteFile", l10n, None)
         self.merge(
-            KeyedTuple([]), ref_file, l10n, merge_file,
-            [], [], None, parser.CAN_COPY, None
+            KeyedTuple([]),
+            ref_file,
+            l10n,
+            merge_file,
+            [],
+            [],
+            None,
+            parser.CAN_COPY,
+            None,
         )
 
     def compare(self, ref_file, l10n, merge_file, extra_tests=None):
@@ -135,13 +157,21 @@ class ContentComparer:
             # no comparison, XXX report?
             # At least, merge
             self.merge(
-                KeyedTuple([]), ref_file, l10n, merge_file, [], [], None,
-                parser.CAN_COPY, None)
+                KeyedTuple([]),
+                ref_file,
+                l10n,
+                merge_file,
+                [],
+                [],
+                None,
+                parser.CAN_COPY,
+                None,
+            )
             return
         try:
             p.readFile(ref_file)
         except Exception as e:
-            self.observers.notify('error', ref_file, str(e))
+            self.observers.notify("error", ref_file, str(e))
             return
         ref_entities = p.parse()
         try:
@@ -149,7 +179,7 @@ class ContentComparer:
             l10n_entities = p.parse()
             l10n_ctx = p.ctx
         except Exception as e:
-            self.observers.notify('error', l10n, str(e))
+            self.observers.notify("error", l10n, str(e))
             return
 
         ar = AddRemove()
@@ -163,18 +193,16 @@ class ContentComparer:
         if checker and checker.needs_reference:
             checker.set_reference(ref_entities)
         for msg in p.findDuplicates(ref_entities):
-            self.observers.notify('warning', l10n, msg)
+            self.observers.notify("warning", l10n, msg)
         for msg in p.findDuplicates(l10n_entities):
-            self.observers.notify('error', l10n, msg)
+            self.observers.notify("error", l10n, msg)
         for action, entity_id in ar:
-            if action == 'delete':
+            if action == "delete":
                 # missing entity
                 if isinstance(ref_entities[entity_id], parser.Junk):
-                    self.observers.notify(
-                        'warning', l10n, 'Parser error in en-US'
-                    )
+                    self.observers.notify("warning", l10n, "Parser error in en-US")
                     continue
-                _rv = self.observers.notify('missingEntity', l10n, entity_id)
+                _rv = self.observers.notify("missingEntity", l10n, entity_id)
                 if _rv == "ignore":
                     continue
                 if _rv == "error":
@@ -187,20 +215,15 @@ class ContentComparer:
                 else:
                     # just report
                     report += 1
-            elif action == 'add':
+            elif action == "add":
                 # obsolete entity or junk
-                if isinstance(l10n_entities[entity_id],
-                              parser.Junk):
+                if isinstance(l10n_entities[entity_id], parser.Junk):
                     junk = l10n_entities[entity_id]
-                    self.observers.notify(
-                        'error', l10n,
-                        junk.error_message()
-                    )
+                    self.observers.notify("error", l10n, junk.error_message())
                     if merge_file is not None:
                         skips.append(junk)
                 elif (
-                    self.observers.notify('obsoleteEntity', l10n, entity_id)
-                    != 'ignore'
+                    self.observers.notify("obsoleteEntity", l10n, entity_id) != "ignore"
                 ):
                     obsolete += 1
             else:
@@ -226,37 +249,45 @@ class ContentComparer:
                         else:
                             line, col = l10nent.value_position(pos)
                         # skip error entities when merging
-                        if tp == 'error' and merge_file is not None:
+                        if tp == "error" and merge_file is not None:
                             skips.append(l10nent)
                         self.observers.notify(
-                            tp, l10n,
-                            "%s at line %d, column %d for %s" %
-                            (msg, line, col, refent.key)
+                            tp,
+                            l10n,
+                            "%s at line %d, column %d for %s"
+                            % (msg, line, col, refent.key),
                         )
                 pass
 
         if merge_file is not None:
             self.merge(
-                ref_entities, ref_file,
-                l10n, merge_file, missings, skips, l10n_ctx,
-                p.capabilities, p.encoding)
+                ref_entities,
+                ref_file,
+                l10n,
+                merge_file,
+                missings,
+                skips,
+                l10n_ctx,
+                p.capabilities,
+                p.encoding,
+            )
 
         stats = {
-            'missing': missing,
-            'missing_w': missing_w,
-            'report': report,
-            'obsolete': obsolete,
-            'changed': changed,
-            'changed_w': changed_w,
-            'unchanged': unchanged,
-            'unchanged_w': unchanged_w,
-            'keys': keys,
+            "missing": missing,
+            "missing_w": missing_w,
+            "report": report,
+            "obsolete": obsolete,
+            "changed": changed,
+            "changed_w": changed_w,
+            "unchanged": unchanged,
+            "unchanged_w": unchanged_w,
+            "keys": keys,
         }
         self.observers.updateStats(l10n, stats)
         pass
 
     def add(self, orig, missing, merge_file):
-        ''' Add missing localized file.'''
+        """Add missing localized file."""
         f = orig
         try:
             p = parser.getParser(f.file)
@@ -266,14 +297,21 @@ class ContentComparer:
         # if we don't support this file, assume CAN_COPY to mimick
         # l10n dir as closely as possible
         caps = p.capabilities if p else parser.CAN_COPY
-        if (caps & (parser.CAN_COPY | parser.CAN_MERGE)):
+        if caps & (parser.CAN_COPY | parser.CAN_MERGE):
             # even if we can merge, pretend we can only copy
             self.merge(
-                KeyedTuple([]), orig, missing, merge_file,
-                ['trigger copy'], [], None, parser.CAN_COPY, None
+                KeyedTuple([]),
+                orig,
+                missing,
+                merge_file,
+                ["trigger copy"],
+                [],
+                None,
+                parser.CAN_COPY,
+                None,
             )
 
-        if self.observers.notify('missingFile', missing, None) == "ignore":
+        if self.observers.notify("missingFile", missing, None) == "ignore":
             # filter said that we don't need this file, don't count it
             return
 
@@ -285,15 +323,15 @@ class ContentComparer:
             p.readFile(f)
             entities = p.parse()
         except Exception as ex:
-            self.observers.notify('error', f, str(ex))
+            self.observers.notify("error", f, str(ex))
             return
         # strip parse errors
         entities = [e for e in entities if not isinstance(e, parser.Junk)]
-        self.observers.updateStats(missing, {'missing': len(entities)})
+        self.observers.updateStats(missing, {"missing": len(entities)})
         missing_w = 0
         for e in entities:
             missing_w += e.count_words()
-        self.observers.updateStats(missing, {'missing_w': missing_w})
+        self.observers.updateStats(missing, {"missing_w": missing_w})
 
     def doUnchanged(self, entity):
         # overload this if needed

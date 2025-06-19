@@ -23,9 +23,9 @@ try:
 except ImportError:
     raise DidNotEnable("Pyramid not installed")
 
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 
-if MYPY:
+if TYPE_CHECKING:
     from pyramid.response import Response
     from typing import Any
     from sentry_sdk.integrations.wsgi import _ScopedResponse
@@ -36,7 +36,7 @@ if MYPY:
     from webob.compat import cgi_FieldStorage  # type: ignore
 
     from sentry_sdk.utils import ExcInfo
-    from sentry_sdk._types import EventProcessor
+    from sentry_sdk._types import Event, EventProcessor
 
 
 if getattr(Request, "authenticated_userid", None):
@@ -215,8 +215,8 @@ class PyramidRequestExtractor(RequestExtractor):
 
 def _make_event_processor(weak_request, integration):
     # type: (Callable[[], Request], PyramidIntegration) -> EventProcessor
-    def event_processor(event, hint):
-        # type: (Dict[str, Any], Dict[str, Any]) -> Dict[str, Any]
+    def pyramid_event_processor(event, hint):
+        # type: (Event, Dict[str, Any]) -> Event
         request = weak_request()
         if request is None:
             return event
@@ -231,4 +231,4 @@ def _make_event_processor(weak_request, integration):
 
         return event
 
-    return event_processor
+    return pyramid_event_processor

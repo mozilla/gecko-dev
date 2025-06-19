@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2017 Johannes F. Knauf
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,8 +15,23 @@
 
 """
 Use this rule to enforce alphabetical ordering of keys in mappings. The sorting
-order uses the Unicode code point number. As a result, the ordering is
-case-sensitive and not accent-friendly (see examples below).
+order uses the Unicode code point number as a default. As a result, the
+ordering is case-sensitive and not accent-friendly (see examples below).
+This can be changed by setting the global ``locale`` option.  This allows one
+to sort case and accents properly.
+
+.. rubric:: Options
+
+* ``ignored-keys`` is a list of PCRE regexes to ignore some keys while checking
+  order, if they match any regex.
+
+.. rubric:: Default values (when enabled)
+
+.. code-block:: yaml
+
+ rules:
+   key-ordering:
+     ignored-keys: []
 
 .. rubric:: Examples
 
@@ -63,20 +77,50 @@ case-sensitive and not accent-friendly (see examples below).
 
     - haïr: true
       hais: true
+
+#. With global option ``locale: "en_US.UTF-8"`` and rule ``key-ordering: {}``
+
+   as opposed to before, the following code snippet would now **PASS**:
+   ::
+
+    - t-shirt: 1
+      T-shirt: 2
+      t-shirts: 3
+      T-shirts: 4
+    - hair: true
+      haïr: true
+      hais: true
+      haïssable: true
+
+#. With rule ``key-ordering: {ignored-keys: ["name"]}``
+
+   the following code snippet would **PASS**:
+   ::
+
+    - a:
+      b:
+      name: ignored
+      first-name: ignored
+      c:
+      d:
 """
+
+import re
+from locale import strcoll
 
 import yaml
 
 from yamllint.linter import LintProblem
 
-
 ID = 'key-ordering'
 TYPE = 'token'
 
+CONF = {'ignored-keys': [str]}
+DEFAULT = {'ignored-keys': []}
 MAP, SEQ = range(2)
 
 
-class Parent(object):
+class Parent:
     def __init__(self, type):
         self.type = type
         self.keys = []
@@ -100,10 +144,13 @@ def check(conf, token, prev, next, nextnext, context):
           isinstance(next, yaml.ScalarToken)):
         # This check is done because KeyTokens can be found inside flow
         # sequences... strange, but allowed.
-        if len(context['stack']) > 0 and context['stack'][-1].type == MAP:
-            if any(next.value < key for key in context['stack'][-1].keys):
+        if (len(context['stack']) > 0 and context['stack'][-1].type == MAP and
+                not any(re.search(r, next.value)
+                        for r in conf['ignored-keys'])):
+            if any(strcoll(next.value, key) < 0
+                   for key in context['stack'][-1].keys):
                 yield LintProblem(
                     next.start_mark.line + 1, next.start_mark.column + 1,
-                    'wrong ordering of key "%s" in mapping' % next.value)
+                    f'wrong ordering of key "{next.value}" in mapping')
             else:
                 context['stack'][-1].keys.append(next.value)

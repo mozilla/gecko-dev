@@ -10,16 +10,16 @@ from ..parser.android import textContent
 
 
 class AndroidChecker(Checker):
-    pattern = re.compile('(.*)?strings.*\\.xml$')
+    pattern = re.compile("(.*)?strings.*\\.xml$")
 
     def check(self, refEnt, l10nEnt):
-        '''Given the reference and localized Entities, performs checks.
+        """Given the reference and localized Entities, performs checks.
 
         This is a generator yielding tuples of
         - "warning" or "error", depending on what should be reported,
         - tuple of line, column info for the error within the string
         - description string to be shown in the report
-        '''
+        """
         yield from super().check(refEnt, l10nEnt)
         refNode = refEnt.node
         l10nNode = l10nEnt.node
@@ -35,55 +35,34 @@ class AndroidChecker(Checker):
         yield from self.check_string([refNode], l10nEnt)
 
     def check_string(self, refs, l10nEnt):
-        '''Check a single string literal against a list of references.
+        """Check a single string literal against a list of references.
 
         There should be multiple nodes given for <plurals> or <string-array>.
-        '''
+        """
         l10n = l10nEnt.node
         if self.not_translatable(l10n, *refs):
-            yield (
-                "error",
-                0,
-                "strings must be translatable",
-                "android"
-            )
+            yield ("error", 0, "strings must be translatable", "android")
             return
         if self.no_at_string(l10n):
-            yield (
-                "error",
-                0,
-                "strings must be translatable",
-                "android"
-            )
+            yield ("error", 0, "strings must be translatable", "android")
             return
         if self.no_at_string(*refs):
-            yield (
-                "warning",
-                0,
-                "strings must be translatable",
-                "android"
-            )
+            yield ("warning", 0, "strings must be translatable", "android")
         if self.non_simple_data(l10n):
             yield (
                 "error",
                 0,
-                "Only plain text allowed, "
-                "or one CDATA surrounded by whitespace",
-                "android"
+                "Only plain text allowed, " "or one CDATA surrounded by whitespace",
+                "android",
             )
             return
         yield from check_apostrophes(l10nEnt.val)
 
-        params, errors = get_params(refs)
+        params, count, errors = get_params(refs)
         for error, pos in errors:
-            yield (
-                "warning",
-                pos,
-                error,
-                "android"
-            )
-        if params:
-            yield from check_params(params, l10nEnt.val)
+            yield ("warning", pos, error, "android")
+        # Always check parameters, as the translation might have additional ones
+        yield from check_params(params, count, l10nEnt.val)
 
     def not_translatable(self, *nodes):
         return any(
@@ -93,20 +72,17 @@ class AndroidChecker(Checker):
         )
 
     def no_at_string(self, *ref_nodes):
-        '''Android allows to reference other strings by using
+        """Android allows to reference other strings by using
         @string/identifier
         instead of the actual value. Those references don't belong into
         a localizable file, warn on that.
-        '''
-        return any(
-            textContent(node).startswith('@string/')
-            for node in ref_nodes
-        )
+        """
+        return any(textContent(node).startswith("@string/") for node in ref_nodes)
 
     def non_simple_data(self, node):
-        '''Only allow single text nodes, or, a single CDATA node
+        """Only allow single text nodes, or, a single CDATA node
         surrounded by whitespace.
-        '''
+        """
         cdata = [
             child
             for child in node.childNodes
@@ -135,7 +111,7 @@ silencer = re.compile(r'\\.|""')
 
 
 def check_apostrophes(string):
-    '''Check Android logic for quotes and apostrophes.
+    """Check Android logic for quotes and apostrophes.
 
     If you have an apostrophe (') in your string, you must either escape it
     with a backslash (\') or enclose the string in double-quotes (").
@@ -148,48 +124,42 @@ def check_apostrophes(string):
     by Android in the end.
 
     https://developer.android.com/guide/topics/resources/string-resource#escaping_quotes
-    '''
+    """
     for m in re.finditer('""', string):
-        yield (
-            "error",
-            m.start(),
-            "Double straight quotes not allowed",
-            "android"
-        )
+        yield ("error", m.start(), "Double straight quotes not allowed", "android")
     string = silencer.sub("  ", string)
 
     is_quoted = string.startswith('"') and string.endswith('"')
     if not is_quoted:
         # apostrophes need to be escaped
         for m in re.finditer("'", string):
-            yield (
-                "error",
-                m.start(),
-                "Apostrophe must be escaped",
-                "android"
-            )
+            yield ("error", m.start(), "Apostrophe must be escaped", "android")
 
 
 def get_params(refs):
-    '''Get printf parameters and internal errors.
+    """Get printf parameters and internal errors.
 
-    Returns a sparse map of positions to formatter, and a list
-    of errors. Errors covered so far are mismatching formatters.
-    '''
+    Returns a sparse map of positions to formatter, parameter count and
+    a list of errors. Errors covered so far are mismatching formatters.
+    """
     params = {}
     errors = []
+    count = 0
     next_implicit = 1
     for ref in refs:
         if isinstance(ref, minidom.Node):
             ref = textContent(ref)
-        for m in re.finditer(r'%(?P<order>[1-9]\$)?(?P<format>[sSd])', ref):
-            order = m.group('order')
+        for m in re.finditer(
+            r"%(?P<order>[1-9]\$)?(?P<format>(?:\.[0-9]+)?f|[dsS])", ref
+        ):
+            count += 1
+            order = m.group("order")
             if order:
                 order = int(order[0])
             else:
                 order = next_implicit
                 next_implicit += 1
-            fmt = m.group('format')
+            fmt = m.group("format")
             if order not in params:
                 params[order] = fmt
             else:
@@ -197,28 +167,24 @@ def get_params(refs):
                 if params[order] == fmt:
                     continue
                 msg = "Conflicting formatting, %{order}${f1} vs %{order}${f2}"
-                errors.append((
-                    msg.format(order=order, f1=fmt, f2=params[order]),
-                    m.start()
-                ))
-    return params, errors
+                errors.append(
+                    (msg.format(order=order, f1=fmt, f2=params[order]), m.start())
+                )
+    return params, count, errors
 
 
-def check_params(params, string):
-    '''Compare the printf parameters in the given string to the reference
+def check_params(params, count, string):
+    """Compare the printf parameters in the given string to the reference
     parameters.
 
     Also yields errors that are internal to the parameters inside string,
     as found by `get_params`.
-    '''
-    lparams, errors = get_params([string])
+    """
+    has_errors = False
+    lparams, lcount, errors = get_params([string])
     for error, pos in errors:
-        yield (
-            "error",
-            pos,
-            error,
-            "android"
-        )
+        has_errors = True
+        yield ("error", pos, error, "android")
     # Compare reference for each localized parameter.
     # If there's no reference found, error, as an out-of-bounds
     # parameter crashes.
@@ -227,25 +193,21 @@ def check_params(params, string):
     # If there's a mismatch in the formatter, error.
     for order in sorted(lparams):
         if order not in params:
+            has_errors = True
             yield (
                 "error",
                 0,
-                "Formatter %{}${} not found in reference".format(
-                    order, lparams[order]
-                ),
-                "android"
+                f"Formatter %{order}${lparams[order]} not found in reference",
+                "android",
             )
         elif params[order] != lparams[order]:
-            yield (
-                "error",
-                0,
-                "Mismatching formatter",
-                "android"
-            )
+            has_errors = True
+            yield ("error", 0, "Mismatching formatter", "android")
     # All parameters used in the reference are expected to be included.
     # Warn if this isn't the case.
     for order in params:
         if order not in sorted(lparams):
+            has_errors = True
             yield (
                 "warning",
                 0,
@@ -254,3 +216,5 @@ def check_params(params, string):
                 ),
                 "android",
             )
+    if not has_errors and count != lcount:
+        yield ("warning", 0, "Formatter count mismatch", "android")

@@ -1,15 +1,16 @@
 from __future__ import absolute_import
 
 import sys
+from functools import wraps
 from threading import Thread, current_thread
 
 from sentry_sdk import Hub
 from sentry_sdk._compat import reraise
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 from sentry_sdk.integrations import Integration
 from sentry_sdk.utils import event_from_exception, capture_internal_exceptions
 
-if MYPY:
+if TYPE_CHECKING:
     from typing import Any
     from typing import TypeVar
     from typing import Callable
@@ -32,6 +33,7 @@ class ThreadingIntegration(Integration):
         # type: () -> None
         old_start = Thread.start
 
+        @wraps(old_start)
         def sentry_start(self, *a, **kw):
             # type: (Thread, *Any, **Any) -> Any
             hub = Hub.current
@@ -58,6 +60,7 @@ class ThreadingIntegration(Integration):
 
 def _wrap_run(parent_hub, old_run_func):
     # type: (Optional[Hub], F) -> F
+    @wraps(old_run_func)
     def run(*a, **kw):
         # type: (*Any, **Any) -> Any
         hub = parent_hub or Hub.current

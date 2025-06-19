@@ -33,6 +33,7 @@ from tomlkit._types import _CustomList
 from tomlkit._types import wrap_method
 from tomlkit._utils import CONTROL_CHARS
 from tomlkit._utils import escape_string
+from tomlkit.exceptions import ConvertError
 from tomlkit.exceptions import InvalidStringError
 
 
@@ -46,75 +47,58 @@ CUSTOM_ENCODERS: list[Encoder] = []
 AT = TypeVar("AT", bound="AbstractTable")
 
 
-class _ConvertError(TypeError, ValueError):
-    """An internal error raised when item() fails to convert a value.
-    It should be a TypeError, but due to historical reasons
-    it needs to subclass ValueError as well.
-    """
+@overload
+def item(value: bool, _parent: Item | None = ..., _sort_keys: bool = ...) -> Bool: ...
 
 
 @overload
-def item(value: bool, _parent: Item | None = ..., _sort_keys: bool = ...) -> Bool:
-    ...
+def item(value: int, _parent: Item | None = ..., _sort_keys: bool = ...) -> Integer: ...
 
 
 @overload
-def item(value: int, _parent: Item | None = ..., _sort_keys: bool = ...) -> Integer:
-    ...
+def item(value: float, _parent: Item | None = ..., _sort_keys: bool = ...) -> Float: ...
 
 
 @overload
-def item(value: float, _parent: Item | None = ..., _sort_keys: bool = ...) -> Float:
-    ...
-
-
-@overload
-def item(value: str, _parent: Item | None = ..., _sort_keys: bool = ...) -> String:
-    ...
+def item(value: str, _parent: Item | None = ..., _sort_keys: bool = ...) -> String: ...
 
 
 @overload
 def item(
     value: datetime, _parent: Item | None = ..., _sort_keys: bool = ...
-) -> DateTime:
-    ...
+) -> DateTime: ...
 
 
 @overload
-def item(value: date, _parent: Item | None = ..., _sort_keys: bool = ...) -> Date:
-    ...
+def item(value: date, _parent: Item | None = ..., _sort_keys: bool = ...) -> Date: ...
 
 
 @overload
-def item(value: time, _parent: Item | None = ..., _sort_keys: bool = ...) -> Time:
-    ...
+def item(value: time, _parent: Item | None = ..., _sort_keys: bool = ...) -> Time: ...
 
 
 @overload
 def item(
     value: Sequence[dict], _parent: Item | None = ..., _sort_keys: bool = ...
-) -> AoT:
-    ...
+) -> AoT: ...
 
 
 @overload
-def item(value: Sequence, _parent: Item | None = ..., _sort_keys: bool = ...) -> Array:
-    ...
+def item(
+    value: Sequence, _parent: Item | None = ..., _sort_keys: bool = ...
+) -> Array: ...
 
 
 @overload
-def item(value: dict, _parent: Array = ..., _sort_keys: bool = ...) -> InlineTable:
-    ...
+def item(value: dict, _parent: Array = ..., _sort_keys: bool = ...) -> InlineTable: ...
 
 
 @overload
-def item(value: dict, _parent: Item | None = ..., _sort_keys: bool = ...) -> Table:
-    ...
+def item(value: dict, _parent: Item | None = ..., _sort_keys: bool = ...) -> Table: ...
 
 
 @overload
-def item(value: ItemT, _parent: Item | None = ..., _sort_keys: bool = ...) -> ItemT:
-    ...
+def item(value: ItemT, _parent: Item | None = ..., _sort_keys: bool = ...) -> ItemT: ...
 
 
 def item(value: Any, _parent: Item | None = None, _sort_keys: bool = False) -> Item:
@@ -216,16 +200,16 @@ def item(value: Any, _parent: Item | None = None, _sort_keys: bool = False) -> I
         for encoder in CUSTOM_ENCODERS:
             try:
                 rv = encoder(value)
-            except TypeError:
+            except ConvertError:
                 pass
             else:
                 if not isinstance(rv, Item):
-                    raise _ConvertError(
-                        f"Custom encoder returned {type(rv)}, not a subclass of Item"
+                    raise ConvertError(
+                        f"Custom encoder is expected to return an instance of Item, got {type(rv)}"
                     )
                 return rv
 
-    raise _ConvertError(f"Invalid type {type(value)}")
+    raise ConvertError(f"Unable to convert an object of {type(value)} to a TOML item")
 
 
 class StringType(Enum):
@@ -396,6 +380,9 @@ class SingleKey(Key):
         sep: str | None = None,
         original: str | None = None,
     ) -> None:
+        if not isinstance(k, str):
+            raise TypeError("Keys must be strings")
+
         if t is None:
             if not k or any(
                 c not in string.ascii_letters + string.digits + "-" + "_" for c in k
@@ -566,7 +553,7 @@ class Whitespace(Item):
         return self._s
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} {repr(self._s)}>"
+        return f"<{self.__class__.__name__} {self._s!r}>"
 
     def _getstate(self, protocol=3):
         return self._s, self._fixed
@@ -629,9 +616,8 @@ class Integer(Item, _CustomInt):
 
     def _new(self, result):
         raw = str(result)
-        if self._sign:
-            sign = "+" if result >= 0 else "-"
-            raw = sign + raw
+        if self._sign and result >= 0:
+            raw = f"+{raw}"
 
         return Integer(result, self._trivia, raw)
 
@@ -724,9 +710,8 @@ class Float(Item, _CustomFloat):
     def _new(self, result):
         raw = str(result)
 
-        if self._sign:
-            sign = "+" if result >= 0 else "-"
-            raw = sign + raw
+        if self._sign and result >= 0:
+            raw = f"+{raw}"
 
         return Float(result, self._trivia, raw)
 
@@ -970,9 +955,14 @@ class Date(Item, date):
         return date.__new__(cls, year, month, day)
 
     def __init__(
-        self, year: int, month: int, day: int, trivia: Trivia, raw: str
+        self,
+        year: int,
+        month: int,
+        day: int,
+        trivia: Trivia | None = None,
+        raw: str = "",
     ) -> None:
-        super().__init__(trivia)
+        super().__init__(trivia or Trivia())
 
         self._raw = raw
 
@@ -1045,10 +1035,10 @@ class Time(Item, time):
         second: int,
         microsecond: int,
         tzinfo: tzinfo | None,
-        trivia: Trivia,
-        raw: str,
+        trivia: Trivia | None = None,
+        raw: str = "",
     ) -> None:
-        super().__init__(trivia)
+        super().__init__(trivia or Trivia())
 
         self._raw = raw
 
@@ -1096,7 +1086,7 @@ class Time(Item, time):
 
 
 class _ArrayItemGroup:
-    __slots__ = ("value", "indent", "comma", "comment")
+    __slots__ = ("comma", "comment", "indent", "value")
 
     def __init__(
         self,
@@ -1151,11 +1141,13 @@ class Array(Item, _CustomList):
         """Group the values into (indent, value, comma, comment) tuples"""
         groups = []
         this_group = _ArrayItemGroup()
+        start_new_group = False
         for item in value:
             if isinstance(item, Whitespace):
-                if "," not in item.s:
+                if "," not in item.s or start_new_group:
                     groups.append(this_group)
                     this_group = _ArrayItemGroup(indent=item)
+                    start_new_group = False
                 else:
                     if this_group.value is None:
                         # when comma is met and no value is provided, add a dummy Null
@@ -1165,6 +1157,8 @@ class Array(Item, _CustomList):
                 if this_group.value is None:
                     this_group.value = Null()
                 this_group.comment = item
+                # Comments are the last item in a group.
+                start_new_group = True
             elif this_group.value is None:
                 this_group.value = item
             else:
@@ -1215,7 +1209,7 @@ class Array(Item, _CustomList):
 
     def as_string(self) -> str:
         if not self._multiline or not self._value:
-            return f'[{"".join(v.as_string() for v in self._iter_items())}]'
+            return f"[{''.join(v.as_string() for v in self._iter_items())}]"
 
         s = "[\n"
         s += "".join(
@@ -1273,7 +1267,7 @@ class Array(Item, _CustomList):
         data_values = []
         for i, el in enumerate(items):
             it = item(el, _parent=self)
-            if isinstance(it, Comment) or add_comma and isinstance(el, Whitespace):
+            if isinstance(it, Comment) or (add_comma and isinstance(el, Whitespace)):
                 raise ValueError(f"item type {type(it)} is not allowed in add_line")
             if not isinstance(it, Whitespace):
                 if whitespace:
@@ -1326,10 +1320,14 @@ class Array(Item, _CustomList):
     def __len__(self) -> int:
         return list.__len__(self)
 
+    def item(self, index: int) -> Item:
+        rv = list.__getitem__(self, index)
+        return cast(Item, rv)
+
     def __getitem__(self, key: int | slice) -> Any:
-        rv = cast(Item, list.__getitem__(self, key))
-        if rv.is_boolean():
-            return bool(rv)
+        rv = list.__getitem__(self, key)
+        if isinstance(rv, Bool):
+            return rv.value
         return rv
 
     def __setitem__(self, key: int | slice, value: Any) -> Any:
@@ -1408,14 +1406,54 @@ class Array(Item, _CustomList):
                 if not isinstance(key, slice):
                     raise IndexError("list index out of range") from e
             else:
+                group_rm = self._value[idx]
                 del self._value[idx]
                 if (
                     idx == 0
                     and len(self._value) > 0
+                    and self._value[idx].indent
                     and "\n" not in self._value[idx].indent.s
                 ):
                     # Remove the indentation of the first item if not newline
                     self._value[idx].indent = None
+                comma_in_indent = (
+                    group_rm.indent is not None and "," in group_rm.indent.s
+                )
+                comma_in_comma = group_rm.comma is not None and "," in group_rm.comma.s
+                if comma_in_indent and comma_in_comma:
+                    # Removed group had both commas. Add one to the next group.
+                    group = self._value[idx] if len(self._value) > idx else None
+                    if group is not None:
+                        if group.indent is None:
+                            group.indent = Whitespace(",")
+                        elif "," not in group.indent.s:
+                            # Insert the comma after the newline
+                            try:
+                                newline_index = group.indent.s.index("\n")
+                                group.indent._s = (
+                                    group.indent.s[: newline_index + 1]
+                                    + ","
+                                    + group.indent.s[newline_index + 1 :]
+                                )
+                            except ValueError:
+                                group.indent._s = "," + group.indent.s
+                elif not comma_in_indent and not comma_in_comma:
+                    # Removed group had no commas. Remove the next comma found.
+                    for j in range(idx, len(self._value)):
+                        group = self._value[j]
+                        if group.indent is not None and "," in group.indent.s:
+                            group.indent._s = group.indent.s.replace(",", "", 1)
+                            break
+                if group_rm.indent is not None and "\n" in group_rm.indent.s:
+                    # Restore the removed group's newline onto the next group
+                    # if the next group does not have a newline.
+                    # i.e. the two were on the same line
+                    group = self._value[idx] if len(self._value) > idx else None
+                    if group is not None and (
+                        group.indent is None or "\n" not in group.indent.s
+                    ):
+                        group.indent = group_rm.indent
+
         if len(self._value) > 0:
             v = self._value[-1]
             if not v.is_whitespace():
@@ -1456,23 +1494,19 @@ class AbstractTable(Item, _CustomDict):
         return self._value
 
     @overload
-    def append(self: AT, key: None, value: Comment | Whitespace) -> AT:
-        ...
+    def append(self: AT, key: None, value: Comment | Whitespace) -> AT: ...
 
     @overload
-    def append(self: AT, key: Key | str, value: Any) -> AT:
-        ...
+    def append(self: AT, key: Key | str, value: Any) -> AT: ...
 
     def append(self, key, value):
         raise NotImplementedError
 
     @overload
-    def add(self: AT, key: Comment | Whitespace) -> AT:
-        ...
+    def add(self: AT, key: Comment | Whitespace) -> AT: ...
 
     @overload
-    def add(self: AT, key: Key | str, value: Any = ...) -> AT:
-        ...
+    def add(self: AT, key: Key | str, value: Any = ...) -> AT: ...
 
     def add(self, key, value=None):
         if value is None:
@@ -1494,6 +1528,9 @@ class AbstractTable(Item, _CustomDict):
             dict.__delitem__(self, key)
 
         return self
+
+    def item(self, key: Key | str) -> Item:
+        return self._value.item(key)
 
     def setdefault(self, key: Key | str, default: Any) -> Any:
         super().setdefault(key, default)
@@ -1637,11 +1674,23 @@ class Table(AbstractTable):
         If true, it won't appear in the TOML representation."""
         if self._is_super_table is not None:
             return self._is_super_table
-        # If the table has only one child and that child is a table, then it is a super table.
-        if len(self) != 1:
+        if not self:
             return False
-        only_child = next(iter(self.values()))
-        return isinstance(only_child, (Table, AoT))
+        # If the table has children and all children are tables, then it is a super table.
+        for k, child in self.items():
+            if not isinstance(k, Key):
+                k = SingleKey(k)
+            index = self.value._map[k]
+            if isinstance(index, tuple):
+                return False
+            real_key = self.value.body[index][0]
+            if (
+                not isinstance(child, (Table, AoT))
+                or real_key is None
+                or real_key.is_dotted()
+            ):
+                return False
+        return True
 
     def as_string(self) -> str:
         return self._value.as_string()
@@ -1747,7 +1796,7 @@ class InlineTable(AbstractTable):
             v_trivia_trail = v.trivia.trail.replace("\n", "")
             buf += (
                 f"{v.trivia.indent}"
-                f'{k.as_string() + ("." if k.is_dotted() else "")}'
+                f"{k.as_string() + ('.' if k.is_dotted() else '')}"
                 f"{k.sep}"
                 f"{v.as_string()}"
                 f"{v.trivia.comment}"
@@ -1873,18 +1922,16 @@ class AoT(Item, _CustomList):
         return len(self._body)
 
     @overload
-    def __getitem__(self, key: slice) -> list[Table]:
-        ...
+    def __getitem__(self, key: slice) -> list[Table]: ...
 
     @overload
-    def __getitem__(self, key: int) -> Table:
-        ...
+    def __getitem__(self, key: int) -> Table: ...
 
     def __getitem__(self, key):
         return self._body[key]
 
     def __setitem__(self, key: slice | int, value: Any) -> None:
-        raise NotImplementedError
+        self._body[key] = item(value, _parent=self)
 
     def __delitem__(self, key: slice | int) -> None:
         del self._body[key]

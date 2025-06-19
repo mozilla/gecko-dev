@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-'''Merge resources across channels.
+"""Merge resources across channels.
 
 Merging resources is done over a series of parsed resources, or source
 strings.
@@ -13,7 +13,7 @@ newest to the oldest resource, too.
 
 In merge_resources, there's an option to choose the values from oldest
 to newest instead.
-'''
+"""
 
 from collections import OrderedDict, defaultdict
 from codecs import encode
@@ -33,22 +33,21 @@ def merge_channels(name, resources):
     try:
         parser = cl.getParser(name)
     except UserWarning:
-        raise MergeNotSupportedError(
-            f'Unsupported file format ({name}).')
+        raise MergeNotSupportedError(f"Unsupported file format ({name}).")
 
     entities = merge_resources(parser, resources)
     return encode(serialize_legacy_resource(entities), parser.encoding)
 
 
 def merge_resources(parser, resources, keep_newest=True):
-    '''Merge parsed or unparsed resources, returning a enumerable of Entities.
+    """Merge parsed or unparsed resources, returning a enumerable of Entities.
 
     Resources are ordered from newest to oldest in the input. The structure
     of the generated content is taken from the newest resource first, and
     then filled by the next etc.
     Values are also taken from the newest, unless keep_newest is False,
     then values are taken from the oldest first.
-    '''
+    """
 
     def parse_resource(resource):
         # The counter dict keeps track of number of identical comments.
@@ -76,18 +75,19 @@ def merge_resources(parser, resources, keep_newest=True):
 
     entities = reduce(
         lambda x, y: merge_two(x, y, keep_newer=keep_newest),
-        map(parse_resource, resources))
+        map(parse_resource, resources),
+    )
     return entities.values()
 
 
 def merge_two(newer, older, keep_newer=True):
-    '''Merge two OrderedDicts.
+    """Merge two OrderedDicts.
 
     The order of the result dict is determined by `newer`.
     The values in the dict are the newer ones by default, too.
     If `keep_newer` is False, the values will be taken from the older
     dict.
-    '''
+    """
     diff = AddRemove()
     diff.set_left(newer.keys())
     diff.set_right(older.keys())

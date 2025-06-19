@@ -36,7 +36,7 @@ setup(
     version=version,
     author='Idan Kamara',
     author_email='idankk86@gmail.com',
-    url='http://selenic.com/repo/python-hglib',
+    url='https://www.mercurial-scm.org/wiki/PythonHglibs',
     description='Mercurial Python library',
     long_description=open(os.path.join(os.path.dirname(__file__),
                                        'README')).read(),

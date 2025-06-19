@@ -14,18 +14,18 @@ from compare_locales import plurals
 
 
 MSGS = {
-    'missing-msg-ref': 'Missing message reference: {ref}',
-    'missing-term-ref': 'Missing term reference: {ref}',
-    'obsolete-msg-ref': 'Obsolete message reference: {ref}',
-    'obsolete-term-ref': 'Obsolete term reference: {ref}',
-    'duplicate-attribute': 'Attribute "{name}" is duplicated',
-    'missing-value': 'Missing value',
-    'obsolete-value': 'Obsolete value',
-    'missing-attribute': 'Missing attribute: {name}',
-    'obsolete-attribute': 'Obsolete attribute: {name}',
-    'duplicate-variant': 'Variant key "{name}" is duplicated',
-    'missing-plural': 'Plural categories missing: {categories}',
-    'plain-message': '{message}',
+    "missing-msg-ref": "Missing message reference: {ref}",
+    "missing-term-ref": "Missing term reference: {ref}",
+    "obsolete-msg-ref": "Obsolete message reference: {ref}",
+    "obsolete-term-ref": "Obsolete term reference: {ref}",
+    "duplicate-attribute": 'Attribute "{name}" is duplicated',
+    "missing-value": "Missing value",
+    "obsolete-value": "Obsolete value",
+    "missing-attribute": "Missing attribute: {name}",
+    "obsolete-attribute": "Obsolete attribute: {name}",
+    "duplicate-variant": 'Variant key "{name}" is duplicated',
+    "missing-plural": "Plural categories missing: {categories}",
+    "plain-message": "{message}",
 }
 
 
@@ -62,10 +62,7 @@ class ReferenceMessageVisitor(Visitor, CSSCheckMixin):
         self.css_errors = None
 
     def generic_visit(self, node):
-        if isinstance(
-            node,
-            (ftl.Span, ftl.Annotation, ftl.BaseComment)
-        ):
+        if isinstance(node, (ftl.Span, ftl.Annotation, ftl.BaseComment)):
             return
         super().generic_visit(node)
 
@@ -80,11 +77,11 @@ class ReferenceMessageVisitor(Visitor, CSSCheckMixin):
         self.refs = self.entry_refs[node.id.name]
         super().generic_visit(node)
         self.refs = old_refs
-        if node.id.name != 'style':
+        if node.id.name != "style":
             return
         text_values = pattern_variants(node.value)
         if not text_values:
-            self.css_styles = 'skip'
+            self.css_styles = "skip"
             return
         # right now, there's just one possible text value
         self.css_styles, self.css_errors = self.parse_css_spec(text_values[0])
@@ -96,18 +93,19 @@ class ReferenceMessageVisitor(Visitor, CSSCheckMixin):
     def visit_MessageReference(self, node):
         ref = node.id.name
         if node.attribute:
-            ref += '.' + node.attribute.name
-        self.refs[ref] = 'msg-ref'
+            ref += "." + node.attribute.name
+        self.refs[ref] = "msg-ref"
 
     def visit_TermReference(self, node):
         # only collect term references, but not attributes of terms
         if node.attribute:
             return
-        self.refs['-' + node.id.name] = 'term-ref'
+        self.refs["-" + node.id.name] = "term-ref"
 
 
 class GenericL10nChecks:
-    '''Helper Mixin for checks shared between Terms and Messages.'''
+    """Helper Mixin for checks shared between Terms and Messages."""
+
     def check_duplicate_attributes(self, node):
         warned = set()
         for left in range(len(node.attributes) - 1):
@@ -115,26 +113,26 @@ class GenericL10nChecks:
                 continue
             left_attr = node.attributes[left]
             warned_left = False
-            for right in range(left+1, len(node.attributes)):
+            for right in range(left + 1, len(node.attributes)):
                 right_attr = node.attributes[right]
                 if left_attr.id.name == right_attr.id.name:
                     if not warned_left:
                         warned_left = True
                         self.messages.append(
                             (
-                                'warning', left_attr.span.start,
-                                MSGS['duplicate-attribute'].format(
+                                "warning",
+                                left_attr.span.start,
+                                MSGS["duplicate-attribute"].format(
                                     name=left_attr.id.name
-                                )
+                                ),
                             )
                         )
                     warned.add(right)
                     self.messages.append(
                         (
-                            'warning', right_attr.span.start,
-                            MSGS['duplicate-attribute'].format(
-                                name=left_attr.id.name
-                            )
+                            "warning",
+                            right_attr.span.start,
+                            MSGS["duplicate-attribute"].format(name=left_attr.id.name),
                         )
                     )
 
@@ -146,25 +144,23 @@ class GenericL10nChecks:
                 continue
             left_key = variants[left].key
             key_string = None
-            for right in range(left+1, len(variants)):
+            for right in range(left + 1, len(variants)):
                 if left_key.equals(variants[right].key):
                     if key_string is None:
                         key_string = serialize_variant_key(left_key)
                         self.messages.append(
                             (
-                                'warning', left_key.span.start,
-                                MSGS['duplicate-variant'].format(
-                                    name=key_string
-                                )
+                                "warning",
+                                left_key.span.start,
+                                MSGS["duplicate-variant"].format(name=key_string),
                             )
                         )
                     warned.add(right)
                     self.messages.append(
                         (
-                            'warning', variants[right].key.span.start,
-                            MSGS['duplicate-variant'].format(
-                                name=key_string
-                            )
+                            "warning",
+                            variants[right].key.span.start,
+                            MSGS["duplicate-variant"].format(name=key_string),
                         )
                     )
         # Check for plural categories
@@ -174,17 +170,18 @@ class GenericL10nChecks:
             # Ask for known plurals, but check for plurals w/out `other`.
             # `other` is used for all kinds of things.
             check_plurals = known_plurals.copy()
-            check_plurals.discard('other')
+            check_plurals.discard("other")
             given_plurals = {serialize_variant_key(v.key) for v in variants}
             if given_plurals & check_plurals:
                 missing_plurals = sorted(known_plurals - given_plurals)
                 if missing_plurals:
                     self.messages.append(
                         (
-                            'warning', variants[0].key.span.start,
-                            MSGS['missing-plural'].format(
-                                categories=', '.join(missing_plurals)
-                            )
+                            "warning",
+                            variants[0].key.span.start,
+                            MSGS["missing-plural"].format(
+                                categories=", ".join(missing_plurals)
+                            ),
                         )
                     )
 
@@ -210,26 +207,22 @@ class L10nMessageVisitor(GenericL10nChecks, ReferenceMessageVisitor):
         super().visit_Message(node)
         if self.message_has_value and not self.reference.message_has_value:
             self.messages.append(
-                ('error', node.value.span.start, MSGS['obsolete-value'])
+                ("error", node.value.span.start, MSGS["obsolete-value"])
             )
         if not self.message_has_value and self.reference.message_has_value:
-            self.messages.append(
-                ('error', 0, MSGS['missing-value'])
-            )
+            self.messages.append(("error", 0, MSGS["missing-value"]))
         ref_attrs = set(self.reference.attribute_positions)
         l10n_attrs = set(self.attribute_positions)
         for missing_attr in ref_attrs - l10n_attrs:
             self.messages.append(
-                (
-                    'error', 0,
-                    MSGS['missing-attribute'].format(name=missing_attr)
-                )
+                ("error", 0, MSGS["missing-attribute"].format(name=missing_attr))
             )
         for obs_attr in l10n_attrs - ref_attrs:
             self.messages.append(
                 (
-                    'error', self.attribute_positions[obs_attr],
-                    MSGS['obsolete-attribute'].format(name=obs_attr)
+                    "error",
+                    self.attribute_positions[obs_attr],
+                    MSGS["obsolete-attribute"].format(name=obs_attr),
                 )
             )
 
@@ -241,17 +234,15 @@ class L10nMessageVisitor(GenericL10nChecks, ReferenceMessageVisitor):
         self.reference_refs = self.reference.entry_refs[node.id.name]
         super().visit_Attribute(node)
         self.reference_refs = old_reference_refs
-        if node.id.name != 'style' or self.css_styles == 'skip':
+        if node.id.name != "style" or self.css_styles == "skip":
             return
         ref_styles = self.reference.css_styles
-        if ref_styles in ('skip', None):
+        if ref_styles in ("skip", None):
             # Reference is complex, l10n isn't.
             # Let's still validate the css spec.
             ref_styles = {}
         for cat, msg, pos, _ in self.check_style(
-            ref_styles,
-            self.css_styles,
-            self.css_errors
+            ref_styles, self.css_styles, self.css_errors
         ):
             self.messages.append((cat, msg, pos))
 
@@ -262,23 +253,24 @@ class L10nMessageVisitor(GenericL10nChecks, ReferenceMessageVisitor):
     def visit_MessageReference(self, node):
         ref = node.id.name
         if node.attribute:
-            ref += '.' + node.attribute.name
+            ref += "." + node.attribute.name
         self.refs.add(ref)
-        self.check_obsolete_ref(node, ref, 'msg-ref')
+        self.check_obsolete_ref(node, ref, "msg-ref")
 
     def visit_TermReference(self, node):
         if node.attribute:
             return
-        ref = '-' + node.id.name
+        ref = "-" + node.id.name
         self.refs.add(ref)
-        self.check_obsolete_ref(node, ref, 'term-ref')
+        self.check_obsolete_ref(node, ref, "term-ref")
 
     def check_obsolete_ref(self, node, ref, ref_type):
         if ref not in self.reference_refs:
             self.messages.append(
                 (
-                    'warning', node.span.start,
-                    MSGS['obsolete-' + ref_type].format(ref=ref),
+                    "warning",
+                    node.span.start,
+                    MSGS["obsolete-" + ref_type].format(ref=ref),
                 )
             )
 
@@ -290,10 +282,7 @@ class TermVisitor(GenericL10nChecks, Visitor):
         self.messages = []
 
     def generic_visit(self, node):
-        if isinstance(
-            node,
-            (ftl.Span, ftl.Annotation, ftl.BaseComment)
-        ):
+        if isinstance(node, (ftl.Span, ftl.Annotation, ftl.BaseComment)):
             return
         super().generic_visit(node)
 
@@ -310,12 +299,12 @@ class TermVisitor(GenericL10nChecks, Visitor):
 
 
 class FluentChecker(Checker):
-    '''Tests to run on Fluent (FTL) files.
-    '''
-    pattern = re.compile(r'.*\.ftl')
+    """Tests to run on Fluent (FTL) files."""
+
+    pattern = re.compile(r".*\.ftl")
 
     def check_message(self, ref_entry, l10n_entry):
-        '''Run checks on localized messages against reference message.'''
+        """Run checks on localized messages against reference message."""
         ref_data = ReferenceMessageVisitor()
         ref_data.visit(ref_entry)
         l10n_data = L10nMessageVisitor(self.locale, ref_data)
@@ -325,12 +314,12 @@ class FluentChecker(Checker):
         for attr_or_val, refs in ref_data.entry_refs.items():
             for ref, ref_type in refs.items():
                 if ref not in l10n_data.entry_refs[attr_or_val]:
-                    msg = MSGS['missing-' + ref_type].format(ref=ref)
-                    messages.append(('warning', 0, msg))
+                    msg = MSGS["missing-" + ref_type].format(ref=ref)
+                    messages.append(("warning", 0, msg))
         return messages
 
     def check_term(self, l10n_entry):
-        '''Check localized terms.'''
+        """Check localized terms."""
         l10n_data = TermVisitor(self.locale)
         l10n_data.visit(l10n_entry)
         return l10n_data.messages
@@ -348,4 +337,4 @@ class FluentChecker(Checker):
         for cat, pos, msg in messages:
             if pos:
                 pos = pos - l10n_entry.span.start
-            yield (cat, pos, msg, 'fluent')
+            yield (cat, pos, msg, "fluent")

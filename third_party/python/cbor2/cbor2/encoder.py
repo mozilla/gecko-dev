@@ -6,8 +6,9 @@ from functools import wraps
 from datetime import datetime, date, time
 from io import BytesIO
 
-from cbor2.compat import iteritems, timezone, long, unicode, as_unicode, bytes_from_list
-from cbor2.types import CBORTag, undefined, CBORSimpleValue
+from .compat import (
+    iteritems, timezone, long, int2bytes, unicode, as_unicode, pack_float16, unpack_float16)
+from .types import CBORTag, undefined, CBORSimpleValue, FrozenDict
 
 
 class CBOREncodeError(Exception):
@@ -73,12 +74,7 @@ def encode_int(encoder, value):
             major_type = 0x03
             value = -value - 1
 
-        values = []
-        while value > 0:
-            value, remainder = divmod(value, 256)
-            values.insert(0, remainder)
-
-        payload = bytes_from_list(values)
+        payload = int2bytes(value)
         encode_semantic(encoder, CBORTag(major_type, payload))
     elif value >= 0:
         encoder.write(encode_length(0, value))
@@ -112,6 +108,22 @@ def encode_map(encoder, value):
     for key, val in iteritems(value):
         encoder.encode(key)
         encoder.encode(val)
+
+
+def encode_sortable_key(encoder, value):
+    """Takes a key and calculates the length of its optimal byte representation"""
+    encoded = encoder.encode_to_bytes(value)
+    return len(encoded), encoded
+
+
+@shareable_encoder
+def encode_canonical_map(encoder, value):
+    """Reorder keys according to Canonical CBOR specification"""
+    keyed_keys = ((encode_sortable_key(encoder, key), key) for key in value.keys())
+    encoder.write(encode_length(0xa0, len(value)))
+    for sortkey, realkey in sorted(keyed_keys):
+        encoder.write(sortkey[1])
+        encoder.encode(value[realkey])
 
 
 def encode_semantic(encoder, value):
@@ -154,7 +166,8 @@ def encode_decimal(encoder, value):
         encoder.write(b'\xf9\x7c\x00' if value > 0 else b'\xf9\xfc\x00')
     else:
         dt = value.as_tuple()
-        mantissa = sum(d * 10 ** i for i, d in enumerate(reversed(dt.digits)))
+        negation = (1, -1)[dt.sign]  # sign is 0 for positive numbers and 1 for negative
+        mantissa = negation * sum(d * 10 ** i for i, d in enumerate(reversed(dt.digits)))
         with encoder.disable_value_sharing():
             encode_semantic(encoder, CBORTag(4, [dt.exponent, mantissa]))
 
@@ -180,6 +193,17 @@ def encode_uuid(encoder, value):
     encode_semantic(encoder, CBORTag(37, value.bytes))
 
 
+def encode_set(encoder, value):
+    # Semantic tag 258
+    encode_semantic(encoder, CBORTag(258, tuple(value)))
+
+
+def encode_canonical_set(encoder, value):
+    # Semantic tag 258
+    values = sorted([(encode_sortable_key(encoder, key), key) for key in value])
+    encode_semantic(encoder, CBORTag(258, [key[1] for key in values]))
+
+
 #
 # Special encoders (major tag 7)
 #
@@ -200,6 +224,36 @@ def encode_float(encoder, value):
         encoder.write(b'\xf9\x7c\x00' if value > 0 else b'\xf9\xfc\x00')
     else:
         encoder.write(struct.pack('>Bd', 0xfb, value))
+
+
+def encode_minimal_float(encoder, value):
+    # Handle special values efficiently
+    import math
+    if math.isnan(value):
+        encoder.write(b'\xf9\x7e\x00')
+    elif math.isinf(value):
+        encoder.write(b'\xf9\x7c\x00' if value > 0 else b'\xf9\xfc\x00')
+    else:
+        # Try each encoding in turn from longest to shortest
+        encoded = struct.pack('>Bd', 0xfb, value)
+        for format, tag in [('>Bf', 0xfa), ('>Be', 0xf9)]:
+            try:
+                new_encoded = struct.pack(format, tag, value)
+                # Check if encoding as low-byte float loses precision
+                if struct.unpack(format, new_encoded)[1] == value:
+                    encoded = new_encoded
+                else:
+                    break
+            except struct.error:
+                # Catch the case where the 'e' format is not supported
+                new_encoded = pack_float16(value)
+                if new_encoded and unpack_float16(new_encoded[1:]) == value:
+                    encoded = new_encoded
+                else:
+                    break
+            except OverflowError:
+                break
+        encoder.write(encoded)
 
 
 def encode_boolean(encoder, value):
@@ -229,6 +283,7 @@ default_encoders = OrderedDict([
     (dict, encode_map),
     (defaultdict, encode_map),
     (OrderedDict, encode_map),
+    (FrozenDict, encode_map),
     (type(undefined), encode_undefined),
     (datetime, encode_datetime),
     (date, encode_date),
@@ -237,7 +292,19 @@ default_encoders = OrderedDict([
     (('email.message', 'Message'), encode_mime),
     (('uuid', 'UUID'), encode_uuid),
     (CBORSimpleValue, encode_simple_value),
-    (CBORTag, encode_semantic)
+    (CBORTag, encode_semantic),
+    (set, encode_set),
+    (frozenset, encode_set)
+])
+
+canonical_encoders = OrderedDict([
+    (float, encode_minimal_float),
+    (dict, encode_canonical_map),
+    (defaultdict, encode_canonical_map),
+    (OrderedDict, encode_canonical_map),
+    (FrozenDict, encode_canonical_map),
+    (set, encode_canonical_set),
+    (frozenset, encode_canonical_set)
 ])
 
 
@@ -253,13 +320,15 @@ class CBOREncoder(object):
     :param default: a callable that is called by the encoder with three arguments
         (encoder, value, file object) when no suitable encoder has been found, and should use the
         methods on the encoder to encode any objects it wants to add to the data stream
+    :param canonical: Forces mapping types to be output in a stable order to guarantee that the
+        output will always produce the same hash given the same input.
     """
 
     __slots__ = ('fp', 'datetime_as_timestamp', 'timezone', 'default', 'value_sharing',
                  'json_compatible', '_shared_containers', '_encoders')
 
     def __init__(self, fp, datetime_as_timestamp=False, timezone=None, value_sharing=False,
-                 default=None):
+                 default=None, canonical=False):
         self.fp = fp
         self.datetime_as_timestamp = datetime_as_timestamp
         self.timezone = timezone
@@ -267,6 +336,8 @@ class CBOREncoder(object):
         self.default = default
         self._shared_containers = {}  # indexes used for value sharing
         self._encoders = default_encoders.copy()
+        if canonical:
+            self._encoders.update(canonical_encoders)
 
     def _find_encoder(self, obj_type):
         from sys import modules

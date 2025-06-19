@@ -19,10 +19,10 @@ if TYPE_CHECKING:  # pragma: no cover
     # Importing from builtins is preferred over simple assignment, see issues:
     # https://github.com/python/mypy/issues/8715
     # https://github.com/python/mypy/issues/10068
-    from builtins import dict as _CustomDict  # noqa: N812
-    from builtins import float as _CustomFloat  # noqa: N812
-    from builtins import int as _CustomInt  # noqa: N812
-    from builtins import list as _CustomList  # noqa: N812
+    from builtins import dict as _CustomDict
+    from builtins import float as _CustomFloat
+    from builtins import int as _CustomInt
+    from builtins import list as _CustomList
     from typing import Callable
     from typing import Concatenate
     from typing import ParamSpec
@@ -31,8 +31,7 @@ if TYPE_CHECKING:  # pragma: no cover
     P = ParamSpec("P")
 
     class WrapperType(Protocol):
-        def _new(self: WT, value: Any) -> WT:
-            ...
+        def _new(self: WT, value: Any) -> WT: ...
 
 else:
     from collections.abc import MutableMapping
@@ -43,8 +42,26 @@ else:
     class _CustomList(MutableSequence, list):
         """Adds MutableSequence mixin while pretending to be a builtin list"""
 
+        def __add__(self, other):
+            new_list = self.copy()
+            new_list.extend(other)
+            return new_list
+
+        def __iadd__(self, other):
+            self.extend(other)
+            return self
+
     class _CustomDict(MutableMapping, dict):
         """Adds MutableMapping mixin while pretending to be a builtin dict"""
+
+        def __or__(self, other):
+            new_dict = self.copy()
+            new_dict.update(other)
+            return new_dict
+
+        def __ior__(self, other):
+            self.update(other)
+            return self
 
     class _CustomInt(Integral, int):
         """Adds Integral mixin while pretending to be a builtin int"""
@@ -54,7 +71,7 @@ else:
 
 
 def wrap_method(
-    original_method: Callable[Concatenate[WT, P], Any]
+    original_method: Callable[Concatenate[WT, P], Any],
 ) -> Callable[Concatenate[WT, P], Any]:
     def wrapper(self: WT, *args: P.args, **kwargs: P.kwargs) -> Any:
         result = original_method(self, *args, **kwargs)

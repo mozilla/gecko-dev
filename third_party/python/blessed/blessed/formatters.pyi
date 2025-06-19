@@ -1,5 +1,8 @@
+"""Type hints for sequence-formatting functions"""
+
 # std imports
-from typing import (Any,
+from typing import (TYPE_CHECKING,
+                    Any,
                     Set,
                     List,
                     Type,
@@ -11,13 +14,16 @@ from typing import (Any,
                     Optional,
                     overload)
 
-# local
-from .terminal import Terminal
+if TYPE_CHECKING:
+    # local
+    from .terminal import Terminal
 
 COLORS: Set[str]
 COMPOUNDABLES: Set[str]
 
 _T = TypeVar("_T")
+
+# pylint: disable=unused-argument,missing-function-docstring,missing-class-docstring
 
 class ParameterizingString(str):
     def __new__(cls: Type[_T], cap: str, normal: str = ..., name: str = ...) -> _T: ...
@@ -58,13 +64,13 @@ class NullCallableString(str):
     def __call__(self, *args: str) -> str: ...
 
 def get_proxy_string(
-    term: Terminal, attr: str
+    term: 'Terminal', attr: str
 ) -> Optional[ParameterizingProxyString]: ...
 def split_compound(compound: str) -> List[str]: ...
-def resolve_capability(term: Terminal, attr: str) -> str: ...
+def resolve_capability(term: 'Terminal', attr: str) -> str: ...
 def resolve_color(
-    term: Terminal, color: str
+    term: 'Terminal', color: str
 ) -> Union[NullCallableString, FormattingString]: ...
 def resolve_attribute(
-    term: Terminal, attr: str
+    term: 'Terminal', attr: str
 ) -> Union[ParameterizingString, FormattingString]: ...

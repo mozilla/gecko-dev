@@ -1,19 +1,40 @@
-from .AST import Primitive, UnaryOp, ContextValue, BinOp, FunctionCall, ValueAccess, Object, List
+from .AST import (
+    Primitive,
+    UnaryOp,
+    ContextValue,
+    BinOp,
+    FunctionCall,
+    ValueAccess,
+    Object,
+    List,
+)
 from collections import namedtuple
 import re
 from .shared import TemplateError
 
-Token = namedtuple('Token', ['kind', 'value', 'start', 'end'])
+Token = namedtuple("Token", ["kind", "value", "start", "end"])
 
-expectedTokens = ["!", "(", "+", "-", "[", "false", "identifier", "null", "number", "string", "true", "{"]
+expectedTokens = [
+    "!",
+    "(",
+    "+",
+    "-",
+    "[",
+    "false",
+    "identifier",
+    "null",
+    "number",
+    "string",
+    "true",
+    "{",
+]
 
 
 class SyntaxError(TemplateError):
-
     @classmethod
     def unexpected(cls, got, exp):
-        exp = ', '.join(sorted(exp))
-        return cls('Found: {} token, expected one of: {}'.format(got.value, exp))
+        exp = ", ".join(sorted(exp))
+        return cls("Found: {} token, expected one of: {}".format(got.value, exp))
 
 
 class Parser(object):
@@ -23,12 +44,20 @@ class Parser(object):
         self.current_token = next(self.tokens)
         self.unaryOpTokens = ["-", "+", "!"]
         self.primitivesTokens = ["number", "null", "true", "false", "string"]
-        self.operatorsByPriority = [["||"], ["&&"], ["in"], ["==", "!="], ["<", ">", "<=", ">="], ["+", "-"],
-                                    ["*", "/"], ["**"]]
+        self.operatorsByPriority = [
+            ["||"],
+            ["&&"],
+            ["in"],
+            ["==", "!="],
+            ["<", ">", "<=", ">="],
+            ["+", "-"],
+            ["*", "/"],
+            ["**"],
+        ]
 
     def take_token(self, *kinds):
         if not self.current_token:
-            raise SyntaxError('Unexpected end of input')
+            raise SyntaxError("Unexpected end of input")
         if kinds and self.current_token.kind not in kinds:
             raise SyntaxError.unexpected(self.current_token, kinds)
         try:
@@ -39,7 +68,7 @@ class Parser(object):
             raise exc
 
     def parse(self, level=0):
-        """  expr : logicalAnd (OR logicalAnd)* """
+        """expr : logicalAnd (OR logicalAnd)*"""
         """  logicalAnd : inStatement (AND inStatement)* """
         """  inStatement : equality (IN equality)*  """
         """  equality : comparison (EQUALITY | INEQUALITY  comparison)* """
@@ -67,7 +96,7 @@ class Parser(object):
         return node
 
     def parse_property_access_or_func(self):
-        """  propertyAccessOrFunc : unit (accessWithBrackets | DOT id | functionCall)* """
+        """propertyAccessOrFunc : unit (accessWithBrackets | DOT id | functionCall)*"""
         node = self.parse_unit()
         token = self.current_token
         operators = ["[", "(", "."]
@@ -89,7 +118,7 @@ class Parser(object):
         # unit : unaryOp unit | primitives | contextValue | LPAREN expr RPAREN | list | object
         token = self.current_token
         if self.current_token is None:
-            raise SyntaxError('Unexpected end of input')
+            raise SyntaxError("Unexpected end of input")
         node = None
 
         if token.kind in self.unaryOpTokens:
@@ -137,7 +166,7 @@ class Parser(object):
         return node
 
     def parse_list(self):
-        """  list: LSQAREBRAKET (expr (COMMA expr)*)? RSQAREBRAKET """
+        """list: LSQAREBRAKET (expr (COMMA expr)*)? RSQAREBRAKET"""
         arr = []
         token = self.current_token
         self.take_token("[")
@@ -151,6 +180,8 @@ class Parser(object):
                     raise SyntaxError.unexpected(self.current_token, expectedTokens)
                 self.take_token(",")
                 node = self.parse()
+                if node is None:
+                    raise SyntaxError.unexpected(self.current_token, expectedTokens)
                 arr.append(node)
 
         self.take_token("]")
@@ -159,7 +190,7 @@ class Parser(object):
         return node
 
     def parse_access_with_brackets(self, node):
-        """  valueAccess : LSQAREBRAKET expr |(expr? COLON expr?)  RSQAREBRAKET)"""
+        """valueAccess : LSQAREBRAKET expr |(expr? COLON expr?)  RSQAREBRAKET)"""
         left = None
         right = None
         is_interval = False
@@ -191,7 +222,9 @@ class Parser(object):
         self.take_token("{")
         token = self.current_token
 
-        while token is not None and (token.kind == "string" or token.kind == "identifier"):
+        while token is not None and (
+            token.kind == "string" or token.kind == "identifier"
+        ):
             key = token.value
             if token.kind == "string":
                 key = parse_string(key)
@@ -224,11 +257,11 @@ class Tokenizer(object):
         self.tokens = tokens
         # build a regular expression to generate a sequence of tokens
         token_patterns = [
-            '({})'.format(self.patterns.get(t, re.escape(t)))
-            for t in self.tokens]
+            "({})".format(self.patterns.get(t, re.escape(t))) for t in self.tokens
+        ]
         if self.ignore:
-            token_patterns.append('(?:{})'.format(self.ignore))
-        self.token_re = re.compile('^(?:' + '|'.join(token_patterns) + ')')
+            token_patterns.append("(?:{})".format(self.ignore))
+        self.token_re = re.compile("^(?:" + "|".join(token_patterns) + ")")
 
     def generate_tokens(self, source):
         offset = 0
@@ -239,7 +272,8 @@ class Tokenizer(object):
             if not mo:
                 if remainder:
                     raise SyntaxError(
-                        "Unexpected input for '{}' at '{}'".format(source, remainder))
+                        "Unexpected input for '{}' at '{}'".format(source, remainder)
+                    )
                 break
             offset += mo.end()
 
@@ -251,4 +285,5 @@ class Tokenizer(object):
                     kind=self.tokens[idx],
                     value=mo.group(idx + 1),  # (mo.group is 1-based)
                     start=start,
-                    end=offset)
+                    end=offset,
+                )

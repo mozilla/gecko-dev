@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -15,10 +14,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Use this rule to control the number of spaces inside braces (``{`` and ``}``).
+Use this rule to control the use of flow mappings or number of spaces inside
+braces (``{`` and ``}``).
 
 .. rubric:: Options
 
+* ``forbid`` is used to forbid the use of flow mappings which are denoted by
+  surrounding braces (``{`` and ``}``). Use ``true`` to forbid the use of flow
+  mappings completely. Use ``non-empty`` to forbid the use of all flow
+  mappings except for empty ones.
 * ``min-spaces-inside`` defines the minimal number of spaces required inside
   braces.
 * ``max-spaces-inside`` defines the maximal number of spaces allowed inside
@@ -28,7 +32,45 @@ Use this rule to control the number of spaces inside braces (``{`` and ``}``).
 * ``max-spaces-inside-empty`` defines the maximal number of spaces allowed
   inside empty braces.
 
+.. rubric:: Default values (when enabled)
+
+.. code-block:: yaml
+
+ rules:
+   braces:
+     forbid: false
+     min-spaces-inside: 0
+     max-spaces-inside: 0
+     min-spaces-inside-empty: -1
+     max-spaces-inside-empty: -1
+
 .. rubric:: Examples
+
+#. With ``braces: {forbid: true}``
+
+   the following code snippet would **PASS**:
+   ::
+
+    object:
+      key1: 4
+      key2: 8
+
+   the following code snippet would **FAIL**:
+   ::
+
+    object: { key1: 4, key2: 8 }
+
+#. With ``braces: {forbid: non-empty}``
+
+   the following code snippet would **PASS**:
+   ::
+
+    object: {}
+
+   the following code snippet would **FAIL**:
+   ::
+
+    object: { key1: 4, key2: 8 }
 
 #. With ``braces: {min-spaces-inside: 0, max-spaces-inside: 0}``
 
@@ -92,23 +134,38 @@ Use this rule to control the number of spaces inside braces (``{`` and ``}``).
 
 import yaml
 
+from yamllint.linter import LintProblem
 from yamllint.rules.common import spaces_after, spaces_before
-
 
 ID = 'braces'
 TYPE = 'token'
-CONF = {'min-spaces-inside': int,
+CONF = {'forbid': (bool, 'non-empty'),
+        'min-spaces-inside': int,
         'max-spaces-inside': int,
         'min-spaces-inside-empty': int,
         'max-spaces-inside-empty': int}
-DEFAULT = {'min-spaces-inside': 0,
+DEFAULT = {'forbid': False,
+           'min-spaces-inside': 0,
            'max-spaces-inside': 0,
            'min-spaces-inside-empty': -1,
            'max-spaces-inside-empty': -1}
 
 
 def check(conf, token, prev, next, nextnext, context):
-    if (isinstance(token, yaml.FlowMappingStartToken) and
+    if (conf['forbid'] is True and
+            isinstance(token, yaml.FlowMappingStartToken)):
+        yield LintProblem(token.start_mark.line + 1,
+                          token.end_mark.column + 1,
+                          'forbidden flow mapping')
+
+    elif (conf['forbid'] == 'non-empty' and
+            isinstance(token, yaml.FlowMappingStartToken) and
+            not isinstance(next, yaml.FlowMappingEndToken)):
+        yield LintProblem(token.start_mark.line + 1,
+                          token.end_mark.column + 1,
+                          'forbidden flow mapping')
+
+    elif (isinstance(token, yaml.FlowMappingStartToken) and
             isinstance(next, yaml.FlowMappingEndToken)):
         problem = spaces_after(token, prev, next,
                                min=(conf['min-spaces-inside-empty']

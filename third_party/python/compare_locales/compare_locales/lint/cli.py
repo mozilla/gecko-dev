@@ -17,48 +17,44 @@ from compare_locales import parser
 from compare_locales import version
 
 
-epilog = '''\
+epilog = """\
 moz-l10n-lint checks for common mistakes in localizable files. It tests for
 duplicate entries, parsing errors, and the like. Optionally, it can compare
 the strings to an external reference with strings and warn if a string might
 need to get a new ID.
-'''
+"""
 
 
 def main():
     p = argparse.ArgumentParser(
-        description='Validate localizable strings',
+        description="Validate localizable strings",
         epilog=epilog,
     )
-    p.add_argument('l10n_toml')
+    p.add_argument("l10n_toml")
+    p.add_argument("--version", action="version", version="%(prog)s " + version)
+    p.add_argument("-W", action="store_true", help="error on warnings")
     p.add_argument(
-        '--version', action='version', version='%(prog)s ' + version
-    )
-    p.add_argument('-W', action='store_true', help='error on warnings')
-    p.add_argument(
-        '--l10n-reference',
-        dest='l10n_reference',
-        metavar='PATH',
-        help='check for conflicts against an l10n-only reference repository '
-        'like gecko-strings',
+        "--l10n-reference",
+        dest="l10n_reference",
+        metavar="PATH",
+        help="check for conflicts against an l10n-only reference repository "
+        "like gecko-strings",
     )
     p.add_argument(
-        '--reference-project',
-        dest='ref_project',
-        metavar='PATH',
-        help='check for conflicts against a reference project like '
-        'android-l10n',
+        "--reference-project",
+        dest="ref_project",
+        metavar="PATH",
+        help="check for conflicts against a reference project like " "android-l10n",
     )
     args = p.parse_args()
     if args.l10n_reference:
-        l10n_base, locale = \
-            os.path.split(os.path.abspath(args.l10n_reference))
+        l10n_base, locale = os.path.split(os.path.abspath(args.l10n_reference))
         if not locale or not os.path.isdir(args.l10n_reference):
-            p.error('Pass an existing l10n reference')
+            p.error("Pass an existing l10n reference")
     else:
-        l10n_base = '.'
+        l10n_base = "."
         locale = None
-    pc = paths.TOMLParser().parse(args.l10n_toml, env={'l10n_base': l10n_base})
+    pc = paths.TOMLParser().parse(args.l10n_toml, env={"l10n_base": l10n_base})
     if locale:
         pc.set_locales([locale], deep=True)
     files = paths.ProjectFiles(locale, [pc])
@@ -66,28 +62,28 @@ def main():
     if args.l10n_reference:
         get_reference_and_tests = l10n_base_reference_and_tests(files)
     elif args.ref_project:
-        get_reference_and_tests = mirror_reference_and_tests(
-            files, args.ref_project
-        )
+        get_reference_and_tests = mirror_reference_and_tests(files, args.ref_project)
     linter = L10nLinter()
     results = linter.lint(
         (f for f, _, _, _ in files.iter_reference() if parser.hasParser(f)),
-        get_reference_and_tests
+        get_reference_and_tests,
     )
     rv = 0
     if results:
         rv = 1
-        if all(r['level'] == 'warning' for r in results) and not args.W:
+        if all(r["level"] == "warning" for r in results) and not args.W:
             rv = 0
     for result in results:
-        print('{} ({}:{}): {}'.format(
-            mozpath.relpath(result['path'], '.'),
-            result.get('lineno', 0),
-            result.get('column', 0),
-            result['message']
-        ))
+        print(
+            "{} ({}:{}): {}".format(
+                mozpath.relpath(result["path"], "."),
+                result.get("lineno", 0),
+                result.get("column", 0),
+                result["message"],
+            )
+        )
     return rv
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

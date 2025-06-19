@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -22,10 +21,10 @@ indentation, etc."""
 
 
 APP_NAME = 'yamllint'
-APP_VERSION = '1.23.0'
+APP_VERSION = '1.37.1'
 APP_DESCRIPTION = __doc__
 
-__author__ = u'Adrien Vergé'
-__copyright__ = u'Copyright 2016, Adrien Vergé'
+__author__ = 'Adrien Vergé'
+__copyright__ = 'Copyright 2022, Adrien Vergé'
 __license__ = 'GPLv3'
 __version__ = APP_VERSION

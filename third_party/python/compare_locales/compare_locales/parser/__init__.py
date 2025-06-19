@@ -5,44 +5,64 @@
 import re
 
 from .base import (
-    CAN_NONE, CAN_COPY, CAN_SKIP, CAN_MERGE,
-    Entry, Entity, Comment, OffsetComment, Junk, Whitespace,
-    BadEntity, Parser,
+    CAN_NONE,
+    CAN_COPY,
+    CAN_SKIP,
+    CAN_MERGE,
+    Entry,
+    Entity,
+    Comment,
+    OffsetComment,
+    Junk,
+    Whitespace,
+    BadEntity,
+    Parser,
 )
-from .android import (
-    AndroidParser
-)
-from .defines import (
-    DefinesParser, DefinesInstruction
-)
-from .dtd import (
-    DTDEntity, DTDParser
-)
+from .android import AndroidParser
+from .defines import DefinesParser, DefinesInstruction
+from .dtd import DTDEntity, DTDParser
 from .fluent import (
-    FluentParser, FluentComment, FluentEntity, FluentMessage, FluentTerm,
+    FluentParser,
+    FluentComment,
+    FluentEntity,
+    FluentMessage,
+    FluentTerm,
 )
 from .ini import (
-    IniParser, IniSection,
+    IniParser,
+    IniSection,
 )
-from .po import (
-    PoParser
-)
-from .properties import (
-    PropertiesParser, PropertiesEntity
-)
+from .po import PoParser
+from .properties import PropertiesParser, PropertiesEntity
 
 __all__ = [
-    "CAN_NONE", "CAN_COPY", "CAN_SKIP", "CAN_MERGE",
-    "Junk", "Entry", "Entity", "Whitespace", "Comment", "OffsetComment",
-    "BadEntity", "Parser",
+    "CAN_NONE",
+    "CAN_COPY",
+    "CAN_SKIP",
+    "CAN_MERGE",
+    "Junk",
+    "Entry",
+    "Entity",
+    "Whitespace",
+    "Comment",
+    "OffsetComment",
+    "BadEntity",
+    "Parser",
     "AndroidParser",
-    "DefinesParser", "DefinesInstruction",
-    "DTDParser", "DTDEntity",
-    "FluentParser", "FluentComment", "FluentEntity",
-    "FluentMessage", "FluentTerm",
-    "IniParser", "IniSection",
+    "DefinesParser",
+    "DefinesInstruction",
+    "DTDParser",
+    "DTDEntity",
+    "FluentParser",
+    "FluentComment",
+    "FluentEntity",
+    "FluentMessage",
+    "FluentTerm",
+    "IniParser",
+    "IniSection",
     "PoParser",
-    "PropertiesParser", "PropertiesEntity",
+    "PropertiesParser",
+    "PropertiesEntity",
 ]
 
 __constructors = []
@@ -54,7 +74,8 @@ def getParser(path):
             return item[1]
     try:
         from pkg_resources import iter_entry_points
-        for entry_point in iter_entry_points('compare_locales.parsers'):
+
+        for entry_point in iter_entry_points("compare_locales.parsers"):
             p = entry_point.resolve()()
             if p.use(path):
                 return p
@@ -71,11 +92,11 @@ def hasParser(path):
 
 
 __constructors = [
-    ('strings.*\\.xml$', AndroidParser()),
-    ('\\.dtd$', DTDParser()),
-    ('\\.properties$', PropertiesParser()),
-    ('\\.ini$', IniParser()),
-    ('\\.inc$', DefinesParser()),
-    ('\\.ftl$', FluentParser()),
-    ('\\.pot?$', PoParser()),
+    ("strings.*\\.xml$", AndroidParser()),
+    ("\\.dtd$", DTDParser()),
+    ("\\.properties$", PropertiesParser()),
+    ("\\.ini$", IniParser()),
+    ("\\.inc$", DefinesParser()),
+    ("\\.ftl$", FluentParser()),
+    ("\\.pot?$", PoParser()),
 ]

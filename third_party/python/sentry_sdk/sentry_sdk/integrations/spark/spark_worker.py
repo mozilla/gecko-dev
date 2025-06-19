@@ -13,9 +13,9 @@ from sentry_sdk.utils import (
     event_hint_with_exc_info,
 )
 
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 
-if MYPY:
+if TYPE_CHECKING:
     from typing import Any
     from typing import Optional
 
@@ -58,7 +58,7 @@ def _capture_exception(exc_info, hub):
     if rv:
         rv.reverse()
         hint = event_hint_with_exc_info(exc_info)
-        event = {"level": "error", "exception": {"values": rv}}
+        event = {"level": "error", "exception": {"values": rv}}  # type: Event
 
         _tag_task_context()
 

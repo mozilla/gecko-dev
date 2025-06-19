@@ -2,19 +2,20 @@ from __future__ import absolute_import
 import copy
 
 from sentry_sdk import Hub
+from sentry_sdk.consts import SPANDATA
 from sentry_sdk.hub import _should_send_default_pii
 from sentry_sdk.integrations import DidNotEnable, Integration
 from sentry_sdk.tracing import Span
 from sentry_sdk.utils import capture_internal_exceptions
 
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 
 try:
     from pymongo import monitoring
 except ImportError:
     raise DidNotEnable("Pymongo not installed")
 
-if MYPY:
+if TYPE_CHECKING:
     from typing import Any, Dict, Union
 
     from pymongo.monitoring import (
@@ -84,6 +85,27 @@ def _strip_pii(command):
     return command
 
 
+def _get_db_data(event):
+    # type: (Any) -> Dict[str, Any]
+    data = {}
+
+    data[SPANDATA.DB_SYSTEM] = "mongodb"
+
+    db_name = event.database_name
+    if db_name is not None:
+        data[SPANDATA.DB_NAME] = db_name
+
+    server_address = event.connection_id[0]
+    if server_address is not None:
+        data[SPANDATA.SERVER_ADDRESS] = server_address
+
+    server_port = event.connection_id[1]
+    if server_port is not None:
+        data[SPANDATA.SERVER_PORT] = server_port
+
+    return data
+
+
 class CommandTracer(monitoring.CommandListener):
     def __init__(self):
         # type: () -> None
@@ -109,8 +131,8 @@ class CommandTracer(monitoring.CommandListener):
 
             tags = {
                 "db.name": event.database_name,
-                "db.system": "mongodb",
-                "db.operation": event.command_name,
+                SPANDATA.DB_SYSTEM: "mongodb",
+                SPANDATA.DB_OPERATION: event.command_name,
             }
 
             try:
@@ -119,10 +141,11 @@ class CommandTracer(monitoring.CommandListener):
             except TypeError:
                 pass
 
-            data = {"operation_ids": {}}  # type: Dict[str, Dict[str, Any]]
-
+            data = {"operation_ids": {}}  # type: Dict[str, Any]
             data["operation_ids"]["operation"] = event.operation_id
             data["operation_ids"]["request"] = event.request_id
+
+            data.update(_get_db_data(event))
 
             try:
                 lsid = command.pop("lsid")["id"]

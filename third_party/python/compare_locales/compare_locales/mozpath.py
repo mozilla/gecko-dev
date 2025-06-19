@@ -2,11 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-'''
+"""
 Like :py:mod:`os.path`, with a reduced set of functions, and with normalized
 path separators (always use forward slashes).
 Also contains a few additional utilities not found in :py:mod:`os.path`.
-'''
+"""
 
 
 import posixpath
@@ -15,20 +15,20 @@ import re
 
 
 def normsep(path):
-    '''
+    """
     Normalize path separators, by using forward slashes instead of whatever
     :py:const:`os.sep` is.
-    '''
-    if os.sep != '/':
-        path = path.replace(os.sep, '/')
-    if os.altsep and os.altsep != '/':
-        path = path.replace(os.altsep, '/')
+    """
+    if os.sep != "/":
+        path = path.replace(os.sep, "/")
+    if os.altsep and os.altsep != "/":
+        path = path.replace(os.altsep, "/")
     return path
 
 
 def relpath(path, start):
     rel = normsep(os.path.relpath(path, start))
-    return '' if rel == '.' else rel
+    return "" if rel == "." else rel
 
 
 def realpath(path):
@@ -64,28 +64,28 @@ def splitext(path):
 
 
 def split(path):
-    '''
+    """
     Return the normalized path as a list of its components.
 
         ``split('foo/bar/baz')`` returns ``['foo', 'bar', 'baz']``
-    '''
-    return normsep(path).split('/')
+    """
+    return normsep(path).split("/")
 
 
 def basedir(path, bases):
-    '''
+    """
     Given a list of directories (`bases`), return which one contains the given
     path. If several matches are found, the deepest base directory is returned.
 
     ``basedir('foo/bar/baz', ['foo', 'baz', 'foo/bar'])`` returns ``'foo/bar'``
     (`'foo'` and `'foo/bar'` both match, but `'foo/bar'` is the deepest match)
-    '''
+    """
     path = normsep(path)
     bases = [normsep(b) for b in bases]
     if path in bases:
         return path
     for b in sorted(bases, reverse=True):
-        if b == '' or path.startswith(b + '/'):
+        if b == "" or path.startswith(b + "/"):
             return b
 
 
@@ -93,7 +93,7 @@ re_cache = {}
 
 
 def match(path, pattern):
-    '''
+    """
     Return whether the given path matches the given pattern.
     An asterisk can be used to match any string, including the null string, in
     one part of the path:
@@ -113,31 +113,31 @@ def match(path, pattern):
     directories and subdirectories.
 
         ``foo/bar`` matches ``foo/**/bar``, or ``**/bar``
-    '''
+    """
     if not pattern:
         return True
     if pattern not in re_cache:
         last_end = 0
-        p = ''
-        for m in re.finditer(r'(?:(^|/)\*\*(/|$))|(?P<star>\*)', pattern):
+        p = ""
+        for m in re.finditer(r"(?:(^|/)\*\*(/|$))|(?P<star>\*)", pattern):
             if m.start() > last_end:
-                p += re.escape(pattern[last_end:m.start()])
-            if m.group('star'):
-                p += '[^/]*'
+                p += re.escape(pattern[last_end : m.start()])
+            if m.group("star"):
+                p += "[^/]*"
             elif m.group(2):
-                p += re.escape(m.group(1)) + r'(?:.+%s)?' % m.group(2)
+                p += re.escape(m.group(1)) + r"(?:.+%s)?" % m.group(2)
             else:
-                p += r'(?:%s.+)?' % re.escape(m.group(1))
+                p += r"(?:%s.+)?" % re.escape(m.group(1))
             last_end = m.end()
-        p += re.escape(pattern[last_end:]) + '(?:/.*)?$'
+        p += re.escape(pattern[last_end:]) + "(?:/.*)?$"
         re_cache[pattern] = re.compile(p)
     return re_cache[pattern].match(path) is not None
 
 
 def rebase(oldbase, base, relativepath):
-    '''
+    """
     Return `relativepath` relative to `base` instead of `oldbase`.
-    '''
+    """
     if base == oldbase:
         return relativepath
     if len(base) < len(oldbase):
@@ -149,6 +149,6 @@ def rebase(oldbase, base, relativepath):
         relbase = relpath(base, oldbase)
         result = relpath(relativepath, relbase)
     result = normpath(result)
-    if relativepath.endswith('/') and not result.endswith('/'):
-        result += '/'
+    if relativepath.endswith("/") and not result.endswith("/"):
+        result += "/"
     return result

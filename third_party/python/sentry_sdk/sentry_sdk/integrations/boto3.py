@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
 from sentry_sdk import Hub
-from sentry_sdk.consts import OP
+from sentry_sdk.consts import OP, SPANDATA
 from sentry_sdk.integrations import Integration, DidNotEnable
 from sentry_sdk.tracing import Span
 
 from sentry_sdk._functools import partial
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
+from sentry_sdk.utils import capture_internal_exceptions, parse_url, parse_version
 
-if MYPY:
+if TYPE_CHECKING:
     from typing import Any
     from typing import Dict
     from typing import Optional
@@ -29,14 +30,17 @@ class Boto3Integration(Integration):
     @staticmethod
     def setup_once():
         # type: () -> None
-        try:
-            version = tuple(map(int, BOTOCORE_VERSION.split(".")[:3]))
-        except (ValueError, TypeError):
+
+        version = parse_version(BOTOCORE_VERSION)
+
+        if version is None:
             raise DidNotEnable(
                 "Unparsable botocore version: {}".format(BOTOCORE_VERSION)
             )
+
         if version < (1, 12):
             raise DidNotEnable("Botocore 1.12 or newer is required.")
+
         orig_init = BaseClient.__init__
 
         def sentry_patched_init(self, *args, **kwargs):
@@ -66,9 +70,16 @@ def _sentry_request_created(service_id, request, operation_name, **kwargs):
         op=OP.HTTP_CLIENT,
         description=description,
     )
+
+    with capture_internal_exceptions():
+        parsed_url = parse_url(request.url, sanitize=False)
+        span.set_data("aws.request.url", parsed_url.url)
+        span.set_data(SPANDATA.HTTP_QUERY, parsed_url.query)
+        span.set_data(SPANDATA.HTTP_FRAGMENT, parsed_url.fragment)
+
     span.set_tag("aws.service_id", service_id)
     span.set_tag("aws.operation_name", operation_name)
-    span.set_data("aws.request.url", request.url)
+    span.set_data(SPANDATA.HTTP_METHOD, request.method)
 
     # We do it in order for subsequent http calls/retries be
     # attached to this span.

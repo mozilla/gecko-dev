@@ -1,7 +1,11 @@
+"""Type hints for color functions"""
+
 # std imports
 from typing import Dict, Tuple, Callable
 
 _RGB = Tuple[int, int, int]
+
+# pylint: disable=unused-argument,missing-function-docstring
 
 def rgb_to_xyz(red: int, green: int, blue: int) -> Tuple[float, float, float]: ...
 def xyz_to_lab(

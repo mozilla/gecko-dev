@@ -1,15 +1,14 @@
 #
 # This file is part of pyasn1 software.
 #
-# Copyright (c) 2005-2019, Ilya Etingof <etingof@gmail.com>
-# License: http://snmplabs.com/pyasn1/license.html
+# Copyright (c) 2005-2020, Ilya Etingof <etingof@gmail.com>
+# License: https://pyasn1.readthedocs.io/en/latest/license.html
 #
 import logging
 import sys
 
 from pyasn1 import __version__
 from pyasn1 import error
-from pyasn1.compat.octets import octs2ints
 
 __all__ = ['Debug', 'setLogger', 'hexdump']
 
@@ -55,16 +54,6 @@ class Printer(object):
         return '<python logging>'
 
 
-if hasattr(logging, 'NullHandler'):
-    NullHandler = logging.NullHandler
-
-else:
-    # Python 2.6 and older
-    class NullHandler(logging.Handler):
-        def emit(self, record):
-            pass
-
-
 class Debug(object):
     defaultPrinter = Printer()
 
@@ -75,7 +64,7 @@ class Debug(object):
             # route our logs to parent logger
             self._printer = Printer(
                 logger=logging.getLogger(options['loggerName']),
-                handler=NullHandler()
+                handler=logging.NullHandler()
             )
 
         elif 'printer' in options:
@@ -137,7 +126,7 @@ def registerLoggee(module, name='LOG', flags=DEBUG_NONE):
 def hexdump(octets):
     return ' '.join(
         ['%s%.2X' % (n % 16 == 0 and ('\n%.5d: ' % n) or '', x)
-         for n, x in zip(range(len(octets)), octs2ints(octets))]
+         for n, x in zip(range(len(octets)), octets)]
     )
 
 

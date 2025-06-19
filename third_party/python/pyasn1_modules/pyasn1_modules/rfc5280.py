@@ -6,7 +6,7 @@
 # Updated by Russ Housley for ORAddress Extension Attribute opentype support.
 # Updated by Russ Housley for AlgorithmIdentifier opentype support.
 #
-# Copyright (c) 2005-2019, Ilya Etingof <etingof@gmail.com>
+# Copyright (c) 2005-2020, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pyasn1/license.html
 #
 # Internet X.509 Public Key Infrastructure Certificate and Certificate

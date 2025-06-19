@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2017 ScienJus
 #
 # This program is free software: you can redistribute it and/or modify
@@ -19,6 +18,20 @@ Use this rule to prevent values with octal numbers. In YAML, numbers that
 start with ``0`` are interpreted as octal, but this is not always wanted.
 For instance ``010`` is the city code of Beijing, and should not be
 converted to ``8``.
+
+.. rubric:: Options
+
+* Use ``forbid-implicit-octal`` to prevent numbers starting with ``0``.
+* Use ``forbid-explicit-octal`` to prevent numbers starting with ``0o``.
+
+.. rubric:: Default values (when enabled)
+
+.. code-block:: yaml
+
+ rules:
+   octal-values:
+     forbid-implicit-octal: true
+     forbid-explicit-octal: true
 
 .. rubric:: Examples
 
@@ -57,10 +70,11 @@ converted to ``8``.
       city-code: 0o10
 """
 
+import re
+
 import yaml
 
 from yamllint.linter import LintProblem
-
 
 ID = 'octal-values'
 TYPE = 'token'
@@ -68,6 +82,8 @@ CONF = {'forbid-implicit-octal': bool,
         'forbid-explicit-octal': bool}
 DEFAULT = {'forbid-implicit-octal': True,
            'forbid-explicit-octal': True}
+
+IS_OCTAL_NUMBER_PATTERN = re.compile(r'^[0-7]+$')
 
 
 def check(conf, token, prev, next, nextnext, context):
@@ -78,18 +94,18 @@ def check(conf, token, prev, next, nextnext, context):
         if isinstance(token, yaml.tokens.ScalarToken):
             if not token.style:
                 val = token.value
-                if val.isdigit() and len(val) > 1 and val[0] == '0':
+                if (val.isdigit() and len(val) > 1 and val[0] == '0' and
+                        IS_OCTAL_NUMBER_PATTERN.match(val[1:])):
                     yield LintProblem(
                         token.start_mark.line + 1, token.end_mark.column + 1,
-                        'forbidden implicit octal value "%s"' %
-                        token.value)
+                        f'forbidden implicit octal value "{token.value}"')
 
     if conf['forbid-explicit-octal']:
         if isinstance(token, yaml.tokens.ScalarToken):
             if not token.style:
                 val = token.value
-                if len(val) > 2 and val[:2] == '0o' and val[2:].isdigit():
+                if (len(val) > 2 and val[:2] == '0o' and
+                        IS_OCTAL_NUMBER_PATTERN.match(val[2:])):
                     yield LintProblem(
                         token.start_mark.line + 1, token.end_mark.column + 1,
-                        'forbidden explicit octal value "%s"' %
-                        token.value)
+                        f'forbidden explicit octal value "{token.value}"')

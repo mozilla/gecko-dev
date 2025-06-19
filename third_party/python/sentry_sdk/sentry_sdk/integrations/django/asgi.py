@@ -7,20 +7,56 @@ Since this file contains `async def` it is conditionally imported in
 """
 
 import asyncio
-import threading
+
+from django.core.handlers.wsgi import WSGIRequest
 
 from sentry_sdk import Hub, _functools
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 from sentry_sdk.consts import OP
+from sentry_sdk.hub import _should_send_default_pii
 
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
+from sentry_sdk.utils import capture_internal_exceptions
 
-if MYPY:
-    from typing import Any
-    from typing import Union
-    from typing import Callable
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any, Union
+
+    from django.core.handlers.asgi import ASGIRequest
     from django.http.response import HttpResponse
+
+    from sentry_sdk._types import Event, EventProcessor
+
+
+def _make_asgi_request_event_processor(request):
+    # type: (ASGIRequest) -> EventProcessor
+    def asgi_request_event_processor(event, hint):
+        # type: (Event, dict[str, Any]) -> Event
+        # if the request is gone we are fine not logging the data from
+        # it.  This might happen if the processor is pushed away to
+        # another thread.
+        from sentry_sdk.integrations.django import (
+            DjangoRequestExtractor,
+            _set_user_info,
+        )
+
+        if request is None:
+            return event
+
+        if type(request) == WSGIRequest:
+            return event
+
+        with capture_internal_exceptions():
+            DjangoRequestExtractor(request).extract_into_event(event)
+
+        if _should_send_default_pii():
+            with capture_internal_exceptions():
+                _set_user_info(request, event)
+
+        return event
+
+    return asgi_request_event_processor
 
 
 def patch_django_asgi_handler_impl(cls):
@@ -32,15 +68,37 @@ def patch_django_asgi_handler_impl(cls):
 
     async def sentry_patched_asgi_handler(self, scope, receive, send):
         # type: (Any, Any, Any, Any) -> Any
-        if Hub.current.get_integration(DjangoIntegration) is None:
+        hub = Hub.current
+        integration = hub.get_integration(DjangoIntegration)
+        if integration is None:
             return await old_app(self, scope, receive, send)
 
         middleware = SentryAsgiMiddleware(
             old_app.__get__(self, cls), unsafe_context_data=True
         )._run_asgi3
+
         return await middleware(scope, receive, send)
 
     cls.__call__ = sentry_patched_asgi_handler
+
+    modern_django_asgi_support = hasattr(cls, "create_request")
+    if modern_django_asgi_support:
+        old_create_request = cls.create_request
+
+        def sentry_patched_create_request(self, *args, **kwargs):
+            # type: (Any, *Any, **Any) -> Any
+            hub = Hub.current
+            integration = hub.get_integration(DjangoIntegration)
+            if integration is None:
+                return old_create_request(self, *args, **kwargs)
+
+            with hub.configure_scope() as scope:
+                request, error_response = old_create_request(self, *args, **kwargs)
+                scope.add_event_processor(_make_asgi_request_event_processor(request))
+
+                return request, error_response
+
+        cls.create_request = sentry_patched_create_request
 
 
 def patch_get_response_async(cls, _before_get_response):
@@ -62,7 +120,6 @@ def patch_channels_asgi_handler_impl(cls):
     from sentry_sdk.integrations.django import DjangoIntegration
 
     if channels.__version__ < "3.0.0":
-
         old_app = cls.__call__
 
         async def sentry_patched_asgi_handler(self, receive, send):
@@ -92,7 +149,7 @@ def wrap_async_view(hub, callback):
 
         with hub.configure_scope() as sentry_scope:
             if sentry_scope.profile is not None:
-                sentry_scope.profile.active_thread_id = threading.current_thread().ident
+                sentry_scope.profile.update_active_thread_id()
 
             with hub.start_span(
                 op=OP.VIEW_RENDER, description=request.resolver_match.view_name
@@ -110,7 +167,7 @@ def _asgi_middleware_mixin_factory(_check_middleware_span):
     """
 
     class SentryASGIMixin:
-        if MYPY:
+        if TYPE_CHECKING:
             _inner = None
 
         def __init__(self, get_response):

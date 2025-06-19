@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-'''Serialize string changes.
+"""Serialize string changes.
 
 The serialization logic is based on the cross-channel merge algorithm.
 It's taking the file structure for the first file, and localizable entries
@@ -19,7 +19,7 @@ To avoid adding English reference strings into the generated file, the
 actual entities in the reference are replaced with Placeholders, which
 are removed in a final pass over the result of merge_resources. After that,
 we also prune whitespace once more.`
-'''
+"""
 
 from codecs import encode
 from functools import reduce
@@ -39,7 +39,7 @@ class SerializationNotSupportedError(ValueError):
 
 
 def serialize(filename, reference, old_l10n, new_data):
-    '''Returns a byte string of the serialized content to use.
+    """Returns a byte string of the serialized content to use.
 
     Input are a filename to create the right parser, a reference and
     an existing localization, both as the result of parser.walk().
@@ -47,23 +47,16 @@ def serialize(filename, reference, old_l10n, new_data):
 
     Raises a SerializationNotSupportedError if we don't support the file
     format.
-    '''
+    """
     try:
         parser = getParser(filename)
     except UserWarning:
-        raise SerializationNotSupportedError(
-            f'Unsupported file format ({filename}).')
+        raise SerializationNotSupportedError(f"Unsupported file format ({filename}).")
     # create template, whitespace and all
     placeholders = [
-        placeholder(entry)
-        for entry in reference
-        if not isinstance(entry, Junk)
+        placeholder(entry) for entry in reference if not isinstance(entry, Junk)
     ]
-    ref_mapping = {
-        entry.key: entry
-        for entry in reference
-        if isinstance(entry, Entity)
-    }
+    ref_mapping = {entry.key: entry for entry in reference if isinstance(entry, Entity)}
     # strip obsolete strings
     old_l10n = sanitize_old(ref_mapping.keys(), old_l10n, new_data)
     # create new Entities
@@ -76,9 +69,7 @@ def serialize(filename, reference, old_l10n, new_data):
         new_l10n.append(ref_ent.wrap(new_raw_val))
 
     merged = merge_resources(
-        parser,
-        [placeholders, old_l10n, new_l10n],
-        keep_newest=False
+        parser, [placeholders, old_l10n, new_l10n], keep_newest=False
     )
     pruned = prune_placeholders(merged)
     return encode(serialize_legacy_resource(pruned), parser.encoding)
@@ -101,9 +92,7 @@ def sanitize_old(known_keys, old_l10n, new_data):
         return entry.key in new_data and new_data[entry.key] is None
 
     return [
-        placeholder(entry)
-        if should_placeholder(entry)
-        else entry
+        placeholder(entry) if should_placeholder(entry) else entry
         for entry in old_l10n
         if not isinstance(entry, Junk)
     ]
@@ -116,10 +105,7 @@ def placeholder(entry):
 
 
 def prune_placeholders(entries):
-    pruned = [
-        entry for entry in entries
-        if not isinstance(entry, PlaceholderEntity)
-    ]
+    pruned = [entry for entry in entries if not isinstance(entry, PlaceholderEntity)]
 
     def prune_whitespace(acc, entity):
         if len(acc) and isinstance(entity, Whitespace):

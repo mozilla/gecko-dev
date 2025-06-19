@@ -4,7 +4,7 @@
 # Updated by Russ Housley to resolve the TODO regarding the Certificate
 #   Policies Certificate Extension.
 #
-# Copyright (c) 2005-2019, Ilya Etingof <etingof@gmail.com>
+# Copyright (c) 2005-2020, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pyasn1/license.html
 #
 # X.509 message syntax

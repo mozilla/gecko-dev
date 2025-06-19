@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -19,28 +18,41 @@ Use this rule to force the type of new line characters.
 
 .. rubric:: Options
 
-* Set ``type`` to ``unix`` to use UNIX-typed new line characters (``\\n``), or
-  ``dos`` to use DOS-typed new line characters (``\\r\\n``).
+* Set ``type`` to ``unix`` to enforce UNIX-typed new line characters (``\\n``),
+  set ``type`` to ``dos`` to enforce DOS-typed new line characters
+  (``\\r\\n``), or set ``type`` to ``platform`` to infer the type from the
+  system running yamllint (``\\n`` on POSIX / UNIX / Linux / Mac OS systems or
+  ``\\r\\n`` on DOS / Windows systems).
+
+.. rubric:: Default values (when enabled)
+
+.. code-block:: yaml
+
+ rules:
+   new-lines:
+     type: unix
 """
 
+from os import linesep
 
 from yamllint.linter import LintProblem
 
-
 ID = 'new-lines'
 TYPE = 'line'
-CONF = {'type': ('unix', 'dos')}
+CONF = {'type': ('unix', 'dos', 'platform')}
 DEFAULT = {'type': 'unix'}
 
 
 def check(conf, line):
+    if conf['type'] == 'unix':
+        newline_char = '\n'
+    elif conf['type'] == 'platform':
+        newline_char = linesep
+    elif conf['type'] == 'dos':
+        newline_char = '\r\n'
+
     if line.start == 0 and len(line.buffer) > line.end:
-        if conf['type'] == 'dos':
-            if (line.end + 2 > len(line.buffer) or
-                    line.buffer[line.end:line.end + 2] != '\r\n'):
-                yield LintProblem(1, line.end - line.start + 1,
-                                  'wrong new line character: expected \\r\\n')
-        else:
-            if line.buffer[line.end] == '\r':
-                yield LintProblem(1, line.end - line.start + 1,
-                                  'wrong new line character: expected \\n')
+        if line.buffer[line.end:line.end + len(newline_char)] != newline_char:
+            c = repr(newline_char).strip('\'')
+            yield LintProblem(1, line.end - line.start + 1,
+                              f'wrong new line character: expected {c}')

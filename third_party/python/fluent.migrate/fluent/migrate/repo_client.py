@@ -64,9 +64,10 @@ class RepoClient:
             stdout = git(self.root, "blame", "--porcelain", file)
             for line in stdout.splitlines():
                 if line.startswith("author "):
-                    user = line[7:]
+                    user = line[7:] or "[noname]"
                 elif line.startswith("author-mail "):
-                    user += line[11:]  # includes leading space
+                    email = line[11:]  # includes leading space
+                    user += email if email != ' <>' else ' <nomail>'
                 elif line.startswith("author-time "):
                     time = int(line[12:])
                 elif line.startswith("\t"):

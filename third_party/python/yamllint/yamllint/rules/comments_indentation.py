@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -80,7 +79,6 @@ import yaml
 from yamllint.linter import LintProblem
 from yamllint.rules.common import get_line_indent
 
-
 ID = 'comments-indentation'
 TYPE = 'comment'
 
@@ -118,8 +116,7 @@ def check(conf, comment):
     #         # comment
     #         - 1
     #         - 2
-    if prev_line_indent <= next_line_indent:
-        prev_line_indent = next_line_indent
+    prev_line_indent = max(prev_line_indent, next_line_indent)
 
     # If two indents are valid but a previous comment went back to normal
     # indent, for the next ones to do the same. In other words, avoid this:

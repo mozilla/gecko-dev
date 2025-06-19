@@ -1,13 +1,14 @@
 """Sub-module providing 'keyboard awareness'."""
 
 # std imports
+import os
 import re
 import time
 import platform
 from collections import OrderedDict
 
-# 3rd party
-import six
+# local
+from blessed._compat import TextType, unicode_chr
 
 # isort: off
 # curses
@@ -20,7 +21,7 @@ else:
     from curses.has_key import _capability_names as capability_names
 
 
-class Keystroke(six.text_type):
+class Keystroke(TextType):
     """
     A unicode-derived class for describing a single keystroke.
 
@@ -41,7 +42,7 @@ class Keystroke(six.text_type):
 
     def __new__(cls, ucs='', code=None, name=None):
         """Class constructor."""
-        new = six.text_type.__new__(cls, ucs)
+        new = TextType.__new__(cls, ucs)
         new._name = name
         new._code = code
         return new
@@ -53,9 +54,9 @@ class Keystroke(six.text_type):
 
     def __repr__(self):
         """Docstring overwritten."""
-        return (six.text_type.__repr__(self) if self._name is None else
+        return (TextType.__repr__(self) if self._name is None else
                 self._name)
-    __repr__.__doc__ = six.text_type.__doc__
+    __repr__.__doc__ = TextType.__doc__
 
     @property
     def name(self):
@@ -111,7 +112,9 @@ def get_keyboard_codes():
     keycodes = OrderedDict(get_curses_keycodes())
     keycodes.update(CURSES_KEYCODE_OVERRIDE_MIXIN)
     # merge _CURSES_KEYCODE_ADDINS added to our module space
-    keycodes.update((name, value) for name, value in globals().items() if name.startswith('KEY_'))
+    keycodes.update(
+        (name, value) for name, value in globals().copy().items() if name.startswith('KEY_')
+    )
 
     # invert dictionary (key, values) => (values, key), preferring the
     # last-most inserted value ('KEY_DELETE' over 'KEY_DC').
@@ -358,12 +361,12 @@ for keycode_name in _CURSES_KEYCODE_ADDINS:
 DEFAULT_SEQUENCE_MIXIN = (
     # these common control characters (and 127, ctrl+'?') mapped to
     # an application key definition.
-    (six.unichr(10), curses.KEY_ENTER),
-    (six.unichr(13), curses.KEY_ENTER),
-    (six.unichr(8), curses.KEY_BACKSPACE),
-    (six.unichr(9), KEY_TAB),  # noqa  # pylint: disable=undefined-variable
-    (six.unichr(27), curses.KEY_EXIT),
-    (six.unichr(127), curses.KEY_BACKSPACE),
+    (unicode_chr(10), curses.KEY_ENTER),
+    (unicode_chr(13), curses.KEY_ENTER),
+    (unicode_chr(8), curses.KEY_BACKSPACE),
+    (unicode_chr(9), KEY_TAB),  # noqa  # pylint: disable=undefined-variable
+    (unicode_chr(27), curses.KEY_EXIT),
+    (unicode_chr(127), curses.KEY_BACKSPACE),
 
     (u"\x1b[A", curses.KEY_UP),
     (u"\x1b[B", curses.KEY_DOWN),
@@ -445,5 +448,29 @@ CURSES_KEYCODE_OVERRIDE_MIXIN = (
     ('KEY_CENTER', curses.KEY_B2),
     ('KEY_BEGIN', curses.KEY_BEG),
 )
+
+#: Default delay, in seconds, of Escape key detection in
+#: :meth:`Terminal.inkey`.` curses has a default delay of 1000ms (1 second) for
+#: escape sequences.  This is too long for modern applications, so we set it to
+#: 350ms, or 0.35 seconds. It is still a bit conservative, for remote telnet or
+#: ssh servers, for example.
+DEFAULT_ESCDELAY = 0.35
+
+
+def _reinit_escdelay():
+    # pylint: disable=W0603
+    # Using the global statement: this is necessary to
+    # allow test coverage without complex module reload
+    global DEFAULT_ESCDELAY
+    if os.environ.get('ESCDELAY'):
+        try:
+            DEFAULT_ESCDELAY = int(os.environ['ESCDELAY']) / 1000.0
+        except ValueError:
+            # invalid values of 'ESCDELAY' are ignored
+            pass
+
+
+_reinit_escdelay()
+
 
 __all__ = ('Keystroke', 'get_keyboard_codes', 'get_keyboard_sequences',)

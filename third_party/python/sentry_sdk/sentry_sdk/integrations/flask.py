@@ -1,21 +1,22 @@
 from __future__ import absolute_import
 
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 from sentry_sdk.hub import Hub, _should_send_default_pii
 from sentry_sdk.integrations import DidNotEnable, Integration
 from sentry_sdk.integrations._wsgi_common import RequestExtractor
 from sentry_sdk.integrations.wsgi import SentryWsgiMiddleware
 from sentry_sdk.scope import Scope
-from sentry_sdk.tracing import SENTRY_TRACE_HEADER_NAME, SOURCE_FOR_STYLE
+from sentry_sdk.tracing import SOURCE_FOR_STYLE
 from sentry_sdk.utils import (
     capture_internal_exceptions,
     event_from_exception,
+    package_version,
 )
 
-if MYPY:
+if TYPE_CHECKING:
     from typing import Any, Callable, Dict, Union
 
-    from sentry_sdk._types import EventProcessor
+    from sentry_sdk._types import Event, EventProcessor
     from sentry_sdk.integrations.wsgi import _ScopedResponse
     from werkzeug.datastructures import FileStorage, ImmutableMultiDict
 
@@ -26,14 +27,14 @@ except ImportError:
     flask_login = None
 
 try:
-    from flask import Flask, Markup, Request  # type: ignore
-    from flask import __version__ as FLASK_VERSION
+    from flask import Flask, Request  # type: ignore
     from flask import request as flask_request
     from flask.signals import (
         before_render_template,
         got_request_exception,
         request_started,
     )
+    from markupsafe import Markup
 except ImportError:
     raise DidNotEnable("Flask is not installed")
 
@@ -62,17 +63,13 @@ class FlaskIntegration(Integration):
     @staticmethod
     def setup_once():
         # type: () -> None
+        version = package_version("flask")
 
-        # This version parsing is absolutely naive but the alternative is to
-        # import pkg_resources which slows down the SDK a lot.
-        try:
-            version = tuple(map(int, FLASK_VERSION.split(".")[:3]))
-        except (ValueError, TypeError):
-            # It's probably a release candidate, we assume it's fine.
-            pass
-        else:
-            if version < (0, 10):
-                raise DidNotEnable("Flask 0.10 or newer is required.")
+        if version is None:
+            raise DidNotEnable("Unparsable Flask version.")
+
+        if version < (0, 10):
+            raise DidNotEnable("Flask 0.10 or newer is required.")
 
         before_render_template.connect(_add_sentry_trace)
         request_started.connect(_request_started)
@@ -94,22 +91,13 @@ class FlaskIntegration(Integration):
 
 def _add_sentry_trace(sender, template, context, **extra):
     # type: (Flask, Any, Dict[str, Any], **Any) -> None
-
     if "sentry_trace" in context:
         return
 
-    sentry_span = Hub.current.scope.span
-    context["sentry_trace"] = (
-        Markup(
-            '<meta name="%s" content="%s" />'
-            % (
-                SENTRY_TRACE_HEADER_NAME,
-                sentry_span.to_traceparent(),
-            )
-        )
-        if sentry_span
-        else ""
-    )
+    hub = Hub.current
+    trace_meta = Markup(hub.trace_propagation_meta())
+    context["sentry_trace"] = trace_meta  # for backwards compatibility
+    context["sentry_trace_meta"] = trace_meta
 
 
 def _set_transaction_name_and_source(scope, transaction_style, request):
@@ -173,7 +161,7 @@ class FlaskRequestExtractor(RequestExtractor):
 
     def json(self):
         # type: () -> Any
-        return self.request.get_json()
+        return self.request.get_json(silent=True)
 
     def size_of_file(self, file):
         # type: (FileStorage) -> int
@@ -184,7 +172,7 @@ def _make_request_event_processor(app, request, integration):
     # type: (Flask, Callable[[], Request], FlaskIntegration) -> EventProcessor
 
     def inner(event, hint):
-        # type: (Dict[str, Any], Dict[str, Any]) -> Dict[str, Any]
+        # type: (Event, dict[str, Any]) -> Event
 
         # if the request is gone we are fine not logging the data from
         # it.  This might happen if the processor is pushed away to
@@ -223,7 +211,7 @@ def _capture_exception(sender, exception, **kwargs):
 
 
 def _add_user_to_event(event):
-    # type: (Dict[str, Any]) -> None
+    # type: (Event) -> None
     if flask_login is None:
         return
 
@@ -261,6 +249,5 @@ def _add_user_to_event(event):
 
         try:
             user_info.setdefault("username", user.username)
-            user_info.setdefault("username", user.email)
         except Exception:
             pass

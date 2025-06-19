@@ -1,12 +1,11 @@
 import inspect
 
+from sentry_sdk._types import TYPE_CHECKING
 from sentry_sdk.hub import Hub
 from sentry_sdk.scope import Scope
+from sentry_sdk.tracing import NoOpSpan, Transaction
 
-from sentry_sdk._types import MYPY
-from sentry_sdk.tracing import NoOpSpan
-
-if MYPY:
+if TYPE_CHECKING:
     from typing import Any
     from typing import Dict
     from typing import Optional
@@ -16,8 +15,16 @@ if MYPY:
     from typing import ContextManager
     from typing import Union
 
-    from sentry_sdk._types import Event, Hint, Breadcrumb, BreadcrumbHint, ExcInfo
-    from sentry_sdk.tracing import Span, Transaction
+    from sentry_sdk._types import (
+        Event,
+        Hint,
+        Breadcrumb,
+        BreadcrumbHint,
+        ExcInfo,
+        MeasurementUnit,
+        LogLevelStr,
+    )
+    from sentry_sdk.tracing import Span
 
     T = TypeVar("T")
     F = TypeVar("F", bound=Callable[..., Any])
@@ -45,6 +52,11 @@ __all__ = [
     "set_extra",
     "set_user",
     "set_level",
+    "set_measurement",
+    "get_current_span",
+    "get_traceparent",
+    "get_baggage",
+    "continue_trace",
 ]
 
 
@@ -71,31 +83,31 @@ def capture_event(
     event,  # type: Event
     hint=None,  # type: Optional[Hint]
     scope=None,  # type: Optional[Any]
-    **scope_args  # type: Any
+    **scope_kwargs  # type: Any
 ):
     # type: (...) -> Optional[str]
-    return Hub.current.capture_event(event, hint, scope=scope, **scope_args)
+    return Hub.current.capture_event(event, hint, scope=scope, **scope_kwargs)
 
 
 @hubmethod
 def capture_message(
     message,  # type: str
-    level=None,  # type: Optional[str]
+    level=None,  # type: Optional[LogLevelStr]
     scope=None,  # type: Optional[Any]
-    **scope_args  # type: Any
+    **scope_kwargs  # type: Any
 ):
     # type: (...) -> Optional[str]
-    return Hub.current.capture_message(message, level, scope=scope, **scope_args)
+    return Hub.current.capture_message(message, level, scope=scope, **scope_kwargs)
 
 
 @hubmethod
 def capture_exception(
     error=None,  # type: Optional[Union[BaseException, ExcInfo]]
     scope=None,  # type: Optional[Any]
-    **scope_args  # type: Any
+    **scope_kwargs  # type: Any
 ):
     # type: (...) -> Optional[str]
-    return Hub.current.capture_exception(error, scope=scope, **scope_args)
+    return Hub.current.capture_exception(error, scope=scope, **scope_kwargs)
 
 
 @hubmethod
@@ -178,7 +190,7 @@ def set_user(value):
 
 @scopemethod
 def set_level(value):
-    # type: (str) -> None
+    # type: (LogLevelStr) -> None
     return Hub.current.scope.set_level(value)
 
 
@@ -194,6 +206,7 @@ def flush(
 @hubmethod
 def last_event_id():
     # type: () -> Optional[str]
+
     return Hub.current.last_event_id()
 
 
@@ -213,3 +226,46 @@ def start_transaction(
 ):
     # type: (...) -> Union[Transaction, NoOpSpan]
     return Hub.current.start_transaction(transaction, **kwargs)
+
+
+def set_measurement(name, value, unit=""):
+    # type: (str, float, MeasurementUnit) -> None
+    transaction = Hub.current.scope.transaction
+    if transaction is not None:
+        transaction.set_measurement(name, value, unit)
+
+
+def get_current_span(hub=None):
+    # type: (Optional[Hub]) -> Optional[Span]
+    """
+    Returns the currently active span if there is one running, otherwise `None`
+    """
+    if hub is None:
+        hub = Hub.current
+
+    current_span = hub.scope.span
+    return current_span
+
+
+def get_traceparent():
+    # type: () -> Optional[str]
+    """
+    Returns the traceparent either from the active span or from the scope.
+    """
+    return Hub.current.get_traceparent()
+
+
+def get_baggage():
+    # type: () -> Optional[str]
+    """
+    Returns Baggage either from the active span or from the scope.
+    """
+    return Hub.current.get_baggage()
+
+
+def continue_trace(environ_or_headers, op=None, name=None, source=None):
+    # type: (Dict[str, Any], Optional[str], Optional[str], Optional[str]) -> Transaction
+    """
+    Sets the propagation context from environment or headers and returns a transaction.
+    """
+    return Hub.current.continue_trace(environ_or_headers, op, name, source)

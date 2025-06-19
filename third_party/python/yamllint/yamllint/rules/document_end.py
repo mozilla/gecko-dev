@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -21,6 +20,14 @@ Use this rule to require or forbid the use of document end marker (``...``).
 
 * Set ``present`` to ``true`` when the document end marker is required, or to
   ``false`` when it is forbidden.
+
+.. rubric:: Default values (when enabled)
+
+.. code-block:: yaml
+
+ rules:
+   document-end:
+     present: true
 
 .. rubric:: Examples
 
@@ -78,7 +85,6 @@ import yaml
 
 from yamllint.linter import LintProblem
 
-
 ID = 'document-end'
 TYPE = 'token'
 CONF = {'present': bool}
@@ -92,11 +98,13 @@ def check(conf, token, prev, next, nextnext, context):
         prev_is_end_or_stream_start = isinstance(
             prev, (yaml.DocumentEndToken, yaml.StreamStartToken)
         )
+        prev_is_directive = isinstance(prev, yaml.DirectiveToken)
 
         if is_stream_end and not prev_is_end_or_stream_start:
             yield LintProblem(token.start_mark.line, 1,
                               'missing document end "..."')
-        elif is_start and not prev_is_end_or_stream_start:
+        elif is_start and not (prev_is_end_or_stream_start
+                               or prev_is_directive):
             yield LintProblem(token.start_mark.line + 1, 1,
                               'missing document end "..."')
 

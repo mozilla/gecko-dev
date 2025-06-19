@@ -1,11 +1,14 @@
 #
 # This file is part of pyasn1 software.
 #
-# Copyright (c) 2005-2019, Ilya Etingof <etingof@gmail.com>
-# License: http://snmplabs.com/pyasn1/license.html
+# Copyright (c) 2005-2020, Ilya Etingof <etingof@gmail.com>
+# License: https://pyasn1.readthedocs.io/en/latest/license.html
 #
+import warnings
+
 from pyasn1 import debug
 from pyasn1 import error
+from pyasn1.compat import _MISSING
 from pyasn1.type import base
 from pyasn1.type import char
 from pyasn1.type import tag
@@ -17,17 +20,17 @@ __all__ = ['decode']
 LOG = debug.registerLoggee(__name__, flags=debug.DEBUG_DECODER)
 
 
-class AbstractScalarDecoder(object):
+class AbstractScalarPayloadDecoder(object):
     def __call__(self, pyObject, asn1Spec, decodeFun=None, **options):
         return asn1Spec.clone(pyObject)
 
 
-class BitStringDecoder(AbstractScalarDecoder):
+class BitStringPayloadDecoder(AbstractScalarPayloadDecoder):
     def __call__(self, pyObject, asn1Spec, decodeFun=None, **options):
         return asn1Spec.clone(univ.BitString.fromBinaryString(pyObject))
 
 
-class SequenceOrSetDecoder(object):
+class SequenceOrSetPayloadDecoder(object):
     def __call__(self, pyObject, asn1Spec, decodeFun=None, **options):
         asn1Value = asn1Spec.clone()
 
@@ -40,7 +43,7 @@ class SequenceOrSetDecoder(object):
         return asn1Value
 
 
-class SequenceOfOrSetOfDecoder(object):
+class SequenceOfOrSetOfPayloadDecoder(object):
     def __call__(self, pyObject, asn1Spec, decodeFun=None, **options):
         asn1Value = asn1Spec.clone()
 
@@ -50,7 +53,7 @@ class SequenceOfOrSetOfDecoder(object):
         return asn1Value
 
 
-class ChoiceDecoder(object):
+class ChoicePayloadDecoder(object):
     def __call__(self, pyObject, asn1Spec, decodeFun=None, **options):
         asn1Value = asn1Spec.clone()
 
@@ -64,110 +67,132 @@ class ChoiceDecoder(object):
         return asn1Value
 
 
-tagMap = {
-    univ.Integer.tagSet: AbstractScalarDecoder(),
-    univ.Boolean.tagSet: AbstractScalarDecoder(),
-    univ.BitString.tagSet: BitStringDecoder(),
-    univ.OctetString.tagSet: AbstractScalarDecoder(),
-    univ.Null.tagSet: AbstractScalarDecoder(),
-    univ.ObjectIdentifier.tagSet: AbstractScalarDecoder(),
-    univ.Enumerated.tagSet: AbstractScalarDecoder(),
-    univ.Real.tagSet: AbstractScalarDecoder(),
-    univ.Sequence.tagSet: SequenceOrSetDecoder(),  # conflicts with SequenceOf
-    univ.Set.tagSet: SequenceOrSetDecoder(),  # conflicts with SetOf
-    univ.Choice.tagSet: ChoiceDecoder(),  # conflicts with Any
+TAG_MAP = {
+    univ.Integer.tagSet: AbstractScalarPayloadDecoder(),
+    univ.Boolean.tagSet: AbstractScalarPayloadDecoder(),
+    univ.BitString.tagSet: BitStringPayloadDecoder(),
+    univ.OctetString.tagSet: AbstractScalarPayloadDecoder(),
+    univ.Null.tagSet: AbstractScalarPayloadDecoder(),
+    univ.ObjectIdentifier.tagSet: AbstractScalarPayloadDecoder(),
+    univ.RelativeOID.tagSet: AbstractScalarPayloadDecoder(),
+    univ.Enumerated.tagSet: AbstractScalarPayloadDecoder(),
+    univ.Real.tagSet: AbstractScalarPayloadDecoder(),
+    univ.Sequence.tagSet: SequenceOrSetPayloadDecoder(),  # conflicts with SequenceOf
+    univ.Set.tagSet: SequenceOrSetPayloadDecoder(),  # conflicts with SetOf
+    univ.Choice.tagSet: ChoicePayloadDecoder(),  # conflicts with Any
     # character string types
-    char.UTF8String.tagSet: AbstractScalarDecoder(),
-    char.NumericString.tagSet: AbstractScalarDecoder(),
-    char.PrintableString.tagSet: AbstractScalarDecoder(),
-    char.TeletexString.tagSet: AbstractScalarDecoder(),
-    char.VideotexString.tagSet: AbstractScalarDecoder(),
-    char.IA5String.tagSet: AbstractScalarDecoder(),
-    char.GraphicString.tagSet: AbstractScalarDecoder(),
-    char.VisibleString.tagSet: AbstractScalarDecoder(),
-    char.GeneralString.tagSet: AbstractScalarDecoder(),
-    char.UniversalString.tagSet: AbstractScalarDecoder(),
-    char.BMPString.tagSet: AbstractScalarDecoder(),
+    char.UTF8String.tagSet: AbstractScalarPayloadDecoder(),
+    char.NumericString.tagSet: AbstractScalarPayloadDecoder(),
+    char.PrintableString.tagSet: AbstractScalarPayloadDecoder(),
+    char.TeletexString.tagSet: AbstractScalarPayloadDecoder(),
+    char.VideotexString.tagSet: AbstractScalarPayloadDecoder(),
+    char.IA5String.tagSet: AbstractScalarPayloadDecoder(),
+    char.GraphicString.tagSet: AbstractScalarPayloadDecoder(),
+    char.VisibleString.tagSet: AbstractScalarPayloadDecoder(),
+    char.GeneralString.tagSet: AbstractScalarPayloadDecoder(),
+    char.UniversalString.tagSet: AbstractScalarPayloadDecoder(),
+    char.BMPString.tagSet: AbstractScalarPayloadDecoder(),
     # useful types
-    useful.ObjectDescriptor.tagSet: AbstractScalarDecoder(),
-    useful.GeneralizedTime.tagSet: AbstractScalarDecoder(),
-    useful.UTCTime.tagSet: AbstractScalarDecoder()
+    useful.ObjectDescriptor.tagSet: AbstractScalarPayloadDecoder(),
+    useful.GeneralizedTime.tagSet: AbstractScalarPayloadDecoder(),
+    useful.UTCTime.tagSet: AbstractScalarPayloadDecoder()
 }
 
 # Put in ambiguous & non-ambiguous types for faster codec lookup
-typeMap = {
-    univ.Integer.typeId: AbstractScalarDecoder(),
-    univ.Boolean.typeId: AbstractScalarDecoder(),
-    univ.BitString.typeId: BitStringDecoder(),
-    univ.OctetString.typeId: AbstractScalarDecoder(),
-    univ.Null.typeId: AbstractScalarDecoder(),
-    univ.ObjectIdentifier.typeId: AbstractScalarDecoder(),
-    univ.Enumerated.typeId: AbstractScalarDecoder(),
-    univ.Real.typeId: AbstractScalarDecoder(),
+TYPE_MAP = {
+    univ.Integer.typeId: AbstractScalarPayloadDecoder(),
+    univ.Boolean.typeId: AbstractScalarPayloadDecoder(),
+    univ.BitString.typeId: BitStringPayloadDecoder(),
+    univ.OctetString.typeId: AbstractScalarPayloadDecoder(),
+    univ.Null.typeId: AbstractScalarPayloadDecoder(),
+    univ.ObjectIdentifier.typeId: AbstractScalarPayloadDecoder(),
+    univ.RelativeOID.typeId: AbstractScalarPayloadDecoder(),
+    univ.Enumerated.typeId: AbstractScalarPayloadDecoder(),
+    univ.Real.typeId: AbstractScalarPayloadDecoder(),
     # ambiguous base types
-    univ.Set.typeId: SequenceOrSetDecoder(),
-    univ.SetOf.typeId: SequenceOfOrSetOfDecoder(),
-    univ.Sequence.typeId: SequenceOrSetDecoder(),
-    univ.SequenceOf.typeId: SequenceOfOrSetOfDecoder(),
-    univ.Choice.typeId: ChoiceDecoder(),
-    univ.Any.typeId: AbstractScalarDecoder(),
+    univ.Set.typeId: SequenceOrSetPayloadDecoder(),
+    univ.SetOf.typeId: SequenceOfOrSetOfPayloadDecoder(),
+    univ.Sequence.typeId: SequenceOrSetPayloadDecoder(),
+    univ.SequenceOf.typeId: SequenceOfOrSetOfPayloadDecoder(),
+    univ.Choice.typeId: ChoicePayloadDecoder(),
+    univ.Any.typeId: AbstractScalarPayloadDecoder(),
     # character string types
-    char.UTF8String.typeId: AbstractScalarDecoder(),
-    char.NumericString.typeId: AbstractScalarDecoder(),
-    char.PrintableString.typeId: AbstractScalarDecoder(),
-    char.TeletexString.typeId: AbstractScalarDecoder(),
-    char.VideotexString.typeId: AbstractScalarDecoder(),
-    char.IA5String.typeId: AbstractScalarDecoder(),
-    char.GraphicString.typeId: AbstractScalarDecoder(),
-    char.VisibleString.typeId: AbstractScalarDecoder(),
-    char.GeneralString.typeId: AbstractScalarDecoder(),
-    char.UniversalString.typeId: AbstractScalarDecoder(),
-    char.BMPString.typeId: AbstractScalarDecoder(),
+    char.UTF8String.typeId: AbstractScalarPayloadDecoder(),
+    char.NumericString.typeId: AbstractScalarPayloadDecoder(),
+    char.PrintableString.typeId: AbstractScalarPayloadDecoder(),
+    char.TeletexString.typeId: AbstractScalarPayloadDecoder(),
+    char.VideotexString.typeId: AbstractScalarPayloadDecoder(),
+    char.IA5String.typeId: AbstractScalarPayloadDecoder(),
+    char.GraphicString.typeId: AbstractScalarPayloadDecoder(),
+    char.VisibleString.typeId: AbstractScalarPayloadDecoder(),
+    char.GeneralString.typeId: AbstractScalarPayloadDecoder(),
+    char.UniversalString.typeId: AbstractScalarPayloadDecoder(),
+    char.BMPString.typeId: AbstractScalarPayloadDecoder(),
     # useful types
-    useful.ObjectDescriptor.typeId: AbstractScalarDecoder(),
-    useful.GeneralizedTime.typeId: AbstractScalarDecoder(),
-    useful.UTCTime.typeId: AbstractScalarDecoder()
+    useful.ObjectDescriptor.typeId: AbstractScalarPayloadDecoder(),
+    useful.GeneralizedTime.typeId: AbstractScalarPayloadDecoder(),
+    useful.UTCTime.typeId: AbstractScalarPayloadDecoder()
 }
 
 
-class Decoder(object):
+class SingleItemDecoder(object):
 
-    # noinspection PyDefaultArgument
-    def __init__(self, tagMap, typeMap):
-        self.__tagMap = tagMap
-        self.__typeMap = typeMap
+    TAG_MAP = TAG_MAP
+    TYPE_MAP = TYPE_MAP
+
+    def __init__(self, tagMap=_MISSING, typeMap=_MISSING, **ignored):
+        self._tagMap = tagMap if tagMap is not _MISSING else self.TAG_MAP
+        self._typeMap = typeMap if typeMap is not _MISSING else self.TYPE_MAP
 
     def __call__(self, pyObject, asn1Spec, **options):
 
         if LOG:
             debug.scope.push(type(pyObject).__name__)
-            LOG('decoder called at scope %s, working with type %s' % (debug.scope, type(pyObject).__name__))
+            LOG('decoder called at scope %s, working with '
+                'type %s' % (debug.scope, type(pyObject).__name__))
 
         if asn1Spec is None or not isinstance(asn1Spec, base.Asn1Item):
-            raise error.PyAsn1Error('asn1Spec is not valid (should be an instance of an ASN.1 Item, not %s)' % asn1Spec.__class__.__name__)
+            raise error.PyAsn1Error(
+                'asn1Spec is not valid (should be an instance of an ASN.1 '
+                'Item, not %s)' % asn1Spec.__class__.__name__)
 
         try:
-            valueDecoder = self.__typeMap[asn1Spec.typeId]
+            valueDecoder = self._typeMap[asn1Spec.typeId]
 
         except KeyError:
             # use base type for codec lookup to recover untagged types
             baseTagSet = tag.TagSet(asn1Spec.tagSet.baseTag, asn1Spec.tagSet.baseTag)
 
             try:
-                valueDecoder = self.__tagMap[baseTagSet]
+                valueDecoder = self._tagMap[baseTagSet]
+
             except KeyError:
                 raise error.PyAsn1Error('Unknown ASN.1 tag %s' % asn1Spec.tagSet)
 
         if LOG:
-            LOG('calling decoder %s on Python type %s <%s>' % (type(valueDecoder).__name__, type(pyObject).__name__, repr(pyObject)))
+            LOG('calling decoder %s on Python type %s '
+                '<%s>' % (type(valueDecoder).__name__,
+                          type(pyObject).__name__, repr(pyObject)))
 
         value = valueDecoder(pyObject, asn1Spec, self, **options)
 
         if LOG:
-            LOG('decoder %s produced ASN.1 type %s <%s>' % (type(valueDecoder).__name__, type(value).__name__, repr(value)))
+            LOG('decoder %s produced ASN.1 type %s '
+                '<%s>' % (type(valueDecoder).__name__,
+                          type(value).__name__, repr(value)))
             debug.scope.pop()
 
         return value
+
+
+class Decoder(object):
+    SINGLE_ITEM_DECODER = SingleItemDecoder
+
+    def __init__(self, **options):
+        self._singleItemDecoder = self.SINGLE_ITEM_DECODER(**options)
+
+    def __call__(self, pyObject, asn1Spec=None, **kwargs):
+        return self._singleItemDecoder(pyObject, asn1Spec=asn1Spec, **kwargs)
 
 
 #: Turns Python objects of built-in types into ASN.1 objects.
@@ -210,4 +235,10 @@ class Decoder(object):
 #:    SequenceOf:
 #:     1 2 3
 #:
-decode = Decoder(tagMap, typeMap)
+decode = Decoder()
+
+def __getattr__(attr: str):
+    if newAttr := {"tagMap": "TAG_MAP", "typeMap": "TYPE_MAP"}.get(attr):
+        warnings.warn(f"{attr} is deprecated. Please use {newAttr} instead.", DeprecationWarning)
+        return globals()[newAttr]
+    raise AttributeError(attr)

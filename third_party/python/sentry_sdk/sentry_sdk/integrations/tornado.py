@@ -1,13 +1,13 @@
 import weakref
 import contextlib
 from inspect import iscoroutinefunction
-from sentry_sdk.consts import OP
 
+from sentry_sdk.api import continue_trace
+from sentry_sdk.consts import OP
 from sentry_sdk.hub import Hub, _should_send_default_pii
 from sentry_sdk.tracing import (
     TRANSACTION_SOURCE_COMPONENT,
     TRANSACTION_SOURCE_ROUTE,
-    Transaction,
 )
 from sentry_sdk.utils import (
     HAS_REAL_CONTEXTVARS,
@@ -32,16 +32,16 @@ try:
 except ImportError:
     raise DidNotEnable("Tornado not installed")
 
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 
-if MYPY:
+if TYPE_CHECKING:
     from typing import Any
     from typing import Optional
     from typing import Dict
     from typing import Callable
     from typing import Generator
 
-    from sentry_sdk._types import EventProcessor
+    from sentry_sdk._types import Event, EventProcessor
 
 
 class TornadoIntegration(Integration):
@@ -78,7 +78,7 @@ class TornadoIntegration(Integration):
         else:
 
             @coroutine  # type: ignore
-            def sentry_execute_request_handler(self, *args, **kwargs):  # type: ignore
+            def sentry_execute_request_handler(self, *args, **kwargs):
                 # type: (RequestHandler, *Any, **Any) -> Any
                 with _handle_request_impl(self):
                     result = yield from old_execute(self, *args, **kwargs)
@@ -108,13 +108,15 @@ def _handle_request_impl(self):
     weak_handler = weakref.ref(self)
 
     with Hub(hub) as hub:
+        headers = self.request.headers
+
         with hub.configure_scope() as scope:
             scope.clear_breadcrumbs()
             processor = _make_event_processor(weak_handler)
             scope.add_event_processor(processor)
 
-        transaction = Transaction.continue_from_headers(
-            self.request.headers,
+        transaction = continue_trace(
+            headers,
             op=OP.HTTP_SERVER,
             # Like with all other integrations, this is our
             # fallback transaction in case there is no route.
@@ -153,7 +155,7 @@ def _capture_exception(ty, value, tb):
 def _make_event_processor(weak_handler):
     # type: (Callable[[], RequestHandler]) -> EventProcessor
     def tornado_processor(event, hint):
-        # type: (Dict[str, Any], Dict[str, Any]) -> Dict[str, Any]
+        # type: (Event, dict[str, Any]) -> Event
         handler = weak_handler()
         if handler is None:
             return event
@@ -162,7 +164,7 @@ def _make_event_processor(weak_handler):
 
         with capture_internal_exceptions():
             method = getattr(handler, handler.request.method.lower())
-            event["transaction"] = transaction_from_function(method)
+            event["transaction"] = transaction_from_function(method) or ""
             event["transaction_info"] = {"source": TRANSACTION_SOURCE_COMPONENT}
 
         with capture_internal_exceptions():

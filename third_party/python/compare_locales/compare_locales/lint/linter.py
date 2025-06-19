@@ -10,7 +10,6 @@ from compare_locales.paths import File, REFERENCE_LOCALE
 
 
 class L10nLinter:
-
     def lint(self, files, get_reference_and_tests):
         results = []
         for path in files:
@@ -30,20 +29,20 @@ class L10nLinter:
         file_parser.readFile(path)
         current = file_parser.parse()
         checker = checks.getChecker(
-            File(path, path, locale=REFERENCE_LOCALE),
-            extra_tests=extra_tests
+            File(path, path, locale=REFERENCE_LOCALE), extra_tests=extra_tests
         )
         if checker and checker.needs_reference:
             checker.set_reference(current)
         linter = EntityLinter(current, checker, reference)
         for current_entity in current:
             for result in linter.lint_entity(current_entity):
-                result['path'] = path
+                result["path"] = path
                 yield result
 
 
 class EntityLinter:
-    '''Factored out helper to run linters on a single entity.'''
+    """Factored out helper to run linters on a single entity."""
+
     def __init__(self, current, checker, reference):
         self.key_count = Counter(entity.key for entity in current)
         self.checker = checker
@@ -60,19 +59,17 @@ class EntityLinter:
             yield res
 
     def lint_full_entity(self, current_entity):
-        '''Checks that go good or bad for a full entity,
+        """Checks that go good or bad for a full entity,
         without a particular spot inside the entity.
-        '''
+        """
         lineno = col = None
         if self.key_count[current_entity.key] > 1:
             lineno, col = current_entity.position()
             yield {
-                'lineno': lineno,
-                'column': col,
-                'level': 'error',
-                'message': 'Duplicate string with ID: {}'.format(
-                    current_entity.key
-                )
+                "lineno": lineno,
+                "column": col,
+                "level": "error",
+                "message": f"Duplicate string with ID: {current_entity.key}",
             }
 
         if current_entity.key in self.reference:
@@ -80,32 +77,29 @@ class EntityLinter:
             if not current_entity.equals(reference_entity):
                 if lineno is None:
                     lineno, col = current_entity.position()
-                msg = 'Changes to string require a new ID: {}'.format(
+                msg = "Changes to string require a new ID: {}".format(
                     current_entity.key
                 )
                 yield {
-                    'lineno': lineno,
-                    'column': col,
-                    'level': 'warning',
-                    'message': msg,
+                    "lineno": lineno,
+                    "column": col,
+                    "level": "warning",
+                    "message": msg,
                 }
 
     def lint_value(self, current_entity):
-        '''Checks that error on particular locations in the entity value.
-        '''
+        """Checks that error on particular locations in the entity value."""
         if self.checker:
-            for tp, pos, msg, cat in self.checker.check(
-                current_entity, current_entity
-            ):
+            for tp, pos, msg, cat in self.checker.check(current_entity, current_entity):
                 if isinstance(pos, checks.EntityPos):
                     lineno, col = current_entity.position(pos)
                 else:
                     lineno, col = current_entity.value_position(pos)
                 yield {
-                    'lineno': lineno,
-                    'column': col,
-                    'level': tp,
-                    'message': msg,
+                    "lineno": lineno,
+                    "column": col,
+                    "level": tp,
+                    "message": msg,
                 }
 
     def handle_junk(self, current_entity):
@@ -114,8 +108,8 @@ class EntityLinter:
 
         lineno, col = current_entity.position()
         return {
-            'lineno': lineno,
-            'column': col,
-            'level': 'error',
-            'message': current_entity.error_message()
+            "lineno": lineno,
+            "column": col,
+            "level": "error",
+            "message": current_entity.error_message(),
         }

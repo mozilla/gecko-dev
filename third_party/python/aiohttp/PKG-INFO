@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: aiohttp
-Version: 3.12.12
+Version: 3.12.13
 Summary: Async http client/server framework (asyncio)
 Home-page: https://github.com/aio-libs/aiohttp
 Maintainer: aiohttp team <team@aiohttp.org>

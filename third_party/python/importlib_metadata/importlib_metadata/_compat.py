@@ -1,15 +1,11 @@
+import os
 import sys
 import platform
 
+from typing import Union
 
-__all__ = ['install', 'NullFinder', 'Protocol']
 
-
-try:
-    from typing import Protocol
-except ImportError:  # pragma: no cover
-    # Python 3.7 compatibility
-    from typing_extensions import Protocol  # type: ignore
+__all__ = ['install', 'NullFinder']
 
 
 def install(cls):
@@ -53,14 +49,6 @@ class NullFinder:
     def find_spec(*args, **kwargs):
         return None
 
-    # In Python 2, the import system requires finders
-    # to have a find_module() method, but this usage
-    # is deprecated in Python 3 in favor of find_spec().
-    # For the purposes of this finder (i.e. being present
-    # on sys.meta_path but having no other import
-    # system functionality), the two methods are identical.
-    find_module = find_spec
-
 
 def pypy_partial(val):
     """
@@ -70,3 +58,10 @@ def pypy_partial(val):
     """
     is_pypy = platform.python_implementation() == 'PyPy'
     return val + is_pypy
+
+
+if sys.version_info >= (3, 9):
+    StrPath = Union[str, os.PathLike[str]]
+else:
+    # PathLike is only subscriptable at runtime in 3.9+
+    StrPath = Union[str, "os.PathLike[str]"]  # pragma: no cover

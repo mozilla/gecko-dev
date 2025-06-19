@@ -12,13 +12,13 @@ import select
 import struct
 import platform
 import warnings
-import functools
 import contextlib
 import collections
 
 # local
 from .color import COLOR_DISTANCE_ALGORITHMS
-from .keyboard import (_time_left,
+from .keyboard import (DEFAULT_ESCDELAY,
+                       _time_left,
                        _read_until,
                        resolve_sequence,
                        get_keyboard_codes,
@@ -39,12 +39,9 @@ from ._capabilities import CAPABILITY_DATABASE, CAPABILITIES_ADDITIVES, CAPABILI
 
 # isort: off
 
-try:
-    InterruptedError
-except NameError:
-    # alias py2 exception to py3
-    # pylint: disable=redefined-builtin
-    InterruptedError = select.error
+# Alias py2 exception to py3
+if sys.version_info[:2] < (3, 3):
+    InterruptedError = select.error  # pylint: disable=redefined-builtin
 
 
 HAS_TTY = True
@@ -89,40 +86,40 @@ class Terminal(object):
     #         Too many instance attributes (12/7)
 
     #: Sugary names for commonly-used capabilities
-    _sugar = dict(
-        save='sc',
-        restore='rc',
-        clear_eol='el',
-        clear_bol='el1',
-        clear_eos='ed',
-        enter_fullscreen='smcup',
-        exit_fullscreen='rmcup',
-        move='cup',
-        move_yx='cup',
-        move_x='hpa',
-        move_y='vpa',
-        hide_cursor='civis',
-        normal_cursor='cnorm',
-        reset_colors='op',
-        normal='sgr0',
-        reverse='rev',
-        italic='sitm',
-        no_italic='ritm',
-        shadow='sshm',
-        no_shadow='rshm',
-        standout='smso',
-        no_standout='rmso',
-        subscript='ssubm',
-        no_subscript='rsubm',
-        superscript='ssupm',
-        no_superscript='rsupm',
-        underline='smul',
-        no_underline='rmul',
-        cursor_report='u6',
-        cursor_request='u7',
-        terminal_answerback='u8',
-        terminal_enquire='u9',
-    )
+    _sugar = {
+        'save': 'sc',
+        'restore': 'rc',
+        'clear_eol': 'el',
+        'clear_bol': 'el1',
+        'clear_eos': 'ed',
+        'enter_fullscreen': 'smcup',
+        'exit_fullscreen': 'rmcup',
+        'move': 'cup',
+        'move_yx': 'cup',
+        'move_x': 'hpa',
+        'move_y': 'vpa',
+        'hide_cursor': 'civis',
+        'normal_cursor': 'cnorm',
+        'reset_colors': 'op',
+        'normal': 'sgr0',
+        'reverse': 'rev',
+        'italic': 'sitm',
+        'no_italic': 'ritm',
+        'shadow': 'sshm',
+        'no_shadow': 'rshm',
+        'standout': 'smso',
+        'no_standout': 'rmso',
+        'subscript': 'ssubm',
+        'no_subscript': 'rsubm',
+        'superscript': 'ssupm',
+        'no_superscript': 'rsupm',
+        'underline': 'smul',
+        'no_underline': 'rmul',
+        'cursor_report': 'u6',
+        'cursor_request': 'u7',
+        'terminal_answerback': 'u8',
+        'terminal_enquire': 'u9',
+    }
 
     def __init__(self, kind=None, stream=None, force_styling=False):
         """
@@ -131,7 +128,7 @@ class Terminal(object):
         :arg str kind: A terminal string as taken by :func:`curses.setupterm`.
             Defaults to the value of the ``TERM`` environment variable.
 
-            .. note:: Terminals withing a single process must share a common
+            .. note:: Terminals within a single process must share a common
                 ``kind``. See :obj:`_CUR_TERM`.
 
         :arg file stream: A file-like object representing the Terminal output.
@@ -328,6 +325,7 @@ class Terminal(object):
             # set input encoding and initialize incremental decoder
 
             if IS_WINDOWS:
+                # pylint: disable-next=possibly-used-before-assignment
                 self._encoding = get_console_input_encoding() \
                     or locale.getpreferredencoding() or 'UTF-8'
             else:
@@ -462,7 +460,7 @@ class Terminal(object):
             - ``ws_ypixel``: height of terminal by pixels (not accurate).
         """
         if HAS_TTY:
-            # pylint: disable=protected-access
+            # pylint: disable=protected-access,possibly-used-before-assignment
             data = fcntl.ioctl(fd, termios.TIOCGWINSZ, WINSZ._BUF)
             return WINSZ(*struct.unpack(WINSZ._FMT, data))
         return WINSZ(ws_row=25, ws_col=80, ws_xpixel=0, ws_ypixel=0)
@@ -503,6 +501,50 @@ class Terminal(object):
                      ws_col=int(os.getenv('COLUMNS', '80')),
                      ws_xpixel=None,
                      ws_ypixel=None)
+
+    def _query_response(self, query_str, response_re, timeout):
+        """
+        Sends a query string to the terminal and waits for a response.
+
+        :arg str query_str: Query string written to output
+        :arg str response_re: Regular expression matching query response
+        :arg float timeout: Return after time elapsed in seconds
+        :return: re.match object for response_re or None if not found
+        :rtype: re.Match
+        """
+        # Avoid changing user's desired raw or cbreak mode if already entered,
+        # by entering cbreak mode ourselves.  This is necessary to receive user
+        # input without awaiting a human to press the return key.   This mode
+        # also disables echo, which we should also hide, as our input is an
+        # sequence that is not meaningful for display as an output sequence.
+
+        ctx = None
+        try:
+            if self._line_buffered:
+                ctx = self.cbreak()
+                ctx.__enter__()  # pylint: disable=no-member
+
+            # Emit the query sequence,
+            self.stream.write(query_str)
+            self.stream.flush()
+
+            # Wait for response
+            match, data = _read_until(term=self,  # pylint: disable=unpacking-non-sequence
+                                      pattern=response_re,
+                                      timeout=timeout)
+
+            # Exclude response from subsequent input
+            if match:
+                data = data[:match.start()] + data[match.end():]
+
+            # re-buffer keyboard data, if any
+            self.ungetch(data)
+
+        finally:
+            if ctx is not None:
+                ctx.__exit__(None, None, None)  # pylint: disable=no-member
+
+        return match
 
     @contextlib.contextmanager
     def location(self, x=None, y=None):
@@ -573,7 +615,7 @@ class Terminal(object):
         when such capability is undefined, which elicits a response from a reply string described by
         capability ``u6``, or again VT100's definition of ``\x1b[%i%d;%dR`` when undefined.
 
-        The ``(y, x)`` return value matches the parameter order of the :meth:`move_xy` capability.
+        The ``(y, x)`` return value matches the parameter order of the :meth:`move_yx` capability.
         The following sequence should cause the cursor to not move at all::
 
             >>> term = Terminal()
@@ -588,7 +630,6 @@ class Terminal(object):
             ...
             >>> assert given_x == result_x, (given_x, result_x)
             >>> assert given_y == result_y, (given_y, result_y)
-
         """
         # Local lines attached by termios and remote login protocols such as
         # ssh and telnet both provide a means to determine the window
@@ -606,64 +647,74 @@ class Terminal(object):
         # >  u8   terminal answerback description
         # >  u7   cursor position request (equiv. to VT100/ANSI/ECMA-48 DSR 6)
         # >  u6   cursor position report (equiv. to ANSI/ECMA-48 CPR)
-        query_str = self.u7 or u'\x1b[6n'
+
         response_str = getattr(self, self.caps['cursor_report'].attribute) or u'\x1b[%i%d;%dR'
+        match = self._query_response(
+            self.u7 or u'\x1b[6n', self.caps['cursor_report'].re_compiled, timeout
+        )
 
-        # determine response format as a regular expression
-        response_re = self.caps['cursor_report'].re_compiled
+        if match:
+            # return matching sequence response, the cursor location.
+            row, col = (int(val) for val in match.groups())
 
-        # Avoid changing user's desired raw or cbreak mode if already entered,
-        # by entering cbreak mode ourselves.  This is necessary to receive user
-        # input without awaiting a human to press the return key.   This mode
-        # also disables echo, which we should also hide, as our input is an
-        # sequence that is not meaningful for display as an output sequence.
-
-        ctx = None
-        try:
-            if self._line_buffered:
-                ctx = self.cbreak()
-                ctx.__enter__()  # pylint: disable=no-member
-
-            # emit the 'query cursor position' sequence,
-            self.stream.write(query_str)
-            self.stream.flush()
-
-            # expect a response,
-            match, data = _read_until(term=self,
-                                      pattern=response_re,
-                                      timeout=timeout)
-
-            # ensure response sequence is excluded from subsequent input,
-            if match:
-                data = (data[:match.start()] + data[match.end():])
-
-            # re-buffer keyboard data, if any
-            self.ungetch(data)
-
-            if match:
-                # return matching sequence response, the cursor location.
-                row, col = (int(val) for val in match.groups())
-
-                # Per https://invisible-island.net/ncurses/terminfo.src.html
-                # The cursor position report (<u6>) string must contain two
-                # scanf(3)-style %d format elements.  The first of these must
-                # correspond to the Y coordinate and the second to the %d.
-                # If the string contains the sequence %i, it is taken as an
-                # instruction to decrement each value after reading it (this is
-                # the inverse sense from the cup string).
-                if u'%i' in response_str:
-                    row -= 1
-                    col -= 1
-                return row, col
-
-        finally:
-            if ctx is not None:
-                ctx.__exit__(None, None, None)  # pylint: disable=no-member
+            # Per https://invisible-island.net/ncurses/terminfo.src.html
+            # The cursor position report (<u6>) string must contain two
+            # scanf(3)-style %d format elements.  The first of these must
+            # correspond to the Y coordinate and the second to the %d.
+            # If the string contains the sequence %i, it is taken as an
+            # instruction to decrement each value after reading it (this is
+            # the inverse sense from the cup string).
+            if u'%i' in response_str:
+                row -= 1
+                col -= 1
+            return row, col
 
         # We chose to return an illegal value rather than an exception,
         # favoring that users author function filters, such as max(0, y),
         # rather than crowbarring such logic into an exception handler.
         return -1, -1
+
+    def get_fgcolor(self, timeout=None):
+        """
+        Return tuple (r, g, b) of foreground color.
+
+        :arg float timeout: Return after time elapsed in seconds with value ``(-1, -1, -1)``
+            indicating that the remote end did not respond.
+        :rtype: tuple
+        :returns: foreground color as tuple in form of ``(r, g, b)``.  When a timeout is specified,
+            always ensure the return value is checked for ``(-1, -1, -1)``.
+
+        The foreground color is determined by emitting an `OSC 10 color query
+        <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>`_.
+        """
+        match = self._query_response(
+            u'\x1b]10;?\x07',
+            re.compile(u'\x1b]10;rgb:([0-9a-fA-F]+)/([0-9a-fA-F]+)/([0-9a-fA-F]+)\x07'),
+            timeout
+        )
+
+        return tuple(int(val, 16) for val in match.groups()) if match else (-1, -1, -1)
+
+    def get_bgcolor(self, timeout=None):
+        """
+        Return tuple (r, g, b) of background color.
+
+        :arg float timeout: Return after time elapsed in seconds with value ``(-1, -1, -1)``
+            indicating that the remote end did not respond.
+        :rtype: tuple
+        :returns: background color as tuple in form of ``(r, g, b)``.  When a timeout is specified,
+            always ensure the return value is checked for ``(-1, -1, -1)``.
+
+        The background color is determined by emitting an `OSC 11 color query
+        <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands>`_.
+        """
+        match = self._query_response(
+            u'\x1b]11;?\x07',
+            re.compile(u'\x1b]11;rgb:([0-9a-fA-F]+)/([0-9a-fA-F]+)/([0-9a-fA-F]+)\x07'),
+            timeout
+        )
+
+        return tuple(int(val, 16) for val in match.groups()) if match else (-1, -1, -1)
 
     @contextlib.contextmanager
     def fullscreen(self):
@@ -769,10 +820,10 @@ class Terminal(object):
         This should not be used directly, but rather a specific color by name or
         :meth:`~.Terminal.color_rgb` value.
         """
-        if not self.does_styling:
-            return NullCallableString()
-        return ParameterizingString(self._foreground_color,
-                                    self.normal, 'color')
+        if self.does_styling:
+            return ParameterizingString(self._foreground_color, self.normal, 'color')
+
+        return NullCallableString()
 
     def color_rgb(self, red, green, blue):
         """
@@ -803,10 +854,10 @@ class Terminal(object):
 
         :rtype: ParameterizingString
         """
-        if not self.does_styling:
-            return NullCallableString()
-        return ParameterizingString(self._background_color,
-                                    self.normal, 'on_color')
+        if self.does_styling:
+            return ParameterizingString(self._background_color, self.normal, 'on_color')
+
+        return NullCallableString()
 
     def on_color_rgb(self, red, green, blue):
         """
@@ -843,6 +894,7 @@ class Terminal(object):
         inadvertently returning another terminal capability.
         """
         formatters = split_compound(value)
+        # Pylint sometimes thinks formatters isn't a list  # pylint: disable=not-an-iterable
         if all((fmt in COLORS or fmt in COMPOUNDABLES) for fmt in formatters):
             return getattr(self, value)
 
@@ -936,14 +988,14 @@ class Terminal(object):
 
         Common return values are 0, 8, 16, 256, or 1 << 24.
 
-        This may be used to test whether the terminal supports colors,
-        and at what depth, if that's a concern.
+        This may be used to test whether the terminal supports colors, and at what depth, if that's
+        a concern.
 
         If this property is assigned a value of 88, the value 16 will be saved. This is due to the
         the rarity of 88 color support and the inconsistency of behavior between implementations.
 
-        Assigning this property to a value other than 0, 4, 8, 16, 88, 256, or 1 << 24 will
-        raise an :py:exc:`AssertionError`.
+        Assigning this property to a value other than 0, 4, 8, 16, 88, 256, or 1 << 24 will raise an
+        :py:exc:`AssertionError`.
         """
         return self._number_of_colors
 
@@ -1299,6 +1351,7 @@ class Terminal(object):
             # Save current terminal mode:
             save_mode = termios.tcgetattr(self._keyboard_fd)
             save_line_buffered = self._line_buffered
+            # pylint: disable-next=possibly-used-before-assignment
             tty.setcbreak(self._keyboard_fd, termios.TCSANOW)
             try:
                 self._line_buffered = False
@@ -1317,13 +1370,13 @@ class Terminal(object):
         r"""
         A context manager for :func:`tty.setraw`.
 
-        Although both :meth:`break` and :meth:`raw` modes allow each keystroke
+        Although both :meth:`cbreak` and :meth:`raw` modes allow each keystroke
         to be read immediately after it is pressed, Raw mode disables
         processing of input and output.
 
         In cbreak mode, special input characters such as ``^C`` or ``^S`` are
         interpreted by the terminal driver and excluded from the stdin stream.
-        In raw mode these values are receive by the :meth:`inkey` method.
+        In raw mode these values are received by the :meth:`inkey` method.
 
         Because output processing is not done, the newline ``'\n'`` is not
         enough, you must also print carriage return to ensure that the cursor
@@ -1375,8 +1428,8 @@ class Terminal(object):
             self.stream.write(self.rmkx)
             self.stream.flush()
 
-    def inkey(self, timeout=None, esc_delay=0.35):
-        """
+    def inkey(self, timeout=None, esc_delay=DEFAULT_ESCDELAY):
+        r"""
         Read and return the next keyboard event within given timeout.
 
         Generally, this should be used inside the :meth:`raw` context manager.
@@ -1384,12 +1437,16 @@ class Terminal(object):
         :arg float timeout: Number of seconds to wait for a keystroke before
             returning.  When ``None`` (default), this method may block
             indefinitely.
-        :arg float esc_delay: To distinguish between the keystroke of
-           ``KEY_ESCAPE``, and sequences beginning with escape, the parameter
-           ``esc_delay`` specifies the amount of time after receiving escape
-           (``chr(27)``) to seek for the completion of an application key
-           before returning a :class:`~.Keystroke` instance for
-           ``KEY_ESCAPE``.
+        :arg float esc_delay: Time in seconds to block after Escape key
+           is received to await another key sequence beginning with
+           escape such as *KEY_LEFT*, sequence ``'\x1b[D'``], before returning a
+           :class:`~.Keystroke` instance for ``KEY_ESCAPE``.
+
+           Users may override the default value of ``esc_delay`` in seconds,
+           using environment value of ``ESCDELAY`` as milliseconds, see
+           `ncurses(3)`_ section labeled *ESCDELAY* for details.  Setting
+           the value as an argument to this function will override any
+           such preference.
         :rtype: :class:`~.Keystroke`.
         :returns: :class:`~.Keystroke`, which may be empty (``u''``) if
            ``timeout`` is specified and keystroke is not received.
@@ -1404,11 +1461,9 @@ class Terminal(object):
             <https://docs.microsoft.com/en-us/windows/win32/api/timeapi/nf-timeapi-timebeginperiod>`_.
             Decreasing the time resolution will reduce this to 10 ms, while increasing it, which
             is rarely done, will have a perceptable impact on the behavior.
-        """
-        resolve = functools.partial(resolve_sequence,
-                                    mapper=self._keymap,
-                                    codes=self._keycodes)
 
+        _`ncurses(3)`: https://www.man7.org/linux/man-pages/man3/ncurses.3x.html
+        """
         stime = time.time()
 
         # re-buffer previously received keystrokes,
@@ -1421,14 +1476,14 @@ class Terminal(object):
             ucs += self.getch()
 
         # decode keystroke, if any
-        ks = resolve(text=ucs)
+        ks = resolve_sequence(ucs, self._keymap, self._keycodes)
 
         # so long as the most immediately received or buffered keystroke is
         # incomplete, (which may be a multibyte encoding), block until until
         # one is received.
         while not ks and self.kbhit(timeout=_time_left(stime, timeout)):
             ucs += self.getch()
-            ks = resolve(text=ucs)
+            ks = resolve_sequence(ucs, self._keymap, self._keycodes)
 
         # handle escape key (KEY_ESCAPE) vs. escape sequence (like those
         # that begin with \x1b[ or \x1bO) up to esc_delay when
@@ -1443,10 +1498,10 @@ class Terminal(object):
         if ks.code == self.KEY_ESCAPE:
             esctime = time.time()
             while (ks.code == self.KEY_ESCAPE and
-                   ucs in self._keymap_prefixes and
+                   ucs in self._keymap_prefixes and  # pylint: disable=unsupported-membership-test
                    self.kbhit(timeout=_time_left(esctime, esc_delay))):
                 ucs += self.getch()
-                ks = resolve(text=ucs)
+                ks = resolve_sequence(ucs, self._keymap, self._keycodes)
 
         # buffer any remaining text received
         self.ungetch(ucs[len(ks):])

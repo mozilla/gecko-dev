@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -21,6 +20,14 @@ Use this rule to control the number of spaces after hyphens (``-``).
 
 * ``max-spaces-after`` defines the maximal number of spaces allowed after
   hyphens.
+
+.. rubric:: Default values (when enabled)
+
+.. code-block:: yaml
+
+ rules:
+   hyphens:
+     max-spaces-after: 1
 
 .. rubric:: Examples
 
@@ -71,7 +78,6 @@ Use this rule to control the number of spaces after hyphens (``-``).
 import yaml
 
 from yamllint.rules.common import spaces_after
-
 
 ID = 'hyphens'
 TYPE = 'token'

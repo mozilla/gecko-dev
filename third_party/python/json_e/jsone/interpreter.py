@@ -3,8 +3,9 @@ import operator
 
 
 def infixExpectationError(operator, expected):
-    return InterpreterError('infix: {} expects {} {} {}'.
-                            format(operator, expected, operator, expected))
+    return InterpreterError(
+        "infix: {} expects {} {} {}".format(operator, expected, operator, expected)
+    )
 
 
 class Interpreter:
@@ -12,14 +13,14 @@ class Interpreter:
         self.context = context
 
     def visit(self, node):
-        method_name = 'visit_' + type(node).__name__
+        method_name = "visit_" + type(node).__name__
         visitor = getattr(self, method_name)
         return visitor(node)
 
     def visit_ASTNode(self, node):
         if node.token.kind == "number":
             v = node.token.value
-            return float(v) if '.' in v else int(v)
+            return float(v) if "." in v else int(v)
         elif node.token.kind == "null":
             return None
         elif node.token.kind == "string":
@@ -35,11 +36,11 @@ class Interpreter:
         value = self.visit(node.expr)
         if node.token.kind == "+":
             if not is_number(value):
-                raise InterpreterError('{} expects {}'.format('unary +', 'number'))
+                raise InterpreterError("{} expects {}".format("unary +", "number"))
             return value
         elif node.token.kind == "-":
             if not is_number(value):
-                raise InterpreterError('{} expects {}'.format('unary -', 'number'))
+                raise InterpreterError("{} expects {}".format("unary -", "number"))
             return -value
         elif node.token.kind == "!":
             return not self.visit(node.expr)
@@ -55,18 +56,21 @@ class Interpreter:
 
         if node.token.kind == "+":
             if not isinstance(left, (string, int, float)) or isinstance(left, bool):
-                raise infixExpectationError('+', 'numbers/strings')
+                raise infixExpectationError("+", "numbers/strings")
             if not isinstance(right, (string, int, float)) or isinstance(right, bool):
-                raise infixExpectationError('+', 'numbers/strings')
-            if type(right) != type(left) and \
-                    (isinstance(left, string) or isinstance(right, string)):
-                raise infixExpectationError('+', 'numbers/strings')
+                raise infixExpectationError("+", "numbers/strings")
+            if type(right) != type(left) and (
+                isinstance(left, string) or isinstance(right, string)
+            ):
+                raise infixExpectationError("+", "numbers/strings")
             return left + right
         elif node.token.kind == "-":
             test_math_operands("-", left, right)
             return left - right
         elif node.token.kind == "/":
             test_math_operands("/", left, right)
+            if right == 0:
+                raise InterpreterError("division by zero")
             return operator.truediv(left, right)
         elif node.token.kind == "*":
             test_math_operands("*", left, right)
@@ -89,30 +93,30 @@ class Interpreter:
             return left == right
         elif node.token.kind == "**":
             test_math_operands("**", left, right)
-            return right ** left
+            return right**left
         elif node.token.value == "in":
             if isinstance(right, dict):
                 if not isinstance(left, string):
-                    raise infixExpectationError('in-object', 'string on left side')
+                    raise infixExpectationError("in-object", "string on left side")
             elif isinstance(right, string):
                 if not isinstance(left, string):
-                    raise infixExpectationError('in-string', 'string on left side')
+                    raise infixExpectationError("in-string", "string on left side")
             elif not isinstance(right, list):
                 raise infixExpectationError(
-                    'in', 'Array, string, or object on right side')
+                    "in", "Array, string, or object on right side"
+                )
             try:
                 return left in right
             except TypeError:
-                raise infixExpectationError('in', 'scalar value, collection')
+                raise infixExpectationError("in", "scalar value, collection")
 
         elif node.token.kind == ".":
             if not isinstance(left, dict):
-                raise InterpreterError('infix: {} expects {}'.format(".", 'objects'))
+                raise InterpreterError("infix: {} expects {}".format(".", "objects"))
             try:
                 return left[right]
             except KeyError:
-                raise InterpreterError(
-                    'object has no property "{}"'.format(right))
+                raise InterpreterError('object has no property "{}"'.format(right))
 
     def visit_List(self, node):
         list = []
@@ -140,19 +144,25 @@ class Interpreter:
                 try:
                     return value[left:right]
                 except TypeError:
-                    raise InterpreterError('cannot perform interval access with non-integers')
+                    raise InterpreterError(
+                        "cannot perform interval access with non-integers"
+                    )
             else:
                 try:
                     return value[left]
                 except IndexError:
-                    raise InterpreterError('index out of bounds')
+                    raise InterpreterError("index out of bounds")
                 except TypeError:
-                    raise InterpreterError('should only use integers to access arrays or strings')
+                    raise InterpreterError(
+                        "should only use integers to access arrays or strings"
+                    )
 
         if not isinstance(value, dict):
-            raise InterpreterError('infix: {} expects {}'.format('"[..]"', 'object, array, or string'))
+            raise InterpreterError(
+                "infix: {} expects {}".format('"[..]"', "object, array, or string")
+            )
         if not isinstance(left, string):
-            raise InterpreterError('object keys must be strings')
+            raise InterpreterError("object keys must be strings")
 
         try:
             return value[left]
@@ -163,8 +173,7 @@ class Interpreter:
         try:
             contextValue = self.context[node.token.value]
         except KeyError:
-            raise InterpreterError(
-                'unknown context value {}'.format(node.token.value))
+            raise InterpreterError("unknown context value {}".format(node.token.value))
         return contextValue
 
     def visit_FunctionCall(self, node):
@@ -179,8 +188,7 @@ class Interpreter:
                 else:
                     return func_name(*args)
         else:
-            raise InterpreterError(
-                '{} is not callable'.format(func_name))
+            raise InterpreterError("{} is not callable".format(func_name))
 
     def visit_Object(self, node):
         obj = {}
@@ -194,16 +202,17 @@ class Interpreter:
 
 def test_math_operands(op, left, right):
     if not is_number(left):
-        raise infixExpectationError(op, 'number')
+        raise infixExpectationError(op, "number")
     if not is_number(right):
-        raise infixExpectationError(op, 'number')
+        raise infixExpectationError(op, "number")
     return
 
 
 def test_comparison_operands(op, left, right):
-    if type(left) != type(right) or \
-            not (isinstance(left, (int, float, string)) and not isinstance(left, bool)):
-        raise infixExpectationError(op, 'numbers/strings')
+    if type(left) != type(right) or not (
+        isinstance(left, (int, float, string)) and not isinstance(left, bool)
+    ):
+        raise infixExpectationError(op, "numbers/strings")
     return
 
 

@@ -1,16 +1,37 @@
+# fmt: off
+from __future__ import annotations
+
+import datetime
 import os
 import re
-import datetime
 import sys
-from functools import wraps
+import typing
 from decimal import Decimal, InvalidOperation
+from functools import wraps
 
-from voluptuous.schema_builder import Schema, raises, message
-from voluptuous.error import (MultipleInvalid, CoerceInvalid, TrueInvalid, FalseInvalid, BooleanInvalid, Invalid,
-                              AnyInvalid, AllInvalid, MatchInvalid, UrlInvalid, EmailInvalid, FileInvalid, DirInvalid,
-                              RangeInvalid, PathInvalid, ExactSequenceInvalid, LengthInvalid, DatetimeInvalid,
-                              DateInvalid, InInvalid, TypeInvalid, NotInInvalid, ContainsInvalid, NotEnoughValid,
-                              TooManyValid)
+from voluptuous.error import (
+    AllInvalid, AnyInvalid, BooleanInvalid, CoerceInvalid, ContainsInvalid, DateInvalid,
+    DatetimeInvalid, DirInvalid, EmailInvalid, ExactSequenceInvalid, FalseInvalid,
+    FileInvalid, InInvalid, Invalid, LengthInvalid, MatchInvalid, MultipleInvalid,
+    NotEnoughValid, NotInInvalid, PathInvalid, RangeInvalid, TooManyValid, TrueInvalid,
+    TypeInvalid, UrlInvalid,
+)
+
+# F401: flake8 complains about 'raises' not being used, but it is used in doctests
+from voluptuous.schema_builder import Schema, Schemable, message, raises  # noqa: F401
+
+if typing.TYPE_CHECKING:
+    from _typeshed import SupportsAllComparisons
+
+# fmt: on
+
+
+Enum: typing.Union[type, None]
+try:
+    from enum import Enum
+except ImportError:
+    Enum = None
+
 
 if sys.version_info >= (3,):
     import urllib.parse as urlparse
@@ -20,38 +41,50 @@ else:
     import urlparse
 
 # Taken from https://github.com/kvesteri/validators/blob/master/validators/email.py
+# fmt: off
 USER_REGEX = re.compile(
+    # start anchor, because fullmatch is not available in python 2.7
+    "(?:"
     # dot-atom
     r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+"
     r"(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*$"
     # quoted-string
     r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|'
-    r"""\\[\001-\011\013\014\016-\177])*"$)""",
-    re.IGNORECASE
+    r"""\\[\001-\011\013\014\016-\177])*"$)"""
+    # end anchor, because fullmatch is not available in python 2.7
+    r")\Z",
+    re.IGNORECASE,
 )
 DOMAIN_REGEX = re.compile(
+    # start anchor, because fullmatch is not available in python 2.7
+    "(?:"
     # domain
     r'(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+'
+    # tld
     r'(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?$)'
     # literal form, ipv4 address (SMTP 4.1.3)
     r'|^\[(25[0-5]|2[0-4]\d|[0-1]?\d?\d)'
-    r'(\.(25[0-5]|2[0-4]\d|[0-1]?\d?\d)){3}\]$',
-    re.IGNORECASE)
+    r'(\.(25[0-5]|2[0-4]\d|[0-1]?\d?\d)){3}\]$'
+    # end anchor, because fullmatch is not available in python 2.7
+    r")\Z",
+    re.IGNORECASE,
+)
+# fmt: on
 
 __author__ = 'tusharmakkar08'
 
 
-def truth(f):
+def truth(f: typing.Callable) -> typing.Callable:
     """Convenience decorator to convert truth functions into validators.
 
-        >>> @truth
-        ... def isdir(v):
-        ...   return os.path.isdir(v)
-        >>> validate = Schema(isdir)
-        >>> validate('/')
-        '/'
-        >>> with raises(MultipleInvalid, 'not a valid value'):
-        ...   validate('/notavaliddir')
+    >>> @truth
+    ... def isdir(v):
+    ...   return os.path.isdir(v)
+    >>> validate = Schema(isdir)
+    >>> validate('/')
+    '/'
+    >>> with raises(MultipleInvalid, 'not a valid value'):
+    ...   validate('/notavaliddir')
     """
 
     @wraps(f)
@@ -85,7 +118,11 @@ class Coerce(object):
         ...   validate('foo')
     """
 
-    def __init__(self, type, msg=None):
+    def __init__(
+        self,
+        type: typing.Union[type, typing.Callable],
+        msg: typing.Optional[str] = None,
+    ) -> None:
         self.type = type
         self.msg = msg
         self.type_name = type.__name__
@@ -95,6 +132,8 @@ class Coerce(object):
             return self.type(v)
         except (ValueError, TypeError, InvalidOperation):
             msg = self.msg or ('expected %s' % self.type_name)
+            if not self.msg and Enum and issubclass(self.type, Enum):
+                msg += " or one of %s" % str([e.value for e in self.type])[1:-1]
             raise CoerceInvalid(msg)
 
     def __repr__(self):
@@ -189,13 +228,15 @@ class _WithSubValidators(object):
     sub-validators are compiled by the parent `Schema`.
     """
 
-    def __init__(self, *validators, **kwargs):
+    def __init__(
+        self, *validators, msg=None, required=False, discriminant=None, **kwargs
+    ) -> None:
         self.validators = validators
-        self.msg = kwargs.pop('msg', None)
-        self.required = kwargs.pop('required', False)
-        self.discriminant = kwargs.pop('discriminant', None)
+        self.msg = msg
+        self.required = required
+        self.discriminant = discriminant
 
-    def __voluptuous_compile__(self, schema):
+    def __voluptuous_compile__(self, schema: Schema) -> typing.Callable:
         self._compiled = []
         old_required = schema.required
         self.schema = schema
@@ -205,7 +246,7 @@ class _WithSubValidators(object):
         schema.required = old_required
         return self._run
 
-    def _run(self, path, value):
+    def _run(self, path: typing.List[typing.Hashable], value):
         if self.discriminant is not None:
             self._compiled = [
                 self.schema._compile(v)
@@ -221,8 +262,16 @@ class _WithSubValidators(object):
         return '%s(%s, msg=%r)' % (
             self.__class__.__name__,
             ", ".join(repr(v) for v in self.validators),
-            self.msg
+            self.msg,
         )
+
+    def _exec(
+        self,
+        funcs: typing.Iterable,
+        v,
+        path: typing.Optional[typing.List[typing.Hashable]] = None,
+    ):
+        raise NotImplementedError()
 
 
 class Any(_WithSubValidators):
@@ -263,10 +312,8 @@ class Any(_WithSubValidators):
                     error = e
         else:
             if error:
-                raise error if self.msg is None else AnyInvalid(
-                    self.msg, path=path)
-            raise AnyInvalid(self.msg or 'no valid value found',
-                             path=path)
+                raise error if self.msg is None else AnyInvalid(self.msg, path=path)
+            raise AnyInvalid(self.msg or 'no valid value found', path=path)
 
 
 # Convenience alias
@@ -307,10 +354,8 @@ class Union(_WithSubValidators):
                     error = e
         else:
             if error:
-                raise error if self.msg is None else AnyInvalid(
-                    self.msg, path=path)
-            raise AnyInvalid(self.msg or 'no valid value found',
-                             path=path)
+                raise error if self.msg is None else AnyInvalid(self.msg, path=path)
+            raise AnyInvalid(self.msg or 'no valid value found', path=path)
 
 
 # Convenience alias
@@ -352,7 +397,7 @@ class Match(object):
     >>> validate = Schema(Match(r'^0x[A-F0-9]+$'))
     >>> validate('0x123EF4')
     '0x123EF4'
-    >>> with raises(MultipleInvalid, "does not match regular expression"):
+    >>> with raises(MultipleInvalid, 'does not match regular expression ^0x[A-F0-9]+$'):
     ...   validate('123EF4')
 
     >>> with raises(MultipleInvalid, 'expected string or buffer'):
@@ -365,7 +410,9 @@ class Match(object):
     '0x123ef4'
     """
 
-    def __init__(self, pattern, msg=None):
+    def __init__(
+        self, pattern: typing.Union[re.Pattern, str], msg: typing.Optional[str] = None
+    ) -> None:
         if isinstance(pattern, basestring):
             pattern = re.compile(pattern)
         self.pattern = pattern
@@ -377,7 +424,10 @@ class Match(object):
         except TypeError:
             raise MatchInvalid("expected string or buffer")
         if not match:
-            raise MatchInvalid(self.msg or 'does not match regular expression')
+            raise MatchInvalid(
+                self.msg
+                or 'does not match regular expression {}'.format(self.pattern.pattern)
+            )
         return v
 
     def __repr__(self):
@@ -393,7 +443,12 @@ class Replace(object):
     'I say goodbye'
     """
 
-    def __init__(self, pattern, substitution, msg=None):
+    def __init__(
+        self,
+        pattern: typing.Union[re.Pattern, str],
+        substitution: str,
+        msg: typing.Optional[str] = None,
+    ) -> None:
         if isinstance(pattern, basestring):
             pattern = re.compile(pattern)
         self.pattern = pattern
@@ -404,12 +459,14 @@ class Replace(object):
         return self.pattern.sub(self.substitution, v)
 
     def __repr__(self):
-        return 'Replace(%r, %r, msg=%r)' % (self.pattern.pattern,
-                                            self.substitution,
-                                            self.msg)
+        return 'Replace(%r, %r, msg=%r)' % (
+            self.pattern.pattern,
+            self.substitution,
+            self.msg,
+        )
 
 
-def _url_validation(v):
+def _url_validation(v: str) -> urlparse.ParseResult:
     parsed = urlparse.urlparse(v)
     if not parsed.scheme or not parsed.netloc:
         raise UrlInvalid("must have a URL scheme and host")
@@ -438,7 +495,7 @@ def Email(v):
         if not (USER_REGEX.match(user_part) and DOMAIN_REGEX.match(domain_part)):
             raise EmailInvalid("Invalid email address")
         return v
-    except:
+    except:  # noqa: E722
         raise ValueError
 
 
@@ -457,7 +514,7 @@ def FqdnUrl(v):
         if "." not in parsed_url.netloc:
             raise UrlInvalid("must have a domain name in URL")
         return v
-    except:
+    except:  # noqa: E722
         raise ValueError
 
 
@@ -474,7 +531,7 @@ def Url(v):
     try:
         _url_validation(v)
         return v
-    except:
+    except:  # noqa: E722
         raise ValueError
 
 
@@ -542,7 +599,7 @@ def PathExists(v):
         raise PathInvalid("Not a Path")
 
 
-def Maybe(validator, msg=None):
+def Maybe(validator: Schemable, msg: typing.Optional[str] = None):
     """Validate that the object matches given validator or is None.
 
     :raises Invalid: If the value does not match the given validator and is not
@@ -555,7 +612,7 @@ def Maybe(validator, msg=None):
     ...  s("string")
 
     """
-    return Any(validator, None, msg=msg)
+    return Any(None, validator, msg=msg)
 
 
 class Range(object):
@@ -579,8 +636,14 @@ class Range(object):
     ...   Schema(Range(max=10, max_included=False))(20)
     """
 
-    def __init__(self, min=None, max=None, min_included=True,
-                 max_included=True, msg=None):
+    def __init__(
+        self,
+        min: SupportsAllComparisons | None = None,
+        max: SupportsAllComparisons | None = None,
+        min_included: bool = True,
+        max_included: bool = True,
+        msg: typing.Optional[str] = None,
+    ) -> None:
         self.min = min
         self.max = max
         self.min_included = min_included
@@ -592,33 +655,40 @@ class Range(object):
             if self.min_included:
                 if self.min is not None and not v >= self.min:
                     raise RangeInvalid(
-                        self.msg or 'value must be at least %s' % self.min)
+                        self.msg or 'value must be at least %s' % self.min
+                    )
             else:
                 if self.min is not None and not v > self.min:
                     raise RangeInvalid(
-                        self.msg or 'value must be higher than %s' % self.min)
+                        self.msg or 'value must be higher than %s' % self.min
+                    )
             if self.max_included:
                 if self.max is not None and not v <= self.max:
                     raise RangeInvalid(
-                        self.msg or 'value must be at most %s' % self.max)
+                        self.msg or 'value must be at most %s' % self.max
+                    )
             else:
                 if self.max is not None and not v < self.max:
                     raise RangeInvalid(
-                        self.msg or 'value must be lower than %s' % self.max)
+                        self.msg or 'value must be lower than %s' % self.max
+                    )
 
             return v
 
         # Objects that lack a partial ordering, e.g. None or strings will raise TypeError
         except TypeError:
             raise RangeInvalid(
-                self.msg or 'invalid value or type (must have a partial ordering)')
+                self.msg or 'invalid value or type (must have a partial ordering)'
+            )
 
     def __repr__(self):
-        return ('Range(min=%r, max=%r, min_included=%r,'
-                ' max_included=%r, msg=%r)' % (self.min, self.max,
-                                               self.min_included,
-                                               self.max_included,
-                                               self.msg))
+        return 'Range(min=%r, max=%r, min_included=%r, max_included=%r, msg=%r)' % (
+            self.min,
+            self.max,
+            self.min_included,
+            self.max_included,
+            self.msg,
+        )
 
 
 class Clamp(object):
@@ -635,7 +705,12 @@ class Clamp(object):
     0
     """
 
-    def __init__(self, min=None, max=None, msg=None):
+    def __init__(
+        self,
+        min: SupportsAllComparisons | None = None,
+        max: SupportsAllComparisons | None = None,
+        msg: typing.Optional[str] = None,
+    ) -> None:
         self.min = min
         self.max = max
         self.msg = msg
@@ -651,7 +726,8 @@ class Clamp(object):
         # Objects that lack a partial ordering, e.g. None or strings will raise TypeError
         except TypeError:
             raise RangeInvalid(
-                self.msg or 'invalid value or type (must have a partial ordering)')
+                self.msg or 'invalid value or type (must have a partial ordering)'
+            )
 
     def __repr__(self):
         return 'Clamp(min=%s, max=%s)' % (self.min, self.max)
@@ -660,7 +736,12 @@ class Clamp(object):
 class Length(object):
     """The length of a value must be in a certain range."""
 
-    def __init__(self, min=None, max=None, msg=None):
+    def __init__(
+        self,
+        min: SupportsAllComparisons | None = None,
+        max: SupportsAllComparisons | None = None,
+        msg: typing.Optional[str] = None,
+    ) -> None:
         self.min = min
         self.max = max
         self.msg = msg
@@ -669,16 +750,17 @@ class Length(object):
         try:
             if self.min is not None and len(v) < self.min:
                 raise LengthInvalid(
-                    self.msg or 'length of value must be at least %s' % self.min)
+                    self.msg or 'length of value must be at least %s' % self.min
+                )
             if self.max is not None and len(v) > self.max:
                 raise LengthInvalid(
-                    self.msg or 'length of value must be at most %s' % self.max)
+                    self.msg or 'length of value must be at most %s' % self.max
+                )
             return v
 
-        # Objects that havbe no length e.g. None or strings will raise TypeError
+        # Objects that have no length e.g. None or strings will raise TypeError
         except TypeError:
-            raise RangeInvalid(
-                self.msg or 'invalid value or type')
+            raise RangeInvalid(self.msg or 'invalid value or type')
 
     def __repr__(self):
         return 'Length(min=%s, max=%s)' % (self.min, self.max)
@@ -689,7 +771,9 @@ class Datetime(object):
 
     DEFAULT_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
-    def __init__(self, format=None, msg=None):
+    def __init__(
+        self, format: typing.Optional[str] = None, msg: typing.Optional[str] = None
+    ) -> None:
         self.format = format or self.DEFAULT_FORMAT
         self.msg = msg
 
@@ -698,8 +782,8 @@ class Datetime(object):
             datetime.datetime.strptime(v, self.format)
         except (TypeError, ValueError):
             raise DatetimeInvalid(
-                self.msg or 'value does not match'
-                            ' expected format %s' % self.format)
+                self.msg or 'value does not match expected format %s' % self.format
+            )
         return v
 
     def __repr__(self):
@@ -716,8 +800,8 @@ class Date(Datetime):
             datetime.datetime.strptime(v, self.format)
         except (TypeError, ValueError):
             raise DateInvalid(
-                self.msg or 'value does not match'
-                            ' expected format %s' % self.format)
+                self.msg or 'value does not match expected format %s' % self.format
+            )
         return v
 
     def __repr__(self):
@@ -727,7 +811,9 @@ class Date(Datetime):
 class In(object):
     """Validate that a value is in a collection."""
 
-    def __init__(self, container, msg=None):
+    def __init__(
+        self, container: typing.Container, msg: typing.Optional[str] = None
+    ) -> None:
         self.container = container
         self.msg = msg
 
@@ -737,8 +823,15 @@ class In(object):
         except TypeError:
             check = True
         if check:
-            raise InInvalid(self.msg or 
-                            'value must be one of {}'.format(sorted(self.container)))
+            try:
+                raise InInvalid(
+                    self.msg or f'value must be one of {sorted(self.container)}'
+                )
+            except TypeError:
+                raise InInvalid(
+                    self.msg
+                    or f'value must be one of {sorted(self.container, key=str)}'
+                )
         return v
 
     def __repr__(self):
@@ -748,7 +841,9 @@ class In(object):
 class NotIn(object):
     """Validate that a value is not in a collection."""
 
-    def __init__(self, container, msg=None):
+    def __init__(
+        self, container: typing.Iterable, msg: typing.Optional[str] = None
+    ) -> None:
         self.container = container
         self.msg = msg
 
@@ -758,8 +853,15 @@ class NotIn(object):
         except TypeError:
             check = True
         if check:
-            raise NotInInvalid(self.msg or 
-                               'value must not be one of {}'.format(sorted(self.container)))
+            try:
+                raise NotInInvalid(
+                    self.msg or f'value must not be one of {sorted(self.container)}'
+                )
+            except TypeError:
+                raise NotInInvalid(
+                    self.msg
+                    or f'value must not be one of {sorted(self.container, key=str)}'
+                )
         return v
 
     def __repr__(self):
@@ -776,7 +878,7 @@ class Contains(object):
     ...   s([3, 2])
     """
 
-    def __init__(self, item, msg=None):
+    def __init__(self, item, msg: typing.Optional[str] = None) -> None:
         self.item = item
         self.msg = msg
 
@@ -809,9 +911,14 @@ class ExactSequence(object):
     ('hourly_report', 10, [], [])
     """
 
-    def __init__(self, validators, **kwargs):
+    def __init__(
+        self,
+        validators: typing.Iterable[Schemable],
+        msg: typing.Optional[str] = None,
+        **kwargs,
+    ) -> None:
         self.validators = validators
-        self.msg = kwargs.pop('msg', None)
+        self.msg = msg
         self._schemas = [Schema(val, **kwargs) for val in validators]
 
     def __call__(self, v):
@@ -824,14 +931,13 @@ class ExactSequence(object):
         return v
 
     def __repr__(self):
-        return 'ExactSequence([%s])' % (", ".join(repr(v)
-                                                  for v in self.validators))
+        return 'ExactSequence([%s])' % ", ".join(repr(v) for v in self.validators)
 
 
 class Unique(object):
     """Ensure an iterable does not contain duplicate items.
 
-    Only iterables convertable to a set are supported (native types and
+    Only iterables convertible to a set are supported (native types and
     objects with correct __eq__).
 
     JSON does not support set, so they need to be presented as arrays.
@@ -854,20 +960,18 @@ class Unique(object):
     ...   s('aabbc')
     """
 
-    def __init__(self, msg=None):
+    def __init__(self, msg: typing.Optional[str] = None) -> None:
         self.msg = msg
 
     def __call__(self, v):
         try:
             set_v = set(v)
         except TypeError as e:
-            raise TypeInvalid(
-                self.msg or 'contains unhashable elements: {0}'.format(e))
+            raise TypeInvalid(self.msg or 'contains unhashable elements: {0}'.format(e))
         if len(set_v) != len(v):
             seen = set()
             dupes = list(set(x for x in v if x in seen or seen.add(x)))
-            raise Invalid(
-                self.msg or 'contains duplicate items: {0}'.format(dupes))
+            raise Invalid(self.msg or 'contains duplicate items: {0}'.format(dupes))
         return v
 
     def __repr__(self):
@@ -890,13 +994,16 @@ class Equal(object):
     ...     s('foo')
     """
 
-    def __init__(self, target, msg=None):
+    def __init__(self, target, msg: typing.Optional[str] = None) -> None:
         self.target = target
         self.msg = msg
 
     def __call__(self, v):
         if v != self.target:
-            raise Invalid(self.msg or 'Values are not equal: value:{} != target:{}'.format(v, self.target))
+            raise Invalid(
+                self.msg
+                or 'Values are not equal: value:{} != target:{}'.format(v, self.target)
+            )
         return v
 
     def __repr__(self):
@@ -918,7 +1025,12 @@ class Unordered(object):
     [1, 'foo']
     """
 
-    def __init__(self, validators, msg=None, **kwargs):
+    def __init__(
+        self,
+        validators: typing.Iterable[Schemable],
+        msg: typing.Optional[str] = None,
+        **kwargs,
+    ) -> None:
         self.validators = validators
         self.msg = msg
         self._schemas = [Schema(val, **kwargs) for val in validators]
@@ -928,7 +1040,12 @@ class Unordered(object):
             raise Invalid(self.msg or 'Value {} is not sequence!'.format(v))
 
         if len(v) != len(self._schemas):
-            raise Invalid(self.msg or 'List lengths differ, value:{} != target:{}'.format(len(v), len(self._schemas)))
+            raise Invalid(
+                self.msg
+                or 'List lengths differ, value:{} != target:{}'.format(
+                    len(v), len(self._schemas)
+                )
+            )
 
         consumed = set()
         missing = []
@@ -950,10 +1067,24 @@ class Unordered(object):
 
         if len(missing) == 1:
             el = missing[0]
-            raise Invalid(self.msg or 'Element #{} ({}) is not valid against any validator'.format(el[0], el[1]))
+            raise Invalid(
+                self.msg
+                or 'Element #{} ({}) is not valid against any validator'.format(
+                    el[0], el[1]
+                )
+            )
         elif missing:
-            raise MultipleInvalid([Invalid(self.msg or 'Element #{} ({}) is not valid against any validator'.format(
-                el[0], el[1])) for el in missing])
+            raise MultipleInvalid(
+                [
+                    Invalid(
+                        self.msg
+                        or 'Element #{} ({}) is not valid against any validator'.format(
+                            el[0], el[1]
+                        )
+                    )
+                    for el in missing
+                ]
+            )
         return v
 
     def __repr__(self):
@@ -975,7 +1106,13 @@ class Number(object):
     Decimal('1234.01')
     """
 
-    def __init__(self, precision=None, scale=None, msg=None, yield_decimal=False):
+    def __init__(
+        self,
+        precision: typing.Optional[int] = None,
+        scale: typing.Optional[int] = None,
+        msg: typing.Optional[str] = None,
+        yield_decimal: bool = False,
+    ) -> None:
         self.precision = precision
         self.scale = scale
         self.msg = msg
@@ -988,13 +1125,22 @@ class Number(object):
         """
         precision, scale, decimal_num = self._get_precision_scale(v)
 
-        if self.precision is not None and self.scale is not None and precision != self.precision\
-                and scale != self.scale:
-            raise Invalid(self.msg or "Precision must be equal to %s, and Scale must be equal to %s" % (self.precision,
-                                                                                                        self.scale))
+        if (
+            self.precision is not None
+            and self.scale is not None
+            and precision != self.precision
+            and scale != self.scale
+        ):
+            raise Invalid(
+                self.msg
+                or "Precision must be equal to %s, and Scale must be equal to %s"
+                % (self.precision, self.scale)
+            )
         else:
             if self.precision is not None and precision != self.precision:
-                raise Invalid(self.msg or "Precision must be equal to %s" % self.precision)
+                raise Invalid(
+                    self.msg or "Precision must be equal to %s" % self.precision
+                )
 
             if self.scale is not None and scale != self.scale:
                 raise Invalid(self.msg or "Scale must be equal to %s" % self.scale)
@@ -1005,9 +1151,13 @@ class Number(object):
             return v
 
     def __repr__(self):
-        return ('Number(precision=%s, scale=%s, msg=%s)' % (self.precision, self.scale, self.msg))
+        return 'Number(precision=%s, scale=%s, msg=%s)' % (
+            self.precision,
+            self.scale,
+            self.msg,
+        )
 
-    def _get_precision_scale(self, number):
+    def _get_precision_scale(self, number) -> typing.Tuple[int, int, Decimal]:
         """
         :param number:
         :return: tuple(precision, scale, decimal_number)
@@ -1017,7 +1167,13 @@ class Number(object):
         except InvalidOperation:
             raise Invalid(self.msg or 'Value must be a number enclosed with string')
 
-        return (len(decimal_num.as_tuple().digits), -(decimal_num.as_tuple().exponent), decimal_num)
+        exp = decimal_num.as_tuple().exponent
+        if isinstance(exp, int):
+            return (len(decimal_num.as_tuple().digits), -exp, decimal_num)
+        else:
+            # TODO: handle infinity and NaN
+            # raise Invalid(self.msg or 'Value has no precision')
+            raise TypeError("infinity and NaN have no precision")
 
 
 class SomeOf(_WithSubValidators):
@@ -1044,9 +1200,17 @@ class SomeOf(_WithSubValidators):
     ...     validate(6.2)
     """
 
-    def __init__(self, validators, min_valid=None, max_valid=None, **kwargs):
-        assert min_valid is not None or max_valid is not None, \
-            'when using "%s" you should specify at least one of min_valid and max_valid' % (type(self).__name__,)
+    def __init__(
+        self,
+        validators: typing.List[Schemable],
+        min_valid: typing.Optional[int] = None,
+        max_valid: typing.Optional[int] = None,
+        **kwargs,
+    ) -> None:
+        assert min_valid is not None or max_valid is not None, (
+            'when using "%s" you should specify at least one of min_valid and max_valid'
+            % (type(self).__name__,)
+        )
         self.min_valid = min_valid or 0
         self.max_valid = max_valid or len(validators)
         super(SomeOf, self).__init__(*validators, **kwargs)
@@ -1077,4 +1241,8 @@ class SomeOf(_WithSubValidators):
 
     def __repr__(self):
         return 'SomeOf(min_valid=%s, validators=[%s], max_valid=%s, msg=%r)' % (
-            self.min_valid, ", ".join(repr(v) for v in self.validators), self.max_valid, self.msg)
+            self.min_valid,
+            ", ".join(repr(v) for v in self.validators),
+            self.max_valid,
+            self.msg,
+        )

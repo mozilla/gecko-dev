@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -31,6 +30,16 @@ Use this rule to control the indentation.
   indenting or not indenting individual block sequences is OK.
 * ``check-multi-line-strings`` defines whether to lint indentation in
   multi-line strings. Set to ``true`` to enable, ``false`` to disable.
+
+.. rubric:: Default values (when enabled)
+
+.. code-block:: yaml
+
+ rules:
+   indentation:
+     spaces: consistent
+     indent-sequences: true
+     check-multi-line-strings: false
 
 .. rubric:: Examples
 
@@ -195,7 +204,6 @@ import yaml
 from yamllint.linter import LintProblem
 from yamllint.rules.common import get_real_end_line, is_explicit_key
 
-
 ID = 'indentation'
 TYPE = 'token'
 CONF = {'spaces': (int, 'consistent'),
@@ -209,7 +217,7 @@ ROOT, B_MAP, F_MAP, B_SEQ, F_SEQ, B_ENT, KEY, VAL = range(8)
 labels = ('ROOT', 'B_MAP', 'F_MAP', 'B_SEQ', 'F_SEQ', 'B_ENT', 'KEY', 'VAL')
 
 
-class Parent(object):
+class Parent:
     def __init__(self, type, indent, line_indent=None):
         self.type = type
         self.indent = indent
@@ -218,7 +226,7 @@ class Parent(object):
         self.implicit_block_seq = False
 
     def __repr__(self):
-        return '%s:%d' % (labels[self.type], self.indent)
+        return f'{labels[self.type]}:{self.indent}'
 
 
 def check_scalar_indentation(conf, token, context):
@@ -294,8 +302,8 @@ def check_scalar_indentation(conf, token, context):
 
         if indent != expected_indent:
             yield LintProblem(line_no, indent + 1,
-                              'wrong indentation: expected %d but found %d' %
-                              (expected_indent, indent))
+                              f'wrong indentation: expected {expected_indent}'
+                              f'but found {indent}')
 
 
 def _check(conf, token, prev, next, nextnext, context):
@@ -332,14 +340,18 @@ def _check(conf, token, prev, next, nextnext, context):
             expected = detect_indent(expected, token)
 
         if found_indentation != expected:
-            yield LintProblem(token.start_mark.line + 1, found_indentation + 1,
-                              'wrong indentation: expected %d but found %d' %
-                              (expected, found_indentation))
+            if expected < 0:
+                message = f'wrong indentation: expected at least ' \
+                          f'{found_indentation + 1}'
+            else:
+                message = f'wrong indentation: expected {expected} but ' \
+                          f'found {found_indentation}'
+            yield LintProblem(token.start_mark.line + 1,
+                              found_indentation + 1, message)
 
     if (isinstance(token, yaml.ScalarToken) and
             conf['check-multi-line-strings']):
-        for problem in check_scalar_indentation(conf, token, context):
-            yield problem
+        yield from check_scalar_indentation(conf, token, context)
 
     # Step 2.a:
 
@@ -484,8 +496,8 @@ def _check(conf, token, prev, next, nextnext, context):
                         # indentation it should have (because `spaces` is
                         # `consistent` and its value has not been computed yet
                         # -- this is probably the beginning of the document).
-                        # So we choose an arbitrary value (2).
-                        indent = 2
+                        # So we choose an unknown value (-1).
+                        indent = -1
                     else:
                         indent = detect_indent(context['stack'][-1].indent,
                                                next)
@@ -567,8 +579,7 @@ def _check(conf, token, prev, next, nextnext, context):
 
 def check(conf, token, prev, next, nextnext, context):
     try:
-        for problem in _check(conf, token, prev, next, nextnext, context):
-            yield problem
+        yield from _check(conf, token, prev, next, nextnext, context)
     except AssertionError:
         yield LintProblem(token.start_mark.line + 1,
                           token.start_mark.column + 1,

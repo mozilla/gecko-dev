@@ -6,9 +6,9 @@ from sentry_sdk._compat import reraise
 from sentry_sdk._functools import wraps
 
 
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 
-if MYPY:
+if TYPE_CHECKING:
     from typing import Any
     from typing import Callable
     from typing import TypeVar

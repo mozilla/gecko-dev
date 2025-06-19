@@ -1,10 +1,9 @@
-# encoding: utf-8
 """
 This module contains the project meta-data.
 """
 
 __author__ = "Caleb P. Burns"
-__copyright__ = "Copyright © 2013-2021 Caleb P. Burns"
+__copyright__ = "Copyright © 2013-2023 Caleb P. Burns"
 __credits__ = [
 	"dahlia <https://github.com/dahlia>",
 	"highb <https://github.com/highb>",
@@ -17,7 +16,6 @@ __credits__ = [
 	"nvie <https://github.com/nvie>",
 	"adrienverge <https://github.com/adrienverge>",
 	"AndersBlomdell <https://github.com/AndersBlomdell>",
-	"highb <https://github.com/highb>",
 	"thmxv <https://github.com/thmxv>",
 	"wimglenn <https://github.com/wimglenn>",
 	"hugovk <https://github.com/hugovk>",
@@ -38,6 +36,23 @@ __credits__ = [
 	"danjer <https://github.com/danjer>",
 	"jhbuhrman <https://github.com/jhbuhrman>",
 	"WPDOrdina <https://github.com/WPDOrdina>",
+	"tirkarthi <https://github.com/tirkarthi>",
+	"jayvdb <https://github.com/jayvdb>",
+	"jwodder <https://github.com/jwodder>",
+	"kloczek <https://github.com/kloczek>",
+	"orens <https://github.com/orens>",
+	"spMohanty <https://github.com/spMohanty>",
+	"ichard26 <https://github.com/ichard26>",
+	"jack1142 <https://github.com/jack1142>",
+	"mgorny <https://github.com/mgorny>",
+	"bzakdd <https://github.com/bzakdd>",
+	"haimat <https://github.com/haimat>",
+	"Avasam <https://github.com/Avasam>",
+	"yschroeder <https://github.com/yschroeder>",
+	"axesider <https://github.com/axesider>",
+	"tomruk <https://github.com/tomruk>",
+	"oprypin <https://github.com/oprypin>",
+	"kurtmckee <https://github.com/kurtmckee>",
 ]
 __license__ = "MPL 2.0"
-__version__ = "0.9.0"
+__version__ = "0.12.1"

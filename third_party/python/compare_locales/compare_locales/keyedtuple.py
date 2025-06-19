@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-'''A tuple with keys.
+"""A tuple with keys.
 
 A Sequence type that allows to refer to its elements by key.
 Making this immutable, 'cause keeping track of mutations is hard.
@@ -13,11 +13,10 @@ case of PO. Support both.
 In the interfaces that check for membership, dicts check keys and
 sequences check values. Always try our dict cache `__map` first,
 and fall back to the superclass implementation.
-'''
+"""
 
 
 class KeyedTuple(tuple):
-
     def __new__(cls, iterable):
         return super().__new__(cls, iterable)
 

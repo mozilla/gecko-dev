@@ -3,8 +3,8 @@ import struct
 from datetime import datetime, timedelta
 from io import BytesIO
 
-from cbor2.compat import timezone, xrange, byte_as_integer
-from cbor2.types import CBORTag, undefined, break_marker, CBORSimpleValue
+from .compat import timezone, xrange, byte_as_integer, unpack_float16
+from .types import CBORTag, undefined, break_marker, CBORSimpleValue, FrozenDict
 
 timestamp_re = re.compile(r'^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)'
                           r'(?:\.(\d+))?(?:Z|([+-]\d\d):(\d\d))$')
@@ -14,7 +14,7 @@ class CBORDecodeError(Exception):
     """Raised when an error occurs deserializing a CBOR datastream."""
 
 
-def decode_uint(decoder, subtype, shareable_index=None, allow_infinite=False):
+def decode_uint(decoder, subtype, shareable_index=None, allow_indefinite=False):
     # Major tag 0
     if subtype < 24:
         return subtype
@@ -26,7 +26,7 @@ def decode_uint(decoder, subtype, shareable_index=None, allow_infinite=False):
         return struct.unpack('>L', decoder.read(4))[0]
     elif subtype == 27:
         return struct.unpack('>Q', decoder.read(8))[0]
-    elif subtype == 31 and allow_infinite:
+    elif subtype == 31 and allow_indefinite:
         return None
     else:
         raise CBORDecodeError('unknown unsigned integer subtype 0x%x' % subtype)
@@ -40,18 +40,18 @@ def decode_negint(decoder, subtype, shareable_index=None):
 
 def decode_bytestring(decoder, subtype, shareable_index=None):
     # Major tag 2
-    length = decode_uint(decoder, subtype, allow_infinite=True)
+    length = decode_uint(decoder, subtype, allow_indefinite=True)
     if length is None:
         # Indefinite length
-        buf = bytearray()
+        buf = []
         while True:
             initial_byte = byte_as_integer(decoder.read(1))
             if initial_byte == 255:
-                return buf
+                return b''.join(buf)
             else:
                 length = decode_uint(decoder, initial_byte & 31)
                 value = decoder.read(length)
-                buf.extend(value)
+                buf.append(value)
     else:
         return decoder.read(length)
 
@@ -65,7 +65,7 @@ def decode_array(decoder, subtype, shareable_index=None):
     # Major tag 4
     items = []
     decoder.set_shareable(shareable_index, items)
-    length = decode_uint(decoder, subtype, allow_infinite=True)
+    length = decode_uint(decoder, subtype, allow_indefinite=True)
     if length is None:
         # Indefinite length
         while True:
@@ -79,18 +79,24 @@ def decode_array(decoder, subtype, shareable_index=None):
             item = decoder.decode()
             items.append(item)
 
-    return items
+    if decoder.immutable:
+        return tuple(items)
+    else:
+        return items
 
 
 def decode_map(decoder, subtype, shareable_index=None):
     # Major tag 5
     dictionary = {}
     decoder.set_shareable(shareable_index, dictionary)
-    length = decode_uint(decoder, subtype, allow_infinite=True)
+    length = decode_uint(decoder, subtype, allow_indefinite=True)
     if length is None:
         # Indefinite length
         while True:
+            key_flag = decoder.immutable
+            decoder._immutable = True
             key = decoder.decode()
+            decoder._immutable = key_flag
             if key is break_marker:
                 break
             else:
@@ -98,12 +104,17 @@ def decode_map(decoder, subtype, shareable_index=None):
                 dictionary[key] = value
     else:
         for _ in xrange(length):
+            key_flag = decoder.immutable
+            decoder._immutable = True
             key = decoder.decode()
+            decoder._immutable = key_flag
             value = decoder.decode()
             dictionary[key] = value
 
     if decoder.object_hook:
         return decoder.object_hook(decoder, dictionary)
+    elif decoder.immutable:
+        return FrozenDict(dictionary)
     else:
         return dictionary
 
@@ -117,7 +128,15 @@ def decode_semantic(decoder, subtype, shareable_index=None):
         shareable_index = decoder._allocate_shareable()
         return decoder.decode(shareable_index)
 
-    value = decoder.decode()
+    # Special handling for sets
+    if tagnum == 258:
+        key_flag = decoder.immutable
+        decoder._immutable = True
+        value = decoder.decode()
+        decoder._immutable = key_flag
+    else:
+        value = decoder.decode()
+
     semantic_decoder = semantic_decoders.get(tagnum)
     if semantic_decoder:
         return semantic_decoder(decoder, value, shareable_index)
@@ -226,6 +245,14 @@ def decode_uuid(decoder, value, shareable_index=None):
     return UUID(bytes=value)
 
 
+def decode_set(decoder, value, shareable_index=None):
+    # Semantic tag 258
+    if decoder.immutable:
+        return frozenset(value)
+    else:
+        return set(value)
+
+
 #
 # Special decoders (major tag 7)
 #
@@ -235,18 +262,12 @@ def decode_simple_value(decoder, shareable_index=None):
 
 
 def decode_float16(decoder, shareable_index=None):
-    # Code adapted from RFC 7049, appendix D
-    from math import ldexp
-
-    def decode_single(single):
-        return struct.unpack("!f", struct.pack("!I", single))[0]
-
-    payload = struct.unpack('>H', decoder.read(2))[0]
-    value = (payload & 0x7fff) << 13 | (payload & 0x8000) << 16
-    if payload & 0x7c00 != 0x7c00:
-        return ldexp(decode_single(value), 112)
-
-    return decode_single(value | 0x7f800000)
+    payload = decoder.read(2)
+    try:
+        value = struct.unpack('>e', payload)[0]
+    except struct.error:
+        value = unpack_float16(payload)
+    return value
 
 
 def decode_float32(decoder, shareable_index=None):
@@ -291,7 +312,8 @@ semantic_decoders = {
     30: decode_rational,
     35: decode_regexp,
     36: decode_mime,
-    37: decode_uuid
+    37: decode_uuid,
+    258: decode_set
 }
 
 
@@ -308,13 +330,23 @@ class CBORDecoder(object):
         The return value is substituted for the dict in the deserialized output.
     """
 
-    __slots__ = ('fp', 'tag_hook', 'object_hook', '_shareables')
+    __slots__ = ('fp', 'tag_hook', 'object_hook', '_shareables', '_immutable')
 
     def __init__(self, fp, tag_hook=None, object_hook=None):
         self.fp = fp
         self.tag_hook = tag_hook
         self.object_hook = object_hook
         self._shareables = []
+        self._immutable = False
+
+    @property
+    def immutable(self):
+        """
+        Used by decoders to check if the calling context requires an immutable type.
+        Object_hook or tag_hook should raise an exception if this flag is set unless
+        the result can be safely used as a dict key.
+        """
+        return self._immutable
 
     def _allocate_shareable(self):
         self._shareables.append(None)

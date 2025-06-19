@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,12 +13,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import io
 import re
 
 import yaml
 
-from yamllint import parser
-
+from yamllint import decoder, parser
 
 PROBLEM_LEVELS = {
     0: None,
@@ -30,8 +29,11 @@ PROBLEM_LEVELS = {
     'error': 2,
 }
 
+DISABLE_RULE_PATTERN = re.compile(r'^# yamllint disable( rule:\S+)*\s*$')
+ENABLE_RULE_PATTERN = re.compile(r'^# yamllint enable( rule:\S+)*\s*$')
 
-class LintProblem(object):
+
+class LintProblem:
     """Represents a linting problem found by yamllint."""
     def __init__(self, line, column, desc='<no description>', rule=None):
         #: Line on which the problem was found (starting at 1)
@@ -47,7 +49,7 @@ class LintProblem(object):
     @property
     def message(self):
         if self.rule is not None:
-            return '{} ({})'.format(self.desc, self.rule)
+            return f'{self.desc} ({self.rule})'
         return self.desc
 
     def __eq__(self, other):
@@ -60,7 +62,7 @@ class LintProblem(object):
                 (self.line == other.line and self.column < other.column))
 
     def __repr__(self):
-        return '%d:%d: %s' % (self.line, self.column, self.message)
+        return f'{self.line}:{self.column}: {self.message}'
 
 
 def get_cosmetic_problems(buffer, conf, filepath):
@@ -81,13 +83,11 @@ def get_cosmetic_problems(buffer, conf, filepath):
             self.all_rules = {r.ID for r in rules}
 
         def process_comment(self, comment):
-            try:
-                comment = str(comment)
-            except UnicodeError:
-                return  # this certainly wasn't a yamllint directive comment
+            comment = str(comment)
 
-            if re.match(r'^# yamllint disable( rule:\S+)*\s*$', comment):
-                rules = [item[5:] for item in comment[18:].split(' ')][1:]
+            if DISABLE_RULE_PATTERN.match(comment):
+                items = comment[18:].rstrip().split(' ')
+                rules = [item[5:] for item in items][1:]
                 if len(rules) == 0:
                     self.rules = self.all_rules.copy()
                 else:
@@ -95,8 +95,9 @@ def get_cosmetic_problems(buffer, conf, filepath):
                         if id in self.all_rules:
                             self.rules.add(id)
 
-            elif re.match(r'^# yamllint enable( rule:\S+)*\s*$', comment):
-                rules = [item[5:] for item in comment[17:].split(' ')][1:]
+            elif ENABLE_RULE_PATTERN.match(comment):
+                items = comment[17:].rstrip().split(' ')
+                rules = [item[5:] for item in items][1:]
                 if len(rules) == 0:
                     self.rules.clear()
                 else:
@@ -108,13 +109,11 @@ def get_cosmetic_problems(buffer, conf, filepath):
 
     class DisableLineDirective(DisableDirective):
         def process_comment(self, comment):
-            try:
-                comment = str(comment)
-            except UnicodeError:
-                return  # this certainly wasn't a yamllint directive comment
+            comment = str(comment)
 
             if re.match(r'^# yamllint disable-line( rule:\S+)*\s*$', comment):
-                rules = [item[5:] for item in comment[23:].split(' ')][1:]
+                items = comment[23:].rstrip().split(' ')
+                rules = [item[5:] for item in items][1:]
                 if len(rules) == 0:
                     self.rules = self.all_rules.copy()
                 else:
@@ -122,7 +121,7 @@ def get_cosmetic_problems(buffer, conf, filepath):
                         if id in self.all_rules:
                             self.rules.add(id)
 
-    # Use a cache to store problems and flush it only when a end of line is
+    # Use a cache to store problems and flush it only when an end of line is
     # found. This allows the use of yamllint directive to disable some rules on
     # some lines.
     cache = []
@@ -188,6 +187,8 @@ def get_syntax_error(buffer):
 def _run(buffer, conf, filepath):
     assert hasattr(buffer, '__getitem__'), \
         '_run() argument must be a buffer, not a stream'
+    if isinstance(buffer, bytes):
+        buffer = decoder.auto_decode(buffer)
 
     first_line = next(parser.line_generator(buffer)).content
     if re.match(r'^#\s*yamllint disable-file\s*$', first_line):
@@ -203,15 +204,11 @@ def _run(buffer, conf, filepath):
                 syntax_error.column <= problem.column):
             yield syntax_error
 
-            # If there is already a yamllint error at the same place, discard
-            # it as it is probably redundant (and maybe it's just a 'warning',
+            # Discard the problem since it is at the same place as the syntax
+            # error and is probably redundant (and maybe it's just a 'warning',
             # in which case the script won't even exit with a failure status).
-            if (syntax_error.line == problem.line and
-                    syntax_error.column == problem.column):
-                syntax_error = None
-                continue
-
             syntax_error = None
+            continue
 
         yield problem
 
@@ -227,12 +224,12 @@ def run(input, conf, filepath=None):
     :param input: buffer, string or stream to read from
     :param conf: yamllint configuration object
     """
-    if conf.is_file_ignored(filepath):
+    if filepath is not None and conf.is_file_ignored(filepath):
         return ()
 
-    if isinstance(input, (type(b''), type(u''))):  # compat with Python 2 & 3
+    if isinstance(input, (bytes, str)):
         return _run(input, conf, filepath)
-    elif hasattr(input, 'read'):  # Python 2's file or Python 3's io.IOBase
+    elif isinstance(input, io.IOBase):
         # We need to have everything in memory to parse correctly
         content = input.read()
         return _run(content, conf, filepath)

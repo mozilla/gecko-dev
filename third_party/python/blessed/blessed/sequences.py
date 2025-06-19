@@ -6,14 +6,16 @@ import math
 import textwrap
 
 # 3rd party
-import six
 from wcwidth import wcwidth
 
 # local
+from blessed._compat import TextType
 from blessed._capabilities import CAPABILITIES_CAUSE_MOVEMENT
 
 __all__ = ('Sequence', 'SequenceTextWrapper', 'iter_parse', 'measure_length')
 
+
+# pylint: disable=unused-argument,missing-function-docstring
 
 class Termcap(object):
     """Terminal capability of given variable name and pattern."""
@@ -59,10 +61,8 @@ class Termcap(object):
         Horizontal carriage adjusted by capability, may be negative.
 
         :rtype: int
-        :arg str text: for capabilities *parm_left_cursor*,
-            *parm_right_cursor*, provide the matching sequence
-            text, its interpreted distance is returned.
-
+        :arg str text: for capabilities *parm_left_cursor*, *parm_right_cursor*, provide the
+            matching sequence text, its interpreted distance is returned.
         :returns: 0 except for matching '
         """
         value = {
@@ -71,21 +71,21 @@ class Termcap(object):
             'cursor_right': 1,
             'tab': 8,
             'ascii_tab': 8,
-        }.get(self.name, None)
+        }.get(self.name)
         if value is not None:
             return value
 
         unit = {
             'parm_left_cursor': -1,
             'parm_right_cursor': 1
-        }.get(self.name, None)
+        }.get(self.name)
         if unit is not None:
             value = int(self.re_compiled.match(text).group(1))
             return unit * value
 
         return 0
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-positional-arguments
     @classmethod
     def build(cls, name, capability, attribute, nparams=0,
               numeric=99, match_grouped=False, match_any=False,
@@ -186,11 +186,11 @@ class SequenceTextWrapper(textwrap.TextWrapper):
             while chunks:
                 chunk_len = Sequence(chunks[-1], term).length()
                 if cur_len + chunk_len > width:
+                    if chunk_len > width:
+                        self._handle_long_word(chunks, cur_line, cur_len, width)
                     break
                 cur_line.append(chunks.pop())
                 cur_len += chunk_len
-            if chunks and Sequence(chunks[-1], term).length() > width:
-                self._handle_long_word(chunks, cur_line, cur_len, width)
             if drop_whitespace and (
                     cur_line and Sequence(cur_line[-1], term).strip() == ''):
                 del cur_line[-1]
@@ -202,10 +202,18 @@ class SequenceTextWrapper(textwrap.TextWrapper):
         """
         Sequence-aware :meth:`textwrap.TextWrapper._handle_long_word`.
 
-        This simply ensures that word boundaries are not broken mid-sequence, as standard python
-        textwrap would incorrectly determine the length of a string containing sequences, and may
-        also break consider sequences part of a "word" that may be broken by hyphen (``-``), where
-        this implementation corrects both.
+        This method ensures that word boundaries are not broken mid-sequence, as
+        standard python textwrap would incorrectly determine the length of a
+        string containing sequences and wide characters it would also break
+        these "words" that would be broken by hyphen (``-``), this
+        implementation corrects both.
+
+        This is done by mutating the passed arguments, removing items from
+        'reversed_chunks' and appending them to 'cur_line'.
+
+        However, some characters (east-asian, emoji, etc.) cannot be split any
+        less than 2 cells, so in the case of a width of 1, we have no choice
+        but to allow those characters to flow outside of the given cell.
         """
         # Figure out when indent is larger than the specified width, and make
         # sure at least one character is stripped off on every pass
@@ -219,8 +227,15 @@ class SequenceTextWrapper(textwrap.TextWrapper):
             idx = nxt = 0
             for text, _ in iter_parse(term, chunk):
                 nxt += len(text)
-                if Sequence(chunk[:nxt], term).length() > space_left:
-                    break
+                seq_length = Sequence(chunk[:nxt], term).length()
+                if seq_length > space_left:
+                    if cur_len == 0 and width == 1 and nxt == 1 and seq_length == 2:
+                        # Emoji etc. cannot be split under 2 cells, so in the
+                        # case of a width of 1, we have no choice but to allow
+                        # those characters to flow outside of the given cell.
+                        pass
+                    else:
+                        break
                 idx = nxt
             cur_line.append(chunk[:idx])
             reversed_chunks[-1] = chunk[idx:]
@@ -241,7 +256,7 @@ class SequenceTextWrapper(textwrap.TextWrapper):
 SequenceTextWrapper.__doc__ = textwrap.TextWrapper.__doc__
 
 
-class Sequence(six.text_type):
+class Sequence(TextType):
     """
     A "sequence-aware" version of the base :class:`str` class.
 
@@ -258,7 +273,7 @@ class Sequence(six.text_type):
         :arg str sequence_text: A string that may contain sequences.
         :arg blessed.Terminal term: :class:`~.Terminal` instance.
         """
-        new = six.text_type.__new__(cls, sequence_text)
+        new = TextType.__new__(cls, sequence_text)
         new._term = term
         return new
 

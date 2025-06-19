@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -25,6 +24,16 @@ Use this rule to control the number of spaces before and after commas (``,``).
   commas.
 * ``max-spaces-after`` defines the maximal number of spaces allowed after
   commas (use ``-1`` to disable).
+
+.. rubric:: Default values (when enabled)
+
+.. code-block:: yaml
+
+ rules:
+   commas:
+     max-spaces-before: 0
+     min-spaces-after: 1
+     max-spaces-after: 1
 
 .. rubric:: Examples
 
@@ -66,7 +75,7 @@ Use this rule to control the number of spaces before and after commas (``,``).
    ::
 
     strange var:
-      [10, 20,30, {x: 1, y: 2}]
+      [10, 20, 30, {x: 1, y: 2}]
 
    the following code snippet would **FAIL**:
    ::
@@ -96,7 +105,6 @@ import yaml
 
 from yamllint.linter import LintProblem
 from yamllint.rules.common import spaces_after, spaces_before
-
 
 ID = 'commas'
 TYPE = 'token'

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,7 +16,7 @@
 import yaml
 
 
-class Line(object):
+class Line:
     def __init__(self, line_no, buffer, start, end):
         self.line_no = line_no
         self.start = start
@@ -29,7 +28,7 @@ class Line(object):
         return self.buffer[self.start:self.end]
 
 
-class Token(object):
+class Token:
     def __init__(self, line_no, curr, prev, next, nextnext):
         self.line_no = line_no
         self.curr = curr
@@ -38,7 +37,7 @@ class Token(object):
         self.nextnext = nextnext
 
 
-class Comment(object):
+class Comment:
     def __init__(self, line_no, column_no, buffer, pointer,
                  token_before=None, token_after=None, comment_before=None):
         self.line_no = line_no
@@ -133,8 +132,7 @@ def token_or_comment_generator(buffer):
 
             yield Token(curr.start_mark.line + 1, curr, prev, next, nextnext)
 
-            for comment in comments_between_tokens(curr, next):
-                yield comment
+            yield from comments_between_tokens(curr, next)
 
             prev = curr
             curr = next

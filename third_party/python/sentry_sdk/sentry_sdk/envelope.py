@@ -3,11 +3,11 @@ import json
 import mimetypes
 
 from sentry_sdk._compat import text_type, PY2
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 from sentry_sdk.session import Session
 from sentry_sdk.utils import json_dumps, capture_internal_exceptions
 
-if MYPY:
+if TYPE_CHECKING:
     from typing import Any
     from typing import Optional
     from typing import Union
@@ -67,6 +67,12 @@ class Envelope(object):
     ):
         # type: (...) -> None
         self.add_item(Item(payload=PayloadRef(json=profile), type="profile"))
+
+    def add_checkin(
+        self, checkin  # type: Any
+    ):
+        # type: (...) -> None
+        self.add_item(Item(payload=PayloadRef(json=checkin), type="check_in"))
 
     def add_session(
         self, session  # type: Union[Session, Any]
@@ -254,6 +260,10 @@ class Item(object):
             return "internal"
         elif ty == "profile":
             return "profile"
+        elif ty == "statsd":
+            return "metric_bucket"
+        elif ty == "check_in":
+            return "monitor"
         else:
             return "default"
 

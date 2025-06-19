@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2016 Adrien Vergé
 #
 # This program is free software: you can redistribute it and/or modify
@@ -40,7 +39,6 @@ Use this rule to forbid trailing spaces at the end of lines.
 import string
 
 from yamllint.linter import LintProblem
-
 
 ID = 'trailing-spaces'
 TYPE = 'line'

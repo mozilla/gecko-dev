@@ -1,11 +1,12 @@
 from django.template import TemplateSyntaxError
+from django.utils.safestring import mark_safe
 from django import VERSION as DJANGO_VERSION
 
 from sentry_sdk import _functools, Hub
-from sentry_sdk._types import MYPY
+from sentry_sdk._types import TYPE_CHECKING
 from sentry_sdk.consts import OP
 
-if MYPY:
+if TYPE_CHECKING:
     from typing import Any
     from typing import Dict
     from typing import Optional
@@ -87,6 +88,11 @@ def patch_templates():
         hub = Hub.current
         if hub.get_integration(DjangoIntegration) is None:
             return real_render(request, template_name, context, *args, **kwargs)
+
+        # Inject trace meta tags into template context
+        context = context or {}
+        if "sentry_trace_meta" not in context:
+            context["sentry_trace_meta"] = mark_safe(hub.trace_propagation_meta())
 
         with hub.start_span(
             op=OP.TEMPLATE_RENDER,
