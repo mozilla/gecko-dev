@@ -5611,11 +5611,11 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **expected**: pass
    * **expose browser profiler**: true
    * **gecko profile interval**: 1
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/twitch-animation.toml#15>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/twitch-animation.toml#17>`__
    * **lower is better**: true
    * **page cycles**: 1
    * **page timeout**: 2000000
-   * **perfstats**: false
+   * **perfstats**: true
    * **repository**: https://github.com/mozilla/perf-automation
    * **repository path**: benchmarks/twitch-animation
    * **repository revision**: 61332db584026b73e37066d717a162825408c36b
