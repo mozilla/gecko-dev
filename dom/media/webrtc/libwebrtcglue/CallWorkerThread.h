@@ -29,7 +29,7 @@ class CallWorkerThread final : public AbstractThread,
 
   // AbstractThread overrides
   nsresult Dispatch(already_AddRefed<nsIRunnable> aRunnable,
-                    DispatchReason aReason) override;
+                    DispatchReason aReason = NormalDispatch) override;
   bool IsCurrentThreadIn() const override;
   TaskDispatcher& TailDispatcher() override;
   nsIEventTarget* AsEventTarget() override;
@@ -46,70 +46,6 @@ class CallWorkerThread final : public AbstractThread,
  protected:
   ~CallWorkerThread() = default;
 };
-
-NS_IMPL_ISUPPORTS(CallWorkerThread, nsIDirectTaskDispatcher,
-                  nsISerialEventTarget, nsIEventTarget);
-
-//-----------------------------------------------------------------------------
-// AbstractThread
-//-----------------------------------------------------------------------------
-
-nsresult CallWorkerThread::Dispatch(already_AddRefed<nsIRunnable> aRunnable,
-                                    DispatchReason aReason) {
-  RefPtr<nsIRunnable> runnable = aRunnable;
-  return mWebrtcTaskQueue->mTaskQueue->Dispatch(
-      mWebrtcTaskQueue->CreateTaskRunner(std::move(runnable)), aReason);
-}
-
-bool CallWorkerThread::IsCurrentThreadIn() const {
-  return mWebrtcTaskQueue->mTaskQueue->IsOnCurrentThreadInfallible() &&
-         mWebrtcTaskQueue->IsCurrent();
-}
-
-TaskDispatcher& CallWorkerThread::TailDispatcher() {
-  return mWebrtcTaskQueue->mTaskQueue->TailDispatcher();
-}
-
-nsIEventTarget* CallWorkerThread::AsEventTarget() {
-  return mWebrtcTaskQueue->mTaskQueue->AsEventTarget();
-}
-
-NS_IMETHODIMP
-CallWorkerThread::DelayedDispatch(already_AddRefed<nsIRunnable> aEvent,
-                                  uint32_t aDelayMs) {
-  RefPtr<nsIRunnable> event = aEvent;
-  return mWebrtcTaskQueue->mTaskQueue->DelayedDispatch(
-      mWebrtcTaskQueue->CreateTaskRunner(std::move(event)), aDelayMs);
-}
-
-NS_IMETHODIMP CallWorkerThread::RegisterShutdownTask(
-    nsITargetShutdownTask* aTask) {
-  return mWebrtcTaskQueue->mTaskQueue->RegisterShutdownTask(aTask);
-}
-
-NS_IMETHODIMP CallWorkerThread::UnregisterShutdownTask(
-    nsITargetShutdownTask* aTask) {
-  return mWebrtcTaskQueue->mTaskQueue->UnregisterShutdownTask(aTask);
-}
-
-//-----------------------------------------------------------------------------
-// nsIDirectTaskDispatcher
-//-----------------------------------------------------------------------------
-
-NS_IMETHODIMP
-CallWorkerThread::DispatchDirectTask(already_AddRefed<nsIRunnable> aEvent) {
-  nsCOMPtr<nsIRunnable> event = aEvent;
-  return mWebrtcTaskQueue->mTaskQueue->DispatchDirectTask(
-      mWebrtcTaskQueue->CreateTaskRunner(std::move(event)));
-}
-
-NS_IMETHODIMP CallWorkerThread::DrainDirectTasks() {
-  return mWebrtcTaskQueue->mTaskQueue->DrainDirectTasks();
-}
-
-NS_IMETHODIMP CallWorkerThread::HaveDirectTasks(bool* aValue) {
-  return mWebrtcTaskQueue->mTaskQueue->HaveDirectTasks(aValue);
-}
 
 }  // namespace mozilla
 
