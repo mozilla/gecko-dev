@@ -15,6 +15,7 @@
 #include "nsThreadUtils.h"
 
 #include "mozilla/SimpleEnumerator.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "nsICategoryManager.h"
 #include "nsISimpleEnumerator.h"
 
@@ -191,6 +192,8 @@ nsDirectoryService::Get(const char* aProp, const nsIID& aUuid, void** aResult) {
   MOZ_ASSERT(NS_IsMainThread(), "Do not call dirsvc::get on non-main threads!");
 
   nsDependentCString key(aProp);
+  AUTO_PROFILER_MARKER_TEXT("nsDirectoryService::Get", OTHER,
+                            MarkerStack::Capture(), key);
 
   nsCOMPtr<nsIFile> cachedFile = mHashtable.Get(key);
 
