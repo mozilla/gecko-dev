@@ -282,3 +282,44 @@ add_task(async function test_chunksTelemetry() {
 
   await semanticManager.shutdown();
 });
+
+add_task(async function test_duplicate_urlhash() {
+  const urls = [
+    { url: "https://test1.moz.com/", title: "test 1" },
+    { url: "https://test2.moz.com/", title: "test 2" },
+    { url: "https://test3.moz.com/", title: "test 3" },
+  ];
+  await PlacesTestUtils.addVisits(urls);
+  // We're manually editing the database to create a duplicate url hash.
+  const urlHash = PlacesUtils.history.hashURL(urls[0].url);
+  await PlacesUtils.withConnectionWrapper("test", async db => {
+    await db.execute(
+      `UPDATE moz_places SET url_hash = :urlHash WHERE url = :url`,
+      { urlHash, url: urls[1].url }
+    );
+  });
+
+  let semanticManager = createPlacesSemanticHistoryManager();
+  // Ensure only one task execution for measuremant purposes.
+  semanticManager.setDeferredTaskIntervalForTests(3000);
+  let conn = await semanticManager.getConnection();
+  semanticManager.embedder.setEngine(new MockMLEngine());
+  await TestUtils.topicObserved(
+    "places-semantichistorymanager-update-complete"
+  );
+
+  // Check the update continued despite the duplicate url hash.
+  let rows = await conn.execute(`SELECT url_hash FROM vec_history_mapping`);
+  Assert.equal(rows.length, 2, "There should be two entries");
+  Assert.equal(
+    rows[0].getResultByName("url_hash"),
+    PlacesUtils.history.hashURL(urls[0].url),
+    "First URL hash should match"
+  );
+  Assert.equal(
+    rows[1].getResultByName("url_hash"),
+    PlacesUtils.history.hashURL(urls[2].url),
+    "Third URL hash should match"
+  );
+  await semanticManager.shutdown();
+});

@@ -33,7 +33,7 @@ ChromeUtils.defineLazyGetter(lazy, "PAGES_FRECENCY_FIELD", () => {
 });
 
 // Time between deferred task executions.
-const DEFERRED_TASK_INTERVAL_MS = 1000;
+const DEFERRED_TASK_INTERVAL_MS = 3000;
 // Maximum time to wait for an idle before the task is executed anyway.
 const DEFERRED_TASK_MAX_IDLE_WAIT_MS = 2 * 60000;
 // Number of entries to update at once.
@@ -213,20 +213,20 @@ class PlacesSemanticHistoryManager {
     // Compute total candidates and how many of them updated with vectors.
     const [row] = await conn.execute(
       `
-        WITH top_places AS (
-          SELECT url_hash
-            FROM places.moz_places
-          WHERE title NOTNULL
-            AND length(title || ifnull(description,'')) > :min_title_length
-            AND last_visit_date NOTNULL
-          ORDER BY ${this.#samplingAttrib} DESC
-          LIMIT  :rowLimit
-        )
-        SELECT
-          (SELECT COUNT(*) FROM top_places) AS total,
-          (SELECT COUNT(*) FROM top_places tp
-            JOIN vec_history_mapping map ON tp.url_hash = map.url_hash) AS completed
-        `,
+      WITH top_places AS (
+        SELECT url_hash FROM moz_places
+        WHERE title NOTNULL
+          AND length(title || ifnull(description,'')) > :min_title_length
+          AND last_visit_date NOTNULL
+          AND frecency > 0
+        ORDER BY ${this.#samplingAttrib} DESC
+        LIMIT :rowLimit
+      )
+      SELECT
+        (SELECT COUNT(*) FROM top_places) AS total,
+        (SELECT COUNT(*) FROM top_places tp
+         JOIN vec_history_mapping map USING (url_hash)) AS completed
+      `,
       {
         rowLimit: this.#rowLimit,
         min_title_length: MIN_TITLE_LENGTH,
@@ -358,7 +358,7 @@ class PlacesSemanticHistoryManager {
           return;
         }
 
-        //capture updateTask startTime
+        // Capture updateTask startTime.
         const updateStartTime = Cu.now();
 
         try {
@@ -384,8 +384,10 @@ class PlacesSemanticHistoryManager {
             `Changes exceed threshold (${this.#changeThresholdCount}).`
           );
 
-          let addRows = await this.findAdds(conn);
-          let deleteRows = await this.findDeletes(conn);
+          let { count: addCount, rows: addRows } =
+            await this.findAddsChunk(conn);
+          let { count: deleteCount, rows: deleteRows } =
+            await this.findDeletesChunk(conn);
 
           // We already have startTime for profile markers, so just use it
           // instead of tracking timer within the distribution.
@@ -394,46 +396,37 @@ class PlacesSemanticHistoryManager {
           );
 
           lazy.logger.info(
-            `Total rows to add: ${addRows.length}, delete: ${deleteRows.length}`
+            `Total rows to add: ${addCount}, delete: ${deleteCount}`
           );
 
-          if (addRows.length || deleteRows.length) {
+          if (addCount || deleteCount) {
             let chunkTimer =
               Glean.places.semanticHistoryChunkCalculateTime.start();
 
             let chunksCount =
-              Math.ceil(addRows.length / DEFAULT_CHUNK_SIZE) +
-              Math.ceil(deleteRows.length / DEFAULT_CHUNK_SIZE);
+              Math.ceil(addCount / DEFAULT_CHUNK_SIZE) +
+              Math.ceil(deleteCount / DEFAULT_CHUNK_SIZE);
             if (chunksCount > this.#lastMaxChunksCount) {
               this.#lastMaxChunksCount = chunksCount;
               Glean.places.semanticHistoryMaxChunksCount.set(chunksCount);
             }
 
-            if (addRows.length) {
-              const chunk = addRows.splice(0, DEFAULT_CHUNK_SIZE);
-              await this.updateVectorDB(conn, chunk, []);
-              ChromeUtils.addProfilerMarker(
-                "updateVectorDB",
-                startTime,
-                "Details about updateVectorDB event"
-              );
-            }
-            if (deleteRows.length) {
-              const chunk = deleteRows.splice(0, DEFAULT_CHUNK_SIZE);
-              await this.updateVectorDB(conn, [], chunk);
-              ChromeUtils.addProfilerMarker(
-                "updateVectorDB",
-                startTime,
-                "Details about updateVectorDB event"
-              );
-            }
+            await this.updateVectorDB(conn, addRows, deleteRows);
+            ChromeUtils.addProfilerMarker(
+              "updateVectorDB",
+              startTime,
+              "Details about updateVectorDB event"
+            );
 
             Glean.places.semanticHistoryChunkCalculateTime.stopAndAccumulate(
               chunkTimer
             );
           }
 
-          if (addRows.length || deleteRows.length) {
+          if (
+            addCount > DEFAULT_CHUNK_SIZE ||
+            deleteCount > DEFAULT_CHUNK_SIZE
+          ) {
             // There's still entries to update, re-arm the task.
             this.#pendingUpdates = true;
             this.#updateTask.arm();
@@ -483,142 +476,186 @@ class PlacesSemanticHistoryManager {
     this.#finalized = true;
   }
 
-  async findAdds(conn) {
+  async findAddsChunk(conn) {
     // find any adds after successful checkForChanges
-    const addedRows = await conn.execute(
+    const rows = await conn.executeCached(
       `
-      SELECT top_places.url_hash, title, COALESCE(description, '') AS description
-      FROM (
-        SELECT url_hash, title, description
-        FROM places.moz_places
+      WITH top_places AS (
+        SELECT url_hash, trim(title || " " || IFNULL(description, '')) AS content
+        FROM moz_places
         WHERE title NOTNULL
           AND length(title || ifnull(description,'')) > :min_title_length
           AND last_visit_date NOTNULL
+          AND frecency > 0
         ORDER BY ${this.#samplingAttrib} DESC
         LIMIT :rowLimit
-      ) AS top_places
-      LEFT JOIN vec_history_mapping AS vec_map
-      ON top_places.url_hash = vec_map.url_hash
-      WHERE vec_map.url_hash IS NULL
+      ),
+      updates AS (
+        SELECT top.url_hash, top.content
+        FROM top_places top
+        LEFT JOIN vec_history_mapping map USING (url_hash)
+        WHERE map.url_hash IS NULL
+      )
+      SELECT url_hash, content, (SELECT count(*) FROM updates) AS total
+      FROM updates
+      LIMIT :chunkSize
     `,
       {
         rowLimit: this.#rowLimit,
         min_title_length: MIN_TITLE_LENGTH,
+        chunkSize: DEFAULT_CHUNK_SIZE,
       }
     );
-    lazy.logger.info(`findAdds: Found ${addedRows.length} rows to add.`);
-    return addedRows;
+
+    return {
+      count: rows[0]?.getResultByName("total") || 0,
+      rows: rows.map(row => ({
+        url_hash: row.getResultByName("url_hash"),
+        content: row.getResultByName("content"),
+      })),
+    };
   }
 
-  async findDeletes(conn) {
+  async findDeletesChunk(conn) {
     // find any deletes after successful checkForChanges
-    const deletedRows = await conn.execute(
+    const rows = await conn.executeCached(
       `
-      SELECT url_hash
-      FROM vec_history_mapping
-      WHERE url_hash NOT IN  (
-          SELECT url_hash
-          FROM places.moz_places
-          WHERE title NOTNULL
-            AND length(title || ifnull(description,'')) > :min_title_length
-            AND last_visit_date NOTNULL
-          ORDER BY ${this.#samplingAttrib} DESC
-          LIMIT :rowLimit
-        )
+      WITH top_places AS (
+        SELECT url_hash
+        FROM moz_places
+        WHERE title NOTNULL
+          AND length(title || ifnull(description,'')) > :min_title_length
+          AND last_visit_date NOTNULL
+          AND frecency > 0
+        ORDER BY ${this.#samplingAttrib} DESC
+        LIMIT :rowLimit
+      ),
+      updates AS (
+        SELECT url_hash FROM vec_history_mapping
+        EXCEPT
+        SELECT url_hash FROM top_places
+      )
+      SELECT url_hash, (SELECT count(*) FROM updates) AS total
+      FROM updates
+      LIMIT :chunkSize
     `,
       {
         rowLimit: this.#rowLimit,
         min_title_length: MIN_TITLE_LENGTH,
+        chunkSize: DEFAULT_CHUNK_SIZE,
       }
     );
-    lazy.logger.info(
-      `findDeletes: Found ${deletedRows.length} rows to delete.`
-    );
-    return deletedRows;
+
+    return {
+      count: rows[0]?.getResultByName("total") || 0,
+      rows: rows.map(row => ({
+        url_hash: row.getResultByName("url_hash"),
+      })),
+    };
   }
 
-  async updateVectorDB(conn, addedRows, deletedRows) {
+  async updateVectorDB(conn, rowsToAdd, rowsToDelete) {
     await this.embedder.createEngineIfNotPresent();
-    // Instead of calling engineRun in a loop for each row,
-    // you prepare an array of requests.
-    if (addedRows.length) {
-      const texts = addedRows.map(row => {
-        const title = row.getResultByName("title") ?? "";
-        const description = row.getResultByName("description") ?? "";
-        return title + " " + description;
-      });
 
-      let batchTensors = await this.embedder.embedMany(texts);
+    let batchTensors;
+    if (rowsToAdd.length) {
+      // Instead of calling engineRun in a loop for each row,
+      // you prepare an array of requests.
+      batchTensors = await this.embedder.embedMany(
+        rowsToAdd.map(r => r.content)
+      );
+      if (batchTensors.length != rowsToAdd.length) {
+        throw new Error(
+          `Expected ${rowsToAdd.length} tensors, got ${batchTensors.length}`
+        );
+      }
+    }
 
-      await conn.executeTransaction(async () => {
-        // Process each row and corresponding tensor.
-        for (let i = 0; i < addedRows.length; i++) {
-          const row = addedRows[i];
-          const tensor = batchTensors[i];
+    await conn.executeTransaction(async () => {
+      // Process each new row and the corresponding tensor.
+      for (let i = 0; i < rowsToAdd.length; i++) {
+        const { url_hash } = rowsToAdd[i];
+        const tensor = batchTensors[i];
+        try {
           if (!Array.isArray(tensor) || tensor.length !== this.#embeddingSize) {
             lazy.logger.error(
               `Got tensor with invalid length: ${Array.isArray(tensor) ? tensor.length : "non-array value"}`
             );
-            throw new Error("invalid tensor result");
+            continue;
           }
-          const url_hash = row.getResultByName("url_hash");
-          const vectorBindable = this.tensorToBindable(tensor);
-          const result = await conn.execute(
-            `INSERT INTO vec_history(embedding, embedding_coarse)
-             VALUES (:vector, vec_quantize_binary(:vector))
-             RETURNING rowid`,
-            { vector: vectorBindable }
+
+          const result = await conn.executeCached(
+            `
+            INSERT INTO vec_history (embedding, embedding_coarse)
+            VALUES (:vector, vec_quantize_binary(:vector))
+            RETURNING rowid
+            `,
+            { vector: this.tensorToBindable(tensor) }
           );
           const rowid = result[0].getResultByName("rowid");
-          await conn.execute(
-            `INSERT INTO vec_history_mapping (rowid, url_hash)
-             VALUES (:rowid, :url_hash)`,
+          // Normally there should be no conflict here, as we previously checked
+          // for the existence of the url_hash in vec_history_mapping. Though
+          // since the hash is not unique it may happen that we try to insert
+          // two pages with the same value as part of the same chunk.
+          // In that case we update the rowid for the existing url_hash.
+          await conn.executeCached(
+            `
+            INSERT INTO vec_history_mapping (rowid, url_hash)
+            VALUES (:rowid, :url_hash)
+            ON CONFLICT(url_hash) DO UPDATE SET rowid = :rowid
+            `,
             { rowid, url_hash }
           );
-        }
-      });
-    }
 
-    // apply deletes from Vector DB
-    for (let drow of deletedRows) {
-      const url_hash = drow.getResultByName("url_hash");
-      if (!url_hash) {
-        lazy.logger.warn(`No url_hash found for a deleted row, skipping.`);
-        continue;
+          lazy.logger.info(
+            `Added embedding and mapping for url_hash: ${url_hash}`
+          );
+        } catch (error) {
+          lazy.logger.error(
+            `Failed to insert embedding for url_hash: ${url_hash}. Error: ${error.message}`
+          );
+        }
       }
 
-      try {
-        // Delete the mapping from vec_history_mapping table
-        const mappingResult = await conn.execute(
-          `DELETE FROM vec_history_mapping 
-           WHERE url_hash = :url_hash 
-           RETURNING rowid`,
-          { url_hash }
-        );
+      // Now apply deletions.
+      for (let { url_hash } of rowsToDelete) {
+        try {
+          // Delete the mapping from vec_history_mapping table
+          const mappingResult = await conn.executeCached(
+            `
+              DELETE FROM vec_history_mapping
+              WHERE url_hash = :url_hash
+              RETURNING rowid
+              `,
+            { url_hash }
+          );
 
-        if (mappingResult.length === 0) {
-          lazy.logger.warn(`No mapping found for url_hash: ${url_hash}`);
-          continue;
+          if (mappingResult.length === 0) {
+            lazy.logger.warn(`No mapping found for url_hash: ${url_hash}`);
+            continue;
+          }
+
+          const rowid = mappingResult[0].getResultByName("rowid");
+
+          // Delete the embedding from vec_history table
+          await conn.executeCached(
+            `
+            DELETE FROM vec_history
+            WHERE rowid = :rowid
+            `,
+            { rowid }
+          );
+
+          lazy.logger.info(
+            `Deleted embedding and mapping for url_hash: ${url_hash}`
+          );
+        } catch (error) {
+          lazy.logger.error(
+            `Failed to delete for url_hash: ${url_hash}. Error: ${error.message}`
+          );
         }
-
-        const rowid = mappingResult[0].getResultByName("rowid");
-
-        // Delete the embedding from vec_history table
-        await conn.execute(
-          `DELETE FROM vec_history 
-           WHERE rowid = :rowid`,
-          { rowid }
-        );
-
-        lazy.logger.info(
-          `Deleted embedding and mapping for url_hash: ${url_hash}`
-        );
-      } catch (error) {
-        lazy.logger.error(
-          `Failed to delete for url_hash: ${url_hash}. Error: ${error.message}`
-        );
       }
-    }
+    });
   }
 
   /**
@@ -687,39 +724,34 @@ class PlacesSemanticHistoryManager {
     }
     let conn = await this.getConnection();
 
-    let rows = await conn.execute(
+    let rows = await conn.executeCached(
       `
-       WITH coarse_matches AS (
+      WITH coarse_matches AS (
         SELECT rowid,
                embedding
-          FROM vec_history
-          WHERE embedding_coarse match vec_quantize_binary(:vector)
-          ORDER BY distance
-          LIMIT 100
-       )
-        SELECT p.id,
-               p.title,
-               p.url,
-               vec_res.cosine_distance as distance,
-               p.frecency,
-               p.last_visit_date
-        FROM (
-          SELECT url_hash, cosine_distance
-          FROM (
-            SELECT v_hist.rowid,
-                   v_hist_map.url_hash,
-                   vec_distance_cosine(embedding, :vector) AS cosine_distance
-              FROM coarse_matches v_hist
-              JOIN vec_history_mapping v_hist_map
-                ON v_hist.rowid = v_hist_map.rowid
-             ORDER BY cosine_distance
-             LIMIT 2
-          ) AS NEIGHBORS
-          WHERE cosine_distance <= :distanceThreshold
-        ) AS vec_res
-        JOIN places.moz_places p
-          ON vec_res.url_hash = p.url_hash
-        WHERE ${lazy.PAGES_FRECENCY_FIELD} <> 0
+        FROM vec_history
+        WHERE embedding_coarse match vec_quantize_binary(:vector)
+        ORDER BY distance
+        LIMIT 100
+      ),
+      matches AS (
+        SELECT url_hash, vec_distance_cosine(embedding, :vector) AS distance
+        FROM vec_history_mapping
+        JOIN coarse_matches USING (rowid)
+        WHERE distance <= :distanceThreshold
+        ORDER BY distance
+        LIMIT 2
+      )
+      SELECT id,
+             title,
+             url,
+             distance,
+             frecency,
+             last_visit_date
+      FROM moz_places
+      JOIN matches USING (url_hash)
+      WHERE ${lazy.PAGES_FRECENCY_FIELD} <> 0
+      ORDER BY distance
       `,
       {
         vector: this.tensorToBindable(tensor),
@@ -737,8 +769,6 @@ class PlacesSemanticHistoryManager {
         lastVisit: row.getResultByName("last_visit_date"),
       });
     }
-
-    results.sort((a, b) => a.distance - b.distance);
 
     // Add a duration marker, representing a span of time, with some additional text
     ChromeUtils.addProfilerMarker(
