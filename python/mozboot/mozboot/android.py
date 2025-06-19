@@ -3,7 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import errno
-import json
 import os
 import platform
 import stat
@@ -16,6 +15,7 @@ from typing import Optional, Union
 
 import requests
 from mach.util import get_state_dir
+from mozfile import json
 from tqdm import tqdm
 
 from mozboot.bootstrap import MOZCONFIG_SUGGESTION_TEMPLATE

@@ -177,7 +177,7 @@ def check_for_hgrc_state_dir_mismatch(state_dir):
         print("Failed to run 'hg config'. hg configuration checks will be skipped.")
         return
 
-    import json
+    from mozfile import json
 
     try:
         json_data = json.loads(result.stdout)
