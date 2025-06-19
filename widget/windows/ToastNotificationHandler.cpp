@@ -294,7 +294,10 @@ void ToastNotificationHandler::UnregisterHandler() {
 
   mNotification = nullptr;
   mNotifier = nullptr;
+}
 
+void ToastNotificationHandler::HandleCloseFromBrowser() {
+  UnregisterHandler();
   SendFinished();
 }
 
@@ -911,6 +914,7 @@ ToastNotificationHandler::OnActivate(
       mAlertListener->Observe(alertAction, "alertclickcallback", mCookie.get());
     }
   }
+  SendFinished();
   mBackend->RemoveHandler(mName, this);
   return S_OK;
 }
@@ -1018,6 +1022,7 @@ ToastNotificationHandler::OnFail(const ComPtr<IToastNotification>& notification,
 
 nsresult ToastNotificationHandler::TryShowAlert() {
   if (NS_WARN_IF(!ShowAlert())) {
+    SendFinished();
     mBackend->RemoveHandler(mName, this);
     return NS_ERROR_FAILURE;
   }
