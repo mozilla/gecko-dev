@@ -49,7 +49,6 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/Perfetto.h"
-#include "nsCExternalHandlerService.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsISupports.h"
@@ -7028,9 +7027,9 @@ void profiler_lookup_async_signal_dump_directory() {
 #if !defined(XP_WIN)
   LOG("profiler_lookup_async_signal_dump_directory");
 
-  MOZ_ASSERT(XRE_IsParentProcess() && NS_IsMainThread(),
-             "We can only get access to the directory service from the parent "
-             "process main thread");
+  MOZ_ASSERT(
+      NS_IsMainThread(),
+      "We can only get access to the directory service from the main thread");
 
   // Make sure the profiler is actually running~
   MOZ_RELEASE_ASSERT(CorePS::Exists());
@@ -7061,26 +7060,15 @@ void profiler_lookup_async_signal_dump_directory() {
   } else {
     LOG("Defaulting to the user's Download directory for profile dumps");
     nsCOMPtr<nsIFile> tDownloadDir;
-    nsresult rv;
-    nsCOMPtr<nsIExternalHelperAppService> svc =
-        do_GetService(NS_EXTERNALHELPERAPPSERVICE_CONTRACTID, &rv);
-
-    if (NS_FAILED(rv)) {
-      LOG("Failed to get nsIExternalHelperAppService for the download "
-          "directory. Profiler signal handling will not be able to save to "
-          "disk. Error: %s",
-          GetStaticErrorName(rv));
-      return;
-    }
-
-    rv = svc->GetPreferredDownloadsDirectory(getter_AddRefs(tDownloadDir));
+    rv = NS_GetSpecialDirectory(NS_OS_DEFAULT_DOWNLOAD_DIR,
+                                getter_AddRefs(tDownloadDir));
     if (NS_FAILED(rv)) {
       LOG("Failed to find download directory. Profiler signal handling will "
           "not be able to save to disk. Error: %s",
           GetStaticErrorName(rv));
-      return;
+    } else {
+      CorePS::SetAsyncSignalDumpDirectory(lock, Some(tDownloadDir));
     }
-    CorePS::SetAsyncSignalDumpDirectory(lock, Some(tDownloadDir));
   }
 #endif
 }
