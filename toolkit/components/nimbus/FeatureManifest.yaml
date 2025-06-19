@@ -2740,6 +2740,18 @@ networkingBannedPorts:
         branch: default
         pref: "network.security.ports.banned"
 
+localNetworkAccess:
+  description: "Networking (Necko) Local Network Access prefs"
+  owner: vgosu@mozilla.com
+  hasExposure: false
+  variables:
+    blockTrackers:
+      description: Whether network requests triggered by third party scripts classified as trackers should be blocked when making a localhost request.
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.lna.block_trackers"
+
 essentialFallbackDomains:
   description: "Whether to retry failing system requests with a backup domain"
   owner: vgosu@mozilla.com
