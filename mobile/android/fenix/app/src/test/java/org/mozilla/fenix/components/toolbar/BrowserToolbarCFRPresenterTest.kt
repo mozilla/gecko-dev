@@ -16,7 +16,6 @@ import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
-import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.CookieBannerAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.CustomTabSessionState
@@ -66,7 +65,6 @@ class BrowserToolbarCFRPresenterTest {
         val privateTab = createTab(url = "", private = true)
         val browserStore = createBrowserStore(tab = privateTab, selectedTabId = privateTab.id)
         val settings: Settings = mockk(relaxed = true) {
-            every { shouldShowEraseActionCFR } returns false
             every { shouldShowCookieBannersCFR } returns true
             every { shouldUseCookieBannerPrivateMode } returns true
         }
@@ -92,36 +90,6 @@ class BrowserToolbarCFRPresenterTest {
     }
 
     @Test
-    fun `GIVEN the Erase CFR should be shown WHEN in private mode and the current tab is fully loaded THEN the Erase CFR is only shown once`() {
-        val tab = createTab(url = "", private = true)
-
-        val browserStore = createBrowserStore(
-            tab = tab,
-            selectedTabId = tab.id,
-        )
-
-        val presenter = createPresenterThatShowsCFRs(
-            browserStore = browserStore,
-            settings = mockk {
-                every { shouldShowTabSwipeCFR } returns false
-                every { hasShownTabSwipeCFR } returns false
-                every { shouldShowEraseActionCFR } returns true
-            },
-            isPrivate = true,
-        )
-
-        presenter.start()
-
-        assertNotNull(presenter.scope)
-
-        browserStore.dispatch(ContentAction.UpdateProgressAction(tab.id, 99)).joinBlocking()
-        browserStore.dispatch(ContentAction.UpdateProgressAction(tab.id, 100)).joinBlocking()
-        browserStore.dispatch(ContentAction.UpdateProgressAction(tab.id, 100)).joinBlocking()
-        browserStore.dispatch(ContentAction.UpdateProgressAction(tab.id, 100)).joinBlocking()
-        verify { presenter.showEraseCfr() }
-    }
-
-    @Test
     fun `GIVEN the store is observed for updates WHEN the presenter is stopped THEN stop observing the store`() {
         val scope: CoroutineScope = mockk {
             every { cancel() } just Runs
@@ -142,7 +110,6 @@ class BrowserToolbarCFRPresenterTest {
             every { isTabStripEnabled() } returns false
         }
         val settings: Settings = mockk(relaxed = true) {
-            every { shouldShowEraseActionCFR } returns false
             every { shouldShowCookieBannersCFR } returns false
             every { shouldUseCookieBannerPrivateMode } returns false
             every { shouldShowTabSwipeCFR } returns true
@@ -172,7 +139,6 @@ class BrowserToolbarCFRPresenterTest {
             every { isTabStripEnabled() } returns true
         }
         val settings: Settings = mockk(relaxed = true) {
-            every { shouldShowEraseActionCFR } returns false
             every { shouldShowCookieBannersCFR } returns false
             every { shouldUseCookieBannerPrivateMode } returns false
             every { shouldShowTabSwipeCFR } returns true
@@ -202,7 +168,6 @@ class BrowserToolbarCFRPresenterTest {
             every { isTabStripEnabled() } returns false
         }
         val settings: Settings = mockk(relaxed = true) {
-            every { shouldShowEraseActionCFR } returns false
             every { shouldShowCookieBannersCFR } returns false
             every { shouldUseCookieBannerPrivateMode } returns false
             every { shouldShowTabSwipeCFR } returns true
@@ -235,14 +200,11 @@ class BrowserToolbarCFRPresenterTest {
         browserStore: BrowserStore = mockk(),
         settings: Settings = mockk {
             every { openTabsCount } returns 5
-            every { shouldShowEraseActionCFR } returns false
         },
         toolbar: BrowserToolbar = mockk(),
         isPrivate: Boolean = false,
         sessionId: String? = null,
-    ) = spyk(createPresenter(context, anchor, browserStore, settings, toolbar, sessionId, isPrivate)) {
-        every { showEraseCfr() } just Runs
-    }
+    ) = spyk(createPresenter(context, anchor, browserStore, settings, toolbar, sessionId, isPrivate))
 
     /**
      * Create and return a [BrowserToolbarCFRPresenter] with all constructor properties mocked by default.
@@ -255,7 +217,6 @@ class BrowserToolbarCFRPresenterTest {
         anchor: View = mockk(relaxed = true),
         browserStore: BrowserStore = mockk(),
         settings: Settings = mockk(relaxed = true) {
-            every { shouldShowEraseActionCFR } returns true
             every { openTabsCount } returns 5
             every { shouldShowCookieBannersCFR } returns true
             every { shouldShowTabSwipeCFR } returns false

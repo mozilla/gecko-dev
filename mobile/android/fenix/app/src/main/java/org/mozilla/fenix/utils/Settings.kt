@@ -896,15 +896,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         get() = mr2022Sections[Mr2022Section.TCP_FEATURE] == true
 
     /**
-     * Indicates if the total cookie protection CRF should be shown.
-     */
-    var shouldShowEraseActionCFR by lazyFeatureFlagPreference(
-        appContext.getPreferenceKey(R.string.pref_key_should_show_erase_action_popup),
-        featureFlag = true,
-        default = { feltPrivateBrowsingEnabled },
-    )
-
-    /**
      * Indicates if the cookie banners CRF should be shown.
      */
     var shouldShowCookieBannersCFR by lazyFeatureFlagPreference(

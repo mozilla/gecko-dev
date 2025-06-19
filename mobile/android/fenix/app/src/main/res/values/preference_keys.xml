@@ -321,8 +321,6 @@
     <string name="pref_key_should_show_sync_cfr" translatable="false">pref_key_should_show_sync_cfr</string>
     <!-- A value  of `true` means the home onboarding dialog have not been shown yet -->
     <string name="pref_key_should_show_home_onboarding_dialog" translatable="false" moz:removedIn="141" tools:ignore="UnusedResources">pref_key_should_show_home_onboarding_dialog</string>
-    <!-- A value  of `true` means the erase action popup has not been shown yet -->
-    <string name="pref_key_should_show_erase_action_popup" translatable="false">pref_key_should_show_erase_action_popup</string>
     <!-- A value  of `true` means that we will enable felt privacy features -->
     <string name="pref_key_should_enable_felt_privacy" translatable="false">pref_key_should_enable_felt_privacy</string>
     <!-- A value  of `true` means the cookie banners handling action popup has not been shown yet -->
