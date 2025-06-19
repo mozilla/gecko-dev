@@ -135,7 +135,7 @@ run-sequentially = "Frequent timeouts, bug 1395148"
 # Finally, we test each engine.
 
 ["test_glean.js"]
-skip-if = ["appname == 'thunderbird'"]
+skip-if = ["appname == 'thunderbird'", "verify && !debug && os == 'win'"] # Bug 1972585
 requesttimeoutfactor = 4
 
 ["test_history_engine.js"]
@@ -263,7 +263,7 @@ skip-if = [
 skip-if = ["appname == 'thunderbird'"]
 
 ["test_telemetry.js"]
-skip-if = ["appname == 'thunderbird'"]
+skip-if = ["appname == 'thunderbird'", "verify && !debug && os == 'win'"] # Bug 1972585
 requesttimeoutfactor = 4
 
 ["test_tracker_addChanged.js"]

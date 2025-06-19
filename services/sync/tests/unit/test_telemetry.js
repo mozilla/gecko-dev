@@ -770,7 +770,7 @@ add_task(async function test_initial_sync_engines() {
 
     // for the rest we don't care about specifics
     for (let e of ping.engines) {
-      if (!telemetryEngineNames.includes(engine.name)) {
+      if (!telemetryEngineNames.includes(e.name)) {
         continue;
       }
       greaterOrEqual(e.took, 1);
