@@ -11,7 +11,6 @@ channels:
   - developer
 includes:
   - onboarding.fml.yaml
-  - pbm.fml.yaml
   - messaging-fenix.fml.yaml
 import:
   - path: ../../android-components/components/browser/engine-gecko/geckoview.fml.yaml

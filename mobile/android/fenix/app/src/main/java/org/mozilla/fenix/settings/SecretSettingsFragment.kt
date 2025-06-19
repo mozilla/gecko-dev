@@ -164,12 +164,6 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
-        requirePreference<SwitchPreference>(R.string.pref_key_should_enable_felt_privacy).apply {
-            isVisible = true
-            isChecked = context.settings().feltPrivateBrowsingEnabled
-            onPreferenceChangeListener = SharedPreferenceUpdater()
-        }
-
         lifecycleScope.launch {
             requirePreference<SwitchPreference>(R.string.pref_key_enable_debug_drawer).apply {
                 isVisible = true

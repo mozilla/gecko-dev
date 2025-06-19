@@ -1850,14 +1850,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = true,
     )
 
-    val feltPrivateBrowsingEnabled by lazyFeatureFlagPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_should_enable_felt_privacy),
-        featureFlag = true,
-        default = {
-            FxNimbus.features.privateBrowsing.value().feltPrivacyEnabled
-        },
-    )
-
     var shouldUseComposableToolbar by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_composable_toolbar),
         default = { FxNimbus.features.composableToolbar.value().enabled },
