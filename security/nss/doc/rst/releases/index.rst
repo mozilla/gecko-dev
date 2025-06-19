@@ -8,6 +8,7 @@ Releases
    :glob:
    :hidden:
 
+   nss_3_113.rst
    nss_3_112.rst
    nss_3_111.rst
    nss_3_110.rst

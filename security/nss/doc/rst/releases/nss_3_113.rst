@@ -1,0 +1,44 @@
+.. _mozilla_projects_nss_nss_3_113_release_notes:
+
+NSS 3.113 release notes
+========================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) 3.113 was released on *19 June 2025**.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is NSS_3_113_RTM. NSS 3.113 requires NSPR 4.36 or newer. The latest version of NSPR is 4.36.
+
+   NSS 3.113 source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_113_RTM/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_3.113:
+
+`Changes in NSS 3.113 <#changes_in_nss_3.113>`__
+------------------------------------------------------------------
+
+.. container::
+
+   - Bug 1963792 - Fix alias for mac workers on try.
+   - Bug 198090  - Part 1: Use AES in the SDR (NSS) r=simonf,nss-reviewers,rrelyea
+   - Bug 1968764 - Bump nssckbi version to 2.78. 
+   - Bug 1967548 - Turn off Websites Trust Bit for Chunghwa Telecom ePKI Root in FF 141.
+   - Bug 1965556 - fix frame pointers in intel-gcm.s.
+   - Bug 1971510 - Typo in release notes for NSS 101.4.
+   - Bug 1968665 - Improve nss-release-helper.py.
+   - Bug 1930800 - shlibsign is broken in System FIPS mode.
+   - Bug 1954612 - Need up update NSS for PKCS 3.1: Move IPSEC to 3.1
+   - Bug 1965327 - PKCS #11 v3.2 header files.
+   - Bug 1954612 - Need up update NSS for PKCS 3.1: Move IPSEC to 3.1
