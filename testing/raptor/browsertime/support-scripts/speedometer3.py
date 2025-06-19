@@ -4,7 +4,10 @@
 
 import filters
 from base_python_support import BasePythonSupport
+from logger.logger import RaptorLogger
 from utils import flatten
+
+LOG = RaptorLogger(component="raptor-speedometer3-support")
 
 
 class Speedometer3Support(BasePythonSupport):
@@ -88,3 +91,24 @@ class Speedometer3Support(BasePythonSupport):
                 score = subtest["value"]
                 break
         suite["value"] = score
+
+    def modify_command(self, cmd, test):
+        """Modify the browsertime command for speedometer 3.
+
+        Presently we need to modify the commend to accommodate profiling
+        on android devices by modifying the test url to lower the iteration
+        counts.
+
+        """
+
+        # Bug 1934266
+        # For profiling on android + speedometer3 we set the iteration count to 5.
+        # Otherwise the profiles are too large and use too much of the allocated
+        # host machine memory. This is a useful temporary measure until we have
+        # a more long term solution.
+        if test.get("gecko_profile", False) and self.app in ("fenix", "geckoview"):
+            LOG.info(
+                "Modifying iterationCount to 5 for gecko profiling speedometer3 on android"
+            )
+            btime_url_index = cmd.index("--browsertime.url")
+            cmd[btime_url_index + 1] += "&iterationCount=5"
