@@ -32,6 +32,8 @@ import mozilla.components.concept.engine.prompt.PromptRequest.Color
 import mozilla.components.concept.engine.prompt.PromptRequest.Confirm
 import mozilla.components.concept.engine.prompt.PromptRequest.Dismissible
 import mozilla.components.concept.engine.prompt.PromptRequest.File
+import mozilla.components.concept.engine.prompt.PromptRequest.Folder
+import mozilla.components.concept.engine.prompt.PromptRequest.FolderUploadPrompt
 import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.Popup
@@ -514,11 +516,14 @@ class PromptFeature private constructor(
                 dismissSelectPrompts()
 
                 val prompt = activePrompt?.get()
-
+                // When showing folder upload confirm prompt, this is next of folder chooser prompt immediately.
                 store.consumeAllSessionPrompts(
                     sessionId = prompt?.sessionId,
                     activePrompt = activePrompt,
-                    predicate = { it.shouldDismissOnLoad && it !is File },
+                    predicate = {
+                        it.shouldDismissOnLoad && it !is File &&
+                            (it !is FolderUploadPrompt || previousPromptRequest !is Folder)
+                    },
                     consume = {
                         if (prompt?.isStateSaved == true) {
                             prompt.dismiss()
@@ -623,7 +628,7 @@ class PromptFeature private constructor(
         }
     }
 
-    @Suppress("NestedBlockDepth")
+    @Suppress("NestedBlockDepth", "CyclomaticComplexMethod")
     @VisibleForTesting(otherwise = PRIVATE)
     internal fun processPromptRequest(
         promptRequest: PromptRequest,
@@ -644,6 +649,11 @@ class PromptFeature private constructor(
             is File -> {
                 emitPromptDisplayedFact(promptName = "FilePrompt")
                 filePicker.handleFileRequest(promptRequest)
+            }
+
+            is Folder -> {
+                emitPromptDisplayedFact(promptName = "FolderPrompt")
+                filePicker.handleFolderRequest()
             }
 
             is Share -> handleShareRequest(promptRequest, session)
@@ -792,6 +802,7 @@ class PromptFeature private constructor(
                 is PromptRequest.IdentityCredential.SelectAccount -> it.onConfirm(value as Account)
                 is PromptRequest.IdentityCredential.PrivacyPolicy -> it.onConfirm(value as Boolean)
                 is SelectLoginPrompt -> it.onConfirm(value as Login)
+                is FolderUploadPrompt -> it.onConfirm()
                 else -> {
                     // no-op
                 }
@@ -1124,6 +1135,29 @@ class PromptFeature private constructor(
                 )
             }
 
+            is FolderUploadPrompt -> {
+                val title = container.context.getString(R.string.mozac_feature_prompt_folder_upload_confirm_title)
+                val message =
+                    container.getString(
+                        R.string.mozac_feature_prompt_folder_upload_confirm_message,
+                        promptRequest.folderName,
+                    )
+                val positiveAction =
+                    container.getString(R.string.mozac_feature_prompt_folder_upload_confirm_positive_button_text)
+                val negativeAction =
+                    container.getString(R.string.mozac_feature_prompt_folder_upload_confirm_negative_button_text)
+
+                ConfirmDialogFragment.newInstance(
+                    sessionId = session.id,
+                    promptRequestUID = promptRequest.uid,
+                    shouldDismissOnLoad = true,
+                    title = title,
+                    message = message,
+                    positiveButtonText = positiveAction,
+                    negativeButtonText = negativeAction,
+                )
+            }
+
             is PromptRequest.IdentityCredential.SelectProvider -> {
                 SelectProviderDialogFragment.newInstance(
                     sessionId = session.id,
@@ -1238,6 +1272,7 @@ class PromptFeature private constructor(
             is MenuChoice,
             is TimeSelection,
             is File,
+            is Folder,
             is Color,
             is Authentication,
             is BeforeUnload,
@@ -1253,7 +1288,8 @@ class PromptFeature private constructor(
             is PromptRequest.IdentityCredential.PrivacyPolicy,
             -> true
 
-            is Alert, is TextPrompt, is Confirm, is Repost, is Popup -> promptAbuserDetector.shouldShowMoreDialogs
+            is Alert, is TextPrompt, is Confirm, is Repost, is Popup, is FolderUploadPrompt,
+            -> promptAbuserDetector.shouldShowMoreDialogs
         }
     }
 

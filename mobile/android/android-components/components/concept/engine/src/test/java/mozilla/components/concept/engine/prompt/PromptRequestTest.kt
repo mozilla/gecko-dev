@@ -9,6 +9,8 @@ import mozilla.components.concept.engine.prompt.PromptRequest.Authentication
 import mozilla.components.concept.engine.prompt.PromptRequest.Color
 import mozilla.components.concept.engine.prompt.PromptRequest.Confirm
 import mozilla.components.concept.engine.prompt.PromptRequest.File
+import mozilla.components.concept.engine.prompt.PromptRequest.Folder
+import mozilla.components.concept.engine.prompt.PromptRequest.FolderUploadPrompt
 import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
 import mozilla.components.concept.engine.prompt.PromptRequest.Popup
@@ -141,6 +143,22 @@ class PromptRequestTest {
     }
 
     @Test
+    fun `Folder`() {
+        var onSelectedWasCalled = false
+        var onDismissWasCalled = false
+
+        val folderPickerRequest = Folder(
+            { _, _ -> onSelectedWasCalled = true },
+            { onDismissWasCalled = true },
+        )
+
+        folderPickerRequest.onSelected(mock(), mock())
+        folderPickerRequest.onDismiss()
+        assertTrue(onSelectedWasCalled)
+        assertTrue(onDismissWasCalled)
+    }
+
+    @Test
     fun `Authentication`() {
         val promptRequest = Authentication(
             "example.org",
@@ -270,6 +288,28 @@ class PromptRequestTest {
 
         repostRequest.onConfirm()
         repostRequest.onDismiss()
+
+        assertTrue(onAcceptWasCalled)
+        assertTrue(onDismissWasCalled)
+    }
+
+    @Test
+    fun `FolderUploadPrompt`() {
+        var onAcceptWasCalled = false
+        var onDismissWasCalled = false
+
+        val confirmRequest = FolderUploadPrompt(
+            folderName = "",
+            onConfirm = {
+                onAcceptWasCalled = true
+            },
+            onDismiss = {
+                onDismissWasCalled = true
+            },
+        )
+
+        confirmRequest.onConfirm()
+        confirmRequest.onDismiss()
 
         assertTrue(onAcceptWasCalled)
         assertTrue(onDismissWasCalled)

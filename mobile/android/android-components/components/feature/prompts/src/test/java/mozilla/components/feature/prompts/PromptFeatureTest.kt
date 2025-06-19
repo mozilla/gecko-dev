@@ -3356,6 +3356,42 @@ class PromptFeatureTest {
         verify(certificatePicker).handleCertificateRequest(certificateRequest)
     }
 
+    @Test
+    fun `A FolderUploadPrompt PromptRequest prompt will be shown as a ConfirmDialogFragment`() {
+        val feature = PromptFeature(
+            // Proper activity here to allow for the feature to properly execute "container.context.getString"
+            activity = Robolectric.buildActivity(Activity::class.java).setup().get(),
+            store = store,
+            fragmentManager = fragmentManager,
+            tabsUseCases = mock(),
+            shareDelegate = mock(),
+            loginValidationDelegate = mock(),
+            isSaveLoginEnabled = { true },
+            fileUploadsDirCleaner = mock(),
+            onNeedToRequestPermissions = { },
+        )
+        val promptRequest: PromptRequest.FolderUploadPrompt = mock()
+        doReturn("uid").`when`(promptRequest).uid
+        doReturn("folder").`when`(promptRequest).folderName
+
+        feature.handleDialogsRequest(promptRequest, mock())
+
+        val dialog: ConfirmDialogFragment = feature.activePrompt!!.get() as ConfirmDialogFragment
+        assertEquals(testContext.getString(R.string.mozac_feature_prompt_folder_upload_confirm_title), dialog.title)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_prompt_folder_upload_confirm_message, "folder"),
+            dialog.message,
+        )
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_prompt_folder_upload_confirm_positive_button_text),
+            dialog.positiveButtonText,
+        )
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_prompt_folder_upload_confirm_negative_button_text),
+            dialog.negativeButtonText,
+        )
+    }
+
     private fun mockFragmentManager(): FragmentManager {
         val fragmentManager: FragmentManager = mock()
         val transaction: FragmentTransaction = mock()

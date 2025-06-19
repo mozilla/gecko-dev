@@ -777,6 +777,47 @@ class GeckoPromptDelegateTest {
     }
 
     @Test
+    fun `Calling onFilePrompt for folder must provide a FilePicker PromptRequest`() {
+        // Calling onSelected
+        val context = spy(testContext)
+        val mockSession = GeckoEngineSession(runtime)
+        val mockUri: Uri = mock()
+        var onSelectedWasCalled = false
+        var onDismissWasCalled = false
+        var request: PromptRequest.Folder = mock()
+        val promptDelegate = spy(GeckoPromptDelegate(mockSession))
+
+        mockSession.register(
+            object : EngineSession.Observer {
+                override fun onPromptRequest(promptRequest: PromptRequest) {
+                    request = promptRequest as PromptRequest.Folder
+                }
+            },
+        )
+
+        var geckoPrompt = geckoFolderPrompt()
+        var geckoResult = promptDelegate.onFilePrompt(mock(), geckoPrompt)
+        geckoResult!!.accept {
+            onSelectedWasCalled = true
+        }
+
+        request.onSelected(context, mockUri)
+        shadowOf(getMainLooper()).idle()
+        assertTrue(onSelectedWasCalled)
+
+        // Calling onDismiss
+        geckoPrompt = geckoFolderPrompt()
+        geckoResult = promptDelegate.onFilePrompt(mock(), geckoPrompt)
+        geckoResult!!.accept {
+            onDismissWasCalled = true
+        }
+
+        request.onDismiss()
+        shadowOf(getMainLooper()).idle()
+        assertTrue(onDismissWasCalled)
+    }
+
+    @Test
     fun `Calling onLoginSave must provide an SaveLoginPrompt PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
         var onLoginSaved = false
@@ -1921,6 +1962,47 @@ class GeckoPromptDelegateTest {
         assertFalse(isOnConfirmCalled)
     }
 
+    @Test
+    fun `onFolderUploadPrompt must provide a Confirm PromptRequest`() {
+        // Calling onCofirm
+        val mockSession = GeckoEngineSession(runtime)
+        var request: PromptRequest.FolderUploadPrompt = mock()
+        var onPositiveButtonWasCalled = false
+        var onNegativeButtonWasCalled = false
+
+        mockSession.register(
+            object : EngineSession.Observer {
+                override fun onPromptRequest(promptRequest: PromptRequest) {
+                    request = promptRequest as PromptRequest.FolderUploadPrompt
+                }
+            },
+        )
+
+        val promptDelegate = GeckoPromptDelegate(mockSession)
+
+        var geckoPrompt = geckoFolderUploadPrompt()
+        var geckoResult = promptDelegate.onFolderUploadPrompt(mock(), geckoPrompt)
+        geckoResult!!.accept {
+            onPositiveButtonWasCalled = true
+        }
+        request.onConfirm()
+        shadowOf(getMainLooper()).idle()
+        assertTrue(onPositiveButtonWasCalled)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
+        onPositiveButtonWasCalled = false
+
+        // Calling onDismiss
+        geckoPrompt = geckoFolderUploadPrompt()
+        geckoResult = promptDelegate.onFolderUploadPrompt(mock(), geckoPrompt)
+        geckoResult!!.accept {
+            onNegativeButtonWasCalled = true
+        }
+        request.onDismiss()
+        shadowOf(getMainLooper()).idle()
+        assertTrue(onNegativeButtonWasCalled)
+        whenever(geckoPrompt.isComplete).thenReturn(true)
+    }
+
     private fun geckoChoicePrompt(
         title: String,
         message: String,
@@ -1974,6 +2056,12 @@ class GeckoPromptDelegateTest {
         ReflectionUtils.setField(prompt, "type", type)
         ReflectionUtils.setField(prompt, "capture", capture)
         ReflectionUtils.setField(prompt, "mimeTypes", mimeTypes)
+        return prompt
+    }
+
+    private fun geckoFolderPrompt(): GeckoSession.PromptDelegate.FilePrompt {
+        val prompt: GeckoSession.PromptDelegate.FilePrompt = mock()
+        ReflectionUtils.setField(prompt, "type", GECKO_PROMPT_FILE_TYPE.FOLDER)
         return prompt
     }
 
@@ -2047,6 +2135,10 @@ class GeckoPromptDelegateTest {
     }
 
     private fun geckoBeforeUnloadPrompt(): GeckoSession.PromptDelegate.BeforeUnloadPrompt {
+        return mock()
+    }
+
+    private fun geckoFolderUploadPrompt(): GeckoSession.PromptDelegate.FolderUploadPrompt {
         return mock()
     }
 

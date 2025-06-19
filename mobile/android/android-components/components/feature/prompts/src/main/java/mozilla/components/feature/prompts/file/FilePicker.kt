@@ -22,6 +22,7 @@ import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.concept.engine.prompt.PromptRequest.File
+import mozilla.components.concept.engine.prompt.PromptRequest.Folder
 import mozilla.components.concept.engine.prompt.isPhotoRequest
 import mozilla.components.concept.engine.prompt.isVideoRequest
 import mozilla.components.feature.prompts.PromptContainer
@@ -89,6 +90,14 @@ internal class FilePicker(
         } else {
             askAndroidPermissionsForRequest(neededPermissions, promptRequest)
         }
+    }
+
+    fun handleFolderRequest() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+        intent.apply {
+            addCategory(Intent.CATEGORY_DEFAULT)
+        }
+        container.startActivityForResult(intent, FOLDER_PICKER_ACTIVITY_REQUEST_CODE)
     }
 
     /**
@@ -200,8 +209,17 @@ internal class FilePicker(
                 }
             }
             resultHandled = true
+        } else if (requestCode == FOLDER_PICKER_ACTIVITY_REQUEST_CODE && request is Folder) {
+            store.consumePromptFrom(sessionId, request.uid) {
+                if (resultCode == RESULT_OK) {
+                    handleFilePickerIntentResult(intent, request)
+                } else {
+                    request.onDismiss()
+                }
+            }
+            resultHandled = true
         }
-        if (request !is File) {
+        if ((request !is File) && (request !is Folder)) {
             logger.error("Invalid PromptRequest expected File but $request was provided")
         }
 
@@ -210,7 +228,7 @@ internal class FilePicker(
 
     private fun getActivePromptRequest(): PromptRequest? =
         store.state.findCustomTabOrSelectedTab(sessionId)?.content?.promptRequests?.lastOrNull { prompt ->
-            prompt is File
+            (prompt is File) || (prompt is Folder)
         }
 
     /**
@@ -350,6 +368,19 @@ internal class FilePicker(
         captureUri = null
     }
 
+    @VisibleForTesting(otherwise = PRIVATE)
+    internal fun handleFilePickerIntentResult(intent: Intent?, request: Folder) {
+        val uri = intent?.data
+        uri?.let {
+            // We want to verify that we are not exposing any private data
+            if (!it.isUnderPrivateAppDirectory(container.context)) {
+                request.onSelected(container.context, it)
+            } else {
+                request.onDismiss()
+            }
+        } ?: request.onDismiss()
+    }
+
     private fun saveCaptureUriIfPresent(intent: Intent) =
         intent.getParcelableExtraCompat(EXTRA_OUTPUT, Uri::class.java)?.let { captureUri = it }
 
@@ -377,6 +408,7 @@ internal class FilePicker(
 
     companion object {
         const val FILE_PICKER_ACTIVITY_REQUEST_CODE = 7113
+        const val FOLDER_PICKER_ACTIVITY_REQUEST_CODE = 7114
     }
 }
 

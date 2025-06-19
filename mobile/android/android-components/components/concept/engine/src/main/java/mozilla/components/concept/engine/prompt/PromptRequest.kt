@@ -456,6 +456,30 @@ sealed class PromptRequest(
         override val onDismiss: () -> Unit,
     ) : PromptRequest(), Dismissible
 
+    /**
+     * Value type that represents a request for a folder upload confirm prompt.
+     *
+     * @property folderName the name of the folder that the user is trying to upload.
+     * @property onConfirm callback to notify that the user allows to upload files in folder
+     * @property onDismiss callback to notify that the user disallow to upload files.
+     */
+    data class FolderUploadPrompt(
+        val folderName: String,
+        val onConfirm: () -> Unit,
+        override val onDismiss: () -> Unit,
+    ) : PromptRequest(), Dismissible
+
+    /**
+     * Value type that represents a request for a selecting one folder/directory.
+     *
+     * @property onSelected callback to notify that the user has selected a folder.
+     * @property onDismiss callback to notify that the user has canceled the folder selection.
+     */
+    data class Folder(
+        val onSelected: (Context, Uri) -> Unit,
+        override val onDismiss: () -> Unit,
+    ) : PromptRequest(), Dismissible
+
     interface Dismissible {
         val onDismiss: () -> Unit
     }

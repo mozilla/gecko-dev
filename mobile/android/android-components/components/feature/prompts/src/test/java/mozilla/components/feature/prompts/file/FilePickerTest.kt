@@ -26,6 +26,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.PromptRequest
 import mozilla.components.feature.prompts.PromptContainer
 import mozilla.components.feature.prompts.file.FilePicker.Companion.FILE_PICKER_ACTIVITY_REQUEST_CODE
+import mozilla.components.feature.prompts.file.FilePicker.Companion.FOLDER_PICKER_ACTIVITY_REQUEST_CODE
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import mozilla.components.support.test.mock
@@ -59,6 +60,10 @@ class FilePickerTest {
         mimeTypes = emptyArray(),
         onSingleFileSelected = noopSingle,
         onMultipleFilesSelected = noopMulti,
+        onDismiss = {},
+    )
+    private val requestFolder = PromptRequest.Folder(
+        onSelected = noopSingle,
         onDismiss = {},
     )
 
@@ -631,6 +636,46 @@ class FilePickerTest {
         )
 
         filePicker.getVisualMediaType(request)
+    }
+
+    @Test
+    fun `onActivityResult for folder with RESULT_OK consume PromptRequest of the current session`() {
+        var onFolderSelectionWasCalled = false
+
+        val onFolderSelection: (Context, Uri) -> Unit = { _, _ ->
+            onFolderSelectionWasCalled = true
+        }
+
+        val filePickerRequest = requestFolder.copy(onSelected = onFolderSelection)
+
+        val selected = prepareSelectedSession(filePickerRequest)
+        val intent = Intent()
+
+        intent.data = mock()
+
+        stubContext()
+
+        filePicker.onActivityResult(FOLDER_PICKER_ACTIVITY_REQUEST_CODE, RESULT_OK, intent)
+
+        assertTrue(onFolderSelectionWasCalled)
+        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(selected.id, filePickerRequest))
+    }
+
+    @Test
+    fun `onActivityResult for folder with not RESULT_OK ill consume PromptRequest of the actual session and call onDismiss `() {
+        var onDismissWasCalled = false
+
+        val filePickerRequest = requestFolder.copy {
+            onDismissWasCalled = true
+        }
+
+        val selected = prepareSelectedSession(filePickerRequest)
+        val intent = Intent()
+
+        filePicker.onActivityResult(FOLDER_PICKER_ACTIVITY_REQUEST_CODE, RESULT_CANCELED, intent)
+
+        assertTrue(onDismissWasCalled)
+        verify(store).dispatch(ContentAction.ConsumePromptRequestAction(selected.id, filePickerRequest))
     }
 
     private fun prepareSelectedSession(request: PromptRequest? = null): TabSessionState {

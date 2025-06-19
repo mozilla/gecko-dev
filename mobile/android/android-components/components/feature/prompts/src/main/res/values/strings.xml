@@ -128,6 +128,15 @@
     <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
     <string name="mozac_feature_prompt_repost_negative_button_text">Cancel</string>
 
+    <!-- Strings show in a dialog that appear when user confirm folder upload -->
+    <string name="mozac_feature_prompt_folder_upload_confirm_title">Upload files?</string>
+    <!-- Prompt message displayed when user selects a specific folder. %1%s is a folder / directory name. -->
+    <string name="mozac_feature_prompt_folder_upload_confirm_message">Make sure you trust this site before you upload from “%1$s”.</string>
+    <!-- Pressing this will dismiss the dialog and allow to upload folder -->
+    <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">Upload</string>
+    <!-- Pressing this will dismiss the dialog and disallow to upload folder -->
+    <string name="mozac_feature_prompt_folder_upload_confirm_negative_button_text">Cancel</string>
+
     <!-- Credit Card Autofill -->
     <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
     <string name="mozac_feature_prompts_select_credit_card_2">Use saved card</string>
