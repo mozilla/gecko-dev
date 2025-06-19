@@ -488,104 +488,35 @@ class BrowserFragmentTest {
     }
 
     @Test
-    fun `GIVEN redesign feature is off and configuration is portrait WHEN updating navigation icons THEN only leading action is added`() {
+    fun `GIVEN device is not a tablet WHEN updating toolbar actions THEN only leading action is added and no actions are removed`() {
         mockThemeManagerAndAppCompatResources()
 
-        val isLandscape = false
         browserFragment.updateBrowserToolbarLeadingAndNavigationActions(
             context = context,
-            isLandscape = isLandscape,
             isTablet = false,
-            isPrivate = false,
-            feltPrivateBrowsingEnabled = false,
         )
 
-        verify(exactly = 1) { browserFragment.addLeadingAction(any(), any()) }
+        verify(exactly = 1) { browserFragment.addLeadingAction(any()) }
         verify(exactly = 0) { browserFragment.addTabletActions(any()) }
         verify(exactly = 0) { browserFragment.addNavigationActions(any()) }
-
-        unmockThemeManagerAndAppCompatResources()
-    }
-
-    @Test
-    fun `GIVEN redesign feature is off and configuration is landscape WHEN updating navigation icons THEN only leading action is added`() {
-        mockThemeManagerAndAppCompatResources()
-
-        val isLandscape = true
-        browserFragment.updateBrowserToolbarLeadingAndNavigationActions(
-            context = context,
-            isLandscape = isLandscape,
-            isTablet = false,
-            isPrivate = false,
-            feltPrivateBrowsingEnabled = false,
-        )
-
-        verify(exactly = 1) { browserFragment.addLeadingAction(any(), any()) }
-        verify(exactly = 0) { browserFragment.addTabletActions(any()) }
-        verify(exactly = 0) { browserFragment.addNavigationActions(any()) }
-
-        unmockThemeManagerAndAppCompatResources()
-    }
-
-    @Test
-    fun `GIVEN tablet WHEN updating navigation icons THEN leading action and navigation buttons are added in order`() {
-        mockThemeManagerAndAppCompatResources()
-
-        val isTablet = true
-        val isLandscape = true
-        browserFragment.updateBrowserToolbarLeadingAndNavigationActions(
-            context = context,
-            isLandscape = isLandscape,
-            isTablet = isTablet,
-            isPrivate = false,
-            feltPrivateBrowsingEnabled = false,
-        )
-
-        verifyOrder {
-            browserFragment.addLeadingAction(any(), any())
-            browserFragment.addNavigationActions(any())
-        }
-
-        unmockThemeManagerAndAppCompatResources()
-    }
-
-    @Test
-    fun `GIVEN orientation is portrait and it is not tablet WHEN updating navigation icons THEN no action is removed`() {
-        mockThemeManagerAndAppCompatResources()
-
-        val isLandscape = false
-        val isTablet = false
-
-        browserFragment.updateBrowserToolbarLeadingAndNavigationActions(
-            context = context,
-            isLandscape = isLandscape,
-            isPrivate = false,
-            isTablet = isTablet,
-            feltPrivateBrowsingEnabled = false,
-        )
-
         verify(exactly = 0) { browserFragment.removeNavigationActions() }
 
         unmockThemeManagerAndAppCompatResources()
     }
 
     @Test
-    fun `GIVEN orientation is portrait and it is tablet WHEN updating navigation actions THEN navigation actions are added`() {
+    fun `GIVEN device is a tablet WHEN updating toolbar actions THEN leading and navigation actions are added in order`() {
         mockThemeManagerAndAppCompatResources()
-
-        val isLandscape = false
-        val isTablet = true
 
         browserFragment.updateBrowserToolbarLeadingAndNavigationActions(
             context = context,
-            isLandscape = isLandscape,
-            isPrivate = false,
-            isTablet = isTablet,
-            feltPrivateBrowsingEnabled = false,
+            isTablet = true,
         )
 
-        verify(exactly = 1) { browserFragment.addLeadingAction(any(), any()) }
-        verify(exactly = 1) { browserFragment.addNavigationActions(any()) }
+        verifyOrder {
+            browserFragment.addLeadingAction(any())
+            browserFragment.addNavigationActions(any())
+        }
 
         unmockThemeManagerAndAppCompatResources()
     }

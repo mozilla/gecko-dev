@@ -391,7 +391,7 @@
     <string name="browser_toolbar_home">Home screen</string>
     <!-- Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
          history and go back to the home screen. -->
-    <string name="browser_toolbar_erase">Erase browsing history</string>
+    <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">Erase browsing history</string>
     <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
     <string name="browser_toolbar_translate">Translate page</string>
     <!-- Content description (not visible, for screen readers etc.) for the translate page toolbar button that opens the translations dialog when the page is translated successfully.

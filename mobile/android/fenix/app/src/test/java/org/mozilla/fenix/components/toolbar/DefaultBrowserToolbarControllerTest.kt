@@ -64,7 +64,6 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.directionsEq
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.HomeScreenViewModel
-import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_PRIVATE_TABS
 import org.mozilla.fenix.utils.Settings
 import org.robolectric.RobolectricTestRunner
 
@@ -385,19 +384,6 @@ class DefaultBrowserToolbarControllerTest {
 
         verify { navController.navigate(BrowserFragmentDirections.actionGlobalHome()) }
         assertNotNull(Events.browserToolbarHomeTapped.testGetValue())
-    }
-
-    @Test
-    fun handleEraseButtonClicked() {
-        assertNull(Events.browserToolbarEraseTapped.testGetValue())
-        val controller = createController()
-        controller.handleEraseButtonClick()
-
-        verify {
-            homeViewModel.sessionToDelete = ALL_PRIVATE_TABS
-            navController.navigate(BrowserFragmentDirections.actionGlobalHome())
-        }
-        assertNotNull(Events.browserToolbarEraseTapped.testGetValue())
     }
 
     @Test

@@ -31,11 +31,9 @@ import mozilla.components.feature.tabs.WindowFeature
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.ktx.kotlin.isContentUrl
-import mozilla.components.support.utils.ext.isLandscape
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.AddressToolbar
 import org.mozilla.fenix.GleanMetrics.ReaderMode
-import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.store.BrowserScreenAction.ReaderModeStatusUpdated
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
@@ -107,10 +105,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         if (browserToolbarView is BrowserToolbarView) {
             updateBrowserToolbarLeadingAndNavigationActions(
                 context = context,
-                isLandscape = context.isLandscape(),
                 isTablet = isLargeWindow(),
-                isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
-                feltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
             )
             initBrowserToolbarViewActions(view)
         } else {
@@ -335,78 +330,30 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun addLeadingAction(
-        context: Context,
-        showEraseButton: Boolean,
-    ) {
+    internal fun addLeadingAction(context: Context) {
         if (leadingAction != null) return
 
-        leadingAction = if (showEraseButton) {
-            BrowserToolbar.Button(
-                imageDrawable = AppCompatResources.getDrawable(
-                    context,
-                    R.drawable.mozac_ic_data_clearance_24,
-                )!!,
-                contentDescription = context.getString(R.string.browser_toolbar_erase),
-                iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
-                listener = browserToolbarInteractor::onEraseButtonClicked,
-            )
-        } else {
-            BrowserToolbar.Button(
-                imageDrawable = AppCompatResources.getDrawable(
-                    context,
-                    R.drawable.mozac_ic_home_24,
-                )!!,
-                contentDescription = context.getString(R.string.browser_toolbar_home),
-                iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
-                listener = browserToolbarInteractor::onHomeButtonClicked,
-            )
-        }
-
-        leadingAction?.let {
+        leadingAction = BrowserToolbar.Button(
+            imageDrawable = AppCompatResources.getDrawable(
+                context,
+                R.drawable.mozac_ic_home_24,
+            )!!,
+            contentDescription = context.getString(R.string.browser_toolbar_home),
+            iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
+            listener = browserToolbarInteractor::onHomeButtonClicked,
+        ).also {
             (_browserToolbarView as? BrowserToolbarView)?.toolbar?.addNavigationAction(it)
         }
     }
 
-    /**
-     * This code takes care of the [BrowserToolbar] leading and navigation actions.
-     * The older design requires a HomeButton followed by navigation buttons for tablets.
-     * The newer design expects NavigationButtons and a HomeButton in landscape mode for phones and in both modes
-     * for tablets.
-     */
     @VisibleForTesting
     internal fun updateBrowserToolbarLeadingAndNavigationActions(
         context: Context,
-        isLandscape: Boolean,
         isTablet: Boolean,
-        isPrivate: Boolean,
-        feltPrivateBrowsingEnabled: Boolean,
     ) {
-        updateAddressBarLeadingAction(
-            isLandscape = isLandscape,
-            isPrivate = isPrivate,
-            isTablet = isTablet,
-            feltPrivateBrowsingEnabled = feltPrivateBrowsingEnabled,
-            context = context,
-        )
+        addLeadingAction(context = context)
         updateTabletToolbarActions(isTablet = isTablet)
         (browserToolbarView as? BrowserToolbarView)?.toolbar?.invalidateActions()
-    }
-
-    @VisibleForTesting
-    internal fun updateAddressBarLeadingAction(
-        isLandscape: Boolean,
-        isTablet: Boolean,
-        isPrivate: Boolean,
-        feltPrivateBrowsingEnabled: Boolean,
-        context: Context,
-    ) {
-        val showEraseButton = feltPrivateBrowsingEnabled && isPrivate && (isLandscape || isTablet)
-
-        addLeadingAction(
-            context = context,
-            showEraseButton = showEraseButton,
-        )
     }
 
     override fun onUpdateToolbarForConfigurationChange(toolbar: FenixBrowserToolbarView) {
@@ -415,10 +362,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         if (browserToolbarView is BrowserToolbarView) {
             updateBrowserToolbarLeadingAndNavigationActions(
                 context = requireContext(),
-                isLandscape = requireContext().isLandscape(),
                 isTablet = isLargeWindow(),
-                isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
-                feltPrivateBrowsingEnabled = requireContext().settings().feltPrivateBrowsingEnabled,
             )
         }
     }
