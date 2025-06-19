@@ -36,7 +36,7 @@ class TaskQueue;
  */
 std::unique_ptr<webrtc::TaskQueueBase, webrtc::TaskQueueDeleter>
 CreateWebrtcTaskQueue(already_AddRefed<nsIEventTarget> aTarget,
-                      const nsCString& aName, bool aSupportsTailDispatch);
+                      const nsACString& aName, bool aSupportsTailDispatch);
 
 /**
  * Creates a mozilla task queue that also exposes a webrtc::TaskQueueBase.
@@ -56,7 +56,7 @@ CreateWebrtcTaskQueue(already_AddRefed<nsIEventTarget> aTarget,
  * mozilla::TaskQueue.
  */
 RefPtr<TaskQueue> CreateWebrtcTaskQueueWrapper(
-    already_AddRefed<nsIEventTarget> aTarget, const nsCString& aName,
+    already_AddRefed<nsIEventTarget> aTarget, const nsACString& aName,
     bool aSupportsTailDispatch);
 
 /**
