@@ -2648,6 +2648,7 @@ dependencies = [
  "unicode-bidi-ffi",
  "uniffi-bindgen-gecko-js-test-fixtures",
  "url",
+ "urlpattern",
  "viaduct",
  "webext-storage",
  "webrender_bindings",
@@ -5542,9 +5543,9 @@ version = "0.4.999"
 
 [[package]]
 name = "regex"
-version = "1.9.4"
+version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12de2eff854e5fa4b1295edd650e227e9d8fb0c9e90b12e7f36d6a6811791a29"
+checksum = "b544ef1b4eac5dc2db33ea63606ae9ffcfac26c1416a2806ae0bf5f56b201191"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -5554,9 +5555,9 @@ dependencies = [
 
 [[package]]
 name = "regex-automata"
-version = "0.3.7"
+version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49530408a136e16e5b486e883fbb6ba058e8e4e8ae6621a77b048b314336e629"
+checksum = "809e8dc61f6de73b46c85f4c96486310fe304c434cfa43669d7b40f711150908"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -5565,9 +5566,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.7.5"
+version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbb5fb1acd8a1a18b3dd5be62d25485eb770e05afb408a9627d14d451bae12da"
+checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
 name = "relevancy"
@@ -6857,6 +6858,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "unic-char-property"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8c57a407d9b6fa02b4795eb81c5b6652060a15a7903ea981f3d723e6c0be221"
+dependencies = [
+ "unic-char-range",
+]
+
+[[package]]
+name = "unic-char-range"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0398022d5f700414f6b899e10b8348231abf9173fa93144cbc1a43b9793c1fbc"
+
+[[package]]
+name = "unic-common"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80d7ff825a6a654ee85a63e80f92f054f904f21e7d12da4e22f9834a4aaa35bc"
+
+[[package]]
 name = "unic-langid"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6881,6 +6903,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a5422c1f65949306c99240b81de9f3f15929f5a8bfe05bb44b034cc8bf593e5"
 dependencies = [
  "tinystr",
+]
+
+[[package]]
+name = "unic-ucd-ident"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e230a37c0381caa9219d67cf063aa3a375ffed5bf541a452db16e744bdab6987"
+dependencies = [
+ "unic-char-property",
+ "unic-char-range",
+ "unic-ucd-version",
+]
+
+[[package]]
+name = "unic-ucd-version"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96bd2f2237fe450fcd0a1d2f5f4e91711124f7857ba2e964247776ebeeb7b0c4"
+dependencies = [
+ "unic-common",
 ]
 
 [[package]]
@@ -7162,6 +7204,18 @@ dependencies = [
  "idna",
  "percent-encoding",
  "serde",
+]
+
+[[package]]
+name = "urlpattern"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70acd30e3aa1450bc2eece896ce2ad0d178e9c079493819301573dae3c37ba6d"
+dependencies = [
+ "regex",
+ "serde",
+ "unic-ucd-ident",
+ "url",
 ]
 
 [[package]]

@@ -4603,6 +4603,16 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "1.7.0 -> 1.7.1"
 
+[[audits.regex]]
+who = "edgul <ed.guloien@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "1.10.4 -> 1.11.1"
+
+[[audits.regex-automata]]
+who = "edgul <ed.guloien@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.4.7 -> 0.4.9"
+
 [[audits.regex-syntax]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -5566,6 +5576,21 @@ I've reviewed multiple patches in this crate, including the initial
 implementation back in the day. It has no unsafe code at all nowadays.
 """
 
+[[audits.unic-char-property]]
+who = "edgul <ed.guloien@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.9.0"
+
+[[audits.unic-char-range]]
+who = "edgul <ed.guloien@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.9.0"
+
+[[audits.unic-common]]
+who = "edgul <ed.guloien@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.9.0"
+
 [[audits.unic-langid]]
 who = "Zibi Braniecki <zibi@unicode.org>"
 criteria = "safe-to-deploy"
@@ -5615,6 +5640,11 @@ version = "0.9.0"
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.9.0 -> 0.9.1"
+
+[[audits.unic-ucd-ident]]
+who = "edgul <ed.guloien@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.9.0"
 
 [[audits.unicode-bidi]]
 who = "Makoto Kato <m_kato@ga2.so-net.ne.jp>"
@@ -5911,6 +5941,11 @@ delta = "2.5.0 -> 2.5.1"
 who = "Valentin Gosu <valentin.gosu@gmail.com>"
 criteria = "safe-to-deploy"
 delta = "2.5.1 -> 2.5.4"
+
+[[audits.urlpattern]]
+who = "edgul <ed.guloien@gmail.com>"
+criteria = "safe-to-deploy"
+version = "0.3.0"
 
 [[audits.utf16_iter]]
 who = "Henri Sivonen <hsivonen@hsivonen.fi>"

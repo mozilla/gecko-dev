@@ -642,6 +642,9 @@ impl Regex {
     /// case, this implementation will likely return a `Cow::Borrowed` value
     /// such that no allocation is performed.
     ///
+    /// When a `Cow::Borrowed` is returned, the value returned is guaranteed
+    /// to be equivalent to the `haystack` given.
+    ///
     /// # Replacement string syntax
     ///
     /// All instances of `$ref` in the replacement string are replaced with
@@ -748,6 +751,13 @@ impl Regex {
     /// replacement provided. This is the same as calling `replacen` with
     /// `limit` set to `0`.
     ///
+    /// If no match is found, then the haystack is returned unchanged. In that
+    /// case, this implementation will likely return a `Cow::Borrowed` value
+    /// such that no allocation is performed.
+    ///
+    /// When a `Cow::Borrowed` is returned, the value returned is guaranteed
+    /// to be equivalent to the `haystack` given.
+    ///
     /// The documentation for [`Regex::replace`] goes into more detail about
     /// what kinds of replacement strings are supported.
     ///
@@ -841,6 +851,13 @@ impl Regex {
     /// the replacement provided. If `limit` is `0`, then all non-overlapping
     /// matches are replaced. That is, `Regex::replace_all(hay, rep)` is
     /// equivalent to `Regex::replacen(hay, 0, rep)`.
+    ///
+    /// If no match is found, then the haystack is returned unchanged. In that
+    /// case, this implementation will likely return a `Cow::Borrowed` value
+    /// such that no allocation is performed.
+    ///
+    /// When a `Cow::Borrowed` is returned, the value returned is guaranteed
+    /// to be equivalent to the `haystack` given.
     ///
     /// The documentation for [`Regex::replace`] goes into more detail about
     /// what kinds of replacement strings are supported.
@@ -1573,10 +1590,15 @@ impl<'h> From<Match<'h>> for core::ops::Range<usize> {
 
 /// Represents the capture groups for a single match.
 ///
-/// Capture groups refer to parts of a regex enclosed in parentheses. They can
-/// be optionally named. The purpose of capture groups is to be able to
-/// reference different parts of a match based on the original pattern. For
-/// example, say you want to match the individual letters in a 5-letter word:
+/// Capture groups refer to parts of a regex enclosed in parentheses. They
+/// can be optionally named. The purpose of capture groups is to be able to
+/// reference different parts of a match based on the original pattern. In
+/// essence, a `Captures` is a container of [`Match`] values for each group
+/// that participated in a regex match. Each `Match` can be looked up by either
+/// its capture group index or name (if it has one).
+///
+/// For example, say you want to match the individual letters in a 5-letter
+/// word:
 ///
 /// ```text
 /// (?<first>\w)(\w)(?:\w)\w(?<last>\w)
@@ -1694,8 +1716,8 @@ impl<'h> Captures<'h> {
     ///
     /// This returns a tuple where the first element corresponds to the full
     /// substring of the haystack that matched the regex. The second element is
-    /// an array of substrings, with each corresponding to the to the substring
-    /// that matched for a particular capture group.
+    /// an array of substrings, with each corresponding to the substring that
+    /// matched for a particular capture group.
     ///
     /// # Panics
     ///
@@ -1987,7 +2009,7 @@ impl<'h> core::ops::Index<usize> for Captures<'h> {
 /// The haystack substring returned can't outlive the `Captures` object if this
 /// method is used, because of how `Index` is defined (normally `a[i]` is part
 /// of `a` and can't outlive it). To work around this limitation, do that, use
-/// [`Captures::get`] instead.
+/// [`Captures::name`] instead.
 ///
 /// `'h` is the lifetime of the matched haystack, but the lifetime of the
 /// `&str` returned by this implementation is the lifetime of the `Captures`
@@ -2040,7 +2062,10 @@ impl<'h, 'n> core::ops::Index<&'n str> for Captures<'h> {
 ///
 /// // Asking for an invalid capture group always returns None.
 /// assert_eq!(None, locs.get(3));
+/// # // literals are too big for 32-bit usize: #1041
+/// # #[cfg(target_pointer_width = "64")]
 /// assert_eq!(None, locs.get(34973498648));
+/// # #[cfg(target_pointer_width = "64")]
 /// assert_eq!(None, locs.get(9944060567225171988));
 /// ```
 #[derive(Clone, Debug)]

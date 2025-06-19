@@ -230,15 +230,15 @@ impl Config {
     /// # if cfg!(miri) { return Ok(()); } // miri takes too long
     /// use regex_automata::nfa::thompson::NFA;
     ///
-    /// // 300KB isn't enough!
+    /// // 400KB isn't enough!
     /// NFA::compiler()
-    ///     .configure(NFA::config().nfa_size_limit(Some(300_000)))
+    ///     .configure(NFA::config().nfa_size_limit(Some(400_000)))
     ///     .build(r"\w{20}")
     ///     .unwrap_err();
     ///
-    /// // ... but 400KB probably is.
+    /// // ... but 500KB probably is.
     /// let nfa = NFA::compiler()
-    ///     .configure(NFA::config().nfa_size_limit(Some(400_000)))
+    ///     .configure(NFA::config().nfa_size_limit(Some(500_000)))
     ///     .build(r"\w{20}")?;
     ///
     /// assert_eq!(nfa.pattern_len(), 1);
@@ -961,10 +961,12 @@ impl Compiler {
         // for all matches. When an unanchored prefix is not added, then the
         // NFA's anchored and unanchored start states are equivalent.
         let all_anchored = exprs.iter().all(|e| {
-            e.borrow()
-                .properties()
-                .look_set_prefix()
-                .contains(hir::Look::Start)
+            let props = e.borrow().properties();
+            if self.config.get_reverse() {
+                props.look_set_suffix().contains(hir::Look::End)
+            } else {
+                props.look_set_prefix().contains(hir::Look::Start)
+            }
         });
         let anchored = !self.config.get_unanchored_prefix() || all_anchored;
         let unanchored_prefix = if anchored {
@@ -1466,7 +1468,7 @@ impl Compiler {
         // compare and contrast performance of the Pike VM when the code below
         // is active vs the code above. Here's an example to try:
         //
-        //   regex-cli find match pikevm -b -p '(?m)^\w{20}' -y '@$smallishru'
+        //   regex-cli find match pikevm -b -p '(?m)^\w{20}' non-ascii-file
         //
         // With Unicode classes generated below, this search takes about 45s on
         // my machine. But with the compressed version above, the search takes
@@ -1557,6 +1559,14 @@ impl Compiler {
             hir::Look::WordAsciiNegate => Look::WordAsciiNegate,
             hir::Look::WordUnicode => Look::WordUnicode,
             hir::Look::WordUnicodeNegate => Look::WordUnicodeNegate,
+            hir::Look::WordStartAscii => Look::WordStartAscii,
+            hir::Look::WordEndAscii => Look::WordEndAscii,
+            hir::Look::WordStartUnicode => Look::WordStartUnicode,
+            hir::Look::WordEndUnicode => Look::WordEndUnicode,
+            hir::Look::WordStartHalfAscii => Look::WordStartHalfAscii,
+            hir::Look::WordEndHalfAscii => Look::WordEndHalfAscii,
+            hir::Look::WordStartHalfUnicode => Look::WordStartHalfUnicode,
+            hir::Look::WordEndHalfUnicode => Look::WordEndHalfUnicode,
         };
         let id = self.add_look(look)?;
         Ok(ThompsonRef { start: id, end: id })
@@ -1868,11 +1878,11 @@ impl Utf8Node {
 
 #[cfg(test)]
 mod tests {
-    use alloc::{vec, vec::Vec};
+    use alloc::vec;
 
     use crate::{
-        nfa::thompson::{SparseTransitions, State, Transition, NFA},
-        util::primitives::{PatternID, SmallIndex, StateID},
+        nfa::thompson::{SparseTransitions, State},
+        util::primitives::SmallIndex,
     };
 
     use super::*;
@@ -1918,6 +1928,11 @@ mod tests {
             })
             .collect();
         State::Sparse(SparseTransitions { transitions })
+    }
+
+    fn s_look(look: Look, next: usize) -> State {
+        let next = sid(next);
+        State::Look { look, next }
     }
 
     fn s_bin_union(alt1: usize, alt2: usize) -> State {
@@ -1967,6 +1982,80 @@ mod tests {
                 s_byte(b'a', 3),
                 s_match(0),
             ]
+        );
+    }
+
+    #[test]
+    fn compile_no_unanchored_prefix_with_start_anchor() {
+        let nfa = NFA::compiler()
+            .configure(NFA::config().which_captures(WhichCaptures::None))
+            .build(r"^a")
+            .unwrap();
+        assert_eq!(
+            nfa.states(),
+            &[s_look(Look::Start, 1), s_byte(b'a', 2), s_match(0)]
+        );
+    }
+
+    #[test]
+    fn compile_yes_unanchored_prefix_with_end_anchor() {
+        let nfa = NFA::compiler()
+            .configure(NFA::config().which_captures(WhichCaptures::None))
+            .build(r"a$")
+            .unwrap();
+        assert_eq!(
+            nfa.states(),
+            &[
+                s_bin_union(2, 1),
+                s_range(0, 255, 0),
+                s_byte(b'a', 3),
+                s_look(Look::End, 4),
+                s_match(0),
+            ]
+        );
+    }
+
+    #[test]
+    fn compile_yes_reverse_unanchored_prefix_with_start_anchor() {
+        let nfa = NFA::compiler()
+            .configure(
+                NFA::config()
+                    .reverse(true)
+                    .which_captures(WhichCaptures::None),
+            )
+            .build(r"^a")
+            .unwrap();
+        assert_eq!(
+            nfa.states(),
+            &[
+                s_bin_union(2, 1),
+                s_range(0, 255, 0),
+                s_byte(b'a', 3),
+                // Anchors get flipped in a reverse automaton.
+                s_look(Look::End, 4),
+                s_match(0),
+            ],
+        );
+    }
+
+    #[test]
+    fn compile_no_reverse_unanchored_prefix_with_end_anchor() {
+        let nfa = NFA::compiler()
+            .configure(
+                NFA::config()
+                    .reverse(true)
+                    .which_captures(WhichCaptures::None),
+            )
+            .build(r"a$")
+            .unwrap();
+        assert_eq!(
+            nfa.states(),
+            &[
+                // Anchors get flipped in a reverse automaton.
+                s_look(Look::Start, 1),
+                s_byte(b'a', 2),
+                s_match(0),
+            ],
         );
     }
 
