@@ -65,8 +65,8 @@ class SitePermissionOptionsFragment : BaseComposeFragment() {
         lifecycle.addObserver(hardwarePermissionCheckFeature)
     }
 
-    override val titleText: String
-        get() = sitePermissionOptionsScreenStore.state.sitePermissionLabel
+    override val titleRes: Int?
+        get() = sitePermission.labelRes
 
     @Composable
     override fun Content() {

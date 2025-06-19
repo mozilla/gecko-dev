@@ -7,15 +7,46 @@ package org.mozilla.focus.settings.permissions.permissionoptions
 import android.Manifest
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
+import org.mozilla.focus.R
 
 @Parcelize
-enum class SitePermission(val androidPermissionsList: Array<String>) : Parcelable {
-    CAMERA(arrayOf(Manifest.permission.CAMERA)),
-    LOCATION(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)),
-    MICROPHONE(arrayOf(Manifest.permission.RECORD_AUDIO)),
-    NOTIFICATION(emptyArray()),
-    AUTOPLAY(emptyArray()),
-    AUTOPLAY_AUDIBLE(emptyArray()),
-    AUTOPLAY_INAUDIBLE(emptyArray()),
-    MEDIA_KEY_SYSTEM_ACCESS(emptyArray()),
+enum class SitePermission(
+    val androidPermissionsList: Array<String>,
+    val labelRes: Int,
+) : Parcelable {
+    CAMERA(
+        arrayOf(Manifest.permission.CAMERA),
+        R.string.preference_phone_feature_camera,
+    ),
+    LOCATION(
+        arrayOf(
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        ),
+        R.string.preference_phone_feature_location,
+    ),
+    MICROPHONE(
+        arrayOf(Manifest.permission.RECORD_AUDIO),
+        R.string.preference_phone_feature_microphone,
+    ),
+    NOTIFICATION(
+        emptyArray(),
+        R.string.preference_phone_feature_notification,
+    ),
+    AUTOPLAY(
+        emptyArray(),
+        R.string.preference_autoplay,
+    ),
+    AUTOPLAY_AUDIBLE(
+        emptyArray(),
+        R.string.preference_autoplay,
+    ),
+    AUTOPLAY_INAUDIBLE(
+        emptyArray(),
+        R.string.preference_autoplay,
+    ),
+    MEDIA_KEY_SYSTEM_ACCESS(
+        emptyArray(),
+        R.string.preference_phone_feature_media_key_system_access,
+    ),
 }

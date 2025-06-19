@@ -35,17 +35,7 @@ class SitePermissionOptionsStorage(private val context: Context) {
     }
 
     fun getSitePermissionLabel(sitePermission: SitePermission): String {
-        return when (sitePermission) {
-            SitePermission.CAMERA -> context.getString(R.string.preference_phone_feature_camera)
-            SitePermission.LOCATION -> context.getString(R.string.preference_phone_feature_location)
-            SitePermission.MICROPHONE -> context.getString(R.string.preference_phone_feature_microphone)
-            SitePermission.NOTIFICATION -> context.getString(R.string.preference_phone_feature_notification)
-            SitePermission.MEDIA_KEY_SYSTEM_ACCESS -> context.getString(
-                R.string.preference_phone_feature_media_key_system_access,
-            )
-            SitePermission.AUTOPLAY, SitePermission.AUTOPLAY_AUDIBLE, SitePermission.AUTOPLAY_INAUDIBLE ->
-                context.getString(R.string.preference_autoplay)
-        }
+        return context.getString(sitePermission.labelRes)
     }
 
     /**
