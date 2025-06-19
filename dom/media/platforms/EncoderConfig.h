@@ -52,10 +52,6 @@ enum class HardwarePreference { RequireHardware, RequireSoftware, None };
 
 // TODO: Automatically generate this (Bug 1865896)
 const char* GetCodecTypeString(const CodecType& aCodecType);
-const char* YUVColorSpaceToString(const gfx::YUVColorSpace& aYUVColorSpace);
-const char* ColorSpace2ToString(const gfx::ColorSpace2& aColorSpace2);
-const char* TransferFunctionToString(
-    const gfx::TransferFunction& aTransferFunction);
 
 enum class H264BitStreamFormat { AVC, ANNEXB };
 
