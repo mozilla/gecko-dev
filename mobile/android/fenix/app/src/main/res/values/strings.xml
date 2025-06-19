@@ -880,7 +880,9 @@
     <!-- The text shown when an extension does not require permissions -->
     <string name="addons_does_not_require_permissions">This extension doesn’t require any permissions.</string>
     <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
-    <string name="addons_permissions_required_data_collection_description">The developer says this extension collects: %1$s.</string>
+    <string name="addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">The developer says this extension collects: %1$s.</string>
+    <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+    <string name="addons_permissions_required_data_collection_description_2">The developer says this extension collects: %1$s</string>
     <!-- The description of the "none" data collection permission, when the extension doesn't collect anything according to the developer. -->
     <string name="addons_permissions_none_required_data_collection_description">The developer says this extension doesn’t require data collection.</string>
     <!-- The title of the required permissions section from addon's permissions screen. -->

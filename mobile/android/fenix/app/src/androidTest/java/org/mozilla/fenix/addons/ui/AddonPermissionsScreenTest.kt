@@ -186,7 +186,7 @@ class AddonPermissionsScreenTest {
         composeTestRule.onNodeWithText("Required permissions:").assertIsNotDisplayed()
         composeTestRule.onNodeWithText("Optional permissions:").assertIsNotDisplayed()
         composeTestRule.onNodeWithText("Required data collection:").assertIsDisplayed()
-        composeTestRule.onNodeWithText("The developer says this extension collects: health information.")
+        composeTestRule.onNodeWithText("The developer says this extension collects: health information")
             .assertIsDisplayed()
         composeTestRule.onNodeWithText("Optional data collection:").assertIsNotDisplayed()
 
@@ -312,7 +312,7 @@ class AddonPermissionsScreenTest {
         composeTestRule.onNodeWithText("Optional permissions:").assertIsDisplayed()
         composeTestRule.onNodeWithText("Read and modify bookmarks").assertIsDisplayed()
         composeTestRule.onNodeWithText("Required data collection:").assertIsDisplayed()
-        composeTestRule.onNodeWithText("The developer says this extension collects: health information.")
+        composeTestRule.onNodeWithText("The developer says this extension collects: health information")
             .assertIsDisplayed()
         composeTestRule.onNodeWithText("Optional data collection:").assertIsDisplayed()
         composeTestRule.onNodeWithText("Share health information with extension developer").assertIsDisplayed()

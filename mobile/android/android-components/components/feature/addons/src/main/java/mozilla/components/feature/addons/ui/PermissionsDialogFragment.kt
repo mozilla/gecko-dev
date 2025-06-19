@@ -394,7 +394,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
         val formattedList = Addon.formatLocalizedDataCollectionPermissions(localizedPermissions)
 
         return requireContext().getString(
-            R.string.mozac_feature_addons_permissions_required_data_collection_description,
+            R.string.mozac_feature_addons_permissions_required_data_collection_description_2,
             formattedList,
         )
     }

@@ -186,7 +186,7 @@ fun AddonPermissionsScreen(
                         stringResource(id = R.string.addons_permissions_none_required_data_collection_description)
                     } else {
                         stringResource(
-                            id = R.string.addons_permissions_required_data_collection_description,
+                            id = R.string.addons_permissions_required_data_collection_description_2,
                             Addon.formatLocalizedDataCollectionPermissions(requiredDataCollectionPermissions),
                         )
                     },
