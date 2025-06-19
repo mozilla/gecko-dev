@@ -1969,6 +1969,8 @@ export class PictureInPictureChild extends JSWindowActorChild {
         this.closePictureInPicture({ reason: "Fullscreen" });
         break;
       }
+      case "playing":
+      // Intentional fall-through
       case "play": {
         this.sendAsyncMessage("PictureInPicture:Playing");
         break;
@@ -2300,6 +2302,7 @@ export class PictureInPictureChild extends JSWindowActorChild {
     if (originatingWindow) {
       originatingWindow.addEventListener("pagehide", this);
       originatingVideo.addEventListener("play", this);
+      originatingVideo.addEventListener("playing", this);
       originatingVideo.addEventListener("pause", this);
       originatingVideo.addEventListener("volumechange", this);
       originatingVideo.addEventListener("resize", this);
@@ -2352,6 +2355,7 @@ export class PictureInPictureChild extends JSWindowActorChild {
     if (originatingWindow) {
       originatingWindow.removeEventListener("pagehide", this);
       originatingVideo.removeEventListener("play", this);
+      originatingVideo.removeEventListener("playing", this);
       originatingVideo.removeEventListener("pause", this);
       originatingVideo.removeEventListener("volumechange", this);
       originatingVideo.removeEventListener("resize", this);
