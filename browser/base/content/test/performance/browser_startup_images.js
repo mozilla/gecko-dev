@@ -47,16 +47,6 @@ const knownUnshownImages = [
   },
 
   {
-    file: "chrome://browser/skin/window-controls/maximize.svg",
-    platforms: ["win"],
-    // This is to prevent perma-fails in case Windows machines
-    // go back to running tests in non-maximized windows.
-    intermittentShown: ["win"],
-    // This file is not loaded on Windows 7/8.
-    intermittentNotLoaded: ["win"],
-  },
-
-  {
     file: "chrome://global/skin/icons/highlights.svg",
     platforms: ["win", "linux", "macosx"],
     intermittentShown: ["win", "linux"],
