@@ -202,9 +202,9 @@ struct ParamTraits<struct mozilla::net::LNAPerms> {
 
 template <>
 struct ParamTraits<mozilla::net::LNAPermission>
-    : public ContiguousEnumSerializerInclusive<mozilla::net::LNAPermission,
-                                      mozilla::net::LNAPermission::Granted,
-                                      mozilla::net::LNAPermission::Pending> {};
+    : public ContiguousEnumSerializerInclusive<
+          mozilla::net::LNAPermission, mozilla::net::LNAPermission::Granted,
+          mozilla::net::LNAPermission::Pending> {};
 
 }  // namespace IPC
 
