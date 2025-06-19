@@ -4,11 +4,13 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
 
+import asyncio
+import functools
 import logging
 import random
 import time
 from contextlib import contextmanager
-from functools import wraps
+from typing import Any, Awaitable, Callable, Dict, Optional, Sequence, Tuple, Type, Union
 
 log = logging.getLogger(__name__)
 
@@ -210,7 +212,7 @@ def retriable(*retry_args, **retry_kwargs):
     """
 
     def _retriable_factory(func):
-        @wraps(func)
+        @functools.wraps(func)
         def _retriable_wrapper(*args, **kwargs):
             return retry(func, args=args, kwargs=kwargs, *retry_args, **retry_kwargs)
 
@@ -248,3 +250,121 @@ def retrying(func, *retry_args, **retry_kwargs):
         'success!'
     """
     yield retriable(*retry_args, **retry_kwargs)(func)
+
+
+def calculate_sleep_time(attempt, delay_factor=5.0, randomization_factor=0.5, max_delay=120):
+    """Calculate the sleep time between retries, in seconds.
+
+    Based off of `taskcluster.utils.calculateSleepTime`, but with kwargs instead
+    of constant `delay_factor`/`randomization_factor`/`max_delay`.  The taskcluster
+    function generally slept for less than a second, which didn't always get
+    past server issues.
+    Args:
+        attempt (int): the retry attempt number
+        delay_factor (float, optional): a multiplier for the delay time.  Defaults to 5.
+        randomization_factor (float, optional): a randomization multiplier for the
+            delay time.  Defaults to .5.
+        max_delay (float, optional): the max delay to sleep.  Defaults to 120 (seconds).
+    Returns:
+        float: the time to sleep, in seconds.
+    """
+    if attempt <= 0:
+        return 0
+
+    # We subtract one to get exponents: 1, 2, 3, 4, 5, ..
+    delay = float(2 ** (attempt - 1)) * float(delay_factor)
+    # Apply randomization factor.  Only increase the delay here.
+    delay = delay * (randomization_factor * random.random() + 1)
+    # Always limit with a maximum delay
+    return min(delay, max_delay)
+
+
+async def retry_async(
+    func: Callable[..., Awaitable[Any]],
+    attempts: int = 5,
+    sleeptime_callback: Callable[..., Any] = calculate_sleep_time,
+    retry_exceptions: Union[Type[BaseException], Tuple[Type[BaseException], ...]] = Exception,
+    args: Sequence[Any] = (),
+    kwargs: Optional[Dict[str, Any]] = None,
+    sleeptime_kwargs: Optional[Dict[str, Any]] = None,
+) -> Any:
+    """Retry ``func``, where ``func`` is an awaitable.
+
+    Args:
+        func (function): an awaitable function.
+        attempts (int, optional): the number of attempts to make.  Default is 5.
+        sleeptime_callback (function, optional): the function to use to determine
+            how long to sleep after each attempt.  Defaults to ``calculateSleepTime``.
+        retry_exceptions (list or exception, optional): the exception(s) to retry on.
+            Defaults to ``Exception``.
+        args (list, optional): the args to pass to ``func``.  Defaults to ()
+        kwargs (dict, optional): the kwargs to pass to ``func``.  Defaults to
+            {}.
+        sleeptime_kwargs (dict, optional): the kwargs to pass to ``sleeptime_callback``.
+            If None, use {}.  Defaults to None.
+    Returns:
+        object: the value from a successful ``function`` call
+    Raises:
+        Exception: the exception from a failed ``function`` call, either outside
+            of the retry_exceptions, or one of those if we pass the max
+            ``attempts``.
+    """
+    kwargs = kwargs or {}
+    attempt = 1
+    while True:
+        try:
+            return await func(*args, **kwargs)
+        except retry_exceptions:
+            attempt += 1
+            _check_number_of_attempts(attempt, attempts, func, "retry_async")
+            await asyncio.sleep(_define_sleep_time(sleeptime_kwargs, sleeptime_callback, attempt, func, "retry_async"))
+
+
+def _check_number_of_attempts(attempt: int, attempts: int, func: Callable[..., Any], retry_function_name: str) -> None:
+    if attempt > attempts:
+        log.warning("{}: {}: too many retries!".format(retry_function_name, func.__name__))
+        raise
+
+
+def _define_sleep_time(
+    sleeptime_kwargs: Optional[Dict[str, Any]],
+    sleeptime_callback: Callable[..., int],
+    attempt: int,
+    func: Callable[..., Any],
+    retry_function_name: str,
+) -> float:
+    sleeptime_kwargs = sleeptime_kwargs or {}
+    sleep_time = sleeptime_callback(attempt, **sleeptime_kwargs)
+    log.debug("{}: {}: sleeping {} seconds before retry".format(retry_function_name, func.__name__, sleep_time))
+    return sleep_time
+
+
+def retriable_async(
+    retry_exceptions: Union[Type[BaseException], Tuple[Type[BaseException], ...]] = Exception,
+    sleeptime_kwargs: Optional[Dict[str, Any]] = None,
+) -> Callable[..., Callable[..., Awaitable[Any]]]:
+    """Decorate a function by wrapping ``retry_async`` around.
+
+    Args:
+        retry_exceptions (list or exception, optional): the exception(s) to retry on.
+            Defaults to ``Exception``.
+        sleeptime_kwargs (dict, optional): the kwargs to pass to ``sleeptime_callback``.
+            If None, use {}.  Defaults to None.
+    Returns:
+        function: the decorated function
+    """
+
+    def wrap(async_func: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
+        @functools.wraps(async_func)
+        async def wrapped(*args: Any, **kwargs: Any) -> Any:
+            return await retry_async(
+                async_func,
+                retry_exceptions=retry_exceptions,
+                args=args,
+                kwargs=kwargs,
+                sleeptime_kwargs=sleeptime_kwargs,
+            )
+
+        return wrapped
+
+    return wrap

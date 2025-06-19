@@ -45,7 +45,7 @@ dependencies = [
     "pylru~=1.0",
     "python-hglib~=2.4",
     "pyyaml==6.0.2",
-    "redo~=2.0",
+    "redo~=3.0",
     "requests-unixsocket~=0.2",
     "requests~=2.32",
     "responses~=0.10",

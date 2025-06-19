@@ -983,7 +983,7 @@ requires-dist = [
     { name = "pylru", specifier = "~=1.0" },
     { name = "python-hglib", specifier = "~=2.4" },
     { name = "pyyaml", specifier = "==6.0.2" },
-    { name = "redo", specifier = "~=2.0" },
+    { name = "redo", specifier = "~=3.0" },
     { name = "requests", specifier = "~=2.32" },
     { name = "requests-unixsocket", specifier = "~=0.2" },
     { name = "responses", specifier = "~=0.10" },
@@ -1477,11 +1477,11 @@ wheels = [
 
 [[package]]
 name = "redo"
-version = "2.0.4"
+version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f0/df/6eaeece84b3b6a51663075ae25089ec9b49e90b687ddca6f1fe0f93ab091/redo-2.0.4.tar.gz", hash = "sha256:81066955041c853b0e6491eb65a0877dce45131c4cfa3d42d923fc2aa8f7a043", size = 10920, upload-time = "2020-09-14T20:28:00.199Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/23/91/cd9b78aca21a3a5fb915582a9e8b727e2513e38732df45b2c3ee63cbe7be/redo-3.0.0.tar.gz", hash = "sha256:52a14200004d6708924a547b31b7d1c717cb36b944f3a5c7b176e0d61ab81eef", size = 20723, upload-time = "2024-07-17T18:31:13.739Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/06/c3/9a11ba6bd67be26e413e14a8ce765af72e493c384c894fc910e50f40692d/redo-2.0.4-py2.py3-none-any.whl", hash = "sha256:c76e4c23ab2f8840261736a851323cd98493710e7a9d36a1058535dca501f293", size = 12327, upload-time = "2022-11-28T20:32:50.757Z" },
+    { url = "https://files.pythonhosted.org/packages/64/67/128a17272a74f56da57cbae4a6f282a29d435d080cf80714c1137192b8c9/redo-3.0.0-py2.py3-none-any.whl", hash = "sha256:66905396b2882577fa4bf7edb90fee081db2b98992d303f12e3f898ac7f7bd56", size = 14006, upload-time = "2024-07-17T18:31:12.366Z" },
 ]
 
 [[package]]
