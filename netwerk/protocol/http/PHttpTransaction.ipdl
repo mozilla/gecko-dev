@@ -23,7 +23,7 @@ using mozilla::net::ClassOfService from "mozilla/net/ClassOfService.h";
 using mozilla::net::TRRSkippedReason from "nsITRRSkipReason.h";
 using nsIRequest::TRRMode from "nsIRequest.h";
 using nsILoadInfo::IPAddressSpace from "nsILoadInfo.h";
-using mozilla::dom::ContentPermissionRequestBase::PromptResult from "nsContentPermissionHelper.h";
+using struct mozilla::net::LNAPerms from "mozilla/net/HttpTransactionShell.h";
 
 namespace mozilla {
 namespace net {
@@ -97,7 +97,7 @@ child:
              PInputChannelThrottleQueue? throttleQueue,
              bool aIsDocumentLoad,
              IPAddressSpace aParentIPAddressSpace,
-             PromptResult aLnaPermissionStatus,
+             LNAPerms aLnaPermissionStatus,
              TimeStamp aRedirectStart,
              TimeStamp aRedirectEnd);
 

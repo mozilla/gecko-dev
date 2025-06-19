@@ -173,8 +173,7 @@ nsresult nsHttpTransaction::Init(
     uint32_t initialRwin, bool responseTimeoutEnabled, uint64_t channelId,
     TransactionObserverFunc&& transactionObserver,
     nsILoadInfo::IPAddressSpace aParentIpAddressSpace,
-    const dom::ContentPermissionRequestBase::PromptResult
-        aLnaPermissionStatus) {
+    const struct LNAPerms& aLnaPermissionStatus) {
   nsresult rv;
 
   LOG1(("nsHttpTransaction::Init [this=%p caps=%x]\n", this, caps));
@@ -3678,10 +3677,12 @@ bool nsHttpTransaction::AllowedToConnectToIpAddressSpace(
 
   if (mozilla::net::IsLocalNetworkAccess(mParentIPAddressSpace,
                                          aTargetIpAddressSpace)) {
-    // Permission is denied when transaction is created. Currently we block any
-    // LNA from a tracker script
-    if (mLnaPermissionStatus ==
-        dom::ContentPermissionRequestBase::PromptResult::Denied) {
+    if (aTargetIpAddressSpace == nsILoadInfo::IPAddressSpace::Local &&
+        mLnaPermissionStatus.mLocalHostPermission == LNAPermission::Denied) {
+      return false;
+    }
+    if (aTargetIpAddressSpace == nsILoadInfo::IPAddressSpace::Private &&
+        mLnaPermissionStatus.mLocalNetworkPermission == LNAPermission::Denied) {
       return false;
     }
 
