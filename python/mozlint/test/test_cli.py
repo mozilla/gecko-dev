@@ -96,6 +96,15 @@ def test_cli_run_with_setup(run, capfd):
     assert ret == 1
 
 
+def test_cli_run_with_all_skipped(run, capfd):
+    # implicitly call setup
+    ret = run(["-l", "setupskipped"])
+    out, err = capfd.readouterr()
+    assert "setup skipped" in out
+    assert "ERROR" in err
+    assert ret == 1
+
+
 def test_cli_for_exclude_list(run, monkeypatch, capfd):
     ret = run(["-l", "excludes", "--check-exclude-list"])
     out, err = capfd.readouterr()

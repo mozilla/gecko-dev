@@ -454,7 +454,7 @@ def run(
 
         # Always run bootstrapping, but return early if --setup was passed in.
         ret = lint.setup(virtualenv_manager=virtualenv_manager)
-        if setup:
+        if setup or not lint.linters:
             return ret
 
         if linters_info["linters_not_found"] != []:

@@ -382,12 +382,24 @@ def test_setup(lint, linters, filedir, capfd):
     with pytest.raises(NoValidLinter):
         lint.setup()
 
-    lint.read(linters("setup", "setupfailed", "setupraised"))
-    lint.setup()
+    lint.read(linters("setup", "setupfailed", "setupraised", "setupskipped"))
+    ret = lint.setup()
+    assert ret == 1
+
     out, err = capfd.readouterr()
     assert "oh no setup failed" in err
     assert "ERROR: problem with lint setup, skipping" in err
     assert lint.result.failed_setup == set(["SetupFailedLinter", "SetupRaisedLinter"])
+
+
+def test_setup_all_skipped(lint, linters, filedir, capfd):
+    lint.read(linters("setupskipped"))
+    ret = lint.setup()
+    assert ret == 1
+
+    out, err = capfd.readouterr()
+    assert "ERROR: all linters were skipped due to setup, nothing to do!" in err
+    assert lint.result.failed_setup == set()
 
 
 if __name__ == "__main__":

@@ -262,6 +262,11 @@ class LintRoller:
                 )
             )
             return 1
+
+        if not self.linters:
+            log.error("all linters were skipped due to setup, nothing to do!")
+            return 1
+
         return 0
 
     def should_lint_entire_tree(self, vcs_paths: set[str], linter: dict) -> bool:

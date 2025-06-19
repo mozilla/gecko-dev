@@ -72,3 +72,8 @@ def setupfailed(**lintargs):
 def setupraised(**lintargs):
     print("setup raised")
     raise LintException("oh no setup failed")
+
+
+def setupskipped(**lintargs):
+    print("setup skipped")
+    return -1
