@@ -6,7 +6,7 @@
 
 #include "WebrtcEnvironmentWrapper.h"
 
-#include "TaskQueueWrapper.h"
+#include "WebrtcTaskQueueWrapper.h"
 
 // libwebrtc includes
 #include "api/environment/environment_factory.h"

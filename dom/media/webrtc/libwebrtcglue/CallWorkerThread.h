@@ -9,7 +9,7 @@
 
 #include "mozilla/AbstractThread.h"
 #include "nsIDirectTaskDispatcher.h"
-#include "TaskQueueWrapper.h"
+#include "WebrtcTaskQueueWrapper.h"
 
 namespace mozilla {
 
@@ -23,7 +23,8 @@ class CallWorkerThread final : public AbstractThread,
   NS_DECL_NSIDIRECTTASKDISPATCHER
 
   explicit CallWorkerThread(
-      UniquePtr<TaskQueueWrapper<DeletionPolicy::NonBlocking>> aWebrtcTaskQueue)
+      UniquePtr<WebrtcTaskQueueWrapper<DeletionPolicy::NonBlocking>>
+          aWebrtcTaskQueue)
       : AbstractThread(aWebrtcTaskQueue->mTaskQueue->SupportsTailDispatch()),
         mWebrtcTaskQueue(std::move(aWebrtcTaskQueue)) {}
 
@@ -40,7 +41,7 @@ class CallWorkerThread final : public AbstractThread,
   NS_IMETHOD RegisterShutdownTask(nsITargetShutdownTask* aTask) override;
   NS_IMETHOD UnregisterShutdownTask(nsITargetShutdownTask* aTask) override;
 
-  const UniquePtr<TaskQueueWrapper<DeletionPolicy::NonBlocking>>
+  const UniquePtr<WebrtcTaskQueueWrapper<DeletionPolicy::NonBlocking>>
       mWebrtcTaskQueue;
 
  protected:
