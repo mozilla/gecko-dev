@@ -17,15 +17,11 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
-import mozilla.components.service.nimbus.NimbusApi
 import mozilla.components.service.nimbus.messaging.FxNimbusMessaging
 import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.support.base.ids.SharedIdsHelper
 import mozilla.components.support.utils.BootUtils
-import org.mozilla.experiments.nimbus.NimbusInterface
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.onboarding.ensureMarketingChannelExists
 import org.mozilla.fenix.utils.IntentUtils
@@ -34,20 +30,6 @@ import java.util.concurrent.TimeUnit
 
 const val CLICKED_MESSAGE_ID = "clickedMessageId"
 const val DISMISSED_MESSAGE_ID = "dismissedMessageId"
-
-/**
- * Timeout duration (in milliseconds) for the fetch experiments operation, covering both the
- * network request and any required post-processing.
- *
- * This is a background task, not initiated by the user, so a slightly higher timeout is acceptable.
- *
- * If the operation doesn't complete within this time, it will be retried on the next app launch
- * or during the next scheduled sync interval.
- *
- * **Six seconds will cover 99% of users** based on Nimbus research.
- * @see `https://sql.telemetry.mozilla.org/queries/91863/source?p_days=30#227434`.
- */
-private const val NIMBUS_FETCH_TIMEOUT_MILLIS: Long = 6000
 
 /**
  * Background [CoroutineWorker] that polls Nimbus for available [Message]s at a given interval.
@@ -62,12 +44,8 @@ class MessageNotificationWorker(
     @SuppressWarnings("ReturnCount")
     override suspend fun doWork(): Result {
         val context = applicationContext
-        val nimbus = context.components.nimbus
 
-        // Attempt to refresh messages from Nimbus so getMessage reflects the latest available data.
-        tryFetchNimbusMessages(nimbus.sdk)
-
-        val messaging = nimbus.messaging
+        val messaging = context.components.nimbus.messaging
 
         val nextMessage =
             messaging.getNextMessage(FenixMessageSurfaceId.NOTIFICATION)
@@ -92,29 +70,6 @@ class MessageNotificationWorker(
         )
 
         return Result.success()
-    }
-
-    private suspend fun tryFetchNimbusMessages(nimbusSdk: NimbusApi) {
-        val experimentsFetched = CompletableDeferred<Unit>()
-
-        val nimbusExperimentsObserver = object : NimbusInterface.Observer {
-            override fun onExperimentsFetched() {
-                if (!experimentsFetched.isCompleted) {
-                    experimentsFetched.complete(Unit)
-                }
-            }
-        }
-
-        nimbusSdk.register(nimbusExperimentsObserver)
-
-        try {
-            withTimeoutOrNull(NIMBUS_FETCH_TIMEOUT_MILLIS) {
-                nimbusSdk.fetchExperiments()
-                experimentsFetched.await()
-            }
-        } finally {
-            nimbusSdk.unregister(nimbusExperimentsObserver)
-        }
     }
 
     private fun buildNotification(
