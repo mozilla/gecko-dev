@@ -1,8 +1,8 @@
 import uuid
 
-from sentry_sdk import Hub
-from sentry_sdk._types import TYPE_CHECKING
+import sentry_sdk
 
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Optional
@@ -17,7 +17,7 @@ def _create_check_in_event(
     monitor_config=None,  # type: Optional[MonitorConfig]
 ):
     # type: (...) -> Event
-    options = Hub.current.client.options if Hub.current.client else {}
+    options = sentry_sdk.get_client().options
     check_in_id = check_in_id or uuid.uuid4().hex  # type: str
 
     check_in = {
@@ -52,7 +52,6 @@ def capture_checkin(
         monitor_config=monitor_config,
     )
 
-    hub = Hub.current
-    hub.capture_event(check_in_event)
+    sentry_sdk.capture_event(check_in_event)
 
     return check_in_event["check_in_id"]

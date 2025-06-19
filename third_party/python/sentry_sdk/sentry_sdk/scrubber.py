@@ -1,19 +1,13 @@
-try:
-    from typing import cast
-except ImportError:
-    cast = lambda _, obj: obj
-
 from sentry_sdk.utils import (
     capture_internal_exceptions,
     AnnotatedValue,
     iter_event_frames,
 )
-from sentry_sdk._compat import string_types
-from sentry_sdk._types import TYPE_CHECKING
+
+from typing import TYPE_CHECKING, cast, List, Dict
 
 if TYPE_CHECKING:
     from sentry_sdk._types import Event
-    from typing import List
     from typing import Optional
 
 
@@ -30,21 +24,17 @@ DEFAULT_DENYLIST = [
     "privatekey",
     "private_key",
     "token",
-    "ip_address",
     "session",
     # django
     "csrftoken",
     "sessionid",
     # wsgi
-    "remote_addr",
     "x_csrftoken",
     "x_forwarded_for",
     "set_cookie",
     "cookie",
     "authorization",
     "x_api_key",
-    "x_forwarded_for",
-    "x_real_ip",
     # other common names used in the wild
     "aiohttp_session",  # aiohttp
     "connect.sid",  # Express
@@ -60,11 +50,35 @@ DEFAULT_DENYLIST = [
     "XSRF-TOKEN",  # Angular, Laravel
 ]
 
+DEFAULT_PII_DENYLIST = [
+    "x_forwarded_for",
+    "x_real_ip",
+    "ip_address",
+    "remote_addr",
+]
 
-class EventScrubber(object):
-    def __init__(self, denylist=None, recursive=False):
-        # type: (Optional[List[str]], bool) -> None
-        self.denylist = DEFAULT_DENYLIST if denylist is None else denylist
+
+class EventScrubber:
+    def __init__(
+        self, denylist=None, recursive=False, send_default_pii=False, pii_denylist=None
+    ):
+        # type: (Optional[List[str]], bool, bool, Optional[List[str]]) -> None
+        """
+        A scrubber that goes through the event payload and removes sensitive data configured through denylists.
+
+        :param denylist: A security denylist that is always scrubbed, defaults to DEFAULT_DENYLIST.
+        :param recursive: Whether to scrub the event payload recursively, default False.
+        :param send_default_pii: Whether pii is sending is on, pii fields are not scrubbed.
+        :param pii_denylist: The denylist to use for scrubbing when pii is not sent, defaults to DEFAULT_PII_DENYLIST.
+        """
+        self.denylist = DEFAULT_DENYLIST.copy() if denylist is None else denylist
+
+        if not send_default_pii:
+            pii_denylist = (
+                DEFAULT_PII_DENYLIST.copy() if pii_denylist is None else pii_denylist
+            )
+            self.denylist += pii_denylist
+
         self.denylist = [x.lower() for x in self.denylist]
         self.recursive = recursive
 
@@ -97,7 +111,7 @@ class EventScrubber(object):
         for k, v in d.items():
             # The cast is needed because mypy is not smart enough to figure out that k must be a
             # string after the isinstance check.
-            if isinstance(k, string_types) and cast(str, k).lower() in self.denylist:
+            if isinstance(k, str) and k.lower() in self.denylist:
                 d[k] = AnnotatedValue.substituted_because_contains_sensitive_data()
             elif self.recursive:
                 self.scrub_dict(v)  # no-op unless v is a dict
@@ -130,7 +144,10 @@ class EventScrubber(object):
         # type: (Event) -> None
         with capture_internal_exceptions():
             if "breadcrumbs" in event:
-                if "values" in event["breadcrumbs"]:
+                if (
+                    not isinstance(event["breadcrumbs"], AnnotatedValue)
+                    and "values" in event["breadcrumbs"]
+                ):
                     for value in event["breadcrumbs"]["values"]:
                         if "data" in value:
                             self.scrub_dict(value["data"])
@@ -146,7 +163,7 @@ class EventScrubber(object):
         # type: (Event) -> None
         with capture_internal_exceptions():
             if "spans" in event:
-                for span in event["spans"]:
+                for span in cast(List[Dict[str, object]], event["spans"]):
                     if "data" in span:
                         self.scrub_dict(span["data"])
 

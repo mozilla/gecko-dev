@@ -1,21 +1,26 @@
 import sys
+from functools import wraps
 
-from sentry_sdk._compat import reraise
-from sentry_sdk.hub import Hub
+import sentry_sdk
 from sentry_sdk.integrations import Integration, DidNotEnable
 from sentry_sdk.integrations.aws_lambda import _make_request_event_processor
-from sentry_sdk.tracing import TRANSACTION_SOURCE_COMPONENT
+from sentry_sdk.tracing import TransactionSource
 from sentry_sdk.utils import (
     capture_internal_exceptions,
     event_from_exception,
     parse_version,
+    reraise,
 )
-from sentry_sdk._types import TYPE_CHECKING
-from sentry_sdk._functools import wraps
 
-import chalice  # type: ignore
-from chalice import Chalice, ChaliceViewError
-from chalice.app import EventSourceHandler as ChaliceEventSourceHandler  # type: ignore
+try:
+    import chalice  # type: ignore
+    from chalice import __version__ as CHALICE_VERSION
+    from chalice import Chalice, ChaliceViewError
+    from chalice.app import EventSourceHandler as ChaliceEventSourceHandler  # type: ignore
+except ImportError:
+    raise DidNotEnable("Chalice is not installed")
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
@@ -25,19 +30,13 @@ if TYPE_CHECKING:
 
     F = TypeVar("F", bound=Callable[..., Any])
 
-try:
-    from chalice import __version__ as CHALICE_VERSION
-except ImportError:
-    raise DidNotEnable("Chalice is not installed")
-
 
 class EventSourceHandler(ChaliceEventSourceHandler):  # type: ignore
     def __call__(self, event, context):
         # type: (Any, Any) -> Any
-        hub = Hub.current
-        client = hub.client  # type: Any
+        client = sentry_sdk.get_client()
 
-        with hub.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             with capture_internal_exceptions():
                 configured_time = context.get_remaining_time_in_millis()
                 scope.add_event_processor(
@@ -52,8 +51,8 @@ class EventSourceHandler(ChaliceEventSourceHandler):  # type: ignore
                     client_options=client.options,
                     mechanism={"type": "chalice", "handled": False},
                 )
-                hub.capture_event(event, hint=hint)
-                hub.flush()
+                sentry_sdk.capture_event(event, hint=hint)
+                client.flush()
                 reraise(*exc_info)
 
 
@@ -62,14 +61,13 @@ def _get_view_function_response(app, view_function, function_args):
     @wraps(view_function)
     def wrapped_view_function(**function_args):
         # type: (**Any) -> Any
-        hub = Hub.current
-        client = hub.client  # type: Any
-        with hub.push_scope() as scope:
+        client = sentry_sdk.get_client()
+        with sentry_sdk.isolation_scope() as scope:
             with capture_internal_exceptions():
                 configured_time = app.lambda_context.get_remaining_time_in_millis()
                 scope.set_transaction_name(
                     app.lambda_context.function_name,
-                    source=TRANSACTION_SOURCE_COMPONENT,
+                    source=TransactionSource.COMPONENT,
                 )
 
                 scope.add_event_processor(
@@ -90,8 +88,8 @@ def _get_view_function_response(app, view_function, function_args):
                     client_options=client.options,
                     mechanism={"type": "chalice", "handled": False},
                 )
-                hub.capture_event(event, hint=hint)
-                hub.flush()
+                sentry_sdk.capture_event(event, hint=hint)
+                client.flush()
                 raise
 
     return wrapped_view_function  # type: ignore

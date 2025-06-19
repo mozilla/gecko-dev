@@ -1,15 +1,17 @@
 from importlib import import_module
 
-from sentry_sdk.hub import Hub, _should_send_default_pii
-from sentry_sdk.integrations import DidNotEnable, Integration
+import sentry_sdk
+from sentry_sdk import get_client, capture_event
+from sentry_sdk.integrations import _check_minimum_version, DidNotEnable, Integration
 from sentry_sdk.integrations.logging import ignore_logger
 from sentry_sdk.integrations._wsgi_common import request_body_within_bounds
+from sentry_sdk.scope import should_send_default_pii
 from sentry_sdk.utils import (
     capture_internal_exceptions,
+    ensure_integration_enabled,
     event_from_exception,
     package_version,
 )
-from sentry_sdk._types import TYPE_CHECKING
 
 try:
     # importing like this is necessary due to name shadowing in ariadne
@@ -18,11 +20,12 @@ try:
 except ImportError:
     raise DidNotEnable("ariadne is not installed")
 
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any, Dict, List, Optional
     from ariadne.types import GraphQLError, GraphQLResult, GraphQLSchema, QueryParser  # type: ignore
-    from graphql.language.ast import DocumentNode  # type: ignore
+    from graphql.language.ast import DocumentNode
     from sentry_sdk._types import Event, EventProcessor
 
 
@@ -33,12 +36,7 @@ class AriadneIntegration(Integration):
     def setup_once():
         # type: () -> None
         version = package_version("ariadne")
-
-        if version is None:
-            raise DidNotEnable("Unparsable ariadne version.")
-
-        if version < (0, 20):
-            raise DidNotEnable("ariadne 0.20 or newer required.")
+        _check_minimum_version(AriadneIntegration, version)
 
         ignore_logger("ariadne")
 
@@ -51,73 +49,60 @@ def _patch_graphql():
     old_handle_errors = ariadne_graphql.handle_graphql_errors
     old_handle_query_result = ariadne_graphql.handle_query_result
 
+    @ensure_integration_enabled(AriadneIntegration, old_parse_query)
     def _sentry_patched_parse_query(context_value, query_parser, data):
         # type: (Optional[Any], Optional[QueryParser], Any) -> DocumentNode
-        hub = Hub.current
-        integration = hub.get_integration(AriadneIntegration)
-        if integration is None:
-            return old_parse_query(context_value, query_parser, data)
-
-        with hub.configure_scope() as scope:
-            event_processor = _make_request_event_processor(data)
-            scope.add_event_processor(event_processor)
+        event_processor = _make_request_event_processor(data)
+        sentry_sdk.get_isolation_scope().add_event_processor(event_processor)
 
         result = old_parse_query(context_value, query_parser, data)
         return result
 
+    @ensure_integration_enabled(AriadneIntegration, old_handle_errors)
     def _sentry_patched_handle_graphql_errors(errors, *args, **kwargs):
         # type: (List[GraphQLError], Any, Any) -> GraphQLResult
-        hub = Hub.current
-        integration = hub.get_integration(AriadneIntegration)
-        if integration is None:
-            return old_handle_errors(errors, *args, **kwargs)
-
         result = old_handle_errors(errors, *args, **kwargs)
 
-        with hub.configure_scope() as scope:
-            event_processor = _make_response_event_processor(result[1])
-            scope.add_event_processor(event_processor)
+        event_processor = _make_response_event_processor(result[1])
+        sentry_sdk.get_isolation_scope().add_event_processor(event_processor)
 
-        if hub.client:
+        client = get_client()
+        if client.is_active():
             with capture_internal_exceptions():
                 for error in errors:
                     event, hint = event_from_exception(
                         error,
-                        client_options=hub.client.options,
+                        client_options=client.options,
                         mechanism={
-                            "type": integration.identifier,
+                            "type": AriadneIntegration.identifier,
                             "handled": False,
                         },
                     )
-                    hub.capture_event(event, hint=hint)
+                    capture_event(event, hint=hint)
 
         return result
 
+    @ensure_integration_enabled(AriadneIntegration, old_handle_query_result)
     def _sentry_patched_handle_query_result(result, *args, **kwargs):
         # type: (Any, Any, Any) -> GraphQLResult
-        hub = Hub.current
-        integration = hub.get_integration(AriadneIntegration)
-        if integration is None:
-            return old_handle_query_result(result, *args, **kwargs)
-
         query_result = old_handle_query_result(result, *args, **kwargs)
 
-        with hub.configure_scope() as scope:
-            event_processor = _make_response_event_processor(query_result[1])
-            scope.add_event_processor(event_processor)
+        event_processor = _make_response_event_processor(query_result[1])
+        sentry_sdk.get_isolation_scope().add_event_processor(event_processor)
 
-        if hub.client:
+        client = get_client()
+        if client.is_active():
             with capture_internal_exceptions():
                 for error in result.errors or []:
                     event, hint = event_from_exception(
                         error,
-                        client_options=hub.client.options,
+                        client_options=client.options,
                         mechanism={
-                            "type": integration.identifier,
+                            "type": AriadneIntegration.identifier,
                             "handled": False,
                         },
                     )
-                    hub.capture_event(event, hint=hint)
+                    capture_event(event, hint=hint)
 
         return query_result
 
@@ -143,8 +128,8 @@ def _make_request_event_processor(data):
             except (TypeError, ValueError):
                 return event
 
-            if _should_send_default_pii() and request_body_within_bounds(
-                Hub.current.client, content_length
+            if should_send_default_pii() and request_body_within_bounds(
+                get_client(), content_length
             ):
                 request_info = event.setdefault("request", {})
                 request_info["api_target"] = "graphql"
@@ -165,7 +150,7 @@ def _make_response_event_processor(response):
     def inner(event, hint):
         # type: (Event, dict[str, Any]) -> Event
         with capture_internal_exceptions():
-            if _should_send_default_pii() and response.get("errors"):
+            if should_send_default_pii() and response.get("errors"):
                 contexts = event.setdefault("contexts", {})
                 contexts["response"] = {
                     "data": response,

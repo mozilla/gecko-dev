@@ -50,7 +50,7 @@ dependencies = [
     "requests~=2.32",
     "responses~=0.10",
     "rsa~=4.9",
-    "sentry-sdk~=1.14",
+    "sentry-sdk~=2.0",
     # 75.3.1 is the last version of setuptools to support Python 3.8 - Needed by Ubuntu1804 in CI
     "setuptools==75.3.1",
     "six~=1.16",

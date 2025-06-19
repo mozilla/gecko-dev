@@ -1,13 +1,15 @@
-from sentry_sdk import Hub
-from sentry_sdk._types import MYPY
+import sentry_sdk
 from sentry_sdk.consts import OP
 from sentry_sdk.integrations import DidNotEnable
-from sentry_sdk.tracing import Transaction, TRANSACTION_SOURCE_CUSTOM
+from sentry_sdk.integrations.grpc.consts import SPAN_ORIGIN
+from sentry_sdk.tracing import Transaction, TransactionSource
 from sentry_sdk.utils import event_from_exception
 
-if MYPY:
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
-    from typing import Any
+    from typing import Any, Optional
 
 
 try:
@@ -23,12 +25,14 @@ class ServerInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
         # type: (ServerInterceptor, Callable[[ServicerContext], str] | None) -> None
         self._find_method_name = find_name or self._find_name
 
-        super(ServerInterceptor, self).__init__()
+        super().__init__()
 
     async def intercept_service(self, continuation, handler_call_details):
-        # type: (ServerInterceptor, Callable[[HandlerCallDetails], Awaitable[RpcMethodHandler]], HandlerCallDetails) -> Awaitable[RpcMethodHandler]
+        # type: (ServerInterceptor, Callable[[HandlerCallDetails], Awaitable[RpcMethodHandler]], HandlerCallDetails) -> Optional[Awaitable[RpcMethodHandler]]
         self._handler_call_details = handler_call_details
         handler = await continuation(handler_call_details)
+        if handler is None:
+            return None
 
         if not handler.request_streaming and not handler.response_streaming:
             handler_factory = grpc.unary_unary_rpc_method_handler
@@ -39,17 +43,16 @@ class ServerInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
                 if not name:
                     return await handler(request, context)
 
-                hub = Hub.current
-
                 # What if the headers are empty?
                 transaction = Transaction.continue_from_headers(
                     dict(context.invocation_metadata()),
                     op=OP.GRPC_SERVER,
                     name=name,
-                    source=TRANSACTION_SOURCE_CUSTOM,
+                    source=TransactionSource.CUSTOM,
+                    origin=SPAN_ORIGIN,
                 )
 
-                with hub.start_transaction(transaction=transaction):
+                with sentry_sdk.start_transaction(transaction=transaction):
                     try:
                         return await handler.unary_unary(request, context)
                     except AbortError:
@@ -59,7 +62,7 @@ class ServerInterceptor(grpc.aio.ServerInterceptor):  # type: ignore
                             exc,
                             mechanism={"type": "grpc", "handled": False},
                         )
-                        hub.capture_event(event, hint=hint)
+                        sentry_sdk.capture_event(event, hint=hint)
                         raise
 
         elif not handler.request_streaming and handler.response_streaming:

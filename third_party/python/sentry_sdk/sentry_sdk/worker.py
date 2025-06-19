@@ -6,7 +6,7 @@ from sentry_sdk._queue import Queue, FullError
 from sentry_sdk.utils import logger
 from sentry_sdk.consts import DEFAULT_QUEUE_SIZE
 
-from sentry_sdk._types import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 _TERMINATOR = object()
 
 
-class BackgroundWorker(object):
+class BackgroundWorker:
     def __init__(self, queue_size=DEFAULT_QUEUE_SIZE):
         # type: (int) -> None
         self._queue = Queue(queue_size)  # type: Queue
@@ -62,7 +62,7 @@ class BackgroundWorker(object):
         with self._lock:
             if not self.is_alive:
                 self._thread = threading.Thread(
-                    target=self._target, name="raven-sentry.BackgroundWorker"
+                    target=self._target, name="sentry-sdk.BackgroundWorker"
                 )
                 self._thread.daemon = True
                 try:

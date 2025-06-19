@@ -7,26 +7,48 @@ Since this file contains `async def` it is conditionally imported in
 """
 
 import asyncio
+import functools
+import inspect
 
 from django.core.handlers.wsgi import WSGIRequest
 
-from sentry_sdk import Hub, _functools
-from sentry_sdk._types import TYPE_CHECKING
+import sentry_sdk
 from sentry_sdk.consts import OP
-from sentry_sdk.hub import _should_send_default_pii
 
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
-from sentry_sdk.utils import capture_internal_exceptions
+from sentry_sdk.scope import should_send_default_pii
+from sentry_sdk.utils import (
+    capture_internal_exceptions,
+    ensure_integration_enabled,
+)
 
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-    from typing import Any, Union
+    from typing import Any, Callable, Union, TypeVar
 
     from django.core.handlers.asgi import ASGIRequest
     from django.http.response import HttpResponse
 
     from sentry_sdk._types import Event, EventProcessor
+
+    _F = TypeVar("_F", bound=Callable[..., Any])
+
+
+# Python 3.12 deprecates asyncio.iscoroutinefunction() as an alias for
+# inspect.iscoroutinefunction(), whilst also removing the _is_coroutine marker.
+# The latter is replaced with the inspect.markcoroutinefunction decorator.
+# Until 3.12 is the minimum supported Python version, provide a shim.
+# This was copied from https://github.com/django/asgiref/blob/main/asgiref/sync.py
+if hasattr(inspect, "markcoroutinefunction"):
+    iscoroutinefunction = inspect.iscoroutinefunction
+    markcoroutinefunction = inspect.markcoroutinefunction
+else:
+    iscoroutinefunction = asyncio.iscoroutinefunction  # type: ignore[assignment]
+
+    def markcoroutinefunction(func: "_F") -> "_F":
+        func._is_coroutine = asyncio.coroutines._is_coroutine  # type: ignore
+        return func
 
 
 def _make_asgi_request_event_processor(request):
@@ -50,7 +72,7 @@ def _make_asgi_request_event_processor(request):
         with capture_internal_exceptions():
             DjangoRequestExtractor(request).extract_into_event(event)
 
-        if _should_send_default_pii():
+        if should_send_default_pii():
             with capture_internal_exceptions():
                 _set_user_info(request, event)
 
@@ -68,13 +90,15 @@ def patch_django_asgi_handler_impl(cls):
 
     async def sentry_patched_asgi_handler(self, scope, receive, send):
         # type: (Any, Any, Any, Any) -> Any
-        hub = Hub.current
-        integration = hub.get_integration(DjangoIntegration)
+        integration = sentry_sdk.get_client().get_integration(DjangoIntegration)
         if integration is None:
             return await old_app(self, scope, receive, send)
 
         middleware = SentryAsgiMiddleware(
-            old_app.__get__(self, cls), unsafe_context_data=True
+            old_app.__get__(self, cls),
+            unsafe_context_data=True,
+            span_origin=DjangoIntegration.origin,
+            http_methods_to_capture=integration.http_methods_to_capture,
         )._run_asgi3
 
         return await middleware(scope, receive, send)
@@ -85,18 +109,14 @@ def patch_django_asgi_handler_impl(cls):
     if modern_django_asgi_support:
         old_create_request = cls.create_request
 
+        @ensure_integration_enabled(DjangoIntegration, old_create_request)
         def sentry_patched_create_request(self, *args, **kwargs):
             # type: (Any, *Any, **Any) -> Any
-            hub = Hub.current
-            integration = hub.get_integration(DjangoIntegration)
-            if integration is None:
-                return old_create_request(self, *args, **kwargs)
+            request, error_response = old_create_request(self, *args, **kwargs)
+            scope = sentry_sdk.get_isolation_scope()
+            scope.add_event_processor(_make_asgi_request_event_processor(request))
 
-            with hub.configure_scope() as scope:
-                request, error_response = old_create_request(self, *args, **kwargs)
-                scope.add_event_processor(_make_asgi_request_event_processor(request))
-
-                return request, error_response
+            return request, error_response
 
         cls.create_request = sentry_patched_create_request
 
@@ -115,8 +135,8 @@ def patch_get_response_async(cls, _before_get_response):
 
 def patch_channels_asgi_handler_impl(cls):
     # type: (Any) -> None
-
     import channels  # type: ignore
+
     from sentry_sdk.integrations.django import DjangoIntegration
 
     if channels.__version__ < "3.0.0":
@@ -124,11 +144,15 @@ def patch_channels_asgi_handler_impl(cls):
 
         async def sentry_patched_asgi_handler(self, receive, send):
             # type: (Any, Any, Any) -> Any
-            if Hub.current.get_integration(DjangoIntegration) is None:
+            integration = sentry_sdk.get_client().get_integration(DjangoIntegration)
+            if integration is None:
                 return await old_app(self, receive, send)
 
             middleware = SentryAsgiMiddleware(
-                lambda _scope: old_app.__get__(self, cls), unsafe_context_data=True
+                lambda _scope: old_app.__get__(self, cls),
+                unsafe_context_data=True,
+                span_origin=DjangoIntegration.origin,
+                http_methods_to_capture=integration.http_methods_to_capture,
             )
 
             return await middleware(self.scope)(receive, send)
@@ -141,20 +165,27 @@ def patch_channels_asgi_handler_impl(cls):
         patch_django_asgi_handler_impl(cls)
 
 
-def wrap_async_view(hub, callback):
-    # type: (Hub, Any) -> Any
-    @_functools.wraps(callback)
+def wrap_async_view(callback):
+    # type: (Any) -> Any
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    @functools.wraps(callback)
     async def sentry_wrapped_callback(request, *args, **kwargs):
         # type: (Any, *Any, **Any) -> Any
+        current_scope = sentry_sdk.get_current_scope()
+        if current_scope.transaction is not None:
+            current_scope.transaction.update_active_thread()
 
-        with hub.configure_scope() as sentry_scope:
-            if sentry_scope.profile is not None:
-                sentry_scope.profile.update_active_thread_id()
+        sentry_scope = sentry_sdk.get_isolation_scope()
+        if sentry_scope.profile is not None:
+            sentry_scope.profile.update_active_thread_id()
 
-            with hub.start_span(
-                op=OP.VIEW_RENDER, description=request.resolver_match.view_name
-            ):
-                return await callback(request, *args, **kwargs)
+        with sentry_sdk.start_span(
+            op=OP.VIEW_RENDER,
+            name=request.resolver_match.view_name,
+            origin=DjangoIntegration.origin,
+        ):
+            return await callback(request, *args, **kwargs)
 
     return sentry_wrapped_callback
 
@@ -183,8 +214,8 @@ def _asgi_middleware_mixin_factory(_check_middleware_span):
             a thread is not consumed during a whole request.
             Taken from django.utils.deprecation::MiddlewareMixin._async_check
             """
-            if asyncio.iscoroutinefunction(self.get_response):
-                self._is_coroutine = asyncio.coroutines._is_coroutine  # type: ignore
+            if iscoroutinefunction(self.get_response):
+                markcoroutinefunction(self)
 
         def async_route_check(self):
             # type: () -> bool
@@ -192,7 +223,7 @@ def _asgi_middleware_mixin_factory(_check_middleware_span):
             Function that checks if we are in async mode,
             and if we are forwards the handling of requests to __acall__
             """
-            return asyncio.iscoroutinefunction(self.get_response)
+            return iscoroutinefunction(self.get_response)
 
         async def __acall__(self, *args, **kwargs):
             # type: (*Any, **Any) -> Any
@@ -206,9 +237,9 @@ def _asgi_middleware_mixin_factory(_check_middleware_span):
             middleware_span = _check_middleware_span(old_method=f)
 
             if middleware_span is None:
-                return await f(*args, **kwargs)
+                return await f(*args, **kwargs)  # type: ignore
 
             with middleware_span:
-                return await f(*args, **kwargs)
+                return await f(*args, **kwargs)  # type: ignore
 
     return SentryASGIMixin

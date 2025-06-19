@@ -1,14 +1,18 @@
 import urllib
 
-from sentry_sdk.hub import _should_send_default_pii
+from sentry_sdk.scope import should_send_default_pii
 from sentry_sdk.integrations._wsgi_common import _filter_headers
-from sentry_sdk._types import TYPE_CHECKING
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
     from typing import Dict
     from typing import Optional
+    from typing import Union
     from typing_extensions import Literal
+
+    from sentry_sdk.utils import AnnotatedValue
 
 
 def _get_headers(asgi_scope):
@@ -29,7 +33,7 @@ def _get_headers(asgi_scope):
 
 
 def _get_url(asgi_scope, default_scheme, host):
-    # type: (Dict[str, Any], Literal["ws", "http"], Optional[str]) -> str
+    # type: (Dict[str, Any], Literal["ws", "http"], Optional[Union[AnnotatedValue, str]]) -> str
     """
     Extract URL from the ASGI scope, without also including the querystring.
     """
@@ -98,7 +102,7 @@ def _get_request_data(asgi_scope):
         )
 
     client = asgi_scope.get("client")
-    if client and _should_send_default_pii():
+    if client and should_send_default_pii():
         request_data["env"] = {"REMOTE_ADDR": _get_ip(asgi_scope)}
 
     return request_data

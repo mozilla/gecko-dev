@@ -1,9 +1,9 @@
-from sentry_sdk.hub import Hub
+import sentry_sdk
 from sentry_sdk.utils import ContextVar
 from sentry_sdk.integrations import Integration
 from sentry_sdk.scope import add_global_event_processor
 
-from sentry_sdk._types import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Optional
@@ -27,8 +27,7 @@ class DedupeIntegration(Integration):
             if hint is None:
                 return event
 
-            integration = Hub.current.get_integration(DedupeIntegration)
-
+            integration = sentry_sdk.get_client().get_integration(DedupeIntegration)
             if integration is None:
                 return event
 
@@ -41,3 +40,12 @@ class DedupeIntegration(Integration):
                 return None
             integration._last_seen.set(exc)
             return event
+
+    @staticmethod
+    def reset_last_seen():
+        # type: () -> None
+        integration = sentry_sdk.get_client().get_integration(DedupeIntegration)
+        if integration is None:
+            return
+
+        integration._last_seen.set(None)

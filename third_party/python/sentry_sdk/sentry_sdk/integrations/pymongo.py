@@ -1,19 +1,19 @@
-from __future__ import absolute_import
 import copy
+import json
 
-from sentry_sdk import Hub
-from sentry_sdk.consts import SPANDATA
-from sentry_sdk.hub import _should_send_default_pii
+import sentry_sdk
+from sentry_sdk.consts import SPANSTATUS, SPANDATA, OP
 from sentry_sdk.integrations import DidNotEnable, Integration
+from sentry_sdk.scope import should_send_default_pii
 from sentry_sdk.tracing import Span
 from sentry_sdk.utils import capture_internal_exceptions
-
-from sentry_sdk._types import TYPE_CHECKING
 
 try:
     from pymongo import monitoring
 except ImportError:
     raise DidNotEnable("Pymongo not installed")
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any, Dict, Union
@@ -117,9 +117,9 @@ class CommandTracer(monitoring.CommandListener):
 
     def started(self, event):
         # type: (CommandStartedEvent) -> None
-        hub = Hub.current
-        if hub.get_integration(PyMongoIntegration) is None:
+        if sentry_sdk.get_client().get_integration(PyMongoIntegration) is None:
             return
+
         with capture_internal_exceptions():
             command = dict(copy.deepcopy(event.command))
 
@@ -127,12 +127,11 @@ class CommandTracer(monitoring.CommandListener):
             command.pop("$clusterTime", None)
             command.pop("$signature", None)
 
-            op = "db.query"
-
             tags = {
                 "db.name": event.database_name,
                 SPANDATA.DB_SYSTEM: "mongodb",
                 SPANDATA.DB_OPERATION: event.command_name,
+                SPANDATA.DB_MONGODB_COLLECTION: command.get(event.command_name),
             }
 
             try:
@@ -153,45 +152,53 @@ class CommandTracer(monitoring.CommandListener):
             except KeyError:
                 pass
 
-            if not _should_send_default_pii():
+            if not should_send_default_pii():
                 command = _strip_pii(command)
 
-            query = "{} {}".format(event.command_name, command)
-            span = hub.start_span(op=op, description=query)
+            query = json.dumps(command, default=str)
+            span = sentry_sdk.start_span(
+                op=OP.DB,
+                name=query,
+                origin=PyMongoIntegration.origin,
+            )
 
             for tag, value in tags.items():
+                # set the tag for backwards-compatibility.
+                # TODO: remove the set_tag call in the next major release!
                 span.set_tag(tag, value)
+
+                span.set_data(tag, value)
 
             for key, value in data.items():
                 span.set_data(key, value)
 
             with capture_internal_exceptions():
-                hub.add_breadcrumb(message=query, category="query", type=op, data=tags)
+                sentry_sdk.add_breadcrumb(
+                    message=query, category="query", type=OP.DB, data=tags
+                )
 
             self._ongoing_operations[self._operation_key(event)] = span.__enter__()
 
     def failed(self, event):
         # type: (CommandFailedEvent) -> None
-        hub = Hub.current
-        if hub.get_integration(PyMongoIntegration) is None:
+        if sentry_sdk.get_client().get_integration(PyMongoIntegration) is None:
             return
 
         try:
             span = self._ongoing_operations.pop(self._operation_key(event))
-            span.set_status("internal_error")
+            span.set_status(SPANSTATUS.INTERNAL_ERROR)
             span.__exit__(None, None, None)
         except KeyError:
             return
 
     def succeeded(self, event):
         # type: (CommandSucceededEvent) -> None
-        hub = Hub.current
-        if hub.get_integration(PyMongoIntegration) is None:
+        if sentry_sdk.get_client().get_integration(PyMongoIntegration) is None:
             return
 
         try:
             span = self._ongoing_operations.pop(self._operation_key(event))
-            span.set_status("ok")
+            span.set_status(SPANSTATUS.OK)
             span.__exit__(None, None, None)
         except KeyError:
             pass
@@ -199,6 +206,7 @@ class CommandTracer(monitoring.CommandListener):
 
 class PyMongoIntegration(Integration):
     identifier = "pymongo"
+    origin = f"auto.db.{identifier}"
 
     @staticmethod
     def setup_once():

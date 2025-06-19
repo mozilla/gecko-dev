@@ -1,10 +1,9 @@
-from __future__ import absolute_import
-
-from sentry_sdk import Hub
-from sentry_sdk._types import TYPE_CHECKING
+import sentry_sdk
 from sentry_sdk.integrations import Integration, DidNotEnable
 from sentry_sdk.scope import add_global_event_processor
 from sentry_sdk.utils import walk_exception_chain, iter_stacks
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Optional
@@ -27,7 +26,7 @@ class ExecutingIntegration(Integration):
         @add_global_event_processor
         def add_executing_info(event, hint):
             # type: (Event, Optional[Hint]) -> Optional[Event]
-            if Hub.current.get_integration(ExecutingIntegration) is None:
+            if sentry_sdk.get_client().get_integration(ExecutingIntegration) is None:
                 return event
 
             if hint is None:

@@ -76,7 +76,7 @@ import threading
 from collections import deque
 from time import time
 
-from sentry_sdk._types import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
@@ -86,15 +86,17 @@ __all__ = ["EmptyError", "FullError", "Queue"]
 
 class EmptyError(Exception):
     "Exception raised by Queue.get(block=0)/get_nowait()."
+
     pass
 
 
 class FullError(Exception):
     "Exception raised by Queue.put(block=0)/put_nowait()."
+
     pass
 
 
-class Queue(object):
+class Queue:
     """Create a queue object with a given maximum size.
 
     If maxsize is <= 0, the queue size is infinite.

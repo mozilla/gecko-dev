@@ -984,9 +984,9 @@ rsa==4.9.1 \
     --hash=sha256:68635866661c6836b8d39430f97a996acbd61bfa49406748ea243539fe239762 \
     --hash=sha256:e7bdbfdb5497da4c07dfd35530e1a902659db6ff241e39d9953cad06ebd0ae75
     # via mozilla-third-party-python-vendor-dir
-sentry-sdk==1.45.1 \
-    --hash=sha256:608887855ccfe39032bfd03936e3a1c4f4fc99b3a4ac49ced54a4220de61c9c1 \
-    --hash=sha256:a16c997c0f4e3df63c0fc5e4207ccb1ab37900433e0f72fef88315d317829a26
+sentry-sdk==2.30.0 \
+    --hash=sha256:436369b02afef7430efb10300a344fb61a11fe6db41c2b11f41ee037d2dd7f45 \
+    --hash=sha256:59391db1550662f746ea09b483806a631c3ae38d6340804a1a4c0605044f6877
     # via mozilla-third-party-python-vendor-dir
 setuptools==75.3.1 \
     --hash=sha256:539788138433f5b4e55c7f51ee266ceaaa0e6fdc6137ad9922788168114ee341 \

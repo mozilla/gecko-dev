@@ -1,12 +1,10 @@
 import sys
+from functools import wraps
 
-from sentry_sdk.hub import Hub
-from sentry_sdk.utils import event_from_exception
-from sentry_sdk._compat import reraise
-from sentry_sdk._functools import wraps
+import sentry_sdk
+from sentry_sdk.utils import event_from_exception, reraise
 
-
-from sentry_sdk._types import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
@@ -14,7 +12,6 @@ if TYPE_CHECKING:
     from typing import TypeVar
     from typing import Union
     from typing import Optional
-
     from typing import overload
 
     F = TypeVar("F", bound=Callable[..., Any])
@@ -45,9 +42,8 @@ def serverless_function(f=None, flush=True):  # noqa
         @wraps(f)
         def inner(*args, **kwargs):
             # type: (*Any, **Any) -> Any
-            with Hub(Hub.current) as hub:
-                with hub.configure_scope() as scope:
-                    scope.clear_breadcrumbs()
+            with sentry_sdk.isolation_scope() as scope:
+                scope.clear_breadcrumbs()
 
                 try:
                     return f(*args, **kwargs)
@@ -55,7 +51,7 @@ def serverless_function(f=None, flush=True):  # noqa
                     _capture_and_reraise()
                 finally:
                     if flush:
-                        _flush_client()
+                        sentry_sdk.flush()
 
         return inner  # type: ignore
 
@@ -68,18 +64,13 @@ def serverless_function(f=None, flush=True):  # noqa
 def _capture_and_reraise():
     # type: () -> None
     exc_info = sys.exc_info()
-    hub = Hub.current
-    if hub.client is not None:
+    client = sentry_sdk.get_client()
+    if client.is_active():
         event, hint = event_from_exception(
             exc_info,
-            client_options=hub.client.options,
+            client_options=client.options,
             mechanism={"type": "serverless", "handled": False},
         )
-        hub.capture_event(event, hint=hint)
+        sentry_sdk.capture_event(event, hint=hint)
 
     reraise(*exc_info)
-
-
-def _flush_client():
-    # type: () -> None
-    return Hub.current.flush()

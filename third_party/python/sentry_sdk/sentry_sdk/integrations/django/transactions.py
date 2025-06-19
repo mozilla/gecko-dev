@@ -5,11 +5,9 @@ Despite being called "legacy" in some places this resolver is very much still
 in use.
 """
 
-from __future__ import absolute_import
-
 import re
 
-from sentry_sdk._types import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from django.urls.resolvers import URLResolver
@@ -44,7 +42,7 @@ def get_regex(resolver_or_pattern):
     return regex
 
 
-class RavenResolver(object):
+class RavenResolver:
     _new_style_group_matcher = re.compile(
         r"<(?:([^>:]+):)?([^>]+)>"
     )  # https://github.com/django/django/blob/21382e2743d06efbf5623e7c9b6dccf2a325669b/django/urls/resolvers.py#L245-L247
@@ -76,7 +74,7 @@ class RavenResolver(object):
             and isinstance(pattern.pattern, RoutePattern)
         ):
             return self._new_style_group_matcher.sub(
-                lambda m: "{%s}" % m.group(2), pattern.pattern._route
+                lambda m: "{%s}" % m.group(2), str(pattern.pattern._route)
             )
 
         result = get_regex(pattern).pattern

@@ -1,11 +1,11 @@
 import re
 
-from sentry_sdk.hub import Hub
+import sentry_sdk
 from sentry_sdk.integrations import Integration
 from sentry_sdk.scope import add_global_event_processor
 from sentry_sdk.utils import capture_internal_exceptions
 
-from sentry_sdk._types import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
@@ -49,7 +49,7 @@ class GnuBacktraceIntegration(Integration):
 
 def _process_gnu_backtrace(event, hint):
     # type: (Event, dict[str, Any]) -> Event
-    if Hub.current.get_integration(GnuBacktraceIntegration) is None:
+    if sentry_sdk.get_client().get_integration(GnuBacktraceIntegration) is None:
         return event
 
     exc_info = hint.get("exc_info", None)

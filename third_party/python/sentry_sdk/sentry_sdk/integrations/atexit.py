@@ -1,14 +1,11 @@
-from __future__ import absolute_import
-
 import os
 import sys
 import atexit
 
-from sentry_sdk.hub import Hub
+import sentry_sdk
 from sentry_sdk.utils import logger
 from sentry_sdk.integrations import Integration
-
-from sentry_sdk._types import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
@@ -47,15 +44,14 @@ class AtexitIntegration(Integration):
         @atexit.register
         def _shutdown():
             # type: () -> None
+            client = sentry_sdk.get_client()
+            integration = client.get_integration(AtexitIntegration)
+
+            if integration is None:
+                return
+
             logger.debug("atexit: got shutdown signal")
-            hub = Hub.main
-            integration = hub.get_integration(AtexitIntegration)
-            if integration is not None:
-                logger.debug("atexit: shutting down client")
+            logger.debug("atexit: shutting down client")
+            sentry_sdk.get_isolation_scope().end_session()
 
-                # If there is a session on the hub, close it now.
-                hub.end_session()
-
-                # If an integration is there, a client has to be there.
-                client = hub.client  # type: Any
-                client.close(callback=integration.callback)
+            client.close(callback=integration.callback)

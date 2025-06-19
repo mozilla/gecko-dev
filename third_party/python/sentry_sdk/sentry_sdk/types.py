@@ -11,13 +11,39 @@ releases.
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from sentry_sdk._types import Event, Hint
+    # Re-export types to make them available in the public API
+    from sentry_sdk._types import (
+        Breadcrumb,
+        BreadcrumbHint,
+        Event,
+        EventDataCategory,
+        Hint,
+        Log,
+        MonitorConfig,
+        SamplingContext,
+    )
 else:
     from typing import Any
 
     # The lines below allow the types to be imported from outside `if TYPE_CHECKING`
     # guards. The types in this module are only intended to be used for type hints.
+    Breadcrumb = Any
+    BreadcrumbHint = Any
     Event = Any
+    EventDataCategory = Any
     Hint = Any
+    Log = Any
+    MonitorConfig = Any
+    SamplingContext = Any
 
-__all__ = ("Event", "Hint")
+
+__all__ = (
+    "Breadcrumb",
+    "BreadcrumbHint",
+    "Event",
+    "EventDataCategory",
+    "Hint",
+    "Log",
+    "MonitorConfig",
+    "SamplingContext",
+)

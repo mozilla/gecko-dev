@@ -1,10 +1,14 @@
+import functools
+
 from django.template import TemplateSyntaxError
 from django.utils.safestring import mark_safe
 from django import VERSION as DJANGO_VERSION
 
-from sentry_sdk import _functools, Hub
-from sentry_sdk._types import TYPE_CHECKING
+import sentry_sdk
 from sentry_sdk.consts import OP
+from sentry_sdk.utils import ensure_integration_enabled
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
@@ -61,15 +65,13 @@ def patch_templates():
     real_rendered_content = SimpleTemplateResponse.rendered_content
 
     @property  # type: ignore
+    @ensure_integration_enabled(DjangoIntegration, real_rendered_content.fget)
     def rendered_content(self):
         # type: (SimpleTemplateResponse) -> str
-        hub = Hub.current
-        if hub.get_integration(DjangoIntegration) is None:
-            return real_rendered_content.fget(self)
-
-        with hub.start_span(
+        with sentry_sdk.start_span(
             op=OP.TEMPLATE_RENDER,
-            description=_get_template_name_description(self.template_name),
+            name=_get_template_name_description(self.template_name),
+            origin=DjangoIntegration.origin,
         ) as span:
             span.set_data("context", self.context_data)
             return real_rendered_content.fget(self)
@@ -82,21 +84,22 @@ def patch_templates():
 
     real_render = django.shortcuts.render
 
-    @_functools.wraps(real_render)
+    @functools.wraps(real_render)
+    @ensure_integration_enabled(DjangoIntegration, real_render)
     def render(request, template_name, context=None, *args, **kwargs):
         # type: (django.http.HttpRequest, str, Optional[Dict[str, Any]], *Any, **Any) -> django.http.HttpResponse
-        hub = Hub.current
-        if hub.get_integration(DjangoIntegration) is None:
-            return real_render(request, template_name, context, *args, **kwargs)
 
         # Inject trace meta tags into template context
         context = context or {}
         if "sentry_trace_meta" not in context:
-            context["sentry_trace_meta"] = mark_safe(hub.trace_propagation_meta())
+            context["sentry_trace_meta"] = mark_safe(
+                sentry_sdk.get_current_scope().trace_propagation_meta()
+            )
 
-        with hub.start_span(
+        with sentry_sdk.start_span(
             op=OP.TEMPLATE_RENDER,
-            description=_get_template_name_description(template_name),
+            name=_get_template_name_description(template_name),
+            origin=DjangoIntegration.origin,
         ) as span:
             span.set_data("context", context)
             return real_render(request, template_name, context, *args, **kwargs)

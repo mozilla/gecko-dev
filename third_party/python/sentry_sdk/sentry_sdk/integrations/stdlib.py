@@ -2,22 +2,24 @@ import os
 import subprocess
 import sys
 import platform
-from sentry_sdk.consts import OP, SPANDATA
+from http.client import HTTPConnection
 
-from sentry_sdk.hub import Hub
+import sentry_sdk
+from sentry_sdk.consts import OP, SPANDATA
 from sentry_sdk.integrations import Integration
 from sentry_sdk.scope import add_global_event_processor
 from sentry_sdk.tracing_utils import EnvironHeaders, should_propagate_trace
 from sentry_sdk.utils import (
     SENSITIVE_DATA_SUBSTITUTE,
     capture_internal_exceptions,
+    ensure_integration_enabled,
     is_sentry_url,
     logger,
     safe_repr,
     parse_url,
 )
 
-from sentry_sdk._types import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
@@ -27,12 +29,6 @@ if TYPE_CHECKING:
     from typing import List
 
     from sentry_sdk._types import Event, Hint
-
-
-try:
-    from httplib import HTTPConnection  # type: ignore
-except ImportError:
-    from http.client import HTTPConnection
 
 
 _RUNTIME_CONTEXT = {
@@ -54,7 +50,7 @@ class StdlibIntegration(Integration):
         @add_global_event_processor
         def add_python_runtime_context(event, hint):
             # type: (Event, Hint) -> Optional[Event]
-            if Hub.current.get_integration(StdlibIntegration) is not None:
+            if sentry_sdk.get_client().get_integration(StdlibIntegration) is not None:
                 contexts = event.setdefault("contexts", {})
                 if isinstance(contexts, dict) and "runtime" not in contexts:
                     contexts["runtime"] = _RUNTIME_CONTEXT
@@ -69,13 +65,14 @@ def _install_httplib():
 
     def putrequest(self, method, url, *args, **kwargs):
         # type: (HTTPConnection, str, str, *Any, **Any) -> Any
-        hub = Hub.current
-
         host = self.host
         port = self.port
         default_port = self.default_port
 
-        if hub.get_integration(StdlibIntegration) is None or is_sentry_url(hub, host):
+        client = sentry_sdk.get_client()
+        if client.get_integration(StdlibIntegration) is None or is_sentry_url(
+            client, host
+        ):
             return real_putrequest(self, method, url, *args, **kwargs)
 
         real_url = url
@@ -91,12 +88,12 @@ def _install_httplib():
         with capture_internal_exceptions():
             parsed_url = parse_url(real_url, sanitize=False)
 
-        span = hub.start_span(
+        span = sentry_sdk.start_span(
             op=OP.HTTP_CLIENT,
-            description="%s %s"
+            name="%s %s"
             % (method, parsed_url.url if parsed_url else SENSITIVE_DATA_SUBSTITUTE),
+            origin="auto.http.stdlib.httplib",
         )
-
         span.set_data(SPANDATA.HTTP_METHOD, method)
         if parsed_url is not None:
             span.set_data("url", parsed_url.url)
@@ -105,8 +102,13 @@ def _install_httplib():
 
         rv = real_putrequest(self, method, url, *args, **kwargs)
 
-        if should_propagate_trace(hub, real_url):
-            for key, value in hub.iter_trace_propagation_headers(span):
+        if should_propagate_trace(client, real_url):
+            for (
+                key,
+                value,
+            ) in sentry_sdk.get_current_scope().iter_trace_propagation_headers(
+                span=span
+            ):
                 logger.debug(
                     "[Tracing] Adding `{key}` header {value} to outgoing request to {real_url}.".format(
                         key=key, value=value, real_url=real_url
@@ -114,7 +116,7 @@ def _install_httplib():
                 )
                 self.putheader(key, value)
 
-        self._sentrysdk_span = span
+        self._sentrysdk_span = span  # type: ignore[attr-defined]
 
         return rv
 
@@ -125,16 +127,18 @@ def _install_httplib():
         if span is None:
             return real_getresponse(self, *args, **kwargs)
 
-        rv = real_getresponse(self, *args, **kwargs)
+        try:
+            rv = real_getresponse(self, *args, **kwargs)
 
-        span.set_http_status(int(rv.status))
-        span.set_data("reason", rv.reason)
-        span.finish()
+            span.set_http_status(int(rv.status))
+            span.set_data("reason", rv.reason)
+        finally:
+            span.finish()
 
         return rv
 
-    HTTPConnection.putrequest = putrequest
-    HTTPConnection.getresponse = getresponse
+    HTTPConnection.putrequest = putrequest  # type: ignore[method-assign]
+    HTTPConnection.getresponse = getresponse  # type: ignore[method-assign]
 
 
 def _init_argument(args, kwargs, name, position, setdefault_callback=None):
@@ -172,13 +176,9 @@ def _install_subprocess():
     # type: () -> None
     old_popen_init = subprocess.Popen.__init__
 
+    @ensure_integration_enabled(StdlibIntegration, old_popen_init)
     def sentry_patched_popen_init(self, *a, **kw):
         # type: (subprocess.Popen[Any], *Any, **Any) -> None
-
-        hub = Hub.current
-        if hub.get_integration(StdlibIntegration) is None:
-            return old_popen_init(self, *a, **kw)
-
         # Convert from tuple to list to be able to set values.
         a = list(a)
 
@@ -203,8 +203,14 @@ def _install_subprocess():
 
         env = None
 
-        with hub.start_span(op=OP.SUBPROCESS, description=description) as span:
-            for k, v in hub.iter_trace_propagation_headers(span):
+        with sentry_sdk.start_span(
+            op=OP.SUBPROCESS,
+            name=description,
+            origin="auto.subprocess.stdlib.subprocess",
+        ) as span:
+            for k, v in sentry_sdk.get_current_scope().iter_trace_propagation_headers(
+                span=span
+            ):
                 if env is None:
                     env = _init_argument(
                         a,
@@ -227,14 +233,13 @@ def _install_subprocess():
 
     old_popen_wait = subprocess.Popen.wait
 
+    @ensure_integration_enabled(StdlibIntegration, old_popen_wait)
     def sentry_patched_popen_wait(self, *a, **kw):
         # type: (subprocess.Popen[Any], *Any, **Any) -> Any
-        hub = Hub.current
-
-        if hub.get_integration(StdlibIntegration) is None:
-            return old_popen_wait(self, *a, **kw)
-
-        with hub.start_span(op=OP.SUBPROCESS_WAIT) as span:
+        with sentry_sdk.start_span(
+            op=OP.SUBPROCESS_WAIT,
+            origin="auto.subprocess.stdlib.subprocess",
+        ) as span:
             span.set_tag("subprocess.pid", self.pid)
             return old_popen_wait(self, *a, **kw)
 
@@ -242,14 +247,13 @@ def _install_subprocess():
 
     old_popen_communicate = subprocess.Popen.communicate
 
+    @ensure_integration_enabled(StdlibIntegration, old_popen_communicate)
     def sentry_patched_popen_communicate(self, *a, **kw):
         # type: (subprocess.Popen[Any], *Any, **Any) -> Any
-        hub = Hub.current
-
-        if hub.get_integration(StdlibIntegration) is None:
-            return old_popen_communicate(self, *a, **kw)
-
-        with hub.start_span(op=OP.SUBPROCESS_COMMUNICATE) as span:
+        with sentry_sdk.start_span(
+            op=OP.SUBPROCESS_COMMUNICATE,
+            origin="auto.subprocess.stdlib.subprocess",
+        ) as span:
             span.set_tag("subprocess.pid", self.pid)
             return old_popen_communicate(self, *a, **kw)
 

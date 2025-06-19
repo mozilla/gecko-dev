@@ -1,24 +1,33 @@
-from sentry_sdk.utils import event_from_exception, parse_version
-from sentry_sdk.hub import Hub, _should_send_default_pii
-from sentry_sdk.integrations import DidNotEnable, Integration
+import sentry_sdk
+from sentry_sdk.utils import (
+    event_from_exception,
+    ensure_integration_enabled,
+    parse_version,
+)
+
+from sentry_sdk.integrations import _check_minimum_version, DidNotEnable, Integration
+from sentry_sdk.scope import should_send_default_pii
 
 try:
     import gql  # type: ignore[import-not-found]
-    from graphql import print_ast, get_operation_ast, DocumentNode, VariableDefinitionNode  # type: ignore[import-not-found]
+    from graphql import (
+        print_ast,
+        get_operation_ast,
+        DocumentNode,
+        VariableDefinitionNode,
+    )
     from gql.transport import Transport, AsyncTransport  # type: ignore[import-not-found]
     from gql.transport.exceptions import TransportQueryError  # type: ignore[import-not-found]
 except ImportError:
     raise DidNotEnable("gql is not installed")
 
-from sentry_sdk._types import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any, Dict, Tuple, Union
     from sentry_sdk._types import Event, EventProcessor
 
     EventDataType = Dict[str, Union[str, Tuple[VariableDefinitionNode, ...]]]
-
-MIN_GQL_VERSION = (3, 4, 1)
 
 
 class GQLIntegration(Integration):
@@ -28,11 +37,8 @@ class GQLIntegration(Integration):
     def setup_once():
         # type: () -> None
         gql_version = parse_version(gql.__version__)
-        if gql_version is None or gql_version < MIN_GQL_VERSION:
-            raise DidNotEnable(
-                "GQLIntegration is only supported for GQL versions %s and above."
-                % ".".join(str(num) for num in MIN_GQL_VERSION)
-            )
+        _check_minimum_version(GQLIntegration, gql_version)
+
         _patch_execute()
 
 
@@ -85,25 +91,22 @@ def _patch_execute():
     # type: () -> None
     real_execute = gql.Client.execute
 
+    @ensure_integration_enabled(GQLIntegration, real_execute)
     def sentry_patched_execute(self, document, *args, **kwargs):
         # type: (gql.Client, DocumentNode, Any, Any) -> Any
-        hub = Hub.current
-        if hub.get_integration(GQLIntegration) is None:
-            return real_execute(self, document, *args, **kwargs)
-
-        with Hub.current.configure_scope() as scope:
-            scope.add_event_processor(_make_gql_event_processor(self, document))
+        scope = sentry_sdk.get_isolation_scope()
+        scope.add_event_processor(_make_gql_event_processor(self, document))
 
         try:
             return real_execute(self, document, *args, **kwargs)
         except TransportQueryError as e:
             event, hint = event_from_exception(
                 e,
-                client_options=hub.client.options if hub.client is not None else None,
+                client_options=sentry_sdk.get_client().options,
                 mechanism={"type": "gql", "handled": False},
             )
 
-            hub.capture_event(event, hint)
+            sentry_sdk.capture_event(event, hint)
             raise e
 
     gql.Client.execute = sentry_patched_execute
@@ -126,7 +129,7 @@ def _make_gql_event_processor(client, document):
             }
         )
 
-        if _should_send_default_pii():
+        if should_send_default_pii():
             request["data"] = _data_from_document(document)
             contexts = event.setdefault("contexts", {})
             response = contexts.setdefault("response", {})

@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
-from sentry_sdk.hub import Hub
+import sentry_sdk
 from sentry_sdk.integrations import Integration
 from sentry_sdk.scope import add_global_event_processor
 from sentry_sdk.utils import _get_installed_modules
 
-from sentry_sdk._types import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
@@ -24,7 +22,7 @@ class ModulesIntegration(Integration):
             if event.get("type") == "transaction":
                 return event
 
-            if Hub.current.get_integration(ModulesIntegration) is None:
+            if sentry_sdk.get_client().get_integration(ModulesIntegration) is None:
                 return event
 
             event["modules"] = _get_installed_modules()
