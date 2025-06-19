@@ -148,7 +148,7 @@ add_task(async function test_default_theme_light() {
   await testWindowColorScheme({
     win: pbmWindowA,
     expectDark: true,
-    expectLWTAttributes: true,
+    expectLWTAttributes: false,
   });
 
   let prefersColorScheme = await getPrefersColorSchemeInfo({ win: pbmWindowA });
@@ -164,7 +164,7 @@ add_task(async function test_default_theme_light() {
   await testWindowColorScheme({
     win: pbmWindowB,
     expectDark: true,
-    expectLWTAttributes: true,
+    expectLWTAttributes: false,
   });
 
   await BrowserTestUtils.closeWindow(windowB);
@@ -276,7 +276,7 @@ add_task(async function test_theme_switch_updates_existing_pbm_win() {
   await testWindowColorScheme({
     win: pbmWindow,
     expectDark: true,
-    expectLWTAttributes: true,
+    expectLWTAttributes: false,
   });
 
   info("Enabling light theme.");
