@@ -29,7 +29,7 @@ dependencies = [
     "json-e==4.5.3",
     "jsonschema==4.17.3",
     "looseversion==1.0.1",
-    "mako==1.2.2",
+    "mako~=1.3",
     "moz-l10n~=0.5.7",
     "mozilla-repo-urls==0.1.1",
     "mozilla-taskgraph~=3.1",
