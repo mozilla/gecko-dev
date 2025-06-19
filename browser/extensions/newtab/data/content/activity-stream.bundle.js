@@ -107,7 +107,6 @@ for (const type of [
   "ADS_RESET",
   "ADS_UPDATE_SPOCS",
   "ADS_UPDATE_TILES",
-  "ARCHIVE_FROM_POCKET",
   "BLOCK_SECTION",
   "BLOCK_URL",
   "BOOKMARK_URL",
@@ -115,7 +114,6 @@ for (const type of [
   "CLEAR_PREF",
   "COPY_DOWNLOAD_LINK",
   "DELETE_BOOKMARK_BY_ID",
-  "DELETE_FROM_POCKET",
   "DELETE_HISTORY_URL",
   "DIALOG_CANCEL",
   "DIALOG_CLOSE",
@@ -206,9 +204,7 @@ for (const type of [
   "PLACES_LINKS_CHANGED",
   "PLACES_LINKS_DELETED",
   "PLACES_LINK_BLOCKED",
-  "PLACES_SAVED_TO_POCKET",
   "POCKET_CTA",
-  "POCKET_LINK_DELETED_OR_ARCHIVED",
   "POCKET_LOGGED_IN",
   "POCKET_THUMBS_DOWN",
   "POCKET_THUMBS_UP",
@@ -226,7 +222,6 @@ for (const type of [
   "REPORT_CONTENT_SUBMIT",
   "RICH_ICON_MISSING",
   "SAVE_SESSION_PERF_DATA",
-  "SAVE_TO_POCKET",
   "SCREENSHOT_UPDATED",
   "SECTION_DEREGISTER",
   "SECTION_DISABLE",
@@ -8100,25 +8095,6 @@ function Sections(prevState = INITIAL_STATE.Sections, action) {
           }),
         })
       );
-    case actionTypes.PLACES_SAVED_TO_POCKET:
-      if (!action.data) {
-        return prevState;
-      }
-      return prevState.map(section =>
-        Object.assign({}, section, {
-          rows: section.rows.map(item => {
-            if (item.url === action.data.url) {
-              return Object.assign({}, item, {
-                open_url: action.data.open_url,
-                pocket_id: action.data.pocket_id,
-                title: action.data.title,
-                type: "pocket",
-              });
-            }
-            return item;
-          }),
-        })
-      );
     case actionTypes.PLACES_BOOKMARKS_REMOVED:
       if (!action.data) {
         return prevState;
@@ -8159,15 +8135,6 @@ function Sections(prevState = INITIAL_STATE.Sections, action) {
       return prevState.map(section =>
         Object.assign({}, section, {
           rows: section.rows.filter(site => site.url !== action.data.url),
-        })
-      );
-    case actionTypes.DELETE_FROM_POCKET:
-    case actionTypes.ARCHIVE_FROM_POCKET:
-      return prevState.map(section =>
-        Object.assign({}, section, {
-          rows: section.rows.filter(
-            site => site.pocket_id !== action.data.pocket_id
-          ),
         })
       );
     default:
@@ -8462,29 +8429,6 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
         ? prevState
         : nextState(items =>
             items.filter(item => item.url !== action.data.url)
-          );
-
-    case actionTypes.PLACES_SAVED_TO_POCKET: {
-      const addPocketInfo = item => {
-        if (item.url === action.data.url) {
-          return Object.assign({}, item, {
-            open_url: action.data.open_url,
-            pocket_id: action.data.pocket_id,
-            context_type: "pocket",
-          });
-        }
-        return item;
-      };
-      return isNotReady()
-        ? prevState
-        : nextState(items => items.map(addPocketInfo));
-    }
-    case actionTypes.DELETE_FROM_POCKET:
-    case actionTypes.ARCHIVE_FROM_POCKET:
-      return isNotReady()
-        ? prevState
-        : nextState(items =>
-            items.filter(item => item.pocket_id !== action.data.pocket_id)
           );
 
     case actionTypes.PLACES_BOOKMARK_ADDED: {

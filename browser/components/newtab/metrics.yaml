@@ -2704,13 +2704,13 @@ activity_stream:
         type: quantity
     telemetry_mirror: Activity_stream_End_Session
 
-  event_archive_from_pocket:
+  event_block:
     type: event
     description: >
       This is recorded with every user interaction on Activity Stream
       elements.
       This event was generated to correspond to the Legacy Telemetry event
-      activity_stream.event#ARCHIVE_FROM_POCKET.
+      activity_stream.event#BLOCK.
     bugs: &activity_stream_event_bugs
       - https://bugzil.la/1429497
       - https://bugzil.la/1429489
@@ -2750,20 +2750,6 @@ activity_stream:
         description: >
           The index of card receiving interactions.
         type: quantity
-    telemetry_mirror: Activity_stream_Event_ArchiveFromPocket
-
-  event_block:
-    type: event
-    description: >
-      This is recorded with every user interaction on Activity Stream
-      elements.
-      This event was generated to correspond to the Legacy Telemetry event
-      activity_stream.event#BLOCK.
-    bugs: *activity_stream_event_bugs
-    data_reviews: *activity_stream_event_data_reviews
-    notification_emails: *activity_stream_event_emails
-    expires: never
-    extra_keys: *activity_stream_event_extra
     telemetry_mirror: Activity_stream_Event_Block
 
   event_bookmark_add:
@@ -2877,20 +2863,6 @@ activity_stream:
     expires: never
     extra_keys: *activity_stream_event_extra
     telemetry_mirror: Activity_stream_Event_Delete
-
-  event_delete_from_pocket:
-    type: event
-    description: >
-      This is recorded with every user interaction on Activity Stream
-      elements.
-      This event was generated to correspond to the Legacy Telemetry event
-      activity_stream.event#DELETE_FROM_POCKET.
-    bugs: *activity_stream_event_bugs
-    data_reviews: *activity_stream_event_data_reviews
-    notification_emails: *activity_stream_event_emails
-    expires: never
-    extra_keys: *activity_stream_event_extra
-    telemetry_mirror: Activity_stream_Event_DeleteFromPocket
 
   event_delete_confirm:
     type: event
@@ -3143,20 +3115,6 @@ activity_stream:
     expires: never
     extra_keys: *activity_stream_event_extra
     telemetry_mirror: Activity_stream_Event_PreviewRequest
-
-  event_save_to_pocket:
-    type: event
-    description: >
-      This is recorded with every user interaction on Activity Stream
-      elements.
-      This event was generated to correspond to the Legacy Telemetry event
-      activity_stream.event#SAVE_TO_POCKET.
-    bugs: *activity_stream_event_bugs
-    data_reviews: *activity_stream_event_data_reviews
-    notification_emails: *activity_stream_event_emails
-    expires: never
-    extra_keys: *activity_stream_event_extra
-    telemetry_mirror: Activity_stream_Event_SaveToPocket
 
   event_search:
     type: event

@@ -31,7 +31,6 @@ partner_link:
 activity_stream:
   event:
     objects: [
-      "ARCHIVE_FROM_POCKET",
       "BLOCK",
       "BOOKMARK_ADD",
       "BOOKMARK_DELETE",
@@ -41,7 +40,6 @@ activity_stream:
       "SHOW_PERSONALIZE",
       "HIDE_PERSONALIZE",
       "DELETE",
-      "DELETE_FROM_POCKET",
       "DELETE_CONFIRM",
       "DIALOG_CANCEL",
       "DIALOG_OPEN",
@@ -60,7 +58,6 @@ activity_stream:
       "POCKET_THUMBS_UP",
       "PREF_CHANGED",
       "PREVIEW_REQUEST",
-      "SAVE_TO_POCKET",
       "SEARCH",
       "SEARCH_EDIT_ADD",
       "SEARCH_EDIT_CLOSE",
