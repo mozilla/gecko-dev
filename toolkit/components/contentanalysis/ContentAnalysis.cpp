@@ -77,16 +77,6 @@ const char* kPipePathNamePref = "browser.contentanalysis.pipe_path_name";
 const char* kClientSignature = "browser.contentanalysis.client_signature";
 const char* kAllowUrlPref = "browser.contentanalysis.allow_url_regex_list";
 const char* kDenyUrlPref = "browser.contentanalysis.deny_url_regex_list";
-const char* kAgentNamePref = "browser.contentanalysis.agent_name";
-const char* kInterceptionPointPrefNames[] = {
-    "browser.contentanalysis.interception_point.clipboard.enabled",
-    "browser.contentanalysis.interception_point.download.enabled",
-    "browser.contentanalysis.interception_point.drag_and_drop.enabled",
-    "browser.contentanalysis.interception_point.file_upload.enabled",
-    "browser.contentanalysis.interception_point.print.enabled",
-};
-const char* kDefaultResultPref = "browser.contentanalysis.default_result";
-const char* kTimeoutResultPref = "browser.contentanalysis.timeout_result";
 
 // Allow up to this many threads to be concurrently engaged in synchronous
 // communcations with the agent.  That limit is set by
@@ -402,8 +392,7 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
   MOZ_ASSERT(!NS_IsMainThread());
 
   std::shared_ptr<content_analysis::sdk::Client> client;
-  bool isShutDown = IsShutDown();
-  if (!isShutDown) {
+  if (!IsShutDown()) {
     client.reset(content_analysis::sdk::Client::Create(
                      {aPipePathName.Data(), aIsPerUser})
                      .release());
@@ -431,14 +420,11 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
       LOGE(
           "Got mismatched content analysis client signature! All content "
           "analysis operations will fail.");
-      nsresult rv = NS_ERROR_INVALID_SIGNATURE;
-      glean::content_analysis::connection_failure
-          .Get(nsCString{SafeGetStaticErrorName(rv)})
-          .Add();
       NS_DispatchToMainThread(
-          NS_NewRunnableFunction(__func__, [self = RefPtr{this}, rv]() {
+          NS_NewRunnableFunction(__func__, [self = RefPtr{this}]() {
             AssertIsOnMainThread();
-            self->mCaClientPromise->Reject(rv, __func__);
+            self->mCaClientPromise->Reject(NS_ERROR_INVALID_SIGNATURE,
+                                           __func__);
             self->mCreatingClient = false;
           }));
 
@@ -447,8 +433,7 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
   }
 #endif  // XP_WIN
   NS_DispatchToMainThread(NS_NewRunnableFunction(
-      __func__,
-      [self = RefPtr{this}, isShutDown, client = std::move(client)]() {
+      __func__, [self = RefPtr{this}, client = std::move(client)]() {
         AssertIsOnMainThread();
         // Note that if mCaClientPromise has been resolved or rejected
         // calling Resolve() or Reject() is a noop.
@@ -456,12 +441,7 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
           self->mHaveResolvedClientPromise = true;
           self->mCaClientPromise->Resolve(client, __func__);
         } else {
-          nsresult promiseResult = isShutDown ? NS_ERROR_ILLEGAL_DURING_SHUTDOWN
-                                              : NS_ERROR_CONNECTION_REFUSED;
-          glean::content_analysis::connection_failure
-              .Get(nsCString{SafeGetStaticErrorName(promiseResult)})
-              .Add();
-          self->mCaClientPromise->Reject(promiseResult, __func__);
+          self->mCaClientPromise->Reject(NS_ERROR_CONNECTION_REFUSED, __func__);
         }
         self->mCreatingClient = false;
       }));
@@ -1357,8 +1337,8 @@ NS_IMPL_ISUPPORTS(ContentAnalysis, nsIContentAnalysis, nsIObserver,
 
 ContentAnalysis::ContentAnalysis()
     : mThreadPool(new nsThreadPool()),
-      mRequestTokenToBasicRequestInfoMap(
-          "ContentAnalysis::mRequestTokenToBasicRequestInfoMap"),
+      mRequestTokenToUserActionIdMap(
+          "ContentAnalysis::mRequestTokenToUserActionIdMap"),
       mCaClientPromise(
           new ClientPromise::Private("ContentAnalysis::ContentAnalysis")),
       mSetByEnterprise(false) {
@@ -1465,10 +1445,6 @@ bool ContentAnalysis::IsShutDown() {
   return *lock;
 }
 
-NS_IMETHODIMP ContentAnalysis::ForceRecreateClientForTest() {
-  return CreateClientIfNecessary(/* aForceCreate */ true);
-}
-
 nsresult ContentAnalysis::CreateClientIfNecessary(
     bool aForceCreate /* = false */) {
   AssertIsOnMainThread();
@@ -1503,13 +1479,7 @@ nsresult ContentAnalysis::CreateClientIfNecessary(
   nsString clientSignature;
   // It's OK if this fails, we will default to the empty string
   Preferences::GetString(kClientSignature, clientSignature);
-  RecordConnectionSettingsTelemetry(clientSignature);
   LOGD("Dispatching background task to create Content Analysis client");
-  glean::content_analysis::connection_attempt.Add();
-  if (aForceCreate) {
-    // indicates this is a retry attempt
-    glean::content_analysis::connection_attempt_retry.Add();
-  }
   rv = NS_DispatchBackgroundTask(NS_NewCancelableRunnableFunction(
       "ContentAnalysis::CreateContentAnalysisClient",
       [owner = RefPtr{this}, pipePathName = std::move(pipePathName),
@@ -1518,66 +1488,10 @@ nsresult ContentAnalysis::CreateClientIfNecessary(
             std::move(pipePathName), std::move(clientSignature), isPerUser);
       }));
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    glean::content_analysis::connection_failure
-        .Get(nsCString{SafeGetStaticErrorName(rv)})
-        .Add();
     mCaClientPromise->Reject(rv, __func__);
     return rv;
   }
   return NS_OK;
-}
-
-void ContentAnalysis::RecordConnectionSettingsTelemetry(
-    const nsString& clientSignature) {
-  AssertIsOnMainThread();
-  {
-    nsCString agentName;
-    Preferences::GetCString(kAgentNamePref, agentName);
-    glean::content_analysis::agent_name.Set(agentName);
-  }
-  AutoTArray<nsCString, 1> interceptionPointsOff;
-  for (const char* interceptionPointPrefName : kInterceptionPointPrefNames) {
-    bool interceptionPointPrefValue = false;
-    Preferences::GetBool(interceptionPointPrefName,
-                         &interceptionPointPrefValue);
-    if (!interceptionPointPrefValue) {
-      interceptionPointsOff.AppendElement(interceptionPointPrefName);
-    }
-  }
-  if (!interceptionPointsOff.IsEmpty()) {
-    glean::content_analysis::interception_points_turned_off.Set(
-        interceptionPointsOff);
-  }
-  glean::content_analysis::show_blocked_result.Set(
-      StaticPrefs::browser_contentanalysis_show_blocked_result());
-  glean::content_analysis::default_result.Set(
-      StaticPrefs::browser_contentanalysis_default_result());
-  glean::content_analysis::timeout_result.Set(
-      StaticPrefs::browser_contentanalysis_timeout_result());
-  if (!clientSignature.IsEmpty()) {
-    glean::content_analysis::client_signature.Set(
-        NS_ConvertUTF16toUTF8(clientSignature));
-  }
-  glean::content_analysis::bypass_for_same_tab_operations.Set(
-      StaticPrefs::browser_contentanalysis_bypass_for_same_tab_operations());
-  {
-    nsCString allowUrlRegexList;
-    Preferences::GetCString(kAllowUrlPref, allowUrlRegexList);
-    // Unfortunately because of the way enterprise policies set and lock prefs,
-    // we can't check if the value is different than the default in
-    // StaticPrefList.yaml, and instead we have to duplicate that value here. At
-    // least we have a test around this so we can update this value if the
-    // default changes.
-    const char* defaultAllowUrlRegexList = "^about:(?!blank|srcdoc).*";
-    glean::content_analysis::allow_url_regex_list_set.Set(
-        !allowUrlRegexList.Equals(defaultAllowUrlRegexList));
-  }
-  {
-    nsCString denyUrlRegexList;
-    Preferences::GetCString(kDenyUrlPref, denyUrlRegexList);
-    glean::content_analysis::deny_url_regex_list_set.Set(
-        !denyUrlRegexList.IsEmpty());
-  }
 }
 
 NS_IMETHODIMP
@@ -2115,22 +2029,6 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
   MOZ_ALWAYS_SUCCEEDS(aRequest->GetTestOnlyIgnoreCanceledAndAlwaysSubmitToAgent(
       &ignoreCanceled));
 
-  {
-    nsDependentCString analysisTypeStr(
-        content_analysis::sdk::AnalysisConnector_Name(
-            pbRequest.analysis_connector())
-            .c_str());
-    glean::content_analysis::request_sent_by_analysis_type.Get(analysisTypeStr)
-        .Add();
-  }
-  {
-    nsDependentCString reasonStr(
-        content_analysis::sdk::ContentAnalysisRequest_Reason_Name(
-            pbRequest.reason())
-            .c_str());
-    glean::content_analysis::request_sent_by_reason.Get(reasonStr).Add();
-  }
-
   CallClientWithRetry<std::nullptr_t>(
       __func__,
       [userActionId, pbRequest = std::move(pbRequest), aAutoAcknowledge,
@@ -2210,21 +2108,13 @@ Result<std::nullptr_t, nsresult> ContentAnalysis::DoAnalyzeRequest(
   // Run request, then dispatch back to main thread to resolve
   // aCallback
   content_analysis::sdk::ContentAnalysisResponse pbResponse;
-  nsDependentCString analysisConnectorName(
-      content_analysis::sdk::AnalysisConnector_Name(
-          aRequest.analysis_connector())
-          .c_str());
-  auto timerId = glean::content_analysis::response_duration_by_analysis_type
-                     .Get(analysisConnectorName)
-                     .Start();
   {
     // Insert this into the map before calling Send() because another thread
     // calling Send() may get a response before our Send() call finishes.
-    auto map = owner->mRequestTokenToBasicRequestInfoMap.Lock();
+    auto map = owner->mRequestTokenToUserActionIdMap.Lock();
     map->InsertOrUpdate(
         nsCString(aRequest.request_token()),
-        BasicRequestInfo{aUserActionId, timerId,
-                         std::move(analysisConnectorName), aAutoAcknowledge});
+        UserActionIdAndAutoAcknowledge{aUserActionId, aAutoAcknowledge});
   }
 
   LOGD(
@@ -2235,15 +2125,9 @@ Result<std::nullptr_t, nsresult> ContentAnalysis::DoAnalyzeRequest(
   if (err != 0) {
     LOGE("DoAnalyzeRequest got err=%d for request_token=%s, user_action_id=%s",
          err, aRequest.request_token().c_str(), aUserActionId.get());
-    Maybe<BasicRequestInfo> entry;
     {
-      auto map = owner->mRequestTokenToBasicRequestInfoMap.Lock();
-      entry = map->Extract(nsCString(aRequest.request_token()));
-    }
-    if (entry.isSome()) {
-      glean::content_analysis::response_duration_by_analysis_type
-          .Get(entry->mAnalysisTypeStr)
-          .Cancel(std::move(entry->mTimerId));
+      auto map = owner->mRequestTokenToUserActionIdMap.Lock();
+      map->Remove(nsCString(aRequest.request_token()));
     }
 
     return Err(NS_ERROR_FAILURE);
@@ -2286,13 +2170,14 @@ void ContentAnalysis::HandleResponseFromAgent(
                                    responseArray.Elements());
         }
 
-        Maybe<BasicRequestInfo> maybeBasicRequestInfo;
+        Maybe<UserActionIdAndAutoAcknowledge>
+            maybeUserActionIdAndAutoAcknowledge;
         {
-          auto map = owner->mRequestTokenToBasicRequestInfoMap.Lock();
-          maybeBasicRequestInfo =
+          auto map = owner->mRequestTokenToUserActionIdMap.Lock();
+          maybeUserActionIdAndAutoAcknowledge =
               map->Extract(nsCString(aResponse.request_token()));
         }
-        if (maybeBasicRequestInfo.isNothing()) {
+        if (maybeUserActionIdAndAutoAcknowledge.isNothing()) {
           LOGE(
               "RunAnalyzeRequestTask could not find userActionId for "
               "request token %s",
@@ -2300,10 +2185,8 @@ void ContentAnalysis::HandleResponseFromAgent(
           // We have no hope of doing anything useful, so just early return.
           return;
         }
-        glean::content_analysis::response_duration_by_analysis_type
-            .Get(maybeBasicRequestInfo->mAnalysisTypeStr)
-            .StopAndAccumulate(std::move(maybeBasicRequestInfo->mTimerId));
-        nsCString userActionId = maybeBasicRequestInfo->mUserActionId;
+        nsCString userActionId =
+            maybeUserActionIdAndAutoAcknowledge->mUserActionId;
 
         RefPtr<ContentAnalysisResponse> response =
             ContentAnalysisResponse::FromProtobuf(std::move(aResponse),
@@ -2312,11 +2195,7 @@ void ContentAnalysis::HandleResponseFromAgent(
           LOGE("Content analysis got invalid response!");
           return;
         }
-        // We add our own values for action here (eAllow and eCancel)
-        // so just use the numeric value for glean.
-        nsAutoCString actionStr;
-        actionStr.AppendInt(static_cast<int>(response->GetAction()));
-        glean::content_analysis::response_action.Get(actionStr).Add();
+
         // Normally, if we timeout/user-cancel a request, we remove the
         // adjacent entry in mUserActionMap.  However, we don't do that if
         // the chosen default behavior is to warn.  We don't want to issue
@@ -2329,7 +2208,7 @@ void ContentAnalysis::HandleResponseFromAgent(
 
         owner->NotifyObserversAndMaybeIssueResponseFromAgent(
             response, std::move(userActionId),
-            maybeBasicRequestInfo->mAutoAcknowledge);
+            maybeUserActionIdAndAutoAcknowledge->mAutoAcknowledge);
       }));
 }
 
@@ -3136,13 +3015,11 @@ ContentAnalysis::GetFinalRequestList(
     auto filterResult = FilterByUrlLists(request, uri);
     if (filterResult == ContentAnalysis::UrlFilterResult::eDeny) {
       LOGD("Blocking request due to deny URL filter.");
-      glean::content_analysis::request_blocked_by_deny_url.Add();
       return Err(MakeRefPtr<ContentAnalysisActionResult>(
           nsIContentAnalysisResponse::Action::eBlock));
     }
     if (filterResult == ContentAnalysis::UrlFilterResult::eAllow) {
       LOGD("Allowing request -- all operations match allow URL filter.");
-      glean::content_analysis::request_allowed_by_allow_url.Add();
       setAllowResult(NoContentAnalysisResult::
                          ALLOW_DUE_TO_CONTEXT_EXEMPT_FROM_CONTENT_ANALYSIS);
       continue;
@@ -3568,7 +3445,7 @@ ContentAnalysis::RespondToWarnDialog(const nsACString& aRequestToken,
   }
   bool haveGottenResponse;
   {
-    auto map = mRequestTokenToBasicRequestInfoMap.Lock();
+    auto map = mRequestTokenToUserActionIdMap.Lock();
     haveGottenResponse = !map->Contains(aRequestToken);
   }
 
@@ -4308,16 +4185,27 @@ nsresult ContentAnalysis::RunAcknowledgeTask(
 
   nsCOMPtr<nsIObserverService> obsServ =
       mozilla::services::GetObserverService();
-  // Do an early check here to avoid an extra dispatch to the main
-  // thread if no one is observing the message
-  bool rawMessageHasObserver =
-      obsServ->HasObservers("dlp-acknowledgement-sent-raw");
+  // Avoid serializing the string here if no one is observing this message
+  if (obsServ->HasObservers("dlp-acknowledgement-sent-raw")) {
+    std::string acknowledgementString = pbAck.SerializeAsString();
+    nsTArray<char16_t> acknowledgementArray;
+    acknowledgementArray.SetLength(acknowledgementString.size() + 1);
+    for (size_t i = 0; i < acknowledgementString.size(); ++i) {
+      // Since NotifyObservers() expects a null-terminated string,
+      // make sure none of these values are 0.
+      acknowledgementArray[i] = acknowledgementString[i] + 0xFF00;
+    }
+    acknowledgementArray[acknowledgementString.size()] = 0;
+    obsServ->NotifyObservers(static_cast<nsIContentAnalysis*>(this),
+                             "dlp-acknowledgement-sent-raw",
+                             acknowledgementArray.Elements());
+  }
 
   // The content analysis connection is synchronous so run in the background.
   LOGD("RunAcknowledgeTask dispatching acknowledge task");
   CallClientWithRetry<std::nullptr_t>(
       __func__,
-      [pbAck = std::move(pbAck), rawMessageHasObserver](
+      [pbAck = std::move(pbAck)](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable
           -> Result<std::nullptr_t, nsresult> {
         MOZ_ASSERT(!NS_IsMainThread());
@@ -4332,30 +4220,6 @@ nsresult ContentAnalysis::RunAcknowledgeTask(
             "RunAcknowledgeTask sent transaction acknowledgement, "
             "err=%d",
             err);
-        // Wait until the acknowledgement is sent before sending
-        // the dlp-acknowledgement-sent-raw notification to make tests
-        // more reliable.
-        if (rawMessageHasObserver) {
-          NS_DispatchToMainThread(NS_NewRunnableFunction(
-              __func__, [owner, pbAck = std::move(pbAck)]() {
-                nsCOMPtr<nsIObserverService> obsServ =
-                    mozilla::services::GetObserverService();
-                std::string acknowledgementString = pbAck.SerializeAsString();
-                nsTArray<char16_t> acknowledgementArray;
-                acknowledgementArray.SetLength(acknowledgementString.size() +
-                                               1);
-                for (size_t i = 0; i < acknowledgementString.size(); ++i) {
-                  // Since NotifyObservers() expects a null-terminated string,
-                  // make sure none of these values are 0.
-                  acknowledgementArray[i] = acknowledgementString[i] + 0xFF00;
-                }
-                acknowledgementArray[acknowledgementString.size()] = 0;
-                obsServ->NotifyObservers(
-                    static_cast<nsIContentAnalysis*>(owner.get()),
-                    "dlp-acknowledgement-sent-raw",
-                    acknowledgementArray.Elements());
-              }));
-        }
         if (err != 0) {
           return Err(NS_ERROR_FAILURE);
         }

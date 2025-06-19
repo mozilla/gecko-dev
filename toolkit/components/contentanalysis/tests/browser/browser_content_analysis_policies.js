@@ -46,12 +46,6 @@ const kInterceptionPoints = [
   "file_upload",
   "print",
 ];
-// Everything is on by default except download.
-let kInterceptionPointsOnByDefault = kInterceptionPoints.slice();
-kInterceptionPointsOnByDefault.splice(
-  kInterceptionPointsOnByDefault.indexOf("download"),
-  1
-);
 const kInterceptionPointsPlainTextOnly = ["clipboard", "drag_and_drop"];
 
 const ca = Cc["@mozilla.org/contentanalysis;1"].getService(
@@ -117,7 +111,7 @@ add_task(async function test_ca_active() {
   PoliciesPrefTracker.stop();
 });
 
-add_task(async function test_ca_enterprise_config_with_default_prefs() {
+add_task(async function test_ca_enterprise_config() {
   PoliciesPrefTracker.start();
   await EnterprisePolicyTesting.setupPolicyEngineWithJson({
     policies: {
@@ -155,79 +149,6 @@ add_task(async function test_ca_enterprise_config_with_default_prefs() {
   }
   PoliciesPrefTracker.stop();
 });
-
-add_task(
-  async function test_ca_enterprise_config_with_default_prefs_telemetry() {
-    PoliciesPrefTracker.start();
-    Services.fog.testResetFOG();
-    await EnterprisePolicyTesting.setupPolicyEngineWithJson({
-      policies: {
-        ContentAnalysis: {
-          Enabled: true,
-        },
-      },
-    });
-    // Trigger the content analysis service to ensure telemetry is recorded.
-    let contentAnalysisService = Cc[
-      "@mozilla.org/contentanalysis;1"
-    ].getService(Ci.nsIContentAnalysis);
-    is(
-      contentAnalysisService.isActive,
-      true,
-      "Content Analysis service is active"
-    );
-    contentAnalysisService.forceRecreateClientForTest();
-
-    is(
-      Glean.contentAnalysis.agentName.testGetValue(),
-      "A DLP agent",
-      "agentName default"
-    );
-    is(
-      Glean.contentAnalysis.interceptionPointsTurnedOff.testGetValue().length,
-      1,
-      "interceptionPointsTurnedOff default"
-    );
-    is(
-      Glean.contentAnalysis.interceptionPointsTurnedOff.testGetValue()[0],
-      "browser.contentanalysis.interception_point.download.enabled",
-      "interceptionPointsTurnedOff default"
-    );
-    ok(
-      Glean.contentAnalysis.showBlockedResult.testGetValue(),
-      "showBlockedResult default"
-    );
-    is(
-      Glean.contentAnalysis.defaultResult.testGetValue(),
-      0,
-      "defaultResult default"
-    );
-    is(
-      Glean.contentAnalysis.timeoutResult.testGetValue(),
-      0,
-      "timeoutResult default"
-    );
-    is(
-      Glean.contentAnalysis.clientSignature.testGetValue(),
-      null,
-      "clientSignature default"
-    );
-    ok(
-      !Glean.contentAnalysis.bypassForSameTabOperations.testGetValue(),
-      "bypassForSameTabOperations default"
-    );
-    ok(
-      !Glean.contentAnalysis.allowUrlRegexListSet.testGetValue(),
-      "allowUrlRegexListSet default"
-    );
-    ok(
-      !Glean.contentAnalysis.denyUrlRegexListSet.testGetValue(),
-      "denyUrlRegexListSet default"
-    );
-
-    PoliciesPrefTracker.stop();
-  }
-);
 
 add_task(async function test_ca_enterprise_config() {
   PoliciesPrefTracker.start();
@@ -352,107 +273,6 @@ add_task(async function test_ca_enterprise_config() {
       `${interceptionPoint} interception point plain_text_only match`
     );
   }
-
-  PoliciesPrefTracker.stop();
-});
-
-add_task(async function test_ca_enterprise_config_telemetry() {
-  PoliciesPrefTracker.start();
-  const string1 = "this is a string";
-  const string2 = "this is another string";
-  const string3 = "an agent name";
-  const string4 = "a client signature";
-
-  Services.fog.testResetFOG();
-
-  await EnterprisePolicyTesting.setupPolicyEngineWithJson({
-    policies: {
-      ContentAnalysis: {
-        Enabled: true,
-        PipePathName: "abc",
-        AgentTimeout: 99,
-        AllowUrlRegexList: string1,
-        DenyUrlRegexList: string2,
-        AgentName: string3,
-        ClientSignature: string4,
-        IsPerUser: true,
-        MaxConnectionsCount: 3,
-        ShowBlockedResult: false,
-        DefaultResult: 1,
-        TimeoutResult: 2,
-        BypassForSameTabOperations: true,
-        InterceptionPoints: {
-          Clipboard: {
-            Enabled: false,
-            PlainTextOnly: false,
-          },
-          Download: {
-            Enabled: true,
-          },
-          DragAndDrop: {
-            Enabled: false,
-            PlainTextOnly: false,
-          },
-          FileUpload: {
-            Enabled: false,
-          },
-          Print: {
-            Enabled: false,
-          },
-        },
-      },
-    },
-  });
-
-  // Trigger the content analysis service to ensure telemetry is recorded.
-  let contentAnalysisService = Cc["@mozilla.org/contentanalysis;1"].getService(
-    Ci.nsIContentAnalysis
-  );
-  contentAnalysisService.forceRecreateClientForTest();
-  is(
-    contentAnalysisService.isActive,
-    true,
-    "Content Analysis service is active"
-  );
-
-  is(Glean.contentAnalysis.agentName.testGetValue(), string3, "agentName");
-  const interceptionPointsTurnedOff =
-    Glean.contentAnalysis.interceptionPointsTurnedOff.testGetValue();
-  is(
-    interceptionPointsTurnedOff.length,
-    4,
-    "interceptionPointsTurnedOff length"
-  );
-  for (let i = 0; i < interceptionPointsTurnedOff.length; i++) {
-    is(
-      interceptionPointsTurnedOff[i],
-      `browser.contentanalysis.interception_point.${kInterceptionPointsOnByDefault[i]}.enabled`,
-      `interceptionPointsTurnedOff ${kInterceptionPointsOnByDefault[i]}`
-    );
-  }
-  ok(
-    !Glean.contentAnalysis.showBlockedResult.testGetValue(),
-    "showBlockedResult"
-  );
-  is(Glean.contentAnalysis.defaultResult.testGetValue(), 1, "defaultResult");
-  is(Glean.contentAnalysis.timeoutResult.testGetValue(), 2, "timeoutResult");
-  is(
-    Glean.contentAnalysis.clientSignature.testGetValue(),
-    string4,
-    "clientSignature"
-  );
-  ok(
-    Glean.contentAnalysis.bypassForSameTabOperations.testGetValue(),
-    "bypassForSameTabOperations"
-  );
-  ok(
-    Glean.contentAnalysis.allowUrlRegexListSet.testGetValue(),
-    "allowUrlRegexListSet"
-  );
-  ok(
-    Glean.contentAnalysis.denyUrlRegexListSet.testGetValue(),
-    "denyUrlRegexListSet"
-  );
 
   PoliciesPrefTracker.stop();
 });
