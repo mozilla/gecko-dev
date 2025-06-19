@@ -58,3 +58,15 @@ function btnClick() {
 function onBtnClick(event) {
   debugger;
 }
+
+{
+  const x = 1;
+  {
+    const x = 2;
+    debugger;
+  }
+  const dict = {};
+  const key = "hello";
+  dict[key] = "world";
+  debugger;
+}

@@ -27,6 +27,8 @@ const nodeTypes = {
   ParamList: "ParamList",
   Spread: "Spread",
   Number: "Number",
+  Script: "Script",
+  Block: "Block",
 };
 
 const functionsSet = new Set([
@@ -74,6 +76,7 @@ const nodeTypeSets = {
   bindingReferences: new Set([
     nodeTypes.VariableDefinition,
     nodeTypes.VariableName,
+    nodeTypes.PropertyName,
   ]),
   expressionProperty: new Set([nodeTypes.PropertyName]),
 };
@@ -171,6 +174,43 @@ function getEnclosingFunction(
       }
     }
     parentNode = parentNode.parent;
+  }
+  return null;
+}
+
+/**
+ * Gets the parent scope node for the specified node.
+ * If neither is found then we fallback to the script node for the source.
+ *
+ * @param {Object} node
+ * @param {String} scopeType - The scope type specifies what kind of scope node to look for.
+ * The types are defined by the platform. See https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Environment.html#type
+ * @returns {Object | null} scope node or null if none is found
+ */
+function getParentScopeOfType(node, scopeType) {
+  let parentNode = node.parent;
+  let lastParentNode = parentNode;
+  while (parentNode !== null) {
+    if (scopeType == "block" || scopeType == "object") {
+      if (parentNode.name == nodeTypes.Block) {
+        return parentNode;
+      }
+    } else if (nodeTypeSets.functionsVarDecl.has(parentNode.name)) {
+      if (
+        parentNode.name == nodeTypes.VariableDeclaration &&
+        !hasChildNodeOfType(parentNode.node, nodeTypeSets.functionExpressions)
+      ) {
+        parentNode = parentNode.parent;
+        continue;
+      }
+      return parentNode;
+    }
+    lastParentNode = parentNode;
+    parentNode = parentNode.parent;
+  }
+  // If no function node was found up to the root node
+  if (lastParentNode?.name == nodeTypes.Script) {
+    return lastParentNode;
   }
   return null;
 }
@@ -467,6 +507,32 @@ async function walkCursor(cursor, options) {
   });
 }
 
+/**
+ * Merge variables, arguments and child properties of member expressions
+ * into a unique "bindings" objects where arguments overrides variables.
+ *
+ * @param {Object} scopeBindings
+ * @returns {Object} bindings
+ */
+function getScopeBindings(scopeBindings) {
+  const bindings = { ...scopeBindings.variables };
+  scopeBindings.arguments.forEach(argument => {
+    Object.keys(argument).forEach(key => {
+      bindings[key] = argument[key];
+    });
+  });
+  // Find and add child properties of member expressions as bindings
+  for (const v in scopeBindings.variables) {
+    const ownProps = scopeBindings.variables[v]?.value?.preview?.ownProperties;
+    if (ownProps) {
+      Object.keys(ownProps).forEach(k => {
+        bindings[k] = ownProps[k];
+      });
+    }
+  }
+  return bindings;
+}
+
 module.exports = {
   getFunctionName,
   getFunctionParameterNames,
@@ -481,4 +547,6 @@ module.exports = {
   clear,
   walkCursor,
   positionToLocation,
+  getParentScopeOfType,
+  getScopeBindings,
 };

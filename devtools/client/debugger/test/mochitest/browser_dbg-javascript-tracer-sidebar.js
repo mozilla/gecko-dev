@@ -107,35 +107,19 @@ add_task(async function () {
   );
 
   // Naive sanity checks for inlines previews
-  const inlinePreviews = [
-    {
-      identifier: "x:",
-      value: "1",
-    },
-    {
-      identifier: "y:",
-      value: "2",
-    },
-  ];
-  await waitForAllElements(dbg, "inlinePreviewLabels", inlinePreviews.length);
-
-  const labels = findAllElements(dbg, "inlinePreviewLabels");
-  const values = findAllElements(dbg, "inlinePreviewValues");
-  let index = 0;
-  const fnName = "foo";
-  for (const { identifier, value } of inlinePreviews) {
-    is(
-      labels[index].innerText,
-      identifier,
-      `${identifier} in ${fnName} has correct inline preview label`
-    );
-    is(
-      values[index].innerText,
-      value,
-      `${identifier} in ${fnName} has correct inline preview value`
-    );
-    index++;
-  }
+  await assertInlinePreviews(
+    dbg,
+    [
+      {
+        previews: [
+          { identifier: "x:", value: "1" },
+          { identifier: "y:", value: "2" },
+        ],
+        line: 1,
+      },
+    ],
+    "foo"
+  );
 
   // Naive sanity checks for popup previews on hovering
   {

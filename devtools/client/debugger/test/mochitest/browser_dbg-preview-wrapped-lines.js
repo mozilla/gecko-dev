@@ -81,8 +81,13 @@ add_task(async function () {
   const splitterOriginalX = splitter.getBoundingClientRect().left;
   ok(splitter, "Got the splitter");
 
-  const lineEl = findElement(dbg, "line", 6);
+  // Get the height of a simple unwrapped line (without any previews)
+  const lineHeightWithoutAnyWrap = getElementBoxQuadHeight(
+    findElement(dbg, "line", 1)
+  );
 
+  const lineEl = findElement(dbg, "line", 6);
+  // Note this contains inline previews which might wrap a bit in certain scenarios
   const lineHeightBeforeWrap = getElementBoxQuadHeight(lineEl);
   let lineHeightAfterWrap = 0;
 
@@ -102,11 +107,11 @@ add_task(async function () {
   });
 
   info("Assert that the line wrapped");
-  const EXPECTED_LINES_TO_WRAP_OVER = 3;
+  const EXPECTED_LINES_TO_WRAP_OVER = 6; // Note: This includes inline previews
   is(
     Math.floor(lineHeightAfterWrap),
-    Math.floor(lineHeightBeforeWrap * EXPECTED_LINES_TO_WRAP_OVER),
-    "The content on line 6 to wrap over 3 lines"
+    Math.floor(lineHeightWithoutAnyWrap * EXPECTED_LINES_TO_WRAP_OVER),
+    "The content on line 6 to wrap over 6 lines (including the inline previews)"
   );
 
   info("Assert the previews still work with wrapping");
