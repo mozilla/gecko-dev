@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="pc.js" type="application/javascript"></script>
+  <script src="/tests/dom/canvas/test/captureStream_common.js" type="application/javascript"></script>
+  <script src="stats.js" type="application/javascript"></script>
+</head>
+<body>
+<pre id="test">
+<script type="application/javascript">
+  createHTML({
+    bug: "1937776",
+    title: "Verify VideoFrameCallback receiveTime/captureTime alignment",
+  });
+
+  const {AppConstants} = SpecialPowers.ChromeUtils.importESModule(
+    "resource://gre/modules/AppConstants.sys.mjs"
+  );
+
+  runNetworkTest(async function(options) {
+    async function WAIT_FOR_SYNCED_RTCP(test, count) {
+      for (let i = 0; i < count; i++) {
+        await waitForSyncedRtcp(test.pcLocal._pc);
+        await waitForSyncedRtcp(test.pcRemote._pc);
+      }
+    }
+
+    async function CHECK_TIMESTAMP_ALIGNMENT(test, ok_or_todo, header_text) {
+      const video = test.pcRemote.remoteMediaElements[0];
+      const maxFrames = 60;
+      const maxRecvDelta = 250;
+      const maxCaptDelta = 250;
+      const minCaptCount = 5;
+      let frameCount = 0;
+      let captCount = 0;
+
+      // macOS fixes for high jitter on try
+      const recvOffset = AppConstants.platform == "macosx" ? -200 : 0;
+      const captOffset = AppConstants.platform == "macosx" ? -200 : 0;
+
+      // captureTime may not be present for several frames
+      let missedCaptCount = 0;
+
+      info(`***** RUNNING ${header_text} ALIGNMENT TEST`);
+      info(`***** USING ASSERT ${ok_or_todo == ok ? "ok" : "todo"}() FOR captureTime`);
+      info(`***** APPLYING ${recvOffset} ms OFFSET TO receiveTime ASSERTS`);
+
+      while (++frameCount <= maxFrames) {
+        info(`Checking frame #${frameCount} of ${maxFrames}`);
+        const {now, metadata} =
+          await new Promise(r => video.requestVideoFrameCallback(
+              (now, metadata) => r({now, metadata})));
+        const {presentationTime, receiveTime, captureTime} = metadata;
+
+        ok(receiveTime, "receiveTime is present");
+        if (receiveTime) {
+          const dt = presentationTime - receiveTime;
+          ok(dt > recvOffset, `receiveTime (${receiveTime.toFixed(2)} ms) < `
+             + `presentationTime (${presentationTime.toFixed(2)} ms)`);
+          if (dt > recvOffset) {
+            ok(dt <= maxRecvDelta, `receiveTime delta (${dt.toFixed(2)} ms) <= ${maxRecvDelta} ms`);
+          }
+        }
+
+        if (captureTime) {
+          ok_or_todo(captureTime, `captureTime is present`);
+          const dt = presentationTime - captureTime;
+          ok(dt > captOffset, `captureTime (${captureTime.toFixed(2)} ms) < `
+             + `presentationTime (${presentationTime.toFixed(2)} ms)`);
+          if (dt > captOffset) {
+            ok(dt <= maxCaptDelta, `captureTime delta (${dt.toFixed(2)} ms) <= ${maxCaptDelta} ms`);
+          }
+          if (++captCount >= minCaptCount) {
+            info(`Received ${minCaptCount} captureTime, exiting test`);
+            break;
+          }
+        } else {
+          ok(++missedCaptCount == frameCount,
+             "missing captureTime occurred sequentially from test start.");
+        }
+      }
+      ok_or_todo(captCount >= minCaptCount,
+                 `Captured at least ${captCount} captureTime`)
+    }
+
+    function arg_wrapper(fn, argsArr) {
+      return async function wrap() {
+        return fn(...argsArr);
+      };
+    }
+
+    SimpleTest.requestCompleteLog();
+    await pushPrefs(
+      ["media.video_loopback_dev", ""],
+      ["media.navigator.streams.fake", true]
+    );
+
+    // Note we use two RTCP syncs in these tests as we currently need two
+    // RTCP measurements in order to estimate a NTP timestamp.
+    // See: Use of rtp_to_ntp_.Estimate(rtp_timestamp) in
+    //      RemoteNtpTimeEstimator::EstimateNtp() and
+    //      the two measurement requirement in
+    //      RtpToNtpEstimator::UpdateParameters()
+    //      (as of 618678dd32e52dbaa8a56d72c6655032f48068b3)
+
+    // Unidirectional captureTime is currently BROKEN.
+    // See: bug 1971078 , bug 1971117
+    const test_uni = new PeerConnectionTest(options);
+    test_uni.setMediaConstraints([{ video: true }], []);
+    test_uni.chain.append([
+      arg_wrapper(WAIT_FOR_SYNCED_RTCP, [test_uni, 2]),
+      arg_wrapper(CHECK_TIMESTAMP_ALIGNMENT, [test_uni, todo, "UNIDIRECTIONAL"]),
+    ]);
+    await test_uni.run();
+
+    // Bidirectional test should pass.
+    const test_bi = new PeerConnectionTest(options);
+    test_bi.setMediaConstraints([{ video: true }], [{ video: true }]);
+    test_bi.chain.append([
+      arg_wrapper(WAIT_FOR_SYNCED_RTCP, [test_bi, 2]),
+      arg_wrapper(CHECK_TIMESTAMP_ALIGNMENT, [test_bi, ok, "BIDIRECTIONAL"]),
+    ]);
+    await test_bi.run();
+  });
+</script>
+</pre>
+</body>
+</html>
