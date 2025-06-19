@@ -10,6 +10,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
+  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   FirstStartup: "resource://gre/modules/FirstStartup.sys.mjs",
   HeadlessShell: "resource:///modules/HeadlessShell.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
@@ -373,17 +374,10 @@ async function doSearch(searchTerm, cmdLine) {
   // be handled synchronously. Then load the search URI when the
   // SearchService has loaded.
   let win = openBrowserWindow(cmdLine, lazy.gSystemPrincipal, "about:blank");
-  await new Promise(resolve => {
-    Services.obs.addObserver(function observe(subject) {
-      if (subject == win) {
-        Services.obs.removeObserver(
-          observe,
-          "browser-delayed-startup-finished"
-        );
-        resolve();
-      }
-    }, "browser-delayed-startup-finished");
-  });
+  await lazy.BrowserUtils.promiseObserved(
+    "browser-delayed-startup-finished",
+    subject => subject == win
+  );
 
   lazy.SearchUIUtils.loadSearchFromCommandLine(
     win,
@@ -1438,17 +1432,10 @@ nsDefaultCommandLineHandler.prototype = {
             // No URL provided, but notification was interacted with while the
             // application was closed. Fall back to opening the browser without url.
             winForAction = openBrowserWindow(cmdLine, lazy.gSystemPrincipal);
-            await new Promise(resolve => {
-              Services.obs.addObserver(function observe(subject) {
-                if (subject == winForAction) {
-                  Services.obs.removeObserver(
-                    observe,
-                    "browser-delayed-startup-finished"
-                  );
-                  resolve();
-                }
-              }, "browser-delayed-startup-finished");
-            });
+            await lazy.BrowserUtils.promiseObserved(
+              "browser-delayed-startup-finished",
+              subject => subject == winForAction
+            );
           } else {
             // Relaunch in private windows only if we're in perma-private mode.
             let allowPrivate =
