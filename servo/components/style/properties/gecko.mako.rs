@@ -61,7 +61,7 @@ impl ComputedValues {
     }
 
     pub fn new(
-        pseudo: Option<<&PseudoElement>,
+        pseudo: Option<&PseudoElement>,
         custom_properties: ComputedCustomProperties,
         writing_mode: WritingMode,
         effective_zoom: Zoom,
@@ -129,7 +129,7 @@ impl ComputedValues {
     /// Returns true if the display property is changed from 'none' to others.
     pub fn is_display_property_changed_from_none(
         &self,
-        old_values: Option<<&ComputedValues>
+        old_values: Option<&ComputedValues>
     ) -> bool {
         use crate::properties::longhands::display::computed_value::T as Display;
 
@@ -219,7 +219,7 @@ impl ComputedValuesInner {
         }
     }
 
-    fn to_outer(self, pseudo: Option<<&PseudoElement>) -> Arc<ComputedValues> {
+    fn to_outer(self, pseudo: Option<&PseudoElement>) -> Arc<ComputedValues> {
         let pseudo_ty = match pseudo {
             Some(p) => p.pseudo_type_and_argument().0,
             None => structs::PseudoStyleType::NotPseudo,
@@ -268,7 +268,7 @@ impl ComputedValuesInner {
     }
 
     /// Returns the visited style, if any.
-    pub fn visited_style(&self) -> Option<<&ComputedValues> {
+    pub fn visited_style(&self) -> Option<&ComputedValues> {
         unsafe { self.visited_style_ptr().as_ref() }
     }
 

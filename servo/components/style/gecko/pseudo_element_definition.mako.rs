@@ -172,7 +172,7 @@ impl PseudoElement {
     // FIXME: we probably have to return the arguments of -moz-tree. However, they are multiple
     // names, so we skip them for now (until we really need them).
     #[inline]
-    pub fn pseudo_type_and_argument(&self) -> (PseudoStyleType, Option< &Atom>) {
+    pub fn pseudo_type_and_argument(&self) -> (PseudoStyleType, Option<&Atom>) {
         match *self {
             % for pseudo in PSEUDOS:
             % if pseudo.is_tree_pseudo_element():
@@ -191,7 +191,7 @@ impl PseudoElement {
 
     /// Get the argument list of a tree pseudo-element.
     #[inline]
-    pub fn tree_pseudo_args(&self) -> Option<<&[Atom]> {
+    pub fn tree_pseudo_args(&self) -> Option<&[Atom]> {
         match *self {
             % for pseudo in TREE_PSEUDOS:
             PseudoElement::${pseudo.capitalized_pseudo()}(ref args) => Some(args),
