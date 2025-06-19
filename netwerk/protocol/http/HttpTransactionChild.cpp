@@ -71,7 +71,8 @@ nsresult HttpTransactionChild::InitInternal(
     bool responseTimeoutEnabled, uint64_t channelId,
     bool aHasTransactionObserver,
     const nsILoadInfo::IPAddressSpace& aParentIPAddressSpace,
-    const LNAPerms& aLnaPermissionStatus) {
+    const dom::ContentPermissionRequestBase::PromptResult&
+        aLnaPermissionStatus) {
   LOG(("HttpTransactionChild::InitInternal [this=%p caps=%x]\n", this, caps));
 
   RefPtr<nsHttpConnectionInfo> cinfo =
@@ -151,8 +152,8 @@ mozilla::ipc::IPCResult HttpTransactionChild::RecvInit(
     const mozilla::Maybe<PInputChannelThrottleQueueChild*>& aThrottleQueue,
     const bool& aIsDocumentLoad,
     const nsILoadInfo::IPAddressSpace& aParentIPAddressSpace,
-    const LNAPerms& aLnaPermissionStatus, const TimeStamp& aRedirectStart,
-    const TimeStamp& aRedirectEnd) {
+    const dom::ContentPermissionRequestBase::PromptResult& aLnaPermissionStatus,
+    const TimeStamp& aRedirectStart, const TimeStamp& aRedirectEnd) {
   mRequestHead = aReqHeaders;
   if (aRequestBody) {
     mUploadStream = mozilla::ipc::DeserializeIPCStream(aRequestBody);
