@@ -444,7 +444,7 @@ PK11_ReferenceSlot
 PK11_ReferenceSymKey
 PK11_ResetToken
 PK11SDR_Decrypt
-PK11SDR_Encrypt
+PK11SDR_EncryptWithMechanism
 PK11_SetPasswordFunc
 PK11_SetSymKeyNickname
 PK11_Sign

@@ -11,6 +11,7 @@
 #include "mozilla/Casting.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Services.h"
+#include "mozilla/StaticPrefs_security.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/Promise.h"
 #include "nsCOMPtr.h"
@@ -23,7 +24,7 @@
 #include "nsNetCID.h"
 #include "nsPK11TokenDB.h"
 #include "pk11func.h"
-#include "pk11sdr.h"  // For PK11SDR_Encrypt, PK11SDR_Decrypt
+#include "pk11sdr.h"
 
 static mozilla::LazyLogModule gSDRLog("sdrlog");
 
@@ -108,7 +109,8 @@ void BackgroundSdrDecryptStrings(const nsTArray<nsCString>& encryptedStrings,
   NS_DispatchToMainThread(runnable.forget());
 }
 
-nsresult SecretDecoderRing::Encrypt(const nsACString& data,
+nsresult SecretDecoderRing::Encrypt(CK_MECHANISM_TYPE type,
+                                    const nsACString& data,
                                     /*out*/ nsACString& result) {
   UniquePK11SlotInfo slot(PK11_GetInternalKeySlot());
   if (!slot) {
@@ -135,7 +137,8 @@ nsresult SecretDecoderRing::Encrypt(const nsACString& data,
   request.data = BitwiseCast<unsigned char*, const char*>(data.BeginReading());
   request.len = data.Length();
   ScopedAutoSECItem reply;
-  if (PK11SDR_Encrypt(&keyid, &request, &reply, ctx) != SECSuccess) {
+  if (PK11SDR_EncryptWithMechanism(slot.get(), &keyid, type, &request, &reply,
+                                   ctx) != SECSuccess) {
     return NS_ERROR_FAILURE;
   }
 
@@ -172,8 +175,19 @@ nsresult SecretDecoderRing::Decrypt(const nsACString& data,
 NS_IMETHODIMP
 SecretDecoderRing::EncryptString(const nsACString& text,
                                  /*out*/ nsACString& encryptedBase64Text) {
+  CK_MECHANISM_TYPE type;
+  nsCString prefix;
+  switch (StaticPrefs::security_sdr_mechanism()) {
+    case 0:
+      type = CKM_DES3_CBC;
+      break;
+    case 1:
+    default:
+      type = CKM_AES_CBC;
+      break;
+  }
   nsAutoCString encryptedText;
-  nsresult rv = Encrypt(text, encryptedText);
+  nsresult rv = Encrypt(type, text, encryptedText);
   if (NS_FAILED(rv)) {
     return rv;
   }

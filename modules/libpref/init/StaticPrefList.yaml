@@ -17225,6 +17225,15 @@
   value: false
   mirror: always
 
+# Which mechanism the secret decoder ring should use for encryption. Decryption
+# can always happen with all mechanisms.
+# 0 - DES3_CBC
+# 1 - AES_CBC
+- name: security.sdr.mechanism
+  type: RelaxedAtomicUint32
+  value: 0
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "signon."
 #---------------------------------------------------------------------------
