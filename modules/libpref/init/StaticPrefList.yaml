@@ -4634,6 +4634,11 @@
   value: true
   mirror: always
 
+- name: dom.urlpattern.enabled
+  type: RelaxedAtomicBool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 - name: dom.workers.pFetch.enabled
   type: RelaxedAtomicBool
   value: true
