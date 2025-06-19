@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { UrlbarUtils } from "resource:///modules/UrlbarUtils.sys.mjs";
+
 const ABSOLUTE = ["celsius", "kelvin", "fahrenheit"];
 const ALIAS = ["c", "k", "f"];
 const UNITS = [...ABSOLUTE, ...ALIAS];
@@ -15,8 +17,6 @@ const QUERY_REGEX = new RegExp(
   `^(${NUMBER_REGEX})(${UNIT_REGEX})(?:\\s+in\\s+|\\s+to\\s+|\\s*=\\s*)(${UNIT_REGEX})`,
   "i"
 );
-
-const DECIMAL_PRECISION = 10;
 
 /**
  * This module converts temperature unit.
@@ -53,17 +53,23 @@ export class UnitConverterTemperature {
       outputNumber = this[`${inputChar}2${outputChar}`](inputNumber);
     }
 
-    outputNumber = parseFloat(outputNumber.toPrecision(DECIMAL_PRECISION));
+    outputNumber = parseFloat(outputNumber);
 
+    let formattedUnit;
     try {
-      return new Intl.NumberFormat("en-US", {
+      const formatter = new Intl.NumberFormat("en-US", {
         style: "unit",
         unit: outputUnit,
-        maximumFractionDigits: DECIMAL_PRECISION,
-      }).format(outputNumber);
-    } catch (e) {}
+      });
+      const parts = formatter.formatToParts(1);
+      formattedUnit = parts.find(part => part.type == "unit").value;
+    } catch (e) {
+      formattedUnit = outputUnit;
+    }
 
-    return `${outputNumber} ${outputUnit}`;
+    let optionalSpace = formattedUnit[0] == "°" ? "" : " ";
+
+    return `${UrlbarUtils.formatUnitConversionResult(outputNumber)}${optionalSpace}${formattedUnit}`;
   }
 
   c2k(t) {

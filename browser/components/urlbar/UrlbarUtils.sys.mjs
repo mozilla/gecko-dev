@@ -1760,6 +1760,47 @@ export var UrlbarUtils = {
       index = highlightIndex + highlightLength;
     }
   },
+
+  /**
+   * Formats the numerical portion of unit conversion results.
+   *
+   * @param {number} result
+   *  The raw unformatted unit conversion result.
+   */
+  formatUnitConversionResult(result) {
+    const DECIMAL_PRECISION = 10;
+    const MAX_SIG_FIGURES = 10;
+    const FULL_NUMBER_MAX_THRESHOLD = 1 * 10 ** 10;
+    const FULL_NUMBER_MIN_THRESHOLD = 10 ** -5;
+
+    let locale = Services.locale.appLocaleAsBCP47;
+
+    if (
+      Math.abs(result) >= FULL_NUMBER_MAX_THRESHOLD ||
+      (Math.abs(result) <= FULL_NUMBER_MIN_THRESHOLD && result !== 0)
+    ) {
+      return new Intl.NumberFormat(locale, {
+        style: "decimal",
+        notation: "scientific",
+        minimumFractionDigits: 1,
+        maximumFractionDigits: DECIMAL_PRECISION,
+        numberingSystem: "latn",
+      })
+        .format(result)
+        .toLowerCase();
+    } else if (Math.abs(result) >= 1) {
+      return new Intl.NumberFormat(locale, {
+        style: "decimal",
+        maximumFractionDigits: DECIMAL_PRECISION,
+        numberingSystem: "latn",
+      }).format(result);
+    }
+    return new Intl.NumberFormat(locale, {
+      style: "decimal",
+      maximumSignificantDigits: MAX_SIG_FIGURES,
+      numberingSystem: "latn",
+    }).format(result);
+  },
 };
 
 ChromeUtils.defineLazyGetter(UrlbarUtils.ICON, "DEFAULT", () => {
