@@ -1,0 +1,42 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Firefox :: IP Protection'
+
+ipprotection:
+  enabled:
+    type: boolean
+    description: >
+      True if IP Protection is running.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972711
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972711
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - kpatenio@mozilla.com
+    expires: never
+
+  toggled:
+    type: event
+    description: >
+      Recorded when IP Protection is toggled.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972711
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972711
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - kpatenio@mozilla.com
+    expires: never
+    extra_keys:
+      enabled:
+        type: boolean
+        description: >
+          True if IP Protection was turned on.
