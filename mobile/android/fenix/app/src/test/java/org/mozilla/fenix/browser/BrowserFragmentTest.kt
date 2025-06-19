@@ -382,7 +382,7 @@ class BrowserFragmentTest {
         val browserToolbarView: BrowserToolbarView = mockk(relaxed = true)
         val browserToolbar: BrowserToolbar = mockk(relaxed = true)
         val leadingAction: BrowserToolbar.Button = mockk(relaxed = true)
-        browserFragment.leadingAction = leadingAction
+        browserFragment.homeAction = leadingAction
         browserFragment._browserToolbarView = browserToolbarView
         every { browserToolbarView.toolbar } returns browserToolbar
         every { browserToolbarView.updateMenuVisibility(any()) } just Runs
@@ -411,7 +411,7 @@ class BrowserFragmentTest {
         val browserToolbarView: BrowserToolbarView = mockk(relaxed = true)
         val browserToolbar: BrowserToolbar = mockk(relaxed = true)
         val leadingAction: BrowserToolbar.Button = mockk(relaxed = true)
-        browserFragment.leadingAction = leadingAction
+        browserFragment.homeAction = leadingAction
         browserFragment._browserToolbarView = browserToolbarView
         every { browserToolbarView.toolbar } returns browserToolbar
         every { browserToolbarView.updateMenuVisibility(any()) } just Runs
@@ -439,7 +439,7 @@ class BrowserFragmentTest {
         val browserToolbarView: BrowserToolbarView = mockk(relaxed = true)
         val browserToolbar: BrowserToolbar = mockk(relaxed = true)
         val leadingAction: BrowserToolbar.Button = mockk(relaxed = true)
-        browserFragment.leadingAction = leadingAction
+        browserFragment.homeAction = leadingAction
         browserFragment._browserToolbarView = browserToolbarView
         every { browserToolbarView.toolbar } returns browserToolbar
         every { browserToolbarView.updateMenuVisibility(any()) } just Runs
@@ -496,7 +496,7 @@ class BrowserFragmentTest {
             isTablet = false,
         )
 
-        verify(exactly = 1) { browserFragment.addLeadingAction(any()) }
+        verify(exactly = 1) { browserFragment.addHomeAction(any()) }
         verify(exactly = 0) { browserFragment.addTabletActions(any()) }
         verify(exactly = 0) { browserFragment.addNavigationActions(any()) }
         verify(exactly = 0) { browserFragment.removeNavigationActions() }
@@ -514,7 +514,7 @@ class BrowserFragmentTest {
         )
 
         verifyOrder {
-            browserFragment.addLeadingAction(any())
+            browserFragment.addHomeAction(any())
             browserFragment.addNavigationActions(any())
         }
 

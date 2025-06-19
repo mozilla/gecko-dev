@@ -73,7 +73,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     private var pwaOnboardingObserver: PwaOnboardingObserver? = null
 
     @VisibleForTesting
-    internal var leadingAction: BrowserToolbar.Button? = null
+    internal var homeAction: BrowserToolbar.Button? = null
     private var forwardAction: BrowserToolbar.TwoStateButton? = null
     private var backAction: BrowserToolbar.TwoStateButton? = null
     private var refreshAction: BrowserToolbar.TwoStateButton? = null
@@ -330,10 +330,10 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun addLeadingAction(context: Context) {
-        if (leadingAction != null) return
+    internal fun addHomeAction(context: Context) {
+        if (homeAction != null) return
 
-        leadingAction = BrowserToolbar.Button(
+        homeAction = BrowserToolbar.Button(
             imageDrawable = AppCompatResources.getDrawable(
                 context,
                 R.drawable.mozac_ic_home_24,
@@ -351,7 +351,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         context: Context,
         isTablet: Boolean,
     ) {
-        addLeadingAction(context = context)
+        addHomeAction(context = context)
         updateTabletToolbarActions(isTablet = isTablet)
         (browserToolbarView as? BrowserToolbarView)?.toolbar?.invalidateActions()
     }
@@ -532,7 +532,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     override fun onDestroyView() {
         super.onDestroyView()
         isTablet = false
-        leadingAction = null
+        homeAction = null
         forwardAction = null
         backAction = null
         refreshAction = null
