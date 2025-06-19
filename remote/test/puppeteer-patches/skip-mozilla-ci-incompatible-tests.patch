@@ -8,15 +8,6 @@ diff --git a/remote/test/puppeteer/test/TestExpectations.json b/remote/test/pupp
 index cc41a5e2c717..28b261003915 100644
 --- a/remote/test/puppeteer/test/TestExpectations.json
 +++ b/remote/test/puppeteer/test/TestExpectations.json
-@@ -726,7 +726,7 @@
-     "testIdPattern": "[browsercontext-cookies.spec] BrowserContext cookies BrowserContext.setCookie should set cookie with a partition key",
-     "platforms": ["darwin", "linux", "win32"],
-     "parameters": ["firefox", "webDriverBiDi"],
--    "expectations": ["FAIL"],
-+    "expectations": ["PASS", "FAIL"],
-     "comment": "Needs CHIPS to be enabled. See https://bugzilla.mozilla.org/show_bug.cgi?id=1931488"
-   },
-   {
 @@ -1252,6 +1252,13 @@
      "expectations": ["FAIL"],
      "comment": "TODO: add a comment explaining why this expectation is required (include links to issues)"
