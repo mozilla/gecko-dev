@@ -10,70 +10,9 @@
   "name": "System theme — auto",
   "description": "Follow the operating system setting for buttons, menus, and windows.",
   "author": "Mozilla",
-  "version": "1.4.1",
+  "version": "1.4.2",
 
   "icons": { "32": "icon.svg" },
 
-  "theme": {},
-
-  "dark_theme": {
-    "colors": {
-      "tab_background_text": "#fbfbfe",
-      "tab_selected": "rgba(200,200,220,0.3)",
-      "tab_text": "rgb(255,255,255)",
-      "icons": "rgb(251,251,254)",
-      "frame": "#1c1b22",
-      "popup": "rgb(66,65,77)",
-      "popup_text": "rgb(251,251,254)",
-      "popup_border": "rgb(82,82,94)",
-      "popup_highlight": "rgb(43,42,51)",
-      "tab_line": "transparent",
-      "toolbar": "#2b2a33",
-      "toolbar_top_separator": "transparent",
-      "toolbar_bottom_separator": "hsl(240, 5%, 5%)",
-      "toolbar_field": "rgb(28,27,34)",
-      "toolbar_field_border": "transparent",
-      "toolbar_field_text": "rgb(251,251,254)",
-      "toolbar_field_focus": "rgb(66,65,77)",
-      "toolbar_text": "rgb(251, 251, 254)",
-      "ntp_background": "rgb(43, 42, 51)",
-      "ntp_text": "rgb(251, 251, 254)",
-      "sidebar": "#38383D",
-      "sidebar_text": "rgb(249, 249, 250)",
-      "sidebar_border": "rgba(255, 255, 255, 0.1)",
-      "button": "rgb(43,42,51)",
-      "button_hover": "rgb(82,82,94)",
-      "button_active": "rgb(91,91,102)",
-      "button_primary": "rgb(0, 221, 255)",
-      "button_primary_hover": "rgb(128, 235, 255)",
-      "button_primary_active": "rgb(170, 242, 255)",
-      "button_primary_color": "rgb(43, 42, 51)",
-      "input_background": "#42414D",
-      "input_color": "rgb(251,251,254)",
-      "urlbar_popup_separator": "rgb(82,82,94)"
-    },
-    "properties": {
-      "toolbar_field_icon_opacity": "1",
-      "zap_gradient": "linear-gradient(90deg, #9059FF 0%, #FF4AA2 52.08%, #FFBD4F 100%)"
-    }
-  },
-
-  "theme_experiment": {
-    "colors": {
-      "button": "--button-background-color",
-      "button_hover": "--button-background-color-hover",
-      "button_active": "--button-background-color-active",
-      "button_primary": "--color-accent-primary",
-      "button_primary_hover": "--color-accent-primary-hover",
-      "button_primary_active": "--color-accent-primary-active",
-      "button_primary_color": "--button-text-color-primary",
-      "input_background": "--input-bgcolor",
-      "input_color": "--input-color",
-      "urlbar_popup_separator": "--urlbarView-separator-color"
-    },
-    "properties": {
-      "toolbar_field_icon_opacity": "--urlbar-icon-fill-opacity",
-      "zap_gradient": "--panel-separator-zap-gradient"
-    }
-  }
+  "theme": {}
 }

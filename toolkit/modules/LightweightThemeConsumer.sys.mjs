@@ -272,15 +272,18 @@ LightweightThemeConsumer.prototype = {
   _update(themeData) {
     this._lastData = themeData;
 
-    const hasDarkTheme = !!themeData.darkTheme;
+    let supportsDarkTheme =
+      !!themeData.darkTheme ||
+      !themeData.theme ||
+      themeData.theme.id == DEFAULT_THEME_ID;
     let updateGlobalThemeData = true;
-    let useDarkTheme = (() => {
-      if (!hasDarkTheme) {
+    const useDarkTheme = (() => {
+      if (!supportsDarkTheme) {
         return false;
       }
 
       if (this.darkThemeMediaQuery?.matches) {
-        return themeData.darkTheme.id != DEFAULT_THEME_ID;
+        return true;
       }
 
       // If enabled, apply the dark theme variant to private browsing windows.
@@ -320,8 +323,7 @@ LightweightThemeConsumer.prototype = {
     if (!theme) {
       theme = { id: DEFAULT_THEME_ID };
     }
-    let hasTheme = theme.id != DEFAULT_THEME_ID || useDarkTheme;
-
+    let hasTheme = theme.id != DEFAULT_THEME_ID;
     let root = this._doc.documentElement;
     if (hasTheme && theme.headerURL) {
       root.setAttribute("lwtheme-image", "true");
@@ -348,7 +350,7 @@ LightweightThemeConsumer.prototype = {
           this._doc,
           theme,
           _processedColors,
-          hasDarkTheme,
+          supportsDarkTheme,
           useDarkTheme
         );
       }

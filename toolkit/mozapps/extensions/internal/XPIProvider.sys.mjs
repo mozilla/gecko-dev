@@ -2761,7 +2761,7 @@ export var XPIProvider = {
         // Keep version in sync with toolkit/mozapps/extensions/default-theme/manifest.json
         this.maybeInstallBuiltinAddon(
           "default-theme@mozilla.org",
-          "1.4.1",
+          "1.4.2",
           "resource://default-theme/"
         );
       }
