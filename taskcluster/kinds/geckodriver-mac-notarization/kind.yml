@@ -27,7 +27,6 @@ tasks:
             symbol: TM(gd-n)
         worker:
             implementation: iscript
-            max-run-time: 3600
             upstream-artifacts:
                 - taskType: signing
                   paths:

@@ -49,8 +49,6 @@ signing_description_schema = Schema(
         Optional("shipping-phase"): task_description_schema["shipping-phase"],
         Optional("shipping-product"): task_description_schema["shipping-product"],
         Required("dependencies"): task_description_schema["dependencies"],
-        # Optional control for how long a task may run (aka maxRunTime)
-        Optional("max-run-time"): int,
         Optional("extra"): {str: object},
         # Max number of partner repacks per chunk
         Optional("repacks-per-chunk"): int,
@@ -182,7 +180,6 @@ def make_task_description(config, jobs):
                 "implementation": "scriptworker-signing",
                 "signing-type": signing_type,
                 "upstream-artifacts": job["upstream-artifacts"],
-                "max-run-time": job.get("max-run-time", 3600),
             },
             "dependencies": job["dependencies"],
             "attributes": attributes,

@@ -128,7 +128,6 @@ def make_task_description(config, jobs):
                 "implementation": "scriptworker-signing",
                 "signing-type": signing_type,
                 "upstream-artifacts": upstream_artifacts,
-                "max-run-time": 3600,
             },
             "dependencies": dependencies,
             "attributes": attributes,

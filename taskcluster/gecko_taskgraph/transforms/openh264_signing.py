@@ -70,7 +70,6 @@ def make_signing_description(config, jobs):
         worker = {
             "implementation": "scriptworker-signing",
             "signing-type": signing_type,
-            "max-run-time": 3600,
         }
         rev = attributes["openh264_rev"]
         upstream_artifact = {
