@@ -354,9 +354,6 @@
     </style>
 
     <style name="PrivateTheme" parent="PrivateThemeBase" />
-    <style name="FeltPrivateTheme" parent="PrivateThemeBase">
-        <item name="homeBackground">@drawable/felt_private_home_background_gradient</item>
-    </style>
 
     <!-- Fade animation for theme switching -->
     <style name="WindowAnimationTransition" parent="android:Animation.Activity">
