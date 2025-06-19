@@ -127,6 +127,25 @@ class TaskQueue final : public AbstractThread,
   bool IsCurrentThreadIn() const override;
   using nsISerialEventTarget::IsOnCurrentThread;
 
+  class Observer {
+   public:
+    NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
+    // Called before an event is processed on the TaskQueue on its event target.
+    virtual void WillProcessEvent(TaskQueue* aQueue) = 0;
+    // Called after an event has been processed on the TaskQueue on its event
+    // target.
+    // Note that it is not safe to add direct tasks from DidProcessEvent().
+    virtual void DidProcessEvent(TaskQueue* aQueue) = 0;
+
+   protected:
+    virtual ~Observer() = default;
+  };
+
+  // Set an observer to be notified as this TaskQueue processes events.
+  // Callable from any thread. Transactional, i.e. WillProcess always comes
+  // first and is always matched by DidProcess.
+  void SetObserver(Observer* aObserver);
+
  private:
   friend class SupportsThreadSafeWeakPtr<TaskQueue>;
 
@@ -180,8 +199,8 @@ class TaskQueue final : public AbstractThread,
   // RAII class that gets instantiated for each dispatched task.
   class AutoTaskGuard {
    public:
-    explicit AutoTaskGuard(TaskQueue* aQueue)
-        : mQueue(aQueue), mLastCurrentThread(nullptr) {
+    AutoTaskGuard(TaskQueue* aQueue, TaskQueue::Observer* aObserver)
+        : mQueue(aQueue), mObserver(aObserver), mLastCurrentThread(nullptr) {
       // NB: We don't hold the lock to aQueue here. Don't do anything that
       // might require it.
       MOZ_ASSERT(!mQueue->mTailDispatcher);
@@ -196,11 +215,24 @@ class TaskQueue final : public AbstractThread,
       mQueue->mRunningThread = PR_GetCurrentThread();
 
       mEventTargetGuard.emplace(mQueue);
+
+      if (mObserver) {
+        mObserver->WillProcessEvent(mQueue);
+      }
     }
 
     ~AutoTaskGuard() {
       mTaskDispatcher->DrainDirectTasks();
+
+      if (mObserver) {
+        mObserver->DidProcessEvent(mQueue);
+        MOZ_ASSERT(!mTaskDispatcher->HaveDirectTasks(),
+                   "TaskQueue::Observer instance in "
+                   "DidProcessEvent(TaskQueue*) added direct tasks in error");
+      }
+
       mTaskDispatcher.reset();
+      mQueue->mTailDispatcher = nullptr;
 
       mEventTargetGuard = Nothing();
 
@@ -208,13 +240,13 @@ class TaskQueue final : public AbstractThread,
       mQueue->mRunningThread = nullptr;
 
       sCurrentThreadTLS.set(mLastCurrentThread);
-      mQueue->mTailDispatcher = nullptr;
     }
 
    private:
     Maybe<AutoTaskDispatcher> mTaskDispatcher;
     Maybe<SerialEventTargetGuard> mEventTargetGuard;
     TaskQueue* mQueue;
+    TaskQueue::Observer* mObserver;
     AbstractThread* mLastCurrentThread;
   };
 
@@ -233,6 +265,8 @@ class TaskQueue final : public AbstractThread,
   const char* const mName;
 
   SimpleTaskQueue mDirectTasks;
+
+  RefPtr<Observer> mObserver MOZ_GUARDED_BY(mQueueMonitor);
 
   class Runner : public Runnable {
    public:
