@@ -377,9 +377,9 @@ void ArenaLists::mergeSweptArenas(AllocKind kind, ArenaList& sweptArenas) {
 
 void ArenaLists::queueForegroundThingsForSweep() {
   gcCompactPropMapArenasToUpdate =
-      collectingArenaList(AllocKind::COMPACT_PROP_MAP).first();
+      collectingArenaList(AllocKind::COMPACT_PROP_MAP).getFirst();
   gcNormalPropMapArenasToUpdate =
-      collectingArenaList(AllocKind::NORMAL_PROP_MAP).first();
+      collectingArenaList(AllocKind::NORMAL_PROP_MAP).getFirst();
 }
 
 void GCRuntime::sweepBackgroundThings(ZoneList& zones) {

@@ -69,7 +69,7 @@ class SinglyLinkedList {
   bool isEmpty() const { return !last_; }
 
   // These return nullptr if the list is empty.
-  T* first() const {
+  T* getFirst() const {
     if (isEmpty()) {
       return nullptr;
     }
@@ -77,7 +77,7 @@ class SinglyLinkedList {
     MOZ_ASSERT(element);
     return element;
   }
-  T* last() const { return last_; }
+  T* getLast() const { return last_; }
 
   T* popFront() {
     MOZ_ASSERT(!isEmpty());
@@ -128,10 +128,10 @@ class SinglyLinkedList {
       return;
     }
 
-    T* firstElement = first();
-    last()->next = other.first();
-    other.last()->next = firstElement;
-    last_ = other.last();
+    T* firstElement = getFirst();
+    getLast()->next = other.getFirst();
+    other.getLast()->next = firstElement;
+    last_ = other.getLast();
     other.last_ = nullptr;
   }
 
@@ -147,9 +147,9 @@ class SinglyLinkedList {
       return;
     }
 
-    T* firstElement = first();
-    last()->next = other.first();
-    other.last()->next = firstElement;
+    T* firstElement = getFirst();
+    getLast()->next = other.getFirst();
+    other.getLast()->next = firstElement;
     other.last_ = nullptr;
   }
 
@@ -168,7 +168,7 @@ class SinglyLinkedList {
     size_t index = 0;
     size_t fromIndex = SIZE_MAX;
     size_t toIndex = SIZE_MAX;
-    for (T* element = first(); element; element = element->next) {
+    for (T* element = getFirst(); element; element = element->next) {
       if (element == fromExclusive) {
         fromIndex = index;
       }
@@ -206,9 +206,9 @@ class SinglyLinkedList {
    public:
     Iterator() = default;
     explicit Iterator(const SinglyLinkedList& list)
-        : i(list.first()), last(list.last()) {}
+        : i(list.getFirst()), last(list.getLast()) {}
     Iterator(const SinglyLinkedList& list, T* first)
-        : i(first), last(list.last()) {}
+        : i(first), last(list.getLast()) {}
     bool done() const { return !i; }
     void next() {
       MOZ_ASSERT(!done());
@@ -252,7 +252,7 @@ class SinglyLinkedList {
       return nullptr;
     }
 
-    T* list = first();
+    T* list = getFirst();
     MOZ_ASSERT(last_->next);
     last_->next = nullptr;
     last_ = nullptr;
