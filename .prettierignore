@@ -1290,7 +1290,7 @@ devtools/shared/commands/resource/tests/style_document.css
 
 # Style editor tests check how it copes with invalid or "special" CSS,
 # so don't try to "fix" those.
-devtools/client/styleeditor/test/
+devtools/client/styleeditor/test/**/*.css
 
 # These are empty or have funky charsets
 dom/base/test/bug466409-empty.css
