@@ -11,6 +11,8 @@
 $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
 'Application Services :: Relevancy':
   description: The Bugzilla component which applies to this object.
+'Application Services :: Remote Settings':
+  description: The Bugzilla component which applies to this object.
 'Cloud Services :: Firefox: Common':
   description: The Bugzilla component which applies to this object.
 'Conduit :: mots':
@@ -26,8 +28,6 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
 'Core :: Audio/Video: Recording':
   description: The Bugzilla component which applies to this object.
 'Core :: Audio/Video: Web Codecs':
-  description: The Bugzilla component which applies to this object.
-'Core :: Audio/Video: cubeb':
   description: The Bugzilla component which applies to this object.
 'Core :: AutoConfig (Mission Control Desktop)':
   description: The Bugzilla component which applies to this object.
@@ -125,17 +125,7 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'Core :: JavaScript Engine':
   description: The Bugzilla component which applies to this object.
-'Core :: JavaScript Engine: JIT':
-  description: The Bugzilla component which applies to this object.
-'Core :: JavaScript: GC':
-  description: The Bugzilla component which applies to this object.
 'Core :: JavaScript: Internationalization API':
-  description: The Bugzilla component which applies to this object.
-'Core :: JavaScript: Standard Library':
-  description: The Bugzilla component which applies to this object.
-'Core :: JavaScript: WebAssembly':
-  description: The Bugzilla component which applies to this object.
-'Core :: Javascript: Web Assembly':
   description: The Bugzilla component which applies to this object.
 'Core :: Javascript: WebAssembly':
   description: The Bugzilla component which applies to this object.
@@ -213,13 +203,9 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'Core :: Security: CAPS':
   description: The Bugzilla component which applies to this object.
-'Core :: Security: MLS':
-  description: The Bugzilla component which applies to this object.
 'Core :: Security: PSM':
   description: The Bugzilla component which applies to this object.
 'Core :: Security: Process Sandboxing':
-  description: The Bugzilla component which applies to this object.
-'Core :: Security: RLBox':
   description: The Bugzilla component which applies to this object.
 'Core :: Spelling checker':
   description: The Bugzilla component which applies to this object.
@@ -347,6 +333,8 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'Firefox :: Headless':
   description: The Bugzilla component which applies to this object.
+'Firefox :: IP Protection':
+  description: The Bugzilla component which applies to this object.
 'Firefox :: Installer':
   description: The Bugzilla component which applies to this object.
 'Firefox :: Keyboard Navigation':
@@ -388,8 +376,6 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
 'Firefox :: Settings UI':
   description: The Bugzilla component which applies to this object.
 'Firefox :: Shell Integration':
-  description: The Bugzilla component which applies to this object.
-'Firefox :: Shopping':
   description: The Bugzilla component which applies to this object.
 'Firefox :: Sidebar':
   description: The Bugzilla component which applies to this object.
@@ -435,8 +421,6 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
   description: The Bugzilla component which applies to this object.
 'NSPR :: NSPR':
   description: The Bugzilla component which applies to this object.
-'NSS :: Libraries':
-  description: The Bugzilla component which applies to this object.
 'Release Engineering :: Applications: MozharnessCore':
   description: The Bugzilla component which applies to this object.
 'Release Engineering :: General':
@@ -444,8 +428,6 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
 'Release Engineering :: Release Automation':
   description: The Bugzilla component which applies to this object.
 'Remote Protocol :: Agent':
-  description: The Bugzilla component which applies to this object.
-'Remote Protocol :: CDP':
   description: The Bugzilla component which applies to this object.
 'Remote Protocol :: Marionette':
   description: The Bugzilla component which applies to this object.
@@ -478,8 +460,6 @@ $schema: moz://mozilla.org/schemas/glean/tags/1-0-0
 'Testing :: Reftest':
   description: The Bugzilla component which applies to this object.
 'Testing :: XPCShell Harness':
-  description: The Bugzilla component which applies to this object.
-'Testing :: geckodriver':
   description: The Bugzilla component which applies to this object.
 'Testing :: mozperftest':
   description: The Bugzilla component which applies to this object.
