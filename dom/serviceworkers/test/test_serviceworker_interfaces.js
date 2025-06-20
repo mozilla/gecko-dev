@@ -604,13 +604,7 @@ function createInterfaceMap(data, ...interfaceGroups) {
       } else {
         ok(!(entry.name in interfaceMap), "duplicate entry for " + entry.name);
         ok(!("pref" in entry), "Bogus pref annotation for " + entry.name);
-        if (entryDisabled(entry, data)) {
-          interfaceMap[entry.name] = false;
-        } else if (entry.optional) {
-          interfaceMap[entry.name] = "optional";
-        } else {
-          interfaceMap[entry.name] = true;
-        }
+        interfaceMap[entry.name] = !entryDisabled(entry, data);
       }
     }
   }
@@ -630,7 +624,7 @@ function runTest(parentName, parent, data, ...interfaceGroups) {
       continue;
     }
     ok(
-      interfaceMap[name] === "optional" || interfaceMap[name],
+      interfaceMap[name],
       "If this is failing: DANGER, are you sure you want to expose the new interface " +
         name +
         " to all webpages as a property on " +
@@ -641,20 +635,13 @@ function runTest(parentName, parent, data, ...interfaceGroups) {
     delete interfaceMap[name];
   }
   for (var name of Object.keys(interfaceMap)) {
-    if (interfaceMap[name] === "optional") {
+    const not = interfaceMap[name] ? "" : " NOT";
+    ok(
+      name in parent === interfaceMap[name],
+      `${name} should${not} be defined on ${parentName}`
+    );
+    if (!interfaceMap[name]) {
       delete interfaceMap[name];
-    } else {
-      ok(
-        name in parent === interfaceMap[name],
-        name +
-          " should " +
-          (interfaceMap[name] ? "" : " NOT") +
-          " be defined on " +
-          parentName
-      );
-      if (!interfaceMap[name]) {
-        delete interfaceMap[name];
-      }
     }
   }
   is(
