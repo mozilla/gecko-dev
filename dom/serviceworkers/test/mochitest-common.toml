@@ -102,7 +102,6 @@ support-files = [
   "fetch/upgrade-insecure/unregister.html",
   "match_all_properties_worker.js",
   "match_all_clients/match_all_controlled.html",
-  "test_serviceworker_interfaces.js",
   "serviceworker_wrapper.js",
   "message_receiver.html",
   "serviceworker_not_sharedworker.js",
@@ -423,6 +422,11 @@ skip-if = [
 ]
 
 ["test_serviceworker_interfaces.html"]
+scheme = "https"
+support-files = [
+  "test_serviceworker_interfaces.js",
+  "!/dom/tests/mochitest/general/interface_exposure_checker.js",
+]
 
 ["test_serviceworker_not_sharedworker.html"]
 skip-if = [

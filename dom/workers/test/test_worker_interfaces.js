@@ -1,5 +1,7 @@
 /* eslint-disable mozilla/no-comparison-or-assignment-inside-ok */
 
+importScripts("../../tests/mochitest/general/interface_exposure_checker.js");
+
 // This is a list of all interfaces that are exposed to workers.
 // Please only add things to this list with great care and proper review
 // from the associated module peers.
@@ -12,18 +14,19 @@
 //
 // [
 //   "AGlobalInterface", // secure context only
+//   { name: "DesktopOnlyThing", desktop: true },
+//   { name: "DisabledEverywhere", disabled: true },
 //   { name: "ExperimentalThing", release: false },
 //   { name: "ReallyExperimentalThing", nightly: true },
-//   { name: "DesktopOnlyThing", desktop: true },
-//   { name: "FancyControl", xbl: true },
-//   { name: "DisabledEverywhere", disabled: true },
 // ];
 //
-// See createInterfaceMap() below for a complete list of properties.
+// Note that the items are alphabetically sorted. This is a requirement.
+// See createInterfaceMap() in interface_exposure_checker.js for a complete
+// list of properties.
 //
 // The values of the properties need to be literal true/false
 // (e.g. indicating whether something is enabled on a particular
-// channel/OS).  If we ever end up in a situation where a propert
+// channel/OS).  If we ever end up in a situation where a property
 // value needs to depend on channel or OS, we will need to make sure
 // we have that information before setting up the property lists.
 
@@ -578,105 +581,17 @@ let testFunctions = [
   "runTest",
 ];
 
-function entryDisabled(
-  entry,
-  {
-    isNightly,
-    isEarlyBetaOrEarlier,
-    isRelease,
-    isDesktop,
-    isAndroid,
-    isInsecureContext,
-    isFennec,
-    isCrossOringinIsolated,
-  }
-) {
-  return (
-    entry.nightly === !isNightly ||
-    (entry.nightlyAndroid === !(isAndroid && isNightly) && isAndroid) ||
-    entry.desktop === !isDesktop ||
-    (entry.android === !isAndroid && !entry.nightlyAndroid) ||
-    entry.fennecOrDesktop === (isAndroid && !isFennec) ||
-    entry.fennec === !isFennec ||
-    entry.release === !isRelease ||
-    // The insecureContext test is very purposefully converting
-    // entry.insecureContext to boolean, so undefined will convert to
-    // false.  That way entries without an insecureContext annotation
-    // will get treated as "insecureContext: false", which means exposed
-    // only in secure contexts.
-    (isInsecureContext && !entry.insecureContext) ||
-    entry.earlyBetaOrEarlier === !isEarlyBetaOrEarlier ||
-    entry.crossOriginIsolated === !isCrossOringinIsolated ||
-    entry.disabled
-  );
-}
-
-function createInterfaceMap(data, ...interfaceGroups) {
-  var interfaceMap = {};
-
-  function addInterfaces(interfaces) {
-    for (var entry of interfaces) {
-      if (typeof entry === "string") {
-        ok(!(entry in interfaceMap), "duplicate entry for " + entry);
-        interfaceMap[entry] = !data.isInsecureContext;
-      } else {
-        ok(!(entry.name in interfaceMap), "duplicate entry for " + entry.name);
-        ok(!("pref" in entry), "Bogus pref annotation for " + entry.name);
-        interfaceMap[entry.name] = !entryDisabled(entry, data);
-      }
-    }
-  }
-
-  for (let interfaceGroup of interfaceGroups) {
-    addInterfaces(interfaceGroup);
-  }
-
-  return interfaceMap;
-}
-
-function runTest(parentName, parent, data, ...interfaceGroups) {
-  var interfaceMap = createInterfaceMap(data, ...interfaceGroups);
-  for (var name of Object.getOwnPropertyNames(parent)) {
-    // Ignore functions on the global that are part of the test (harness).
-    if (parent === self && testFunctions.includes(name)) {
-      continue;
-    }
-    ok(
-      interfaceMap[name],
-      "If this is failing: DANGER, are you sure you want to expose the new interface " +
-        name +
-        " to all webpages as a property of " +
-        parentName +
-        "? Do not make a change to this file without a " +
-        " review from a DOM peer for that specific change!!! (or a JS peer for changes to ecmaGlobals)"
-    );
-    delete interfaceMap[name];
-  }
-  for (var name of Object.keys(interfaceMap)) {
-    ok(
-      name in parent === interfaceMap[name],
-      name +
-        " should " +
-        (interfaceMap[name] ? "" : " NOT") +
-        " be defined on " +
-        parentName
-    );
-    if (!interfaceMap[name]) {
-      delete interfaceMap[name];
-    }
-  }
-  is(
-    Object.keys(interfaceMap).length,
-    0,
-    "The following interface(s) are not enumerated: " +
-      Object.keys(interfaceMap).join(", ")
-  );
-}
-
 workerTestGetHelperData(function (data) {
-  runTest("self", self, data, ecmaGlobals, interfaceNamesInGlobalScope);
+  runTest("self", self, {
+    data,
+    testFunctions,
+    interfaceGroups: [ecmaGlobals, interfaceNamesInGlobalScope],
+  });
   if (WebAssembly && !entryDisabled(wasmGlobalEntry, data)) {
-    runTest("WebAssembly", WebAssembly, data, wasmGlobalInterfaces);
+    runTest("WebAssembly", WebAssembly, {
+      data,
+      interfaceGroups: [wasmGlobalInterfaces],
+    });
   }
   workerTestDone();
 });

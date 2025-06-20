@@ -79,7 +79,6 @@ support-files = [
   "throwingOnerror_worker.js",
   "timeoutTracing_worker.js",
   "transferable_worker.js",
-  "test_worker_interfaces.js",
   "worker_driver.js",
   "worker_wrapper.js",
   "bug1060621_worker.js",
@@ -361,6 +360,14 @@ skip-if = [
   "http3",
   "http2",
 ]
+support-files = [
+  "test_worker_interfaces.js",
+  "!/dom/tests/mochitest/general/interface_exposure_checker.js",
+]
 
 ["test_worker_interfaces_secureContext.html"]
 scheme = "https"
+support-files = [
+  "test_worker_interfaces.js",
+  "!/dom/tests/mochitest/general/interface_exposure_checker.js",
+]

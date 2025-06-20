@@ -18,40 +18,21 @@
 // properties which qualify the exposure of that interface. For example:
 //
 // [
-//   "AGlobalInterface",
-//   {name: "ExperimentalThing", release: false},
-//   {name: "ReallyExperimentalThing", nightly: true},
-//   {name: "DesktopOnlyThing", desktop: true},
-//   {name: "DisabledEverywhere", disabled: true},
+//   "AGlobalInterface", // secure context only
+//   { name: "DesktopOnlyThing", desktop: true },
+//   { name: "DisabledEverywhere", disabled: true },
+//   { name: "ExperimentalThing", release: false },
+//   { name: "ReallyExperimentalThing", nightly: true },
 // ];
 //
-// See createInterfaceMap() below for a complete list of properties.
+// Note that the items are alphabetically sorted. This is a requirement.
+// See createInterfaceMap() in interface_exposure_checker.js for a complete
+// list of properties.
 //
 // The values of the properties need to be either literal true/false
 // (e.g. indicating whether something is enabled on a particular
-// channel/OS) or one of the is* constants below (in cases when
-// exposure is affected by channel or OS in a nontrivial way).
-
-const { AppConstants } = SpecialPowers.ChromeUtils.importESModule(
-  "resource://gre/modules/AppConstants.sys.mjs"
-);
-
-const isNightly = AppConstants.NIGHTLY_BUILD;
-const isEarlyBetaOrEarlier = AppConstants.EARLY_BETA_OR_EARLIER;
-const isRelease = AppConstants.RELEASE_OR_BETA;
-const isDesktop = !/Mobile|Tablet/.test(navigator.userAgent);
-const isMac = AppConstants.platform == "macosx";
-const isWindows = AppConstants.platform == "win";
-const isAndroid = AppConstants.platform == "android";
-const isLinux = AppConstants.platform == "linux";
-const isInsecureContext = !window.isSecureContext;
-// Currently, MOZ_APP_NAME is always "fennec" for all mobile builds, so we can't use AppConstants for this
-const isFennec =
-  isAndroid &&
-  SpecialPowers.Cc["@mozilla.org/android/bridge;1"].getService(
-    SpecialPowers.Ci.nsIGeckoViewBridge
-  ).isFennec;
-const isCrossOriginIsolated = window.crossOriginIsolated;
+// channel/OS) or one of the is* constants in interface_exposure_checker.js
+// (in cases when exposure is affected by channel or OS in a nontrivial way).
 
 // IMPORTANT: Do not change this list without review from
 //            a JavaScript Engine peer!
@@ -2064,100 +2045,6 @@ let interfaceNamesInGlobalScope = [
 ];
 // IMPORTANT: Do not change the list above without review from a DOM peer!
 
-function entryDisabled(entry) {
-  return (
-    entry.nightly === !isNightly ||
-    (entry.nightlyAndroid === !(isAndroid && isNightly) && isAndroid) ||
-    entry.desktop === !isDesktop ||
-    entry.windows === !isWindows ||
-    entry.mac === !isMac ||
-    entry.linux === !isLinux ||
-    (entry.android === !isAndroid && !entry.nightlyAndroid) ||
-    entry.fennecOrDesktop === (isAndroid && !isFennec) ||
-    entry.fennec === !isFennec ||
-    entry.release === !isRelease ||
-    entry.releaseNonWindows === !(isRelease && !isWindows) ||
-    // The insecureContext test is very purposefully converting
-    // entry.insecureContext to boolean, so undefined will convert to
-    // false.  That way entries without an insecureContext annotation
-    // will get treated as "insecureContext: false", which means exposed
-    // only in secure contexts.
-    (isInsecureContext && !entry.insecureContext) ||
-    entry.earlyBetaOrEarlier === !isEarlyBetaOrEarlier ||
-    entry.crossOriginIsolated === !isCrossOriginIsolated ||
-    entry.disabled
-  );
-}
-
-function createInterfaceMap(...interfaceGroups) {
-  var interfaceMap = {};
-
-  function addInterfaces(interfaces) {
-    for (var entry of interfaces) {
-      if (typeof entry === "string") {
-        ok(!(entry in interfaceMap), "duplicate entry for " + entry);
-        interfaceMap[entry] = !isInsecureContext;
-      } else {
-        ok(!(entry.name in interfaceMap), "duplicate entry for " + entry.name);
-        ok(!("pref" in entry), "Bogus pref annotation for " + entry.name);
-        interfaceMap[entry.name] = !entryDisabled(entry);
-      }
-    }
-  }
-
-  for (let interfaceGroup of interfaceGroups) {
-    addInterfaces(interfaceGroup);
-  }
-
-  return interfaceMap;
-}
-
-function runTest(parentName, parent, ...interfaceGroups) {
-  var interfaceMap = createInterfaceMap(...interfaceGroups);
-  for (var name of Object.getOwnPropertyNames(parent)) {
-    ok(
-      interfaceMap[name],
-      "If this is failing: DANGER, are you sure you want to expose the new interface " +
-        name +
-        " to all webpages as a property on '" +
-        parentName +
-        "'? Do not make a change to this file without a " +
-        " review from a DOM peer for that specific change!!! (or a JS peer for changes to ecmaGlobals)"
-    );
-
-    ok(
-      name in parent,
-      `${name} is exposed as an own property on '${parentName}' but tests false for "in" in the global scope`
-    );
-    ok(
-      Object.getOwnPropertyDescriptor(parent, name),
-      `${name} is exposed as an own property on '${parentName}' but has no property descriptor in the global scope`
-    );
-
-    delete interfaceMap[name];
-  }
-  for (var name of Object.keys(interfaceMap)) {
-    ok(
-      name in parent === interfaceMap[name],
-      name +
-        " should " +
-        (interfaceMap[name] ? "" : " NOT") +
-        " be defined on '" +
-        parentName +
-        "' scope"
-    );
-    if (!interfaceMap[name]) {
-      delete interfaceMap[name];
-    }
-  }
-  is(
-    Object.keys(interfaceMap).length,
-    0,
-    "The following interface(s) are not enumerated: " +
-      Object.keys(interfaceMap).join(", ")
-  );
-}
-
 // Use an iframe because the test harness pollutes the global object with a lot
 // of functions.
 let iframeWindow = document.getElementById("testframe").contentWindow;
@@ -2166,8 +2053,17 @@ is(
   iframeWindow.isSecureContext,
   "iframe isSecureContext must match"
 );
-runTest("window", iframeWindow, ecmaGlobals, interfaceNamesInGlobalScope);
 
-if (window.WebAssembly && !entryDisabled(wasmGlobalEntry)) {
-  runTest("WebAssembly", window.WebAssembly, wasmGlobalInterfaces);
+let data = getHelperData();
+
+runTest("window", iframeWindow, {
+  data,
+  interfaceGroups: [ecmaGlobals, interfaceNamesInGlobalScope],
+});
+
+if (window.WebAssembly && !entryDisabled(data, wasmGlobalEntry)) {
+  runTest("WebAssembly", window.WebAssembly, {
+    data,
+    interfaceGroups: [wasmGlobalInterfaces],
+  });
 }

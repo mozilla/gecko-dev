@@ -34,43 +34,9 @@ function workerTestExec(script) {
     } else if (event.data.type == "status") {
       ok(event.data.status, event.data.msg);
     } else if (event.data.type == "getHelperData") {
-      const { AppConstants } = SpecialPowers.ChromeUtils.importESModule(
-        "resource://gre/modules/AppConstants.sys.mjs"
-      );
-      const isNightly = AppConstants.NIGHTLY_BUILD;
-      const isEarlyBetaOrEarlier = AppConstants.EARLY_BETA_OR_EARLIER;
-      const isRelease = AppConstants.RELEASE_OR_BETA;
-      const isDesktop = !/Mobile|Tablet/.test(navigator.userAgent);
-      const isMac = AppConstants.platform == "macosx";
-      const isWindows = AppConstants.platform == "win";
-      const isAndroid = AppConstants.platform == "android";
-      const isLinux = AppConstants.platform == "linux";
-      const isInsecureContext = !window.isSecureContext;
-      // Currently, MOZ_APP_NAME is always "fennec" for all mobile builds, so we can't use AppConstants for this
-      const isFennec =
-        isAndroid &&
-        SpecialPowers.Cc["@mozilla.org/android/bridge;1"].getService(
-          SpecialPowers.Ci.nsIGeckoViewBridge
-        ).isFennec;
-      const isCrossOriginIsolated = window.crossOriginIsolated;
-
-      const result = {
-        isNightly,
-        isEarlyBetaOrEarlier,
-        isRelease,
-        isDesktop,
-        isMac,
-        isWindows,
-        isAndroid,
-        isLinux,
-        isInsecureContext,
-        isFennec,
-        isCrossOriginIsolated,
-      };
-
       worker.postMessage({
         type: "returnHelperData",
-        result,
+        result: getHelperData(),
       });
     }
   };

@@ -6,7 +6,8 @@
   <title>Validate Interfaces Exposed to Service Workers</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
-  <script type="text/javascript" src="../worker_driver.js"></script>
+  <script src="../../tests/mochitest/general/interface_exposure_checker.js"></script>
+  <script src="../worker_driver.js"></script>
 </head>
 <body>
 <script class="testbody" type="text/javascript">
@@ -42,28 +43,9 @@
         });
 
       } else if (event.data.type == 'getHelperData') {
-        const { AppConstants } = SpecialPowers.ChromeUtils.importESModule(
-          "resource://gre/modules/AppConstants.sys.mjs"
-        );
-        const isNightly = AppConstants.NIGHTLY_BUILD;
-        const isEarlyBetaOrEarlier = AppConstants.EARLY_BETA_OR_EARLIER;
-        const isRelease = AppConstants.RELEASE_OR_BETA;
-        const isDesktop = !/Mobile|Tablet/.test(navigator.userAgent);
-        const isMac = AppConstants.platform == "macosx";
-        const isWindows = AppConstants.platform == "win";
-        const isAndroid = AppConstants.platform == "android";
-        const isLinux = AppConstants.platform == "linux";
-        const isInsecureContext = !window.isSecureContext;
-        // Currently, MOZ_APP_NAME is always "fennec" for all mobile builds, so we can't use AppConstants for this
-        const isFennec = isAndroid && SpecialPowers.Cc["@mozilla.org/android/bridge;1"].getService(SpecialPowers.Ci.nsIGeckoViewBridge).isFennec;
-
-        const result = {
-          isNightly, isEarlyBetaOrEarlier, isRelease, isDesktop, isMac,
-          isWindows, isAndroid, isLinux, isInsecureContext, isFennec
-        };
-
         worker.postMessage({
-          type: 'returnHelperData', result
+          type: 'returnHelperData',
+          result: getHelperData(),
         });
       }
     }
@@ -91,7 +73,6 @@
     var prefs = [
       ["dom.serviceWorkers.exemptFromPerDomainMax", true],
       ["dom.serviceWorkers.enabled", true],
-      ["dom.serviceWorkers.testing.enabled", true],
     ];
     SpecialPowers.pushPrefEnv({"set": prefs}, runTest);
   };

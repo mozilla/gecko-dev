@@ -41,7 +41,6 @@ support-files = [
   "res8.resource^headers^",
   "resource_timing.js",
   "navigation_timing.html",
-  "test_interfaces.js",
   "frameStorageAllowed.html",
   "frameStoragePrevented.html",
   "frameStorageChrome.html",
@@ -149,9 +148,17 @@ skip-if = [
   "http3",
   "http2",
 ]
+support-files = [
+  "test_interfaces.js",
+  "interface_exposure_checker.js",
+]
 
 ["test_interfaces_secureContext.html"]
 scheme = "https"
+support-files = [
+  "test_interfaces.js",
+  "interface_exposure_checker.js",
+]
 
 ["test_media_queries_with_zoom.html"]
 

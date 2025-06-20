@@ -1,5 +1,7 @@
 /* eslint-disable mozilla/no-comparison-or-assignment-inside-ok */
 
+importScripts("../../tests/mochitest/general/interface_exposure_checker.js");
+
 // This is a list of all interfaces that are exposed to workers.
 // Please only add things to this list with great care and proper review
 // from the associated module peers.
@@ -11,15 +13,16 @@
 // properties which qualify the exposure of that interface. For example:
 //
 // [
-//   "AGlobalInterface",
+//   "AGlobalInterface", // secure context only
+//   { name: "DesktopOnlyThing", desktop: true },
+//   { name: "DisabledEverywhere", disabled: true },
 //   { name: "ExperimentalThing", release: false },
 //   { name: "ReallyExperimentalThing", nightly: true },
-//   { name: "DesktopOnlyThing", desktop: true },
-//   { name: "FancyControl", xbl: true },
-//   { name: "DisabledEverywhere", disabled: true },
 // ];
 //
-// See createInterfaceMap() below for a complete list of properties.
+// Note that the items are alphabetically sorted. This is a requirement.
+// See createInterfaceMap() in interface_exposure_checker.js for a complete
+// list of properties.
 
 // IMPORTANT: Do not change this list without review from
 //            a JavaScript Engine peer!
@@ -563,99 +566,17 @@ let testFunctions = [
   "runTest",
 ];
 
-function entryDisabled(
-  entry,
-  {
-    isNightly,
-    isEarlyBetaOrEarlier,
-    isRelease,
-    isDesktop,
-    isAndroid,
-    isInsecureContext,
-    isFennec,
-    isCrossOriginIsolated,
-  }
-) {
-  return (
-    entry.nightly === !isNightly ||
-    (entry.nightlyAndroid === !(isAndroid && isNightly) && isAndroid) ||
-    (entry.nonReleaseAndroid === !(isAndroid && !isRelease) && isAndroid) ||
-    entry.desktop === !isDesktop ||
-    (entry.android === !isAndroid &&
-      !entry.nonReleaseAndroid &&
-      !entry.nightlyAndroid) ||
-    entry.fennecOrDesktop === (isAndroid && !isFennec) ||
-    entry.fennec === !isFennec ||
-    entry.release === !isRelease ||
-    entry.earlyBetaOrEarlier === !isEarlyBetaOrEarlier ||
-    entry.crossOriginIsolated === !isCrossOriginIsolated ||
-    entry.disabled
-  );
-}
-
-function createInterfaceMap(data, ...interfaceGroups) {
-  var interfaceMap = {};
-
-  function addInterfaces(interfaces) {
-    for (var entry of interfaces) {
-      if (typeof entry === "string") {
-        ok(!(entry in interfaceMap), "duplicate entry for " + entry);
-        interfaceMap[entry] = true;
-      } else {
-        ok(!(entry.name in interfaceMap), "duplicate entry for " + entry.name);
-        ok(!("pref" in entry), "Bogus pref annotation for " + entry.name);
-        interfaceMap[entry.name] = !entryDisabled(entry, data);
-      }
-    }
-  }
-
-  for (let interfaceGroup of interfaceGroups) {
-    addInterfaces(interfaceGroup);
-  }
-
-  return interfaceMap;
-}
-
-function runTest(parentName, parent, data, ...interfaceGroups) {
-  var interfaceMap = createInterfaceMap(data, ...interfaceGroups);
-  for (var name of Object.getOwnPropertyNames(parent)) {
-    // Ignore functions on the global that are part of the test (harness).
-    if (parent === self && testFunctions.includes(name)) {
-      continue;
-    }
-    ok(
-      interfaceMap[name],
-      "If this is failing: DANGER, are you sure you want to expose the new interface " +
-        name +
-        " to all webpages as a property on " +
-        parentName +
-        "? Do not make a change to this file without a " +
-        " review from a DOM peer for that specific change!!! (or a JS peer for changes to ecmaGlobals)"
-    );
-    delete interfaceMap[name];
-  }
-  for (var name of Object.keys(interfaceMap)) {
-    const not = interfaceMap[name] ? "" : " NOT";
-    ok(
-      name in parent === interfaceMap[name],
-      `${name} should${not} be defined on ${parentName}`
-    );
-    if (!interfaceMap[name]) {
-      delete interfaceMap[name];
-    }
-  }
-  is(
-    Object.keys(interfaceMap).length,
-    0,
-    "The following interface(s) are not enumerated: " +
-      Object.keys(interfaceMap).join(", ")
-  );
-}
-
 workerTestGetHelperData(function (data) {
-  runTest("self", self, data, ecmaGlobals, interfaceNamesInGlobalScope);
+  runTest("self", self, {
+    data,
+    testFunctions,
+    interfaceGroups: [ecmaGlobals, interfaceNamesInGlobalScope],
+  });
   if (WebAssembly && !entryDisabled(wasmGlobalEntry, data)) {
-    runTest("WebAssembly", WebAssembly, data, wasmGlobalInterfaces);
+    runTest("WebAssembly", WebAssembly, {
+      data,
+      interfaceGroups: [wasmGlobalInterfaces],
+    });
   }
   workerTestDone();
 });

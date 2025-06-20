@@ -1,0 +1,138 @@
+function entryDisabled(
+  entry,
+  {
+    isNightly,
+    isEarlyBetaOrEarlier,
+    isRelease,
+    isDesktop,
+    isWindows,
+    isMac,
+    isLinux,
+    isAndroid,
+    isInsecureContext,
+    isFennec,
+    isCrossOriginIsolated,
+  }
+) {
+  return (
+    entry.nightly === !isNightly ||
+    (entry.nightlyAndroid === !(isAndroid && isNightly) && isAndroid) ||
+    entry.desktop === !isDesktop ||
+    entry.windows === !isWindows ||
+    entry.mac === !isMac ||
+    entry.linux === !isLinux ||
+    (entry.android === !isAndroid && !entry.nightlyAndroid) ||
+    entry.fennecOrDesktop === (isAndroid && !isFennec) ||
+    entry.fennec === !isFennec ||
+    entry.release === !isRelease ||
+    // The insecureContext test is very purposefully converting
+    // entry.insecureContext to boolean, so undefined will convert to
+    // false.  That way entries without an insecureContext annotation
+    // will get treated as "insecureContext: false", which means exposed
+    // only in secure contexts.
+    (isInsecureContext && !entry.insecureContext) ||
+    entry.earlyBetaOrEarlier === !isEarlyBetaOrEarlier ||
+    entry.crossOriginIsolated === !isCrossOriginIsolated ||
+    entry.disabled
+  );
+}
+
+function createInterfaceMap(data, interfaceGroups) {
+  var interfaceMap = {};
+
+  function addInterfaces(interfaces) {
+    for (var entry of interfaces) {
+      if (typeof entry === "string") {
+        ok(!(entry in interfaceMap), "duplicate entry for " + entry);
+        interfaceMap[entry] = !data.isInsecureContext;
+      } else {
+        ok(!(entry.name in interfaceMap), "duplicate entry for " + entry.name);
+        ok(!("pref" in entry), "Bogus pref annotation for " + entry.name);
+        interfaceMap[entry.name] = !entryDisabled(entry, data);
+      }
+    }
+  }
+
+  for (let interfaceGroup of interfaceGroups) {
+    addInterfaces(interfaceGroup);
+  }
+
+  return interfaceMap;
+}
+
+function runTest(
+  parentName,
+  parent,
+  { data, interfaceGroups, testFunctions = [] }
+) {
+  var interfaceMap = createInterfaceMap(data, interfaceGroups);
+  for (var name of Object.getOwnPropertyNames(parent)) {
+    // Ignore functions on the global that are part of the test (harness).
+    if (parent === self && testFunctions.includes(name)) {
+      continue;
+    }
+    ok(
+      interfaceMap[name],
+      "If this is failing: DANGER, are you sure you want to expose the new interface " +
+        name +
+        " to all webpages as a property on '" +
+        parentName +
+        "'? Do not make a change to this file without a " +
+        " review from a DOM peer for that specific change!!! (or a JS peer for changes to ecmaGlobals)"
+    );
+
+    ok(
+      name in parent,
+      `${name} is exposed as an own property on '${parentName}' but tests false for "in" in the global scope`
+    );
+    ok(
+      Object.getOwnPropertyDescriptor(parent, name),
+      `${name} is exposed as an own property on '${parentName}' but has no property descriptor in the global scope`
+    );
+
+    delete interfaceMap[name];
+  }
+  for (var name of Object.keys(interfaceMap)) {
+    const not = interfaceMap[name] ? "" : " NOT";
+    ok(
+      name in parent === interfaceMap[name],
+      `${name} should${not} be defined on ${parentName}`
+    );
+    if (!interfaceMap[name]) {
+      delete interfaceMap[name];
+    }
+  }
+  is(
+    Object.keys(interfaceMap).length,
+    0,
+    "The following interface(s) are not enumerated: " +
+      Object.keys(interfaceMap).join(", ")
+  );
+}
+
+if (typeof window !== "undefined") {
+  window.getHelperData = () => {
+    const { AppConstants } = SpecialPowers.ChromeUtils.importESModule(
+      "resource://gre/modules/AppConstants.sys.mjs"
+    );
+
+    return {
+      isNightly: AppConstants.NIGHTLY_BUILD,
+      isEarlyBetaOrEarlier: AppConstants.EARLY_BETA_OR_EARLIER,
+      isRelease: AppConstants.RELEASE_OR_BETA,
+      isDesktop: !/Mobile|Tablet/.test(navigator.userAgent),
+      isMac: AppConstants.platform == "macosx",
+      isWindows: AppConstants.platform == "win",
+      isAndroid: AppConstants.platform == "android",
+      isLinux: AppConstants.platform == "linux",
+      isInsecureContext: !window.isSecureContext,
+      // Currently, MOZ_APP_NAME is always "fennec" for all mobile builds, so we can't use AppConstants for this
+      isFennec:
+        AppConstants.platform == "android" &&
+        SpecialPowers.Cc["@mozilla.org/android/bridge;1"].getService(
+          SpecialPowers.Ci.nsIGeckoViewBridge
+        ).isFennec,
+      isCrossOriginIsolated: window.crossOriginIsolated,
+    };
+  };
+}
