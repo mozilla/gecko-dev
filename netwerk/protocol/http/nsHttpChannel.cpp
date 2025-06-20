@@ -1851,13 +1851,14 @@ nsresult nsHttpChannel::InitTransaction() {
     };
   }
   mTransaction->SetIsForWebTransport(!!mWebTransportSessionEventListener);
+
+  LNAPerms perms{};
   rv = mTransaction->Init(
       mCaps, mConnectionInfo, &mRequestHead, mUploadStream, mReqContentLength,
       LoadUploadStreamHasHeaders(), GetCurrentSerialEventTarget(), callbacks,
       this, mBrowserId, category, mRequestContext, mClassOfService,
       mInitialRwin, LoadResponseTimeoutEnabled(), mChannelId,
-      std::move(observer), mLoadInfo->GetParentIpAddressSpace(),
-      dom::ContentPermissionRequestBase::PromptResult::Pending);
+      std::move(observer), mLoadInfo->GetParentIpAddressSpace(), perms);
   if (NS_FAILED(rv)) {
     mTransaction = nullptr;
     return rv;
