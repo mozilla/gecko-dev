@@ -20,6 +20,44 @@ const { PermissionTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/PermissionTestUtils.sys.mjs"
 );
 
+const { RemoteSettings } = ChromeUtils.importESModule(
+  "resource://services-settings/remote-settings.sys.mjs"
+);
+
+const COLLECTION_NAME = "remote-permissions";
+let rs = RemoteSettings(COLLECTION_NAME);
+
+async function remoteSettingsSync({ created, updated, deleted }) {
+  await rs.emit("sync", {
+    data: {
+      created,
+      updated,
+      deleted,
+    },
+  });
+}
+
+async function restorePermissions() {
+  info("Restoring permissions");
+  Services.obs.notifyObservers(null, "testonly-reload-permissions-from-disk");
+  Services.perms.removeAll();
+}
+
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["permissions.manager.defaultsUrl", ""],
+      ["network.websocket.delay-failed-reconnects", false],
+      ["network.websocket.max-connections", 1000],
+    ],
+  });
+
+  // Make sure we start off "empty". Any RemoteSettings values must be
+  // purged now to comply with test expectations.
+  Services.obs.notifyObservers(null, "testonly-reload-permissions-from-disk");
+  registerCleanupFunction(restorePermissions);
+});
+
 requestLongerTimeout(10);
 
 function observeAndCheck(testType, rand, expectedStatus, message) {
@@ -204,4 +242,36 @@ add_task(async function test_tracker_initiated_lna_fetch() {
   }
 
   PermissionTestUtils.remove(baseURL + "page_with_trackers.html", "localhost");
+
+  // This time check that the remote permission service can automatically set up the permission for this domain.
+  const ORIGIN_1 = "https://example.com";
+  const TEST_PERMISSION_1 = "localhost";
+  await remoteSettingsSync({
+    created: [
+      {
+        origin: ORIGIN_1,
+        type: TEST_PERMISSION_1,
+        capability: Ci.nsIPermissionManager.ALLOW_ACTION,
+      },
+    ],
+  });
+
+  for (let test of testCases) {
+    let rand = Math.random();
+    let promise = observeAndCheck(
+      test.type,
+      rand,
+      test.nonTrackerStatus,
+      `expected correct status for tracker ${test.type} test with permission from remote-settings`
+    );
+    let tab = await BrowserTestUtils.openNewForegroundTab(
+      gBrowser,
+      baseURL + `page_with_trackers.html?test=${test.type}&rand=${rand}`
+    );
+
+    await promise;
+    gBrowser.removeTab(tab);
+  }
+
+  restorePermissions();
 });
