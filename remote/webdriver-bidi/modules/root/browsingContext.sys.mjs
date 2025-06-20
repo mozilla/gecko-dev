@@ -643,9 +643,24 @@ class BrowsingContextModule extends RootBiDiModule {
     const previousTab =
       lazy.TabManager.getTabBrowser(previousWindow).selectedTab;
 
-    // On Android there is only a single window allowed. As such fallback to
-    // open a new tab instead.
-    const type = lazy.AppInfo.isAndroid ? "tab" : typeHint;
+    // The type supported varies by platform, as Android can only support one window.
+    // As such, type compatibility will need to be checked and will fallback if necessary.
+    let type;
+    if (
+      (typeHint == "tab" && lazy.TabManager.supportsTabs()) ||
+      (typeHint == "window" && lazy.windowManager.supportsWindows())
+    ) {
+      type = typeHint;
+    } else if (lazy.TabManager.supportsTabs()) {
+      type = "tab";
+    } else if (lazy.windowManager.supportsWindows()) {
+      type = "window";
+    } else {
+      throw new lazy.error.UnsupportedOperationError(
+        `Not supported in ${lazy.AppInfo.name}`
+      );
+    }
+
     let waitForVisibilityChangePromise;
     switch (type) {
       case "window": {
@@ -657,12 +672,6 @@ class BrowsingContextModule extends RootBiDiModule {
         break;
       }
       case "tab": {
-        if (!lazy.TabManager.supportsTabs()) {
-          throw new lazy.error.UnsupportedOperationError(
-            `browsingContext.create with type "tab" not supported in ${lazy.AppInfo.name}`
-          );
-        }
-
         // The window to open the new tab in.
         let window = Services.wm.getMostRecentWindow(null);
 

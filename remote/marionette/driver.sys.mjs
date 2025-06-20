@@ -2575,22 +2575,42 @@ GeckoDriver.prototype.newWindow = async function (cmd) {
     !["tab", "window"].includes(type) ||
     lazy.AppInfo.isAndroid
   ) {
-    type = "tab";
+    if (lazy.TabManager.supportsTabs()) {
+      type = "tab";
+    } else if (lazy.windowManager.supportsWindows()) {
+      type = "window";
+    } else {
+      throw new lazy.error.UnsupportedOperationError(
+        `Not supported in ${lazy.AppInfo.name}`
+      );
+    }
   }
 
   let contentBrowser;
 
   switch (type) {
     case "window": {
-      let win = await this.curBrowser.openBrowserWindow(focus, isPrivate);
-      contentBrowser = lazy.TabManager.getTabBrowser(win).selectedBrowser;
+      if (lazy.windowManager.supportsWindows()) {
+        let win = await this.curBrowser.openBrowserWindow(focus, isPrivate);
+        contentBrowser = lazy.TabManager.getTabBrowser(win).selectedBrowser;
+      } else {
+        throw new lazy.error.UnsupportedOperationError(
+          `Not supported in ${lazy.AppInfo.name}`
+        );
+      }
       break;
     }
     default: {
       // To not fail if a new type gets added in the future, make opening
       // a new tab the default action.
-      let tab = await this.curBrowser.openTab(focus);
-      contentBrowser = lazy.TabManager.getBrowserForTab(tab);
+      if (lazy.TabManager.supportsTabs()) {
+        let tab = await this.curBrowser.openTab(focus);
+        contentBrowser = lazy.TabManager.getBrowserForTab(tab);
+      } else {
+        throw new lazy.error.UnsupportedOperationError(
+          `Not supported in ${lazy.AppInfo.name}`
+        );
+      }
     }
   }
 
