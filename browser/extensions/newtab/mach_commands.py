@@ -168,7 +168,7 @@ def update_locales(command_context):
     ANCESTRY_LENGTH = 2
 
     # Get the full list of supported locales that we just pulled down
-    supported_locales = [path.parents[ANCESTRY_LENGTH].name for path in paths]
+    supported_locales = sorted([path.parents[ANCESTRY_LENGTH].name for path in paths])
     path_strs = [path.parents[ANCESTRY_LENGTH].as_posix() for path in paths]
 
     # Verbosity on the compare.py tool appears to be a count value, which is
@@ -187,6 +187,19 @@ def update_locales(command_context):
 
     def on_line(line):
         locales = json.loads(line)
+
+        # The compare tool seems to produce non-deterministic ordering of
+        # missing message IDs, which makes reasoning about changes to the
+        # report JSON difficult. We sort each locales list of missing message
+        # IDs alphabetically.
+        REPORT_FILE_PATH = f"browser/newtab/{FLUENT_FILE}"
+        for locale, locale_data in locales.items():
+            missing = locale_data.get("missing", None)
+            if isinstance(missing, dict):
+                entries = missing.get(REPORT_FILE_PATH, None)
+                if isinstance(entries, list):
+                    entries.sort()
+
         report = {
             "locales": locales,
             "meta": {
@@ -197,7 +210,7 @@ def update_locales(command_context):
             "message_dates": message_dates,
         }
         with open(REPORT_PATH, "w") as file:
-            json.dump(report, file)
+            json.dump(report, file, indent=4)
         display_report(report)
         print("Wrote report to %s" % REPORT_PATH)
 
@@ -209,7 +222,7 @@ def update_locales(command_context):
 
     print("Writing supported locales to %s" % SUPPORTED_LOCALES_PATH)
     with open(SUPPORTED_LOCALES_PATH, "w") as file:
-        json.dump(supported_locales, file)
+        json.dump(supported_locales, file, indent=4)
 
     print("Done")
 
