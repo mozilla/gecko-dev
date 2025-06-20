@@ -188,6 +188,8 @@
   <string name="mozac_feature_addons_permissions_dialog_deny">Отклонить</string>
   <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
   <string name="mozac_feature_addons_permissions_dialog_learn_more">Подробнее</string>
+  <!-- This is the text for the "technical and interaction" checkbox shown in the add-on permissions dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_technical_and_interaction_data">Делиться техническими данными и данными взаимодействия с разработчиком расширений</string>
   <!-- This is a button to cancel the add-on installation . -->
   <string name="mozac_feature_addons_permissions_dialog_cancel">Отмена</string>
   <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->

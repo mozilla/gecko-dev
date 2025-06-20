@@ -188,6 +188,8 @@
   <string name="mozac_feature_addons_permissions_dialog_deny">거부</string>
   <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
   <string name="mozac_feature_addons_permissions_dialog_learn_more">더 알아보기</string>
+  <!-- This is the text for the "technical and interaction" checkbox shown in the add-on permissions dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_technical_and_interaction_data">확장 기능 개발자와 기술 및 상호 작용 데이터 공유</string>
   <!-- This is a button to cancel the add-on installation . -->
   <string name="mozac_feature_addons_permissions_dialog_cancel">취소</string>
   <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->

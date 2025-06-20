@@ -320,6 +320,8 @@
   <string name="browser_menu_sign_in">Đăng nhập</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Đồng bộ hóa mật khẩu, thẻ và hơn thế nữa</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_2">Đồng bộ hóa dấu trang, mật khẩu, thẻ và nhiều thứ khác</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Đăng nhập lại để đồng bộ hóa</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -378,6 +380,8 @@
   <string name="browser_menu_edit_bookmark">Chỉnh sửa dấu trang</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">Lưu dưới dạng PDF…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">Lưu dưới dạng PDF</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
   <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Bật chế độ đọc sách</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
@@ -386,8 +390,12 @@
   <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">Chuyển thành thẻ thông thường</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Dịch trang…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">Dịch trang</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Báo cáo trang web bị hỏng…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">Báo cáo trang web bị hỏng</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -397,11 +405,22 @@
   <string name="browser_menu_translated">Đã dịch</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">In…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">In</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">Thoát %1$s</string>
+  <!--
+    Content description for a banner within the menu which prompt the user to make this app their default browser.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_default_banner_title">Đặt %1$s làm trình duyệt mặc định của bạn</string>
+  <!-- Label text within the set as default banner -->
+  <string name="browser_menu_default_banner_subtitle">Chỉ mất vài giây. Có thể thay đổi bất cứ lúc nào.</string>
+  <!-- Content description for the button that dismisses the set as default banner in the menu -->
+  <string name="browser_menu_default_banner_dismiss">Bỏ qua</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1502,6 +1521,8 @@
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">Đã xoá %1$d mục</string>
+  <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
+  <string name="download_app_dialog_title">Tải xuống tập tin với:</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Đã xoá “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -1548,6 +1569,16 @@
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Điều hướng lên</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Quay lại và đóng tìm kiếm</string>
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">Tạm dừng</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">Tiếp tục</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">Thử lại</string>
   <string name="download_clear_search_description">Xóa</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Chia sẻ URL</string>

@@ -176,6 +176,8 @@
   <string name="mozac_feature_addons_permissions_dialog_heading_required_permissions">Szükséges engedélyek:</string>
   <!-- Heading for the data collection permissions section in the add-on install dialog. -->
   <string name="mozac_feature_addons_permissions_dialog_heading_required_data_collection">Szükséges adatgyűjtés:</string>
+  <!-- Heading for the optional settings section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_settings">Nem kötelező beállítások:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">Ezeket szeretné:</string>
   <!-- This is a button to add (install) an add-on . -->
@@ -186,6 +188,8 @@
   <string name="mozac_feature_addons_permissions_dialog_deny">Tiltás</string>
   <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
   <string name="mozac_feature_addons_permissions_dialog_learn_more">További tudnivalók</string>
+  <!-- This is the text for the "technical and interaction" checkbox shown in the add-on permissions dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_technical_and_interaction_data">Műszaki és interakciós adatok megosztása a kiegészítőfejlesztőkkel</string>
   <!-- This is a button to cancel the add-on installation . -->
   <string name="mozac_feature_addons_permissions_dialog_cancel">Mégse</string>
   <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->

@@ -84,12 +84,40 @@
   <string name="mozac_feature_addons_permissions_user_scripts_description">Cho phép các tập lệnh của bên thứ ba chưa được xác minh truy cập vào dữ liệu của bạn</string>
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Các tập lệnh chưa được xác minh có thể gây ra rủi ro về bảo mật và quyền riêng tư. Chỉ chạy tập lệnh từ tiện ích mở rộng hoặc nguồn mà bạn tin cậy.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description">Nhà phát triển cho biết tiện ích mở rộng này thu thập: %1$s.</string>
+  <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
+  <string name="mozac_feature_addons_permissions_none_required_data_collection_description">Nhà phát triển cho biết tiện ích mở rộng này không yêu cầu thu thập dữ liệu.</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Mở rộng công cụ dành cho nhà phát triển để truy cập dữ liệu của bạn trong các thẻ đang mở</string>
   <!-- Description for text button that expands the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_all_sites">Hiển thị tất cả trang web</string>
   <!-- Description for text button that hides the majority of the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_fewer_sites">Hiển thị ít trang web hơn</string>
+  <!-- Short description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_short_description">thông tin xác thực</string>
+  <!-- Short description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_short_description">dấu trang</string>
+  <!-- Short description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_short_description">hoạt động duyệt</string>
+  <!-- Short description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_short_description">thông tin tài chính và thanh toán</string>
+  <!-- Short description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_short_description">thông tin sức khỏe</string>
+  <!-- Short description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_short_description">vị trí</string>
+  <!-- Short description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_short_description">giao tiếp cá nhân</string>
+  <!-- Short description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_short_description">thông tin nhận dạng cá nhân</string>
+  <!-- Short description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_short_description">cụm từ tìm kiếm</string>
+  <!-- Short description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_short_description">dữ liệu kỹ thuật và tương tác</string>
+  <!-- Short description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">hoạt động trang web</string>
+  <!-- Short description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">nội dung trang web</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Phiên bản</string>
   <!-- The author of an add-on. -->
@@ -110,6 +138,8 @@
   <string name="mozac_feature_addons_settings_on">Bật</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">Cho phép trong duyệt web riêng tư</string>
+  <!-- Indicates the add-on is allowed in private browsing mode. -->
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing_2">Cho phép tiện ích chạy trong duyệt web riêng tư</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">Cho phép trong thẻ riêng tư</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -136,10 +166,18 @@
   <string name="mozac_feature_addons_report">Báo cáo</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">Thêm %1$s?</string>
+  <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_permissions_dialog_title_2">Thêm %1$s</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s yêu cầu quyền bổ sung.</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">Nó yêu cầu bạn cho phép để:</string>
+  <!-- Heading for the data collection permissions section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_required_permissions">Quyền hạn bắt buộc:</string>
+  <!-- Heading for the data collection permissions section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_required_data_collection">Thu thập dữ liệu bắt buộc:</string>
+  <!-- Heading for the optional settings section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_settings">Cài đặt tùy chọn:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">Tiện ích này muốn:</string>
   <!-- This is a button to add (install) an add-on . -->
@@ -150,6 +188,8 @@
   <string name="mozac_feature_addons_permissions_dialog_deny">Từ chối</string>
   <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
   <string name="mozac_feature_addons_permissions_dialog_learn_more">Tìm hiểu thêm</string>
+  <!-- This is the text for the "technical and interaction" checkbox shown in the add-on permissions dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_technical_and_interaction_data">Chia sẻ dữ liệu kỹ thuật và tương tác với nhà phát triển tiện ích mở rộng</string>
   <!-- This is a button to cancel the add-on installation . -->
   <string name="mozac_feature_addons_permissions_dialog_cancel">Hủy bỏ</string>
   <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
