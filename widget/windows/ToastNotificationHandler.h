@@ -69,13 +69,7 @@ class ToastNotificationHandler final
   void HideAlert();
   bool IsPrivate();
 
-  // Called to stop listening events from Windows for this notification.
-  // This allows clearing up resources bound to the listener callbacks.
   void UnregisterHandler();
-  // Called when Alerts Service closes notification.
-  // This will clear up resources and also ping the observer for further
-  // downstream cleanup.
-  void HandleCloseFromBrowser();
 
   nsString ActionArgsJSONString(
       const nsString& aAction,
