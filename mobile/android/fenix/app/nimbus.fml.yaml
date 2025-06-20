@@ -103,7 +103,6 @@ features:
           {
             "sync-cfr": true,
             "wallpapers-selection-tool": true,
-            "jump-back-in-cfr": true,
             "tcp-cfr": true,
             "tcp-feature": true,
           }
@@ -113,7 +112,6 @@ features:
           "sections-enabled": {
             "sync-cfr": true,
             "wallpapers-selection-tool": true,
-            "jump-back-in-cfr": true,
           }
         }
   query-parameter-stripping:
@@ -932,8 +930,6 @@ types:
           description: CFR for the first time you see a synced tab on the home screen.
         wallpapers-selection-tool:
           description: Wallpapers selection dialog tool for the home screen.
-        jump-back-in-cfr:
-          description: Jump back-in onboarding message.
         tcp-cfr:
           description: CFR for the first time you use the browse with Total Cookie Protection on the browser screen.
         tcp-feature:
