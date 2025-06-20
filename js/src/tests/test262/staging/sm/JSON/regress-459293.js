@@ -4,7 +4,7 @@
  */
 
 /*---
-includes: [sm/non262.js, sm/non262-shell.js, sm/non262-JSON-shell.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
   - noStrict
 description: |
@@ -16,9 +16,6 @@ var BUGNUMBER = 459293;
 var summary = 'Allow redeclaration of JSON';
 var actual = '';
 var expect = '';
-
-  printBugNumber(BUGNUMBER);
-  printStatus (summary);
  
   try
   {

@@ -25,9 +25,6 @@ test();
 
 function test()
 {
-  printBugNumber(BUGNUMBER);
-  printStatus (summary);
-
   var list1 = [[1,2],[3,4],[5,6]];
   var list2 = [[1,2,3],[4,5,6],[7,8,9]];
 

@@ -24,9 +24,6 @@ test();
 
 function test()
 {
-  printBugNumber(BUGNUMBER);
-  printStatus (summary);
- 
   (function() { var k; eval("for (var k in {});") })()
 
   assert.sameValue(expect, actual, summary);

@@ -24,9 +24,6 @@ test();
 
 function test()
 {
-  printBugNumber(BUGNUMBER);
-  printStatus (summary);
-
   expect = 'y';
 
   Array.prototype[1] = 'y';

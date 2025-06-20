@@ -4,7 +4,7 @@
  */
 
 /*---
-includes: [sm/non262.js, sm/non262-shell.js, sm/non262-object-shell.js]
+includes: [sm/non262.js, sm/non262-shell.js, propertyHelper.js]
 flags:
   - noStrict
 description: |
@@ -28,33 +28,12 @@ var o = Object.defineProperties({}, properties);
 
 Object.freeze(o);
 
-function getPropertyOf(obj) {
-    return function (prop) {
-        return Object.getOwnPropertyDescriptor(obj, prop);
-    };
-};
-
-assert.sameValue(deepEqual(Object.getOwnPropertyDescriptor(o, 'all'),
-                   { value: 1, writable:false,  enumerable:true, configurable:false }),
-         true);
-assert.sameValue(deepEqual(Object.getOwnPropertyDescriptor(o, 'readOnly'),
-                   { value: 2, writable:false,  enumerable:true, configurable:false }),
-         true);
-assert.sameValue(deepEqual(Object.getOwnPropertyDescriptor(o, 'nonConfig'),
-                    { value: 3, writable:false,  enumerable:true, configurable:false }),
-         true);
-assert.sameValue(deepEqual(Object.getOwnPropertyDescriptor(o, 'none'),
-                    { value: 4, writable:false,  enumerable:true, configurable:false }),
-         true);
-assert.sameValue(deepEqual(Object.getOwnPropertyDescriptor(o, 'getter'),
-                    { get: getme, set: (void 0), enumerable:true, configurable:false }),
-         true);
-assert.sameValue(deepEqual(Object.getOwnPropertyDescriptor(o, 'setter'),
-                    { set: setme, get: (void 0), enumerable:true, configurable:false }),
-         true);
-assert.sameValue(deepEqual(Object.getOwnPropertyDescriptor(o, 'getandset'),
-                    { get: getme, set: setme,    enumerable:true, configurable:false }),
-         true);
-
+verifyProperty(o, "all",       { value: 1, writable: false, enumerable: true, configurable: false });
+verifyProperty(o, "readOnly",  { value: 2, writable: false, enumerable: true, configurable: false });
+verifyProperty(o, "nonConfig", { value: 3, writable: false, enumerable: true, configurable: false });
+verifyProperty(o, "none",      { value: 4, writable: false, enumerable: true, configurable: false });
+verifyProperty(o, "getter",    { get: getme, set: (void 0), enumerable: true, configurable: false });
+verifyProperty(o, "setter",    { set: setme, get: (void 0), enumerable: true, configurable: false });
+verifyProperty(o, "getandset", { get: getme, set: setme,    enumerable: true, configurable: false });
 
 reportCompare(0, 0);

@@ -24,9 +24,6 @@ test();
 
 function test()
 {
-  printBugNumber(BUGNUMBER);
-  printStatus (summary);
- 
   function add(a, b) { return a + b; }
   function testreduce(v) { return v == 3 ? "PASS" : "FAIL"; }
 

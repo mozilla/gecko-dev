@@ -4,7 +4,7 @@
  */
 
 /*---
-includes: [sm/non262.js, sm/non262-shell.js, sm/non262-extensions-shell.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
   - noStrict
 description: |
@@ -23,9 +23,6 @@ test();
 
 function test()
 {
-    printBugNumber(BUGNUMBER);
-    printStatus(summary);
-
     var TestPassCount = 0;
     var TestFailCount = 0;
     var TestTodoCount = 0;

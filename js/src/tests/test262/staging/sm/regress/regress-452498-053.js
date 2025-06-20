@@ -24,9 +24,6 @@ test();
 
 function test()
 {
-  printBugNumber(BUGNUMBER);
-  printStatus (summary);
-
 // ------- Comment #53 From Jason Orendorff
 
 // Assertion failure: (slot) < (uint32_t)(obj)->dslots[-1]

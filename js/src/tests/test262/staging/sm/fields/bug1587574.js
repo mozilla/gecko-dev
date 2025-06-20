@@ -2,13 +2,11 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-includes: [sm/non262.js, sm/non262-shell.js]
-flags:
-  - noStrict
 description: |
   pending
 esid: pending
 ---*/
+
 // Don't Crash
 var testStr = `
 class C extends Object {
@@ -20,7 +18,10 @@ class C extends Object {
   }
 }
 new C;`
-assert.sameValue(raisesException(ReferenceError)(testStr), true);
+
+assert.throws(ReferenceError, function() {
+  eval(testStr);
+});
 
 
 reportCompare(0, 0);

@@ -29,9 +29,6 @@ function scope1() {
 }
 
 function test() {
-    printBugNumber(BUGNUMBER);
-    printStatus (summary);
-
     // The scope chain in eval should be just scope1() and the global object.
     actual = eval('x', scope1());
     expect = 0;

@@ -4,7 +4,7 @@
  */
 
 /*---
-includes: [sm/non262.js, sm/non262-shell.js, sm/non262-extensions-shell.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
   - noStrict
 description: |
@@ -19,9 +19,6 @@ var summary =
 var actual = "Early failure";
 var expect = "No errors";
 
-
-printBugNumber(BUGNUMBER);
-printStatus(summary);
 
 var o = { get p() { return "a"; } };
 

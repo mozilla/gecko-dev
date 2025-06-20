@@ -4,7 +4,7 @@
  */
 
 /*---
-includes: [sm/non262.js, sm/non262-shell.js, sm/non262-extensions-shell.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
   - noStrict
 description: |
@@ -70,9 +70,6 @@ function test(sharedMem) {
 
 	return v.buffer;
     }
-
-    printBugNumber(BUGNUMBER);
-    printStatus(summary);
 
     // testConstructor
     buffer = bufferize(new Uint8Array([1, 2]));

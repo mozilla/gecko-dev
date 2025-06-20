@@ -4,7 +4,7 @@
  */
 
 /*---
-includes: [sm/non262.js, sm/non262-shell.js, sm/non262-extensions-shell.js]
+includes: [sm/non262.js, sm/non262-shell.js]
 flags:
   - noStrict
 description: |
@@ -16,10 +16,6 @@ var BUGNUMBER = 455380;
 var summary = 'Do not assert with JIT: !lhs->isQuad() && !rhs->isQuad()';
 var actual = 'No Crash';
 var expect = 'No Crash';
-
-printBugNumber(BUGNUMBER);
-printStatus (summary);
-
 
 const IS_TOKEN_ARRAY =
   [0, 0, 0, 0, 0, 0, 0, 0, //   0

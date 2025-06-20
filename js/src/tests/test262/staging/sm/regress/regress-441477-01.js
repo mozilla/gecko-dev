@@ -24,9 +24,6 @@ test();
 
 function test()
 {
-  printBugNumber(BUGNUMBER);
-  printStatus (summary);
- 
   try
   {
     for (i = 0; i < 5;) 

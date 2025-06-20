@@ -20,9 +20,6 @@ var actual = "Early failure";
 var expect = "No errors";
 
 
-printBugNumber(BUGNUMBER);
-printStatus(summary);
-
 var o = { get p() { return "a"; } };
 
 function test1()

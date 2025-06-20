@@ -24,7 +24,7 @@ assert.deepEqual = function(actual, expected, message) {
 (function() {
 let getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
 let join = arr => arr.join(', ');
-function stringFromTemplate(strings, ...subs) {
+function stringFromTemplate(strings, subs) {
   let parts = strings.map((str, i) => `${i === 0 ? '' : subs[i - 1]}${str}`);
   return parts.join('');
 }
@@ -87,7 +87,7 @@ assert.deepEqual.format = function(value, seen) {
     function acceptMappers(...mappers) {
       function toString() {
         let renderings = subs.map((sub, i) => (mappers[i] || String)(sub));
-        let rendered = stringFromTemplate(strings, ...renderings);
+        let rendered = stringFromTemplate(strings, renderings);
         if (usage.used) rendered += ` as #${usage.id}`;
         return rendered;
       }
@@ -101,7 +101,7 @@ assert.deepEqual.format = function(value, seen) {
 
   let format = assert.deepEqual.format;
   function lazyString(strings, ...subs) {
-    return { toString: () => stringFromTemplate(strings, ...subs) };
+    return { toString: () => stringFromTemplate(strings, subs) };
   }
 
   if (typeof value === 'function') {
@@ -414,7 +414,7 @@ function assertFalse(a) { assertEq(a, false) }
 function assertTrue(a) { assertEq(a, true) }
 function assertNotEq(found, not_expected) { assertEq(Object.is(found, not_expected), false) }
 function assertIteratorResult(result, value, done) {
-    assertDeepEq(result.value, value);
+    assert.deepEqual(result.value, value);
     assertEq(result.done, done);
 }
 function assertIteratorNext(iter, value) {
