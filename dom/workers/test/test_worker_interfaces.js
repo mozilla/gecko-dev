@@ -38,18 +38,18 @@ let wasmGlobalEntry = {
   disabled: !getJSTestingFunctions().wasmIsSupportedByHardware(),
 };
 let wasmGlobalInterfaces = [
-  { name: "Module", insecureContext: true },
-  { name: "Instance", insecureContext: true },
-  { name: "Memory", insecureContext: true },
-  { name: "Table", insecureContext: true },
-  { name: "Global", insecureContext: true },
   { name: "CompileError", insecureContext: true },
-  { name: "LinkError", insecureContext: true },
-  { name: "RuntimeError", insecureContext: true },
-  { name: "Function", insecureContext: true, nightly: true },
   { name: "Exception", insecureContext: true },
-  { name: "Tag", insecureContext: true },
+  { name: "Function", insecureContext: true, nightly: true },
+  { name: "Global", insecureContext: true },
+  { name: "Instance", insecureContext: true },
   { name: "JSTag", insecureContext: true },
+  { name: "LinkError", insecureContext: true },
+  { name: "Memory", insecureContext: true },
+  { name: "Module", insecureContext: true },
+  { name: "RuntimeError", insecureContext: true },
+  { name: "Table", insecureContext: true },
+  { name: "Tag", insecureContext: true },
   { name: "compile", insecureContext: true },
   { name: "compileStreaming", insecureContext: true },
   { name: "instantiate", insecureContext: true },
@@ -109,11 +109,11 @@ let ecmaGlobals = [
   { name: "SyntaxError", insecureContext: true },
   { name: "Temporal", insecureContext: true },
   { name: "TypeError", insecureContext: true },
+  { name: "URIError", insecureContext: true },
   { name: "Uint16Array", insecureContext: true },
   { name: "Uint32Array", insecureContext: true },
   { name: "Uint8Array", insecureContext: true },
   { name: "Uint8ClampedArray", insecureContext: true },
-  { name: "URIError", insecureContext: true },
   { name: "WeakMap", insecureContext: true },
   { name: "WeakRef", insecureContext: true },
   { name: "WeakSet", insecureContext: true },
@@ -174,12 +174,6 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CustomEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "DecompressionStream", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "DedicatedWorkerGlobalScope", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "Directory", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "DOMException", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "DOMMatrix", insecureContext: true },
@@ -197,6 +191,12 @@ let interfaceNamesInGlobalScope = [
   { name: "DOMRectReadOnly", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "DOMStringList", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "DecompressionStream", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "DedicatedWorkerGlobalScope", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "Directory", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "EncodedAudioChunk", insecureContext: true, nightlyAndroid: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -392,9 +392,9 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "PerformanceServerTiming", insecureContext: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "Permissions", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "PermissionStatus", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "Permissions", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ProgressEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -405,6 +405,14 @@ let interfaceNamesInGlobalScope = [
   "PushSubscription",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "PushSubscriptionOptions",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "RTCEncodedAudioFrame", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "RTCEncodedVideoFrame", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "RTCRtpScriptTransformer", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "RTCTransformEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ReadableByteStreamController", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -421,14 +429,6 @@ let interfaceNamesInGlobalScope = [
   { name: "Request", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Response", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "RTCEncodedAudioFrame", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "RTCEncodedVideoFrame", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "RTCRtpScriptTransformer", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "RTCTransformEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Scheduler", insecureContext: true, nightly: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -462,12 +462,6 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "TransformStreamDefaultController", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "XMLHttpRequest", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "XMLHttpRequestEventTarget", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "XMLHttpRequestUpload", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "URL", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "URLSearchParams", insecureContext: true },
@@ -479,6 +473,8 @@ let interfaceNamesInGlobalScope = [
   { name: "VideoEncoder", nightlyAndroid: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "VideoFrame", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "WGSLLanguageFeatures", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "WebGL2RenderingContext", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -528,8 +524,6 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "WebTransportSendStream", insecureContext: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "WGSLLanguageFeatures", earlyBetaOrEarlier: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Worker", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "WorkerGlobalScope", insecureContext: true },
@@ -543,6 +537,12 @@ let interfaceNamesInGlobalScope = [
   { name: "WritableStreamDefaultController", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "WritableStreamDefaultWriter", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "XMLHttpRequest", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "XMLHttpRequestEventTarget", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "XMLHttpRequestUpload", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "cancelAnimationFrame", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!

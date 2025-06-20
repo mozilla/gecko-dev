@@ -32,18 +32,18 @@ let wasmGlobalEntry = {
   disabled: !getJSTestingFunctions().wasmIsSupportedByHardware(),
 };
 let wasmGlobalInterfaces = [
-  { name: "Module", insecureContext: true },
-  { name: "Instance", insecureContext: true },
-  { name: "Memory", insecureContext: true },
-  { name: "Table", insecureContext: true },
-  { name: "Global", insecureContext: true },
   { name: "CompileError", insecureContext: true },
-  { name: "LinkError", insecureContext: true },
-  { name: "RuntimeError", insecureContext: true },
-  { name: "Function", insecureContext: true, nightly: true },
   { name: "Exception", insecureContext: true },
-  { name: "Tag", insecureContext: true },
+  { name: "Function", insecureContext: true, nightly: true },
+  { name: "Global", insecureContext: true },
+  { name: "Instance", insecureContext: true },
   { name: "JSTag", insecureContext: true },
+  { name: "LinkError", insecureContext: true },
+  { name: "Memory", insecureContext: true },
+  { name: "Module", insecureContext: true },
+  { name: "RuntimeError", insecureContext: true },
+  { name: "Table", insecureContext: true },
+  { name: "Tag", insecureContext: true },
   { name: "compile", insecureContext: true },
   { name: "compileStreaming", insecureContext: true },
   { name: "instantiate", insecureContext: true },
@@ -56,12 +56,12 @@ let ecmaGlobals = [
   "AggregateError",
   "Array",
   "ArrayBuffer",
-  "Atomics",
   "AsyncDisposableStack",
-  "Boolean",
+  "Atomics",
   "BigInt",
   "BigInt64Array",
   "BigUint64Array",
+  "Boolean",
   "DataView",
   "Date",
   "DisposableStack",
@@ -99,11 +99,11 @@ let ecmaGlobals = [
   "SyntaxError",
   "Temporal",
   "TypeError",
+  "URIError",
   "Uint16Array",
   "Uint32Array",
   "Uint8Array",
   "Uint8ClampedArray",
-  "URIError",
   "WeakMap",
   "WeakRef",
   "WeakSet",
@@ -154,21 +154,17 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "CompressionStream",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  "CountQueuingStrategy",
-  // IMPORTANT: Do not change this list without review from a DOM peer!
   "CookieStore",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "CookieStoreManager",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "CountQueuingStrategy",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "Crypto",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "CryptoKey",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "CustomEvent",
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  "DecompressionStream",
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  "Directory",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "DOMException",
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -187,6 +183,10 @@ let interfaceNamesInGlobalScope = [
   "DOMRectReadOnly",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "DOMStringList",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "DecompressionStream",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "Directory",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "ErrorEvent",
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -348,9 +348,9 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "MessagePort",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "NetworkInformation", disabled: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
   "NavigationPreloadManager",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "NetworkInformation", disabled: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "Notification",
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -378,9 +378,9 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "PerformanceServerTiming",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  "Permissions",
-  // IMPORTANT: Do not change this list without review from a DOM peer!
   "PermissionStatus",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "Permissions",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "ProgressEvent",
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -452,19 +452,7 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "URLSearchParams",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  "WebSocket",
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  "WebTransport",
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  "WebTransportBidirectionalStream",
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  "WebTransportDatagramDuplexStream",
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  "WebTransportError",
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  "WebTransportReceiveStream",
-  // IMPORTANT: Do not change this list without review from a DOM peer!
-  "WebTransportSendStream",
+  { name: "WGSLLanguageFeatures", earlyBetaOrEarlier: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "WebGL2RenderingContext",
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -500,9 +488,21 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "WebGLVertexArrayObject",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  "WindowClient",
+  "WebSocket",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "WGSLLanguageFeatures", earlyBetaOrEarlier: true },
+  "WebTransport",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WebTransportBidirectionalStream",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WebTransportDatagramDuplexStream",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WebTransportError",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WebTransportReceiveStream",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WebTransportSendStream",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "WindowClient",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "WorkerGlobalScope",
   // IMPORTANT: Do not change this list without review from a DOM peer!
