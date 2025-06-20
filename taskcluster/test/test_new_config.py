@@ -47,14 +47,13 @@ PARAMS_NEW_CONFIG.update(
             lambda t: (
                 t.kind == "test"
                 and t.attributes["unittest_suite"] == "mochitest-browser-chrome"
-                and t.attributes["test_platform"] == "linux2404-64/opt"
+                and t.attributes["test_platform"] == "linux1804-64-qr/opt"
                 and (
                     "spi-nw" not in t.label
                     and "a11y-checks" not in t.label
                     and "vt" not in t.label
                     and "ioi" not in t.label
                     and "trainhop" not in t.label
-                    and "tsan" not in t.label
                 )
             ),
             32,
@@ -80,14 +79,13 @@ def test_tasks_new_config_false(full_task_graph, filter_tasks, func, min_expecte
             lambda t: (
                 t.kind == "test"
                 and t.attributes["unittest_suite"] == "mochitest-browser-chrome"
-                and t.attributes["test_platform"] == "linux2404-64/opt"
+                and t.attributes["test_platform"] == "linux1804-64-qr/opt"
                 and (
                     "spi-nw" not in t.label
                     and "a11y-checks" not in t.label
                     and "vt" not in t.label
                     and "ioi" not in t.label
                     and "trainhop" not in t.label
-                    and "tsan" not in t.label
                 )
             ),
             32,

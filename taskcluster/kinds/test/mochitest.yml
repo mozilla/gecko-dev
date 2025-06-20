@@ -331,7 +331,7 @@ mochitest-browser-chrome:
             default:
                 by-test-platform:
                     linux.*(-qr)?/debug: 16
-                    linux.*64-asan(-qr)?/opt: 20
+                    linux.*64-asan(-qr)?/opt: 16
                     linux.*64-tsan(-qr)?/opt: 32
                     windows.*-asan.*/opt: 16
                     windows.*-ccov.*/.*: 14
