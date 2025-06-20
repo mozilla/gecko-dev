@@ -45,6 +45,11 @@ const subScriptMatches = [
 const workerImportFilenameMatch = /(.*\/)*((.*?)\.js)/;
 
 /**
+ * @typedef {{name: string, writable: boolean, explicit?: boolean}[]} GlobalsList
+ *   A list of globals and if they are writeable or not.
+ */
+
+/**
  * Parses a list of "name:boolean_value" or/and "name" options divided by comma
  * or whitespace.
  *
@@ -84,8 +89,10 @@ function parseBooleanConfig(string, comment) {
 }
 
 /**
- * Global discovery can require parsing many files. This map of
- * {String} => {Object} caches what globals were discovered for a file path.
+ * Global discovery can require parsing many files. This map caches the globals
+ * that were discovered for a file path.
+ *
+ * @type {Map<string, GlobalsList>}
  */
 const globalCache = new Map();
 
@@ -112,12 +119,7 @@ var lastHTMLGlobals = {};
  * @param  {boolean} isGlobal
  *         True if the current node is in the global scope.
  *
- * @returns {Array}
- *         An array of objects that contain details about the globals:
- *         - {String} name
- *                    The name of the global.
- *         - {Boolean} writable
- *                     If the global is writeable or not.
+ * @returns {GlobalsList}
  */
 function convertCallExpressionToGlobals(node, isGlobal) {
   let express = node.expression;
@@ -223,13 +225,7 @@ function convertCallExpressionToGlobals(node, isGlobal) {
  *         The AST node to convert.
  * @param  {boolean} isGlobal
  *         True if the current node is in the global scope.
- *
- * @returns {Array}
- *         An array of objects that contain details about the globals:
- *         - {String} name
- *                    The name of the global.
- *         - {Boolean} writable
- *                     If the global is writeable or not.
+ * @returns {GlobalsList}
  */
 function convertThisAssignmentExpressionToGlobals(node, isGlobal) {
   if (
@@ -253,15 +249,9 @@ function convertThisAssignmentExpressionToGlobals(node, isGlobal) {
  *         The AST node to convert.
  * @param  {boolean} isGlobal
  *         True if the current node is in the global scope.
- *
- * @returns {Array}
- *         An array of objects that contain details about the globals:
- *         - {String} name
- *                    The name of the global.
- *         - {Boolean} writable
- *                     If the global is writeable or not.
  */
 function convertWorkerExpressionToGlobals(node, isGlobal, dirname) {
+  /** @type {GlobalsList} */
   let results = [];
   let expr = node.expression;
 
@@ -299,8 +289,7 @@ function convertWorkerExpressionToGlobals(node, isGlobal, dirname) {
  *   The type of the current file (script/module).
  * @param {string} [dir]
  *   The directory of the current file.
- * @returns {object[]}
- *   An array of objects with details of the globals in them.
+ * @returns {GlobalsList}
  */
 function getGlobalsForScript(src, type, dir) {
   let scriptName;
@@ -460,22 +449,19 @@ let globalUtils = {
    *         The absolute path of the file to be parsed.
    * @param  {object} astOptions
    *         Extra options to pass to the parser.
-   * @returns {Array}
-   *         An array of objects that contain details about the globals:
-   *         - {String} name
-   *                    The name of the global.
-   *         - {Boolean} writable
-   *                     If the global is writeable or not.
    */
   getGlobalsForFile(filePath, astOptions = {}) {
     if (globalCache.has(filePath)) {
       return globalCache.get(filePath);
     }
 
+    /** @type {GlobalsList} */
+    let globals = [];
+
     if (globalDiscoveryInProgressForFiles.has(filePath)) {
       // We're already processing this file, so return an empty set for now -
       // the initial processing will pick up on the globals for this file.
-      return [];
+      return globals;
     }
     globalDiscoveryInProgressForFiles.add(filePath);
 
@@ -490,7 +476,7 @@ let globalUtils = {
     // Discover global declarations
     let globalScope = scopeManager.acquire(ast);
 
-    let globals = Object.keys(globalScope.variables).map(v => ({
+    globals = Object.keys(globalScope.variables).map(v => ({
       name: globalScope.variables[v].name,
       writable: true,
     }));
@@ -519,12 +505,6 @@ let globalUtils = {
    *         The JS code
    * @param  {object} astOptions
    *         Extra options to pass to the parser.
-   * @returns {Array}
-   *         An array of objects that contain details about the globals:
-   *         - {String} name
-   *                    The name of the global.
-   *         - {Boolean} writable
-   *                     If the global is writeable or not.
    */
   getGlobalsForCode(code, astOptions = {}) {
     // Parse the content into an AST
@@ -536,6 +516,7 @@ let globalUtils = {
     // Discover global declarations
     let globalScope = scopeManager.acquire(ast);
 
+    /** @type {GlobalsList} */
     let globals = Object.keys(globalScope.variables).map(v => ({
       name: globalScope.variables[v].name,
       writable: true,
@@ -564,12 +545,7 @@ let globalUtils = {
    *
    * @param  {string} filePath
    *         The absolute path of the file to be parsed.
-   * @returns {Array}
-   *         An array of objects that contain details about the globals:
-   *         - {String} name
-   *                    The name of the global.
-   *         - {Boolean} writable
-   *                     If the global is writeable or not.
+   * @returns {GlobalsList}
    */
   getImportedGlobalsForHTMLFile(filePath) {
     if (lastHTMLGlobals.filename === filePath) {
