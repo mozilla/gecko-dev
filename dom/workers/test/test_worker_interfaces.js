@@ -87,7 +87,6 @@ let ecmaGlobals = [
   { name: "Iterator", insecureContext: true },
   { name: "JSON", insecureContext: true },
   { name: "Map", insecureContext: true },
-  { name: "MediaCapabilities", insecureContext: true },
   { name: "Math", insecureContext: true },
   { name: "NaN", insecureContext: true },
   { name: "Number", insecureContext: true },
@@ -356,6 +355,8 @@ let interfaceNamesInGlobalScope = [
   "Lock",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "LockManager",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "MediaCapabilities", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "MessageChannel", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
