@@ -9,6 +9,12 @@
   /* Background color comes from the embedder */
   background-color: transparent;
   color: var(--sidebar-text-color);
+
+  &:not([lwt-sidebar]) {
+    /* Prevent :root[lwtheme] in global-shared.css from forcing our
+     * color-scheme to light when unthemed */
+    color-scheme: light dark;
+  }
 }
 
 #sidebar-panel-header {
