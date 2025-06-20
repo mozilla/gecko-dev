@@ -28,7 +28,7 @@ const simpleTestFiles = [
 ];
 const simpleTestPath = "testing/mochitest/tests/SimpleTest";
 
-export default getScriptGlobals(
-  "simpletest",
-  simpleTestFiles.map(file => path.join(simpleTestPath, file))
-);
+export default getScriptGlobals({
+  environmentName: "simpletest",
+  files: simpleTestFiles.map(file => path.join(simpleTestPath, file)),
+});

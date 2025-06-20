@@ -8,50 +8,51 @@
 
 import { getScriptGlobals } from "./utils.mjs";
 
-const extraGlobals = [
+/**
+ * @type {{[key: string]: "readonly"|"writeable"|"off"}}
+ */
+const extraGlobals = {
   // Defined in XPCShellImpl.cpp
-  "print",
-  "readline",
-  "load",
-  "quit",
-  "dumpXPC",
-  "dump",
-  "gc",
-  "gczeal",
-  "options",
-  "sendCommand",
-  "atob",
-  "btoa",
-  "setInterruptCallback",
-  "simulateNoScriptActivity",
-  "registerXPCTestComponents",
+  print: "readonly",
+  readline: "readonly",
+  load: "readonly",
+  quit: "readonly",
+  dumpXPC: "readonly",
+  dump: "readonly",
+  gc: "readonly",
+  gczeal: "readonly",
+  options: "readonly",
+  sendCommand: "readonly",
+  atob: "readonly",
+  btoa: "readonly",
+  setInterruptCallback: "readonly",
+  simulateNoScriptActivity: "readonly",
+  registerXPCTestComponents: "readonly",
 
   // Assert.sys.mjs globals.
-  "setReporter",
-  "report",
-  "ok",
-  "equal",
-  "notEqual",
-  "deepEqual",
-  "notDeepEqual",
-  "strictEqual",
-  "notStrictEqual",
-  "throws",
-  "rejects",
-  "greater",
-  "greaterOrEqual",
-  "less",
-  "lessOrEqual",
+  setReporter: "readonly",
+  report: "readonly",
+  ok: "readonly",
+  equal: "readonly",
+  notEqual: "readonly",
+  deepEqual: "readonly",
+  notDeepEqual: "readonly",
+  strictEqual: "readonly",
+  notStrictEqual: "readonly",
+  throws: "readonly",
+  rejects: "readonly",
+  greater: "readonly",
+  greaterOrEqual: "readonly",
+  less: "readonly",
+  lessOrEqual: "readonly",
   // TestingFunctions.cpp globals
-  "allocationMarker",
-  "byteSize",
-  "saveStack",
-];
+  allocationMarker: "readonly",
+  byteSize: "readonly",
+  saveStack: "readonly",
+};
 
-export default getScriptGlobals(
-  "xpcshell",
-  ["testing/xpcshell/head.js"],
-  extraGlobals.map(g => {
-    return { name: g, writable: false };
-  })
-);
+export default getScriptGlobals({
+  environmentName: "xpcshell",
+  files: ["testing/xpcshell/head.js"],
+  extraGlobals,
+});

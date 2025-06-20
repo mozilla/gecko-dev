@@ -17,7 +17,6 @@ import { execFileSync } from "child_process";
 
 let gRootDir = null;
 let directoryManifests = new Map();
-let savedGlobals = null;
 
 let xpidlData;
 
@@ -758,17 +757,6 @@ export default {
 
   isMozillaCentralBased() {
     return fs.existsSync(this.globalScriptPaths[0]);
-  },
-
-  getSavedEnvironmentItems(environment) {
-    if (!savedGlobals) {
-      savedGlobals = JSON.parse(
-        fs.readFileSync(path.join("environments", "saved-globals.json"), {
-          encoding: "utf-8",
-        })
-      );
-    }
-    return savedGlobals.environments[environment];
   },
 
   getBuildEnvironment() {

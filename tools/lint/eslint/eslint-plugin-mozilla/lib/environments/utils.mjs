@@ -6,23 +6,54 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import fs from "fs";
 import path from "path";
 import helpers from "../helpers.mjs";
 import globals from "../globals.mjs";
 
 /**
- * Obtains the globals for a list of files.
+ * @typedef {{[name: string]: "readonly"|"writeable"|"off"}} Globals
+ *   A list of globals compatible with ESLint's configuration format. The type
+ *   name "Globals" reflects the type in the ESLint definition.
+ */
+
+let savedGlobals = null;
+
+/**
+ * Loads environment items from the saved globals file. Used when eslint-plugin-mozilla
+ * is installed outside of the firefox repository.
+ *
+ * @param {string} environment
+ * @returns {{globals: {Globals}}}
+ *   The globals for the given environment.
+ */
+function getSavedEnvironmentItems(environment) {
+  if (!savedGlobals) {
+    savedGlobals = JSON.parse(
+      fs.readFileSync(
+        path.join(import.meta.dirname, "environments", "saved-globals.json"),
+        {
+          encoding: "utf-8",
+        }
+      )
+    );
+  }
+  return savedGlobals.environments[environment];
+}
+
+/**
+ * Obtains the globals for a list of files and if they are writeable or not.
  *
  * @param {string} environmentName
  *   The name of the environment that globals are being obtained for.
  * @param {string[]} files
  *   The array of files to get globals for. The paths are relative to the topsrcdir.
- * @returns {object}
- *   Returns an object with keys of the global names and values of if they are
- *   writable or not.
+ * @param {Globals} [extraGlobals]
+ *   Any additional globals to add to the globals list.
  */
-function getGlobalsForScripts(environmentName, files, extraDefinitions) {
-  let fileGlobals = extraDefinitions;
+function getGlobalsForScripts(environmentName, files, extraGlobals) {
+  /** @type {ReturnType<typeof globals.getGlobalsForFile>} */
+  let fileGlobals = [];
   const root = helpers.rootDir;
   for (const file of files) {
     const fileName = path.join(root, file);
@@ -37,24 +68,39 @@ function getGlobalsForScripts(environmentName, files, extraDefinitions) {
     }
   }
 
-  var globalObjects = {};
+  /** @type {Globals}} */
+  var globalObjects = { ...extraGlobals };
   for (let { name: globalName, writable } of fileGlobals) {
-    globalObjects[globalName] = writable;
+    globalObjects[globalName] = writable ? "writeable" : "readonly";
   }
   return globalObjects;
 }
 
-export function getScriptGlobals(
+/**
+ * Gets the complete globals list for a set of scripts, adding extra globals and
+ * environments as required.
+ *
+ * When run from within the Firefox repository, this will use process the given
+ * files. When run from outside the Firefox repository, this will use the
+ * cache of saved globals.
+ *
+ * @param {object} options
+ * @param {string} options.environmentName
+ *   The name of the environment we are getting the globals for.
+ * @param {string[]} options.files
+ *   The array of files to process
+ * @param {Globals} [options.extraGlobals]
+ *   Any additional globals to add to the globals list.
+ */
+export function getScriptGlobals({
   environmentName,
   files,
-  extraDefinitions = [],
-  extraEnv = {}
-) {
+  extraGlobals = {},
+}) {
   if (helpers.isMozillaCentralBased()) {
     return {
-      globals: getGlobalsForScripts(environmentName, files, extraDefinitions),
-      ...extraEnv,
+      globals: getGlobalsForScripts(environmentName, files, extraGlobals),
     };
   }
-  return helpers.getSavedEnvironmentItems(environmentName);
+  return getSavedEnvironmentItems(environmentName);
 }

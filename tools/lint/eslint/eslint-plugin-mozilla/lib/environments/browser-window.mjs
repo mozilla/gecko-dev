@@ -27,19 +27,22 @@ const EXTRA_SCRIPTS = [
   "toolkit/content/editMenuOverlay.js",
 ];
 
-const extraDefinitions = [
+/**
+ * @type {{[key: string]: "readonly"|"writeable"|"off"}}
+ */
+const extraGlobals = {
   // Via Components.utils, defineModuleGetter, defineLazyModuleGetters or
   // defineLazyScriptGetter (and map to
   // single) variable.
-  { name: "XPCOMUtils", writable: false },
-  { name: "Task", writable: false },
-  { name: "windowGlobalChild", writable: false },
+  XPCOMUtils: "readonly",
+  Task: "readonly",
+  windowGlobalChild: "readonly",
   // structuredClone is a new global that would be defined for the `browser`
   // environment in ESLint, but only Firefox has implemented it currently and so
   // it isn't in ESLint's globals yet.
   // https://developer.mozilla.org/docs/Web/API/structuredClone
-  { name: "structuredClone", writable: false },
-];
+  structuredClone: "readonly",
+};
 
 // Some files in global-scripts.inc need mapping to specific locations.
 const MAPPINGS = {
@@ -111,11 +114,11 @@ function getGlobalScripts() {
   return results;
 }
 
-export default getScriptGlobals(
-  "browser-window",
-  getGlobalScripts().concat(EXTRA_SCRIPTS),
-  extraDefinitions,
-  {
-    browserjsScripts: getGlobalScripts().concat(EXTRA_SCRIPTS),
-  }
-);
+export default {
+  ...getScriptGlobals({
+    environmentName: "browser-window",
+    files: getGlobalScripts().concat(EXTRA_SCRIPTS),
+    extraGlobals,
+  }),
+  browserjsScripts: getGlobalScripts().concat(EXTRA_SCRIPTS),
+};
