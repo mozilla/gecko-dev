@@ -92,10 +92,7 @@ let ecmaGlobals = [
   "Reflect",
   "RegExp",
   "Set",
-  {
-    name: "SharedArrayBuffer",
-    crossOriginIsolated: true,
-  },
+  { name: "SharedArrayBuffer", crossOriginIsolated: true },
   "String",
   "SuppressedError",
   "Symbol",

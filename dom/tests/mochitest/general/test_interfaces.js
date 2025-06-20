@@ -1435,10 +1435,7 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "TransformStream", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  {
-    name: "TransformStreamDefaultController",
-    insecureContext: true,
-  },
+  { name: "TransformStreamDefaultController", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "TransitionEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
