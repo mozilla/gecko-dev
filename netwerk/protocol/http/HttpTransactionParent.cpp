@@ -94,7 +94,7 @@ nsresult HttpTransactionParent::Init(
     uint32_t initialRwin, bool responseTimeoutEnabled, uint64_t channelId,
     TransactionObserverFunc&& transactionObserver,
     nsILoadInfo::IPAddressSpace aParentIpAddressSpace,
-    dom::ContentPermissionRequestBase::PromptResult aLnaPermissionStatus) {
+    const LNAPerms& aLnaPermissionStatus) {
   LOG(("HttpTransactionParent::Init [this=%p caps=%x]\n", this, caps));
 
   if (!CanSend()) {
