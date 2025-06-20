@@ -1227,6 +1227,11 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
       return 1;
     }
 
+    // Now that the profiler, directory services, and prefs have been
+    // initialized we can find the download directory, where the profiler can
+    // write profiles when user stops the profiler using POSIX signal handling.
+    profiler_lookup_async_signal_dump_directory();
+
     // xpc::ErrorReport::LogToConsoleWithStack needs this to print errors
     // to stderr.
     Preferences::SetBool("browser.dom.window.dump.enabled", true);

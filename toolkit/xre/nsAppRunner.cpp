@@ -5622,6 +5622,18 @@ nsresult XREMain::XRE_mainRun() {
     // files can't override JS engine start-up prefs.
     mDirProvider.FinishInitializingUserPrefs();
 
+    // Now that the profiler, directory services, and prefs have been
+    // initialized we can find the download directory, where the profiler can
+    // write profiles when user stops the profiler using POSIX signal handling.
+    //
+    // It's possible to start and stop the profiler by sending POSIX signals to
+    // the profiler binary when Firefox is frozen. At the time when stop signal
+    // is handled, Firefox stops the profiler and dumps the profile to disk. But
+    // getting the download directory is not really possible at that time
+    // because main thread will be unresponsive. That's why we are getting this
+    // information right now.
+    profiler_lookup_async_signal_dump_directory();
+
     // Do a canary load of a JS based module here. This will help us detect
     // missing resources during startup and make us react appropriate, that
     // is inform the user before exiting with a crash.
