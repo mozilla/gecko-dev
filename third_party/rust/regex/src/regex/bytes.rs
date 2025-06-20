@@ -651,9 +651,6 @@ impl Regex {
     /// case, this implementation will likely return a `Cow::Borrowed` value
     /// such that no allocation is performed.
     ///
-    /// When a `Cow::Borrowed` is returned, the value returned is guaranteed
-    /// to be equivalent to the `haystack` given.
-    ///
     /// # Replacement string syntax
     ///
     /// All instances of `$ref` in the replacement string are replaced with
@@ -764,13 +761,6 @@ impl Regex {
     /// replacement provided. This is the same as calling `replacen` with
     /// `limit` set to `0`.
     ///
-    /// If no match is found, then the haystack is returned unchanged. In that
-    /// case, this implementation will likely return a `Cow::Borrowed` value
-    /// such that no allocation is performed.
-    ///
-    /// When a `Cow::Borrowed` is returned, the value returned is guaranteed
-    /// to be equivalent to the `haystack` given.
-    ///
     /// The documentation for [`Regex::replace`] goes into more detail about
     /// what kinds of replacement strings are supported.
     ///
@@ -864,13 +854,6 @@ impl Regex {
     /// the replacement provided. If `limit` is `0`, then all non-overlapping
     /// matches are replaced. That is, `Regex::replace_all(hay, rep)` is
     /// equivalent to `Regex::replacen(hay, 0, rep)`.
-    ///
-    /// If no match is found, then the haystack is returned unchanged. In that
-    /// case, this implementation will likely return a `Cow::Borrowed` value
-    /// such that no allocation is performed.
-    ///
-    /// When a `Cow::Borrowed` is returned, the value returned is guaranteed
-    /// to be equivalent to the `haystack` given.
     ///
     /// The documentation for [`Regex::replace`] goes into more detail about
     /// what kinds of replacement strings are supported.
@@ -1555,13 +1538,18 @@ impl<'h> Match<'h> {
 
 impl<'h> core::fmt::Debug for Match<'h> {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        use regex_automata::util::escape::DebugHaystack;
-
         let mut fmt = f.debug_struct("Match");
-        fmt.field("start", &self.start)
-            .field("end", &self.end)
-            .field("bytes", &DebugHaystack(&self.as_bytes()));
-
+        fmt.field("start", &self.start).field("end", &self.end);
+        if let Ok(s) = core::str::from_utf8(self.as_bytes()) {
+            fmt.field("bytes", &s);
+        } else {
+            // FIXME: It would be nice if this could be printed as a string
+            // with invalid UTF-8 replaced with hex escapes. A alloc would
+            // probably okay if that makes it easier, but regex-automata does
+            // (at time of writing) have internal routines that do this. So
+            // maybe we should expose them.
+            fmt.field("bytes", &self.as_bytes());
+        }
         fmt.finish()
     }
 }
@@ -1580,15 +1568,10 @@ impl<'h> From<Match<'h>> for core::ops::Range<usize> {
 
 /// Represents the capture groups for a single match.
 ///
-/// Capture groups refer to parts of a regex enclosed in parentheses. They
-/// can be optionally named. The purpose of capture groups is to be able to
-/// reference different parts of a match based on the original pattern. In
-/// essence, a `Captures` is a container of [`Match`] values for each group
-/// that participated in a regex match. Each `Match` can be looked up by either
-/// its capture group index or name (if it has one).
-///
-/// For example, say you want to match the individual letters in a 5-letter
-/// word:
+/// Capture groups refer to parts of a regex enclosed in parentheses. They can
+/// be optionally named. The purpose of capture groups is to be able to
+/// reference different parts of a match based on the original pattern. For
+/// example, say you want to match the individual letters in a 5-letter word:
 ///
 /// ```text
 /// (?<first>\w)(\w)(?:\w)\w(?<last>\w)
@@ -1706,8 +1689,8 @@ impl<'h> Captures<'h> {
     ///
     /// This returns a tuple where the first element corresponds to the full
     /// substring of the haystack that matched the regex. The second element is
-    /// an array of substrings, with each corresponding to the substring that
-    /// matched for a particular capture group.
+    /// an array of substrings, with each corresponding to the to the substring
+    /// that matched for a particular capture group.
     ///
     /// # Panics
     ///
@@ -2001,7 +1984,7 @@ impl<'h> core::ops::Index<usize> for Captures<'h> {
 /// The haystack substring returned can't outlive the `Captures` object if this
 /// method is used, because of how `Index` is defined (normally `a[i]` is part
 /// of `a` and can't outlive it). To work around this limitation, do that, use
-/// [`Captures::name`] instead.
+/// [`Captures::get`] instead.
 ///
 /// `'h` is the lifetime of the matched haystack, but the lifetime of the
 /// `&str` returned by this implementation is the lifetime of the `Captures`
@@ -2054,10 +2037,7 @@ impl<'h, 'n> core::ops::Index<&'n str> for Captures<'h> {
 ///
 /// // Asking for an invalid capture group always returns None.
 /// assert_eq!(None, locs.get(3));
-/// # // literals are too big for 32-bit usize: #1041
-/// # #[cfg(target_pointer_width = "64")]
 /// assert_eq!(None, locs.get(34973498648));
-/// # #[cfg(target_pointer_width = "64")]
 /// assert_eq!(None, locs.get(9944060567225171988));
 /// ```
 #[derive(Clone, Debug)]
@@ -2613,90 +2593,5 @@ fn no_expansion<T: AsRef<[u8]>>(replacement: &T) -> Option<Cow<'_, [u8]>> {
     match crate::find_byte::find_byte(b'$', replacement) {
         Some(_) => None,
         None => Some(Cow::Borrowed(replacement)),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use alloc::format;
-
-    #[test]
-    fn test_match_properties() {
-        let haystack = b"Hello, world!";
-        let m = Match::new(haystack, 7, 12);
-
-        assert_eq!(m.start(), 7);
-        assert_eq!(m.end(), 12);
-        assert_eq!(m.is_empty(), false);
-        assert_eq!(m.len(), 5);
-        assert_eq!(m.as_bytes(), b"world");
-    }
-
-    #[test]
-    fn test_empty_match() {
-        let haystack = b"";
-        let m = Match::new(haystack, 0, 0);
-
-        assert_eq!(m.is_empty(), true);
-        assert_eq!(m.len(), 0);
-    }
-
-    #[test]
-    fn test_debug_output_valid_utf8() {
-        let haystack = b"Hello, world!";
-        let m = Match::new(haystack, 7, 12);
-        let debug_str = format!("{:?}", m);
-
-        assert_eq!(
-            debug_str,
-            r#"Match { start: 7, end: 12, bytes: "world" }"#
-        );
-    }
-
-    #[test]
-    fn test_debug_output_invalid_utf8() {
-        let haystack = b"Hello, \xFFworld!";
-        let m = Match::new(haystack, 7, 13);
-        let debug_str = format!("{:?}", m);
-
-        assert_eq!(
-            debug_str,
-            r#"Match { start: 7, end: 13, bytes: "\xffworld" }"#
-        );
-    }
-
-    #[test]
-    fn test_debug_output_various_unicode() {
-        let haystack =
-            "Hello, 😊 world! 안녕하세요? مرحبا بالعالم!".as_bytes();
-        let m = Match::new(haystack, 0, haystack.len());
-        let debug_str = format!("{:?}", m);
-
-        assert_eq!(
-            debug_str,
-            r#"Match { start: 0, end: 62, bytes: "Hello, 😊 world! 안녕하세요? مرحبا بالعالم!" }"#
-        );
-    }
-
-    #[test]
-    fn test_debug_output_ascii_escape() {
-        let haystack = b"Hello,\tworld!\nThis is a \x1b[31mtest\x1b[0m.";
-        let m = Match::new(haystack, 0, haystack.len());
-        let debug_str = format!("{:?}", m);
-
-        assert_eq!(
-            debug_str,
-            r#"Match { start: 0, end: 38, bytes: "Hello,\tworld!\nThis is a \u{1b}[31mtest\u{1b}[0m." }"#
-        );
-    }
-
-    #[test]
-    fn test_debug_output_match_in_middle() {
-        let haystack = b"The quick brown fox jumps over the lazy dog.";
-        let m = Match::new(haystack, 16, 19);
-        let debug_str = format!("{:?}", m);
-
-        assert_eq!(debug_str, r#"Match { start: 16, end: 19, bytes: "fox" }"#);
     }
 }

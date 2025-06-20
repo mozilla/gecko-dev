@@ -2235,19 +2235,24 @@ impl PreferenceTrie {
     /// after them and because any removed literals are guaranteed to never
     /// match.
     fn minimize(literals: &mut Vec<Literal>, keep_exact: bool) {
-        let mut trie = PreferenceTrie {
+        use core::cell::RefCell;
+
+        // MSRV(1.61): Use retain_mut here to avoid interior mutability.
+        let trie = RefCell::new(PreferenceTrie {
             states: vec![],
             matches: vec![],
             next_literal_index: 1,
-        };
+        });
         let mut make_inexact = vec![];
-        literals.retain_mut(|lit| match trie.insert(lit.as_bytes()) {
-            Ok(_) => true,
-            Err(i) => {
-                if !keep_exact {
-                    make_inexact.push(i.checked_sub(1).unwrap());
+        literals.retain(|lit| {
+            match trie.borrow_mut().insert(lit.as_bytes()) {
+                Ok(_) => true,
+                Err(i) => {
+                    if !keep_exact {
+                        make_inexact.push(i.checked_sub(1).unwrap());
+                    }
+                    false
                 }
-                false
             }
         });
         for i in make_inexact {

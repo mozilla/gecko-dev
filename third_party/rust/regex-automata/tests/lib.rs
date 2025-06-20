@@ -61,7 +61,6 @@ fn suite() -> anyhow::Result<regex_test::RegexTests> {
     load!("unicode");
     load!("utf8");
     load!("word-boundary");
-    load!("word-boundary-special");
     load!("fowler/basic");
     load!("fowler/nullsubexpr");
     load!("fowler/repetition");

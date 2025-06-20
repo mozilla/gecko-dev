@@ -301,7 +301,7 @@ EXTRA_JS_MODULES += [
     "SimpleURIUnknownSchemesRemoteObserver.sys.mjs",
 ]
 
-DIRS += ["mozurl", "rust-helper", "http-sfv", "idna_glue", "urlpattern_glue"]
+DIRS += ["mozurl", "rust-helper", "http-sfv", "idna_glue"]
 
 include("/ipc/chromium/chromium-config.mozbuild")
 

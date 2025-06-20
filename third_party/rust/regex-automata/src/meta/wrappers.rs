@@ -212,10 +212,7 @@ impl BoundedBacktrackerEngine {
                 .configure(backtrack_config)
                 .build_from_nfa(nfa.clone())
                 .map_err(BuildError::nfa)?;
-            debug!(
-                "BoundedBacktracker built (max haystack length: {:?})",
-                engine.max_haystack_len()
-            );
+            debug!("BoundedBacktracker built");
             Ok(Some(BoundedBacktrackerEngine(engine)))
         }
         #[cfg(not(feature = "nfa-backtrack"))]

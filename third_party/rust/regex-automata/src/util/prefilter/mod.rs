@@ -146,8 +146,6 @@ pub struct Prefilter {
     pre: Arc<dyn PrefilterI>,
     #[cfg(feature = "alloc")]
     is_fast: bool,
-    #[cfg(feature = "alloc")]
-    max_needle_len: usize,
 }
 
 impl Prefilter {
@@ -204,19 +202,12 @@ impl Prefilter {
         kind: MatchKind,
         needles: &[B],
     ) -> Option<Prefilter> {
-        Choice::new(kind, needles).and_then(|choice| {
-            let max_needle_len =
-                needles.iter().map(|b| b.as_ref().len()).max().unwrap_or(0);
-            Prefilter::from_choice(choice, max_needle_len)
-        })
+        Choice::new(kind, needles).and_then(Prefilter::from_choice)
     }
 
     /// This turns a prefilter selection into a `Prefilter`. That is, in turns
     /// the enum given into a trait object.
-    fn from_choice(
-        choice: Choice,
-        max_needle_len: usize,
-    ) -> Option<Prefilter> {
+    fn from_choice(choice: Choice) -> Option<Prefilter> {
         #[cfg(not(feature = "alloc"))]
         {
             None
@@ -233,7 +224,7 @@ impl Prefilter {
                 Choice::AhoCorasick(p) => Arc::new(p),
             };
             let is_fast = pre.is_fast();
-            Some(Prefilter { pre, is_fast, max_needle_len })
+            Some(Prefilter { pre, is_fast })
         }
     }
 
@@ -420,20 +411,6 @@ impl Prefilter {
         }
     }
 
-    /// Return the length of the longest needle
-    /// in this Prefilter
-    #[inline]
-    pub fn max_needle_len(&self) -> usize {
-        #[cfg(not(feature = "alloc"))]
-        {
-            unreachable!()
-        }
-        #[cfg(feature = "alloc")]
-        {
-            self.max_needle_len
-        }
-    }
-
     /// Implementations might return true here if they believe themselves to
     /// be "fast." The concept of "fast" is deliberately left vague, but in
     /// practice this usually corresponds to whether it's believed that SIMD
@@ -452,7 +429,7 @@ impl Prefilter {
     /// *know* a prefilter will be fast without actually trying the prefilter.
     /// (Which of course we cannot afford to do.)
     #[inline]
-    pub fn is_fast(&self) -> bool {
+    pub(crate) fn is_fast(&self) -> bool {
         #[cfg(not(feature = "alloc"))]
         {
             unreachable!()

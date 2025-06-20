@@ -9,6 +9,7 @@ use {
         util::{prefilter::Prefilter, syntax},
         Anchored, Input, PatternSet,
     },
+    regex_syntax::hir,
     regex_test::{
         CompiledRegex, Match, RegexTest, SearchKind, Span, TestResult,
         TestRunner,
@@ -284,7 +285,10 @@ fn compiler(
         // That is, Unicode word boundaries when searching non-ASCII text.
         if !test.haystack().is_ascii() {
             for hir in hirs.iter() {
-                if hir.properties().look_set().contains_word_unicode() {
+                let looks = hir.properties().look_set();
+                if looks.contains(hir::Look::WordUnicode)
+                    || looks.contains(hir::Look::WordUnicodeNegate)
+                {
                     return Ok(CompiledRegex::skip());
                 }
             }

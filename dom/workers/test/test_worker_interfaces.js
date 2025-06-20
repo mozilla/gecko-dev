@@ -469,8 +469,6 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "URL", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "URLPattern", insecureContext: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "URLSearchParams", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "VideoColorSpace", insecureContext: true },
