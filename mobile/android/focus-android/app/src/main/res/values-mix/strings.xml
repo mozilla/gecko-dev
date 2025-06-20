@@ -126,7 +126,7 @@
     Focus is hard coded since we can't use variables in this context.
     Do not translate or transliterate Focus.
   -->
-  <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Nduku nu Focus </string>
+  <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Nduku nu Focus</string>
   <!--
     This is the label of an action we offer when the user selects text in other third-party apps.
     Klar is hard coded since we can't use variables in this context.
@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s te da el control.&lt;/p&gt;
-&lt;p&gt;Usalo como navegador privado:
-  &lt;ul&gt;
-    &lt;li&gt;Buscar y navegar directamente en la aplicación&lt;/li&gt;
-    &lt;li&gt;Bloquear rastreadores (o actualizar los ajustes para permitir rastreadores)&lt;/li&gt;
-    &lt;li&gt;Borrar para eliminar cookies e historial de búsqueda y navegación&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s es producido por Mozilla. Nuestra misión es promover una Internet saludable y abierta.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Conocer más&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s te da el control.</p> <p>Usalo como navegador privado: <ul> <li>Buscar y navegar directamente en la aplicación</li> <li>Bloquear rastreadores (o actualizar los ajustes para permitir rastreadores)</li> <li>Borrar para eliminar cookies e historial de búsqueda y navegación</li> </ul> </p> <p>%1$s es producido por Mozilla. Nuestra misión es promover una Internet saludable y abierta.<br/> <a href=\"%2$s\">Conocer más</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Ña i\'í tsi Ña kunka vai</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -331,7 +322,7 @@
   <string name="preference_mozilla_telemetry_summary2">Mozilla ndaki\'an ña vaa tava na koo vaa %1$s ntio.</string>
   <!-- Preference switch for daily usage ping data collection -->
   <string name="preference_daily_usage_ping_title">Ping de uso diario</string>
-  <string name="preference_daily_usage_ping_learn_more">Kavi </string>
+  <string name="preference_daily_usage_ping_learn_more">Kavi</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Nixi inka vaa tutu\'ku</string>
   <!-- In-app link (in settings) to Focus licensing information. -->
@@ -470,9 +461,9 @@
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Kavi sana kuatyu\'un  Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Kavi sana kuatyu\'un Firefox.</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Nixi inka vaa tutu\'ku.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Nixi inka vaa tutu\'ku.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Kitsa\'a</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
@@ -663,11 +654,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Kuna nu ndasama Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Katavi &lt;b&gt;Sama&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Katavi <b>Sama</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Kua´an nu ku ndasamu</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Ndatu´un &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Ndatu´un <b>%1$s</b>]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Cámara</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -703,9 +694,9 @@
   <!-- Title of the remove studies button -->
   <string name="studies_remove" moz:removedIn="140">Xitaá</string>
   <!-- Title of the active section on the studies list -->
-  <string name="studies_active" moz:removedIn="140">Va´a </string>
+  <string name="studies_active" moz:removedIn="140">Va´a</string>
   <!-- Title of the completed section on the studies list -->
-  <string name="studies_completed" moz:removedIn="140">Va´a </string>
+  <string name="studies_completed" moz:removedIn="140">Va´a</string>
   <!-- Preference to enable remote debugging of the app via USB or Wi-Fi -->
   <string name="preference_remote_debugging">Nta sa vaà tsi USBWi-Fi</string>
   <!-- Text Button for show biometric prompt -->
@@ -752,7 +743,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">¿Ntu satiñu vii sitio ya´a?\n Xita protección de rastreo </string>
+  <string name="tip_disable_tracking_protection">¿Ntu satiñu vii sitio ya´a?\nXita protección de rastreo</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -763,17 +754,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Kuna iin enlace tsi %1$s\n Chikay %1$s tana navegador xina</string>
+  <string name="tip_set_default_browser">Kuna iin enlace tsi %1$s\nChikay %1$s tana navegador xina</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Ntasa URLs ña sitio ña kuaka chichu\'un\n Katavi URL niku nu barra ña direcciones</string>
+  <string name="tip_autocomplete_url">Ntasa URLs ña sitio ña kuaka chichu\'un\nKatavi URL niku nu barra ña direcciones</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Kuna enlace nu xikua tsaá\n Katavi nchi enlace niku nu página</string>
+  <string name="tip_open_in_new_tab">Kuna enlace nu xikua tsaá\nKatavi nchi enlace niku nu página</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Xita tu´un xina ya kitsau</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -781,15 +772,15 @@
   <!-- Label for the button in the snackbar that switches to the newly opened tab -->
   <string name="open_new_tab_snackbar">Sama</string>
   <!-- Preference for switching to a new tab immediately after opening -->
-  <string name="preference_open_new_tab">Sama  enlazar nu xikua  tsaa vityi</string>
+  <string name="preference_open_new_tab">Sama enlazar nu xikua tsaa vityi</string>
   <!-- Preference title for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
   <string name="preference_safe_browsing_title">Kasi sitio vaa tsi ña stavi</string>
   <!-- Preference summary for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
   <string name="preference_safe_browsing_summary">Kasi sitio vaa tsi ña stavi, sitio nu inka kue aplicaciones tsi software vaa.</string>
   <!-- Title of the preference to enable "HTTPS-Only" mode -->
-  <string name="preference_https_only_title"> HTTPS</string>
+  <string name="preference_https_only_title">HTTPS</string>
   <!-- Description of the preference to enable "HTTPS-Only" mode. -->
-  <string name="preference_https_only_summary3">Kunu  kuntyeu sitio tatyu un protocolo HTTPS cifrado.</string>
+  <string name="preference_https_only_summary3">Kunu kuntyeu sitio tatyu un protocolo HTTPS cifrado.</string>
   <!-- Preference for exceptions tracking protection -->
   <string name="preference_exceptions">Excepciones</string>
   <!-- Menu item to remove existing exceptions. -->
@@ -813,7 +804,7 @@
   <!-- Tracking protection bottom sheet -->
 
   <!-- Label for the total number of trackers blocked. %s is the app install date. -->
-  <string name="trackers_count_note"> Ntsasia reatreador nu%s</string>
+  <string name="trackers_count_note">Ntsasia reatreador nu%s</string>
   <!-- Category of trackers (content) that can be blocked by Enhanced Tracking Protection. -->
   <string name="content">Contenido</string>
   <!-- Category of trackers (advertising) that can be blocked by Enhanced Tracking Protection. -->
@@ -852,7 +843,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Tutu ndatavu ña inka vaa compartidas &lt;b&gt;ma&lt;/b&gt; sntoi ta ku stuu ña ntsinu nu %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Tutu ndatavu ña inka vaa compartidas <b>ma</b> sntoi ta ku stuu ña ntsinu nu %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -898,7 +889,7 @@
     Content description (not visible, for screen readers etc.): This is the description for
     picture of search widget from promote search widget dialog.
   -->
-  <string name="promote_search_widget_dialog_picture_content_description">Dnuku Widget </string>
+  <string name="promote_search_widget_dialog_picture_content_description">Dnuku Widget</string>
   <!-- This is the title of promote search widget dialog. -->
   <string name="promote_search_widget_dialog_title">¡Koo ña ntsinu ! 🎉</string>
   <!-- Banner Info Message than will appear when user first enters in the app. The location is at the toolbar. -->

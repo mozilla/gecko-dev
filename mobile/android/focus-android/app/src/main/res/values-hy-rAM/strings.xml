@@ -173,7 +173,7 @@
   <string name="preference_privacy_block_social_summary">Ներկառուցված կայքերում՝ հետևելուհ ամար ձեր այցելուներին և ցուցադրելու համար գործառությունը, ինչպես օրինակ՝ կոճակների համօգտագործում</string>
   <string name="preference_privacy_block_content">Արգելափակել այլ բովանդակության հետագծումները</string>
   <string name="preference_privacy_block_content_summary2">Միացնելու դեպքում որոշ էջեր կարող են անսպասելի վարք ցուցադրել</string>
-  <string name="preference_privacy_category_cookies">"Արգելափակել cookie-ները "</string>
+  <string name="preference_privacy_category_cookies">\"Արգելափակել cookie-ները \"</string>
   <!--
     Three options for Cookie blocking. Yes (All cookies Blocked), Block 3rd-party cookies
     only (Only 3rd-party Cookies Blocked), No (No cookies blocked)

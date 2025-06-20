@@ -148,16 +148,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s вам даје контролу.&lt;/p&gt;
-&lt;p&gt;Користите га као приватни прегледач:
-  &lt;ul&gt;
-    &lt;li&gt;Претражујте и сурфујте директно у апликацији&lt;/li&gt;
-    &lt;li&gt;Блокирајте елементе за праћење (или их омогућите у подешавањима)&lt;/li&gt;
-    &lt;li&gt;Избришите све колачиће као и историју прегледања и претраге&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s је створила Mozilla. Наша мисија је неговање здравог и отвореног интернета.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Сазнајте више&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s вам даје контролу.</p> <p>Користите га као приватни прегледач: <ul> <li>Претражујте и сурфујте директно у апликацији</li> <li>Блокирајте елементе за праћење (или их омогућите у подешавањима)</li> <li>Избришите све колачиће као и историју прегледања и претраге</li> </ul> </p> <p>%1$s је створила Mozilla. Наша мисија је неговање здравог и отвореног интернета.<br/> <a href=\"%2$s\">Сазнајте више</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Приватност и безбедност</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -645,11 +636,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Идите на Android подешавања</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Додирните &lt;b&gt;Дозволе&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Додирните <b>Дозволе</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Иди у подешавања</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Пребаците &lt;b&gt;%1$s&lt;/b&gt; на УКЉУЧЕНО</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Пребаците <b>%1$s</b> на УКЉУЧЕНО]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Камера</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -734,7 +725,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Сајт се понаша чудно?\n Покушајте искључити заштиту од праћења</string>
+  <string name="tip_disable_tracking_protection">Сајт се понаша чудно?\nПокушајте искључити заштиту од праћења</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -745,17 +736,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Отвори сваку везу у %1$s-у\n Постави %1$s као подразумевани прегледач</string>
+  <string name="tip_set_default_browser">Отвори сваку везу у %1$s-у\nПостави %1$s као подразумевани прегледач</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Аутоматско завршавање URLs за сајтове које користите највише\n Дуго држите URL у адресној траци</string>
+  <string name="tip_autocomplete_url">Аутоматско завршавање URLs за сајтове које користите највише\nДуго држите URL у адресној траци</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Отвори везу у новом језичку\n Дуго држите на било којој вези на страници</string>
+  <string name="tip_open_in_new_tab">Отвори везу у новом језичку\nДуго држите на било којој вези на страници</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Искључите савете на почетном екрану</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -836,7 +827,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Дељене или сачуване слике &lt;b&gt;неће&lt;/b&gt; бити избрисане када обришете %1$s историју</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Дељене или сачуване слике <b>неће</b> бити избрисане када обришете %1$s историју]]></string>
   <!--
     Theme Preferences
 
@@ -857,22 +848,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s покушава да користи HTTPS везу кад год је могуће ради додатне безбедности.
-     &lt;a href="%2$s"&gt;Сазнајте више&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Промените ову поставку у Подешавања &gt; Приватност и безбедност &gt; Безбедност.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s покушава да користи HTTPS везу кад год је могуће ради додатне безбедности. <a href=\"%2$s\">Сазнајте више</a> <br/><br/> Промените ову поставку у Подешавања > Приватност и безбедност > Безбедност.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Веза није безбедна</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Можда је проблем у конфигурацији сервера, а можда неко покушава да имитира сервер. &lt;br/&gt;&lt;br/&gt;
-   Ако сте се раније успешно повезали са овим сервером, могуће је да проблем привремен.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Можда је проблем у конфигурацији сервера, а можда неко покушава да имитира сервер. <br/><br/> Ако сте се раније успешно повезали са овим сервером, могуће је да проблем привремен.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Неко можда покушава да имитира сајт и настављање на исти је тада ризично.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s нема поверења у &lt;b&gt;%2$s&lt;/b&gt; зато што му је издавач сертификата непознат, сертификат је самопотписан или сервер не шаље исправне посредничке сертификате.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Неко можда покушава да имитира сајт и настављање на исти је тада ризично.</label> <br><br> <label>%1$s нема поверења у <b>%2$s</b> зато што му је издавач сертификата непознат, сертификат је самопотписан или сервер не шаље исправне посредничке сертификате.</label>]]></string>
   <!--
     Sessions List
 

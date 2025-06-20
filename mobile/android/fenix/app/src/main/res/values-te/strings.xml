@@ -168,7 +168,7 @@
   -->
   <string name="browser_menu_new_in_firefox">%1$sలో కొత్తవి</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">డెస్క్‌టాప్ సైటుకి మారండి</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">డెస్క్‌టాప్ సైటుకి మారండి</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
   <string name="browser_menu_tools" moz:removedIn="141" tools:ignore="UnusedResources">పనిముట్లు</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->

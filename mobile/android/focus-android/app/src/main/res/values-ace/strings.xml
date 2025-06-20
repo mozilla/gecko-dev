@@ -142,16 +142,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s peuduek droeneuh lam keumudoe.&lt;/p&gt;
-&lt;p&gt;Ngui sibagoe browser rahsia:
-  &lt;ul&gt;
-    &lt;li&gt;Mita ngön lop lam aplikasi&lt;/li&gt;
-    &lt;li&gt;Tham ureueng seutöt (atawa pubarô seuneuatô keu peuidin ureueng seutöt)&lt;/li&gt;
-    &lt;li&gt;Lhi keu sampôh cookies lagèe riwayat mita ngön seumeulop&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s geupeugöt lé Mozilla. Misi kamoe nakeuh keu meusatoh internet nyang sihat ngön teuhah.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Learn more&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s peuduek droeneuh lam keumudoe.</p> <p>Ngui sibagoe browser rahsia: <ul> <li>Mita ngön lop lam aplikasi</li> <li>Tham ureueng seutöt (atawa pubarô seuneuatô keu peuidin ureueng seutöt)</li> <li>Lhi keu sampôh cookies lagèe riwayat mita ngön seumeulop</li> </ul> </p> <p>%1$s geupeugöt lé Mozilla. Misi kamoe nakeuh keu meusatoh internet nyang sihat ngön teuhah.<br/> <a href=\"%2$s\">Learn more</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Privasi &amp; Keuamanan</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -269,7 +260,7 @@
   <string name="preference_privacy_block_social">Tham peulacak sosial</string>
   <string name="preference_privacy_block_social_summary">Geupeukeumat bak situs keu jilacak seunaweueneuh ngön jipeuleumah fungsi lagèe teuneuthèp bulueng</string>
   <string name="preference_privacy_block_content">Tham peulacak asoe nyang laén</string>
-  <string name="preference_privacy_block_content_summary2">Meunyo neupeuudép akébatjih ladôm mieng mungkén akan jimeulagèe </string>
+  <string name="preference_privacy_block_content_summary2">Meunyo neupeuudép akébatjih ladôm mieng mungkén akan jimeulagèe</string>
   <string name="preference_privacy_category_cookies">Tham kuki</string>
   <!--
     Three options for Cookie blocking. Yes (All cookies Blocked), Block 3rd-party cookies
@@ -582,11 +573,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Jak u Atô Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Thèp &lt;b&gt;Idin&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Thèp <b>Idin</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Atô</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Pinah &lt;b&gt;%1$s&lt;/b&gt; jeuet ON</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Pinah <b>%1$s</b> jeuet ON]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamèra</string>
   <!-- Preference for altering the microphone access for all websites -->

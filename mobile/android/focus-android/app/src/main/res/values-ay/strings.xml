@@ -168,7 +168,7 @@
   <string name="preference_privacy_block_content">Yaqha utjir thaqhirinak jark\'antaña</string>
   <string name="preference_privacy_block_content_summary2">Jark\'antasinx inas yaqhip llika janjanakax jan walixchispati</string>
   <string name="preference_privacy_category_cookies">Yatiyanak jark\'antaña</string>
-  <string name="preference_privacy_should_block_cookies_third_party_only_option">"Yatiyawinakx chikatan chikatapak 3  jist\'antaña"</string>
+  <string name="preference_privacy_should_block_cookies_third_party_only_option">\"Yatiyawinakx chikatan chikatapak 3 jist\'antaña\"</string>
   <!--
     Preference Title: Secure Mode is a setting that prevents the app's content to show up in the "recent apps" screen
     and prevents the user from taking screenshots or casting the app to other displays.
@@ -200,7 +200,7 @@
   <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->
   <string name="preference_mozilla_telemetry_summary">Juk’amp yatiña</string>
   <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-  <string name="preference_mozilla_telemetry_summary2">"Musillax ajllsuwa kunatix askiki ukak churi ukhamarak taqinitakis  sumaptayi %1$s"</string>
+  <string name="preference_mozilla_telemetry_summary2">\"Musillax ajllsuwa kunatix askiki ukak churi ukhamarak taqinitakis sumaptayi %1$s\"</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">Maynitakik yatiya</string>
   <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
@@ -292,7 +292,7 @@
     This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar") and %2$s is the name of
     the app store installed on the device (usually that's Google Play).
   -->
-  <string name="external_app_prompt_no_app">"Janiw kuna lurawis uka chhitthapx jawsañaman jist\'arkaspati. Jaytxakim %1$s ukhamat yaqha  %2$s lurir jist\'arañapataki."</string>
+  <string name="external_app_prompt_no_app">\"Janiw kuna lurawis uka chhitthapx jawsañaman jist\'arkaspati. Jaytxakim %1$s ukhamat yaqha %2$s lurir jist\'arañapataki.\"</string>
   <!-- This label is shown above a list of apps that can be used to open a given link -->
   <string name="external_multiple_apps_matched_exit">Uka maynitakik thaqhañat misxatati?</string>
   <!-- Snackbar that will be displayed after a download has completed. %1$s is the file name. -->
@@ -373,7 +373,7 @@
     the user is at. %1$d is the position, %2$d is the total number of
     results.
   -->
-  <string name="find_in_page_result">"%1$d /%2$d "</string>
+  <string name="find_in_page_result">\"%1$d /%2$d \"</string>
   <!--
     String to be read by the accessibility service presenting the number of
     results found in the page and the position the user is at. %1$d is the

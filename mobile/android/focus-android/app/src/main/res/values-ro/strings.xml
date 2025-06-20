@@ -113,16 +113,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s îți oferă controlul.&lt;/p&gt;
-&lt;p&gt;Folosește-l ca browser privat:
-  &lt;ul&gt;
-    &lt;li&gt;Caută și navighează direct în aplicație&lt;/li&gt;
-    &lt;li&gt;Blochează elementele de urmărire (sau actualizează setările pentru a permite elementele de urmărire)&lt;/li&gt;
-    &lt;li&gt;Șterge pentru a elimina cookie-urile, precum și istoricul de căutare și navigare&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s este produs de Mozilla. Misiunea noastră este să promovăm un internet sănătos și deschis.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Află mai multe&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s îți oferă controlul.</p> <p>Folosește-l ca browser privat: <ul> <li>Caută și navighează direct în aplicație</li> <li>Blochează elementele de urmărire (sau actualizează setările pentru a permite elementele de urmărire)</li> <li>Șterge pentru a elimina cookie-urile, precum și istoricul de căutare și navigare</li> </ul> </p> <p>%1$s este produs de Mozilla. Misiunea noastră este să promovăm un internet sănătos și deschis.<br/> <a href=\"%2$s\">Află mai multe</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Confidențialitate și securitate</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -498,7 +489,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Site-ul are un comportament neașteptat?\n Încearcă să dezactivezi protecția împotriva urmăririi</string>
+  <string name="tip_disable_tracking_protection">Site-ul are un comportament neașteptat?\nÎncearcă să dezactivezi protecția împotriva urmăririi</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -509,17 +500,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Deschide fiecare link în %1$s\n Setează %1$s ca browser implicit</string>
+  <string name="tip_set_default_browser">Deschide fiecare link în %1$s\nSetează %1$s ca browser implicit</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Completează automat URL-urile site-urilor pe care intri des\n Apasă lung pe orice URL din bara de adresă</string>
+  <string name="tip_autocomplete_url">Completează automat URL-urile site-urilor pe care intri des\nApasă lung pe orice URL din bara de adresă</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Deschide un link într-o filă nouă\n Apasă lung pe orice link dintr-o pagină</string>
+  <string name="tip_open_in_new_tab">Deschide un link într-o filă nouă\nApasă lung pe orice link dintr-o pagină</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Dezactivează ponturile din ecranul de start</string>
   <!-- Label for the snackbar when a user opens a new tab -->

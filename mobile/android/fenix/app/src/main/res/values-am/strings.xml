@@ -328,7 +328,7 @@
   -->
   <string name="browser_menu_new_in_firefox">በ%1$s ውስጥ አዲስ</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">ወደ ዴስክቶፕ ጣቢያ ቀይር</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">ወደ ዴስክቶፕ ጣቢያ ቀይር</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">ወደ ሞባይል ጣቢያ ቀይር</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

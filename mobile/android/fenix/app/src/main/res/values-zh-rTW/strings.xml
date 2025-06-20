@@ -336,7 +336,7 @@
   -->
   <string name="browser_menu_new_in_firefox">%1$s 新鮮事</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">切換為桌面版</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">切換為桌面版</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">切換為行動版</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
@@ -1521,6 +1521,8 @@
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">已刪除 %1$d 個項目</string>
+  <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
+  <string name="download_app_dialog_title">透過下列工具下載檔案：</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">已刪除「%1$s」</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->

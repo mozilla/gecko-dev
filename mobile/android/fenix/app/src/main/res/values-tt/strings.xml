@@ -256,7 +256,7 @@
   -->
   <string name="browser_menu_new_in_firefox">%1$s эчендәге яңалыклар</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">Сайтның өстәл өсте версиясенә күчү</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Сайтның өстәл өсте версиясенә күчү</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Сайтның мобиль версиясенә күчү</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

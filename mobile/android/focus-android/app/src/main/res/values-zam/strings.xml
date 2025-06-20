@@ -175,7 +175,7 @@
   <!-- "Hint" text for the "custom autocomplete URL" input field. Shown when the field is empty. -->
   <string name="preference_autocomplete_add_hint">Lí chop ó m-tòb URL</string>
   <!-- Example how a custom domain autocomplete URL be added (e.g. without http://) -->
-  <string name="preference_autocomplete_add_example2">"VáɁ: mozilla.org "</string>
+  <string name="preference_autocomplete_add_example2">\"VáɁ: mozilla.org \"</string>
   <!-- To be removed once the new hint has been translated -->
   <string name="preference_autocomplete_add_example">M-tòb: sálépágina.com</string>
   <!-- Confirmation "snackbar" shown after a new custom autocomplete URL has been added. -->
@@ -219,7 +219,7 @@
     how to set Focus as a default browser.
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="preference_default_browser2">"M-tòb %1$s mdó-lás=lû "</string>
+  <string name="preference_default_browser2">\"M-tòb %1$s mdó-lás=lû \"</string>
   <string name="preference_category_mozilla">Mozilla</string>
   <string name="preference_mozilla_telemetry2">M-tàl kò lì-chèl</string>
   <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->

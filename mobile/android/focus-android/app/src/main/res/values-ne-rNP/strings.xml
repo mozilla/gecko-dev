@@ -118,16 +118,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ले तपाईंलाई नियन्त्रणमा राख्छ।&lt;/p&gt;
-&lt;p&gt;यसलाई निजी ब्राउजरको रूपमा प्रयोग गर्नुहोस्:
-  &lt;ul&gt;
-    &lt;li&gt;एपमानै खोज्नुहोस् र ब्राउज गर्नुहोस्&lt;/li&gt;
-    &lt;li&gt;ट्र्याकरहरू रोक्नुहोस् (वा ट्र्याकरहरूलाई अनुमति दिन सेटिङ्गहरू अपडेट गर्नुहोस्)&lt;/li&gt;
-    &lt;li&gt;कुकीजहरू मेटाउनका साथै खोज र ब्राउजिङ्ग इतिहास मेटाउनुहोस्&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s Mozilla द्वारा उत्पादन गरिएको हो। हाम्रो लक्ष्य भनेको स्वस्थ, खुला इन्टरनेटको विकास गर्नु हो।&lt;br/&gt;
-&lt;a href="%2$s"&gt;थप जान्नुहोस्&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ले तपाईंलाई नियन्त्रणमा राख्छ।</p> <p>यसलाई निजी ब्राउजरको रूपमा प्रयोग गर्नुहोस्: <ul> <li>एपमानै खोज्नुहोस् र ब्राउज गर्नुहोस्</li> <li>ट्र्याकरहरू रोक्नुहोस् (वा ट्र्याकरहरूलाई अनुमति दिन सेटिङ्गहरू अपडेट गर्नुहोस्)</li> <li>कुकीजहरू मेटाउनका साथै खोज र ब्राउजिङ्ग इतिहास मेटाउनुहोस्</li> </ul> </p> <p>%1$s Mozilla द्वारा उत्पादन गरिएको हो। हाम्रो लक्ष्य भनेको स्वस्थ, खुला इन्टरनेटको विकास गर्नु हो।<br/> <a href=\"%2$s\">थप जान्नुहोस्</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">गोपनीयता र सुरक्षा</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -378,7 +369,7 @@
     Content description (not visible, for screen readers etc.): This is the description for the ImageView in the menu that displays
     the number of trackers blocked for the current session
   -->
-  <string name="content_description_trackers_blocked">अवरुद्ध गरिएका ट्रयाकरहरुको सङ्ख्या </string>
+  <string name="content_description_trackers_blocked">अवरुद्ध गरिएका ट्रयाकरहरुको सङ्ख्या</string>
   <!--
     Content description (not visible, for screen readers etc.): This is the description for the switch in the menu that temporarily disables/enables
     content blocking for the current session

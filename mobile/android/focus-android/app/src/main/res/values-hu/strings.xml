@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;A %1$s az Ön kezébe adja az irányítást.&lt;/p&gt;
-&lt;p&gt;Használja privát böngészőként:
-  &lt;ul&gt;
-    &lt;li&gt;Keressen és böngésszen közvetlenül az appban&lt;/li&gt;
-    &lt;li&gt;Blokkolja a követőket (vagy frissítse a beállításokat az engedélyezéshez)&lt;/li&gt;
-    &lt;li&gt;Törölje a sütiket és a böngészési előzményeket is&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;A %1$s a Mozilla terméke. Küldetésünk az egészséges, nyílt Internet támogatása.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Tudjon meg többet&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>A %1$s az Ön kezébe adja az irányítást.</p> <p>Használja privát böngészőként: <ul> <li>Keressen és böngésszen közvetlenül az appban</li> <li>Blokkolja a követőket (vagy frissítse a beállításokat az engedélyezéshez)</li> <li>Törölje a sütiket és a böngészési előzményeket is</li> </ul> </p> <p>A %1$s a Mozilla terméke. Küldetésünk az egészséges, nyílt Internet támogatása.<br/> <a href=\"%2$s\">Tudjon meg többet</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Adatvédelem és biztonság</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">A folytatással elfogadja a %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">A folytatással elfogadja a %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Firefox felhasználási feltételeit.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Firefox felhasználási feltételeit.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">A Firefox vigyáz az Ön adatvédelmére. További információk az %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">A Firefox vigyáz az Ön adatvédelmére. További információk az %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Adatvédelmi nyilatkozatunkban.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Adatvédelmi nyilatkozatunkban.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Elfogadás és folytatás</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Ugorjon az Android beállításokhoz</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Koppintson az &lt;b&gt;Engedélyek&lt;/b&gt; lehetőségre</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Koppintson az <b>Engedélyek</b> lehetőségre]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Ugrás a beállításokhoz</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Kapcsolja BE a következőt: &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Kapcsolja BE a következőt: <b>%1$s</b>]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -752,7 +743,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> A javaslatok kéréséhez a %1$snak el kell küldenie a címsorba írt üzenetet a keresőszolgáltatásnak.</string>
+  <string name="enable_search_suggestion_description">A javaslatok kéréséhez a %1$snak el kell küldenie a címsorba írt üzenetet a keresőszolgáltatásnak.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">Nem</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">A mentett és megosztott képek &lt;b&gt;nem kerülnek&lt;/b&gt; törlésre, ha törli a %1$s előzményeit.</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[A mentett és megosztott képek <b>nem kerülnek</b> törlésre, ha törli a %1$s előzményeit.]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">A %1$s a nagyobb biztonság érdekében megpróbál HTTPS kapcsolatot használni, amikor az lehetséges.
-     &lt;a href="%2$s"&gt;További tudnivalók&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Ezt a beállítást itt módosíthatja: Beállítások &gt; Adatvédelem és biztonság &gt; Biztonság.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[A %1$s a nagyobb biztonság érdekében megpróbál HTTPS kapcsolatot használni, amikor az lehetséges. <a href=\"%2$s\">További tudnivalók</a> <br/><br/> Ezt a beállítást itt módosíthatja: Beállítások > Adatvédelem és biztonság > Biztonság.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">A kapcsolat nem biztonságos</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Ezt okozhatja a kiszolgáló nem megfelelő beállítása, de az is lehet, hogy valaki megpróbál a kiszolgáló nevében fellépni.&lt;br/&gt;&lt;br/&gt;
-    Ha korábban már sikeresen kapcsolódott ehhez a kiszolgálóhoz, akkor lehet, hogy a hiba csak ideiglenes.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Ezt okozhatja a kiszolgáló nem megfelelő beállítása, de az is lehet, hogy valaki megpróbál a kiszolgáló nevében fellépni.<br/><br/> Ha korábban már sikeresen kapcsolódott ehhez a kiszolgálóhoz, akkor lehet, hogy a hiba csak ideiglenes.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Lehet, hogy valaki megpróbálja megszemélyesíteni az oldalt, és a folytatás kockázatos lehet.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;A %1$s nem bízik a(z) &lt;b&gt;%2$s&lt;/b&gt; oldalban, mert a tanúsítvány kibocsátója ismeretlen, a tanúsítvány önaláírt, vagy a kiszolgáló nem küldi el a helyes közbülső tanúsítványokat.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Lehet, hogy valaki megpróbálja megszemélyesíteni az oldalt, és a folytatás kockázatos lehet.</label> <br><br> <label>A %1$s nem bízik a(z) <b>%2$s</b> oldalban, mert a tanúsítvány kibocsátója ismeretlen, a tanúsítvány önaláírt, vagy a kiszolgáló nem küldi el a helyes közbülső tanúsítványokat.</label>]]></string>
   <!--
     Sessions List
 

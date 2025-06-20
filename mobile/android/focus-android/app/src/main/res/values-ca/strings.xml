@@ -462,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">En continuar, accepteu les %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">En continuar, accepteu les %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">condicions d’ús del Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">condicions d’ús del Firefox.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">El Firefox prioritza la vostra privadesa. Més informació en l’%1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">El Firefox prioritza la vostra privadesa. Més informació en l’%1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">avís de privadesa.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">avís de privadesa.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Accepta i continua</string>
   <!-- New Onboarding flow first screen button label -->

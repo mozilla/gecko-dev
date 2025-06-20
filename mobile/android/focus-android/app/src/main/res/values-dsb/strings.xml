@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s dajo was kontrolu wobchowaś.&lt;/p&gt;
-&lt;p&gt;Wužywajśo jen ako priwatny wobglědowak:
-  &lt;ul&gt;
-    &lt;li&gt;Pytajśo a pśeglědujśo direktnje w nałoženju&lt;/li&gt;
-    &lt;li&gt;Blokěrujśo pśeslědowaki (abo aktualizěrujśo nastajenja, aby pśeslědowaki dowólił)&lt;/li&gt;
-    &lt;li&gt;Lašujśo cookieje a pytańsku a pśeglědowańsku historiju&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s se wót Mozilla wuwija. Naša misija jo spěchowanje strowego, wótwórjonego interneta.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Dalšne informacije&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s dajo was kontrolu wobchowaś.</p> <p>Wužywajśo jen ako priwatny wobglědowak: <ul> <li>Pytajśo a pśeglědujśo direktnje w nałoženju</li> <li>Blokěrujśo pśeslědowaki (abo aktualizěrujśo nastajenja, aby pśeslědowaki dowólił)</li> <li>Lašujśo cookieje a pytańsku a pśeglědowańsku historiju</li> </ul> </p> <p>%1$s se wót Mozilla wuwija. Naša misija jo spěchowanje strowego, wótwórjonego interneta.<br/> <a href=\"%2$s\">Dalšne informacije</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Priwatnosć a wěstota</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Gaž pókšacujośo, zwólijośo do %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Gaž pókšacujośo, zwólijośo do %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Wužywańske wuměnjenja Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Wužywańske wuměnjenja Firefox.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox se wó wašu priwatnosć stara. Dalšne informacije w: %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox se wó wašu priwatnosć stara. Dalšne informacije w: %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Powěźeńka priwatnosći.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Powěźeńka priwatnosći.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Pśizwóliś a pókšacowaś</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Źiśo k nastajenjam Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Pótusniśo zapisk &lt;b&gt;Berechtigungen&lt;/b&gt; (Pšawa)</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Pótusniśo zapisk <b>Berechtigungen</b> (Pšawa)]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">K nastajenjam</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Zašaltujśo &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Zašaltujśo <b>%1$s</b>]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -788,8 +779,7 @@
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Wótkaz w nowem rejtariku wócyniś\n
-        Tłocćo dłujko na wótkaz na boku</string>
+  <string name="tip_open_in_new_tab">Wótkaz w nowem rejtariku wócyniś\nTłocćo dłujko na wótkaz na boku</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Tipy na startowej wobrazowce znjemóžniś</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -870,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Skłaźone a źělone wobraze &lt;b&gt;se nje&lt;/b&gt;wulašuju, gaž historiju %1$s lašujośo.</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Skłaźone a źělone wobraze <b>se nje</b>wulašuju, gaž historiju %1$s lašujośo.]]></string>
   <!--
     Theme Preferences
 
@@ -891,23 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s wópytujo HTTPS-zwisk wužywaś, gažkuli jo móžno za wěstotu.
- &lt;a href="%2$s"&gt;Dalšne informacije&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
- Změńśo toś to nastajenje w Nastajenja &gt; Priwatnosć a wěstota &gt; Wěstota.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s wópytujo HTTPS-zwisk wužywaś, gažkuli jo móžno za wěstotu. <a href=\"%2$s\">Dalšne informacije</a> <br/><br/> Změńśo toś to nastajenje w Nastajenja > Priwatnosć a wěstota > Wěstota.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Zwisk njejo wěsty</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
- To mógło problem z konfiguraciju serwera byś, abo něchten wopytujo, serwer imitěrowaś. &lt;br/&gt;&lt;br/&gt;
-
- Jolic sćo był w zajźonosći ze serwerom wuspěšnje zwězany, móžo zmólka nachylna byś.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[To mógło problem z konfiguraciju serwera byś, abo něchten wopytujo, serwer imitěrowaś. <br/><br/> Jolic sćo był w zajźonosći ze serwerom wuspěšnje zwězany, móžo zmólka nachylna byś.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Něchten mógał wopytaś, sedło za swójo wudaś, a pókšacowanje mógło riskantne byś.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s &lt;b&gt;%2$s&lt;/b&gt; njedowěri, dokulaž jogo certifikatowy wudawaŕ jo njeznaty, certifkat jo sebjesigněrowany abo serwer korektne mjazycertifikaty njesćelo.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Něchten mógał wopytaś, sedło za swójo wudaś, a pókšacowanje mógło riskantne byś.</label> <br><br> <label>%1$s <b>%2$s</b> njedowěri, dokulaž jogo certifikatowy wudawaŕ jo njeznaty, certifkat jo sebjesigněrowany abo serwer korektne mjazycertifikaty njesćelo.</label>]]></string>
   <!--
     Sessions List
 

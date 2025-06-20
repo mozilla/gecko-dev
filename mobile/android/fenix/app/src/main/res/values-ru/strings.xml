@@ -336,7 +336,7 @@
   -->
   <string name="browser_menu_new_in_firefox">Новое в %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">Перейти на версию для ПК</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Перейти на версию для ПК</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Перейти на мобильный сайт</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

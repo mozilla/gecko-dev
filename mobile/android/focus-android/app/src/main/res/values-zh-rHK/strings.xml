@@ -558,11 +558,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. 去 Android 設定</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. 撳&lt;b&gt;權限&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. 撳<b>權限</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">去設定</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. 撳&lt;b&gt;%1$s&lt;/b&gt;去開咗佢</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. 撳<b>%1$s</b>去開咗佢]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">相機</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -647,8 +647,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">網站係咪出現問題？\n
-    試下關閉追蹤保護</string>
+  <string name="tip_disable_tracking_protection">網站係咪出現問題？\n試下關閉追蹤保護</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -658,9 +657,7 @@
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">以新 tab 開啟連結\n
-        喺網頁長按任何連結
-    </string>
+  <string name="tip_open_in_new_tab">以新 tab 開啟連結\n喺網頁長按任何連結</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">關閉喺開始畫面上嘅貼士</string>
   <!-- Label for the snackbar when a user opens a new tab -->

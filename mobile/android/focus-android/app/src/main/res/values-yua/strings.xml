@@ -148,16 +148,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ku ts\'áaik ti\' kaambalil.&lt;/p&gt;
-&lt;p&gt;Meyajt bey jump\'éel navegador privado:
-  &lt;ul&gt;
-    &lt;li&gt;Kaxant yéetel navegar tu tojile\' ti\' le ka\'anatako\'ob&lt;/li&gt;
-    &lt;li&gt;Bloquear le rastreadores (wa actualizar configuración utia\'al u permitir le rastreadores)&lt;/li&gt;
-    &lt;li&gt;Borrar utia\'al u tselik le cookies bey xan le historial xookilo\' yéetel navegación&lt;/li&gt;
- &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s ku beeta\'al tumen Mozilla. K meyaje\' leti\' u yantal jump\'éel Internet toj yéetel je\'ek\'ab.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Kaanbal asab&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ku ts\'áaik ti\' kaambalil.</p> <p>Meyajt bey jump\'éel navegador privado: <ul> <li>Kaxant yéetel navegar tu tojile\' ti\' le ka\'anatako\'ob</li> <li>Bloquear le rastreadores (wa actualizar configuración utia\'al u permitir le rastreadores)</li> <li>Borrar utia\'al u tselik le cookies bey xan le historial xookilo\' yéetel navegación</li> </ul> </p> <p>%1$s ku beeta\'al tumen Mozilla. K meyaje\' leti\' u yantal jump\'éel Internet toj yéetel je\'ek\'ab.<br/> <a href=\"%2$s\">Kaanbal asab</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Ta wóok’sal yéetel Jeets’el óol</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -651,11 +642,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Xeen ti\' configuración Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Pulse ti\' &lt;b&gt;Permisos&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Pulse ti\' <b>Permisos</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Xeen ti\' configuración</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. K\'ex &lt;b&gt;%1$s&lt;/b&gt; ti\' ON</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. K\'ex <b>%1$s</b> ti\' ON]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Cámara</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -706,8 +697,7 @@
     Button for the fingerprint authentication dialog box that is shown to the user when sharing a link to the app
     while the user has biometric authentication enabled. When pressed, the user's previous session is cleared, and the shared link is opened.
   -->
-  <string name="biometric_auth_open_link_new_session">Je’ebak nuupankil ich a túumben meyajil
-</string>
+  <string name="biometric_auth_open_link_new_session">Je’ebak nuupankil ich a túumben meyajil\u0020</string>
   <!-- Description for the fingerprint authentication image. Used for accessibility purposes. -->
   <string name="biometric_auth_image_description">Wooj ti\' ts\'áalk\'ab</string>
   <!--
@@ -726,7 +716,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> Utia\'al u k\'amik ba\'alo\'ob, %1$s k\'a\'abéet u túuxtik ba\'ax ka ts\'íibtik te\' barra direcciones ti\' le kisbuuts\'o\' xookilo\'.</string>
+  <string name="enable_search_suggestion_description">Utia\'al u k\'amik ba\'alo\'ob, %1$s k\'a\'abéet u túuxtik ba\'ax ka ts\'íibtik te\' barra direcciones ti\' le kisbuuts\'o\' xookilo\'.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">Ma’</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -741,8 +731,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Le ts\'ono\'oto\' ku bisikuba ma\' táan u páa\'ta\'al?\n
- K\'aax u tu\'upul le protección ti\' seguimiento</string>
+  <string name="tip_disable_tracking_protection">Le ts\'ono\'oto\' ku bisikuba ma\' táan u páa\'ta\'al?\nK\'aax u tu\'upul le protección ti\' seguimiento</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -753,23 +742,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Je\'e tuláakal le enlace ti\' %1$s\n
-        Ts\'áa %1$s bey navegador tumen defecto
-    </string>
+  <string name="tip_set_default_browser">Je\'e tuláakal le enlace ti\' %1$s\nTs\'áa %1$s bey navegador tumen defecto</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Autocompletar URLs uti\'al le lu\'umo\'ob ku meyajtiko\'ob asab\n
-        Pulse chowak je\'el ba\'ax URL ti\' le barra direcciones
-    </string>
+  <string name="tip_autocomplete_url">Autocompletar URLs uti\'al le lu\'umo\'ob ku meyajtiko\'ob asab\nPulse chowak je\'el ba\'ax URL ti\' le barra direcciones</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Je\'e jump\'éel enlace ti\' jump\'éel túumben tab\n
-        Pulsa chowak je\'el ba\'ax enlace ti\' jump\'éel linki abas kaambal
-    </string>
+  <string name="tip_open_in_new_tab">Je\'e jump\'éel enlace ti\' jump\'éel túumben tab\nPulsa chowak je\'el ba\'ax enlace ti\' jump\'éel linki abas kaambal</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Tu\'upul le consejos ti\' le pantalla Chúunul</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -799,8 +782,7 @@
   <!-- Message for Preference screen for cookie blocking for exceptions tracking protection -->
   <string name="preference_category_block_cookies">A k\'áat a k\'alik le cookies?</string>
   <!-- Title for the tab crash report screen -->
-  <string name="tab_crash_report_title">Le cha’anila’ k’aschaji
-</string>
+  <string name="tab_crash_report_title">Le cha’anila’ k’aschaji\u0020</string>
   <!-- Headline for the tab crash report screen -->
   <string name="tab_crash_report_headline">Sa\'asteni. Táan k yantal jump\'éel talamil yéetel le ju\'unil tu\'ux yaan.</string>
   <!-- Subtitle for the tab crash report screen -->
@@ -851,7 +833,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Le oochelo\'ob ts\'o\'ok u ta\'akbesa\'alo\'ob yéetel ts\'aiko\'obo\' &lt;b&gt;ma\' yaan u&lt;/b&gt; tselik le ken a tu\'upul %1$s k\'ajláayo\'</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Le oochelo\'ob ts\'o\'ok u ta\'akbesa\'alo\'ob yéetel ts\'aiko\'obo\' <b>ma\' yaan u</b> tselik le ken a tu\'upul %1$s k\'ajláayo\']]></string>
   <!--
     Theme Preferences
 
@@ -872,22 +854,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s ku yilik u meyajtik jump\'éel conexión HTTPS ken u páajtal uti\'al u yantal asab seguridad.
-     &lt;a href="%2$s"&gt;Kaanbal asab&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     K\'ex le configuración ti\' Configuración &gt; Yojeta\'al mixba\'al &amp;amp; Seguridad &gt; Seguridad.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ku yilik u meyajtik jump\'éel conexión HTTPS ken u páajtal uti\'al u yantal asab seguridad. <a href=\"%2$s\">Kaanbal asab</a> <br/><br/> K\'ex le configuración ti\' Configuración > Yojeta\'al mixba\'al &amp; Seguridad > Seguridad.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Conexión ma\' segura</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Le je\'ela\' je\'el u páajtal u jump\'éel talamil yéetel u configuración le servidor, wa je\'el u páajtal u yaantal máax táan u yilik u beetik bey le servidor. &lt;br/&gt;&lt;br/&gt;
-    Wa ts\'o\'ok a conectar ti\' le servidor belal ti\' le pasado, le ba\'alo\' je\'el u páajtal u temporal.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Le je\'ela\' je\'el u páajtal u jump\'éel talamil yéetel u configuración le servidor, wa je\'el u páajtal u yaantal máax táan u yilik u beetik bey le servidor. <br/><br/> Wa ts\'o\'ok a conectar ti\' le servidor belal ti\' le pasado, le ba\'alo\' je\'el u páajtal u temporal.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Yaan máax je\'el u páajtal u yilik u beetik bey le ts\'ono\'oto\' yéetel u seguer u beetik je\'el u yantal riesgo.&lt;/label&gt;
-         &lt;br&gt;&lt;br&gt;
-         &lt;label&gt;%1$s ma\' u k\'ubik u yóol ti\' &lt;b&gt;%2$s&lt;/b&gt; tumen ma\' k\'ajóolta\'an máax ts\'áaik u certificado, le certificado ku firmarta\'al tu juunal, wa le servidor ma\' táan u túuxtik le certificados intermedios correctos.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Yaan máax je\'el u páajtal u yilik u beetik bey le ts\'ono\'oto\' yéetel u seguer u beetik je\'el u yantal riesgo.</label> <br><br> <label>%1$s ma\' u k\'ubik u yóol ti\' <b>%2$s</b> tumen ma\' k\'ajóolta\'an máax ts\'áaik u certificado, le certificado ku firmarta\'al tu juunal, wa le servidor ma\' táan u túuxtik le certificados intermedios correctos.</label>]]></string>
   <!--
     Sessions List
 

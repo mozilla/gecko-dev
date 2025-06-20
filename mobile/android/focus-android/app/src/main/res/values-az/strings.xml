@@ -478,7 +478,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Sayt gözlənilməyən hərəkətlər edir?\n İzləmə Qorumasınını söndürməyi yoxlayın</string>
+  <string name="tip_disable_tracking_protection">Sayt gözlənilməyən hərəkətlər edir?\nİzləmə Qorumasınını söndürməyi yoxlayın</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -489,17 +489,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Bütün keçidləri %1$s ilə açın\n %1$s əsas səyyahınız olsun</string>
+  <string name="tip_set_default_browser">Bütün keçidləri %1$s ilə açın\n%1$s əsas səyyahınız olsun</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Çox işlətdiyiniz saytlar üçün avto doldurma\n Ünvan sətrindəki hər hansı bir ünvana uzun basın</string>
+  <string name="tip_autocomplete_url">Çox işlətdiyiniz saytlar üçün avto doldurma\nÜnvan sətrindəki hər hansı bir ünvana uzun basın</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Keçidi yeni vərəqdə açın\n Səhifədə hər hansı bir keçidə uzun basın</string>
+  <string name="tip_open_in_new_tab">Keçidi yeni vərəqdə açın\nSəhifədə hər hansı bir keçidə uzun basın</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Ana ekranındakı məsləhətləri söndür</string>
   <!-- Label for the snackbar when a user opens a new tab -->

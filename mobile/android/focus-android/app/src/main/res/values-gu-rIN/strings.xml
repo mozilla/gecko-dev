@@ -478,7 +478,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">સાઇટ અણધારી રીતે વર્તે છે? \n ટ્રેકિંગ રક્ષણને બંધ કરી જુઅો</string>
+  <string name="tip_disable_tracking_protection">સાઇટ અણધારી રીતે વર્તે છે? \nટ્રેકિંગ રક્ષણને બંધ કરી જુઅો</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -489,17 +489,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">દરેક લિંકને %1$s માં ખોલો\n ડિફૉલ્ટ બ્રાઉઝર તરીકે %1$s ને સેટ કરો</string>
+  <string name="tip_set_default_browser">દરેક લિંકને %1$s માં ખોલો\nડિફૉલ્ટ બ્રાઉઝર તરીકે %1$s ને સેટ કરો</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">તમે સૌથી વધુ ઉપયોગ કરો છો તે સાઇટ્સ માટે સ્વતઃપૂર્ણ URLs\n સરનામાં બારમાં કોઈપણ URL ને લાંબા સમય સુધી દબાવો</string>
+  <string name="tip_autocomplete_url">તમે સૌથી વધુ ઉપયોગ કરો છો તે સાઇટ્સ માટે સ્વતઃપૂર્ણ URLs\nસરનામાં બારમાં કોઈપણ URL ને લાંબા સમય સુધી દબાવો</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">નવી ટેબમાં લિંક ખોલો\n કોઈ પૃષ્ઠ પર કોઈ લિંકને લાંબા સમયથી દબાવો</string>
+  <string name="tip_open_in_new_tab">નવી ટેબમાં લિંક ખોલો\nકોઈ પૃષ્ઠ પર કોઈ લિંકને લાંબા સમયથી દબાવો</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">પ્રારંભ સ્ક્રીન પર ટિપ્પણીઓ બંધ કરો</string>
   <!-- Label for the snackbar when a user opens a new tab -->

@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;«%1$s» ба шумо идора медиҳад.&lt;/p&gt;
-&lt;p&gt;Онро ҳамчун браузери хусусӣ истифода баред:
-  &lt;ul&gt;
-    &lt;li&gt;Ҷустуҷӯ кунед ва рост дар дохили барнома тамошо намоед&lt;/li&gt;
-    &lt;li&gt;Васоити пайгириро манъ кунед (ё танзимотро иваз карда, ба васоити пайгирӣ иҷозат диҳед)&lt;/li&gt;
-    &lt;li&gt;Кукиҳоро нест кунед, аз он ҷумла таърихи ҷустуҷӯ ва тамошоро пок намоед&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;«%1$s» аз ҷониши «Mozilla» истеҳсол карда шудааст. Мақсади мо дар мусоидат ба Интернети солим ва кушод мебошад.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Маълумоти бештар&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>«%1$s» ба шумо идора медиҳад.</p> <p>Онро ҳамчун браузери хусусӣ истифода баред: <ul> <li>Ҷустуҷӯ кунед ва рост дар дохили барнома тамошо намоед</li> <li>Васоити пайгириро манъ кунед (ё танзимотро иваз карда, ба васоити пайгирӣ иҷозат диҳед)</li> <li>Кукиҳоро нест кунед, аз он ҷумла таърихи ҷустуҷӯ ва тамошоро пок намоед</li> </ul> </p> <p>«%1$s» аз ҷониши «Mozilla» истеҳсол карда шудааст. Мақсади мо дар мусоидат ба Интернети солим ва кушод мебошад.<br/> <a href=\"%2$s\">Маълумоти бештар</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Махфият ва амният</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Бо идома додан, шумо бо %1$s розӣ мешавед</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Бо идома додан, шумо бо %1$s розӣ мешавед</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Шартҳои истифодаи «Firefox».</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Шартҳои истифодаи «Firefox».</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Браузери «Firefox» ба махфияти шумо ғамхорӣ мекунад. Маълумоти бештар дар «%1$s»</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Браузери «Firefox» ба махфияти шумо ғамхорӣ мекунад. Маълумоти бештар дар «%1$s»</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Огоҳномаи махфият.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Огоҳномаи махфият.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Розӣ шавед ва идома диҳед</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Ба Танзимоти Android гузаред</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;Иҷозатҳо&lt;/b&gt;-ро зер кунед</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b>Иҷозатҳо</b>-ро зер кунед]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Ба Танзимот гузаред</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt;-ро ба ФАЪОЛ иваз намоед</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b>-ро ба ФАЪОЛ иваз намоед]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Камера</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -767,8 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Сомона бо рафтори тасодуфию пешбининопазир кор мекунад?\n
-    Имкони «Муҳофизат аз пайгирӣ»-ро хомӯш кунед</string>
+  <string name="tip_disable_tracking_protection">Сомона бо рафтори тасодуфию пешбининопазир кор мекунад?\nИмкони «Муҳофизат аз пайгирӣ»-ро хомӯш кунед</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -779,23 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Ҳар як пайвандро дар «%1$s» кушоед\n
-        Браузери «%1$s»-ро ҳамчун барномаи пешфарз танзим карда, истифода баред
-    </string>
+  <string name="tip_set_default_browser">Ҳар як пайвандро дар «%1$s» кушоед\nБраузери «%1$s»-ро ҳамчун барномаи пешфарз танзим карда, истифода баред</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Пуркунии худкори нишонаҳои URL барои сомонаҳои писандида\n
-        Нишонии URL-и дилхоҳро ба муддати дароз дар навори нишонӣ пахш кунед
-    </string>
+  <string name="tip_autocomplete_url">Пуркунии худкори нишонаҳои URL барои сомонаҳои писандида\nНишонии URL-и дилхоҳро ба муддати дароз дар навори нишонӣ пахш кунед</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Пайвандеро дар варақаи нав кушоед\n
-        Ҳар як пайванди саҳифаро ба муддати дароз пахш намоед
-    </string>
+  <string name="tip_open_in_new_tab">Пайвандеро дар варақаи нав кушоед\nҲар як пайванди саҳифаро ба муддати дароз пахш намоед</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Хомӯш кардани маслиҳатҳо дар экрани оғози кор</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -876,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Вақте ки шумо таърихи «%1$s»-ро тоза мекунед, тасвирҳои нигоҳдошташуда ва мубодилашуда &lt;b&gt;нест карда намешаванд&lt;/b&gt;</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Вақте ки шумо таърихи «%1$s»-ро тоза мекунед, тасвирҳои нигоҳдошташуда ва мубодилашуда <b>нест карда намешаванд</b>]]></string>
   <!--
     Theme Preferences
 
@@ -897,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">Барои бехатарии бештар, «%1$s» кӯшиш мекунад, ки аз пайвасти «HTTPS» ба қадри имкон истифода барад.
-     &lt;a href="%2$s"&gt;Маълумоти бештар&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Шумо метавонед ин танзимро дар Танзимот &gt; Махфият ва амният &gt; Бехатарӣ иваз кунед.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Барои бехатарии бештар, «%1$s» кӯшиш мекунад, ки аз пайвасти «HTTPS» ба қадри имкон истифода барад. <a href=\"%2$s\">Маълумоти бештар</a> <br/><br/> Шумо метавонед ин танзимро дар Танзимот > Махфият ва амният > Бехатарӣ иваз кунед.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Пайвастшавӣ бехатар нест</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Ин метавонад дар танзимоти сервер мушкилӣ дошта бошад ё касе кӯшиш мекунад, ки серверро тақаллуб намояд. &lt;br/&gt;&lt;br/&gt;
-    Агар шумо қаблан ба ин сервер бо муваффақият пайваст шуда бошед, эҳтимол ин хато муваққатӣ аст ва шумо метавонед баъдтар амалро аз нав кӯшиш намоед.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Ин метавонад дар танзимоти сервер мушкилӣ дошта бошад ё касе кӯшиш мекунад, ки серверро тақаллуб намояд. <br/><br/> Агар шумо қаблан ба ин сервер бо муваффақият пайваст шуда бошед, эҳтимол ин хато муваққатӣ аст ва шумо метавонед баъдтар амалро аз нав кӯшиш намоед.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Касе метавонад тақаллуб кардани сомонаро кӯшиш намояд ва идомаи кор бо ин сомона хатарнок аст.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;«%1$s» ба &lt;b&gt;%2$s&lt;/b&gt; эътимод надорад, зеро барорандаи гувоҳнома номаълум аст, гувоҳнома ба таври худ имзо гузоштааст ё сервер гувоҳномаҳои фосилавии дурустро намефиристад.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Касе метавонад тақаллуб кардани сомонаро кӯшиш намояд ва идомаи кор бо ин сомона хатарнок аст.</label> <br><br> <label>«%1$s» ба <b>%2$s</b> эътимод надорад, зеро барорандаи гувоҳнома номаълум аст, гувоҳнома ба таври худ имзо гузоштааст ё сервер гувоҳномаҳои фосилавии дурустро намефиристад.</label>]]></string>
   <!--
     Sessions List
 

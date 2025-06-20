@@ -328,7 +328,7 @@
   -->
   <string name="browser_menu_new_in_firefox">Berria %1$s(e)n</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">Aldatu mahaigaineko gunera</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Aldatu mahaigaineko gunera</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Aldatu mugikorrerako gunera</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

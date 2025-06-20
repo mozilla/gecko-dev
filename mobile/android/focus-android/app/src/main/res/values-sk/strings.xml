@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s vám dáva kontrolu.&lt;/p&gt;
-&lt;p&gt;Používajte ho ako súkromný prehliadač:
-  &lt;ul&gt;
-    &lt;li&gt;Hľadajte a prehliadajte priamo v aplikácii&lt;/li&gt;
-    &lt;li&gt;Blokujte sledovacie prvky (alebo aktualizujte nastavenia a povoľte niektoré sledovacie prvky)&lt;/li&gt;
-    &lt;li&gt;Jednoducho odstraňujte súbory cookie, ako aj históriu vyhľadávania a prehliadania&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s je vytváraný spoločnosťou Mozilla. Našim poslaním je podporovať zdravý a otvorený internet.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Ďalšie informácie&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s vám dáva kontrolu.</p> <p>Používajte ho ako súkromný prehliadač: <ul> <li>Hľadajte a prehliadajte priamo v aplikácii</li> <li>Blokujte sledovacie prvky (alebo aktualizujte nastavenia a povoľte niektoré sledovacie prvky)</li> <li>Jednoducho odstraňujte súbory cookie, ako aj históriu vyhľadávania a prehliadania</li> </ul> </p> <p>%1$s je vytváraný spoločnosťou Mozilla. Našim poslaním je podporovať zdravý a otvorený internet.<br/> <a href=\"%2$s\">Ďalšie informácie</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Súkromie a bezpečnosť</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Pokračovaním vyjadrujete súhlas s dokumentom %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Pokračovaním vyjadrujete súhlas s dokumentom %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Podmienky používania Firefoxu.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Podmienky používania Firefoxu.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox sa stará o vaše súkromie. Podrobnosti nájdete v dokumente %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox sa stará o vaše súkromie. Podrobnosti nájdete v dokumente %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Vyhlásenie o ochrane osobných údajov.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Vyhlásenie o ochrane osobných údajov.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Súhlasím a pokračovať</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Prejdite do nastavení Androidu</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Ťuknite na &lt;b&gt;Povolenia&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Ťuknite na <b>Povolenia</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Prejsť do nastavení</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Prepnite prepínač &lt;b&gt;%1$s&lt;/b&gt; do polohy ZAPNUTÉ</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Prepnite prepínač <b>%1$s</b> do polohy ZAPNUTÉ]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -767,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Správa sa stránka neočakávane?\n Skúste vypnúť Ochranu pred sledovaním</string>
+  <string name="tip_disable_tracking_protection">Správa sa stránka neočakávane?\nSkúste vypnúť Ochranu pred sledovaním</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Otvárajte každý odkaz v aplikácii %1$s\n Nastavte si %1$s ako predvolený prehliadač</string>
+  <string name="tip_set_default_browser">Otvárajte každý odkaz v aplikácii %1$s\nNastavte si %1$s ako predvolený prehliadač</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Automatické dopĺňanie URL adries je tu\n Podržte prst na akejkoľvek adrese v paneli s adresou</string>
+  <string name="tip_autocomplete_url">Automatické dopĺňanie URL adries je tu\nPodržte prst na akejkoľvek adrese v paneli s adresou</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Otvorte odkaz na novej karte\n Podržte prst na akomkoľvek odkaze na stránke</string>
+  <string name="tip_open_in_new_tab">Otvorte odkaz na novej karte\nPodržte prst na akomkoľvek odkaze na stránke</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Vypnúť tipy na úvodnej obrazovke aplikácie</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -802,7 +793,7 @@
   <!-- Preference summary for safe browsing which when enabled, blocks dangerous or deceptive webpages that may include phishing or malware -->
   <string name="preference_safe_browsing_summary">Blokovať nahlásené podvodné a útočné stránky, stránky s malvérom a nevyžiadaným softvérom.</string>
   <!-- Title of the preference to enable "HTTPS-Only" mode -->
-  <string name="preference_https_only_title">Režim "Len HTTPS"</string>
+  <string name="preference_https_only_title">Režim \"Len HTTPS\"</string>
   <!-- Description of the preference to enable "HTTPS-Only" mode. -->
   <string name="preference_https_only_summary3">Automaticky sa pokúša pripojiť k stránkam pomocou šifrovacieho protokolu HTTPS na zvýšenie bezpečnosti.</string>
   <!-- Preference for exceptions tracking protection -->
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Uložené a zdieľané obrázky &lt;b&gt;nebudú&lt;/b&gt; odstránené pri vymazaní histórie aplikácie %1$s.</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Uložené a zdieľané obrázky <b>nebudú</b> odstránené pri vymazaní histórie aplikácie %1$s.]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s sa v záujme väčšej bezpečnosti pokúša použiť zabezpečené pripojenie cez protokol HTTPS vždy, keď je to možné.
-     &lt;a href="%2$s"&gt;Ďalšie informácie&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Toto nastavenie môžete zmeniť v časti Nastavenia &gt; Súkromie a bezpečnosť &gt; Bezpečnosť.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s sa v záujme väčšej bezpečnosti pokúša použiť zabezpečené pripojenie cez protokol HTTPS vždy, keď je to možné. <a href=\"%2$s\">Ďalšie informácie</a> <br/><br/> Toto nastavenie môžete zmeniť v časti Nastavenia > Súkromie a bezpečnosť > Bezpečnosť.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Pripojenie nie je zabezpečené</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Môže to byť problém s konfiguráciou servera alebo sa ho niekto snaží napodobniť. &lt;br/&gt;&lt;br/&gt;
-    Ak ste sa k tomuto serveru úspešne pripojili v minulosti, chyba môže byť dočasná.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Môže to byť problém s konfiguráciou servera alebo sa ho niekto snaží napodobniť. <br/><br/> Ak ste sa k tomuto serveru úspešne pripojili v minulosti, chyba môže byť dočasná.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Niekto sa môže vydávať za tento server, a preto pokračovať by mohlo byť riskantné.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s nedôveruje serveru &lt;b&gt;%2$s&lt;/b&gt;, pretože vydavateľ jeho certifikátu je neznámy, certifikát je podpísaný sám sebou alebo server neposiela správne prechodné certifikáty.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Niekto sa môže vydávať za tento server, a preto pokračovať by mohlo byť riskantné.</label> <br><br> <label>%1$s nedôveruje serveru <b>%2$s</b>, pretože vydavateľ jeho certifikátu je neznámy, certifikát je podpísaný sám sebou alebo server neposiela správne prechodné certifikáty.</label>]]></string>
   <!--
     Sessions List
 

@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s jout jo de kontrôle.&lt;/p&gt;
-&lt;p&gt;Gebrûk as in priveebrowser:
-  &lt;ul&gt;
-     &lt;li&gt;Streekrjocht fan de app út sykje en navigearje&lt;/li&gt;
-    &lt;li&gt;Trackers blokkearje (of ynstellingen bywurkje om se ta te stean)&lt;/li&gt;
-    &lt;li&gt;Wiskjen smyt sawol cookies as syk- en navigaasjeskiednis fuort&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s wurdt makke troch Mozilla. Us missy is it fersoargjen fan in sûn en iepen ynternet.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Mear ynfo&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s jout jo de kontrôle.</p> <p>Gebrûk as in priveebrowser: <ul> <li>Streekrjocht fan de app út sykje en navigearje</li> <li>Trackers blokkearje (of ynstellingen bywurkje om se ta te stean)</li> <li>Wiskjen smyt sawol cookies as syk- en navigaasjeskiednis fuort</li> </ul> </p> <p>%1$s wurdt makke troch Mozilla. Us missy is it fersoargjen fan in sûn en iepen ynternet.<br/> <a href=\"%2$s\">Mear ynfo</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Privacy en befeiliging</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Troch fierder te gean, geane jo akkoard mei de %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Troch fierder te gean, geane jo akkoard mei de %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Gebrûksbetingsten fan Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Gebrûksbetingsten fan Firefox.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox jout om jo privacy. Mear ynfo yn ús %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox jout om jo privacy. Mear ynfo yn ús %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Privacyferklearring.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Privacyferklearring.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Akkoard en trochgean</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Gean nei Android-ynstellingen</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Tik op &lt;b&gt;Machtigingen&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Tik op <b>Machtigingen</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Nei Ynstellingen</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Set &lt;b&gt;%1$s&lt;/b&gt; op ‘AAN’</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Set <b>%1$s</b> op ‘AAN’]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -767,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Wurket in website net goed?\n Probearje Beskerming tsjin folgjen út te skeakeljen</string>
+  <string name="tip_disable_tracking_protection">Wurket in website net goed?\nProbearje Beskerming tsjin folgjen út te skeakeljen</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Alle keppelingen yn %1$s iepenje\n Stel %1$s yn as jo standertbrowser</string>
+  <string name="tip_set_default_browser">Alle keppelingen yn %1$s iepenje\nStel %1$s yn as jo standertbrowser</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">URL’s foar meastbrûkte websites automatysk oanfolje\n Hâld jo finger op in URL yn de adresbalke</string>
+  <string name="tip_autocomplete_url">URL’s foar meastbrûkte websites automatysk oanfolje\nHâld jo finger op in URL yn de adresbalke</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">In keppeling yn in nij ljepblêd iepenje\n Hâld jo finger op in keppeling op in side</string>
+  <string name="tip_open_in_new_tab">In keppeling yn in nij ljepblêd iepenje\nHâld jo finger op in keppeling op in side</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Tips op startscherm útskeakelje</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Bewarre en dielde ôfbyldingen &lt;b&gt;wurde net&lt;/b&gt; fuortsmiten as jo skiednis fan %1$s wiskje</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Bewarre en dielde ôfbyldingen <b>wurde net</b> fuortsmiten as jo skiednis fan %1$s wiskje]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s probearret wêr mooglik in HTTPS-ferbining te brûken foar mear feilichheid.
-&lt;a href="%2$s"&gt;Mear ynfo&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-Wizigje dizze ynstelling yn Ynstellingen &gt; Privacy en befeiliging &gt; Befeiliging.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s probearret wêr mooglik in HTTPS-ferbining te brûken foar mear feilichheid. <a href=\"%2$s\">Mear ynfo</a> <br/><br/> Wizigje dizze ynstelling yn Ynstellingen > Privacy en befeiliging > Befeiliging.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Ferbining net befeilige</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-Dit kin in probleem wêze mei de konfiguraasje fan de server, of it kin ien wêze dy’t probearret harren foar te dwaan as de server.&lt;br/&gt;&lt;br/&gt;
-As jo earder al mei súkses ferbining hân hawwe mei dizze server, kin de flater mooglik tydlik wêze.
- </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Dit kin in probleem wêze mei de konfiguraasje fan de server, of it kin ien wêze dy’t probearret harren foar te dwaan as de server.<br/><br/> As jo earder al mei súkses ferbining hân hawwe mei dizze server, kin de flater mooglik tydlik wêze.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Ien kin probearje de website nei te dwaan en trochgean kin risikofol wêze.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s fertrout &lt;b&gt;%2$s&lt;/b&gt; net, omdat de sertifikaatútjouwer ûnbekend is, it sertifikaat selsûndertekene is, of de server net de krekte yntermediêre sertifikaten ferstjoert.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Ien kin probearje de website nei te dwaan en trochgean kin risikofol wêze.</label> <br><br> <label>%1$s fertrout <b>%2$s</b> net, omdat de sertifikaatútjouwer ûnbekend is, it sertifikaat selsûndertekene is, of de server net de krekte yntermediêre sertifikaten ferstjoert.</label>]]></string>
   <!--
     Sessions List
 

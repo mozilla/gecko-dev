@@ -334,7 +334,7 @@
   -->
   <string name="browser_menu_new_in_firefox">E re në %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">Kaloni te sajti për desktop</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Kaloni te sajti për desktop</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Kalo te sajti për celular</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

@@ -118,16 +118,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;„%1$s“ suteikia jums kontrolę.&lt;/p&gt;
-&lt;p&gt;Naudokite ją kaip privačią naršyklę:
-  &lt;ul&gt;
-    &lt;li&gt;Ieškokite ir naršykite pačioje programoje&lt;/li&gt;
-    &lt;li&gt;Blokuokite stebėjimo elementus (arba pakeiskite nustatymus, jeigu norite juos leisti)&lt;/li&gt;
-    &lt;li&gt;Išvalykite, norėdami pašalinti slapukus, paieškos ir naršymo žurnalus&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;„%1$s“ yra „Mozillos“ kūrinys. Mūsų misija yra skatinti sveiką, atvirą internetą.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Sužinoti daugiau&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>„%1$s“ suteikia jums kontrolę.</p> <p>Naudokite ją kaip privačią naršyklę: <ul> <li>Ieškokite ir naršykite pačioje programoje</li> <li>Blokuokite stebėjimo elementus (arba pakeiskite nustatymus, jeigu norite juos leisti)</li> <li>Išvalykite, norėdami pašalinti slapukus, paieškos ir naršymo žurnalus</li> </ul> </p> <p>„%1$s“ yra „Mozillos“ kūrinys. Mūsų misija yra skatinti sveiką, atvirą internetą.<br/> <a href=\"%2$s\">Sužinoti daugiau</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Privatumas ir saugumas</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -577,7 +568,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Svetainė veikia netinkamai?\n Pabandykite išjungti apsaugą nuo stebėjimo</string>
+  <string name="tip_disable_tracking_protection">Svetainė veikia netinkamai?\nPabandykite išjungti apsaugą nuo stebėjimo</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -588,17 +579,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Atverkite visus saitus „%1$s“ programoje\n Paskirkite „%1$s“ numatytąja naršykle</string>
+  <string name="tip_set_default_browser">Atverkite visus saitus „%1$s“ programoje\nPaskirkite „%1$s“ numatytąja naršykle</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Automatiškai užbaikite lankomiausių svetainių adresus\n Spustelėkite ir palaikykite bet kurį URL adresą adreso lauke</string>
+  <string name="tip_autocomplete_url">Automatiškai užbaikite lankomiausių svetainių adresus\nSpustelėkite ir palaikykite bet kurį URL adresą adreso lauke</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Atverkite saitą naujoje kortelėje\n Spustelėkite ir palaikykite bet kurį saitą tinklalapyje</string>
+  <string name="tip_open_in_new_tab">Atverkite saitą naujoje kortelėje\nSpustelėkite ir palaikykite bet kurį saitą tinklalapyje</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Išjungti patarimus pradžios ekrane</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -679,7 +670,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Įrašyti ir pasidalinti paveikslai &lt;b&gt;nebus&lt;/b&gt; pašalinti jums išvalius „%1$s“ žurnalą</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Įrašyti ir pasidalinti paveikslai <b>nebus</b> pašalinti jums išvalius „%1$s“ žurnalą]]></string>
   <!--
     Theme Preferences
 

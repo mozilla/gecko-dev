@@ -237,7 +237,7 @@
   <string name="preference_performance_block_webfonts">वेब फ्रंट ब्लौक करियै</string>
   <!-- This text is shown below the setting for disabling web fonts. Some websites use icons/images from a font and those do not show up if fonts are blocked. -->
   <string name="preference_performance_block_webfonts_summary">आइकन अथवा छवि गुम हुए सकै छै</string>
-  <string name="preference_performance_block_javascript">" JavaScript ब्लौक करियै"</string>
+  <string name="preference_performance_block_javascript">\" JavaScript ब्लौक करियै\"</string>
   <!-- This text is shown below setting for disabling JavaScript. Some websites may not work correctly when JavaScript is disabled -->
   <string name="preference_performance_block_javascript_summary">पेज तेजी सँ लोड हुए सकै छै, मगर अनजान व्यवहार भी करै सकै छै</string>
   <!--
@@ -527,7 +527,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">कि साइट अप्रत्याशित रूप से व्यवहार कैर रहल छै?\n ट्रैकिंग सुरक्षा बंद करै के प्रयास करियै</string>
+  <string name="tip_disable_tracking_protection">कि साइट अप्रत्याशित रूप से व्यवहार कैर रहल छै?\nट्रैकिंग सुरक्षा बंद करै के प्रयास करियै</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -538,17 +538,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">%1$s में सब लिंक खोलियै\n डिफ़ॉल्ट ब्राउज़र के रूप में %1$s सेट करियै</string>
+  <string name="tip_set_default_browser">%1$s में सब लिंक खोलियै\nडिफ़ॉल्ट ब्राउज़र के रूप में %1$s सेट करियै</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">सबसे जादा उपयोग करै वाला साइटों के अपना सँ पूर्ण URLs ले\n एड्रेस बार में कोनो URL के देर तक दबियै</string>
+  <string name="tip_autocomplete_url">सबसे जादा उपयोग करै वाला साइटों के अपना सँ पूर्ण URLs ले\nएड्रेस बार में कोनो URL के देर तक दबियै</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">नया टैब में एगो लिंक खोलियै\n  पेज पर कोनो लिंक के देर तक दाबियै</string>
+  <string name="tip_open_in_new_tab">नया टैब में एगो लिंक खोलियै\nपेज पर कोनो लिंक के देर तक दाबियै</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">प्रारंभ स्क्रीन सलाह के बंद करियै</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -585,7 +585,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">सहेजलो गेल आरू शेयर कएल गेल छवि &lt;b&gt;हटाएलो नय जाएत&lt;/b&gt; जखन अहाँ %1$s इतिहास के मेटाएबै</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[सहेजलो गेल आरू शेयर कएल गेल छवि <b>हटाएलो नय जाएत</b> जखन अहाँ %1$s इतिहास के मेटाएबै]]></string>
   <!--
     Theme Preferences
 

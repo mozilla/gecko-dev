@@ -143,16 +143,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s nuya\' ronojel pan aq\'a\'.&lt;/p&gt;
-&lt;p&gt;Tawokisaj achi\'el jun ichinan okik\'amaya\'l:
- &lt;ul&gt;
- &lt;li&gt;Tikanöx chuqa\' tokisäx ri chokoy&lt;/li&gt;
-    &lt;li&gt;Keq\'at ojqanela\' (o kek\'ex taq cha\'oj richin niya\' q\'ij chi ke ri ojqanela\')&lt;/li&gt;
-    &lt;li&gt;Tiyuj richin yeyuj el taq kaxlawey chuqa\' runatab\'al kanoxïk chuqa\' okem pa k\'amaya\'l&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s Xsamajin ruma ri Mozilla. Ri taqel qataqanem ja ri niqayäk qak\'u\'x richin jun jaqäl chuqa\' raxinäq k\'amaya\'l.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Tetamäx ch\'aqa\' chik&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s nuya\' ronojel pan aq\'a\'.</p> <p>Tawokisaj achi\'el jun ichinan okik\'amaya\'l: <ul> <li>Tikanöx chuqa\' tokisäx ri chokoy</li> <li>Keq\'at ojqanela\' (o kek\'ex taq cha\'oj richin niya\' q\'ij chi ke ri ojqanela\')</li> <li>Tiyuj richin yeyuj el taq kaxlawey chuqa\' runatab\'al kanoxïk chuqa\' okem pa k\'amaya\'l</li> </ul> </p> <p>%1$s Xsamajin ruma ri Mozilla. Ri taqel qataqanem ja ri niqayäk qak\'u\'x richin jun jaqäl chuqa\' raxinäq k\'amaya\'l.<br/> <a href=\"%2$s\">Tetamäx ch\'aqa\' chik</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Ichinanem &amp; Jikomal</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -628,11 +619,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Jät pa Runuk\'ulem Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Tachapa\' &lt;b&gt;Taq Ya\'oj Q\'ij&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Tachapa\' <b>Taq Ya\'oj Q\'ij</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Tib\'e pa taq Nuk\'ulem</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Tik\'exlöx &lt;b&gt;%1$s&lt;/b&gt; rik\'in TZIJÏL</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Tik\'exlöx <b>%1$s</b> rik\'in TZIJÏL]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Elesäy wachib\'äl</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -686,7 +677,7 @@
     Error text displayed when the user's fingerprint cannot be recognized upon re-entering the app.
     This is displayed during the authentication flow as the app launches.
   -->
-  <string name="biometric_auth_not_recognized_error">"Man xetamäx ta ruwa ri  rel ruwi\' q\'ab\'aj. Tatojtob\'ej chik."</string>
+  <string name="biometric_auth_not_recognized_error">\"Man xetamäx ta ruwa ri rel ruwi\' q\'ab\'aj. Tatojtob\'ej chik.\"</string>
   <!--
     Error text displayed when the user's fingerprint moved too quickly upon re-entering the app
     This is displayed during the authentication flow as the app launches.
@@ -698,7 +689,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> Richin nik\'ul kichilab\'exik, %1$s k\'o chi nutäq ri natz\'ib\'aj pa ri rajtz\'ik ochochib\'äl.</string>
+  <string name="enable_search_suggestion_description">Richin nik\'ul kichilab\'exik, %1$s k\'o chi nutäq ri natz\'ib\'aj pa ri rajtz\'ik ochochib\'äl.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">Mani</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -713,28 +704,28 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">¿La man pa rub\'eyal ta nisamäj re ruxaq k\'amaya\'l re\'?\n Tatojtob\'ej rik\'in nachüp ri Chajinïk chuwäch Ojqanem</string>
+  <string name="tip_disable_tracking_protection">¿La man pa rub\'eyal ta nisamäj re ruxaq k\'amaya\'l re\'?\nTatojtob\'ej rik\'in nachüp ri Chajinïk chuwäch Ojqanem</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
   -->
-  <string name="tip_add_to_homescreen">"Katok rik\'in jun chapoj pa ri taq ruxaq yalan ye\'awokisaj%1$s\n        Molsamajib\'äl &gt; Titz\'aqatisäx pa Tikirib\'äl tzuwäch"</string>
+  <string name="tip_add_to_homescreen">\"Katok rik\'in jun chapoj pa ri taq ruxaq yalan ye\'awokisaj%1$s\nMolsamajib\'äl &gt; Titz\'aqatisäx pa Tikirib\'äl tzuwäch\"</string>
   <!--
     Tip displayed on home view explaining how to make Focus the default browser
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Kejaq konojel ri taq ximonel pa %1$s\n Tib\'an runuk\'ulem %1$s achi\'el ri awokik\'amaya\'l k\'o wi</string>
+  <string name="tip_set_default_browser">Kejaq konojel ri taq ximonel pa %1$s\nTib\'an runuk\'ulem %1$s achi\'el ri awokik\'amaya\'l k\'o wi</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Ruyon ke\'atz\'aqatisaj ri taq URLs kichin ri taq ruxan yalan ye\'awokisaj\n Tapitz\'itz\'ej xa b\'achike URL pa rukajtz\'ik ochochib\'äl</string>
+  <string name="tip_autocomplete_url">Ruyon ke\'atz\'aqatisaj ri taq URLs kichin ri taq ruxan yalan ye\'awokisaj\nTapitz\'itz\'ej xa b\'achike URL pa rukajtz\'ik ochochib\'äl</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Tijaq jun ximonel pa jun k\'ak\'a\' ruwi\'\n Tapitz\'itz\'ej xab\'achike ximonel pa jun ruxaq</string>
+  <string name="tip_open_in_new_tab">Tijaq jun ximonel pa jun k\'ak\'a\' ruwi\'\nTapitz\'itz\'ej xab\'achike ximonel pa jun ruxaq</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Tichup ri taq chilab\'enïk pa ri tikirib\'äl ruwäch</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -803,7 +794,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Taq wachib\'äl eyakon chuqa\' ekomonin &lt;b&gt;manäq&lt;/b&gt; xke\'elesäx toq xtayüj runatab\'al ri %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Taq wachib\'äl eyakon chuqa\' ekomonin <b>manäq</b> xke\'elesäx toq xtayüj runatab\'al ri %1$s]]></string>
   <!--
     Theme Preferences
 

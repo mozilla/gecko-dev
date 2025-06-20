@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ਕੰਟਰੋਲ ਤੁਹਾਡੇ ਹੱਥ ਦਿੰਦਾ ਹੈ।&lt;/p&gt;
-&lt;p&gt;ਇਸ ਨੂੰ ਪ੍ਰਾਈਵੇਟ ਬਰਾਊਜ਼ਰ ਵਜੋਂ ਵਰਤੋਂ:
-  &lt;ul&gt;
-    &lt;li&gt;ਐਪ ਦੇ ਵਿੱਚ ਖੋਲ੍ਹੋ ਅਤੇ ਬਰਾਊਜ਼ ਕਰੋp&lt;/li&gt;
-    &lt;li&gt;ਟਰੈਕਰਾਂ ਤੇ ਲਾਓ ਪਾਬੰਦੀ (ਜਾਂ ਟਰੈਕਰਾਂ ਨੂੰ ਇਜਾਜ਼ਤ ਦੇਣ ਲਈ ਸੈਟਿੰਗਾਂ ਅੱਪਡੇਟ ਕਰੋ)&lt;/li&gt;
-    &lt;li&gt;ਖੋਜ ਅਤੇ ਬਰਾਊਜ਼ ਕਰਨ ਦੇ ਅਤੀਤ ਦੇ ਨਾਲ ਨਾਲ ਕੂਕੀਜ਼ ਨੂੰ ਹਟਾਉਣ ਲਈ ਮਿਟਾਓ&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s ਨੂੰ Mozilla ਨੇ ਬਣਾਇਆ ਹੈ। ਸਾਡਾ ਮਕਸਦ ਚੰਗਾ, ਆਜ਼ਾਦ ਸਰੋਤ ਇੰਟਰਨੈੱਟ ਖੜ੍ਹਾ ਕਰਨਾ ਹੈ।&lt;br/&gt;
-&lt;a href="%2$s"&gt;ਹੋਰ ਜਾਣੋ&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ਕੰਟਰੋਲ ਤੁਹਾਡੇ ਹੱਥ ਦਿੰਦਾ ਹੈ।</p> <p>ਇਸ ਨੂੰ ਪ੍ਰਾਈਵੇਟ ਬਰਾਊਜ਼ਰ ਵਜੋਂ ਵਰਤੋਂ: <ul> <li>ਐਪ ਦੇ ਵਿੱਚ ਖੋਲ੍ਹੋ ਅਤੇ ਬਰਾਊਜ਼ ਕਰੋp</li> <li>ਟਰੈਕਰਾਂ ਤੇ ਲਾਓ ਪਾਬੰਦੀ (ਜਾਂ ਟਰੈਕਰਾਂ ਨੂੰ ਇਜਾਜ਼ਤ ਦੇਣ ਲਈ ਸੈਟਿੰਗਾਂ ਅੱਪਡੇਟ ਕਰੋ)</li> <li>ਖੋਜ ਅਤੇ ਬਰਾਊਜ਼ ਕਰਨ ਦੇ ਅਤੀਤ ਦੇ ਨਾਲ ਨਾਲ ਕੂਕੀਜ਼ ਨੂੰ ਹਟਾਉਣ ਲਈ ਮਿਟਾਓ</li> </ul> </p> <p>%1$s ਨੂੰ Mozilla ਨੇ ਬਣਾਇਆ ਹੈ। ਸਾਡਾ ਮਕਸਦ ਚੰਗਾ, ਆਜ਼ਾਦ ਸਰੋਤ ਇੰਟਰਨੈੱਟ ਖੜ੍ਹਾ ਕਰਨਾ ਹੈ।<br/> <a href=\"%2$s\">ਹੋਰ ਜਾਣੋ</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">ਪਰਦੇਦਾਰੀ ਤੇ ਸੁਰੱਖਿਆ</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">ਜਾਰੀ ਰੱਖ ਕੇ ਤੁਸੀਂ %1$s ਨਾਲ ਸਹਿਮਤ ਹੁੰਦੇ ਹੋ</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">ਜਾਰੀ ਰੱਖ ਕੇ ਤੁਸੀਂ %1$s ਨਾਲ ਸਹਿਮਤ ਹੁੰਦੇ ਹੋ</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Firefox ਵਰਤਣ ਦੀਆਂ ਸ਼ਰਤਾਂ ਹਨ।</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Firefox ਵਰਤਣ ਦੀਆਂ ਸ਼ਰਤਾਂ ਹਨ।</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox ਤੁਹਾਡੀ ਪਰਦੇਦਾਰੀ ਦੀ ਪਰਵਾਹ ਕਰਦਾ ਹੈ। ਸਾਡੀ %1$s ਬਾਰੇ ਹੋਰ ਜਾਣੋ</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox ਤੁਹਾਡੀ ਪਰਦੇਦਾਰੀ ਦੀ ਪਰਵਾਹ ਕਰਦਾ ਹੈ। ਸਾਡੀ %1$s ਬਾਰੇ ਹੋਰ ਜਾਣੋ</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">ਪਰਦੇਦਾਰੀ ਸੂਚਨਾ।</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">ਪਰਦੇਦਾਰੀ ਸੂਚਨਾ।</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">ਸਹਿਮਤ ਅਤੇ ਜਾਰੀ ਰੱਖੋ</string>
   <!-- New Onboarding flow first screen button label -->
@@ -668,7 +659,7 @@
 
     CFR for Cookie Banner (Banner Info Message). %1$s will be replaced by the app name, %2$s will be an active link using the string cfr_cookie_banner_link as text.
   -->
-  <string name="cfr_cookie_banner">%1$s ਨੇ ਖਿਝਾਊ ਕੂਕੀ ਬੈਨਰ ਖਾਰਜ ਕਰਨ ਲਈ ਕੂਕੀ ਬੇਨਤੀਆਂ ਨੂੰ ਰੱਦ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ ਕੀਤੀ ਹੈ।\n\%2$s ਵਿੱਚੋਂ ਕੂਕੀ ਬੈਨਰ ਪਸੰਦਾਂ ਦਾ ਇੰਤਜ਼ਾਮ ਕਰੋ।</string>
+  <string name="cfr_cookie_banner">%1$s ਨੇ ਖਿਝਾਊ ਕੂਕੀ ਬੈਨਰ ਖਾਰਜ ਕਰਨ ਲਈ ਕੂਕੀ ਬੇਨਤੀਆਂ ਨੂੰ ਰੱਦ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ ਕੀਤੀ ਹੈ।\n\\%2$s ਵਿੱਚੋਂ ਕੂਕੀ ਬੈਨਰ ਪਸੰਦਾਂ ਦਾ ਇੰਤਜ਼ਾਮ ਕਰੋ।</string>
   <!-- CFR for Cookie Banner (Banner Info Message). This string is used as text for a link in cfr_cookie_banner and takes the user to the app settings. -->
   <string name="cfr_cookie_banner_link">ਸੈਟਿੰਗਾਂ</string>
   <!-- Preference for autoplay -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Android ਸੈਟਿੰਗਾਂ ਉੱਤੇ ਜਾਓ</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;ਇਜਾਜ਼ਤਾਂ&lt;/b&gt; ਨੂੰ ਛੂਹੋ</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b>ਇਜਾਜ਼ਤਾਂ</b> ਨੂੰ ਛੂਹੋ]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">ਸੈਟਿੰਗਾਂ ਉੱਤੇ ਜਾਓ</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; ਨੂੰ ਚਾਲੂ ਲਈ ਬਦਲੋ</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> ਨੂੰ ਚਾਲੂ ਲਈ ਬਦਲੋ]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">ਕੈਮਰਾ</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -767,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">ਸਾਈਟ ਅਜੀਬ ਵਿਹਾਰ ਕਰ ਰਹੀ ਹੈ?\n ਟਰੈਕਿੰਗ ਸੁਰੱਖਿਆ ਨੂੰ ਬੰਦ ਕਰਕੇ ਕੋਸ਼ਿਸ਼ ਕਰੋ</string>
+  <string name="tip_disable_tracking_protection">ਸਾਈਟ ਅਜੀਬ ਵਿਹਾਰ ਕਰ ਰਹੀ ਹੈ?\nਟਰੈਕਿੰਗ ਸੁਰੱਖਿਆ ਨੂੰ ਬੰਦ ਕਰਕੇ ਕੋਸ਼ਿਸ਼ ਕਰੋ</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,21 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">ਹਰ ਲਿੰਕ ਨੂੰ %1$s ਵਿੱਚ ਖੋਲ੍ਹੋ\n %1$s ਨੂੰ ਮੂਲ ਬਰਾਊਜ਼ਰ ਬਣਾਓ</string>
+  <string name="tip_set_default_browser">ਹਰ ਲਿੰਕ ਨੂੰ %1$s ਵਿੱਚ ਖੋਲ੍ਹੋ\n%1$s ਨੂੰ ਮੂਲ ਬਰਾਊਜ਼ਰ ਬਣਾਓ</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">ਤੁਹਾਡੇ ਵਲੋਂ ਅਕਸਰ ਸਾਈਟਾਂ ਲਈ ਆਪੇ ਪੂਰਨ URLs\n
-ਸਿਰਨਾਵਾਂ ਪੱਟੀ ਵਿੱਚ ਕਿਸੇ ਵੀ URL ਨੂੰ ਲੰਮਾ ਸਮਾਂ ਦਬਾ ਕੇ ਰੱਖੋ
-    </string>
+  <string name="tip_autocomplete_url">ਤੁਹਾਡੇ ਵਲੋਂ ਅਕਸਰ ਸਾਈਟਾਂ ਲਈ ਆਪੇ ਪੂਰਨ URLs\nਸਿਰਨਾਵਾਂ ਪੱਟੀ ਵਿੱਚ ਕਿਸੇ ਵੀ URL ਨੂੰ ਲੰਮਾ ਸਮਾਂ ਦਬਾ ਕੇ ਰੱਖੋ</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">ਲਿੰਕ ਨੂੰ ਨਵੀਂ ਟੈਬ ਵਿੱਚ ਖੋਲ੍ਹੋ\n
- ਸਫ਼ੇ ਉੱਤੇ ਕਿਸੇ ਵੀ ਲਿੰਕ ਨੂੰ ਲੰਮਾ ਸਮਾਂ ਦਬਾ ਕੇ ਰੱਖੋ
-    </string>
+  <string name="tip_open_in_new_tab">ਲਿੰਕ ਨੂੰ ਨਵੀਂ ਟੈਬ ਵਿੱਚ ਖੋਲ੍ਹੋ\nਸਫ਼ੇ ਉੱਤੇ ਕਿਸੇ ਵੀ ਲਿੰਕ ਨੂੰ ਲੰਮਾ ਸਮਾਂ ਦਬਾ ਕੇ ਰੱਖੋ</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">ਸ਼ੁਰੂਆਤੀ ਸਕਰੀਨ ਉੱਤੇ ਗੁਰ ਬੰਦ ਕਰੋ</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -873,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">ਜਦੋਂ ਤੁਸੀਂ %1$s ਅਤੀਤ ਮਿਟਾਉਂਦੇ ਹੋ ਤਾਂ ਸੰਭਾਲੇ ਅਤੇ ਸਾਂਝੇ ਕੀਤੇ ਚਿੱਤਰ &lt;b&gt;ਹਟਾ ਦਿੱਤੇ ਜਾਣਗੇ&lt;/b&gt;</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[ਜਦੋਂ ਤੁਸੀਂ %1$s ਅਤੀਤ ਮਿਟਾਉਂਦੇ ਹੋ ਤਾਂ ਸੰਭਾਲੇ ਅਤੇ ਸਾਂਝੇ ਕੀਤੇ ਚਿੱਤਰ <b>ਹਟਾ ਦਿੱਤੇ ਜਾਣਗੇ</b>]]></string>
   <!--
     Theme Preferences
 
@@ -894,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s ਜਦੋਂ ਵੀ ਸੰਭਵ ਹੋ ਸਕੇ ਜ਼ਿਆਦਾ ਸੁਰੱਖਿਆ ਲਈ HTTPS ਵਰਤਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰਦਾ ਹੈ।
- &lt;a href="%2$s"&gt;ਹੋਰ ਜਾਣੋ&lt;/a&gt;&lt;br/&gt;&lt;br/&gt;
- ਇਸ ਸੈਟਿੰਗ ਨੂੰ ਸੈਟਿੰਗਾਂ &gt; ਪਰਦੇਦਾਰੀ ਤੇ ਸੁਰੱਖਿਆ &gt; ਸੁਰੱਖਿਆ ਵਿੱਚੋਂ ਬਦਲੋ।</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ਜਦੋਂ ਵੀ ਸੰਭਵ ਹੋ ਸਕੇ ਜ਼ਿਆਦਾ ਸੁਰੱਖਿਆ ਲਈ HTTPS ਵਰਤਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰਦਾ ਹੈ। <a href=\"%2$s\">ਹੋਰ ਜਾਣੋ</a><br/><br/> ਇਸ ਸੈਟਿੰਗ ਨੂੰ ਸੈਟਿੰਗਾਂ > ਪਰਦੇਦਾਰੀ ਤੇ ਸੁਰੱਖਿਆ > ਸੁਰੱਖਿਆ ਵਿੱਚੋਂ ਬਦਲੋ।]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">ਕਨੈਕਸ਼ਨ ਸੁਰੱਖਿਅਤ ਨਹੀਂ ਹੈ</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    ਇਹ ਸਰਵਰ ਦੀ ਸੰਰਚਨਾ ਨਾਲ ਸਮੱਸਿਆ ਹੋ ਸਕਦੀ ਹੈ ਜਾਂ ਕੋਈ ਸਰਵਰ ਦੀ ਨਕਲ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰਦਾ ਹੋ ਸਕਦਾ ਹੈ। &lt;br/&gt;&lt;br/&gt;
-    ਜੇ ਤੁਸੀਂ ਇਸ ਸਰਵਰ ਨਾਲ ਪਹਿਲਾਂ ਕਾਮਯਾਬੀ ਨਾਲ ਕਨੈਕਟ ਹੋ ਚੁੱਕੇ ਹੋ ਤਾਂ ਇਹ ਆਰਜ਼ੀ ਗਲਤੀ ਹੋ ਸਕਦੀ ਹੈ।
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[ਇਹ ਸਰਵਰ ਦੀ ਸੰਰਚਨਾ ਨਾਲ ਸਮੱਸਿਆ ਹੋ ਸਕਦੀ ਹੈ ਜਾਂ ਕੋਈ ਸਰਵਰ ਦੀ ਨਕਲ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰਦਾ ਹੋ ਸਕਦਾ ਹੈ। <br/><br/> ਜੇ ਤੁਸੀਂ ਇਸ ਸਰਵਰ ਨਾਲ ਪਹਿਲਾਂ ਕਾਮਯਾਬੀ ਨਾਲ ਕਨੈਕਟ ਹੋ ਚੁੱਕੇ ਹੋ ਤਾਂ ਇਹ ਆਰਜ਼ੀ ਗਲਤੀ ਹੋ ਸਕਦੀ ਹੈ।]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;ਕੋਈ ਸਾਈਟ ਦੀ ਨਕਲ ਕਰਦਾ ਹੋ ਸਕਦਾ ਹੈ ਅਤੇ ਜਾਰੀ ਰੱਖਣਾ ਖ਼ਤਰਨਾਕ ਹੋ ਸਕਦਾ ਹੈ।&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s &lt;b&gt;%2$s&lt;/b&gt; ਉੱਤੇ ਭਰੋਸਾ ਨਹੀਂ ਕਰਦਾ ਹੈ, ਕਿਉਂਕਿ ਇਹ ਸਰਟੀਫਿਕੇਟ ਨੂੰ ਜਾਰੀ ਕਰਨ ਵਾਲਾ ਅਣਪਛਾਤਾ ਹੈ, ਸਰਟੀਫਿਕੇਟ ਖੁਦ-ਦਸਤਖਤੀ ਹੈ ਜਾਂ ਸਰਵਰ ਠੀਕ ਵਿਚਕਾਰਲੇ ਸਰਟੀਫਿਕੇਟ ਨਹੀਂ ਭੇਜ ਰਿਹਾ ਹੈ।&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>ਕੋਈ ਸਾਈਟ ਦੀ ਨਕਲ ਕਰਦਾ ਹੋ ਸਕਦਾ ਹੈ ਅਤੇ ਜਾਰੀ ਰੱਖਣਾ ਖ਼ਤਰਨਾਕ ਹੋ ਸਕਦਾ ਹੈ।</label> <br><br> <label>%1$s <b>%2$s</b> ਉੱਤੇ ਭਰੋਸਾ ਨਹੀਂ ਕਰਦਾ ਹੈ, ਕਿਉਂਕਿ ਇਹ ਸਰਟੀਫਿਕੇਟ ਨੂੰ ਜਾਰੀ ਕਰਨ ਵਾਲਾ ਅਣਪਛਾਤਾ ਹੈ, ਸਰਟੀਫਿਕੇਟ ਖੁਦ-ਦਸਤਖਤੀ ਹੈ ਜਾਂ ਸਰਵਰ ਠੀਕ ਵਿਚਕਾਰਲੇ ਸਰਟੀਫਿਕੇਟ ਨਹੀਂ ਭੇਜ ਰਿਹਾ ਹੈ।</label>]]></string>
   <!--
     Sessions List
 

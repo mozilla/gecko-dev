@@ -298,7 +298,7 @@
   -->
   <string name="browser_menu_new_in_firefox">Anyar dina %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">Pindah kana situs desktop</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Pindah kana situs desktop</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">Pindah ka situs mobile</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

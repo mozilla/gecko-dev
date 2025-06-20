@@ -336,7 +336,7 @@
   -->
   <string name="browser_menu_new_in_firefox">%1$s の新着情報</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">PC 版サイトに切り替える</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">PC 版サイトに切り替える</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
   <string name="browser_menu_switch_to_mobile_site">モバイル版サイトに切り替える</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->

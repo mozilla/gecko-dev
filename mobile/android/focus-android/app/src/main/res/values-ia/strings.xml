@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s te pone al commando.&lt;/p&gt;
-&lt;p&gt;Usa lo como un navigator private:
-  &lt;ul&gt;
-    &lt;li&gt;Cerca e naviga directemente in le app&lt;/li&gt;
-    &lt;li&gt;Bloca le traciatores (o actualisa le parametros pro permitter traciatores)&lt;/li&gt;
-    &lt;li&gt;Eliminar pro deler le cookies e tamben le chronologia de recercas e de navigation&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s es producite per Mozilla. Nostre mission es promover un Internet san e aperte.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Pro saper plus&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s te pone al commando.</p> <p>Usa lo como un navigator private: <ul> <li>Cerca e naviga directemente in le app</li> <li>Bloca le traciatores (o actualisa le parametros pro permitter traciatores)</li> <li>Eliminar pro deler le cookies e tamben le chronologia de recercas e de navigation</li> </ul> </p> <p>%1$s es producite per Mozilla. Nostre mission es promover un Internet san e aperte.<br/> <a href=\"%2$s\">Pro saper plus</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Confidentialitate &amp; securitate</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Continuante, tu accepta le %1$s</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Continuante, tu accepta le %1$s</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Conditiones de uso de Firefox.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Conditiones de uso de Firefox.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox se cura de tu confidentialitate. Pro saper plus, consulta nostre %1$s</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox se cura de tu confidentialitate. Pro saper plus, consulta nostre %1$s</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Aviso de confidentialitate.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Aviso de confidentialitate.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Accordar se e continuar</string>
   <!-- New Onboarding flow first screen button label -->
@@ -630,7 +621,7 @@
   <!-- Title preference inside Cookie banner reduction screen. Here you can set the cookie banner option to disabled or reject_all. -->
   <string name="cookie_banner_reject_all_option_title">Reduction de banner pro le cookie</string>
   <!-- Preference summary inside Cookie banner reduction screen. Here you can set the cookie banner option to disabled or reject_all. -->
-  <string name="cookie_banner_reject_all_option_summary">Vider minus banners per automaticamente rejectar requestas de cookies, quando possibile. </string>
+  <string name="cookie_banner_reject_all_option_summary">Vider minus banners per automaticamente rejectar requestas de cookies, quando possibile.</string>
   <!-- Preference for removing cookie/consent banners from sites automatically, this is shown as part of the protections panel with the tracking protection toggle. -->
   <string name="cookie_banner_exception_item_title">Reduction de banner pro le cookie</string>
   <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle. -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Va a Parametros de Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Tocca &lt;b&gt;Permissiones&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Tocca <b>Permissiones</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Ir al parametros</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Commuta &lt;b&gt;%1$s&lt;/b&gt; a Active</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Commuta <b>%1$s</b> a Active]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Camera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -767,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Se comporta le sito inexpectatemente?\n Prova a disactivar le Protection de traciamento</string>
+  <string name="tip_disable_tracking_protection">Se comporta le sito inexpectatemente?\nProva a disactivar le Protection de traciamento</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Aperir cata ligamine in %1$s\n Pone %1$s como navigator predefinite</string>
+  <string name="tip_set_default_browser">Aperir cata ligamine in %1$s\nPone %1$s como navigator predefinite</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Auto-completar URLs pro le sitos que tu usa plus\n Retene pulsate longemente ulle URL in le barra de adresse</string>
+  <string name="tip_autocomplete_url">Auto-completar URLs pro le sitos que tu usa plus\nRetene pulsate longemente ulle URL in le barra de adresse</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Aperi le ligamine in un nove scheda\n Retene pulsate longemente ulle ligamine sur un pagina</string>
+  <string name="tip_open_in_new_tab">Aperi le ligamine in un nove scheda\nRetene pulsate longemente ulle ligamine sur un pagina</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Disactivar le suggestiones sur le pagina initial</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Le imagines salvate e compartite &lt;b&gt;non essera&lt;/b&gt; delite quando tu eliminara le chronologia de %1$s.</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Le imagines salvate e compartite <b>non essera</b> delite quando tu eliminara le chronologia de %1$s.]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s tenta usar quandocunque possibile un connexion HTTPS pro major securitate.
-     &lt;a href="%2$s"&gt;Pro saper plus&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Cambia iste parametro in Parametros &gt; Confidentialitate e securitate &gt; Securitate.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s tenta usar quandocunque possibile un connexion HTTPS pro major securitate. <a href=\"%2$s\">Pro saper plus</a> <br/><br/> Cambia iste parametro in Parametros > Confidentialitate e securitate > Securitate.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Connexion non secur</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Isto pote esser un problema con le configuration del servitor, o pote esser que un persona tenta de usurpar le identitate del servitor. &lt;br/&gt;&lt;br/&gt;
-    Si tu te ha connectite a iste servitor con successo in le passato, le error pote esser temporari.
-  </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Isto pote esser un problema con le configuration del servitor, o pote esser que un persona tenta de usurpar le identitate del servitor. <br/><br/> Si tu te ha connectite a iste servitor con successo in le passato, le error pote esser temporari.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Il es possibile que alcuno tenta usurpar le identitate del sito e pote esser riscose continuar.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s non considera digne de fide &lt;b&gt;%2$s&lt;/b&gt; perque su emissor de certificatos es incognite, le certificato es auto-signate, o le servitor non invia le correcte certificatos intermedie.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Il es possibile que alcuno tenta usurpar le identitate del sito e pote esser riscose continuar.</label> <br><br> <label>%1$s non considera digne de fide <b>%2$s</b> perque su emissor de certificatos es incognite, le certificato es auto-signate, o le servitor non invia le correcte certificatos intermedie.</label>]]></string>
   <!--
     Sessions List
 

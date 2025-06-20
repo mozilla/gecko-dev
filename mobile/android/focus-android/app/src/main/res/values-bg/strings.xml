@@ -148,16 +148,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ви дава контрол.&lt;/p&gt;
-&lt;p&gt;Използвайте го, за да разглеждате поверително:
-  &lt;ul&gt;
-    &lt;li&gt;Търсене и разглеждане изцяло в приложението&lt;/li&gt;
-    &lt;li&gt;Спиране на проследяването (или позволяване с промяна в настройките)&lt;/li&gt;
-    &lt;li&gt;Изчистване на бисквитките, търсенията и историята на разглеждане&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s се разработва от Mozilla. Нашата мисия е да развиваме здрав и отворен Интернет.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Научете повече&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ви дава контрол.</p> <p>Използвайте го, за да разглеждате поверително: <ul> <li>Търсене и разглеждане изцяло в приложението</li> <li>Спиране на проследяването (или позволяване с промяна в настройките)</li> <li>Изчистване на бисквитките, търсенията и историята на разглеждане</li> </ul> </p> <p>%1$s се разработва от Mozilla. Нашата мисия е да развиваме здрав и отворен Интернет.<br/> <a href=\"%2$s\">Научете повече</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Поверителност и защита</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -645,11 +636,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Отворете Настройки на Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Докоснете &lt;b&gt;Разрешения&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Докоснете <b>Разрешения</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Към настройките</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Превключете &lt;b&gt;%1$s&lt;/b&gt; в положение ВКЛЮЧЕНО</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Превключете <b>%1$s</b> в положение ВКЛЮЧЕНО]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Камера</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -734,7 +725,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Сайтът се държи неочаквано?\n Опитайте да изключите защитата от проследяване</string>
+  <string name="tip_disable_tracking_protection">Сайтът се държи неочаквано?\nОпитайте да изключите защитата от проследяване</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -745,17 +736,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Отваряйте всяка препратка в %1$s\n Задайте %1$s като стандартен четец</string>
+  <string name="tip_set_default_browser">Отваряйте всяка препратка в %1$s\nЗадайте %1$s като стандартен четец</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Автоматизирано завършвайте адреси на често посещавани сайтове\n Натиснете продължително върху адрес в адресната лента</string>
+  <string name="tip_autocomplete_url">Автоматизирано завършвайте адреси на често посещавани сайтове\nНатиснете продължително върху адрес в адресната лента</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Отваряйте препратки в нов раздел\n Натиснете продължително върху препратка в страница</string>
+  <string name="tip_open_in_new_tab">Отваряйте препратки в нов раздел\nНатиснете продължително върху препратка в страница</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Изключване на съветите на началния екран</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -836,7 +827,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Запазените и споделените изображения &lt;b&gt;няма да бъдат&lt;/b&gt; изтрити, когато изтриете историята на %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Запазените и споделените изображения <b>няма да бъдат</b> изтрити, когато изтриете историята на %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -857,22 +848,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s се опитва да използва HTTPS връзка винаги, когато е възможно за повече сигурност.
-     &lt;a href="%2$s"&gt;Научете повече&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Променете тази настройка в  Настройки &gt; Поверителност &amp;amp; Сигурност &gt; Сигурност.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s се опитва да използва HTTPS връзка винаги, когато е възможно за повече сигурност. <a href=\"%2$s\">Научете повече</a> <br/><br/> Променете тази настройка в Настройки > Поверителност &amp; Сигурност > Сигурност.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Връзката не е защитена</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Това може да е проблем с конфигурацията на сървъра или може някой да се опитва да се представя за сървъра. &lt;br/&gt;&lt;br/&gt;
-    Ако сте се свързвали успешно с този сървър в миналото, грешката може да е временна.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Това може да е проблем с конфигурацията на сървъра или може някой да се опитва да се представя за сървъра. <br/><br/> Ако сте се свързвали успешно с този сървър в миналото, грешката може да е временна.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Някой може да се опитва да се представя за сайта и продължаването да бъде рисковано.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s не вярва на &lt;b&gt;%2$s&lt;/b&gt;, защото издателят на сертификата му е неизвестен, сертификатът е самоподписан или сървърът не изпраща правилните междинни сертификати.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Някой може да се опитва да се представя за сайта и продължаването да бъде рисковано.</label> <br><br> <label>%1$s не вярва на <b>%2$s</b>, защото издателят на сертификата му е неизвестен, сертификатът е самоподписан или сървърът не изпраща правилните междинни сертификати.</label>]]></string>
   <!--
     Sessions List
 

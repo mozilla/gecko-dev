@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s басқаруды қолыңызға береді.&lt;/p&gt;
-&lt;p&gt;Оны жекелік браузері ретінде қолданыңыз:
-  &lt;ul&gt;
-    &lt;li&gt;Қолданба ішінен тікелей іздеу және шолу&lt;/li&gt;
-    &lt;li&gt;Трекерлерді блоктау (немесе, оларды рұқсат ету үшін, баптауларды жаңарту)&lt;/li&gt;
-    &lt;li&gt;Cookie файлдарын және іздеу мен шолу тарихын кетіру үшін өшіру&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s жасаған Mozilla. Мақсатымыз - интернет денсаулығын және ашықтығын сақтау.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Көбірек білу&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s басқаруды қолыңызға береді.</p> <p>Оны жекелік браузері ретінде қолданыңыз: <ul> <li>Қолданба ішінен тікелей іздеу және шолу</li> <li>Трекерлерді блоктау (немесе, оларды рұқсат ету үшін, баптауларды жаңарту)</li> <li>Cookie файлдарын және іздеу мен шолу тарихын кетіру үшін өшіру</li> </ul> </p> <p>%1$s жасаған Mozilla. Мақсатымыз - интернет денсаулығын және ашықтығын сақтау.<br/> <a href=\"%2$s\">Көбірек білу</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Жекелік және қауіпсіздік</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -471,21 +462,21 @@
 
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
-  <string name="onboarding_first_screen_terms_of_use_text" tools:ignore="UnusedResources">Жалғастыру арқылы сіз %1$s шарттарымен келісесіз</string>
+  <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Жалғастыру арқылы сіз %1$s шарттарымен келісесіз</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
-  <string name="onboarding_first_screen_terms_of_use_link" tools:ignore="BrandUsage">Firefox пайдалану шарттары.</string>
+  <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Firefox пайдалану шарттары.</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
-  <string name="onboarding_first_screen_privacy_notice_text" tools:ignore="BrandUsage">Firefox сіздің жекелігіңізге мән береді. Көбірек біздің %1$s ішінен біліңіз</string>
+  <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox сіздің жекелігіңізге мән береді. Көбірек біздің %1$s ішінен біліңіз</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">Жекелік ескертуі.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Жекелік ескертуі.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Келісу және жалғастыру</string>
   <!-- New Onboarding flow first screen button label -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Android баптауларына өтіңіз</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;Рұқсаттар&lt;/b&gt; басыңыз</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b>Рұқсаттар</b> басыңыз]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Баптауларға өтіңіз</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; ауыстырғышын іске қосыңыз</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> ауыстырғышын іске қосыңыз]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Камера</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -767,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Әлі де күтпегендей әрекет жасайды ма?\n Бақылаудан қорғанысты сөндіріп көріңіз</string>
+  <string name="tip_disable_tracking_protection">Әлі де күтпегендей әрекет жасайды ма?\nБақылаудан қорғанысты сөндіріп көріңіз</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -778,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Әр сілтемені %1$s ішінде ашыңыз\n %1$s негізгі браузер ретінде орнатыңыз</string>
+  <string name="tip_set_default_browser">Әр сілтемені %1$s ішінде ашыңыз\n%1$s негізгі браузер ретінде орнатыңыз</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Жиірек қолданылатын сайттар үшін сілтемелерді автотолықтырыңыз\n Адрестік жолақта кез келген сілтемеге ұзақ шертіңіз</string>
+  <string name="tip_autocomplete_url">Жиірек қолданылатын сайттар үшін сілтемелерді автотолықтырыңыз\nАдрестік жолақта кез келген сілтемеге ұзақ шертіңіз</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Сілтемені жаңа бетте ашу\n Беттегі кез келген сілтемеге ұзақ шертіңіз</string>
+  <string name="tip_open_in_new_tab">Сілтемені жаңа бетте ашу\nБеттегі кез келген сілтемеге ұзақ шертіңіз</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Іске қосу экранында кеңестерді сөндіру</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -869,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">%1$s тарихы өшірілген кезде сақталған және бөліскен суреттер &lt;b&gt;өшірілмейді&lt;/b&gt;</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[%1$s тарихы өшірілген кезде сақталған және бөліскен суреттер <b>өшірілмейді</b>]]></string>
   <!--
     Theme Preferences
 
@@ -890,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s көбірек қауіпсіздік үшін мүмкін болған кезде HTTPS байланысын қолдануға тырысады.
-     &lt;a href="%2$s"&gt;Көбірек білу&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Бұл баптауды Баптаулар &gt; Жекелік және қауіпсіздік &gt; Қауіпсіздік ішінде өзгертуге болады.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s көбірек қауіпсіздік үшін мүмкін болған кезде HTTPS байланысын қолдануға тырысады. <a href=\"%2$s\">Көбірек білу</a> <br/><br/> Бұл баптауды Баптаулар > Жекелік және қауіпсіздік > Қауіпсіздік ішінде өзгертуге болады.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Байланыс қауіпсіз емес</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Бұл сервердің қатесі болуы мүмкін, немесе біреу сізге керек серверді басқасымен ауыстырғысы келеді. &lt;br/&gt;&lt;br/&gt;
-    Осыған дейін осы серверге сәтті қосылған болсаңыз, осы қате уақытша болуы мүмкін.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Бұл сервердің қатесі болуы мүмкін, немесе біреу сізге керек серверді басқасымен ауыстырғысы келеді. <br/><br/> Осыған дейін осы серверге сәтті қосылған болсаңыз, осы қате уақытша болуы мүмкін.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Біреу бұл сайтты еліктеу талабын жасап жатқаны мүмкін, сондықтан жалғастыру қауіпті болуы мүмкін.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s қолданбасы &lt;b&gt;%2$s&lt;/b&gt; адресіне сенбейді, өйткені сертификат шығарушысы белгісіз, сертификат қолтаңбасы өздігінен қойылған, немесе сервер жарамды аралық сертификаттарды жібермеген.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Біреу бұл сайтты еліктеу талабын жасап жатқаны мүмкін, сондықтан жалғастыру қауіпті болуы мүмкін.</label> <br><br> <label>%1$s қолданбасы <b>%2$s</b> адресіне сенбейді, өйткені сертификат шығарушысы белгісіз, сертификат қолтаңбасы өздігінен қойылған, немесе сервер жарамды аралық сертификаттарды жібермеген.</label>]]></string>
   <!--
     Sessions List
 

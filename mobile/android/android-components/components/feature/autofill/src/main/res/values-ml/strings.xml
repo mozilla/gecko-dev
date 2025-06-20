@@ -16,7 +16,7 @@
     Autofill: Text shown in popup in third-party app to autofill the password for an account.
     %1$s will be replaced with the login/username of the account.
   -->
-  <string name="mozac_feature_autofill_popup_password">%1$s നായുള്ള രഹസ്യവാക്കു്</string>
+  <string name="mozac_feature_autofill_popup_password">%1$s നായുള്ള ഒളിവാക്കു്</string>
   <!--
     Autofill: Title of a dialog asking the user to confirm before autofilling credentials into
     a third-party app after the authenticity verification failed.

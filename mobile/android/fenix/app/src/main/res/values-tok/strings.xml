@@ -212,7 +212,7 @@
   <!-- Button shown on the home page that opens the Customize home settings -->
   <string name="browser_menu_customize_home_1">o nasin sina e lipu lawa</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
-  <string name="browser_menu_switch_to_desktop_site">o kepeken nasin lukin lipu pi ilo suli</string>
+  <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">o kepeken nasin lukin lipu pi ilo suli</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">o ante e toki lipu…</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->

@@ -410,7 +410,7 @@
   -->
   <string name="onboarding_first_screen_title">%1$s में आपका स्वागत हैं</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
-  <string name="onboarding_first_screen_privacy_notice_link">गोपनीयता सूचना.</string>
+  <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">गोपनीयता सूचना.</string>
   <!-- First run tour (Default browser): Title -->
   <string name="firstrun_defaultbrowser_title">अपनी गोपनीयता को बढ़ाएँ</string>
   <!-- First run tour (Default browser): Text. -->
