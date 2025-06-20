@@ -146,7 +146,7 @@ class SearchWidgetProvider : AppWidgetProvider() {
                     setOnClickPendingIntent(R.id.button_search_widget_new_tab, textSearchIntent)
                 }
                 R.layout.search_widget_small -> {
-                    setOnClickPendingIntent(R.id.button_search_widget_new_tab, textSearchIntent)
+                    setOnClickPendingIntent(R.id.button_search_widget_new_tab_icon, textSearchIntent)
                     setOnClickPendingIntent(R.id.button_search_widget_voice, voiceSearchIntent)
                 }
                 R.layout.search_widget_medium,
