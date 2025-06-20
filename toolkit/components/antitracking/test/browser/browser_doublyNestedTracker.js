@@ -21,6 +21,7 @@ add_task(async function () {
       ],
       // Bug 1617611: Fix all the tests broken by "cookies SameSite=lax by default"
       ["network.cookie.sameSite.laxByDefault", false],
+      ["network.lna.block_trackers", false],
     ],
   });
 

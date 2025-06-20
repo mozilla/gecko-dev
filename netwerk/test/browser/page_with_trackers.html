@@ -6,7 +6,19 @@
 	<title>Page that loads a tracking script which does a public->private fetch</title>
 </head>
 <body>
-<script type="text/javascript" src="https://tracking.example.org/browser/netwerk/test/browser/fetch_from_tracker.js"></script>
+<script type="text/javascript">
+	var results = {};
+	window.addEventListener('load', function () {
+	  let params = new URLSearchParams(location.search);
+	  const script = document.createElement('script');
+      script.src = `https://tracking.example.org/browser/netwerk/test/browser/fetch_from_tracker.sjs?test=${params.get("test")}&rand=${params.get("rand")}`;
+      script.type = 'text/javascript';
+      script.onerror = () => {
+        console.error('Failed to load the external script.');
+      };
+      document.body.appendChild(script);
+    });
+</script>
 
 </body>
 </html>
