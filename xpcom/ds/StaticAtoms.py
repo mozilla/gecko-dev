@@ -509,6 +509,7 @@ STATIC_ATOMS = [
     Atom("h4", "h4"),
     Atom("h5", "h5"),
     Atom("h6", "h6"),
+    Atom("hairline", "hairline"),
     Atom("handheldFriendly", "HandheldFriendly"),
     Atom("handler", "handler"),
     Atom("handlers", "handlers"),

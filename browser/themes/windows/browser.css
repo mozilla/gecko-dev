@@ -100,7 +100,7 @@
    * are the same, so we can just fall back.
    * See: https://learn.microsoft.com/en-us/windows/apps/design/style/segoe-fluent-icons-font */
   font:
-    10px / 1 "Segoe Fluent Icons",
+    round(10px, env(hairline)) / 1 "Segoe Fluent Icons",
     "Segoe MDL2 Assets"; /* stylelint-disable-line font-family-no-missing-generic-family-keyword */
 
   /* Win10's tablet mode is non-windowed -- windows can't be moved or resized
