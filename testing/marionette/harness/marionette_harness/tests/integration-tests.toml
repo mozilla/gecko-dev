@@ -34,6 +34,8 @@
 
 ["include:../../../../../dom/indexedDB/test/marionette/manifest.toml"]
 
+["include:../../../../../dom/notification/test/marionette/manifest.toml"]
+
 ["include:../../../../../dom/quota/test/marionette/manifest.toml"]
 
 ["include:../../../../../dom/workers/test/marionette/manifest.toml"]
