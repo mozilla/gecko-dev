@@ -46,7 +46,7 @@ function startTest(channelData) {
       continue;
     }
 
-    interfaceMap[prop.name] = !entryDisabled(prop, channelData);
+    interfaceMap[prop.name] ||= !entryDisabled(prop, channelData);
   }
 
   for (var prop in navigator) {
