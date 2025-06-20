@@ -1221,7 +1221,7 @@ class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
   template <
       typename RootingContext, typename... CtorArgs,
       typename = std::enable_if_t<detail::IsTraceable_v<T>, RootingContext>>
-  explicit Rooted(const RootingContext& cx, CtorArgs... args)
+  explicit Rooted(const RootingContext& cx, CtorArgs&&... args)
       : ptr(std::forward<CtorArgs>(args)...) {
     MOZ_ASSERT(GCPolicy<T>::isValid(ptr));
     registerWithRootLists(rootLists(cx));

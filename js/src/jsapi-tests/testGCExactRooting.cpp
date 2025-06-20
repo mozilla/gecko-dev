@@ -1049,3 +1049,32 @@ BEGIN_TEST(testRootedTuple) {
   return true;
 }
 END_TEST(testRootedTuple)
+
+BEGIN_TEST(testRootedCopying) {
+  // Make sure that when you write JS::Rooted<T> obj(cx, some_argument)
+  // some_argument is not copied.
+
+  struct NoCopy {
+    NoCopy() = default;
+    NoCopy(NoCopy&) = delete;
+    NoCopy(const NoCopy&) = delete;
+    NoCopy& operator=(const NoCopy&) = delete;
+  };
+
+  struct StructWithNoCopyArg {
+    StructWithNoCopyArg(void* a, NoCopy& nc) {}
+    void trace(JSTracer* trace) {}
+  };
+
+  // Two arguments to choose
+  //   Rooted(const RootingContext& cx, CtorArgs... args)
+  // over
+  //   Rooted(const RootingContext& cx, S&& initial)
+  void* a = nullptr;
+  NoCopy nc;
+
+  // This compiling is a test pass.
+  JS::Rooted<StructWithNoCopyArg> rooted(cx, a, nc);
+  return true;
+}
+END_TEST(testRootedCopying)
