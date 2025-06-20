@@ -14,7 +14,7 @@ been tested.
 To do this, follow these steps:
 
 - make sure your model is published in Hugging Face with PyTorch or SafeTensor weights.
-- clone https://github.com/xenova/transformers.js and checkout branch `v3`
+- clone https://github.com/xenova/transformers.js
 - go into `scripts/`
 - create a virtualenv there and install requirements from the local `requirements.txt` file
 
@@ -22,7 +22,7 @@ Then you can run:
 
 .. code-block:: bash
 
-  python convert.py --model_id organizationId/modelId --quantize --modes fp16 q8 q4 --task the-inference-task
+  python -m scripts.convert --model_id organizationId/modelId --quantize --modes fp16 q8 q4 --task the-inference-task --output_parent_dir output_models
 
 You will get a new directory in `models/organizationId/modelId` that includes an `onnx` directory and
 other files. Upload everything into Hugging Face.
