@@ -136,8 +136,6 @@ enum class GCAbortReason {
   _(ScriptDebugScript)                     \
   _(BreakpointSite)                        \
   _(Breakpoint)                            \
-  _(ForOfPIC)                              \
-  _(ForOfPICStub)                          \
   _(WasmInstanceExports)                   \
   _(WasmInstanceScopes)                    \
   _(WasmInstanceGlobals)                   \

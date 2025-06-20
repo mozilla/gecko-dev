@@ -51,8 +51,8 @@ class MOZ_STACK_CLASS JS_PUBLIC_API ForOfIterator {
  protected:
   JSContext* cx_;
 
-  // Use the ForOfPIC on the global object (see vm/GlobalObject.h) to try to
-  // optimize iteration across arrays.
+  // Use realm fuses (see `IsArrayWithDefaultIterator` in vm/Iteration.cpp) to
+  // try to optimize iteration across arrays.
   //
   //  Case 1: Regular Iteration
   //      iterator - pointer to the iterator object.
