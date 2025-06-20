@@ -168,12 +168,12 @@ linux32-tests:
     - web-platform-tests-webcodecs
     - web-platform-tests-eme
 
-linux1804-tests:
+linux-tests:
     - cppunittest
     - crashtest
     - firefox-ui-functional
     - gtest
-    # - jittest  # See comment in linux1804-ccov-tests set.
+    # - jittest  # See comment in linux-ccov-tests set.
     - jsreftest
     - marionette
     - marionette-unittest
@@ -201,9 +201,9 @@ linux1804-tests:
     - test-verify-wpt
     - xpcshell
 
-linux1804-ccov-tests:
+linux-ccov-tests:
     # jittest run on regular linux builds is redundant with SM(p), so we omit it
-    # from the linux1804-tests and linux1804-qr-tests sets. But, we still want
+    # from the linux2404-tests set. But, we still want
     # to run it on ccov builds, so we have this set that has it and which runs
     # on ccov builds.
     - jittest
