@@ -119,7 +119,6 @@ newtab-menu-show-privacy-info = Ein noddwyr a'ch preifatrwydd
 newtab-menu-about-fakespot = Ynghylch { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Adrodd
-newtab-menu-report-content = Adrodd am y cynnwys hwn
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Rhwystro

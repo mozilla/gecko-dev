@@ -8,6 +8,9 @@
 newtab-page-title = לשונית חדשה
 newtab-settings-button =
     .title = התאמה אישית של דף הלשונית החדשה שלך
+newtab-customize-panel-icon-button =
+    .title = התאמה אישית של דף זה
+newtab-customize-panel-icon-button-label = התאמה אישית
 newtab-personalize-settings-icon-label =
     .title = התאמה אישית של דף הלשונית החדשה
     .aria-label = הגדרות
@@ -118,7 +121,6 @@ newtab-menu-archive-pocket = העברה לארכיון ב־{ -pocket-brand-name 
 newtab-menu-about-fakespot = על אודות { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = דיווח
-newtab-menu-report-content = דיווח על תוכן זה
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = חסימה

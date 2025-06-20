@@ -117,7 +117,6 @@ newtab-menu-delete-pocket = Fshije nga { -pocket-brand-name }
 newtab-menu-archive-pocket = Arkivoje në { -pocket-brand-name }
 newtab-menu-show-privacy-info = Sponsorët tanë & privatësia jonë
 newtab-menu-about-fakespot = Mvi { -fakespot-brand-name }
-newtab-menu-report-content = Njoftoni për këtë lëndë
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Bllokoje

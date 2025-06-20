@@ -8,6 +8,9 @@
 newtab-page-title = Новая вкладка
 newtab-settings-button =
     .title = Настроить свою страницу новой вкладки
+newtab-customize-panel-icon-button =
+    .title = Настроить эту страницу
+newtab-customize-panel-icon-button-label = Персонализация
 newtab-personalize-settings-icon-label =
     .title = Персонализировать Новую вкладку
     .aria-label = Настройки
@@ -119,7 +122,6 @@ newtab-menu-show-privacy-info = Наши спонсоры и ваша прива
 newtab-menu-about-fakespot = О { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Сообщить
-newtab-menu-report-content = Пожаловаться на этот контент
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Блокировать

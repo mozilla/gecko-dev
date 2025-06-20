@@ -119,7 +119,6 @@ newtab-menu-show-privacy-info = Naši sponzori i tvoja privatnost
 newtab-menu-about-fakespot = O proširenju { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Prijavi
-newtab-menu-report-content = Prijavi ovaj sadržaj
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Blokiraj
@@ -326,7 +325,7 @@ newtab-custom-settings = Upravljaj dodatnim postavkama
 ## New Tab Wallpapers
 
 newtab-wallpaper-title = Pozadine
-newtab-wallpaper-reset = Obnovi na standardno
+newtab-wallpaper-reset = Obnovi na standardnu pozadinu
 newtab-wallpaper-upload-image = Prenesi sliku
 newtab-wallpaper-custom-color = Odaberi boju
 # Variables
@@ -530,9 +529,9 @@ newtab-section-mangage-topics-followed-topics = Praćene
 newtab-section-mangage-topics-followed-topics-empty-state = Još nisi pratio/la nijednu temu.
 newtab-section-mangage-topics-blocked-topics = Blokirane
 newtab-section-mangage-topics-blocked-topics-empty-state = Još nisi blokirao/la nijednu temu.
-newtab-custom-wallpaper-title = Prilagođene slike pozadine su ovdje
+newtab-custom-wallpaper-title = Isprobaj prilagođene slike pozadine
 # 'Make firefox yours" means to customize or personalize
-newtab-custom-wallpaper-subtitle = Prenesi vlastitu sliku pozadine ili odaberi prilagođenu za tvoj { -brand-product-name }.
+newtab-custom-wallpaper-subtitle = Prenesi vlastitu sliku pozadine ili odaberi prilagođenu boju za tvoj { -brand-product-name }.
 newtab-custom-wallpaper-cta = Isprobaj
 
 ## Strings for download mobile highlight

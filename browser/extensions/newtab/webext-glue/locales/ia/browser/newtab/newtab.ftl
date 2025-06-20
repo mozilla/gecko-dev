@@ -8,6 +8,9 @@
 newtab-page-title = Nove scheda
 newtab-settings-button =
     .title = Personalisar tu pagina de nove scheda
+newtab-customize-panel-icon-button =
+    .title = Personalisar iste pagina
+newtab-customize-panel-icon-button-label = Personalisar
 newtab-personalize-settings-icon-label =
     .title = Personalisar le scheda nove
     .aria-label = Parametros
@@ -119,7 +122,6 @@ newtab-menu-show-privacy-info = Nostre sponsores e tu vita private
 newtab-menu-about-fakespot = A proposito de { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Reportar
-newtab-menu-report-content = Reportar iste contento
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Blocar

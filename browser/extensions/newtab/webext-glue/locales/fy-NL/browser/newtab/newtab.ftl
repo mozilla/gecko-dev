@@ -8,6 +8,9 @@
 newtab-page-title = Nij ljepblêd
 newtab-settings-button =
     .title = Jo side foar nije ljepblêden oanpasse
+newtab-customize-panel-icon-button =
+    .title = Dizze side oanpasse
+newtab-customize-panel-icon-button-label = Oanpasse
 newtab-personalize-settings-icon-label =
     .title = Nij ljepblêd personalisearje
     .aria-label = Ynstellingen
@@ -119,7 +122,6 @@ newtab-menu-show-privacy-info = Us sponsors en jo privacy
 newtab-menu-about-fakespot = Oer { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Rapportearje
-newtab-menu-report-content = Dizze ynhâld rapportearje
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Blokkearje

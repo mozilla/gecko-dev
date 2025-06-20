@@ -8,6 +8,9 @@
 newtab-page-title = Uusi välilehti
 newtab-settings-button =
     .title = Muokkaa Uusi välilehti -sivua
+newtab-customize-panel-icon-button =
+    .title = Mukauta tätä sivua
+newtab-customize-panel-icon-button-label = Mukauta
 newtab-personalize-settings-icon-label =
     .title = Mukauta uutta välilehteä
     .aria-label = Asetukset
@@ -119,7 +122,6 @@ newtab-menu-show-privacy-info = Tukijamme ja yksityisyytesi
 newtab-menu-about-fakespot = Tietoja { -fakespot-brand-name }ista
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Ilmoita
-newtab-menu-report-content = Ilmoita tästä sisällöstä
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Estä
@@ -316,6 +318,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Sää
     .description = Päivän sääennuste yhdellä vilkaisulla
+newtab-custom-trending-search-toggle =
+    .label = Nousussa olevat haut
+    .description = Suosittuja ja usein haettuja aiheita
 newtab-custom-close-button = Sulje
 newtab-custom-settings = Muokkaa lisää asetuksia
 
@@ -566,3 +571,11 @@ newtab-toast-thanks-for-reporting =
 
 ## Strings for trending searches
 
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Nousussa Googlessa
+newtab-trending-searches-show-trending =
+    .title = Näytä nousussa olevat haut
+newtab-trending-searches-hide-trending =
+    .title = Piilota nousussa olevat haut
+newtab-trending-searches-learn-more = Lue lisää
+newtab-trending-searches-dismiss = Piilota nousussa olevat haut

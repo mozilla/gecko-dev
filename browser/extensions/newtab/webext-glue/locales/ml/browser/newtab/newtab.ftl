@@ -117,7 +117,6 @@ newtab-menu-delete-pocket = { -pocket-brand-name } നിന്ന് മായ�
 newtab-menu-archive-pocket = { -pocket-brand-name } ഗ്രന്ഥപ്പുരത്തിലാക്കി വയ്ക്കുക
 newtab-menu-show-privacy-info = ഞങ്ങളുടെ പരുപാടികൾക്കു് പണം കൊടുക്കുന്നവരും താങ്ങളുടെ സ്വകാര്യതാവും
 newtab-menu-about-fakespot = { -fakespot-brand-name }-നെ കുറിച്ചു്
-newtab-menu-report-content = മേൽക്കോയ്മക്കാരോടു് ഈ ഉള്ളടക്കത്തിനെപ്പറ്റി അറിയിക്കുക
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = തടയുക

@@ -8,6 +8,9 @@
 newtab-page-title = Nyt faneblad
 newtab-settings-button =
     .title = Tilpas siden Nyt faneblad
+newtab-customize-panel-icon-button =
+    .title = Tilpas denne side
+newtab-customize-panel-icon-button-label = Tilpas
 newtab-personalize-settings-icon-label =
     .title = Tilpas nyt faneblad
     .aria-label = Indstillinger
@@ -119,7 +122,6 @@ newtab-menu-show-privacy-info = Vores sponsorer og dit privatliv
 newtab-menu-about-fakespot = Om { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Rapporter
-newtab-menu-report-content = Rapporter indholdet
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Bloker

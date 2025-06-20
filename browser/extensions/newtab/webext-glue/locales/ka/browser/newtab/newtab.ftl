@@ -8,6 +8,9 @@
 newtab-page-title = ახალი ჩანართი
 newtab-settings-button =
     .title = მოირგეთ ახალი ჩანართის გვერდი
+newtab-customize-panel-icon-button =
+    .title = ამ გვერდის მორგება
+newtab-customize-panel-icon-button-label = მორგება
 newtab-personalize-settings-icon-label =
     .title = ახალი ჩანართის მორგება
     .aria-label = პარამეტრები
@@ -119,7 +122,6 @@ newtab-menu-show-privacy-info = ჩვენი დამკვეთები �
 newtab-menu-about-fakespot = გაიცანით { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = მოხსენება
-newtab-menu-report-content = ამ მასალის გასაჩივრება
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = აკრძალვა

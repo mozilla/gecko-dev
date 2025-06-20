@@ -117,7 +117,6 @@ newtab-menu-delete-pocket = Cantzella dae { -pocket-brand-name }
 newtab-menu-archive-pocket = Archìvia in { -pocket-brand-name }
 newtab-menu-show-privacy-info = Is patrotzinadores nostros e sa riservadesa tua
 newtab-menu-about-fakespot = Informatziones in pitzus de { -fakespot-brand-name }
-newtab-menu-report-content = Sinnala custu cuntenutu
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Bloca

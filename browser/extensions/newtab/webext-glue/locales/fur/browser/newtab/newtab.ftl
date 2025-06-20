@@ -119,7 +119,6 @@ newtab-menu-show-privacy-info = I nestris patrocinadôrs e la tô riservatece
 newtab-menu-about-fakespot = Informazions su { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Segnale
-newtab-menu-report-content = Segnale chest contignût
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Bloche
@@ -317,6 +316,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Meteo
     .description = Previsions par vuê cuntune voglade
+newtab-custom-trending-search-toggle =
+    .label = Ricercjis di tindince
+    .description = Argoments popolârs e cirûts dispès
 newtab-custom-close-button = Siere
 newtab-custom-settings = Gjestìs plui impostazions
 
@@ -567,3 +569,11 @@ newtab-toast-thanks-for-reporting =
 
 ## Strings for trending searches
 
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Di tindince su Google
+newtab-trending-searches-show-trending =
+    .title = Mostre ricercjis di tindince
+newtab-trending-searches-hide-trending =
+    .title = Plate ricercjis di tindince
+newtab-trending-searches-learn-more = Plui informazions
+newtab-trending-searches-dismiss = Plate ricercjis di tindince

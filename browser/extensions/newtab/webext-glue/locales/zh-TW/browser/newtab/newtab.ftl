@@ -8,6 +8,9 @@
 newtab-page-title = 新分頁
 newtab-settings-button =
     .title = 自訂您的新分頁頁面
+newtab-customize-panel-icon-button =
+    .title = 自訂此頁面
+newtab-customize-panel-icon-button-label = 自訂
 newtab-personalize-settings-icon-label =
     .title = 個人化新分頁
     .aria-label = 設定
@@ -119,7 +122,6 @@ newtab-menu-show-privacy-info = 我們的贊助商與您的隱私權
 newtab-menu-about-fakespot = 關於 { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = 回報
-newtab-menu-report-content = 回報此內容
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = 封鎖

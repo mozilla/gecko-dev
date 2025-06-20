@@ -117,7 +117,6 @@ newtab-menu-delete-pocket = { -pocket-brand-name }-тен өшіру
 newtab-menu-archive-pocket = { -pocket-brand-name }-те архивтеу
 newtab-menu-show-privacy-info = Біздің демеушілеріміз және сіздің жекелігіңіз
 newtab-menu-about-fakespot = { -fakespot-brand-name } туралы
-newtab-menu-report-content = Бұл мазмұн туралы хабарлау
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Блоктау
@@ -539,6 +538,10 @@ newtab-report-content-spam-misleading =
     .label = Спам немесе жаңылыстыру
 newtab-report-cancel = Бас тарту
 newtab-report-submit = Жіберу
+newtab-toast-thanks-for-reporting =
+    .message = Бұл туралы хабарлағаныңыз үшін рахмет.
 
 ## Strings for trending searches
 
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Google-да әйгілі

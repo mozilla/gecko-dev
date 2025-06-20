@@ -8,6 +8,9 @@
 newtab-page-title = Варақаи нав
 newtab-settings-button =
     .title = Танзим кардани саҳифаи худ дар варақаи нав
+newtab-customize-panel-icon-button =
+    .title = Фармоишдиҳии ин саҳифа
+newtab-customize-panel-icon-button-label = Фармоишдиҳӣ
 newtab-personalize-settings-icon-label =
     .title = Шахсисозии варақаи нав
     .aria-label = Танзимот
@@ -119,7 +122,6 @@ newtab-menu-show-privacy-info = Сарпарастони мо ва махфия�
 newtab-menu-about-fakespot = Дар бораи «{ -fakespot-brand-name }»
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Гузориш додан
-newtab-menu-report-content = Гузориш дар бораи ин муҳтаво
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Манъ кардан

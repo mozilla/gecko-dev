@@ -119,7 +119,6 @@ newtab-menu-show-privacy-info = Naši sponzoři a vaše soukromí
 newtab-menu-about-fakespot = Co je { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Nahlásit
-newtab-menu-report-content = Nahlásit tento obsah
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Blokovat
@@ -323,6 +322,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Počasí
     .description = Dnešní předpověď ve zkratce
+newtab-custom-trending-search-toggle =
+    .label = Trendy ve vyhledávání
+    .description = Oblíbená a často vyhledávaná témata
 newtab-custom-close-button = Zavřít
 newtab-custom-settings = Další nastavení
 
@@ -589,3 +591,11 @@ newtab-toast-thanks-for-reporting =
 
 ## Strings for trending searches
 
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Trendy na Googlu
+newtab-trending-searches-show-trending =
+    .title = Zobrazit populární vyhledávání
+newtab-trending-searches-hide-trending =
+    .title = Skrýt populární vyhledávání
+newtab-trending-searches-learn-more = Zjistit více
+newtab-trending-searches-dismiss = Skrýt populární vyhledávání

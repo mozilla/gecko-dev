@@ -8,6 +8,9 @@
 newtab-page-title = Nowy rejtarik
 newtab-settings-button =
     .title = Bok wašogo nowego rejtarika pśiměriś
+newtab-customize-panel-icon-button =
+    .title = Toś ten bok pśiměriś
+newtab-customize-panel-icon-button-label = Pśiměriś
 newtab-personalize-settings-icon-label =
     .title = Nowy rejtarik personalizěrowaś
     .aria-label = Nastajenja
@@ -119,7 +122,6 @@ newtab-menu-show-privacy-info = Naše sponsory a waša priwatnosć
 newtab-menu-about-fakespot = Wó { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = K wěsći daś
-newtab-menu-report-content = Toś to wopśimjeśe k wěsći daś
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Blokěrowaś

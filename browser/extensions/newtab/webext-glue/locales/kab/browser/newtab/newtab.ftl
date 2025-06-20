@@ -119,7 +119,6 @@ newtab-menu-show-privacy-info = Wid yettbeddan fell-aɣ akked tudert-ik tabaḍn
 newtab-menu-about-fakespot = Γef { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Aneqqis
-newtab-menu-report-content = Ccetki ɣef ugbur-a
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Sewḥel

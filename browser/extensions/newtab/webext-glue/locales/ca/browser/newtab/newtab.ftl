@@ -313,7 +313,7 @@ newtab-wallpaper-dark-city = Paisatge urbà porpra
 newtab-wallpaper-category-title-colors = Colors sòlids
 newtab-wallpaper-blue = Blau
 newtab-wallpaper-light-blue = Blau clar
-newtab-wallpaper-light-purple = Lila clar
+newtab-wallpaper-light-purple = Porpra clar
 newtab-wallpaper-light-green = Verd clar
 newtab-wallpaper-green = Verd
 newtab-wallpaper-beige = Beix
@@ -323,7 +323,7 @@ newtab-wallpaper-pink = Rosa
 newtab-wallpaper-light-pink = Rosa clar
 newtab-wallpaper-red = Vermell
 newtab-wallpaper-dark-blue = Blau fosc
-newtab-wallpaper-dark-purple = Lila fosc
+newtab-wallpaper-dark-purple = Porpra fosc
 newtab-wallpaper-dark-green = Verd fosc
 newtab-wallpaper-brown = Marró
 
@@ -332,10 +332,10 @@ newtab-wallpaper-brown = Marró
 newtab-wallpaper-category-title-abstract = Abstracte
 newtab-wallpaper-abstract-green = Formes verdes
 newtab-wallpaper-abstract-blue = Formes blaves
-newtab-wallpaper-abstract-purple = Formes liles
+newtab-wallpaper-abstract-purple = Formes porpres
 newtab-wallpaper-abstract-orange = Formes taronges
 newtab-wallpaper-gradient-orange = Degradat taronja i rosa
-newtab-wallpaper-abstract-blue-purple = Formes blaves i liles
+newtab-wallpaper-abstract-blue-purple = Formes blaves i porpres
 
 ## Celestial
 

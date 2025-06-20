@@ -119,7 +119,6 @@ newtab-menu-show-privacy-info = Наші спонсори і ваша прива
 newtab-menu-about-fakespot = Про { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Повідомити
-newtab-menu-report-content = Повідомити про цей вміст
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Блокувати
@@ -317,6 +316,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Погода
     .description = Точний прогноз на сьогодні
+newtab-custom-trending-search-toggle =
+    .label = Популярні пошукові запити
+    .description = Популярні пошукові запити
 newtab-custom-close-button = Закрити
 newtab-custom-settings = Керувати іншими налаштуваннями
 
@@ -567,3 +569,11 @@ newtab-toast-thanks-for-reporting =
 
 ## Strings for trending searches
 
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Популярне в Google
+newtab-trending-searches-show-trending =
+    .title = Показати популярні пошукові запити
+newtab-trending-searches-hide-trending =
+    .title = Приховати популярні пошукові запити
+newtab-trending-searches-learn-more = Докладніше
+newtab-trending-searches-dismiss = Приховати популярні пошукові запити

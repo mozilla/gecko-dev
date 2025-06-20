@@ -8,6 +8,9 @@
 newtab-page-title = Yeni Sekme
 newtab-settings-button =
     .title = Yeni Sekme sayfanızı özelleştirin
+newtab-customize-panel-icon-button =
+    .title = Bu sayfayı özelleştir
+newtab-customize-panel-icon-button-label = Özelleştir
 newtab-personalize-settings-icon-label =
     .title = Yeni sekmeyi kişiselleştir
     .aria-label = Ayarlar
@@ -119,7 +122,6 @@ newtab-menu-show-privacy-info = Sponsorlarımız ve gizliliğiniz
 newtab-menu-about-fakespot = { -fakespot-brand-name } hakkında
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Raporla
-newtab-menu-report-content = Bu içeriği rapor et
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Engelle
@@ -565,3 +567,11 @@ newtab-toast-thanks-for-reporting =
 
 ## Strings for trending searches
 
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Google Gündeminde
+newtab-trending-searches-show-trending =
+    .title = Arama trendlerini göster
+newtab-trending-searches-hide-trending =
+    .title = Arama trendlerini gizle
+newtab-trending-searches-learn-more = Daha fazla bilgi al
+newtab-trending-searches-dismiss = Arama trendlerini gizle

@@ -8,6 +8,9 @@
 newtab-page-title = Νέα καρτέλα
 newtab-settings-button =
     .title = Προσαρμογή της σελίδας Νέας Καρτέλας
+newtab-customize-panel-icon-button =
+    .title = Προσαρμογή σελίδας
+newtab-customize-panel-icon-button-label = Προσαρμογή
 newtab-personalize-settings-icon-label =
     .title = Εξατομίκευση νέας καρτέλας
     .aria-label = Ρυθμίσεις
@@ -119,7 +122,6 @@ newtab-menu-show-privacy-info = Οι χορηγοί μας και το απόρ�
 newtab-menu-about-fakespot = Σχετικά με το { -fakespot-brand-name }
 # Report is a verb (i.e. report issue with the content).
 newtab-menu-report = Αναφορά
-newtab-menu-report-content = Αναφορά περιεχομένου
 # Context menu option to personalize New Tab recommended stories by blocking a section of stories,
 # e.g. "Sports". "Block" is a verb here.
 newtab-menu-section-block = Φραγή
@@ -316,6 +318,9 @@ newtab-custom-recent-toggle =
 newtab-custom-weather-toggle =
     .label = Καιρός
     .description = Σημερινή πρόγνωση με μια ματιά
+newtab-custom-trending-search-toggle =
+    .label = Δημοφιλείς αναζητήσεις
+    .description = Δημοφιλή και συνήθη θέματα αναζήτησης
 newtab-custom-close-button = Κλείσιμο
 newtab-custom-settings = Διαχείριση περισσότερων ρυθμίσεων
 
@@ -566,6 +571,8 @@ newtab-toast-thanks-for-reporting =
 
 ## Strings for trending searches
 
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Τάσεις Google
 newtab-trending-searches-show-trending =
     .title = Εμφάνιση δημοφιλών αναζητήσεων
 newtab-trending-searches-hide-trending =
