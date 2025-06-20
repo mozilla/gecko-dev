@@ -84,10 +84,10 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
   };
 
   enum Widget : uint8_t {
-    eCheckbox,   // CheckboxOrRadioParams
-    eRadio,      // CheckboxOrRadioParams
-    eButton,     // ButtonParams
-    eDropdown,   // DropdownParams
+    eCheckbox,            // CheckboxOrRadioParams
+    eRadio,               // CheckboxOrRadioParams
+    eButton,              // ButtonParams
+    eDropdown,            // DropdownParams
     eTextField,           // TextFieldParams
     eMultilineTextField,  // bool
   };
@@ -182,27 +182,27 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
 
   // HITheme drawing routines
   void DrawCheckboxOrRadio(CGContextRef cgContext, bool inCheckbox,
-                           const HIRect& inBoxRect,
+                           const NSRect& inBoxRect,
                            const CheckboxOrRadioParams& aParams);
-  void DrawTextField(CGContextRef cgContext, const HIRect& inBoxRect,
+  void DrawTextField(CGContextRef cgContext, const NSRect& inBoxRect,
                      const TextFieldParams& aParams);
-  void DrawPushButton(CGContextRef cgContext, const HIRect& inBoxRect,
+  void DrawPushButton(CGContextRef cgContext, const NSRect& inBoxRect,
                       ButtonType aButtonType, ControlParams aControlParams);
   void DrawSquareBezelPushButton(CGContextRef cgContext,
-                                 const HIRect& inBoxRect,
+                                 const NSRect& inBoxRect,
                                  ControlParams aControlParams);
-  void DrawHelpButton(CGContextRef cgContext, const HIRect& inBoxRect,
+  void DrawHelpButton(CGContextRef cgContext, const NSRect& inBoxRect,
                       ControlParams aControlParams);
-  void DrawDisclosureButton(CGContextRef cgContext, const HIRect& inBoxRect,
+  void DrawDisclosureButton(CGContextRef cgContext, const NSRect& inBoxRect,
                             ControlParams aControlParams,
                             NSControlStateValue aState);
-  void DrawHIThemeButton(CGContextRef cgContext, const HIRect& aRect,
+  void DrawHIThemeButton(CGContextRef cgContext, const NSRect& aRect,
                          ThemeButtonKind aKind, ThemeButtonValue aValue,
                          ThemeDrawState aState, ThemeButtonAdornment aAdornment,
                          const ControlParams& aParams);
-  void DrawButton(CGContextRef context, const HIRect& inBoxRect,
+  void DrawButton(CGContextRef context, const NSRect& inBoxRect,
                   const ButtonParams& aParams);
-  void DrawDropdown(CGContextRef context, const HIRect& inBoxRect,
+  void DrawDropdown(CGContextRef context, const NSRect& inBoxRect,
                     const DropdownParams& aParams);
   void DrawMultilineTextField(CGContextRef cgContext, const CGRect& inBoxRect,
                               bool aIsFocused);
