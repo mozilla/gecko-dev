@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 
 use crate::{
     hybrid::{
-        error::{BuildError, CacheError, StartError},
+        error::{BuildError, CacheError},
         id::{LazyStateID, LazyStateIDError},
         search,
     },
@@ -28,7 +28,7 @@ use crate::{
             Anchored, HalfMatch, Input, MatchError, MatchKind, PatternSet,
         },
         sparse_set::SparseSets,
-        start::{self, Start, StartByteMap},
+        start::{Start, StartByteMap},
     },
 };
 
@@ -1518,8 +1518,8 @@ impl DFA {
         Lazy::new(self, cache).cache_next_state(current, unit)
     }
 
-    /// Return the ID of the start state for this lazy DFA for the given
-    /// starting configuration.
+    /// Return the ID of the start state for this lazy DFA when executing a
+    /// forward search.
     ///
     /// Unlike typical DFA implementations, the start state for DFAs in this
     /// crate is dependent on a few different factors:
@@ -1527,122 +1527,85 @@ impl DFA {
     /// * The [`Anchored`] mode of the search. Unanchored, anchored and
     /// anchored searches for a specific [`PatternID`] all use different start
     /// states.
-    /// * Whether a "look-behind" byte exists. For example, the `^` anchor
-    /// matches if and only if there is no look-behind byte.
-    /// * The specific value of that look-behind byte. For example, a `(?m:^)`
-    /// assertion only matches when there is either no look-behind byte, or
-    /// when the look-behind byte is a line terminator.
-    ///
-    /// The [starting configuration](start::Config) provides the above
-    /// information.
-    ///
-    /// This routine can be used for either forward or reverse searches.
-    /// Although, as a convenience, if you have an [`Input`], then it
-    /// may be more succinct to use [`DFA::start_state_forward`] or
-    /// [`DFA::start_state_reverse`]. Note, for example, that the convenience
-    /// routines return a [`MatchError`] on failure where as this routine
-    /// returns a [`StartError`].
+    /// * The position at which the search begins, via [`Input::start`]. This
+    /// and the byte immediately preceding the start of the search (if one
+    /// exists) influence which look-behind assertions are true at the start
+    /// of the search. This in turn influences which start state is selected.
+    /// * Whether the search is a forward or reverse search. This routine can
+    /// only be used for forward searches.
     ///
     /// # Errors
     ///
-    /// This may return a [`StartError`] if the search needs to give up when
-    /// determining the start state (for example, if it sees a "quit" byte
-    /// or if the cache has become inefficient). This can also return an
-    /// error if the given configuration contains an unsupported [`Anchored`]
-    /// configuration.
-    #[cfg_attr(feature = "perf-inline", inline(always))]
-    pub fn start_state(
-        &self,
-        cache: &mut Cache,
-        config: &start::Config,
-    ) -> Result<LazyStateID, StartError> {
-        let lazy = LazyRef::new(self, cache);
-        let anchored = config.get_anchored();
-        let start = match config.get_look_behind() {
-            None => Start::Text,
-            Some(byte) => {
-                if !self.quitset.is_empty() && self.quitset.contains(byte) {
-                    return Err(StartError::quit(byte));
-                }
-                self.start_map.get(byte)
-            }
-        };
-        let start_id = lazy.get_cached_start_id(anchored, start)?;
-        if !start_id.is_unknown() {
-            return Ok(start_id);
-        }
-        Lazy::new(self, cache).cache_start_group(anchored, start)
-    }
-
-    /// Return the ID of the start state for this lazy DFA when executing a
-    /// forward search.
-    ///
-    /// This is a convenience routine for calling [`DFA::start_state`] that
-    /// converts the given [`Input`] to a [start configuration](start::Config).
-    /// Additionally, if an error occurs, it is converted from a [`StartError`]
-    /// to a [`MatchError`] using the offset information in the given
-    /// [`Input`].
-    ///
-    /// # Errors
-    ///
-    /// This may return a [`MatchError`] if the search needs to give up when
-    /// determining the start state (for example, if it sees a "quit" byte or
-    /// if the cache has become inefficient). This can also return an error if
-    /// the given `Input` contains an unsupported [`Anchored`] configuration.
+    /// This may return a [`MatchError`] (not a [`CacheError`]!) if the search
+    /// needs to give up when determining the start state (for example, if
+    /// it sees a "quit" byte or if the cache has been cleared too many
+    /// times). This can also return an error if the given `Input` contains an
+    /// unsupported [`Anchored`] configuration.
     #[cfg_attr(feature = "perf-inline", inline(always))]
     pub fn start_state_forward(
         &self,
         cache: &mut Cache,
         input: &Input<'_>,
     ) -> Result<LazyStateID, MatchError> {
-        let config = start::Config::from_input_forward(input);
-        self.start_state(cache, &config).map_err(|err| match err {
-            StartError::Cache { .. } => MatchError::gave_up(input.start()),
-            StartError::Quit { byte } => {
-                let offset = input
-                    .start()
-                    .checked_sub(1)
-                    .expect("no quit in start without look-behind");
-                MatchError::quit(byte, offset)
+        if !self.quitset.is_empty() && input.start() > 0 {
+            let offset = input.start() - 1;
+            let byte = input.haystack()[offset];
+            if self.quitset.contains(byte) {
+                return Err(MatchError::quit(byte, offset));
             }
-            StartError::UnsupportedAnchored { mode } => {
-                MatchError::unsupported_anchored(mode)
-            }
-        })
+        }
+        let start_type = self.start_map.fwd(input);
+        let start = LazyRef::new(self, cache)
+            .get_cached_start_id(input, start_type)?;
+        if !start.is_unknown() {
+            return Ok(start);
+        }
+        Lazy::new(self, cache).cache_start_group(input, start_type)
     }
 
     /// Return the ID of the start state for this lazy DFA when executing a
     /// reverse search.
     ///
-    /// This is a convenience routine for calling [`DFA::start_state`] that
-    /// converts the given [`Input`] to a [start configuration](start::Config).
-    /// Additionally, if an error occurs, it is converted from a [`StartError`]
-    /// to a [`MatchError`] using the offset information in the given
-    /// [`Input`].
+    /// Unlike typical DFA implementations, the start state for DFAs in this
+    /// crate is dependent on a few different factors:
+    ///
+    /// * The [`Anchored`] mode of the search. Unanchored, anchored and
+    /// anchored searches for a specific [`PatternID`] all use different start
+    /// states.
+    /// * The position at which the search begins, via [`Input::start`]. This
+    /// and the byte immediately preceding the start of the search (if one
+    /// exists) influence which look-behind assertions are true at the start
+    /// of the search. This in turn influences which start state is selected.
+    /// * Whether the search is a forward or reverse search. This routine can
+    /// only be used for reverse searches.
     ///
     /// # Errors
     ///
-    /// This may return a [`MatchError`] if the search needs to give up when
-    /// determining the start state (for example, if it sees a "quit" byte or
-    /// if the cache has become inefficient). This can also return an error if
-    /// the given `Input` contains an unsupported [`Anchored`] configuration.
+    /// This may return a [`MatchError`] (not a [`CacheError`]!) if the search
+    /// needs to give up when determining the start state (for example, if
+    /// it sees a "quit" byte or if the cache has been cleared too many
+    /// times). This can also return an error if the given `Input` contains an
+    /// unsupported [`Anchored`] configuration.
     #[cfg_attr(feature = "perf-inline", inline(always))]
     pub fn start_state_reverse(
         &self,
         cache: &mut Cache,
         input: &Input<'_>,
     ) -> Result<LazyStateID, MatchError> {
-        let config = start::Config::from_input_reverse(input);
-        self.start_state(cache, &config).map_err(|err| match err {
-            StartError::Cache { .. } => MatchError::gave_up(input.end()),
-            StartError::Quit { byte } => {
-                let offset = input.end();
-                MatchError::quit(byte, offset)
+        if !self.quitset.is_empty() && input.end() < input.haystack().len() {
+            let offset = input.end();
+            let byte = input.haystack()[offset];
+            if self.quitset.contains(byte) {
+                return Err(MatchError::quit(byte, offset));
             }
-            StartError::UnsupportedAnchored { mode } => {
-                MatchError::unsupported_anchored(mode)
-            }
-        })
+        }
+        let start_type = self.start_map.rev(input);
+        let start = LazyRef::new(self, cache)
+            .get_cached_start_id(input, start_type)?;
+        if !start.is_unknown() {
+            return Ok(start);
+        }
+        Lazy::new(self, cache).cache_start_group(input, start_type)
     }
 
     /// Returns the total number of patterns that match in this state.
@@ -2103,10 +2066,8 @@ impl<'i, 'c> Lazy<'i, 'c> {
     /// Here's an example that justifies 'inline(never)'
     ///
     /// ```ignore
-    /// regex-cli find match hybrid \
-    ///   --cache-capacity 100000000 \
-    ///   -p '\pL{100}'
-    ///   all-codepoints-utf8-100x
+    /// regex-cli find hybrid dfa \
+    ///   @all-codepoints-utf8-100x '\pL{100}' --cache-capacity 10000000
     /// ```
     ///
     /// Where 'all-codepoints-utf8-100x' is the UTF-8 encoding of every
@@ -2161,15 +2122,16 @@ impl<'i, 'c> Lazy<'i, 'c> {
     #[inline(never)]
     fn cache_start_group(
         &mut self,
-        anchored: Anchored,
+        input: &Input<'_>,
         start: Start,
-    ) -> Result<LazyStateID, StartError> {
-        let nfa_start_id = match anchored {
+    ) -> Result<LazyStateID, MatchError> {
+        let mode = input.get_anchored();
+        let nfa_start_id = match mode {
             Anchored::No => self.dfa.get_nfa().start_unanchored(),
             Anchored::Yes => self.dfa.get_nfa().start_anchored(),
             Anchored::Pattern(pid) => {
                 if !self.dfa.get_config().get_starts_for_each_pattern() {
-                    return Err(StartError::unsupported_anchored(anchored));
+                    return Err(MatchError::unsupported_anchored(mode));
                 }
                 match self.dfa.get_nfa().start_pattern(pid) {
                     None => return Ok(self.as_ref().dead_id()),
@@ -2180,8 +2142,8 @@ impl<'i, 'c> Lazy<'i, 'c> {
 
         let id = self
             .cache_start_one(nfa_start_id, start)
-            .map_err(StartError::cache)?;
-        self.set_start_state(anchored, start, id);
+            .map_err(|_| MatchError::gave_up(input.start()))?;
+        self.set_start_state(input, start, id);
         Ok(id)
     }
 
@@ -2612,13 +2574,13 @@ impl<'i, 'c> Lazy<'i, 'c> {
     /// 'starts_for_each_pattern' is not enabled.
     fn set_start_state(
         &mut self,
-        anchored: Anchored,
+        input: &Input<'_>,
         start: Start,
         id: LazyStateID,
     ) {
         assert!(self.as_ref().is_valid(id));
         let start_index = start.as_usize();
-        let index = match anchored {
+        let index = match input.get_anchored() {
             Anchored::No => start_index,
             Anchored::Yes => Start::len() + start_index,
             Anchored::Pattern(pid) => {
@@ -2680,16 +2642,17 @@ impl<'i, 'c> LazyRef<'i, 'c> {
     #[cfg_attr(feature = "perf-inline", inline(always))]
     fn get_cached_start_id(
         &self,
-        anchored: Anchored,
+        input: &Input<'_>,
         start: Start,
-    ) -> Result<LazyStateID, StartError> {
+    ) -> Result<LazyStateID, MatchError> {
         let start_index = start.as_usize();
-        let index = match anchored {
+        let mode = input.get_anchored();
+        let index = match mode {
             Anchored::No => start_index,
             Anchored::Yes => Start::len() + start_index,
             Anchored::Pattern(pid) => {
                 if !self.dfa.get_config().get_starts_for_each_pattern() {
-                    return Err(StartError::unsupported_anchored(anchored));
+                    return Err(MatchError::unsupported_anchored(mode));
                 }
                 if pid.as_usize() >= self.dfa.pattern_len() {
                     return Ok(self.dead_id());
@@ -3215,12 +3178,12 @@ impl Config {
     /// be quit bytes _only_ when a Unicode word boundary is present in the
     /// pattern.
     ///
-    /// When enabling this option, callers _must_ be prepared to
-    /// handle a [`MatchError`] error during search. When using a
-    /// [`Regex`](crate::hybrid::regex::Regex), this corresponds to using the
-    /// `try_` suite of methods. Alternatively, if callers can guarantee that
-    /// their input is ASCII only, then a [`MatchError::quit`] error will never
-    /// be returned while searching.
+    /// When enabling this option, callers _must_ be prepared to handle
+    /// a [`MatchError`](crate::MatchError) error during search.
+    /// When using a [`Regex`](crate::hybrid::regex::Regex), this
+    /// corresponds to using the `try_` suite of methods. Alternatively,
+    /// if callers can guarantee that their input is ASCII only, then a
+    /// [`MatchError::quit`] error will never be returned while searching.
     ///
     /// This is disabled by default.
     ///
@@ -3306,8 +3269,8 @@ impl Config {
     /// (The advantage being that non-ASCII quit bytes will only be added if a
     /// Unicode word boundary is in the pattern.)
     ///
-    /// When enabling this option, callers _must_ be prepared to
-    /// handle a [`MatchError`] error during search. When using a
+    /// When enabling this option, callers _must_ be prepared to handle a
+    /// [`MatchError`](crate::MatchError) error during search. When using a
     /// [`Regex`](crate::hybrid::regex::Regex), this corresponds to using the
     /// `try_` suite of methods.
     ///
@@ -3832,8 +3795,8 @@ impl Config {
             //
             // Test case:
             //
-            //   regex-cli find match hybrid --unicode-word-boundary \
-            //     -p '^#' -p '\b10\.55\.182\.100\b' -y @conn.json.1000x.log
+            //   regex-cli find hybrid regex -w @conn.json.1000x.log \
+            //     '^#' '\b10\.55\.182\.100\b'
             if !quit.is_empty() {
                 set.add_set(&quit);
             }

@@ -264,7 +264,7 @@ impl<'a> HeapVisitor<'a> {
         visitor: &mut V,
     ) -> Result<Option<Frame<'a>>, V::Err> {
         Ok(match *ast {
-            Ast::ClassBracketed(ref x) => {
+            Ast::Class(ast::Class::Bracketed(ref x)) => {
                 self.visit_class(x, visitor)?;
                 None
             }

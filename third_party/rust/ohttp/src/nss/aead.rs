@@ -177,8 +177,8 @@ impl Aead {
                 c_int_len(aad.len()),
                 pt.as_mut_ptr(),
                 &mut pt_len,
-                c_int_len(pt.len()),                     // signed :(
-                ct.as_ptr().add(pt_expected).cast_mut(), // const cast :(
+                c_int_len(pt.len()),                    // signed :(
+                ct.as_ptr().add(pt_expected) as *mut _, // const cast :(
                 c_int_len(TAG_LEN),
                 ct.as_ptr(),
                 c_int_len(pt_expected),

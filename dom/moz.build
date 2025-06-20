@@ -81,7 +81,6 @@ DIRS += [
     "smil",
     "streams",
     "url",
-    "urlpattern",
     "webauthn",
     "webidl",
     "webshare",

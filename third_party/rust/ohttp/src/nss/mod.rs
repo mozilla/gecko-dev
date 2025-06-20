@@ -14,7 +14,8 @@ pub mod hpke;
 pub use self::p11::{random, PrivateKey, PublicKey};
 use err::secstatus_to_res;
 pub use err::Error;
-use std::{ptr::null, sync::OnceLock};
+use lazy_static::lazy_static;
+use std::ptr::null;
 
 #[allow(clippy::pedantic, non_upper_case_globals, clippy::upper_case_acronyms)]
 mod nss_init {
@@ -44,7 +45,17 @@ impl Drop for NssLoaded {
     }
 }
 
-static INITIALIZED: OnceLock<NssLoaded> = OnceLock::new();
+lazy_static! {
+    static ref INITIALIZED: NssLoaded = {
+        if already_initialized() {
+            return NssLoaded::External;
+        }
+
+        secstatus_to_res(unsafe { nss_init::NSS_NoDB_Init(null()) }).expect("NSS_NoDB_Init failed");
+
+        NssLoaded::NoDb
+    };
+}
 
 fn already_initialized() -> bool {
     unsafe { nss_init::NSS_IsInitialized() != 0 }
@@ -52,13 +63,5 @@ fn already_initialized() -> bool {
 
 /// Initialize NSS.  This only executes the initialization routines once.
 pub fn init() {
-    INITIALIZED.get_or_init(|| {
-        if already_initialized() {
-            NssLoaded::External
-        } else {
-            secstatus_to_res(unsafe { nss_init::NSS_NoDB_Init(null()) })
-                .expect("NSS_NoDB_Init failed");
-            NssLoaded::NoDb
-        }
-    });
+    lazy_static::initialize(&INITIALIZED);
 }

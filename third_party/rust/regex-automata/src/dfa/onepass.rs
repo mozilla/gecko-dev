@@ -521,7 +521,7 @@ struct InternalBuilder<'a> {
 
 impl<'a> InternalBuilder<'a> {
     /// Create a new builder with an initial empty DFA.
-    fn new(config: Config, nfa: &'a NFA) -> InternalBuilder<'a> {
+    fn new(config: Config, nfa: &'a NFA) -> InternalBuilder {
         let classes = if !config.get_byte_classes() {
             // A one-pass DFA will always use the equivalence class map, but
             // enabling this option is useful for debugging. Namely, this will
@@ -2581,11 +2581,10 @@ impl Cache {
 
 /// Represents a single transition in a one-pass DFA.
 ///
-/// The high 21 bits corresponds to the state ID. The bit following corresponds
-/// to the special "match wins" flag. The remaining low 42 bits corresponds to
-/// the transition epsilons, which contains the slots that should be saved when
-/// this transition is followed and the conditional epsilon transitions that
-/// must be satisfied in order to follow this transition.
+/// The high 24 bits corresponds to the state ID. The low 48 bits corresponds
+/// to the transition epsilons, which contains the slots that should be saved
+/// when this transition is followed and the conditional epsilon transitions
+/// that must be satisfied in order to follow this transition.
 #[derive(Clone, Copy, Eq, PartialEq)]
 struct Transition(u64);
 
@@ -2742,7 +2741,7 @@ impl PatternEpsilons {
     fn set_epsilons(self, epsilons: Epsilons) -> PatternEpsilons {
         PatternEpsilons(
             (self.0 & PatternEpsilons::PATTERN_ID_MASK)
-                | (u64::from(epsilons.0) & PatternEpsilons::EPSILONS_MASK),
+                | u64::from(epsilons.0),
         )
     }
 }
@@ -2815,15 +2814,12 @@ impl Epsilons {
 
     /// Return the set of look-around assertions in these epsilon transitions.
     fn looks(self) -> LookSet {
-        LookSet { bits: (self.0 & Epsilons::LOOK_MASK).low_u32() }
+        LookSet { bits: (self.0 & Epsilons::LOOK_MASK).low_u16() }
     }
 
     /// Set the look-around assertions on these epsilon transitions.
     fn set_looks(self, look_set: LookSet) -> Epsilons {
-        Epsilons(
-            (self.0 & Epsilons::SLOT_MASK)
-                | (u64::from(look_set.bits) & Epsilons::LOOK_MASK),
-        )
+        Epsilons((self.0 & Epsilons::SLOT_MASK) | u64::from(look_set.bits))
     }
 }
 

@@ -4,16 +4,15 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use super::err::{secstatus_to_res, Error};
+use crate::err::Res;
 use std::{
     convert::TryFrom,
     marker::PhantomData,
     mem,
     os::raw::{c_int, c_uint},
-    ptr::{self, null_mut},
+    ptr::null_mut,
 };
-
-use super::err::{secstatus_to_res, Error};
-use crate::err::Res;
 
 #[allow(
     clippy::pedantic,
@@ -54,6 +53,7 @@ macro_rules! scoped_ptr {
 
         impl std::ops::Deref for $scoped {
             type Target = *mut $target;
+            #[must_use]
             fn deref(&self) -> &*mut $target {
                 &self.ptr
             }
@@ -106,6 +106,7 @@ impl PrivateKey {
 unsafe impl Send for PrivateKey {}
 
 impl Clone for PrivateKey {
+    #[must_use]
     fn clone(&self) -> Self {
         let ptr = unsafe { sys::SECKEY_CopyPrivateKey(self.ptr) };
         assert!(!ptr.is_null());
@@ -115,12 +116,11 @@ impl Clone for PrivateKey {
 
 impl std::fmt::Debug for PrivateKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if cfg!(feature = "unsafe-print-secrets") {
-            if let Ok(b) = self.key_data() {
-                return write!(f, "PrivateKey {}", hex::encode(b));
-            }
+        if let Ok(b) = self.key_data() {
+            write!(f, "PrivateKey {}", hex::encode(b))
+        } else {
+            write!(f, "Opaque PrivateKey")
         }
-        write!(f, "Opaque PrivateKey")
     }
 }
 
@@ -147,6 +147,7 @@ impl PublicKey {
 unsafe impl Send for PublicKey {}
 
 impl Clone for PublicKey {
+    #[must_use]
     fn clone(&self) -> Self {
         let ptr = unsafe { sys::SECKEY_CopyPublicKey(self.ptr) };
         assert!(!ptr.is_null());
@@ -194,6 +195,7 @@ impl SymKey {
 }
 
 impl Clone for SymKey {
+    #[must_use]
     fn clone(&self) -> Self {
         let ptr = unsafe { PK11_ReferenceSymKey(self.ptr) };
         assert!(!ptr.is_null());
@@ -203,12 +205,11 @@ impl Clone for SymKey {
 
 impl std::fmt::Debug for SymKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if cfg!(feature = "unsafe-print-secrets") {
-            if let Ok(b) = self.key_data() {
-                return write!(f, "SymKey {}", hex::encode(b));
-            }
+        if let Ok(b) = self.key_data() {
+            write!(f, "SymKey {}", hex::encode(b))
+        } else {
+            write!(f, "Opaque SymKey")
         }
-        write!(f, "Opaque SymKey")
     }
 }
 
@@ -234,7 +235,7 @@ impl<'a, T: Sized + 'a> ParamItem<'a, T> {
     pub fn new(v: &'a mut T) -> Self {
         let item = SECItem {
             type_: SECItemType::siBuffer,
-            data: ptr::from_mut(v).cast::<u8>(),
+            data: (v as *mut T).cast::<u8>(),
             len: c_uint::try_from(mem::size_of::<T>()).unwrap(),
         };
         Self {
@@ -260,7 +261,7 @@ impl Item {
     pub(crate) fn wrap(buf: &[u8]) -> SECItem {
         SECItem {
             type_: SECItemType::siBuffer,
-            data: buf.as_ptr().cast_mut(), // const cast :(
+            data: buf.as_ptr() as *mut u8,
             len: c_uint::try_from(buf.len()).unwrap(),
         }
     }

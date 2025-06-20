@@ -679,7 +679,6 @@ pub(crate) mod string {
         /// # Example
         ///
         /// ```
-        /// # if !cfg!(target_pointer_width = "64") { return; } // see #1041
         /// use regex::RegexBuilder;
         ///
         /// // It may surprise you how big some seemingly small patterns can
@@ -1247,7 +1246,6 @@ pub(crate) mod string {
         /// # Example
         ///
         /// ```
-        /// # if !cfg!(target_pointer_width = "64") { return; } // see #1041
         /// use regex::RegexSetBuilder;
         ///
         /// // It may surprise you how big some seemingly small patterns can
@@ -1858,7 +1856,6 @@ pub(crate) mod bytes {
         /// # Example
         ///
         /// ```
-        /// # if !cfg!(target_pointer_width = "64") { return; } // see #1041
         /// use regex::bytes::RegexBuilder;
         ///
         /// // It may surprise you how big some seemingly small patterns can
@@ -2431,7 +2428,6 @@ pub(crate) mod bytes {
         /// # Example
         ///
         /// ```
-        /// # if !cfg!(target_pointer_width = "64") { return; } // see #1041
         /// use regex::bytes::RegexSetBuilder;
         ///
         /// // It may surprise you how big some seemingly small patterns can

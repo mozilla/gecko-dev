@@ -11,19 +11,13 @@
 
 [package]
 edition = "2021"
-rust-version = "1.65"
 name = "regex-automata"
-version = "0.4.9"
+version = "0.3.7"
 authors = [
     "The Rust Project Developers",
     "Andrew Gallant <jamslam@gmail.com>",
 ]
-build = false
-autolib = false
-autobins = false
 autoexamples = false
-autotests = false
-autobenches = false
 description = "Automata construction and matching using regular expressions."
 documentation = "https://docs.rs/regex-automata"
 readme = "README.md"
@@ -39,8 +33,6 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-lang/regex/tree/master/regex-automata"
 
 [lib]
-name = "regex_automata"
-path = "src/lib.rs"
 bench = false
 
 [[test]]
@@ -57,12 +49,12 @@ version = "0.4.14"
 optional = true
 
 [dependencies.memchr]
-version = "2.6.0"
+version = "2.5.0"
 optional = true
 default-features = false
 
 [dependencies.regex-syntax]
-version = "0.8.5"
+version = "0.7.4"
 optional = true
 default-features = false
 
@@ -128,7 +120,6 @@ internal-instrument-pikevm = [
 logging = [
     "dep:log",
     "aho-corasick?/logging",
-    "memchr?/logging",
 ]
 meta = [
     "syntax",
