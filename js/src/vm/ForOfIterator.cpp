@@ -5,6 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "js/ForOfIterator.h"
+
+#include "js/Exception.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "vm/Interpreter.h"
 #include "vm/Iteration.h"
@@ -145,23 +147,19 @@ bool ForOfIterator::next(MutableHandleValue vp, bool* done) {
 void ForOfIterator::closeThrow() {
   MOZ_ASSERT(iterator);
 
-  // Store the original exception and its stack trace.
-  RootedValue completionException(cx_);
-  Rooted<SavedFrame*> completionExceptionStack(cx_);
-  if (cx_->isExceptionPending()) {
-    if (!GetAndClearExceptionAndStack(cx_, &completionException,
-                                      &completionExceptionStack)) {
-      completionException.setUndefined();
-      completionExceptionStack = nullptr;
-    }
+  // Don't handle uncatchable exceptions to match `for-of` bytecode behavior,
+  // which also doesn't run IteratorClose when an interrupt was requested.
+  if (!cx_->isExceptionPending()) {
+    return;
   }
+
+  // Save the current exception state. The destructor restores the saved
+  // exception state, unless there's a new pending exception.
+  JS::AutoSaveExceptionState savedExc(cx_);
 
   // Perform IteratorClose on the iterator.
   MOZ_ALWAYS_TRUE(CloseIterOperation(cx_, iterator, CompletionKind::Throw));
 
   // CloseIterOperation clears any pending exception.
   MOZ_ASSERT(!cx_->isExceptionPending());
-
-  // Restore the original exception and its stack trace.
-  cx_->setPendingException(completionException, completionExceptionStack);
 }
