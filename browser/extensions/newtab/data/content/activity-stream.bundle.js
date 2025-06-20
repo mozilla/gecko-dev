@@ -4908,7 +4908,6 @@ const AdBanner = ({
 
 
 
-
 const PREF_TRENDING_VARIANT = "trendingSearch.variant";
 function TrendingSearches() {
   const [showContextMenu, setShowContextMenu] = (0,external_React_namespaceObject.useState)(false);
@@ -4998,7 +4997,7 @@ function TrendingSearches() {
   if (!suggestions?.length) {
     return null;
   } else if (variant === "a" || variant === "c") {
-    return /*#__PURE__*/React.createElement("section", {
+    return /*#__PURE__*/external_React_default().createElement("section", {
       ref: el => {
         ref.current = [el];
       }
@@ -5006,29 +5005,29 @@ function TrendingSearches() {
       // appear on hover
       ,
       className: `trending-searches-pill-wrapper ${variant === "c" ? "hover-only" : ""}`
-    }, /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "trending-searches-title-wrapper"
-    }, /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/external_React_default().createElement("span", {
       className: "trending-searches-icon icon icon-arrow-trending"
-    }), /*#__PURE__*/React.createElement("h2", {
+    }), /*#__PURE__*/external_React_default().createElement("h2", {
       className: "trending-searches-title",
       "data-l10n-id": "newtab-trending-searches-trending-on-google"
-    }), /*#__PURE__*/React.createElement("div", {
+    }), /*#__PURE__*/external_React_default().createElement("div", {
       className: "close-open-trending-searches"
-    }, /*#__PURE__*/React.createElement("moz-button", {
+    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
       iconsrc: `chrome://global/skin/icons/arrow-${collapsed ? "down" : "up"}.svg`,
       onClick: onArrowClick,
       className: `icon icon-arrowhead-up`,
       type: "icon ghost",
       "data-l10n-id": `newtab-trending-searches-${collapsed ? "hide" : "show"}-trending`
-    }))), !collapsed && /*#__PURE__*/React.createElement("ul", {
+    }))), !collapsed && /*#__PURE__*/external_React_default().createElement("ul", {
       className: "trending-searches-list"
     }, suggestions.map((result, index) => {
-      return /*#__PURE__*/React.createElement("li", {
+      return /*#__PURE__*/external_React_default().createElement("li", {
         key: result.suggestion,
         className: "trending-search-item",
         onKeyDown: e => handleResultKeyDown(e, index)
-      }, /*#__PURE__*/React.createElement(SafeAnchor, {
+      }, /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
         url: result.searchUrl,
         onLinkClick: handleLinkOpen,
         title: result.suggestion,
@@ -5037,27 +5036,27 @@ function TrendingSearches() {
       }, result.lowerCaseSuggestion));
     })));
   } else if (variant === "b") {
-    return /*#__PURE__*/React.createElement("div", {
+    return /*#__PURE__*/external_React_default().createElement("div", {
       ref: el => {
         ref.current = [el];
       },
       className: "trending-searches-list-view"
-    }, /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "trending-searches-list-view-header"
-    }, /*#__PURE__*/React.createElement("h3", {
+    }, /*#__PURE__*/external_React_default().createElement("h3", {
       "data-l10n-id": "newtab-trending-searches-trending-on-google"
-    }), /*#__PURE__*/React.createElement("div", {
+    }), /*#__PURE__*/external_React_default().createElement("div", {
       className: "trending-searches-context-menu-wrapper"
-    }, /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/external_React_default().createElement("div", {
       className: `trending-searches-context-menu ${showContextMenu ? "context-menu-open" : ""}`
-    }, /*#__PURE__*/React.createElement("moz-button", {
+    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
       type: "icon ghost",
       size: "default",
       "data-l10n-id": "newtab-menu-section-tooltip",
       iconsrc: "chrome://global/skin/icons/more.svg",
       onClick: onContextMenuClick,
       onKeyDown: onContextMenuKeyDown
-    }), showContextMenu && /*#__PURE__*/React.createElement(LinkMenu, {
+    }), showContextMenu && /*#__PURE__*/external_React_default().createElement(LinkMenu, {
       onUpdate: onUpdate,
       dispatch: dispatch,
       keyboardAccess: isKeyboardAccess,
@@ -5067,28 +5066,28 @@ function TrendingSearches() {
         url: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/trending-searches-new-tab",
         variant
       }
-    })))), /*#__PURE__*/React.createElement("ul", {
+    })))), /*#__PURE__*/external_React_default().createElement("ul", {
       className: "trending-searches-list-items"
     }, suggestions.slice(0, 6).map((result, index) => {
-      return /*#__PURE__*/React.createElement("li", {
+      return /*#__PURE__*/external_React_default().createElement("li", {
         key: result.suggestion,
         className: "trending-searches-list-item",
         onKeyDown: e => handleResultKeyDown(e, index)
-      }, /*#__PURE__*/React.createElement(SafeAnchor, {
+      }, /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
         url: result.searchUrl,
         onLinkClick: handleLinkOpen,
         title: result.suggestion,
         setRef: item => resultRef.current[index] = item,
         tabIndex: index === 0 ? 0 : -1
-      }, result.icon ? /*#__PURE__*/React.createElement("div", {
+      }, result.icon ? /*#__PURE__*/external_React_default().createElement("div", {
         className: "trending-icon-wrapper"
-      }, /*#__PURE__*/React.createElement("img", {
+      }, /*#__PURE__*/external_React_default().createElement("img", {
         src: result.icon,
         alt: "",
         className: "trending-icon"
-      }), /*#__PURE__*/React.createElement("div", {
+      }), /*#__PURE__*/external_React_default().createElement("div", {
         className: "trending-info-wrapper"
-      }, result.lowerCaseSuggestion, /*#__PURE__*/React.createElement("small", null, result.description))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
+      }, result.lowerCaseSuggestion, /*#__PURE__*/external_React_default().createElement("small", null, result.description))) : /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("span", {
         className: "trending-searches-icon icon icon-arrow-trending"
       }), result.lowerCaseSuggestion)));
     })));
@@ -5511,7 +5510,12 @@ class _CardGrid extends (external_React_default()).PureComponent {
       }
     }
     if (trendingEnabled && trendingVariant === "b") {
-      cards.splice(1, 1, /*#__PURE__*/external_React_default().createElement(TrendingSearches, null));
+      const firstSpocPosition = this.props.spocPositions[0]?.index;
+      // double check that a spoc/mrec is actually in the index it should be in
+      const format = cards[firstSpocPosition]?.props?.format;
+      const isSpoc = format === "spoc" || format === "rectangle";
+      // if the spoc is not in its position, place TrendingSearches in the 3rd position
+      cards.splice(isSpoc ? firstSpocPosition + 1 : 2, 1, /*#__PURE__*/external_React_default().createElement(TrendingSearches, null));
     }
 
     // if a banner ad is enabled and we have any available, place them in the grid
@@ -12052,7 +12056,8 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
             editorsPicksHeader: component.properties.editorsPicksHeader,
             recentSavesEnabled: this.props.DiscoveryStream.recentSavesEnabled,
             hideDescriptions: this.props.DiscoveryStream.hideDescriptions,
-            firstVisibleTimestamp: this.props.firstVisibleTimestamp
+            firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+            spocPositions: component.spocs?.positions
           });
         }
       case "HorizontalRule":

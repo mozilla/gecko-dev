@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-import { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { SafeAnchor } from "../SafeAnchor/SafeAnchor";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
@@ -108,7 +107,6 @@ function TrendingSearches() {
   }, [dispatch, variant]);
 
   const ref = useIntersectionObserver(handleIntersection);
-
   if (!suggestions?.length) {
     return null;
   } else if (variant === "a" || variant === "c") {

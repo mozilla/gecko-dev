@@ -200,6 +200,78 @@ describe("<CardGrid>", () => {
 
     assert.ok(wrapper.find(".ad-banner-wrapper").exists());
   });
+
+  it("should render TrendingSearch if enabled", () => {
+    const commonProps = {
+      spocPositions: [{ index: 1 }, { index: 5 }, { index: 7 }],
+      items: 12,
+      data: {
+        recommendations: [
+          {},
+          { format: "spoc" },
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+        ],
+      },
+      Prefs: {
+        ...INITIAL_STATE.Prefs,
+        values: {
+          ...INITIAL_STATE.Prefs.values,
+          "trendingSearch.enabled": true,
+          "system.trendingSearch.enabled": true,
+          "trendingSearch.variant": "b",
+          "trendingSearch.defaultSearchEngine": "Google",
+        },
+      },
+      DiscoveryStream: INITIAL_STATE.DiscoveryStream,
+    };
+
+    wrapper = mount(
+      <WrapWithProvider
+        state={{
+          ...INITIAL_STATE,
+          Prefs: {
+            ...INITIAL_STATE.Prefs,
+            values: {
+              ...INITIAL_STATE.Prefs.values,
+              "trendingSearch.variant": "b",
+            },
+          },
+          TrendingSearch: {
+            suggestions: [
+              {
+                suggestion: "foo",
+                searchUrl: "foo",
+                lowerCaseSuggestion: "foo",
+              },
+              {
+                suggestion: "bar",
+                searchUrl: "bar",
+                lowerCaseSuggestion: "foo",
+              },
+            ],
+          },
+        }}
+      >
+        <CardGrid {...commonProps} />
+      </WrapWithProvider>
+    );
+
+    assert.ok(wrapper.find(".trending-searches-list-view").exists());
+    const grid = wrapper.find(".ds-card-grid").first();
+    // assert that the spoc has been placed in the correct position
+    assert.equal(grid.childAt(1).prop("format"), "spoc");
+    // confrim that the next child is the trending search widget
+    assert.ok(grid.childAt(2).find(".trending-searches-list-view").exists());
+  });
 });
 
 // Build IntersectionObserver class with the arg `entries` for the intersect callback.

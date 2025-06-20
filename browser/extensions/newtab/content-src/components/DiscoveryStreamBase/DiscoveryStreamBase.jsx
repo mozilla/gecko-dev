@@ -221,6 +221,7 @@ export class _DiscoveryStreamBase extends React.PureComponent {
             recentSavesEnabled={this.props.DiscoveryStream.recentSavesEnabled}
             hideDescriptions={this.props.DiscoveryStream.hideDescriptions}
             firstVisibleTimestamp={this.props.firstVisibleTimestamp}
+            spocPositions={component.spocs?.positions}
           />
         );
       }

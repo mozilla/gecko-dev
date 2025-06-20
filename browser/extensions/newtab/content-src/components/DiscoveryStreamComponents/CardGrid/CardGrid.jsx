@@ -492,9 +492,13 @@ export class _CardGrid extends React.PureComponent {
         );
       }
     }
-
     if (trendingEnabled && trendingVariant === "b") {
-      cards.splice(1, 1, <TrendingSearches />);
+      const firstSpocPosition = this.props.spocPositions[0]?.index;
+      // double check that a spoc/mrec is actually in the index it should be in
+      const format = cards[firstSpocPosition]?.props?.format;
+      const isSpoc = format === "spoc" || format === "rectangle";
+      // if the spoc is not in its position, place TrendingSearches in the 3rd position
+      cards.splice(isSpoc ? firstSpocPosition + 1 : 2, 1, <TrendingSearches />);
     }
 
     // if a banner ad is enabled and we have any available, place them in the grid
