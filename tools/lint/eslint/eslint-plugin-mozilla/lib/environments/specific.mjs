@@ -9,23 +9,23 @@
 
 export default {
   globals: {
-    Cc: false,
-    ChromeUtils: false,
-    Ci: false,
-    Components: false,
-    Cr: false,
-    Cu: false,
-    Debugger: false,
-    InstallTrigger: false,
+    Cc: "readonly",
+    ChromeUtils: "readonly",
+    Ci: "readonly",
+    Components: "readonly",
+    Cr: "readonly",
+    Cu: "readonly",
+    Debugger: "readonly",
+    InstallTrigger: "readonly",
     // https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/InternalError
-    InternalError: true,
+    InternalError: "writeable",
     // https://github.com/mozilla/explainers/MessagingLayerSecurity.md
-    MLS: false,
-    Services: false,
+    MLS: "readonly",
+    Services: "readonly",
     // https://developer.mozilla.org/docs/Web/API/Window/dump
-    dump: true,
-    openDialog: false,
+    dump: "writeable",
+    openDialog: "readonly",
     // https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/uneval
-    uneval: false,
+    uneval: "readonly",
   },
 };

@@ -13,16 +13,16 @@ export default {
   // All globals made available in the test environment.
   globals: {
     // SpecialPowers is injected into the window object via SimpleTest.js
-    SpecialPowers: false,
-    afterEach: false,
-    beforeEach: false,
-    describe: false,
-    extractJarToTmp: false,
-    getChromeDir: false,
-    getJar: false,
-    getResolvedURI: false,
-    getRootDirectory: false,
-    it: false,
+    SpecialPowers: "readonly",
+    afterEach: "readonly",
+    beforeEach: "readonly",
+    describe: "readonly",
+    extractJarToTmp: "readonly",
+    getChromeDir: "readonly",
+    getJar: "readonly",
+    getResolvedURI: "readonly",
+    getRootDirectory: "readonly",
+    it: "readonly",
   },
 
   name: "mozilla/chrome-test",

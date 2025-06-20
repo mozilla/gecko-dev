@@ -11,26 +11,26 @@ export default {
     // dom/chrome-webidl/MessageManager.webidl
 
     // MessageManagerGlobal
-    dump: false,
-    atob: false,
-    btoa: false,
+    dump: "readonly",
+    atob: "readonly",
+    btoa: "readonly",
 
     // MessageListenerManagerMixin
-    addMessageListener: false,
-    removeMessageListener: false,
-    addWeakMessageListener: false,
-    removeWeakMessageListener: false,
+    addMessageListener: "readonly",
+    removeMessageListener: "readonly",
+    addWeakMessageListener: "readonly",
+    removeWeakMessageListener: "readonly",
 
     // MessageSenderMixin
-    sendAsyncMessage: false,
-    processMessageManager: false,
-    remoteType: false,
+    sendAsyncMessage: "readonly",
+    processMessageManager: "readonly",
+    remoteType: "readonly",
 
     // SyncMessageSenderMixin
-    sendSyncMessage: false,
+    sendSyncMessage: "readonly",
 
     // ContentProcessMessageManager
-    initialProcessData: false,
-    sharedData: false,
+    initialProcessData: "readonly",
+    sharedData: "readonly",
   },
 };

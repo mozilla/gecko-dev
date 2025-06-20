@@ -12,11 +12,11 @@ export default {
   globals: {
     // testing/specialpowers/content/SpecialPowersParent.sys.mjs
     // SPLoadChromeScript block
-    createWindowlessBrowser: false,
-    sendAsyncMessage: false,
-    addMessageListener: false,
-    removeMessageListener: false,
-    actorParent: false,
+    createWindowlessBrowser: "readonly",
+    sendAsyncMessage: "readonly",
+    addMessageListener: "readonly",
+    removeMessageListener: "readonly",
+    actorParent: "readonly",
 
     ...specialPowersSandboxGlobals.globals,
   },

@@ -9,37 +9,37 @@
 export default {
   globals: {
     // wantComponents defaults to true,
-    Components: false,
-    Ci: false,
-    Cr: false,
-    Cc: false,
-    Cu: false,
-    Services: false,
+    Components: "readonly",
+    Ci: "readonly",
+    Cr: "readonly",
+    Cc: "readonly",
+    Cu: "readonly",
+    Services: "readonly",
 
     // testing/specialpowers/content/SpecialPowersSandbox.sys.mjs
 
     // SANDBOX_GLOBALS
-    Blob: false,
-    ChromeUtils: false,
-    FileReader: false,
-    TextDecoder: false,
-    TextEncoder: false,
-    URL: false,
+    Blob: "readonly",
+    ChromeUtils: "readonly",
+    FileReader: "readonly",
+    TextDecoder: "readonly",
+    TextEncoder: "readonly",
+    URL: "readonly",
 
     // EXTRA_IMPORTS
-    EventUtils: false,
+    EventUtils: "readonly",
 
     // SpecialPowersSandbox constructor
-    assert: false,
-    Assert: false,
-    BrowsingContext: false,
-    InspectorCSSParser: false,
-    InspectorUtils: false,
-    ok: false,
-    is: false,
-    isnot: false,
-    todo: false,
-    todo_is: false,
-    info: false,
+    assert: "readonly",
+    Assert: "readonly",
+    BrowsingContext: "readonly",
+    InspectorCSSParser: "readonly",
+    InspectorUtils: "readonly",
+    ok: "readonly",
+    is: "readonly",
+    isnot: "readonly",
+    todo: "readonly",
+    todo_is: "readonly",
+    info: "readonly",
   },
 };

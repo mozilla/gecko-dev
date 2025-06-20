@@ -12,7 +12,7 @@ export default {
   // All globals made available in the test environment.
   globals: {
     // SpecialPowers is injected into the window object via SimpleTest.js
-    SpecialPowers: false,
+    SpecialPowers: "readonly",
   },
 
   name: "mozilla/mochitest-test",
