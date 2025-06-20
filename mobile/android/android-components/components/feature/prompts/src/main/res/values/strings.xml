@@ -130,7 +130,7 @@
 
     <!-- Strings show in a dialog that appear when user confirm folder upload -->
     <string name="mozac_feature_prompt_folder_upload_confirm_title">Upload files?</string>
-    <!-- Prompt message displayed when user selects a specific folder. %1%s is a folder / directory name. -->
+    <!-- Prompt message displayed when user selects a specific folder. %1$s is a folder / directory name. -->
     <string name="mozac_feature_prompt_folder_upload_confirm_message">Make sure you trust this site before you upload from “%1$s”.</string>
     <!-- Pressing this will dismiss the dialog and allow to upload folder -->
     <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">Upload</string>
