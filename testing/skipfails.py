@@ -161,6 +161,7 @@ class Skipfails:
         turbo=False,
         implicit_vars=False,
         new_version=None,
+        task_id=None,
     ):
         self.command_context = command_context
         if self.command_context is not None:
@@ -203,6 +204,7 @@ class Skipfails:
         self._subtest_rx = None
         self.lmp = None
         self.failure_types = None
+        self.task_id: Optional[str] = task_id
         self.failed_platforms: dict[str, FailedPlatform] = {}
         self.platform_permutations: dict[
             str,  # Manifest
@@ -299,6 +301,8 @@ class Skipfails:
             self.failure_types = None  # do NOT cache failure_types
         else:
             tasks = self.get_tasks(revision, repo)
+            if len(tasks) > 0 and self.task_id is not None:
+                tasks = [t for t in tasks if t.id == self.task_id]
             self.failure_types = {}  # cache failure_types
         if use_failures is not None:
             failures = self.read_failures(use_failures)
@@ -749,6 +753,8 @@ class Skipfails:
                                 primary = False
                             else:
                                 classification = Classification.SECONDARY
+                        elif self.task_id is not None:
+                            classification = Classification.DISABLE_RECOMMENDED
                         task_path[CC] = classification
                     if classification not in task_label[SUM_BY_LABEL]:
                         task_label[SUM_BY_LABEL][classification] = 0

@@ -1283,6 +1283,12 @@ def manifest(_command_context):
     dest="new_version",
     help="New version to use for annotations",
 )
+@CommandArgument(
+    "-i",
+    "--task-id",
+    dest="task_id",
+    help="Task id to write a condition for instead of all tasks from the push",
+)
 def skipfails(
     command_context,
     try_url,
@@ -1298,6 +1304,7 @@ def skipfails(
     dry_run=False,
     implicit_vars=False,
     new_version=None,
+    task_id=None,
 ):
     from skipfails import Skipfails
 
@@ -1324,6 +1331,7 @@ def skipfails(
         turbo,
         implicit_vars,
         new_version,
+        task_id,
     ).run(
         meta_bug_id,
         save_tasks,
