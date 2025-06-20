@@ -699,7 +699,7 @@ constexpr static CellRenderSettings radioSettings = {
     {NSSize{}, NSSize{}, NSSize{}},
     {
         IntMargin{0, 0, 0, 0},  // mini
-        IntMargin{1, 1, 1, 2},  // small
+        IntMargin{1, 1, 2, 1},  // small
         IntMargin{0, 0, 0, 0},  // regular
     },
 };
@@ -712,9 +712,9 @@ constexpr static CellRenderSettings checkboxSettings = {
     },
     {NSSize{}, NSSize{}, NSSize{}},
     {
-        IntMargin{0, 1, 0, 0},  // mini
-        IntMargin{0, 1, 0, 1},  // small
-        IntMargin{0, 1, 0, 1}   // regular
+        IntMargin{1, 0, 0, 0},  // mini
+        IntMargin{1, 0, 1, 0},  // small
+        IntMargin{1, 0, 1, 0}   // regular
     }};
 
 static NSControlStateValue CellStateForCheckboxOrRadioState(
@@ -874,8 +874,8 @@ constexpr static CellRenderSettings pushButtonSettings = {
     },
     {
         IntMargin{0, 0, 0, 0},  // mini
-        IntMargin{4, 0, 4, 1},  // small
-        IntMargin{5, 0, 5, 2}   // regular
+        IntMargin{0, 4, 1, 4},  // small
+        IntMargin{0, 5, 2, 5}   // regular
     }};
 
 // The height at which we start doing square buttons instead of rounded buttons
@@ -1121,9 +1121,9 @@ constexpr static CellRenderSettings dropdownSettings = {
         NSSize{44, 0}   // regular
     },
     {
-        IntMargin{1, 1, 2, 1},  // mini
-        IntMargin{3, 0, 3, 1},  // small
-        IntMargin{3, 0, 3, 0}   // regular
+        IntMargin{1, 2, 1, 1},  // mini
+        IntMargin{0, 3, 1, 3},  // small
+        IntMargin{0, 3, 0, 3}   // regular
     },
 };
 
@@ -1139,9 +1139,9 @@ constexpr static CellRenderSettings editableMenulistSettings = {
         NSSize{44, 0}   // regular
     },
     {
-        IntMargin{0, 0, 2, 2},  // mini
-        IntMargin{0, 0, 3, 2},  // small
-        IntMargin{0, 1, 3, 3}   // regular
+        IntMargin{0, 2, 2, 0},  // mini
+        IntMargin{0, 3, 2, 0},  // small
+        IntMargin{1, 3, 3, 0}   // regular
     }};
 
 void nsNativeThemeCocoa::DrawDropdown(CGContextRef cgContext,
