@@ -1851,35 +1851,13 @@ nsresult nsHttpChannel::InitTransaction() {
     };
   }
   mTransaction->SetIsForWebTransport(!!mWebTransportSessionEventListener);
-
-  struct LNAPerms perms{};
-  // If this is a third party tracker, it shoudn't make ANY LNA requests
-  // So we pretend that the permission for these has already been denied
-  // in order to avoid prompting.
-  uint32_t flags = 0;
-  if (StaticPrefs::network_lna_block_trackers() &&
-      NS_SUCCEEDED(
-          mLoadInfo->GetTriggeringThirdPartyClassificationFlags(&flags)) &&
-      flags != 0) {
-    perms.mLocalHostPermission = LNAPermission::Denied;
-    perms.mLocalNetworkPermission = LNAPermission::Denied;
-
-    if (nsContentUtils::IsExactSitePermAllow(mLoadInfo->GetLoadingPrincipal(),
-                                             "localhost"_ns)) {
-      perms.mLocalHostPermission = LNAPermission::Granted;
-    }
-    if (nsContentUtils::IsExactSitePermAllow(mLoadInfo->GetLoadingPrincipal(),
-                                             "local-network"_ns)) {
-      perms.mLocalNetworkPermission = LNAPermission::Granted;
-    }
-  }
-
   rv = mTransaction->Init(
       mCaps, mConnectionInfo, &mRequestHead, mUploadStream, mReqContentLength,
       LoadUploadStreamHasHeaders(), GetCurrentSerialEventTarget(), callbacks,
       this, mBrowserId, category, mRequestContext, mClassOfService,
       mInitialRwin, LoadResponseTimeoutEnabled(), mChannelId,
-      std::move(observer), mLoadInfo->GetParentIpAddressSpace(), perms);
+      std::move(observer), mLoadInfo->GetParentIpAddressSpace(),
+      dom::ContentPermissionRequestBase::PromptResult::Pending);
   if (NS_FAILED(rv)) {
     mTransaction = nullptr;
     return rv;

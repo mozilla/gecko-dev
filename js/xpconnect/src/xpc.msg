@@ -143,6 +143,7 @@ XPC_MSG_DEF(NS_ERROR_SUPERFLUOS_AUTH                , "User refused navigation t
 XPC_MSG_DEF(NS_ERROR_BASIC_HTTP_AUTH_DISABLED       , "User attempted basic HTTP authentication when it is disabled")
 XPC_MSG_DEF(NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED    , "The access to local network is denied")
 
+
 /* Error codes return from the proxy */
 XPC_MSG_DEF(NS_ERROR_PROXY_CONNECTION_REFUSED           , "The connection to the proxy server was refused")
 XPC_MSG_DEF(NS_ERROR_PROXY_AUTHENTICATION_FAILED        , "The proxy requires authentication")
@@ -190,9 +191,6 @@ XPC_MSG_DEF(NS_ERROR_DOCUMENT_NOT_CACHED            , "Document does not exist i
 XPC_MSG_DEF(NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS     , "The requested number of domain levels exceeds those present in the host string")
 XPC_MSG_DEF(NS_ERROR_HOST_IS_IP_ADDRESS             , "The host string is an IP address")
 XPC_MSG_DEF(NS_ERROR_NOT_SAME_THREAD                , "Can't access a wrapped JS object from a different thread")
-
-XPC_MSG_DEF(NS_ERROR_DOM_BAD_URI                    , "Access to restricted URI denied")
-XPC_MSG_DEF(NS_ERROR_WEBSOCKET_CONNECTION_REFUSED   , "Opening the Websocket failed")
 
 /* storage related codes (from mozStorage.h) */
 XPC_MSG_DEF(NS_ERROR_STORAGE_BUSY                   , "SQLite database connection is busy")

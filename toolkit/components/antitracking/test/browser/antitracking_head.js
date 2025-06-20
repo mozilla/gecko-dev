@@ -421,7 +421,6 @@ this.AntiTracking = {
           "tracking.example.com,tracking.example.org",
         ],
         ["privacy.antitracking.testing", true],
-        ["network.lna.block_trackers", false],
       ],
     });
 

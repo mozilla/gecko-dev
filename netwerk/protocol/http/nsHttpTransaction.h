@@ -482,7 +482,8 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   // IP address space of the browsing context that triggered this request
   nsILoadInfo::IPAddressSpace mParentIPAddressSpace{
       nsILoadInfo::IPAddressSpace::Unknown};
-  struct LNAPerms mLnaPermissionStatus{};
+  dom::ContentPermissionRequestBase::PromptResult mLnaPermissionStatus{
+      dom::ContentPermissionRequestBase::PromptResult::Pending};
 
   // For Rate Pacing via an EventTokenBucket
  public:

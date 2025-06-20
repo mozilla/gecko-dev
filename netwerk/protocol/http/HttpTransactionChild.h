@@ -9,6 +9,7 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #include "mozilla/net/PHttpTransactionChild.h"
+#include "nsContentPermissionHelper.h"
 #include "nsHttpRequestHead.h"
 #include "nsIEarlyHintObserver.h"
 #include "nsIRequest.h"
@@ -60,8 +61,9 @@ class HttpTransactionChild final : public PHttpTransactionChild,
       const mozilla::Maybe<PInputChannelThrottleQueueChild*>& aThrottleQueue,
       const bool& aIsDocumentLoad,
       const nsILoadInfo::IPAddressSpace& aParentIPAddressSpace,
-      const LNAPerms& aLnaPermissionStatus, const TimeStamp& aRedirectStart,
-      const TimeStamp& aRedirectEnd);
+      const dom::ContentPermissionRequestBase::PromptResult&
+          aLnaPermissionStatus,
+      const TimeStamp& aRedirectStart, const TimeStamp& aRedirectEnd);
 
   mozilla::ipc::IPCResult RecvCancelPump(const nsresult& aStatus);
   mozilla::ipc::IPCResult RecvSuspendPump();
@@ -92,7 +94,8 @@ class HttpTransactionChild final : public PHttpTransactionChild,
       uint32_t initialRwin, bool responseTimeoutEnabled, uint64_t channelId,
       bool aHasTransactionObserver,
       const nsILoadInfo::IPAddressSpace& aParentIPAddressSpace,
-      const LNAPerms& aLnaPermissionStatus);
+      const dom::ContentPermissionRequestBase::PromptResult&
+          aLnaPermissionStatus);
 
   void CancelInternal(nsresult aStatus);
 
