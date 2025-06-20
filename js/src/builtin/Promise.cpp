@@ -3634,7 +3634,7 @@ static bool CallDefaultPromiseRejectFunction(
 static bool IsPromiseSpecies(JSContext* cx, JSFunction* species);
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * Unified implementation of
  *
@@ -3694,21 +3694,14 @@ template <typename T>
   // PerformPromiseRace
   // Step 1.
   while (true) {
-    // Step a. Let next be IteratorStep(iteratorRecord).
-    // Step b. If next is an abrupt completion, set iteratorRecord.[[Done]] to
-    //         true.
-    // Step c. ReturnIfAbrupt(next).
-    // Step e. Let nextValue be IteratorValue(next).
-    // Step f. If nextValue is an abrupt completion, set iteratorRecord.[[Done]]
-    //         to true.
-    // Step g. ReturnIfAbrupt(nextValue).
+    // Step a. Let next be ? IteratorStepValue(iteratorRecord).
     RootedValue& nextValue = nextValueOrNextPromise;
     if (!iterator.next(&nextValue, done)) {
       *done = true;
       return false;
     }
 
-    // Step d. If next is false, then
+    // Step b. If next is done, then
     if (*done) {
       return true;
     }
@@ -3736,8 +3729,8 @@ template <typename T>
         // side-effects.
         validatePromiseState = iterationMayHaveSideEffects;
 
-        // Step {i, h}. Let nextPromise be
-        //              ? Call(promiseResolve, constructor, « nextValue »).
+        // Step {c, d}. Let nextPromise be
+        //              ? Call(promiseResolve, constructor, « next »).
         // Promise.resolve is a no-op for the default case.
         MOZ_ASSERT(&nextPromise.toObject() == nextValuePromise);
 
@@ -3748,8 +3741,8 @@ template <typename T>
         // because CommonStaticResolveRejectImpl may have modified it.
         validatePromiseState = true;
 
-        // Step {i, h}. Let nextPromise be
-        //              ? Call(promiseResolve, constructor, « nextValue »).
+        // Step {c, d}. Let nextPromise be
+        //              ? Call(promiseResolve, constructor, « next »).
         // Inline the call to Promise.resolve.
         JSObject* res =
             CommonStaticResolveRejectImpl(cx, CVal, nextValue, ResolveMode);
@@ -3764,8 +3757,8 @@ template <typename T>
       // initially in its default state, i.e. if it had been retrieved, it would
       // have been set to |Promise.resolve|.
 
-      // Step {i, h}. Let nextPromise be
-      //              ? Call(promiseResolve, constructor, « nextValue »).
+      // Step {c, d}. Let nextPromise be
+      //              ? Call(promiseResolve, constructor, « next »).
       // Inline the call to Promise.resolve.
       JSObject* res =
           CommonStaticResolveRejectImpl(cx, CVal, nextValue, ResolveMode);
@@ -3775,8 +3768,8 @@ template <typename T>
 
       nextPromise.setObject(*res);
     } else {
-      // Step {i, h}. Let nextPromise be
-      //              ? Call(promiseResolve, constructor, « nextValue »).
+      // Step {c, d}. Let nextPromise be
+      //              ? Call(promiseResolve, constructor, « next »).
       if (!Call(cx, promiseResolve, CVal, nextValue, &nextPromise)) {
         return false;
       }
@@ -3784,13 +3777,11 @@ template <typename T>
 
     // Get the resolving functions for this iteration.
     // PerformPromiseAll
-    // Steps j-r.
+    // Steps c and e-m.
     // PerformPromiseAllSettled
-    // Steps j-aa.
-    // PerformPromiseRace
-    // Step i.
+    // Steps c and e-v.
     // PerformPromiseAny
-    // Steps j-q.
+    // Steps c and e-m.
     if (!getResolveAndReject(&resolveFunVal, &rejectFunVal)) {
       return false;
     }
@@ -3805,19 +3796,19 @@ template <typename T>
     // would not be observable by content.
 
     // PerformPromiseAll
-    // Step s. Perform
+    // Step n. Perform
     //         ? Invoke(nextPromise, "then",
     //                  « onFulfilled, resultCapability.[[Reject]] »).
     // PerformPromiseAllSettled
-    // Step ab. Perform
-    //          ? Invoke(nextPromise, "then", « onFulfilled, onRejected »).
+    // Step w. Perform
+    //         ? Invoke(nextPromise, "then", « onFulfilled, onRejected »).
     // PerformPromiseRace
-    // Step i. Perform
+    // Step d. Perform
     //         ? Invoke(nextPromise, "then",
     //                  « resultCapability.[[Resolve]],
     //                    resultCapability.[[Reject]] »).
     // PerformPromiseAny
-    // Step s. Perform
+    // Step n. Perform
     //         ? Invoke(nextPromise, "then",
     //                  « resultCapability.[[Resolve]], onRejected »).
     nextPromiseObj = ToObject(cx, nextPromise);
@@ -3973,6 +3964,7 @@ template <typename T>
 
 // Create the elements for the Promise combinators Promise.all and
 // Promise.allSettled.
+// Create the errors list for the Promise combinator Promise.any.
 [[nodiscard]] static bool NewPromiseCombinatorElements(
     JSContext* cx, Handle<PromiseCapability> resultCapability,
     MutableHandle<PromiseCombinatorElements> elements) {
@@ -4072,7 +4064,7 @@ static JSFunction* NewPromiseCombinatorElementFunction(
 }
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * Unified implementation of
  *
@@ -4091,6 +4083,11 @@ static JSFunction* NewPromiseCombinatorElementFunction(
  *
  * Steps 1-5.
  *
+ * Promise.any Reject Element Functions
+ * https://tc39.es/ecma262/#sec-promise.any-reject-element-functions
+ *
+ * Steps 1-4.
+ *
  * Common implementation for Promise combinator element functions to check if
  * they've already been called.
  */
@@ -4108,7 +4105,7 @@ static bool PromiseCombinatorElementFunctionAlreadyCalled(
   }
   MOZ_RELEASE_ASSERT(fn->getExtendedSlot(indexOrResolveFuncSlot).isInt32());
 
-  // Promise.all functions
+  // Promise.{all,any} functions
   // Step 2. If F.[[AlreadyCalled]] is true, return undefined.
   // Promise.allSettled functions
   // Step 2. Let alreadyCalled be F.[[AlreadyCalled]].
@@ -4125,14 +4122,14 @@ static bool PromiseCombinatorElementFunctionAlreadyCalled(
 
   data.set(&dataVal.toObject().as<PromiseCombinatorDataHolder>());
 
-  // Promise.all functions
+  // Promise.{all,any} functions
   // Step 3. Set F.[[AlreadyCalled]] to true.
   // Promise.allSettled functions
   // Step 4. Set alreadyCalled.[[Value]] to true.
   fn->setExtendedSlot(PromiseCombinatorElementFunctionSlot_Data,
                       UndefinedValue());
 
-  // Promise.all functions
+  // Promise.{all,any} functions
   // Step 4. Let index be F.[[Index]].
   // Promise.allSettled functions
   // Step 5. Let index be F.[[Index]].
@@ -4144,7 +4141,7 @@ static bool PromiseCombinatorElementFunctionAlreadyCalled(
 }
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * PerformPromiseAll ( iteratorRecord, constructor, resultCapability,
  *                     promiseResolve )
@@ -4183,12 +4180,12 @@ static bool PromiseCombinatorElementFunctionAlreadyCalled(
   auto getResolveAndReject = [cx, &resultCapability, &values, &dataHolder,
                               &index](MutableHandleValue resolveFunVal,
                                       MutableHandleValue rejectFunVal) {
-    // Step 4.h. Append undefined to values.
+    // Step 4.c. Append undefined to values.
     if (!values.pushUndefined(cx)) {
       return false;
     }
 
-    // Steps 4.j-q.
+    // Steps 4.e-l.
     JSFunction* resolveFunc = NewPromiseCombinatorElementFunction(
         cx, PromiseAllResolveElementFunction, dataHolder, index,
         UndefinedHandleValue);
@@ -4196,11 +4193,11 @@ static bool PromiseCombinatorElementFunctionAlreadyCalled(
       return false;
     }
 
-    // Step 4.r. Set remainingElementsCount.[[Value]] to
+    // Step 4.m. Set remainingElementsCount.[[Value]] to
     //           remainingElementsCount.[[Value]] + 1.
     dataHolder->increaseRemainingCount();
 
-    // Step 4.t. Set index to index + 1.
+    // Step 4.o. Set index to index + 1.
     index++;
     MOZ_ASSERT(index > 0);
 
@@ -4209,36 +4206,36 @@ static bool PromiseCombinatorElementFunctionAlreadyCalled(
     return true;
   };
 
-  // Steps 4.
+  // Step 4. Repeat,
   if (!CommonPerformPromiseCombinator(
           cx, iterator, C, resultCapability.promise(), promiseResolve, done,
           true, getResolveAndReject)) {
     return false;
   }
 
-  // Step 4.d.ii. Set remainingElementsCount.[[Value]] to
-  //              remainingElementsCount.[[Value]] - 1.
+  // Step 4.b.i. Set remainingElementsCount.[[Value]] to
+  //             remainingElementsCount.[[Value]] - 1.
   int32_t remainingCount = dataHolder->decreaseRemainingCount();
 
-  // Step 4.d.iii. If remainingElementsCount.[[Value]] is 0, then
+  // Step 4.b.ii. If remainingElementsCount.[[Value]] is 0, then
   if (remainingCount == 0) {
-    // Step 4.d.iii.1. Let valuesArray be ! CreateArrayFromList(values).
+    // Step 4.b.ii.1. Let valuesArray be CreateArrayFromList(values).
     // (already performed)
 
-    // Step 4.d.iii.2. Perform
-    //                 ? Call(resultCapability.[[Resolve]], undefined,
-    //                        « valuesArray »).
+    // Step 4.b.ii.2. Perform
+    //                ? Call(resultCapability.[[Resolve]], undefined,
+    //                       « valuesArray »).
     return CallPromiseResolveFunction(cx, resultCapability.resolve(),
                                       values.value(),
                                       resultCapability.promise());
   }
 
-  // Step 4.d.iv. Return resultCapability.[[Promise]].
+  // Step 4.d.iii. Return resultCapability.[[Promise]].
   return true;
 }
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * Promise.all Resolve Element Functions
  * https://tc39.es/ecma262/#sec-promise.all-resolve-element-functions
@@ -4276,7 +4273,7 @@ static bool PromiseAllResolveElementFunction(JSContext* cx, unsigned argc,
 
   // Step 10. If remainingElementsCount.[[Value]] is 0, then
   if (remainingCount == 0) {
-    // Step 10.a. Let valuesArray be ! CreateArrayFromList(values).
+    // Step 10.a. Let valuesArray be CreateArrayFromList(values).
     // (already performed)
 
     // (reordered)
@@ -4299,7 +4296,7 @@ static bool PromiseAllResolveElementFunction(JSContext* cx, unsigned argc,
 }
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * Promise.race ( iterable )
  * https://tc39.es/ecma262/#sec-promise.race
@@ -4310,7 +4307,7 @@ static bool Promise_static_race(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * PerformPromiseRace ( iteratorRecord, constructor, resultCapability,
  *                      promiseResolve )
@@ -4338,7 +4335,7 @@ static bool Promise_static_race(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   };
 
-  // Step 1.
+  // Step 1. Repeat,
   return CommonPerformPromiseCombinator(
       cx, iterator, C, resultCapability.promise(), promiseResolve, done,
       isDefaultResolveFn, getResolveAndReject);
@@ -4351,7 +4348,7 @@ static bool PromiseAllSettledElementFunction(JSContext* cx, unsigned argc,
                                              Value* vp);
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * Promise.allSettled ( iterable )
  * https://tc39.es/ecma262/#sec-promise.allsettled
@@ -4362,7 +4359,7 @@ static bool Promise_static_allSettled(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * PerformPromiseAllSettled ( iteratorRecord, constructor, resultCapability,
  *                            promiseResolve )
@@ -4401,7 +4398,7 @@ static bool Promise_static_allSettled(JSContext* cx, unsigned argc, Value* vp) {
   auto getResolveAndReject = [cx, &values, &dataHolder, &index](
                                  MutableHandleValue resolveFunVal,
                                  MutableHandleValue rejectFunVal) {
-    // Step 4.h. Append undefined to values.
+    // Step 4.c. Append undefined to values.
     if (!values.pushUndefined(cx)) {
       return false;
     }
@@ -4413,7 +4410,7 @@ static bool Promise_static_allSettled(JSContext* cx, unsigned argc, Value* vp) {
         PromiseAllSettledElementFunction<
             PromiseAllSettledElementFunctionKind::Reject>;
 
-    // Steps 4.j-r.
+    // Steps 4.e-m.
     JSFunction* resolveFunc = NewPromiseCombinatorElementFunction(
         cx, PromiseAllSettledResolveElementFunction, dataHolder, index,
         UndefinedHandleValue);
@@ -4422,7 +4419,7 @@ static bool Promise_static_allSettled(JSContext* cx, unsigned argc, Value* vp) {
     }
     resolveFunVal.setObject(*resolveFunc);
 
-    // Steps 4.s-z.
+    // Steps 4.n-u.
     JSFunction* rejectFunc = NewPromiseCombinatorElementFunction(
         cx, PromiseAllSettledRejectElementFunction, dataHolder, index,
         resolveFunVal);
@@ -4431,36 +4428,36 @@ static bool Promise_static_allSettled(JSContext* cx, unsigned argc, Value* vp) {
     }
     rejectFunVal.setObject(*rejectFunc);
 
-    // Step 4.aa. Set remainingElementsCount.[[Value]] to
-    //            remainingElementsCount.[[Value]] + 1.
+    // Step 4.v. Set remainingElementsCount.[[Value]] to
+    //           remainingElementsCount.[[Value]] + 1.
     dataHolder->increaseRemainingCount();
 
-    // Step 4.ac. Set index to index + 1.
+    // Step 4.x. Set index to index + 1.
     index++;
     MOZ_ASSERT(index > 0);
 
     return true;
   };
 
-  // Steps 4.
+  // Step 4. Repeat,
   if (!CommonPerformPromiseCombinator(
           cx, iterator, C, resultCapability.promise(), promiseResolve, done,
           true, getResolveAndReject)) {
     return false;
   }
 
-  // Step 4.d.ii. Set remainingElementsCount.[[Value]] to
+  // Step 4.b.ii. Set remainingElementsCount.[[Value]] to
   //              remainingElementsCount.[[Value]] - 1.
   int32_t remainingCount = dataHolder->decreaseRemainingCount();
 
-  // Step 4.d.iii. If remainingElementsCount.[[Value]] is 0, then
+  // Step 4.b.ii. If remainingElementsCount.[[Value]] is 0, then
   if (remainingCount == 0) {
-    // Step 4.d.iii.1. Let valuesArray be ! CreateArrayFromList(values).
+    // Step 4.b.ii.1. Let valuesArray be CreateArrayFromList(values).
     // (already performed)
 
-    // Step 4.d.iii.2. Perform
-    //                 ? Call(resultCapability.[[Resolve]], undefined,
-    //                        « valuesArray »).
+    // Step 4.b.ii.2. Perform
+    //                ? Call(resultCapability.[[Resolve]], undefined,
+    //                       « valuesArray »).
     return CallPromiseResolveFunction(cx, resultCapability.resolve(),
                                       values.value(),
                                       resultCapability.promise());
@@ -4470,7 +4467,7 @@ static bool Promise_static_allSettled(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * Unified implementation of
  *
@@ -4512,7 +4509,7 @@ static bool PromiseAllSettledElementFunction(JSContext* cx, unsigned argc,
     return true;
   }
 
-  // Step 9. Let obj be ! OrdinaryObjectCreate(%Object.prototype%).
+  // Step 9. Let obj be OrdinaryObjectCreate(%Object.prototype%).
   Rooted<PlainObject*> obj(cx, NewPlainObject(cx));
   if (!obj) {
     return false;
@@ -4584,7 +4581,7 @@ static bool PromiseAllSettledElementFunction(JSContext* cx, unsigned argc,
 }
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * Promise.any ( iterable )
  * https://tc39.es/ecma262/#sec-promise.any
@@ -4602,7 +4599,7 @@ static void ThrowAggregateError(JSContext* cx,
                                 HandleObject promise);
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * Promise.any ( iterable )
  * https://tc39.es/ecma262/#sec-promise.any
@@ -4614,21 +4611,18 @@ static void ThrowAggregateError(JSContext* cx,
     JSContext* cx, PromiseForOfIterator& iterator, HandleObject C,
     Handle<PromiseCapability> resultCapability, HandleValue promiseResolve,
     bool* done) {
-  *done = false;
-
-  // Step 1. Let C be the this value.
   MOZ_ASSERT(C->isConstructor());
 
-  // Step 2. Let promiseCapability be ? NewPromiseCapability(C).
-  // (omitted).
+  *done = false;
 
-  // Step 3. Let promiseResolve be GetPromiseResolve(C).
+  // Step 1. Let errors be a new empty List.
   Rooted<PromiseCombinatorElements> errors(cx);
   if (!NewPromiseCombinatorElements(cx, resultCapability, &errors)) {
     return false;
   }
 
-  // Step 4.
+  // Step 2. Let remainingElementsCount be the Record { [[Value]]: 1 }.
+  //
   // Create our data holder that holds all the things shared across every step
   // of the iterator. In particular, this holds the remainingElementsCount (as
   // an integer reserved slot), the array of errors, and the reject function
@@ -4640,19 +4634,18 @@ static void ThrowAggregateError(JSContext* cx,
     return false;
   }
 
-  // PerformPromiseAny
   // Step 3. Let index be 0.
   uint32_t index = 0;
 
   auto getResolveAndReject = [cx, &resultCapability, &errors, &dataHolder,
                               &index](MutableHandleValue resolveFunVal,
                                       MutableHandleValue rejectFunVal) {
-    // Step 4.h. Append undefined to errors.
+    // Step 4.c. Append undefined to errors.
     if (!errors.pushUndefined(cx)) {
       return false;
     }
 
-    // Steps 4.j-q.
+    // Steps 4.e-l.
     JSFunction* rejectFunc = NewPromiseCombinatorElementFunction(
         cx, PromiseAnyRejectElementFunction, dataHolder, index,
         UndefinedHandleValue);
@@ -4660,11 +4653,11 @@ static void ThrowAggregateError(JSContext* cx,
       return false;
     }
 
-    // Step 4.r. Set remainingElementsCount.[[Value]] to
+    // Step 4.m. Set remainingElementsCount.[[Value]] to
     //           remainingElementsCount.[[Value]] + 1.
     dataHolder->increaseRemainingCount();
 
-    // Step 4.t. Set index to index + 1.
+    // Step 4.o. Set index to index + 1.
     index++;
     MOZ_ASSERT(index > 0);
 
@@ -4679,29 +4672,29 @@ static void ThrowAggregateError(JSContext* cx,
   bool isDefaultResolveFn =
       IsNativeFunction(resultCapability.resolve(), ResolvePromiseFunction);
 
-  // Steps 4.
+  // Step 4. Repeat,
   if (!CommonPerformPromiseCombinator(
           cx, iterator, C, resultCapability.promise(), promiseResolve, done,
           isDefaultResolveFn, getResolveAndReject)) {
     return false;
   }
 
-  // Step 4.d.ii. Set remainingElementsCount.[[Value]] to
-  //              remainingElementsCount.[[Value]] - 1.
+  // Step 4.b.i. Set remainingElementsCount.[[Value]] to
+  //             remainingElementsCount.[[Value]] - 1..
   int32_t remainingCount = dataHolder->decreaseRemainingCount();
 
-  // Step 4.d.iii. If remainingElementsCount.[[Value]] is 0, then
+  // Step 4.b.ii. If remainingElementsCount.[[Value]] = 0, then
   if (remainingCount == 0) {
     ThrowAggregateError(cx, errors, resultCapability.promise());
     return false;
   }
 
-  // Step 4.d.iv. Return resultCapability.[[Promise]].
+  // Step 4.b.iii. Return resultCapability.[[Promise]].
   return true;
 }
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * Promise.any Reject Element Functions
  * https://tc39.es/ecma262/#sec-promise.any-reject-element-functions
@@ -4711,7 +4704,7 @@ static bool PromiseAnyRejectElementFunction(JSContext* cx, unsigned argc,
   CallArgs args = CallArgsFromVp(argc, vp);
   HandleValue xVal = args.get(0);
 
-  // Steps 1-5.
+  // Steps 1-4.
   Rooted<PromiseCombinatorDataHolder*> data(cx);
   uint32_t index;
   if (PromiseCombinatorElementFunctionAlreadyCalled(args, &data, &index)) {
@@ -4719,26 +4712,27 @@ static bool PromiseAnyRejectElementFunction(JSContext* cx, unsigned argc,
     return true;
   }
 
-  // Step 6.
+  // Step 5.
   Rooted<PromiseCombinatorElements> errors(cx);
   if (!GetPromiseCombinatorElements(cx, data, &errors)) {
     return false;
   }
 
-  // Step 9.
+  // Step 8.
   if (!errors.setElement(cx, index, xVal)) {
     return false;
   }
 
-  // Steps 8, 10.
+  // Steps 7 and 9.
   uint32_t remainingCount = data->decreaseRemainingCount();
 
-  // Step 11.
+  // Step 10.
   if (remainingCount == 0) {
-    // Step 7 (Adapted to work with PromiseCombinatorDataHolder's layout).
+    // Step 6 (Adapted to work with PromiseCombinatorDataHolder's layout).
     RootedObject rejectFun(cx, data->resolveOrRejectObj());
     RootedObject promiseObj(cx, data->promiseObj());
 
+    // Steps 10.a-b.
     ThrowAggregateError(cx, errors, promiseObj);
 
     RootedValue reason(cx);
@@ -4747,25 +4741,26 @@ static bool PromiseAnyRejectElementFunction(JSContext* cx, unsigned argc,
       return false;
     }
 
+    // Step 10.c.
     if (!CallPromiseRejectFunction(cx, rejectFun, reason, promiseObj, stack,
                                    UnhandledRejectionBehavior::Report)) {
       return false;
     }
   }
 
-  // Step 12.
+  // Step 11.
   args.rval().setUndefined();
   return true;
 }
 
 /**
- * ES2022 draft rev d03c1ec6e235a5180fa772b6178727c17974cb14
+ * ES2026 draft rev bdfd596ffad5aeb2957aed4e1db36be3665c69ec
  *
  * PerformPromiseAny ( iteratorRecord, constructor, resultCapability,
  *                     promiseResolve )
  * https://tc39.es/ecma262/#sec-performpromiseany
  *
- * Steps 4.d.iii.1-3
+ * Steps 4.b.ii.1-3
  */
 static void ThrowAggregateError(JSContext* cx,
                                 Handle<PromiseCombinatorElements> errors,
@@ -4793,7 +4788,7 @@ static void ThrowAggregateError(JSContext* cx,
     }
   }
 
-  // Step 4.d.iii.1. Let error be a newly created AggregateError object.
+  // Step 4.b.ii.1. Let error be a newly created AggregateError object.
   //
   // AutoSetAsyncStackForNewCalls requires a new activation before it takes
   // effect, so call into the self-hosting helper to set-up new call frames.
@@ -4802,11 +4797,11 @@ static void ThrowAggregateError(JSContext* cx,
     return;
   }
 
-  // Step 4.d.iii.2. Perform ! DefinePropertyOrThrow(
-  //                   error, "errors", PropertyDescriptor {
-  //                     [[Configurable]]: true, [[Enumerable]]: false,
-  //                     [[Writable]]: true,
-  //                     [[Value]]: ! CreateArrayFromList(errors) }).
+  // Step 4.b.ii.2. Perform ! DefinePropertyOrThrow(
+  //                  error, "errors", PropertyDescriptor {
+  //                    [[Configurable]]: true, [[Enumerable]]: false,
+  //                    [[Writable]]: true,
+  //                    [[Value]]: ! CreateArrayFromList(errors) }).
   //
   // |error| isn't guaranteed to be an AggregateError in case of OOM or stack
   // overflow.
@@ -4827,7 +4822,7 @@ static void ThrowAggregateError(JSContext* cx,
     }
   }
 
-  // Step 4.d.iii.3. Return ThrowCompletion(error).
+  // Step 4.b.ii.3. Return ThrowCompletion(error).
   cx->setPendingException(error, stack);
 }
 
