@@ -28,7 +28,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s o scancella a teu stöia de navegaçion e riçerche quande særi i feuggi e-i barcoin de navegaçion privâ. Sciben che questo o no te fa deventâ anònimo co-i sciti ò co-o fornitô de Internet, o l\'agiutta in a mantegnî privòu cöse ti fæ in linea a-i atri utenti de sto computer.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s o scancella a teu stöia de navegaçion e riçerche quande særi i feuggi e-i barcoin de navegaçion privâ. Sciben che questo o no te fa deventâ anònimo co-i sciti ò co-o fornitô de Internet, o l\'agiutta in a mantegnî privòu cöse ti fæ in linea a-i atri utenti de sto computer.</string>
   <string name="private_browsing_common_myths">Miti comuin in sciâ navegaçion privâ</string>
   <!--
     Home screen icons - Long press shortcuts
@@ -581,7 +581,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Feuggio privou serou</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Feuggi privou seræ</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Feuggi privou seræ</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">ANULLA</string>
   <!-- Text shown in snackbar when user removes a top site -->

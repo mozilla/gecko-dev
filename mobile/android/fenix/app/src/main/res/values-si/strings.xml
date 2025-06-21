@@ -62,7 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">ඔබ පෞද්. පටිති වසා දැමූ විට හෝ යෙදුමෙන් ඉවත් වූ විට %1$s ඔබගේ සෙවුම් සහ පිරික්සුම් ඉතිහාසය හිස් කරයි, නමුත් ඔබව අඩවි වලින් හෝ අන්තර්ජාල සැපයුම්කරුගෙන් නිර්නාමික නොකරයි. මෙය ඔබ මාර්ගගතව කරන දෑ මෙම උපාංගය භාවිතා කරන වෙනත් අයගෙන් පෞද්ගලිකව තබා ගැනීම පහසු කරයි.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">ඔබ පෞද්. පටිති වසා දැමූ විට හෝ යෙදුමෙන් ඉවත් වූ විට %1$s ඔබගේ සෙවුම් සහ පිරික්සුම් ඉතිහාසය හිස් කරයි, නමුත් ඔබව අඩවි වලින් හෝ අන්තර්ජාල සැපයුම්කරුගෙන් නිර්නාමික නොකරයි. මෙය ඔබ මාර්ගගතව කරන දෑ මෙම උපාංගය භාවිතා කරන වෙනත් අයගෙන් පෞද්ගලිකව තබා ගැනීම පහසු කරයි.</string>
   <string name="private_browsing_common_myths">පෞද්ගලික පිරික්සීම පිළිබඳව සුලබ මිථ්‍යා</string>
   <!--
     True Private Browsing Mode
@@ -98,7 +98,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">නැවුම් පෞද්ගලික වාරයක් ඇරඹීමට මෙතැන තට්ටු කරන්න. ඔබගේ ඉතිහාසය, දත්තකඩ — සියල්ල මකන්න.</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">නැවුම් පෞද්ගලික වාරයක් ඇරඹීමට මෙතැන තට්ටු කරන්න. ඔබගේ ඉතිහාසය, දත්තකඩ — සියල්ල මකන්න.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">රූගතයට ප්‍රවේශය අවශ්‍යයි. ඇන්ඩ්‍රොයිඩ් සැකසුම් වෙත ගොස්, අවසර මත තට්ටු කර ඉඩ දෙන්න තට්ටු කරන්න.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -337,7 +337,7 @@
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
-  <string name="browser_menu_translated_to">%1$s වෙත පරිවර්තනය විය</string>
+  <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">%1$s වෙත පරිවර්තනය විය</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">මුද්‍රණය…</string>
   <!--
@@ -361,7 +361,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">පිරික්සුම් ඉතිහාසය මකන්න</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">පිරික්සුම් ඉතිහාසය මකන්න</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">පිටුව පරිවර්තනය</string>
   <!--
@@ -753,11 +753,11 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">වුවමනාය</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">වුවමනාය</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
-  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">විකල්පයකි</string>
+  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources" moz:removedIn="141">විකල්පයකි</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
-  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">සියලු අඩවි සඳහා ඉඩදෙන්න</string>
+  <string name="addons_permissions_allow_for_all_sites">සියලු අඩවි සඳහා ඉඩදෙන්න</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">මෙම දිගුවට කිසිදු අවසරයක් වුවමනා නොවේ</string>
   <!--
@@ -1635,7 +1635,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">පෞද්. පටිත්ත වැසිණි</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">පෞද්. පටිති වැසිණි</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">පෞද්. පටිති වැසිණි</string>
   <!-- Text shown in snackbar when user erases their private browsing data -->
   <string name="snackbar_private_data_deleted">පෞද්. පිරික්සුම් දත්ත මැකිණි</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
@@ -2374,7 +2374,7 @@
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">මෙම එකතුව ගැන තව දැන ගැනීමට සබැඳිය අරින්න</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
-  <string name="a11y_action_label_read_article">ලිපිය කියවන්න</string>
+  <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">ලිපිය කියවන්න</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">තව දැන ගැනීමට සබැඳිය අරින්න</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->

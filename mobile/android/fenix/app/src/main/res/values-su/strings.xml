@@ -60,7 +60,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s meresihan jujutan sungsian jeung pamaluruhan ti tab pribadi nalika anjeun nutup jeung kaluar ti aplikasi. Najan henteu matak anonim ka raramatloka atawa panyadia layanan internét anjeun, bakal leuwih gampang pikeun ngajaga anu dipigawé jering tetep nyamuni ti batur nu maké ieu piranti.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s meresihan jujutan sungsian jeung pamaluruhan ti tab pribadi nalika anjeun nutup jeung kaluar ti aplikasi. Najan henteu matak anonim ka raramatloka atawa panyadia layanan internét anjeun, bakal leuwih gampang pikeun ngajaga anu dipigawé jering tetep nyamuni ti batur nu maké ieu piranti.</string>
   <string name="private_browsing_common_myths">Mitos umum ngeunaan langlangan nyamuni</string>
   <!--
     True Private Browsing Mode
@@ -96,7 +96,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">Toél di dieu pikeun mitembeyan rintakan nyamuni. Hapus jujutan, réréméh anjeun — sagalana.</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">Toél di dieu pikeun mitembeyan rintakan nyamuni. Hapus jujutan, réréméh anjeun — sagalana.</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -328,7 +328,7 @@
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
-  <string name="browser_menu_translated_to">Ditarjamahkeun kana %1$s</string>
+  <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">Ditarjamahkeun kana %1$s</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Citak…</string>
   <!--
@@ -360,7 +360,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">Pupus jujutan langlangan</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">Pupus jujutan langlangan</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">Tarjamahkeun kaca</string>
   <!--
@@ -706,13 +706,13 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">Dibutuhkeun</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">Dibutuhkeun</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
-  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">Pilihan</string>
+  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources" moz:removedIn="141">Pilihan</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
-  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Idinan pikeun sakabéh situs</string>
+  <string name="addons_permissions_allow_for_all_sites">Idinan pikeun sakabéh situs</string>
   <!-- The subtitle for the allow for all sites preference toggle -->
-  <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">Lamun anjeun percaya pangémboh ieu, anjeun bisa méré idin dina unggal situs.</string>
+  <string name="addons_permissions_allow_for_all_sites_subtitle">Lamun anjeun percaya pangémboh ieu, anjeun bisa méré idin dina unggal situs.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">Ieu émbohan henteu perlu idin.</string>
   <!--
@@ -1548,7 +1548,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Tab nyamuni ditutup</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Tab nyamuni ditutup</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Tab nyamuni ditutup</string>
   <!-- Text shown in snackbar when user erases their private browsing data -->
   <string name="snackbar_private_data_deleted">Data panyungsi dipupus</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
@@ -2339,7 +2339,7 @@
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">buka tutumbu pikeun leuwih teleb ngeunaan ieu koléksi</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
-  <string name="a11y_action_label_read_article">baca artikel</string>
+  <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">baca artikel</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">buka tutumbu pikeun ngalenyepan</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->

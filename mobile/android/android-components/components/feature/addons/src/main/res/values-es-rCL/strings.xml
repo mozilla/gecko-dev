@@ -85,7 +85,7 @@
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Los scripts no verificados pueden suponer riesgos de seguridad y privacidad. Ejecuta únicamente scripts de extensiones o fuentes en las que confíes.</string>
   <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
-  <string name="mozac_feature_addons_permissions_required_data_collection_description">El desarrollador dice que esta extensión recolecta: %1$s.</string>
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">El desarrollador dice que esta extensión recolecta: %1$s.</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">El desarrollador dice que esta extensión no requiere recolección de datos.</string>
   <!-- Description for devtools permission. -->

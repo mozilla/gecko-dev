@@ -62,7 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s გაასუფთავებს თქვენი ძიებისა და ნახვების ისტორიას ყველა პირადი ჩანართის დახურვისას ან გამოსვლისას. მართალია, ეს ვერ დაფარავს თქვენს ვინაობას საიტებისა და ინტერნეტის მომწოდებლისგან, მაგრამ გაგიადვილებთ, დაიცვათ პირადი მონაცემები, თუ ამ მოწყობილობის სხვაც გამოიყენებს.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s გაასუფთავებს თქვენი ძიებისა და ნახვების ისტორიას ყველა პირადი ჩანართის დახურვისას ან გამოსვლისას. მართალია, ეს ვერ დაფარავს თქვენს ვინაობას საიტებისა და ინტერნეტის მომწოდებლისგან, მაგრამ გაგიადვილებთ, დაიცვათ პირადი მონაცემები, თუ ამ მოწყობილობის სხვაც გამოიყენებს.</string>
   <string name="private_browsing_common_myths">ცრუ წარმოდგენები პირადი თვალიერების შესახებ</string>
   <!--
     True Private Browsing Mode
@@ -98,7 +98,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">შეეხეთ აქ ახალი პირადი სეანსის დასაწყებად. წაშალეთ თქვენი ისტორია, ფუნთუშები — ყველაფერი.</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">შეეხეთ აქ ახალი პირადი სეანსის დასაწყებად. წაშალეთ თქვენი ისტორია, ფუნთუშები — ყველაფერი.</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -321,7 +321,9 @@
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">დაასინქრონეთ პაროლები, ჩანართები და სხვა</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption_2">დაასინქრონეთ სანიშნები, პაროლები, ჩანართები და სხვა</string>
+  <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">დაასინქრონეთ სანიშნები, პაროლები, ჩანართები და სხვა</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_3">დაასინქრონეთ პაროლები, სანიშნები და სხვა</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">შესვლა სინქრონიზაციისთვის</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -400,7 +402,7 @@
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
-  <string name="browser_menu_translated_to">%1$s თარგმანი</string>
+  <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">%1$s თარგმანი</string>
   <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
   <string name="browser_menu_translated">ნათარგმნი</string>
   <!-- Browser menu label for the print feature -->
@@ -445,7 +447,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">ისტორიის გასუფთავება</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">ისტორიის გასუფთავება</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">გვერდის თარგმნა</string>
   <!--
@@ -962,15 +964,29 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">აუცილებელი</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">აუცილებელი</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
-  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">არააუცილებელი</string>
+  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources" moz:removedIn="141">არააუცილებელი</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
-  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">ნებართვა ყველა საიტისთვის</string>
+  <string name="addons_permissions_allow_for_all_sites">ნებართვა ყველა საიტისთვის</string>
   <!-- The subtitle for the allow for all sites preference toggle -->
-  <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">თუ ენდობით ამ გაფართოებას, შეგიძლიათ დართოთ ნება ყველა საიტზე.</string>
+  <string name="addons_permissions_allow_for_all_sites_subtitle">თუ ენდობით ამ გაფართოებას, შეგიძლიათ დართოთ ნება ყველა საიტზე.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">გაფართოება არ ითხოვს რამე ნებართვას.</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">შემქმნელის თქმით ამ გაფართოებით აღირიცხება: %1$s.</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description_2">შემქმნელის თქმით ამ გაფართოებით აღირიცხება: %1$s</string>
+  <!-- The description of the "none" data collection permission, when the extension doesn't collect anything according to the developer. -->
+  <string name="addons_permissions_none_required_data_collection_description">შემქმნელის თქმით ეს გაფართოება არ საჭიროებს მონაცემთა აღრიცხვას.</string>
+  <!-- The title of the required permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_permissions">აუცილებელი ნებართვები:</string>
+  <!-- The title of the optional permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_permissions">არააუცილებელი ნებართვები:</string>
+  <!-- The title of the required data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_data_collection">აუცილებელ მონაცემთა აღრიცხვა:</string>
+  <!-- The title of the optional data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_data_collection">უმნიშვნელო მონაცემთა აღრიცხვა:</string>
   <!--
     Add-on Preferences
 
@@ -2146,7 +2162,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">პირადი ჩანართი დაიხურა</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">პირადი ჩანართები დაიხურა</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">პირადი ჩანართები დაიხურა</string>
   <!-- Text shown in snackbar when user erases their private browsing data -->
   <string name="snackbar_private_data_deleted">პირადი ფანჯრის მონაცემები გასუფთავებულია</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
@@ -3038,7 +3054,7 @@
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">გახსენით ბმული და იხილეთ ვრცლად ამ კრებულზე</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
-  <string name="a11y_action_label_read_article">სტატიის წაკითხვა</string>
+  <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">სტატიის წაკითხვა</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">ვრცლად იხილეთ ბმულზე</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->

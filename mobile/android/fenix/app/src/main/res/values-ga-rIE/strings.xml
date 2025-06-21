@@ -500,7 +500,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Dúnadh an cluaisín príobháideach</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Dúnadh na cluaisíní príobháideacha</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Dúnadh na cluaisíní príobháideacha</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">CEALAIGH</string>
   <!-- Text shown in snackbar when user removes a top site -->

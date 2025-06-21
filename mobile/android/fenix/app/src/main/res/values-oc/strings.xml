@@ -62,7 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s escafa vòstre istoric de recèrcas e de navegacion quand quitatz l’aplicacion o tampatz totes los onglets e fenèstras de navegacion privada. Malgrat qu’aquò vos faga pas venir anonim pels sites web o vòstre provesidor Internet, fa venir mai simple de gardar privat çò que fasètz en linha pels autres qu’utilizan aqueste aparelh.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s escafa vòstre istoric de recèrcas e de navegacion quand quitatz l’aplicacion o tampatz totes los onglets e fenèstras de navegacion privada. Malgrat qu’aquò vos faga pas venir anonim pels sites web o vòstre provesidor Internet, fa venir mai simple de gardar privat çò que fasètz en linha pels autres qu’utilizan aqueste aparelh.</string>
   <string name="private_browsing_common_myths">Mites màgers de la navegacion privada</string>
   <!--
     True Private Browsing Mode
@@ -98,7 +98,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">Tocatz aicí per començar una session privada freja. Suprimirà l’istoric, los cookies — tot.</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">Tocatz aicí per començar una session privada freja. Suprimirà l’istoric, los cookies — tot.</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -390,7 +390,7 @@
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
-  <string name="browser_menu_translated_to">Traduch en %1$s</string>
+  <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">Traduch en %1$s</string>
   <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
   <string name="browser_menu_translated">Traducha</string>
   <!-- Browser menu label for the print feature -->
@@ -424,7 +424,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">Netejar l’istoric de navegacion</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">Netejar l’istoric de navegacion</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">Traduire la pagina</string>
   <!--
@@ -939,13 +939,13 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">Requesida</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">Requesida</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
-  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">Facultativa</string>
+  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources" moz:removedIn="141">Facultativa</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
-  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Autorizar per totes los sites</string>
+  <string name="addons_permissions_allow_for_all_sites">Autorizar per totes los sites</string>
   <!-- The subtitle for the allow for all sites preference toggle -->
-  <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">Se vos fisatz d’aquesta extension, podètz li donar l’autorizacion per quin site web que siá.</string>
+  <string name="addons_permissions_allow_for_all_sites_subtitle">Se vos fisatz d’aquesta extension, podètz li donar l’autorizacion per quin site web que siá.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">Aquesta extension demanda pas cap d\'autorizacion.</string>
   <!--
@@ -2066,7 +2066,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Onglet privat tampat</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Onglets privats tampats</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Onglets privats tampats</string>
   <!-- Text shown in snackbar when user erases their private browsing data -->
   <string name="snackbar_private_data_deleted">Donadas de navegacion privada suprimidas</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
@@ -2954,7 +2954,7 @@
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">dobrir lo ligam per ne saber mai tocant aquesta colleccion</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
-  <string name="a11y_action_label_read_article">legir l’article</string>
+  <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">legir l’article</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">dobrissètz lo ligam per ne saber mai</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->

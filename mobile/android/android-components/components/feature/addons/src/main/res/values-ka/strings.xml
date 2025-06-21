@@ -85,7 +85,9 @@
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">გადაუმოწმებელ სკრიპტებს შეუძლია საფრთხე შეუქმნას უსაფრთხოებასა და პირადულობას. სკრიპტების გაშვების ნება დართეთ მხოლოდ იმ გაფართოებებსა თუ წყაროებს, რომელთაც ენდობით.</string>
   <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
-  <string name="mozac_feature_addons_permissions_required_data_collection_description">შემქმნელის თქმით ამ გაფართოებით აღირიცხება: %1$s.</string>
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">შემქმნელის თქმით ამ გაფართოებით აღირიცხება: %1$s.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">შემქმნელის თქმით ამ გაფართოებით აღირიცხება: %1$s</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">შემქმნელის თქმით ეს გაფართოება არ საჭიროებს მონაცემთა აღრიცხვას.</string>
   <!-- Description for devtools permission. -->
@@ -118,6 +120,30 @@
   <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">ვებსაიტზე მოქმედებები</string>
   <!-- Short description for the websiteContent data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">ვებშიგთავსი</string>
+  <!-- Long description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">ტექნიკური და ურთიერთქმედების მონაცემების გაზიარება გაფართოების შემმუშავებლისთვის</string>
+  <!-- Long description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">სანიშნების მონაცემების გაზიარება გაფართოების შემმუშავებლისთვის</string>
+  <!-- Long description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">მონახულებული გვერდების გაზიარება გაფართოების შემმუშავებლისთვის</string>
+  <!-- Long description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description">ფინანსური და გადახდის მონაცემების გაზიარება გაფართოების შემმუშავებლისთვის</string>
+  <!-- Long description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">ჯანმრთელობის მონაცემების გაზიარება გაფართოების შემმუშავებლისთვის</string>
+  <!-- Long description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_long_description">ადგილმდებარეობის მონაცემების გაზიარება გაფართოების შემმუშავებლისთვის</string>
+  <!-- Long description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_long_description">პირადი კავშირების გაზიარება გაფართოების შემმუშავებლისთვის</string>
+  <!-- Long description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_long_description">პირის ამოსაცნობი მონაცემების გაზიარება გაფართოების შემმუშავებლისთვის</string>
+  <!-- Long description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_long_description">საძიებო ფრაზების გაზიარება გაფართოების შემმუშავებლისთვის</string>
+  <!-- Long description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_long_description">ტექნიკური და ურთიერთქმედების მონაცემების გაზიარება გაფართოების შემმუშავებლისთვის</string>
+  <!-- Long description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_long_description">ვებსაიტზე მოქმედებების გაზიარება გაფართოების შემმუშავებლისთვის</string>
+  <!-- Long description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_long_description">ვებსაიტის შიგთავსის გაზიარება გაფართოების შემმუშავებლისთვის</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">ვერსია</string>
   <!-- The author of an add-on. -->

@@ -60,7 +60,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s گیزلی تاغلاری باغلادیغینیز زامان ویا اپ‌دن چیخدیغینیز زامان آختاریش و مورور گئچمیشی پوزولار. بو سیزی سایتلارا ویا اینترنت خیدمت وئرنلره گیزلی ائتمه‌سه‌ده، بو جهازدان ایستیفاده ائدن هرکسدن آنلاین اولاراق نه ائتدیگینیزی گیزلی ساخلاماغی آسانلاشدیریر.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s گیزلی تاغلاری باغلادیغینیز زامان ویا اپ‌دن چیخدیغینیز زامان آختاریش و مورور گئچمیشی پوزولار. بو سیزی سایتلارا ویا اینترنت خیدمت وئرنلره گیزلی ائتمه‌سه‌ده، بو جهازدان ایستیفاده ائدن هرکسدن آنلاین اولاراق نه ائتدیگینیزی گیزلی ساخلاماغی آسانلاشدیریر.</string>
   <string name="private_browsing_common_myths">گیزلی مورور حاقیندا یایقین اینانجلار</string>
   <!--
     True Private Browsing Mode
@@ -96,7 +96,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">یئنی بیر گیزلی اوتورم باشلادماق اوچون بورایا توخونون. گئچمیشینیزی، کوکی‌لرینیزی، هرشئیی سیلین.</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">یئنی بیر گیزلی اوتورم باشلادماق اوچون بورایا توخونون. گئچمیشینیزی، کوکی‌لرینیزی، هرشئیی سیلین.</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -320,7 +320,7 @@
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
-  <string name="browser_menu_translated_to">%1$s دیلینه چئویر</string>
+  <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">%1$s دیلینه چئویر</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">پرینت…</string>
   <!--
@@ -344,7 +344,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">مورور گئچمیشینی پوز</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">مورور گئچمیشینی پوز</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">صفحه‌نی ترجومه ائله</string>
   <!--
@@ -690,13 +690,13 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">لازیم</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">لازیم</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
-  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">گؤیوللو</string>
+  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources" moz:removedIn="141">گؤیوللو</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
-  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">بوتون سایتلار اوچون ایجازه وئر</string>
+  <string name="addons_permissions_allow_for_all_sites">بوتون سایتلار اوچون ایجازه وئر</string>
   <!-- The subtitle for the allow for all sites preference toggle -->
-  <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">بو اوزانتیْ‌یا گوونسه‌نیز، هر سایتدا اوْنا ایجازه وئره‌بیلرسینیز.</string>
+  <string name="addons_permissions_allow_for_all_sites_subtitle">بو اوزانتیْ‌یا گوونسه‌نیز، هر سایتدا اوْنا ایجازه وئره‌بیلرسینیز.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">بو اوزانتیْ‌یا هیچ بیر اجازه ایسته‌میر.</string>
   <!--
@@ -1508,7 +1508,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">گیزلی تاغ باغلاندیْ</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">گیزلی تاغلار باغلاندیْ</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">گیزلی تاغلار باغلاندیْ</string>
   <!-- Text shown in snackbar when user erases their private browsing data -->
   <string name="snackbar_private_data_deleted">اؤزل باخیش دیتالاریْ سیلیندی</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
@@ -2299,7 +2299,7 @@
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">بو مجموعه موْردینده آرتیق بیلمک اوچون باغلانتی‌نی آچین</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
-  <string name="a11y_action_label_read_article">مقاله‌نی اوْخو</string>
+  <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">مقاله‌نی اوْخو</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">آرتیق بیلمک اوچون باغلانتی‌نیْ آچ</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->

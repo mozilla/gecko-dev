@@ -20,8 +20,14 @@
   <string name="mozac_browser_errorpages_security_bad_cert_back">o tawa pona (sina pona tan ni)</string>
   <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
   <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">o awen tawa lipu</string>
+  <!-- The document title and heading of the error page shown when a website uses HSTS. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">lipu ni li wile e toki len.</string>
+  <!-- The error message shown when a website uses HSTS. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[<ul> <li>mi ken ala pana e lipu ni tawa sina tan ni: ona li wile e toki len.</li> <li>ni li pakala tan lipu ni. sina ken ala pona e ni lon ken suli.</li> <li>sina ken toki e pakala ni tawa lawa lipu.</li> </ul>]]></string>
   <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
   <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">namako…</string>
+  <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">o weka</string>
   <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
   <string name="mozac_browser_errorpages_net_interrupt_title">linja li pakala</string>
   <!-- The document title and heading of the error page shown when a website takes too long to load. -->

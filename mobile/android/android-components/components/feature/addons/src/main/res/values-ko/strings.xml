@@ -85,7 +85,7 @@
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">확인되지 않은 스크립트는 보안 및 개인 정보 보호에 위험이 될 수 있습니다. 신뢰할 수 있는 확장 기능이나 출처의 스크립트만 실행하세요.</string>
   <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
-  <string name="mozac_feature_addons_permissions_required_data_collection_description">개발자가 밝힌 이 확장 기능의 수집 권한: %1$s.</string>
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">개발자가 밝힌 이 확장 기능의 수집 권한: %1$s.</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">개발자가 이 확장 기능은 데이터 수집이 필요하지 않다고 합니다.</string>
   <!-- Description for devtools permission. -->

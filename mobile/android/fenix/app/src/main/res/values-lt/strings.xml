@@ -48,7 +48,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">„%1$s“ išvalo jūsų paieškos ir naršymo žurnalą iš privačiųjų kortelių kai jas užveriate, arba išjungiate programą. Nors tai ir nesuteikia jums anonimiškumo internete, taip lengviau galite išlaikyti savo privatumą nuo kitų šį įrenginį naudojančių asmenų.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">„%1$s“ išvalo jūsų paieškos ir naršymo žurnalą iš privačiųjų kortelių kai jas užveriate, arba išjungiate programą. Nors tai ir nesuteikia jums anonimiškumo internete, taip lengviau galite išlaikyti savo privatumą nuo kitų šį įrenginį naudojančių asmenų.</string>
   <string name="private_browsing_common_myths">Dažni mitai apie privatųjį naršymą</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
@@ -905,7 +905,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Privačioji kortelė užverta</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Privačiosios kortelės užvertos</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Privačiosios kortelės užvertos</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">Atšaukti</string>
   <!-- Text shown in snackbar when user removes a top site -->

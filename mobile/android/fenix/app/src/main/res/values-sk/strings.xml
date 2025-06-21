@@ -62,7 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s vymaže históriu vyhľadávania a navštívených stránok po zavretí aplikácie alebo všetkých súkromných kariet a okien. S touto funkciou nie ste na internete neviditeľní a napríklad váš poskytovateľ pripojenia na internet môže stále zistiť, aké stránky navštevujete. Vaša aktivita na internete ale zostane utajená pred ďalšími používateľmi na tomto zariadení.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s vymaže históriu vyhľadávania a navštívených stránok po zavretí aplikácie alebo všetkých súkromných kariet a okien. S touto funkciou nie ste na internete neviditeľní a napríklad váš poskytovateľ pripojenia na internet môže stále zistiť, aké stránky navštevujete. Vaša aktivita na internete ale zostane utajená pred ďalšími používateľmi na tomto zariadení.</string>
   <string name="private_browsing_common_myths">Časté mýty o súkromnom prehliadaní</string>
   <!--
     True Private Browsing Mode
@@ -98,7 +98,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">Ťuknutím sem spustíte novú súkromnú reláciu. Vymažte svoju históriu, súbory cookie – všetko.</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">Ťuknutím sem spustíte novú súkromnú reláciu. Vymažte svoju históriu, súbory cookie – všetko.</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -321,7 +321,9 @@
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Synchronizujte heslá, karty a ďalšie položky</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption_2">Synchronizácia záložiek, hesiel, kariet a ďalších položiek</string>
+  <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">Synchronizácia záložiek, hesiel, kariet a ďalších položiek</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_3">Synchronizácia hesiel, záložiek a ďalších položiek</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Prihlásiť sa a synchronizovať</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -400,7 +402,7 @@
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
-  <string name="browser_menu_translated_to">Preložená do jazyka %1$s</string>
+  <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">Preložená do jazyka %1$s</string>
   <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
   <string name="browser_menu_translated">Preložená</string>
   <!-- Browser menu label for the print feature -->
@@ -445,7 +447,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">Vymazať históriu prehliadania</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">Vymazať históriu prehliadania</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">Preložiť stránku</string>
   <!--
@@ -962,15 +964,29 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">Vyžadované</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">Vyžadované</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
-  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">Voliteľné</string>
+  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources" moz:removedIn="141">Voliteľné</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
-  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Povoliť pre všetky stránky</string>
+  <string name="addons_permissions_allow_for_all_sites">Povoliť pre všetky stránky</string>
   <!-- The subtitle for the allow for all sites preference toggle -->
-  <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">Ak tomuto rozšíreniu dôverujete, môžete mu udeliť povolenie pre každú webovú stránku.</string>
+  <string name="addons_permissions_allow_for_all_sites_subtitle">Ak tomuto rozšíreniu dôverujete, môžete mu udeliť povolenie pre každú webovú stránku.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">Toto rozšírenie nevyžaduje žiadne povolenia.</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">Vývojár uvádza, že toto rozšírenie zhromažďuje: %1$s.</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description_2">Vývojár uvádza, že toto rozšírenie zhromažďuje: %1$s</string>
+  <!-- The description of the "none" data collection permission, when the extension doesn't collect anything according to the developer. -->
+  <string name="addons_permissions_none_required_data_collection_description">Vývojár uvádza, že toto rozšírenie nevyžaduje zhromažďovanie údajov.</string>
+  <!-- The title of the required permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_permissions">Požadované oprávnenia:</string>
+  <!-- The title of the optional permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_permissions">Voliteľné povolenia:</string>
+  <!-- The title of the required data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_data_collection">Požadovaný zber údajov:</string>
+  <!-- The title of the optional data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_data_collection">Voliteľný zber údajov:</string>
   <!--
     Add-on Preferences
 
@@ -1521,6 +1537,8 @@
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">Odstránené položky: %1$d</string>
+  <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
+  <string name="download_app_dialog_title">Stiahnuť súbor pomocou:</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Položka “%1$s” bola odstránená</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -2144,7 +2162,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Súkromná karta bola zavretá</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Súkromné karty boli zavreté</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Súkromné karty boli zavreté</string>
   <!-- Text shown in snackbar when user erases their private browsing data -->
   <string name="snackbar_private_data_deleted">Údaje súkromného prehliadania boli odstránené</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
@@ -3036,7 +3054,7 @@
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">otvorte odkaz a dozviete sa viac o tejto kolekcii</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
-  <string name="a11y_action_label_read_article">prečítať článok</string>
+  <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">prečítať článok</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">otvorte odkaz a dozviete sa viac</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->

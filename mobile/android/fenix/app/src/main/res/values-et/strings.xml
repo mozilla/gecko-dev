@@ -62,7 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s kustutab privaatsete kaartide otsimise ja lehitsemise ajaloo, kui väljud rakendusest või sulged privaatsed kaardid. Kuigi see ei muuda sind külastatavate veebilehtede või internetiteenuse pakkuja ees anonüümseks, kaitseb see siiski sinu privaatsust teiste selle seadme kasutajate eest.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s kustutab privaatsete kaartide otsimise ja lehitsemise ajaloo, kui väljud rakendusest või sulged privaatsed kaardid. Kuigi see ei muuda sind külastatavate veebilehtede või internetiteenuse pakkuja ees anonüümseks, kaitseb see siiski sinu privaatsust teiste selle seadme kasutajate eest.</string>
   <string name="private_browsing_common_myths">Levinumad müüdid privaatse veebilehitsemise kohta</string>
   <!--
     True Private Browsing Mode
@@ -98,7 +98,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">Uue privaatseansi alustamiseks puuduta siit. Kustuta ajalugu, küpsised – kõik.</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">Uue privaatseansi alustamiseks puuduta siit. Kustuta ajalugu, küpsised – kõik.</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -281,7 +281,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">Kustuta lehitsemise ajalugu</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">Kustuta lehitsemise ajalugu</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">Tõlgi leht</string>
   <!--
@@ -534,7 +534,7 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">Nõutud</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">Nõutud</string>
   <!-- Button caption to confirm the add-on collection configuration -->
   <string name="customize_addon_collection_ok">Olgu</string>
   <!-- Button caption to abort the add-on collection configuration -->
@@ -1319,7 +1319,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Privaatne kaart suleti</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Privaatsed kaardid suleti</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Privaatsed kaardid suleti</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">VÕTA TAGASI</string>
   <!-- Text shown in snackbar when user removes a top site -->

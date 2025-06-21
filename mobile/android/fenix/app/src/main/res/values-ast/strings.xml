@@ -62,7 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s borra l\'historial de busca y de resolar de les llingüetes privaes cuando les zarres o coles de l\'aplicación. Magar qu\'esta aición nun caltién el to anonimatu nos sitios web o nel fornidor de servicios d\'internet, facilita que cualesquier persona qu\'use esti preséu nun sepa qué faes en llinia.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s borra l\'historial de busca y de resolar de les llingüetes privaes cuando les zarres o coles de l\'aplicación. Magar qu\'esta aición nun caltién el to anonimatu nos sitios web o nel fornidor de servicios d\'internet, facilita que cualesquier persona qu\'use esti preséu nun sepa qué faes en llinia.</string>
   <string name="private_browsing_common_myths">Mitos habituales tocante al restolar en privao</string>
   <!--
     True Private Browsing Mode
@@ -98,7 +98,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">Toca equí p\'aniciar una sesión privada nueva. Desanicia l\'historial, les cookies… Too.</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">Toca equí p\'aniciar una sesión privada nueva. Desanicia l\'historial, les cookies… Too.</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -1029,7 +1029,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Zarróse la llingüeta privada</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Zarráronse les llingüetes privaes</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Zarráronse les llingüetes privaes</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">DESFACER</string>
   <!-- Text shown in snackbar when user removes a top site -->

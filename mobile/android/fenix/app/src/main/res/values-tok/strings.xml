@@ -31,11 +31,13 @@
   <!-- No Private Tabs Message Description -->
   <string name="no_private_tabs_description">lipu len open li kama lon poki ni.</string>
   <!-- Label of button in create collection dialog for creating a new collection -->
-  <string name="tab_tray_add_new_collection">o pana e kulupu sin</string>
+  <string name="tab_tray_add_new_collection">o pali e kulupu poki sin</string>
   <!-- Label of editable text in create collection dialog for naming a new collection -->
   <string name="tab_tray_add_new_collection_name">nimi</string>
   <!-- Label of button in save to collection dialog for selecting a current collection -->
-  <string name="tab_tray_select_collection">o wile e kulupu</string>
+  <string name="tab_tray_select_collection">o wile e kulupu poki</string>
+  <!-- Content description for save to collection button while in multiselect mode in tab tray -->
+  <string name="tab_tray_collection_button_multiselect_content_description">o pana e poki wile tawa kulupu</string>
   <!--
     Home - Bookmarks
 
@@ -54,12 +56,20 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">nasin len la ilo %1$s li weka e sona pi lipu lukin sina lon weka sina. ni li len ala e sina tawa ilo lipu tawa kulupu lawa. taso jan ante li kepeken ilo sina la nasin ni li len e sina tawa ona.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">nasin len la ilo %1$s li weka e sona pi lipu lukin sina lon weka sina. ni li len ala e sina tawa ilo lipu tawa kulupu lawa. taso jan ante li kepeken ilo sina la nasin ni li len e sina tawa ona.</string>
   <string name="private_browsing_common_myths">o kama sona pona e nasin len</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">o lukin e lipu wile</string>
   <!-- Text for the negative action button -->
   <string name="open_in_app_cfr_negative_button_text">o weka</string>
+  <!--
+    Address bar swipe "contextual feature recommendation" (CFR)
+
+    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+  -->
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">sina wile lukin e poki ante poka la o tawa e ilo pi nasin poki kepeken nena.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">sina wile lukin e poki ante poka la o tawa e ilo pi nasin poki kepeken nena.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
   <string name="camera_permissions_needed_positive_button_text">o lukin e lipu wile</string>
   <!-- Text for the negative action button to dismiss the dialog. -->
@@ -195,9 +205,9 @@
   <!-- Browser menu button that opens the translations dialog, which has options to translate the current browser page. -->
   <string name="browser_menu_translations">o ante e toki lipu</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">o awen lon kulupu…</string>
+  <string name="browser_menu_save_to_collection" moz:removedIn="141" tools:ignore="UnusedResources">o pana tawa kulupu poki…</string>
   <!-- Browser menu button that saves the current tab to a collection -->
-  <string name="browser_menu_save_to_collection_2">o awen lon kulupu</string>
+  <string name="browser_menu_save_to_collection_2">o pana tawa kulupu poki</string>
   <!-- Browser menu button that open a share menu to share the current site -->
   <string name="browser_menu_share">o pana</string>
   <!--
@@ -229,6 +239,20 @@
     %2$s is the name of the language which the page was translated to. (For example: French)
   -->
   <string name="browser_toolbar_translated_successfully">toki lipu la %1$s li kama %2$s</string>
+  <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
+  <string name="awesomebar_clipboard_title">o alasa e nimi tan poki ilo</string>
+  <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
+  <string name="preferences_show_clipboard_suggestions">o lukin e nimi pi ken pana lon poki nimi</string>
+  <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
+  <string name="remove_tab_from_collection">o weka e poki tan kulupu ni</string>
+  <!-- Open tabs menu item to save tabs to collection -->
+  <string name="tabs_menu_save_to_collection1">o pana poki tawa kulupu ni</string>
+  <!-- Text for the menu button to delete a collection -->
+  <string name="collection_delete">o weka e kulupu poki</string>
+  <!-- Text for the menu button to rename a collection -->
+  <string name="collection_rename">o ante nimi e kulupu poki</string>
+  <!-- Hint for adding name of a collection -->
+  <string name="collection_name_hint">nimi kulupu</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">o pana e nimi nasin</string>
   <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
@@ -249,18 +273,50 @@
   <string name="preference_browser_feature_autoplay">open sitelen</string>
   <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
   <string name="preference_feature_desktop_mode_default">tenpo ale la o kepeken nasin lukin lipu pi ilo suli</string>
+  <!--
+    Collections
+
+    Collections header on home fragment
+  -->
+  <string name="collections_header">kulupu poki</string>
+  <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
+  <string name="collection_menu_button_content_description">poki pi kulupu poki</string>
+  <!-- Label to describe what collections are to a new user without any collections -->
+  <string name="no_collections_description2">o poki e ijo pona sina.\no kulupu e ijo pi alasa sama. ni la sina ken lukin pona e ona lon tenpo kama.</string>
+  <!-- Title for the "select collection" step of the collection creator -->
+  <string name="create_collection_select_collection">o wile e kulupu poki</string>
+  <!-- Title for the "name collection" step of the collection creator -->
+  <string name="create_collection_name_collection">o nimi e kulupu poki</string>
+  <!-- Button to add new collection for the "select collection" step of the collection creator -->
+  <string name="create_collection_add_new_collection">o pali e kulupu poki sin</string>
+  <!-- Text shown in snackbar when one or multiple tabs have been saved in a new collection -->
+  <string name="create_collection_tabs_saved_new_collection">mi awen e kulupu poki!</string>
+  <!-- Default name for a new collection in "name new collection" step of the collection creator. %d is a placeholder for the number of collections -->
+  <string name="create_collection_default_name">kulupu %d</string>
   <!-- Text for error message when printing a page and it fails. -->
   <string name="unable_to_print_page_error">mi ken ala pana e lipu ilo ni tawa lipu kasi</string>
   <!-- Text for the print feature in the share and browser menu -->
   <string name="menu_print">pana pi lipu kasi</string>
   <!-- Sub-header in the dialog to share a link to another sync device -->
   <string name="share_device_subheader">o pana tawa ilo ante</string>
+  <!-- Text for the copy link action in the share screen. -->
+  <string name="share_copy_link_to_clipboard">o pana tawa poki nimi</string>
+  <!-- Toast shown after copying link to clipboard -->
+  <string name="toast_copy_link_to_clipboard">mi pana tawa poki nimi</string>
   <!-- An option from the share dialog to send link to all other sync devices -->
   <string name="sync_send_to_all">o pana tawa ilo ante ale</string>
   <!-- The dialog text shown when additional devices are not available -->
   <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">pana lipu la o kama tawa ilo Firefox lon ilo ante</string>
   <!-- Add new device screen title -->
   <string name="sync_add_new_device_title">o pana tawa ilo ante</string>
+  <!--
+    Snackbar
+
+    Text shown in snackbar when user deletes a collection
+  -->
+  <string name="snackbar_collection_deleted">mi weka e kulupu poki ni</string>
+  <!-- Text shown in snackbar when user renames a collection -->
+  <string name="snackbar_collection_renamed">mi ante nimi e kulupu poki ni</string>
   <!-- Message for copying the URL via long press on the toolbar -->
   <string name="url_copied">mi jo e nimi nasin</string>
   <!-- Instructions on how to access pairing -->
@@ -271,6 +327,10 @@
   <string name="preference_doh_provider_custom_dialog_error_invalid">nimi nasin ni li pakala</string>
   <!-- Snackbar message shown after an URL has been copied to clipboard. -->
   <string name="browser_toolbar_url_copied_to_clipboard_snackbar">mi jo e nimi nasin</string>
+  <!-- Shown in snackbar to tell user that the password has been copied -->
+  <string name="logins_password_copied">mi pana e nimi open tawa poki ilo</string>
+  <!-- Shown in snackbar to tell user that the username has been copied -->
+  <string name="logins_username_copied">mi pana e nimi sijelo tawa poki ilo</string>
   <!-- The header for the email of an address -->
   <string name="addresses_email">nimi pi poki lipu</string>
   <!-- First step for the allowing a permission -->

@@ -30,4 +30,8 @@
     %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission.
   -->
   <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">o lukin e sona sina lon kulupu lipu ante %1$d</string>
+  <!-- Description for clipboard_read permission. -->
+  <string name="mozac_feature_addons_permissions_clipboard_read_description">ilo li ken kama e nimi tan poki ilo</string>
+  <!-- Description for clipboard_write permission. -->
+  <string name="mozac_feature_addons_permissions_clipboard_write_description">ilo li ken pana e nimi tawa poki ilo</string>
 </resources>

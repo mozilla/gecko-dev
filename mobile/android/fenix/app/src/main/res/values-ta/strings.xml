@@ -40,7 +40,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">நீங்கள் கமுக்கக் கீற்றுகளை மூடும்போது அல்லது செயலியை விட்டு வெளியேறும் போது உங்கள் தேடல், உலாவல் வரலாற்றை %1$s துடைக்கிறது. இது வலைத்தளங்கள் அல்லது இணைய சேவை வழங்குநர்களிடமிருந்து உங்களை அடையாளமற்றவராக மாற்றாது, ஆனால் இந்தக் கணினியைப் பயன்படுத்தும் மற்றவர்களிடமிருந்தும் இயங்கலையில் நீங்கள் செய்பவற்றை கமுக்கமாக வைப்பதை எளிதாக்குகிறது.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">நீங்கள் கமுக்கக் கீற்றுகளை மூடும்போது அல்லது செயலியை விட்டு வெளியேறும் போது உங்கள் தேடல், உலாவல் வரலாற்றை %1$s துடைக்கிறது. இது வலைத்தளங்கள் அல்லது இணைய சேவை வழங்குநர்களிடமிருந்து உங்களை அடையாளமற்றவராக மாற்றாது, ஆனால் இந்தக் கணினியைப் பயன்படுத்தும் மற்றவர்களிடமிருந்தும் இயங்கலையில் நீங்கள் செய்பவற்றை கமுக்கமாக வைப்பதை எளிதாக்குகிறது.</string>
   <string name="private_browsing_common_myths">கமுக்க உலாவல் பற்றிய பொதுவான தொன்மங்கள்</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">அமைவுகளுக்கு செல்</string>
@@ -663,7 +663,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">கமுக்கக் கீற்று மூடப்பட்டது</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">கமுக்கக் கீற்றுகள் மூடப்பட்டன</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">கமுக்கக் கீற்றுகள் மூடப்பட்டன</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">செயல்தவிர்</string>
   <!-- Text shown in snackbar when user removes a top site -->

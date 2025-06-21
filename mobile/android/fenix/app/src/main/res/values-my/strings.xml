@@ -48,7 +48,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s သည် သင် ပိတ်လိုက်သောအခါ (သို့မဟုတ်) အက်ပ်မှ ထွက်သောအခါ သင်၏ သီးသန့် တပ်ဗ်များမှ ရှာဖွေမှု မှတ်တမ်းများအား ရှင်းပစ်သည်။ ၎င်းသည် ၀က်ဘ်ဆိုက်များ (သို့မဟုတ်) သင်၏ အင်တာနက် ၀န်ဆောင်မှုပေးသူ ထံတွင် သင့်အား အမည်မဖော်လိုသူ အဖြစ် မထားပေးနိုင်သော်လည်း ဤစက်ကိရိယာကို သုံးသော အခြားသူများထံမှ သင် အွန်လိုင်း ပေါ်တွင် လုပ်ဆောင်လိုက်သည်များကို သီးသန့်ထားရန် ပိုမို လွယ်ကူစေသည်။</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s သည် သင် ပိတ်လိုက်သောအခါ (သို့မဟုတ်) အက်ပ်မှ ထွက်သောအခါ သင်၏ သီးသန့် တပ်ဗ်များမှ ရှာဖွေမှု မှတ်တမ်းများအား ရှင်းပစ်သည်။ ၎င်းသည် ၀က်ဘ်ဆိုက်များ (သို့မဟုတ်) သင်၏ အင်တာနက် ၀န်ဆောင်မှုပေးသူ ထံတွင် သင့်အား အမည်မဖော်လိုသူ အဖြစ် မထားပေးနိုင်သော်လည်း ဤစက်ကိရိယာကို သုံးသော အခြားသူများထံမှ သင် အွန်လိုင်း ပေါ်တွင် လုပ်ဆောင်လိုက်သည်များကို သီးသန့်ထားရန် ပိုမို လွယ်ကူစေသည်။</string>
   <string name="private_browsing_common_myths">ပုဂ္ဂလိက browsing ဆိုင်ရာ အမြင်မှားများ</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">ဆက်တင် များသို့ သွားပါ။</string>
@@ -165,7 +165,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">ကြည့်ရှုမှုမှတ်တမ်းကို ရှင်းလင်းမည်</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">ကြည့်ရှုမှုမှတ်တမ်းကို ရှင်းလင်းမည်</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">စာမျက်နှာကို ဘာသာပြန်မည်</string>
   <!--
@@ -829,7 +829,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">သီးသန့်သုံးတဗ်ကိုပိတ်ခဲ့သည်</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">သီးသန့်သုံးတဗ်များကိုပိတ်ခဲ့သည်</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">သီးသန့်သုံးတဗ်များကိုပိတ်ခဲ့သည်</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">UNDO</string>
   <!-- Text shown in snackbar when user removes a top site -->

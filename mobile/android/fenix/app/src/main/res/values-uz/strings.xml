@@ -48,7 +48,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">Ilovadan chiqsangiz yoki ularni yopsangiz, qidiruv va brauzer tarixini %1$s shaxsiy yorliqlardan tozalaydi. Garchi bu sizni veb-saytlar yoki Internet-provayderingiz uchun nomaʼlum qilmasa ham, Internetda qilgan ishingizni ushbu qurilmadan foydalanadigan har kimdan maxfiy saqlashni osonlashtiradi.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">Ilovadan chiqsangiz yoki ularni yopsangiz, qidiruv va brauzer tarixini %1$s shaxsiy yorliqlardan tozalaydi. Garchi bu sizni veb-saytlar yoki Internet-provayderingiz uchun nomaʼlum qilmasa ham, Internetda qilgan ishingizni ushbu qurilmadan foydalanadigan har kimdan maxfiy saqlashni osonlashtiradi.</string>
   <string name="private_browsing_common_myths">Maxfiy koʻrish haqidagi umumiy afsonalar</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
@@ -1031,7 +1031,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Maxfiy varaq yopildi</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Maxfiy varaqlar yopildi</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Maxfiy varaqlar yopildi</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">BEKOR QILISH</string>
   <!-- Text shown in snackbar when user removes a top site -->
@@ -1643,6 +1643,6 @@
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">ushbu kolleksiya haqida koʻproq maʼlumot olish uchun havolani oching</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
-  <string name="a11y_action_label_read_article">maqolani oʻqish</string>
+  <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">maqolani oʻqish</string>
   <!-- Translations feature -->
 </resources>

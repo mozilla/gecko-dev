@@ -60,7 +60,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">جدوں تسیں ساریاں نجی ٹیباں نوں بند کردے او یا ایپ توں باہر جاندے او تاں %1$s تہاڈی کھوج تے ورتوں دی تاریخ نوں ساف کردا اے۔ حالاں‌کہ ایہہ تہانوں سائٹاں یا تہاڈے اینٹرنیٹ دیݨ والے لئی اݨپچھاتا نہیں بݨاوندا، پر ایس نال ایس فون نوں ورتے والے کسے توں وی تہاڈے ولوں آن‌لائین کیتے نوں نجی رکھݨا ہور سوکھا ہو جاندا اے۔</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">جدوں تسیں ساریاں نجی ٹیباں نوں بند کردے او یا ایپ توں باہر جاندے او تاں %1$s تہاڈی کھوج تے ورتوں دی تاریخ نوں ساف کردا اے۔ حالاں‌کہ ایہہ تہانوں سائٹاں یا تہاڈے اینٹرنیٹ دیݨ والے لئی اݨپچھاتا نہیں بݨاوندا، پر ایس نال ایس فون نوں ورتے والے کسے توں وی تہاڈے ولوں آن‌لائین کیتے نوں نجی رکھݨا ہور سوکھا ہو جاندا اے۔</string>
   <string name="private_browsing_common_myths">نجی ورتوں بارے عام فرضی گلاں</string>
   <!--
     True Private Browsing Mode
@@ -96,7 +96,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">تازہ نجی سیشن شروع کرن لئی اتھے چھوہو۔ آپݨے تاریخ، کوکیاں — ہر چیز ہٹا دیو۔</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">تازہ نجی سیشن شروع کرن لئی اتھے چھوہو۔ آپݨے تاریخ، کوکیاں — ہر چیز ہٹا دیو۔</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -320,7 +320,7 @@
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
-  <string name="browser_menu_translated_to">%1$s وچ اُلتھا کیتا</string>
+  <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">%1$s وچ اُلتھا کیتا</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">چھاپو…</string>
   <!--
@@ -344,7 +344,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">براؤز کرن دی تاریخ مٹاؤ</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">براؤز کرن دی تاریخ مٹاؤ</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">صفحے دا اُلتھا کرو</string>
   <!--
@@ -690,13 +690,13 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">لوڑیندا</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">لوڑیندا</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
-  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">چوݨواں</string>
+  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources" moz:removedIn="141">چوݨواں</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
-  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">سبھ سائیٹاں لئی منظوری</string>
+  <string name="addons_permissions_allow_for_all_sites">سبھ سائیٹاں لئی منظوری</string>
   <!-- The subtitle for the allow for all sites preference toggle -->
-  <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">جے تسیں ایس پھیلاؤ تے بھروسا کدے او تاں تسیں ہر ویب‌سائیٹ لئی ایس نوں اجازت دے سکدے او۔</string>
+  <string name="addons_permissions_allow_for_all_sites_subtitle">جے تسیں ایس پھیلاؤ تے بھروسا کدے او تاں تسیں ہر ویب‌سائیٹ لئی ایس نوں اجازت دے سکدے او۔</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">ایس پھیلاؤ لئی کسے اجازت دی لوڑ نہیں اے۔</string>
   <!--

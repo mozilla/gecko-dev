@@ -40,7 +40,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s limpia lo tuyo historial de busquedas y de navegación en as pestanyas privadas quan las zarras u en salir de l’aplicación. Encara que no te fa invisible debant d’os puestos web u d’o tuyo furnidor de servicios, ye mas facil salvaguardar la tuya vida privada de qualsequier persona que faga servir este dispositivo.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s limpia lo tuyo historial de busquedas y de navegación en as pestanyas privadas quan las zarras u en salir de l’aplicación. Encara que no te fa invisible debant d’os puestos web u d’o tuyo furnidor de servicios, ye mas facil salvaguardar la tuya vida privada de qualsequier persona que faga servir este dispositivo.</string>
   <string name="private_browsing_common_myths">Mitos comuns sobre la navegación privada</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
@@ -863,7 +863,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Pestanya privada zarrada</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Pestanyas privada zarradas</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Pestanyas privada zarradas</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">DESFER</string>
   <!-- Text shown in snackbar when user removes a top site -->

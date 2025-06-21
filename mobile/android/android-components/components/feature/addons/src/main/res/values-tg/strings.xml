@@ -85,7 +85,7 @@
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Скриптҳои тасдиқнашуда метавонанд ба амният ва махфияти шумо ҳар гуна хатарҳоро ба вуҷуд оранд. Танҳо скриптҳоро аз васеъшавиҳо ё манбаъҳое, ки шумо ба он эътимод доред, иҷро кунед.</string>
   <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
-  <string name="mozac_feature_addons_permissions_required_data_collection_description">Барномасоз хабар медиҳад, ки ин васеъшавӣ зеринро ҷамъ мекунад: %1$s.</string>
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">Барномасоз хабар медиҳад, ки ин васеъшавӣ зеринро ҷамъ мекунад: %1$s.</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">Барномасоз хабар медиҳад, ки ин васеъшавӣ ҷамъоварии маълумотро талаб намекунад.</string>
   <!-- Description for devtools permission. -->
