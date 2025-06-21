@@ -6,8 +6,11 @@
 
 #include "DAV1DDecoder.h"
 
+#include <functional>
+
 #include "gfxUtils.h"
 #include "ImageContainer.h"
+#include "libyuv.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/TaskQueue.h"
 #include "nsThreadUtils.h"
@@ -20,6 +23,7 @@
             ##__VA_ARGS__)
 
 namespace mozilla {
+using layers::BufferRecycleBin;
 
 static int GetDecodingThreadCount(uint32_t aCodedHeight) {
   /**
@@ -67,7 +71,13 @@ DAV1DDecoder::DAV1DDecoder(const CreateDecoderParams& aParams)
       mImageAllocator(aParams.mKnowsCompositor),
       mTrackingId(aParams.mTrackingId),
       mLowLatency(
-          aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency)) {}
+          aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency)),
+      m8bpcOutput(aParams.mOptions.contains(
+          CreateDecoderParams::Option::Output8BitPerChannel)) {
+  if (m8bpcOutput) {
+    m8bpcRecycleBin = MakeRefPtr<BufferRecycleBin>();
+  }
+}
 
 DAV1DDecoder::~DAV1DDecoder() = default;
 
@@ -275,16 +285,105 @@ Maybe<gfx::ColorSpace2> DAV1DDecoder::GetColorPrimaries(
       static_cast<gfx::CICP::ColourPrimaries>(aPicture.seq_hdr->pri), aLogger);
 }
 
+// Extends VideoData::YCbCrBuffer to support 8-bit per channel conversion with
+// recyclable plane data.
+class VideoDataBuffer final : public VideoData::YCbCrBuffer {
+ public:
+  MediaResult To8BitPerChannel(BufferRecycleBin* aRecycleBin) {
+    MOZ_ASSERT(!mRecycleBin, "Should not be called more than once.");
+    mRecycleBin = aRecycleBin;
+
+    MOZ_ASSERT(mColorDepth == gfx::ColorDepth::COLOR_10 ||
+               mColorDepth == gfx::ColorDepth::COLOR_12);
+    int yStride = mPlanes[0].mStride / 2;
+    int uvStride = mPlanes[1].mStride / 2;
+    size_t yLength = yStride * mPlanes[0].mHeight;
+    size_t uvLength = uvStride * mPlanes[1].mHeight;
+
+    const uint16_t* srcPlanes[3]{
+        reinterpret_cast<const uint16_t*>(mPlanes[0].mData),
+        reinterpret_cast<const uint16_t*>(mPlanes[1].mData),
+        reinterpret_cast<const uint16_t*>(mPlanes[2].mData)};
+    Allocate(yLength + (uvLength * 2));
+    if (!m8bpcPlanes) {
+      return MediaResult(
+          NS_ERROR_OUT_OF_MEMORY,
+          RESULT_DETAIL("Cannot allocate %zu bytes for 8-bit conversion",
+                        yLength + (uvLength * 2)));
+    }
+    uint8_t* destPlanes[3]{m8bpcPlanes.get(), m8bpcPlanes.get() + yLength,
+                           m8bpcPlanes.get() + yLength + uvLength};
+    using Func16To8 =  // libyuv function type.
+        std::function<int(const uint16_t*, int, const uint16_t*, int,
+                          const uint16_t*, int, uint8_t*, int, uint8_t*, int,
+                          uint8_t*, int, int, int)>;
+    auto convertFunc = [](gfx::ColorDepth aDepth,
+                          gfx::ChromaSubsampling aSubsampling) -> Func16To8 {
+      switch (aSubsampling) {
+        case gfx::ChromaSubsampling::HALF_WIDTH_AND_HEIGHT:  // 420p
+          return aDepth == gfx::ColorDepth::COLOR_10 ? libyuv::I010ToI420
+                                                     : libyuv::I012ToI420;
+        case gfx::ChromaSubsampling::HALF_WIDTH:  // 422p
+          return aDepth == gfx::ColorDepth::COLOR_10 ? libyuv::I210ToI422
+                                                     : libyuv::I212ToI422;
+        case gfx::ChromaSubsampling::FULL:  // 444p
+          return aDepth == gfx::ColorDepth::COLOR_10 ? libyuv::I410ToI444
+                                                     : libyuv::I412ToI444;
+        default:
+          return Func16To8();
+      }
+    }(mColorDepth, mChromaSubsampling);
+    if (!convertFunc) {
+      return MediaResult(
+          NS_ERROR_DOM_MEDIA_DECODE_ERR,
+          RESULT_DETAIL(
+              "Source format (color depth=%d, subsampling=%d) not supported",
+              gfx::BitDepthForColorDepth(mColorDepth), mChromaSubsampling));
+    }
+    int r = convertFunc(srcPlanes[0], yStride, srcPlanes[1], uvStride,
+                        srcPlanes[2], uvStride, destPlanes[0], yStride,
+                        destPlanes[1], uvStride, destPlanes[2], uvStride,
+                        mPlanes[0].mWidth, mPlanes[0].mHeight);
+    if (r != 0) {
+      return MediaResult(
+          NS_ERROR_DOM_MEDIA_DECODE_ERR,
+          RESULT_DETAIL("Conversion to 8-bit failed. libyuv error=%d", r));
+    }
+    // Update buffer info.
+    mColorDepth = gfx::ColorDepth::COLOR_8;
+    mPlanes[0].mData = destPlanes[0];
+    mPlanes[0].mStride = yStride;
+    mPlanes[1].mData = destPlanes[1];
+    mPlanes[2].mData = destPlanes[2];
+    mPlanes[1].mStride = mPlanes[2].mStride = uvStride;
+
+    return MediaResult(NS_OK);
+  }
+
+  ~VideoDataBuffer() {
+    if (m8bpcPlanes) {
+      mRecycleBin->RecycleBuffer(std::move(m8bpcPlanes), mAllocatedLength);
+    }
+  }
+
+ private:
+  void Allocate(size_t aLength) {
+    MOZ_ASSERT(!m8bpcPlanes, "Should not allocate more than once.");
+    MOZ_ASSERT(aLength > 0, "Zero-length allocation!");
+
+    m8bpcPlanes = mRecycleBin->GetBuffer(aLength);
+    mAllocatedLength = aLength;
+  }
+
+  RefPtr<BufferRecycleBin> mRecycleBin;
+  UniquePtr<uint8_t[]> m8bpcPlanes;
+  size_t mAllocatedLength;
+};
+
 Result<already_AddRefed<VideoData>, MediaResult> DAV1DDecoder::ConstructImage(
     const Dav1dPicture& aPicture) {
-  VideoData::YCbCrBuffer b;
-  if (aPicture.p.bpc == 10) {
-    b.mColorDepth = gfx::ColorDepth::COLOR_10;
-  } else if (aPicture.p.bpc == 12) {
-    b.mColorDepth = gfx::ColorDepth::COLOR_12;
-  } else {
-    b.mColorDepth = gfx::ColorDepth::COLOR_8;
-  }
+  VideoDataBuffer b;
+  b.mColorDepth = gfx::ColorDepthForBitDepth(aPicture.p.bpc);
 
   b.mYUVColorSpace =
       DAV1DDecoder::GetColorSpace(aPicture, sPDMLog)
@@ -305,18 +404,16 @@ Result<already_AddRefed<VideoData>, MediaResult> DAV1DDecoder::ConstructImage(
   b.mPlanes[1].mSkip = 0;
 
   b.mPlanes[2].mData = static_cast<uint8_t*>(aPicture.data[2]);
-  b.mPlanes[2].mStride = aPicture.stride[1];
+  b.mPlanes[2].mStride = b.mPlanes[1].mStride;
   b.mPlanes[2].mSkip = 0;
 
   // https://code.videolan.org/videolan/dav1d/blob/master/tools/output/yuv.c#L67
   const int ss_ver = aPicture.p.layout == DAV1D_PIXEL_LAYOUT_I420;
   const int ss_hor = aPicture.p.layout != DAV1D_PIXEL_LAYOUT_I444;
 
-  b.mPlanes[1].mHeight = (aPicture.p.h + ss_ver) >> ss_ver;
-  b.mPlanes[1].mWidth = (aPicture.p.w + ss_hor) >> ss_hor;
-
-  b.mPlanes[2].mHeight = (aPicture.p.h + ss_ver) >> ss_ver;
-  b.mPlanes[2].mWidth = (aPicture.p.w + ss_hor) >> ss_hor;
+  b.mPlanes[1].mHeight = b.mPlanes[2].mHeight =
+      (aPicture.p.h + ss_ver) >> ss_ver;
+  b.mPlanes[1].mWidth = b.mPlanes[2].mWidth = (aPicture.p.w + ss_hor) >> ss_hor;
 
   if (ss_ver) {
     b.mChromaSubsampling = gfx::ChromaSubsampling::HALF_WIDTH_AND_HEIGHT;
@@ -355,6 +452,13 @@ Result<already_AddRefed<VideoData>, MediaResult> DAV1DDecoder::ConstructImage(
     aStage.SetStartTimeAndEndTime(aPicture.m.timestamp,
                                   aPicture.m.timestamp + aPicture.m.duration);
   });
+
+  if (aPicture.p.bpc != 8 && m8bpcOutput) {
+    MediaResult rv = b.To8BitPerChannel(m8bpcRecycleBin);
+    if (NS_FAILED(rv.Code())) {
+      return Result<already_AddRefed<VideoData>, MediaResult>(rv);
+    }
+  }
 
   return VideoData::CreateAndCopyData(
       mInfo, mImageContainer, offset, timecode, duration, b, keyframe, timecode,
