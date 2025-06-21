@@ -121,11 +121,6 @@ export class NotificationDB {
 
   // Attempt to read notification file, if it's not there we will create it.
   load() {
-    const NOTIFICATION_STORE_DIR = PathUtils.profileDir;
-    this.#storagePath = PathUtils.join(
-      NOTIFICATION_STORE_DIR,
-      "notificationstore.json"
-    );
     var promise = IOUtils.readUTF8(this.#storagePath);
     return promise.then(
       data => {
@@ -156,17 +151,22 @@ export class NotificationDB {
       // If read failed, we assume we have no notifications to load.
       () => {
         this.#loaded = true;
-        return this.#createStore(NOTIFICATION_STORE_DIR);
+        return this.createStore();
       }
     );
   }
 
   // Creates the notification directory.
-  #createStore(directory) {
-    var promise = IOUtils.makeDirectory(directory, {
+  createStore() {
+    const NOTIFICATION_STORE_DIR = PathUtils.profileDir;
+    this.#storagePath = PathUtils.join(
+      NOTIFICATION_STORE_DIR,
+      "notificationstore.json"
+    );
+    var promise = IOUtils.makeDirectory(NOTIFICATION_STORE_DIR, {
       ignoreExisting: true,
     });
-    return promise.then(this.createFile());
+    return promise.then(this.createFile.bind(this));
   }
 
   // Creates the notification file once the directory is created.
