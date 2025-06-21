@@ -61,6 +61,15 @@ support-files = [
   "aspect_ratio_5_2_hevc.mp4^headers^",
   "av1.mp4",
   "av1.mp4^headers^",
+  # ffmpeg -n -f lavfi -i testsrc=duration=0.1:size=640x480:rate=30 -pix_fmt yuv444p10 -c:v libaom-av1 av1-yuv444p10.mp4
+  "av1-yuv444p10.mp4", # High profile
+  "av1-yuv444p10.mp4^headers^",
+  # ffmpeg -n -f lavfi -i testsrc=duration=0.1:size=640x480:rate=30 -pix_fmt yuv422p10 -c:v libaom-av1 av1-yuv422p10.mp4
+  "av1-yuv422p10.mp4", # Professional profile
+  "av1-yuv422p10.mp4^headers^",
+  # ffmpeg -n -f lavfi -i testsrc=duration=0.1:size=640x480:rate=30 -pix_fmt yuv444p12 -c:v libaom-av1 av1-yuv444p12.mp4
+  "av1-yuv444p12.mp4", # Professional profile
+  "av1-yuv444p12.mp4^headers^",
   "avc-2bytes-nalu.mp4",
   "background_video.js",
   "badtags.ogg",
@@ -755,6 +764,8 @@ support-files = [
 
 ["test_audioDocumentTitle.html"]
 skip-if = ["true"] # bug 475110 - disabled since we don't play Wave files standalone
+
+["test_av1_high_professional_profiles.html"]
 
 ["test_buffered.html"]
 
