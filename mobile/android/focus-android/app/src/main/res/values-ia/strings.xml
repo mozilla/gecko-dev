@@ -463,20 +463,28 @@
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
   <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Continuante, tu accepta le %1$s</string>
+  <!-- %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text -->
+  <string name="onboarding_first_screen_terms_of_use_text_2" tools:ignore="UnusedResources">Continuante, tu accepta le %1$s.</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
   <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">Conditiones de uso de Firefox.</string>
+  <!-- Text for the link used in onboarding_first_screen_terms_of_use_text -->
+  <string name="onboarding_first_screen_terms_of_use_link_2" tools:ignore="BrandUsage">Conditiones de uso de Firefox</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
   <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox se cura de tu confidentialitate. Pro saper plus, consulta nostre %1$s</string>
+  <!-- %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text -->
+  <string name="onboarding_first_screen_privacy_notice_text_2" tools:ignore="BrandUsage">Firefox se cura de tu confidentialitate. Pro saper plus in nostre %1$s.</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
   <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Aviso de confidentialitate.</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link_2">Aviso de confidentialitate</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Accordar se e continuar</string>
   <!-- New Onboarding flow first screen button label -->
