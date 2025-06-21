@@ -30,6 +30,7 @@
 namespace mozilla {
 
 namespace layers {
+class BufferRecycleBin;
 class Image;
 class ImageContainer;
 class KnowsCompositor;
@@ -483,6 +484,21 @@ class VideoData : public MediaData {
     ColorDepth mColorDepth = ColorDepth::COLOR_8;
     ColorRange mColorRange = ColorRange::LIMITED;
     ChromaSubsampling mChromaSubsampling = ChromaSubsampling::FULL;
+  };
+
+  // Extends YCbCrBuffer to support 8-bit per channel conversion with
+  // recyclable plane data.
+  class QuantizableBuffer final : public YCbCrBuffer {
+   public:
+    MediaResult To8BitPerChannel(layers::BufferRecycleBin* aRecycleBin);
+    ~QuantizableBuffer();
+
+   private:
+    void AllocateRecyclableData(size_t aLength);
+
+    RefPtr<layers::BufferRecycleBin> mRecycleBin;
+    UniquePtr<uint8_t[]> m8bpcPlanes;
+    size_t mAllocatedLength;
   };
 
   // Constructs a VideoData object. If aImage is nullptr, creates a new Image
