@@ -677,18 +677,6 @@ nsresult GfxInfo::GetFeatureStatusImpl(
     return NS_OK;
   }
 
-  if (aFeature == FEATURE_GL_NORM16_TEXTURES) {
-    const auto& extensions = mGLStrings->Extensions();
-    // GL_EXT_texture_norm16 is required for GL_R16, GL_RG16, etc texture
-    // formats on OpenGL ES.
-    if (!extensions.Contains("GL_EXT_texture_norm16")) {
-      *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
-      aFailureId = "FEATURE_FAILURE_MISSING_EXTENSION";
-    } else {
-      *aStatus = nsIGfxInfo::FEATURE_STATUS_OK;
-    }
-  }
-
   return GfxInfoBase::GetFeatureStatusImpl(
       aFeature, aStatus, aSuggestedDriverVersion, aDriverInfo, aFailureId, &os);
 }

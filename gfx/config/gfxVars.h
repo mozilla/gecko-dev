@@ -114,8 +114,7 @@ class gfxVarReceiver;
   _(AllowWebGPUPresentWithoutReadback, bool, false)                \
   _(GPUProcessEnabled, bool, false)                                \
   _(DMABufModifiersP010, ArrayOfuint64_t, nsTArray<uint64_t>())    \
-  _(DMABufModifiersNV12, ArrayOfuint64_t, nsTArray<uint64_t>())    \
-  _(AllowGLNorm16Textures, bool, false)
+  _(DMABufModifiersNV12, ArrayOfuint64_t, nsTArray<uint64_t>())
 
 /* Add new entries above this line. */
 

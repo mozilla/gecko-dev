@@ -11,8 +11,6 @@
 #endif
 #include "MediaDecoderOwner.h"
 #include "mozilla/AbstractThread.h"
-#include "mozilla/gfx/BuildConstants.h"
-#include "mozilla/gfx/gfxVars.h"
 
 using namespace mozilla::layers;
 
@@ -27,9 +25,7 @@ VideoFrameContainer::VideoFrameContainer(
       mFrameID(0),
       mPendingPrincipalHandle(PRINCIPAL_HANDLE_NONE),
       mFrameIDForPendingPrincipalHandle(0),
-      mMainThread(aOwner->AbstractMainThread()),
-      mSupportsOnly8BitImage(kIsAndroid &&
-                             !gfx::gfxVars::AllowGLNorm16Textures()) {
+      mMainThread(aOwner->AbstractMainThread()) {
   NS_ASSERTION(aOwner, "aOwner must not be null");
   NS_ASSERTION(mImageContainer, "aContainer must not be null");
 }
@@ -109,20 +105,10 @@ void VideoFrameContainer::SetCurrentFrames(
   SetCurrentFramesLocked(aIntrinsicSize, aImages);
 }
 
-#ifdef DEBUG
-static bool Is8BitImage(const ImageContainer::NonOwningImage& aFrame) {
-  return aFrame.mImage->GetColorDepth() == gfx::ColorDepth::COLOR_8;
-}
-#endif
-
 void VideoFrameContainer::SetCurrentFramesLocked(
     const gfx::IntSize& aIntrinsicSize,
     const nsTArray<ImageContainer::NonOwningImage>& aImages) {
   mMutex.AssertCurrentThreadOwns();
-
-  MOZ_ASSERT(!SupportsOnly8BitImage() ||
-                 std::all_of(aImages.begin(), aImages.end(), Is8BitImage),
-             "Images should be 8-bit");
 
   if (auto size = Some(aIntrinsicSize); size != mIntrinsicSize) {
     mIntrinsicSize = size;

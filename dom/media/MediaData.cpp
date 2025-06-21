@@ -6,15 +6,12 @@
 
 #include "MediaData.h"
 
-#include <functional>
-
 #include "ImageContainer.h"
 #include "MediaInfo.h"
 #include "MediaResult.h"
 #include "PerformanceRecorder.h"
 #include "VideoUtils.h"
 #include "YCbCrUtils.h"
-#include "libyuv.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/KnowsCompositor.h"
@@ -34,7 +31,6 @@
 namespace mozilla {
 
 using namespace mozilla::gfx;
-using layers::BufferRecycleBin;
 using layers::PlanarYCbCrData;
 using layers::PlanarYCbCrImage;
 using media::TimeUnit;
@@ -503,93 +499,6 @@ nsCString VideoData::ToString() const {
       mImage ? ImageFormatStrings[static_cast<int>(mImage->GetFormat())]
              : "null");
   return rv;
-}
-
-MediaResult VideoData::QuantizableBuffer::To8BitPerChannel(
-    BufferRecycleBin* aRecycleBin) {
-  MOZ_ASSERT(!mRecycleBin, "Should not be called more than once.");
-  mRecycleBin = aRecycleBin;
-
-  MOZ_ASSERT(mColorDepth == ColorDepth::COLOR_10 ||
-             mColorDepth == ColorDepth::COLOR_12);
-  int yStride = mPlanes[0].mStride / 2;
-  int uvStride = mPlanes[1].mStride / 2;
-  size_t yLength = yStride * mPlanes[0].mHeight;
-  size_t uvLength = uvStride * mPlanes[1].mHeight;
-
-  const uint16_t* srcPlanes[3]{
-      reinterpret_cast<const uint16_t*>(mPlanes[0].mData),
-      reinterpret_cast<const uint16_t*>(mPlanes[1].mData),
-      reinterpret_cast<const uint16_t*>(mPlanes[2].mData)};
-  AllocateRecyclableData(yLength + (uvLength * 2));
-  if (!m8bpcPlanes) {
-    return MediaResult(
-        NS_ERROR_OUT_OF_MEMORY,
-        RESULT_DETAIL("Cannot allocate %zu bytes for 8-bit conversion",
-                      yLength + (uvLength * 2)));
-  }
-  uint8_t* destPlanes[3]{m8bpcPlanes.get(), m8bpcPlanes.get() + yLength,
-                         m8bpcPlanes.get() + yLength + uvLength};
-  using Func16To8 =  // libyuv function type.
-      std::function<int(const uint16_t*, int, const uint16_t*, int,
-                        const uint16_t*, int, uint8_t*, int, uint8_t*, int,
-                        uint8_t*, int, int, int)>;
-  auto convertFunc = [](ColorDepth aDepth,
-                        ChromaSubsampling aSubsampling) -> Func16To8 {
-    switch (aSubsampling) {
-      case ChromaSubsampling::HALF_WIDTH_AND_HEIGHT:  // 420p
-        return aDepth == ColorDepth::COLOR_10 ? libyuv::I010ToI420
-                                              : libyuv::I012ToI420;
-      case ChromaSubsampling::HALF_WIDTH:  // 422p
-        return aDepth == ColorDepth::COLOR_10 ? libyuv::I210ToI422
-                                              : libyuv::I212ToI422;
-      case ChromaSubsampling::FULL:  // 444p
-        return aDepth == ColorDepth::COLOR_10 ? libyuv::I410ToI444
-                                              : libyuv::I412ToI444;
-      default:
-        return Func16To8();
-    }
-  }(mColorDepth, mChromaSubsampling);
-  if (!convertFunc) {
-    return MediaResult(
-        NS_ERROR_DOM_MEDIA_DECODE_ERR,
-        RESULT_DETAIL("Source format (color depth=%d, subsampling=%" PRIu8
-                      ") not supported",
-                      BitDepthForColorDepth(mColorDepth),
-                      static_cast<uint8_t>(mChromaSubsampling)));
-  }
-  int r = convertFunc(srcPlanes[0], yStride, srcPlanes[1], uvStride,
-                      srcPlanes[2], uvStride, destPlanes[0], yStride,
-                      destPlanes[1], uvStride, destPlanes[2], uvStride,
-                      mPlanes[0].mWidth, mPlanes[0].mHeight);
-  if (r != 0) {
-    return MediaResult(
-        NS_ERROR_DOM_MEDIA_DECODE_ERR,
-        RESULT_DETAIL("Conversion to 8-bit failed. libyuv error=%d", r));
-  }
-  // Update buffer info.
-  mColorDepth = ColorDepth::COLOR_8;
-  mPlanes[0].mData = destPlanes[0];
-  mPlanes[0].mStride = yStride;
-  mPlanes[1].mData = destPlanes[1];
-  mPlanes[2].mData = destPlanes[2];
-  mPlanes[1].mStride = mPlanes[2].mStride = uvStride;
-
-  return MediaResult(NS_OK);
-}
-
-void VideoData::QuantizableBuffer::AllocateRecyclableData(size_t aLength) {
-  MOZ_ASSERT(!m8bpcPlanes, "Should not allocate more than once.");
-  MOZ_ASSERT(aLength > 0, "Zero-length allocation!");
-
-  m8bpcPlanes = mRecycleBin->GetBuffer(aLength);
-  mAllocatedLength = aLength;
-}
-
-VideoData::QuantizableBuffer::~QuantizableBuffer() {
-  if (m8bpcPlanes) {
-    mRecycleBin->RecycleBuffer(std::move(m8bpcPlanes), mAllocatedLength);
-  }
 }
 
 MediaRawData::MediaRawData()
