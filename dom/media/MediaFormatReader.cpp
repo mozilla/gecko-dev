@@ -409,7 +409,10 @@ void MediaFormatReader::DecoderFactory::DoCreateDecoder(Data& aData) {
            CreateDecoderParams::VideoFrameRate(ownerData.mMeanRate.Mean()),
            OptionSet(ownerData.mHardwareDecodingDisabled
                          ? Option::HardwareDecoderNotAllowed
-                         : Option::Default),
+                         : Option::Default,
+                     mOwner->mVideoFrameContainer->Is16bitImageSupported()
+                         ? Option::Default
+                         : Option::Output8BitPerChannel),
            mOwner->mMediaEngineId, mOwner->mTrackingId,
            mOwner->mEncryptedCustomIdent
                ? CreateDecoderParams::EncryptedCustomIdent::True
