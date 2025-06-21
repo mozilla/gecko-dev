@@ -12,7 +12,8 @@ support-files = ["distribution.ini"]
 ["test_browserGlue_migration_osauth.js"]
 skip-if = [
   "nightly_build",
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1973344
 ]
 
 ["test_browserGlue_migration_places_xulstore.js"]
