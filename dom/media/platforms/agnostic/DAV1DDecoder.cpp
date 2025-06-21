@@ -20,7 +20,6 @@
             ##__VA_ARGS__)
 
 namespace mozilla {
-using layers::BufferRecycleBin;
 
 static int GetDecodingThreadCount(uint32_t aCodedHeight) {
   /**
@@ -68,13 +67,7 @@ DAV1DDecoder::DAV1DDecoder(const CreateDecoderParams& aParams)
       mImageAllocator(aParams.mKnowsCompositor),
       mTrackingId(aParams.mTrackingId),
       mLowLatency(
-          aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency)),
-      m8bpcOutput(aParams.mOptions.contains(
-          CreateDecoderParams::Option::Output8BitPerChannel)) {
-  if (m8bpcOutput) {
-    m8bpcRecycleBin = MakeRefPtr<BufferRecycleBin>();
-  }
-}
+          aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency)) {}
 
 DAV1DDecoder::~DAV1DDecoder() = default;
 
@@ -284,8 +277,14 @@ Maybe<gfx::ColorSpace2> DAV1DDecoder::GetColorPrimaries(
 
 Result<already_AddRefed<VideoData>, MediaResult> DAV1DDecoder::ConstructImage(
     const Dav1dPicture& aPicture) {
-  VideoData::QuantizableBuffer b;
-  b.mColorDepth = gfx::ColorDepthForBitDepth(aPicture.p.bpc);
+  VideoData::YCbCrBuffer b;
+  if (aPicture.p.bpc == 10) {
+    b.mColorDepth = gfx::ColorDepth::COLOR_10;
+  } else if (aPicture.p.bpc == 12) {
+    b.mColorDepth = gfx::ColorDepth::COLOR_12;
+  } else {
+    b.mColorDepth = gfx::ColorDepth::COLOR_8;
+  }
 
   b.mYUVColorSpace =
       DAV1DDecoder::GetColorSpace(aPicture, sPDMLog)
@@ -306,16 +305,18 @@ Result<already_AddRefed<VideoData>, MediaResult> DAV1DDecoder::ConstructImage(
   b.mPlanes[1].mSkip = 0;
 
   b.mPlanes[2].mData = static_cast<uint8_t*>(aPicture.data[2]);
-  b.mPlanes[2].mStride = b.mPlanes[1].mStride;
+  b.mPlanes[2].mStride = aPicture.stride[1];
   b.mPlanes[2].mSkip = 0;
 
   // https://code.videolan.org/videolan/dav1d/blob/master/tools/output/yuv.c#L67
   const int ss_ver = aPicture.p.layout == DAV1D_PIXEL_LAYOUT_I420;
   const int ss_hor = aPicture.p.layout != DAV1D_PIXEL_LAYOUT_I444;
 
-  b.mPlanes[1].mHeight = b.mPlanes[2].mHeight =
-      (aPicture.p.h + ss_ver) >> ss_ver;
-  b.mPlanes[1].mWidth = b.mPlanes[2].mWidth = (aPicture.p.w + ss_hor) >> ss_hor;
+  b.mPlanes[1].mHeight = (aPicture.p.h + ss_ver) >> ss_ver;
+  b.mPlanes[1].mWidth = (aPicture.p.w + ss_hor) >> ss_hor;
+
+  b.mPlanes[2].mHeight = (aPicture.p.h + ss_ver) >> ss_ver;
+  b.mPlanes[2].mWidth = (aPicture.p.w + ss_hor) >> ss_hor;
 
   if (ss_ver) {
     b.mChromaSubsampling = gfx::ChromaSubsampling::HALF_WIDTH_AND_HEIGHT;
@@ -354,13 +355,6 @@ Result<already_AddRefed<VideoData>, MediaResult> DAV1DDecoder::ConstructImage(
     aStage.SetStartTimeAndEndTime(aPicture.m.timestamp,
                                   aPicture.m.timestamp + aPicture.m.duration);
   });
-
-  if (aPicture.p.bpc != 8 && m8bpcOutput) {
-    MediaResult rv = b.To8BitPerChannel(m8bpcRecycleBin);
-    if (NS_FAILED(rv.Code())) {
-      return Result<already_AddRefed<VideoData>, MediaResult>(rv);
-    }
-  }
 
   return VideoData::CreateAndCopyData(
       mInfo, mImageContainer, offset, timecode, duration, b, keyframe, timecode,

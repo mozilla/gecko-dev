@@ -13,9 +13,6 @@
 #  include "nsRefPtrHashtable.h"
 
 namespace mozilla {
-namespace layers {
-class BufferRecycleBin;
-}
 
 DDLoggedTypeDeclNameAndBase(DAV1DDecoder, MediaDataDecoder);
 
@@ -67,10 +64,6 @@ class DAV1DDecoder final : public MediaDataDecoder,
   // Keep the buffers alive until dav1d
   // does not need them any more.
   MediaRawDataHashtable mDecodingBuffers;
-
-  // Convert to 8-bit when GPU doesn't support 10 or 12-bit image.
-  const bool m8bpcOutput;
-  RefPtr<layers::BufferRecycleBin> m8bpcRecycleBin;
 };
 
 }  // namespace mozilla
