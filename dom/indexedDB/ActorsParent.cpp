@@ -13407,10 +13407,31 @@ nsresult Maintenance::DirectoryWork() {
               // Get the necessary information about the origin
               // (GetOriginMetadata also checks if it's a valid origin).
 
-              QM_TRY_INSPECT(const auto& metadata,
-                             quotaManager->GetOriginMetadata(originDir),
-                             // Not much we can do here...
-                             Ok{});
+              QM_TRY_UNWRAP(auto metadata,
+                            quotaManager->GetOriginMetadata(originDir),
+                            // Not much we can do here...
+                            Ok{});
+
+              if (!persistent &&
+                  !quotaManager->IsTemporaryOriginInitializedInternal(
+                      metadata)) {
+                // XXX GetOriginMetadata, which skips loading the metadata file
+                // and instead relies on parsing the origin directory name and
+                // reconstructing the principal, may produce a different origin
+                // string than the one originally used to create the origin
+                // directory.
+                //
+                // For now, if this mismatch occurs, we fall back to the slower
+                // LoadFullOriginMetadataWithRestore.
+                //
+                // In the future, it would be useful to report anonymized
+                // origin strings via telemetry to help investigate and
+                // eventually fix this mismatch.
+                QM_TRY_UNWRAP(
+                    metadata,
+                    quotaManager->LoadFullOriginMetadataWithRestore(originDir),
+                    Ok{});
+              }
 
               // We now use a dedicated repository for private browsing
               // databases, but there could be some forgotten private browsing
