@@ -96,6 +96,8 @@ class VideoFrameContainer {
     return mIntrinsicSize;
   }
 
+  bool Is16bitImageSupported() const { return mIs16bitImageSupported; }
+
  protected:
   void SetCurrentFramesLocked(
       const gfx::IntSize& aIntrinsicSize,
@@ -143,6 +145,8 @@ class VideoFrameContainer {
       MOZ_GUARDED_BY(mMutex);
 
   const RefPtr<AbstractThread> mMainThread;
+
+  const bool mIs16bitImageSupported;
 };
 
 }  // namespace mozilla
