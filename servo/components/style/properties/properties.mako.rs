@@ -4,10 +4,6 @@
 
 // This file is a Mako template: http://www.makotemplates.org/
 
-// Please note that valid Rust syntax may be mangled by the Mako parser.
-// For example, Vec<&Foo> will be mangled as Vec&Foo>. To work around these issues, the code
-// can be escaped. In the above example, Vec<&Foo> or Vec<&Foo> achieves the desired result of Vec<&Foo>.
-
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 use app_units::Au;
