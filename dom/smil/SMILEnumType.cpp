@@ -12,13 +12,13 @@
 
 namespace mozilla {
 
-void SMILEnumType::Init(SMILValue& aValue) const {
+void SMILEnumType::InitValue(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.IsNull(), "Unexpected value type");
   aValue.mU.mUint = 0;
   aValue.mType = this;
 }
 
-void SMILEnumType::Destroy(SMILValue& aValue) const {
+void SMILEnumType::DestroyValue(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.mType == this, "Unexpected SMIL value");
   aValue.mU.mUint = 0;
   aValue.mType = SMILNullType::Singleton();

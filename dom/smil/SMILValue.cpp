@@ -120,15 +120,16 @@ nsresult SMILValue::Interpolate(const SMILValue& aEndVal, double aUnitDistance,
 //----------------------------------------------------------------------
 // Helper methods
 
-// Wrappers for SMILType::Init & ::Destroy that verify their postconditions
+// Wrappers for SMILType::InitValue & ::DestroyValue that verify their
+// postconditions.
 void SMILValue::InitAndCheckPostcondition(const SMILType* aNewType) {
-  aNewType->Init(*this);
+  aNewType->InitValue(*this);
   MOZ_ASSERT(mType == aNewType,
              "Post-condition of Init failed. SMILValue is invalid");
 }
 
 void SMILValue::DestroyAndCheckPostcondition() {
-  mType->Destroy(*this);
+  mType->DestroyValue(*this);
   MOZ_ASSERT(IsNull(),
              "Post-condition of Destroy failed. "
              "SMILValue not null after destroying");

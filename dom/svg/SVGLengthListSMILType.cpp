@@ -21,14 +21,14 @@ SVGLengthListSMILType SVGLengthListSMILType::sSingleton;
 //----------------------------------------------------------------------
 // nsISMILType implementation
 
-void SVGLengthListSMILType::Init(SMILValue& aValue) const {
+void SVGLengthListSMILType::InitValue(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.IsNull(), "Unexpected value type");
 
   aValue.mU.mPtr = new SVGLengthListAndInfo();
   aValue.mType = this;
 }
 
-void SVGLengthListSMILType::Destroy(SMILValue& aValue) const {
+void SVGLengthListSMILType::DestroyValue(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.mType == this, "Unexpected SMIL value type");
   delete static_cast<SVGLengthListAndInfo*>(aValue.mU.mPtr);
   aValue.mU.mPtr = nullptr;
@@ -68,8 +68,8 @@ nsresult SVGLengthListSMILType::Add(SMILValue& aDest,
   const SVGLengthListAndInfo& valueToAdd =
       *static_cast<const SVGLengthListAndInfo*>(aValueToAdd.mU.mPtr);
 
-  // To understand this code, see the comments documenting our Init() method,
-  // and documenting SVGLengthListAndInfo::CanZeroPadList().
+  // To understand this code, see the comments documenting our InitValue()
+  // method, and documenting SVGLengthListAndInfo::CanZeroPadList().
 
   // Note that *this* method actually may safely zero pad a shorter list
   // regardless of the value returned by CanZeroPadList() for that list,
@@ -154,8 +154,8 @@ nsresult SVGLengthListSMILType::ComputeDistance(const SMILValue& aFrom,
   const SVGLengthListAndInfo& to =
       *static_cast<const SVGLengthListAndInfo*>(aTo.mU.mPtr);
 
-  // To understand this code, see the comments documenting our Init() method,
-  // and documenting SVGLengthListAndInfo::CanZeroPadList().
+  // To understand this code, see the comments documenting our InitValue()
+  // method, and documenting SVGLengthListAndInfo::CanZeroPadList().
 
   NS_ASSERTION((from.CanZeroPadList() == to.CanZeroPadList()) ||
                    (from.CanZeroPadList() && from.IsEmpty()) ||
@@ -226,8 +226,8 @@ nsresult SVGLengthListSMILType::Interpolate(const SMILValue& aStartVal,
   SVGLengthListAndInfo& result =
       *static_cast<SVGLengthListAndInfo*>(aResult.mU.mPtr);
 
-  // To understand this code, see the comments documenting our Init() method,
-  // and documenting SVGLengthListAndInfo::CanZeroPadList().
+  // To understand this code, see the comments documenting our InitValue()
+  // method, and documenting SVGLengthListAndInfo::CanZeroPadList().
 
   NS_ASSERTION((start.CanZeroPadList() == end.CanZeroPadList()) ||
                    (start.CanZeroPadList() && start.IsEmpty()) ||

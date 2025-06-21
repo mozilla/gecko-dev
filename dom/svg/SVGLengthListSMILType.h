@@ -74,9 +74,9 @@ class SVGLengthListSMILType : public SMILType {
    * from each sandwich layer are composited together, we could end up allowing
    * animation between lists of different length when we should not!)
    */
-  void Init(SMILValue& aValue) const override;
+  void InitValue(SMILValue& aValue) const override;
 
-  void Destroy(SMILValue& aValue) const override;
+  void DestroyValue(SMILValue& aValue) const override;
   nsresult Assign(SMILValue& aDest, const SMILValue& aSrc) const override;
   bool IsEqual(const SMILValue& aLeft, const SMILValue& aRight) const override;
   nsresult Add(SMILValue& aDest, const SMILValue& aValueToAdd,

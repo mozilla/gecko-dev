@@ -23,8 +23,8 @@ class SMILBoolType : public SMILType {
  protected:
   // SMILType Methods
   // -------------------
-  void Init(SMILValue& aValue) const override;
-  void Destroy(SMILValue& aValue) const override;
+  void InitValue(SMILValue& aValue) const override;
+  void DestroyValue(SMILValue& aValue) const override;
   nsresult Assign(SMILValue& aDest, const SMILValue& aSrc) const override;
   nsresult Add(SMILValue& aDest, const SMILValue& aValueToAdd,
                uint32_t aCount) const override;

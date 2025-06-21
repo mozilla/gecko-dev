@@ -27,7 +27,7 @@ class SMILValue {
   explicit SMILValue(const SMILType* aType);
   SMILValue(const SMILValue& aVal);
 
-  ~SMILValue() { mType->Destroy(*this); }
+  ~SMILValue() { mType->DestroyValue(*this); }
 
   const SMILValue& operator=(const SMILValue& aVal);
 

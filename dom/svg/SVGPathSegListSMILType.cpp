@@ -16,13 +16,13 @@ namespace mozilla {
 //----------------------------------------------------------------------
 // nsISMILType implementation
 
-void SVGPathSegListSMILType::Init(SMILValue& aValue) const {
+void SVGPathSegListSMILType::InitValue(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.IsNull(), "Unexpected value type");
   aValue.mU.mPtr = new SVGPathDataAndInfo();
   aValue.mType = this;
 }
 
-void SVGPathSegListSMILType::Destroy(SMILValue& aValue) const {
+void SVGPathSegListSMILType::DestroyValue(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.mType == this, "Unexpected SMIL value type");
   delete static_cast<SVGPathDataAndInfo*>(aValue.mU.mPtr);
   aValue.mU.mPtr = nullptr;

@@ -170,7 +170,7 @@ class SVGPointListAndInfo : public SVGPointList {
   /**
    * Returns true if this object is an "identity" value, from the perspective
    * of SMIL. In other words, returns true until the initial value set up in
-   * SVGPointListSMILType::Init() has been changed with a SetInfo() call.
+   * SVGPointListSMILType::InitValue() has been changed with a SetInfo() call.
    */
   bool IsIdentity() const {
     if (!mElement) {

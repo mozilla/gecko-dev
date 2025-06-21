@@ -12,13 +12,13 @@
 
 namespace mozilla {
 
-void SMILStringType::Init(SMILValue& aValue) const {
+void SMILStringType::InitValue(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.IsNull(), "Unexpected value type");
   aValue.mU.mPtr = new nsString();
   aValue.mType = this;
 }
 
-void SMILStringType::Destroy(SMILValue& aValue) const {
+void SMILStringType::DestroyValue(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.mType == this, "Unexpected SMIL value");
   delete static_cast<nsAString*>(aValue.mU.mPtr);
   aValue.mU.mPtr = nullptr;

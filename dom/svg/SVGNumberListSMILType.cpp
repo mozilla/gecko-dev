@@ -39,14 +39,14 @@ SVGNumberListSMILType SVGNumberListSMILType::sSingleton;
 //----------------------------------------------------------------------
 // nsISMILType implementation
 
-void SVGNumberListSMILType::Init(SMILValue& aValue) const {
+void SVGNumberListSMILType::InitValue(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.IsNull(), "Unexpected value type");
 
   aValue.mU.mPtr = new SVGNumberListAndInfo();
   aValue.mType = this;
 }
 
-void SVGNumberListSMILType::Destroy(SMILValue& aValue) const {
+void SVGNumberListSMILType::DestroyValue(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.mType == this, "Unexpected SMIL value type");
   delete static_cast<SVGNumberListAndInfo*>(aValue.mU.mPtr);
   aValue.mU.mPtr = nullptr;

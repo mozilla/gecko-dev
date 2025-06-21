@@ -20,7 +20,7 @@ using namespace dom::SVGMarkerElement_Binding;
 /*static*/
 SVGOrientSMILType SVGOrientSMILType::sSingleton;
 
-void SVGOrientSMILType::Init(SMILValue& aValue) const {
+void SVGOrientSMILType::InitValue(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.IsNull(), "Unexpected value type");
 
   aValue.mU.mOrient.mAngle = 0.0f;
@@ -29,7 +29,7 @@ void SVGOrientSMILType::Init(SMILValue& aValue) const {
   aValue.mType = this;
 }
 
-void SVGOrientSMILType::Destroy(SMILValue& aValue) const {
+void SVGOrientSMILType::DestroyValue(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.mType == this, "Unexpected SMIL value.");
   aValue.mU.mPtr = nullptr;
   aValue.mType = SMILNullType::Singleton();

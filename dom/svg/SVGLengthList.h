@@ -195,7 +195,7 @@ class SVGLengthListAndInfo : public SVGLengthList {
   /**
    * Returns true if this object is an "identity" value, from the perspective
    * of SMIL. In other words, returns true until the initial value set up in
-   * SVGLengthListSMILType::Init() has been changed with a SetInfo() call.
+   * SVGLengthListSMILType::InitValue() has been changed with a SetInfo() call.
    */
   bool IsIdentity() const {
     if (!mElement) {
