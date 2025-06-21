@@ -1,0 +1,6 @@
+[DEFAULT]
+
+["test_persistent_notification_restart.py"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04'", # libnotify backend fails on 18.04
+]

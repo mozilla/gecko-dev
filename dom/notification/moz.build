@@ -49,6 +49,7 @@ BROWSER_CHROME_MANIFESTS += ["test/browser/browser.toml"]
 XPCSHELL_TESTS_MANIFESTS += ["test/unit/xpcshell.toml"]
 MOCHITEST_MANIFESTS += ["test/mochitest/mochitest.toml"]
 MOCHITEST_CHROME_MANIFESTS += ["test/chrome/chrome.toml"]
+MARIONETTE_MANIFESTS += ["test/marionette/manifest.toml"]
 
 EXTRA_JS_MODULES += [
     "MemoryNotificationDB.sys.mjs",
