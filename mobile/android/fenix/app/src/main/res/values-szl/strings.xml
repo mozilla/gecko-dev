@@ -50,7 +50,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s ôprōżnio historyjo wyszukowanio i przeglōndanio ze prywatnych kart, jak zawrzisz je abo aplikacyjo. Skuli tego niy je sie anonimowym do strōn ani dostowcōw necowych usug. Snadnij ale możesz skryć swoja aktywność w internecie przed inkszymi, co używajōm tyj masziny.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s ôprōżnio historyjo wyszukowanio i przeglōndanio ze prywatnych kart, jak zawrzisz je abo aplikacyjo. Skuli tego niy je sie anonimowym do strōn ani dostowcōw necowych usug. Snadnij ale możesz skryć swoja aktywność w internecie przed inkszymi, co używajōm tyj masziny.</string>
   <string name="private_browsing_common_myths">Czynste mity ô prywatnym przeglōndaniu</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
@@ -1133,7 +1133,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Prywatno karta je zawarto</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Prywatne karty sōm zawarte</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Prywatne karty sōm zawarte</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">COFNIJ AKCYJO</string>
   <!-- Text shown in snackbar when user removes a top site -->

@@ -85,7 +85,9 @@
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Тексерілмеген скрипттер қауіпсіздік пен құпиялылыққа қауіп төндіруі мүмкін. Тек сенетін кеңейтулерден немесе көздерден скрипттерді іске қосыңыз.</string>
   <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
-  <string name="mozac_feature_addons_permissions_required_data_collection_description">Әзірлеуші бұл кеңейту келесіні жинайтынын хабарлады: %1$s.</string>
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">Әзірлеуші бұл кеңейту келесіні жинайтынын хабарлады: %1$s.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">Әзірлеуші бұл кеңейту келесіні жинайтынын хабарлады: %1$s</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">Әзірлеуші бұл кеңейту деректер жинауды қажет етпейтінін хабарлады.</string>
   <!-- Description for devtools permission. -->

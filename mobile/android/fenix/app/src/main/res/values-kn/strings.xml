@@ -28,7 +28,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s ನಿಮ್ಮ ಹುಡುಕಾಟ ಮತ್ತು ಬ್ರೌಸಿಂಗ್ ಇತಿಹಾಸವನ್ನು ಖಾಸಗಿ ಟ್ಯಾಬ್‌ಗಳಿಂದ ನೀವು ಮುಚ್ಚಿದಾಗ ಅಥವಾ ಅಪ್ಲಿಕೇಶನ್‌ನಿಂದ ನಿರ್ಗಮಿಸಿದಾಗ ಅವುಗಳನ್ನು ತೆರವುಗೊಳಿಸುತ್ತದೆ. ಇದು ನಿಮ್ಮನ್ನು ವೆಬ್‌ಸೈಟ್‌ಗಳಿಗೆ ಅಥವಾ ನಿಮ್ಮ ಇಂಟರ್ನೆಟ್ ಸೇವಾ ಪೂರೈಕೆದಾರರಿಗೆ ಅನಾಮಧೇಯರನ್ನಾಗಿ ಮಾಡದಿದ್ದರೂ, ಈ ಸಾಧನವನ್ನು ಬಳಸುವ ಬೇರೆಯವರಿಂದ ನೀವು ಆನ್‌ಲೈನ್‌ನಲ್ಲಿ ಏನು ಮಾಡುತ್ತೀರಿ ಎಂಬುದನ್ನು ಖಾಸಗಿಯಾಗಿ ಇಡುವುದು ಸುಲಭಗೊಳಿಸುತ್ತದೆ.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s ನಿಮ್ಮ ಹುಡುಕಾಟ ಮತ್ತು ಬ್ರೌಸಿಂಗ್ ಇತಿಹಾಸವನ್ನು ಖಾಸಗಿ ಟ್ಯಾಬ್‌ಗಳಿಂದ ನೀವು ಮುಚ್ಚಿದಾಗ ಅಥವಾ ಅಪ್ಲಿಕೇಶನ್‌ನಿಂದ ನಿರ್ಗಮಿಸಿದಾಗ ಅವುಗಳನ್ನು ತೆರವುಗೊಳಿಸುತ್ತದೆ. ಇದು ನಿಮ್ಮನ್ನು ವೆಬ್‌ಸೈಟ್‌ಗಳಿಗೆ ಅಥವಾ ನಿಮ್ಮ ಇಂಟರ್ನೆಟ್ ಸೇವಾ ಪೂರೈಕೆದಾರರಿಗೆ ಅನಾಮಧೇಯರನ್ನಾಗಿ ಮಾಡದಿದ್ದರೂ, ಈ ಸಾಧನವನ್ನು ಬಳಸುವ ಬೇರೆಯವರಿಂದ ನೀವು ಆನ್‌ಲೈನ್‌ನಲ್ಲಿ ಏನು ಮಾಡುತ್ತೀರಿ ಎಂಬುದನ್ನು ಖಾಸಗಿಯಾಗಿ ಇಡುವುದು ಸುಲಭಗೊಳಿಸುತ್ತದೆ.</string>
   <string name="private_browsing_common_myths">ಖಾಸಗಿ ಬ್ರೌಸಿಂಗ್ ಬಗ್ಗೆ ಸಾಮಾನ್ಯ ಪುರಾಣಗಳು</string>
   <!--
     Home screen icons - Long press shortcuts
@@ -583,7 +583,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">ಖಾಸಗಿ ಟ್ಯಾಬ್ ಮುಚ್ಚಲಾಗಿದೆ</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">ಖಾಸಗಿ ಟ್ಯಾಬ್‌ಗಳನ್ನು ಮುಚ್ಚಲಾಗಿದೆ</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">ಖಾಸಗಿ ಟ್ಯಾಬ್‌ಗಳನ್ನು ಮುಚ್ಚಲಾಗಿದೆ</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">ರದ್ದುಗೊಳಿಸಿ</string>
   <!-- Text shown in snackbar when user removes a top site -->

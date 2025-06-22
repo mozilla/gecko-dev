@@ -50,7 +50,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s izlew hám kóriw tariyxın jeke betlerdi japqanıńızda yamasa baǵdarlamadan shıqqanıńızda óshiredi. Bul sizdi veb-saytlar yamasa internet-provayderlar ushın anonim qılmaydı, tek ǵana usı qurılmanı qollanatuǵın basqa adamlardan óz háreketlerińizdiń internet tarmaǵında qupıyalıǵıńızdı saqlawdı jeńillestiredi.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s izlew hám kóriw tariyxın jeke betlerdi japqanıńızda yamasa baǵdarlamadan shıqqanıńızda óshiredi. Bul sizdi veb-saytlar yamasa internet-provayderlar ushın anonim qılmaydı, tek ǵana usı qurılmanı qollanatuǵın basqa adamlardan óz háreketlerińizdiń internet tarmaǵında qupıyalıǵıńızdı saqlawdı jeńillestiredi.</string>
   <string name="private_browsing_common_myths">Jeke kóriw haqqında tarqalǵan jalǵanlar</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
@@ -1109,7 +1109,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Jeke bet jabıldı</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Jeke betler jabıldı</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Jeke betler jabıldı</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">BIYKARLAW</string>
   <!-- Text shown in snackbar when user removes a top site -->
@@ -1739,7 +1739,7 @@
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">bul toplam haqqında kóbirek biliw ushın siltemeni ashıń</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
-  <string name="a11y_action_label_read_article">Maqalanı oqıw</string>
+  <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">Maqalanı oqıw</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">kóbirek biliw ushın siltemeni ashıń</string>
   <!-- Translations feature -->

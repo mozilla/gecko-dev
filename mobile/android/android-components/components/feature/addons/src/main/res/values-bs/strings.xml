@@ -85,7 +85,9 @@
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Neprovjerene skripte mogu predstavljati rizik za sigurnost i privatnost. Pokreni samo skripte iz ekstenzija ili izvora kojima vjeruješ.</string>
   <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
-  <string name="mozac_feature_addons_permissions_required_data_collection_description">Programer kaže da ova ekstenzija prikuplja: %1$s.</string>
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">Programer kaže da ova ekstenzija prikuplja: %1$s.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">Programer kaže da ova ekstenzija prikuplja: %1$s</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">Programer kaže da ova ekstenzija ne zahtijeva prikupljanje podataka.</string>
   <!-- Description for devtools permission. -->
@@ -118,6 +120,30 @@
   <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">aktivnost na web stranici</string>
   <!-- Short description for the websiteContent data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">sadržaj web stranice</string>
+  <!-- Long description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">Podijelite informacije o autentifikaciji s programerom ekstenzije</string>
+  <!-- Long description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">Podijelite informacije o oznakama s programerom ekstenzije</string>
+  <!-- Long description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">Dijeli aktivnost pregledavanja s programerom ekstenzije</string>
+  <!-- Long description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description">Podijelite finansijske i platne informacije s programerom ekstenzije</string>
+  <!-- Long description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">Podijelite zdravstvene informacije s programerom ekstenzije</string>
+  <!-- Long description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_long_description">Podijelite informacije o lokaciji s programerom ekstenzije</string>
+  <!-- Long description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_long_description">Dijelite lične komunikacije s programerom ekstenzije</string>
+  <!-- Long description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_long_description">Podijelite lične podatke s programerom ekstenzije</string>
+  <!-- Long description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_long_description">Podijelite pojmove za pretragu s programerom ekstenzije</string>
+  <!-- Long description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_long_description">Podijelite tehničke podatke i podatke o interakciji s programerom ekstenzije</string>
+  <!-- Long description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_long_description">Dijeli aktivnost web stranice s programerom ekstenzije</string>
+  <!-- Long description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_long_description">Podijelite sadržaj web stranice s programerom ekstenzija</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Verzija</string>
   <!-- The author of an add-on. -->

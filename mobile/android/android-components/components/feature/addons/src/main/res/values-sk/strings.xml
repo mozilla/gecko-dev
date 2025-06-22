@@ -85,7 +85,9 @@
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Neoverené skripty môžu predstavovať riziká pre bezpečnosť a súkromie. Spúšťajte skripty iba z rozšírení alebo zdrojov, ktorým dôverujete.</string>
   <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
-  <string name="mozac_feature_addons_permissions_required_data_collection_description">Vývojár uvádza, že toto rozšírenie zhromažďuje: %1$s.</string>
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">Vývojár uvádza, že toto rozšírenie zhromažďuje: %1$s.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">Vývojár uvádza, že toto rozšírenie zhromažďuje: %1$s</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">Vývojár uvádza, že toto rozšírenie nevyžaduje zhromažďovanie údajov.</string>
   <!-- Description for devtools permission. -->
@@ -118,6 +120,30 @@
   <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">aktivita na webovej stránke</string>
   <!-- Short description for the websiteContent data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">obsah webovej stránky</string>
+  <!-- Long description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">Zdieľať overovacie informácie s vývojárom rozšírenia</string>
+  <!-- Long description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">Zdieľať informácie o záložkách s vývojárom rozšírenia</string>
+  <!-- Long description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">Zdieľať aktivitu prehliadania s vývojárom rozšírenia</string>
+  <!-- Long description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description">Zdieľať finančné a platobné informácie s vývojárom rozšírenia</string>
+  <!-- Long description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">Zdieľať zdravotné informácie s vývojárom rozšírenia</string>
+  <!-- Long description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_long_description">Zdieľať informácie o polohe s vývojárom rozšírenia</string>
+  <!-- Long description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_long_description">Zdieľať osobnú komunikáciu s vývojárom rozšírenia</string>
+  <!-- Long description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_long_description">Zdieľať osobné identifikačné údaje s vývojárom rozšírenia</string>
+  <!-- Long description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_long_description">Zdieľať výrazy vyhľadávania s vývojárom rozšírenia</string>
+  <!-- Long description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_long_description">Zdieľať technické údaje a údaje o interakciách s vývojárom rozšírenia</string>
+  <!-- Long description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_long_description">Zdieľať aktivitu na webovej stránke s vývojárom rozšírenia</string>
+  <!-- Long description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_long_description">Zdieľať obsah webovej stránky s vývojárom rozšírenia</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Verzia</string>
   <!-- The author of an add-on. -->
@@ -188,6 +214,8 @@
   <string name="mozac_feature_addons_permissions_dialog_deny">Zakázať</string>
   <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
   <string name="mozac_feature_addons_permissions_dialog_learn_more">Ďalšie informácie</string>
+  <!-- This is the text for the "technical and interaction" checkbox shown in the add-on permissions dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_technical_and_interaction_data">Zdieľať technické údaje a údaje o interakciách s vývojárom rozšírenia</string>
   <!-- This is a button to cancel the add-on installation . -->
   <string name="mozac_feature_addons_permissions_dialog_cancel">Zrušiť</string>
   <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->

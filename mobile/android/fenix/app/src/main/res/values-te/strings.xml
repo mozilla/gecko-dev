@@ -48,7 +48,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">మీరు అంతరంగిక ట్యాబులను మూసివేసినప్పుడు లేదా అనువర్తనం నుండి నిష్క్రమించినప్పుడు మీ వెతుకుడు, విహరణ చరిత్రను %1$s తుడిచివేస్తుంది. ఇది మిమ్మల్ని వెబ్‌సైట్లకు లేదా మీ ఇంటర్నెట్ సర్వీస్ ప్రొవైడర్‌కు అనామకంగా చేయనప్పటికీ, ఈ పరికరాన్ని వాడే ఇతరుల నుండి మీ ఆన్‌లైన్ కార్యకలాపాన్ని అంతరంగికంగా ఉంచుకోవడంలో తోడ్పడుతుంది.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">మీరు అంతరంగిక ట్యాబులను మూసివేసినప్పుడు లేదా అనువర్తనం నుండి నిష్క్రమించినప్పుడు మీ వెతుకుడు, విహరణ చరిత్రను %1$s తుడిచివేస్తుంది. ఇది మిమ్మల్ని వెబ్‌సైట్లకు లేదా మీ ఇంటర్నెట్ సర్వీస్ ప్రొవైడర్‌కు అనామకంగా చేయనప్పటికీ, ఈ పరికరాన్ని వాడే ఇతరుల నుండి మీ ఆన్‌లైన్ కార్యకలాపాన్ని అంతరంగికంగా ఉంచుకోవడంలో తోడ్పడుతుంది.</string>
   <string name="private_browsing_common_myths">అంతరంగిక విహారణ గురించి సామాన్య అపోహలు</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">అమరికలకు వెళ్లు</string>
@@ -360,9 +360,9 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">అవసరం</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">అవసరం</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
-  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">ఐచ్ఛికం</string>
+  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources" moz:removedIn="141">ఐచ్ఛికం</string>
   <!-- Button caption to confirm the add-on collection configuration -->
   <string name="customize_addon_collection_ok">సరే</string>
   <!-- Button caption to abort the add-on collection configuration -->
@@ -957,7 +957,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">అంతరంగిక ట్యాబు మూసివేయబడింది</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">అంతరంగిక ట్యాబులు మూసివేయబడ్డాయి</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">అంతరంగిక ట్యాబులు మూసివేయబడ్డాయి</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">చర్య రద్దుచేయి</string>
   <!-- Text shown in snackbar when user removes a top site -->

@@ -739,7 +739,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">بازدەری تایبەت داخرا</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">بازدەرە تایبەتەکان داخران</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">بازدەرە تایبەتەکان داخران</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">گێڕانەوە</string>
   <!-- Text shown in snackbar when user removes a top site -->

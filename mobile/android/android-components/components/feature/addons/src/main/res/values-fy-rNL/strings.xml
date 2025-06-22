@@ -85,7 +85,9 @@
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Net ferifiearre scripts kinne befeiligings- en privacyrisiko’s foarmje. Fier allinnich scripts út fan útwreidingen of boarnen dy’\'t jo fertrouwe.</string>
   <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
-  <string name="mozac_feature_addons_permissions_required_data_collection_description">De ûntwikkeler seit dat dizze útwreiding it folgjende sammelet: %1$s.</string>
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">De ûntwikkeler seit dat dizze útwreiding it folgjende sammelet: %1$s.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">De ûntwikkeler seit dat dizze útwreiding it folgjende sammelet: %1$s</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">De ûntwikkeler seit dat dizze útwreiding gjin gegevenssamling fereasket.</string>
   <!-- Description for devtools permission. -->
@@ -118,6 +120,30 @@
   <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">website-aktiviteit</string>
   <!-- Short description for the websiteContent data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">website-ynhâld</string>
+  <!-- Long description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">Autentikaasjegegevens diele mei útwreidingsûntwikkeler</string>
+  <!-- Long description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">Blêdwizergegevens diele mei útwreidingsûntwikkeler</string>
+  <!-- Long description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">Sneupaktiviteit diele mei útwreidingsûntwikkeler</string>
+  <!-- Long description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description">Finansjele en betellingsgegevens diele mei de útwreidingsûntwikkeler</string>
+  <!-- Long description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">Sûnensgegevens diele mei útwreidingsûntwikkeler</string>
+  <!-- Long description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_long_description">Lokaasjegegevens diele mei útwreidingsûntwikkeler</string>
+  <!-- Long description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_long_description">Persoanlike kommunikaasje diele mei útwreidingsûntwikkeler</string>
+  <!-- Long description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_long_description">Persoanlik identifisearjende gegevens diele mei útwreidingsûntwikkeler</string>
+  <!-- Long description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_long_description">Syktermen diele mei útwreidingsûntwikkeler</string>
+  <!-- Long description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_long_description">Technyske en ynteraksjegegevens diele mei útwreidingûntwikkeler</string>
+  <!-- Long description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_long_description">Website-aktiviteit diele mei útwreidingsûntwikkeler</string>
+  <!-- Long description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_long_description">Website-ynhâld diele mei útwreidingsûntwikkeler</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Ferzje</string>
   <!-- The author of an add-on. -->

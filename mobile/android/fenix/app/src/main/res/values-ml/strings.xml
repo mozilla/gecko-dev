@@ -62,7 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s നിങ്ങളുടെ തിരയലും ബ്രൗസിംഗ് ചരിത്രവും സ്വകാര്യ ടാബുകൾ അടയ്ക്കുമ്പോൾ അല്ലെങ്കിൽ അപ്ലിക്കേഷനിൽ നിന്ന് പുറത്തുകടക്കുമ്പോൾ അവ മായ്‌ക്കുന്നു. ഇത് നിങ്ങളെ വെബ്‌സൈറ്റുകളിലേക്കോ ഇൻറർനെറ്റ് സേവന ദാതാവിലേക്കോ അജ്ഞാതനാക്കില്ലെങ്കിലും, ഈ ഉപകരണം ഉപയോഗിക്കുന്ന മറ്റെതൊരാളിൽ നിന്നും നിങ്ങൾ ഓൺലൈനിൽ ചെയ്യുന്നത് സ്വകാര്യമായി സൂക്ഷിക്കുന്നത് എളുപ്പമാക്കുന്നു.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s നിങ്ങളുടെ തിരയലും ബ്രൗസിംഗ് ചരിത്രവും സ്വകാര്യ ടാബുകൾ അടയ്ക്കുമ്പോൾ അല്ലെങ്കിൽ അപ്ലിക്കേഷനിൽ നിന്ന് പുറത്തുകടക്കുമ്പോൾ അവ മായ്‌ക്കുന്നു. ഇത് നിങ്ങളെ വെബ്‌സൈറ്റുകളിലേക്കോ ഇൻറർനെറ്റ് സേവന ദാതാവിലേക്കോ അജ്ഞാതനാക്കില്ലെങ്കിലും, ഈ ഉപകരണം ഉപയോഗിക്കുന്ന മറ്റെതൊരാളിൽ നിന്നും നിങ്ങൾ ഓൺലൈനിൽ ചെയ്യുന്നത് സ്വകാര്യമായി സൂക്ഷിക്കുന്നത് എളുപ്പമാക്കുന്നു.</string>
   <string name="private_browsing_common_myths">സ്വകാര്യ തിരച്ചിലിനെക്കുറിച്ചുള്ള പൊതുവായ തെറ്റിദ്ധാരണങ്ങൾ</string>
   <!--
     True Private Browsing Mode
@@ -98,7 +98,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">ഒരു പുതിയ സ്വകാര്യ ടാബു് കൂട്ടം തുടങ്ങാൻ ഇവിടെ തൊടുക. നാൾവഴിയും കുക്കീസും എല്ലാം മായ്ക്കുക.</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">ഒരു പുതിയ സ്വകാര്യ ടാബു് കൂട്ടം തുടങ്ങാൻ ഇവിടെ തൊടുക. നാൾവഴിയും കുക്കീസും എല്ലാം മായ്ക്കുക.</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -321,7 +321,7 @@
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">ഒളിവാക്കുകളും ടാബുകളും എന്നിവയും മറ്റും സമന്വയിപ്പിക്കുക</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption_2">അടയാളക്കുറിപ്പുകളും ഒളിവാക്കുകളും ടാബുകളും എന്നിവയും മറ്റും സമന്വയിപ്പിക്കുക</string>
+  <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">അടയാളക്കുറിപ്പുകളും ഒളിവാക്കുകളും ടാബുകളും എന്നിവയും മറ്റും സമന്വയിപ്പിക്കുക</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">സമന്വയിപ്പിക്കാനായി പ്രവേശിക്കൽ ചെയ്യുക</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -400,7 +400,7 @@
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
-  <string name="browser_menu_translated_to">%1$s -ലേക്കു് വിവർത്തനം ചെയ്തു</string>
+  <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">%1$s -ലേക്കു് വിവർത്തനം ചെയ്തു</string>
   <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
   <string name="browser_menu_translated">വിവൎത്തിക്കപ്പെട്ട</string>
   <!-- Browser menu label for the print feature -->
@@ -445,7 +445,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">തിരയൽ നാൾവഴി മായ്ക്കുക</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">തിരയൽ നാൾവഴി മായ്ക്കുക</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">താളിന്റെ വിവർത്തനം ചെയ്യുക</string>
   <!--
@@ -923,13 +923,13 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">ആവശ്യപെട്ടതു്</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">ആവശ്യപെട്ടതു്</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
-  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">നിര്‍ബന്ധമല്ലാത്ത</string>
+  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources" moz:removedIn="141">നിര്‍ബന്ധമല്ലാത്ത</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
-  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">എല്ല വെബ്സ്ഥാനങ്ങൾക്കു് അനുവദിക്കുക</string>
+  <string name="addons_permissions_allow_for_all_sites">എല്ല വെബ്സ്ഥാനങ്ങൾക്കു് അനുവദിക്കുക</string>
   <!-- The subtitle for the allow for all sites preference toggle -->
-  <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">ഈ വിപുലീകരണത്തെ താങ്ങൾ വിശ്വസിക്കുന്നുവെങ്കിൽ, ഓരോ വെബിടത്തിഌം താങ്ങൾക്കു് ഇതിനു് അനുമതി നൽകാം.</string>
+  <string name="addons_permissions_allow_for_all_sites_subtitle">ഈ വിപുലീകരണത്തെ താങ്ങൾ വിശ്വസിക്കുന്നുവെങ്കിൽ, ഓരോ വെബിടത്തിഌം താങ്ങൾക്കു് ഇതിനു് അനുമതി നൽകാം.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">ഈ വിപുലീകരണത്തിനു് അനുമതികളുടെ അവിശ്യമില്ല.</string>
   <!--
@@ -2073,7 +2073,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">സ്വകാര്യ ടാബ് അടച്ചു</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">സ്വകാര്യ ടാബുകൾ അടച്ചു</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">സ്വകാര്യ ടാബുകൾ അടച്ചു</string>
   <!-- Text shown in snackbar when user erases their private browsing data -->
   <string name="snackbar_private_data_deleted">സ്വകാര്യ തിരയൽ ദത്ത മായിച്ചു</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
@@ -2903,7 +2903,7 @@
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">ഈ ശേഖരം കുറിച്ചു് കൂടുതലറിയാൻ ഈ കണ്ണി തുറക്കുക</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
-  <string name="a11y_action_label_read_article">ലേഖനം വായിക്കുക</string>
+  <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">ലേഖനം വായിക്കുക</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">കൂടുതലറിയാൻ കണ്ണി തുറക്കുക</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->

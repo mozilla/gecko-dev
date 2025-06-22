@@ -42,7 +42,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s pa ìwádìí àti ìtàn ìlọkiri rẹ̀ lórí àwọn táàbù ìkọ̀kọ̀ nígbà tí o bá tì wọ́n tàbí nígbà tí o kò lo áàpù náà mọ́. Ní àkó́kò tí èyí kò sọ ẹ́ di aláìnídáánimọ̀ sí àwọn wẹ́íbusaìtì yí tàbí olùpèsè ìlò íntánẹ́ẹ̀tì rẹ, ó jẹ́ kó rọrùn láti tọ́jú gbogbo ohun tí ò ń ṣe lórí ayélujára sí ìkọ̀kọ̀ fún ẹnikẹ́ni tó bá lo èrọ yìí.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s pa ìwádìí àti ìtàn ìlọkiri rẹ̀ lórí àwọn táàbù ìkọ̀kọ̀ nígbà tí o bá tì wọ́n tàbí nígbà tí o kò lo áàpù náà mọ́. Ní àkó́kò tí èyí kò sọ ẹ́ di aláìnídáánimọ̀ sí àwọn wẹ́íbusaìtì yí tàbí olùpèsè ìlò íntánẹ́ẹ̀tì rẹ, ó jẹ́ kó rọrùn láti tọ́jú gbogbo ohun tí ò ń ṣe lórí ayélujára sí ìkọ̀kọ̀ fún ẹnikẹ́ni tó bá lo èrọ yìí.</string>
   <string name="private_browsing_common_myths">Àwọn àròsọ tó wọ́pọ̀ nípa ìlọkiri-oníwẹ́ẹ̀bù ìkọ̀kọ̀</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
@@ -965,7 +965,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Táàbù ìkọ̀kọ̀ ti padé</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Àwọn táàbù ìkọ̀kọ̀ ti padé</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Àwọn táàbù ìkọ̀kọ̀ ti padé</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">MÁṢÈÉ</string>
   <!-- Text shown in snackbar when user removes a top site -->

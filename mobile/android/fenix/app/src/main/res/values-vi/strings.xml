@@ -62,7 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s xóa lịch sử tìm kiếm và duyệt web của bạn khỏi các thẻ riêng tư khi bạn đóng chúng hoặc thoát khỏi ứng dụng. Mặc dù điều này không làm cho bạn ẩn danh với các trang web hoặc nhà cung cấp dịch vụ internet của bạn, nhưng nó giúp bạn dễ dàng giữ những gì bạn làm trực tuyến riêng tư với bất kỳ ai khác sử dụng thiết bị này.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s xóa lịch sử tìm kiếm và duyệt web của bạn khỏi các thẻ riêng tư khi bạn đóng chúng hoặc thoát khỏi ứng dụng. Mặc dù điều này không làm cho bạn ẩn danh với các trang web hoặc nhà cung cấp dịch vụ internet của bạn, nhưng nó giúp bạn dễ dàng giữ những gì bạn làm trực tuyến riêng tư với bất kỳ ai khác sử dụng thiết bị này.</string>
   <string name="private_browsing_common_myths">Những lầm tưởng phổ biến về duyệt web riêng tư</string>
   <!--
     True Private Browsing Mode
@@ -98,7 +98,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">Nhấn vào đây để bắt đầu phiên riêng tư mới. Xóa lịch sử, cookie của bạn — mọi thứ.</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">Nhấn vào đây để bắt đầu phiên riêng tư mới. Xóa lịch sử, cookie của bạn — mọi thứ.</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -321,7 +321,7 @@
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Đồng bộ hóa mật khẩu, thẻ và hơn thế nữa</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption_2">Đồng bộ hóa dấu trang, mật khẩu, thẻ và nhiều thứ khác</string>
+  <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">Đồng bộ hóa dấu trang, mật khẩu, thẻ và nhiều thứ khác</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Đăng nhập lại để đồng bộ hóa</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -400,7 +400,7 @@
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
-  <string name="browser_menu_translated_to">Đã dịch sang %1$s</string>
+  <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">Đã dịch sang %1$s</string>
   <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
   <string name="browser_menu_translated">Đã dịch</string>
   <!-- Browser menu label for the print feature -->
@@ -445,7 +445,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">Xóa lịch sử duyệt web</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">Xóa lịch sử duyệt web</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">Dịch trang</string>
   <!--
@@ -962,13 +962,13 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">Bắt buộc</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">Bắt buộc</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
-  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">Không bắt buộc</string>
+  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources" moz:removedIn="141">Không bắt buộc</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
-  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Cho phép tất cả các trang web</string>
+  <string name="addons_permissions_allow_for_all_sites">Cho phép tất cả các trang web</string>
   <!-- The subtitle for the allow for all sites preference toggle -->
-  <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">Nếu bạn tin tưởng tiện ích mở rộng này, bạn có thể cấp quyền cho nó trên mọi trang web.</string>
+  <string name="addons_permissions_allow_for_all_sites_subtitle">Nếu bạn tin tưởng tiện ích mở rộng này, bạn có thể cấp quyền cho nó trên mọi trang web.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">Tiện ích mở rộng này không yêu cầu bất kỳ quyền nào.</string>
   <!--
@@ -2146,7 +2146,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Đã đóng thẻ riêng tư</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Đã đóng các thẻ riêng tư</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Đã đóng các thẻ riêng tư</string>
   <!-- Text shown in snackbar when user erases their private browsing data -->
   <string name="snackbar_private_data_deleted">Đã xóa dữ liệu duyệt web riêng tư</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
@@ -3038,7 +3038,7 @@
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">mở liên kết để tìm hiểu thêm về bộ sưu tập này</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
-  <string name="a11y_action_label_read_article">đọc bài viết</string>
+  <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">đọc bài viết</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">mở liên kết để tìm hiểu thêm</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->

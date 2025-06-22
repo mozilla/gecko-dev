@@ -2,4 +2,8 @@
 <resources>
   <!-- Text for context menu item to open the link in a new tab. -->
   <string name="mozac_feature_contextmenu_open_link_in_new_tab">o open e nimi nasin ni lon poki sin</string>
+  <!-- Text for confirmation "snackbar" shown after copying a link or image URL to the clipboard. -->
+  <string name="mozac_feature_contextmenu_snackbar_link_copied">mi pana e nimi nasin tawa poki ilo</string>
+  <!-- Text for confirmation "snackbar" shown after copying a email address to the clipboard. -->
+  <string name="mozac_feature_contextmenu_snackbar_email_address_copied">mi pana e nimi pi poki lipu tawa poki ilo</string>
 </resources>

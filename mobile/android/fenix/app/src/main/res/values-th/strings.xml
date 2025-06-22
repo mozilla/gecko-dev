@@ -62,7 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s จะล้างประวัติการค้นหาและประวัติการเรียกดูของคุณจากแท็บส่วนตัวเมื่อคุณปิดแท็บเหล่านั้นหรือออกจากแอป แม้ว่าสิ่งนี้จะไม่ทำให้คุณไม่เปิดเผยตัวตนกับเว็บไซต์หรือผู้ให้บริการอินเทอร์เน็ตของคุณ แต่จะทำให้การรักษาความเป็นส่วนตัวของสิ่งที่คุณทำออนไลน์จากผู้อื่นที่ใช้อุปกรณ์เครื่องนี้ง่ายขึ้น</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s จะล้างประวัติการค้นหาและประวัติการเรียกดูของคุณจากแท็บส่วนตัวเมื่อคุณปิดแท็บเหล่านั้นหรือออกจากแอป แม้ว่าสิ่งนี้จะไม่ทำให้คุณไม่เปิดเผยตัวตนกับเว็บไซต์หรือผู้ให้บริการอินเทอร์เน็ตของคุณ แต่จะทำให้การรักษาความเป็นส่วนตัวของสิ่งที่คุณทำออนไลน์จากผู้อื่นที่ใช้อุปกรณ์เครื่องนี้ง่ายขึ้น</string>
   <string name="private_browsing_common_myths">ความเข้าใจผิดที่พบบ่อยเกี่ยวกับการท่องเว็บแบบส่วนตัว</string>
   <!--
     True Private Browsing Mode
@@ -98,7 +98,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">แตะที่นี่เพื่อเริ่มเปิดวาระส่วนตัวใหม่ โดยจะลบประวัติ คุกกี้ และทุกๆ อย่างของคุณเมื่อเสร็จแล้ว</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">แตะที่นี่เพื่อเริ่มเปิดวาระส่วนตัวใหม่ โดยจะลบประวัติ คุกกี้ และทุกๆ อย่างของคุณเมื่อเสร็จแล้ว</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -392,7 +392,7 @@
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
-  <string name="browser_menu_translated_to">แปลเป็นภาษา%1$sแล้ว</string>
+  <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">แปลเป็นภาษา%1$sแล้ว</string>
   <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
   <string name="browser_menu_translated">แปลแล้ว</string>
   <!-- Browser menu label for the print feature -->
@@ -426,7 +426,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">ล้างประวัติการเรียกดู</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">ล้างประวัติการเรียกดู</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">แปลหน้า</string>
   <!--
@@ -943,13 +943,13 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">จำเป็น</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">จำเป็น</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
-  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">ไม่จำเป็น</string>
+  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources" moz:removedIn="141">ไม่จำเป็น</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
-  <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">อนุญาตสำหรับทุกไซต์</string>
+  <string name="addons_permissions_allow_for_all_sites">อนุญาตสำหรับทุกไซต์</string>
   <!-- The subtitle for the allow for all sites preference toggle -->
-  <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">ถ้าคุณเชื่อถือส่วนขยายนี้ คุณสามารถให้สิทธิ์แก่ส่วนขยายนี้ในทุกเว็บไซต์ได้</string>
+  <string name="addons_permissions_allow_for_all_sites_subtitle">ถ้าคุณเชื่อถือส่วนขยายนี้ คุณสามารถให้สิทธิ์แก่ส่วนขยายนี้ในทุกเว็บไซต์ได้</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">ส่วนขยายนี้ไม่จำเป็นต้องขอสิทธิ์ใด</string>
   <!--
@@ -2096,7 +2096,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">ปิดแท็บส่วนตัวแล้ว</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">ปิดแท็บส่วนตัวแล้ว</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">ปิดแท็บส่วนตัวแล้ว</string>
   <!-- Text shown in snackbar when user erases their private browsing data -->
   <string name="snackbar_private_data_deleted">ลบข้อมูลการเรียกดูแบบส่วนตัวแล้ว</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
@@ -2988,7 +2988,7 @@
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">เปิดลิงก์เพื่อเรียนรู้เพิ่มเติมเกี่ยวกับคอลเลกชันนี้</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
-  <string name="a11y_action_label_read_article">อ่านบทความ</string>
+  <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">อ่านบทความ</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">เปิดลิงก์เพื่อเรียนรู้เพิ่มเติม</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->

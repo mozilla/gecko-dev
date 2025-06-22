@@ -28,7 +28,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">जेव्हा आपण त्यांना बंद करता किंवा अॅप सोडता %1$s खाजगी टॅब मधून आपले शोध आणि ब्राउझिंग इतिहास साफ करते. हे जरी आपल्याला वेबसाईट करिता किंवा आपल्या इंटरनेट सेवा प्रदात्यापासून अनामिक बनवत नसले, तरी ज्या व्यक्ती हा डिव्हाईस वापरणाऱ्यांपासून आपण ऑनलाईन काय करता हे खाजगी ठवणे सोपे करते.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">जेव्हा आपण त्यांना बंद करता किंवा अॅप सोडता %1$s खाजगी टॅब मधून आपले शोध आणि ब्राउझिंग इतिहास साफ करते. हे जरी आपल्याला वेबसाईट करिता किंवा आपल्या इंटरनेट सेवा प्रदात्यापासून अनामिक बनवत नसले, तरी ज्या व्यक्ती हा डिव्हाईस वापरणाऱ्यांपासून आपण ऑनलाईन काय करता हे खाजगी ठवणे सोपे करते.</string>
   <string name="private_browsing_common_myths">खाजगी ब्राउझिंग बद्दल सामान्य समजुती</string>
   <!--
     Home screen icons - Long press shortcuts
@@ -581,7 +581,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">खाजगी टॅब बंद केला</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">खाजगी टॅब बंद केले</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">खाजगी टॅब बंद केले</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">पूर्ववत् करा</string>
   <!-- Text shown in snackbar when user removes a top site -->

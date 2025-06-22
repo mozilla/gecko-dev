@@ -52,7 +52,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s जब आप ऐप को बंद करते हैं तो निजी टैब से आपका खोज और ब्राउज़िंग इतिहास को मिटाता हैं। हालांकि यह आपको वेबसाइटों या आपके इंटरनेट सेवा प्रदाता के लिए अज्ञात नहीं बनाता है, लेकिन यह आसान बनाता है कि आप इस कंप्यूटर का उपयोग करने वाले किसी अन्य व्यक्ति से ऑनलाइन निजी काम करें।</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s जब आप ऐप को बंद करते हैं तो निजी टैब से आपका खोज और ब्राउज़िंग इतिहास को मिटाता हैं। हालांकि यह आपको वेबसाइटों या आपके इंटरनेट सेवा प्रदाता के लिए अज्ञात नहीं बनाता है, लेकिन यह आसान बनाता है कि आप इस कंप्यूटर का उपयोग करने वाले किसी अन्य व्यक्ति से ऑनलाइन निजी काम करें।</string>
   <string name="private_browsing_common_myths">निजी ब्राउज़िंग के बारे में आम कथा</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">सेटिंग पर जाएं</string>
@@ -835,7 +835,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">निजी टैब बंद हो गया</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">निजी टैब बंद हो गया</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">निजी टैब बंद हो गया</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">UNDO</string>
   <!-- Text shown in snackbar when user removes a top site -->

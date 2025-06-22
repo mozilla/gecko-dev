@@ -60,7 +60,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s xita a nnánukunu a nsá´ánu saa kenenu nuu ka̱a̱ a xiin nakasɨnu kuaiyo da pestaña jíí ventana nánuku yu´u. Ya´a ntu taji a noo´o nánuku yu´u nuu Web ji nuu ñɨvu tatu Internet, ya´a kumiji noo\'o a nnánukunu nuu inka ñɨvu ni´i ka̱a̱ tee nɨnuu ya´a.</string>
+  <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s xita a nnánukunu a nsá´ánu saa kenenu nuu ka̱a̱ a xiin nakasɨnu kuaiyo da pestaña jíí ventana nánuku yu´u. Ya´a ntu taji a noo´o nánuku yu´u nuu Web ji nuu ñɨvu tatu Internet, ya´a kumiji noo\'o a nnánukunu nuu inka ñɨvu ni´i ka̱a̱ tee nɨnuu ya´a.</string>
   <string name="private_browsing_common_myths">Tu´un nakani jiee nánuku yu\'u</string>
   <!--
     True Private Browsing Mode
@@ -96,7 +96,7 @@
 
     Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
   -->
-  <string name="erase_action_cfr_message">Kuaxin ya\'a sa kajie\'e sesión yu\'u. Xita da nnánukunu, cookies — todo.</string>
+  <string name="erase_action_cfr_message" moz:removedIn="141" tools:ignore="UnusedResources">Kuaxin ya\'a sa kajie\'e sesión yu\'u. Xita da nnánukunu, cookies — todo.</string>
   <!--
     Toolbar "contextual feature recommendation" (CFR)
 
@@ -315,7 +315,7 @@
     Content description (not visible, for screen readers etc.): Erase button: Erase the browsing
     history and go back to the home screen.
   -->
-  <string name="browser_toolbar_erase">Xiná daa nnánukunu</string>
+  <string name="browser_toolbar_erase" moz:removedIn="141" tools:ignore="UnusedResources">Xiná daa nnánukunu</string>
   <!-- Content description for the translate page toolbar button that opens the translations dialog when no translation has occurred. -->
   <string name="browser_toolbar_translate">Traducir página</string>
   <!--
@@ -602,9 +602,9 @@
 
     The title of the required permissions section from addon's permissions screen
   -->
-  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">Jiniñu\'u</string>
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources" moz:removedIn="141">Jiniñu\'u</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
-  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">Kaji</string>
+  <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources" moz:removedIn="141">Kaji</string>
   <!--
     Add-on Preferences
 
@@ -1391,7 +1391,7 @@
   <!-- Text shown in snackbar when user closes a private tab -->
   <string name="snackbar_private_tab_closed">Pestaña yu\'u nasɨ</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Pestañas yu\'u nnakasɨ</string>
+  <string name="snackbar_private_tabs_closed" moz:removedIn="141" tools:ignore="UnusedResources">Pestañas yu\'u nnakasɨ</string>
   <!-- Text shown in snackbar when user erases their private browsing data -->
   <string name="snackbar_private_data_deleted">Nna daa datos ka̱a̱ nánuku</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
@@ -2110,7 +2110,7 @@
   <!-- Action label for links to a website containing documentation about a wallpaper collection. Talkback will append this to say "Double tap to open link to learn more about this collection". -->
   <string name="a11y_action_label_wallpaper_collection_learn_more">Síne enlace sa kuninuka jiee colección ya\'a</string>
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
-  <string name="a11y_action_label_read_article">ka\'vi articulo</string>
+  <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">ka\'vi articulo</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
   <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">Síne enlace sa kuninuka</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
