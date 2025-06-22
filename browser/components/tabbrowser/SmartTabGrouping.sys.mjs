@@ -105,14 +105,12 @@ const SMART_TAB_GROUPING_CONFIG = {
     timeoutMS: 2 * 60 * 1000, // 2 minutes
     taskName: ML_TASK_FEATURE_EXTRACTION,
     featureId: "smart-tab-embedding",
-    backend: "onnx-native",
   },
   topicGeneration: {
     dtype: "q8",
     timeoutMS: 2 * 60 * 1000, // 2 minutes
     taskName: ML_TASK_TEXT2TEXT,
     featureId: "smart-tab-topic",
-    backend: "onnx-native",
   },
   dataConfig: {
     titleKey: "label",
@@ -677,7 +675,6 @@ export class SmartTabGroupingManager {
       timeoutMS,
       modelId,
       modelRevision,
-      backend,
     } = engineConfig;
     let initData = {
       featureId,
@@ -687,7 +684,6 @@ export class SmartTabGroupingManager {
       timeoutMS,
       modelId,
       modelRevision,
-      backend,
     };
 
     initData = SmartTabGroupingManager.getUpdatedInitData(initData, featureId);

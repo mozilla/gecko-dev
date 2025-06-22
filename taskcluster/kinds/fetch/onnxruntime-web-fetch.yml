@@ -77,7 +77,7 @@ mozilla-smart-tab-topic:
     fetch:
         type: git
         repo: https://huggingface.co/Mozilla/smart-tab-topic
-        revision: b0fd1b23dcb06bb68b5d60d18c7b1524c65a94af
+        revision: 4d6d7848b9ee62ce4a6db08c69f6ab698cb671d1
         path-prefix: "onnx-models/Mozilla/smart-tab-topic/main/"
         artifact-name: smart-tab-topic.tar.zst
 

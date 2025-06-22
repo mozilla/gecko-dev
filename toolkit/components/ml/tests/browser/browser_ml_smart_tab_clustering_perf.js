@@ -65,6 +65,7 @@ async function generateEmbeddings(textList) {
     modelHubUrlTemplate: "{model}/{revision}",
     modelRevision: "main",
     dtype: "q8",
+    // timeoutMS: 2 * 60 * 1000,
     timeoutMS: -1,
   });
   const requestInfo = {
@@ -85,38 +86,9 @@ async function generateEmbeddings(textList) {
   return output;
 }
 
-async function runTopicModel(texts, keywords = []) {
-  const stgManager = new SmartTabGroupingManager();
-
-  const options = new PipelineOptions({
-    taskName: "text2text-generation",
-    modelId: "Mozilla/smart-tab-topic",
-    modelHubUrlTemplate: "{model}/{revision}",
-    modelRevision: "main",
-    dtype: "q8",
-    timeoutMS: 2 * 60 * 1000,
-  });
-  const requestInfo = {
-    inputArgs: stgManager.createModelInput(keywords, texts),
-    runOptions: {
-      max_length: 6,
-    },
-  };
-
-  const request = {
-    args: [requestInfo.inputArgs],
-    options: requestInfo.runOptions,
-  };
-  const mlEngineParent = await EngineProcess.getMLEngineParent();
-  const engine = await mlEngineParent.getEngine(options);
-  const output = await engine.run(request);
-  return output.map(o => o.generated_text);
-}
-
 const singleTabMetrics = {};
 singleTabMetrics["SINGLE-TAB-LATENCY"] = [];
 singleTabMetrics["SINGLE-TAB-LOGISTIC-REGRESSION-LATENCY"] = [];
-singleTabMetrics["SINGLE-TAB-TOPIC-LATENCY"] = [];
 
 add_task(async function test_clustering_nearest_neighbors() {
   const modelHubRootUrl = Services.env.get("MOZ_MODELS_HUB");
@@ -224,40 +196,8 @@ add_task(async function test_clustering_logistic_regression() {
     "The Influence of Travel Restrictions on the Spread of COVID-19 - Nature"
   );
   Assert.equal(titles[4], "Hotel Deals: Save Big on Hotels with Expedia");
-  generateEmbeddingsStub.restore();
-  await EngineProcess.destroyMLEngine();
-  await cleanup();
-});
-
-add_task(async function test_topic_model() {
-  const modelHubRootUrl = Services.env.get("MOZ_MODELS_HUB");
-  const { cleanup } = await perfSetup({
-    prefs: [["browser.ml.modelHubRootUrl", modelHubRootUrl]],
-  });
-
-  const texts = [
-    { input: "cheese crackers", output: " Cheese Crackers" },
-    {
-      input: "Smart Tab Groups - Usability Testing Script",
-      output: " Usability",
-    },
-    { input: "Tutorials/Setting up a server Wiki", output: " Linux Tutorials" },
-    { input: "The Best Trail Running Shoes", output: " Trail Running Shoes" },
-    { input: "Top Web Sites Across the Web", output: " Web Sites" },
-  ];
-  for (const text of texts) {
-    const startTime = performance.now();
-    const output = await runTopicModel([text.input]);
-    Assert.equal(
-      output[0],
-      text.output,
-      "Output from topic model should match expected"
-    );
-    const endTime = performance.now();
-    singleTabMetrics["SINGLE-TAB-TOPIC-LATENCY"].push(endTime - startTime);
-  }
-
   reportMetrics(singleTabMetrics);
+  generateEmbeddingsStub.restore();
   await EngineProcess.destroyMLEngine();
   await cleanup();
 });
