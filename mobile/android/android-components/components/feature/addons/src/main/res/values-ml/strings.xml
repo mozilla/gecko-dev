@@ -84,6 +84,8 @@
   <string name="mozac_feature_addons_permissions_user_scripts_description">മൂന്നാം കക്ഷിയായ നിർദേശലിപികളെ താങ്ങളുടെ ദത്ത ഉപയോഗിക്കാൻ അനുമതി നല്കുക</string>
   <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
   <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">ഈ വിപുലീകരണം ശേഖരിക്കുന്നത് ഇവയാണെന്ന് വികസിനാക്താവു് പറയുന്നു: %1$s.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">ഈ വിപുലീകരണം ശേഖരിക്കുന്നത് ഇവയാണെന്ന് വികസിനാക്താവു് പറയുന്നു: %1$s</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">ഡാറ്റ പിരിവുവേണ്ടയെന്നു് ഈ വിപുലീകരണത്തിന്റെ വികസിനാക്താവു് പറയുന്നു.</string>
   <!-- Description for devtools permission. -->

@@ -86,6 +86,8 @@
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">اسکریپتا تاییڌ نوابیڌه ترن خترات ٱمنیتی وو زفت کردن هریم سیخومی وورکل کونن. تینا اسکریپتایی ن ز وردنی یل وو بونچکایی ک وسووݩ ائتماڌ دارین، ر بونین.</string>
   <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
   <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">برنومه نویس اگو ای وردنی مووردا لمی ن جم اکونه: %1$s.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">برنومه نویس اگو ای وردنی مووردا لمی ن جم اکونه: %1$s</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">برنومه نویس اگو ای وردنی لنگ جم کردن داده یل نؽ.</string>
   <!-- Description for devtools permission. -->
@@ -118,6 +120,30 @@
   <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">فعالیت وبگه</string>
   <!-- Short description for the websiteContent data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">موئتوا وبگه</string>
+  <!-- Long description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">دووسمندیا ائراز هۊویت ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
+  <!-- Long description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">دووسمندیا نشووکا ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
+  <!-- Long description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">فعالیتا گشتن ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
+  <!-- Long description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description">دووسمندیا مالی وو پرداختی ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
+  <!-- Long description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">دووسمندیا سلامتی ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
+  <!-- Long description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_long_description">دووسمندیا جاگه ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
+  <!-- Long description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_long_description">منپیزا خومی ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
+  <!-- Long description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_long_description">دووسمندیا اشناختن خومی ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
+  <!-- Long description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_long_description">هؽلا پیتینیڌن ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
+  <!-- Long description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_long_description">داده یل فنی وو تعامولی ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
+  <!-- Long description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_long_description">فعالیتا وبگه ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
+  <!-- Long description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_long_description">موئتوا وبگه ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">نوسخه</string>
   <!-- The author of an add-on. -->
@@ -188,6 +214,8 @@
   <string name="mozac_feature_addons_permissions_dialog_deny">رڌ کردن</string>
   <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
   <string name="mozac_feature_addons_permissions_dialog_learn_more">قلوه دووسته بۊین</string>
+  <!-- This is the text for the "technical and interaction" checkbox shown in the add-on permissions dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_technical_and_interaction_data">داده یل فنی وو تعامولی ن وا برنومه نویس وردنی یک رسۊوی کۊنین</string>
   <!-- This is a button to cancel the add-on installation . -->
   <string name="mozac_feature_addons_permissions_dialog_cancel">لقو</string>
   <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
