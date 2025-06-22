@@ -512,13 +512,18 @@ browsertime-benchmark-jetstream3:
         by-test-platform:
             android-hw-a55.*shippable.*:
                 by-app:
-                    fenix: [mozilla-central]
+                    fenix: [trunk-only]
                     default: []
             default: []
     treeherder-symbol: Btime()
     tier:
         by-app:
-            fenix: 1
+            # Bug 1971608
+            # For now, keep js3 on tier 3 to minimize potential alerts
+            # due to now running on autoland.
+            # Bump to tier 1 or 2 once more development has been done on
+            # js3.
+            fenix: 3
             default: 3
 
 browsertime-benchmark-unity-webgl-mobile:

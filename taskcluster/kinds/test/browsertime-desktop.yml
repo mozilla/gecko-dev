@@ -475,25 +475,40 @@ browsertime-benchmark:
     tier:
         by-app:
             firefox:
-                by-test-platform:
-                    linux.*clang-trunk.*: 2
-                    default: 1
+                by-subtest:
+                    # Bug 1971608
+                    # For now, keep js3 on tier 3 to minimize potential alerts
+                    # due to now running on autoland.
+                    # Bump to tier 1 or 2 once more development has been done on
+                    # js3.
+                    jetstream3: 3
+                    default:
+                        by-test-platform:
+                            linux.*clang-trunk.*: 2
+                            default: 1
             default:
                 by-subtest:
                     unity-webgl: 3
                     jetstream2:
                         by-test-platform:
-                            macosx1400.*shippable.*: 3
+                            macosx1470.*shippable.*: 3
                             macosx1500.*shippable.*: 3
                             default: 2
-                    jetstream3:
-                        by-app:
-                            firefox: 2
-                            default: 3
+                    jetstream3: 3
                     default: 2
 
     run-on-projects:
         by-subtest:
+            jetstream3:
+                by-app:
+                    firefox:
+                        by-test-platform:
+                            windows11-64-24h2-shippable/opt: [trunk-only]
+                            linux.*shippable.*: [trunk-only]
+                            macosx1470.*shippable.*: [trunk-only]
+                            macosx1500.*shippable.*: [trunk-only]
+                            default: []
+                    default: []
             speedometer3:
                 by-app:
                     firefox:

@@ -1097,7 +1097,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **page cycles**: 1
    * **page timeout**: 2000000
    * **repository**: https://github.com/webkit/jetstream
-   * **repository revision**: 901c95b90d74b544e2b8d6bac2a6b86ebe22b43a
+   * **repository revision**: 6947a460f6b55ef5613c36263049ecf74c5ec1cd
    * **subtest lower is better**: true
    * **subtest unit**: ms
    * **suite name**: JetStream3.0
@@ -1139,12 +1139,12 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
       * - **browsertime-benchmark-jetstream3-fenix-jetstream3**
         - ✅
-        - ❌
+        - ✅
         - ❌
         - ❌
       * - **browsertime-benchmark-jetstream3-fenix-jetstream3-nofis**
         - ✅
-        - ❌
+        - ✅
         - ❌
         - ❌
 
@@ -1328,7 +1328,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
       * - **browsertime-benchmark-firefox-jetstream3**
         - ✅
-        - ❌
+        - ✅
         - ❌
         - ❌
       * - **browsertime-benchmark-safari-jetstream3**
@@ -1414,7 +1414,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **page timeout**: 2000000
    * **preferences**: dom.max_script_run_time=0
    * **repository**: https://github.com/webkit/jetstream
-   * **repository revision**: 901c95b90d74b544e2b8d6bac2a6b86ebe22b43a
+   * **repository revision**: 6947a460f6b55ef5613c36263049ecf74c5ec1cd
    * **subtest lower is better**: true
    * **subtest unit**: ms
    * **suite name**: JetStream3.0
@@ -1456,12 +1456,12 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
       * - **browsertime-benchmark-jetstream3-fenix-jetstream3**
         - ✅
-        - ❌
+        - ✅
         - ❌
         - ❌
       * - **browsertime-benchmark-jetstream3-fenix-jetstream3-nofis**
         - ✅
-        - ❌
+        - ✅
         - ❌
         - ❌
 
@@ -1645,7 +1645,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
       * - **browsertime-benchmark-firefox-jetstream3**
         - ✅
-        - ❌
+        - ✅
         - ❌
         - ❌
       * - **browsertime-benchmark-safari-jetstream3**
