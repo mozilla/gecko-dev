@@ -5,7 +5,7 @@
 // Test that the eyedropper follows the mouse in RDM. See Bug 1932143.
 
 const TEST_URL =
-  "data:text/html;charset=utf-8,<meta name='viewport' content='width=device-width' />";
+  "data:text/html;charset=utf-8,<meta name='viewport' content='width=device-width' /><iframe></iframe>";
 
 addRDMTask(TEST_URL, async function ({ ui }) {
   info(
