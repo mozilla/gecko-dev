@@ -42,8 +42,7 @@ already_AddRefed<CloseWatcher> CloseWatcher::Constructor(
     watcher->Follow(signal);
   }
 
-  auto* manager = window->EnsureCloseWatcherManager();
-  manager->Add(*watcher);
+  watcher->AddToWindowsCloseWatcherManager();
   return watcher.forget();
 }
 
@@ -115,6 +114,12 @@ void CloseWatcher::Close() {
   RefPtr<Event> event = Event::Constructor(this, u"close"_ns, init);
   event->SetTrusted(true);
   DispatchEvent(*event);
+}
+
+void CloseWatcher::AddToWindowsCloseWatcherManager() {
+  if (auto* window = GetOwnerWindow()) {
+    window->EnsureCloseWatcherManager()->Add(*this);
+  }
 }
 
 void CloseWatcher::Destroy() {
