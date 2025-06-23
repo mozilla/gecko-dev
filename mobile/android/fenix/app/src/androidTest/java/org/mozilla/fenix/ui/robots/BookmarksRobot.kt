@@ -277,7 +277,7 @@ fun composeBookmarksMenu(composeTestRule: ComposeTestRule, interact: BookmarksRo
 }
 
 private fun ComposeTestRule.addFolderButton() =
-    onNodeWithContentDescription(getStringResource(R.string.bookmark_select_folder_new_folder_button_title))
+    onNodeWithContentDescription(getStringResource(R.string.bookmark_add_new_folder_button_content_description))
 
 private fun ComposeTestRule.addFolderTitleField() =
     onNodeWithTag(ADD_BOOKMARK_FOLDER_NAME_TEXT_FIELD).onChildAt(0)
