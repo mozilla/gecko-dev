@@ -163,9 +163,10 @@ void Buffer::Cleanup() {
   }
 
   if (bridge->CanSend()) {
-    bridge->SendBufferDrop(mId);
+    ipc::ByteBuf bb;
+    ffi::wgpu_client_drop_buffer(mId, ToFFI(&bb));
+    bridge->SendMessage(std::move(bb));
   }
-
   wgpu_client_free_buffer_id(bridge->GetClient(), mId);
 }
 
@@ -449,7 +450,12 @@ void Buffer::Destroy(JSContext* aCx, ErrorResult& aRv) {
   }
 
   if (!GetDevice().IsLost()) {
-    GetDevice().GetBridge()->SendBufferDestroy(mId);
+    auto bridge = mParent->GetBridge();
+    if (bridge->CanSend()) {
+      ipc::ByteBuf bb;
+      ffi::wgpu_client_destroy_buffer(mId, ToFFI(&bb));
+      bridge->SendMessage(std::move(bb));
+    }
   }
   // TODO: we don't have to implement it right now, but it's used by the
   // examples

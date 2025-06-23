@@ -377,7 +377,10 @@ Adapter::~Adapter() { Cleanup(); }
 void Adapter::Cleanup() {
   if (mValid && mBridge && mBridge->CanSend()) {
     mValid = false;
-    mBridge->SendAdapterDrop(mId);
+
+    ipc::ByteBuf bb;
+    ffi::wgpu_client_drop_adapter(mId, ToFFI(&bb));
+    mBridge->SendMessage(std::move(bb));
   }
 }
 

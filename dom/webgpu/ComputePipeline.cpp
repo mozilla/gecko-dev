@@ -38,11 +38,11 @@ void ComputePipeline::Cleanup() {
   }
 
   if (bridge->CanSend()) {
-    bridge->SendComputePipelineDrop(mId);
-    if (mImplicitPipelineLayoutId) {
-      bridge->SendImplicitLayoutDrop(mImplicitPipelineLayoutId,
-                                     mImplicitBindGroupLayoutIds);
-    }
+    ipc::ByteBuf bb;
+    ffi::wgpu_client_drop_compute_pipeline(
+        mId, mImplicitPipelineLayoutId, mImplicitBindGroupLayoutIds.Elements(),
+        mImplicitBindGroupLayoutIds.Length(), ToFFI(&bb));
+    bridge->SendMessage(std::move(bb));
   }
 
   if (mImplicitPipelineLayoutId) {

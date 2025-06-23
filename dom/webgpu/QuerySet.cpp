@@ -24,9 +24,10 @@ void QuerySet::Cleanup() {
   }
 
   if (bridge->CanSend()) {
-    bridge->SendQuerySetDrop(mId);
+    ipc::ByteBuf bb;
+    ffi::wgpu_client_drop_query_set(mId, ToFFI(&bb));
+    bridge->SendMessage(std::move(bb));
   }
-
   wgpu_client_free_query_set_id(bridge->GetClient(), mId);
 }
 

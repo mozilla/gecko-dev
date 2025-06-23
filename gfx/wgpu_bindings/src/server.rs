@@ -5,8 +5,8 @@
 use crate::{
     command::{RecordedComputePass, RecordedRenderPass},
     error::{ErrMsg, ErrorBuffer, ErrorBufferType},
-    wgpu_string, AdapterInformation, ByteBuf, CommandEncoderAction, DeviceAction, QueueWriteAction,
-    SwapChainId, TextureAction,
+    wgpu_string, AdapterInformation, ByteBuf, CommandEncoderAction, DeviceAction, Message,
+    QueueWriteAction, SwapChainId, TextureAction,
 };
 
 use nsstring::{nsACString, nsCString, nsString};
@@ -630,21 +630,6 @@ pub unsafe extern "C" fn wgpu_server_adapter_request_device(
     }
 }
 
-#[no_mangle]
-pub extern "C" fn wgpu_server_adapter_drop(global: &Global, adapter_id: id::AdapterId) {
-    global.adapter_drop(adapter_id)
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_device_destroy(global: &Global, self_id: id::DeviceId) {
-    global.device_destroy(self_id)
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_device_drop(global: &Global, self_id: id::DeviceId) {
-    global.device_drop(self_id)
-}
-
 #[repr(C)]
 pub struct DeviceLostClosure {
     pub callback: unsafe extern "C" fn(user_data: *mut u8, reason: u8, message: *const c_char),
@@ -971,19 +956,6 @@ pub extern "C" fn wgpu_server_buffer_unmap(
             other => error_buf.init(other),
         }
     }
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_buffer_destroy(global: &Global, self_id: id::BufferId) {
-    // Per spec, there is no need for the buffer or even device to be in a valid state,
-    // even calling calling destroy multiple times is fine, so no error to push into
-    // an error scope.
-    let _ = global.buffer_destroy(self_id);
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_buffer_drop(global: &Global, self_id: id::BufferId) {
-    global.buffer_drop(self_id);
 }
 
 #[allow(unused_variables)]
@@ -1502,6 +1474,12 @@ extern "C" {
     fn wgpu_server_get_dma_buf_fd(param: *mut c_void, id: id::TextureId) -> i32;
     #[allow(dead_code)]
     fn wgpu_server_get_external_io_surface_id(param: *mut c_void, id: id::TextureId) -> u32;
+    #[allow(dead_code)]
+    fn wgpu_server_remove_external_texture(param: *mut c_void, id: id::TextureId);
+    #[allow(dead_code)]
+    fn wgpu_server_dealloc_buffer_shmem(param: *mut c_void, id: id::BufferId);
+    #[allow(dead_code)]
+    fn wgpu_server_pre_device_drop(param: *mut c_void, id: id::DeviceId);
 }
 
 #[cfg(target_os = "linux")]
@@ -2395,6 +2373,69 @@ impl Global {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn wgpu_server_message(
+    global: &Global,
+    byte_buf: &ByteBuf,
+    error_buf: ErrorBuffer,
+) {
+    let message: Message = bincode::deserialize(byte_buf.as_slice()).unwrap();
+    match message {
+        Message::DestroyBuffer(id) => {
+            wgpu_server_dealloc_buffer_shmem(global.webgpu_parent, id);
+            global.buffer_destroy(id)
+        }
+        Message::DestroyTexture(id) => {
+            wgpu_server_remove_external_texture(global.webgpu_parent, id);
+            global.texture_destroy(id)
+        }
+        Message::DestroyDevice(id) => global.device_destroy(id),
+
+        Message::DropAdapter(id) => global.adapter_drop(id),
+        Message::DropDevice(id) => {
+            wgpu_server_pre_device_drop(global.webgpu_parent, id);
+            global.device_drop(id)
+        }
+        Message::DropQueue(id) => global.queue_drop(id),
+        Message::DropBuffer(id) => {
+            wgpu_server_dealloc_buffer_shmem(global.webgpu_parent, id);
+            global.buffer_drop(id)
+        }
+        Message::DropCommandBuffer(id) => global.command_buffer_drop(id),
+        Message::DropRenderBundle(id) => global.render_bundle_drop(id),
+        Message::DropBindGroupLayout(id) => global.bind_group_layout_drop(id),
+        Message::DropPipelineLayout(id) => global.pipeline_layout_drop(id),
+        Message::DropBindGroup(id) => global.bind_group_drop(id),
+        Message::DropShaderModule(id) => global.shader_module_drop(id),
+        Message::DropComputePipeline(id, implicit_layout) => {
+            global.compute_pipeline_drop(id);
+            if let Some(implicit_layout) = implicit_layout {
+                global.pipeline_layout_drop(implicit_layout.pipeline);
+                for bgl_id in implicit_layout.bind_groups.as_ref().iter() {
+                    global.bind_group_layout_drop(*bgl_id);
+                }
+            }
+        }
+        Message::DropRenderPipeline(id, implicit_layout) => {
+            global.render_pipeline_drop(id);
+            if let Some(implicit_layout) = implicit_layout {
+                global.pipeline_layout_drop(implicit_layout.pipeline);
+                for bgl_id in implicit_layout.bind_groups.as_ref().iter() {
+                    global.bind_group_layout_drop(*bgl_id);
+                }
+            }
+        }
+        Message::DropTexture(id) => {
+            wgpu_server_remove_external_texture(global.webgpu_parent, id);
+            global.texture_drop(id);
+        }
+        Message::DropTextureView(id) => global.texture_view_drop(id).unwrap(),
+        Message::DropSampler(id) => global.sampler_drop(id),
+        Message::DropQuerySet(id) => global.query_set_drop(id),
+        Message::DropCommandEncoder(id) => global.command_encoder_drop(id),
+    }
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn wgpu_server_device_action(
     global: &Global,
     self_id: id::DeviceId,
@@ -2520,16 +2561,6 @@ pub extern "C" fn wgpu_server_encoder_finish(
     if let Some(err) = error {
         error_buf.init(err);
     }
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_encoder_drop(global: &Global, self_id: id::CommandEncoderId) {
-    global.command_encoder_drop(self_id);
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_render_bundle_drop(global: &Global, self_id: id::RenderBundleId) {
-    global.render_bundle_drop(self_id);
 }
 
 #[no_mangle]
@@ -2760,62 +2791,11 @@ pub unsafe extern "C" fn wgpu_server_queue_write_action(
 }
 
 #[no_mangle]
-pub extern "C" fn wgpu_server_bind_group_layout_drop(
-    global: &Global,
-    self_id: id::BindGroupLayoutId,
-) {
-    global.bind_group_layout_drop(self_id);
+pub extern "C" fn wgpu_server_buffer_drop(global: &Global, self_id: id::BufferId) {
+    global.buffer_drop(self_id);
 }
 
 #[no_mangle]
-pub extern "C" fn wgpu_server_pipeline_layout_drop(global: &Global, self_id: id::PipelineLayoutId) {
-    global.pipeline_layout_drop(self_id);
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_bind_group_drop(global: &Global, self_id: id::BindGroupId) {
-    global.bind_group_drop(self_id);
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_shader_module_drop(global: &Global, self_id: id::ShaderModuleId) {
-    global.shader_module_drop(self_id);
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_compute_pipeline_drop(
-    global: &Global,
-    self_id: id::ComputePipelineId,
-) {
-    global.compute_pipeline_drop(self_id);
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_render_pipeline_drop(global: &Global, self_id: id::RenderPipelineId) {
-    global.render_pipeline_drop(self_id);
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_texture_destroy(global: &Global, self_id: id::TextureId) {
-    let _ = global.texture_destroy(self_id);
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_texture_drop(global: &Global, self_id: id::TextureId) {
-    global.texture_drop(self_id);
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_texture_view_drop(global: &Global, self_id: id::TextureViewId) {
-    global.texture_view_drop(self_id).unwrap();
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_sampler_drop(global: &Global, self_id: id::SamplerId) {
-    global.sampler_drop(self_id);
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_query_set_drop(global: &Global, self_id: id::QuerySetId) {
-    global.query_set_drop(self_id);
+pub extern "C" fn wgpu_server_encoder_drop(global: &Global, self_id: id::CommandEncoderId) {
+    global.command_encoder_drop(self_id);
 }

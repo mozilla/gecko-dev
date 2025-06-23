@@ -53,9 +53,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   ipc::IPCResult RecvAdapterRequestDevice(
       RawId aAdapterId, const ipc::ByteBuf& aByteBuf, RawId aDeviceId,
       RawId aQueueId, AdapterRequestDeviceResolver&& resolver);
-  ipc::IPCResult RecvAdapterDrop(RawId aAdapterId);
-  ipc::IPCResult RecvDeviceDestroy(RawId aDeviceId);
-  ipc::IPCResult RecvDeviceDrop(RawId aDeviceId);
   ipc::IPCResult RecvDeviceCreateBuffer(
       RawId aDeviceId, RawId aBufferId, dom::GPUBufferDescriptor&& aDesc,
       ipc::MutableSharedMemoryHandle&& aShmem);
@@ -63,19 +60,10 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
                                uint64_t aOffset, uint64_t size,
                                BufferMapResolver&& aResolver);
   ipc::IPCResult RecvBufferUnmap(RawId aDeviceId, RawId aBufferId, bool aFlush);
-  ipc::IPCResult RecvBufferDestroy(RawId aBufferId);
-  ipc::IPCResult RecvBufferDrop(RawId aBufferId);
-  ipc::IPCResult RecvTextureDestroy(RawId aTextureId, RawId aDeviceId);
-  ipc::IPCResult RecvTextureDrop(RawId aTextureId);
-  ipc::IPCResult RecvTextureViewDrop(RawId aTextureViewId);
-  ipc::IPCResult RecvSamplerDrop(RawId aSamplerId);
-  ipc::IPCResult RecvQuerySetDrop(RawId aQuerySetId);
+  ipc::IPCResult RecvMessage(const ipc::ByteBuf& aByteBuf);
   ipc::IPCResult RecvCommandEncoderFinish(
       RawId aEncoderId, RawId aDeviceId,
       const dom::GPUCommandBufferDescriptor& aDesc);
-  ipc::IPCResult RecvCommandEncoderDrop(RawId aEncoderId);
-  ipc::IPCResult RecvCommandBufferDrop(RawId aCommandBufferId);
-  ipc::IPCResult RecvRenderBundleDrop(RawId aBundleId);
   ipc::IPCResult RecvQueueSubmit(RawId aQueueId, RawId aDeviceId,
                                  const nsTArray<RawId>& aCommandBuffers,
                                  const nsTArray<RawId>& aTextureIds);
@@ -87,14 +75,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   ipc::IPCResult RecvQueueWriteAction(RawId aQueueId, RawId aDeviceId,
                                       const ipc::ByteBuf& aByteBuf,
                                       ipc::MutableSharedMemoryHandle&& aShmem);
-  ipc::IPCResult RecvBindGroupLayoutDrop(RawId aBindGroupLayoutId);
-  ipc::IPCResult RecvPipelineLayoutDrop(RawId aPipelineLayoutId);
-  ipc::IPCResult RecvBindGroupDrop(RawId aBindGroupId);
-  ipc::IPCResult RecvShaderModuleDrop(RawId aModuleId);
-  ipc::IPCResult RecvComputePipelineDrop(RawId aPipelineId);
-  ipc::IPCResult RecvRenderPipelineDrop(RawId aPipelineId);
-  ipc::IPCResult RecvImplicitLayoutDrop(RawId aImplicitPlId,
-                                        const nsTArray<RawId>& aImplicitBglIds);
   ipc::IPCResult RecvDeviceCreateSwapChain(
       RawId aDeviceId, RawId aQueueId, const layers::RGBDescriptor& aDesc,
       const nsTArray<RawId>& aBufferIds,
@@ -191,14 +171,15 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
 
   RefPtr<gfx::FileHandleWrapper> GetDeviceFenceHandle(const RawId aDeviceId);
 
+  void RemoveExternalTexture(RawId aTextureId);
+  void DeallocBufferShmem(RawId aBufferId);
+  void PreDeviceDrop(RawId aDeviceId);
+
  private:
   static void MapCallback(uint8_t* aUserData,
                           ffi::WGPUBufferMapAsyncStatus aStatus);
   static void DeviceLostCallback(uint8_t* aUserData, uint8_t aReason,
                                  const char* aMessage);
-  void DeallocBufferShmem(RawId aBufferId);
-
-  void RemoveExternalTexture(RawId aTextureId);
 
   virtual ~WebGPUParent();
   void MaintainDevices();

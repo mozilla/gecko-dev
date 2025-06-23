@@ -114,6 +114,32 @@ struct ImplicitLayout<'a> {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+enum Message<'a> {
+    DestroyBuffer(id::BufferId),
+    DestroyTexture(id::TextureId),
+    DestroyDevice(id::DeviceId),
+
+    DropAdapter(id::AdapterId),
+    DropDevice(id::DeviceId),
+    DropQueue(id::QueueId),
+    DropBuffer(id::BufferId),
+    DropCommandBuffer(id::CommandBufferId),
+    DropRenderBundle(id::RenderBundleId),
+    DropBindGroupLayout(id::BindGroupLayoutId),
+    DropPipelineLayout(id::PipelineLayoutId),
+    DropBindGroup(id::BindGroupId),
+    DropShaderModule(id::ShaderModuleId),
+    DropComputePipeline(id::ComputePipelineId, Option<ImplicitLayout<'a>>),
+    DropRenderPipeline(id::RenderPipelineId, Option<ImplicitLayout<'a>>),
+    DropTexture(id::TextureId),
+    DropTextureView(id::TextureViewId),
+    DropSampler(id::SamplerId),
+    DropQuerySet(id::QuerySetId),
+
+    DropCommandEncoder(id::CommandEncoderId),
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 enum DeviceAction<'a> {
     CreateTexture(
         id::TextureId,

@@ -33,7 +33,9 @@ void Sampler::Cleanup() {
   }
 
   if (bridge->CanSend()) {
-    bridge->SendSamplerDrop(mId);
+    ipc::ByteBuf bb;
+    ffi::wgpu_client_drop_sampler(mId, ToFFI(&bb));
+    bridge->SendMessage(std::move(bb));
   }
 
   wgpu_client_free_sampler_id(bridge->GetClient(), mId);

@@ -93,9 +93,10 @@ void CommandEncoder::Cleanup() {
   }
 
   if (mBridge->CanSend()) {
-    mBridge->SendCommandEncoderDrop(mId);
+    ipc::ByteBuf bb;
+    ffi::wgpu_client_drop_command_encoder(mId, ToFFI(&bb));
+    mBridge->SendMessage(std::move(bb));
   }
-
   wgpu_client_free_command_encoder_id(mBridge->GetClient(), mId);
 }
 

@@ -1073,7 +1073,9 @@ void Device::Destroy() {
   }
 
   if (IsBridgeAlive()) {
-    mBridge->SendDeviceDestroy(mId);
+    ipc::ByteBuf bb;
+    ffi::wgpu_client_destroy_device(mId, ToFFI(&bb));
+    mBridge->SendMessage(std::move(bb));
   }
 
   // Resolve our lost promise in the same way as if we had a successful

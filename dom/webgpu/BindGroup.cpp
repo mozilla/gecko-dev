@@ -33,9 +33,10 @@ void BindGroup::Cleanup() {
   }
 
   if (bridge->CanSend()) {
-    bridge->SendBindGroupDrop(mId);
+    ipc::ByteBuf bb;
+    ffi::wgpu_client_drop_bind_group(mId, ToFFI(&bb));
+    bridge->SendMessage(std::move(bb));
   }
-
   wgpu_client_free_bind_group_id(bridge->GetClient(), mId);
 }
 

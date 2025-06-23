@@ -75,7 +75,7 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
                         const RemoteTextureOwnerId& aOwnerId);
 
   void RegisterDevice(Device* const aDevice);
-  void UnregisterDevice(RawId aId);
+  void UnregisterDevice(RawId aDeviceId);
   void FreeUnregisteredInParentDevice(RawId aId);
 
   void QueueSubmit(RawId aSelfId, RawId aDeviceId,

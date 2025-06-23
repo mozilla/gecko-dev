@@ -8,7 +8,7 @@ use crate::{
     TexelCopyBufferLayout, TextureAction,
 };
 
-use crate::SwapChainId;
+use crate::{Message, SwapChainId};
 
 use wgc::naga::front::wgsl::ImplementedLanguageExtension;
 use wgc::{command::RenderBundleEncoder, id, identity::IdentityManager};
@@ -519,6 +519,74 @@ pub extern "C" fn wgpu_client_make_buffer_id(client: &Client) -> id::BufferId {
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_buffer_id(client: &Client, id: id::BufferId) {
     client.identities.lock().buffers.free(id)
+}
+
+#[rustfmt::skip]
+mod drop {
+    use super::*;
+
+    #[no_mangle] pub extern "C" fn wgpu_client_destroy_buffer(id: id::BufferId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DestroyBuffer(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_destroy_texture(id: id::TextureId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DestroyTexture(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_destroy_device(id: id::DeviceId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DestroyDevice(id)); }
+
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_adapter(id: id::AdapterId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropAdapter(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_device(id: id::DeviceId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropDevice(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_queue(id: id::QueueId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropQueue(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_buffer(id: id::BufferId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropBuffer(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_command_buffer(id: id::CommandBufferId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropCommandBuffer(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_render_bundle(id: id::RenderBundleId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropRenderBundle(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_bind_group_layout(id: id::BindGroupLayoutId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropBindGroupLayout(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_pipeline_layout(id: id::PipelineLayoutId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropPipelineLayout(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_bind_group(id: id::BindGroupId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropBindGroup(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_shader_module(id: id::ShaderModuleId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropShaderModule(id)); }
+
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_texture(id: id::TextureId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropTexture(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_texture_view(id: id::TextureViewId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropTextureView(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_sampler(id: id::SamplerId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropSampler(id)); }
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_query_set(id: id::QuerySetId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropQuerySet(id)); }
+
+    #[no_mangle] pub extern "C" fn wgpu_client_drop_command_encoder(id: id::CommandEncoderId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropCommandEncoder(id)); }
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_drop_compute_pipeline(
+    id: id::ComputePipelineId,
+    implicit_pipeline_layout_id: Option<id::PipelineLayoutId>,
+    implicit_bind_group_layout_ids_ptr: *const id::BindGroupLayoutId,
+    implicit_bind_group_layout_ids_len: usize,
+    bb: &mut ByteBuf,
+) {
+    let implicit_layout =
+        implicit_pipeline_layout_id.map(|implicit_pipeline_layout_id| ImplicitLayout {
+            pipeline: implicit_pipeline_layout_id,
+            bind_groups: Cow::Borrowed(unsafe {
+                std::slice::from_raw_parts(
+                    implicit_bind_group_layout_ids_ptr,
+                    implicit_bind_group_layout_ids_len,
+                )
+            }),
+        });
+    *bb = make_byte_buf(&Message::DropComputePipeline(id, implicit_layout));
+}
+#[no_mangle]
+pub extern "C" fn wgpu_client_drop_render_pipeline(
+    id: id::RenderPipelineId,
+    implicit_pipeline_layout_id: Option<id::PipelineLayoutId>,
+    implicit_bind_group_layout_ids_ptr: *const id::BindGroupLayoutId,
+    implicit_bind_group_layout_ids_len: usize,
+    bb: &mut ByteBuf,
+) {
+    let implicit_layout =
+        implicit_pipeline_layout_id.map(|implicit_pipeline_layout_id| ImplicitLayout {
+            pipeline: implicit_pipeline_layout_id,
+            bind_groups: Cow::Borrowed(unsafe {
+                std::slice::from_raw_parts(
+                    implicit_bind_group_layout_ids_ptr,
+                    implicit_bind_group_layout_ids_len,
+                )
+            }),
+        });
+    *bb = make_byte_buf(&Message::DropRenderPipeline(id, implicit_layout));
 }
 
 #[no_mangle]

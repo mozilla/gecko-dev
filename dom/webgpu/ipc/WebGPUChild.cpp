@@ -225,7 +225,9 @@ void WebGPUChild::RegisterDevice(Device* const aDevice) {
 
 void WebGPUChild::UnregisterDevice(RawId aDeviceId) {
   if (CanSend()) {
-    SendDeviceDrop(aDeviceId);
+    ipc::ByteBuf bb;
+    ffi::wgpu_client_drop_device(aDeviceId, ToFFI(&bb));
+    SendMessage(std::move(bb));
   }
   mDeviceMap.erase(aDeviceId);
 }
