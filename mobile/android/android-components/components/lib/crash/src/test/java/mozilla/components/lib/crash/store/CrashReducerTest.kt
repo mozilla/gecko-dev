@@ -52,9 +52,15 @@ class CrashReducerTest {
     fun `GIVEN a Reporting state WHEN we process a CancelTapped or ReportTapped action THEN update state to Done`() {
         listOf(
             CrashAction.CancelTapped,
-            CrashAction.ReportTapped(automaticallySendChecked = true),
+            CrashAction.ReportTapped(automaticallySendChecked = true, crashIDs = null),
         ).forEach {
             assertEquals(crashReducer(CrashState.Reporting, it), CrashState.Done)
         }
+    }
+
+    @Test
+    fun `GIVEN a ReportingPull state WHEN we process a CancelForEverTapped action THEN update state to Done`() {
+        val state = crashReducer(CrashState.ReportingPull(arrayOf("1", "2")), CrashAction.CancelForEverTapped)
+        assertEquals(state, CrashState.Done)
     }
 }

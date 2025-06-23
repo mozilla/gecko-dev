@@ -92,6 +92,11 @@ interface FeatureSettingsHelper {
     var isComposeHomepageEnabled: Boolean
 
     /**
+     * Enable or disable new crash reporter.
+     */
+    var isUseNewCrashReporterDialog: Boolean
+
+    /**
      * Enable or disable the translations prompt after a page that can be translated is loaded.
      */
     fun enableOrDisablePageLoadTranslationsPrompt(enableTranslationsPrompt: Boolean) {

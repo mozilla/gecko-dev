@@ -1274,6 +1274,167 @@ class CrashReporterTest {
             }
         }
     }
+
+    @Test
+    fun `GIVEN the crash reporter has unsent crashes WHEN calling findCrashReports WITH specific crashID that do not exists THEN return empty list`() = runTestOnMain {
+        val crashReporter = CrashReporter(
+            services = listOf(mock()),
+            scope = scope,
+            databaseProvider = { db },
+        )
+
+        val oldCrashEntity = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "53a63dcb-c450-44a0-940c-e809c7fad474",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = 0L,
+            stacktrace = "<native crash>",
+            throwableData = null,
+            minidumpPath = "/data/data/org.mozilla.fenix.debug/files/mozilla/Crash Reports/pending/46c43391-3e08-4222-a334-80fe13e0433b.dmp",
+            processType = null,
+            processVisibility = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+        val newCrashEntity = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "cc698820-06e6-45e1-932a-94e29dcd280c",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = 0L,
+            stacktrace = "<native crash>",
+            throwableData = null,
+            minidumpPath = "/data/data/org.mozilla.fenix.debug/files/mozilla/Crash Reports/pending/1a64d53e-7d34-416a-9679-ffdc2c6e0ba8.dmp",
+            processType = null,
+            processVisibility = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+
+        val crashIDs = arrayOf("b0cbe510-4bc0-4f2e-b561-b496351e316b")
+        val result = withContext(Dispatchers.IO) {
+            db.crashDao().insertCrash(oldCrashEntity)
+            db.crashDao().insertCrash(newCrashEntity)
+            crashReporter.findCrashReports(crashIDs)
+        }
+
+        assertEquals(result.size, 0)
+    }
+
+    @Test
+    fun `GIVEN the crash reporter has unsent crashes WHEN calling findCrashReports WITH specific crashID THEN return list of this crash`() = runTestOnMain {
+        val crashReporter = CrashReporter(
+            services = listOf(mock()),
+            scope = scope,
+            databaseProvider = { db },
+        )
+
+        val oldCrashEntity = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "53a63dcb-c450-44a0-940c-e809c7fad474",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = 0L,
+            stacktrace = "<native crash>",
+            throwableData = null,
+            minidumpPath = "/data/data/org.mozilla.fenix.debug/files/mozilla/Crash Reports/pending/46c43391-3e08-4222-a334-80fe13e0433b.dmp",
+            processType = null,
+            processVisibility = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+        val newCrashEntity = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "cc698820-06e6-45e1-932a-94e29dcd280c",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = 0L,
+            stacktrace = "<native crash>",
+            throwableData = null,
+            minidumpPath = "/data/data/org.mozilla.fenix.debug/files/mozilla/Crash Reports/pending/1a64d53e-7d34-416a-9679-ffdc2c6e0ba8.dmp",
+            processType = null,
+            processVisibility = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+
+        val crashIDs = arrayOf("/data/data/org.mozilla.fenix.debug/files/mozilla/Crash Reports/pending/1a64d53e-7d34-416a-9679-ffdc2c6e0ba8.dmp")
+
+        val result = withContext(Dispatchers.IO) {
+            db.crashDao().insertCrash(oldCrashEntity)
+            db.crashDao().insertCrash(newCrashEntity)
+            crashReporter.findCrashReports(crashIDs)
+        }
+
+        assertEquals(result.size, 1)
+        assertEquals(crashReporter.findCrashReports(crashIDs).first().uuid, newCrashEntity.uuid)
+    }
+
+    @Test
+    fun `GIVEN the crash reporter has unsent crashes WHEN calling findCrashReports WITH specific crashID THEN return list of those crashes`() = runTestOnMain {
+        val crashReporter = CrashReporter(
+            services = listOf(mock()),
+            scope = scope,
+            databaseProvider = { db },
+        )
+
+        val crashEntity1 = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "53a63dcb-c450-44a0-940c-e809c7fad474",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = 0L,
+            stacktrace = "<native crash>",
+            throwableData = null,
+            minidumpPath = "/data/data/org.mozilla.fenix.debug/files/mozilla/Crash Reports/pending/46c43391-3e08-4222-a334-80fe13e0433b.dmp",
+            processType = null,
+            processVisibility = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+        val crashEntity2 = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "cc698820-06e6-45e1-932a-94e29dcd280c",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = 0L,
+            stacktrace = "<native crash>",
+            throwableData = null,
+            minidumpPath = "/data/data/org.mozilla.fenix.debug/files/mozilla/Crash Reports/pending/1a64d53e-7d34-416a-9679-ffdc2c6e0ba8.dmp",
+            processType = null,
+            processVisibility = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+        val crashEntity3 = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "68fe1af8-2008-4aa4-9ff4-b23aecf9cb7d",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = 0L,
+            stacktrace = "<native crash>",
+            throwableData = null,
+            minidumpPath = "/data/data/org.mozilla.fenix.debug/files/mozilla/Crash Reports/pending/4b8c7669-8bee-4785-b87d-5c58dbb27e8e.dmp",
+            processType = null,
+            processVisibility = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+
+        val crashIDs = arrayOf("/data/data/org.mozilla.fenix.debug/files/mozilla/Crash Reports/pending/46c43391-3e08-4222-a334-80fe13e0433b.dmp", "/data/data/org.mozilla.fenix.debug/files/mozilla/Crash Reports/pending/4b8c7669-8bee-4785-b87d-5c58dbb27e8e.dmp")
+
+        val result = withContext(Dispatchers.IO) {
+            db.crashDao().insertCrash(crashEntity1)
+            db.crashDao().insertCrash(crashEntity2)
+            db.crashDao().insertCrash(crashEntity3)
+            crashReporter.findCrashReports(crashIDs)
+        }
+
+        assertEquals(result.size, 2)
+        assertEquals(crashReporter.findCrashReports(crashIDs).get(0).uuid, crashEntity1.uuid)
+        assertEquals(crashReporter.findCrashReports(crashIDs).get(1).uuid, crashEntity3.uuid)
+    }
 }
 
 private fun createUncaughtExceptionCrash(): Crash.UncaughtExceptionCrash {

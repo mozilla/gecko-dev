@@ -66,6 +66,7 @@ class HomeActivityTestRule(
         isMicrosurveyEnabled: Boolean = settings.microsurveyFeatureEnabled,
         shouldUseBottomToolbar: Boolean = settings.shouldUseBottomToolbar,
         isComposeHomepageEnabled: Boolean = true,
+        isUseNewCrashReporterDialog: Boolean = false,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isPocketEnabled = isPocketEnabled
         this.isRecentTabsFeatureEnabled = isRecentTabsFeatureEnabled
@@ -82,6 +83,7 @@ class HomeActivityTestRule(
         this.isMicrosurveyEnabled = isMicrosurveyEnabled
         this.shouldUseBottomToolbar = shouldUseBottomToolbar
         this.isComposeHomepageEnabled = isComposeHomepageEnabled
+        this.isUseNewCrashReporterDialog = isUseNewCrashReporterDialog
     }
 
     /**
@@ -128,6 +130,7 @@ class HomeActivityTestRule(
             initialTouchMode: Boolean = false,
             launchActivity: Boolean = true,
             skipOnboarding: Boolean = false,
+            useNewCrashReporterDialog: Boolean = false,
         ) = HomeActivityTestRule(
             initialTouchMode = initialTouchMode,
             launchActivity = launchActivity,
@@ -140,6 +143,7 @@ class HomeActivityTestRule(
             // remove with https://bugzilla.mozilla.org/show_bug.cgi?id=1917640
             shouldUseBottomToolbar = true,
             isPageLoadTranslationsPromptEnabled = false,
+            isUseNewCrashReporterDialog = useNewCrashReporterDialog,
         )
     }
 }

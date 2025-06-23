@@ -1,5 +1,8 @@
 [DEFAULT]
 firefox-appdir = "browser"
 run-if = ["os == 'android'"]
+prefs = "browser.crashReports.crashPull=true"
 
 ["test_ChildCrashHandler.js"]
+
+["test_RemoteSettingsCrashPull.js"]

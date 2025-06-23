@@ -1438,7 +1438,8 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         messaging.onMessageDisplayed(nextMessage, currentBootUniqueIdentifier)
     }
 
-    private fun showCrashReporter(crashIDs: Array<String>?, ctxt: Context) {
+    @VisibleForTesting
+    internal fun showCrashReporter(crashIDs: Array<String>?, ctxt: Context) {
         if (!settings().useNewCrashReporterDialog) {
             return
         }
