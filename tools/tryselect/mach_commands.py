@@ -40,9 +40,11 @@ def generic_parser():
 
 
 def init(command_context):
-    from tryselect import push
+    from tryselect import lando, push
 
-    push.MAX_HISTORY = command_context._mach_context.settings["try"]["maxhistory"]
+    mach_context = command_context._mach_context
+    lando.LAUNCH_BROWSER = not mach_context.settings["try"]["nobrowser"]
+    push.MAX_HISTORY = mach_context.settings["try"]["maxhistory"]
 
 
 @memoize

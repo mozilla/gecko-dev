@@ -82,6 +82,12 @@ class MachSettings:
                     "Maximum number of pushes to save in history.",
                     10,
                 ),
+                (
+                    "try.nobrowser",
+                    "boolean",
+                    "Do not automatically open a browser during authentication.",
+                    False,
+                ),
             ]
 
         def taskgraph_config_settings():
