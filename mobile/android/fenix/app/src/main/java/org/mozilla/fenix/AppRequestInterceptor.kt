@@ -15,6 +15,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.support.ktx.kotlin.isContentUrl
 import org.mozilla.fenix.GleanMetrics.ErrorPage
+import org.mozilla.fenix.components.usecases.FenixBrowserUseCases.Companion.ABOUT_HOME
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.isOnline
 import java.lang.ref.WeakReference
@@ -41,8 +42,12 @@ class AppRequestInterceptor(
         isDirectNavigation: Boolean,
         isSubframeRequest: Boolean,
     ): RequestInterceptor.InterceptionResponse? {
-        val services = context.components.services
+        if (interceptAboutHomeRequest(uri)) {
+            // Let the original request proceed.
+            return null
+        }
 
+        val services = context.components.services
         return services.appLinksInterceptor.onLoadRequest(
             engineSession,
             uri,
@@ -80,6 +85,21 @@ class AppRequestInterceptor(
         )
 
         return RequestInterceptor.ErrorResponse(errorPageUri)
+    }
+
+    /**
+     * Intercepts [uri] request to [ABOUT_HOME] and navigates to the homepage.
+     *
+     * @param uri The URI of the request.
+     * @return True if the [uri] request was intercepted and false otherwise.
+     */
+    private fun interceptAboutHomeRequest(uri: String): Boolean {
+        if (uri != ABOUT_HOME) {
+            return false
+        }
+
+        navController?.get()?.navigate(NavGraphDirections.actionGlobalHome())
+        return true
     }
 
     /**
