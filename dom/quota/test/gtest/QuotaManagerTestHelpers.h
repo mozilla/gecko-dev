@@ -10,6 +10,7 @@ namespace mozilla::dom::quota {
 
 struct PrincipalMetadata;
 struct OriginMetadata;
+struct OriginStateMetadata;
 struct FullOriginMetadata;
 
 namespace test {
@@ -51,6 +52,32 @@ PrincipalMetadata GetPrincipalMetadata(const nsCString& aGroupNoSuffix,
 PrincipalMetadata GetPrincipalMetadata(const nsCString& aOriginSuffix,
                                        const nsCString& aGroupNoSuffix,
                                        const nsCString& aOriginNoSuffix);
+
+/**
+ * Creates a PrincipalMetadata object for a principal with an origin suffix.
+ *
+ * This function takes an origin suffix, a group (without suffix), an origin
+ * (without suffix), and a private browsing flag, and returns a
+ * PrincipalMetadata object with these values, including the origin suffix.
+ *
+ * For private browsing contexts, a randomly generated UUID is used as the
+ * storage origin to satisfy the PrincipalMetadata invariant that requires
+ * origin and storageOrigin to differ when aIsPrivate is true.
+ *
+ * @param aOriginSuffix The suffix to be added to the group and origin.
+ * @param aGroupNoSuffix The group associated with the principal, without the
+ * suffix.
+ * @param aOriginNoSuffix The origin without the suffix.
+ * @param aIsPrivate A boolean flag indicating whether the principal is from
+ * a private browsing context.
+ *
+ * @returns A PrincipalMetadata object containing the given suffix, group,
+ * origin, and private browsing flag.
+ */
+PrincipalMetadata GetPrincipalMetadata(const nsCString& aOriginSuffix,
+                                       const nsCString& aGroupNoSuffix,
+                                       const nsCString& aOriginNoSuffix,
+                                       bool aIsPrivate);
 
 /**
  * Creates an OriginMetadata object for a principal with an origin suffix.

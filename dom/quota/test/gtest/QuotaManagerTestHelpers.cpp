@@ -7,6 +7,7 @@
 #include "QuotaManagerTestHelpers.h"
 
 #include "mozilla/dom/quota/CommonMetadata.h"
+#include "nsIDUtils.h"
 #include "nsString.h"
 
 namespace mozilla::dom::quota::test {
@@ -25,6 +26,19 @@ PrincipalMetadata GetPrincipalMetadata(const nsCString& aOriginSuffix,
 
   return PrincipalMetadata{aOriginSuffix, group, origin, origin,
                            /* aIsPrivate */ false};
+}
+
+PrincipalMetadata GetPrincipalMetadata(const nsCString& aOriginSuffix,
+                                       const nsCString& aGroupNoSuffix,
+                                       const nsCString& aOriginNoSuffix,
+                                       bool aIsPrivate) {
+  nsCString group = aGroupNoSuffix + aOriginSuffix;
+  nsCString origin = aOriginNoSuffix + aOriginSuffix;
+  nsCString storageOrigin =
+      aIsPrivate ? NSID_TrimBracketsASCII(nsID::GenerateUUID()) : origin;
+
+  return PrincipalMetadata{aOriginSuffix, group, origin, storageOrigin,
+                           aIsPrivate};
 }
 
 OriginMetadata GetOriginMetadata(const nsCString& aOriginSuffix,

@@ -11,6 +11,151 @@
 
 namespace mozilla::dom::quota::test {
 
+TEST(DOM_Quota_CommonMetadata, PrincipalMetadata_Equals)
+{
+  // Base object to compare against.
+
+  PrincipalMetadata principalMetadata1 = GetPrincipalMetadata(
+      ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+  {
+    // All fields are the same
+
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+    EXPECT_TRUE(principalMetadata1.Equals(principalMetadata2));
+  }
+
+  {
+    // Different suffix.
+
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        "^userContextId=42"_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+    EXPECT_FALSE(principalMetadata1.Equals(principalMetadata2));
+  }
+
+  {
+    // Different group.
+
+    PrincipalMetadata principalMetadata2 =
+        GetPrincipalMetadata(""_ns, "org"_ns, "http://www.example.org"_ns);
+
+    EXPECT_FALSE(principalMetadata1.Equals(principalMetadata2));
+  }
+
+  {
+    // Different origin.
+
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.sub.example.org"_ns);
+
+    EXPECT_FALSE(principalMetadata1.Equals(principalMetadata2));
+  }
+
+  {
+    // Different isPrivate flag.
+
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns,
+        /* aIsPrivate */ true);
+
+    EXPECT_FALSE(principalMetadata1.Equals(principalMetadata2));
+  }
+}
+
+TEST(DOM_Quota_CommonMetadata, OriginMetadata_Equals)
+{
+  // Base object to compare against.
+
+  PrincipalMetadata principalMetadata1 = GetPrincipalMetadata(
+      ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+  OriginMetadata originMetadata1(principalMetadata1, PERSISTENCE_TYPE_DEFAULT);
+
+  {
+    // All fields are the same.
+
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+    OriginMetadata originMetadata2(principalMetadata2,
+                                   PERSISTENCE_TYPE_DEFAULT);
+
+    EXPECT_TRUE(originMetadata1.Equals(originMetadata2));
+  }
+
+  {
+    // Different PrincipalMetadata (isPrivate differs).
+
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns,
+        /* aIsPrivate */ true);
+
+    OriginMetadata originMetadata2(principalMetadata2,
+                                   PERSISTENCE_TYPE_DEFAULT);
+
+    EXPECT_FALSE(originMetadata1.Equals(originMetadata2));
+  }
+
+  {
+    // Different persistence type.
+
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+    OriginMetadata originMetadata2(principalMetadata2,
+                                   PERSISTENCE_TYPE_TEMPORARY);
+
+    EXPECT_FALSE(originMetadata1.Equals(originMetadata2));
+  }
+}
+
+TEST(DOM_Quota_CommonMetadata, OriginStateMetadata_Equals)
+{
+  // Base object to compare against.
+
+  OriginStateMetadata originStateMetadata1 = OriginStateMetadata(
+      /* aLastAccessTime */ 0, /* aAccessed */ false, /* aPersisted */ false);
+
+  {
+    // All fields are the same.
+
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 0, /* aAccessed */ false, /* aPersisted */ false);
+
+    EXPECT_TRUE(originStateMetadata1.Equals(originStateMetadata2));
+  }
+
+  {
+    // Different last access time.
+
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 1, /* aAccessed */ false, /* aPersisted */ false);
+
+    EXPECT_FALSE(originStateMetadata1.Equals(originStateMetadata2));
+  }
+
+  {
+    // Different accessed flag.
+
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 0, /* aAccessed */ true, /* aPersisted */ false);
+
+    EXPECT_FALSE(originStateMetadata1.Equals(originStateMetadata2));
+  }
+
+  {
+    // Different persisted flag.
+
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 0, /* aAccessed */ false, /* aPersisted */ true);
+
+    EXPECT_FALSE(originStateMetadata1.Equals(originStateMetadata2));
+  }
+}
+
 // Tests that OriginMetadata::GetCompositeKey returns the expected
 // "<persistence>*<origin>" string.
 TEST(DOM_Quota_CommonMetadata, OriginMetadata_GetCompositeKey)
@@ -21,6 +166,93 @@ TEST(DOM_Quota_CommonMetadata, OriginMetadata_GetCompositeKey)
   auto compositeKey = originMetadata.GetCompositeKey();
 
   EXPECT_STREQ(compositeKey.get(), "2*http://www.mozilla.org");
+}
+
+TEST(DOM_Quota_CommonMetadata, FullOriginMetadata_Equals)
+{
+  // Base object to compare against.
+  PrincipalMetadata principalMetadata1 = GetPrincipalMetadata(
+      ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+  OriginMetadata originMetadata1(principalMetadata1, PERSISTENCE_TYPE_DEFAULT);
+
+  OriginStateMetadata originStateMetadata1 = OriginStateMetadata(
+      /* aLastAccessTime */ 0, /* aAccessed */ false, /* aPersisted */ false);
+
+  FullOriginMetadata fullOriginMetadata1(originMetadata1, originStateMetadata1);
+
+  {
+    // All fields are the same.
+
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+    OriginMetadata originMetadata2(principalMetadata2,
+                                   PERSISTENCE_TYPE_DEFAULT);
+
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 0, /* aAccessed */ false, /* aPersisted */ false);
+
+    FullOriginMetadata fullOriginMetadata2(originMetadata2,
+                                           originStateMetadata2);
+
+    EXPECT_TRUE(fullOriginMetadata1.Equals(fullOriginMetadata2));
+  }
+
+  {
+    // Different OriginMetadata (PrincipalMetadata differs).
+
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns,
+        /* aIsPrivate */ true);
+
+    OriginMetadata originMetadata2(principalMetadata2,
+                                   PERSISTENCE_TYPE_DEFAULT);
+
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 0, /* aAccessed */ false, /* aPersisted */ false);
+
+    FullOriginMetadata fullOriginMetadata2(originMetadata2,
+                                           originStateMetadata2);
+
+    EXPECT_FALSE(fullOriginMetadata1.Equals(fullOriginMetadata2));
+  }
+
+  {
+    // Different OriginMetadata (persistence type differs).
+
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+    OriginMetadata originMetadata2(principalMetadata2,
+                                   PERSISTENCE_TYPE_TEMPORARY);
+
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 0, /* aAccessed */ false, /* aPersisted */ false);
+
+    FullOriginMetadata fullOriginMetadata2(originMetadata2,
+                                           originStateMetadata2);
+
+    EXPECT_FALSE(fullOriginMetadata1.Equals(fullOriginMetadata2));
+  }
+
+  {
+    // Different OriginStateMetadata (last access time differs).
+
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+    OriginMetadata originMetadata2(principalMetadata2,
+                                   PERSISTENCE_TYPE_DEFAULT);
+
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 1, /* aAccessed */ false, /* aPersisted */ false);
+
+    FullOriginMetadata fullOriginMetadata2(originMetadata2,
+                                           originStateMetadata2);
+
+    EXPECT_FALSE(fullOriginMetadata1.Equals(fullOriginMetadata2));
+  }
 }
 
 }  //  namespace mozilla::dom::quota::test

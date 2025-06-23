@@ -43,6 +43,18 @@ struct PrincipalMetadata {
     MOZ_ASSERT_IF(!mIsPrivate, mOrigin == mStorageOrigin);
     MOZ_ASSERT_IF(mIsPrivate, mOrigin != mStorageOrigin);
   }
+
+  // Templated to restrict Equals() to exactly PrincipalMetadata. Prevents
+  // derived types from accidentally inheriting Equals() and comparing only
+  // base fields without their own fields.
+  template <typename T, typename = std::enable_if_t<
+                            std::is_same<T, PrincipalMetadata>::value>>
+  bool Equals(const T& aOther) const {
+    return mSuffix == aOther.mSuffix && mGroup == aOther.mGroup &&
+           mOrigin == aOther.mOrigin &&
+           mStorageOrigin == aOther.mStorageOrigin &&
+           mIsPrivate == aOther.mIsPrivate;
+  }
 };
 
 struct OriginMetadata : public PrincipalMetadata {
@@ -62,6 +74,17 @@ struct OriginMetadata : public PrincipalMetadata {
                  PersistenceType aPersistenceType)
       : PrincipalMetadata(std::move(aPrincipalMetadata)),
         mPersistenceType(aPersistenceType) {}
+
+  // Templated to restrict Equals() to exactly OriginMetadata. Prevents
+  // derived types from accidentally inheriting Equals() and comparing only
+  // base fields without their own fields.
+  template <typename T,
+            typename = std::enable_if_t<std::is_same<T, OriginMetadata>::value>>
+  bool Equals(const T& aOther) const {
+    return static_cast<const PrincipalMetadata&>(*this).Equals(
+               static_cast<const PrincipalMetadata&>(aOther)) &&
+           mPersistenceType == aOther.mPersistenceType;
+  }
 
   // Returns a composite string key in the form "<persistence>*<origin>".
   // Useful for flat hash maps keyed by both persistence type and origin,
@@ -89,6 +112,16 @@ struct OriginStateMetadata {
       : mLastAccessTime(aLastAccessTime),
         mAccessed(aAccessed),
         mPersisted(aPersisted) {}
+
+  // Templated to restrict Equals() to exactly OriginStateMetadata. Prevents
+  // derived types from accidentally inheriting Equals() and comparing only
+  // base fields without their own fields.
+  template <typename T, typename = std::enable_if_t<
+                            std::is_same<T, OriginStateMetadata>::value>>
+  bool Equals(const T& aOther) const {
+    return mLastAccessTime == aOther.mLastAccessTime &&
+           mAccessed == aOther.mAccessed && mPersisted == aOther.mPersisted;
+  }
 };
 
 struct FullOriginMetadata : OriginMetadata, OriginStateMetadata {
@@ -98,6 +131,18 @@ struct FullOriginMetadata : OriginMetadata, OriginStateMetadata {
                      OriginStateMetadata aOriginStateMetadata)
       : OriginMetadata(std::move(aOriginMetadata)),
         OriginStateMetadata(aOriginStateMetadata) {}
+
+  // Templated to restrict Equals() to exactly FullOriginMetadata. Prevents
+  // derived types from accidentally inheriting Equals() and comparing only
+  // base fields without their own fields.
+  template <typename T, typename = std::enable_if_t<
+                            std::is_same<T, FullOriginMetadata>::value>>
+  bool Equals(const T& aOther) const {
+    return static_cast<const OriginMetadata&>(*this).Equals(
+               static_cast<const OriginMetadata&>(aOther)) &&
+           static_cast<const OriginStateMetadata&>(*this).Equals(
+               static_cast<const OriginStateMetadata&>(aOther));
+  }
 };
 
 struct OriginUsageMetadata : FullOriginMetadata {
