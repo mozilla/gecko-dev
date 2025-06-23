@@ -255,4 +255,14 @@ TEST(DOM_Quota_CommonMetadata, FullOriginMetadata_Equals)
   }
 }
 
+TEST(DOM_Quota_CommonMetadata, FullOriginMetadata_Clone)
+{
+  auto fullOriginMetadata1 = GetFullOriginMetadata(""_ns, "mozilla.org"_ns,
+                                                   "http://www.mozilla.org"_ns);
+
+  auto fullOriginMetadata2 = fullOriginMetadata1.Clone();
+
+  EXPECT_TRUE(fullOriginMetadata1.Equals(fullOriginMetadata2));
+}
+
 }  //  namespace mozilla::dom::quota::test

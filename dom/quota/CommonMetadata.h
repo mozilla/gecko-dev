@@ -143,6 +143,14 @@ struct FullOriginMetadata : OriginMetadata, OriginStateMetadata {
            static_cast<const OriginStateMetadata&>(*this).Equals(
                static_cast<const OriginStateMetadata&>(aOther));
   }
+
+  // Convenient method for duplicating a FullOriginMetadata instance. Creates
+  // a new object by copying both the OriginMetadata and OriginStateMetadata
+  // parts of this instance.
+  FullOriginMetadata Clone() const {
+    return {static_cast<const OriginMetadata&>(*this),
+            static_cast<const OriginStateMetadata&>(*this)};
+  }
 };
 
 struct OriginUsageMetadata : FullOriginMetadata {
