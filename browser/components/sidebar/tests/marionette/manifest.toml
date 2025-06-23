@@ -4,3 +4,5 @@ tags = "local"
 ["test_default_launcher_visible.py"]
 
 ["test_initialize_vertical_tabs.py"]
+
+["test_last_used_sidebar_panel.py"]
