@@ -105,9 +105,7 @@
     <string name="preferences_debug_settings_recent_searches" translatable="false">Enable Recent Searches</string>
     <!-- Label for enabling Shortcut Suggestions -->
     <string name="preferences_debug_settings_shortcuts_suggestions" translatable="false">Enable Shortcut Suggestions</string>
-    <!-- Label for enabling the Tab Strip -->
-    <string name="preferences_tab_strip_title" translatable="false" moz:removedIn="139" tools:ignore="UnusedResources">Enable Tab Strip</string>
-    <string name="preferences_tab_strip_details" translatable="false" moz:removedIn="139" tools:ignore="UnusedResources">Highly experimental, early access preview.</string>
+    
 
     <!-- Label for enabling the DNS over HTTPS settings -->
     <string name="preferences_debug_settings_enable_doh_settings" translatable="false">Enable DNS over HTTPS settings</string>

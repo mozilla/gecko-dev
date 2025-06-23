@@ -4,7 +4,9 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 141.0 (In Development)
+# 142.0 (In Development)
+
+# 141.0
 * **feature-accounts**:
   * Respond to FxA with an error response when unknown web channel messages are sent to the client.
 * **concept-engine**, **browser-engine-gecko**: Added methods to get, set, and clear browser preferences. [Bug 1949876](https://bugzilla.mozilla.org/show_bug.cgi?id=1949876)

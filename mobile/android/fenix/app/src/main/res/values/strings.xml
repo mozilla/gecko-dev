@@ -99,10 +99,6 @@
     <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Tap and hold the arrows to jump between pages in this tab’s history.</string>
 
     <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
-    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-    <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Swipe the toolbar to switch tabs</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-    <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Swipe left or right to switch. Swipe left on your last tab to open a new tab.</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
     <string name="address_bar_swipe_cfr_message_2">Swipe the toolbar left or right to switch tabs.</string>
 
@@ -1422,8 +1418,6 @@
     <string name="download_delete_item">Delete</string>
     <!-- Content description for the toolbar "Navigate back" button -->
     <string name="download_navigate_back_description">Navigate back</string>
-    <!-- Content description for the toolbar "Navigate up" button -->
-    <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Navigate up</string>
     <!-- Content description for the toolbar back button while searching the downloads -->
     <string name="download_close_search_description">Back and close search</string>
     <!-- Content description for the search bar clear text button on the downloads screen -->
@@ -3294,10 +3288,6 @@
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Some features will stop working tomorrow.</string>
 
     <!-- TextField Design System Component -->
-    <!-- The default content description for the eye trailing icon button in TextField -->
-    <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Show hidden text</string>
-    <!-- The default content description for the cross trailing icon button in TextField -->
-    <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Clear text</string>
 
     <!-- Setup checklist feature -->
     <!-- ===== Setup checklist feature: Title ===== -->
