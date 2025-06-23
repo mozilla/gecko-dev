@@ -18,6 +18,7 @@
   "focus/outline/offset": 2,
   "focus/outline/width": 2,
   "icon/size/default": "{Primitives$icon/size/small}",
+  "icon/size/xsmall": 12,
   "icon/size/small": "{Primitives$size/item/small}",
   "icon/size/medium": 20,
   "icon/size/large": 24,

@@ -1121,6 +1121,9 @@
       "default": {
         "value": "{icon.size.small}"
       },
+      "xsmall": {
+        "value": "12px"
+      },
       "small": {
         "value": "{size.item.small}"
       },

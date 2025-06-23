@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :host {
-  --breadcrumb-icon-size: calc(var(--icon-size-small) - 4px);
+  --breadcrumb-icon-size: var(--icon-size-xsmall);
   --breadcrumb-gap: var(--space-small);
 
   display: flex;

@@ -877,6 +877,7 @@ export const storybookTables = {
   ],
   "icon-size": [
     { value: "var(--icon-size-small)", name: "--icon-size-default" },
+    { value: "12px", name: "--icon-size-xsmall" },
     { value: "var(--size-item-small)", name: "--icon-size-small" },
     { value: "20px", name: "--icon-size-medium" },
     { value: "24px", name: "--icon-size-large" },
@@ -1531,6 +1532,7 @@ export const variableLookupTable = {
     default: "light-dark(var(--color-red-60), var(--color-red-20))",
   },
   "icon-size-default": "var(--icon-size-small)",
+  "icon-size-xsmall": "12px",
   "icon-size-small": "var(--size-item-small)",
   "icon-size-medium": "20px",
   "icon-size-large": "24px",
