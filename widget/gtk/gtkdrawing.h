@@ -51,17 +51,6 @@ struct MozGtkSize {
   }
 };
 
-#define TOOLBAR_BUTTONS 3
-struct ToolbarGTKMetrics {
-  bool initialized = false;
-  gint inlineSpacing = 0;
-};
-
-struct CSDWindowDecorationSize {
-  bool initialized;
-  GtkBorder decorationSize;
-};
-
 /*** result/error codes ***/
 #define MOZ_GTK_SUCCESS 0
 #define MOZ_GTK_UNKNOWN_WIDGET -1
@@ -127,13 +116,6 @@ enum WidgetNodeType : int {
   MOZ_GTK_WIDGET_NODE_COUNT
 };
 
-/* ButtonLayout represents a GTK CSD button and whether its on the left or
- * right side of the tab bar */
-struct ButtonLayout {
-  enum class Type { Close, Minimize, Maximize };
-  Type mType;
-};
-
 /*** General library functions ***/
 /**
  * Initializes the drawing library.  You must call this function
@@ -149,10 +131,8 @@ void moz_gtk_refresh();
 /**
  * Perform cleanup of the drawing library. You should call this function
  * when your program exits, or you no longer need the library.
- *
- * returns: MOZ_GTK_SUCCESS if there was no error, an error code otherwise
  */
-gint moz_gtk_shutdown();
+void moz_gtk_shutdown();
 
 /*** Widget drawing ***/
 
@@ -167,22 +147,5 @@ struct GtkDrawingParams {
 
 // Paint a widget in the current theme.
 void moz_gtk_widget_paint(cairo_t* cr, const GtkDrawingParams* aParams);
-
-/*** Widget metrics ***/
-
-gint moz_gtk_get_titlebar_button_spacing();
-
-/**
- * Get toolbar button layout.
- * aButtonLayout:  [OUT] An array which will be filled by ButtonLayout
- *                       references to visible titlebar buttons. Must contain at
- *                       least TOOLBAR_BUTTONS entries if non-empty.
- * aReversedButtonsPlacement: [OUT] True if the buttons are placed in opposite
- *                                  titlebar corner.
- *
- * returns:    Number of returned entries at aButtonLayout.
- */
-size_t GetGtkHeaderBarButtonLayout(mozilla::Span<ButtonLayout>,
-                                   bool* aReversedButtonsPlacement);
 
 #endif
