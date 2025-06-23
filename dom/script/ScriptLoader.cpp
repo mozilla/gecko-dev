@@ -4081,13 +4081,13 @@ void ScriptLoader::ReportPreloadErrorsToConsole(ScriptLoadRequest* aRequest) {
     ReportErrorToConsole(
         aRequest, aRequest->GetScriptLoadContext()->mUnreportedPreloadError);
     aRequest->GetScriptLoadContext()->mUnreportedPreloadError = NS_OK;
+    MOZ_ASSERT_IF(aRequest->IsModuleRequest(),
+                  aRequest->AsModuleRequest()->mImports.IsEmpty());
   }
 
-  if (aRequest->IsModuleRequest()) {
-    for (const auto& childRequest : aRequest->AsModuleRequest()->mImports) {
-      ReportPreloadErrorsToConsole(childRequest);
-    }
-  }
+  // TODO:
+  // Bug 1973466, check the child request's error that happened during
+  // preload is reported.
 }
 
 void ScriptLoader::HandleLoadError(ScriptLoadRequest* aRequest,
