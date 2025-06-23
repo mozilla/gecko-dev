@@ -10,12 +10,33 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   RootMessageHandler:
     "chrome://remote/content/shared/messagehandler/RootMessageHandler.sys.mjs",
+  WindowGlobalMessageHandler:
+    "chrome://remote/content/shared/messagehandler/WindowGlobalMessageHandler.sys.mjs",
 });
 
 const protocols = {
   bidi: {},
   test: {},
 };
+
+/**
+ * Defines the hierarchy between MessageHandler layers.
+ * The keys of this map are a type of MessageHandler, and the value is the type
+ * of the parent MessageHandler.
+ *
+ * For instance at the moment "windowglobal" has "root" as parent,
+ * but if we introduce an intermediary "process" layer for performance reasons,
+ * we would instead define:
+ * - "windowglobal" -> "process"
+ * - "process" -> "root"
+ */
+ChromeUtils.defineLazyGetter(lazy, "MessageHandlerParentMap", () => {
+  const MessageHandlerParentMap = new Map([
+    [lazy.WindowGlobalMessageHandler.type, lazy.RootMessageHandler.type],
+  ]);
+  return MessageHandlerParentMap;
+});
+
 // eslint-disable-next-line mozilla/lazy-getter-object-name
 ChromeUtils.defineESModuleGetters(protocols.bidi, {
   // Additional protocols might use a different registry for their modules,
@@ -113,23 +134,14 @@ export class ModuleCache {
    *     An array of Module classes.
    */
   getAllModuleClasses(moduleName, destination) {
-    const destinationType = destination.type;
-    const classes = [
-      this.#getModuleClass(
-        moduleName,
-        this.#messageHandlerType,
-        destinationType
-      ),
-    ];
+    const classes = [];
 
-    // Bug 1733242: Extend the implementation of this method to handle workers.
-    // It assumes layers have at most one level of nesting, for instance
-    // "root -> windowglobal", but it wouldn't work for something such as
-    // "root -> windowglobal -> worker".
-    if (destinationType !== this.#messageHandlerType) {
+    let currentType = destination.type;
+    while (currentType) {
       classes.push(
-        this.#getModuleClass(moduleName, destinationType, destinationType)
+        this.#getModuleClass(moduleName, currentType, destination.type)
       );
+      currentType = lazy.MessageHandlerParentMap.get(currentType);
     }
 
     return classes.filter(cls => !!cls);
