@@ -156,6 +156,8 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   static void OnSubmittedWorkDoneCallback(
       /* std::unique_ptr<OnSubmittedWorkDoneRequest> */ uint8_t* userdata);
 
+  void ReportError(RawId aDeviceId, GPUErrorFilter, const nsCString& message);
+
  private:
   static void DeviceLostCallback(uint8_t* aUserData, uint8_t aReason,
                                  const char* aMessage);
@@ -164,8 +166,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   void MaintainDevices();
   void LoseDevice(const RawId aDeviceId, Maybe<uint8_t> aReason,
                   const nsACString& aMessage);
-
-  void ReportError(RawId aDeviceId, GPUErrorFilter, const nsCString& message);
 
   UniquePtr<ffi::WGPUGlobal> mContext;
   base::RepeatingTimer<WebGPUParent> mTimer;

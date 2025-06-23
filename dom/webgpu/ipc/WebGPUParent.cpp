@@ -320,6 +320,29 @@ wgpu_parent_build_submitted_work_done_closure(void* aParam) {
   return closure;
 }
 
+extern void wgpu_parent_handle_error(void* aParam, WGPUDeviceId aDeviceId,
+                                     WGPUErrorBufferType aTy,
+                                     const nsCString* aMessage) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+
+  dom::GPUErrorFilter ty;
+  switch (aTy) {
+    case ffi::WGPUErrorBufferType_Internal:
+      ty = dom::GPUErrorFilter::Internal;
+      break;
+    case ffi::WGPUErrorBufferType_Validation:
+      ty = dom::GPUErrorFilter::Validation;
+      break;
+    case ffi::WGPUErrorBufferType_OutOfMemory:
+      ty = dom::GPUErrorFilter::Out_of_memory;
+      break;
+    default:
+      MOZ_CRASH("invalid `ErrorBufferType`");
+  }
+
+  parent->ReportError(aDeviceId, ty, *aMessage);
+}
+
 }  // namespace ffi
 
 // A fixed-capacity buffer for receiving textual error messages from
@@ -1478,7 +1501,6 @@ void WebGPUParent::ActorDestroy(ActorDestroyReason aWhy) {
 ipc::IPCResult WebGPUParent::RecvMessage(
     const ipc::ByteBuf& aByteBuf,
     Maybe<ipc::MutableSharedMemoryHandle>&& aShmem) {
-  ErrorBuffer error;
   ipc::ByteBuf response_bb;
 
   if (aShmem.isSome()) {
@@ -1490,7 +1512,7 @@ ipc::IPCResult WebGPUParent::RecvMessage(
     auto size = mapping.Size();
 
     ffi::wgpu_server_message(mContext.get(), ToFFI(&aByteBuf), ptr, size,
-                             ToFFI(&response_bb), error.ToFFI());
+                             ToFFI(&response_bb));
 
     auto maybe_incomplete_buffer_map_data = mIncompleteBufferMapData.take();
     if (maybe_incomplete_buffer_map_data.isSome()) {
@@ -1501,10 +1523,8 @@ ipc::IPCResult WebGPUParent::RecvMessage(
     }
   } else {
     ffi::wgpu_server_message(mContext.get(), ToFFI(&aByteBuf), nullptr, 0,
-                             ToFFI(&response_bb), error.ToFFI());
+                             ToFFI(&response_bb));
   }
-
-  ForwardError(error);
 
   if (response_bb.mData != nullptr && response_bb.mLen != 0) {
     if (!SendServerMessage(std::move(response_bb))) {

@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    error::{error_to_string, ErrMsg, ErrorBuffer, ErrorBufferType, HasErrorBufferType},
+    error::{
+        error_to_string, ErrMsg, ErrorBuffer, ErrorBufferType, HasErrorBufferType, OwnedErrorBuffer,
+    },
     make_byte_buf, wgpu_string, AdapterInformation, BufferMapResult, ByteBuf, CommandEncoderAction,
     DeviceAction, FfiLUID, Message, PipelineError, QueueWriteAction, ServerMessage,
     ShaderModuleCompilationMessage, SwapChainId, TextureAction,
@@ -1363,6 +1365,13 @@ extern "C" {
     fn wgpu_parent_build_submitted_work_done_closure(
         param: *mut c_void,
     ) -> SubmittedWorkDoneClosure;
+    #[allow(dead_code)]
+    fn wgpu_parent_handle_error(
+        param: *mut c_void,
+        device_id: id::DeviceId,
+        ty: ErrorBufferType,
+        message: &nsCString,
+    );
 }
 
 #[cfg(target_os = "linux")]
@@ -1875,7 +1884,7 @@ impl Global {
         action: DeviceAction,
         shmem_size: usize,
         response_byte_buf: &mut ByteBuf,
-        mut error_buf: ErrorBuffer,
+        error_buf: &mut OwnedErrorBuffer,
     ) {
         match action {
             DeviceAction::CreateBuffer(id, desc) => {
@@ -2272,7 +2281,7 @@ impl Global {
         device_id: id::DeviceId,
         self_id: id::TextureId,
         action: TextureAction,
-        mut error_buf: ErrorBuffer,
+        error_buf: &mut OwnedErrorBuffer,
     ) {
         match action {
             TextureAction::CreateView(id, desc) => {
@@ -2289,7 +2298,7 @@ impl Global {
         device_id: id::DeviceId,
         self_id: id::CommandEncoderId,
         action: CommandEncoderAction,
-        mut error_buf: ErrorBuffer,
+        error_buf: &mut OwnedErrorBuffer,
     ) {
         match action {
             CommandEncoderAction::CopyBufferToBuffer {
@@ -2456,8 +2465,9 @@ pub unsafe extern "C" fn wgpu_server_message(
     data: *const u8,
     data_length: usize,
     response_byte_buf: &mut ByteBuf,
-    mut error_buf: ErrorBuffer,
 ) {
+    let error_buf = &mut OwnedErrorBuffer::new();
+
     let message: Message = bincode::deserialize(byte_buf.as_slice()).unwrap();
     match message {
         Message::RequestAdapter {
@@ -2814,6 +2824,10 @@ pub unsafe extern "C" fn wgpu_server_message(
         Message::DropQuerySet(id) => global.query_set_drop(id),
 
         Message::DropCommandEncoder(id) => global.command_encoder_drop(id),
+    }
+
+    if let Some((device_id, ty, message)) = error_buf.get_inner_data() {
+        wgpu_parent_handle_error(global.webgpu_parent, device_id, ty, message);
     }
 }
 

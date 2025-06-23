@@ -725,7 +725,7 @@ pub fn replay_render_pass(
     device_id: id::DeviceId,
     id: CommandEncoderId,
     src_pass: &RecordedRenderPass,
-    mut error_buf: crate::error::ErrorBuffer,
+    error_buf: &mut crate::error::OwnedErrorBuffer,
 ) {
     let (mut dst_pass, err) = global.command_encoder_begin_render_pass(
         id,
@@ -930,7 +930,7 @@ pub fn replay_compute_pass(
     device_id: id::DeviceId,
     id: CommandEncoderId,
     src_pass: &RecordedComputePass,
-    mut error_buf: crate::error::ErrorBuffer,
+    error_buf: &mut crate::error::OwnedErrorBuffer,
 ) {
     let (mut dst_pass, err) = global.command_encoder_begin_compute_pass(
         id,
