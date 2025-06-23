@@ -50,16 +50,9 @@ impl ErrorBuffer {
     /// the C++ code receiving this error message has no way to distinguish that from the
     /// terminating zero byte, and will see the message as shorter than it is.
     pub(crate) fn init(&mut self, error: impl HasErrorBufferType, device_id: wgc::id::DeviceId) {
-        use std::fmt::Write;
-
         unsafe { *self.device_id = device_id };
 
-        let mut message = format!("{}", error);
-        let mut e = error.source();
-        while let Some(source) = e {
-            write!(message, ", caused by: {}", source).unwrap();
-            e = source.source();
-        }
+        let message = error_to_string(&error);
 
         let err_ty = error.error_type();
         // SAFETY: We presume the pointer provided by the caller is safe to write to.
@@ -98,6 +91,17 @@ impl ErrorBuffer {
             *self.message.add(length) = 0;
         }
     }
+}
+
+pub fn error_to_string(error: impl Error) -> String {
+    use std::fmt::Write;
+    let mut message = format!("{}", error);
+    let mut e = error.source();
+    while let Some(source) = e {
+        write!(message, ", caused by: {}", source).unwrap();
+        e = source.source();
+    }
+    message
 }
 
 /// Corresponds to an optional discriminant of [`GPUError`] type in the WebGPU API. Strongly
@@ -443,10 +447,9 @@ mod foreign {
     impl HasErrorBufferType for DeviceError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
-                DeviceError::Invalid(_) | DeviceError::DeviceMismatch(_) => {
-                    ErrorBufferType::Validation
-                }
-                DeviceError::Lost => ErrorBufferType::DeviceLost,
+                DeviceError::DeviceMismatch(_) => ErrorBufferType::Validation,
+                DeviceError::Invalid(_) // This variant is only used by the device to say that it's already lost.
+                | DeviceError::Lost => ErrorBufferType::DeviceLost,
                 DeviceError::OutOfMemory => ErrorBufferType::OutOfMemory,
                 DeviceError::ResourceCreationFailed => ErrorBufferType::Internal,
                 _ => ErrorBufferType::Internal,

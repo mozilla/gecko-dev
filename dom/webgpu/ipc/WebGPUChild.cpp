@@ -21,6 +21,8 @@
 #include "mozilla/webgpu/OutOfMemoryError.h"
 #include "mozilla/webgpu/InternalError.h"
 #include "mozilla/webgpu/WebGPUTypes.h"
+#include "mozilla/webgpu/RenderPipeline.h"
+#include "mozilla/webgpu/ComputePipeline.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
 #include "Adapter.h"
 #include "DeviceLostInfo.h"
@@ -162,10 +164,49 @@ void resolve_pop_error_scope_promise(void* child, uint8_t ty,
   pending_promise.promise->MaybeResolve(std::move(error));
 }
 
+void resolve_create_pipeline_promise(void* child, bool is_render_pipeline,
+                                     bool is_validation_error,
+                                     const nsCString* error) {
+  auto* c = static_cast<WebGPUChild*>(child);
+  auto& pending_promises = c->mPendingCreatePipelinePromises;
+  auto pending_promise = std::move(pending_promises.front());
+  pending_promises.pop_front();
+
+  if (error == nullptr) {
+    if (is_render_pipeline) {
+      RefPtr<RenderPipeline> object = new RenderPipeline(
+          pending_promise.device, pending_promise.pipeline_id,
+          pending_promise.implicit_pipeline_layout_id,
+          std::move(pending_promise.implicit_bind_group_layout_ids));
+      object->SetLabel(pending_promise.label);
+      pending_promise.promise->MaybeResolve(object);
+    } else {
+      RefPtr<ComputePipeline> object = new ComputePipeline(
+          pending_promise.device, pending_promise.pipeline_id,
+          pending_promise.implicit_pipeline_layout_id,
+          std::move(pending_promise.implicit_bind_group_layout_ids));
+      object->SetLabel(pending_promise.label);
+      pending_promise.promise->MaybeResolve(object);
+    }
+  } else {
+    // TODO: not sure how to reject with a PipelineError, we need to register it
+    // with DOMEXCEPTION?
+    // dom::GPUPipelineErrorReason reason;
+    // if (is_validation_error) {
+    //   reason = dom::GPUPipelineErrorReason::Validation;
+    // } else {
+    //   reason = dom::GPUPipelineErrorReason::Internal;
+    // }
+    // RefPtr<PipelineError> e = new PipelineError(*error, reason);
+    pending_promise.promise->MaybeRejectWithOperationError(*error);
+  }
+}
+
 ipc::IPCResult WebGPUChild::RecvServerMessage(const ipc::ByteBuf& aByteBuf) {
   ffi::wgpu_client_receive_server_message(
       this, GetClient(), ToFFI(&aByteBuf), resolve_request_adapter_promise,
-      resolve_request_device_promise, resolve_pop_error_scope_promise);
+      resolve_request_device_promise, resolve_pop_error_scope_promise,
+      resolve_create_pipeline_promise);
   return IPC_OK();
 }
 

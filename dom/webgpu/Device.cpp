@@ -682,7 +682,7 @@ already_AddRefed<ShaderModule> Device::CreateShaderModule(
 RawId CreateComputePipelineImpl(PipelineCreationContext* const aContext,
                                 WebGPUChild* aBridge,
                                 const dom::GPUComputePipelineDescriptor& aDesc,
-                                ipc::ByteBuf* const aByteBuf) {
+                                bool isAsync, ipc::ByteBuf* const aByteBuf) {
   ffi::WGPUComputePipelineDescriptor desc = {};
   nsCString entryPoint;
   nsTArray<nsCString> constantKeys;
@@ -724,7 +724,7 @@ RawId CreateComputePipelineImpl(PipelineCreationContext* const aContext,
   RawId implicit_bgl_ids[WGPUMAX_BIND_GROUPS] = {};
   RawId id = ffi::wgpu_client_create_compute_pipeline(
       aBridge->GetClient(), aContext->mParentId, &desc, ToFFI(aByteBuf),
-      &aContext->mImplicitPipelineLayoutId, implicit_bgl_ids);
+      &aContext->mImplicitPipelineLayoutId, implicit_bgl_ids, isAsync);
 
   for (const auto& cur : implicit_bgl_ids) {
     if (!cur) break;
@@ -737,7 +737,7 @@ RawId CreateComputePipelineImpl(PipelineCreationContext* const aContext,
 RawId CreateRenderPipelineImpl(PipelineCreationContext* const aContext,
                                WebGPUChild* aBridge,
                                const dom::GPURenderPipelineDescriptor& aDesc,
-                               ipc::ByteBuf* const aByteBuf) {
+                               bool isAsync, ipc::ByteBuf* const aByteBuf) {
   // A bunch of stack locals that we can have pointers into
   nsTArray<ffi::WGPUVertexBufferLayout> vertexBuffers;
   nsTArray<ffi::WGPUVertexAttribute> vertexAttributes;
@@ -895,7 +895,7 @@ RawId CreateRenderPipelineImpl(PipelineCreationContext* const aContext,
   RawId implicit_bgl_ids[WGPUMAX_BIND_GROUPS] = {};
   RawId id = ffi::wgpu_client_create_render_pipeline(
       aBridge->GetClient(), aContext->mParentId, &desc, ToFFI(aByteBuf),
-      &aContext->mImplicitPipelineLayoutId, implicit_bgl_ids);
+      &aContext->mImplicitPipelineLayoutId, implicit_bgl_ids, isAsync);
 
   for (const auto& cur : implicit_bgl_ids) {
     if (!cur) break;
@@ -909,7 +909,7 @@ already_AddRefed<ComputePipeline> Device::CreateComputePipeline(
     const dom::GPUComputePipelineDescriptor& aDesc) {
   PipelineCreationContext context = {mId};
   ipc::ByteBuf bb;
-  RawId id = CreateComputePipelineImpl(&context, mBridge, aDesc, &bb);
+  RawId id = CreateComputePipelineImpl(&context, mBridge, aDesc, false, &bb);
 
   if (mBridge->CanSend()) {
     mBridge->SendMessage(std::move(bb), Nothing());
@@ -926,7 +926,7 @@ already_AddRefed<RenderPipeline> Device::CreateRenderPipeline(
     const dom::GPURenderPipelineDescriptor& aDesc) {
   PipelineCreationContext context = {mId};
   ipc::ByteBuf bb;
-  RawId id = CreateRenderPipelineImpl(&context, mBridge, aDesc, &bb);
+  RawId id = CreateRenderPipelineImpl(&context, mBridge, aDesc, false, &bb);
 
   if (mBridge->CanSend()) {
     mBridge->SendMessage(std::move(bb), Nothing());
@@ -953,26 +953,19 @@ already_AddRefed<dom::Promise> Device::CreateComputePipelineAsync(
 
   ipc::ByteBuf bb;
   RawId pipelineId =
-      CreateComputePipelineImpl(context.get(), mBridge, aDesc, &bb);
+      CreateComputePipelineImpl(context.get(), mBridge, aDesc, true, &bb);
 
-  if (mBridge->CanSend()) {
-    auto label = aDesc.mLabel;
-    mBridge->SendDeviceActionWithAck(mId, std::move(bb))
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [self = RefPtr{this}, context, pipelineId, promise,
-             label](bool aDummy) {
-              Unused << aDummy;
-              RefPtr<ComputePipeline> object = new ComputePipeline(
-                  self, pipelineId, context->mImplicitPipelineLayoutId,
-                  std::move(context->mImplicitBindGroupLayoutIds));
-              object->SetLabel(label);
-              promise->MaybeResolve(object);
-            },
-            [promise](const ipc::ResponseRejectReason&) {
-              promise->MaybeRejectWithOperationError(
-                  "Internal communication error");
-            });
+  bool sent = mBridge->SendMessage(std::move(bb), Nothing());
+  if (sent) {
+    auto pending_promise = WebGPUChild::PendingCreatePipelinePromise{
+        RefPtr(promise),
+        RefPtr(this),
+        pipelineId,
+        context->mImplicitPipelineLayoutId,
+        std::move(context->mImplicitBindGroupLayoutIds),
+        aDesc.mLabel};
+    mBridge->mPendingCreatePipelinePromises.push_back(
+        std::move(pending_promise));
   } else {
     promise->MaybeRejectWithOperationError("Internal communication error");
   }
@@ -993,26 +986,19 @@ already_AddRefed<dom::Promise> Device::CreateRenderPipelineAsync(
 
   ipc::ByteBuf bb;
   RawId pipelineId =
-      CreateRenderPipelineImpl(context.get(), mBridge, aDesc, &bb);
+      CreateRenderPipelineImpl(context.get(), mBridge, aDesc, true, &bb);
 
-  if (mBridge->CanSend()) {
-    auto label = aDesc.mLabel;
-    mBridge->SendDeviceActionWithAck(mId, std::move(bb))
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [self = RefPtr{this}, context, promise, pipelineId,
-             label](bool aDummy) {
-              Unused << aDummy;
-              RefPtr<RenderPipeline> object = new RenderPipeline(
-                  self, pipelineId, context->mImplicitPipelineLayoutId,
-                  std::move(context->mImplicitBindGroupLayoutIds));
-              object->SetLabel(label);
-              promise->MaybeResolve(object);
-            },
-            [promise](const ipc::ResponseRejectReason&) {
-              promise->MaybeRejectWithOperationError(
-                  "Internal communication error");
-            });
+  bool sent = mBridge->SendMessage(std::move(bb), Nothing());
+  if (sent) {
+    auto pending_promise = WebGPUChild::PendingCreatePipelinePromise{
+        RefPtr(promise),
+        RefPtr(this),
+        pipelineId,
+        context->mImplicitPipelineLayoutId,
+        std::move(context->mImplicitBindGroupLayoutIds),
+        aDesc.mLabel};
+    mBridge->mPendingCreatePipelinePromises.push_back(
+        std::move(pending_promise));
   } else {
     promise->MaybeRejectWithOperationError("Internal communication error");
   }

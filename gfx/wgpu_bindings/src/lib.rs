@@ -255,11 +255,13 @@ enum DeviceAction<'a> {
         id::ComputePipelineId,
         wgc::pipeline::ComputePipelineDescriptor<'a>,
         Option<ImplicitLayout<'a>>,
+        bool,
     ),
     CreateRenderPipeline(
         id::RenderPipelineId,
         wgc::pipeline::RenderPipelineDescriptor<'a>,
         Option<ImplicitLayout<'a>>,
+        bool,
     ),
     CreateRenderBundle(
         id::RenderBundleId,
@@ -299,10 +301,26 @@ enum TextureAction<'a> {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+struct PipelineError {
+    is_validation_error: bool,
+    error: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 enum ServerMessage<'a> {
     RequestAdapterResponse(id::AdapterId, Option<AdapterInformation<Cow<'a, str>>>),
     RequestDeviceResponse(id::DeviceId, id::QueueId, Option<String>),
     PopErrorScopeResponse(u8 /* PopErrorScopeResultType */, Cow<'a, str>),
+    CreateRenderPipelineResponse {
+        pipeline_id: id::RenderPipelineId,
+        implicit_ids: Option<ImplicitLayout<'a>>,
+        error: Option<PipelineError>,
+    },
+    CreateComputePipelineResponse {
+        pipeline_id: id::ComputePipelineId,
+        implicit_ids: Option<ImplicitLayout<'a>>,
+        error: Option<PipelineError>,
+    },
 }
 
 #[repr(C)]

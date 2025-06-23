@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    error::{ErrMsg, ErrorBuffer, ErrorBufferType},
+    error::{error_to_string, ErrMsg, ErrorBuffer, ErrorBufferType, HasErrorBufferType},
     make_byte_buf, wgpu_string, AdapterInformation, ByteBuf, CommandEncoderAction, DeviceAction,
-    FfiLUID, Message, QueueWriteAction, ServerMessage, SwapChainId, TextureAction,
+    FfiLUID, Message, PipelineError, QueueWriteAction, ServerMessage, SwapChainId, TextureAction,
 };
 
 use nsstring::{nsACString, nsCString, nsString};
@@ -2169,7 +2169,7 @@ impl Global {
                     error_buf.init(err, device_id);
                 }
             }
-            DeviceAction::CreateComputePipeline(id, desc, implicit) => {
+            DeviceAction::CreateComputePipeline(id, desc, implicit, is_async) => {
                 let implicit_ids = implicit
                     .as_ref()
                     .map(|imp| wgc::device::ImplicitPipelineIds {
@@ -2178,11 +2178,31 @@ impl Global {
                     });
                 let (_, error) =
                     self.device_create_compute_pipeline(device_id, &desc, Some(id), implicit_ids);
-                if let Some(err) = error {
-                    error_buf.init(err, device_id);
+
+                if is_async {
+                    let error = error
+                        .filter(|e| !matches!(e.error_type(), crate::ErrorBufferType::DeviceLost))
+                        .map(|e| -> _ {
+                            let is_validation_error =
+                                matches!(e.error_type(), crate::ErrorBufferType::Validation);
+                            PipelineError {
+                                is_validation_error,
+                                error: error_to_string(e),
+                            }
+                        });
+                    *response_byte_buf =
+                        make_byte_buf(&ServerMessage::CreateComputePipelineResponse {
+                            pipeline_id: id,
+                            implicit_ids: implicit,
+                            error,
+                        });
+                } else {
+                    if let Some(err) = error {
+                        error_buf.init(err, device_id);
+                    }
                 }
             }
-            DeviceAction::CreateRenderPipeline(id, desc, implicit) => {
+            DeviceAction::CreateRenderPipeline(id, desc, implicit, is_async) => {
                 let implicit_ids = implicit
                     .as_ref()
                     .map(|imp| wgc::device::ImplicitPipelineIds {
@@ -2191,8 +2211,28 @@ impl Global {
                     });
                 let (_, error) =
                     self.device_create_render_pipeline(device_id, &desc, Some(id), implicit_ids);
-                if let Some(err) = error {
-                    error_buf.init(err, device_id);
+
+                if is_async {
+                    let error = error
+                        .filter(|e| !matches!(e.error_type(), crate::ErrorBufferType::DeviceLost))
+                        .map(|e| -> _ {
+                            let is_validation_error =
+                                matches!(e.error_type(), crate::ErrorBufferType::Validation);
+                            PipelineError {
+                                is_validation_error,
+                                error: error_to_string(e),
+                            }
+                        });
+                    *response_byte_buf =
+                        make_byte_buf(&ServerMessage::CreateRenderPipelineResponse {
+                            pipeline_id: id,
+                            implicit_ids: implicit,
+                            error,
+                        });
+                } else {
+                    if let Some(err) = error {
+                        error_buf.init(err, device_id);
+                    }
                 }
             }
             DeviceAction::CreateRenderBundle(id, encoder, desc) => {
@@ -2711,27 +2751,6 @@ pub unsafe extern "C" fn wgpu_server_message(
 
         Message::DropCommandEncoder(id) => global.command_encoder_drop(id),
     }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn wgpu_server_device_action(
-    global: &Global,
-    self_id: id::DeviceId,
-    byte_buf: &ByteBuf,
-    error_buf: ErrorBuffer,
-) {
-    let action = bincode::deserialize(byte_buf.as_slice()).unwrap();
-    global.device_action(
-        self_id,
-        action,
-        0,
-        &mut ByteBuf {
-            data: core::ptr::null(),
-            len: 0,
-            capacity: 0,
-        },
-        error_buf,
-    );
 }
 
 #[no_mangle]

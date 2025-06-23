@@ -567,6 +567,12 @@ pub extern "C" fn wgpu_client_receive_server_message(
         ty: u8,
         message: &nsCString,
     ),
+    resolve_create_pipeline_promise: extern "C" fn(
+        child: *mut core::ffi::c_void,
+        is_render_pipeline: bool,
+        is_validation_error: bool,
+        error: Option<&nsCString>,
+    ),
 ) {
     let message: ServerMessage = bincode::deserialize(unsafe { byte_buf.as_slice() }).unwrap();
     match message {
@@ -623,6 +629,60 @@ pub extern "C" fn wgpu_client_receive_server_message(
         ServerMessage::PopErrorScopeResponse(ty, message) => {
             let message = nsCString::from(message.as_ref());
             resolve_pop_error_scope_promise(child, ty, &message);
+        }
+        ServerMessage::CreateRenderPipelineResponse {
+            pipeline_id,
+            implicit_ids,
+            error,
+        } => {
+            let is_render_pipeline = true;
+            if let Some(error) = error {
+                let ns_error = nsCString::from(error.error);
+                resolve_create_pipeline_promise(
+                    child,
+                    is_render_pipeline,
+                    error.is_validation_error,
+                    Some(&ns_error),
+                );
+
+                let identities = client.identities.lock();
+                identities.render_pipelines.free(pipeline_id);
+                if let Some(implicit_ids) = implicit_ids {
+                    identities.pipeline_layouts.free(implicit_ids.pipeline);
+                    for bgl_id in implicit_ids.bind_groups.as_ref() {
+                        identities.bind_group_layouts.free(*bgl_id);
+                    }
+                }
+            } else {
+                resolve_create_pipeline_promise(child, is_render_pipeline, false, None);
+            }
+        }
+        ServerMessage::CreateComputePipelineResponse {
+            pipeline_id,
+            implicit_ids,
+            error,
+        } => {
+            let is_render_pipeline = false;
+            if let Some(error) = error {
+                let ns_error = nsCString::from(error.error);
+                resolve_create_pipeline_promise(
+                    child,
+                    is_render_pipeline,
+                    error.is_validation_error,
+                    Some(&ns_error),
+                );
+
+                let identities = client.identities.lock();
+                identities.compute_pipelines.free(pipeline_id);
+                if let Some(implicit_ids) = implicit_ids {
+                    identities.pipeline_layouts.free(implicit_ids.pipeline);
+                    for bgl_id in implicit_ids.bind_groups.as_ref() {
+                        identities.bind_group_layouts.free(*bgl_id);
+                    }
+                }
+            } else {
+                resolve_create_pipeline_promise(child, is_render_pipeline, false, None);
+            }
         }
     }
 }
@@ -1399,6 +1459,7 @@ pub unsafe extern "C" fn wgpu_client_create_compute_pipeline(
     bb: &mut ByteBuf,
     implicit_pipeline_layout_id: *mut Option<id::PipelineLayoutId>,
     implicit_bind_group_layout_ids: *mut Option<id::BindGroupLayoutId>,
+    is_async: bool,
 ) -> id::ComputePipelineId {
     let label = wgpu_string(desc.label);
 
@@ -1424,7 +1485,7 @@ pub unsafe extern "C" fn wgpu_client_create_compute_pipeline(
         }
     };
 
-    let action = DeviceAction::CreateComputePipeline(id, wgpu_desc, implicit);
+    let action = DeviceAction::CreateComputePipeline(id, wgpu_desc, implicit, is_async);
     let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
     id
@@ -1443,6 +1504,7 @@ pub unsafe extern "C" fn wgpu_client_create_render_pipeline(
     bb: &mut ByteBuf,
     implicit_pipeline_layout_id: *mut Option<id::PipelineLayoutId>,
     implicit_bind_group_layout_ids: *mut Option<id::BindGroupLayoutId>,
+    is_async: bool,
 ) -> id::RenderPipelineId {
     let label = wgpu_string(desc.label);
 
@@ -1473,7 +1535,7 @@ pub unsafe extern "C" fn wgpu_client_create_render_pipeline(
         }
     };
 
-    let action = DeviceAction::CreateRenderPipeline(id, wgpu_desc, implicit);
+    let action = DeviceAction::CreateRenderPipeline(id, wgpu_desc, implicit, is_async);
     let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
     id

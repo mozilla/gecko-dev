@@ -119,6 +119,17 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
   };
 
   std::deque<PendingPopErrorScopePromise> mPendingPopErrorScopePromises;
+
+  struct PendingCreatePipelinePromise {
+    RefPtr<dom::Promise> promise;
+    RefPtr<Device> device;
+    RawId pipeline_id;
+    RawId implicit_pipeline_layout_id;
+    nsTArray<RawId> implicit_bind_group_layout_ids;
+    nsString label;
+  };
+
+  std::deque<PendingCreatePipelinePromise> mPendingCreatePipelinePromises;
 };
 
 }  // namespace webgpu

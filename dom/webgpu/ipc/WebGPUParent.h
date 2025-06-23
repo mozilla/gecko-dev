@@ -75,10 +75,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
                      layers::RemoteTextureTxnType aTxnType,
                      layers::RemoteTextureTxnId aTxnId);
 
-  ipc::IPCResult RecvDeviceActionWithAck(
-      RawId aDeviceId, const ipc::ByteBuf& aByteBuf,
-      DeviceActionWithAckResolver&& aResolver);
-
   void DevicePushErrorScope(RawId aDeviceId, dom::GPUErrorFilter);
   PopErrorScopeResult DevicePopErrorScope(RawId aDeviceId);
   ipc::IPCResult RecvReportError(RawId aDeviceId, GPUErrorFilter aType,
