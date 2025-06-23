@@ -1,0 +1,152 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Firefox :: Data Loss Prevention'
+
+# The following metrics are used to track the usage of the Data Loss Prevention feature.
+
+content_analysis:
+  agent_name:
+    type: string
+    description: The name of the DLP agent that Firefox is
+     connected to. This is set via enterprise policy.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  interception_points_turned_off:
+    type: string_list
+    description: The interception points that are turned off
+     via enterprise policy.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  show_blocked_result:
+    type: boolean
+    description: The show_blocked_result pref that is set
+     via enterprise policy.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  default_result:
+    type: quantity
+    description: The default_result pref that is set
+     via enterprise policy.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+    unit: BlockWarnAllow
+  timeout_result:
+    type: quantity
+    description: The timeout_result pref that is set
+     via enterprise policy.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+    unit: BlockWarnAllow
+  client_signature:
+    type: string
+    description: The client_signature pref that is set
+     via enterprise policy.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  bypass_for_same_tab_operations:
+    type: boolean
+    description: The bypass_for_same_tab_operations pref that is set
+     via enterprise policy.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  allow_url_regex_list_set:
+    type: boolean
+    description: Whether the allow_url_regex_list pref is set
+     to a non-default value.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  deny_url_regex_list_set:
+    type: boolean
+    description: Whether the deny_url_regex_list pref is set
+     to a non-default value.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com

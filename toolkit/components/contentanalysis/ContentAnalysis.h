@@ -306,6 +306,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
   template <typename T, typename U>
   RefPtr<MozPromise<T, nsresult, true>> CallClientWithRetry(
       StaticString aMethodName, U&& aClientCallFunc);
+  void RecordConnectionSettingsTelemetry(const nsString& clientSignature);
 
   nsresult RunAnalyzeRequestTask(
       const RefPtr<nsIContentAnalysisRequest>& aRequest, bool aAutoAcknowledge,
