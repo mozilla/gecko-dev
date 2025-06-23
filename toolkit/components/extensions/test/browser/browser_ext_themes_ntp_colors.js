@@ -97,8 +97,8 @@ async function test_ntp_theme(theme, isBrightText) {
         "New tab page should have lwt-newtab attribute"
       );
       ok(
-        doc.documentElement.hasAttribute("lwtheme"),
-        "New tab page should have lwtheme attribute"
+        !doc.documentElement.hasAttribute("lwtheme"),
+        "New tab page should not have lwtheme attribute"
       );
       is(
         doc.documentElement.hasAttribute("lwt-newtab-brighttext"),
