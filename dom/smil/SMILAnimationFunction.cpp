@@ -242,7 +242,8 @@ void SMILAnimationFunction::ComposeResult(const SMILAttr& aSMILAttr,
 }
 
 int8_t SMILAnimationFunction::CompareTo(
-    const SMILAnimationFunction* aOther) const {
+    const SMILAnimationFunction* aOther,
+    nsContentUtils::NodeIndexCache& aCache) const {
   NS_ENSURE_TRUE(aOther, 0);
 
   if (aOther == this) {
@@ -272,10 +273,8 @@ int8_t SMILAnimationFunction::CompareTo(
   MOZ_ASSERT(!HasSameAnimationElement(aOther),
              "Two animations cannot have the same animation content element!");
 
-  return (nsContentUtils::PositionIsBefore(mAnimationElement,
-                                           aOther->mAnimationElement))
-             ? -1
-             : 1;
+  return nsContentUtils::CompareTreePosition<TreeKind::ShadowIncludingDOM>(
+      mAnimationElement, aOther->mAnimationElement, nullptr, &aCache);
 }
 
 bool SMILAnimationFunction::WillReplace() const {
