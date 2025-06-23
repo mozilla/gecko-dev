@@ -702,7 +702,7 @@ pinned_tabs:
         description: Either "horizontal" or "vertical".
       source:
         type: string
-        description: Either "context_menu" or "drag".
+        description: Either "tab_menu", "drag", or "unknown".
   close:
     type: event
     description: >

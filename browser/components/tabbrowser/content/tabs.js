@@ -1240,7 +1240,9 @@
         if (shouldPin || shouldUnpin) {
           for (let item of movingTabs) {
             if (shouldPin) {
-              gBrowser.pinTab(item, true);
+              gBrowser.pinTab(item, {
+                telemetrySource: lazy.TabMetrics.METRIC_SOURCE.DRAG_AND_DROP,
+              });
             } else if (shouldUnpin) {
               gBrowser.unpinTab(item);
             }

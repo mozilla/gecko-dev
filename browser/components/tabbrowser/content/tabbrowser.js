@@ -826,7 +826,10 @@
       this.tabContainer._updateCloseButtons();
     }
 
-    _notifyPinnedStatus(aTab, aDragging = false) {
+    #notifyPinnedStatus(
+      aTab,
+      { telemetrySource = this.TabMetrics.METRIC_SOURCE.UNKNOWN } = {}
+    ) {
       // browsingContext is expected to not be defined on discarded tabs.
       if (aTab.linkedBrowser.browsingContext) {
         aTab.linkedBrowser.browsingContext.isAppTab = aTab.pinned;
@@ -835,12 +838,26 @@
       let event = new CustomEvent(aTab.pinned ? "TabPinned" : "TabUnpinned", {
         bubbles: true,
         cancelable: false,
-        detail: { dragging: aDragging },
+        detail: { telemetrySource },
       });
       aTab.dispatchEvent(event);
     }
 
-    pinTab(aTab, aDragging) {
+    /**
+     * Pin a tab.
+     *
+     * @param {MozTabbrowserTab} aTab
+     *   The tab to pin.
+     * @param {object} [options]
+     * @property {string} [options.telemetrySource="unknown"]
+     *   The means by which the tab was pinned.
+     *   @see TabMetrics.METRIC_SOURCE for possible values.
+     *   Defaults to "unknown".
+     */
+    pinTab(
+      aTab,
+      { telemetrySource = this.TabMetrics.METRIC_SOURCE.UNKNOWN } = {}
+    ) {
       if (aTab.pinned || aTab == FirefoxViewHandler.tab) {
         return;
       }
@@ -852,7 +869,7 @@
 
       aTab.setAttribute("pinned", "true");
       this._updateTabBarForPinnedTabs();
-      this._notifyPinnedStatus(aTab, aDragging);
+      this.#notifyPinnedStatus(aTab, { telemetrySource });
     }
 
     unpinTab(aTab) {
@@ -871,7 +888,7 @@
       aTab.style.marginInlineStart = "";
       aTab._pinnedUnscrollable = false;
       this._updateTabBarForPinnedTabs();
-      this._notifyPinnedStatus(aTab);
+      this.#notifyPinnedStatus(aTab);
     }
 
     previewTab(aTab, aCallback) {
@@ -2913,7 +2930,7 @@
 
       // Additionally send pinned tab events
       if (pinned) {
-        this._notifyPinnedStatus(t);
+        this.#notifyPinnedStatus(t);
       }
 
       gSharedTabWarning.tabAdded(t);
