@@ -32,6 +32,7 @@ import {
   isMapScopesEnabled,
   getSelectedTraceIndex,
   getShouldScrollToSelectedLocation,
+  getShouldHighlightSelectedLocation,
 } from "../../selectors/index";
 
 // Redux actions
@@ -357,7 +358,7 @@ class Editor extends PureComponent {
     if (line == 0) {
       const selectionCursor = editor.getSelectionCursor();
       line = toSourceLine(selectedLocation.source, selectionCursor.from.line);
-      column = selectionCursor.from.ch + 1;
+      column = selectionCursor.from.ch;
     }
     return { line, column };
   }
@@ -488,7 +489,7 @@ class Editor extends PureComponent {
     const location = createLocation({
       source: selectedSource,
       line: fromEditorLine(selectedSource, line),
-      column: editor.isWasm ? 0 : ch + 1,
+      column: editor.isWasm ? 0 : ch,
     });
 
     const lineObject = editor.getSelectionCursor();
@@ -504,8 +505,23 @@ class Editor extends PureComponent {
     if (!editor || !this.props.selectedSource) {
       return;
     }
+    const { selectedLocation } = this.props;
     const selectionCursor = editor.getSelectionCursor();
     const { line, ch } = selectionCursor.to;
+
+    // Avoid triggering an infinite loop of select location action
+    // if we moved the cursor to the location already stored in redux
+    //
+    // About columns: consider the reducer's column set to undefined as equivalent to selecting column 0 in CodeMirror.
+    // This also avoids dispatching duplicated `selectLocation` actions when selecting a line without a specific column.
+    if (
+      selectedLocation.line == line &&
+      ((typeof selectedLocation.column != "number" && ch == 0) ||
+        selectedLocation.column == ch)
+    ) {
+      return;
+    }
+
     this.props.selectLocation(
       createLocation({
         source: this.props.selectedSource,
@@ -595,7 +611,7 @@ class Editor extends PureComponent {
     const sourceLocation = createLocation({
       source: selectedSource,
       line: fromEditorLine(selectedSource, line),
-      column: this.state.editor.isWasm ? 0 : ch + 1,
+      column: this.state.editor.isWasm ? 0 : ch,
     });
 
     if (e.metaKey && e.altKey) {
@@ -620,10 +636,19 @@ class Editor extends PureComponent {
     return contentChanged || locationChanged;
   }
 
-  scrollToLocation(nextProps, editor) {
+  async scrollToLocation(nextProps, editor) {
     const { selectedLocation } = nextProps;
     const { line, column } = toEditorPosition(selectedLocation);
-    return editor.scrollTo(line, column);
+    await editor.scrollTo(line, column);
+
+    // Prevent focusing codemirror if we don't want to highlight the line
+    // mostly to avoid changing the focus from where it currently is.
+    // For example in the Search Bar.
+    if (this.props.shouldHighlightSelectedLocation) {
+      editor.focus();
+    }
+
+    await editor.setCursorAt(line - 1, column);
   }
 
   async setText(props, editor) {
@@ -821,6 +846,7 @@ const mapStateToProps = state => {
     isOriginalSourceAndMapScopesEnabled:
       selectedSource?.isOriginal && isMapScopesEnabled(state),
     shouldScrollToSelectedLocation: getShouldScrollToSelectedLocation(state),
+    shouldHighlightSelectedLocation: getShouldHighlightSelectedLocation(state),
   };
 };
 
