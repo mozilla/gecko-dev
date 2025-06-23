@@ -137,10 +137,11 @@ class SMILAnimationFunction {
    * priority animations.
    *
    * @return  -1 if this animation has lower priority or 1 if this animation has
-   *          higher priority. Returns 0 if the elements are the same.
+   *          higher priority
+   *
+   * This method should never return any other value, including 0.
    */
-  int8_t CompareTo(const SMILAnimationFunction* aOther,
-                   nsContentUtils::NodeIndexCache& aCache) const;
+  int8_t CompareTo(const SMILAnimationFunction* aOther) const;
 
   /*
    * The following methods are provided so that the compositor can optimize its
@@ -161,7 +162,7 @@ class SMILAnimationFunction {
      * - This function does not assume that our SMILValues (by/from/to/values)
      * have already been parsed.
      */
-    return mIsActive || mIsFrozen;
+    return (mIsActive || mIsFrozen);
   }
 
   /**
@@ -247,19 +248,16 @@ class SMILAnimationFunction {
   }
 
   // Comparator utility class, used for sorting SMILAnimationFunctions
-  class MOZ_STACK_CLASS Comparator final {
+  class Comparator {
    public:
     bool Equals(const SMILAnimationFunction* aElem1,
                 const SMILAnimationFunction* aElem2) const {
-      return aElem1->CompareTo(aElem2, mCache) == 0;
+      return (aElem1->CompareTo(aElem2) == 0);
     }
     bool LessThan(const SMILAnimationFunction* aElem1,
                   const SMILAnimationFunction* aElem2) const {
-      return aElem1->CompareTo(aElem2, mCache) < 0;
+      return (aElem1->CompareTo(aElem2) < 0);
     }
-
-   private:
-    mutable nsContentUtils::NodeIndexCache mCache;
   };
 
  protected:
