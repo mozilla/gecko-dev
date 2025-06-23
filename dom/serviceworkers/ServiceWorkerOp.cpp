@@ -303,7 +303,10 @@ class ServiceWorkerOp::ServiceWorkerOpRunnable final
     MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
     MOZ_ASSERT(mOwner);
 
-    if (aWorkerPrivate->GlobalScope()->IsDying()) {
+    // GlobalScope could be nullptr here that OOM issue causes GlobalScope
+    // creation fail.
+    if (!aWorkerPrivate->GlobalScope() ||
+        aWorkerPrivate->GlobalScope()->IsDying()) {
       Unused << Cancel();
       return true;
     }
