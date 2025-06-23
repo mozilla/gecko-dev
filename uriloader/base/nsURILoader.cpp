@@ -436,8 +436,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest* request) {
 
   // Check if this is a PDF which should be opened internally. We also handle
   // octet-streams that look like they might be PDFs based on their extension.
-  if ((maybeForceInternalHandling || IsSandboxed(aChannel)) &&
-      IsContentPDF(aChannel, mContentType)) {
+  if (maybeForceInternalHandling && IsContentPDF(aChannel, mContentType)) {
     // For a PDF, check if the preference is set that forces attachments to be
     // opened inline. If so, treat it as a non-attachment by clearing
     // 'forceExternalHandling' again. This allows it open a PDF directly
