@@ -421,51 +421,6 @@ static void DumpStyleContext(GtkStyleContext* aStyle) {
 }
 #endif
 
-static gint GetBorderRadius(GtkStyleContext* aStyle) {
-  GValue value = G_VALUE_INIT;
-  // NOTE(emilio): In an ideal world, we'd query the two longhands
-  // (border-top-left-radius and border-top-right-radius) separately. However,
-  // that doesn't work (GTK rejects the query with:
-  //
-  //   Style property "border-top-left-radius" is not gettable
-  //
-  // However! Getting border-radius does work, and it does return the
-  // border-top-left-radius as a gint:
-  //
-  //   https://docs.gtk.org/gtk3/const.STYLE_PROPERTY_BORDER_RADIUS.html
-  //   https://gitlab.gnome.org/GNOME/gtk/-/blob/gtk-3-20/gtk/gtkcssshorthandpropertyimpl.c#L961-977
-  //
-  // So we abuse this fact, and make the assumption here that the
-  // border-top-{left,right}-radius are the same, and roll with it.
-  gtk_style_context_get_property(aStyle, "border-radius", GTK_STATE_FLAG_NORMAL,
-                                 &value);
-  gint result = 0;
-  auto type = G_VALUE_TYPE(&value);
-  if (type == G_TYPE_INT) {
-    result = g_value_get_int(&value);
-  } else {
-    NS_WARNING(nsPrintfCString("Unknown value type %lu for border-radius", type)
-                   .get());
-  }
-  g_value_unset(&value);
-  return result;
-}
-
-static bool HasBackground(GtkStyleContext* aStyle) {
-  GdkRGBA gdkColor;
-  gtk_style_context_get_background_color(aStyle, GTK_STATE_FLAG_NORMAL,
-                                         &gdkColor);
-  if (gdkColor.alpha != 0.0) {
-    return true;
-  }
-
-  GValue value = G_VALUE_INIT;
-  gtk_style_context_get_property(aStyle, "background-image",
-                                 GTK_STATE_FLAG_NORMAL, &value);
-  auto cleanup = mozilla::MakeScopeExit([&] { g_value_unset(&value); });
-  return g_value_get_boxed(&value);
-}
-
 // Modifies color |*aDest| as if a pattern of color |aSource| was painted with
 // CAIRO_OPERATOR_OVER to a surface with color |*aDest|.
 static void ApplyColorOver(const GdkRGBA& aSource, GdkRGBA* aDest) {
@@ -1730,66 +1685,6 @@ void nsLookAndFeel::Initialize() {
   RecordTelemetry();
 }
 
-/* ButtonLayout represents a GTK CSD button and whether its on the left or
- * right side of the tab bar */
-enum class HeaderBarButtonType { None = 0, Close, Minimize, Maximize };
-struct HeaderBarButtonLayout {
-  std::array<HeaderBarButtonType, 3> mButtons = {HeaderBarButtonType::None};
-  bool mReversedPlacement = false;
-};
-
-HeaderBarButtonLayout GetGtkHeaderBarButtonLayout() {
-  using Type = HeaderBarButtonType;
-
-  HeaderBarButtonLayout result;
-
-  gchar* decorationLayoutSetting = nullptr;
-  GtkSettings* settings = gtk_settings_get_default();
-  g_object_get(settings, "gtk-decoration-layout", &decorationLayoutSetting,
-               nullptr);
-  auto free = mozilla::MakeScopeExit([&] { g_free(decorationLayoutSetting); });
-
-  // Use a default layout
-  const gchar* decorationLayout = "menu:minimize,maximize,close";
-  if (decorationLayoutSetting) {
-    decorationLayout = decorationLayoutSetting;
-  }
-
-  // "minimize,maximize,close:" layout means buttons are on the opposite
-  // titlebar side. close button is always there.
-  const char* closeButton = strstr(decorationLayout, "close");
-  const char* separator = strchr(decorationLayout, ':');
-  result.mReversedPlacement =
-      closeButton && separator && closeButton < separator;
-
-  // We check what position a button string is stored in decorationLayout.
-  //
-  // decorationLayout gets its value from the GNOME preference:
-  // org.gnome.desktop.vm.preferences.button-layout via the
-  // gtk-decoration-layout property.
-  //
-  // Documentation of the gtk-decoration-layout property can be found here:
-  // https://developer.gnome.org/gtk3/stable/GtkSettings.html#GtkSettings--gtk-decoration-layout
-  nsDependentCSubstring layout(decorationLayout, strlen(decorationLayout));
-  size_t activeButtons = 0;
-  for (const auto& part : layout.Split(':')) {
-    for (const auto& button : part.Split(',')) {
-      if (button.EqualsLiteral("close")) {
-        result.mButtons[activeButtons++] = Type::Close;
-      } else if (button.EqualsLiteral("minimize")) {
-        result.mButtons[activeButtons++] = Type::Minimize;
-      } else if (button.EqualsLiteral("maximize")) {
-        result.mButtons[activeButtons++] = Type::Maximize;
-      }
-      if (activeButtons == result.mButtons.size()) {
-        break;
-      }
-    }
-  }
-
-  return result;
-}
-
 void nsLookAndFeel::InitializeGlobalSettings() {
   GtkSettings* settings = gtk_settings_get_default();
 
@@ -1833,35 +1728,33 @@ void nsLookAndFeel::InitializeGlobalSettings() {
 
   // We need to initialize whole CSD config explicitly because it's queried
   // as -moz-gtk* media features.
-  {
-    auto layout = GetGtkHeaderBarButtonLayout();
-    mCSDReversedPlacement = layout.mReversedPlacement;
-    int32_t i = 0;
-    for (auto buttonType : layout.mButtons) {
-      // We check if a button is represented on the right side of the tabbar.
-      // Then we assign it a value from 3 to 5, instead of 0 to 2 when it is on
-      // the left side.
-      int32_t* pos = nullptr;
-      switch (buttonType) {
-        case HeaderBarButtonType::Minimize:
-          mCSDMinimizeButton = true;
-          pos = &mCSDMinimizeButtonPosition;
-          break;
-        case HeaderBarButtonType::Maximize:
-          mCSDMaximizeButton = true;
-          pos = &mCSDMaximizeButtonPosition;
-          break;
-        case HeaderBarButtonType::Close:
-          mCSDCloseButton = true;
-          pos = &mCSDCloseButtonPosition;
-          break;
-        case HeaderBarButtonType::None:
-          break;
-      }
+  ButtonLayout buttonLayout[TOOLBAR_BUTTONS];
 
-      if (pos) {
-        *pos = i++;
-      }
+  size_t activeButtons =
+      GetGtkHeaderBarButtonLayout(Span(buttonLayout), &mCSDReversedPlacement);
+  for (size_t i = 0; i < activeButtons; i++) {
+    // We check if a button is represented on the right side of the tabbar.
+    // Then we assign it a value from 3 to 5, instead of 0 to 2 when it is on
+    // the left side.
+    const ButtonLayout& layout = buttonLayout[i];
+    int32_t* pos = nullptr;
+    switch (layout.mType) {
+      case ButtonLayout::Type::Minimize:
+        mCSDMinimizeButton = true;
+        pos = &mCSDMinimizeButtonPosition;
+        break;
+      case ButtonLayout::Type::Maximize:
+        mCSDMaximizeButton = true;
+        pos = &mCSDMaximizeButtonPosition;
+        break;
+      case ButtonLayout::Type::Close:
+        mCSDCloseButton = true;
+        pos = &mCSDCloseButtonPosition;
+        break;
+    }
+
+    if (pos) {
+      *pos = i;
     }
   }
 
@@ -2254,30 +2147,15 @@ void nsLookAndFeel::PerThemeData::Init() {
     g_object_unref(accelStyle);
   }
 
-  style = GetStyleContext(MOZ_GTK_HEADER_BAR);
-  {
-    const bool headerBarHasBackground = HasBackground(style);
-    if (!headerBarHasBackground && !GetBorderRadius(style)) {
-      // Some themes like Elementary's style the container of the headerbar
-      // rather than the header bar itself.
-      GtkStyleContext* fixedStyle = GetStyleContext(MOZ_GTK_HEADERBAR_FIXED);
-      if (HasBackground(fixedStyle) &&
-          (GetBorderRadius(fixedStyle) || !headerBarHasBackground)) {
-        style = fixedStyle;
-      }
-    }
-  }
+  const auto effectiveTitlebarStyle = HeaderBarShouldDrawContainer()
+                                          ? MOZ_GTK_HEADERBAR_FIXED
+                                          : MOZ_GTK_HEADER_BAR;
+  style = GetStyleContext(effectiveTitlebarStyle);
   {
     mTitlebar = GetColorPair(style, GTK_STATE_FLAG_NORMAL);
     mTitlebarInactive = GetColorPair(style, GTK_STATE_FLAG_BACKDROP);
-    mTitlebarRadius = GetBorderRadius(style);
-    mTitlebarButtonSpacing = [&] {
-      // Account for the spacing property in the header bar.
-      // Default to 6 pixels (gtk/gtkheaderbar.c)
-      gint spacing = 6;
-      g_object_get(GetWidget(MOZ_GTK_HEADER_BAR), "spacing", &spacing, nullptr);
-      return spacing;
-    }();
+    mTitlebarRadius = IsSolidCSDStyleUsed() ? 0 : GetBorderRadius(style);
+    mTitlebarButtonSpacing = moz_gtk_get_titlebar_button_spacing();
   }
 
   // We special-case the header bar color in Adwaita, Yaru and Breeze to be the

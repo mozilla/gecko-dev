@@ -24,6 +24,10 @@
 #include <math.h>
 #include <dlfcn.h>
 
+static ToolbarGTKMetrics sToolbarMetrics;
+
+using mozilla::Span;
+
 #if 0
 // It's used for debugging only to compare Gecko widget style with
 // the ones used by Gtk+ applications.
@@ -43,8 +47,84 @@ style_path_print(GtkStyleContext *context)
 void moz_gtk_init() { moz_gtk_refresh(); }
 
 void moz_gtk_refresh() {
+  sToolbarMetrics.initialized = false;
+
   /* This will destroy all of our widgets */
   ResetWidgetCache();
+}
+
+size_t GetGtkHeaderBarButtonLayout(Span<ButtonLayout> aButtonLayout,
+                                   bool* aReversedButtonsPlacement) {
+  gchar* decorationLayoutSetting = nullptr;
+  GtkSettings* settings = gtk_settings_get_default();
+  g_object_get(settings, "gtk-decoration-layout", &decorationLayoutSetting,
+               nullptr);
+  auto free = mozilla::MakeScopeExit([&] { g_free(decorationLayoutSetting); });
+
+  // Use a default layout
+  const gchar* decorationLayout = "menu:minimize,maximize,close";
+  if (decorationLayoutSetting) {
+    decorationLayout = decorationLayoutSetting;
+  }
+
+  // "minimize,maximize,close:" layout means buttons are on the opposite
+  // titlebar side. close button is always there.
+  if (aReversedButtonsPlacement) {
+    const char* closeButton = strstr(decorationLayout, "close");
+    const char* separator = strchr(decorationLayout, ':');
+    *aReversedButtonsPlacement =
+        closeButton && separator && closeButton < separator;
+  }
+
+  // We check what position a button string is stored in decorationLayout.
+  //
+  // decorationLayout gets its value from the GNOME preference:
+  // org.gnome.desktop.vm.preferences.button-layout via the
+  // gtk-decoration-layout property.
+  //
+  // Documentation of the gtk-decoration-layout property can be found here:
+  // https://developer.gnome.org/gtk3/stable/GtkSettings.html#GtkSettings--gtk-decoration-layout
+  if (aButtonLayout.IsEmpty()) {
+    return 0;
+  }
+
+  nsDependentCSubstring layout(decorationLayout, strlen(decorationLayout));
+
+  size_t activeButtons = 0;
+  for (const auto& part : layout.Split(':')) {
+    for (const auto& button : part.Split(',')) {
+      if (button.EqualsLiteral("close")) {
+        aButtonLayout[activeButtons++] = {ButtonLayout::Type::Close};
+      } else if (button.EqualsLiteral("minimize")) {
+        aButtonLayout[activeButtons++] = {ButtonLayout::Type::Minimize};
+      } else if (button.EqualsLiteral("maximize")) {
+        aButtonLayout[activeButtons++] = {ButtonLayout::Type::Maximize};
+      }
+      if (activeButtons == aButtonLayout.Length()) {
+        return activeButtons;
+      }
+    }
+  }
+  return activeButtons;
+}
+
+static void EnsureToolbarMetrics() {
+  if (sToolbarMetrics.initialized) {
+    return;
+  }
+  sToolbarMetrics = {};
+
+  // Account for the spacing property in the header bar.
+  // Default to 6 pixels (gtk/gtkheaderbar.c)
+  gint spacing = 6;
+  g_object_get(GetWidget(MOZ_GTK_HEADER_BAR), "spacing", &spacing, nullptr);
+  sToolbarMetrics.inlineSpacing += spacing;
+  sToolbarMetrics.initialized = true;
+}
+
+gint moz_gtk_get_titlebar_button_spacing() {
+  EnsureToolbarMetrics();
+  return sToolbarMetrics.inlineSpacing;
 }
 
 static void moz_gtk_window_decoration_paint(cairo_t* cr,
@@ -53,8 +133,14 @@ static void moz_gtk_window_decoration_paint(cairo_t* cr,
     // Doesn't seem to be needed.
     return;
   }
-  GtkStyleContext* decorationStyle = GetStyleContext(
-      MOZ_GTK_WINDOW_DECORATION, aParams.image_scale, aParams.state);
+  GtkStyleContext* windowStyle =
+      GetStyleContext(MOZ_GTK_HEADERBAR_WINDOW, aParams.image_scale);
+  const bool solidDecorations =
+      gtk_style_context_has_class(windowStyle, "solid-csd");
+  GtkStyleContext* decorationStyle =
+      GetStyleContext(solidDecorations ? MOZ_GTK_WINDOW_DECORATION_SOLID
+                                       : MOZ_GTK_WINDOW_DECORATION,
+                      aParams.image_scale, aParams.state);
 
   const auto& rect = aParams.rect;
   gtk_render_background(decorationStyle, cr, rect.x, rect.y, rect.width,
@@ -76,7 +162,9 @@ void moz_gtk_widget_paint(cairo_t* cr, const GtkDrawingParams* aParams) {
   }
 }
 
-void moz_gtk_shutdown() {
+gint moz_gtk_shutdown() {
   /* This will destroy all of our widgets */
   ResetWidgetCache();
+
+  return MOZ_GTK_SUCCESS;
 }

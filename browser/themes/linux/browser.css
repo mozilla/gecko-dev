@@ -34,33 +34,31 @@
  * (in X11) or the compositor (in Wayland) does draw the shadow corners
  * already.
  */
-@media (-moz-gtk-csd-transparency-available) {
-  :root[customtitlebar] {
-    background-color: transparent;
+:root[customtitlebar] {
+  background-color: transparent;
 
-    &[sizemode="normal"]:not([gtktiledwindow="true"]) {
-      /* This takes care of drawing our window decorations on X11 */
-      -moz-default-appearance: -moz-window-decorations;
-      appearance: auto;
+  &[sizemode="normal"]:not([gtktiledwindow="true"]) {
+    /* This takes care of drawing our window decorations on X11 */
+    -moz-default-appearance: -moz-window-decorations;
+    appearance: auto;
 
-      #navigator-toolbox,
-      dialog::backdrop {
-        border-top-left-radius: env(-moz-gtk-csd-titlebar-radius);
-        border-top-right-radius: env(-moz-gtk-csd-titlebar-radius);
+    #navigator-toolbox,
+    dialog::backdrop {
+      border-top-left-radius: env(-moz-gtk-csd-titlebar-radius);
+      border-top-right-radius: env(-moz-gtk-csd-titlebar-radius);
+    }
+
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media -moz-pref("widget.gtk.rounded-bottom-corners.enabled") {
+      #navigator-toolbox {
+        /* The body clip below covers this. */
+        border-radius: 0;
       }
 
-      /* stylelint-disable-next-line media-query-no-invalid */
-      @media -moz-pref("widget.gtk.rounded-bottom-corners.enabled") {
-        #navigator-toolbox {
-          /* The body clip below covers this. */
-          border-radius: 0;
-        }
-
-        body,
-        dialog::backdrop {
-          /* Use an uniform clip to allow WebRender to optimize it better */
-          border-radius: env(-moz-gtk-csd-titlebar-radius);
-        }
+      body,
+      dialog::backdrop {
+        /* Use an uniform clip to allow WebRender to optimize it better */
+        border-radius: env(-moz-gtk-csd-titlebar-radius);
       }
     }
   }

@@ -17,6 +17,8 @@
 
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
+#include <algorithm>
+#include "mozilla/Span.h"
 
 /**
  * A size in the same GTK pixel units as GtkBorder and GdkRectangle.
@@ -47,6 +49,17 @@ struct MozGtkSize {
     width = height;
     height = tmp;
   }
+};
+
+#define TOOLBAR_BUTTONS 3
+struct ToolbarGTKMetrics {
+  bool initialized = false;
+  gint inlineSpacing = 0;
+};
+
+struct CSDWindowDecorationSize {
+  bool initialized;
+  GtkBorder decorationSize;
 };
 
 /*** result/error codes ***/
@@ -97,6 +110,8 @@ enum WidgetNodeType : int {
   /* Paints the background of a window, dialog or page. */
   MOZ_GTK_WINDOW,
   /* Used only as a container for MOZ_GTK_HEADER_BAR. */
+  MOZ_GTK_HEADERBAR_WINDOW,
+  /* Used only as a container for MOZ_GTK_HEADER_BAR. */
   MOZ_GTK_HEADERBAR_FIXED,
   /* Window container for all widgets */
   MOZ_GTK_WINDOW_CONTAINER,
@@ -107,8 +122,16 @@ enum WidgetNodeType : int {
 
   /* Client-side window decoration node. Available on GTK 3.20+. */
   MOZ_GTK_WINDOW_DECORATION,
+  MOZ_GTK_WINDOW_DECORATION_SOLID,
 
   MOZ_GTK_WIDGET_NODE_COUNT
+};
+
+/* ButtonLayout represents a GTK CSD button and whether its on the left or
+ * right side of the tab bar */
+struct ButtonLayout {
+  enum class Type { Close, Minimize, Maximize };
+  Type mType;
 };
 
 /*** General library functions ***/
@@ -126,8 +149,10 @@ void moz_gtk_refresh();
 /**
  * Perform cleanup of the drawing library. You should call this function
  * when your program exits, or you no longer need the library.
+ *
+ * returns: MOZ_GTK_SUCCESS if there was no error, an error code otherwise
  */
-void moz_gtk_shutdown();
+gint moz_gtk_shutdown();
 
 /*** Widget drawing ***/
 
@@ -142,5 +167,22 @@ struct GtkDrawingParams {
 
 // Paint a widget in the current theme.
 void moz_gtk_widget_paint(cairo_t* cr, const GtkDrawingParams* aParams);
+
+/*** Widget metrics ***/
+
+gint moz_gtk_get_titlebar_button_spacing();
+
+/**
+ * Get toolbar button layout.
+ * aButtonLayout:  [OUT] An array which will be filled by ButtonLayout
+ *                       references to visible titlebar buttons. Must contain at
+ *                       least TOOLBAR_BUTTONS entries if non-empty.
+ * aReversedButtonsPlacement: [OUT] True if the buttons are placed in opposite
+ *                                  titlebar corner.
+ *
+ * returns:    Number of returned entries at aButtonLayout.
+ */
+size_t GetGtkHeaderBarButtonLayout(mozilla::Span<ButtonLayout>,
+                                   bool* aReversedButtonsPlacement);
 
 #endif
