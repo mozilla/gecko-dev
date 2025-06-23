@@ -500,7 +500,7 @@ class BrowserToolbarMiddlewareTest {
         )
         assertFalse(toolbarStore.state.isEditMode())
 
-        toolbarStore.dispatch(toolbarStore.state.displayState.pageOrigin.onClick)
+        toolbarStore.dispatch(toolbarStore.state.displayState.pageOrigin.onClick as BrowserToolbarAction)
 
         assertTrue(toolbarStore.state.isEditMode())
     }

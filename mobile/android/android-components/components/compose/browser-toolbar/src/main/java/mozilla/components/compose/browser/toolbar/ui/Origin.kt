@@ -67,8 +67,9 @@ private const val FADE_LENGTH = 66
  * @param modifier [Modifier] to apply to this composable for further customisation.
  * @param url the URL of the webpage. Can be `null` or empty, in which vase the [hint] will be shown.
  * @param title the title of the webpage. Can be `null` or empty, in which case only [url] or [hint] will be shown.
- * @param onClick [BrowserToolbarEvent] to be dispatched when this layout is clicked.
+ * @param onClick Optional [BrowserToolbarEvent] to be dispatched when this layout is clicked.
  * @param onLongClick Optional [BrowserToolbarInteraction] describing how to handle this layout being long clicked.
+ * To ensure long clicks handling the normal click behavior should also be set.
  * @param onInteraction [BrowserToolbarInteraction] to be dispatched when this layout is interacted with.
  * @param onInteraction Callback for handling [BrowserToolbarEvent]s on user interactions.
  */
@@ -82,7 +83,7 @@ internal fun Origin(
     title: String? = null,
     textGravity: TextGravity = TEXT_GRAVITY_START,
     contextualMenuOptions: List<ContextualMenuOption> = emptyList(),
-    onClick: BrowserToolbarEvent,
+    onClick: BrowserToolbarEvent?,
     onLongClick: BrowserToolbarEvent?,
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
@@ -118,17 +119,17 @@ internal fun Origin(
                     this.contentDescription = "${title ?: ""} $urlToShow. $hint"
                 }
                 .clickable(
-                    enabled = !shouldReactToLongClicks,
+                    enabled = onClick != null && !shouldReactToLongClicks,
                 ) {
                     view.playSoundEffect(SoundEffectConstants.CLICK)
-                    onInteraction(onClick)
+                    onInteraction(requireNotNull(onClick))
                 }
                 .thenConditional(
                     Modifier.combinedClickable(
                         role = Button,
                         onClick = {
                             view.playSoundEffect(SoundEffectConstants.CLICK)
-                            onInteraction(onClick)
+                            onInteraction(requireNotNull(onClick))
                         },
                         onLongClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -136,7 +137,7 @@ internal fun Origin(
                             onLongClick?.let { onInteraction(it) }
                         },
                     ),
-                ) { shouldReactToLongClicks },
+                ) { onClick != null && shouldReactToLongClicks },
         ) {
             Column(
                 verticalArrangement = Center,
@@ -158,7 +159,7 @@ private fun Title(
     title: String?,
     textGravity: TextGravity,
 ) {
-    if (title != null) {
+    if (title != null && title.isNotBlank()) {
         FadedText(
             text = title,
             style = TextStyle(

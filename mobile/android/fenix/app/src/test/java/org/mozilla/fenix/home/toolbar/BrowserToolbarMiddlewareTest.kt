@@ -30,6 +30,7 @@ import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.C
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption.PasteFromClipboard
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.PageOriginContextualMenuInteractions.LoadFromClipboardClicked
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.PageOriginContextualMenuInteractions.PasteFromClipboardClicked
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.CombinedEventAndMenu
@@ -469,7 +470,7 @@ class BrowserToolbarMiddlewareTest {
             mockkStatic(NavController::nav) {
                 every { testContext.settings().toolbarPosition } returns ToolbarPosition.TOP
 
-                toolbarStore.dispatch(toolbarStore.state.displayState.pageOrigin.onClick)
+                toolbarStore.dispatch(toolbarStore.state.displayState.pageOrigin.onClick as BrowserToolbarAction)
 
                 assertEquals(Normal, browsingModeManager.mode)
                 verify {
@@ -506,7 +507,7 @@ class BrowserToolbarMiddlewareTest {
             mockkStatic(NavController::nav) {
                 every { testContext.settings().toolbarPosition } returns ToolbarPosition.TOP
 
-                toolbarStore.dispatch(toolbarStore.state.displayState.pageOrigin.onClick)
+                toolbarStore.dispatch(toolbarStore.state.displayState.pageOrigin.onClick as BrowserToolbarAction)
 
                 assertEquals(Private, browsingModeManager.mode)
                 verify {

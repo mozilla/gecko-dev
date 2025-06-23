@@ -18,9 +18,9 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteractio
  * @property title The title of the website.
  * @property url The URL of the website.
  * @property hint Text displayed in the toolbar when there's no URL to display (e.g.: no tab or empty URL)
- * @property onClick [BrowserToolbarInteraction] describing how to handle any page origin detail being clicked.
+ * @property onClick Optional [BrowserToolbarInteraction] describing how to handle any page origin detail being clicked.
  * @property onLongClick Optional [BrowserToolbarInteraction] describing how to handle any page origin detail
- * being long clicked.
+ * being long clicked. To ensure long click functionality the normal click behavior should also be set.
  * @property textGravity The gravity of the text - whether to show the start or end of long text
  * that does not fit the available space.
  */
@@ -30,7 +30,7 @@ data class PageOrigin(
     val url: String?,
     val textGravity: TextGravity = TEXT_GRAVITY_START,
     val contextualMenuOptions: List<ContextualMenuOption> = emptyList(),
-    val onClick: BrowserToolbarEvent,
+    val onClick: BrowserToolbarEvent?,
     val onLongClick: BrowserToolbarEvent? = null,
 ) {
     /**
