@@ -1164,6 +1164,25 @@ static bool UnrollAndOrPeelLoop(MIRGraph& graph, UnrollState& state) {
       MOZ_ASSERT(valueTable.get(cix, vix)->op() ==
                  valueTable.get(0, vix)->op());
     }
+
+    // For cloned instructions that have a (load) dependency field, and that
+    // field points to an instruction in the original body, update the field so
+    // as to point to the equivalent instruction in the cloned body.
+    for (vix = 0; vix < numValuesInOriginal; vix++) {
+      MDefinition* clonedInsn = valueTable.get(cix, vix);
+      MDefinition* originalDep = clonedInsn->dependency();
+      if (originalDep) {
+        mozilla::Maybe<size_t> originalInsnIndex =
+            valueTable.findInRow(0, originalDep);
+        if (originalInsnIndex.isSome()) {
+          // The dependency is to an insn in the original body, so we need to
+          // remap it to this body.
+          MDefinition* clonedDep =
+              valueTable.get(cix, originalInsnIndex.value());
+          clonedInsn->setDependency(clonedDep);
+        }
+      }
+    }
   }
 
 #ifdef JS_JITSPEW
