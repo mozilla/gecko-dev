@@ -23,7 +23,7 @@ import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.SecurityInfoState
 import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
@@ -83,8 +83,8 @@ class CustomTabBrowserToolbarMiddlewareTest {
     fun `GIVEN the custom tab is configured to show a close button WHEN initializing the toolbar THEN add a close button`() {
         val middleware = buildMiddleware().updateDependencies()
         every { customTab.config.showCloseButton } returns true
-        val expectedCloseButton = ActionButton(
-            icon = R.drawable.mozac_ic_cross_24,
+        val expectedCloseButton = ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_cross_24,
             contentDescription = R.string.mozac_feature_customtabs_exit_button,
             onClick = CloseClicked,
         )
@@ -95,7 +95,7 @@ class CustomTabBrowserToolbarMiddlewareTest {
 
         val toolbarBrowserActions = toolbarStore.state.displayState.browserActionsStart
         assertEquals(1, toolbarBrowserActions.size)
-        val closeButton = toolbarBrowserActions[0] as ActionButton
+        val closeButton = toolbarBrowserActions[0]
         assertEquals(expectedCloseButton, closeButton)
     }
 
@@ -116,8 +116,8 @@ class CustomTabBrowserToolbarMiddlewareTest {
     fun `GIVEN the url if of a local file WHEN initializing the toolbar THEN add an appropriate security indicator`() {
         val middleware = buildMiddleware().updateDependencies()
         every { customTab.content.url } returns "content://test"
-        val expectedSecurityIndicator = ActionButton(
-            icon = R.drawable.mozac_ic_page_portrait_24,
+        val expectedSecurityIndicator = ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_page_portrait_24,
             contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
             onClick = SiteInfoClicked,
         )
@@ -128,7 +128,7 @@ class CustomTabBrowserToolbarMiddlewareTest {
 
         val toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
         assertEquals(1, toolbarPageActions.size)
-        val securityIndicator = toolbarPageActions[0] as ActionButton
+        val securityIndicator = toolbarPageActions[0]
         assertEquals(expectedSecurityIndicator, securityIndicator)
     }
 
@@ -136,8 +136,8 @@ class CustomTabBrowserToolbarMiddlewareTest {
     fun `GIVEN the website is secure WHEN initializing the toolbar THEN add an appropriate security indicator`() {
         val middleware = buildMiddleware().updateDependencies()
         every { customTab.content.securityInfo.secure } returns true
-        val expectedSecurityIndicator = ActionButton(
-            icon = R.drawable.mozac_ic_lock_24,
+        val expectedSecurityIndicator = ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_lock_24,
             contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
             onClick = SiteInfoClicked,
         )
@@ -148,7 +148,7 @@ class CustomTabBrowserToolbarMiddlewareTest {
 
         val toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
         assertEquals(1, toolbarPageActions.size)
-        val securityIndicator = toolbarPageActions[0] as ActionButton
+        val securityIndicator = toolbarPageActions[0]
         assertEquals(expectedSecurityIndicator, securityIndicator)
     }
 
@@ -156,8 +156,8 @@ class CustomTabBrowserToolbarMiddlewareTest {
     fun `GIVEN the website is insecure WHEN initializing the toolbar THEN add an appropriate security indicator`() {
         val middleware = buildMiddleware().updateDependencies()
         every { customTab.content.securityInfo.secure } returns false
-        val expectedSecurityIndicator = ActionButton(
-            icon = R.drawable.mozac_ic_broken_lock,
+        val expectedSecurityIndicator = ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_broken_lock,
             contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
             onClick = SiteInfoClicked,
         )
@@ -168,7 +168,7 @@ class CustomTabBrowserToolbarMiddlewareTest {
 
         val toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
         assertEquals(1, toolbarPageActions.size)
-        val securityIndicator = toolbarPageActions[0] as ActionButton
+        val securityIndicator = toolbarPageActions[0]
         assertEquals(expectedSecurityIndicator, securityIndicator)
     }
 
@@ -180,13 +180,13 @@ class CustomTabBrowserToolbarMiddlewareTest {
             BrowserState(customTabs = listOf(customTab)),
         )
         val middleware = buildMiddleware(browserStore).updateDependencies()
-        val expectedSecureIndicator = ActionButton(
-            icon = R.drawable.mozac_ic_lock_24,
+        val expectedSecureIndicator = ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_lock_24,
             contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
             onClick = SiteInfoClicked,
         )
-        val expectedInsecureIndicator = ActionButton(
-            icon = R.drawable.mozac_ic_broken_lock,
+        val expectedInsecureIndicator = ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_broken_lock,
             contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
             onClick = SiteInfoClicked,
         )
@@ -196,14 +196,14 @@ class CustomTabBrowserToolbarMiddlewareTest {
         testScheduler.advanceUntilIdle()
         var toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
         assertEquals(1, toolbarPageActions.size)
-        var securityIndicator = toolbarPageActions[0] as ActionButton
+        var securityIndicator = toolbarPageActions[0]
         assertEquals(expectedInsecureIndicator, securityIndicator)
 
         browserStore.dispatch(UpdateSecurityInfoAction(customTabId, SecurityInfoState(true))).joinBlocking()
         testScheduler.advanceUntilIdle()
         toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
         assertEquals(1, toolbarPageActions.size)
-        securityIndicator = toolbarPageActions[0] as ActionButton
+        securityIndicator = toolbarPageActions[0]
         assertEquals(expectedSecureIndicator, securityIndicator)
     }
 
@@ -302,8 +302,8 @@ class CustomTabBrowserToolbarMiddlewareTest {
     fun `GIVEN the custom tab is not configured to show a share button WHEN initializing the toolbar THEN show just a menu button`() {
         val middleware = buildMiddleware().updateDependencies()
         every { customTab.config.showShareMenuItem } returns false
-        val expectedMenuButton = ActionButton(
-            icon = R.drawable.mozac_ic_ellipsis_vertical_24,
+        val expectedMenuButton = ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_ellipsis_vertical_24,
             contentDescription = R.string.content_description_menu,
             onClick = MenuClicked,
         )
@@ -314,7 +314,7 @@ class CustomTabBrowserToolbarMiddlewareTest {
 
         val toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
         assertEquals(1, toolbarBrowserActions.size)
-        val menuButton = toolbarBrowserActions[0] as ActionButton
+        val menuButton = toolbarBrowserActions[0]
         assertEquals(expectedMenuButton, menuButton)
     }
 
@@ -322,13 +322,13 @@ class CustomTabBrowserToolbarMiddlewareTest {
     fun `GIVEN the custom tab is configured to show a share button WHEN initializing the toolbar THEN show both a share and a menu buttons`() {
         val middleware = buildMiddleware().updateDependencies()
         every { customTab.config.showShareMenuItem } returns true
-        val expectedShareButton = ActionButton(
-            icon = R.drawable.mozac_ic_share_android_24,
+        val expectedShareButton = ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_share_android_24,
             contentDescription = R.string.mozac_feature_customtabs_share_link,
             onClick = ShareClicked,
         )
-        val expectedMenuButton = ActionButton(
-            icon = R.drawable.mozac_ic_ellipsis_vertical_24,
+        val expectedMenuButton = ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_ellipsis_vertical_24,
             contentDescription = R.string.content_description_menu,
             onClick = MenuClicked,
         )
@@ -339,8 +339,8 @@ class CustomTabBrowserToolbarMiddlewareTest {
 
         val toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
         assertEquals(2, toolbarBrowserActions.size)
-        val shareButton = toolbarBrowserActions[0] as ActionButton
-        val menuButton = toolbarBrowserActions[1] as ActionButton
+        val shareButton = toolbarBrowserActions[0]
+        val menuButton = toolbarBrowserActions[1]
         assertEquals(expectedShareButton, shareButton)
         assertEquals(expectedMenuButton, menuButton)
     }

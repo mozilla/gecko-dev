@@ -4,11 +4,11 @@
 
 package mozilla.components.compose.browser.toolbar.ui
 
-import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
+import android.graphics.drawable.Drawable
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,9 +17,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import mozilla.components.compose.base.button.IconButton
 import mozilla.components.compose.base.button.LongPressIconButton
 import mozilla.components.compose.base.menu.CustomPlacementPopup
@@ -38,8 +40,8 @@ import mozilla.components.ui.icons.R
 /**
  * A clickable icon used to represent an action that can be added to the toolbar.
  *
- * @param icon Drawable resource for this button.
- * @param contentDescription Text used by accessibility services to describe what this button does.
+ * @param icon A [Drawable] to use as icon for this button.
+ * @param contentDescription A [String] to use as content description for this button.
  * @param state The current [State] of the action button.
  * @param highlighted Whether or not to highlight this button.
  * @param onClick [BrowserToolbarInteraction] describing how to handle this button being clicked.
@@ -48,10 +50,11 @@ import mozilla.components.ui.icons.R
  */
 @Composable
 @Suppress("LongMethod", "CyclomaticComplexMethod")
-fun ActionButton(
-    @DrawableRes icon: Int,
-    @StringRes contentDescription: Int,
+internal fun ActionButton(
+    icon: Drawable,
+    contentDescription: String,
     state: State = State.DEFAULT,
+    shouldTint: Boolean = true,
     highlighted: Boolean = false,
     onClick: BrowserToolbarInteraction? = null,
     onLongClick: BrowserToolbarInteraction? = null,
@@ -109,10 +112,10 @@ fun ActionButton(
                 }
             },
             enabled = isEnabled,
-            contentDescription = stringResource(contentDescription),
+            contentDescription = contentDescription,
         ) {
             Box {
-                ActionButtonIcon(icon, tint)
+                ActionButtonIcon(icon, tint, shouldTint)
                 if (highlighted) {
                     DotHighlight(
                         modifier = Modifier.align(Alignment.BottomEnd),
@@ -136,10 +139,10 @@ fun ActionButton(
                 }
             },
             enabled = isEnabled,
-            contentDescription = stringResource(contentDescription),
+            contentDescription = contentDescription,
         ) {
             Box {
-                ActionButtonIcon(icon, tint)
+                ActionButtonIcon(icon, tint, shouldTint)
                 if (highlighted) {
                     DotHighlight(
                         modifier = Modifier.align(Alignment.BottomEnd),
@@ -160,13 +163,18 @@ fun ActionButton(
 
 @Composable
 private fun ActionButtonIcon(
-    @DrawableRes icon: Int,
+    icon: Drawable,
     tint: Color,
+    shouldTint: Boolean,
 ) {
-    Icon(
-        painter = painterResource(icon),
+    Image(
+        painter = rememberDrawablePainter(icon),
         contentDescription = null,
-        tint = tint,
+        contentScale = ContentScale.Crop,
+        colorFilter = when (shouldTint) {
+            true -> ColorFilter.tint(tint)
+            else -> null
+        },
     )
 }
 
@@ -207,8 +215,11 @@ private fun ActionButtonPreview() {
     AcornTheme {
         Box(modifier = Modifier.background(AcornTheme.colors.layer1)) {
             ActionButton(
-                icon = R.drawable.mozac_ic_web_extension_default_icon,
-                contentDescription = R.string.mozac_error_confused,
+                icon = AppCompatResources.getDrawable(
+                    LocalContext.current,
+                    R.drawable.mozac_ic_web_extension_default_icon,
+                )!!,
+                contentDescription = "Test",
                 onClick = object : BrowserToolbarEvent {},
                 onInteraction = {},
             )
@@ -222,8 +233,11 @@ private fun HighlightedActionButtonPreview() {
     AcornTheme {
         Box(modifier = Modifier.background(AcornTheme.colors.layer1)) {
             ActionButton(
-                icon = R.drawable.mozac_ic_web_extension_default_icon,
-                contentDescription = R.string.mozac_error_confused,
+                icon = AppCompatResources.getDrawable(
+                    LocalContext.current,
+                    R.drawable.mozac_ic_web_extension_default_icon,
+                )!!,
+                contentDescription = "Test",
                 onClick = object : BrowserToolbarEvent {},
                 highlighted = true,
                 onInteraction = {},

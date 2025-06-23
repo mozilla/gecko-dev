@@ -22,7 +22,7 @@ import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.browser.toolbar.concept.Action
-import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
@@ -273,8 +273,8 @@ class CustomTabBrowserToolbarMiddleware(
     private fun buildStartBrowserActions(customTab: CustomTabSessionState?): List<Action> =
         when (customTab?.config?.showCloseButton) {
             true -> listOf(
-                ActionButton(
-                    icon = R.drawable.mozac_ic_cross_24,
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_cross_24,
                     contentDescription = R.string.mozac_feature_customtabs_exit_button,
                     onClick = CloseClicked,
                 ),
@@ -286,24 +286,24 @@ class CustomTabBrowserToolbarMiddleware(
     private fun buildStartPageActions(customTab: CustomTabSessionState?) = buildList {
         if (customTab?.content?.url?.isContentUrl() == true) {
             add(
-                ActionButton(
-                    icon = R.drawable.mozac_ic_page_portrait_24,
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_page_portrait_24,
                     contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                     onClick = SiteInfoClicked,
                 ),
             )
         } else if (customTab?.content?.securityInfo?.secure == true) {
             add(
-                ActionButton(
-                    icon = R.drawable.mozac_ic_lock_24,
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_lock_24,
                     contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                     onClick = SiteInfoClicked,
                 ),
             )
         } else {
             add(
-                ActionButton(
-                    icon = R.drawable.mozac_ic_broken_lock,
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_broken_lock,
                     contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                     onClick = SiteInfoClicked,
                 ),
@@ -314,8 +314,8 @@ class CustomTabBrowserToolbarMiddleware(
     private fun buildEndBrowserActions(customTab: CustomTabSessionState?) = buildList {
         if (customTab?.config?.showShareMenuItem == true) {
             add(
-                ActionButton(
-                    icon = R.drawable.mozac_ic_share_android_24,
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_share_android_24,
                     contentDescription = R.string.mozac_feature_customtabs_share_link,
                     onClick = ShareClicked,
                 ),
@@ -323,8 +323,8 @@ class CustomTabBrowserToolbarMiddleware(
         }
 
         add(
-            ActionButton(
-                icon = R.drawable.mozac_ic_ellipsis_vertical_24,
+            ActionButtonRes(
+                drawableResId = R.drawable.mozac_ic_ellipsis_vertical_24,
                 contentDescription = R.string.content_description_menu,
                 onClick = MenuClicked,
             ),

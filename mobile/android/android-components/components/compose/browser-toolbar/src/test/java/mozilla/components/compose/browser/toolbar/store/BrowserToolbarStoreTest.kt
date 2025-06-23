@@ -6,7 +6,7 @@ package mozilla.components.compose.browser.toolbar.store
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.compose.browser.toolbar.R
-import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
@@ -182,8 +182,8 @@ class BrowserToolbarStoreTest {
         assertEquals(listOf(action2, action3), store.state.displayState.browserActionsEnd)
     }
 
-    private fun fakeActionButton() = ActionButton(
-        icon = Random.nextInt(),
+    private fun fakeActionButton() = ActionButtonRes(
+        drawableResId = Random.nextInt(),
         contentDescription = Random.nextInt(),
         onClick = object : BrowserToolbarEvent {},
     )

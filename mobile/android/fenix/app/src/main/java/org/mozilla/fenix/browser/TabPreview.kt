@@ -25,7 +25,7 @@ import mozilla.components.browser.thumbnails.loader.ThumbnailLoader
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
-import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
@@ -187,8 +187,8 @@ class TabPreview @JvmOverloads constructor(
             BrowserToolbarState(
                 displayState = DisplayState(
                     browserActionsStart = listOf(
-                        ActionButton(
-                            icon = R.drawable.mozac_ic_home_24,
+                        ActionButtonRes(
+                            drawableResId = R.drawable.mozac_ic_home_24,
                             contentDescription = R.string.browser_toolbar_home,
                             onClick = object : BrowserToolbarEvent {},
                         ),
@@ -202,8 +202,8 @@ class TabPreview @JvmOverloads constructor(
                             showPrivacyMask = context.components.core.store.state.selectedTab?.content?.private == true,
                             onClick = object : BrowserToolbarEvent {},
                         ),
-                        ActionButton(
-                            icon = R.drawable.mozac_ic_ellipsis_vertical_24,
+                        ActionButtonRes(
+                            drawableResId = R.drawable.mozac_ic_ellipsis_vertical_24,
                             contentDescription = R.string.content_description_menu,
                             onClick = object : BrowserToolbarEvent {},
                         ),
@@ -216,24 +216,24 @@ class TabPreview @JvmOverloads constructor(
     private fun buildComposableToolbarPageStartActions(tab: TabSessionState) = buildList {
         if (tab.content.url.isContentUrl() == true) {
             add(
-                ActionButton(
-                    icon = R.drawable.mozac_ic_page_portrait_24,
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_page_portrait_24,
                     contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                     onClick = object : BrowserToolbarEvent {},
                 ),
             )
         } else if (tab.content.securityInfo.secure == true) {
             add(
-                ActionButton(
-                    icon = R.drawable.mozac_ic_lock_24,
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_lock_24,
                     contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                     onClick = object : BrowserToolbarEvent {},
                 ),
             )
         } else {
             add(
-                ActionButton(
-                    icon = R.drawable.mozac_ic_broken_lock,
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_broken_lock,
                     contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                     onClick = object : BrowserToolbarEvent {},
                 ),

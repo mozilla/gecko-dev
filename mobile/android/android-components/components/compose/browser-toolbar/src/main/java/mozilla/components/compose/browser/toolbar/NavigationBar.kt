@@ -15,7 +15,7 @@ import mozilla.components.browser.menu2.R
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
-import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.ui.icons.R as iconsR
@@ -57,18 +57,18 @@ private fun NavigationBarPreview() {
     AcornTheme {
         NavigationBar(
             listOf(
-                ActionButton(
-                    icon = iconsR.drawable.mozac_ic_bookmark_24,
+                ActionButtonRes(
+                    drawableResId = iconsR.drawable.mozac_ic_bookmark_24,
                     contentDescription = android.R.string.untitled,
                     onClick = object : BrowserToolbarEvent {},
                 ),
-                ActionButton(
-                    icon = iconsR.drawable.mozac_ic_share_android_24,
+                ActionButtonRes(
+                    drawableResId = iconsR.drawable.mozac_ic_share_android_24,
                     contentDescription = android.R.string.untitled,
                     onClick = object : BrowserToolbarEvent {},
                 ),
-                ActionButton(
-                    icon = iconsR.drawable.mozac_ic_plus_24,
+                ActionButtonRes(
+                    drawableResId = iconsR.drawable.mozac_ic_plus_24,
                     contentDescription = android.R.string.untitled,
                     onClick = object : BrowserToolbarEvent {},
                 ),
@@ -79,8 +79,8 @@ private fun NavigationBarPreview() {
                     onClick = object : BrowserToolbarEvent {},
                     onLongClick = object : BrowserToolbarEvent {},
                 ),
-                ActionButton(
-                    icon = iconsR.drawable.mozac_ic_ellipsis_vertical_24,
+                ActionButtonRes(
+                    drawableResId = iconsR.drawable.mozac_ic_ellipsis_vertical_24,
                     contentDescription = R.string.mozac_browser_menu2_button,
                     onClick = object : BrowserToolbarEvent {},
                 ),

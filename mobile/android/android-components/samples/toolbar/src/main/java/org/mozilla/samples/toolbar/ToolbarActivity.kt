@@ -40,7 +40,7 @@ import mozilla.components.browser.menu2.BrowserMenuController
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.display.DisplayToolbar
 import mozilla.components.compose.base.theme.AcornTheme
-import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
@@ -537,15 +537,15 @@ class ToolbarActivity : AppCompatActivity() {
                             mode = Mode.DISPLAY,
                             displayState = DisplayState(
                                 browserActionsStart = listOf(
-                                    ActionButton(
-                                        icon = iconsR.drawable.mozac_ic_cross_24,
+                                    ActionButtonRes(
+                                        drawableResId = iconsR.drawable.mozac_ic_cross_24,
                                         contentDescription = R.string.page_action_clear_input_description,
                                         onClick = object : BrowserToolbarEvent {},
                                     ),
                                 ),
                                 browserActionsEnd = listOf(
-                                    ActionButton(
-                                        icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
+                                    ActionButtonRes(
+                                        drawableResId = iconsR.drawable.mozac_ic_arrow_clockwise_24,
                                         contentDescription = R.string.page_action_refresh_description,
                                         onClick = object : BrowserToolbarEvent {},
                                     ),

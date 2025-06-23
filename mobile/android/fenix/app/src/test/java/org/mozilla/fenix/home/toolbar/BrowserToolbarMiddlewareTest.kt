@@ -23,7 +23,7 @@ import mozilla.components.browser.state.action.TabListAction.RemoveTabAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption.LoadFromClipboard
@@ -97,7 +97,7 @@ class BrowserToolbarMiddlewareTest {
         val toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
         assertEquals(2, toolbarBrowserActions.size)
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        val menuButton = toolbarBrowserActions[1] as ActionButton
+        val menuButton = toolbarBrowserActions[1] as ActionButtonRes
         assertEqualsToolbarButton(expectedToolbarButton(), tabCounterButton)
         assertEquals(expectedMenuButton, menuButton)
     }
@@ -202,7 +202,7 @@ class BrowserToolbarMiddlewareTest {
         toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
         assertEquals(2, toolbarBrowserActions.size)
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        val menuButton = toolbarBrowserActions[1] as ActionButton
+        val menuButton = toolbarBrowserActions[1] as ActionButtonRes
         assertEqualsToolbarButton(expectedToolbarButton(), tabCounterButton)
         assertEquals(expectedMenuButton, menuButton)
     }
@@ -228,7 +228,7 @@ class BrowserToolbarMiddlewareTest {
         var toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
         assertEquals(2, toolbarBrowserActions.size)
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        val menuButton = toolbarBrowserActions[1] as ActionButton
+        val menuButton = toolbarBrowserActions[1] as ActionButtonRes
         assertEqualsToolbarButton(expectedToolbarButton(), tabCounterButton)
         assertEquals(expectedMenuButton, menuButton)
 
@@ -317,7 +317,7 @@ class BrowserToolbarMiddlewareTest {
         val toolbarStore = BrowserToolbarStore(
             middleware = listOf(middleware),
         )
-        val menuButton = toolbarStore.state.displayState.browserActionsEnd[1] as ActionButton
+        val menuButton = toolbarStore.state.displayState.browserActionsEnd[1] as ActionButtonRes
 
         toolbarStore.dispatch(menuButton.onClick as BrowserToolbarEvent)
 
@@ -660,8 +660,8 @@ class BrowserToolbarMiddlewareTest {
             }
         },
     )
-    private val expectedMenuButton = ActionButton(
-        icon = R.drawable.mozac_ic_ellipsis_vertical_24,
+    private val expectedMenuButton = ActionButtonRes(
+        drawableResId = R.drawable.mozac_ic_ellipsis_vertical_24,
         contentDescription = R.string.content_description_menu,
         onClick = MenuClicked,
     )

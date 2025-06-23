@@ -6,7 +6,7 @@ package org.mozilla.samples.compose.browser.browser
 
 import android.content.Context
 import androidx.navigation.NavController
-import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
@@ -100,8 +100,8 @@ internal class BrowserToolbarMiddleware(
     )
 
     private fun buildDisplayPageActions() = listOf(
-        ActionButton(
-            icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
+        ActionButtonRes(
+            drawableResId = iconsR.drawable.mozac_ic_arrow_clockwise_24,
             contentDescription = R.string.page_action_refresh_description,
             onClick = RefreshClicked,
         ),
@@ -115,8 +115,8 @@ internal class BrowserToolbarMiddleware(
             onClick = TabCounterClicked,
         ),
 
-        ActionButton(
-            icon = iconsR.drawable.mozac_ic_ellipsis_vertical_24,
+        ActionButtonRes(
+            drawableResId = iconsR.drawable.mozac_ic_ellipsis_vertical_24,
             contentDescription = R.string.menu_button_description,
             onClick = BrowserToolbarMenu {
                 listOf(
@@ -132,8 +132,8 @@ internal class BrowserToolbarMiddleware(
     )
 
     private fun buildEditPageActionsEnd() = listOf(
-        ActionButton(
-            icon = iconsR.drawable.mozac_ic_stop,
+        ActionButtonRes(
+            drawableResId = iconsR.drawable.mozac_ic_stop,
             contentDescription = R.string.clear_input_description,
             onClick = ClearClicked,
         ),

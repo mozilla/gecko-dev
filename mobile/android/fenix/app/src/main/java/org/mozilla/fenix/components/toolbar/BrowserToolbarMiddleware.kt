@@ -26,6 +26,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption
@@ -377,8 +378,8 @@ class BrowserToolbarMiddleware(
 
     private fun buildStartBrowserActions(): List<Action> = buildList {
         add(
-            ActionButton(
-                icon = R.drawable.mozac_ic_home_24,
+            ActionButtonRes(
+                drawableResId = R.drawable.mozac_ic_home_24,
                 contentDescription = R.string.browser_toolbar_home,
                 onClick = HomeClicked,
             ),
@@ -388,8 +389,8 @@ class BrowserToolbarMiddleware(
             val canGoBack = browserStore.state.selectedTab?.content?.canGoBack == true
             val isCurrentTabRefreshing = browserStore.state.selectedTab?.content?.loading == true
             add(
-                ActionButton(
-                    icon = R.drawable.mozac_ic_back_24,
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_back_24,
                     contentDescription = R.string.browser_menu_back,
                     state = if (canGoBack) {
                         ActionButton.State.DEFAULT
@@ -401,8 +402,8 @@ class BrowserToolbarMiddleware(
                 ),
             )
             add(
-                ActionButton(
-                    icon = R.drawable.mozac_ic_forward_24,
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_forward_24,
                     contentDescription = R.string.browser_menu_forward,
                     state = if (canGoForward) {
                         ActionButton.State.DEFAULT
@@ -415,16 +416,16 @@ class BrowserToolbarMiddleware(
             )
             when (isCurrentTabRefreshing) {
                 true -> add(
-                    ActionButton(
-                        icon = R.drawable.mozac_ic_cross_24,
+                    ActionButtonRes(
+                        drawableResId = R.drawable.mozac_ic_cross_24,
                         contentDescription = R.string.browser_menu_stop,
                         state = ActionButton.State.DEFAULT,
                         onClick = StopRefreshClicked,
                     ),
                 )
                 false -> add(
-                    ActionButton(
-                        icon = R.drawable.mozac_ic_arrow_clockwise_24,
+                    ActionButtonRes(
+                        drawableResId = R.drawable.mozac_ic_arrow_clockwise_24,
                         contentDescription = R.string.browser_menu_refresh,
                         state = ActionButton.State.DEFAULT,
                         onClick = RefreshClicked(false),
@@ -445,8 +446,8 @@ class BrowserToolbarMiddleware(
         val readerModeStatus = browserScreenStore.state.readerModeStatus
         if (readerModeStatus.isAvailable) {
             add(
-                ActionButton(
-                    icon = R.drawable.ic_readermode,
+                ActionButtonRes(
+                    drawableResId = R.drawable.ic_readermode,
                     contentDescription = when (readerModeStatus.isActive) {
                         true -> R.string.browser_menu_read_close
                         false -> R.string.browser_menu_read
@@ -464,8 +465,8 @@ class BrowserToolbarMiddleware(
         val translationStatus = browserScreenStore.state.pageTranslationStatus
         if (translationStatus.isTranslationPossible) {
             add(
-                ActionButton(
-                    icon = R.drawable.mozac_ic_translate_24,
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_translate_24,
                     contentDescription = R.string.browser_toolbar_translate,
                     state = if (translationStatus.isTranslated) {
                         ActionButton.State.ACTIVE
@@ -490,8 +491,8 @@ class BrowserToolbarMiddleware(
                 onClick = TabCounterClicked,
                 onLongClick = buildTabCounterMenu(),
             ),
-            ActionButton(
-                icon = R.drawable.mozac_ic_ellipsis_vertical_24,
+            ActionButtonRes(
+                drawableResId = R.drawable.mozac_ic_ellipsis_vertical_24,
                 contentDescription = R.string.content_description_menu,
                 onClick = MenuClicked,
             ),

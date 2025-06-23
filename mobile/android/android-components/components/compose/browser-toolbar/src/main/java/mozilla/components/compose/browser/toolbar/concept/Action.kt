@@ -16,11 +16,10 @@ import mozilla.components.ui.icons.R as iconsR
  * Actions that can be added to the toolbar.
  */
 sealed class Action {
-
     /**
-     * An action button to be added to the toolbar.
+     * An action button to be added to the toolbar that can be configures with resource ids.
      *
-     * @property icon The icon resource to be displayed for the action button.
+     * @property drawableResId The icon resource to be displayed for the action button.
      * @property contentDescription The content description for the action button.
      * @property state the current [State] of the action button.
      * @property highlighted Whether or not to highlight this button.
@@ -28,9 +27,31 @@ sealed class Action {
      * @property onLongClick Optional [BrowserToolbarInteraction] describing how to handle this button
      * being long clicked.
      */
-    data class ActionButton(
-        @DrawableRes val icon: Int,
+    data class ActionButtonRes(
+        @DrawableRes val drawableResId: Int,
         @StringRes val contentDescription: Int,
+        val state: ActionButton.State = ActionButton.State.DEFAULT,
+        val highlighted: Boolean = false,
+        val onClick: BrowserToolbarInteraction,
+        val onLongClick: BrowserToolbarInteraction? = null,
+    ) : Action()
+
+    /**
+     * An action button to be added to the toolbar.
+     *
+     * @property drawable A [Drawable] to use as icon for this button.
+     * @property shouldTint Whether or not to apply the application default tint to this icon.
+     * @property contentDescription A [String] to use as content description for this button.
+     * @property state the current [State] of the action button.
+     * @property highlighted Whether or not to highlight this button.
+     * @property onClick [BrowserToolbarInteraction] describing how to handle this button being clicked.
+     * @property onLongClick Optional [BrowserToolbarInteraction] describing how to handle this button
+     * being long clicked.
+     */
+    data class ActionButton(
+        val drawable: Drawable?,
+        val shouldTint: Boolean = true,
+        val contentDescription: String,
         val state: State = State.DEFAULT,
         val highlighted: Boolean = false,
         val onClick: BrowserToolbarInteraction,

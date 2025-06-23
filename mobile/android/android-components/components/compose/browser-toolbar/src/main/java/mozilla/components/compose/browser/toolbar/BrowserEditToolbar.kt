@@ -31,7 +31,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
-import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.ui.InlineAutocompleteTextField
@@ -191,13 +191,13 @@ private fun BrowserEditToolbarPreview() {
                 ),
             ),
             editActionsEnd = listOf(
-                ActionButton(
-                    icon = iconsR.drawable.mozac_ic_microphone_24,
+                ActionButtonRes(
+                    drawableResId = iconsR.drawable.mozac_ic_microphone_24,
                     contentDescription = android.R.string.untitled,
                     onClick = object : BrowserToolbarEvent {},
                 ),
-                ActionButton(
-                    icon = iconsR.drawable.mozac_ic_qr_code_24,
+                ActionButtonRes(
+                    drawableResId = iconsR.drawable.mozac_ic_qr_code_24,
                     contentDescription = android.R.string.untitled,
                     onClick = object : BrowserToolbarEvent {},
                 ),

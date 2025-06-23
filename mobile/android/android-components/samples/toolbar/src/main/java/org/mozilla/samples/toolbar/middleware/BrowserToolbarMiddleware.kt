@@ -13,7 +13,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import mozilla.components.compose.browser.toolbar.concept.Action
-import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
@@ -153,8 +153,8 @@ internal class BrowserToolbarMiddleware(
     }
 
     private fun buildStartBrowserActions() = listOf(
-        ActionButton(
-            icon = iconsR.drawable.mozac_ic_home_24,
+        ActionButtonRes(
+            drawableResId = iconsR.drawable.mozac_ic_home_24,
             contentDescription = R.string.browser_action_home_button_description,
             onClick = HomeClicked,
         ),
@@ -201,8 +201,8 @@ internal class BrowserToolbarMiddleware(
                 )
             },
         ),
-        ActionButton(
-            icon = iconsR.drawable.mozac_ic_lock_24,
+        ActionButtonRes(
+            drawableResId = iconsR.drawable.mozac_ic_lock_24,
             contentDescription = R.string.browser_action_security_lock_description,
             highlighted = true,
             onClick = SecurityIndicatorClicked,
@@ -219,8 +219,8 @@ internal class BrowserToolbarMiddleware(
     )
 
     private fun buildPageActionsEnd() = listOf(
-        ActionButton(
-            icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
+        ActionButtonRes(
+            drawableResId = iconsR.drawable.mozac_ic_arrow_clockwise_24,
             contentDescription = R.string.page_action_refresh_description,
             onClick = RefreshClicked,
         ),
