@@ -50,7 +50,6 @@ parent:
 
   async QueueOnSubmittedWorkDone(RawId selfId) returns (void_t ok);
 
-  async DevicePopErrorScope(RawId selfId) returns (PopErrorScopeResult result);
   async ReportError(RawId selfId, GPUErrorFilter aType, nsCString message);
 
 child:

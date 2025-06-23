@@ -11,6 +11,7 @@
 #include "mozilla/webgpu/Adapter.h"
 #include "mozilla/webgpu/SupportedFeatures.h"
 #include "mozilla/webgpu/SupportedLimits.h"
+#include "mozilla/webgpu/Device.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
@@ -111,6 +112,13 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
   };
 
   std::deque<PendingRequestDevicePromise> mPendingRequestDevicePromises;
+
+  struct PendingPopErrorScopePromise {
+    RefPtr<dom::Promise> promise;
+    RefPtr<Device> device;
+  };
+
+  std::deque<PendingPopErrorScopePromise> mPendingPopErrorScopePromises;
 };
 
 }  // namespace webgpu

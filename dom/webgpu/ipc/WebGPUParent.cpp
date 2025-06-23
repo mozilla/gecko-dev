@@ -208,6 +208,16 @@ extern void wgpu_server_device_push_error_scope(void* aParam,
   parent->DevicePushErrorScope(aDeviceId, (dom::GPUErrorFilter)aFilter);
 }
 
+extern void wgpu_server_device_pop_error_scope(void* aParam,
+                                               WGPUDeviceId aDeviceId,
+                                               uint8_t* aOutType,
+                                               nsCString* aOutMessage) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+  auto result = parent->DevicePopErrorScope(aDeviceId);
+  *aOutType = (uint8_t)result.resultType;
+  *aOutMessage = std::move(result.message);
+}
+
 extern void wgpu_parent_buffer_unmap(void* aParam, WGPUDeviceId aDeviceId,
                                      WGPUBufferId aBufferId, bool aFlush) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
@@ -1608,8 +1618,7 @@ void WebGPUParent::DevicePushErrorScope(RawId aDeviceId,
   stack.push_back(newScope);
 }
 
-ipc::IPCResult WebGPUParent::RecvDevicePopErrorScope(
-    RawId aDeviceId, DevicePopErrorScopeResolver&& aResolver) {
+PopErrorScopeResult WebGPUParent::DevicePopErrorScope(RawId aDeviceId) {
   const auto popResult = [&]() {
     const auto& itr = mErrorScopeStackByDevice.find(aDeviceId);
     if (itr == mErrorScopeStackByDevice.end()) {
@@ -1646,8 +1655,7 @@ ipc::IPCResult WebGPUParent::RecvDevicePopErrorScope(
     }
     return ret;
   }();
-  aResolver(popResult);
-  return IPC_OK();
+  return popResult;
 }
 
 ipc::IPCResult WebGPUParent::RecvReportError(RawId aDeviceId,

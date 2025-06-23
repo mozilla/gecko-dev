@@ -562,6 +562,11 @@ pub extern "C" fn wgpu_client_receive_server_message(
         child: *mut core::ffi::c_void,
         error: Option<&nsCString>,
     ),
+    resolve_pop_error_scope_promise: extern "C" fn(
+        child: *mut core::ffi::c_void,
+        ty: u8,
+        message: &nsCString,
+    ),
 ) {
     let message: ServerMessage = bincode::deserialize(unsafe { byte_buf.as_slice() }).unwrap();
     match message {
@@ -615,6 +620,10 @@ pub extern "C" fn wgpu_client_receive_server_message(
                 resolve_request_device_promise(child, None);
             }
         }
+        ServerMessage::PopErrorScopeResponse(ty, message) => {
+            let message = nsCString::from(message.as_ref());
+            resolve_pop_error_scope_promise(child, ty, &message);
+        }
     }
 }
 
@@ -630,6 +639,12 @@ pub extern "C" fn wgpu_client_request_adapter(
         power_preference,
         force_fallback_adapter,
     };
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_pop_error_scope(device_id: id::DeviceId, bb: &mut ByteBuf) {
+    let action = Message::Device(device_id, DeviceAction::PopErrorScope);
     *bb = make_byte_buf(&action);
 }
 

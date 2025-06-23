@@ -1117,52 +1117,21 @@ already_AddRefed<dom::Promise> Device::PopErrorScope(ErrorResult& aRv) {
     return promise.forget();
   }
 
-  auto errorPromise = mBridge->SendDevicePopErrorScope(mId);
-
-  errorPromise->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [self = RefPtr{this}, promise](const PopErrorScopeResult& aResult) {
-        RefPtr<Error> error;
-
-        switch (aResult.resultType) {
-          case PopErrorScopeResultType::NoError:
-            promise->MaybeResolve(JS::NullHandleValue);
-            return;
-
-          case PopErrorScopeResultType::DeviceLost:
-            WebGPUChild::JsWarning(
-                self->GetOwnerGlobal(),
-                "popErrorScope resolving to null because device was lost."_ns);
-            promise->MaybeResolve(JS::NullHandleValue);
-            return;
-
-          case PopErrorScopeResultType::ThrowOperationError:
-            promise->MaybeRejectWithOperationError(aResult.message);
-            return;
-
-          case PopErrorScopeResultType::OutOfMemory:
-            error =
-                new OutOfMemoryError(self->GetParentObject(), aResult.message);
-            break;
-
-          case PopErrorScopeResultType::ValidationError:
-            error =
-                new ValidationError(self->GetParentObject(), aResult.message);
-            break;
-
-          case PopErrorScopeResultType::InternalError:
-            error = new InternalError(self->GetParentObject(), aResult.message);
-            break;
-        }
-        promise->MaybeResolve(std::move(error));
-      },
-      [self = RefPtr{this}, promise](const ipc::ResponseRejectReason&) {
-        // Device was lost.
-        WebGPUChild::JsWarning(
-            self->GetOwnerGlobal(),
-            "popErrorScope resolving to null because device was just lost."_ns);
-        promise->MaybeResolve(JS::NullHandleValue);
-      });
+  ipc::ByteBuf bb;
+  ffi::wgpu_client_pop_error_scope(mId, ToFFI(&bb));
+  bool sent = mBridge->SendMessage(std::move(bb), Nothing());
+  if (sent) {
+    auto pending_promise =
+        WebGPUChild::PendingPopErrorScopePromise{RefPtr(promise), RefPtr(this)};
+    mBridge->mPendingPopErrorScopePromises.push_back(
+        std::move(pending_promise));
+  } else {
+    // Device was lost.
+    WebGPUChild::JsWarning(
+        GetOwnerGlobal(),
+        "popErrorScope resolving to null because device was just lost."_ns);
+    promise->MaybeResolve(JS::NullHandleValue);
+  }
 
   return promise.forget();
 }

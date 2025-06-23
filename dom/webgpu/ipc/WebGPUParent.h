@@ -80,8 +80,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
       DeviceActionWithAckResolver&& aResolver);
 
   void DevicePushErrorScope(RawId aDeviceId, dom::GPUErrorFilter);
-  ipc::IPCResult RecvDevicePopErrorScope(
-      RawId aDeviceId, DevicePopErrorScopeResolver&& aResolver);
+  PopErrorScopeResult DevicePopErrorScope(RawId aDeviceId);
   ipc::IPCResult RecvReportError(RawId aDeviceId, GPUErrorFilter aType,
                                  const nsCString& aMessage);
 

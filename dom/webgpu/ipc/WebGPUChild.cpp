@@ -18,6 +18,8 @@
 #include "mozilla/dom/WebGPUBinding.h"
 #include "mozilla/dom/GPUUncapturedErrorEvent.h"
 #include "mozilla/webgpu/ValidationError.h"
+#include "mozilla/webgpu/OutOfMemoryError.h"
+#include "mozilla/webgpu/InternalError.h"
 #include "mozilla/webgpu/WebGPUTypes.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
 #include "Adapter.h"
@@ -120,10 +122,50 @@ void resolve_request_device_promise(void* child, const nsCString* error) {
   }
 }
 
+void resolve_pop_error_scope_promise(void* child, uint8_t ty,
+                                     const nsCString* message) {
+  auto* c = static_cast<WebGPUChild*>(child);
+  auto& pending_promises = c->mPendingPopErrorScopePromises;
+  auto pending_promise = std::move(pending_promises.front());
+  pending_promises.pop_front();
+
+  RefPtr<Error> error;
+
+  switch ((PopErrorScopeResultType)ty) {
+    case PopErrorScopeResultType::NoError:
+      pending_promise.promise->MaybeResolve(JS::NullHandleValue);
+      return;
+
+    case PopErrorScopeResultType::DeviceLost:
+      pending_promise.promise->MaybeResolve(JS::NullHandleValue);
+      return;
+
+    case PopErrorScopeResultType::ThrowOperationError:
+      pending_promise.promise->MaybeRejectWithOperationError(*message);
+      return;
+
+    case PopErrorScopeResultType::OutOfMemory:
+      error = new OutOfMemoryError(pending_promise.device->GetParentObject(),
+                                   *message);
+      break;
+
+    case PopErrorScopeResultType::ValidationError:
+      error = new ValidationError(pending_promise.device->GetParentObject(),
+                                  *message);
+      break;
+
+    case PopErrorScopeResultType::InternalError:
+      error = new InternalError(pending_promise.device->GetParentObject(),
+                                *message);
+      break;
+  }
+  pending_promise.promise->MaybeResolve(std::move(error));
+}
+
 ipc::IPCResult WebGPUChild::RecvServerMessage(const ipc::ByteBuf& aByteBuf) {
-  ffi::wgpu_client_receive_server_message(this, GetClient(), ToFFI(&aByteBuf),
-                                          resolve_request_adapter_promise,
-                                          resolve_request_device_promise);
+  ffi::wgpu_client_receive_server_message(
+      this, GetClient(), ToFFI(&aByteBuf), resolve_request_adapter_promise,
+      resolve_request_device_promise, resolve_pop_error_scope_promise);
   return IPC_OK();
 }
 

@@ -1364,6 +1364,13 @@ extern "C" {
     #[allow(dead_code)]
     fn wgpu_server_device_push_error_scope(param: *mut c_void, device_id: id::DeviceId, filter: u8);
     #[allow(dead_code)]
+    fn wgpu_server_device_pop_error_scope(
+        param: *mut c_void,
+        device_id: id::DeviceId,
+        out_type: *mut u8,
+        out_message: *mut nsCString,
+    );
+    #[allow(dead_code)]
     fn wgpu_parent_buffer_unmap(
         param: *mut c_void,
         device_id: id::DeviceId,
@@ -1923,6 +1930,7 @@ impl Global {
         device_id: id::DeviceId,
         action: DeviceAction,
         shmem_size: usize,
+        response_byte_buf: &mut ByteBuf,
         mut error_buf: ErrorBuffer,
     ) {
         match action {
@@ -2225,6 +2233,22 @@ impl Global {
                     wgpu_server_device_push_error_scope(self.webgpu_parent, device_id, filter)
                 };
             }
+            DeviceAction::PopErrorScope => {
+                let mut ty = 0;
+                let mut message = nsCString::new();
+                unsafe {
+                    wgpu_server_device_pop_error_scope(
+                        self.webgpu_parent,
+                        device_id,
+                        &mut ty,
+                        &mut message,
+                    )
+                };
+                let message = message.to_utf8();
+
+                *response_byte_buf =
+                    make_byte_buf(&ServerMessage::PopErrorScopeResponse(ty, message));
+            }
         }
     }
 
@@ -2525,6 +2549,7 @@ pub unsafe extern "C" fn wgpu_server_message(
             id,
             action,
             if data.is_null() { 0 } else { data_length },
+            response_byte_buf,
             error_buf,
         ),
         Message::Texture(device_id, id, action) => {
@@ -2696,7 +2721,17 @@ pub unsafe extern "C" fn wgpu_server_device_action(
     error_buf: ErrorBuffer,
 ) {
     let action = bincode::deserialize(byte_buf.as_slice()).unwrap();
-    global.device_action(self_id, action, 0, error_buf);
+    global.device_action(
+        self_id,
+        action,
+        0,
+        &mut ByteBuf {
+            data: core::ptr::null(),
+            len: 0,
+            capacity: 0,
+        },
+        error_buf,
+    );
 }
 
 #[no_mangle]
