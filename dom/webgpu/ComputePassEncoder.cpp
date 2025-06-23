@@ -150,13 +150,10 @@ void ComputePassEncoder::InsertDebugMarker(const nsAString& aString) {
 }
 
 void ComputePassEncoder::End() {
-  if (mParent->GetState() != CommandEncoderState::Locked &&
-      mParent->GetBridge()->CanSend()) {
-    ipc::ByteBuf bb;
+  if (mParent->GetState() != CommandEncoderState::Locked) {
     const auto* message = "Encoding must not have ended";
-    ffi::wgpu_report_validation_error(mParent->GetDevice()->mId, message,
-                                      ToFFI(&bb));
-    mParent->GetBridge()->SendMessage(std::move(bb), Nothing());
+    ffi::wgpu_report_validation_error(mParent->GetBridge()->GetClient(),
+                                      mParent->GetDevice()->mId, message);
   }
   if (!mValid) {
     return;

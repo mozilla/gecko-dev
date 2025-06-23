@@ -110,10 +110,10 @@ class Buffer final : public ObjectBase, public ChildOf<Device> {
   uint32_t Usage() const { return mUsage; }
   dom::GPUBufferMapState MapState() const;
 
-  bool IsValid() const { return mValid; }
   void ResolveMapRequest(dom::Promise* aPromise, BufferAddress aOffset,
                          BufferAddress aSize, bool aWritable);
   void RejectMapRequest(dom::Promise* aPromise, const nsACString& message);
+  void RejectMapRequestWithAbortError(dom::Promise* aPromise);
 
  private:
   Buffer(Device* const aParent, RawId aId, BufferAddress aSize, uint32_t aUsage,

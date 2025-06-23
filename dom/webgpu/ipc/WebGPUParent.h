@@ -49,8 +49,9 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
 
   void PostAdapterRequestDevice(RawId aDeviceId);
   void BufferUnmap(RawId aDeviceId, RawId aBufferId, bool aFlush);
-  ipc::IPCResult RecvMessage(const ipc::ByteBuf& aByteBuf,
-                             Maybe<ipc::MutableSharedMemoryHandle>&& aShmem);
+  ipc::IPCResult RecvMessages(uint32_t nrOfMessages,
+                              const ipc::ByteBuf& aByteBuf,
+                              nsTArray<MutableSharedMemoryHandle>&& aShmems);
   void QueueSubmit(RawId aQueueId, RawId aDeviceId,
                    Span<const RawId> aCommandBuffers,
                    Span<const RawId> aTextureIds);
@@ -84,12 +85,9 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
     uint64_t mMappedOffset;
     uint64_t mMappedSize;
     RawId mDeviceId;
-    RawId mBufferId;
   };
 
   BufferMapData* GetBufferMapData(RawId aBufferId);
-
-  Maybe<BufferMapData> mIncompleteBufferMapData;
 
   bool UseExternalTextureForSwapChain(ffi::WGPUSwapChainId aSwapChainId);
 
@@ -156,6 +154,13 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
 
   void ReportError(RawId aDeviceId, GPUErrorFilter, const nsCString& message);
 
+  nsTArray<Maybe<ipc::shared_memory::MutableMapping>> mTempMappings;
+
+  /// A map from wgpu buffer ids to data about their shared memory segments.
+  /// Includes entries about mappedAtCreation, MAP_READ and MAP_WRITE buffers,
+  /// regardless of their state.
+  std::unordered_map<RawId, BufferMapData> mSharedMemoryMap;
+
  private:
   static void DeviceLostCallback(uint8_t* aUserData, uint8_t aReason,
                                  const char* aMessage);
@@ -168,10 +173,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   UniquePtr<ffi::WGPUGlobal> mContext;
   base::RepeatingTimer<WebGPUParent> mTimer;
 
-  /// A map from wgpu buffer ids to data about their shared memory segments.
-  /// Includes entries about mappedAtCreation, MAP_READ and MAP_WRITE buffers,
-  /// regardless of their state.
-  std::unordered_map<RawId, BufferMapData> mSharedMemoryMap;
   /// Associated presentation data for each swapchain.
   std::unordered_map<layers::RemoteTextureOwnerId, RefPtr<PresentationData>,
                      layers::RemoteTextureOwnerId::HashFn>

@@ -92,11 +92,8 @@ void CommandEncoder::Cleanup() {
     return;
   }
 
-  if (mBridge->CanSend()) {
-    ipc::ByteBuf bb;
-    ffi::wgpu_client_drop_command_encoder(mId, ToFFI(&bb));
-    mBridge->SendMessage(std::move(bb), Nothing());
-  }
+  ffi::wgpu_client_drop_command_encoder(mBridge->GetClient(), mId);
+
   wgpu_client_free_command_encoder_id(mBridge->GetClient(), mId);
 }
 
@@ -112,10 +109,6 @@ void CommandEncoder::CopyBufferToBuffer(
     const Buffer& aSource, BufferAddress aSourceOffset,
     const Buffer& aDestination, BufferAddress aDestinationOffset,
     const dom::Optional<BufferAddress>& aSize) {
-  if (!mBridge->CanSend()) {
-    return;
-  }
-
   // In Javascript, `size === undefined` means "copy from source offset to end
   // of buffer". wgpu_command_encoder_copy_buffer_to_buffer uses a value of
   // UINT64_MAX to encode this. If the requested copy size was UINT64_MAX, fudge
@@ -132,29 +125,21 @@ void CommandEncoder::CopyBufferToBuffer(
     size = std::numeric_limits<uint64_t>::max();
   }
 
-  ipc::ByteBuf bb;
   ffi::wgpu_command_encoder_copy_buffer_to_buffer(
-      mParent->mId, mId, aSource.mId, aSourceOffset, aDestination.mId,
-      aDestinationOffset, size, ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb), Nothing());
+      mBridge->GetClient(), mParent->mId, mId, aSource.mId, aSourceOffset,
+      aDestination.mId, aDestinationOffset, size);
 }
 
 void CommandEncoder::CopyBufferToTexture(
     const dom::GPUTexelCopyBufferInfo& aSource,
     const dom::GPUTexelCopyTextureInfo& aDestination,
     const dom::GPUExtent3D& aCopySize) {
-  if (!mBridge->CanSend()) {
-    return;
-  }
-
-  ipc::ByteBuf bb;
   ffi::WGPUTexelCopyBufferLayout src_layout = {};
   CommandEncoder::ConvertTextureDataLayoutToFFI(aSource, &src_layout);
   ffi::wgpu_command_encoder_copy_buffer_to_texture(
-      mParent->mId, mId, aSource.mBuffer->mId, &src_layout,
-      ConvertTextureCopyView(aDestination), ConvertExtent(aCopySize),
-      ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb), Nothing());
+      mBridge->GetClient(), mParent->mId, mId, aSource.mBuffer->mId,
+      &src_layout, ConvertTextureCopyView(aDestination),
+      ConvertExtent(aCopySize));
 
   TrackPresentationContext(aDestination.mTexture->mTargetContext);
 }
@@ -162,33 +147,19 @@ void CommandEncoder::CopyTextureToBuffer(
     const dom::GPUTexelCopyTextureInfo& aSource,
     const dom::GPUTexelCopyBufferInfo& aDestination,
     const dom::GPUExtent3D& aCopySize) {
-  if (!mBridge->CanSend()) {
-    return;
-  }
-
-  ipc::ByteBuf bb;
   ffi::WGPUTexelCopyBufferLayout dstLayout = {};
   CommandEncoder::ConvertTextureDataLayoutToFFI(aDestination, &dstLayout);
   ffi::wgpu_command_encoder_copy_texture_to_buffer(
-      mParent->mId, mId, ConvertTextureCopyView(aSource),
-      aDestination.mBuffer->mId, &dstLayout, ConvertExtent(aCopySize),
-      ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb), Nothing());
+      mBridge->GetClient(), mParent->mId, mId, ConvertTextureCopyView(aSource),
+      aDestination.mBuffer->mId, &dstLayout, ConvertExtent(aCopySize));
 }
 void CommandEncoder::CopyTextureToTexture(
     const dom::GPUTexelCopyTextureInfo& aSource,
     const dom::GPUTexelCopyTextureInfo& aDestination,
     const dom::GPUExtent3D& aCopySize) {
-  if (!mBridge->CanSend()) {
-    return;
-  }
-
-  ipc::ByteBuf bb;
   ffi::wgpu_command_encoder_copy_texture_to_texture(
-      mParent->mId, mId, ConvertTextureCopyView(aSource),
-      ConvertTextureCopyView(aDestination), ConvertExtent(aCopySize),
-      ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb), Nothing());
+      mBridge->GetClient(), mParent->mId, mId, ConvertTextureCopyView(aSource),
+      ConvertTextureCopyView(aDestination), ConvertExtent(aCopySize));
 
   TrackPresentationContext(aDestination.mTexture->mTargetContext);
 }
@@ -202,42 +173,23 @@ void CommandEncoder::ClearBuffer(const Buffer& aBuffer, const uint64_t aOffset,
     size = &sizeVal;
   }
 
-  ipc::ByteBuf bb;
-  ffi::wgpu_command_encoder_clear_buffer(mParent->mId, mId, aBuffer.mId,
-                                         aOffset, size, ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb), Nothing());
+  ffi::wgpu_command_encoder_clear_buffer(mBridge->GetClient(), mParent->mId,
+                                         mId, aBuffer.mId, aOffset, size);
 }
 
 void CommandEncoder::PushDebugGroup(const nsAString& aString) {
-  if (!mBridge->CanSend()) {
-    return;
-  }
-
-  ipc::ByteBuf bb;
   NS_ConvertUTF16toUTF8 marker(aString);
-  ffi::wgpu_command_encoder_push_debug_group(mParent->mId, mId, &marker,
-                                             ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb), Nothing());
+  ffi::wgpu_command_encoder_push_debug_group(mBridge->GetClient(), mParent->mId,
+                                             mId, &marker);
 }
 void CommandEncoder::PopDebugGroup() {
-  if (!mBridge->CanSend()) {
-    return;
-  }
-
-  ipc::ByteBuf bb;
-  ffi::wgpu_command_encoder_pop_debug_group(mParent->mId, mId, ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb), Nothing());
+  ffi::wgpu_command_encoder_pop_debug_group(mBridge->GetClient(), mParent->mId,
+                                            mId);
 }
 void CommandEncoder::InsertDebugMarker(const nsAString& aString) {
-  if (!mBridge->CanSend()) {
-    return;
-  }
-
-  ipc::ByteBuf bb;
   NS_ConvertUTF16toUTF8 marker(aString);
-  ffi::wgpu_command_encoder_insert_debug_marker(mParent->mId, mId, &marker,
-                                                ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb), Nothing());
+  ffi::wgpu_command_encoder_insert_debug_marker(mBridge->GetClient(),
+                                                mParent->mId, mId, &marker);
 }
 
 already_AddRefed<ComputePassEncoder> CommandEncoder::BeginComputePass(
@@ -247,12 +199,11 @@ already_AddRefed<ComputePassEncoder> CommandEncoder::BeginComputePass(
   if (mState == CommandEncoderState::Ended) {
     // Because we do not call wgpu until the pass is ended, we need to generate
     // this error ourselves in order to report it at the correct time.
-    if (mBridge->CanSend()) {
-      ipc::ByteBuf bb;
-      const auto* message = "Encoding must not have ended";
-      ffi::wgpu_report_validation_error(mParent->mId, message, ToFFI(&bb));
-      mBridge->SendMessage(std::move(bb), Nothing());
-    }
+
+    const auto* message = "Encoding must not have ended";
+    ffi::wgpu_report_validation_error(mBridge->GetClient(), mParent->mId,
+                                      message);
+
     pass->Invalidate();
   } else if (mState == CommandEncoderState::Locked) {
     // This is not sufficient to handle this case properly. Invalidity
@@ -279,12 +230,11 @@ already_AddRefed<RenderPassEncoder> CommandEncoder::BeginRenderPass(
   if (mState == CommandEncoderState::Ended) {
     // Because we do not call wgpu until the pass is ended, we need to generate
     // this error ourselves in order to report it at the correct time.
-    if (mBridge->CanSend()) {
-      ipc::ByteBuf bb;
-      const auto* message = "Encoding must not have ended";
-      ffi::wgpu_report_validation_error(mParent->mId, message, ToFFI(&bb));
-      mBridge->SendMessage(std::move(bb), Nothing());
-    }
+
+    const auto* message = "Encoding must not have ended";
+    ffi::wgpu_report_validation_error(mBridge->GetClient(), mParent->mId,
+                                      message);
+
     pass->Invalidate();
   } else if (mState == CommandEncoderState::Locked) {
     // This is not sufficient to handle this case properly. Invalidity
@@ -301,57 +251,46 @@ void CommandEncoder::ResolveQuerySet(QuerySet& aQuerySet, uint32_t aFirstQuery,
                                      uint32_t aQueryCount,
                                      webgpu::Buffer& aDestination,
                                      uint64_t aDestinationOffset) {
-  if (!mBridge->CanSend()) {
-    return;
-  }
-
-  ipc::ByteBuf bb;
   ffi::wgpu_command_encoder_resolve_query_set(
-      mParent->mId, mId, aQuerySet.mId, aFirstQuery, aQueryCount,
-      aDestination.mId, aDestinationOffset, ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb), Nothing());
+      mBridge->GetClient(), mParent->mId, mId, aQuerySet.mId, aFirstQuery,
+      aQueryCount, aDestination.mId, aDestinationOffset);
 }
 
 void CommandEncoder::EndComputePass(ffi::WGPURecordedComputePass& aPass) {
   // Because this can be called during child Cleanup, we need to check
   // that the bridge is still alive.
-  if (!mBridge || !mBridge->CanSend()) {
+  if (!mBridge) {
     return;
   }
 
   if (mState != CommandEncoderState::Locked) {
-    ipc::ByteBuf bb;
     const auto* message = "Encoder is not currently locked";
-    ffi::wgpu_report_validation_error(mParent->mId, message, ToFFI(&bb));
-    mBridge->SendMessage(std::move(bb), Nothing());
+    ffi::wgpu_report_validation_error(mBridge->GetClient(), mParent->mId,
+                                      message);
     return;
   }
   mState = CommandEncoderState::Open;
 
-  ipc::ByteBuf byteBuf;
-  ffi::wgpu_compute_pass_finish(mParent->mId, mId, &aPass, ToFFI(&byteBuf));
-  mBridge->SendMessage(std::move(byteBuf), Nothing());
+  ffi::wgpu_compute_pass_finish(mBridge->GetClient(), mParent->mId, mId,
+                                &aPass);
 }
 
 void CommandEncoder::EndRenderPass(ffi::WGPURecordedRenderPass& aPass) {
   // Because this can be called during child Cleanup, we need to check
   // that the bridge is still alive.
-  if (!mBridge || !mBridge->CanSend()) {
+  if (!mBridge) {
     return;
   }
 
   if (mState != CommandEncoderState::Locked) {
-    ipc::ByteBuf bb;
     const auto* message = "Encoder is not currently locked";
-    ffi::wgpu_report_validation_error(mParent->mId, message, ToFFI(&bb));
-    mBridge->SendMessage(std::move(bb), Nothing());
+    ffi::wgpu_report_validation_error(mBridge->GetClient(), mParent->mId,
+                                      message);
     return;
   }
   mState = CommandEncoderState::Open;
 
-  ipc::ByteBuf byteBuf;
-  ffi::wgpu_render_pass_finish(mParent->mId, mId, &aPass, ToFFI(&byteBuf));
-  mBridge->SendMessage(std::move(byteBuf), Nothing());
+  ffi::wgpu_render_pass_finish(mBridge->GetClient(), mParent->mId, mId, &aPass);
 }
 
 already_AddRefed<CommandBuffer> CommandEncoder::Finish(
@@ -365,21 +304,18 @@ already_AddRefed<CommandBuffer> CommandEncoder::Finish(
   // TODO: refactor this to truly behave as if the encoder is being finished,
   // and a new command buffer ID is being created from it. Resolve the ID
   // type aliasing at the place that introduces it: `wgpu-core`.
-  if (mBridge->CanSend()) {
-    if (mState == CommandEncoderState::Locked) {
-      // Most errors that could occur here will be raised by wgpu. But since we
-      // don't tell wgpu about passes until they are ended, we need to raise an
-      // error if the application left a pass open.
-      ipc::ByteBuf bb;
-      const auto* message =
-          "Encoder is locked by a previously created render/compute pass";
-      ffi::wgpu_report_validation_error(mParent->mId, message, ToFFI(&bb));
-      mBridge->SendMessage(std::move(bb), Nothing());
-    }
-    ipc::ByteBuf bb;
-    ffi::wgpu_command_encoder_finish(mParent->mId, mId, &desc, ToFFI(&bb));
-    mBridge->SendMessage(std::move(bb), Nothing());
+  if (mState == CommandEncoderState::Locked) {
+    // Most errors that could occur here will be raised by wgpu. But since we
+    // don't tell wgpu about passes until they are ended, we need to raise an
+    // error if the application left a pass open.
+    const auto* message =
+        "Encoder is locked by a previously created render/compute pass";
+    ffi::wgpu_report_validation_error(mBridge->GetClient(), mParent->mId,
+                                      message);
   }
+  ffi::wgpu_command_encoder_finish(mBridge->GetClient(), mParent->mId, mId,
+                                   &desc);
+
   mState = CommandEncoderState::Ended;
 
   RefPtr<CommandEncoder> me(this);

@@ -37,11 +37,7 @@ void TextureView::Cleanup() {
     return;
   }
 
-  if (bridge->CanSend()) {
-    ipc::ByteBuf bb;
-    ffi::wgpu_client_drop_texture_view(mId, ToFFI(&bb));
-    bridge->SendMessage(std::move(bb), Nothing());
-  }
+  ffi::wgpu_client_drop_texture_view(bridge->GetClient(), mId);
 
   wgpu_client_free_texture_view_id(bridge->GetClient(), mId);
 }

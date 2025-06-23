@@ -112,7 +112,6 @@ class Device final : public DOMEventTargetHelper, public SupportsWeakPtr {
   void UntrackBuffer(Buffer* aBuffer);
 
   bool IsLost() const;
-  bool IsBridgeAlive() const;
 
   RawId GetId() const { return mId; }
 

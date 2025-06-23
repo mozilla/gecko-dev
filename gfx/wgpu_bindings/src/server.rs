@@ -7,8 +7,8 @@ use crate::{
         error_to_string, ErrMsg, ErrorBuffer, ErrorBufferType, HasErrorBufferType, OwnedErrorBuffer,
     },
     make_byte_buf, wgpu_string, AdapterInformation, BufferMapResult, ByteBuf, CommandEncoderAction,
-    DeviceAction, FfiLUID, Message, PipelineError, QueueWriteAction, ServerMessage,
-    ShaderModuleCompilationMessage, SwapChainId, TextureAction,
+    DeviceAction, FfiLUID, FfiSlice, Message, PipelineError, QueueWriteAction, QueueWriteData,
+    ServerMessage, ShaderModuleCompilationMessage, SwapChainId, TextureAction,
 };
 
 use nsstring::{nsACString, nsCString};
@@ -1286,13 +1286,14 @@ extern "C" {
     #[allow(dead_code)]
     fn wgpu_server_pre_device_drop(param: *mut c_void, id: id::DeviceId);
     #[allow(dead_code)]
-    fn wgpu_server_set_partial_buffer_map_data(
+    fn wgpu_server_set_buffer_map_data(
         param: *mut c_void,
         device_id: id::DeviceId,
         buffer_id: id::BufferId,
         has_map_flags: bool,
         mapped_offset: u64,
         mapped_size: u64,
+        shmem_index: usize,
     );
     #[allow(dead_code)]
     fn wgpu_server_device_push_error_scope(param: *mut c_void, device_id: id::DeviceId, filter: u8);
@@ -1372,6 +1373,7 @@ extern "C" {
         ty: ErrorBufferType,
         message: &nsCString,
     );
+    fn wgpu_parent_send_server_message(param: *mut c_void, message: &mut ByteBuf);
 }
 
 #[cfg(target_os = "linux")]
@@ -1882,16 +1884,25 @@ impl Global {
         &self,
         device_id: id::DeviceId,
         action: DeviceAction,
-        shmem_size: usize,
+        shmem_mappings: FfiSlice<'_, FfiSlice<'_, u8>>,
         response_byte_buf: &mut ByteBuf,
         error_buf: &mut OwnedErrorBuffer,
     ) {
         match action {
-            DeviceAction::CreateBuffer(id, desc) => {
+            DeviceAction::CreateBuffer {
+                buffer_id,
+                desc,
+                shmem_handle_index,
+            } => {
                 let has_map_flags = desc
                     .usage
                     .intersects(wgt::BufferUsages::MAP_READ | wgt::BufferUsages::MAP_WRITE);
                 let needs_shmem = has_map_flags || desc.mapped_at_creation;
+
+                let shmem_data =
+                    unsafe { shmem_mappings.as_slice()[shmem_handle_index].as_slice() };
+
+                let shmem_size = shmem_data.len();
 
                 // If we requested a non-zero mappable buffer and get a size of zero, it
                 // indicates that the shmem allocation failed on the client side or
@@ -1910,16 +1921,16 @@ impl Global {
                         },
                         device_id,
                     );
-                    self.create_buffer_error(Some(id), &desc);
+                    self.create_buffer_error(Some(buffer_id), &desc);
                     return;
                 }
 
                 if needs_shmem {
                     unsafe {
-                        wgpu_server_set_partial_buffer_map_data(
+                        wgpu_server_set_buffer_map_data(
                             self.webgpu_parent,
                             device_id,
-                            id,
+                            buffer_id,
                             has_map_flags,
                             0,
                             if desc.mapped_at_creation {
@@ -1927,11 +1938,12 @@ impl Global {
                             } else {
                                 0
                             },
+                            shmem_handle_index,
                         );
                     }
                 }
 
-                let (_, error) = self.device_create_buffer(device_id, &desc, Some(id));
+                let (_, error) = self.device_create_buffer(device_id, &desc, Some(buffer_id));
                 if let Some(err) = error {
                     error_buf.init(err, device_id);
                 }
@@ -2454,21 +2466,34 @@ pub unsafe extern "C" fn wgpu_server_pack_work_done(bb: &mut ByteBuf) {
     *bb = make_byte_buf(&ServerMessage::QueueOnSubmittedWorkDoneResponse);
 }
 
-/// # Safety
-///
-/// This function is unsafe as there is no guarantee that the `data` pointer is
-/// valid for `data_length` elements.
 #[no_mangle]
-pub unsafe extern "C" fn wgpu_server_message(
+pub unsafe extern "C" fn wgpu_server_messages(
     global: &Global,
+    nr_of_messages: u32,
     byte_buf: &ByteBuf,
-    data: *const u8,
-    data_length: usize,
-    response_byte_buf: &mut ByteBuf,
+    shmem_mappings: FfiSlice<'_, FfiSlice<'_, u8>>,
 ) {
+    let bytes = byte_buf.as_slice();
+    use bincode::Options;
+    let options = bincode::DefaultOptions::new()
+        .with_fixint_encoding()
+        .allow_trailing_bytes();
+    let mut deserializer = bincode::Deserializer::from_slice(bytes, options);
+
+    for _ in 0..nr_of_messages {
+        let message: Message = serde::Deserialize::deserialize(&mut deserializer).unwrap();
+        process_message(global, shmem_mappings, message);
+    }
+}
+
+unsafe fn process_message(
+    global: &Global,
+    shmem_mappings: FfiSlice<'_, FfiSlice<'_, u8>>,
+    message: Message,
+) {
+    let response_byte_buf = &mut ByteBuf::new();
     let error_buf = &mut OwnedErrorBuffer::new();
 
-    let message: Message = bincode::deserialize(byte_buf.as_slice()).unwrap();
     match message {
         Message::RequestAdapter {
             adapter_id,
@@ -2602,13 +2627,9 @@ pub unsafe extern "C" fn wgpu_server_message(
                 device_id, queue_id, error,
             ));
         }
-        Message::Device(id, action) => global.device_action(
-            id,
-            action,
-            if data.is_null() { 0 } else { data_length },
-            response_byte_buf,
-            error_buf,
-        ),
+        Message::Device(id, action) => {
+            global.device_action(id, action, shmem_mappings, response_byte_buf, error_buf)
+        }
         Message::Texture(device_id, id, action) => {
             global.texture_action(device_id, id, action, error_buf)
         }
@@ -2627,14 +2648,16 @@ pub unsafe extern "C" fn wgpu_server_message(
         Message::ReplayComputePass(device_id, id, pass) => {
             crate::command::replay_compute_pass(global, device_id, id, &pass, error_buf);
         }
-        Message::QueueWrite(device_id, queue_id, inline_data, action) => {
-            let data = if let Some(inline_data) = inline_data.as_ref() {
-                inline_data
-            } else {
-                if data.is_null() || data_length == 0 {
-                    &[]
-                } else {
-                    slice::from_raw_parts(data, data_length)
+        Message::QueueWrite {
+            device_id,
+            queue_id,
+            data,
+            action,
+        } => {
+            let data = match data {
+                QueueWriteData::Inline(ref inline_data) => inline_data.as_ref(),
+                QueueWriteData::ViaShmem(shmem_handle_index) => {
+                    shmem_mappings.as_slice()[shmem_handle_index].as_slice()
                 }
             };
             let result = match action {
@@ -2828,6 +2851,9 @@ pub unsafe extern "C" fn wgpu_server_message(
 
     if let Some((device_id, ty, message)) = error_buf.get_inner_data() {
         wgpu_parent_handle_error(global.webgpu_parent, device_id, ty, message);
+    }
+    if !response_byte_buf.is_empty() {
+        wgpu_parent_send_server_message(global.webgpu_parent, response_byte_buf);
     }
 }
 

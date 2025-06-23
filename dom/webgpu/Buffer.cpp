@@ -57,17 +57,8 @@ Buffer::~Buffer() {
 already_AddRefed<Buffer> Buffer::Create(Device* aDevice, RawId aDeviceId,
                                         const dom::GPUBufferDescriptor& aDesc,
                                         ErrorResult& aRv) {
-  RefPtr<WebGPUChild> actor = aDevice->GetBridge();
-  RawId bufferId = ffi::wgpu_client_make_buffer_id(actor->GetClient());
-
-  if (!aDevice->IsBridgeAlive()) {
-    // Create and return an invalid Buffer.
-    RefPtr<Buffer> buffer =
-        new Buffer(aDevice, bufferId, aDesc.mSize, 0, nullptr);
-    buffer->mValid = false;
-    buffer->SetLabel(aDesc.mLabel);
-    return buffer.forget();
-  }
+  RefPtr<WebGPUChild> bridge = aDevice->GetBridge();
+  RawId bufferId = ffi::wgpu_client_make_buffer_id(bridge->GetClient());
 
   ipc::MutableSharedMemoryHandle handle;
   ipc::SharedMemoryMapping mapping;
@@ -125,9 +116,9 @@ already_AddRefed<Buffer> Buffer::Create(Device* aDevice, RawId aDeviceId,
   desc.usage = aDesc.mUsage;
   desc.mapped_at_creation = aDesc.mMappedAtCreation;
 
-  ipc::ByteBuf bb;
-  ffi::wgpu_client_create_buffer(aDeviceId, bufferId, &desc, ToFFI(&bb));
-  actor->SendMessage(std::move(bb), Some(std::move(handle)));
+  auto shmem_handle_index = bridge->QueueShmemHandle(std::move(handle));
+  ffi::wgpu_client_create_buffer(bridge->GetClient(), aDeviceId, bufferId,
+                                 &desc, shmem_handle_index);
 
   RefPtr<Buffer> buffer = new Buffer(aDevice, bufferId, aDesc.mSize,
                                      aDesc.mUsage, std::move(mapping));
@@ -171,11 +162,8 @@ void Buffer::Cleanup() {
     return;
   }
 
-  if (bridge->CanSend()) {
-    ipc::ByteBuf bb;
-    ffi::wgpu_client_drop_buffer(mId, ToFFI(&bb));
-    bridge->SendMessage(std::move(bb), Nothing());
-  }
+  ffi::wgpu_client_drop_buffer(bridge->GetClient(), mId);
+
   wgpu_client_free_buffer_id(bridge->GetClient(), mId);
 }
 
@@ -223,26 +211,21 @@ already_AddRefed<dom::Promise> Buffer::MapAsync(
 
   const auto& bridge = GetDevice().GetBridge();
 
-  ipc::ByteBuf bb;
-  ffi::wgpu_client_buffer_map(GetDevice().mId, mId, aMode, aOffset, size,
-                              ToFFI(&bb));
-  bool sent = bridge->SendMessage(std::move(bb), Nothing());
-  if (sent) {
-    mMapRequest = promise;
+  ffi::wgpu_client_buffer_map(bridge->GetClient(), GetDevice().mId, mId, aMode,
+                              aOffset, size);
 
-    auto pending_promise = WebGPUChild::PendingBufferMapPromise{
-        RefPtr(promise),
-        RefPtr(this),
-    };
-    auto& pending_promises = bridge->mPendingBufferMapPromises;
-    if (auto search = pending_promises.find(mId);
-        search != pending_promises.end()) {
-      search->second.push_back(std::move(pending_promise));
-    } else {
-      pending_promises.insert({mId, {std::move(pending_promise)}});
-    }
+  mMapRequest = promise;
+
+  auto pending_promise = WebGPUChild::PendingBufferMapPromise{
+      RefPtr(promise),
+      RefPtr(this),
+  };
+  auto& pending_promises = bridge->mPendingBufferMapPromises;
+  if (auto search = pending_promises.find(mId);
+      search != pending_promises.end()) {
+    search->second.push_back(std::move(pending_promise));
   } else {
-    promise->MaybeRejectWithAbortError("Internal communication error!");
+    pending_promises.insert({mId, {std::move(pending_promise)}});
   }
 
   return promise.forget();
@@ -396,18 +379,21 @@ void Buffer::UnmapArrayBuffers(JSContext* aCx, ErrorResult& aRv) {
 void Buffer::ResolveMapRequest(dom::Promise* aPromise, BufferAddress aOffset,
                                BufferAddress aSize, bool aWritable) {
   MOZ_RELEASE_ASSERT(mMapRequest == aPromise);
-  mMapRequest = nullptr;
-
   SetMapped(aOffset, aSize, aWritable);
-  aPromise->MaybeResolveWithUndefined();
+  mMapRequest->MaybeResolveWithUndefined();
+  mMapRequest = nullptr;
 }
 
 void Buffer::RejectMapRequest(dom::Promise* aPromise,
                               const nsACString& message) {
   MOZ_RELEASE_ASSERT(mMapRequest == aPromise);
+  mMapRequest->MaybeRejectWithOperationError(message);
   mMapRequest = nullptr;
+}
 
-  aPromise->MaybeRejectWithOperationError(message);
+void Buffer::RejectMapRequestWithAbortError(dom::Promise* aPromise) {
+  MOZ_RELEASE_ASSERT(mMapRequest == aPromise);
+  AbortMapRequest();
 }
 
 void Buffer::AbortMapRequest() {
@@ -435,10 +421,8 @@ void Buffer::Unmap(JSContext* aCx, ErrorResult& aRv) {
   }
 
   if (!GetDevice().IsLost()) {
-    ipc::ByteBuf bb;
-    ffi::wgpu_client_buffer_unmap(GetDevice().mId, mId, mMapped->mWritable,
-                                  ToFFI(&bb));
-    GetDevice().GetBridge()->SendMessage(std::move(bb), Nothing());
+    ffi::wgpu_client_buffer_unmap(GetDevice().GetBridge()->GetClient(),
+                                  GetDevice().mId, mId, mMapped->mWritable);
   }
 
   mMapped.reset();
@@ -449,16 +433,9 @@ void Buffer::Destroy(JSContext* aCx, ErrorResult& aRv) {
     Unmap(aCx, aRv);
   }
 
-  if (!GetDevice().IsLost()) {
-    auto bridge = mParent->GetBridge();
-    if (bridge->CanSend()) {
-      ipc::ByteBuf bb;
-      ffi::wgpu_client_destroy_buffer(mId, ToFFI(&bb));
-      bridge->SendMessage(std::move(bb), Nothing());
-    }
-  }
-  // TODO: we don't have to implement it right now, but it's used by the
-  // examples
+  auto bridge = mParent->GetBridge();
+
+  ffi::wgpu_client_destroy_buffer(bridge->GetClient(), mId);
 }
 
 dom::GPUBufferMapState Buffer::MapState() const {

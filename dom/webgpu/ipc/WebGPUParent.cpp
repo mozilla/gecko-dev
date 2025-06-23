@@ -190,15 +190,20 @@ extern void wgpu_server_pre_device_drop(void* aParam, WGPUDeviceId aId) {
   parent->PreDeviceDrop(aId);
 }
 
-extern void wgpu_server_set_partial_buffer_map_data(
+extern void wgpu_server_set_buffer_map_data(
     void* aParam, WGPUDeviceId aDeviceId, WGPUBufferId aBufferId,
-    bool aHasMapFlags, uint64_t aMappedOffset, uint64_t aMappedSize) {
+    bool aHasMapFlags, uint64_t aMappedOffset, uint64_t aMappedSize,
+    uintptr_t aShmemIndex) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
+
+  auto mapping = std::move(parent->mTempMappings.ElementAt(aShmemIndex));
+  MOZ_ASSERT(mapping.isSome());
+
   auto data = WebGPUParent::BufferMapData{
-      nullptr, aHasMapFlags, aMappedOffset, aMappedSize, aDeviceId, aBufferId,
+      std::move(*mapping), aHasMapFlags, aMappedOffset, aMappedSize, aDeviceId,
   };
-  MOZ_ASSERT(parent->mIncompleteBufferMapData.isNone());
-  parent->mIncompleteBufferMapData = Some(std::move(data));
+
+  parent->mSharedMemoryMap.insert({aBufferId, std::move(data)});
 }
 
 extern void wgpu_server_device_push_error_scope(void* aParam,
@@ -341,6 +346,15 @@ extern void wgpu_parent_handle_error(void* aParam, WGPUDeviceId aDeviceId,
   }
 
   parent->ReportError(aDeviceId, ty, *aMessage);
+}
+
+extern void wgpu_parent_send_server_message(void* aParam,
+                                            struct WGPUByteBuf* aMessage) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+  auto* message = FromFFI(aMessage);
+  if (!parent->SendServerMessage(std::move(*message))) {
+    NS_ERROR("SendServerMessage failed");
+  }
 }
 
 }  // namespace ffi
@@ -1498,39 +1512,35 @@ void WebGPUParent::ActorDestroy(ActorDestroyReason aWhy) {
   mContext = nullptr;
 }
 
-ipc::IPCResult WebGPUParent::RecvMessage(
-    const ipc::ByteBuf& aByteBuf,
-    Maybe<ipc::MutableSharedMemoryHandle>&& aShmem) {
-  ipc::ByteBuf response_bb;
+ipc::IPCResult WebGPUParent::RecvMessages(
+    uint32_t nrOfMessages, const ipc::ByteBuf& aByteBuf,
+    nsTArray<MutableSharedMemoryHandle>&& aShmems) {
+  MOZ_ASSERT(mTempMappings.IsEmpty());
 
-  if (aShmem.isSome()) {
-    // `aShmem` may be an invalid handle, however this will simply result in an
-    // invalid mapping with 0 size, which is used safely below.
-    auto mapping = aShmem->Map();
+  mTempMappings.SetCapacity(aShmems.Length());
+
+  nsTArray<ffi::WGPUFfiSlice_u8> shmem_mappings(aShmems.Length());
+
+  for (const auto& shmem : aShmems) {
+    auto mapping = shmem.Map();
 
     auto* ptr = mapping.DataAs<uint8_t>();
-    auto size = mapping.Size();
+    auto len = mapping.Size();
+    ffi::WGPUFfiSlice_u8 byte_slice{ptr, len};
+    shmem_mappings.AppendElement(std::move(byte_slice));
 
-    ffi::wgpu_server_message(mContext.get(), ToFFI(&aByteBuf), ptr, size,
-                             ToFFI(&response_bb));
-
-    auto maybe_incomplete_buffer_map_data = mIncompleteBufferMapData.take();
-    if (maybe_incomplete_buffer_map_data.isSome()) {
-      auto buffer_map_data = maybe_incomplete_buffer_map_data.extract();
-      buffer_map_data.mShmem = std::move(mapping);
-      mSharedMemoryMap.insert(
-          {buffer_map_data.mBufferId, std::move(buffer_map_data)});
-    }
-  } else {
-    ffi::wgpu_server_message(mContext.get(), ToFFI(&aByteBuf), nullptr, 0,
-                             ToFFI(&response_bb));
+    // `aShmem` may be an invalid handle, however this will simply result in an
+    // invalid mapping with 0 size, which we use safely.
+    mTempMappings.AppendElement(Some(std::move(mapping)));
   }
 
-  if (response_bb.mData != nullptr && response_bb.mLen != 0) {
-    if (!SendServerMessage(std::move(response_bb))) {
-      NS_ERROR("SendServerMessage failed");
-    }
-  }
+  ffi::WGPUFfiSlice_FfiSlice_u8 shmem_mapping_slices{shmem_mappings.Elements(),
+                                                     shmem_mappings.Length()};
+
+  ffi::wgpu_server_messages(mContext.get(), nrOfMessages, ToFFI(&aByteBuf),
+                            shmem_mapping_slices);
+
+  mTempMappings.Clear();
 
   return IPC_OK();
 }

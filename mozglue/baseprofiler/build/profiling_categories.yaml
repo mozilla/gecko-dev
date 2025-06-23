@@ -211,6 +211,8 @@
       label: Flushing async paints
     - name: GRAPHICS_ImageDecoding
       label: Image decoding
+    - name: GRAPHICS_WebGPU
+      label: WebGPU
 
 - name: DOM
   label: DOM

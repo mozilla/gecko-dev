@@ -83,12 +83,22 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
   bool ResolveLostForDeviceId(RawId aDeviceId, Maybe<uint8_t> aReason,
                               const nsAString& aMessage);
 
+  bool mScheduledFlushQueuedMessages = false;
+  void ScheduledFlushQueuedMessages();
+  nsTArray<ipc::MutableSharedMemoryHandle> mQueuedHandles;
+  void ClearAllPendingPromises();
+
  public:
   ipc::IPCResult RecvServerMessage(const ipc::ByteBuf& aByteBuf);
   ipc::IPCResult RecvUncapturedError(RawId aDeviceId,
                                      const nsACString& aMessage);
   ipc::IPCResult RecvDeviceLost(RawId aDeviceId, Maybe<uint8_t> aReason,
                                 const nsACString& aMessage);
+
+  size_t QueueShmemHandle(ipc::MutableSharedMemoryHandle&& handle);
+  void ScheduleFlushQueuedMessages();
+  void FlushQueuedMessages();
+
   void ActorDestroy(ActorDestroyReason) override;
 
   struct PendingRequestAdapterPromise {
@@ -120,6 +130,7 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
   struct PendingCreatePipelinePromise {
     RefPtr<dom::Promise> promise;
     RefPtr<Device> device;
+    bool is_render_pipeline;
     RawId pipeline_id;
     RawId implicit_pipeline_layout_id;
     nsTArray<RawId> implicit_bind_group_layout_ids;

@@ -30,10 +30,6 @@ void ffiWGPURenderBundleEncoderDeleter::operator()(
 ffi::WGPURenderBundleEncoder* CreateRenderBundleEncoder(
     RawId aDeviceId, const dom::GPURenderBundleEncoderDescriptor& aDesc,
     WebGPUChild* const aBridge) {
-  if (!aBridge->CanSend()) {
-    return nullptr;
-  }
-
   ffi::WGPURenderBundleEncoderDescriptor desc = {};
   desc.sample_count = aDesc.mSampleCount;
 
@@ -57,13 +53,9 @@ ffi::WGPURenderBundleEncoder* CreateRenderBundleEncoder(
   desc.color_formats = colorFormats.data();
   desc.color_formats_length = colorFormats.size();
 
-  ipc::ByteBuf failureAction;
   auto* bundle = ffi::wgpu_device_create_render_bundle_encoder(
-      aDeviceId, &desc, ToFFI(&failureAction));
-  // Report an error only if the operation failed.
-  if (!bundle) {
-    aBridge->SendMessage(std::move(failureAction), Nothing());
-  }
+      aBridge->GetClient(), aDeviceId, &desc);
+
   return bundle;
 }
 
@@ -228,25 +220,19 @@ already_AddRefed<RenderBundle> RenderBundleEncoder::Finish(
     const dom::GPURenderBundleDescriptor& aDesc) {
   RawId deviceId = mParent->mId;
   auto bridge = mParent->GetBridge();
-  MOZ_RELEASE_ASSERT(bridge);
 
   ffi::WGPURenderBundleDescriptor desc = {};
   webgpu::StringHelper label(aDesc.mLabel);
   desc.label = label.Get();
 
-  ipc::ByteBuf bb;
   RawId id;
   if (mValid) {
-    id = ffi::wgpu_client_create_render_bundle(
-        bridge->GetClient(), deviceId, mEncoder.get(), &desc, ToFFI(&bb));
+    id = ffi::wgpu_client_create_render_bundle(bridge->GetClient(), deviceId,
+                                               mEncoder.get(), &desc);
 
   } else {
-    id = ffi::wgpu_client_create_render_bundle_error(
-        bridge->GetClient(), deviceId, label.Get(), ToFFI(&bb));
-  }
-
-  if (bridge->CanSend()) {
-    bridge->SendMessage(std::move(bb), Nothing());
+    id = ffi::wgpu_client_create_render_bundle_error(bridge->GetClient(),
+                                                     deviceId, label.Get());
   }
 
   Cleanup();

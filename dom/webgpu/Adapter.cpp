@@ -375,13 +375,16 @@ Adapter::Adapter(Instance* const aParent, WebGPUChild* const aBridge,
 Adapter::~Adapter() { Cleanup(); }
 
 void Adapter::Cleanup() {
-  if (mValid && mBridge && mBridge->CanSend()) {
-    mValid = false;
-
-    ipc::ByteBuf bb;
-    ffi::wgpu_client_drop_adapter(mId, ToFFI(&bb));
-    mBridge->SendMessage(std::move(bb), Nothing());
+  if (!mValid) {
+    return;
   }
+  mValid = false;
+
+  if (!mBridge) {
+    return;
+  }
+
+  ffi::wgpu_client_drop_adapter(mBridge->GetClient(), mId);
 }
 
 const RefPtr<SupportedFeatures>& Adapter::Features() const { return mFeatures; }
@@ -514,12 +517,6 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
   // -
 
   [&]() {  // So that we can `return;` instead of `return promise.forget();`.
-    if (!mBridge->CanSend()) {
-      promise->MaybeRejectWithInvalidStateError(
-          "WebGPUChild cannot send, must recreate Adapter");
-      return;
-    }
-
     // -
     // Validate Features
 
@@ -658,19 +655,14 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
     ffiDesc.required_features = featureBits;
     ffiDesc.required_limits = deviceLimits;
 
-    ipc::ByteBuf bb;
-    ffi::wgpu_client_request_device(mId, ids.device, ids.queue, &ffiDesc,
-                                    ToFFI(&bb));
-    bool sent = mBridge->SendMessage(std::move(bb), Nothing());
-    if (sent) {
-      auto pending_promise = WebGPUChild::PendingRequestDevicePromise{
-          RefPtr(promise), ids.device, ids.queue, aDesc.mLabel,
-          RefPtr(this),    features,   limits};
-      mBridge->mPendingRequestDevicePromises.push_back(
-          std::move(pending_promise));
-    } else {
-      promise->MaybeRejectWithAbortError("Internal communication error!");
-    }
+    ffi::wgpu_client_request_device(mBridge->GetClient(), mId, ids.device,
+                                    ids.queue, &ffiDesc);
+
+    auto pending_promise = WebGPUChild::PendingRequestDevicePromise{
+        RefPtr(promise), ids.device, ids.queue, aDesc.mLabel,
+        RefPtr(this),    features,   limits};
+    mBridge->mPendingRequestDevicePromises.push_back(
+        std::move(pending_promise));
 
   }();
 

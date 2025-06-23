@@ -210,19 +210,13 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
 
   RawId adapter_id = ffi::wgpu_client_make_adapter_id(bridge->GetClient());
 
-  ipc::ByteBuf bb;
-  ffi::wgpu_client_request_adapter(adapter_id, power_preference,
-                                   aOptions.mForceFallbackAdapter, ToFFI(&bb));
+  ffi::wgpu_client_request_adapter(bridge->GetClient(), adapter_id,
+                                   power_preference,
+                                   aOptions.mForceFallbackAdapter);
 
-  bool sent = bridge->SendMessage(std::move(bb), Nothing());
-  if (sent) {
-    auto pending_promise = WebGPUChild::PendingRequestAdapterPromise{
-        RefPtr(promise), RefPtr(this)};
-    bridge->mPendingRequestAdapterPromises.push_back(
-        std::move(pending_promise));
-  } else {
-    promise->MaybeRejectWithAbortError("Internal communication error!");
-  }
+  auto pending_promise =
+      WebGPUChild::PendingRequestAdapterPromise{RefPtr(promise), RefPtr(this)};
+  bridge->mPendingRequestAdapterPromises.push_back(std::move(pending_promise));
 
   return promise.forget();
 }

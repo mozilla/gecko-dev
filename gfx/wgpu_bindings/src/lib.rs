@@ -63,22 +63,30 @@ impl<'a, T> Clone for FfiSlice<'a, T> {
 
 #[repr(C)]
 pub struct ByteBuf {
-    data: *const u8,
+    data: *mut u8,
     len: usize,
     capacity: usize,
 }
 
 impl ByteBuf {
-    fn from_vec(vec: Vec<u8>) -> Self {
+    fn new() -> Self {
+        Self {
+            data: std::ptr::null_mut(),
+            len: 0,
+            capacity: 0,
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    fn from_vec(mut vec: Vec<u8>) -> Self {
         if vec.is_empty() {
-            ByteBuf {
-                data: std::ptr::null(),
-                len: 0,
-                capacity: 0,
-            }
+            ByteBuf::new()
         } else {
             let bb = ByteBuf {
-                data: vec.as_ptr(),
+                data: vec.as_mut_ptr(),
                 len: vec.len(),
                 capacity: vec.capacity(),
             };
@@ -144,6 +152,12 @@ pub struct FfiLUID {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+pub enum QueueWriteData<'a> {
+    Inline(Cow<'a, [u8]>),
+    ViaShmem(usize),
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 enum Message<'a> {
     RequestAdapter {
         adapter_id: id::AdapterId,
@@ -166,12 +180,12 @@ enum Message<'a> {
     ),
     ReplayRenderPass(id::DeviceId, id::CommandEncoderId, RecordedRenderPass),
     ReplayComputePass(id::DeviceId, id::CommandEncoderId, RecordedComputePass),
-    QueueWrite(
-        id::DeviceId,
-        id::QueueId,
-        Option<Cow<'a, [u8]>>,
-        QueueWriteAction,
-    ),
+    QueueWrite {
+        device_id: id::DeviceId,
+        queue_id: id::QueueId,
+        data: QueueWriteData<'a>,
+        action: QueueWriteAction,
+    },
     BufferMap {
         device_id: id::DeviceId,
         buffer_id: id::BufferId,
@@ -236,7 +250,11 @@ enum Message<'a> {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 enum DeviceAction<'a> {
-    CreateBuffer(id::BufferId, wgc::resource::BufferDescriptor<'a>),
+    CreateBuffer {
+        buffer_id: id::BufferId,
+        desc: wgc::resource::BufferDescriptor<'a>,
+        shmem_handle_index: usize,
+    },
     CreateTexture(
         id::TextureId,
         wgc::resource::TextureDescriptor<'a>,

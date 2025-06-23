@@ -21,6 +21,7 @@
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/SVGObserverUtils.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "ipc/WebGPUChild.h"
 #include "Utility.h"
 
@@ -196,12 +197,10 @@ void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aConfig,
 
 void CanvasContext::Unconfigure() {
   if (mBridge && mBridge->CanSend() && mRemoteTextureOwnerId) {
-    ipc::ByteBuf bb;
     auto txn_type = layers::ToRemoteTextureTxnType(mFwdTransactionTracker);
     auto txn_id = layers::ToRemoteTextureTxnId(mFwdTransactionTracker);
-    ffi::wgpu_client_swap_chain_drop(mRemoteTextureOwnerId->mId, txn_type,
-                                     txn_id, ToFFI(&bb));
-    mBridge->SendMessage(std::move(bb), Nothing());
+    ffi::wgpu_client_swap_chain_drop(
+        mBridge->GetClient(), mRemoteTextureOwnerId->mId, txn_type, txn_id);
 
     for (auto& id : mBufferIds) {
       ffi::wgpu_client_free_buffer_id(mBridge->GetClient(), id);
@@ -296,6 +295,10 @@ Maybe<layers::SurfaceDescriptor> CanvasContext::SwapChainPresent() {
     mCurrentTexture->Destroy();
     mNewTextureRequested = true;
   }
+
+  PROFILER_MARKER_UNTYPED("WebGPU: SwapChainPresent", GRAPHICS_WebGPU);
+  mBridge->FlushQueuedMessages();
+
   return Some(layers::SurfaceDescriptorRemoteTexture(*mLastRemoteTextureId,
                                                      *mRemoteTextureOwnerId));
 }

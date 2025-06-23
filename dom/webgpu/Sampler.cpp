@@ -25,18 +25,14 @@ void Sampler::Cleanup() {
   if (!mValid) {
     return;
   }
-
   mValid = false;
+
   auto bridge = mParent->GetBridge();
   if (!bridge) {
     return;
   }
 
-  if (bridge->CanSend()) {
-    ipc::ByteBuf bb;
-    ffi::wgpu_client_drop_sampler(mId, ToFFI(&bb));
-    bridge->SendMessage(std::move(bb), Nothing());
-  }
+  ffi::wgpu_client_drop_sampler(bridge->GetClient(), mId);
 
   wgpu_client_free_sampler_id(bridge->GetClient(), mId);
 }

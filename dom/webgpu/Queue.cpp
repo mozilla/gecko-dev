@@ -58,16 +58,11 @@ already_AddRefed<dom::Promise> Queue::OnSubmittedWorkDone(ErrorResult& aRv) {
     return nullptr;
   }
 
-  ipc::ByteBuf bb;
-  ffi::wgpu_client_on_submitted_work_done(mId, ToFFI(&bb));
-  bool sent = mBridge->SendMessage(std::move(bb), Nothing());
-  if (sent) {
-    auto pending_promise = RefPtr(promise);
-    mBridge->mPendingOnSubmittedWorkDonePromises.push_back(
-        std::move(pending_promise));
-  } else {
-    promise->MaybeRejectWithOperationError("Internal communication error");
-  }
+  ffi::wgpu_client_on_submitted_work_done(mBridge->GetClient(), mId);
+
+  auto pending_promise = RefPtr(promise);
+  mBridge->mPendingOnSubmittedWorkDonePromises.push_back(
+      std::move(pending_promise));
 
   return promise.forget();
 }
@@ -133,13 +128,11 @@ void Queue::WriteBuffer(
         }
 
         if (size < 1024) {
-          ipc::ByteBuf bb;
           auto data = aData.Elements() + offset;
           auto data_length = size;
-          ffi::wgpu_queue_write_buffer(mParent->mId, mId, aBuffer.mId,
-                                       aBufferOffset, data, data_length,
-                                       ToFFI(&bb));
-          mBridge->SendMessage(std::move(bb), Nothing());
+          ffi::wgpu_queue_write_buffer_inline(mBridge->GetClient(),
+                                              mParent->mId, mId, aBuffer.mId,
+                                              aBufferOffset, data, data_length);
           return;
         }
 
@@ -154,10 +147,10 @@ void Queue::WriteBuffer(
 
           memcpy(mapping.DataAs<uint8_t>(), aData.Elements() + offset, size);
         }
-        ipc::ByteBuf bb;
-        ffi::wgpu_queue_write_buffer(mParent->mId, mId, aBuffer.mId,
-                                     aBufferOffset, nullptr, 0, ToFFI(&bb));
-        mBridge->SendMessage(std::move(bb), Some(std::move(handle)));
+        auto shmem_handle_index = mBridge->QueueShmemHandle(std::move(handle));
+        ffi::wgpu_queue_write_buffer_via_shmem(
+            mBridge->GetClient(), mParent->mId, mId, aBuffer.mId, aBufferOffset,
+            shmem_handle_index);
       });
 }
 
@@ -258,10 +251,10 @@ void Queue::WriteTexture(
       handle = mozilla::ipc::MutableSharedMemoryHandle();
     }
 
-    ipc::ByteBuf bb;
-    ffi::wgpu_queue_write_texture(mParent->mId, mId, copyView, dataLayout,
-                                  extent, ToFFI(&bb));
-    mBridge->SendMessage(std::move(bb), Some(std::move(handle)));
+    auto shmem_handle_index = mBridge->QueueShmemHandle(std::move(handle));
+    ffi::wgpu_queue_write_texture_via_shmem(mBridge->GetClient(), mParent->mId,
+                                            mId, copyView, dataLayout, extent,
+                                            shmem_handle_index);
   });
 }
 
@@ -525,10 +518,11 @@ void Queue::CopyExternalImageToTexture(
   ffi::WGPUTexelCopyBufferLayout dataLayout = {0, &dstStrideVal, &dstHeight};
   ffi::WGPUTexelCopyTextureInfo copyView = {};
   CommandEncoder::ConvertTextureCopyViewToFFI(aDestination, &copyView);
-  ipc::ByteBuf bb;
-  ffi::wgpu_queue_write_texture(mParent->mId, mId, copyView, dataLayout, extent,
-                                ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb), Some(std::move(handle)));
+
+  auto shmem_handle_index = mBridge->QueueShmemHandle(std::move(handle));
+  ffi::wgpu_queue_write_texture_via_shmem(mBridge->GetClient(), mParent->mId,
+                                          mId, copyView, dataLayout, extent,
+                                          shmem_handle_index);
 }
 
 }  // namespace mozilla::webgpu
