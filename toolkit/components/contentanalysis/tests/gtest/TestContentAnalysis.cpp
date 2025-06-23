@@ -29,11 +29,6 @@
 using namespace mozilla;
 using namespace mozilla::contentanalysis;
 
-static nsCString GenerateUUID() {
-  nsID id = nsID::GenerateUUID();
-  return nsCString(id.ToString().get());
-}
-
 class ContentAnalysisTest : public testing::Test {
  protected:
   ContentAnalysisTest() {
@@ -212,18 +207,6 @@ TEST_F(ContentAnalysisTest, DenyOverridesAllowUrlList) {
   RefPtr<nsIContentAnalysisRequest> car =
       CreateRequest("https://example.org/matchme/");
   ASSERT_EQ(FilterByUrlLists(car), UrlFilterResult::eDeny);
-}
-
-nsCOMPtr<nsIURI> GetExampleDotComURI() {
-  nsCOMPtr<nsIURI> uri;
-  MOZ_ALWAYS_SUCCEEDS(NS_NewURI(getter_AddRefs(uri), "https://example.com"));
-  return uri;
-}
-nsCOMPtr<nsIURI> GetExampleDotComWithPathURI() {
-  nsCOMPtr<nsIURI> uri;
-  MOZ_ALWAYS_SUCCEEDS(
-      NS_NewURI(getter_AddRefs(uri), "https://example.com/path"));
-  return uri;
 }
 
 RefPtr<ContentAnalysisDiagnosticInfo> ContentAnalysisTest::GetDiagnosticInfo(

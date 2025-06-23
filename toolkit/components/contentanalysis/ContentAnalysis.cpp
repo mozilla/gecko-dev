@@ -2114,6 +2114,18 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
   MOZ_ALWAYS_SUCCEEDS(aRequest->GetTestOnlyIgnoreCanceledAndAlwaysSubmitToAgent(
       &ignoreCanceled));
 
+  {
+    nsAutoCString analysisTypeStr;
+    analysisTypeStr.AppendInt(static_cast<int>(pbRequest.analysis_connector()));
+    glean::content_analysis::request_sent_by_analysis_type.Get(analysisTypeStr)
+        .Add();
+  }
+  {
+    nsAutoCString reasonStr;
+    reasonStr.AppendInt(static_cast<int>(pbRequest.reason()));
+    glean::content_analysis::request_sent_by_reason.Get(reasonStr).Add();
+  }
+
   CallClientWithRetry<std::nullptr_t>(
       __func__,
       [userActionId, pbRequest = std::move(pbRequest), aAutoAcknowledge,
@@ -3100,11 +3112,13 @@ ContentAnalysis::GetFinalRequestList(
     auto filterResult = FilterByUrlLists(request, uri);
     if (filterResult == ContentAnalysis::UrlFilterResult::eDeny) {
       LOGD("Blocking request due to deny URL filter.");
+      glean::content_analysis::request_blocked_by_deny_url.Add();
       return Err(MakeRefPtr<ContentAnalysisActionResult>(
           nsIContentAnalysisResponse::Action::eBlock));
     }
     if (filterResult == ContentAnalysis::UrlFilterResult::eAllow) {
       LOGD("Allowing request -- all operations match allow URL filter.");
+      glean::content_analysis::request_allowed_by_allow_url.Add();
       setAllowResult(NoContentAnalysisResult::
                          ALLOW_DUE_TO_CONTEXT_EXEMPT_FROM_CONTENT_ANALYSIS);
       continue;
