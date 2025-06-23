@@ -590,6 +590,28 @@ pub extern "C" fn wgpu_client_drop_render_pipeline(
 }
 
 #[no_mangle]
+pub extern "C" fn wgpu_client_queue_submit(
+    device_id: id::DeviceId,
+    queue_id: id::QueueId,
+    command_buffers: *const id::CommandBufferId,
+    command_buffers_length: usize,
+    textures: *const id::TextureId,
+    textures_length: usize,
+    bb: &mut ByteBuf,
+) {
+    let command_buffers =
+        unsafe { core::slice::from_raw_parts(command_buffers, command_buffers_length) };
+    let textures = unsafe { core::slice::from_raw_parts(textures, textures_length) };
+    let action = Message::QueueSubmit(
+        device_id,
+        queue_id,
+        Cow::Borrowed(command_buffers),
+        Cow::Borrowed(textures),
+    );
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
 pub extern "C" fn wgpu_client_buffer_unmap(
     device_id: id::DeviceId,
     buffer_id: id::BufferId,

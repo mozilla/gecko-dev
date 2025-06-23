@@ -1492,6 +1492,16 @@ extern "C" {
         buffer_id: id::BufferId,
         flush: bool,
     );
+    #[allow(dead_code)]
+    fn wgpu_parent_queue_submit(
+        param: *mut c_void,
+        device_id: id::DeviceId,
+        queue_id: id::QueueId,
+        command_buffer_ids: *const id::CommandBufferId,
+        command_buffer_ids_length: usize,
+        texture_ids: *const id::TextureId,
+        texture_ids_length: usize,
+    );
 }
 
 #[cfg(target_os = "linux")]
@@ -2516,6 +2526,17 @@ pub unsafe extern "C" fn wgpu_server_message(
         }
         Message::BufferUnmap(device_id, buffer_id, flush) => {
             wgpu_parent_buffer_unmap(global.webgpu_parent, device_id, buffer_id, flush);
+        }
+        Message::QueueSubmit(device_id, queue_id, command_buffer_ids, texture_ids) => {
+            wgpu_parent_queue_submit(
+                global.webgpu_parent,
+                device_id,
+                queue_id,
+                command_buffer_ids.as_ptr(),
+                command_buffer_ids.len(),
+                texture_ids.as_ptr(),
+                texture_ids.len(),
+            )
         }
 
         Message::DestroyBuffer(id) => {

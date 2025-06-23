@@ -55,7 +55,6 @@ parent:
   async DeviceCreateShaderModule(RawId selfId, RawId bufferId, nsString label, nsCString code) returns (WebGPUCompilationMessage[] messages);
   async BufferMap(RawId deviceId, RawId bufferId, uint32_t aMode, uint64_t offset, uint64_t size) returns (BufferMapResult result);
 
-  async QueueSubmit(RawId selfId, RawId aDeviceId, RawId[] commandBuffers, RawId[] textureIds);
   async QueueOnSubmittedWorkDone(RawId selfId) returns (void_t ok);
 
   async DeviceCreateSwapChain(RawId selfId, RawId queueId, RGBDescriptor desc, RawId[] bufferIds, RemoteTextureOwnerId ownerId, bool useExternalTextureInSwapChain);

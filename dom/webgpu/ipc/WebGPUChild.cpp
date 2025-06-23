@@ -256,9 +256,13 @@ void WebGPUChild::ActorDestroy(ActorDestroyReason) {
 
 void WebGPUChild::QueueSubmit(RawId aSelfId, RawId aDeviceId,
                               nsTArray<RawId>& aCommandBuffers) {
-  SendQueueSubmit(aSelfId, aDeviceId, aCommandBuffers,
-                  mSwapChainTexturesWaitingForSubmit);
+  ipc::ByteBuf bb;
+  ffi::wgpu_client_queue_submit(
+      aDeviceId, aSelfId, aCommandBuffers.Elements(), aCommandBuffers.Length(),
+      mSwapChainTexturesWaitingForSubmit.Elements(),
+      mSwapChainTexturesWaitingForSubmit.Length(), ToFFI(&bb));
   mSwapChainTexturesWaitingForSubmit.Clear();
+  SendMessage(std::move(bb), Nothing());
 }
 
 void WebGPUChild::NotifyWaitForSubmit(RawId aTextureId) {

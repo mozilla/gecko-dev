@@ -214,6 +214,17 @@ extern void wgpu_parent_buffer_unmap(void* aParam, WGPUDeviceId aDeviceId,
   parent->BufferUnmap(aDeviceId, aBufferId, aFlush);
 }
 
+extern void wgpu_parent_queue_submit(
+    void* aParam, WGPUDeviceId aDeviceId, WGPUQueueId aQueueId,
+    const WGPUCommandBufferId* aCommandBufferIds,
+    uintptr_t aCommandBufferIdsLength, const WGPUTextureId* aTextureIds,
+    uintptr_t aTextureIdsLength) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+  auto command_buffers = Span(aCommandBufferIds, aCommandBufferIdsLength);
+  auto textures = Span(aTextureIds, aTextureIdsLength);
+  parent->QueueSubmit(aDeviceId, aQueueId, command_buffers, textures);
+}
+
 }  // namespace ffi
 
 // A fixed-capacity buffer for receiving textual error messages from
@@ -758,9 +769,9 @@ void WebGPUParent::RemoveExternalTexture(RawId aTextureId) {
   }
 }
 
-ipc::IPCResult WebGPUParent::RecvQueueSubmit(
-    RawId aQueueId, RawId aDeviceId, const nsTArray<RawId>& aCommandBuffers,
-    const nsTArray<RawId>& aTextureIds) {
+void WebGPUParent::QueueSubmit(RawId aQueueId, RawId aDeviceId,
+                               Span<const RawId> aCommandBuffers,
+                               Span<const RawId> aTextureIds) {
   for (const auto& textureId : aTextureIds) {
     auto it = mExternalTextures.find(textureId);
     if (it != mExternalTextures.end()) {
@@ -792,7 +803,6 @@ ipc::IPCResult WebGPUParent::RecvQueueSubmit(
     }
   }
   ForwardError(error);
-  return IPC_OK();
 }
 
 struct OnSubmittedWorkDoneRequest {

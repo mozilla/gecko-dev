@@ -59,9 +59,9 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   void BufferUnmap(RawId aDeviceId, RawId aBufferId, bool aFlush);
   ipc::IPCResult RecvMessage(const ipc::ByteBuf& aByteBuf,
                              Maybe<ipc::MutableSharedMemoryHandle>&& aShmem);
-  ipc::IPCResult RecvQueueSubmit(RawId aQueueId, RawId aDeviceId,
-                                 const nsTArray<RawId>& aCommandBuffers,
-                                 const nsTArray<RawId>& aTextureIds);
+  void QueueSubmit(RawId aQueueId, RawId aDeviceId,
+                   Span<const RawId> aCommandBuffers,
+                   Span<const RawId> aTextureIds);
   ipc::IPCResult RecvQueueOnSubmittedWorkDone(
       RawId aQueueId, std::function<void(mozilla::void_t)>&& aResolver);
   ipc::IPCResult RecvDeviceCreateSwapChain(
