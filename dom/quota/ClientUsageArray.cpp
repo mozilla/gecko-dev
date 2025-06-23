@@ -18,7 +18,7 @@ void ClientUsageArray::Serialize(nsACString& aText) const {
   bool first = true;
 
   for (Client::Type type : quotaManager->AllClientTypes()) {
-    const Maybe<uint64_t>& clientUsage = ElementAt(type);
+    const Maybe<uint64_t>& clientUsage = (*this)[type];
     if (clientUsage.isSome()) {
       if (first) {
         first = false;
@@ -46,7 +46,7 @@ nsresult ClientUsageArray::Deserialize(const nsACString& aText) {
     const uint64_t usage = Substring(token, 1).ToInteger64(&rv);
     QM_TRY(MOZ_TO_RESULT(rv));
 
-    ElementAt(clientType) = Some(usage);
+    (*this)[clientType] = Some(usage);
   }
 
   return NS_OK;

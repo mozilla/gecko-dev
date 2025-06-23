@@ -25,7 +25,7 @@ OriginInfo::OriginInfo(GroupInfo* aGroupInfo, const nsACString& aOrigin,
                        const ClientUsageArray& aClientUsages, uint64_t aUsage,
                        int64_t aAccessTime, bool aPersisted,
                        bool aDirectoryExists)
-    : mClientUsages(aClientUsages.Clone()),
+    : mClientUsages(aClientUsages),
       mGroupInfo(aGroupInfo),
       mOrigin(aOrigin),
       mStorageOrigin(aStorageOrigin),

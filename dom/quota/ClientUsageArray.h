@@ -13,21 +13,27 @@
 
 namespace mozilla::dom::quota {
 
-// XXX Change this not to derive from AutoTArray.
-class ClientUsageArray final
-    : public AutoTArray<Maybe<uint64_t>, Client::TYPE_MAX> {
+class ClientUsageArray final : public Array<Maybe<uint64_t>, Client::TYPE_MAX> {
  public:
-  ClientUsageArray() { SetLength(Client::TypeMax()); }
+  Maybe<uint64_t>& operator[](size_t aIndex) {
+    if (MOZ_UNLIKELY(aIndex >= Client::TypeMax())) {
+      MOZ_CRASH("indexing into invalid element");
+    }
+    return Array::operator[](aIndex);
+  }
+
+  const Maybe<uint64_t>& operator[](size_t aIndex) const {
+    if (MOZ_UNLIKELY(aIndex >= Client::TypeMax())) {
+      MOZ_CRASH("indexing into invalid element");
+    }
+    return Array::operator[](aIndex);
+  }
+
+  constexpr size_t Length() const { return size(); }
 
   void Serialize(nsACString& aText) const;
 
   nsresult Deserialize(const nsACString& aText);
-
-  ClientUsageArray Clone() const {
-    ClientUsageArray res;
-    res.Assign(*this);
-    return res;
-  }
 };
 
 }  // namespace mozilla::dom::quota
