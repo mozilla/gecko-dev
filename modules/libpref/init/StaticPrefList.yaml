@@ -1421,6 +1421,12 @@
   value: false
   mirror: always
 
+# Do not show crash pull prompt before this unix epoch time to avoid spamming user
+- name: browser.crashReports.dontShowBefore
+  type: uint32_t
+  value: 0
+  mirror: always
+
 # Min font device pixel size at which to turn on high quality.
 - name: browser.display.auto_quality_min_font_size
   type: RelaxedAtomicUint32
