@@ -22,11 +22,12 @@ add_task(async function() {
   Assert.ok(f1 instanceof File, "Should be a DOM File");
   Assert.ok(f2 instanceof File, "Should be a DOM File");
 
-  Assert.ok(f1.name == "xpcshell.toml", "Should be the right file");
-  Assert.ok(f2.name == "xpcshell.toml", "Should be the right file");
+  Assert.equal(f1.name, "xpcshell.toml", "Should be the right file");
+  Assert.equal(f2.name, "xpcshell.toml", "Should be the right file");
 
-  Assert.ok(f1.type == "", "Should be the right type");
-  Assert.ok(f2.type == "", "Should be the right type");
+  // The OS could guess the mime-type or not...
+  Assert.ok(f1.type === "" || f1.type === "application/toml", "Should be the right type");
+  Assert.ok(f2.type === "" || f2.type === "application/toml", "Should be the right type");
 
   var threw = false;
   try {
