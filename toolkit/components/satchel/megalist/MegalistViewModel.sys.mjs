@@ -34,12 +34,12 @@ export class MegalistViewModel {
   #messageToView;
   #authExpirationTime;
 
-  #aggregator = new DefaultAggregator();
+  static #aggregator = new DefaultAggregator();
 
   constructor(messageToView) {
     this.#messageToView = messageToView;
     this.#authExpirationTime = Number.NEGATIVE_INFINITY;
-    this.#aggregator.attachViewModel(this);
+    MegalistViewModel.#aggregator.attachViewModel(this);
   }
 
   get authExpirationTime() {
@@ -47,8 +47,7 @@ export class MegalistViewModel {
   }
 
   willDestroy() {
-    this.#aggregator.detachViewModel(this);
-    this.#aggregator = null;
+    MegalistViewModel.#aggregator.detachViewModel(this);
   }
 
   refreshAllLinesOnScreen() {
@@ -142,7 +141,7 @@ export class MegalistViewModel {
 
   #rebuildSnapshots() {
     this.#snapshots = Array.from(
-      this.#aggregator.enumerateLines(this.#searchText)
+      MegalistViewModel.#aggregator.enumerateLines(this.#searchText)
     );
 
     // Expose relevant line properties to view
@@ -183,7 +182,7 @@ export class MegalistViewModel {
     if (dotIndex >= 0) {
       const dataSourceName = commandId.substring(0, dotIndex);
       const functionName = commandId.substring(dotIndex + 1);
-      this.#aggregator.callFunction(
+      MegalistViewModel.#aggregator.callFunction(
         dataSourceName,
         functionName,
         snapshot?.record
@@ -220,7 +219,7 @@ export class MegalistViewModel {
     );
 
     if (isAuthorized) {
-      const authTimeoutMs = this.#aggregator.callFunction(
+      const authTimeoutMs = MegalistViewModel.#aggregator.callFunction(
         "LoginDataSource",
         "getAuthTimeoutMs"
       );

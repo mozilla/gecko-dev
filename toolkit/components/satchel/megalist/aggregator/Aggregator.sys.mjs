@@ -23,10 +23,6 @@ export class Aggregator {
         this.#attachedViewModels.splice(i, 1);
       }
     }
-
-    if (!this.#attachedViewModels.length) {
-      this.#sources.forEach(source => source.willDestroy?.());
-    }
   }
 
   /**

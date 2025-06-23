@@ -21,8 +21,6 @@ support-files = [
 
 ["browser_passwords_list_alerts.js"]
 
-["browser_passwords_multiple_windows.js"]
-
 ["browser_passwords_primary_password.js"]
 skip-if = [
 	"tsan" # Bug 1949014
