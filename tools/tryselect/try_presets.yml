@@ -134,6 +134,7 @@ fenix:
         - "'test-apk-fenix-debug"
         - "'ui-test-apk-fenix-arm-debug"
         - "^source-test 'fenix"
+        - "'generate-baseline-profile-firebase-fenix"
 
 firefox-android:
     selector: fuzzy
@@ -155,6 +156,7 @@ firefox-android:
         - "'test-apk-focus-debug"
         - "'ui-test-apk-focus-arm-debug"
         - "^source-test 'android | 'fenix | 'focus"
+        - "'generate-baseline-profile-firebase-fenix"
 
 focus:
     selector: fuzzy
