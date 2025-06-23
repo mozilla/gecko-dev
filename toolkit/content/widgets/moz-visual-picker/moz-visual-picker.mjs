@@ -8,6 +8,7 @@ import {
   SelectControlBaseElement,
 } from "../lit-select-control.mjs";
 import { MozLitElement } from "../lit-utils.mjs";
+import { ifDefined } from "../vendor/lit.all.mjs";
 
 /**
  * An element that groups related items and allows a user to navigate between
@@ -46,6 +47,11 @@ customElements.define("moz-visual-picker", MozVisualPicker);
  * @slot default - The item's content, used for what gets displayed.
  */
 export class MozVisualPickerItem extends SelectControlItemMixin(MozLitElement) {
+  static properties = {
+    label: { type: String },
+    ariaLabel: { type: String, fluent: true, mapped: true },
+  };
+
   static queries = {
     itemEl: ".picker-item",
   };
@@ -95,6 +101,15 @@ export class MozVisualPickerItem extends SelectControlItemMixin(MozLitElement) {
     );
   }
 
+  handleSlotchange(event) {
+    // If the user hasn't provide a visual or accessible label fallback to
+    // labelling the picker item based on slotted content.
+    if (!this.label && !this.ariaLabel) {
+      let elements = event.target.assignedElements();
+      this.itemEl.ariaLabelledByElements = elements;
+    }
+  }
+
   render() {
     return html`
       <link
@@ -105,6 +120,7 @@ export class MozVisualPickerItem extends SelectControlItemMixin(MozLitElement) {
         class="picker-item"
         role=${this.role}
         value=${this.value}
+        aria-label=${ifDefined(this.ariaLabel)}
         aria-checked=${this.role == "radio" ? this.checked : nothing}
         aria-selected=${this.role == "option" ? this.checked : nothing}
         tabindex=${this.itemTabIndex}
@@ -112,8 +128,11 @@ export class MozVisualPickerItem extends SelectControlItemMixin(MozLitElement) {
         ?disabled=${this.isDisabled}
         @click=${this.handleClick}
         @keydown=${this.handleKeydown}
+        @slotchange=${this.handleSlotchange}
       >
-        <slot></slot>
+        ${this.label
+          ? html`<p class="label">${this.label}</p>`
+          : html`<slot></slot>`}
       </div>
     `;
   }

@@ -142,6 +142,80 @@
         });
       });
 
+      add_task(async function testVisualPickerItemLabel() {
+        let labelledItemsTemplate = html`
+          <moz-visual-picker
+            type="listbox"
+            label="Testing labels"
+            value="first"
+          >
+            <moz-visual-picker-item value="first" label="first">
+            </moz-visual-picker-item>
+            <moz-visual-picker-item value="second" label="second">
+            </moz-visual-picker-item>
+            <moz-visual-picker-item value="third" label="third">
+            </moz-visual-picker-item>
+          </moz-visual-picker>
+        `;
+        let renderTarget = await testHelpers.renderTemplate(
+          labelledItemsTemplate
+        );
+        let items = [
+          ...renderTarget.querySelectorAll("moz-visual-picker-item"),
+        ];
+        let labels = ["first", "second", "third"];
+
+        labels.forEach((label, i) => {
+          is(
+            items[i].shadowRoot.textContent.trim(),
+            label,
+            "Visual picker items support a visible label."
+          );
+        });
+
+        items.forEach(async (item, i) => {
+          let itemLabel = labels[i];
+
+          // Verify that label is set via markup.
+          is(
+            items.shadowRoot.textContent.trim(),
+            itemLabel,
+            "Visual picker items support a visible label."
+          );
+
+          // Clear the visible label and set an aria label instead
+          item.label = "";
+          item.setAttribute("aria-label", itemLabel);
+          await item.updateComplete;
+
+          ok(
+            !item.shadowRoot.textContent.trim(),
+            "Visual picker item no longer has a visible label."
+          );
+          is(
+            item.itemEl.getAttribute("aria-label"),
+            itemLabel,
+            "aria-label is set on the inner element."
+          );
+
+          // Clear the aria-label and rely on slotted content to provide a label.
+          item.ariaLabel = "";
+          let textEl = document.createElement("p");
+          textEl.textContent = itemLabel;
+          item.append(textEl);
+          await item.updateComplete;
+
+          is(
+            item.shadowRoot.textContent.trim(),
+            "Visual picker has a visible label again."
+          );
+          ok(
+            item.ariaLabelledByElements.includes(textEl),
+            "Visual picker item is labelled by the slotted content."
+          );
+        });
+      });
+
       add_task(async function testChangingPickerValue() {
         let items, picker;
 
