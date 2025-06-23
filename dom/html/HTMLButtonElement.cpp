@@ -490,6 +490,9 @@ void HTMLButtonElement::GetCommand(nsAString& aValue) const {
 }
 
 Element::Command HTMLButtonElement::GetCommand(nsAtom* aAtom) const {
+  if (aAtom == nsGkAtoms::_empty) {
+    return Command::Auto;
+  }
   if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::showpopover)) {
     return Command::ShowPopover;
   }

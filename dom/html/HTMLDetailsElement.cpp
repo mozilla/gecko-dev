@@ -167,7 +167,7 @@ bool HTMLDetailsElement::HandleCommandInternal(Element* aSource,
     return true;
   }
 
-  if (aCommand == Command::Toggle) {
+  if (aCommand == Command::Auto || aCommand == Command::Toggle) {
     ToggleOpen();
     return true;
   } else if (aCommand == Command::Close) {
