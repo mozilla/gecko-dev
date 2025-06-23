@@ -7,7 +7,7 @@ add_task(async () => {
   Services.prefs.setBoolPref("network.cookie.sameSite.schemeful", false);
   Services.prefs.setBoolPref("dom.security.https_first", false);
 
-  var expiry = Date.now() + 10000;
+  var expiry = (Date.now() + 1000) * 1000;
 
   // Test our handling of host names with a single character at the beginning
   // followed by a dot.

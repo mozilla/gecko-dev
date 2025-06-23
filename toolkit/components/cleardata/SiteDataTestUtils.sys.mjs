@@ -107,7 +107,7 @@ export var SiteDataTestUtils = {
       false,
       false,
       false,
-      Date.now() + 24 * 60 * 60 * 1000,
+      Math.floor(Date.now() / 1000) + 24 * 60 * 60,
       originAttributes,
       Ci.nsICookie.SAMESITE_UNSET,
       Ci.nsICookie.SCHEME_UNSET

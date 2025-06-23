@@ -999,16 +999,15 @@ void CookieCommons::GetServerDateHeader(nsIChannel* aChannel,
 }
 
 // static
-int64_t CookieCommons::MaybeCapExpiry(int64_t aCurrentTimeInMSec,
-                                      int64_t aExpiryInMSec) {
+int64_t CookieCommons::MaybeReduceExpiry(int64_t aCurrentTimeInSec,
+                                         int64_t aExpiryInSec) {
   int64_t maxageCap = StaticPrefs::network_cookie_maxageCap();
 
   if (maxageCap) {
-    aExpiryInMSec =
-        std::min(aExpiryInMSec, aCurrentTimeInMSec + maxageCap * 1000);
+    aExpiryInSec = std::min(aExpiryInSec, aCurrentTimeInSec + maxageCap);
   }
 
-  return aExpiryInMSec;
+  return aExpiryInSec;
 }
 
 // static

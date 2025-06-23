@@ -783,15 +783,15 @@ TEST(TestCookie, TestCookieMain)
 
   EXPECT_TRUE(NS_SUCCEEDED(
       cookieMgr2->AddNative(uri,
-                            "cookiemgr.test"_ns,                 // domain
-                            "/foo"_ns,                           // path
-                            "test2"_ns,                          // name
-                            "yes"_ns,                            // value
-                            false,                               // is secure
-                            true,                                // is httponly
-                            true,                                // is session
-                            PR_Now() / PR_USEC_PER_MSEC + 2000,  // expiry time
-                            &attrs,  // originAttributes
+                            "cookiemgr.test"_ns,             // domain
+                            "/foo"_ns,                       // path
+                            "test2"_ns,                      // name
+                            "yes"_ns,                        // value
+                            false,                           // is secure
+                            true,                            // is httponly
+                            true,                            // is session
+                            PR_Now() / PR_USEC_PER_SEC + 2,  // expiry time
+                            &attrs,                          // originAttributes
                             nsICookie::SAMESITE_LAX, nsICookie::SCHEME_HTTP,
                             false,    // is partitioned
                             true,     // from http

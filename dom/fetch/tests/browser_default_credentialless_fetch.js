@@ -11,7 +11,7 @@ const RESOURCE_URL =
 
 add_task(async function test_fetch_defaults_to_credentialless() {
   // Ensure cookie is set up:
-  let expiry = Date.now() + 1000 * 24 * 60 * 60;
+  let expiry = Date.now() / 1000 + 24 * 60 * 60;
   const cv = Services.cookies.add(
     "example.com",
     "/",

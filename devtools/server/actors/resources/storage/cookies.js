@@ -224,8 +224,8 @@ class CookiesStorageActor extends BaseStorageActor {
       host: cookie.host || "",
       path: cookie.path || "",
 
-      // because expires is in mseconds
-      expires: cookie.expires || 0,
+      // because expires is in seconds
+      expires: (cookie.expires || 0) * 1000,
 
       // because creationTime is in micro seconds
       creationTime: cookie.creationTime / 1000,
@@ -423,10 +423,10 @@ class CookiesStorageActor extends BaseStorageActor {
    */
   addCookie(guid, principal) {
     // Set expiry time for cookie 1 day into the future
-    // NOTE: Services.cookies.add expects the time in mseconds.
-    const ONE_DAY_IN_MSECONDS = 60 * 60 * 24 * 1000;
-    const time = Date.now();
-    const expiry = time + ONE_DAY_IN_MSECONDS;
+    // NOTE: Services.cookies.add expects the time in seconds.
+    const ONE_DAY_IN_SECONDS = 60 * 60 * 24;
+    const time = Math.floor(Date.now() / 1000);
+    const expiry = time + ONE_DAY_IN_SECONDS;
 
     // principal throws an error when we try to access principal.host if it
     // does not exist (which happens at about: pages).
@@ -531,10 +531,10 @@ class CookiesStorageActor extends BaseStorageActor {
 
     // If the date is expired set it for 10 seconds in the future.
     const now = new Date();
-    if (!cookie.isSession && cookie.expires <= now) {
-      const tenMsFromNow = now.getTime() + 10 * 1000;
+    if (!cookie.isSession && cookie.expires * 1000 <= now) {
+      const tenSecondsFromNow = (now.getTime() + 10 * 1000) / 1000;
 
-      cookie.expires = tenMsFromNow;
+      cookie.expires = tenSecondsFromNow;
     }
 
     let origCookieRemoved = false;
@@ -547,12 +547,10 @@ class CookiesStorageActor extends BaseStorageActor {
         break;
 
       case "expires":
-        newValue = Date.parse(newValue);
+        newValue = Date.parse(newValue) / 1000;
 
         if (isNaN(newValue)) {
           newValue = MAX_COOKIE_EXPIRY;
-        } else {
-          newValue = Services.cookies.maybeCapExpiry(newValue);
         }
         break;
 

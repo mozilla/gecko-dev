@@ -11,16 +11,13 @@ add_task(async function () {
   showAllColumns(true);
   showColumn("uniqueKey", false);
 
-  const date = new Date();
-  date.setDate(date.getDate() + 8);
-
   const id = getCookieId("test4", "test1.example.org", "/browser");
   await startCellEdit(id, "name");
   await typeWithTerminator("test6", "KEY_Tab");
   await typeWithTerminator("test6value", "KEY_Tab");
   await typeWithTerminator(".example.org", "KEY_Tab");
   await typeWithTerminator("/", "KEY_Tab");
-  await typeWithTerminator(date.toGMTString(), "KEY_Tab");
+  await typeWithTerminator("Tue, 25 Dec 2040 12:00:00 GMT", "KEY_Tab");
   await typeWithTerminator("false", "KEY_Tab");
   await typeWithTerminator("false", "KEY_Tab");
 });

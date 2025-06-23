@@ -120,7 +120,7 @@ interface nsICookieManager : nsISupports
    *        true if the cookie should exist for the current session only.
    *        see aExpiry.
    * @param aExpiry
-   *        expiration date, in mseconds since midnight (00:00:00), January 1,
+   *        expiration date, in seconds since midnight (00:00:00), January 1,
    *        1970 UTC. note that expiry time will also be honored for session cookies;
    *        in this way, the more restrictive of the two will take effect.
    * @param aOriginAttributes
@@ -348,13 +348,4 @@ interface nsICookieManager : nsISupports
 
   // Test getter to inspect remote exception list state.
   Array<ACString> testGet3PCBExceptions();
-
-  /**
-   * Helper to cap an expiry time using the network.cookie.maxageCap pref.
-   *
-   * @param aExpiry expiry time in milliseconds since the UNIX epoch.
-   * @return the minimum between aExpiry and the current time plus
-   *         StaticPrefs::network_cookie_maxageCap() seconds.
-   */
-  int64_t maybeCapExpiry(in int64_t aExpiryInMSec);
 };

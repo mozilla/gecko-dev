@@ -129,7 +129,7 @@ async function testCookies(options) {
         options.secure,
         false,
         false,
-        options.expiry * 1000,
+        options.expiry,
         {},
         Ci.nsICookie.SAMESITE_UNSET,
         options.url.startsWith("https")
@@ -145,7 +145,7 @@ async function testCookies(options) {
         options.secure,
         false,
         false,
-        options.expiry * 1000,
+        options.expiry,
         {},
         Ci.nsICookie.SAMESITE_UNSET,
         options.url.startsWith("https")
@@ -161,7 +161,7 @@ async function testCookies(options) {
         options.secure,
         false,
         false,
-        options.expiry * 1000,
+        options.expiry,
         {},
         Ci.nsICookie.SAMESITE_UNSET,
         options.url.startsWith("https")
@@ -193,7 +193,7 @@ async function testCookies(options) {
         options.secure,
         false,
         false,
-        options.expiry * 1000,
+        options.expiry,
         {},
         Ci.nsICookie.SAMESITE_UNSET,
         options.url.startsWith("https")
@@ -209,7 +209,7 @@ async function testCookies(options) {
         options.secure,
         false,
         false,
-        options.expiry * 1000,
+        options.expiry,
         {},
         Ci.nsICookie.SAMESITE_UNSET,
         options.url.startsWith("https")

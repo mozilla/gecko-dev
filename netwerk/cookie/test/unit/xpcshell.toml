@@ -16,8 +16,6 @@ prefs = ["dom.security.https_first=false"]
 
 ["test_getCookieSince.js"]
 
-["test_maybeCapExpiry.js"]
-
 ["test_migrateCookieLifetimePref.js"]
 
 ["test_parser_0001.js"]

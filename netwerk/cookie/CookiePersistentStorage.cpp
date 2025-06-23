@@ -32,7 +32,7 @@
 // This is a hack to hide HttpOnly cookies from older browsers
 #define HTTP_ONLY_PREFIX "#HttpOnly_"
 
-constexpr auto COOKIES_SCHEMA_VERSION = 16;
+constexpr auto COOKIES_SCHEMA_VERSION = 15;
 
 // parameter indexes; see |Read|
 constexpr auto IDX_NAME = 0;
@@ -1572,14 +1572,6 @@ CookiePersistentStorage::OpenDBResult CookiePersistentStorage::TryInitDB(
 
         rv = mSyncConn->ExecuteSimpleSQL(nsLiteralCString(
             "ALTER TABLE moz_cookies DROP COLUMN rawSameSite;"));
-        NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
-
-        [[fallthrough]];
-      }
-
-      case 15: {
-        rv = mSyncConn->ExecuteSimpleSQL(
-            nsLiteralCString("UPDATE moz_cookies SET expiry = expiry * 1000;"));
         NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
 
         // No more upgrades. Update the schema version.

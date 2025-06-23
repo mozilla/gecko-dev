@@ -33,7 +33,7 @@ function addCookie(cookie) {
     false,
     false,
     false,
-    Date.now() + 1000 * 10000,
+    Date.now() / 1000 + 10000,
     {},
     Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTPS

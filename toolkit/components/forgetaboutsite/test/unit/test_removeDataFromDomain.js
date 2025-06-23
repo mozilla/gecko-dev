@@ -23,7 +23,7 @@ ChromeUtils.defineESModuleGetters(this, {
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
 });
 
-const COOKIE_EXPIRY = Date.now() + 60000;
+const COOKIE_EXPIRY = Math.round(Date.now() / 1000) + 60;
 const COOKIE_NAME = "testcookie";
 const COOKIE_PATH = "/";
 

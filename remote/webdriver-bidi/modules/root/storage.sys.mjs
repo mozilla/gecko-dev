@@ -312,8 +312,7 @@ class StorageModule extends RootBiDiModule {
         httpOnly === null ? false : httpOnly,
         isSession,
         // The XPCOM interface requires the expiry field even for session cookies.
-        // The expiry value must be passed as milliseconds.
-        expiry === null ? MAX_COOKIE_EXPIRY : expiry * 1000,
+        expiry === null ? MAX_COOKIE_EXPIRY : expiry,
         originAttributes,
         this.#getSameSitePlatformProperty(sameSite),
         schemeType,
@@ -598,10 +597,6 @@ class StorageModule extends RootBiDiModule {
 
         case "value":
           deserializedValue = lazy.deserializeBytesValue(value);
-          break;
-
-        case "expiry":
-          deserializedValue = value * 1000;
           break;
 
         default:
@@ -933,7 +928,7 @@ class StorageModule extends RootBiDiModule {
         case "expiry": {
           const expiry = this.#getCookieExpiry(storedCookie);
           if (expiry !== null) {
-            cookie.expiry = Math.round(expiry / 1000);
+            cookie.expiry = expiry;
           }
           break;
         }

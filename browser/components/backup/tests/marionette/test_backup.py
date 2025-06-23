@@ -314,7 +314,7 @@ class BackupTest(MarionetteTestCase):
               false,
               false,
               false,
-              Date.now() + 1000,
+              Date.now() / 1000 + 1,
               {},
               Ci.nsICookie.SAMESITE_UNSET,
               Ci.nsICookie.SCHEME_HTTP

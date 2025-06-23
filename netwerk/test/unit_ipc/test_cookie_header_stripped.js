@@ -72,7 +72,7 @@ function run_test() {
 
   // Sets a cookie for the test domain
   do_await_remote_message("set-cookie").then(() => {
-    const expiry = Date.now() + 24 * 60 * 60 * 1000;
+    const expiry = Date.now() + 24 * 60 * 60;
     const cv = Services.cookies.add(
       TEST_DOMAIN,
       "/",
