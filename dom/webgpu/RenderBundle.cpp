@@ -36,7 +36,7 @@ void RenderBundle::Cleanup() {
   if (bridge->CanSend()) {
     ipc::ByteBuf bb;
     ffi::wgpu_client_drop_render_bundle(mId, ToFFI(&bb));
-    bridge->SendMessage(std::move(bb));
+    bridge->SendMessage(std::move(bb), Nothing());
   }
   wgpu_client_free_render_bundle_id(bridge->GetClient(), mId);
 }

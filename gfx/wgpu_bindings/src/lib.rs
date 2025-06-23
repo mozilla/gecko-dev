@@ -126,6 +126,7 @@ enum Message<'a> {
     ),
     ReplayRenderPass(id::DeviceId, id::CommandEncoderId, RecordedRenderPass),
     ReplayComputePass(id::DeviceId, id::CommandEncoderId, RecordedComputePass),
+    QueueWrite(id::DeviceId, id::QueueId, QueueWriteAction),
 
     DestroyBuffer(id::BufferId),
     DestroyTexture(id::TextureId),

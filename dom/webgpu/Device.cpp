@@ -218,7 +218,7 @@ already_AddRefed<Texture> Device::CreateTexture(
       mBridge->GetClient(), mId, &desc, ownerId.ptrOr(nullptr), ToFFI(&bb));
 
   if (mBridge->CanSend()) {
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
 
   RefPtr<Texture> texture = new Texture(this, id, aDesc);
@@ -253,7 +253,7 @@ already_AddRefed<Sampler> Device::CreateSampler(
                                              ToFFI(&bb));
 
   if (mBridge->CanSend()) {
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
 
   RefPtr<Sampler> sampler = new Sampler(this, id);
@@ -272,7 +272,7 @@ already_AddRefed<CommandEncoder> Device::CreateCommandEncoder(
   RawId id = ffi::wgpu_client_create_command_encoder(mBridge->GetClient(), mId,
                                                      &desc, ToFFI(&bb));
   if (mBridge->CanSend()) {
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
 
   RefPtr<CommandEncoder> encoder = new CommandEncoder(this, mBridge, id);
@@ -316,7 +316,7 @@ already_AddRefed<QuerySet> Device::CreateQuerySet(
   RawId id = ffi::wgpu_client_create_query_set(mBridge->GetClient(), mId, &desc,
                                                ToFFI(&bb));
   if (mBridge->CanSend()) {
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
 
   RefPtr<QuerySet> querySet = new QuerySet(this, aDesc, id);
@@ -438,7 +438,7 @@ already_AddRefed<BindGroupLayout> Device::CreateBindGroupLayout(
   RawId id = ffi::wgpu_client_create_bind_group_layout(mBridge->GetClient(),
                                                        mId, &desc, ToFFI(&bb));
   if (mBridge->CanSend()) {
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
 
   RefPtr<BindGroupLayout> object = new BindGroupLayout(this, id, true);
@@ -466,7 +466,7 @@ already_AddRefed<PipelineLayout> Device::CreatePipelineLayout(
   RawId id = ffi::wgpu_client_create_pipeline_layout(mBridge->GetClient(), mId,
                                                      &desc, ToFFI(&bb));
   if (mBridge->CanSend()) {
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
 
   RefPtr<PipelineLayout> object = new PipelineLayout(this, id);
@@ -515,7 +515,7 @@ already_AddRefed<BindGroup> Device::CreateBindGroup(
   RawId id = ffi::wgpu_client_create_bind_group(mBridge->GetClient(), mId,
                                                 &desc, ToFFI(&bb));
   if (mBridge->CanSend()) {
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
 
   RefPtr<BindGroup> object = new BindGroup(this, id);
@@ -919,7 +919,7 @@ already_AddRefed<ComputePipeline> Device::CreateComputePipeline(
   RawId id = CreateComputePipelineImpl(&context, mBridge, aDesc, &bb);
 
   if (mBridge->CanSend()) {
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
 
   RefPtr<ComputePipeline> object =
@@ -936,7 +936,7 @@ already_AddRefed<RenderPipeline> Device::CreateRenderPipeline(
   RawId id = CreateRenderPipelineImpl(&context, mBridge, aDesc, &bb);
 
   if (mBridge->CanSend()) {
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
 
   RefPtr<RenderPipeline> object =
@@ -1075,7 +1075,7 @@ void Device::Destroy() {
   if (IsBridgeAlive()) {
     ipc::ByteBuf bb;
     ffi::wgpu_client_destroy_device(mId, ToFFI(&bb));
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
 
   // Resolve our lost promise in the same way as if we had a successful

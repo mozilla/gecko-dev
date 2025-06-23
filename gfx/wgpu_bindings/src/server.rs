@@ -2395,10 +2395,16 @@ impl Global {
     }
 }
 
+/// # Safety
+///
+/// This function is unsafe as there is no guarantee that the `data` pointer is
+/// valid for `data_length` elements.
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_server_message(
     global: &Global,
     byte_buf: &ByteBuf,
+    data: *const u8,
+    data_length: usize,
     mut error_buf: ErrorBuffer,
 ) {
     let message: Message = bincode::deserialize(byte_buf.as_slice()).unwrap();
@@ -2422,6 +2428,24 @@ pub unsafe extern "C" fn wgpu_server_message(
         Message::ReplayComputePass(device_id, id, pass) => {
             crate::command::replay_compute_pass(global, device_id, id, &pass, error_buf);
         }
+        Message::QueueWrite(device_id, queue_id, action) => {
+            let data = if data.is_null() || data_length == 0 {
+                &[]
+            } else {
+                slice::from_raw_parts(data, data_length)
+            };
+            let result = match action {
+                QueueWriteAction::Buffer { dst, offset } => {
+                    global.queue_write_buffer(queue_id, dst, offset, data)
+                }
+                QueueWriteAction::Texture { dst, layout, size } => {
+                    global.queue_write_texture(queue_id, &dst, data, &layout, &size)
+                }
+            };
+            if let Err(err) = result {
+                error_buf.init(err, device_id);
+            }
+        }
 
         Message::DestroyBuffer(id) => {
             wgpu_server_dealloc_buffer_shmem(global.webgpu_parent, id);
@@ -2432,6 +2456,7 @@ pub unsafe extern "C" fn wgpu_server_message(
             global.texture_destroy(id)
         }
         Message::DestroyDevice(id) => global.device_destroy(id),
+
         Message::DropAdapter(id) => global.adapter_drop(id),
         Message::DropDevice(id) => {
             wgpu_server_pre_device_drop(global.webgpu_parent, id);
@@ -2473,6 +2498,7 @@ pub unsafe extern "C" fn wgpu_server_message(
         Message::DropTextureView(id) => global.texture_view_drop(id).unwrap(),
         Message::DropSampler(id) => global.sampler_drop(id),
         Message::DropQuerySet(id) => global.query_set_drop(id),
+
         Message::DropCommandEncoder(id) => global.command_encoder_drop(id),
     }
 }
@@ -2713,41 +2739,6 @@ pub unsafe extern "C" fn wgpu_server_queue_write_buffer_inline(
     mut error_buf: ErrorBuffer,
 ) {
     let result = global.queue_write_buffer(self_id, buffer_id, offset, byte_buf.as_slice());
-    if let Err(err) = result {
-        error_buf.init(err, device_id);
-    }
-}
-
-/// # Safety
-///
-/// This function is unsafe as there is no guarantee that the given pointer is
-/// valid for `data_length` elements.
-#[no_mangle]
-pub unsafe extern "C" fn wgpu_server_queue_write_action(
-    global: &Global,
-    device_id: id::DeviceId,
-    self_id: id::QueueId,
-    byte_buf: &ByteBuf,
-    data: *const u8,
-    data_length: usize,
-    mut error_buf: ErrorBuffer,
-) {
-    let action: QueueWriteAction = bincode::deserialize(byte_buf.as_slice()).unwrap();
-    // It is undefined behavior to pass a null pointer to `slice::from_raw_parts`, so in the case
-    // of a null pointer (which occurs if `data_length` is 0), we use a dangling pointer.
-    let data = ptr::NonNull::new(data as *mut u8).unwrap_or_else(|| {
-        assert!(data_length == 0);
-        ptr::NonNull::dangling()
-    });
-    let data = slice::from_raw_parts(data.as_ptr(), data_length);
-    let result = match action {
-        QueueWriteAction::Buffer { dst, offset } => {
-            global.queue_write_buffer(self_id, dst, offset, data)
-        }
-        QueueWriteAction::Texture { dst, layout, size } => {
-            global.queue_write_texture(self_id, &dst, data, &layout, &size)
-        }
-    };
     if let Err(err) = result {
         error_buf.init(err, device_id);
     }

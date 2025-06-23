@@ -61,7 +61,7 @@ void Texture::Cleanup() {
   if (bridge->CanSend()) {
     ipc::ByteBuf bb;
     ffi::wgpu_client_drop_texture(mId, ToFFI(&bb));
-    bridge->SendMessage(std::move(bb));
+    bridge->SendMessage(std::move(bb), Nothing());
   }
 
   wgpu_client_free_texture_id(bridge->GetClient(), mId);
@@ -108,7 +108,7 @@ already_AddRefed<TextureView> Texture::CreateView(
   RawId id = ffi::wgpu_client_create_texture_view(
       bridge->GetClient(), mParent->mId, mId, &desc, ToFFI(&bb));
   if (bridge->CanSend()) {
-    bridge->SendMessage(std::move(bb));
+    bridge->SendMessage(std::move(bb), Nothing());
   }
 
   RefPtr<TextureView> view = new TextureView(this, id);
@@ -121,7 +121,7 @@ void Texture::Destroy() {
   if (bridge && bridge->CanSend()) {
     ipc::ByteBuf bb;
     ffi::wgpu_client_destroy_texture(mId, ToFFI(&bb));
-    bridge->SendMessage(std::move(bb));
+    bridge->SendMessage(std::move(bb), Nothing());
   }
 }
 

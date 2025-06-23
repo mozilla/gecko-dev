@@ -95,7 +95,7 @@ void CommandEncoder::Cleanup() {
   if (mBridge->CanSend()) {
     ipc::ByteBuf bb;
     ffi::wgpu_client_drop_command_encoder(mId, ToFFI(&bb));
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
   wgpu_client_free_command_encoder_id(mBridge->GetClient(), mId);
 }
@@ -136,7 +136,7 @@ void CommandEncoder::CopyBufferToBuffer(
   ffi::wgpu_command_encoder_copy_buffer_to_buffer(
       mParent->mId, mId, aSource.mId, aSourceOffset, aDestination.mId,
       aDestinationOffset, size, ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb));
+  mBridge->SendMessage(std::move(bb), Nothing());
 }
 
 void CommandEncoder::CopyBufferToTexture(
@@ -154,7 +154,7 @@ void CommandEncoder::CopyBufferToTexture(
       mParent->mId, mId, aSource.mBuffer->mId, &src_layout,
       ConvertTextureCopyView(aDestination), ConvertExtent(aCopySize),
       ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb));
+  mBridge->SendMessage(std::move(bb), Nothing());
 
   TrackPresentationContext(aDestination.mTexture->mTargetContext);
 }
@@ -173,7 +173,7 @@ void CommandEncoder::CopyTextureToBuffer(
       mParent->mId, mId, ConvertTextureCopyView(aSource),
       aDestination.mBuffer->mId, &dstLayout, ConvertExtent(aCopySize),
       ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb));
+  mBridge->SendMessage(std::move(bb), Nothing());
 }
 void CommandEncoder::CopyTextureToTexture(
     const dom::GPUTexelCopyTextureInfo& aSource,
@@ -188,7 +188,7 @@ void CommandEncoder::CopyTextureToTexture(
       mParent->mId, mId, ConvertTextureCopyView(aSource),
       ConvertTextureCopyView(aDestination), ConvertExtent(aCopySize),
       ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb));
+  mBridge->SendMessage(std::move(bb), Nothing());
 
   TrackPresentationContext(aDestination.mTexture->mTargetContext);
 }
@@ -205,7 +205,7 @@ void CommandEncoder::ClearBuffer(const Buffer& aBuffer, const uint64_t aOffset,
   ipc::ByteBuf bb;
   ffi::wgpu_command_encoder_clear_buffer(mParent->mId, mId, aBuffer.mId,
                                          aOffset, size, ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb));
+  mBridge->SendMessage(std::move(bb), Nothing());
 }
 
 void CommandEncoder::PushDebugGroup(const nsAString& aString) {
@@ -217,7 +217,7 @@ void CommandEncoder::PushDebugGroup(const nsAString& aString) {
   NS_ConvertUTF16toUTF8 marker(aString);
   ffi::wgpu_command_encoder_push_debug_group(mParent->mId, mId, &marker,
                                              ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb));
+  mBridge->SendMessage(std::move(bb), Nothing());
 }
 void CommandEncoder::PopDebugGroup() {
   if (!mBridge->CanSend()) {
@@ -226,7 +226,7 @@ void CommandEncoder::PopDebugGroup() {
 
   ipc::ByteBuf bb;
   ffi::wgpu_command_encoder_pop_debug_group(mParent->mId, mId, ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb));
+  mBridge->SendMessage(std::move(bb), Nothing());
 }
 void CommandEncoder::InsertDebugMarker(const nsAString& aString) {
   if (!mBridge->CanSend()) {
@@ -237,7 +237,7 @@ void CommandEncoder::InsertDebugMarker(const nsAString& aString) {
   NS_ConvertUTF16toUTF8 marker(aString);
   ffi::wgpu_command_encoder_insert_debug_marker(mParent->mId, mId, &marker,
                                                 ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb));
+  mBridge->SendMessage(std::move(bb), Nothing());
 }
 
 already_AddRefed<ComputePassEncoder> CommandEncoder::BeginComputePass(
@@ -305,7 +305,7 @@ void CommandEncoder::ResolveQuerySet(QuerySet& aQuerySet, uint32_t aFirstQuery,
   ffi::wgpu_command_encoder_resolve_query_set(
       mParent->mId, mId, aQuerySet.mId, aFirstQuery, aQueryCount,
       aDestination.mId, aDestinationOffset, ToFFI(&bb));
-  mBridge->SendMessage(std::move(bb));
+  mBridge->SendMessage(std::move(bb), Nothing());
 }
 
 void CommandEncoder::EndComputePass(ffi::WGPURecordedComputePass& aPass) {
@@ -324,7 +324,7 @@ void CommandEncoder::EndComputePass(ffi::WGPURecordedComputePass& aPass) {
 
   ipc::ByteBuf byteBuf;
   ffi::wgpu_compute_pass_finish(mParent->mId, mId, &aPass, ToFFI(&byteBuf));
-  mBridge->SendMessage(std::move(byteBuf));
+  mBridge->SendMessage(std::move(byteBuf), Nothing());
 }
 
 void CommandEncoder::EndRenderPass(ffi::WGPURecordedRenderPass& aPass) {
@@ -343,7 +343,7 @@ void CommandEncoder::EndRenderPass(ffi::WGPURecordedRenderPass& aPass) {
 
   ipc::ByteBuf byteBuf;
   ffi::wgpu_render_pass_finish(mParent->mId, mId, &aPass, ToFFI(&byteBuf));
-  mBridge->SendMessage(std::move(byteBuf));
+  mBridge->SendMessage(std::move(byteBuf), Nothing());
 }
 
 already_AddRefed<CommandBuffer> CommandEncoder::Finish(
@@ -368,7 +368,7 @@ already_AddRefed<CommandBuffer> CommandEncoder::Finish(
     }
     ipc::ByteBuf bb;
     ffi::wgpu_command_encoder_finish(mParent->mId, mId, &desc, ToFFI(&bb));
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
   mState = CommandEncoderState::Ended;
 

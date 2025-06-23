@@ -40,7 +40,7 @@ async protocol PWebGPU
   manager PCanvasManager;
 
 parent:
-  async Message(ByteBuf buf);
+  async Message(ByteBuf buf, MutableSharedMemoryHandle? shm);
 
   async DeviceActionWithAck(RawId selfId, ByteBuf buf) returns (bool dummy);
 
@@ -60,8 +60,6 @@ parent:
 
   async QueueSubmit(RawId selfId, RawId aDeviceId, RawId[] commandBuffers, RawId[] textureIds);
   async QueueOnSubmittedWorkDone(RawId selfId) returns (void_t ok);
-  // In the case of a zero-sized write action, `shmem` will be an invalid handle.
-  async QueueWriteAction(RawId selfId, RawId aDeviceId, ByteBuf buf, MutableSharedMemoryHandle shmem);
   async QueueWriteBufferInline(RawId selfId, RawId aDeviceId, RawId aBufferId, uint64_t offset, ByteBuf buf);
 
   async DeviceCreateSwapChain(RawId selfId, RawId queueId, RGBDescriptor desc, RawId[] bufferIds, RemoteTextureOwnerId ownerId, bool useExternalTextureInSwapChain);

@@ -380,7 +380,7 @@ void Adapter::Cleanup() {
 
     ipc::ByteBuf bb;
     ffi::wgpu_client_drop_adapter(mId, ToFFI(&bb));
-    mBridge->SendMessage(std::move(bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
   }
 }
 

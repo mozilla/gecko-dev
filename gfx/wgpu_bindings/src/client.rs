@@ -1489,16 +1489,21 @@ pub unsafe extern "C" fn wgpu_command_encoder_finish(
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_queue_write_buffer(
+    device_id: id::DeviceId,
+    queue_id: id::QueueId,
     dst: id::BufferId,
     offset: wgt::BufferAddress,
     bb: &mut ByteBuf,
 ) {
     let action = QueueWriteAction::Buffer { dst, offset };
+    let action = Message::QueueWrite(device_id, queue_id, action);
     *bb = make_byte_buf(&action);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_queue_write_texture(
+    device_id: id::DeviceId,
+    queue_id: id::QueueId,
     dst: wgt::TexelCopyTextureInfo<id::TextureId>,
     layout: TexelCopyBufferLayout,
     size: wgt::Extent3d,
@@ -1506,6 +1511,7 @@ pub unsafe extern "C" fn wgpu_queue_write_texture(
 ) {
     let layout = layout.into_wgt();
     let action = QueueWriteAction::Texture { dst, layout, size };
+    let action = Message::QueueWrite(device_id, queue_id, action);
     *bb = make_byte_buf(&action);
 }
 

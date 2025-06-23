@@ -62,7 +62,7 @@ ffi::WGPURenderBundleEncoder* CreateRenderBundleEncoder(
       aDeviceId, &desc, ToFFI(&failureAction));
   // Report an error only if the operation failed.
   if (!bundle) {
-    aBridge->SendMessage(std::move(failureAction));
+    aBridge->SendMessage(std::move(failureAction), Nothing());
   }
   return bundle;
 }
@@ -246,7 +246,7 @@ already_AddRefed<RenderBundle> RenderBundleEncoder::Finish(
   }
 
   if (bridge->CanSend()) {
-    bridge->SendMessage(std::move(bb));
+    bridge->SendMessage(std::move(bb), Nothing());
   }
 
   Cleanup();

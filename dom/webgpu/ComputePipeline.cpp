@@ -42,7 +42,7 @@ void ComputePipeline::Cleanup() {
     ffi::wgpu_client_drop_compute_pipeline(
         mId, mImplicitPipelineLayoutId, mImplicitBindGroupLayoutIds.Elements(),
         mImplicitBindGroupLayoutIds.Length(), ToFFI(&bb));
-    bridge->SendMessage(std::move(bb));
+    bridge->SendMessage(std::move(bb), Nothing());
   }
 
   if (mImplicitPipelineLayoutId) {
@@ -65,7 +65,7 @@ already_AddRefed<BindGroupLayout> ComputePipeline::GetBindGroupLayout(
   const RawId bglId = ffi::wgpu_client_compute_pipeline_get_bind_group_layout(
       client, mParent->GetId(), mId, aIndex, ToFFI(&bb));
 
-  bridge->SendMessage(std::move(bb));
+  bridge->SendMessage(std::move(bb), Nothing());
 
   RefPtr<BindGroupLayout> object = new BindGroupLayout(mParent, bglId, false);
   return object.forget();

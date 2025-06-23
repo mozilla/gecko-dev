@@ -143,9 +143,9 @@ void Queue::WriteBuffer(
           memcpy(mapping.DataAs<uint8_t>(), aData.Elements() + offset, size);
         }
         ipc::ByteBuf bb;
-        ffi::wgpu_queue_write_buffer(aBuffer.mId, aBufferOffset, ToFFI(&bb));
-        mBridge->SendQueueWriteAction(mId, mParent->mId, std::move(bb),
-                                      std::move(handle));
+        ffi::wgpu_queue_write_buffer(mParent->mId, mId, aBuffer.mId,
+                                     aBufferOffset, ToFFI(&bb));
+        mBridge->SendMessage(std::move(bb), Some(std::move(handle)));
       });
 }
 
@@ -247,9 +247,9 @@ void Queue::WriteTexture(
     }
 
     ipc::ByteBuf bb;
-    ffi::wgpu_queue_write_texture(copyView, dataLayout, extent, ToFFI(&bb));
-    mBridge->SendQueueWriteAction(mId, mParent->mId, std::move(bb),
-                                  std::move(handle));
+    ffi::wgpu_queue_write_texture(mParent->mId, mId, copyView, dataLayout,
+                                  extent, ToFFI(&bb));
+    mBridge->SendMessage(std::move(bb), Some(std::move(handle)));
   });
 }
 
@@ -514,9 +514,9 @@ void Queue::CopyExternalImageToTexture(
   ffi::WGPUTexelCopyTextureInfo copyView = {};
   CommandEncoder::ConvertTextureCopyViewToFFI(aDestination, &copyView);
   ipc::ByteBuf bb;
-  ffi::wgpu_queue_write_texture(copyView, dataLayout, extent, ToFFI(&bb));
-  mBridge->SendQueueWriteAction(mId, mParent->mId, std::move(bb),
-                                std::move(handle));
+  ffi::wgpu_queue_write_texture(mParent->mId, mId, copyView, dataLayout, extent,
+                                ToFFI(&bb));
+  mBridge->SendMessage(std::move(bb), Some(std::move(handle)));
 }
 
 }  // namespace mozilla::webgpu

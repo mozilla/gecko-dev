@@ -35,7 +35,7 @@ void PipelineLayout::Cleanup() {
   if (bridge->CanSend()) {
     ipc::ByteBuf bb;
     ffi::wgpu_client_drop_pipeline_layout(mId, ToFFI(&bb));
-    bridge->SendMessage(std::move(bb));
+    bridge->SendMessage(std::move(bb), Nothing());
   }
   wgpu_client_free_pipeline_layout_id(bridge->GetClient(), mId);
 }

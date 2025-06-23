@@ -116,7 +116,7 @@ RawId WebGPUChild::RenderBundleEncoderFinish(
   RawId id = ffi::wgpu_client_create_render_bundle(
       mClient.get(), aDeviceId, &aEncoder, &desc, ToFFI(&bb));
 
-  SendMessage(std::move(bb));
+  SendMessage(std::move(bb), Nothing());
 
   return id;
 }
@@ -129,7 +129,7 @@ RawId WebGPUChild::RenderBundleEncoderFinishError(RawId aDeviceId,
   RawId id = ffi::wgpu_client_create_render_bundle_error(
       mClient.get(), aDeviceId, label.Get(), ToFFI(&bb));
 
-  SendMessage(std::move(bb));
+  SendMessage(std::move(bb), Nothing());
 
   return id;
 }
@@ -227,7 +227,7 @@ void WebGPUChild::UnregisterDevice(RawId aDeviceId) {
   if (CanSend()) {
     ipc::ByteBuf bb;
     ffi::wgpu_client_drop_device(aDeviceId, ToFFI(&bb));
-    SendMessage(std::move(bb));
+    SendMessage(std::move(bb), Nothing());
   }
   mDeviceMap.erase(aDeviceId);
 }

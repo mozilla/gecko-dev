@@ -36,7 +36,7 @@ void BindGroupLayout::Cleanup() {
     if (bridge->CanSend()) {
       ipc::ByteBuf bb;
       ffi::wgpu_client_drop_bind_group_layout(mId, ToFFI(&bb));
-      bridge->SendMessage(std::move(bb));
+      bridge->SendMessage(std::move(bb), Nothing());
     }
     wgpu_client_free_bind_group_layout_id(bridge->GetClient(), mId);
   }

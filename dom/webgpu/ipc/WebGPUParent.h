@@ -60,7 +60,8 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
                                uint64_t aOffset, uint64_t size,
                                BufferMapResolver&& aResolver);
   ipc::IPCResult RecvBufferUnmap(RawId aDeviceId, RawId aBufferId, bool aFlush);
-  ipc::IPCResult RecvMessage(const ipc::ByteBuf& aByteBuf);
+  ipc::IPCResult RecvMessage(const ipc::ByteBuf& aByteBuf,
+                             Maybe<ipc::MutableSharedMemoryHandle>&& aShmem);
   ipc::IPCResult RecvQueueSubmit(RawId aQueueId, RawId aDeviceId,
                                  const nsTArray<RawId>& aCommandBuffers,
                                  const nsTArray<RawId>& aTextureIds);
@@ -69,9 +70,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   ipc::IPCResult RecvQueueWriteBufferInline(RawId aQueueId, RawId aDeviceId,
                                             RawId aBufferId, uint64_t offset,
                                             const ipc::ByteBuf& aByteBuf);
-  ipc::IPCResult RecvQueueWriteAction(RawId aQueueId, RawId aDeviceId,
-                                      const ipc::ByteBuf& aByteBuf,
-                                      ipc::MutableSharedMemoryHandle&& aShmem);
   ipc::IPCResult RecvDeviceCreateSwapChain(
       RawId aDeviceId, RawId aQueueId, const layers::RGBDescriptor& aDesc,
       const nsTArray<RawId>& aBufferIds,

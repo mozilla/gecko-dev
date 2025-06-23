@@ -38,7 +38,7 @@ void ShaderModule::Cleanup() {
   if (bridge->CanSend()) {
     ipc::ByteBuf bb;
     ffi::wgpu_client_drop_shader_module(mId, ToFFI(&bb));
-    bridge->SendMessage(std::move(bb));
+    bridge->SendMessage(std::move(bb), Nothing());
   }
 
   wgpu_client_free_shader_module_id(bridge->GetClient(), mId);
