@@ -9591,9 +9591,9 @@ void PresShell::EventHandler::MaybeHandleKeyboardEventBeforeDispatch(
 
       if (shouldExitFullscreen) {
         // ESC key released while in DOM fullscreen mode.
-        // Fully exit all browser windows and documents from
-        // fullscreen mode.
-        Document::AsyncExitFullscreen(nullptr);
+        // Fully exit fullscreen mode for the browser window and documents that
+        // received the event.
+        Document::AsyncExitFullscreen(root);
       }
     }
   }
