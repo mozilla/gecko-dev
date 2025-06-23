@@ -45,6 +45,7 @@ import org.mozilla.fenix.GleanMetrics.TabsTray
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
+import org.mozilla.fenix.biometricauthentication.NavigationOrigin
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.compose.core.Action
@@ -525,7 +526,9 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             lockNormalMode = true,
             onPrivateModeLocked = {
                 if (tabsTrayStore.state.selectedPage == Page.PrivateTabs) {
-                    findNavController().navigate(NavGraphDirections.actionGlobalUnlockPrivateTabsFragment())
+                    findNavController().navigate(
+                        NavGraphDirections.actionGlobalUnlockPrivateTabsFragment(NavigationOrigin.TABS_TRAY),
+                    )
                 }
             },
         )

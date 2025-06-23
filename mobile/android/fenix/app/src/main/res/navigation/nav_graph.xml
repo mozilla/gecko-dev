@@ -1218,6 +1218,9 @@
     <fragment
         android:id="@+id/unlockPrivateTabsFragment"
         android:name="org.mozilla.fenix.biometricauthentication.UnlockPrivateTabsFragment">
+        <argument
+            android:name="navigationOrigin"
+            app:argType="org.mozilla.fenix.biometricauthentication.NavigationOrigin" />
     </fragment>
 
     <navigation
