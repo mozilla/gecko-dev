@@ -773,20 +773,6 @@ nsIXULRuntime::ContentWin32kLockdownState GetLiveWin32kLockdownState() {
         OperatingSystemNotSupported;
   }
 
-  {
-    ConflictingMitigationStatus conflictingMitigationStatus = {};
-    if (!detect_win32k_conflicting_mitigations(&conflictingMitigationStatus)) {
-      return nsIXULRuntime::ContentWin32kLockdownState::
-          IncompatibleMitigationPolicy;
-    }
-    if (conflictingMitigationStatus.caller_check ||
-        conflictingMitigationStatus.sim_exec ||
-        conflictingMitigationStatus.stack_pivot) {
-      return nsIXULRuntime::ContentWin32kLockdownState::
-          IncompatibleMitigationPolicy;
-    }
-  }
-
   // Win32k Lockdown requires Remote WebGL, but it may be disabled on
   // certain hardware or virtual machines.
   if (!gfx::gfxVars::AllowWebglOop() || !StaticPrefs::webgl_out_of_process()) {
