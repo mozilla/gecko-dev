@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>MozPromo tests</title>
+    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+    <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+    <link
+      rel="stylesheet"
+      href="chrome://mochikit/content/tests/SimpleTest/test.css"
+    />
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-promo.mjs"
+    ></script>
+  </head>
+
+  <body>
+    <p id="display"></p>
+    <div id="content">
+      <moz-promo
+        id="promoMessage"
+        heading="Heading"
+        message="Test message"
+      ></moz-promo>
+      <moz-promo id="noProvidedHeadingOrMessage"></moz-promo>
+      <moz-promo
+        id="defaultType"
+        heading="Default type"
+        type="default"
+      ></moz-promo>
+      <moz-promo
+        id="vibrantType"
+        heading="Vibrant type"
+        type="vibrant"
+      ></moz-promo>
+    </div>
+    <pre id="test"></pre>
+    <script class="testbody" type="application/javascript">
+      add_task(async function test_component_declaration() {
+        const mozPromo = document.querySelector("#promoMessage");
+        ok(mozPromo, "moz-promo component is rendered");
+
+        const heading = mozPromo.shadowRoot.querySelector(".heading");
+        is(
+          heading.textContent.trim(),
+          "Heading",
+          "Heading is correctly rendered"
+        );
+        const message = mozPromo.shadowRoot.querySelector(".message");
+        is(
+          message.textContent.trim(),
+          "Test message",
+          "Message is correctly rendered"
+        );
+      });
+
+      add_task(async function test_heading_and_message_display() {
+        const mozPromo = document.querySelector("#noProvidedHeadingOrMessage");
+        let heading = mozPromo.shadowRoot.querySelector(".heading");
+        let message = mozPromo.shadowRoot.querySelector(".message");
+
+        ok(
+          !heading,
+          "Heading element is not displayed if it hasn't been initialized"
+        );
+        ok(
+          !message.textContent.trim(),
+          "Message element has no text if it hasn't been initialized"
+        );
+
+        mozPromo.heading = "Dynamically added heading";
+        await mozPromo.updateComplete;
+        heading = mozPromo.shadowRoot.querySelector(".heading");
+        is(
+          heading.textContent.trim(),
+          "Dynamically added heading",
+          "New heading element is displayed"
+        );
+
+        mozPromo.message = "Dynamically added message";
+        await mozPromo.updateComplete;
+        message = mozPromo.shadowRoot.querySelector(".message");
+        is(
+          message.textContent.trim(),
+          "Dynamically added message",
+          "New message element is displayed"
+        );
+      });
+
+      add_task(async function test_promo_types() {
+        const defaultMozPromo = document.querySelector("#defaultType");
+        const vibrantMozPromo = document.querySelector("#vibrantType");
+        is(
+          defaultMozPromo.getAttribute("type"),
+          "default",
+          "Assigned type should not change during initial lifecycle"
+        );
+        is(
+          vibrantMozPromo.getAttribute("type"),
+          "vibrant",
+          "Assigned type should not change during initial lifecycle"
+        );
+
+        let defaultStyles = window.getComputedStyle(defaultMozPromo);
+        let vibrantStyles = window.getComputedStyle(vibrantMozPromo);
+
+        // We are not testing the validity of the values assigned to the
+        // background-color. We are ensuring the colors change
+        // appropriate when using the "default" or "vibrant" types of
+        // moz-promo.
+
+        let defaultBackgroundColor = defaultStyles.getPropertyValue(
+          "--promo-background-color"
+        );
+        let vibrantBackgroundColor = vibrantStyles.getPropertyValue(
+          "--promo-background-color"
+        );
+
+        isnot(
+          defaultBackgroundColor,
+          vibrantBackgroundColor,
+          "Each type should have a unique background color"
+        );
+
+        // Now we are going to swap the types of the elements and assert
+        // that the background colors correctly changed;
+        defaultMozPromo.type = "vibrant";
+        vibrantMozPromo.type = "default";
+        await defaultMozPromo.updateComplete;
+        await vibrantMozPromo.updateComplete;
+
+        let newDefaultBackgroundColor = defaultStyles.getPropertyValue(
+          "--promo-background-color"
+        );
+        let newVibrantBackgroundColor = vibrantStyles.getPropertyValue(
+          "--promo-background-color"
+        );
+        is(
+          newDefaultBackgroundColor,
+          vibrantBackgroundColor,
+          "The default promo was switched to the vibrant type, the background color should be updated"
+        );
+        is(
+          newVibrantBackgroundColor,
+          defaultBackgroundColor,
+          "The vibrant promo was switched to the default type, the background color should be updated"
+        );
+      });
+    </script>
+  </body>
+</html>

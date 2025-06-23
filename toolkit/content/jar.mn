@@ -129,6 +129,8 @@ toolkit.jar:
    content/global/elements/moz-label.mjs       (widgets/moz-label/moz-label.mjs)
    content/global/elements/moz-message-bar.css    (widgets/moz-message-bar/moz-message-bar.css)
    content/global/elements/moz-message-bar.mjs    (widgets/moz-message-bar/moz-message-bar.mjs)
+   content/global/elements/moz-promo.css    (widgets/moz-promo/moz-promo.css)
+   content/global/elements/moz-promo.mjs    (widgets/moz-promo/moz-promo.mjs)
    content/global/elements/moz-radio-group.mjs    (widgets/moz-radio-group/moz-radio-group.mjs)
    content/global/elements/moz-reorderable-list.css    (widgets/moz-reorderable-list/moz-reorderable-list.css)
    content/global/elements/moz-reorderable-list.mjs    (widgets/moz-reorderable-list/moz-reorderable-list.mjs)

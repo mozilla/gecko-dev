@@ -868,6 +868,7 @@
             "moz-message-bar",
             "chrome://global/content/elements/moz-message-bar.mjs",
           ],
+          ["moz-promo", "chrome://global/content/elements/moz-promo.mjs"],
           ["moz-option", "chrome://global/content/elements/moz-select.mjs"],
           ["moz-page-nav", "chrome://global/content/elements/moz-page-nav.mjs"],
           ["moz-radio", "chrome://global/content/elements/moz-radio-group.mjs"],
