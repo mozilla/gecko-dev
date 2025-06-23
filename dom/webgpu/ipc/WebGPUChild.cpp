@@ -273,12 +273,21 @@ void resolve_buffer_map_promise(void* child, ffi::WGPUBufferId buffer_id,
   }
 }
 
+void resolve_on_submitted_work_done_promise(void* child) {
+  auto* c = static_cast<WebGPUChild*>(child);
+  auto& pending_promises = c->mPendingOnSubmittedWorkDonePromises;
+  auto pending_promise = std::move(pending_promises.front());
+  pending_promises.pop_front();
+
+  pending_promise->MaybeResolveWithUndefined();
+};
+
 ipc::IPCResult WebGPUChild::RecvServerMessage(const ipc::ByteBuf& aByteBuf) {
   ffi::wgpu_client_receive_server_message(
       this, GetClient(), ToFFI(&aByteBuf), resolve_request_adapter_promise,
       resolve_request_device_promise, resolve_pop_error_scope_promise,
       resolve_create_pipeline_promise, resolve_create_shader_module_promise,
-      resolve_buffer_map_promise);
+      resolve_buffer_map_promise, resolve_on_submitted_work_done_promise);
   return IPC_OK();
 }
 
@@ -343,16 +352,6 @@ ipc::IPCResult WebGPUChild::RecvDeviceLost(RawId aDeviceId,
   auto message = NS_ConvertUTF8toUTF16(aMessage);
   ResolveLostForDeviceId(aDeviceId, aReason, message);
   return IPC_OK();
-}
-
-void WebGPUChild::QueueOnSubmittedWorkDone(
-    const RawId aSelfId, const RefPtr<dom::Promise>& aPromise) {
-  SendQueueOnSubmittedWorkDone(aSelfId)->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [aPromise]() { aPromise->MaybeResolveWithUndefined(); },
-      [aPromise](const ipc::ResponseRejectReason& aReason) {
-        aPromise->MaybeRejectWithNotSupportedError("IPC error");
-      });
 }
 
 void WebGPUChild::SwapChainPresent(RawId aTextureId,

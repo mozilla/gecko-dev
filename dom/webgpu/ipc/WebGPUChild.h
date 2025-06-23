@@ -60,9 +60,6 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
 
   ffi::WGPUClient* GetClient() const { return mClient.get(); }
 
-  void QueueOnSubmittedWorkDone(const RawId aSelfId,
-                                const RefPtr<dom::Promise>& aPromise);
-
   void SwapChainPresent(RawId aTextureId,
                         const RemoteTextureId& aRemoteTextureId,
                         const RemoteTextureOwnerId& aOwnerId);
@@ -147,6 +144,8 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
 
   std::unordered_map<RawId, std::deque<PendingBufferMapPromise>>
       mPendingBufferMapPromises;
+
+  std::deque<RefPtr<dom::Promise>> mPendingOnSubmittedWorkDonePromises;
 };
 
 }  // namespace webgpu

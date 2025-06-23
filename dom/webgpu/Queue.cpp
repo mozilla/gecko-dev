@@ -57,7 +57,17 @@ already_AddRefed<dom::Promise> Queue::OnSubmittedWorkDone(ErrorResult& aRv) {
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
-  mBridge->QueueOnSubmittedWorkDone(mId, promise);
+
+  ipc::ByteBuf bb;
+  ffi::wgpu_client_on_submitted_work_done(mId, ToFFI(&bb));
+  bool sent = mBridge->SendMessage(std::move(bb), Nothing());
+  if (sent) {
+    auto pending_promise = RefPtr(promise);
+    mBridge->mPendingOnSubmittedWorkDonePromises.push_back(
+        std::move(pending_promise));
+  } else {
+    promise->MaybeRejectWithOperationError("Internal communication error");
+  }
 
   return promise.forget();
 }

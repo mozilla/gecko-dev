@@ -1359,6 +1359,10 @@ extern "C" {
         offset: u64,
         size: u64,
     ) -> BufferMapClosure;
+    #[allow(dead_code)]
+    fn wgpu_parent_build_submitted_work_done_closure(
+        param: *mut c_void,
+    ) -> SubmittedWorkDoneClosure;
 }
 
 #[cfg(target_os = "linux")]
@@ -2436,6 +2440,11 @@ pub unsafe extern "C" fn wgpu_server_pack_buffer_map_error(
     *bb = make_byte_buf(&ServerMessage::BufferMapResponse(buffer_id, result));
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn wgpu_server_pack_work_done(bb: &mut ByteBuf) {
+    *bb = make_byte_buf(&ServerMessage::QueueOnSubmittedWorkDoneResponse);
+}
+
 /// # Safety
 ///
 /// This function is unsafe as there is no guarantee that the `data` pointer is
@@ -2692,6 +2701,14 @@ pub unsafe extern "C" fn wgpu_server_message(
                 texture_ids.as_ptr(),
                 texture_ids.len(),
             )
+        }
+        Message::QueueOnSubmittedWorkDone(queue_id) => {
+            let closure = wgpu_parent_build_submitted_work_done_closure(global.webgpu_parent);
+            let closure = Box::new(move || {
+                let _ = &closure;
+                (closure.callback)(closure.user_data)
+            });
+            global.queue_on_submitted_work_done(queue_id, closure);
         }
 
         Message::CreateSwapChain {
@@ -2999,19 +3016,6 @@ pub unsafe extern "C" fn wgpu_vksemaphore_destroy(
 #[cfg(target_os = "linux")]
 pub unsafe extern "C" fn wgpu_vksemaphore_delete(handle: *mut VkSemaphoreHandle) {
     let _ = Box::from_raw(handle);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn wgpu_server_on_submitted_work_done(
-    global: &Global,
-    self_id: id::QueueId,
-    closure: SubmittedWorkDoneClosure,
-) {
-    let closure = Box::new(move || {
-        let _ = &closure;
-        (closure.callback)(closure.user_data)
-    });
-    global.queue_on_submitted_work_done(self_id, closure);
 }
 
 #[no_mangle]

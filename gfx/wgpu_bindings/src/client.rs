@@ -595,6 +595,7 @@ pub extern "C" fn wgpu_client_receive_server_message(
         size: u64,
         error: Option<&nsCString>,
     ),
+    resolve_on_submitted_work_done_promise: extern "C" fn(child: *mut core::ffi::c_void),
 ) {
     let message: ServerMessage = bincode::deserialize(unsafe { byte_buf.as_slice() }).unwrap();
     match message {
@@ -738,6 +739,9 @@ pub extern "C" fn wgpu_client_receive_server_message(
                 }
             };
         }
+        ServerMessage::QueueOnSubmittedWorkDoneResponse => {
+            resolve_on_submitted_work_done_promise(child);
+        }
     }
 }
 
@@ -774,6 +778,12 @@ pub extern "C" fn wgpu_client_create_shader_module(
     let action =
         DeviceAction::CreateShaderModule(shader_module_id, label, Cow::Owned(code.to_string()));
     let action = Message::Device(device_id, action);
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_on_submitted_work_done(queue_id: id::QueueId, bb: &mut ByteBuf) {
+    let action = Message::QueueOnSubmittedWorkDone(queue_id);
     *bb = make_byte_buf(&action);
 }
 

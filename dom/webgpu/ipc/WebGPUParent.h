@@ -54,8 +54,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   void QueueSubmit(RawId aQueueId, RawId aDeviceId,
                    Span<const RawId> aCommandBuffers,
                    Span<const RawId> aTextureIds);
-  ipc::IPCResult RecvQueueOnSubmittedWorkDone(
-      RawId aQueueId, std::function<void(mozilla::void_t)>&& aResolver);
   void DeviceCreateSwapChain(RawId aDeviceId, RawId aQueueId,
                              const layers::RGBDescriptor& aDesc,
                              const nsTArray<RawId>& aBufferIds,
@@ -150,6 +148,13 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
 
   static void MapCallback(/* std::unique_ptr<MapRequest> */ uint8_t* aUserData,
                           ffi::WGPUBufferMapAsyncStatus aStatus);
+
+  struct OnSubmittedWorkDoneRequest {
+    WeakPtr<WebGPUParent> mParent;
+  };
+
+  static void OnSubmittedWorkDoneCallback(
+      /* std::unique_ptr<OnSubmittedWorkDoneRequest> */ uint8_t* userdata);
 
  private:
   static void DeviceLostCallback(uint8_t* aUserData, uint8_t aReason,

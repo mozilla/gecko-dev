@@ -186,6 +186,7 @@ enum Message<'a> {
         Cow<'a, [id::CommandBufferId]>,
         Cow<'a, [id::TextureId]>,
     ),
+    QueueOnSubmittedWorkDone(id::QueueId),
 
     CreateSwapChain {
         device_id: id::DeviceId,
@@ -345,6 +346,7 @@ enum ServerMessage<'a> {
     },
     CreateShaderModuleResponse(Vec<ShaderModuleCompilationMessage>),
     BufferMapResponse(id::BufferId, BufferMapResult<'a>),
+    QueueOnSubmittedWorkDoneResponse,
 }
 
 #[repr(C)]

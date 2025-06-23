@@ -306,6 +306,20 @@ extern ffi::WGPUBufferMapClosure wgpu_parent_build_buffer_map_closure(
   return closure;
 }
 
+extern ffi::WGPUSubmittedWorkDoneClosure
+wgpu_parent_build_submitted_work_done_closure(void* aParam) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+
+  std::unique_ptr<WebGPUParent::OnSubmittedWorkDoneRequest> request(
+      new WebGPUParent::OnSubmittedWorkDoneRequest{parent});
+
+  ffi::WGPUSubmittedWorkDoneClosure closure = {
+      &WebGPUParent::OnSubmittedWorkDoneCallback,
+      reinterpret_cast<uint8_t*>(request.release())};
+
+  return closure;
+}
+
 }  // namespace ffi
 
 // A fixed-capacity buffer for receiving textual error messages from
@@ -788,29 +802,21 @@ void WebGPUParent::QueueSubmit(RawId aQueueId, RawId aDeviceId,
   ForwardError(error);
 }
 
-struct OnSubmittedWorkDoneRequest {
-  RefPtr<WebGPUParent> mParent;
-  WebGPUParent::QueueOnSubmittedWorkDoneResolver mResolver;
-};
-
-void OnSubmittedWorkDoneCallback(uint8_t* userdata) {
+void WebGPUParent::OnSubmittedWorkDoneCallback(uint8_t* userdata) {
   auto req = std::unique_ptr<OnSubmittedWorkDoneRequest>(
       reinterpret_cast<OnSubmittedWorkDoneRequest*>(userdata));
-  if (req->mParent->CanSend()) {
-    req->mResolver(void_t());
+  if (!req->mParent) {
+    return;
   }
-}
+  if (!req->mParent->CanSend()) {
+    return;
+  }
 
-ipc::IPCResult WebGPUParent::RecvQueueOnSubmittedWorkDone(
-    RawId aQueueId, std::function<void(mozilla::void_t)>&& aResolver) {
-  std::unique_ptr<OnSubmittedWorkDoneRequest> request(
-      new OnSubmittedWorkDoneRequest{this, std::move(aResolver)});
-
-  ffi::WGPUSubmittedWorkDoneClosure closure = {
-      &OnSubmittedWorkDoneCallback,
-      reinterpret_cast<uint8_t*>(request.release())};
-  ffi::wgpu_server_on_submitted_work_done(mContext.get(), aQueueId, closure);
-  return IPC_OK();
+  ipc::ByteBuf bb;
+  ffi::wgpu_server_pack_work_done(ToFFI(&bb));
+  if (!req->mParent->SendServerMessage(std::move(bb))) {
+    NS_ERROR("SendServerMessage failed");
+  }
 }
 
 // TODO: proper destruction
