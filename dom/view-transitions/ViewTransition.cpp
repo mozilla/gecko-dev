@@ -130,6 +130,25 @@ static RefPtr<gfx::DataSourceSurface> CaptureFallbackSnapshot(
   return surf->GetDataSurface();
 }
 
+// TODO(emilio): Bug 1970954. These aren't quite correct, per spec we're
+// supposed to only honor names and classes coming from the document, but that's
+// quite some magic, and it's getting actively discussed, see:
+// https://github.com/w3c/csswg-drafts/issues/10808 and related
+// https://drafts.csswg.org/css-view-transitions-1/#document-scoped-view-transition-name
+static nsAtom* DocumentScopedTransitionNameFor(nsIFrame* aFrame) {
+  const auto& name = aFrame->StyleUIReset()->mViewTransitionName;
+  // FIXME: Implement match-element in the following patch.
+  if (name.IsNone() || name.IsMatchElement()) {
+    return nullptr;
+  }
+  return name.AsIdent().AsAtom();
+}
+
+static StyleViewTransitionClass DocumentScopedClassListFor(
+    const nsIFrame* aFrame) {
+  return aFrame->StyleUIReset()->mViewTransitionClass;
+}
+
 static constexpr wr::ImageKey kNoKey{{0}, 0};
 
 struct OldSnapshotData {
@@ -336,7 +355,7 @@ const wr::ImageKey* ViewTransition::GetImageKeyForCapturedFrame(
   MOZ_ASSERT(aFrame);
   MOZ_ASSERT(aFrame->HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION));
 
-  nsAtom* name = aFrame->StyleUIReset()->mViewTransitionName._0.AsAtom();
+  nsAtom* name = DocumentScopedTransitionNameFor(aFrame);
   if (NS_WARN_IF(name->IsEmpty())) {
     return nullptr;
   }
@@ -1171,23 +1190,6 @@ static void ForEachFrame(Document* aDoc, const Callback& aCb) {
     return;
   }
   ForEachChildFrame(root, aCb);
-}
-
-// TODO(emilio): Bug 1970954. These aren't quite correct, per spec we're
-// supposed to only honor names and classes coming from the document, but that's
-// quite some magic, and it's getting actively discussed, see:
-// https://github.com/w3c/csswg-drafts/issues/10808 and related
-// https://drafts.csswg.org/css-view-transitions-1/#document-scoped-view-transition-name
-static nsAtom* DocumentScopedTransitionNameFor(nsIFrame* aFrame) {
-  auto* name = aFrame->StyleUIReset()->mViewTransitionName._0.AsAtom();
-  if (name->IsEmpty()) {
-    return nullptr;
-  }
-  return name;
-}
-static StyleViewTransitionClass DocumentScopedClassListFor(
-    const nsIFrame* aFrame) {
-  return aFrame->StyleUIReset()->mViewTransitionClass;
 }
 
 // https://drafts.csswg.org/css-view-transitions/#capture-the-old-state

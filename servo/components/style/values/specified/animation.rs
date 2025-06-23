@@ -668,11 +668,11 @@ impl Parse for ViewTimelineInset {
     }
 }
 
-/// The view-transition-name: `none | <custom-ident>`.
+/// The view-transition-name: `none | <custom-ident> | match-element`.
 ///
 /// https://drafts.csswg.org/css-view-transitions-1/#view-transition-name-prop
-///
-/// We use a single atom for this. Empty atom represents `none`.
+/// https://drafts.csswg.org/css-view-transitions-2/#auto-vt-name
+// TODO: auto keyword.
 #[derive(
     Clone,
     Debug,
@@ -685,18 +685,21 @@ impl Parse for ViewTimelineInset {
     ToResolvedValue,
     ToShmem,
 )]
-#[repr(C)]
-pub struct ViewTransitionName(Atom);
+#[repr(C, u8)]
+pub enum ViewTransitionName {
+    /// None keyword.
+    None,
+    /// match-element keyword.
+    /// https://drafts.csswg.org/css-view-transitions-2/#auto-vt-name
+    MatchElement,
+    /// A `<custom-ident>`.
+    Ident(Atom),
+}
 
 impl ViewTransitionName {
     /// Returns the `none` value.
     pub fn none() -> Self {
-        Self(atom!(""))
-    }
-
-    /// Returns whether this is the special `none` value.
-    pub fn is_none(&self) -> bool {
-        self.0 == atom!("")
+        Self::None
     }
 }
 
@@ -711,9 +714,13 @@ impl Parse for ViewTransitionName {
             return Ok(Self::none());
         }
 
+        if ident.eq_ignore_ascii_case("match-element") {
+            return Ok(Self::MatchElement);
+        }
+
         // We check none already, so don't need to exclude none here.
-        // Note: The values none and auto are excluded from <custom-ident> here.
-        Ok(Self(CustomIdent::from_ident(location, ident, &["auto"])?.0))
+        // Note: "auto" is not supported yet so we exclude it.
+        CustomIdent::from_ident(location, ident, &["auto"]).map(|i| Self::Ident(i.0))
     }
 }
 
@@ -723,12 +730,11 @@ impl ToCss for ViewTransitionName {
         W: Write,
     {
         use crate::values::serialize_atom_identifier;
-
-        if self.is_none() {
-            return dest.write_str("none");
+        match *self {
+            Self::None => dest.write_str("none"),
+            Self::MatchElement => dest.write_str("match-element"),
+            Self::Ident(ref ident) => serialize_atom_identifier(ident, dest),
         }
-
-        serialize_atom_identifier(&self.0, dest)
     }
 }
 

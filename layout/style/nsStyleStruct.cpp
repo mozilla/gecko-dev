@@ -3262,7 +3262,8 @@ nsStyleUIReset::nsStyleUIReset()
       mViewTimelineNameCount(1),
       mViewTimelineAxisCount(1),
       mViewTimelineInsetCount(1),
-      mFieldSizing(StyleFieldSizing::Fixed) {
+      mFieldSizing(StyleFieldSizing::Fixed),
+      mViewTransitionName(StyleViewTransitionName::None()) {
   MOZ_COUNT_CTOR(nsStyleUIReset);
 }
 
