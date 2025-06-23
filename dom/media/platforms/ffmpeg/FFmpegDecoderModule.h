@@ -115,6 +115,8 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
         aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency),
         aParams.mOptions.contains(
             CreateDecoderParams::Option::HardwareDecoderNotAllowed),
+        aParams.mOptions.contains(
+            CreateDecoderParams::Option::Output8BitPerChannel),
         aParams.mTrackingId);
 
     // Ensure that decoding is exclusively performed using HW decoding in
