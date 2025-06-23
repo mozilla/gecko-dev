@@ -18,13 +18,24 @@ function getDir(name) {
   return PathUtils.join(uAppDataPath, "Crash Reports", name);
 }
 
-function getPendingMinidump(id) {
-  const pendingDir = getDir("pending");
+var getPendingDir = function () {
+  return getDir("pending");
+};
+
+var getPendingMinidump = function (id) {
+  const pendingDir = getPendingDir();
 
   return [".dmp", ".extra"].map(suffix => {
     return PathUtils.join(pendingDir, `${id}${suffix}`);
   });
-}
+};
+
+export var crashPullCallback = function (matches, requestedByDevs) {
+  lazy.EventDispatcher.instance.sendRequest({
+    type: "GeckoView:RemoteSettingsCrashPull",
+    crashIDs: matches.map(id => PathUtils.join(getPendingDir(), `${id}.dmp`)),
+  });
+};
 
 export var ChildCrashHandler = {
   // Map a child ID to a remote type.

@@ -1259,7 +1259,8 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
     mNames.AppendElement(name);
   }
 
-  if (StaticPrefs::dom_viewTransitions_wr_old_capture()) {
+  if (!captureElements.IsEmpty() &&
+      StaticPrefs::dom_viewTransitions_wr_old_capture()) {
     // When snapshotting an iframe, we need to paint from the root subdoc.
     if (RefPtr<PresShell> ps =
             nsContentUtils::GetInProcessSubtreeRootDocument(mDocument)

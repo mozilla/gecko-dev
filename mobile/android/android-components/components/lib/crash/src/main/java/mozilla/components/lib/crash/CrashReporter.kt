@@ -191,6 +191,16 @@ class CrashReporter internal constructor(
     }
 
     /**
+     * Fetches specific crash reports that are identified by they ID.
+     *
+     * @param crashIDs The list of strings representing the crash IDs to find.
+     */
+    suspend fun findCrashReports(crashIDs: Array<String>): List<Crash> {
+        return database.crashDao().getCrashesFromID(crashIDs)
+            .map { it.toCrash() }
+    }
+
+    /**
      * Get a copy of the crashBreadcrumbs
      */
     fun crashBreadcrumbsCopy(): ArrayList<Breadcrumb> {

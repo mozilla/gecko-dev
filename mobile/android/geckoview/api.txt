@@ -89,6 +89,7 @@ import org.mozilla.geckoview.CompositorController;
 import org.mozilla.geckoview.ContentBlocking;
 import org.mozilla.geckoview.ContentBlockingController;
 import org.mozilla.geckoview.CrashHandler;
+import org.mozilla.geckoview.CrashPullController;
 import org.mozilla.geckoview.DeprecationSchedule;
 import org.mozilla.geckoview.ExperimentDelegate;
 import org.mozilla.geckoview.GeckoDisplay;
@@ -689,6 +690,14 @@ package org.mozilla.geckoview {
     method @AnyThread public void unregister();
   }
 
+  public class CrashPullController {
+    ctor public CrashPullController();
+  }
+
+  public static interface CrashPullController.Delegate {
+    method @UiThread default public void onCrashPull(@NonNull String[]);
+  }
+
   public class CrashReporter {
     ctor public CrashReporter();
     method @AnyThread @NonNull public static GeckoResult<String> sendCrashReport(@NonNull Context, @NonNull Intent, @NonNull String);
@@ -870,6 +879,7 @@ package org.mozilla.geckoview {
     method @Nullable @UiThread public GeckoRuntime.ActivityDelegate getActivityDelegate();
     method @Nullable @UiThread public Autocomplete.StorageDelegate getAutocompleteStorageDelegate();
     method @NonNull @UiThread public ContentBlockingController getContentBlockingController();
+    method @Nullable @UiThread public CrashPullController.Delegate getCrashPullDelegate();
     method @NonNull @UiThread public static synchronized GeckoRuntime getDefault(@NonNull Context);
     method @Nullable @UiThread public GeckoRuntime.Delegate getDelegate();
     method @NonNull @UiThread public OrientationController getOrientationController();
@@ -888,6 +898,7 @@ package org.mozilla.geckoview {
     method @AnyThread public void readFromParcel(@NonNull Parcel);
     method @UiThread public void setActivityDelegate(@Nullable GeckoRuntime.ActivityDelegate);
     method @UiThread public void setAutocompleteStorageDelegate(@Nullable Autocomplete.StorageDelegate);
+    method @UiThread public void setCrashPullDelegate(@Nullable CrashPullController.Delegate);
     method @UiThread public void setDelegate(@Nullable GeckoRuntime.Delegate);
     method @AnyThread public void setPreferencesObserverDelegate(@Nullable GeckoPreferenceController.Observer.Delegate);
     method @UiThread public void setServiceWorkerDelegate(@Nullable GeckoRuntime.ServiceWorkerDelegate);
@@ -1029,6 +1040,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings setPostQuantumKeyExchangeEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setPreferredColorScheme(int);
     method @NonNull public GeckoRuntimeSettings setRemoteDebuggingEnabled(boolean);
+    method @NonNull public GeckoRuntimeSettings setRemoteSettingCrashPullNeverShowAgain(boolean);
     method @NonNull public GeckoRuntimeSettings setSameDocumentNavigationOverridesLoadType(boolean);
     method @NonNull public GeckoRuntimeSettings setSameDocumentNavigationOverridesLoadTypeForceDisable(@NonNull String);
     method @NonNull public GeckoRuntimeSettings setTranslationsOfferPopup(boolean);
@@ -1065,6 +1077,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings.Builder consoleOutput(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder contentBlocking(@NonNull ContentBlocking.Settings);
     method @NonNull public GeckoRuntimeSettings.Builder crashHandler(@Nullable Class<? extends android.app.Service>);
+    method @NonNull public GeckoRuntimeSettings.Builder crashPullNeverShowAgain(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder debugLogging(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder defaultRecursiveResolverUri(@NonNull String);
     method @NonNull public GeckoRuntimeSettings.Builder disableShip(boolean);

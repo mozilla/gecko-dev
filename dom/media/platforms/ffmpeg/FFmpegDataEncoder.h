@@ -90,7 +90,6 @@ class FFmpegDataEncoder<LIBAV_VER> : public MediaDataEncoder {
       AVPacket* aPacket) = 0;
   virtual Result<already_AddRefed<MediaByteBuffer>, MediaResult> GetExtraData(
       AVPacket* aPacket) = 0;
-  void ForceEnablingFFmpegDebugLogs();
 
   // This refers to a static FFmpegLibWrapper, so raw pointer is adequate.
   const FFmpegLibWrapper* mLib;

@@ -240,6 +240,12 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             )
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
+
+        requirePreference<SwitchPreference>(R.string.pref_key_crash_pull_never_show_again).apply {
+            isVisible = true
+            isChecked = context.settings().crashPullNeverShowAgain
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
     }
 
     override fun onPreferenceTreeClick(preference: Preference): Boolean {

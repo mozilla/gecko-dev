@@ -14,6 +14,7 @@ import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.anyLong
 import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -221,6 +222,17 @@ class CrashMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN CancelForEverTapped action THEN set setting crashPullNeverShowAgain`() = runTestOnMain {
+        val cache: CrashReportCache = mock()
+        val middleware = CrashMiddleware(cache, mock(), mock(), scope)
+        val middlewareContext: Pair<() -> CrashState, (CrashAction) -> Unit> = Pair(mock(), mock())
+
+        middleware.invoke(middlewareContext, mock(), CrashAction.CancelForEverTapped)
+
+        verify(cache).setCrashPullNeverShowAgain(true)
+    }
+
+    @Test
     fun `GIVEN a Defer action THEN cache the deferred value`() = runTestOnMain {
         val cache: CrashReportCache = mock()
         val middleware = CrashMiddleware(cache, mock(), mock(), scope)
@@ -234,28 +246,58 @@ class CrashMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN ReportTapped WHEN automaticallySendChecked is true THEN submit unsent crashes and cache value`() = runTestOnMain {
+    fun `GIVEN ReportTapped WHEN automaticallySendChecked is true and crashIDs is null THEN submit unsent crashes and cache value`() = runTestOnMain {
         val cache: CrashReportCache = mock()
         val crashReporter: CrashReporter = mock()
         val middleware = CrashMiddleware(cache, crashReporter, { 777L }, scope)
 
         `when`(crashReporter.unsentCrashReportsSince(777L)).thenReturn(listOf(mock<Crash.UncaughtExceptionCrash>(), mock<Crash.UncaughtExceptionCrash>()))
-        middleware.invoke(mock(), mock(), CrashAction.ReportTapped(automaticallySendChecked = true))
+        middleware.invoke(mock(), mock(), CrashAction.ReportTapped(automaticallySendChecked = true, crashIDs = null))
 
         verify(cache).setAlwaysSend(true)
+        verify(crashReporter, never()).findCrashReports(any())
         verify(crashReporter, times(2)).submitReport(any(), any())
     }
 
     @Test
-    fun `GIVEN ReportTapped WHEN automaticallySendChecked is false THEN submit unsent crashes`() = runTestOnMain {
+    fun `GIVEN ReportTapped WHEN automaticallySendChecked is false and crashIDs is null THEN submit unsent crashes`() = runTestOnMain {
         val cache: CrashReportCache = mock()
         val crashReporter: CrashReporter = mock()
         val middleware = CrashMiddleware(cache, crashReporter, { 777L }, scope)
 
         `when`(crashReporter.unsentCrashReportsSince(777L)).thenReturn(listOf(mock<Crash.UncaughtExceptionCrash>(), mock<Crash.UncaughtExceptionCrash>()))
-        middleware.invoke(mock(), mock(), CrashAction.ReportTapped(automaticallySendChecked = false))
+        middleware.invoke(mock(), mock(), CrashAction.ReportTapped(automaticallySendChecked = false, crashIDs = null))
 
         verify(cache, never()).setAlwaysSend(true)
+        verify(crashReporter, never()).findCrashReports(any())
+        verify(crashReporter, times(2)).submitReport(any(), any())
+    }
+
+    @Test
+    fun `GIVEN ReportTapped WHEN automaticallySendChecked is true and crashIDs is not null THEN ignore automaticallySendChecked`() = runTestOnMain {
+        val cache: CrashReportCache = mock()
+        val crashReporter: CrashReporter = mock()
+        val middleware = CrashMiddleware(cache, crashReporter, mock(), scope)
+        val crashIDs = arrayOf("1", "2")
+
+        middleware.invoke(mock(), mock(), CrashAction.ReportTapped(automaticallySendChecked = true, crashIDs = crashIDs))
+
+        verify(cache, never()).setAlwaysSend(true)
+        verify(crashReporter, never()).unsentCrashReportsSince(anyLong())
+    }
+
+    @Test
+    fun `GIVEN ReportTapped WHEN automaticallySendChecked is false and some crashIDs THEN submit those crashes`() = runTestOnMain {
+        val cache: CrashReportCache = mock()
+        val crashReporter: CrashReporter = mock()
+        val middleware = CrashMiddleware(cache, crashReporter, mock(), scope)
+        val crashIDs = arrayOf("1", "2")
+
+        `when`(crashReporter.findCrashReports(crashIDs)).thenReturn(listOf(mock<Crash.UncaughtExceptionCrash>(), mock<Crash.UncaughtExceptionCrash>()))
+        middleware.invoke(mock(), mock(), CrashAction.ReportTapped(automaticallySendChecked = false, crashIDs = crashIDs))
+
+        verify(crashReporter, never()).unsentCrashReportsSince(anyLong())
+        verify(crashReporter, times(1)).findCrashReports(crashIDs)
         verify(crashReporter, times(2)).submitReport(any(), any())
     }
 }

@@ -27,6 +27,7 @@ exclude: true
 - Added [`WebNotification.actions`][141.14] and a new function signature with `action` to [`WebNotification.click()`][141.15] to indicate action click.
 - Added support for special "technical and interaction" data collection permission ([bug 1964992]({{bugilla}}1964992))
 - Added support for data collection permissions in [`WebExtensionController.addOptionalPermissions`][141.16] and [`WebExtensionController.removeOptionalPermissions`][141.17] ([bug 1964992]({{bugzilla}}1964992))
+- Added [`CrashPullController.Delegate`][141.18] interface, which allows Gecko's `RemoteSettingsCrashPull` module to request that the application uploads a specified subset of user crash dumps.
 
 [141.1]: {{javadoc_uri}}/ProfilerController.html
 [141.2]: {{javadoc_uri}}/GeckoRuntime.html#getProfilerController()
@@ -44,6 +45,7 @@ exclude: true
 [141.15]: {{javadoc_uri}}/WebNotification.html#click(java.lang.String)
 [141.16]: {{javadoc_uri}}/WebExtensionController.html#addOptionalPermissions
 [141.17]: {{javadoc_uri}}/WebExtensionController.html#removeOptionalPermissions
+[141.18]: {{javadoc_uri}}/CrashPullController.html#CrashPullController.Delegate
 
 ## v140
 - Added a [`GeckoPreferenceController`][140.1] class to manage Gecko preferences.
@@ -1776,4 +1778,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 1349d47faf840e4f4aef12f316dc9fba7cf740b1
+[api-version]: f3524b2d4f75a3bed41cb0e54470e58c02c902a8

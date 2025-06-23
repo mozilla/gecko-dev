@@ -64,6 +64,11 @@ static const char* sLibs[] = {
 };
 
 /* static */
+void FFmpegRuntimeLinker::PrefCallbackLogLevel(const char* aPref, void* aData) {
+  sLibAV.UpdateLogLevel();
+}
+
+/* static */
 bool FFmpegRuntimeLinker::Init() {
   if (sLinkStatus != LinkStatus_INIT) {
     return sLinkStatus == LinkStatus_SUCCEEDED;
@@ -85,6 +90,7 @@ bool FFmpegRuntimeLinker::Init() {
       FFmpegLibWrapper::LinkResult res = sLibAV.Link();
       switch (res) {
         case FFmpegLibWrapper::LinkResult::Success:
+          sLibAV.RegisterCallbackLogLevel(PrefCallbackLogLevel);
           sLinkStatus = LinkStatus_SUCCEEDED;
           sLinkStatusLibraryName = lib;
           switch (sLibAV.mVersion) {

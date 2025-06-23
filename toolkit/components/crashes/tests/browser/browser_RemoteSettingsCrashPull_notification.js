@@ -42,6 +42,10 @@ async function getNotification(shouldBeNull = false) {
   return document.querySelector(kNotificationSelector);
 }
 
+function resetDontShowBefore() {
+  Services.prefs.setIntPref("browser.crashReports.dontShowBefore", 0);
+}
+
 add_task(async function test_no_notification() {
   Assert.equal(
     null,
@@ -78,6 +82,8 @@ add_task(async function test_no_crash_no_notification() {
       throw ex;
     }
   }
+
+  resetDontShowBefore();
 });
 
 add_task(async function test_one_crash_one_notification() {
@@ -114,7 +120,7 @@ add_task(async function test_one_crash_one_notification() {
   const msg = notificationMsg.getAttribute("data-l10n-id");
   Assert.equal(
     msg,
-    "requested-crash-reports-message",
+    "requested-crash-reports-message-new",
     "Shows requested crash msg"
   );
 
@@ -127,6 +133,8 @@ add_task(async function test_one_crash_one_notification() {
     () => document.querySelector(kNotificationSelector) === null,
     "Waiting for notification to be removed"
   );
+
+  resetDontShowBefore();
 });
 
 add_task(async function test_multiple_crashes_one_notification() {
@@ -177,6 +185,8 @@ add_task(async function test_multiple_crashes_one_notification() {
     () => document.querySelector(kNotificationSelector) === null,
     "Waiting for notification to be removed"
   );
+
+  resetDontShowBefore();
 });
 
 add_task(async function test_one_crash_notification_click_send_nothrottle() {
@@ -218,6 +228,10 @@ add_task(async function test_one_crash_notification_click_send_nothrottle() {
     }
   };
 
+  const dontShowBeforeValueOrig = Services.prefs.getIntPref(
+    "browser.crashReports.dontShowBefore"
+  );
+
   const sendButton = notification.querySelector(
     'button[data-l10n-id="pending-crash-reports-send"]'
   );
@@ -233,6 +247,28 @@ add_task(async function test_one_crash_notification_click_send_nothrottle() {
   );
 
   UnsubmittedCrashHandler.submitReports = _submitReports;
+
+  // It should be incremente of 7 days, check we are between six and 8 to make sure
+  // there is no bad intermittence
+  const expectedDontShowBeforeValueUp =
+    Math.trunc(Date.now() / 1000) + 6 * 86400;
+  const expectedDontShowBeforeValueDown =
+    Math.trunc(Date.now() / 1000) + 8 * 86400;
+  const dontShowBeforeValueSubmit = Services.prefs.getIntPref(
+    "browser.crashReports.dontShowBefore"
+  );
+  if (
+    dontShowBeforeValueSubmit >= expectedDontShowBeforeValueDown ||
+    dontShowBeforeValueSubmit <= expectedDontShowBeforeValueUp
+  ) {
+    Assert.equal(
+      dontShowBeforeValueSubmit,
+      expectedDontShowBeforeValueUp,
+      `The dontShowBefore pref was updated from ${dontShowBeforeValueOrig} to ${dontShowBeforeValueSubmit}. Should be [${expectedDontShowBeforeValueDown};${expectedDontShowBeforeValueUp}]`
+    );
+  }
+
+  resetDontShowBefore();
 });
 
 add_task(async function test_multiple_crashes_notification_merge() {
@@ -262,7 +298,7 @@ add_task(async function test_multiple_crashes_notification_merge() {
   const msg1 = notification1Msg.getAttribute("data-l10n-id");
   Assert.equal(
     msg1,
-    "requested-crash-reports-message",
+    "requested-crash-reports-message-new",
     "Shows requested crash msg"
   );
 
@@ -286,7 +322,7 @@ add_task(async function test_multiple_crashes_notification_merge() {
   const msg2 = notification2Msg.getAttribute("data-l10n-id");
   Assert.equal(
     msg2,
-    "requested-crash-reports-message",
+    "requested-crash-reports-message-new",
     "Shows requested crash msg"
   );
 
@@ -325,6 +361,8 @@ add_task(async function test_multiple_crashes_notification_merge() {
   );
 
   UnsubmittedCrashHandler.submitReports = _submitReports;
+
+  resetDontShowBefore();
 });
 
 add_task(
@@ -367,7 +405,7 @@ add_task(
     const msg = notificationMsg.getAttribute("data-l10n-id");
     Assert.equal(
       msg,
-      "requested-crash-reports-message",
+      "requested-crash-reports-message-new",
       "Shows requested crash msg"
     );
 
@@ -395,6 +433,8 @@ add_task(
       UnsubmittedCrashHandler.shouldShowPendingSubmissionsNotification(),
       "Scheduled check would show an unsubmitted notification again"
     );
+
+    resetDontShowBefore();
   }
 );
 
@@ -454,6 +494,8 @@ add_task(
       true,
       "Pref is enabled"
     );
+
+    resetDontShowBefore();
   }
 );
 
@@ -500,4 +542,117 @@ add_task(async function test_one_crash_notification_never_show_again() {
       throw ex;
     }
   }
+
+  resetDontShowBefore();
 });
+
+add_task(async function test_one_crash_notification_blocked_before_next_week() {
+  const oneWeekAfter = Math.trunc(Date.now() / 1000) + 7 * 86400;
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.crashReports.requestedNeverShowAgain", false],
+      ["browser.crashReports.dontShowBefore", oneWeekAfter],
+    ],
+  });
+
+  const _checkForInterestingUnsubmittedCrash =
+    rscp.checkForInterestingUnsubmittedCrash;
+  rscp.checkForInterestingUnsubmittedCrash = async _ => {
+    return ["989df240-a40c-405a-9a22-f2fc4a31db6c"];
+  };
+
+  const payload = {
+    current: [],
+    created: [
+      {
+        hashes: [
+          // value here is not important
+          "2435191bfd64cf0c8cbf0397f1cb5654f778388a3be72cb01502196896f5a0e9",
+        ],
+      },
+    ],
+    updated: [],
+    deleted: [],
+  };
+
+  await RemoteSettings(kRemoteSettingsCollectionName).emit("sync", {
+    data: payload,
+  });
+
+  rscp.checkForInterestingUnsubmittedCrash =
+    _checkForInterestingUnsubmittedCrash;
+
+  try {
+    await TestUtils.waitForCondition(
+      () => document.querySelector(kNotificationSelector) !== null,
+      "Waiting for notification to be shown (should not)"
+    );
+  } catch (ex) {
+    if (!ex.includes("timed out after 50 tries")) {
+      throw ex;
+    }
+  }
+});
+
+add_task(
+  async function test_one_crash_one_notification_not_blocked_one_week_after() {
+    const oneWeekBefore = Math.trunc(Date.now() / 1000) - 7 * 86400;
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        ["browser.crashReports.requestedNeverShowAgain", false],
+        ["browser.crashReports.dontShowBefore", oneWeekBefore],
+      ],
+    });
+
+    const _checkForInterestingUnsubmittedCrash =
+      rscp.checkForInterestingUnsubmittedCrash;
+    rscp.checkForInterestingUnsubmittedCrash = async _ => {
+      return ["989df240-a40c-405a-9a22-f2fc4a31db6c"];
+    };
+
+    const payload = {
+      current: [],
+      created: [
+        {
+          hashes: [
+            // value here is not important
+            "2435191bfd64cf0c8cbf0397f1cb5654f778388a3be72cb01502196896f5a0e9",
+          ],
+        },
+      ],
+      updated: [],
+      deleted: [],
+    };
+
+    await RemoteSettings(kRemoteSettingsCollectionName).emit("sync", {
+      data: payload,
+    });
+
+    const notification = await getNotification();
+    const notificationMsg = notification.shadowRoot.querySelector(".message");
+
+    rscp.checkForInterestingUnsubmittedCrash =
+      _checkForInterestingUnsubmittedCrash;
+
+    const msg = notificationMsg.getAttribute("data-l10n-id");
+    Assert.equal(
+      msg,
+      "requested-crash-reports-message-new",
+      "Shows requested crash msg"
+    );
+
+    const args = JSON.parse(notificationMsg.getAttribute("data-l10n-args"));
+    Assert.equal(
+      args.reportCount,
+      1,
+      "Shows requested crash msg for one crash"
+    );
+
+    const closeButton = notification.shadowRoot.querySelector(".close");
+    closeButton.click();
+    await TestUtils.waitForCondition(
+      () => document.querySelector(kNotificationSelector) === null,
+      "Waiting for notification to be removed"
+    );
+  }
+);

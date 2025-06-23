@@ -656,7 +656,7 @@ void HTMLDialogElement::SetDialogCloseWatcherIfNeeded() {
   // otherwise false.
   SetCloseWatcherEnabledState();
 
-  window->EnsureCloseWatcherManager()->Add(*mCloseWatcher);
+  mCloseWatcher->AddToWindowsCloseWatcherManager();
 }
 
 // https://whatpr.org/html/10954/interactive-elements.html#dialog-setup-steps

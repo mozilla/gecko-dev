@@ -1110,7 +1110,9 @@ class AccessibleWalkerActor extends Actor {
     // If the target is inside a pop-up widget, we need to query the pop-up
     // Accessible, not the DocAccessible. The DocAccessible can't hit test
     // inside pop-ups.
-    const popup = win.isChromeWindow ? target.closest("panel") : null;
+    const popup = win.isChromeWindow
+      ? target.closest("panel, menupopup")
+      : null;
     const containerAcc = popup ? this.getRawAccessibleFor(popup) : docAcc;
     const { devicePixelRatio } = this.rootWin;
     const rawAccessible = containerAcc.getDeepestChildAtPointInProcess(

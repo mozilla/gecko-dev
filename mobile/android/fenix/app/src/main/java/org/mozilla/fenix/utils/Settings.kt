@@ -629,6 +629,15 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = true,
     )
 
+    /**
+     * Indicates if the user denies to ever see again the Remote Settings crash
+     * pull UI.
+     */
+    var crashPullNeverShowAgain: Boolean by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_crash_pull_never_show_again),
+        default = false,
+    )
+
     @VisibleForTesting
     internal fun timeNowInMillis(): Long = System.currentTimeMillis()
 
@@ -2306,6 +2315,15 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     var useNewCrashReporterDialog by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_use_new_crash_reporter),
         default = false,
+    )
+
+    /**
+     * Do not show crash pull dialog before this date.
+     * cf browser.crashReports.dontShowBefore on desktop
+     */
+    var crashPullDontShowBefore by longPreference(
+        appContext.getPreferenceKey(R.string.pref_key_crash_pull_dont_show_before),
+        default = 0,
     )
 
     /**

@@ -96,7 +96,7 @@ androidx-test-uiautomator = "2.3.0"
 junit4 = "4.13.2"
 junit5 = "5.13.1"
 mockito = "5.18.0"
-mockk = "1.14.2"
+mockk = "1.14.3"
 robolectric = "4.14.1"
 
 # Third party library versions

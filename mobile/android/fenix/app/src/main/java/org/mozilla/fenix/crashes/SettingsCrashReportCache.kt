@@ -33,4 +33,8 @@ class SettingsCrashReportCache(private val settings: Settings) : CrashReportCach
     override suspend fun setAlwaysSend(alwaysSend: Boolean) {
         settings.crashReportAlwaysSend = alwaysSend
     }
+
+    override suspend fun setCrashPullNeverShowAgain(neverShowAgain: Boolean) {
+        settings.crashPullNeverShowAgain = neverShowAgain
+    }
 }

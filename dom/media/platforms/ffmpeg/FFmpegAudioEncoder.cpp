@@ -54,8 +54,6 @@ void FFmpegAudioEncoder<LIBAV_VER>::ResamplerDestroy::operator()(
 MediaResult FFmpegAudioEncoder<LIBAV_VER>::InitEncoder() {
   MOZ_ASSERT(mTaskQueue->IsOnCurrentThread());
 
-  ForceEnablingFFmpegDebugLogs();
-
   FFMPEG_LOG("FFmpegAudioEncoder::InitEncoder");
 
   // Initialize the common members of the encoder instance

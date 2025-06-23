@@ -4,11 +4,16 @@
 
 package org.mozilla.fenix.crashes
 
+import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.mockk.mockk
 import mozilla.components.lib.crash.store.CrashAction
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -22,16 +27,40 @@ class CrashReporterBindingTest {
     val coroutineRule = MainCoroutineRule()
 
     @Test
-    fun `GIVEN WHEN THEN`() = runTestOnMain {
+    fun `GIVEN CrashAction ShowPrompt WHEN an action is dispatched THEN CrashReporterBinding is called with null crashIDs`() = runTestOnMain {
         val appStore = AppStore()
         var onReportingCalled = false
         val binding = CrashReporterBinding(
+            context = mockk<Context>(),
             store = appStore,
-            onReporting = { onReportingCalled = true },
+            onReporting = { crashIDs, ctxt ->
+                assertNull(crashIDs)
+                onReportingCalled = true
+            },
         )
         binding.start()
 
         appStore.dispatch(AppAction.CrashActionWrapper(CrashAction.ShowPrompt))
+        appStore.waitUntilIdle()
+        assertTrue(onReportingCalled)
+    }
+
+    @Test
+    fun `GIVEN CrashAction PullCrashes WHEN an action is dispatched THEN CrashReporterBinding is called with non null crashIDs`() = runTestOnMain {
+        val appStore = AppStore()
+        var onReportingCalled = false
+        val binding = CrashReporterBinding(
+            context = mockk<Context>(),
+            store = appStore,
+            onReporting = { crashIDs, ctxt ->
+                assertNotNull(crashIDs)
+                assertArrayEquals(arrayOf("1", "2"), crashIDs)
+                onReportingCalled = true
+            },
+        )
+        binding.start()
+
+        appStore.dispatch(AppAction.CrashActionWrapper(CrashAction.PullCrashes(arrayOf("1", "2"))))
         appStore.waitUntilIdle()
         assertTrue(onReportingCalled)
     }

@@ -53,6 +53,20 @@ internal interface CrashDao {
     suspend fun getCrashesWithoutReportsSince(timestampMillis: Long): List<CrashEntity>
 
     /**
+     * Returns saved crashes that are part of a specific list of IDs.
+     */
+    @RewriteQueriesToDropUnusedColumns
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM crashes
+        LEFT JOIN reports ON crashes.uuid = reports.crash_uuid
+        WHERE crashes.minidumpPath IN (:crashIDs)
+        """,
+    )
+    suspend fun getCrashesFromID(crashIDs: Array<String>): List<CrashEntity>
+
+    /**
      * Returns saved crashes that haven't been reported.
      */
     @Transaction

@@ -296,6 +296,12 @@ class InspectorUtils {
       GlobalObject&, const nsACString& aStyleSheetText, uint32_t aLine,
       uint32_t aColumn, const nsACString& aNewBodyText,
       nsACString& aNewStyleSheetText);
+
+  static void SetVerticalClipping(GlobalObject&, BrowsingContext* aContext,
+                                  mozilla::ScreenIntCoord aOffset);
+  static void SetDynamicToolbarMaxHeight(GlobalObject&,
+                                         BrowsingContext* aContext,
+                                         mozilla::ScreenIntCoord aHeight);
 };
 
 }  // namespace mozilla::dom

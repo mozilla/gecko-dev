@@ -76,6 +76,12 @@ skip-if = [
   "os == 'linux' && asan",
 ]
 
+["browser_popupNotification_queue.js"]
+skip-if = [
+  "os == 'linux' && debug",
+  "os == 'linux' && asan",
+]
+
 ["browser_popupNotification_no_anchors.js"]
 https_first_disabled = true
 skip-if = [

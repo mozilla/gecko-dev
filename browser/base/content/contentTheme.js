@@ -195,7 +195,6 @@
      */
     _setProperties(themeData) {
       const root = document.documentElement;
-      root.toggleAttribute("lwtheme", themeData.hasTheme);
       for (let [cssVarName, definition] of inContentVariableMap) {
         const { lwtProperty, processColor } = definition;
         let value = themeData[lwtProperty];

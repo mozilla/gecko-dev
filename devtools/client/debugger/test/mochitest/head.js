@@ -268,7 +268,7 @@ function getRange(start, end) {
 function assertCursorPosition(dbg, expectedLine, expectedColumn, message) {
   const cursorPosition = findElementWithSelector(dbg, ".cursor-position");
   if (!cursorPosition) {
-    ok(false, message + " (no cursor displayed)");
+    ok(false, message + " (no cursor displayed in footer)");
   }
   // Cursor position text has the following shape: (L, C)
   // where L is the line number, and C the column number
@@ -276,12 +276,17 @@ function assertCursorPosition(dbg, expectedLine, expectedColumn, message) {
   if (!match) {
     ok(
       false,
-      message + ` (wrong cursor content : '${cursorPosition.innerText}')`
+      message +
+        ` (wrong cursor content in footer : '${cursorPosition.innerText}')`
     );
   }
   const [_, line, column] = match;
-  is(parseInt(line, 10), expectedLine, message + " (line)");
-  is(parseInt(column, 10), expectedColumn, message + " (column)");
+  is(parseInt(line, 10), expectedLine, message + " (footer line)");
+  is(parseInt(column, 10), expectedColumn, message + " (footer column)");
+  const cursor = getCMEditor(dbg).getSelectionCursor();
+  is(cursor.from.line, expectedLine, message + " (actual cursor line)");
+  // CodeMirror column is 0-based while the location mentioned in test 1-based.
+  is(cursor.from.ch + 1, expectedColumn, message + " (actual cursor column)");
 }
 
 async function waitForCursorPosition(dbg, expectedLine) {

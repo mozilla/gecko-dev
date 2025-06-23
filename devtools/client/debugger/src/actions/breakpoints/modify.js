@@ -129,6 +129,9 @@ export function addBreakpoint(
     // No position is found if the `initialLocation` is on a non-breakable line or
     // the line no longer exists.
     if (!position) {
+      console.error(
+        `Unable to add breakpoint at non-breakable location "${JSON.stringify(initialLocation)}"`
+      );
       return null;
     }
 

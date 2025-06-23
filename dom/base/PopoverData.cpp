@@ -52,9 +52,8 @@ void PopoverData::EnsureCloseWatcher(nsGenericHTMLElement* aElement) {
         mCloseWatcher->AddSystemEventListener(u"close"_ns, eventListener,
                                               false /* aUseCapture */,
                                               false /* aWantsUntrusted */);
-        RefPtr manager = window->EnsureCloseWatcherManager();
-        MOZ_ASSERT(mCloseWatcher);
-        manager->Add(*mCloseWatcher);
+
+        mCloseWatcher->AddToWindowsCloseWatcherManager();
       }
     }
   }

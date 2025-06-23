@@ -28,7 +28,9 @@ fun crashReducer(
         }
         is CrashAction.Defer -> CrashState.Deferred(action.now + FIVE_DAYS_IN_MILLIS)
         CrashAction.ShowPrompt -> CrashState.Reporting
+        is CrashAction.PullCrashes -> CrashState.ReportingPull(action.crashIDs)
         CrashAction.CancelTapped,
+        CrashAction.CancelForEverTapped,
         is CrashAction.ReportTapped,
         -> CrashState.Done
     }

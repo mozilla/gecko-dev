@@ -20,4 +20,5 @@ add_task(async function () {
   const dbg = createDebuggerContext(toolbox);
   await waitForElement(dbg, "highlightLine");
   assertHighlightLocation(dbg, "script-switching-02.js", 18);
+  assertCursorPosition(dbg, 18, 9, "Cursor is set at the right location");
 });

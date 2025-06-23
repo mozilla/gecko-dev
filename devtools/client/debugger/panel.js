@@ -322,10 +322,20 @@ class DebuggerPanel {
     // But we might try to load display it early to improve user perception.
     await this.toolbox.selectTool("jsdebugger", reason);
 
-    await this._actions.selectSpecificLocation(originalLocation);
+    const hasLogpoint = this._selectors.hasLogpoint(
+      this._getState(),
+      originalLocation
+    );
+    await this._actions.selectLocation(originalLocation, {
+      // We want to select the precise given location and do not try to map to original/bundle
+      // depending on the currently selected source type.
+      keepContext: false,
+      // We don't want to highlight/focus CodeMirror if there is a log point as we will open the log point panel right after and focus it
+      highlight: !hasLogpoint,
+    });
 
     // XXX: should this be moved to selectSpecificLocation??
-    if (this._selectors.hasLogpoint(this._getState(), originalLocation)) {
+    if (hasLogpoint) {
       this._actions.openConditionalPanel(originalLocation, true);
     }
 

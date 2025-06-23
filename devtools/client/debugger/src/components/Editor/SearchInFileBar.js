@@ -222,7 +222,8 @@ class SearchInFileBar extends Component {
 
   /**
    * Update the state with the results and matches from the search.
-   * The cursor location is also set for CM6.
+   * This will also scroll to result's location in CodeMirror.
+   *
    * @param {Object} results
    * @param {Array} matches
    * @returns
@@ -261,11 +262,12 @@ class SearchInFileBar extends Component {
   }
 
   /**
-   * CodeMirror event handler, called whenever the cursor moves
-   * for user-driven or programatic reasons.
+   * Ensure showing the search result in CodeMirror editor,
+   * and setting the cursor at the end of the matched string.
+   *
    * @param {Number} line
    * @param {Number} ch
-   * @param {Number} matchCount
+   * @param {Number} matchContent
    */
   setCursorLocation = (line, ch, matchContent) => {
     this.props.selectLocation(
@@ -282,9 +284,9 @@ class SearchInFileBar extends Component {
         // Avoid highlighting the selected line
         highlight: false,
 
-        // This is mostly for displaying the correct location
-        // in the footer, so this should not scroll.
-        scroll: false,
+        // We should ensure showing the search result by scrolling it
+        // into the viewport.
+        scroll: true,
       }
     );
   };

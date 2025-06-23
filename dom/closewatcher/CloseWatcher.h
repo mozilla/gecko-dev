@@ -47,6 +47,8 @@ class CloseWatcher : public DOMEventTargetHelper, public AbortFollower {
 
   MOZ_CAN_RUN_SCRIPT void Close();
 
+  void AddToWindowsCloseWatcherManager();
+
   void Destroy();
 
   // AbortFollower

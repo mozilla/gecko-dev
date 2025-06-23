@@ -38,6 +38,8 @@ class FFmpegRuntimeLinker {
   static const char* LinkStatusLibraryName() { return sLinkStatusLibraryName; }
 
  private:
+  static void PrefCallbackLogLevel(const char* aPref, void* aData);
+
   static LinkStatus sLinkStatus;
   static const char* sLinkStatusLibraryName;
 };

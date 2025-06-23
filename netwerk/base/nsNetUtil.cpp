@@ -522,7 +522,8 @@ NS_NewChannelWithTriggeringPrincipal(
   nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
 
   // Special treatment for resources injected by add-ons.
-  if (aTriggeringPrincipal &&
+  if (aContentPolicyType != nsIContentPolicy::TYPE_DOCUMENT &&
+      aTriggeringPrincipal &&
       StaticPrefs::privacy_antitracking_isolateContentScriptResources() &&
       nsContentUtils::IsExpandedPrincipal(aTriggeringPrincipal)) {
     bool shouldResistFingerprinting =

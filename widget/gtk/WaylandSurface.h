@@ -377,6 +377,7 @@ class WaylandSurface final {
     std::function<void(wl_callback*, uint32_t)> mCb = nullptr;
     bool mEmulated = false;
     bool IsSet() const { return !!mCb; }
+    void Clear() { mCb = nullptr; }
   };
 
   bool mFrameCallbackEnabled = true;

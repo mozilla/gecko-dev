@@ -39,6 +39,12 @@ sealed class CrashAction {
     data class Defer(val now: TimeInMillis) : CrashAction()
 
     /**
+     * [CrashAction] to ask user consent for sending crashes requested over
+     * Remote Settings.
+     */
+    data class PullCrashes(val crashIDs: Array<String>) : CrashAction()
+
+    /**
      * [CrashAction] show the user a prompt to send unsent crashes.
      */
     data object ShowPrompt : CrashAction()
@@ -49,7 +55,13 @@ sealed class CrashAction {
     data object CancelTapped : CrashAction()
 
     /**
+     * [CrashAction] to record a setting and a pref that the user does not want
+     * to see the Remote Settings crash dialog.
+     */
+    data object CancelForEverTapped : CrashAction()
+
+    /**
      * [CrashAction] to send when a user taps the send report button.
      */
-    data class ReportTapped(val automaticallySendChecked: Boolean) : CrashAction()
+    data class ReportTapped(val automaticallySendChecked: Boolean, val crashIDs: Array<String>?) : CrashAction()
 }

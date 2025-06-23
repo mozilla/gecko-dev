@@ -86,6 +86,10 @@ class Breakpoint extends PureComponent {
   };
 
   selectBreakpoint = event => {
+    // Ignore double click as we have a dedicated double click listener
+    if (event.type == "click" && event.detail > 1) {
+      return;
+    }
     event.preventDefault();
     const { selectSpecificLocation } = this.props;
     selectSpecificLocation(this.props.selectedBreakpointLocation);
@@ -160,7 +164,6 @@ class Breakpoint extends PureComponent {
         {
           id: labelId,
           className: "breakpoint-label cm-s-mozilla devtools-monospace",
-          onClick: this.selectBreakpoint,
         },
         span({
           className: "cm-highlighted",
