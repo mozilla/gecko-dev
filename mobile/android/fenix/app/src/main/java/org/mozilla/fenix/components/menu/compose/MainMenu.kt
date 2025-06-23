@@ -476,6 +476,12 @@ private fun ToolsAndActionsMenuGroup(
                 )
             }
 
+        MenuItem(
+            label = stringResource(id = R.string.browser_menu_find_in_page),
+            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_search_24),
+            onClick = onFindInPageMenuClick,
+        )
+
             MenuItem(
                 label = stringResource(id = labelId),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_device_mobile_24),
@@ -492,12 +498,6 @@ private fun ToolsAndActionsMenuGroup(
                 badgeBackgroundColor = badgeBackgroundColor,
             )
         }
-
-        MenuItem(
-            label = stringResource(id = R.string.browser_menu_find_in_page),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_search_24),
-            onClick = onFindInPageMenuClick,
-        )
 
         ExtensionsMenuItem(
             extensionsMenuItemDescription = extensionsMenuItemDescription,
