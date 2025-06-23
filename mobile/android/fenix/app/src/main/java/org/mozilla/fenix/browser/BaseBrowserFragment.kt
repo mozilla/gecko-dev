@@ -1286,13 +1286,14 @@ abstract class BaseBrowserFragment :
         }
 
         return BrowserToolbarComposable(
-            context = activity,
+            activity = activity,
             lifecycleOwner = this,
             container = binding.browserLayout,
             navController = findNavController(),
             appStore = activity.components.appStore,
             browserScreenStore = browserScreenStore,
             browserStore = store,
+            components = activity.components,
             browsingModeManager = activity.browsingModeManager,
             browserAnimator = browserAnimator,
             thumbnailsFeature = thumbnailsFeature.get(),
