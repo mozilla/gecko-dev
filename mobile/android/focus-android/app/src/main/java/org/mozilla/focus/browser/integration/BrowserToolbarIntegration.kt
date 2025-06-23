@@ -69,7 +69,6 @@ class BrowserToolbarIntegration(
     private val tabCounterListener: () -> Unit,
     private val customTabId: String? = null,
     isOnboardingTab: Boolean = false,
-    renderStyle: ToolbarFeature.RenderStyle,
 ) : LifecycleAwareFeature {
     private val presenter = ToolbarPresenter(
         toolbar,
@@ -79,7 +78,7 @@ class BrowserToolbarIntegration(
             toolbar.context.components.publicSuffixList,
             ContextCompat.getColor(toolbar.context, R.color.primaryText),
             ContextCompat.getColor(toolbar.context, R.color.secondaryText),
-            renderStyle,
+            ToolbarFeature.RenderStyle.ColoredUrl,
         ),
     )
 
