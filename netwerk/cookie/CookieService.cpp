@@ -1876,5 +1876,13 @@ CookieService::TestGet3PCBExceptions(nsTArray<nsCString>& aExceptions) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+CookieService::MaybeCapExpiry(int64_t aExpiryInMSec, int64_t* aResult) {
+  NS_ENSURE_ARG_POINTER(aResult);
+  *aResult =
+      CookieCommons::MaybeCapExpiry(PR_Now() / PR_USEC_PER_MSEC, aExpiryInMSec);
+  return NS_OK;
+}
+
 }  // namespace net
 }  // namespace mozilla

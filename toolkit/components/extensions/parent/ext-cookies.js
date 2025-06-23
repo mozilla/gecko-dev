@@ -12,12 +12,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   this,
-  "gCookiesMaxageCap",
-  "network.cookie.maxageCap",
-  0
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
   "gCanUsePortInPartitionKey",
   "privacy.dynamic_firstparty.use_site.include_port",
   false
@@ -699,12 +693,7 @@ this.cookies = class extends ExtensionAPIPersistent {
           // expiry is in milliseconds.
           let expiry = isSession
             ? Number.MAX_SAFE_INTEGER
-            : details.expirationDate * 1000;
-
-          // maxage cap for expiry
-          if (gCookiesMaxageCap > 0) {
-            expiry = Math.min(expiry, Date.now() + gCookiesMaxageCap * 1000);
-          }
+            : Services.cookies.maybeCapExpiry(details.expirationDate * 1000);
 
           let { originAttributes } = oaFromDetails(details, context);
 

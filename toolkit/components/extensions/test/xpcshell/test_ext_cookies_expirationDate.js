@@ -1,6 +1,6 @@
 "use strict";
 
-add_task(async function test_no_reject_invalid_cookies() {
+add_task(async function test_expirationDate_and_maxageCap() {
   async function backgroundScript() {
     const kOneDay = 60 * 60 * 24;
     const kTenDays = kOneDay * 10;

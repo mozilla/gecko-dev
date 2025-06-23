@@ -76,6 +76,8 @@ https_first_disabled = true
 
 ["browser_storage_cookies_edit.js"]
 
+["browser_storage_cookies_edit_expiry.js"]
+
 ["browser_storage_cookies_edit_keyboard.js"]
 
 ["browser_storage_cookies_hostOnly.js"]
