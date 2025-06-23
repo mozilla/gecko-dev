@@ -17,10 +17,19 @@
 #  include "VALibWrapper.h"
 #endif
 
-#define AV_LOG_INFO 32
+#define AV_LOG_QUIET -8
+#define AV_LOG_PANIC 0
+#define AV_LOG_FATAL 8
+#define AV_LOG_ERROR 16
 #define AV_LOG_WARNING 24
+#define AV_LOG_INFO 32
+#define AV_LOG_VERBOSE 40
+#define AV_LOG_DEBUG 48
+#define AV_LOG_TRACE 56
 
 namespace mozilla {
+
+static LazyLogModule sFFmpegLibLog("FFmpegLib");
 
 FFmpegLibWrapper::LinkResult FFmpegLibWrapper::Link() {
   if (!mAVCodecLib || !mAVUtilLib) {
@@ -195,6 +204,7 @@ FFmpegLibWrapper::LinkResult FFmpegLibWrapper::Link() {
   AV_FUNC(av_packet_free,
           (AV_FUNC_57 | AV_FUNC_58 | AV_FUNC_59 | AV_FUNC_60 | AV_FUNC_61))
   AV_FUNC(avcodec_descriptor_get, AV_FUNC_AVCODEC_ALL)
+  AV_FUNC(av_log_set_callback, AV_FUNC_AVUTIL_ALL)
   AV_FUNC(av_log_set_level, AV_FUNC_AVUTIL_ALL)
   AV_FUNC(av_malloc, AV_FUNC_AVUTIL_ALL)
   AV_FUNC(av_freep, AV_FUNC_AVUTIL_ALL)
@@ -302,18 +312,9 @@ FFmpegLibWrapper::LinkResult FFmpegLibWrapper::Link() {
   if (avcodec_register_all) {
     avcodec_register_all();
   }
-  int logLevel = 0;
-  const char* ffmpegLogLevel = getenv("MOZ_AV_LOG_LEVEL");
-  if (ffmpegLogLevel && *ffmpegLogLevel) {
-    logLevel = atoi(ffmpegLogLevel);
-  } else if (MOZ_LOG_TEST(sFFmpegVideoLog, LogLevel::Debug) ||
-             MOZ_LOG_TEST(sFFmpegAudioLog, LogLevel::Debug)) {
-    logLevel = AV_LOG_WARNING;
-  } else if (MOZ_LOG_TEST(sFFmpegVideoLog, LogLevel::Info) ||
-             MOZ_LOG_TEST(sFFmpegAudioLog, LogLevel::Info)) {
-    logLevel = AV_LOG_INFO;
-  }
-  av_log_set_level(logLevel);
+
+  UpdateLogLevel();
+  av_log_set_callback(Log);
   return LinkResult::Success;
 }
 
@@ -336,6 +337,77 @@ void FFmpegLibWrapper::Unlink() {
   }
 #endif
   PodZero(this);
+}
+
+void FFmpegLibWrapper::UpdateLogLevel() {
+  LogModule* mod = sFFmpegLibLog;
+  av_log_set_level(ToLibLogLevel(mod->Level()));
+}
+
+/* static */ void FFmpegLibWrapper::RegisterCallbackLogLevel(
+    PrefChangedFunc aCallback) {
+  if (!NS_IsMainThread()) {
+    NS_DispatchToMainThread(NS_NewRunnableFunction(
+        __func__, [aCallback]() { RegisterCallbackLogLevel(aCallback); }));
+    return;
+  }
+
+  Preferences::RegisterCallback(aCallback, "logging.FFmpegLib"_ns);
+}
+
+/* static */ int FFmpegLibWrapper::ToLibLogLevel(LogLevel aLevel) {
+  switch (aLevel) {
+    case LogLevel::Disabled:
+      return AV_LOG_QUIET;
+    case LogLevel::Error:
+      return AV_LOG_ERROR;
+    case LogLevel::Warning:
+      return AV_LOG_WARNING;
+    case LogLevel::Info:
+      return AV_LOG_INFO;
+    case LogLevel::Debug:
+      return AV_LOG_DEBUG;
+    case LogLevel::Verbose:
+      return AV_LOG_TRACE;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unhandled log level!");
+      break;
+  }
+  return AV_LOG_QUIET;
+}
+
+/* static */ LogLevel FFmpegLibWrapper::FromLibLogLevel(int aLevel) {
+  switch (aLevel) {
+    case AV_LOG_QUIET:
+      return LogLevel::Disabled;
+    case AV_LOG_PANIC:
+    case AV_LOG_FATAL:
+    case AV_LOG_ERROR:
+      return LogLevel::Error;
+    case AV_LOG_WARNING:
+      return LogLevel::Warning;
+    case AV_LOG_INFO:
+      return LogLevel::Info;
+    case AV_LOG_DEBUG:
+      return LogLevel::Debug;
+    case AV_LOG_VERBOSE:
+    case AV_LOG_TRACE:
+      return LogLevel::Verbose;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unhandled log level!");
+      break;
+  }
+  return LogLevel::Disabled;
+}
+
+/* static */ void FFmpegLibWrapper::Log(void* aPtr, int aLevel,
+                                        const char* aFmt, va_list aArgs) {
+  LogLevel level = FromLibLogLevel(aLevel);
+  if (MOZ_LOG_TEST(sFFmpegLibLog, level)) {
+    nsAutoCString msg;
+    msg.AppendVprintf(aFmt, aArgs);
+    MOZ_LOG(sFFmpegLibLog, level, ("[%p] %s", aPtr, msg.get()));
+  }
 }
 
 #ifdef MOZ_WIDGET_GTK

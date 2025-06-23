@@ -274,11 +274,6 @@ bool FFmpegVideoDecoder<LIBAV_VER>::CreateVAAPIDeviceContext() {
 }
 
 void FFmpegVideoDecoder<LIBAV_VER>::AdjustHWDecodeLogging() {
-  if (!getenv("MOZ_AV_LOG_LEVEL") &&
-      MOZ_LOG_TEST(sFFmpegVideoLog, LogLevel::Debug)) {
-    mLib->av_log_set_level(AV_LOG_DEBUG);
-  }
-
   if (!getenv("LIBVA_MESSAGING_LEVEL")) {
     if (MOZ_LOG_TEST(sFFmpegVideoLog, LogLevel::Debug)) {
       setenv("LIBVA_MESSAGING_LEVEL", "1", false);
@@ -2055,12 +2050,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
   if (mInfo.mColorDepth > gfx::ColorDepth::COLOR_10) {
     return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                        RESULT_DETAIL("not supported color depth"));
-  }
-
-  // Enable ffmpeg internal logging as well if we need more logging information.
-  if (!getenv("MOZ_AV_LOG_LEVEL") &&
-      MOZ_LOG_TEST(sFFmpegVideoLog, LogLevel::Verbose)) {
-    mLib->av_log_set_level(AV_LOG_DEBUG);
   }
 
   AVCodec* codec = FindHardwareAVCodec(mLib, mCodecID);

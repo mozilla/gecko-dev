@@ -68,6 +68,11 @@ static PRLibrary* MozAVLink(nsIFile* aFile) {
 }
 
 /* static */
+void FFVPXRuntimeLinker::PrefCallbackLogLevel(const char* aPref, void* aData) {
+  sFFVPXLib.UpdateLogLevel();
+}
+
+/* static */
 bool FFVPXRuntimeLinker::Init() {
   // Enter critical section to set up ffvpx.
   StaticMutexAutoLock lock(sMutex);

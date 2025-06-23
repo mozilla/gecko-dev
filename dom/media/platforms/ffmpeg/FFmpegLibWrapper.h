@@ -7,6 +7,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/DefineEnum.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/Types.h"
 #include "ffvpx/tx.h"
 
@@ -56,6 +57,13 @@ struct MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS FFmpegLibWrapper {
   // Check if libva and libva-drm are available and we can use HW decode.
   bool IsVAAPIAvailable();
 #endif
+
+  // Helpers for libavcodec/util logging to integrate with MOZ_LOG.
+  static int ToLibLogLevel(LogLevel aLevel);
+  static LogLevel FromLibLogLevel(int aLevel);
+  static void Log(void* aPtr, int aLevel, const char* aFmt, va_list aArgs);
+  void UpdateLogLevel();
+  static void RegisterCallbackLogLevel(PrefChangedFunc aCallback);
 
   // indicate the version of libavcodec linked to.
   // 0 indicates that the function wasn't initialized with Link().
@@ -118,6 +126,8 @@ struct MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS FFmpegLibWrapper {
   int (*avcodec_receive_frame)(AVCodecContext* avctx, AVFrame* frame);
 
   // libavutil
+  void (*av_log_set_callback)(void (*callback)(void*, int, const char*,
+                                               va_list));
   void (*av_log_set_level)(int level);
   void* (*av_malloc)(size_t size);
   void (*av_freep)(void* ptr);
