@@ -94,7 +94,7 @@ internal fun CustomTabMenu(
             if (isDesktopMode) {
                 badgeText = stringResource(id = R.string.browser_feature_desktop_site_on)
                 badgeBackgroundColor = FirefoxTheme.colors.badgeActive
-                menuItemState = MenuItemState.ACTIVE
+                menuItemState = if (isPdf) MenuItemState.DISABLED else MenuItemState.ACTIVE
             } else {
                 badgeText = stringResource(id = R.string.browser_feature_desktop_site_off)
                 badgeBackgroundColor = FirefoxTheme.colors.layerSearch
