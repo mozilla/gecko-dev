@@ -1001,12 +1001,17 @@ bitflags! {
         const POSITION = 1 << 8;
         /// Whether the view-transition-name property will change.
         const VIEW_TRANSITION_NAME = 1 << 9;
+        /// Whether any property which establishes a backdrop-root will change.
+        /// See https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty
+        const BACKDROP_ROOT = 1 << 10;
     }
 }
 
 fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
     match longhand {
-        LonghandId::Opacity => WillChangeBits::OPACITY,
+        LonghandId::Opacity => {
+            WillChangeBits::OPACITY | WillChangeBits::BACKDROP_ROOT
+        },
         LonghandId::Contain => WillChangeBits::CONTAIN,
         LonghandId::Perspective => WillChangeBits::PERSPECTIVE,
         LonghandId::Position => {
@@ -1019,14 +1024,22 @@ fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
         LonghandId::Rotate |
         LonghandId::Scale |
         LonghandId::OffsetPath => WillChangeBits::TRANSFORM,
-        LonghandId::BackdropFilter | LonghandId::Filter => {
-            WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL | WillChangeBits::FIXPOS_CB_NON_SVG
+        LonghandId::Filter | LonghandId::BackdropFilter => {
+            WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL |
+            WillChangeBits::BACKDROP_ROOT |
+            WillChangeBits::FIXPOS_CB_NON_SVG
         },
         LonghandId::ViewTransitionName => WillChangeBits::VIEW_TRANSITION_NAME,
-        LonghandId::MixBlendMode |
+        LonghandId::MixBlendMode => {
+            WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL |
+            WillChangeBits::BACKDROP_ROOT
+        },
         LonghandId::Isolation |
-        LonghandId::MaskImage |
-        LonghandId::ClipPath => WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL,
+        LonghandId::MaskImage => WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL,
+        LonghandId::ClipPath => {
+            WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL |
+            WillChangeBits::BACKDROP_ROOT
+        },
         _ => WillChangeBits::empty(),
     }
 }

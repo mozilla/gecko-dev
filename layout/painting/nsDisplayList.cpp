@@ -5128,7 +5128,7 @@ bool nsDisplayBlendMode::CanMerge(const nsDisplayItem* aItem) const {
 }
 
 /* static */
-nsDisplayBlendContainer* nsDisplayBlendContainer::CreateForMixBlendMode(
+nsDisplayBlendContainer* nsDisplayBlendContainer::Create(
     nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nsDisplayList* aList,
     const ActiveScrolledRoot* aActiveScrolledRoot) {
   return MakeDisplayItem<nsDisplayBlendContainer>(aBuilder, aFrame, aList,
@@ -8454,6 +8454,7 @@ bool nsDisplayBackdropFilters::CreateWebRenderCommands(
   wr::StackingContextParams params;
   params.clip =
       wr::WrStackingContextClip::ClipChain(aBuilder.CurrentClipChainId());
+  params.flags = wr::StackingContextFlags::IS_BACKDROP_ROOT;
   StackingContextHelper sc(aSc, GetActiveScrolledRoot(), mFrame, this, aBuilder,
                            params);
 

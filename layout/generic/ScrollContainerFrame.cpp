@@ -3752,10 +3752,9 @@ void ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems(
       // container in the async zoom container. Otherwise the blend container
       // ends up outside the zoom container which results in blend failure for
       // WebRender.
-      nsDisplayItem* blendContainer =
-          nsDisplayBlendContainer::CreateForMixBlendMode(
-              aBuilder, this, &rootResultList,
-              aBuilder->CurrentActiveScrolledRoot());
+      nsDisplayItem* blendContainer = nsDisplayBlendContainer::Create(
+          aBuilder, this, &rootResultList,
+          aBuilder->CurrentActiveScrolledRoot());
       rootResultList.AppendToTop(blendContainer);
 
       // Blend containers can be created or omitted during partial updates

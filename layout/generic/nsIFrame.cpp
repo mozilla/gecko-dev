@@ -3204,6 +3204,9 @@ void nsIFrame::BuildDisplayListForStackingContext(
     }
   }
 
+  bool addBackdropRoot =
+      bool(disp->mWillChange.bits & StyleWillChangeBits::BACKDROP_ROOT);
+
   if (aBuilder->IsForPainting() && disp->mWillChange.bits) {
     aBuilder->AddToWillChangeBudget(this, GetSize());
   }
@@ -3609,9 +3612,10 @@ void nsIFrame::BuildDisplayListForStackingContext(
   // The nsDisplayBlendContainer must be added to the list first, so it does not
   // isolate the containing element blending as well.
   if (aBuilder->ContainsBlendMode()) {
-    resultList.AppendToTop(nsDisplayBlendContainer::CreateForMixBlendMode(
+    resultList.AppendToTop(nsDisplayBlendContainer::Create(
         aBuilder, this, &resultList, containerItemASR));
     createdContainer = true;
+    addBackdropRoot = false;
   }
 
   if (usingBackdropFilter) {
@@ -3620,6 +3624,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
     resultList.AppendNewToTop<nsDisplayBackdropFilters>(
         aBuilder, this, &resultList, backdropRect, this);
     createdContainer = true;
+    addBackdropRoot = false;
   }
 
   // If there are any SVG effects, wrap the list up in an SVG effects item
@@ -3661,6 +3666,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
       resultList.AppendNewToTop<nsDisplayMasksAndClipPaths>(
           aBuilder, this, &resultList, maskASR, usingBackdropFilter);
       createdContainer = true;
+      addBackdropRoot = false;
     }
 
     // TODO(miko): We could probably create a wraplist here and avoid creating
@@ -3682,6 +3688,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
         aBuilder, this, &resultList, containerItemASR, opacityItemForEventsOnly,
         needsActiveOpacityLayer, usingBackdropFilter);
     createdContainer = true;
+    addBackdropRoot = false;
   }
 
   // If we're going to apply a transformation and don't have preserve-3d set,
@@ -3733,6 +3740,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
 
       if (separator) {
         createdContainer = true;
+        addBackdropRoot = false;
       }
 
       resultList.AppendToTop(&participants);
@@ -3890,11 +3898,18 @@ void nsIFrame::BuildDisplayListForStackingContext(
     resultList.AppendNewToTop<nsDisplayViewTransitionCapture>(
         aBuilder, this, &resultList, nullptr, /* aIsRoot = */ false);
     createdContainer = true;
+    addBackdropRoot = false;
     // We don't want the capture to be clipped, so we do this _after_ building
     // the wrapping item.
     if (clipCapturedBy == ContainerItemType::ViewTransitionCapture) {
       clipState.Restore();
     }
+  }
+
+  if (addBackdropRoot) {
+    resultList.AppendToTop(nsDisplayBlendContainer::Create(
+        aBuilder, this, &resultList, containerItemASR));
+    createdContainer = true;
   }
 
   if (aBuilder->IsReusingStackingContextItems()) {

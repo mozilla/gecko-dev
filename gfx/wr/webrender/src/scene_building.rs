@@ -2361,7 +2361,13 @@ impl<'a> SceneBuilder<'a> {
         // clip node doesn't affect the stacking context rect.
         let mut blit_reason = BlitReason::empty();
 
-        // Stacking context snapshots are offscreen syrfaces.
+        // If we are forcing a backdrop root here, isolate this context
+        // by using an intermediate surface.
+        if flags.contains(StackingContextFlags::IS_BACKDROP_ROOT) {
+            blit_reason = BlitReason::BACKDROP;
+        }
+
+        // Stacking context snapshots are offscreen surfaces.
         if composite_ops.snapshot.is_some() {
             blit_reason = BlitReason::SNAPSHOT;
         }

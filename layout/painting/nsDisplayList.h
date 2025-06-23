@@ -5318,7 +5318,7 @@ class nsDisplayTableBlendMode final : public nsDisplayBlendMode {
 
 class nsDisplayBlendContainer : public nsDisplayWrapList {
  public:
-  static nsDisplayBlendContainer* CreateForMixBlendMode(
+  static nsDisplayBlendContainer* Create(
       nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nsDisplayList* aList,
       const ActiveScrolledRoot* aActiveScrolledRoot);
 
