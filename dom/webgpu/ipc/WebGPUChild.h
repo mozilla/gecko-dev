@@ -85,6 +85,7 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
 
   bool mScheduledFlushQueuedMessages = false;
   void ScheduledFlushQueuedMessages();
+  nsTArray<ipc::ByteBuf> mQueuedDataBuffers;
   nsTArray<ipc::MutableSharedMemoryHandle> mQueuedHandles;
   void ClearAllPendingPromises();
 
@@ -95,6 +96,7 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
   ipc::IPCResult RecvDeviceLost(RawId aDeviceId, Maybe<uint8_t> aReason,
                                 const nsACString& aMessage);
 
+  size_t QueueDataBuffer(ipc::ByteBuf&& bb);
   size_t QueueShmemHandle(ipc::MutableSharedMemoryHandle&& handle);
   void ScheduleFlushQueuedMessages();
   void FlushQueuedMessages();

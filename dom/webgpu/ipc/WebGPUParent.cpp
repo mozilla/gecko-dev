@@ -1513,7 +1513,8 @@ void WebGPUParent::ActorDestroy(ActorDestroyReason aWhy) {
 }
 
 ipc::IPCResult WebGPUParent::RecvMessages(
-    uint32_t nrOfMessages, const ipc::ByteBuf& aByteBuf,
+    uint32_t nrOfMessages, ipc::ByteBuf&& aSerializedMessages,
+    nsTArray<ipc::ByteBuf>&& aDataBuffers,
     nsTArray<MutableSharedMemoryHandle>&& aShmems) {
   MOZ_ASSERT(mTempMappings.IsEmpty());
 
@@ -1534,10 +1535,14 @@ ipc::IPCResult WebGPUParent::RecvMessages(
     mTempMappings.AppendElement(Some(std::move(mapping)));
   }
 
+  ffi::WGPUFfiSlice_ByteBuf data_buffers{ToFFI(aDataBuffers.Elements()),
+                                         aDataBuffers.Length()};
+
   ffi::WGPUFfiSlice_FfiSlice_u8 shmem_mapping_slices{shmem_mappings.Elements(),
                                                      shmem_mappings.Length()};
 
-  ffi::wgpu_server_messages(mContext.get(), nrOfMessages, ToFFI(&aByteBuf),
+  ffi::wgpu_server_messages(mContext.get(), nrOfMessages,
+                            ToFFI(&aSerializedMessages), data_buffers,
                             shmem_mapping_slices);
 
   mTempMappings.Clear();

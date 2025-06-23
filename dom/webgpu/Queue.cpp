@@ -128,11 +128,13 @@ void Queue::WriteBuffer(
         }
 
         if (size < 1024) {
-          auto data = aData.Elements() + offset;
-          auto data_length = size;
+          ipc::ByteBuf bb{};
+          bb.Allocate(size);
+          memcpy(bb.mData, aData.Elements() + offset, size);
+          auto data_buffer_index = mBridge->QueueDataBuffer(std::move(bb));
           ffi::wgpu_queue_write_buffer_inline(mBridge->GetClient(),
                                               mParent->mId, mId, aBuffer.mId,
-                                              aBufferOffset, data, data_length);
+                                              aBufferOffset, data_buffer_index);
           return;
         }
 

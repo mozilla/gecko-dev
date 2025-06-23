@@ -50,7 +50,8 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   void PostAdapterRequestDevice(RawId aDeviceId);
   void BufferUnmap(RawId aDeviceId, RawId aBufferId, bool aFlush);
   ipc::IPCResult RecvMessages(uint32_t nrOfMessages,
-                              const ipc::ByteBuf& aByteBuf,
+                              ipc::ByteBuf&& aSerializedMessages,
+                              nsTArray<ipc::ByteBuf>&& aDataBuffers,
                               nsTArray<MutableSharedMemoryHandle>&& aShmems);
   void QueueSubmit(RawId aQueueId, RawId aDeviceId,
                    Span<const RawId> aCommandBuffers,

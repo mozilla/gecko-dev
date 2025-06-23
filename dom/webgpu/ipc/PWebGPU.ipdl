@@ -40,7 +40,7 @@ async protocol PWebGPU
   manager PCanvasManager;
 
 parent:
-  async Messages(uint32_t nrOfMessages, ByteBuf buf, MutableSharedMemoryHandle[] shmems);
+  async Messages(uint32_t nrOfMessages, ByteBuf serializedMessages, ByteBuf[] dataBuffers, MutableSharedMemoryHandle[] shmems);
 
 child:
   async ServerMessage(ByteBuf buf);

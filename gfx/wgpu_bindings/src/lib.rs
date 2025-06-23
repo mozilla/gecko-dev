@@ -152,9 +152,9 @@ pub struct FfiLUID {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub enum QueueWriteData<'a> {
-    Inline(Cow<'a, [u8]>),
-    ViaShmem(usize),
+pub enum QueueWriteDataSource {
+    DataBuffer(usize),
+    Shmem(usize),
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -183,7 +183,7 @@ enum Message<'a> {
     QueueWrite {
         device_id: id::DeviceId,
         queue_id: id::QueueId,
-        data: QueueWriteData<'a>,
+        data_source: QueueWriteDataSource,
         action: QueueWriteAction,
     },
     BufferMap {

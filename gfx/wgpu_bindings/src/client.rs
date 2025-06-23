@@ -8,7 +8,7 @@ use crate::{
     TexelCopyBufferLayout, TextureAction,
 };
 
-use crate::{BufferMapResult, Message, QueueWriteData, ServerMessage, SwapChainId};
+use crate::{BufferMapResult, Message, QueueWriteDataSource, ServerMessage, SwapChainId};
 
 use wgc::naga::front::wgsl::ImplementedLanguageExtension;
 use wgc::{command::RenderBundleEncoder, id, identity::IdentityManager};
@@ -359,7 +359,7 @@ impl Client {
         let mut message_queue = self.message_queue.lock();
         message_queue.push(self.owner, message);
     }
-    fn get_messages(&self) -> (u32, Vec<u8>) {
+    fn get_serialized_messages(&self) -> (u32, Vec<u8>) {
         let mut message_queue = self.message_queue.lock();
         message_queue.flush()
     }
@@ -369,7 +369,7 @@ impl Client {
 struct MessageQueue {
     on_message_queued: extern "C" fn(WebGPUChildPtr),
 
-    storage: std::io::Cursor<Vec<u8>>,
+    serialized_messages: std::io::Cursor<Vec<u8>>,
     nr_of_queued_messages: u32,
 }
 
@@ -377,7 +377,7 @@ impl MessageQueue {
     fn new(on_message_queued: extern "C" fn(WebGPUChildPtr)) -> Self {
         Self {
             on_message_queued,
-            storage: std::io::Cursor::new(Vec::new()),
+            serialized_messages: std::io::Cursor::new(Vec::new()),
             nr_of_queued_messages: 0,
         }
     }
@@ -387,7 +387,7 @@ impl MessageQueue {
         let options = bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes();
-        let mut serializer = bincode::Serializer::new(&mut self.storage, options);
+        let mut serializer = bincode::Serializer::new(&mut self.serialized_messages, options);
 
         use serde::Serialize;
         message.serialize(&mut serializer).unwrap();
@@ -401,15 +401,18 @@ impl MessageQueue {
         self.nr_of_queued_messages = 0;
         (
             nr_of_messages,
-            core::mem::take(&mut self.storage).into_inner(),
+            core::mem::take(&mut self.serialized_messages).into_inner(),
         )
     }
 }
 
 #[no_mangle]
-pub extern "C" fn wgpu_client_get_queued_messages(client: &Client, bb: &mut ByteBuf) -> u32 {
-    let (nr_of_messages, storage) = client.get_messages();
-    *bb = ByteBuf::from_vec(storage);
+pub extern "C" fn wgpu_client_get_queued_messages(
+    client: &Client,
+    serialized_messages_bb: &mut ByteBuf,
+) -> u32 {
+    let (nr_of_messages, serialized_messages) = client.get_serialized_messages();
+    *serialized_messages_bb = ByteBuf::from_vec(serialized_messages);
     nr_of_messages
 }
 
@@ -1911,17 +1914,15 @@ pub unsafe extern "C" fn wgpu_queue_write_buffer_inline(
     queue_id: id::QueueId,
     dst: id::BufferId,
     offset: wgt::BufferAddress,
-    inline_data: *const u8,
-    inline_data_length: usize,
+    data_buffer_index: usize,
 ) {
-    let data = Cow::Borrowed(core::slice::from_raw_parts(inline_data, inline_data_length));
-    let data = QueueWriteData::Inline(data);
+    let data_source = QueueWriteDataSource::DataBuffer(data_buffer_index);
 
     let action = QueueWriteAction::Buffer { dst, offset };
     let message = Message::QueueWrite {
         device_id,
         queue_id,
-        data,
+        data_source,
         action,
     };
     client.queue_message(&message);
@@ -1936,13 +1937,13 @@ pub unsafe extern "C" fn wgpu_queue_write_buffer_via_shmem(
     offset: wgt::BufferAddress,
     shmem_handle_index: usize,
 ) {
-    let data = QueueWriteData::ViaShmem(shmem_handle_index);
+    let data_source = QueueWriteDataSource::Shmem(shmem_handle_index);
 
     let action = QueueWriteAction::Buffer { dst, offset };
     let message = Message::QueueWrite {
         device_id,
         queue_id,
-        data,
+        data_source,
         action,
     };
     client.queue_message(&message);
@@ -1958,14 +1959,14 @@ pub unsafe extern "C" fn wgpu_queue_write_texture_via_shmem(
     size: wgt::Extent3d,
     shmem_handle_index: usize,
 ) {
-    let data = QueueWriteData::ViaShmem(shmem_handle_index);
+    let data_source = QueueWriteDataSource::Shmem(shmem_handle_index);
 
     let layout = layout.into_wgt();
     let action = QueueWriteAction::Texture { dst, layout, size };
     let message = Message::QueueWrite {
         device_id,
         queue_id,
-        data,
+        data_source,
         action,
     };
     client.queue_message(&message);

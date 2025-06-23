@@ -299,6 +299,12 @@ void WebGPUChild::ScheduleFlushQueuedMessages() {
                         &WebGPUChild::ScheduledFlushQueuedMessages));
 }
 
+size_t WebGPUChild::QueueDataBuffer(ipc::ByteBuf&& bb) {
+  auto buffer_index = mQueuedDataBuffers.Length();
+  mQueuedDataBuffers.AppendElement(std::move(bb));
+  return buffer_index;
+}
+
 size_t WebGPUChild::QueueShmemHandle(ipc::MutableSharedMemoryHandle&& handle) {
   auto shmem_handle_index = mQueuedHandles.Length();
   mQueuedHandles.AppendElement(std::move(handle));
@@ -315,9 +321,9 @@ void WebGPUChild::ScheduledFlushQueuedMessages() {
 }
 
 void WebGPUChild::FlushQueuedMessages() {
-  ipc::ByteBuf bb;
-  auto nr_of_messages =
-      ffi::wgpu_client_get_queued_messages(GetClient(), ToFFI(&bb));
+  ipc::ByteBuf serialized_messages;
+  auto nr_of_messages = ffi::wgpu_client_get_queued_messages(
+      GetClient(), ToFFI(&serialized_messages));
   if (nr_of_messages == 0) {
     return;
   }
@@ -326,7 +332,9 @@ void WebGPUChild::FlushQueuedMessages() {
                       "messages: {}", nr_of_messages);
 
   bool sent =
-      SendMessages(nr_of_messages, std::move(bb), std::move(mQueuedHandles));
+      SendMessages(nr_of_messages, std::move(serialized_messages),
+                   std::move(mQueuedDataBuffers), std::move(mQueuedHandles));
+  mQueuedDataBuffers.Clear();
   mQueuedHandles.Clear();
 
   if (!sent) {

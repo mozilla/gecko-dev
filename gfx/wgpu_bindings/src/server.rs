@@ -7,8 +7,9 @@ use crate::{
         error_to_string, ErrMsg, ErrorBuffer, ErrorBufferType, HasErrorBufferType, OwnedErrorBuffer,
     },
     make_byte_buf, wgpu_string, AdapterInformation, BufferMapResult, ByteBuf, CommandEncoderAction,
-    DeviceAction, FfiLUID, FfiSlice, Message, PipelineError, QueueWriteAction, QueueWriteData,
-    ServerMessage, ShaderModuleCompilationMessage, SwapChainId, TextureAction,
+    DeviceAction, FfiLUID, FfiSlice, Message, PipelineError, QueueWriteAction,
+    QueueWriteDataSource, ServerMessage, ShaderModuleCompilationMessage, SwapChainId,
+    TextureAction,
 };
 
 use nsstring::{nsACString, nsCString};
@@ -2470,24 +2471,28 @@ pub unsafe extern "C" fn wgpu_server_pack_work_done(bb: &mut ByteBuf) {
 pub unsafe extern "C" fn wgpu_server_messages(
     global: &Global,
     nr_of_messages: u32,
-    byte_buf: &ByteBuf,
+    serialized_messages: &ByteBuf,
+    data_buffers: FfiSlice<'_, ByteBuf>,
     shmem_mappings: FfiSlice<'_, FfiSlice<'_, u8>>,
 ) {
-    let bytes = byte_buf.as_slice();
+    let serialized_messages = serialized_messages.as_slice();
+    let data_buffers = data_buffers.as_slice();
+
     use bincode::Options;
     let options = bincode::DefaultOptions::new()
         .with_fixint_encoding()
         .allow_trailing_bytes();
-    let mut deserializer = bincode::Deserializer::from_slice(bytes, options);
+    let mut deserializer = bincode::Deserializer::from_slice(serialized_messages, options);
 
     for _ in 0..nr_of_messages {
         let message: Message = serde::Deserialize::deserialize(&mut deserializer).unwrap();
-        process_message(global, shmem_mappings, message);
+        process_message(global, data_buffers, shmem_mappings, message);
     }
 }
 
 unsafe fn process_message(
     global: &Global,
+    data_buffers: &[ByteBuf],
     shmem_mappings: FfiSlice<'_, FfiSlice<'_, u8>>,
     message: Message,
 ) {
@@ -2651,12 +2656,14 @@ unsafe fn process_message(
         Message::QueueWrite {
             device_id,
             queue_id,
-            data,
+            data_source,
             action,
         } => {
-            let data = match data {
-                QueueWriteData::Inline(ref inline_data) => inline_data.as_ref(),
-                QueueWriteData::ViaShmem(shmem_handle_index) => {
+            let data = match data_source {
+                QueueWriteDataSource::DataBuffer(data_buffer_index) => {
+                    data_buffers[data_buffer_index].as_slice()
+                }
+                QueueWriteDataSource::Shmem(shmem_handle_index) => {
                     shmem_mappings.as_slice()[shmem_handle_index].as_slice()
                 }
             };
