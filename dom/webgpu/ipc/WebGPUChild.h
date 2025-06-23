@@ -8,6 +8,9 @@
 
 #include "mozilla/webgpu/PWebGPUChild.h"
 #include "mozilla/webgpu/Instance.h"
+#include "mozilla/webgpu/Adapter.h"
+#include "mozilla/webgpu/SupportedFeatures.h"
+#include "mozilla/webgpu/SupportedLimits.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
@@ -37,14 +40,6 @@ struct PipelineCreationContext {
   nsTArray<RawId> mImplicitBindGroupLayoutIds;
 };
 
-struct DeviceRequest {
-  RawId mDeviceId = 0;
-  RawId mQueueId = 0;
-  RefPtr<DevicePromise> mPromise;
-  // Note: we could put `ffi::WGPULimits` in here as well,
-  //  but we don't want to #include ffi stuff in this header
-};
-
 ffi::WGPUByteBuf* ToFFI(ipc::ByteBuf* x);
 
 class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
@@ -57,8 +52,6 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
  public:
   explicit WebGPUChild();
 
-  Maybe<DeviceRequest> AdapterRequestDevice(
-      RawId aSelfId, const ffi::WGPUFfiDeviceDescriptor&);
   RawId RenderBundleEncoderFinish(ffi::WGPURenderBundleEncoder& aEncoder,
                                   RawId aDeviceId,
                                   const dom::GPURenderBundleDescriptor& aDesc);
@@ -75,7 +68,6 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
 
   void RegisterDevice(Device* const aDevice);
   void UnregisterDevice(RawId aDeviceId);
-  void FreeUnregisteredInParentDevice(RawId aId);
 
   void QueueSubmit(RawId aSelfId, RawId aDeviceId,
                    nsTArray<RawId>& aCommandBuffers);
@@ -107,6 +99,18 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
   };
 
   std::deque<PendingRequestAdapterPromise> mPendingRequestAdapterPromises;
+
+  struct PendingRequestDevicePromise {
+    RefPtr<dom::Promise> promise;
+    RawId device_id;
+    RawId queue_id;
+    nsString label;
+    RefPtr<Adapter> adapter;
+    RefPtr<SupportedFeatures> features;
+    RefPtr<SupportedLimits> limits;
+  };
+
+  std::deque<PendingRequestDevicePromise> mPendingRequestDevicePromises;
 };
 
 }  // namespace webgpu

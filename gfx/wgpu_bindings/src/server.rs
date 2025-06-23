@@ -337,18 +337,13 @@ fn support_use_external_texture_in_swap_chain(
 
 static TRACE_IDX: AtomicU32 = AtomicU32::new(0);
 
-#[no_mangle]
-pub unsafe extern "C" fn wgpu_server_adapter_request_device(
+unsafe fn adapter_request_device(
     global: &Global,
     self_id: id::AdapterId,
-    byte_buf: &ByteBuf,
+    mut desc: wgc::device::DeviceDescriptor,
     new_device_id: id::DeviceId,
     new_queue_id: id::QueueId,
-    mut error_buf: ErrorBuffer,
-) {
-    let mut desc: wgc::device::DeviceDescriptor =
-        bincode::deserialize(byte_buf.as_slice()).unwrap();
-
+) -> Option<String> {
     if let wgt::Trace::Directory(ref path) = desc.trace {
         log::warn!("DeviceDescriptor from child process should not request wgpu trace path, but it did request `{}`",
                    path.display());
@@ -484,11 +479,7 @@ pub unsafe extern "C" fn wgpu_server_adapter_request_device(
 
             let hal_device = match hal_device {
                 None => {
-                    error_buf.init_without_device_id(ErrMsg {
-                        message: "Failed to create ash::Device",
-                        r#type: ErrorBufferType::Internal,
-                    });
-                    return;
+                    return Some(format!("Internal Error: Failed to create ash::Device"));
                 }
                 Some(hal_device) => hal_device,
             };
@@ -501,16 +492,18 @@ pub unsafe extern "C" fn wgpu_server_adapter_request_device(
                 Some(new_queue_id),
             );
             if let Err(err) = res {
-                error_buf.init_without_device_id(err);
+                return Some(format!("{err}"));
             }
-            return;
+            return None;
         }
     }
 
     let res =
         global.adapter_request_device(self_id, &desc, Some(new_device_id), Some(new_queue_id));
     if let Err(err) = res {
-        error_buf.init_without_device_id(err);
+        return Some(format!("{err}"));
+    } else {
+        return None;
     }
 }
 
@@ -1417,6 +1410,8 @@ extern "C" {
     );
     #[allow(dead_code)]
     fn wgpu_parent_get_compositor_device_luid(out_luid: *mut FfiLUID);
+    #[allow(dead_code)]
+    fn wgpu_parent_post_request_device(param: *mut c_void, device_id: id::DeviceId);
 }
 
 #[cfg(target_os = "linux")]
@@ -2509,6 +2504,22 @@ pub unsafe extern "C" fn wgpu_server_message(
 
             *response_byte_buf =
                 make_byte_buf(&ServerMessage::RequestAdapterResponse(adapter_id, response));
+        }
+        Message::RequestDevice {
+            adapter_id,
+            device_id,
+            queue_id,
+            desc,
+        } => {
+            let error = adapter_request_device(global, adapter_id, desc, device_id, queue_id);
+
+            if error.is_none() {
+                wgpu_parent_post_request_device(global.webgpu_parent, device_id);
+            }
+
+            *response_byte_buf = make_byte_buf(&ServerMessage::RequestDeviceResponse(
+                device_id, queue_id, error,
+            ));
         }
         Message::Device(id, action) => global.device_action(
             id,

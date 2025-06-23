@@ -274,6 +274,12 @@ extern void wgpu_parent_get_compositor_device_luid(
   }
 }
 
+extern void wgpu_parent_post_request_device(void* aParam,
+                                            WGPUDeviceId aDeviceId) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+  parent->PostAdapterRequestDevice(aDeviceId);
+}
+
 }  // namespace ffi
 
 // A fixed-capacity buffer for receiving textual error messages from
@@ -535,18 +541,7 @@ static void DeviceLostCleanupCallback(uint8_t* aUserData) {
   }
 }
 
-ipc::IPCResult WebGPUParent::RecvAdapterRequestDevice(
-    RawId aAdapterId, const ipc::ByteBuf& aByteBuf, RawId aDeviceId,
-    RawId aQueueId, AdapterRequestDeviceResolver&& resolver) {
-  ErrorBuffer error;
-  ffi::wgpu_server_adapter_request_device(mContext.get(), aAdapterId,
-                                          ToFFI(&aByteBuf), aDeviceId, aQueueId,
-                                          error.ToFFI());
-  if (ForwardError(error)) {
-    resolver(false);
-    return IPC_OK();
-  }
-
+void WebGPUParent::PostAdapterRequestDevice(RawId aDeviceId) {
   mErrorScopeStackByDevice.insert({aDeviceId, {}});
 
   std::unique_ptr<OnDeviceLostRequest> request(
@@ -555,8 +550,6 @@ ipc::IPCResult WebGPUParent::RecvAdapterRequestDevice(
       &DeviceLostCallback, &DeviceLostCleanupCallback,
       reinterpret_cast<uint8_t*>(request.release())};
   ffi::wgpu_server_set_device_lost_callback(mContext.get(), aDeviceId, closure);
-
-  resolver(true);
 
 #if defined(XP_WIN)
   HANDLE handle =
@@ -570,8 +563,6 @@ ipc::IPCResult WebGPUParent::RecvAdapterRequestDevice(
 
   MOZ_ASSERT(!mActiveDeviceIds.Contains(aDeviceId));
   mActiveDeviceIds.Insert(aDeviceId);
-
-  return IPC_OK();
 }
 
 void WebGPUParent::PreDeviceDrop(RawId aDeviceId) {

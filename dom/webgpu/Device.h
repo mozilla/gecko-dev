@@ -97,7 +97,8 @@ class Device final : public DOMEventTargetHelper, public SupportsWeakPtr {
       const gfx::IntSize& aSize, const gfx::SurfaceFormat& aFormat);
 
   explicit Device(Adapter* const aParent, RawId aDeviceId, RawId aQueueId,
-                  const ffi::WGPULimits&);
+                  RefPtr<SupportedFeatures> aFeatures,
+                  RefPtr<SupportedLimits> aLimits);
 
   RefPtr<WebGPUChild> GetBridge();
   already_AddRefed<Texture> InitSwapChain(

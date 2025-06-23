@@ -150,6 +150,12 @@ enum Message<'a> {
         power_preference: wgt::PowerPreference,
         force_fallback_adapter: bool,
     },
+    RequestDevice {
+        adapter_id: id::AdapterId,
+        device_id: id::DeviceId,
+        queue_id: id::QueueId,
+        desc: wgc::device::DeviceDescriptor<'a>,
+    },
     Device(id::DeviceId, DeviceAction<'a>),
     Texture(id::DeviceId, id::TextureId, TextureAction<'a>),
     CommandEncoder(id::DeviceId, id::CommandEncoderId, CommandEncoderAction),
@@ -294,6 +300,7 @@ enum TextureAction<'a> {
 #[derive(serde::Serialize, serde::Deserialize)]
 enum ServerMessage<'a> {
     RequestAdapterResponse(id::AdapterId, Option<AdapterInformation<Cow<'a, str>>>),
+    RequestDeviceResponse(id::DeviceId, id::QueueId, Option<String>),
 }
 
 #[repr(C)]

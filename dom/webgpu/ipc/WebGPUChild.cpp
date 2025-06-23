@@ -56,23 +56,6 @@ WebGPUChild::WebGPUChild() : mClient(initialize()) {}
 
 WebGPUChild::~WebGPUChild() = default;
 
-Maybe<DeviceRequest> WebGPUChild::AdapterRequestDevice(
-    RawId aSelfId, const ffi::WGPUFfiDeviceDescriptor& aDesc) {
-  ffi::WGPUDeviceQueueId ids =
-      ffi::wgpu_client_make_device_queue_id(mClient.get());
-
-  ByteBuf bb;
-  ffi::wgpu_client_serialize_device_descriptor(&aDesc, ToFFI(&bb));
-
-  DeviceRequest request;
-  request.mDeviceId = ids.device;
-  request.mQueueId = ids.queue;
-  request.mPromise =
-      SendAdapterRequestDevice(aSelfId, std::move(bb), ids.device, ids.queue);
-
-  return Some(std::move(request));
-}
-
 RawId WebGPUChild::RenderBundleEncoderFinish(
     ffi::WGPURenderBundleEncoder& aEncoder, RawId aDeviceId,
     const dom::GPURenderBundleDescriptor& aDesc) {
@@ -119,9 +102,28 @@ void resolve_request_adapter_promise(
   }
 }
 
+void resolve_request_device_promise(void* child, const nsCString* error) {
+  auto* c = static_cast<WebGPUChild*>(child);
+  auto& pending_promises = c->mPendingRequestDevicePromises;
+  auto pending_promise = std::move(pending_promises.front());
+  pending_promises.pop_front();
+
+  if (error == nullptr) {
+    RefPtr<Device> device =
+        new Device(pending_promise.adapter, pending_promise.device_id,
+                   pending_promise.queue_id, pending_promise.features,
+                   pending_promise.limits);
+    device->SetLabel(pending_promise.label);
+    pending_promise.promise->MaybeResolve(device);
+  } else {
+    pending_promise.promise->MaybeRejectWithOperationError(*error);
+  }
+}
+
 ipc::IPCResult WebGPUChild::RecvServerMessage(const ipc::ByteBuf& aByteBuf) {
   ffi::wgpu_client_receive_server_message(this, GetClient(), ToFFI(&aByteBuf),
-                                          resolve_request_adapter_promise);
+                                          resolve_request_adapter_promise,
+                                          resolve_request_device_promise);
   return IPC_OK();
 }
 
@@ -226,11 +228,6 @@ void WebGPUChild::UnregisterDevice(RawId aDeviceId) {
     SendMessage(std::move(bb), Nothing());
   }
   mDeviceMap.erase(aDeviceId);
-}
-
-void WebGPUChild::FreeUnregisteredInParentDevice(RawId aId) {
-  ffi::wgpu_client_kill_device_id(mClient.get(), aId);
-  mDeviceMap.erase(aId);
 }
 
 void WebGPUChild::ActorDestroy(ActorDestroyReason) {

@@ -632,21 +632,9 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
 
     // -
 
-    ffi::WGPUFfiDeviceDescriptor ffiDesc = {};
-    ffiDesc.required_features = featureBits;
-    ffiDesc.required_limits = deviceLimits;
-    auto request = mBridge->AdapterRequestDevice(mId, ffiDesc);
-    if (!request) {
-      promise->MaybeRejectWithNotSupportedError(
-          "Unable to instantiate a Device");
-      return;
-    }
-    RefPtr<Device> device = new Device(
-        this, request->mDeviceId, request->mQueueId, ffiDesc.required_limits);
-    device->SetLabel(aDesc.mLabel);
-
+    RefPtr<SupportedFeatures> features = new SupportedFeatures(this);
     for (const auto& feature : aDesc.mRequiredFeatures) {
-      device->mFeatures->Add(feature, aRv);
+      features->Add(feature, aRv);
     }
     // TODO: Once we implement compat mode (see
     // <https://bugzilla.mozilla.org/show_bug.cgi?id=1905951>), do not report
@@ -659,27 +647,31 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
     // > Core-defaulting adapters *always* support the
     // > `"core-features-and-limits"` feature. It is *automatically enabled* on
     // > devices created from such adapters.
-    device->mFeatures->Add(dom::GPUFeatureName::Core_features_and_limits, aRv);
+    features->Add(dom::GPUFeatureName::Core_features_and_limits, aRv);
 
-    request->mPromise->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [promise, device](bool aSuccess) {
-          if (aSuccess) {
-            promise->MaybeResolve(device);
-          } else {
-            device->CleanupUnregisteredInParent();
-            promise->MaybeRejectWithInvalidStateError(
-                "Unable to fulfill requested features and limits");
-          }
-        },
-        [promise, device](const ipc::ResponseRejectReason& aReason) {
-          // We can't be sure how far along the WebGPUParent got in handling
-          // our AdapterRequestDevice message, but we can't communicate with it,
-          // so clear up our client state for this Device without trying to
-          // communicate with the parent about it.
-          device->CleanupUnregisteredInParent();
-          promise->MaybeRejectWithNotSupportedError("IPC error");
-        });
+    RefPtr<SupportedLimits> limits = new SupportedLimits(this, deviceLimits);
+
+    ffi::WGPUDeviceQueueId ids =
+        ffi::wgpu_client_make_device_queue_id(mBridge->GetClient());
+
+    ffi::WGPUFfiDeviceDescriptor ffiDesc = {};
+    ffiDesc.required_features = featureBits;
+    ffiDesc.required_limits = deviceLimits;
+
+    ipc::ByteBuf bb;
+    ffi::wgpu_client_request_device(mId, ids.device, ids.queue, &ffiDesc,
+                                    ToFFI(&bb));
+    bool sent = mBridge->SendMessage(std::move(bb), Nothing());
+    if (sent) {
+      auto pending_promise = WebGPUChild::PendingRequestDevicePromise{
+          RefPtr(promise), ids.device, ids.queue, aDesc.mLabel,
+          RefPtr(this),    features,   limits};
+      mBridge->mPendingRequestDevicePromises.push_back(
+          std::move(pending_promise));
+    } else {
+      promise->MaybeRejectWithAbortError("Internal communication error!");
+    }
+
   }();
 
   return promise.forget();

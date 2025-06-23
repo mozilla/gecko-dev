@@ -47,9 +47,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
  public:
   explicit WebGPUParent();
 
-  ipc::IPCResult RecvAdapterRequestDevice(
-      RawId aAdapterId, const ipc::ByteBuf& aByteBuf, RawId aDeviceId,
-      RawId aQueueId, AdapterRequestDeviceResolver&& resolver);
+  void PostAdapterRequestDevice(RawId aDeviceId);
   ipc::IPCResult RecvBufferMap(RawId aDeviceId, RawId aBufferId, uint32_t aMode,
                                uint64_t aOffset, uint64_t size,
                                BufferMapResolver&& aResolver);

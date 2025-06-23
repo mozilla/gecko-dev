@@ -58,12 +58,12 @@ GPU_IMPL_JS_WRAP(Device)
 RefPtr<WebGPUChild> Device::GetBridge() { return mBridge; }
 
 Device::Device(Adapter* const aParent, RawId aDeviceId, RawId aQueueId,
-               const ffi::WGPULimits& aRawLimits)
+               RefPtr<SupportedFeatures> aFeatures,
+               RefPtr<SupportedLimits> aLimits)
     : DOMEventTargetHelper(aParent->GetParentObject()),
       mId(aDeviceId),
-      // features are filled in Adapter::RequestDevice
-      mFeatures(new SupportedFeatures(aParent)),
-      mLimits(new SupportedLimits(aParent, aRawLimits)),
+      mFeatures(std::move(aFeatures)),
+      mLimits(std::move(aLimits)),
       mSupportExternalTextureInSwapChain(
           aParent->SupportExternalTextureInSwapChain()),
       mBridge(aParent->mBridge),
@@ -83,13 +83,6 @@ void Device::Cleanup() {
   if (mBridge) {
     mBridge->UnregisterDevice(mId);
   }
-}
-
-void Device::CleanupUnregisteredInParent() {
-  if (mBridge) {
-    mBridge->FreeUnregisteredInParentDevice(mId);
-  }
-  mValid = false;
 }
 
 bool Device::IsLost() const {

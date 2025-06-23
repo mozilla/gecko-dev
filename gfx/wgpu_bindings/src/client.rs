@@ -18,7 +18,7 @@ use wgc::id::markers;
 
 use parking_lot::Mutex;
 
-use nsstring::{nsACString, nsString};
+use nsstring::{nsACString, nsCString, nsString};
 
 use std::fmt::Write;
 use std::{borrow::Cow, ptr};
@@ -347,11 +347,6 @@ pub struct Client {
     identities: Mutex<IdentityHub>,
 }
 
-#[no_mangle]
-pub extern "C" fn wgpu_client_kill_device_id(client: &Client, id: id::DeviceId) {
-    client.identities.lock().devices.free(id)
-}
-
 #[repr(C)]
 #[derive(Debug)]
 pub struct Infrastructure {
@@ -432,7 +427,10 @@ pub struct FfiDeviceDescriptor<'a> {
 }
 
 #[no_mangle]
-pub extern "C" fn wgpu_client_serialize_device_descriptor(
+pub extern "C" fn wgpu_client_request_device(
+    adapter_id: id::AdapterId,
+    device_id: id::DeviceId,
+    queue_id: id::QueueId,
     desc: &FfiDeviceDescriptor,
     bb: &mut ByteBuf,
 ) {
@@ -450,7 +448,13 @@ pub extern "C" fn wgpu_client_serialize_device_descriptor(
         // variable itself in `wgpu_server_adapter_request_device`.
         trace: wgt::Trace::Off,
     };
-    *bb = make_byte_buf(&desc);
+    let action = Message::RequestDevice {
+        adapter_id,
+        device_id,
+        queue_id,
+        desc,
+    };
+    *bb = make_byte_buf(&action);
 }
 
 #[repr(C)]
@@ -554,6 +558,10 @@ pub extern "C" fn wgpu_client_receive_server_message(
         child: *mut core::ffi::c_void,
         adapter_info: *const AdapterInformation<nsString>,
     ),
+    resolve_request_device_promise: extern "C" fn(
+        child: *mut core::ffi::c_void,
+        error: Option<&nsCString>,
+    ),
 ) {
     let message: ServerMessage = bincode::deserialize(unsafe { byte_buf.as_slice() }).unwrap();
     match message {
@@ -594,6 +602,17 @@ pub extern "C" fn wgpu_client_receive_server_message(
             } else {
                 resolve_request_adapter_promise(child, core::ptr::null());
                 client.identities.lock().adapters.free(adapter_id)
+            }
+        }
+        ServerMessage::RequestDeviceResponse(device_id, queue_id, error) => {
+            if let Some(error) = error {
+                let error = nsCString::from(error);
+                resolve_request_device_promise(child, Some(&error));
+                let identities = client.identities.lock();
+                identities.devices.free(device_id);
+                identities.queues.free(queue_id);
+            } else {
+                resolve_request_device_promise(child, None);
             }
         }
     }
