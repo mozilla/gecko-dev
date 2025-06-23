@@ -12,7 +12,10 @@ import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.withResumed
 import androidx.navigation.fragment.findNavController
+import kotlinx.coroutines.launch
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.feature.customtabs.isCustomTabIntent
 import mozilla.components.support.base.feature.UserInteractionHandler
@@ -66,7 +69,13 @@ class UnlockPrivateTabsFragment : Fragment(), UserInteractionHandler {
                     },
                     showNegativeButton = !isCustomPrivateTab,
                 )
+            }
+        }
 
+        // Delay the prompt until this fragment is resumed to ensure that `BiometricPromptFeature`
+        // is wiring up the system `BiometricPrompt` to the right (currently active) fragment.
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.withResumed {
                 requestPrompt()
             }
         }
