@@ -493,7 +493,7 @@ private fun BookmarksListTopBar(
                                 Icon(
                                     painter = painterResource(R.drawable.mozac_ic_folder_add_24),
                                     contentDescription = stringResource(
-                                        R.string.bookmark_add_new_folder_button_content_description,
+                                        R.string.bookmark_select_folder_new_folder_button_title,
                                     ),
                                     tint = iconColor,
                                 )
