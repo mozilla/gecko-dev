@@ -28,6 +28,7 @@ add_task(async function test_places() {
   let controller = UrlbarTestUtils.newMockController();
   // Also check case insensitivity.
   let searchString = "MoZ oRg";
+  let tabGroupId = "1234567890-1";
   let context = createContext(searchString, { isPrivate: false });
 
   // Add entries from multiple sources.
@@ -43,11 +44,18 @@ add_task(async function test_places() {
   await PlacesTestUtils.addVisits([
     { uri: "https://history.mozilla.org/", title: "Test history" },
     { uri: "https://tab.mozilla.org/", title: "Test tab" },
+    { uri: "https://tabingroup.mozilla.org/", title: "Test tab in group" },
   ]);
   UrlbarProviderOpenTabs.registerOpenTab(
     "https://tab.mozilla.org/",
     0,
     null,
+    false
+  );
+  UrlbarProviderOpenTabs.registerOpenTab(
+    "https://tabingroup.mozilla.org/",
+    0,
+    tabGroupId,
     false
   );
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
@@ -60,7 +68,7 @@ add_task(async function test_places() {
   );
   Assert.equal(
     context.results.length,
-    6,
+    7,
     "Found the expected number of matches"
   );
 
@@ -70,6 +78,7 @@ add_task(async function test_places() {
       UrlbarUtils.RESULT_TYPE.SEARCH,
       UrlbarUtils.RESULT_TYPE.SEARCH,
       UrlbarUtils.RESULT_TYPE.URL,
+      UrlbarUtils.RESULT_TYPE.TAB_SWITCH,
       UrlbarUtils.RESULT_TYPE.TAB_SWITCH,
       UrlbarUtils.RESULT_TYPE.URL,
     ],
@@ -83,6 +92,7 @@ add_task(async function test_places() {
       searchString + " foo",
       searchString + " bar",
       "Test bookmark",
+      "Test tab in group",
       "Test tab",
       "Test history",
     ],
@@ -96,12 +106,30 @@ add_task(async function test_places() {
     "Check tags"
   );
 
+  Assert.equal(
+    context.results[4].payload.tabGroup,
+    tabGroupId,
+    "Check tab group result for tab in group"
+  );
+
+  Assert.equal(
+    context.results[5].payload.tabGroup,
+    null,
+    "Check tab group result for tab not in group"
+  );
+
   await PlacesUtils.history.clear();
   await PlacesUtils.bookmarks.eraseEverything();
   UrlbarProviderOpenTabs.unregisterOpenTab(
     "https://tab.mozilla.org/",
     0,
     null,
+    false
+  );
+  UrlbarProviderOpenTabs.unregisterOpenTab(
+    "https://tabingroup.mozilla.org/",
+    0,
+    tabGroupId,
     false
   );
 });

@@ -277,6 +277,7 @@ function convertLegacyMatches(context, matches, urls) {
       firstToken: context.tokens[0],
       userContextId: match.userContextId,
       lastVisit: match.lastVisit,
+      tabGroup: match.tabGroup,
       frecency: match.frecency,
     });
     // Should not happen, but better safe than sorry.
@@ -327,6 +328,7 @@ function makeUrlbarResult(tokens, info) {
           icon: info.icon,
           userContextId: info.userContextId,
           lastVisit: info.lastVisit,
+          tabGroup: info.tabGroup,
           frecency: info.frecency,
         });
         if (lazy.UrlbarPrefs.get("secondaryActions.switchToTab")) {
