@@ -77,7 +77,7 @@
 
 /* Taskbar Tab windows will hide all toolbar buttons that are not on the following list */
 
-:root[taskbartab] {
+:root[taskbartab] toolbar {
   .chromeclass-toolbar-additional {
     display: none;
   }
@@ -89,6 +89,7 @@
   #customizableui-special-spring2,
   #downloads-button,
   #unified-extensions-button,
+  .unified-extensions-item,
   #save-page-button,
   #print-button,
   #find-button,
@@ -97,6 +98,7 @@
   #characterencoding-button,
   #email-link-button,
   #screenshot-button,
+  #nav-bar-overflow-button,
   #fullscreen-button {
     display: revert;
   }
