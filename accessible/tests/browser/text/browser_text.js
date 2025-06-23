@@ -110,6 +110,11 @@ ef gh</pre>
       [1, 1, `a${kEmbedChar}d`, 0, 3],
       [2, 3, `${kEmbedChar}d`, 1, 3],
     ]);
+    testTextAtOffset(linksBreaking, BOUNDARY_WORD_START, [
+      [0, 0, `a${kEmbedChar}`, 0, 2],
+      [1, 1, `a${kEmbedChar}d`, 0, 3],
+      [2, 3, `${kEmbedChar}d`, 1, 3],
+    ]);
     const p = findAccessibleChildByID(docAcc, "p");
     testTextAtOffset(p, BOUNDARY_LINE_START, [
       [0, 0, "a", 0, 1],
