@@ -134,11 +134,11 @@ RawId WebGPUChild::RenderBundleEncoderFinishError(RawId aDeviceId,
   return id;
 }
 
-ipc::IPCResult WebGPUChild::RecvUncapturedError(const Maybe<RawId> aDeviceId,
+ipc::IPCResult WebGPUChild::RecvUncapturedError(RawId aDeviceId,
                                                 const nsACString& aMessage) {
   RefPtr<Device> device;
   if (aDeviceId) {
-    const auto itr = mDeviceMap.find(*aDeviceId);
+    const auto itr = mDeviceMap.find(aDeviceId);
     if (itr != mDeviceMap.end()) {
       device = itr->second.get();
       MOZ_ASSERT(device);

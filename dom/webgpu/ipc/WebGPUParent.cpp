@@ -210,6 +210,7 @@ class ErrorBuffer {
   ffi::WGPUErrorBufferType mType = ffi::WGPUErrorBufferType_None;
   char mMessageUtf8[BUFFER_SIZE] = {};
   bool mAwaitingGetError = false;
+  RawId mDeviceId = 0;
 
  public:
   ErrorBuffer() { mMessageUtf8[0] = 0; }
@@ -218,7 +219,8 @@ class ErrorBuffer {
 
   ffi::WGPUErrorBuffer ToFFI() {
     mAwaitingGetError = true;
-    ffi::WGPUErrorBuffer errorBuf = {&mType, mMessageUtf8, BUFFER_SIZE};
+    ffi::WGPUErrorBuffer errorBuf = {&mType, mMessageUtf8, BUFFER_SIZE,
+                                     &mDeviceId};
     return errorBuf;
   }
 
@@ -247,6 +249,7 @@ class ErrorBuffer {
     dom::GPUErrorFilter type;
     bool isDeviceLost;
     nsCString message;
+    RawId deviceId;
   };
 
   // Retrieve the error message was stored in this buffer. Asserts that
@@ -263,13 +266,13 @@ class ErrorBuffer {
       // GPUErrorFilter type we use, so we just use Validation. The error
       // will not be reported.
       return Some(Error{dom::GPUErrorFilter::Validation, true,
-                        nsCString{mMessageUtf8}});
+                        nsCString{mMessageUtf8}, mDeviceId});
     }
     auto filterType = ErrorTypeToFilterType(mType);
     if (!filterType) {
       return {};
     }
-    return Some(Error{*filterType, false, nsCString{mMessageUtf8}});
+    return Some(Error{*filterType, false, nsCString{mMessageUtf8}, mDeviceId});
   }
 
   void CoerceValidationToInternal() {
@@ -366,8 +369,7 @@ void WebGPUParent::LoseDevice(const RawId aDeviceId, Maybe<uint8_t> aReason,
   mLostDeviceIds.Insert(aDeviceId);
 }
 
-bool WebGPUParent::ForwardError(const Maybe<RawId> aDeviceId,
-                                ErrorBuffer& aError) {
+bool WebGPUParent::ForwardError(ErrorBuffer& aError) {
   if (auto error = aError.GetError()) {
     // If this is a error has isDeviceLost true, then instead of reporting
     // the error, we swallow it and call LoseDevice if we have an
@@ -375,11 +377,11 @@ bool WebGPUParent::ForwardError(const Maybe<RawId> aDeviceId,
     // https://gpuweb.github.io/gpuweb/#lose-the-device
     // "No errors are generated after device loss."
     if (error->isDeviceLost) {
-      if (aDeviceId.isSome()) {
-        LoseDevice(*aDeviceId, Nothing(), error->message);
+      if (error->deviceId) {
+        LoseDevice(error->deviceId, Nothing(), error->message);
       }
     } else {
-      ReportError(aDeviceId, error->type, error->message);
+      ReportError(error->deviceId, error->type, error->message);
     }
     return true;
   }
@@ -388,12 +390,11 @@ bool WebGPUParent::ForwardError(const Maybe<RawId> aDeviceId,
 
 // Generate an error on the Device timeline of aDeviceId.
 // aMessage is interpreted as UTF-8.
-void WebGPUParent::ReportError(const Maybe<RawId> aDeviceId,
-                               const GPUErrorFilter aType,
+void WebGPUParent::ReportError(RawId aDeviceId, const GPUErrorFilter aType,
                                const nsCString& aMessage) {
   // find the appropriate error scope
   if (aDeviceId) {
-    const auto& itr = mErrorScopeStackByDevice.find(*aDeviceId);
+    const auto& itr = mErrorScopeStackByDevice.find(aDeviceId);
     if (itr != mErrorScopeStackByDevice.end()) {
       auto& stack = itr->second;
       for (auto& scope : Reversed(stack)) {
@@ -440,7 +441,7 @@ ipc::IPCResult WebGPUParent::RecvInstanceRequestAdapter(
   ffi::wgpu_server_adapter_pack_info(mContext.get(), adapterId,
                                      ToFFI(&infoByteBuf));
   resolver(std::move(infoByteBuf));
-  ForwardError(0, error);
+  ForwardError(error);
 
   return IPC_OK();
 }
@@ -489,7 +490,7 @@ ipc::IPCResult WebGPUParent::RecvAdapterRequestDevice(
   ffi::wgpu_server_adapter_request_device(mContext.get(), aAdapterId,
                                           ToFFI(&aByteBuf), aDeviceId, aQueueId,
                                           error.ToFFI());
-  if (ForwardError(0, error)) {
+  if (ForwardError(error)) {
     resolver(false);
     return IPC_OK();
   }
@@ -573,7 +574,7 @@ ipc::IPCResult WebGPUParent::RecvDeviceCreateBuffer(
                                         label.Get(), aDesc.mSize, aDesc.mUsage,
                                         aDesc.mMappedAtCreation,
                                         shmAllocationFailed, error.ToFFI());
-  ForwardError(aDeviceId, error);
+  ForwardError(error);
   return IPC_OK();
 }
 
@@ -648,7 +649,8 @@ void WebGPUParent::MapCallback(uint8_t* aUserData,
     if (req->mHostMap == ffi::WGPUHostMap_Read && size > 0) {
       ErrorBuffer error;
       const auto src = ffi::wgpu_server_buffer_get_mapped_range(
-          req->mContext, req->mBufferId, offset, size, error.ToFFI());
+          req->mContext, mapData->mDeviceId, req->mBufferId, offset, size,
+          error.ToFFI());
 
       MOZ_RELEASE_ASSERT(!error.GetError());
 
@@ -709,9 +711,9 @@ ipc::IPCResult WebGPUParent::RecvBufferMap(RawId aDeviceId, RawId aBufferId,
   ffi::WGPUBufferMapClosure closure = {
       &MapCallback, reinterpret_cast<uint8_t*>(request.release())};
   ErrorBuffer mapError;
-  ffi::wgpu_server_buffer_map(mContext.get(), aBufferId, aOffset, aSize, mode,
-                              closure, mapError.ToFFI());
-  ForwardError(aDeviceId, mapError);
+  ffi::wgpu_server_buffer_map(mContext.get(), aDeviceId, aBufferId, aOffset,
+                              aSize, mode, closure, mapError.ToFFI());
+  ForwardError(mapError);
 
   return IPC_OK();
 }
@@ -729,8 +731,9 @@ ipc::IPCResult WebGPUParent::RecvBufferUnmap(RawId aDeviceId, RawId aBufferId,
 
     ErrorBuffer getRangeError;
     const auto mapped = ffi::wgpu_server_buffer_get_mapped_range(
-        mContext.get(), aBufferId, offset, size, getRangeError.ToFFI());
-    ForwardError(aDeviceId, getRangeError);
+        mContext.get(), aDeviceId, aBufferId, offset, size,
+        getRangeError.ToFFI());
+    ForwardError(getRangeError);
 
     if (mapped.ptr != nullptr && mapped.length >= size) {
       auto shmSize = mapData->mShmem.Size();
@@ -746,8 +749,9 @@ ipc::IPCResult WebGPUParent::RecvBufferUnmap(RawId aDeviceId, RawId aBufferId,
   }
 
   ErrorBuffer unmapError;
-  ffi::wgpu_server_buffer_unmap(mContext.get(), aBufferId, unmapError.ToFFI());
-  ForwardError(aDeviceId, unmapError);
+  ffi::wgpu_server_buffer_unmap(mContext.get(), aDeviceId, aBufferId,
+                                unmapError.ToFFI());
+  ForwardError(unmapError);
 
   if (mapData && !mapData->mHasMapFlags) {
     // We get here if the buffer was mapped at creation without map flags.
@@ -785,7 +789,7 @@ ipc::IPCResult WebGPUParent::RecvQueueSubmit(
 
   ErrorBuffer error;
   auto index = ffi::wgpu_server_queue_submit(
-      mContext.get(), aQueueId, aCommandBuffers.Elements(),
+      mContext.get(), aDeviceId, aQueueId, aCommandBuffers.Elements(),
       aCommandBuffers.Length(), error.ToFFI());
   // Check if index is valid. 0 means error.
   if (index != 0) {
@@ -805,7 +809,7 @@ ipc::IPCResult WebGPUParent::RecvQueueSubmit(
       }
     }
   }
-  ForwardError(aDeviceId, error);
+  ForwardError(error);
   return IPC_OK();
 }
 
@@ -838,10 +842,10 @@ ipc::IPCResult WebGPUParent::RecvQueueWriteBufferInline(
     RawId aQueueId, RawId aDeviceId, RawId aBufferId, uint64_t offset,
     const ipc::ByteBuf& aByteBuf) {
   ErrorBuffer error;
-  ffi::wgpu_server_queue_write_buffer_inline(mContext.get(), aQueueId,
-                                             aBufferId, offset,
+  ffi::wgpu_server_queue_write_buffer_inline(mContext.get(), aDeviceId,
+                                             aQueueId, aBufferId, offset,
                                              ToFFI(&aByteBuf), error.ToFFI());
-  ForwardError(aDeviceId, error);
+  ForwardError(error);
   return IPC_OK();
 }
 
@@ -854,9 +858,9 @@ ipc::IPCResult WebGPUParent::RecvQueueWriteAction(
 
   ErrorBuffer error;
   ffi::wgpu_server_queue_write_action(
-      mContext.get(), aQueueId, ToFFI(&aByteBuf), mapping.DataAs<uint8_t>(),
-      mapping.Size(), error.ToFFI());
-  ForwardError(aDeviceId, error);
+      mContext.get(), aDeviceId, aQueueId, ToFFI(&aByteBuf),
+      mapping.DataAs<uint8_t>(), mapping.Size(), error.ToFFI());
+  ForwardError(error);
   return IPC_OK();
 }
 
@@ -925,7 +929,7 @@ ipc::IPCResult WebGPUParent::RecvDeviceCreateShaderModule(
       mContext.get(), aDeviceId, aModuleId, label, &aCode, &message,
       error.ToFFI());
 
-  ForwardError(aDeviceId, error);
+  ForwardError(error);
 
   nsTArray<WebGPUCompilationMessage> messages;
 
@@ -1012,10 +1016,11 @@ static void ReadbackPresentCallback(uint8_t* userdata,
     const auto bufferSize = data->mDesc.size().height * data->mSourcePitch;
     ErrorBuffer getRangeError;
     const auto mapped = ffi::wgpu_server_buffer_get_mapped_range(
-        req->mContext, bufferId, 0, bufferSize, getRangeError.ToFFI());
+        req->mContext, data->mDeviceId, bufferId, 0, bufferSize,
+        getRangeError.ToFFI());
     getRangeError.CoerceValidationToInternal();
     if (req->mData->mParent) {
-      req->mData->mParent->ForwardError(data->mDeviceId, getRangeError);
+      req->mData->mParent->ForwardError(getRangeError);
     }
     if (auto innerError = getRangeError.GetError()) {
       MOZ_LOG(sLogger, LogLevel::Info,
@@ -1048,10 +1053,11 @@ static void ReadbackPresentCallback(uint8_t* userdata,
       NS_WARNING("WebGPU present skipped: the swapchain is resized!");
     }
     ErrorBuffer unmapError;
-    wgpu_server_buffer_unmap(req->mContext, bufferId, unmapError.ToFFI());
+    wgpu_server_buffer_unmap(req->mContext, data->mDeviceId, bufferId,
+                             unmapError.ToFFI());
     unmapError.CoerceValidationToInternal();
     if (req->mData->mParent) {
-      req->mData->mParent->ForwardError(data->mDeviceId, unmapError);
+      req->mData->mParent->ForwardError(unmapError);
     }
     if (auto innerError = unmapError.GetError()) {
       MOZ_LOG(sLogger, LogLevel::Info,
@@ -1102,10 +1108,11 @@ static void ReadbackSnapshotCallback(uint8_t* userdata,
   const auto bufferSize = data->mDesc.size().height * data->mSourcePitch;
   ErrorBuffer getRangeError;
   const auto mapped = ffi::wgpu_server_buffer_get_mapped_range(
-      req->mContext, req->mBufferId, 0, bufferSize, getRangeError.ToFFI());
+      req->mContext, data->mDeviceId, req->mBufferId, 0, bufferSize,
+      getRangeError.ToFFI());
   getRangeError.CoerceValidationToInternal();
   if (req->mData->mParent) {
-    req->mData->mParent->ForwardError(data->mDeviceId, getRangeError);
+    req->mData->mParent->ForwardError(getRangeError);
   }
   if (auto innerError = getRangeError.GetError()) {
     MOZ_LOG(sLogger, LogLevel::Info,
@@ -1129,10 +1136,11 @@ static void ReadbackSnapshotCallback(uint8_t* userdata,
   }
 
   ErrorBuffer unmapError;
-  wgpu_server_buffer_unmap(req->mContext, req->mBufferId, unmapError.ToFFI());
+  wgpu_server_buffer_unmap(req->mContext, data->mDeviceId, req->mBufferId,
+                           unmapError.ToFFI());
   unmapError.CoerceValidationToInternal();
   if (req->mData->mParent) {
-    req->mData->mParent->ForwardError(data->mDeviceId, unmapError);
+    req->mData->mParent->ForwardError(unmapError);
   }
   if (auto innerError = unmapError.GetError()) {
     MOZ_LOG(sLogger, LogLevel::Info,
@@ -1205,7 +1213,7 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
       ffi::wgpu_server_device_create_buffer(mContext.get(), data->mDeviceId,
                                             bufferId, nullptr, bufferSize,
                                             usage, false, false, error.ToFFI());
-      if (ForwardError(data->mDeviceId, error)) {
+      if (ForwardError(error)) {
         return IPC_OK();
       }
     } else {
@@ -1227,7 +1235,7 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
     ffi::wgpu_server_device_create_encoder(mContext.get(), data->mDeviceId,
                                            &encoderDesc, aCommandEncoderId,
                                            error.ToFFI());
-    if (ForwardError(data->mDeviceId, error)) {
+    if (ForwardError(error)) {
       return IPC_OK();
     }
   }
@@ -1253,18 +1261,19 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
   {
     ErrorBuffer error;
     ffi::wgpu_server_encoder_copy_texture_to_buffer(
-        mContext.get(), aCommandEncoderId, &texView, bufferId, &bufLayout,
-        &extent, error.ToFFI());
-    if (ForwardError(data->mDeviceId, error)) {
+        mContext.get(), data->mDeviceId, aCommandEncoderId, &texView, bufferId,
+        &bufLayout, &extent, error.ToFFI());
+    if (ForwardError(error)) {
       return IPC_OK();
     }
   }
   ffi::WGPUCommandBufferDescriptor commandDesc = {};
   {
     ErrorBuffer error;
-    ffi::wgpu_server_encoder_finish(mContext.get(), aCommandEncoderId,
-                                    &commandDesc, error.ToFFI());
-    if (ForwardError(data->mDeviceId, error)) {
+    ffi::wgpu_server_encoder_finish(mContext.get(), data->mDeviceId,
+                                    aCommandEncoderId, &commandDesc,
+                                    error.ToFFI());
+    if (ForwardError(error)) {
       ffi::wgpu_server_encoder_drop(mContext.get(), aCommandEncoderId);
       return IPC_OK();
     }
@@ -1272,10 +1281,11 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
 
   {
     ErrorBuffer error;
-    ffi::wgpu_server_queue_submit(mContext.get(), data->mQueueId,
-                                  &aCommandEncoderId, 1, error.ToFFI());
+    ffi::wgpu_server_queue_submit(mContext.get(), data->mDeviceId,
+                                  data->mQueueId, &aCommandEncoderId, 1,
+                                  error.ToFFI());
     ffi::wgpu_server_encoder_drop(mContext.get(), aCommandEncoderId);
-    if (ForwardError(data->mDeviceId, error)) {
+    if (ForwardError(error)) {
       return IPC_OK();
     }
   }
@@ -1288,9 +1298,10 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
       reinterpret_cast<uint8_t*>(snapshotRequest.release())};
 
   ErrorBuffer error;
-  ffi::wgpu_server_buffer_map(mContext.get(), bufferId, 0, bufferSize,
-                              ffi::WGPUHostMap_Read, closure, error.ToFFI());
-  if (ForwardError(data->mDeviceId, error)) {
+  ffi::wgpu_server_buffer_map(mContext.get(), data->mDeviceId, bufferId, 0,
+                              bufferSize, ffi::WGPUHostMap_Read, closure,
+                              error.ToFFI());
+  if (ForwardError(error)) {
     return IPC_OK();
   }
 
@@ -1396,7 +1407,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
       ffi::wgpu_server_device_create_buffer(mContext.get(), data->mDeviceId,
                                             bufferId, nullptr, bufferSize,
                                             usage, false, false, error.ToFFI());
-      if (ForwardError(data->mDeviceId, error)) {
+      if (ForwardError(error)) {
         return IPC_OK();
       }
     } else {
@@ -1422,7 +1433,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
     ffi::wgpu_server_device_create_encoder(mContext.get(), data->mDeviceId,
                                            &encoderDesc, aCommandEncoderId,
                                            error.ToFFI());
-    if (ForwardError(data->mDeviceId, error)) {
+    if (ForwardError(error)) {
       return IPC_OK();
     }
   }
@@ -1444,18 +1455,19 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
   {
     ErrorBuffer error;
     ffi::wgpu_server_encoder_copy_texture_to_buffer(
-        mContext.get(), aCommandEncoderId, &texView, bufferId, &bufLayout,
-        &extent, error.ToFFI());
-    if (ForwardError(data->mDeviceId, error)) {
+        mContext.get(), data->mDeviceId, aCommandEncoderId, &texView, bufferId,
+        &bufLayout, &extent, error.ToFFI());
+    if (ForwardError(error)) {
       return IPC_OK();
     }
   }
   ffi::WGPUCommandBufferDescriptor commandDesc = {};
   {
     ErrorBuffer error;
-    ffi::wgpu_server_encoder_finish(mContext.get(), aCommandEncoderId,
-                                    &commandDesc, error.ToFFI());
-    if (ForwardError(data->mDeviceId, error)) {
+    ffi::wgpu_server_encoder_finish(mContext.get(), data->mDeviceId,
+                                    aCommandEncoderId, &commandDesc,
+                                    error.ToFFI());
+    if (ForwardError(error)) {
       ffi::wgpu_server_encoder_drop(mContext.get(), aCommandEncoderId);
       return IPC_OK();
     }
@@ -1463,10 +1475,11 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
 
   {
     ErrorBuffer error;
-    ffi::wgpu_server_queue_submit(mContext.get(), data->mQueueId,
-                                  &aCommandEncoderId, 1, error.ToFFI());
+    ffi::wgpu_server_queue_submit(mContext.get(), data->mDeviceId,
+                                  data->mQueueId, &aCommandEncoderId, 1,
+                                  error.ToFFI());
     ffi::wgpu_server_encoder_drop(mContext.get(), aCommandEncoderId);
-    if (ForwardError(data->mDeviceId, error)) {
+    if (ForwardError(error)) {
       return IPC_OK();
     }
   }
@@ -1491,9 +1504,10 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
       reinterpret_cast<uint8_t*>(presentRequest.release())};
 
   ErrorBuffer error;
-  ffi::wgpu_server_buffer_map(mContext.get(), bufferId, 0, bufferSize,
-                              ffi::WGPUHostMap_Read, closure, error.ToFFI());
-  if (ForwardError(data->mDeviceId, error)) {
+  ffi::wgpu_server_buffer_map(mContext.get(), data->mDeviceId, bufferId, 0,
+                              bufferSize, ffi::WGPUHostMap_Read, closure,
+                              error.ToFFI());
+  if (ForwardError(error)) {
     return IPC_OK();
   }
 
@@ -1552,7 +1566,7 @@ void WebGPUParent::ActorDestroy(ActorDestroyReason aWhy) {
 ipc::IPCResult WebGPUParent::RecvMessage(const ipc::ByteBuf& aByteBuf) {
   ErrorBuffer error;
   ffi::wgpu_server_message(mContext.get(), ToFFI(&aByteBuf), error.ToFFI());
-  ForwardError(0, error);
+  ForwardError(error);
   return IPC_OK();
 }
 
@@ -1562,7 +1576,7 @@ ipc::IPCResult WebGPUParent::RecvDeviceActionWithAck(
   ErrorBuffer error;
   ffi::wgpu_server_device_action(mContext.get(), aDeviceId, ToFFI(&aByteBuf),
                                  error.ToFFI());
-  ForwardError(aDeviceId, error);
+  ForwardError(error);
   aResolver(true);
   return IPC_OK();
 }
@@ -1570,18 +1584,18 @@ ipc::IPCResult WebGPUParent::RecvDeviceActionWithAck(
 ipc::IPCResult WebGPUParent::RecvRenderPass(RawId aEncoderId, RawId aDeviceId,
                                             const ipc::ByteBuf& aByteBuf) {
   ErrorBuffer error;
-  ffi::wgpu_server_render_pass(mContext.get(), aEncoderId, ToFFI(&aByteBuf),
-                               error.ToFFI());
-  ForwardError(aDeviceId, error);
+  ffi::wgpu_server_render_pass(mContext.get(), aDeviceId, aEncoderId,
+                               ToFFI(&aByteBuf), error.ToFFI());
+  ForwardError(error);
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvComputePass(RawId aEncoderId, RawId aDeviceId,
                                              const ipc::ByteBuf& aByteBuf) {
   ErrorBuffer error;
-  ffi::wgpu_server_compute_pass(mContext.get(), aEncoderId, ToFFI(&aByteBuf),
-                                error.ToFFI());
-  ForwardError(aDeviceId, error);
+  ffi::wgpu_server_compute_pass(mContext.get(), aDeviceId, aEncoderId,
+                                ToFFI(&aByteBuf), error.ToFFI());
+  ForwardError(error);
   return IPC_OK();
 }
 
@@ -1600,7 +1614,7 @@ ipc::IPCResult WebGPUParent::RecvDevicePushErrorScope(
   if (stack.size() >= MAX_ERROR_SCOPE_STACK_SIZE) {
     nsPrintfCString m("pushErrorScope: Hit MAX_ERROR_SCOPE_STACK_SIZE of %zu",
                       MAX_ERROR_SCOPE_STACK_SIZE);
-    ReportError(Some(aDeviceId), dom::GPUErrorFilter::Out_of_memory, m);
+    ReportError(aDeviceId, dom::GPUErrorFilter::Out_of_memory, m);
     return IPC_OK();
   }
 

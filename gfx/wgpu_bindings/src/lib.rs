@@ -116,9 +116,10 @@ struct ImplicitLayout<'a> {
 #[derive(serde::Serialize, serde::Deserialize)]
 enum Message<'a> {
     Device(id::DeviceId, DeviceAction<'a>),
-    Texture(id::TextureId, TextureAction<'a>),
-    CommandEncoder(id::CommandEncoderId, CommandEncoderAction),
+    Texture(id::DeviceId, id::TextureId, TextureAction<'a>),
+    CommandEncoder(id::DeviceId, id::CommandEncoderId, CommandEncoderAction),
     CommandEncoderFinish(
+        id::DeviceId,
         id::CommandEncoderId,
         wgt::CommandBufferDescriptor<wgc::Label<'a>>,
     ),

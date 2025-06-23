@@ -31,6 +31,7 @@ using WGPUOption_SamplerId = uint64_t;
 using WGPUOption_SurfaceId = uint64_t;
 using WGPUOption_TextureViewId = uint64_t;
 using WGPUOption_QuerySetId = uint64_t;
+using WGPUOption_DeviceId = uint64_t;
 
 using WGPUAdapterId = uint64_t;
 using WGPUBindGroupId = uint64_t;
@@ -64,10 +65,20 @@ style = "tag"
 prefix = "WGPU"
 renaming_overrides_prefixing = true
 exclude = [
-	"Option_AdapterId", "Option_BufferId", "Option_BindGroupId", "Option_PipelineLayoutId", "Option_BindGroupLayoutId",
-	"Option_SamplerId", "Option_SurfaceId", "Option_TextureViewId",
-	"Option_BufferSize", "Option_NonZeroU32", "Option_NonZeroU8",
-	"ANativeWindow_setBuffersGeometry", "Option_QuerySetId",
+	"Option_AdapterId",
+	"Option_BufferId",
+	"Option_BindGroupId",
+	"Option_PipelineLayoutId",
+	"Option_BindGroupLayoutId",
+	"Option_SamplerId",
+	"Option_SurfaceId",
+	"Option_TextureViewId",
+	"Option_BufferSize",
+	"Option_NonZeroU32",
+	"Option_NonZeroU8",
+	"ANativeWindow_setBuffersGeometry",
+	"Option_QuerySetId",
+	"Option_DeviceId",
 ]
 include = ["BufferUsages"]
 

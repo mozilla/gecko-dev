@@ -36,6 +36,7 @@ pub struct ErrorBuffer {
     /// `message` up to `capacity - 1`, and null-terminate it.
     message: *mut c_char,
     message_capacity: usize,
+    device_id: *mut Option<wgc::id::DeviceId>,
 }
 
 impl ErrorBuffer {
@@ -48,8 +49,17 @@ impl ErrorBuffer {
     /// byte. If the textual form of `error` itself includes a zero byte (as Rust strings can), then
     /// the C++ code receiving this error message has no way to distinguish that from the
     /// terminating zero byte, and will see the message as shorter than it is.
-    pub(crate) fn init(&mut self, error: impl HasErrorBufferType) {
+    pub(crate) fn init(&mut self, error: impl HasErrorBufferType, device_id: wgc::id::DeviceId) {
+        self.init_impl(error, Some(device_id));
+    }
+    pub(crate) fn init_without_device_id(&mut self, error: impl HasErrorBufferType) {
+        self.init_impl(error, None);
+    }
+
+    fn init_impl(&mut self, error: impl HasErrorBufferType, device_id: Option<wgc::id::DeviceId>) {
         use std::fmt::Write;
+
+        unsafe { *self.device_id = device_id };
 
         let mut message = format!("{}", error);
         let mut e = error.source();

@@ -150,9 +150,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
       const layers::RemoteTextureId aRemoteTextureId,
       const layers::RemoteTextureOwnerId aOwnerId);
 
-  bool ForwardError(const RawId aDeviceId, ErrorBuffer& aError) {
-    return ForwardError(Some(aDeviceId), aError);
-  }
+  bool ForwardError(ErrorBuffer& aError);
 
   ffi::WGPUGlobal* GetContext() const { return mContext.get(); }
 
@@ -177,10 +175,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   void LoseDevice(const RawId aDeviceId, Maybe<uint8_t> aReason,
                   const nsACString& aMessage);
 
-  bool ForwardError(Maybe<RawId> aDeviceId, ErrorBuffer& aError);
-
-  void ReportError(Maybe<RawId> aDeviceId, GPUErrorFilter,
-                   const nsCString& message);
+  void ReportError(RawId aDeviceId, GPUErrorFilter, const nsCString& message);
 
   static Maybe<ffi::WGPUFfiLUID> GetCompositorDeviceLuid();
 

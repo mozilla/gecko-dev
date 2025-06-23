@@ -75,7 +75,7 @@ parent:
   async ReportError(RawId selfId, GPUErrorFilter aType, nsCString message);
 
 child:
-  async UncapturedError(RawId? aDeviceId, nsCString message);
+  async UncapturedError(RawId aDeviceId, nsCString message);
   async DeviceLost(RawId aDeviceId, uint8_t? reason, nsCString message);
   async __delete__();
 };

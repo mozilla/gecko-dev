@@ -95,7 +95,7 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
                               const nsAString& aMessage);
 
  public:
-  ipc::IPCResult RecvUncapturedError(Maybe<RawId> aDeviceId,
+  ipc::IPCResult RecvUncapturedError(RawId aDeviceId,
                                      const nsACString& aMessage);
   ipc::IPCResult RecvDeviceLost(RawId aDeviceId, Maybe<uint8_t> aReason,
                                 const nsACString& aMessage);
