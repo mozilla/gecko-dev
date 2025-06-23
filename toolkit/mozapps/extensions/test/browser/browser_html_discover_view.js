@@ -575,7 +575,7 @@ add_task(async function discopane_no_cookies() {
     false,
     false,
     false,
-    Date.now() / 1000 + 600,
+    Date.now() + 1000 * 600,
     {},
     Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTP

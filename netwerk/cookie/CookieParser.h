@@ -69,6 +69,7 @@ class CookieParser final {
   void ParseAttributes(nsCString& aCookieHeader, nsACString& aExpires,
                        nsACString& aMaxage, bool& aAcceptedByParser);
 
+  // aCurrentTime is in milliseconds, and expiry will be stored in milliseconds.
   bool GetExpiry(CookieStruct& aCookieData, const nsACString& aExpires,
                  const nsACString& aMaxage, int64_t aCurrentTime,
                  const nsACString& aDateHeader, bool aFromHttp);

@@ -59,3 +59,48 @@ add_task(async function test_no_reject_invalid_cookies() {
   await extension.awaitMessage("done");
   await extension.unload();
 });
+
+add_task(async function test_expirationDate_with_fraction() {
+  async function backgroundScript() {
+    const expirationDate = Math.floor(Date.now() / 1000) + 3600.5;
+    let cookie = await browser.cookies.set({
+      url: "https://example.com/",
+      name: "expirationDate",
+      value: "hello",
+      expirationDate,
+    });
+    browser.test.assertEq(
+      cookie.expirationDate,
+      expirationDate,
+      "Cookie with fractional expirationDate"
+    );
+
+    cookie = await browser.cookies.getAll({
+      url: "https://example.com",
+      name: "expirationDate",
+    });
+    browser.test.assertEq(
+      cookie.length,
+      1,
+      "Cookie with fractional expirationDate found"
+    );
+    browser.test.assertEq(
+      cookie[0].expirationDate,
+      expirationDate,
+      "Cookie with fractional expirationDate matches"
+    );
+
+    browser.test.sendMessage("done");
+  }
+
+  const extension = ExtensionTestUtils.loadExtension({
+    background: backgroundScript,
+    manifest: {
+      permissions: ["cookies", "https://example.com/*"],
+    },
+  });
+
+  await extension.startup();
+  await extension.awaitMessage("done");
+  await extension.unload();
+});

@@ -39,7 +39,7 @@ function cookieExists(cookie) {
 }
 
 function addCookie(cookie) {
-  const THE_FUTURE = Date.now() + 5 * 60;
+  const THE_FUTURE = Date.now() + 5 * 60 * 1000;
 
   const cv = Services.cookies.add(
     cookie.host,

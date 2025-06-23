@@ -43,7 +43,7 @@ function addAndRemoveCookie({ isPrivate }) {
     session: false,
     firstPartyDomain: "",
     partitionKey: null,
-    expirationDate: Date.now() + 3600000,
+    expirationDate: Math.floor(Date.now() / 1000) + 3600,
     storeId: isPrivate ? "firefox-private" : "firefox-default",
   };
   const originAttributes = { privateBrowsingId: isPrivate ? 1 : 0 };
@@ -55,7 +55,7 @@ function addAndRemoveCookie({ isPrivate }) {
     cookie.secure,
     cookie.httpOnly,
     cookie.session,
-    cookie.expirationDate,
+    cookie.expirationDate * 1000,
     originAttributes,
     Ci.nsICookie.SAMESITE_LAX,
     Ci.nsICookie.SCHEME_HTTPS

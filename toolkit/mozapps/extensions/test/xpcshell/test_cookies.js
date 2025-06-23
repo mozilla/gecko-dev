@@ -50,8 +50,8 @@ add_task(async function test_cookies() {
   makeHandler("/update.xpi", xpiFetches, "");
 
   const COOKIE = "test";
-  // cookies.add() takes a time in seconds
-  let expiration = Date.now() / 1000 + 60 * 60;
+  // cookies.add() takes a time in milliseconds
+  let expiration = Date.now() + 1000 * 60 * 60;
   const cv = Services.cookies.add(
     "example.com",
     "/",

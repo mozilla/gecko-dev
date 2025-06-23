@@ -160,7 +160,7 @@ class TestFirefoxRefresh(MarionetteTestCase):
         self.runCode(
             """
           // Expire in 15 minutes:
-          let expireTime = Math.floor(Date.now() / 1000) + 15 * 60;
+          let expireTime = Date.now() + 1000 * 15 * 60;
           Services.cookies.add(arguments[0], arguments[1], arguments[2], arguments[3],
                                true, false, false, expireTime, {},
                                Ci.nsICookie.SAMESITE_UNSET, Ci.nsICookie.SCHEME_UNSET);

@@ -109,7 +109,7 @@ add_task(async function test_cookies() {
   });
 
   const COOKIE = "test";
-  let expiration = Date.now() / 1000 + 60 * 60;
+  let expiration = Date.now() + 1000 * 60 * 60;
   const cv = Services.cookies.add(
     "example.com",
     "/",
