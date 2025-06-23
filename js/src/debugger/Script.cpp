@@ -2115,6 +2115,7 @@ struct DebuggerScript::SetBreakpointMatcher {
 
     if (!cx_->zone()->new_<Breakpoint>(dbg_, debuggerObject_, site, handler_)) {
       site->destroyIfEmpty(cx_->runtime()->gcContext());
+      ReportOutOfMemory(cx_);
       return false;
     }
     AddCellMemory(script, sizeof(Breakpoint), MemoryUse::Breakpoint);
@@ -2144,6 +2145,7 @@ struct DebuggerScript::SetBreakpointMatcher {
 
     if (!cx_->zone()->new_<Breakpoint>(dbg_, debuggerObject_, site, handler_)) {
       site->destroyIfEmpty(cx_->runtime()->gcContext());
+      ReportOutOfMemory(cx_);
       return false;
     }
     AddCellMemory(wasmInstance, sizeof(Breakpoint), MemoryUse::Breakpoint);
