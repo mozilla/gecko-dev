@@ -19,7 +19,9 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import mozilla.components.service.nimbus.NimbusApi
 import mozilla.components.service.nimbus.messaging.FxNimbusMessaging
@@ -277,8 +279,10 @@ class NotificationDismissedService : LifecycleService() {
                 }
 
                 if (message != null) {
-                    // Update message as 'dismissed'.
-                    messaging.onMessageDismissed(message)
+                    withContext(Dispatchers.IO) {
+                        // Update message as 'dismissed'.
+                        messaging.onMessageDismissed(message)
+                    }
                 }
             }
         }
@@ -307,8 +311,10 @@ class NotificationClickedReceiverActivity : ComponentActivity() {
             }
 
             if (message != null) {
-                // Update message as 'clicked'.
-                messaging.onMessageClicked(message)
+                withContext(Dispatchers.IO) {
+                    // Update message as 'clicked'.
+                    messaging.onMessageClicked(message)
+                }
 
                 // Create the intent.
                 val intent = messaging.getIntentForMessage(message)
