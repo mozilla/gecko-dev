@@ -8,6 +8,7 @@ import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.UiStore
 import org.mozilla.fenix.browser.store.BrowserScreenAction.CancelPrivateDownloadsOnPrivateTabsClosedAccepted
 import org.mozilla.fenix.browser.store.BrowserScreenAction.ClosingLastPrivateTab
+import org.mozilla.fenix.browser.store.BrowserScreenAction.CustomTabColorsUpdated
 import org.mozilla.fenix.browser.store.BrowserScreenAction.PageTranslationStatusUpdated
 import org.mozilla.fenix.browser.store.BrowserScreenAction.ReaderModeStatusUpdated
 
@@ -40,4 +41,8 @@ private fun reduce(state: BrowserScreenState, action: BrowserScreenAction): Brow
     )
 
     is PageTranslationStatusUpdated -> state.copy(pageTranslationStatus = action.pageTranslationStatus)
+
+    is CustomTabColorsUpdated -> state.copy(
+        customTabColors = action.customTabColors,
+    )
 }

@@ -11,10 +11,10 @@ import androidx.navigation.fragment.navArgs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.ExternalAppType
 import mozilla.components.browser.state.state.SessionState
-import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
 import mozilla.components.feature.customtabs.CustomTabWindowFeature
@@ -29,8 +29,11 @@ import mozilla.components.support.ktx.kotlin.isContentUrl
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BaseBrowserFragment
 import org.mozilla.fenix.browser.ContextMenuSnackbarDelegate
+import org.mozilla.fenix.browser.CustomTabColorsBinding
 import org.mozilla.fenix.browser.CustomTabContextMenuCandidate
+import org.mozilla.fenix.components.toolbar.BrowserToolbarComposable
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
+import org.mozilla.fenix.customtabs.ext.updateCustomTabsColors
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
@@ -46,6 +49,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
     private val args by navArgs<ExternalAppBrowserFragmentArgs>()
 
     private val customTabsIntegration = ViewBoundFeatureWrapper<CustomTabsIntegration>()
+    private val customTabColorsBinding = ViewBoundFeatureWrapper<CustomTabColorsBinding>()
     private val windowFeature = ViewBoundFeatureWrapper<CustomTabWindowFeature>()
     private val hideToolbarFeature = ViewBoundFeatureWrapper<WebAppHideToolbarFeature>()
 
@@ -61,24 +65,50 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
             requireComponents.core.webAppManifestStorage.getManifestCache(url)
         }
 
-        ((browserToolbarView as? BrowserToolbarView)?.toolbar as? BrowserToolbar)?.let {
-            customTabsIntegration.set(
-                feature = CustomTabsIntegration(
-                    context = requireContext(),
-                    store = requireComponents.core.store,
-                    useCases = requireComponents.useCases.customTabsUseCases,
-                    browserToolbar = it,
-                    sessionId = customTabSessionId,
-                    activity = activity,
-                    interactor = browserToolbarInteractor,
-                    isPrivate = tab.content.private,
-                    shouldReverseItems = !activity.settings().shouldUseBottomToolbar,
-                    isSandboxCustomTab = args.isSandboxCustomTab,
-                    isMenuRedesignEnabled = requireContext().settings().enableMenuRedesign,
-                ),
-                owner = this,
-                view = view,
-            )
+        val browserToolbarView = browserToolbarView
+        when (browserToolbarView) {
+            is BrowserToolbarView -> {
+                customTabsIntegration.set(
+                    feature = CustomTabsIntegration(
+                        context = requireContext(),
+                        store = requireComponents.core.store,
+                        useCases = requireComponents.useCases.customTabsUseCases,
+                        browserToolbar = browserToolbarView.toolbar,
+                        sessionId = customTabSessionId,
+                        activity = activity,
+                        interactor = browserToolbarInteractor,
+                        isPrivate = tab.content.private,
+                        shouldReverseItems = !activity.settings().shouldUseBottomToolbar,
+                        isSandboxCustomTab = args.isSandboxCustomTab,
+                        isMenuRedesignEnabled = requireContext().settings().enableMenuRedesign,
+                    ),
+                    owner = this,
+                    view = view,
+                )
+            }
+
+            is BrowserToolbarComposable -> {
+                val browserStore = requireComponents.core.store
+                if (browserStore.state.findCustomTab(customTabSessionId)?.content?.private == false) {
+                    val settings = requireContext().settings()
+                    browserScreenStore.updateCustomTabsColors(
+                        context = requireContext(),
+                        customTab = (tab as? CustomTabSessionState),
+                        deviceUIMode = requireContext().resources.configuration.uiMode,
+                        shouldFollowDeviceTheme = settings.shouldFollowDeviceTheme,
+                        shouldUseLightTheme = settings.shouldUseLightTheme,
+                    )
+
+                    customTabColorsBinding.set(
+                        feature = CustomTabColorsBinding(
+                            browserScreenStore = browserScreenStore,
+                            window = requireActivity().window,
+                        ),
+                        owner = this,
+                        view = view,
+                    )
+                }
+            }
         }
 
         windowFeature.set(

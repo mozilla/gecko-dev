@@ -100,7 +100,7 @@ private fun ProvideAcornTokens(
     )
 }
 
-private val localAcornColors = staticCompositionLocalOf<AcornColors> {
+val localAcornColors = staticCompositionLocalOf<AcornColors> {
     error("No AcornColors provided")
 }
 

@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.browser.store
 
+import androidx.annotation.ColorInt
 import mozilla.components.lib.state.State
 import org.mozilla.fenix.browser.PageTranslationStatus
 import org.mozilla.fenix.browser.ReaderModeStatus
@@ -14,9 +15,27 @@ import org.mozilla.fenix.browser.ReaderModeStatus
  * @property cancelPrivateDownloadsAccepted Whether the user has accepted to cancel private downloads.
  * @property readerModeStatus Reader mode status of the current page.
  * @property pageTranslationStatus Translation status of the current page.
+ * @property customTabColors Custom colors configuration when browsing in custom tab.
  */
 data class BrowserScreenState(
     val cancelPrivateDownloadsAccepted: Boolean = false,
     val readerModeStatus: ReaderModeStatus = ReaderModeStatus.UNKNOWN,
     val pageTranslationStatus: PageTranslationStatus = PageTranslationStatus.NOT_POSSIBLE,
+    val customTabColors: CustomTabColors? = null,
 ) : State
+
+/**
+ * Custom colors configuration when browsing in custom tab.
+ *
+ * @property toolbarColor Background color for the toolbar.
+ * @property systemBarsColor Background color for the system bars - status bar and navigation bar.
+ * @property navigationBarDividerColor Color for the thin line separating the
+ * system navigation bar from the application's UI.
+ * @property readableColor Color for text or icons shown in the toolbar with enough contrast to be easily readable.
+ */
+data class CustomTabColors(
+    @ColorInt val toolbarColor: Int? = null,
+    @ColorInt val systemBarsColor: Int? = null,
+    @ColorInt val navigationBarDividerColor: Int? = null,
+    @ColorInt val readableColor: Int? = null,
+)

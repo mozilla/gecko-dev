@@ -46,4 +46,11 @@ sealed class BrowserScreenAction : Action {
     data class PageTranslationStatusUpdated(
         val pageTranslationStatus: PageTranslationStatus,
     ) : BrowserScreenAction()
+
+    /**
+     * Custom colors configuration when browsing in custom tab is updated.
+     *
+     * @property customTabColors The new colors configuration.
+     */
+    data class CustomTabColorsUpdated(val customTabColors: CustomTabColors?) : BrowserScreenAction()
 }

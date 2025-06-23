@@ -82,17 +82,16 @@ internal class HomeToolbarComposable(
         id = R.id.composable_toolbar
 
         setContent {
-            val shouldShowDivider by remember { mutableStateOf(showDivider) }
             val shouldShowTabStrip: Boolean = remember { context.isTabStripEnabled() }
 
             AcornTheme {
                 when (shouldShowTabStrip) {
                     true -> Column {
                         tabStripContent()
-                        BrowserToolbar(shouldShowDivider, settings.shouldUseBottomToolbar)
+                        BrowserToolbar(showDivider, settings.shouldUseBottomToolbar)
                     }
 
-                    false -> BrowserToolbar(shouldShowDivider, settings.shouldUseBottomToolbar)
+                    false -> BrowserToolbar(showDivider, settings.shouldUseBottomToolbar)
                 }
             }
         }

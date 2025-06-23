@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleOwner
@@ -29,6 +31,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.theme.AcornTheme
+import mozilla.components.compose.base.theme.localAcornColors
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
@@ -91,7 +94,7 @@ class BrowserToolbarComposable(
     settings = settings,
     customTabSession = customTabSession,
 ) {
-    private var showDivider by mutableStateOf(true)
+    private var showDivider by mutableStateOf(false)
 
     private val middleware: Middleware<BrowserToolbarState, BrowserToolbarAction> = when (customTabSession) {
         null -> getOrCreate<BrowserToolbarMiddleware>()
@@ -105,9 +108,9 @@ class BrowserToolbarComposable(
     }
 
     override val layout = ScrollableToolbarComposeView(activity, this) {
-        val shouldShowDivider by remember { mutableStateOf(showDivider) }
         val shouldShowTabStrip: Boolean = remember { shouldShowTabStrip() }
         val progressBarValue = store.observeAsComposableState { it.displayState.progressBarConfig?.progress }.value ?: 0
+        val customColors = browserScreenStore.observeAsComposableState { it.customTabColors }
 
         DisposableEffect(activity) {
             val toolbarController = ToolbarBehaviorController(
@@ -120,17 +123,35 @@ class BrowserToolbarComposable(
         }
 
         AcornTheme {
-            when (shouldShowTabStrip) {
-                true -> Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight(),
-                ) {
-                    tabStripContent()
-                    BrowserToolbar(shouldShowDivider, progressBarValue, settings.shouldUseBottomToolbar)
-                }
+            val acornColors = AcornTheme.colors
+            val customTheme = remember(customColors, acornColors) {
+                acornColors.copy(
+                    // Toolbar background
+                    layer1 = customColors.value?.toolbarColor?.let { Color(it) } ?: acornColors.layer1,
+                    // Page origin background
+                    layer3 = customColors.value?.toolbarColor?.let { Color(it) } ?: acornColors.layer3,
+                    // All text but the title
+                    textPrimary = customColors.value?.readableColor?.let { Color(it) } ?: acornColors.textPrimary,
+                    // Title
+                    textSecondary = customColors.value?.readableColor?.let { Color(it) } ?: acornColors.textSecondary,
+                    // All icons tint
+                    iconPrimary = customColors.value?.readableColor?.let { Color(it) } ?: acornColors.iconPrimary,
+                )
+            }
 
-                false -> BrowserToolbar(shouldShowDivider, progressBarValue, settings.shouldUseBottomToolbar)
+            CompositionLocalProvider(localAcornColors provides customTheme) {
+                when (shouldShowTabStrip) {
+                    true -> Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight(),
+                    ) {
+                        tabStripContent()
+                        BrowserToolbar(showDivider, progressBarValue, settings.shouldUseBottomToolbar)
+                    }
+
+                    false -> BrowserToolbar(showDivider, progressBarValue, settings.shouldUseBottomToolbar)
+                }
             }
         }
     }.apply {
@@ -149,6 +170,7 @@ class BrowserToolbarComposable(
     init {
         container.addView(layout)
         setToolbarBehavior()
+        updateDividerVisibility(true)
     }
 
     @Composable
@@ -177,7 +199,10 @@ class BrowserToolbarComposable(
     }
 
     override fun updateDividerVisibility(isVisible: Boolean) {
-        showDivider = isVisible
+        showDivider = when (customTabSession) {
+            null -> isVisible
+            else -> false
+        }
     }
 
     private inline fun <reified T> getOrCreate(): T = when (T::class.java) {
