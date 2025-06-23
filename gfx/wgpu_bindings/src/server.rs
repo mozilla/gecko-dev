@@ -2428,11 +2428,15 @@ pub unsafe extern "C" fn wgpu_server_message(
         Message::ReplayComputePass(device_id, id, pass) => {
             crate::command::replay_compute_pass(global, device_id, id, &pass, error_buf);
         }
-        Message::QueueWrite(device_id, queue_id, action) => {
-            let data = if data.is_null() || data_length == 0 {
-                &[]
+        Message::QueueWrite(device_id, queue_id, inline_data, action) => {
+            let data = if let Some(inline_data) = inline_data.as_ref() {
+                inline_data
             } else {
-                slice::from_raw_parts(data, data_length)
+                if data.is_null() || data_length == 0 {
+                    &[]
+                } else {
+                    slice::from_raw_parts(data, data_length)
+                }
             };
             let result = match action {
                 QueueWriteAction::Buffer { dst, offset } => {
@@ -2726,22 +2730,6 @@ pub unsafe extern "C" fn wgpu_server_on_submitted_work_done(
         (closure.callback)(closure.user_data)
     });
     global.queue_on_submitted_work_done(self_id, closure);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn wgpu_server_queue_write_buffer_inline(
-    global: &Global,
-    device_id: id::DeviceId,
-    self_id: id::QueueId,
-    buffer_id: id::BufferId,
-    offset: u64,
-    byte_buf: &ByteBuf,
-    mut error_buf: ErrorBuffer,
-) {
-    let result = global.queue_write_buffer(self_id, buffer_id, offset, byte_buf.as_slice());
-    if let Err(err) = result {
-        error_buf.init(err, device_id);
-    }
 }
 
 #[no_mangle]

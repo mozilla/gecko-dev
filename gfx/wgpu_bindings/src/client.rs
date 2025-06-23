@@ -1493,10 +1493,20 @@ pub unsafe extern "C" fn wgpu_queue_write_buffer(
     queue_id: id::QueueId,
     dst: id::BufferId,
     offset: wgt::BufferAddress,
+    inline_data: *const u8,
+    inline_data_length: usize,
     bb: &mut ByteBuf,
 ) {
+    let inline_data = if inline_data.is_null() {
+        None
+    } else {
+        Some(Cow::Borrowed(core::slice::from_raw_parts(
+            inline_data,
+            inline_data_length,
+        )))
+    };
     let action = QueueWriteAction::Buffer { dst, offset };
-    let action = Message::QueueWrite(device_id, queue_id, action);
+    let action = Message::QueueWrite(device_id, queue_id, inline_data, action);
     *bb = make_byte_buf(&action);
 }
 
@@ -1511,7 +1521,7 @@ pub unsafe extern "C" fn wgpu_queue_write_texture(
 ) {
     let layout = layout.into_wgt();
     let action = QueueWriteAction::Texture { dst, layout, size };
-    let action = Message::QueueWrite(device_id, queue_id, action);
+    let action = Message::QueueWrite(device_id, queue_id, None, action);
     *bb = make_byte_buf(&action);
 }
 

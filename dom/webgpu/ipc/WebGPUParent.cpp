@@ -838,17 +838,6 @@ ipc::IPCResult WebGPUParent::RecvQueueOnSubmittedWorkDone(
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvQueueWriteBufferInline(
-    RawId aQueueId, RawId aDeviceId, RawId aBufferId, uint64_t offset,
-    const ipc::ByteBuf& aByteBuf) {
-  ErrorBuffer error;
-  ffi::wgpu_server_queue_write_buffer_inline(mContext.get(), aDeviceId,
-                                             aQueueId, aBufferId, offset,
-                                             ToFFI(&aByteBuf), error.ToFFI());
-  ForwardError(error);
-  return IPC_OK();
-}
-
 // TODO: proper destruction
 
 ipc::IPCResult WebGPUParent::RecvDeviceCreateSwapChain(

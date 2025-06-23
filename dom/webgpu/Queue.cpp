@@ -123,11 +123,13 @@ void Queue::WriteBuffer(
         }
 
         if (size < 1024) {
-          ipc::ByteBuf bb{};
-          bb.Allocate(size);
-          memcpy(bb.mData, aData.Elements() + offset, size);
-          mBridge->SendQueueWriteBufferInline(mId, mParent->mId, aBuffer.mId,
-                                              aBufferOffset, std::move(bb));
+          ipc::ByteBuf bb;
+          auto data = aData.Elements() + offset;
+          auto data_length = size;
+          ffi::wgpu_queue_write_buffer(mParent->mId, mId, aBuffer.mId,
+                                       aBufferOffset, data, data_length,
+                                       ToFFI(&bb));
+          mBridge->SendMessage(std::move(bb), Nothing());
           return;
         }
 
@@ -144,7 +146,7 @@ void Queue::WriteBuffer(
         }
         ipc::ByteBuf bb;
         ffi::wgpu_queue_write_buffer(mParent->mId, mId, aBuffer.mId,
-                                     aBufferOffset, ToFFI(&bb));
+                                     aBufferOffset, nullptr, 0, ToFFI(&bb));
         mBridge->SendMessage(std::move(bb), Some(std::move(handle)));
       });
 }

@@ -60,7 +60,6 @@ parent:
 
   async QueueSubmit(RawId selfId, RawId aDeviceId, RawId[] commandBuffers, RawId[] textureIds);
   async QueueOnSubmittedWorkDone(RawId selfId) returns (void_t ok);
-  async QueueWriteBufferInline(RawId selfId, RawId aDeviceId, RawId aBufferId, uint64_t offset, ByteBuf buf);
 
   async DeviceCreateSwapChain(RawId selfId, RawId queueId, RGBDescriptor desc, RawId[] bufferIds, RemoteTextureOwnerId ownerId, bool useExternalTextureInSwapChain);
   async SwapChainPresent(RawId textureId, RawId commandEncoderId, RemoteTextureId remoteTextureId, RemoteTextureOwnerId remoteTextureOwnerId);
