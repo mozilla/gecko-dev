@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>testcase</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,width=device-width">
+  <script src="apz_test_utils.js"></script>
+  <script src="apz_test_native_event_utils.js"></script>
+  <script src="/tests/SimpleTest/EventUtils.js"></script>
+  <script src="/tests/SimpleTest/NativeKeyCodes.js"></script>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+  <style>
+<style type="text/css">
+
+* {
+  padding:0;
+  margin:0;
+  box-sizing: border-box;
+}
+
+body{
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 50px 145px 0 50px;
+}
+
+#list {
+  height: 500px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  width: 500px;
+  scroll-snap-type: y mandatory;
+}
+
+#list li{
+  scroll-snap-align: start;
+}
+
+#list input[type="checkbox"]{
+  position:absolute;
+  pointer-events: none;
+  opacity:0;
+}
+
+#list input:checked + label::before{
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  right:0;
+  z-index: 1;
+  width: 100px;
+  height: 50px;
+  background-color: rgba(37, 155, 210, 1);
+  transform: rotate(45deg);
+  transform-origin: 118px 60px;
+}
+
+#list > ul {
+  width: 100%;
+}
+
+#list li+li{
+  border-top: 1px dashed #ccc;
+}
+
+#list li:last-child{
+  border-bottom: 1px dashed #ccc;
+}
+
+#list li{
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 70px;
+}
+
+#list label {
+  height: 100%;
+}
+#list li:hover{
+  background:#efefef;
+}
+
+</style>
+</head>
+<body>
+
+<div id="list">
+  <ul></ul>
+</div>
+<button id="btn">Scroll down</button>
+</body>
+<script type="text/javascript">
+var list = document.getElementById('list');
+for(let i = 0; i < 100; i++){
+  var li = document.createElement('li');
+  li.innerHTML = `<input type="checkbox" id="d-${i}">
+    <label for="d-${i}">
+     ${i}
+    </label>
+  `;
+  list.firstElementChild.appendChild(li);
+}
+list.scrollTop = 0;
+
+var btn = document.getElementById('btn');
+btn.onclick = () => {
+  list.scrollTop += 500;
+}
+
+async function test() {
+  let wheelScrollTransformEndPromise = promiseTransformEnd();
+
+  await promiseMoveMouseAndScrollWheelOver(list, 100, 100, -500);
+
+  await wheelScrollTransformEndPromise;
+
+  await promiseFrame();
+
+  let scrollPromise = promiseScrollend(list);
+
+  await promiseNativeMouseEventWithAPZAndWaitForEvent({
+    type: "click",
+    target: btn,
+    offsetX: 10,
+    offsetY: 10,
+  });
+
+  await scrollPromise;
+
+  await promiseFrame();
+  await promiseFrame();
+
+  let listTop = list.scrollTop;
+
+  await promiseNativeMouseEventWithAPZAndWaitForEvent({
+    type: "click",
+    target: list,
+    offsetX: 50,
+    offsetY: 50,
+  });
+
+  await promiseFrame();
+
+  is(listTop, list.scrollTop, "list does not scroll when clicked");
+}
+
+waitUntilApzStable()
+  .then(test)
+  .then(subtestDone, subtestFailed);
+</script>
+</html>

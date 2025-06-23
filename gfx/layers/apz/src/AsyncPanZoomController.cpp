@@ -6046,7 +6046,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(
     // TransformBegin and TransformEnd notifications are sent.
     if (!IsTransformingState(mState) && instantScrollMayTriggerTransform &&
         cumulativeRelativeDelta && *cumulativeRelativeDelta != CSSPoint() &&
-        !didCancelAnimation) {
+        (!didCancelAnimation || mState == NOTHING)) {
       SendTransformBeginAndEnd();
     }
   }
@@ -6597,8 +6597,7 @@ bool AsyncPanZoomController::HasReadyTouchBlock() const {
 }
 
 bool AsyncPanZoomController::CanHandleScrollOffsetUpdate(PanZoomState aState) {
-  return aState == NOTHING || aState == PAN_MOMENTUM || aState == TOUCHING ||
-         IsPanningState(aState);
+  return aState == PAN_MOMENTUM || aState == TOUCHING || IsPanningState(aState);
 }
 
 bool AsyncPanZoomController::ShouldCancelAnimationForScrollUpdate(
