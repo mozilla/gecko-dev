@@ -1,6 +1,7 @@
-"use strict";
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
-/** Test for Bug 545812 **/
+"use strict";
 
 // List of key codes which should exit full-screen mode.
 const kKeyList = [
@@ -54,60 +55,63 @@ const kPage =
   "https://example.org/browser/" +
   "dom/base/test/fullscreen/file_fullscreen-api-keys.html";
 
-add_task(async function () {
+add_setup(async function init() {
   await pushPrefs(
     ["full-screen-api.transition-duration.enter", "0 0"],
     ["full-screen-api.transition-duration.leave", "0 0"]
   );
+});
 
-  let tab = BrowserTestUtils.addTab(gBrowser, kPage);
-  let browser = tab.linkedBrowser;
-  gBrowser.selectedTab = tab;
-  registerCleanupFunction(() => gBrowser.removeTab(tab));
-  await waitForDocLoadComplete();
-
-  // Wait for the document being activated, so that
-  // fullscreen request won't be denied.
-  await SpecialPowers.spawn(browser, [], () => {
-    return ContentTaskUtils.waitForCondition(
-      () => content.browsingContext.isActive && content.document.hasFocus(),
-      "document is active"
-    );
-  });
-
-  // Register listener to capture unexpected events
-  let keyEventsCount = 0;
-  let fullScreenEventsCount = 0;
-  let removeFullScreenListener = BrowserTestUtils.addContentEventListener(
-    browser,
-    "fullscreenchange",
-    () => fullScreenEventsCount++
-  );
-  let removeKeyDownListener = BrowserTestUtils.addContentEventListener(
-    browser,
-    "keydown",
-    () => keyEventsCount++,
-    { wantUntrusted: true }
-  );
-  let removeKeyPressListener = BrowserTestUtils.addContentEventListener(
-    browser,
-    "keypress",
-    () => keyEventsCount++,
-    { wantUntrusted: true }
-  );
-  let removeKeyUpListener = BrowserTestUtils.addContentEventListener(
-    browser,
-    "keyup",
-    () => keyEventsCount++,
-    { wantUntrusted: true }
-  );
-
-  let expectedFullScreenEventsCount = 0;
-  let expectedKeyEventsCount = 0;
-
-  for (let { key, keyCode, suppressed } of kKeyList) {
+for (let { key, keyCode, suppressed } of kKeyList) {
+  /** Test for Bug 545812 **/
+  add_task(async function testExitFullscreenByKeyboard() {
     let keyCodeValue = KeyEvent["DOM_" + keyCode];
     info(`Test keycode ${key} (${keyCodeValue})`);
+
+    let tab = BrowserTestUtils.addTab(gBrowser, kPage);
+    let browser = tab.linkedBrowser;
+    gBrowser.selectedTab = tab;
+    await waitForDocLoadComplete();
+
+    // Wait for the document being activated, so that
+    // fullscreen request won't be denied.
+    await SimpleTest.promiseFocus(browser);
+    await SpecialPowers.spawn(browser, [], () => {
+      return ContentTaskUtils.waitForCondition(
+        () => content.browsingContext.isActive && content.document.hasFocus(),
+        "document is active"
+      );
+    });
+
+    // Register listener to capture unexpected events
+    let keyEventsCount = 0;
+    let fullScreenEventsCount = 0;
+    let removeFullScreenListener = BrowserTestUtils.addContentEventListener(
+      browser,
+      "fullscreenchange",
+      () => fullScreenEventsCount++
+    );
+    let removeKeyDownListener = BrowserTestUtils.addContentEventListener(
+      browser,
+      "keydown",
+      () => keyEventsCount++,
+      { wantUntrusted: true }
+    );
+    let removeKeyPressListener = BrowserTestUtils.addContentEventListener(
+      browser,
+      "keypress",
+      () => keyEventsCount++,
+      { wantUntrusted: true }
+    );
+    let removeKeyUpListener = BrowserTestUtils.addContentEventListener(
+      browser,
+      "keyup",
+      () => keyEventsCount++,
+      { wantUntrusted: true }
+    );
+
+    let expectedFullScreenEventsCount = 0;
+    let expectedKeyEventsCount = 0;
 
     info("Enter fullscreen");
     let state = new Promise(resolve => {
@@ -203,10 +207,12 @@ add_task(async function () {
       expectedKeyEventsCount,
       "correct number of key events occurred"
     );
-  }
 
-  removeFullScreenListener();
-  removeKeyDownListener();
-  removeKeyPressListener();
-  removeKeyUpListener();
-});
+    info("Cleanup");
+    removeFullScreenListener();
+    removeKeyDownListener();
+    removeKeyPressListener();
+    removeKeyUpListener();
+    gBrowser.removeTab(tab);
+  });
+}
