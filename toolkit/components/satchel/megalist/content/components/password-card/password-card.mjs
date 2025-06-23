@@ -39,6 +39,14 @@ export class PasswordCard extends MozLitElement {
   #focusableElementsList;
   #focusableElementsMap;
 
+  #countAlerts() {
+    return (
+      this.origin.breached +
+      !this.username.value.length +
+      this.password.vulnerable
+    );
+  }
+
   #hasAlert() {
     return (
       this.origin.breached ||
@@ -257,6 +265,8 @@ export class PasswordCard extends MozLitElement {
   }
 
   renderViewAlertField() {
+    const alertCountArg = JSON.stringify({ count: this.#countAlerts() });
+
     if (!this.#hasAlert()) {
       return "";
     }
@@ -264,11 +274,13 @@ export class PasswordCard extends MozLitElement {
     return html`
       <moz-message-bar
         type="warning"
-        data-l10n-id="contextual-manager-view-alert-heading"
+        data-l10n-id="contextual-manager-view-alert-heading-2"
+        data-l10n-args=${alertCountArg}
       >
         <moz-button
           class="view-alert-button"
-          data-l10n-id="contextual-manager-view-alert-button"
+          data-l10n-id="contextual-manager-view-alert-button-2"
+          data-l10n-args=${alertCountArg}
           slot="actions"
           type="icon"
           iconSrc="chrome://browser/skin/forward.svg"
