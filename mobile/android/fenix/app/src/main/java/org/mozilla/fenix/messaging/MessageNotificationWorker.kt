@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import androidx.work.CoroutineWorker
@@ -17,19 +18,50 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import mozilla.components.service.nimbus.NimbusApi
 import mozilla.components.service.nimbus.messaging.FxNimbusMessaging
 import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.support.base.ids.SharedIdsHelper
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.BootUtils
+import org.mozilla.experiments.nimbus.NimbusInterface
+import org.mozilla.experiments.nimbus.internal.EnrolledExperiment
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.onboarding.ensureMarketingChannelExists
 import org.mozilla.fenix.utils.IntentUtils
 import org.mozilla.fenix.utils.createBaseNotification
+import java.util.concurrent.CancellationException
 import java.util.concurrent.TimeUnit
 
 const val CLICKED_MESSAGE_ID = "clickedMessageId"
 const val DISMISSED_MESSAGE_ID = "dismissedMessageId"
+
+/**
+ * Timeout duration (in milliseconds) for the fetch experiments operation, covering both the
+ * network request and any required post-processing.
+ *
+ * This is a background task, not initiated by the user, so a slightly higher timeout is acceptable.
+ *
+ * If the operation doesn't complete within this time, it will be retried on the next app launch
+ * or during the next scheduled sync interval.
+ *
+ * **Six seconds will cover 99% of users** based on Nimbus research.
+ * @see `https://sql.telemetry.mozilla.org/queries/91863/source?p_days=30#227434`.
+ */
+private const val NIMBUS_FETCH_OPERATION_TIMEOUT_MILLIS: Long = 6000
+
+private const val NIMBUS_APPLY_OPERATION_TIMEOUT_MILLIS: Long = 500
+
+/**
+ * The total timeout duration (in milliseconds) for the Nimbus fetch and apply operations.
+ */
+private const val NIMBUS_UPDATE_OPERATION_TIMEOUT_MILLIS =
+    NIMBUS_FETCH_OPERATION_TIMEOUT_MILLIS + NIMBUS_APPLY_OPERATION_TIMEOUT_MILLIS
+
+private val LOGGER = Logger("MessageNotificationWorker")
 
 /**
  * Background [CoroutineWorker] that polls Nimbus for available [Message]s at a given interval.
@@ -44,8 +76,18 @@ class MessageNotificationWorker(
     @SuppressWarnings("ReturnCount")
     override suspend fun doWork(): Result {
         val context = applicationContext
+        val nimbus = context.components.nimbus
 
-        val messaging = context.components.nimbus.messaging
+        // Refresh messages from Nimbus to ensure getNextMessage reflects the latest available content.
+        tryFetchAndApplyNimbusExperiments(nimbus.sdk).apply {
+            if (this) {
+                LOGGER.info("Successfully fetched and applied Nimbus experiments.")
+            } else {
+                LOGGER.info("Failed to fetch and apply Nimbus experiments.")
+            }
+        }
+
+        val messaging = nimbus.messaging
 
         val nextMessage =
             messaging.getNextMessage(FenixMessageSurfaceId.NOTIFICATION)
@@ -153,6 +195,63 @@ class MessageNotificationWorker(
                 },
                 messageWorkRequest,
             )
+        }
+
+        /**
+         * @return `true` if the fetch and apply operations were successfully completed within the
+         * given [operationTimeout].
+         */
+        @VisibleForTesting
+        internal suspend fun tryFetchAndApplyNimbusExperiments(
+            nimbusSdk: NimbusApi,
+            operationTimeout: Long = NIMBUS_UPDATE_OPERATION_TIMEOUT_MILLIS,
+            experimentsFetched: CompletableDeferred<Unit> = CompletableDeferred(),
+            experimentsApplied: CompletableDeferred<Unit> = CompletableDeferred(),
+        ): Boolean {
+            val nimbusExperimentsObserver = NimbusExperimentsObserver(
+                nimbusSdk = nimbusSdk,
+                experimentsFetched = experimentsFetched,
+                experimentsApplied = experimentsApplied,
+            )
+
+            nimbusSdk.register(nimbusExperimentsObserver)
+
+            return try {
+                withTimeoutOrNull(operationTimeout) {
+                    nimbusSdk.fetchExperiments()
+                    LOGGER.debug("Fetching experiments.")
+                    experimentsFetched.await()
+
+                    LOGGER.debug("Applying pending experiments.")
+                    experimentsApplied.await()
+                }
+                experimentsApplied.isCompleted
+            } catch (e: CancellationException) {
+                LOGGER.warn("Nimbus experiments operation timed out.")
+                false
+            } finally {
+                nimbusSdk.unregister(nimbusExperimentsObserver)
+
+                experimentsFetched.complete(Unit)
+                experimentsApplied.complete(Unit)
+            }
+        }
+
+        private class NimbusExperimentsObserver(
+            val nimbusSdk: NimbusApi,
+            val experimentsFetched: CompletableDeferred<Unit>,
+            val experimentsApplied: CompletableDeferred<Unit>,
+        ) : NimbusInterface.Observer {
+            override fun onExperimentsFetched() {
+                experimentsFetched.complete(Unit)
+                LOGGER.debug("Experiments fetched.")
+                nimbusSdk.applyPendingExperiments()
+            }
+
+            override fun onUpdatesApplied(updated: List<EnrolledExperiment>) {
+                experimentsApplied.complete(Unit)
+                LOGGER.debug("Pending experiments applied.")
+            }
         }
     }
 }
