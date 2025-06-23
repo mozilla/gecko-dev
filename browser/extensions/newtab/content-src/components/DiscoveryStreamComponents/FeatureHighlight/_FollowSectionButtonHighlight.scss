@@ -1,0 +1,67 @@
+// Default overrides from Feature Highlight
+.follow-section-button-highlight {
+  .feature-highlight-modal {
+    padding: var(--space-large);
+
+    p {
+      margin: 0;
+    }
+
+    .message-icon {
+      display: none;
+    }
+
+    .icon-dismiss {
+      margin-block-start: 0;
+      margin-inline-end: 0;
+    }
+  }
+
+  .feature-highlight-modal.arrow-inline-start {
+    inset-block-start: calc(100% + var(--space-large));
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+
+    &::after {
+      inset-block-start: calc(var(--space-small) * -1);
+      inset-inline-end: 50%;
+      transform: translateX(50%) rotate(135deg);
+    }
+
+
+    @media (min-width: $break-point-layout-variant) {
+      min-width: auto;
+      inset-inline-start: auto;
+      inset-inline-end: calc(100% + var(--space-large));
+      inset-block-start: 50%;
+      transform: translateY(-50%);
+
+      &::after {
+        inset-block-start: 50%;
+        inset-inline-end: calc(var(--space-small) * -1);
+        transform: translateY(-50%) rotate(225deg);
+      }
+
+    }
+  }
+
+  .inset-block-center {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+  }
+
+  .follow-section-button-highlight-content {
+    display: flex;
+    gap: var(--space-medium);
+  }
+
+  .follow-section-button-highlight-copy {
+    font-size: var(--font-size-small);
+
+    .title {
+      font-weight: var(--font-weight-bold);
+      margin-block-end: var(--space-xsmall);
+    }
+  }
+}
