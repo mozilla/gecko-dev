@@ -347,12 +347,17 @@ class SettingsRobot {
         Log.i(TAG, "verifyAddons: Verified that the \"$extensions\" button is completely displayed")
     }
 
-    fun verifyDownloadsButton() {
-        scrollToElementByText(getStringResource(R.string.preferences_downloads))
-        Log.i(TAG, "verifyExternalDownloadsButton: Trying to verify that the \"Downloads\" button is visible")
-        onView(withText(getStringResource(R.string.preferences_downloads)))
-            .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-        Log.i(TAG, "verifyExternalDownloadsButton: Verified that the \"Downloads\" button is visible")
+    fun verifyExternalDownloadManagerButton() {
+        Log.i(TAG, "verifyExternalDownloadManagerButton: Trying to verify that the \"External download manager\" button is visible")
+        onView(withId(R.id.recycler_view)).perform(
+            RecyclerViewActions.scrollTo<RecyclerView.ViewHolder>(
+                hasDescendant(withText(R.string.preferences_external_download_manager)),
+            ),
+        )
+        onView(
+            withText(R.string.preferences_external_download_manager),
+        ).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+        Log.i(TAG, "verifyExternalDownloadManagerButton: Verified that the \"External download manager\" button is visible")
     }
 
     fun verifyExternalDownloadManagerToggle(enabled: Boolean) {

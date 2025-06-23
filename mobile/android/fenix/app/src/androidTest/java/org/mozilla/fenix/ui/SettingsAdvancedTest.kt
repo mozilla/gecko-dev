@@ -53,7 +53,8 @@ class SettingsAdvancedTest : TestSetup() {
             verifyAddons()
             verifyOpenLinksInAppsButton()
             verifySettingsOptionSummary("Open links in apps", "Ask before opening")
-            verifyDownloadsButton()
+            verifyExternalDownloadManagerButton()
+            verifyExternalDownloadManagerToggle(false)
             verifyLeakCanaryButton()
             // LeakCanary is disabled in UI tests.
             // See BuildConfig.LEAKCANARY.

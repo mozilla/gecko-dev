@@ -460,10 +460,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 SettingsFragmentDirections.actionSettingsFragmentToOpenLinksInAppsFragment()
             }
 
-            resources.getString(R.string.pref_key_downloads) -> {
-                SettingsFragmentDirections.actionSettingsFragmentToOpenDownloadsSettingsFragment()
-            }
-
             resources.getString(R.string.pref_key_sync_debug) -> {
                 SettingsFragmentDirections.actionSettingsFragmentToSyncDebugFragment()
             }

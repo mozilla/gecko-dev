@@ -174,11 +174,7 @@ open class DefaultComponents(private val applicationContext: Context) {
     val store by lazy {
         BrowserStore(
             middleware = listOf(
-                DownloadMiddleware(
-                    applicationContext = applicationContext,
-                    downloadServiceClass = DownloadService::class.java,
-                    deleteFileFromStorage = { false },
-                ),
+                DownloadMiddleware(applicationContext, DownloadService::class.java),
                 ReaderViewMiddleware(),
                 ThumbnailsMiddleware(thumbnailStorage),
                 UndoMiddleware(),

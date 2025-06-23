@@ -42,7 +42,6 @@ import kotlin.coroutines.CoroutineContext
 class DownloadMiddleware(
     private val applicationContext: Context,
     private val downloadServiceClass: Class<*>,
-    private val deleteFileFromStorage: () -> Boolean,
     coroutineContext: CoroutineContext = Dispatchers.IO,
     @get:VisibleForTesting
     internal val downloadStorage: DownloadStorage = DownloadStorage(applicationContext),
@@ -110,25 +109,8 @@ class DownloadMiddleware(
         val downloadToDelete = store.state.downloads[downloadId] ?: return
 
         scope.launch {
-            if (deleteFileFromStorage()) {
-                removeFileFromStorage(downloadToDelete.filePath)
-            }
-
             downloadStorage.remove(downloadToDelete)
             logger.debug("Removed download ${downloadToDelete.fileName} from the storage")
-        }
-    }
-
-    private fun removeFileFromStorage(filePath: String) {
-        val file = File(filePath)
-        if (file.exists()) {
-            if (file.delete()) {
-                logger.debug("Successfully deleted file: $filePath")
-            } else {
-                logger.error("Failed to delete file: $filePath")
-            }
-        } else {
-            logger.warn("File to delete not found: $filePath")
         }
     }
 

@@ -178,10 +178,11 @@
             android:title="@string/preferences_open_links_in_apps"
             app:iconSpaceReserved="false" />
 
-        <androidx.preference.Preference
-            android:key="@string/pref_key_downloads"
+        <androidx.preference.SwitchPreference
+            android:defaultValue="false"
+            android:key="@string/pref_key_external_download_manager"
             app:iconSpaceReserved="false"
-            android:title="@string/preferences_downloads" />
+            android:title="@string/preferences_external_download_manager" />
 
         <androidx.preference.SwitchPreference
             android:key="@string/pref_key_leakcanary"

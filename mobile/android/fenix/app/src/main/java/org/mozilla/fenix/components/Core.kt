@@ -311,13 +311,7 @@ class Core(
             listOf(
                 LastAccessMiddleware(),
                 RecentlyClosedMiddleware(recentlyClosedTabsStorage, RECENTLY_CLOSED_MAX),
-                DownloadMiddleware(
-                    applicationContext = context,
-                    downloadServiceClass = DownloadService::class.java,
-                    deleteFileFromStorage = {
-                       context.settings().shouldCleanUpDownloadsAutomatically()
-                    },
-                ),
+                DownloadMiddleware(context, DownloadService::class.java),
                 ReaderViewMiddleware(),
                 TelemetryMiddleware(context, context.settings(), metrics, crashReporter),
                 ThumbnailsMiddleware(thumbnailStorage),
