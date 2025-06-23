@@ -94,21 +94,28 @@ test(function() {
 }, "Sanity");
 
 function runTest({ specified, computed, description, expected }) {
-  test(function() {
+  promise_test(async function() {
     content.style.fontFamily = "";
     content.style.fontFamily = specified;
-    assert_equals(getComputedStyle(content).fontFamily, expected);
+    const before = getComputedStyle(content).fontFamily;
+    await SpecialPowers.pushPrefEnv({'set': [['browser.display.use_document_fonts', 0]]});
+    const after = getComputedStyle(content).fontFamily;
+    if (specified != computed) {
+      assert_not_equals(before, after);
+    }
+    assert_equals(after, expected);
+    await SpecialPowers.popPrefEnv();
   }, description);
 }
 
 (async function() {
-  await SpecialPowers.pushPrefEnv({'set': [['browser.display.use_document_fonts', 0]]});
   for (const test of kTests)
     runTest(test);
-
-  test(function() {
+  promise_test(async function() {
+    await SpecialPowers.pushPrefEnv({'set': [['browser.display.use_document_fonts', 0]]});
     content.style.font = "menu";
     assert_equals(getComputedStyle(content).fontFamily, systemFont);
+    await SpecialPowers.popPrefEnv();
   }, "System font should be honored");
 
   done();
