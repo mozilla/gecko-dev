@@ -187,6 +187,27 @@ void NativeLayerRootWayland::Init() {
 #endif
 }
 
+void NativeLayerRootWayland::Shutdown() {
+  LOG("NativeLayerRootWayland::Shutdown()");
+  AssertIsOnMainThread();
+
+  UpdateLayersOnMainThread();
+
+  {
+    WaylandSurfaceLock lock(mSurface);
+    if (mSurface->IsMapped()) {
+      mSurface->RemoveAttachedBufferLocked(lock);
+    }
+    mSurface->ClearUnmapCallbackLocked(lock);
+    mSurface->ClearGdkCommitCallbackLocked(lock);
+    mSurface->DisableDMABufFormatsLocked(lock);
+  }
+
+  mSurface = nullptr;
+  mTmpBuffer = nullptr;
+  mDRMFormat = nullptr;
+}
+
 NativeLayerRootWayland::NativeLayerRootWayland(
     RefPtr<WaylandSurface> aWaylandSurface)
     : mSurface(aWaylandSurface) {
@@ -205,19 +226,8 @@ NativeLayerRootWayland::NativeLayerRootWayland(
 
 NativeLayerRootWayland::~NativeLayerRootWayland() {
   LOG("NativeLayerRootWayland::~NativeLayerRootWayland()");
-  AssertIsOnMainThread();
-
-  WaylandSurfaceLock lock(mSurface);
-  if (mSurface->IsMapped()) {
-    mSurface->RemoveAttachedBufferLocked(lock);
-  }
-  mSurface->ClearUnmapCallbackLocked(lock);
-  mSurface->ClearGdkCommitCallbackLocked(lock);
-  mSurface->DisableDMABufFormatsLocked(lock);
-
-  mSurface = nullptr;
-  mTmpBuffer = nullptr;
-  mDRMFormat = nullptr;
+  MOZ_DIAGNOSTIC_ASSERT(
+      !mSurface, "NativeLayerRootWayland destroyed without Shutdown() call!");
 }
 
 #ifdef MOZ_LOGGING
@@ -342,6 +352,12 @@ void NativeLayerRootWayland::SetLayers(
 // surfaces.
 void NativeLayerRootWayland::UpdateLayersOnMainThread() {
   AssertIsOnMainThread();
+
+  // We're called after Shutdown so do nothing.
+  if (!mSurface) {
+    return;
+  }
+
   LOG("NativeLayerRootWayland::UpdateLayersOnMainThread()");
   WaylandSurfaceLock lock(mSurface);
   for (const RefPtr<NativeLayerWayland>& layer : mMainThreadUpdateSublayers) {
