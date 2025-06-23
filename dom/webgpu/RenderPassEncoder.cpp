@@ -451,9 +451,11 @@ void RenderPassEncoder::InsertDebugMarker(const nsAString& aString) {
 void RenderPassEncoder::End() {
   if (mParent->GetState() != CommandEncoderState::Locked &&
       mParent->GetBridge()->CanSend()) {
-    mParent->GetBridge()->SendReportError(mParent->GetDevice()->mId,
-                                          dom::GPUErrorFilter::Validation,
-                                          "Encoding must not have ended"_ns);
+    ipc::ByteBuf bb;
+    const auto* message = "Encoding must not have ended";
+    ffi::wgpu_report_validation_error(mParent->GetDevice()->mId, message,
+                                      ToFFI(&bb));
+    mParent->GetBridge()->SendMessage(std::move(bb), Nothing());
   }
   if (!mValid) {
     return;

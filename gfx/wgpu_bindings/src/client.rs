@@ -1818,6 +1818,23 @@ pub unsafe extern "C" fn wgpu_command_encoder_resolve_query_set(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn wgpu_report_validation_error(
+    device_id: id::DeviceId,
+    message: *const core::ffi::c_char,
+    bb: &mut ByteBuf,
+) {
+    let action = DeviceAction::Error {
+        message: core::ffi::CStr::from_ptr(message)
+            .to_str()
+            .unwrap()
+            .to_string(),
+        r#type: crate::error::ErrorBufferType::Validation,
+    };
+    let action = Message::Device(device_id, action);
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn wgpu_command_encoder_finish(
     device_id: id::DeviceId,
     command_encoder_id: id::CommandEncoderId,

@@ -248,8 +248,10 @@ already_AddRefed<ComputePassEncoder> CommandEncoder::BeginComputePass(
     // Because we do not call wgpu until the pass is ended, we need to generate
     // this error ourselves in order to report it at the correct time.
     if (mBridge->CanSend()) {
-      mBridge->SendReportError(mParent->mId, dom::GPUErrorFilter::Validation,
-                               "Encoding must not have ended"_ns);
+      ipc::ByteBuf bb;
+      const auto* message = "Encoding must not have ended";
+      ffi::wgpu_report_validation_error(mParent->mId, message, ToFFI(&bb));
+      mBridge->SendMessage(std::move(bb), Nothing());
     }
     pass->Invalidate();
   } else if (mState == CommandEncoderState::Locked) {
@@ -278,8 +280,10 @@ already_AddRefed<RenderPassEncoder> CommandEncoder::BeginRenderPass(
     // Because we do not call wgpu until the pass is ended, we need to generate
     // this error ourselves in order to report it at the correct time.
     if (mBridge->CanSend()) {
-      mBridge->SendReportError(mParent->mId, dom::GPUErrorFilter::Validation,
-                               "Encoding must not have ended"_ns);
+      ipc::ByteBuf bb;
+      const auto* message = "Encoding must not have ended";
+      ffi::wgpu_report_validation_error(mParent->mId, message, ToFFI(&bb));
+      mBridge->SendMessage(std::move(bb), Nothing());
     }
     pass->Invalidate();
   } else if (mState == CommandEncoderState::Locked) {
@@ -316,8 +320,10 @@ void CommandEncoder::EndComputePass(ffi::WGPURecordedComputePass& aPass) {
   }
 
   if (mState != CommandEncoderState::Locked) {
-    mBridge->SendReportError(mParent->mId, dom::GPUErrorFilter::Validation,
-                             "Encoder is not currently locked"_ns);
+    ipc::ByteBuf bb;
+    const auto* message = "Encoder is not currently locked";
+    ffi::wgpu_report_validation_error(mParent->mId, message, ToFFI(&bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
     return;
   }
   mState = CommandEncoderState::Open;
@@ -335,8 +341,10 @@ void CommandEncoder::EndRenderPass(ffi::WGPURecordedRenderPass& aPass) {
   }
 
   if (mState != CommandEncoderState::Locked) {
-    mBridge->SendReportError(mParent->mId, dom::GPUErrorFilter::Validation,
-                             "Encoder is not currently locked"_ns);
+    ipc::ByteBuf bb;
+    const auto* message = "Encoder is not currently locked";
+    ffi::wgpu_report_validation_error(mParent->mId, message, ToFFI(&bb));
+    mBridge->SendMessage(std::move(bb), Nothing());
     return;
   }
   mState = CommandEncoderState::Open;
@@ -362,9 +370,11 @@ already_AddRefed<CommandBuffer> CommandEncoder::Finish(
       // Most errors that could occur here will be raised by wgpu. But since we
       // don't tell wgpu about passes until they are ended, we need to raise an
       // error if the application left a pass open.
-      mBridge->SendReportError(
-          mParent->mId, dom::GPUErrorFilter::Validation,
-          "Encoder is locked by a previously created render/compute pass"_ns);
+      ipc::ByteBuf bb;
+      const auto* message =
+          "Encoder is locked by a previously created render/compute pass";
+      ffi::wgpu_report_validation_error(mParent->mId, message, ToFFI(&bb));
+      mBridge->SendMessage(std::move(bb), Nothing());
     }
     ipc::ByteBuf bb;
     ffi::wgpu_command_encoder_finish(mParent->mId, mId, &desc, ToFFI(&bb));
