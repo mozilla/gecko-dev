@@ -8,6 +8,8 @@
   <string name="mozac_browser_errorpages_generic_message"><![CDATA[<p>sona namako pi pakala ni li lon ala.</p>]]></string>
   <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
   <string name="mozac_browser_errorpages_security_ssl_title">linja len li pakala</string>
+  <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
+  <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[<ul> <li>linja la lipu li len ike e toki ona. ni li ken ike tawa ilo sina la, mi ken ala pana e ona.</li> <li>o toki e pakala ni tawa jan lawa pi lipu ni.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">linja len li pakala</string>
   <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
