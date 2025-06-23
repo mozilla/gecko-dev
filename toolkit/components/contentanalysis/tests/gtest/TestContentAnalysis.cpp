@@ -269,45 +269,6 @@ RefPtr<ContentAnalysisDiagnosticInfo> ContentAnalysisTest::GetDiagnosticInfo(
   return diagnosticInfo;
 }
 
-template <typename T>
-void ParseFromWideModifiedString(T* aTarget, const char16_t* aData) {
-  std::wstring dataWideString(reinterpret_cast<const wchar_t*>(aData));
-  std::vector<uint8_t> dataVector(dataWideString.size());
-  for (size_t i = 0; i < dataWideString.size(); ++i) {
-    // Since this data is really bytes and not a null-terminated string, the
-    // calling code adds 0xFF00 to every member to ensure there are no 0 values.
-    dataVector[i] = static_cast<uint8_t>(dataWideString[i] - 0xFF00);
-  }
-  EXPECT_TRUE(aTarget->ParseFromArray(dataVector.data(), dataVector.size()));
-}
-
-class RawAcknowledgementObserver final : public nsIObserver {
- public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
-
-  const std::vector<content_analysis::sdk::ContentAnalysisAcknowledgement>&
-  GetAcknowledgements() {
-    return mAcknowledgements;
-  }
-
- private:
-  ~RawAcknowledgementObserver() = default;
-  std::vector<content_analysis::sdk::ContentAnalysisAcknowledgement>
-      mAcknowledgements;
-};
-
-NS_IMPL_ISUPPORTS(RawAcknowledgementObserver, nsIObserver);
-
-NS_IMETHODIMP RawAcknowledgementObserver::Observe(nsISupports* aSubject,
-                                                  const char* aTopic,
-                                                  const char16_t* aData) {
-  content_analysis::sdk::ContentAnalysisAcknowledgement acknowledgement;
-  ParseFromWideModifiedString(&acknowledgement, aData);
-  mAcknowledgements.push_back(std::move(acknowledgement));
-  return NS_OK;
-}
-
 class RawRequestObserver final : public nsIObserver {
  public:
   NS_DECL_ISUPPORTS

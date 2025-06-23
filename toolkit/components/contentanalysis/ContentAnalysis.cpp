@@ -23,7 +23,6 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/WindowGlobalParent.h"
-#include "mozilla/glean/ContentanalysisMetrics.h"
 #include "mozilla/Logging.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Services.h"
@@ -1356,8 +1355,8 @@ NS_IMPL_ISUPPORTS(ContentAnalysis, nsIContentAnalysis, nsIObserver,
 
 ContentAnalysis::ContentAnalysis()
     : mThreadPool(new nsThreadPool()),
-      mRequestTokenToUserActionIdMap(
-          "ContentAnalysis::mRequestTokenToUserActionIdMap"),
+      mRequestTokenToBasicRequestInfoMap(
+          "ContentAnalysis::mRequestTokenToBasicRequestInfoMap"),
       mCaClientPromise(
           new ClientPromise::Private("ContentAnalysis::ContentAnalysis")),
       mSetByEnterprise(false) {
@@ -2115,14 +2114,18 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
       &ignoreCanceled));
 
   {
-    nsAutoCString analysisTypeStr;
-    analysisTypeStr.AppendInt(static_cast<int>(pbRequest.analysis_connector()));
+    nsDependentCString analysisTypeStr(
+        content_analysis::sdk::AnalysisConnector_Name(
+            pbRequest.analysis_connector())
+            .c_str());
     glean::content_analysis::request_sent_by_analysis_type.Get(analysisTypeStr)
         .Add();
   }
   {
-    nsAutoCString reasonStr;
-    reasonStr.AppendInt(static_cast<int>(pbRequest.reason()));
+    nsDependentCString reasonStr(
+        content_analysis::sdk::ContentAnalysisRequest_Reason_Name(
+            pbRequest.reason())
+            .c_str());
     glean::content_analysis::request_sent_by_reason.Get(reasonStr).Add();
   }
 
@@ -2205,13 +2208,21 @@ Result<std::nullptr_t, nsresult> ContentAnalysis::DoAnalyzeRequest(
   // Run request, then dispatch back to main thread to resolve
   // aCallback
   content_analysis::sdk::ContentAnalysisResponse pbResponse;
+  nsDependentCString analysisConnectorName(
+      content_analysis::sdk::AnalysisConnector_Name(
+          aRequest.analysis_connector())
+          .c_str());
+  auto timerId = glean::content_analysis::response_duration_by_analysis_type
+                     .Get(analysisConnectorName)
+                     .Start();
   {
     // Insert this into the map before calling Send() because another thread
     // calling Send() may get a response before our Send() call finishes.
-    auto map = owner->mRequestTokenToUserActionIdMap.Lock();
+    auto map = owner->mRequestTokenToBasicRequestInfoMap.Lock();
     map->InsertOrUpdate(
         nsCString(aRequest.request_token()),
-        UserActionIdAndAutoAcknowledge{aUserActionId, aAutoAcknowledge});
+        BasicRequestInfo{aUserActionId, timerId,
+                         std::move(analysisConnectorName), aAutoAcknowledge});
   }
 
   LOGD(
@@ -2222,9 +2233,15 @@ Result<std::nullptr_t, nsresult> ContentAnalysis::DoAnalyzeRequest(
   if (err != 0) {
     LOGE("DoAnalyzeRequest got err=%d for request_token=%s, user_action_id=%s",
          err, aRequest.request_token().c_str(), aUserActionId.get());
+    Maybe<BasicRequestInfo> entry;
     {
-      auto map = owner->mRequestTokenToUserActionIdMap.Lock();
-      map->Remove(nsCString(aRequest.request_token()));
+      auto map = owner->mRequestTokenToBasicRequestInfoMap.Lock();
+      entry = map->Extract(nsCString(aRequest.request_token()));
+    }
+    if (entry.isSome()) {
+      glean::content_analysis::response_duration_by_analysis_type
+          .Get(entry->mAnalysisTypeStr)
+          .Cancel(std::move(entry->mTimerId));
     }
 
     return Err(NS_ERROR_FAILURE);
@@ -2267,14 +2284,13 @@ void ContentAnalysis::HandleResponseFromAgent(
                                    responseArray.Elements());
         }
 
-        Maybe<UserActionIdAndAutoAcknowledge>
-            maybeUserActionIdAndAutoAcknowledge;
+        Maybe<BasicRequestInfo> maybeBasicRequestInfo;
         {
-          auto map = owner->mRequestTokenToUserActionIdMap.Lock();
-          maybeUserActionIdAndAutoAcknowledge =
+          auto map = owner->mRequestTokenToBasicRequestInfoMap.Lock();
+          maybeBasicRequestInfo =
               map->Extract(nsCString(aResponse.request_token()));
         }
-        if (maybeUserActionIdAndAutoAcknowledge.isNothing()) {
+        if (maybeBasicRequestInfo.isNothing()) {
           LOGE(
               "RunAnalyzeRequestTask could not find userActionId for "
               "request token %s",
@@ -2282,8 +2298,10 @@ void ContentAnalysis::HandleResponseFromAgent(
           // We have no hope of doing anything useful, so just early return.
           return;
         }
-        nsCString userActionId =
-            maybeUserActionIdAndAutoAcknowledge->mUserActionId;
+        glean::content_analysis::response_duration_by_analysis_type
+            .Get(maybeBasicRequestInfo->mAnalysisTypeStr)
+            .StopAndAccumulate(std::move(maybeBasicRequestInfo->mTimerId));
+        nsCString userActionId = maybeBasicRequestInfo->mUserActionId;
 
         RefPtr<ContentAnalysisResponse> response =
             ContentAnalysisResponse::FromProtobuf(std::move(aResponse),
@@ -2292,7 +2310,11 @@ void ContentAnalysis::HandleResponseFromAgent(
           LOGE("Content analysis got invalid response!");
           return;
         }
-
+        // We add our own values for action here (eAllow and eCancel)
+        // so just use the numeric value for glean.
+        nsAutoCString actionStr;
+        actionStr.AppendInt(static_cast<int>(response->GetAction()));
+        glean::content_analysis::response_action.Get(actionStr).Add();
         // Normally, if we timeout/user-cancel a request, we remove the
         // adjacent entry in mUserActionMap.  However, we don't do that if
         // the chosen default behavior is to warn.  We don't want to issue
@@ -2305,7 +2327,7 @@ void ContentAnalysis::HandleResponseFromAgent(
 
         owner->NotifyObserversAndMaybeIssueResponseFromAgent(
             response, std::move(userActionId),
-            maybeUserActionIdAndAutoAcknowledge->mAutoAcknowledge);
+            maybeBasicRequestInfo->mAutoAcknowledge);
       }));
 }
 
@@ -3544,7 +3566,7 @@ ContentAnalysis::RespondToWarnDialog(const nsACString& aRequestToken,
   }
   bool haveGottenResponse;
   {
-    auto map = mRequestTokenToUserActionIdMap.Lock();
+    auto map = mRequestTokenToBasicRequestInfoMap.Lock();
     haveGottenResponse = !map->Contains(aRequestToken);
   }
 

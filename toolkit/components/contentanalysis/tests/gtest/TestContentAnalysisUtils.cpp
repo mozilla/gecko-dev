@@ -98,3 +98,14 @@ void LaunchAgentWithCommandLineArguments(const nsString& cmdLineArguments,
   agentInfo.processInfo = processInfo;
   agentInfo.client = std::move(clientPtr);
 }
+
+NS_IMPL_ISUPPORTS(RawAcknowledgementObserver, nsIObserver);
+
+NS_IMETHODIMP RawAcknowledgementObserver::Observe(nsISupports* aSubject,
+                                                  const char* aTopic,
+                                                  const char16_t* aData) {
+  content_analysis::sdk::ContentAnalysisAcknowledgement acknowledgement;
+  ParseFromWideModifiedString(&acknowledgement, aData);
+  mAcknowledgements.push_back(std::move(acknowledgement));
+  return NS_OK;
+}
