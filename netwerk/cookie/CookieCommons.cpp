@@ -999,8 +999,8 @@ void CookieCommons::GetServerDateHeader(nsIChannel* aChannel,
 }
 
 // static
-int64_t CookieCommons::MaybeReduceExpiry(int64_t aCurrentTimeInMSec,
-                                         int64_t aExpiryInMSec) {
+int64_t CookieCommons::MaybeCapExpiry(int64_t aCurrentTimeInMSec,
+                                      int64_t aExpiryInMSec) {
   int64_t maxageCap = StaticPrefs::network_cookie_maxageCap();
 
   if (maxageCap) {
