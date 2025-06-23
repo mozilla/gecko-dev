@@ -31,7 +31,6 @@ export const initialUIState = () => ({
   isLogPoint: false,
   orientation: "horizontal",
   viewport: null,
-  cursorPosition: null,
   inlinePreviewEnabled: features.inlinePreview,
   editorWrappingEnabled: prefs.editorWrapping,
   javascriptEnabled: true,
@@ -138,10 +137,6 @@ function update(state = initialUIState(), action) {
 
     case "SET_VIEWPORT": {
       return { ...state, viewport: action.viewport };
-    }
-
-    case "SET_CURSOR_POSITION": {
-      return { ...state, cursorPosition: action.cursorPosition };
     }
 
     case "NAVIGATE": {
