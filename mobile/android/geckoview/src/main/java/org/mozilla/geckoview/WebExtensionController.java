@@ -320,6 +320,8 @@ public class WebExtensionController {
      * Called whenever permissions are requested. This is intended as an opportunity for the app to
      * prompt the user for the permissions required by this extension at runtime.
      *
+     * @deprecated Use onOptionalPrompt(WebExtension, String[], String[], String[]) to account for
+     *     data collection permissions.
      * @param extension The {@link WebExtension} that is about to be installed. You can use {@link
      *     WebExtension#metaData} to gather information about this extension when building the user
      *     prompt dialog.
@@ -330,10 +332,35 @@ public class WebExtensionController {
      *     denied. A null value will be interpreted as {@link AllowOrDeny#DENY DENY}.
      */
     @Nullable
+    @Deprecated
+    @DeprecationSchedule(id = "web-extension-on-optional-prompt", version = 144)
     default GeckoResult<AllowOrDeny> onOptionalPrompt(
         final @NonNull WebExtension extension,
         final @NonNull String[] permissions,
         final @NonNull String[] origins) {
+      return null;
+    }
+
+    /**
+     * Called whenever permissions are requested. This is intended as an opportunity for the app to
+     * prompt the user for the permissions required by this extension at runtime.
+     *
+     * @param extension The {@link WebExtension} that is about to be installed. You can use {@link
+     *     WebExtension#metaData} to gather information about this extension when building the user
+     *     prompt dialog.
+     * @param permissions The permissions that are requested.
+     * @param origins The requested host permissions.
+     * @param dataCollectionPermissions The requested data collection permissions.
+     * @return A {@link GeckoResult} that completes to either {@link AllowOrDeny#ALLOW ALLOW} if the
+     *     request should be approved or {@link AllowOrDeny#DENY DENY} if the request should be
+     *     denied. A null value will be interpreted as {@link AllowOrDeny#DENY DENY}.
+     */
+    @Nullable
+    default GeckoResult<AllowOrDeny> onOptionalPrompt(
+        final @NonNull WebExtension extension,
+        final @NonNull String[] permissions,
+        final @NonNull String[] origins,
+        final @NonNull String[] dataCollectionPermissions) {
       return null;
     }
   }
@@ -1342,8 +1369,22 @@ public class WebExtensionController {
     final String[] permissions =
         message.bundle.getBundle("permissions").getStringArray("permissions");
     final String[] origins = message.bundle.getBundle("permissions").getStringArray("origins");
-    final GeckoResult<AllowOrDeny> promptResponse =
+
+    // TODO - Bug 1972510: remove the first call when we remove the deprecated
+    // `onOptionalPrompt` method since this has been done to preserve backward
+    // compatibility.
+    GeckoResult<AllowOrDeny> promptResponse =
         mPromptDelegate.onOptionalPrompt(extension, permissions, origins);
+
+    if (promptResponse == null) {
+      final String[] dataCollectionPermissions =
+          message.bundle.getBundle("permissions").getStringArray("data_collection");
+
+      promptResponse =
+          mPromptDelegate.onOptionalPrompt(
+              extension, permissions, origins, dataCollectionPermissions);
+    }
+
     if (promptResponse == null) {
       return;
     }

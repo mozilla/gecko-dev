@@ -3,10 +3,13 @@
   "name": "optional-permission-request",
   "browser_specific_settings": {
     "gecko": {
-      "id": "optional-permission-request@example.com"
+      "id": "optional-permission-request@example.com",
+      "data_collection_permissions": {
+        "optional": ["healthInfo"]
+      }
     }
   },
-  "version": "1.0",
+  "version": "2.0",
   "description": "Request optional extension permissions.",
   "permissions": ["nativeMessaging", "geckoViewAddons"],
   "granted_host_permissions": true,

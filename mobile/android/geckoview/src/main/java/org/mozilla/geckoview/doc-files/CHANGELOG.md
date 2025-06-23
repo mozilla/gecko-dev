@@ -13,6 +13,11 @@ exclude: true
 
 ⚠️  breaking change and deprecation notices
 
+## v142
+- Added support for data collection permissions to [`WebExtensionController.onOptionalPrompt`][142.1] ([bug 1964999]({{bugzilla}}1964999))
+
+[142.1]: {{javadoc_uri}}/WebExtensionController.html#onOptionalPrompt
+
 ## v141
 - Changed the methods in [`ProfilerController`][141.1] to static.
   ([bug 1955403]({{bugzilla}}1955403))
@@ -1778,4 +1783,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: f3524b2d4f75a3bed41cb0e54470e58c02c902a8
+[api-version]: 77e6bec20be0cdb25d428c78d9a22799ef387cfc
