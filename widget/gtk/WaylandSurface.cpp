@@ -601,6 +601,7 @@ void WaylandSurface::UnmapLocked(WaylandSurfaceLock& aSurfaceLock) {
   MozClearPointer(mSubsurface, wl_subsurface_destroy);
   MozClearPointer(mColorSurface, wp_color_management_surface_v1_destroy);
   MozClearPointer(mImageDescription, wp_image_description_v1_destroy);
+  mFrameCallbackHandler.Clear();
   mParentSurface = nullptr;
   mFormats = nullptr;
 
