@@ -242,6 +242,14 @@ MOZ_RUNINIT bool avxvnni_enabled = has_cpuid_bits_ex(7u, eax, (1u << 4));
 MOZ_RUNINIT bool aes_enabled = has_cpuid_bits(1u, ecx, (1u << 25));
 #  endif
 
+#  if !defined(MOZILLA_PRESUME_SHA)
+MOZ_RUNINIT bool sha_enabled = has_cpuid_bits_ex(7u, ebx, (1u << 29));
+#  endif
+
+#  if !defined(MOZILLA_PRESUME_SHA512)
+MOZ_RUNINIT bool sha512_enabled = has_cpuid_bits_ex(7u, eax, (1u << 0));
+#  endif
+
 MOZ_RUNINIT bool has_constant_tsc = has_cpuid_bits(0x80000007u, edx, (1u << 8));
 
 #endif
