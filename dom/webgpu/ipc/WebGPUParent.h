@@ -53,9 +53,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   ipc::IPCResult RecvAdapterRequestDevice(
       RawId aAdapterId, const ipc::ByteBuf& aByteBuf, RawId aDeviceId,
       RawId aQueueId, AdapterRequestDeviceResolver&& resolver);
-  ipc::IPCResult RecvDeviceCreateBuffer(
-      RawId aDeviceId, RawId aBufferId, dom::GPUBufferDescriptor&& aDesc,
-      ipc::MutableSharedMemoryHandle&& aShmem);
   ipc::IPCResult RecvBufferMap(RawId aDeviceId, RawId aBufferId, uint32_t aMode,
                                uint64_t aOffset, uint64_t size,
                                BufferMapResolver&& aResolver);
@@ -108,9 +105,12 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
     uint64_t mMappedOffset;
     uint64_t mMappedSize;
     RawId mDeviceId;
+    RawId mBufferId;
   };
 
   BufferMapData* GetBufferMapData(RawId aBufferId);
+
+  Maybe<BufferMapData> mIncompleteBufferMapData;
 
   bool UseExternalTextureForSwapChain(ffi::WGPUSwapChainId aSwapChainId);
 
@@ -176,7 +176,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   /// A map from wgpu buffer ids to data about their shared memory segments.
   /// Includes entries about mappedAtCreation, MAP_READ and MAP_WRITE buffers,
   /// regardless of their state.
-  std::unordered_map<uint64_t, BufferMapData> mSharedMemoryMap;
+  std::unordered_map<RawId, BufferMapData> mSharedMemoryMap;
   /// Associated presentation data for each swapchain.
   std::unordered_map<layers::RemoteTextureOwnerId, RefPtr<PresentationData>,
                      layers::RemoteTextureOwnerId::HashFn>

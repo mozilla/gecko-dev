@@ -190,6 +190,17 @@ extern void wgpu_server_pre_device_drop(void* aParam, WGPUDeviceId aId) {
   parent->PreDeviceDrop(aId);
 }
 
+extern void wgpu_server_set_partial_buffer_map_data(
+    void* aParam, WGPUDeviceId aDeviceId, WGPUBufferId aBufferId,
+    bool aHasMapFlags, uint64_t aMappedOffset, uint64_t aMappedSize) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+  auto data = WebGPUParent::BufferMapData{
+      nullptr, aHasMapFlags, aMappedOffset, aMappedSize, aDeviceId, aBufferId,
+  };
+  MOZ_ASSERT(parent->mIncompleteBufferMapData.isNone());
+  parent->mIncompleteBufferMapData = Some(std::move(data));
+}
+
 }  // namespace ffi
 
 // A fixed-capacity buffer for receiving textual error messages from
@@ -537,45 +548,6 @@ WebGPUParent::BufferMapData* WebGPUParent::GetBufferMapData(RawId aBufferId) {
   }
 
   return &iter->second;
-}
-
-ipc::IPCResult WebGPUParent::RecvDeviceCreateBuffer(
-    RawId aDeviceId, RawId aBufferId, dom::GPUBufferDescriptor&& aDesc,
-    ipc::MutableSharedMemoryHandle&& aShmem) {
-  webgpu::StringHelper label(aDesc.mLabel);
-
-  auto shmem = aShmem.Map();
-
-  bool hasMapFlags = aDesc.mUsage & (dom::GPUBufferUsage_Binding::MAP_WRITE |
-                                     dom::GPUBufferUsage_Binding::MAP_READ);
-  bool shmAllocationFailed = false;
-  if (hasMapFlags || aDesc.mMappedAtCreation) {
-    if (shmem.Size() < aDesc.mSize) {
-      MOZ_RELEASE_ASSERT(shmem.Size() == 0);
-      // If we requested a non-zero mappable buffer and get a size of zero, it
-      // indicates that the shmem allocation failed on the client side.
-      shmAllocationFailed = true;
-    } else {
-      uint64_t offset = 0;
-      uint64_t size = 0;
-
-      if (aDesc.mMappedAtCreation) {
-        size = aDesc.mSize;
-      }
-
-      BufferMapData data = {std::move(shmem), hasMapFlags, offset, size,
-                            aDeviceId};
-      mSharedMemoryMap.insert({aBufferId, std::move(data)});
-    }
-  }
-
-  ErrorBuffer error;
-  ffi::wgpu_server_device_create_buffer(mContext.get(), aDeviceId, aBufferId,
-                                        label.Get(), aDesc.mSize, aDesc.mUsage,
-                                        aDesc.mMappedAtCreation,
-                                        shmAllocationFailed, error.ToFFI());
-  ForwardError(error);
-  return IPC_OK();
 }
 
 struct MapRequest {
@@ -1186,7 +1158,7 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
       ErrorBuffer error;
       ffi::wgpu_server_device_create_buffer(mContext.get(), data->mDeviceId,
                                             bufferId, nullptr, bufferSize,
-                                            usage, false, false, error.ToFFI());
+                                            usage, false, error.ToFFI());
       if (ForwardError(error)) {
         return IPC_OK();
       }
@@ -1380,7 +1352,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
       ErrorBuffer error;
       ffi::wgpu_server_device_create_buffer(mContext.get(), data->mDeviceId,
                                             bufferId, nullptr, bufferSize,
-                                            usage, false, false, error.ToFFI());
+                                            usage, false, error.ToFFI());
       if (ForwardError(error)) {
         return IPC_OK();
       }
@@ -1545,10 +1517,20 @@ ipc::IPCResult WebGPUParent::RecvMessage(
     // `aShmem` may be an invalid handle, however this will simply result in an
     // invalid mapping with 0 size, which is used safely below.
     auto mapping = aShmem->Map();
-    auto ptr = mapping.DataAs<uint8_t>();
+
+    auto* ptr = mapping.DataAs<uint8_t>();
     auto size = mapping.Size();
+
     ffi::wgpu_server_message(mContext.get(), ToFFI(&aByteBuf), ptr, size,
                              error.ToFFI());
+
+    auto maybe_incomplete_buffer_map_data = mIncompleteBufferMapData.take();
+    if (maybe_incomplete_buffer_map_data.isSome()) {
+      auto buffer_map_data = maybe_incomplete_buffer_map_data.extract();
+      buffer_map_data.mShmem = std::move(mapping);
+      mSharedMemoryMap.insert(
+          {buffer_map_data.mBufferId, std::move(buffer_map_data)});
+    }
   } else {
     ffi::wgpu_server_message(mContext.get(), ToFFI(&aByteBuf), nullptr, 0,
                              error.ToFFI());

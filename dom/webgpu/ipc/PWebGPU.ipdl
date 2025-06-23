@@ -44,8 +44,6 @@ parent:
 
   async DeviceActionWithAck(RawId selfId, ByteBuf buf) returns (bool dummy);
 
-  async DeviceCreateBuffer(RawId deviceId, RawId bufferId, GPUBufferDescriptor desc, MutableSharedMemoryHandle shm);
-
   async InstanceRequestAdapter(GPURequestAdapterOptions options, RawId aAdapterId) returns (ByteBuf byteBuf);
   async AdapterRequestDevice(
       RawId adapterId,

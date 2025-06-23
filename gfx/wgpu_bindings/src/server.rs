@@ -795,7 +795,6 @@ pub extern "C" fn wgpu_server_device_create_buffer(
     size: wgt::BufferAddress,
     usage: u32,
     mapped_at_creation: bool,
-    shm_allocation_failed: bool,
     mut error_buf: ErrorBuffer,
 ) {
     let utf8_label = label.map(|utf16| utf16.to_string());
@@ -808,19 +807,6 @@ pub extern "C" fn wgpu_server_device_create_buffer(
         usage,
         mapped_at_creation,
     };
-
-    // Don't trust the graphics driver with buffer sizes larger than our conservative max texture size.
-    if shm_allocation_failed || size > MAX_BUFFER_SIZE {
-        error_buf.init(
-            ErrMsg {
-                message: "Out of memory",
-                r#type: ErrorBufferType::OutOfMemory,
-            },
-            device_id,
-        );
-        global.create_buffer_error(Some(buffer_id), &desc);
-        return;
-    }
 
     let (_, error) = global.device_create_buffer(device_id, &desc, Some(buffer_id));
     if let Some(err) = error {
@@ -1488,6 +1474,15 @@ extern "C" {
     fn wgpu_server_dealloc_buffer_shmem(param: *mut c_void, id: id::BufferId);
     #[allow(dead_code)]
     fn wgpu_server_pre_device_drop(param: *mut c_void, id: id::DeviceId);
+    #[allow(dead_code)]
+    fn wgpu_server_set_partial_buffer_map_data(
+        param: *mut c_void,
+        device_id: id::DeviceId,
+        buffer_id: id::BufferId,
+        has_map_flags: bool,
+        mapped_offset: u64,
+        mapped_size: u64,
+    );
 }
 
 #[cfg(target_os = "linux")]
@@ -1998,9 +1993,59 @@ impl Global {
         &self,
         device_id: id::DeviceId,
         action: DeviceAction,
+        shmem_size: usize,
         mut error_buf: ErrorBuffer,
     ) {
         match action {
+            DeviceAction::CreateBuffer(id, desc) => {
+                let has_map_flags = desc
+                    .usage
+                    .intersects(wgt::BufferUsages::MAP_READ | wgt::BufferUsages::MAP_WRITE);
+                let needs_shmem = has_map_flags || desc.mapped_at_creation;
+
+                // If we requested a non-zero mappable buffer and get a size of zero, it
+                // indicates that the shmem allocation failed on the client side or
+                // mapping failed in the parent process.
+                let shmem_allocation_failed = needs_shmem && (shmem_size as u64) < desc.size;
+                if shmem_allocation_failed {
+                    assert_eq!(shmem_size, 0);
+                }
+
+                // Don't trust the graphics driver with buffer sizes larger than our conservative max buffer size.
+                if shmem_allocation_failed || desc.size > MAX_BUFFER_SIZE {
+                    error_buf.init(
+                        ErrMsg {
+                            message: "Out of memory",
+                            r#type: ErrorBufferType::OutOfMemory,
+                        },
+                        device_id,
+                    );
+                    self.create_buffer_error(Some(id), &desc);
+                    return;
+                }
+
+                if needs_shmem {
+                    unsafe {
+                        wgpu_server_set_partial_buffer_map_data(
+                            self.webgpu_parent,
+                            device_id,
+                            id,
+                            has_map_flags,
+                            0,
+                            if desc.mapped_at_creation {
+                                desc.size
+                            } else {
+                                0
+                            },
+                        );
+                    }
+                }
+
+                let (_, error) = self.device_create_buffer(device_id, &desc, Some(id));
+                if let Some(err) = error {
+                    error_buf.init(err, device_id);
+                }
+            }
             #[allow(unused_variables)]
             DeviceAction::CreateTexture(id, desc, swap_chain_id) => {
                 let max = MAX_TEXTURE_EXTENT;
@@ -2409,7 +2454,12 @@ pub unsafe extern "C" fn wgpu_server_message(
 ) {
     let message: Message = bincode::deserialize(byte_buf.as_slice()).unwrap();
     match message {
-        Message::Device(id, action) => global.device_action(id, action, error_buf),
+        Message::Device(id, action) => global.device_action(
+            id,
+            action,
+            if data.is_null() { 0 } else { data_length },
+            error_buf,
+        ),
         Message::Texture(device_id, id, action) => {
             global.texture_action(device_id, id, action, error_buf)
         }
@@ -2515,7 +2565,7 @@ pub unsafe extern "C" fn wgpu_server_device_action(
     error_buf: ErrorBuffer,
 ) {
     let action = bincode::deserialize(byte_buf.as_slice()).unwrap();
-    global.device_action(self_id, action, error_buf);
+    global.device_action(self_id, action, 0, error_buf);
 }
 
 #[no_mangle]

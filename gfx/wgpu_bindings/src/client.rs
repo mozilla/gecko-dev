@@ -590,6 +590,19 @@ pub extern "C" fn wgpu_client_drop_render_pipeline(
 }
 
 #[no_mangle]
+pub extern "C" fn wgpu_client_create_buffer(
+    device_id: id::DeviceId,
+    buffer_id: id::BufferId,
+    desc: &wgt::BufferDescriptor<Option<&nsACString>>,
+    bb: &mut ByteBuf,
+) {
+    let label = wgpu_string(desc.label);
+    let action = DeviceAction::CreateBuffer(buffer_id, desc.map_label(|_| label));
+    let action = Message::Device(device_id, action);
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
 pub extern "C" fn wgpu_client_create_texture(
     client: &Client,
     device_id: id::DeviceId,

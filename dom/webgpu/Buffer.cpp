@@ -118,7 +118,16 @@ already_AddRefed<Buffer> Buffer::Create(Device* aDevice, RawId aDeviceId,
     return nullptr;
   }
 
-  actor->SendDeviceCreateBuffer(aDeviceId, bufferId, aDesc, std::move(handle));
+  ffi::WGPUBufferDescriptor desc = {};
+  webgpu::StringHelper label(aDesc.mLabel);
+  desc.label = label.Get();
+  desc.size = aDesc.mSize;
+  desc.usage = aDesc.mUsage;
+  desc.mapped_at_creation = aDesc.mMappedAtCreation;
+
+  ipc::ByteBuf bb;
+  ffi::wgpu_client_create_buffer(aDeviceId, bufferId, &desc, ToFFI(&bb));
+  actor->SendMessage(std::move(bb), Some(std::move(handle)));
 
   RefPtr<Buffer> buffer = new Buffer(aDevice, bufferId, aDesc.mSize,
                                      aDesc.mUsage, std::move(mapping));
