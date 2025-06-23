@@ -822,7 +822,7 @@ class HttpBaseChannel : public nsHashPropertyBag,
   // the response of the last redirect.
   mozilla::TimeStamp mRedirectEndTimeStamp;
 
-  PRTime mChannelCreationTime;
+  PRTime mChannelCreationTime{0};
   TimeStamp mChannelCreationTimestamp;
   TimeStamp mAsyncOpenTime;
   TimeStamp mCacheReadStart;
@@ -838,35 +838,36 @@ class HttpBaseChannel : public nsHashPropertyBag,
   TimeStamp mOnStopRequestStartTime;
   // copied from the transaction before we null out mTransaction
   // so that the timing can still be queried from OnStopRequest
-  TimingStruct mTransactionTimings;
+  TimingStruct mTransactionTimings{};
 
   // Gets computed during ComputeCrossOriginOpenerPolicyMismatch so we have
   // the channel's policy even if we don't know policy initiator.
-  nsILoadInfo::CrossOriginOpenerPolicy mComputedCrossOriginOpenerPolicy;
+  nsILoadInfo::CrossOriginOpenerPolicy mComputedCrossOriginOpenerPolicy{
+      nsILoadInfo::OPENER_POLICY_UNSAFE_NONE};
 
-  uint64_t mStartPos;
-  uint64_t mTransferSize;
-  uint64_t mRequestSize;
-  uint64_t mDecodedBodySize;
+  uint64_t mStartPos{UINT64_MAX};
+  uint64_t mTransferSize{0};
+  uint64_t mRequestSize{0};
+  uint64_t mDecodedBodySize{0};
   // True only when the channel supports any of the versions of HTTP3
-  bool mSupportsHTTP3;
-  uint64_t mEncodedBodySize;
-  uint64_t mRequestContextID;
+  bool mSupportsHTTP3{false};
+  uint64_t mEncodedBodySize{0};
+  uint64_t mRequestContextID{0};
   // ID of the top-level document's inner window this channel is being
   // originated from.
-  uint64_t mContentWindowId;
-  uint64_t mBrowserId;
-  int64_t mAltDataLength;
-  uint64_t mChannelId;
-  uint64_t mReqContentLength;
+  uint64_t mContentWindowId{0};
+  uint64_t mBrowserId{0};
+  int64_t mAltDataLength{-1};
+  uint64_t mChannelId{0};
+  uint64_t mReqContentLength{0};
 
-  Atomic<nsresult, ReleaseAcquire> mStatus;
+  Atomic<nsresult, ReleaseAcquire> mStatus{NS_OK};
 
   // Use Release-Acquire ordering to ensure the OMT ODA is ignored while channel
   // is canceled on main thread.
-  Atomic<bool, ReleaseAcquire> mCanceled;
-  Atomic<uint32_t, ReleaseAcquire> mFirstPartyClassificationFlags;
-  Atomic<uint32_t, ReleaseAcquire> mThirdPartyClassificationFlags;
+  Atomic<bool, ReleaseAcquire> mCanceled{false};
+  Atomic<uint32_t, ReleaseAcquire> mFirstPartyClassificationFlags{0};
+  Atomic<uint32_t, ReleaseAcquire> mThirdPartyClassificationFlags{0};
 
   // mutex to guard members accessed during OnDataFinished in
   // HttpChannelChild.cpp
@@ -874,8 +875,8 @@ class HttpBaseChannel : public nsHashPropertyBag,
 
   UniquePtr<ProfileChunkedBuffer> mSource;
 
-  uint32_t mLoadFlags;
-  uint32_t mCaps;
+  uint32_t mLoadFlags{LOAD_NORMAL};
+  uint32_t mCaps{0};
 
   ClassOfService mClassOfService;
   // This should be set the the actual TRR mode used to resolve the request.
@@ -1004,34 +1005,34 @@ class HttpBaseChannel : public nsHashPropertyBag,
   // An opaque flags for non-standard behavior of the TLS system.
   // It is unlikely this will need to be set outside of telemetry studies
   // relating to the TLS implementation.
-  uint32_t mTlsFlags;
+  uint32_t mTlsFlags{0};
 
   // Current suspension depth for this channel object
-  uint32_t mSuspendCount;
+  uint32_t mSuspendCount{0};
 
   // Per channel transport window override (0 means no override)
-  uint32_t mInitialRwin;
+  uint32_t mInitialRwin{0};
 
-  uint32_t mProxyResolveFlags;
+  uint32_t mProxyResolveFlags{0};
 
-  uint32_t mContentDispositionHint;
+  uint32_t mContentDispositionHint{UINT32_MAX};
 
   dom::RequestMode mRequestMode;
-  uint32_t mRedirectMode;
+  uint32_t mRedirectMode{nsIHttpChannelInternal::REDIRECT_MODE_FOLLOW};
 
   // If this channel was created as the result of a redirect, then this value
   // will reflect the redirect flags passed to the SetupReplacementChannel()
   // method.
-  uint32_t mLastRedirectFlags;
+  uint32_t mLastRedirectFlags{0};
 
-  int16_t mPriority;
+  int16_t mPriority{PRIORITY_NORMAL};
   uint8_t mRedirectionLimit;
 
   // Performance tracking
   // Number of redirects that has occurred.
-  int8_t mRedirectCount;
+  int8_t mRedirectCount{0};
   // Number of internal redirects that has occurred.
-  int8_t mInternalRedirectCount;
+  int8_t mInternalRedirectCount{0};
 
   enum class SnifferCategoryType {
     NetContent = 0,
@@ -1043,14 +1044,14 @@ class HttpBaseChannel : public nsHashPropertyBag,
   // Used to ensure the same pref value is being used across the
   // lifetime of this http channel.
   const bool mCachedOpaqueResponseBlockingPref;
-  bool mChannelBlockedByOpaqueResponse;
+  bool mChannelBlockedByOpaqueResponse{false};
 
-  bool mDummyChannelForCachedResource;
+  bool mDummyChannelForCachedResource{false};
 
-  bool mHasContentDecompressed;
+  bool mHasContentDecompressed{false};
 
   // A flag that should be false if render-blocking is not stated
-  bool mRenderBlocking;
+  bool mRenderBlocking{false};
 
   // clang-format off
   MOZ_ATOMIC_BITFIELDS(mAtomicBitfields3, 8, (
