@@ -49,7 +49,11 @@ struct BoolStruct {
 struct MozAgentInfo {
   PROCESS_INFORMATION processInfo;
   std::unique_ptr<content_analysis::sdk::Client> client;
+  MozAgentInfo() : processInfo{0} {}
   void TerminateProcess() {
+    if (processInfo.hProcess == nullptr) {
+      return;  // No process to terminate.
+    }
     DWORD exitCode = 0;
     BOOL result = ::GetExitCodeProcess(processInfo.hProcess, &exitCode);
     EXPECT_NE(static_cast<BOOL>(0), result);
@@ -58,6 +62,8 @@ struct MozAgentInfo {
     BOOL terminateResult = ::TerminateProcess(processInfo.hProcess, 0);
     ASSERT_NE(FALSE, terminateResult)
         << "Failed to terminate content_analysis_sdk_agent process";
+    CloseHandle(processInfo.hProcess);
+    processInfo.hProcess = nullptr;
   }
 };
 
