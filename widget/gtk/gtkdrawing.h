@@ -17,8 +17,6 @@
 
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
-#include <algorithm>
-#include "mozilla/Span.h"
 
 /**
  * A size in the same GTK pixel units as GtkBorder and GdkRectangle.
@@ -99,8 +97,6 @@ enum WidgetNodeType : int {
   /* Paints the background of a window, dialog or page. */
   MOZ_GTK_WINDOW,
   /* Used only as a container for MOZ_GTK_HEADER_BAR. */
-  MOZ_GTK_HEADERBAR_WINDOW,
-  /* Used only as a container for MOZ_GTK_HEADER_BAR. */
   MOZ_GTK_HEADERBAR_FIXED,
   /* Window container for all widgets */
   MOZ_GTK_WINDOW_CONTAINER,
@@ -111,7 +107,6 @@ enum WidgetNodeType : int {
 
   /* Client-side window decoration node. Available on GTK 3.20+. */
   MOZ_GTK_WINDOW_DECORATION,
-  MOZ_GTK_WINDOW_DECORATION_SOLID,
 
   MOZ_GTK_WIDGET_NODE_COUNT
 };

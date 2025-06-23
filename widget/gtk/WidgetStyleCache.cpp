@@ -14,14 +14,6 @@
 #include "mozilla/Unused.h"
 #include "nsDebug.h"
 
-enum class CSDStyle {
-  Unknown,
-  Solid,
-  Normal,
-};
-
-static bool gHeaderBarShouldDrawContainer = false;
-static CSDStyle gCSDStyle = CSDStyle::Unknown;
 static GtkWidget* sWidgetStorage[MOZ_GTK_WIDGET_NODE_COUNT];
 static GtkStyleContext* sStyleStorage[MOZ_GTK_WIDGET_NODE_COUNT];
 
@@ -120,30 +112,14 @@ static GtkWidget* CreateTreeHeaderCellWidget() {
   return gtk_tree_view_column_get_button(middleTreeViewColumn);
 }
 
-static bool HasBackground(GtkStyleContext* aStyle) {
-  GdkRGBA gdkColor;
-  gtk_style_context_get_background_color(aStyle, GTK_STATE_FLAG_NORMAL,
-                                         &gdkColor);
-  if (gdkColor.alpha != 0.0) {
-    return true;
-  }
-
-  GValue value = G_VALUE_INIT;
-  gtk_style_context_get_property(aStyle, "background-image",
-                                 GTK_STATE_FLAG_NORMAL, &value);
-  auto cleanup = mozilla::MakeScopeExit([&] { g_value_unset(&value); });
-  return g_value_get_boxed(&value);
-}
-
 static void CreateWindowAndHeaderBar() {
   GtkWidget* window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name(window, "MozillaGtkWidget");
   GtkStyleContext* windowStyle = gtk_widget_get_style_context(window);
 
-  // Headerbar has to be placed to window with csd or solid-csd style
-  // to properly draw the decorated.
-  gtk_style_context_add_class(windowStyle,
-                              IsSolidCSDStyleUsed() ? "solid-csd" : "csd");
+  // Headerbar has to be placed into a window with csd or solid-csd style
+  // to properly draw the decorations.
+  gtk_style_context_add_class(windowStyle, "csd");
 
   GtkWidget* fixed = gtk_fixed_new();
   GtkStyleContext* fixedStyle = gtk_widget_get_style_context(fixed);
@@ -166,11 +142,14 @@ static void CreateWindowAndHeaderBar() {
   // sizes. (Bug 1419442)
   gtk_style_context_add_class(headerBarStyle, "default-decoration");
 
-  sWidgetStorage[MOZ_GTK_HEADER_BAR] = headerBar;
-  MOZ_ASSERT(!sWidgetStorage[MOZ_GTK_HEADERBAR_WINDOW],
+  MOZ_ASSERT(!sWidgetStorage[MOZ_GTK_HEADER_BAR],
+             "Headerbar widget is already created!");
+  MOZ_ASSERT(!sWidgetStorage[MOZ_GTK_WINDOW],
              "Window widget is already created!");
   MOZ_ASSERT(!sWidgetStorage[MOZ_GTK_HEADERBAR_FIXED],
              "Fixed widget is already created!");
+
+  sWidgetStorage[MOZ_GTK_HEADER_BAR] = headerBar;
   sWidgetStorage[MOZ_GTK_WINDOW] = window;
   sWidgetStorage[MOZ_GTK_HEADERBAR_FIXED] = fixed;
 
@@ -178,33 +157,6 @@ static void CreateWindowAndHeaderBar() {
   gtk_container_add(GTK_CONTAINER(fixed), headerBar);
 
   gtk_widget_show_all(headerBar);
-
-  // Some themes like Elementary's style the container of the headerbar rather
-  // than the header bar itself.
-  gHeaderBarShouldDrawContainer = [&] {
-    const bool headerBarHasBackground = HasBackground(headerBarStyle);
-    if (headerBarHasBackground && GetBorderRadius(headerBarStyle)) {
-      return false;
-    }
-    return HasBackground(fixedStyle) &&
-           (GetBorderRadius(fixedStyle) || !headerBarHasBackground);
-  }();
-}
-
-bool IsSolidCSDStyleUsed() {
-  if (gCSDStyle == CSDStyle::Unknown) {
-    bool solid;
-    {
-      GtkWidget* window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-      gtk_window_set_titlebar(GTK_WINDOW(window), gtk_header_bar_new());
-      gtk_widget_realize(window);
-      GtkStyleContext* windowStyle = gtk_widget_get_style_context(window);
-      solid = gtk_style_context_has_class(windowStyle, "solid-csd");
-      gtk_widget_destroy(window);
-    }
-    gCSDStyle = solid ? CSDStyle::Solid : CSDStyle::Normal;
-  }
-  return gCSDStyle == CSDStyle::Solid;
 }
 
 static GtkWidget* CreateWidget(WidgetNodeType aAppearance) {
@@ -489,13 +441,6 @@ static GtkStyleContext* GetCssNodeStyleInternal(WidgetNodeType aNodeType) {
       g_object_unref(parentStyle);
       break;
     }
-    case MOZ_GTK_WINDOW_DECORATION_SOLID: {
-      GtkStyleContext* parentStyle =
-          CreateSubStyleWithClass(MOZ_GTK_WINDOW, "solid-csd");
-      style = CreateCSSNode("decoration", parentStyle);
-      g_object_unref(parentStyle);
-      break;
-    }
     default:
       return GetWidgetRootStyle(aNodeType);
   }
@@ -547,8 +492,6 @@ void ResetWidgetCache() {
   }
   mozilla::PodArrayZero(sStyleStorage);
 
-  gCSDStyle = CSDStyle::Unknown;
-
   /* This will destroy all of our widgets */
   if (sWidgetStorage[MOZ_GTK_WINDOW]) {
     gtk_widget_destroy(sWidgetStorage[MOZ_GTK_WINDOW]);
@@ -581,39 +524,4 @@ GtkStyleContext* GetStyleContext(WidgetNodeType aNodeType, int aScale,
     gtk_style_context_set_state(style, aState);
   }
   return style;
-}
-
-bool HeaderBarShouldDrawContainer() {
-  mozilla::Unused << GetWidget(MOZ_GTK_HEADER_BAR);
-  return gHeaderBarShouldDrawContainer;
-}
-
-gint GetBorderRadius(GtkStyleContext* aStyle) {
-  GValue value = G_VALUE_INIT;
-  // NOTE(emilio): In an ideal world, we'd query the two longhands
-  // (border-top-left-radius and border-top-right-radius) separately. However,
-  // that doesn't work (GTK rejects the query with:
-  //
-  //   Style property "border-top-left-radius" is not gettable
-  //
-  // However! Getting border-radius does work, and it does return the
-  // border-top-left-radius as a gint:
-  //
-  //   https://docs.gtk.org/gtk3/const.STYLE_PROPERTY_BORDER_RADIUS.html
-  //   https://gitlab.gnome.org/GNOME/gtk/-/blob/gtk-3-20/gtk/gtkcssshorthandpropertyimpl.c#L961-977
-  //
-  // So we abuse this fact, and make the assumption here that the
-  // border-top-{left,right}-radius are the same, and roll with it.
-  gtk_style_context_get_property(aStyle, "border-radius", GTK_STATE_FLAG_NORMAL,
-                                 &value);
-  gint result = 0;
-  auto type = G_VALUE_TYPE(&value);
-  if (type == G_TYPE_INT) {
-    result = g_value_get_int(&value);
-  } else {
-    NS_WARNING(nsPrintfCString("Unknown value type %lu for border-radius", type)
-                   .get());
-  }
-  g_value_unset(&value);
-  return result;
 }
