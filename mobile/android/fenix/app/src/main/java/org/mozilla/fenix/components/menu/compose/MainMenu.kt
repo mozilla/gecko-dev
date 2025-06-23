@@ -115,7 +115,6 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param onPasswordsMenuClick Invoked when the user clicks on the passwords menu item.
  * @param onCustomizeHomepageMenuClick Invoked when the user clicks on the customize
  * homepage menu item.
- * @param onNewInFirefoxMenuClick Invoked when the user clicks on the release note menu item.
  * @param onQuitMenuClick Invoked when the user clicks on the quit menu item.
  * @param onBackButtonClick Invoked when the user clicks on the back button.
  * @param onForwardButtonClick Invoked when the user clicks on the forward button.
@@ -163,7 +162,6 @@ fun MainMenu(
     onDownloadsMenuClick: () -> Unit,
     onPasswordsMenuClick: () -> Unit,
     onCustomizeHomepageMenuClick: () -> Unit,
-    onNewInFirefoxMenuClick: () -> Unit,
     onQuitMenuClick: () -> Unit,
     onBackButtonClick: (longPress: Boolean) -> Unit,
     onForwardButtonClick: (longPress: Boolean) -> Unit,
@@ -227,7 +225,6 @@ fun MainMenu(
         if (accessPoint == MenuAccessPoint.Home) {
             HomepageMenuGroup(
                 onCustomizeHomepageMenuClick = onCustomizeHomepageMenuClick,
-                onNewInFirefoxMenuClick = onNewInFirefoxMenuClick,
                 onExtensionsMenuClick = onExtensionsMenuClick,
                 extensionsMenuItemDescription = extensionsMenuItemDescription,
                 isExtensionsProcessDisabled = isExtensionsProcessDisabled,
@@ -644,19 +641,9 @@ private fun HomepageMenuGroup(
     allWebExtensionsDisabled: Boolean,
     onExtensionsMenuClick: () -> Unit,
     onCustomizeHomepageMenuClick: () -> Unit,
-    onNewInFirefoxMenuClick: () -> Unit,
     extensionSubmenu: @Composable ColumnScope.() -> Unit,
 ) {
     MenuGroup {
-        MenuItem(
-            label = stringResource(
-                id = R.string.browser_menu_new_in_firefox,
-                stringResource(id = R.string.app_name),
-            ),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_whats_new_24),
-            onClick = onNewInFirefoxMenuClick,
-        )
-
         MenuItem(
             label = stringResource(id = R.string.browser_menu_customize_home_1),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_tool_24),
@@ -925,7 +912,6 @@ private fun MenuDialogPreview() {
                 onDownloadsMenuClick = {},
                 onPasswordsMenuClick = {},
                 onCustomizeHomepageMenuClick = {},
-                onNewInFirefoxMenuClick = {},
                 onQuitMenuClick = {},
                 onBackButtonClick = {},
                 onForwardButtonClick = {},
@@ -986,7 +972,6 @@ private fun MenuDialogPrivatePreview(
                 onDownloadsMenuClick = {},
                 onPasswordsMenuClick = {},
                 onCustomizeHomepageMenuClick = {},
-                onNewInFirefoxMenuClick = {},
                 onQuitMenuClick = {},
                 onBackButtonClick = {},
                 onForwardButtonClick = {},

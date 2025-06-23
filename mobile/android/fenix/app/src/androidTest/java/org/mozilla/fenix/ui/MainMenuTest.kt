@@ -98,10 +98,6 @@ class MainMenuTest : TestSetup() {
         }.goBack {}
         homeScreen {
         }.openThreeDotMenu {
-        }.openWhatsNew {
-            verifyWhatsNewURL()
-        }.goToHomescreen(composeTestRule) {
-        }.openThreeDotMenu {
         }.openHelp {
             verifyHelpUrl()
         }.goToHomescreen(composeTestRule) {

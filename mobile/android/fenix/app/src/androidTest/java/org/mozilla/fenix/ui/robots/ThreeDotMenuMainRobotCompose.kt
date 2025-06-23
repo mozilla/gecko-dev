@@ -41,7 +41,6 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
 
     fun verifyHomeMainMenuItems() {
         Log.i(TAG, "verifyHomeMainMenuItems: Trying to verify the main menu items on the home page.")
-        composeTestRule.whatsNewButton().assertIsDisplayed()
         composeTestRule.customizeHomeButton().assertIsDisplayed()
         composeTestRule.extensionsButton().assertIsDisplayed()
 
@@ -499,7 +498,7 @@ private fun ComposeTestRule.downloadsButton() = onNodeWithContentDescription(get
 
 private fun ComposeTestRule.passwordsButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_passwords))
 
-private fun ComposeTestRule.whatsNewButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_new_in_firefox))
+private fun ComposeTestRule.backToMainMenuButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_back_button_content_description))
 
 private fun ComposeTestRule.quitFirefoxButton() = onNodeWithContentDescription("Quit $appName")
 

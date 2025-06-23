@@ -590,9 +590,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     onCustomizeReaderViewMenuClick = {
                                         store.dispatch(MenuAction.CustomizeReaderView)
                                     },
-                                    onNewInFirefoxMenuClick = {
-                                        store.dispatch(MenuAction.Navigate.ReleaseNotes)
-                                    },
                                     onQuitMenuClick = {
                                         store.dispatch(MenuAction.DeleteBrowsingDataAndQuit)
                                     },

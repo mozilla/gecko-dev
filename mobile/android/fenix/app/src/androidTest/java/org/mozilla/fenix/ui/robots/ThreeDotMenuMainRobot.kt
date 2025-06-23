@@ -206,7 +206,6 @@ class ThreeDotMenuMainRobot {
             passwordsButton(),
             extensionsButton(),
             syncAndSaveDataButton(),
-            whatsNewButton(),
             helpButton(),
             customizeHomeButton(),
             settingsButton(),
@@ -526,16 +525,6 @@ class ThreeDotMenuMainRobot {
             return FindInPageRobot.Transition()
         }
 
-        fun openWhatsNew(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
-            mDevice.waitNotNull(Until.findObject(By.text("What’s new")), waitingTime)
-            Log.i(TAG, "openWhatsNew: Trying to click the \"What’s new\" button")
-            whatsNewButton().click()
-            Log.i(TAG, "openWhatsNew: Clicked the \"What’s new\" button")
-
-            BrowserRobot().interact()
-            return BrowserRobot.Transition()
-        }
-
         fun openReaderViewAppearance(interact: ReaderViewRobot.() -> Unit): ReaderViewRobot.Transition {
             Log.i(TAG, "openReaderViewAppearance: Trying to perform swipe up action on the three dot menu")
             threeDotMenuRecyclerView().perform(swipeUp())
@@ -776,8 +765,6 @@ private fun desktopSiteToggle(state: Boolean) =
         getStringResource(R.string.browser_menu_desktop_site),
         state,
     )
-private fun whatsNewButton() =
-    itemContainingText(getStringResource(R.string.browser_menu_whats_new))
 private fun helpButton() =
     itemContainingText(getStringResource(R.string.browser_menu_help))
 private fun customizeHomeButton() =
