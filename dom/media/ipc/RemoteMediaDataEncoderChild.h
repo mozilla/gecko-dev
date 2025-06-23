@@ -59,6 +59,7 @@ class RemoteMediaDataEncoderChild final
   virtual RefPtr<PRemoteEncoderChild::EncodePromise> DoSendEncode(
       const MediaData* aSample, ShmemRecycleTicket* aTicket);
 
+  void DoSendInit();
   void MaybeDestroyActor();
 
   const nsCOMPtr<nsISerialEventTarget> mThread;

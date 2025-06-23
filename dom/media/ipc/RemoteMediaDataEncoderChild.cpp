@@ -80,7 +80,7 @@ RemoteMediaDataEncoderChild::Construct() {
              aResult.Description());
         self->mConstructPromise.Resolve(self, __func__);
         if (!self->mInitPromise.IsEmpty()) {
-          self->Init();
+          self->DoSendInit();
         }
       },
       [self = RefPtr{this}](const mozilla::ipc::ResponseRejectReason& aReason) {
@@ -95,6 +95,41 @@ RemoteMediaDataEncoderChild::Construct() {
   return mConstructPromise.Ensure(__func__);
 }
 
+void RemoteMediaDataEncoderChild::DoSendInit() {
+  LOGD("[{}] Init send", fmt::ptr(this));
+  SendInit()->Then(
+      mThread, __func__,
+      [self = RefPtr{this}](EncodeInitResultIPDL&& aResponse) {
+        if (aResponse.type() == EncodeInitResultIPDL::TMediaResult) {
+          LOGE("[{}] Init resolved code={}", fmt::ptr(self.get()),
+               aResponse.get_MediaResult().Description());
+          self->mInitPromise.Reject(aResponse.get_MediaResult(), __func__);
+          return;
+        }
+
+        const auto& initResponse = aResponse.get_EncodeInitCompletionIPDL();
+
+        LOGD("[{}] Init resolved hwAccel={} desc=\"{}\"", fmt::ptr(self.get()),
+             initResponse.hardware(), initResponse.description().get());
+        MutexAutoLock lock(self->mMutex);
+        self->mDescription = initResponse.description();
+        self->mDescription.AppendFmt(
+            " ({})", RemoteMediaInToStr(self->GetManager()->Location()));
+
+        self->mIsHardwareAccelerated = initResponse.hardware();
+        self->mHardwareAcceleratedReason = initResponse.hardwareReason();
+        self->mInitPromise.ResolveIfExists(true, __func__);
+      },
+      [self = RefPtr{this}](const mozilla::ipc::ResponseRejectReason& aReason) {
+        LOGE("[{}] Init ipc failed", fmt::ptr(self.get()));
+        RemoteMediaManagerChild::HandleRejectionError(
+            self->GetManager(), self->mLocation, aReason,
+            [self](const MediaResult& aError) {
+              self->mInitPromise.RejectIfExists(aError, __func__);
+            });
+      });
+}
+
 RefPtr<MediaDataEncoder::InitPromise> RemoteMediaDataEncoderChild::Init() {
   return InvokeAsync(
       mThread, __func__,
@@ -103,46 +138,11 @@ RefPtr<MediaDataEncoder::InitPromise> RemoteMediaDataEncoderChild::Init() {
         // create promise and wait for that first. This can happen if the owner
         // created the encoder via RemoteEncoderModule's CreateAudioEncoder or
         // CreateVideoEncoder instead of AsyncCreateEncoder.
-        if (!self->mConstructPromise.IsEmpty()) {
+        if (self->mConstructPromise.IsEmpty()) {
+          self->DoSendInit();
+        } else {
           LOGD("[{}] Init deferred, still constructing", fmt::ptr(self.get()));
-          return self->mInitPromise.Ensure(__func__);
         }
-
-        LOGD("[{}] Init send", fmt::ptr(self.get()));
-        self->SendInit()->Then(
-            self->mThread, __func__,
-            [self](EncodeInitResultIPDL&& aResponse) {
-              if (aResponse.type() == EncodeInitResultIPDL::TMediaResult) {
-                LOGE("[{}] Init resolved code={}", fmt::ptr(self.get()),
-                     aResponse.get_MediaResult().Description());
-                self->mInitPromise.Reject(aResponse.get_MediaResult(),
-                                          __func__);
-                return;
-              }
-
-              const auto& initResponse =
-                  aResponse.get_EncodeInitCompletionIPDL();
-
-              LOGD("[{}] Init resolved hwAccel={} desc=\"{}\"",
-                   fmt::ptr(self.get()), initResponse.hardware(),
-                   initResponse.description().get());
-              MutexAutoLock lock(self->mMutex);
-              self->mDescription = initResponse.description();
-              self->mDescription.AppendFmt(
-                  " ({})", RemoteMediaInToStr(self->GetManager()->Location()));
-
-              self->mIsHardwareAccelerated = initResponse.hardware();
-              self->mHardwareAcceleratedReason = initResponse.hardwareReason();
-              self->mInitPromise.ResolveIfExists(true, __func__);
-            },
-            [self](const mozilla::ipc::ResponseRejectReason& aReason) {
-              LOGE("[{}] Init ipc failed", fmt::ptr(self.get()));
-              RemoteMediaManagerChild::HandleRejectionError(
-                  self->GetManager(), self->mLocation, aReason,
-                  [self](const MediaResult& aError) {
-                    self->mInitPromise.RejectIfExists(aError, __func__);
-                  });
-            });
         return self->mInitPromise.Ensure(__func__);
       });
 }
