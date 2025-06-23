@@ -119,6 +119,7 @@ add_task(async function () {
   await clickElement(dbg, "logPointInSecPane");
   const logPointPanel = findElement(dbg, "logPointPanel");
   is(logPointPanel, null, "The logpoint panel is closed");
+  await waitForSelectedLocation(dbg, 5, 3);
 
   info("The log value can be removed using the ConditionalPanel");
   dblClickElement(dbg, "logPointInSecPane");
