@@ -7,7 +7,7 @@
     "UrlbarController.sys.mjs",
     "UrlbarEventBufferer.sys.mjs",
     "UrlbarInput.sys.mjs",
-    "UrlbarMuxerUnifiedComplete.sys.mjs",
+    "UrlbarMuxerStandard.sys.mjs",
     "UrlbarPrefs.sys.mjs",
     "UrlbarProviderAutofill.sys.mjs",
     "UrlbarProviderGlobalActions.sys.mjs",

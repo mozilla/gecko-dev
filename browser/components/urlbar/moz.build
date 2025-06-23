@@ -21,7 +21,7 @@ EXTRA_JS_MODULES += [
     "UrlbarController.sys.mjs",
     "UrlbarEventBufferer.sys.mjs",
     "UrlbarInput.sys.mjs",
-    "UrlbarMuxerUnifiedComplete.sys.mjs",
+    "UrlbarMuxerStandard.sys.mjs",
     "UrlbarPrefs.sys.mjs",
     "UrlbarProviderAboutPages.sys.mjs",
     "UrlbarProviderActionsSearchMode.sys.mjs",

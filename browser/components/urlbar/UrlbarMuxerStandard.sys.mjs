@@ -1500,4 +1500,4 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
   }
 }
 
-export var UrlbarMuxerUnifiedComplete = new MuxerUnifiedComplete();
+export var UrlbarMuxerStandard = new MuxerUnifiedComplete();

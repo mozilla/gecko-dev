@@ -89,8 +89,7 @@ var localProviderModules = {
 
 // List of available local muxers, each is implemented in its own jsm module.
 var localMuxerModules = {
-  UrlbarMuxerUnifiedComplete:
-    "resource:///modules/UrlbarMuxerUnifiedComplete.sys.mjs",
+  UrlbarMuxerStandard: "resource:///modules/UrlbarMuxerStandard.sys.mjs",
 };
 
 const DEFAULT_MUXER = "UnifiedComplete";

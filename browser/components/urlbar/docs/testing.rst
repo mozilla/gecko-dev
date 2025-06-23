@@ -56,7 +56,7 @@ example is the `ProviderPlaces <https://searchfox.org/mozilla-central/sou
 rce/browser/components/urlbar/UrlbarProviderPlaces.sys.mjs>`_, which fetches
 results from the Places database. Another component that’s good for writing
 XPCShell test is the `urlbarMuxer <https://searchfox.org/mozilla-central/
-source/browser/components/urlbar/UrlbarMuxerUnifiedComplete.sys.mjs>`_.
+source/browser/components/urlbar/UrlbarMuxerStandard.sys.mjs>`_.
 
 There may be times where writing both an XPCShell test and browser test is
 necessary. In these situations, you could be testing the result from a Provider
