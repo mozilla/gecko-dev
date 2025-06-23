@@ -56,6 +56,7 @@ const RELOAD_CONDITION_PREF_PREFIX = "devtools.responsive.reloadConditions.";
 const RELOAD_NOTIFICATION_PREF =
   "devtools.responsive.reloadNotification.enabled";
 const USE_DYNAMIC_TOOLBAR_PREF = "devtools.responsive.dynamicToolbar.enabled";
+const DYNAMIC_TOOLBAR_MAX_HEIGHT = 40; // px
 
 function debug(_msg) {
   // console.log(`RDM manager: ${_msg}`);
@@ -105,7 +106,6 @@ class ResponsiveUI {
     this.resolveInited = resolve;
 
     this.dynamicToolbar = null;
-    this.dynamicToolbarMaxHeight = 0;
     EventEmitter.decorate(this);
   }
 
@@ -185,8 +185,15 @@ class ResponsiveUI {
 
     if (Services.prefs.getBoolPref(USE_DYNAMIC_TOOLBAR_PREF)) {
       this.dynamicToolbar.style.visibility = "visible";
-      this.dynamicToolbar.style.height = "40px";
-      this.dynamicToolbarMaxHeight = this.dynamicToolbar.style.height;
+      this.dynamicToolbar.style.height = DYNAMIC_TOOLBAR_MAX_HEIGHT + "px";
+      InspectorUtils.setDynamicToolbarMaxHeight(
+        this.tab.linkedBrowser.browsingContext,
+        DYNAMIC_TOOLBAR_MAX_HEIGHT
+      );
+      InspectorUtils.setVerticalClipping(
+        this.tab.linkedBrowser.browsingContext,
+        -DYNAMIC_TOOLBAR_MAX_HEIGHT
+      );
     }
 
     // Create resizer handlers
@@ -1084,11 +1091,17 @@ class ResponsiveUI {
   }
 
   onContentScrolled(deltaY) {
-    const maxHeight = parseInt(this.dynamicToolbarMaxHeight, 10);
     const currentHeight = parseInt(this.dynamicToolbar.style.height, 10);
-    const newHeight = currentHeight + deltaY;
-    const newHeightClamped = this.clamp(0, maxHeight, newHeight);
-    this.dynamicToolbar.style.height = newHeightClamped + "px";
+    const newHeight = this.clamp(
+      0,
+      DYNAMIC_TOOLBAR_MAX_HEIGHT,
+      currentHeight + deltaY
+    );
+    this.dynamicToolbar.style.height = newHeight + "px";
+    InspectorUtils.setVerticalClipping(
+      this.tab.linkedBrowser.browsingContext,
+      -newHeight
+    );
   }
 
   async onTargetAvailable({ targetFront, isTargetSwitching }) {
