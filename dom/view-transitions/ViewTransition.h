@@ -153,6 +153,11 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
 
   nsRect SnapshotContainingBlockRect() const;
 
+  Maybe<uint64_t> GetElementIdentifier(Element* aElement) const;
+  uint64_t EnsureElementIdentifier(Element* aElement);
+
+  already_AddRefed<nsAtom> DocumentScopedTransitionNameFor(nsIFrame* aFrame);
+
   ~ViewTransition();
 
   // Stored for the whole lifetime of the object (until CC).
@@ -162,8 +167,19 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   // https://drafts.csswg.org/css-view-transitions/#viewtransition-named-elements
   using NamedElements = nsClassHashtable<nsAtomHashKey, CapturedElement>;
   NamedElements mNamedElements;
-  // mNamedElements is an unordered map, we need to keep the tree order.
+  // mNamedElements is an unordered map, we need to keep the tree order. This
+  // also keeps the strong reference to the view-transition-name which may be
+  // auto-generated for this view transition.
   AutoTArray<RefPtr<nsAtom>, 8> mNames;
+
+  // The element identifier for the elements which need the auto-generated
+  // view-transition-name. The lifetime of those element identifiers is
+  // element’s node document’s active view transition.
+  // Note: Use a non-owning element pointer because we never dereference it.
+  // It is just a key to map an id. The size of this hashmap is fixed after we
+  // capture the old state and new state,
+  using ElementIdentifiers = nsTHashMap<Element*, uint64_t>;
+  ElementIdentifiers mElementIdentifiers;
 
   // https://drafts.csswg.org/css-view-transitions/#viewtransition-initial-snapshot-containing-block-size
   nsSize mInitialSnapshotContainingBlockSize;
