@@ -167,6 +167,8 @@ support-files = [
 
 ["browser_moz_support_link_open_links_in_chrome.js"]
 
+["browser_popup_queue_panels.js"]
+
 ["browser_quickfind_editable.js"]
 
 ["browser_remoteness_change_listeners.js"]
