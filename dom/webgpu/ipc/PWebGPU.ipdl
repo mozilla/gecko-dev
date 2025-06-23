@@ -63,7 +63,6 @@ parent:
   async SwapChainPresent(RawId textureId, RawId commandEncoderId, RemoteTextureId remoteTextureId, RemoteTextureOwnerId remoteTextureOwnerId);
   async SwapChainDrop(RemoteTextureOwnerId ownerId, RemoteTextureTxnType txnType, RemoteTextureTxnId txnId);
 
-  async DevicePushErrorScope(RawId selfId, GPUErrorFilter aFilter);
   async DevicePopErrorScope(RawId selfId) returns (PopErrorScopeResult result);
   async ReportError(RawId selfId, GPUErrorFilter aType, nsCString message);
 

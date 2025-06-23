@@ -1483,6 +1483,8 @@ extern "C" {
         mapped_offset: u64,
         mapped_size: u64,
     );
+    #[allow(dead_code)]
+    fn wgpu_server_device_push_error_scope(param: *mut c_void, device_id: id::DeviceId, filter: u8);
 }
 
 #[cfg(target_os = "linux")]
@@ -2290,6 +2292,11 @@ impl Global {
                     },
                     device_id,
                 );
+            }
+            DeviceAction::PushErrorScope(filter) => {
+                unsafe {
+                    wgpu_server_device_push_error_scope(self.webgpu_parent, device_id, filter)
+                };
             }
         }
     }

@@ -85,7 +85,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
       RawId aDeviceId, const ipc::ByteBuf& aByteBuf,
       DeviceActionWithAckResolver&& aResolver);
 
-  ipc::IPCResult RecvDevicePushErrorScope(RawId aDeviceId, dom::GPUErrorFilter);
+  void DevicePushErrorScope(RawId aDeviceId, dom::GPUErrorFilter);
   ipc::IPCResult RecvDevicePopErrorScope(
       RawId aDeviceId, DevicePopErrorScopeResolver&& aResolver);
   ipc::IPCResult RecvReportError(RawId aDeviceId, GPUErrorFilter aType,

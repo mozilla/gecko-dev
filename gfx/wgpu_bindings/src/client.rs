@@ -590,6 +590,17 @@ pub extern "C" fn wgpu_client_drop_render_pipeline(
 }
 
 #[no_mangle]
+pub extern "C" fn wgpu_client_push_error_scope(
+    device_id: id::DeviceId,
+    filter: u8,
+    bb: &mut ByteBuf,
+) {
+    let action = DeviceAction::PushErrorScope(filter);
+    let action = Message::Device(device_id, action);
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
 pub extern "C" fn wgpu_client_create_buffer(
     device_id: id::DeviceId,
     buffer_id: id::BufferId,

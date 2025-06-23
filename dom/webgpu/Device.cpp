@@ -1094,7 +1094,9 @@ void Device::PushErrorScope(const dom::GPUErrorFilter& aFilter) {
   if (!IsBridgeAlive()) {
     return;
   }
-  mBridge->SendDevicePushErrorScope(mId, aFilter);
+  ipc::ByteBuf bb;
+  ffi::wgpu_client_push_error_scope(mId, (uint8_t)aFilter, ToFFI(&bb));
+  mBridge->SendMessage(std::move(bb), Nothing());
 }
 
 already_AddRefed<dom::Promise> Device::PopErrorScope(ErrorResult& aRv) {

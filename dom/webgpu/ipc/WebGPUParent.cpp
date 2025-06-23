@@ -201,6 +201,13 @@ extern void wgpu_server_set_partial_buffer_map_data(
   parent->mIncompleteBufferMapData = Some(std::move(data));
 }
 
+extern void wgpu_server_device_push_error_scope(void* aParam,
+                                                WGPUDeviceId aDeviceId,
+                                                uint8_t aFilter) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+  parent->DevicePushErrorScope(aDeviceId, (dom::GPUErrorFilter)aFilter);
+}
+
 }  // namespace ffi
 
 // A fixed-capacity buffer for receiving textual error messages from
@@ -1550,13 +1557,13 @@ ipc::IPCResult WebGPUParent::RecvDeviceActionWithAck(
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvDevicePushErrorScope(
-    RawId aDeviceId, const dom::GPUErrorFilter aFilter) {
+void WebGPUParent::DevicePushErrorScope(RawId aDeviceId,
+                                        const dom::GPUErrorFilter aFilter) {
   const auto& itr = mErrorScopeStackByDevice.find(aDeviceId);
   if (itr == mErrorScopeStackByDevice.end()) {
     // Content can cause this simply by destroying a device and then
     // calling `pushErrorScope`.
-    return IPC_OK();
+    return;
   }
   auto& stack = itr->second;
 
@@ -1566,12 +1573,11 @@ ipc::IPCResult WebGPUParent::RecvDevicePushErrorScope(
     nsPrintfCString m("pushErrorScope: Hit MAX_ERROR_SCOPE_STACK_SIZE of %zu",
                       MAX_ERROR_SCOPE_STACK_SIZE);
     ReportError(aDeviceId, dom::GPUErrorFilter::Out_of_memory, m);
-    return IPC_OK();
+    return;
   }
 
   const auto newScope = ErrorScope{aFilter};
   stack.push_back(newScope);
-  return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvDevicePopErrorScope(
