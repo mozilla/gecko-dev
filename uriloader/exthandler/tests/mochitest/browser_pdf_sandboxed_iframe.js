@@ -117,10 +117,10 @@ async function onDownload(test) {
   ok(true, "Download finished");
 }
 
-async function onBlockedBySandbox(test) {
-  const expected = `Download of “${TEST_PATH}file_pdf.pdf” was blocked because the triggering iframe has the sandbox flag set.`;
+async function onBlockedBySandbox(test, file) {
+  const expected = `Download of “${TEST_PATH}${file}” was blocked because the triggering iframe has the sandbox flag set.`;
   return new Promise(resolve => {
-    Services.console.registerListener(function onMessage(msg) {
+    Services.console.registerListener(async function onMessage(msg) {
       let { message, logLevel } = msg;
       if (logLevel != Ci.nsIConsoleMessage.warn) {
         return;
@@ -146,46 +146,101 @@ const tests = [
     preferredAction: alwaysAsk,
     runTest: onExternalApplication,
     header: "preferredAction = alwaysAsk",
+    file: "file_pdf.pdf",
+    sandbox: "allow-downloads",
   },
   {
     preferredAction: saveToDisk,
     runTest: onFilePickerShown,
     header: "preferredAction = saveToDisk",
+    file: "file_pdf.pdf",
+    sandbox: "allow-downloads",
   },
   {
+    // The preferredAction handleInternally is only noticed when we're getting
+    // an externally handled PDF that we forcefully handle internally.
     preferredAction: handleInternally,
     runTest: onBlockedBySandbox,
     header: "preferredAction = handleInternally",
+    prefs: ["browser.download.open_pdf_attachments_inline", true],
+    file: "file_pdf_content_disposition.pdf",
+    sandbox: "allow-downloads",
   },
   {
     preferredAction: useSystemDefault,
     runTest: onDownload,
     header: "preferredAction = useSystemDefault",
+    file: "file_pdf.pdf",
+    sandbox: "allow-downloads",
+  },
+  {
+    preferredAction: alwaysAsk,
+    runTest: onBlockedBySandbox,
+    header: "preferredAction = alwaysAsk",
+    file: "file_pdf.pdf",
+  },
+  {
+    preferredAction: saveToDisk,
+    runTest: onBlockedBySandbox,
+    header: "preferredAction = saveToDisk",
+    file: "file_pdf.pdf",
+  },
+  {
+    // The preferredAction handleInternally is only noticed when we're getting
+    // an externally handled PDF that we forcefully handle internally.
+    preferredAction: handleInternally,
+    runTest: onBlockedBySandbox,
+    header: "preferredAction = handleInternally",
+    prefs: ["browser.download.open_pdf_attachments_inline", true],
+    file: "file_pdf_content_disposition.pdf",
+  },
+  {
+    preferredAction: useSystemDefault,
+    runTest: onBlockedBySandbox,
+    header: "preferredAction = useSystemDefault",
+    file: "file_pdf.pdf",
   },
 ];
 
 /**
  * Tests that selecting the context menu item `Save Link As…` on a PDF link
  * opens the file picker when always_ask_before_handling_new_types is disabled,
- * regardless of preferredAction.
+ * regardless of preferredAction if the iframe has sandbox="allow-downloads".
  */
 add_task(async function test_pdf_save_as_link() {
   let mimeInfo;
 
-  for (let { preferredAction, runTest, header } of tests) {
+  for (let {
+    preferredAction,
+    runTest,
+    header,
+    prefs,
+    file,
+    sandbox,
+  } of tests) {
     mimeInfo = MIMEService.getFromTypeAndExtension("application/pdf", "pdf");
     mimeInfo.alwaysAskBeforeHandling = preferredAction === alwaysAsk;
     mimeInfo.preferredAction = preferredAction;
     HandlerService.store(mimeInfo);
 
-    info(`Running test: ${header}`);
+    info(`Running test: ${header}, ${sandbox ? sandbox : "no sandbox"}`);
+
+    if (prefs) {
+      await SpecialPowers.pushPrefEnv({
+        set: [prefs],
+      });
+    }
 
     await runTest(() => {
       gBrowser.selectedTab = BrowserTestUtils.addTab(
         gBrowser,
-        `data:text/html,<!doctype html><iframe sandbox="allow-downloads" src=${TEST_PATH}file_pdf.pdf></iframe>`
+        `data:text/html,<!doctype html><iframe sandbox="${sandbox ?? ""}" src=${TEST_PATH}${file}></iframe>`
       );
-    });
+    }, file);
+
+    if (prefs) {
+      await SpecialPowers.popPrefEnv();
+    }
 
     BrowserTestUtils.removeTab(gBrowser.selectedTab);
   }

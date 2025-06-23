@@ -122,7 +122,11 @@ support-files = [
 ]
 
 ["browser_pdf_sandboxed_iframe.js"]
-support-files = ["file_pdf.pdf"]
+support-files = [
+  "file_pdf.pdf",
+  "file_pdf_content_disposition.pdf",
+  "file_pdf_content_disposition.pdf^headers^",
+]
 
 ["browser_pdf_save_as.js"]
 
