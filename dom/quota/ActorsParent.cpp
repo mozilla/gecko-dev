@@ -6107,21 +6107,21 @@ QuotaManager::EnsurePersistentOriginIsInitializedInternal(
     QM_TRY_INSPECT(const bool& created, EnsureOriginDirectory(*directory));
 
     QM_TRY_INSPECT(
-        const int64_t& timestamp,
+        const FullOriginMetadata& fullOriginMetadata,
         ([this, created, &directory,
-          &aOriginMetadata]() -> Result<int64_t, nsresult> {
+          &aOriginMetadata]() -> Result<FullOriginMetadata, nsresult> {
           if (created) {
-            const int64_t timestamp = PR_Now();
+            FullOriginMetadata fullOriginMetadata{
+                aOriginMetadata,
+                OriginStateMetadata{/* aLastAccessTime */ PR_Now(),
+                                    /* aAccessed */ false,
+                                    /* aPersisted */ true}};
 
             // Only creating .metadata-v2 to reduce IO.
-            QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(
-                *directory,
-                FullOriginMetadata{
-                    aOriginMetadata,
-                    OriginStateMetadata{timestamp, /* aAccessed */ false,
-                                        /* aPersisted */ true}})));
+            QM_TRY(MOZ_TO_RESULT(
+                CreateDirectoryMetadata2(*directory, fullOriginMetadata)));
 
-            return timestamp;
+            return fullOriginMetadata;
           }
 
           // Get the metadata. We only use the timestamp.
@@ -6130,14 +6130,10 @@ QuotaManager::EnsurePersistentOriginIsInitializedInternal(
 
           MOZ_ASSERT(metadata.mLastAccessTime <= PR_Now());
 
-          return metadata.mLastAccessTime;
+          return metadata;
         }()));
 
-    QM_TRY(MOZ_TO_RESULT(InitializeOrigin(
-        directory,
-        FullOriginMetadata{aOriginMetadata,
-                           OriginStateMetadata{timestamp, /* aAccessed */ false,
-                                               /* aPersisted */ true}})));
+    QM_TRY(MOZ_TO_RESULT(InitializeOrigin(directory, fullOriginMetadata)));
 
     mInitializedOriginsInternal.AppendElement(aOriginMetadata.mOrigin);
 
@@ -6285,16 +6281,15 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
       return std::pair(std::move(directory), false);
     }
 
-    if (!aCreateIfNonExistent) {
-      const int64_t timestamp = PR_Now();
+    FullOriginMetadata fullOriginMetadata{
+        aOriginMetadata, OriginStateMetadata{/* aLastAccessTime */ PR_Now(),
+                                             /* aAccessed */ false,
+                                             /* aPersisted */ false}};
 
-      InitQuotaForOrigin(
-          FullOriginMetadata{
-              aOriginMetadata,
-              OriginStateMetadata{timestamp, /* aAccessed */ false,
-                                  /* aPersisted */ false}},
-          ClientUsageArray(), /* aUsageBytes */ 0,
-          /* aDirectoryExists */ false);
+    if (!aCreateIfNonExistent) {
+      InitQuotaForOrigin(fullOriginMetadata, ClientUsageArray(),
+                         /* aUsageBytes */ 0,
+                         /* aDirectoryExists */ false);
 
       return std::pair(std::move(directory), false);
     }
@@ -6302,12 +6297,6 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
     QM_TRY_INSPECT(const bool& created, EnsureOriginDirectory(*directory));
 
     if (created) {
-      const int64_t timestamp = PR_Now();
-
-      FullOriginMetadata fullOriginMetadata = FullOriginMetadata{
-          aOriginMetadata, OriginStateMetadata{timestamp, /* aAccessed */ false,
-                                               /* aPersisted */ false}};
-
       // Usually, infallible operations are placed after fallible ones.
       // However, since we lack atomic support for creating the origin
       // directory along with its metadata, we need to add the origin to cached
@@ -6315,11 +6304,8 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
       AddTemporaryOrigin(fullOriginMetadata);
 
       // Only creating .metadata-v2 to reduce IO.
-      QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(
-          *directory, FullOriginMetadata{
-                          aOriginMetadata,
-                          OriginStateMetadata{timestamp, /* aAccessed */ false,
-                                              /* aPersisted */ false}})));
+      QM_TRY(MOZ_TO_RESULT(
+          CreateDirectoryMetadata2(*directory, fullOriginMetadata)));
 
       // Don't need to traverse the directory, since it's empty.
       InitQuotaForOrigin(fullOriginMetadata, ClientUsageArray(),
