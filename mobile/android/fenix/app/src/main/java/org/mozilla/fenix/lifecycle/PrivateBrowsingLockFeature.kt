@@ -252,12 +252,14 @@ class PrivateBrowsingLockFeature(
  * @param viewLifecycleOwner The [LifecycleOwner] used to control when the observation is active.
  * @param scope The [CoroutineScope] in which the coroutine will be launched.
  * @param appStore The [AppStore] to observe the [AppState].
+ * @param lockNormalMode If true, the callback will also be triggered in normal mode.
  * @param onPrivateModeLocked A callback invoked when private browsing mode is locked.
  */
 fun observePrivateModeLock(
     viewLifecycleOwner: LifecycleOwner,
     scope: CoroutineScope,
     appStore: AppStore,
+    lockNormalMode: Boolean = false,
     onPrivateModeLocked: () -> Unit,
 ) {
     with(viewLifecycleOwner) {
@@ -265,7 +267,7 @@ fun observePrivateModeLock(
             lifecycle.repeatOnLifecycle(RESUMED) {
                 appStore.flow()
                     .filter { state ->
-                        state.isPrivateScreenLocked && state.mode == BrowsingMode.Private
+                        state.isPrivateScreenLocked && (state.mode == BrowsingMode.Private || lockNormalMode)
                     }
                     .distinctUntilChanged()
                     .collect {

@@ -353,6 +353,88 @@ class PrivateBrowsingLockFeatureTest {
         assertFalse(result)
     }
 
+    @Test
+    fun `GIVEN mode is normal and lockNormalMode is true WHEN lifecycle is resumed THEN observing lock triggers`() {
+        val localScope = TestScope()
+        val mode = BrowsingMode.Normal
+        val lockNormalMode = true
+        var result = false
+        val appStore = AppStore(initialState = AppState(mode = mode, isPrivateScreenLocked = true))
+
+        observePrivateModeLock(
+            viewLifecycleOwner = MockedLifecycleOwner(Lifecycle.State.RESUMED),
+            scope = localScope,
+            appStore = appStore,
+            lockNormalMode = lockNormalMode,
+            onPrivateModeLocked = { result = true },
+        )
+
+        localScope.advanceUntilIdle()
+
+        assertTrue(result)
+    }
+
+    @Test
+    fun `GIVEN mode is private and lockNormalMode is true WHEN lifecycle is resumed THEN observing lock triggers`() {
+        val localScope = TestScope()
+        val mode = BrowsingMode.Private
+        var result = false
+        val appStore = AppStore(initialState = AppState(mode = mode, isPrivateScreenLocked = true))
+
+        observePrivateModeLock(
+            viewLifecycleOwner = MockedLifecycleOwner(Lifecycle.State.RESUMED),
+            scope = localScope,
+            appStore = appStore,
+            lockNormalMode = true,
+            onPrivateModeLocked = { result = true },
+        )
+
+        localScope.advanceUntilIdle()
+
+        assertTrue(result)
+    }
+
+    @Test
+    fun `GIVEN mode is private and lockNormalMode is false WHEN lifecycle is resumed THEN observing lock triggers`() {
+        val localScope = TestScope()
+        val mode = BrowsingMode.Private
+        var result = false
+        val appStore = AppStore(initialState = AppState(mode = mode, isPrivateScreenLocked = true))
+
+        observePrivateModeLock(
+            viewLifecycleOwner = MockedLifecycleOwner(Lifecycle.State.RESUMED),
+            scope = localScope,
+            appStore = appStore,
+            lockNormalMode = false,
+            onPrivateModeLocked = { result = true },
+        )
+
+        localScope.advanceUntilIdle()
+
+        assertTrue(result)
+    }
+
+    @Test
+    fun `GIVEN normal mode and enabled lock WHEN lockNormalMode is false and lifecycle is resumed THEN observing lock doesn't trigger`() {
+        val localScope = TestScope()
+        val mode = BrowsingMode.Normal
+        val isPrivateScreenLocked = true
+        var result = false
+        val appStore = AppStore(initialState = AppState(mode = mode, isPrivateScreenLocked = isPrivateScreenLocked))
+
+        observePrivateModeLock(
+            viewLifecycleOwner = MockedLifecycleOwner(Lifecycle.State.RESUMED),
+            scope = localScope,
+            appStore = appStore,
+            lockNormalMode = false,
+            onPrivateModeLocked = { result = true },
+        )
+
+        localScope.advanceUntilIdle()
+
+        assertFalse(result)
+    }
+
     // onPause tests
     @Test
     fun `GIVEN feature is on and mode is private and there are unlocked private tabs WHEN Activity doesn't have focus and pauses without config change THEN we lock private mode`() {
