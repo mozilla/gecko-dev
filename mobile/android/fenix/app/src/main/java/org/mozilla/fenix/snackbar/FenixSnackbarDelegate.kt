@@ -7,7 +7,6 @@ package org.mozilla.fenix.snackbar
 import android.view.View
 import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
-import com.google.android.material.snackbar.Snackbar.LENGTH_INDEFINITE
 import com.google.android.material.snackbar.Snackbar.LENGTH_LONG
 import mozilla.components.ui.widgets.SnackbarDelegate
 import org.mozilla.fenix.compose.core.Action
@@ -20,7 +19,7 @@ import org.mozilla.fenix.compose.snackbar.toSnackbarDuration
  */
 class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
 
-    // Holds onto a reference of a [Snackbar] that is displayed for an indefinite duration.
+    // Holds onto a reference of a [Snackbar] that is displayed.
     private var snackbar: Snackbar? = null
 
     /**
@@ -120,11 +119,8 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
             ),
         )
 
-        if (duration == LENGTH_INDEFINITE) {
-            // Dismiss any existing snackbar with an indefinite duration.
-            this.snackbar?.dismiss()
-            this.snackbar = snackbar
-        }
+        this.snackbar?.dismiss()
+        this.snackbar = snackbar
 
         snackbar.show()
     }

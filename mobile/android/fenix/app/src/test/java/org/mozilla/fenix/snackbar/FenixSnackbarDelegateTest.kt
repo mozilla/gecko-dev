@@ -181,7 +181,7 @@ class FenixSnackbarDelegateTest {
 
         delegate.dismiss()
 
-        verify(exactly = 0) { snackbar.dismiss() }
+        verify(exactly = 1) { snackbar.dismiss() }
     }
 
     @Test
