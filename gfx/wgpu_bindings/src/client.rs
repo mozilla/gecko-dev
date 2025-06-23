@@ -8,7 +8,7 @@ use crate::{
     TexelCopyBufferLayout, TextureAction,
 };
 
-use crate::{Message, ServerMessage, SwapChainId};
+use crate::{BufferMapResult, Message, ServerMessage, SwapChainId};
 
 use wgc::naga::front::wgsl::ImplementedLanguageExtension;
 use wgc::{command::RenderBundleEncoder, id, identity::IdentityManager};
@@ -587,6 +587,14 @@ pub extern "C" fn wgpu_client_receive_server_message(
         messages_ptr: *const FfiShaderModuleCompilationMessage,
         messages_len: usize,
     ),
+    resolve_buffer_map_promise: extern "C" fn(
+        child: *mut core::ffi::c_void,
+        buffer_id: id::BufferId,
+        is_writable: bool,
+        offset: u64,
+        size: u64,
+        error: Option<&nsCString>,
+    ),
 ) {
     let message: ServerMessage = bincode::deserialize(unsafe { byte_buf.as_slice() }).unwrap();
     match message {
@@ -715,6 +723,21 @@ pub extern "C" fn wgpu_client_receive_server_message(
                 ffi_compilation_messages.len(),
             )
         }
+        ServerMessage::BufferMapResponse(buffer_id, buffer_map_result) => {
+            match buffer_map_result {
+                BufferMapResult::Success {
+                    is_writable,
+                    offset,
+                    size,
+                } => {
+                    resolve_buffer_map_promise(child, buffer_id, is_writable, offset, size, None);
+                }
+                BufferMapResult::Error(error) => {
+                    let ns_error = nsCString::from(error.as_ref());
+                    resolve_buffer_map_promise(child, buffer_id, false, 0, 0, Some(&ns_error));
+                }
+            };
+        }
     }
 }
 
@@ -832,6 +855,25 @@ pub extern "C" fn wgpu_client_queue_submit(
         Cow::Borrowed(command_buffers),
         Cow::Borrowed(textures),
     );
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_buffer_map(
+    device_id: id::DeviceId,
+    buffer_id: id::BufferId,
+    mode: u32,
+    offset: u64,
+    size: u64,
+    bb: &mut ByteBuf,
+) {
+    let action = Message::BufferMap {
+        device_id,
+        buffer_id,
+        mode,
+        offset,
+        size,
+    };
     *bb = make_byte_buf(&action);
 }
 

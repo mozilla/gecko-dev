@@ -48,9 +48,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   explicit WebGPUParent();
 
   void PostAdapterRequestDevice(RawId aDeviceId);
-  ipc::IPCResult RecvBufferMap(RawId aDeviceId, RawId aBufferId, uint32_t aMode,
-                               uint64_t aOffset, uint64_t size,
-                               BufferMapResolver&& aResolver);
   void BufferUnmap(RawId aDeviceId, RawId aBufferId, bool aFlush);
   ipc::IPCResult RecvMessage(const ipc::ByteBuf& aByteBuf,
                              Maybe<ipc::MutableSharedMemoryHandle>&& aShmem);
@@ -142,9 +139,19 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   void PreDeviceDrop(RawId aDeviceId);
   static Maybe<ffi::WGPUFfiLUID> GetCompositorDeviceLuid();
 
- private:
-  static void MapCallback(uint8_t* aUserData,
+  struct MapRequest {
+    WeakPtr<WebGPUParent> mParent;
+    ffi::WGPUDeviceId mDeviceId;
+    ffi::WGPUBufferId mBufferId;
+    ffi::WGPUHostMap mHostMap;
+    uint64_t mOffset;
+    uint64_t mSize;
+  };
+
+  static void MapCallback(/* std::unique_ptr<MapRequest> */ uint8_t* aUserData,
                           ffi::WGPUBufferMapAsyncStatus aStatus);
+
+ private:
   static void DeviceLostCallback(uint8_t* aUserData, uint8_t aReason,
                                  const char* aMessage);
 

@@ -110,6 +110,11 @@ class Buffer final : public ObjectBase, public ChildOf<Device> {
   uint32_t Usage() const { return mUsage; }
   dom::GPUBufferMapState MapState() const;
 
+  bool IsValid() const { return mValid; }
+  void ResolveMapRequest(dom::Promise* aPromise, BufferAddress aOffset,
+                         BufferAddress aSize, bool aWritable);
+  void RejectMapRequest(dom::Promise* aPromise, const nsACString& message);
+
  private:
   Buffer(Device* const aParent, RawId aId, BufferAddress aSize, uint32_t aUsage,
          ipc::SharedMemoryMapping&& aShmem);
@@ -117,7 +122,6 @@ class Buffer final : public ObjectBase, public ChildOf<Device> {
   Device& GetDevice() { return *mParent; }
   void Cleanup();
   void UnmapArrayBuffers(JSContext* aCx, ErrorResult& aRv);
-  void RejectMapRequest(dom::Promise* aPromise, nsACString& message);
   void AbortMapRequest();
   void SetMapped(BufferAddress aOffset, BufferAddress aSize, bool aWritable);
 

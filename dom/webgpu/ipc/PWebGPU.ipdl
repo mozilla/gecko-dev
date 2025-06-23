@@ -42,8 +42,6 @@ async protocol PWebGPU
 parent:
   async Message(ByteBuf buf, MutableSharedMemoryHandle? shm);
 
-  async BufferMap(RawId deviceId, RawId bufferId, uint32_t aMode, uint64_t offset, uint64_t size) returns (BufferMapResult result);
-
   async QueueOnSubmittedWorkDone(RawId selfId) returns (void_t ok);
 
   async ReportError(RawId selfId, GPUErrorFilter aType, nsCString message);

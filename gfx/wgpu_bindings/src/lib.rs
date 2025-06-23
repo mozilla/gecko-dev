@@ -172,6 +172,13 @@ enum Message<'a> {
         Option<Cow<'a, [u8]>>,
         QueueWriteAction,
     ),
+    BufferMap {
+        device_id: id::DeviceId,
+        buffer_id: id::BufferId,
+        mode: u32,
+        offset: u64,
+        size: u64,
+    },
     BufferUnmap(id::DeviceId, id::BufferId, bool),
     QueueSubmit(
         id::DeviceId,
@@ -312,6 +319,16 @@ pub struct ShaderModuleCompilationMessage {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+pub enum BufferMapResult<'a> {
+    Success {
+        is_writable: bool,
+        offset: u64,
+        size: u64,
+    },
+    Error(Cow<'a, str>),
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 enum ServerMessage<'a> {
     RequestAdapterResponse(id::AdapterId, Option<AdapterInformation<Cow<'a, str>>>),
     RequestDeviceResponse(id::DeviceId, id::QueueId, Option<String>),
@@ -327,6 +344,7 @@ enum ServerMessage<'a> {
         error: Option<PipelineError>,
     },
     CreateShaderModuleResponse(Vec<ShaderModuleCompilationMessage>),
+    BufferMapResponse(id::BufferId, BufferMapResult<'a>),
 }
 
 #[repr(C)]

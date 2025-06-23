@@ -79,9 +79,6 @@ class SupportedLimits;
 class Texture;
 class WebGPUChild;
 
-using MappingPromise =
-    MozPromise<BufferMapResult, ipc::ResponseRejectReason, true>;
-
 class Device final : public DOMEventTargetHelper, public SupportsWeakPtr {
  public:
   NS_DECL_ISUPPORTS_INHERITED

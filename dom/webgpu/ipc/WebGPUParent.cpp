@@ -290,6 +290,22 @@ extern void wgpu_parent_post_request_device(void* aParam,
   parent->PostAdapterRequestDevice(aDeviceId);
 }
 
+extern ffi::WGPUBufferMapClosure wgpu_parent_build_buffer_map_closure(
+    void* aParam, RawId aDeviceId, RawId aBufferId, ffi::WGPUHostMap aMode,
+    uint64_t aOffset, uint64_t aSize) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+
+  std::unique_ptr<WebGPUParent::MapRequest> request(
+      new WebGPUParent::MapRequest{parent, aDeviceId, aBufferId, aMode, aOffset,
+                                   aSize});
+
+  ffi::WGPUBufferMapClosure closure = {
+      &WebGPUParent::MapCallback,
+      reinterpret_cast<uint8_t*>(request.release())};
+
+  return closure;
+}
+
 }  // namespace ffi
 
 // A fixed-capacity buffer for receiving textual error messages from
@@ -592,16 +608,6 @@ WebGPUParent::BufferMapData* WebGPUParent::GetBufferMapData(RawId aBufferId) {
   return &iter->second;
 }
 
-struct MapRequest {
-  RefPtr<WebGPUParent> mParent;
-  ffi::WGPUGlobal* mContext;
-  ffi::WGPUBufferId mBufferId;
-  ffi::WGPUHostMap mHostMap;
-  uint64_t mOffset;
-  uint64_t mSize;
-  WebGPUParent::BufferMapResolver mResolver;
-};
-
 static const char* MapStatusString(ffi::WGPUBufferMapAsyncStatus status) {
   switch (status) {
     case ffi::WGPUBufferMapAsyncStatus_Success:
@@ -634,15 +640,14 @@ void WebGPUParent::MapCallback(uint8_t* aUserData,
   auto req =
       std::unique_ptr<MapRequest>(reinterpret_cast<MapRequest*>(aUserData));
 
+  if (!req->mParent) {
+    return;
+  }
   if (!req->mParent->CanSend()) {
     return;
   }
 
-  BufferMapResult result;
-
-  auto bufferId = req->mBufferId;
-  auto* mapData = req->mParent->GetBufferMapData(bufferId);
-  MOZ_RELEASE_ASSERT(mapData);
+  ipc::ByteBuf bb;
 
   if (aStatus != ffi::WGPUBufferMapAsyncStatus_Success) {
     // A buffer map operation that fails with a DeviceError gets
@@ -650,21 +655,25 @@ void WebGPUParent::MapCallback(uint8_t* aUserData,
     // need to lose the device.
     if (aStatus == ffi::WGPUBufferMapAsyncStatus_ContextLost) {
       req->mParent->LoseDevice(
-          mapData->mDeviceId, Nothing(),
-          nsPrintfCString("Buffer %" PRIu64 " invalid", bufferId));
+          req->mDeviceId, Nothing(),
+          nsPrintfCString("Buffer %" PRIu64 " invalid", req->mBufferId));
     }
+    auto error = nsPrintfCString("Mapping WebGPU buffer failed: %s",
+                                 MapStatusString(aStatus));
 
-    result = BufferMapError(nsPrintfCString("Mapping WebGPU buffer failed: %s",
-                                            MapStatusString(aStatus)));
+    ffi::wgpu_server_pack_buffer_map_error(req->mBufferId, &error, ToFFI(&bb));
   } else {
+    auto* mapData = req->mParent->GetBufferMapData(req->mBufferId);
+    MOZ_RELEASE_ASSERT(mapData);
+
     auto size = req->mSize;
     auto offset = req->mOffset;
 
     if (req->mHostMap == ffi::WGPUHostMap_Read && size > 0) {
       ErrorBuffer error;
       const auto src = ffi::wgpu_server_buffer_get_mapped_range(
-          req->mContext, mapData->mDeviceId, req->mBufferId, offset, size,
-          error.ToFFI());
+          req->mParent->GetContext(), mapData->mDeviceId, req->mBufferId,
+          offset, size, error.ToFFI());
 
       MOZ_RELEASE_ASSERT(!error.GetError());
 
@@ -675,61 +684,17 @@ void WebGPUParent::MapCallback(uint8_t* aUserData,
       }
     }
 
-    result =
-        BufferMapSuccess(offset, size, req->mHostMap == ffi::WGPUHostMap_Write);
+    bool is_writable = req->mHostMap == ffi::WGPUHostMap_Write;
+    ffi::wgpu_server_pack_buffer_map_success(req->mBufferId, is_writable,
+                                             offset, size, ToFFI(&bb));
 
     mapData->mMappedOffset = offset;
     mapData->mMappedSize = size;
   }
 
-  req->mResolver(result);
-}
-
-ipc::IPCResult WebGPUParent::RecvBufferMap(RawId aDeviceId, RawId aBufferId,
-                                           uint32_t aMode, uint64_t aOffset,
-                                           uint64_t aSize,
-                                           BufferMapResolver&& aResolver) {
-  MOZ_LOG(sLogger, LogLevel::Info,
-          ("RecvBufferMap %" PRIu64 " offset=%" PRIu64 " size=%" PRIu64 "\n",
-           aBufferId, aOffset, aSize));
-
-  ffi::WGPUHostMap mode;
-  switch (aMode) {
-    case dom::GPUMapMode_Binding::READ:
-      mode = ffi::WGPUHostMap_Read;
-      break;
-    case dom::GPUMapMode_Binding::WRITE:
-      mode = ffi::WGPUHostMap_Write;
-      break;
-    default: {
-      nsCString errorString(
-          "GPUBuffer.mapAsync 'mode' argument must be either GPUMapMode.READ "
-          "or GPUMapMode.WRITE");
-      aResolver(BufferMapError(errorString));
-      return IPC_OK();
-    }
+  if (!req->mParent->SendServerMessage(std::move(bb))) {
+    NS_ERROR("SendServerMessage failed");
   }
-
-  auto* mapData = GetBufferMapData(aBufferId);
-
-  if (!mapData) {
-    nsCString errorString("Buffer is not mappable");
-    aResolver(BufferMapError(errorString));
-    return IPC_OK();
-  }
-
-  std::unique_ptr<MapRequest> request(
-      new MapRequest{this, mContext.get(), aBufferId, mode, aOffset, aSize,
-                     std::move(aResolver)});
-
-  ffi::WGPUBufferMapClosure closure = {
-      &MapCallback, reinterpret_cast<uint8_t*>(request.release())};
-  ErrorBuffer mapError;
-  ffi::wgpu_server_buffer_map(mContext.get(), aDeviceId, aBufferId, aOffset,
-                              aSize, mode, closure, mapError.ToFFI());
-  ForwardError(mapError);
-
-  return IPC_OK();
 }
 
 void WebGPUParent::BufferUnmap(RawId aDeviceId, RawId aBufferId, bool aFlush) {

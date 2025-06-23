@@ -221,49 +221,29 @@ already_AddRefed<dom::Promise> Buffer::MapAsync(
     // zero.
   }
 
-  RefPtr<Buffer> self(this);
+  const auto& bridge = GetDevice().GetBridge();
 
-  auto mappingPromise = GetDevice().GetBridge()->SendBufferMap(
-      GetDevice().mId, mId, aMode, aOffset, size);
-  MOZ_ASSERT(mappingPromise);
+  ipc::ByteBuf bb;
+  ffi::wgpu_client_buffer_map(GetDevice().mId, mId, aMode, aOffset, size,
+                              ToFFI(&bb));
+  bool sent = bridge->SendMessage(std::move(bb), Nothing());
+  if (sent) {
+    mMapRequest = promise;
 
-  mMapRequest = promise;
-
-  mappingPromise->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [promise, self](BufferMapResult&& aResult) {
-        // Unmap might have been called while the result was on the way back.
-        if (promise->State() != dom::Promise::PromiseState::Pending) {
-          return;
-        }
-
-        // mValid should be true or we should have called unmap while marking
-        // the buffer invalid, causing the promise to be rejected and the branch
-        // above to have early-returned.
-        MOZ_RELEASE_ASSERT(self->mValid);
-
-        switch (aResult.type()) {
-          case BufferMapResult::TBufferMapSuccess: {
-            auto& success = aResult.get_BufferMapSuccess();
-            self->mMapRequest = nullptr;
-            self->SetMapped(success.offset(), success.size(),
-                            success.writable());
-            promise->MaybeResolve(0);
-            break;
-          }
-          case BufferMapResult::TBufferMapError: {
-            auto& error = aResult.get_BufferMapError();
-            self->RejectMapRequest(promise, error.message());
-            break;
-          }
-          default: {
-            MOZ_CRASH("unreachable");
-          }
-        }
-      },
-      [promise](const ipc::ResponseRejectReason&) {
-        promise->MaybeRejectWithAbortError("Internal communication error!");
-      });
+    auto pending_promise = WebGPUChild::PendingBufferMapPromise{
+        RefPtr(promise),
+        RefPtr(this),
+    };
+    auto& pending_promises = bridge->mPendingBufferMapPromises;
+    if (auto search = pending_promises.find(mId);
+        search != pending_promises.end()) {
+      search->second.push_back(std::move(pending_promise));
+    } else {
+      pending_promises.insert({mId, {std::move(pending_promise)}});
+    }
+  } else {
+    promise->MaybeRejectWithAbortError("Internal communication error!");
+  }
 
   return promise.forget();
 }
@@ -413,10 +393,19 @@ void Buffer::UnmapArrayBuffers(JSContext* aCx, ErrorResult& aRv) {
   }
 }
 
-void Buffer::RejectMapRequest(dom::Promise* aPromise, nsACString& message) {
-  if (mMapRequest == aPromise) {
-    mMapRequest = nullptr;
-  }
+void Buffer::ResolveMapRequest(dom::Promise* aPromise, BufferAddress aOffset,
+                               BufferAddress aSize, bool aWritable) {
+  MOZ_RELEASE_ASSERT(mMapRequest == aPromise);
+  mMapRequest = nullptr;
+
+  SetMapped(aOffset, aSize, aWritable);
+  aPromise->MaybeResolveWithUndefined();
+}
+
+void Buffer::RejectMapRequest(dom::Promise* aPromise,
+                              const nsACString& message) {
+  MOZ_RELEASE_ASSERT(mMapRequest == aPromise);
+  mMapRequest = nullptr;
 
   aPromise->MaybeRejectWithOperationError(message);
 }

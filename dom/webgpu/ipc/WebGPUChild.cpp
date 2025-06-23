@@ -236,11 +236,49 @@ MOZ_CAN_RUN_SCRIPT void resolve_create_shader_module_promise(
   pending_promise.promise->MaybeResolve(infoObject);
 };
 
+void resolve_buffer_map_promise(void* child, ffi::WGPUBufferId buffer_id,
+                                bool is_writable, uint64_t offset,
+                                uint64_t size, const nsCString* error) {
+  auto* c = static_cast<WebGPUChild*>(child);
+  auto& pending_promises = c->mPendingBufferMapPromises;
+
+  WebGPUChild::PendingBufferMapPromise pending_promise;
+  if (auto search = pending_promises.find(buffer_id);
+      search != pending_promises.end()) {
+    pending_promise = std::move(search->second.front());
+    search->second.pop_front();
+
+    if (search->second.empty()) {
+      pending_promises.erase(buffer_id);
+    }
+  } else {
+    NS_ERROR("Missing pending promise for buffer map");
+  }
+
+  // Unmap might have been called while the result was on the way back.
+  if (pending_promise.promise->State() != dom::Promise::PromiseState::Pending) {
+    return;
+  }
+
+  // mValid should be true or we should have called unmap while marking
+  // the buffer invalid, causing the promise to be rejected and the branch
+  // above to have early-returned.
+  MOZ_RELEASE_ASSERT(pending_promise.buffer->IsValid());
+
+  if (error == nullptr) {
+    pending_promise.buffer->ResolveMapRequest(pending_promise.promise, offset,
+                                              size, is_writable);
+  } else {
+    pending_promise.buffer->RejectMapRequest(pending_promise.promise, *error);
+  }
+}
+
 ipc::IPCResult WebGPUChild::RecvServerMessage(const ipc::ByteBuf& aByteBuf) {
   ffi::wgpu_client_receive_server_message(
       this, GetClient(), ToFFI(&aByteBuf), resolve_request_adapter_promise,
       resolve_request_device_promise, resolve_pop_error_scope_promise,
-      resolve_create_pipeline_promise, resolve_create_shader_module_promise);
+      resolve_create_pipeline_promise, resolve_create_shader_module_promise,
+      resolve_buffer_map_promise);
   return IPC_OK();
 }
 

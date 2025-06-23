@@ -139,6 +139,14 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
 
   std::deque<PendingCreateShaderModulePromise>
       mPendingCreateShaderModulePromises;
+
+  struct PendingBufferMapPromise {
+    RefPtr<dom::Promise> promise;
+    RefPtr<Buffer> buffer;
+  };
+
+  std::unordered_map<RawId, std::deque<PendingBufferMapPromise>>
+      mPendingBufferMapPromises;
 };
 
 }  // namespace webgpu
