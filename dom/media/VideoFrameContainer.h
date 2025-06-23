@@ -96,7 +96,7 @@ class VideoFrameContainer {
     return mIntrinsicSize;
   }
 
-  bool Is16bitImageSupported() const { return mIs16bitImageSupported; }
+  bool SupportsOnly8BitImage() const { return mSupportsOnly8BitImage; }
 
  protected:
   void SetCurrentFramesLocked(
@@ -146,7 +146,8 @@ class VideoFrameContainer {
 
   const RefPtr<AbstractThread> mMainThread;
 
-  const bool mIs16bitImageSupported;
+  // True when Android GL implementation support only 8-bit texture.
+  const bool mSupportsOnly8BitImage;
 };
 
 }  // namespace mozilla

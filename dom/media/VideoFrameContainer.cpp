@@ -11,6 +11,7 @@
 #endif
 #include "MediaDecoderOwner.h"
 #include "mozilla/AbstractThread.h"
+#include "mozilla/gfx/BuildConstants.h"
 #include "mozilla/gfx/gfxVars.h"
 
 using namespace mozilla::layers;
@@ -27,7 +28,8 @@ VideoFrameContainer::VideoFrameContainer(
       mPendingPrincipalHandle(PRINCIPAL_HANDLE_NONE),
       mFrameIDForPendingPrincipalHandle(0),
       mMainThread(aOwner->AbstractMainThread()),
-      mIs16bitImageSupported(gfx::gfxVars::AllowGLNorm16Textures()) {
+      mSupportsOnly8BitImage(kIsAndroid &&
+                             !gfx::gfxVars::AllowGLNorm16Textures()) {
   NS_ASSERTION(aOwner, "aOwner must not be null");
   NS_ASSERTION(mImageContainer, "aContainer must not be null");
 }
@@ -118,7 +120,7 @@ void VideoFrameContainer::SetCurrentFramesLocked(
     const nsTArray<ImageContainer::NonOwningImage>& aImages) {
   mMutex.AssertCurrentThreadOwns();
 
-  MOZ_ASSERT(Is16bitImageSupported() ||
+  MOZ_ASSERT(!SupportsOnly8BitImage() ||
                  std::all_of(aImages.begin(), aImages.end(), Is8BitImage),
              "Images should be 8-bit");
 

@@ -410,9 +410,9 @@ void MediaFormatReader::DecoderFactory::DoCreateDecoder(Data& aData) {
            OptionSet(ownerData.mHardwareDecodingDisabled
                          ? Option::HardwareDecoderNotAllowed
                          : Option::Default,
-                     mOwner->mVideoFrameContainer->Is16bitImageSupported()
-                         ? Option::Default
-                         : Option::Output8BitPerChannel),
+                     mOwner->mVideoFrameContainer->SupportsOnly8BitImage()
+                         ? Option::Output8BitPerChannel
+                         : Option::Default),
            mOwner->mMediaEngineId, mOwner->mTrackingId,
            mOwner->mEncryptedCustomIdent
                ? CreateDecoderParams::EncryptedCustomIdent::True
