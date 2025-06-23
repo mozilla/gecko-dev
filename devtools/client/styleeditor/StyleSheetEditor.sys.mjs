@@ -501,7 +501,8 @@ StyleSheetEditor.prototype = {
       value: this._state.text,
       lineNumbers: true,
       mode: Editor.modes.css,
-      readOnly: false,
+      // System stylesheets (eg user-agent html.css) cannot be edited.
+      readOnly: !!this.styleSheet.system,
       autoCloseBrackets: "{}()",
       extraKeys: this._getKeyBindings(),
       contextMenu: "sourceEditorContextMenu",

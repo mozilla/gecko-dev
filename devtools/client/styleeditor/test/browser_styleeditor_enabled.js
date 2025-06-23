@@ -98,10 +98,21 @@ add_task(async function testSystemStylesheet() {
     "Toggle style sheet visibility"
   );
 
+  info("Click on the link to load the source editor");
+  const aboutSupportLink =
+    aboutSupportEditor.summary.querySelector(".stylesheet-name");
+  aboutSupportLink.click();
+  await aboutSupportEditor.getSourceEditor();
+  ok(
+    !aboutSupportEditor.sourceEditor.config.readOnly,
+    "The editor for a regular stylesheet is not readonly"
+  );
+
   const formsEditor = ui.editors.find(
     editor => editor.friendlyName === "forms.css"
   );
   ok(!!formsEditor, "Found the editor for forms.css");
+
   const formsToggle = formsEditor.summary.querySelector(".stylesheet-toggle");
   ok(formsToggle, "enabled toggle button exists");
   ok(formsToggle.disabled, "enabled toggle button is disabled");
@@ -114,6 +125,15 @@ add_task(async function testSystemStylesheet() {
   is(
     formsToggle.getAttribute("tooltiptext"),
     "System style sheets can’t be disabled"
+  );
+
+  info("Click on the link to load the source editor");
+  const formsLink = formsEditor.summary.querySelector(".stylesheet-name");
+  formsLink.click();
+  await formsEditor.getSourceEditor();
+  ok(
+    formsEditor.sourceEditor.config.readOnly,
+    "The editor for system stylesheet is readonly"
   );
 });
 
