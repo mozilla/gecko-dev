@@ -401,7 +401,8 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
   MOZ_ASSERT(!NS_IsMainThread());
 
   std::shared_ptr<content_analysis::sdk::Client> client;
-  if (!IsShutDown()) {
+  bool isShutDown = IsShutDown();
+  if (!isShutDown) {
     client.reset(content_analysis::sdk::Client::Create(
                      {aPipePathName.Data(), aIsPerUser})
                      .release());
@@ -429,11 +430,14 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
       LOGE(
           "Got mismatched content analysis client signature! All content "
           "analysis operations will fail.");
+      nsresult rv = NS_ERROR_INVALID_SIGNATURE;
+      glean::content_analysis::connection_failure
+          .Get(nsCString{SafeGetStaticErrorName(rv)})
+          .Add();
       NS_DispatchToMainThread(
-          NS_NewRunnableFunction(__func__, [self = RefPtr{this}]() {
+          NS_NewRunnableFunction(__func__, [self = RefPtr{this}, rv]() {
             AssertIsOnMainThread();
-            self->mCaClientPromise->Reject(NS_ERROR_INVALID_SIGNATURE,
-                                           __func__);
+            self->mCaClientPromise->Reject(rv, __func__);
             self->mCreatingClient = false;
           }));
 
@@ -442,7 +446,8 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
   }
 #endif  // XP_WIN
   NS_DispatchToMainThread(NS_NewRunnableFunction(
-      __func__, [self = RefPtr{this}, client = std::move(client)]() {
+      __func__,
+      [self = RefPtr{this}, isShutDown, client = std::move(client)]() {
         AssertIsOnMainThread();
         // Note that if mCaClientPromise has been resolved or rejected
         // calling Resolve() or Reject() is a noop.
@@ -450,7 +455,12 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
           self->mHaveResolvedClientPromise = true;
           self->mCaClientPromise->Resolve(client, __func__);
         } else {
-          self->mCaClientPromise->Reject(NS_ERROR_CONNECTION_REFUSED, __func__);
+          nsresult promiseResult = isShutDown ? NS_ERROR_ILLEGAL_DURING_SHUTDOWN
+                                              : NS_ERROR_CONNECTION_REFUSED;
+          glean::content_analysis::connection_failure
+              .Get(nsCString{SafeGetStaticErrorName(promiseResult)})
+              .Add();
+          self->mCaClientPromise->Reject(promiseResult, __func__);
         }
         self->mCreatingClient = false;
       }));
@@ -1494,6 +1504,11 @@ nsresult ContentAnalysis::CreateClientIfNecessary(
   Preferences::GetString(kClientSignature, clientSignature);
   RecordConnectionSettingsTelemetry(clientSignature);
   LOGD("Dispatching background task to create Content Analysis client");
+  glean::content_analysis::connection_attempt.Add();
+  if (aForceCreate) {
+    // indicates this is a retry attempt
+    glean::content_analysis::connection_attempt_retry.Add();
+  }
   rv = NS_DispatchBackgroundTask(NS_NewCancelableRunnableFunction(
       "ContentAnalysis::CreateContentAnalysisClient",
       [owner = RefPtr{this}, pipePathName = std::move(pipePathName),
@@ -1502,6 +1517,9 @@ nsresult ContentAnalysis::CreateClientIfNecessary(
             std::move(pipePathName), std::move(clientSignature), isPerUser);
       }));
   if (NS_WARN_IF(NS_FAILED(rv))) {
+    glean::content_analysis::connection_failure
+        .Get(nsCString{SafeGetStaticErrorName(rv)})
+        .Add();
     mCaClientPromise->Reject(rv, __func__);
     return rv;
   }
@@ -1518,7 +1536,7 @@ void ContentAnalysis::RecordConnectionSettingsTelemetry(
   }
   AutoTArray<nsCString, 1> interceptionPointsOff;
   for (const char* interceptionPointPrefName : kInterceptionPointPrefNames) {
-    bool interceptionPointPrefValue;
+    bool interceptionPointPrefValue = false;
     Preferences::GetBool(interceptionPointPrefName,
                          &interceptionPointPrefValue);
     if (!interceptionPointPrefValue) {

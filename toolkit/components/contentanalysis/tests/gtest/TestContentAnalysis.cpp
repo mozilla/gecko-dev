@@ -10,7 +10,6 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/dom/Promise-inl.h"
-#include "mozilla/media/MediaUtils.h"
 #include "js/Object.h"
 #include "js/PropertyAndElement.h"
 #include "nsCOMArray.h"
@@ -26,16 +25,6 @@
 #include <processenv.h>
 #include <synchapi.h>
 #include <vector>
-
-const char* kAllowUrlPref = "browser.contentanalysis.allow_url_regex_list";
-const char* kDenyUrlPref = "browser.contentanalysis.deny_url_regex_list";
-const char* kPipePathNamePref = "browser.contentanalysis.pipe_path_name";
-const char* kIsDLPEnabledPref = "browser.contentanalysis.enabled";
-const char* kDefaultResultPref = "browser.contentanalysis.default_result";
-const char* kTimeoutPref = "browser.contentanalysis.agent_timeout";
-const char* kTimeoutResultPref = "browser.contentanalysis.timeout_result";
-const char* kClientSignaturePref = "browser.contentanalysis.client_signature";
-const char* kMaxConnections = "browser.contentanalysis.max_connections";
 
 using namespace mozilla;
 using namespace mozilla::contentanalysis;
@@ -235,25 +224,6 @@ nsCOMPtr<nsIURI> GetExampleDotComWithPathURI() {
   MOZ_ALWAYS_SUCCEEDS(
       NS_NewURI(getter_AddRefs(uri), "https://example.com/path"));
   return uri;
-}
-
-struct BoolStruct {
-  bool mValue = false;
-};
-
-RefPtr<CancelableRunnable> QueueTimeoutToMainThread(
-    RefPtr<media::Refcountable<BoolStruct>> aTimedOut) {
-  RefPtr<CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
-      "timeout", [&] { aTimedOut->mValue = true; });
-#if defined(MOZ_ASAN)
-  // This can be pretty slow on ASAN builds (bug 1895256)
-  constexpr uint32_t kCATimeout = 25000;
-#else
-  constexpr uint32_t kCATimeout = 10000;
-#endif
-  EXPECT_EQ(NS_OK,
-            NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kCATimeout));
-  return timer;
 }
 
 RefPtr<ContentAnalysisDiagnosticInfo> ContentAnalysisTest::GetDiagnosticInfo(

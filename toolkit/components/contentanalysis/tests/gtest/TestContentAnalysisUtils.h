@@ -11,7 +11,31 @@
 
 #include "content_analysis/sdk/analysis_client.h"
 #include "gtest/gtest.h"
+
+#include "mozilla/media/MediaUtils.h"
 #include "nsString.h"
+#include "nsThreadUtils.h"
+
+constexpr const char* kAllowUrlPref =
+    "browser.contentanalysis.allow_url_regex_list";
+constexpr const char* kDenyUrlPref =
+    "browser.contentanalysis.deny_url_regex_list";
+constexpr const char* kPipePathNamePref =
+    "browser.contentanalysis.pipe_path_name";
+constexpr const char* kIsDLPEnabledPref = "browser.contentanalysis.enabled";
+constexpr const char* kDefaultResultPref =
+    "browser.contentanalysis.default_result";
+constexpr const char* kTimeoutPref = "browser.contentanalysis.agent_timeout";
+constexpr const char* kTimeoutResultPref =
+    "browser.contentanalysis.timeout_result";
+constexpr const char* kClientSignaturePref =
+    "browser.contentanalysis.client_signature";
+constexpr const char* kMaxConnections =
+    "browser.contentanalysis.max_connections";
+
+struct BoolStruct {
+  bool mValue = false;
+};
 
 struct MozAgentInfo {
   PROCESS_INFORMATION processInfo;
@@ -36,4 +60,20 @@ MozAgentInfo LaunchAgentNormal(const wchar_t* aToBlock,
                                const wchar_t* aToWarn = L"warn");
 MozAgentInfo LaunchAgentNormal(const wchar_t* aToBlock, const wchar_t* aToWarn,
                                const nsString& pipeName);
+
+inline RefPtr<mozilla::CancelableRunnable> QueueTimeoutToMainThread(
+    RefPtr<mozilla::media::Refcountable<BoolStruct>> aTimedOut) {
+  RefPtr<mozilla::CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
+      "timeout", [&] { aTimedOut->mValue = true; });
+#if defined(MOZ_ASAN)
+  // This can be pretty slow on ASAN builds (bug 1895256)
+  constexpr uint32_t kCATimeout = 25000;
+#else
+  constexpr uint32_t kCATimeout = 10000;
+#endif
+  EXPECT_EQ(NS_OK,
+            NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kCATimeout));
+  return timer;
+}
+
 #endif

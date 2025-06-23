@@ -13,6 +13,53 @@ $tags:
 # The following metrics are used to track the usage of the Data Loss Prevention feature.
 
 content_analysis:
+  connection_attempt:
+    type: counter
+    description: Recorded when Firefox attempts to
+     connect to the DLP agent.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  connection_attempt_retry:
+    type: counter
+    description: Recorded when Firefox attempts to
+     retry connecting to the DLP agent (because a previous
+     attempt to communicate with the agent failed).
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
+  connection_failure:
+    type: labeled_counter
+    description: Recorded when Firefox fails to connect to the DLP
+     agent. The label is the nsresult that was returned by the
+     connection attempt.
+    bugs:
+      - https://bugzil.la/1963385
+    data_reviews:
+      - https://bugzil.la/1963385
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+      - dparks@mozilla.com
   agent_name:
     type: string
     description: The name of the DLP agent that Firefox is

@@ -17,6 +17,7 @@ if CONFIG["OS_TARGET"] == "WINNT":
         # Agent SDK usings conflicts with Gecko usings
         "TestContentAnalysisAgent.cpp",
         "TestContentAnalysisMisbehaving.cpp",
+        "TestContentAnalysisTelemetry.cpp",
         "TestContentAnalysisUtils.cpp",
     ]
     DIRS += ["agent"]
