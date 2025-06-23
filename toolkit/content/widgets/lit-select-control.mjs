@@ -41,11 +41,8 @@ const NAVIGATION_DIRECTIONS = {
 export class SelectControlBaseElement extends MozLitElement {
   #childElements;
   #value;
-  #checkedIndex;
-  #focusedIndex;
 
   static properties = {
-    type: { type: String },
     disabled: { type: Boolean, reflect: true },
     description: { type: String, fluent: true },
     supportPage: { type: String, attribute: "support-page" },
@@ -60,12 +57,8 @@ export class SelectControlBaseElement extends MozLitElement {
 
   set value(newValue) {
     this.#value = newValue;
-    this.childElements.forEach((item, index) => {
-      let isChecked = this.value === item.value;
-      item.checked = isChecked;
-      if (isChecked && !item.disabled) {
-        this.#checkedIndex = index;
-      }
+    this.childElements.forEach(item => {
+      item.checked = this.value === item.value;
     });
     this.syncFocusState();
   }
@@ -74,45 +67,15 @@ export class SelectControlBaseElement extends MozLitElement {
     return this.#value;
   }
 
-  set focusedIndex(newIndex) {
-    if (this.#focusedIndex !== newIndex) {
-      this.#focusedIndex = newIndex;
-      this.syncFocusState();
-    }
-  }
-
-  get checkedIndex() {
-    return this.#checkedIndex;
-  }
-
-  set checkedIndex(newIndex) {
-    if (this.#checkedIndex !== newIndex) {
-      this.#checkedIndex = newIndex;
-      this.syncFocusState();
-    }
-  }
-
   get focusableIndex() {
-    let activeEl = this.getRootNode().activeElement;
-    let childElFocused =
-      activeEl?.localName == this.constructor.childElementName;
-
-    if (
-      this.#checkedIndex != undefined &&
-      this.#value &&
-      (this.type == "radio" || !childElFocused)
-    ) {
-      return this.#checkedIndex;
+    if (this.#value) {
+      let selectedIndex = this.childElements.findIndex(
+        item => item.value === this.#value && !item.disabled
+      );
+      if (selectedIndex !== -1) {
+        return selectedIndex;
+      }
     }
-
-    if (
-      this.#focusedIndex != undefined &&
-      this.type === "listbox" &&
-      childElFocused
-    ) {
-      return this.#focusedIndex;
-    }
-
     return this.childElements.findIndex(item => !item.disabled);
   }
 
@@ -134,9 +97,7 @@ export class SelectControlBaseElement extends MozLitElement {
 
   constructor() {
     super();
-    this.type = "radio";
     this.disabled = false;
-    this.addEventListener("blur", e => this.handleBlur(e), true);
     this.addEventListener("keydown", e => this.handleKeydown(e));
   }
 
@@ -150,17 +111,10 @@ export class SelectControlBaseElement extends MozLitElement {
   }
 
   syncStateToChildElements() {
-    this.childElements.forEach((item, index) => {
-      item.position = index;
-
+    this.childElements.forEach(item => {
       if (item.checked && this.value == undefined) {
         this.value = item.value;
       }
-
-      if (this.value == item.value && !item.disabled) {
-        this.#checkedIndex = item.position;
-      }
-
       item.name = this.name;
     });
     this.syncFocusState();
@@ -171,13 +125,6 @@ export class SelectControlBaseElement extends MozLitElement {
     this.childElements.forEach((item, index) => {
       item.itemTabIndex = focusableIndex === index ? 0 : -1;
     });
-  }
-
-  handleBlur(event) {
-    if (this.contains(event.relatedTarget)) {
-      return;
-    }
-    this.focusedIndex = undefined;
   }
 
   // NB: We may need to revise this to avoid bugs when we add more focusable
@@ -221,27 +168,19 @@ export class SelectControlBaseElement extends MozLitElement {
   navigate(direction) {
     let currentIndex = this.focusableIndex;
     let children = this.childElements;
-    let step = NAVIGATION_VALUE[direction];
-    let isRadio = this.type == "radio";
+    let indexStep = children.length + NAVIGATION_VALUE[direction];
 
     for (let i = 1; i < children.length; i++) {
-      // Support focus wrapping for type="radio" only.
-      let nextIndex = isRadio
-        ? (currentIndex + children.length + step * i) % children.length
-        : currentIndex + step * i;
-
+      let nextIndex = (currentIndex + indexStep * i) % children.length;
       let nextItem = children[nextIndex];
-
-      if (nextItem && !nextItem.disabled) {
-        if (isRadio) {
-          this.value = nextItem.value;
-          this.dispatchEvent(new Event("input"), {
-            bubbles: true,
-            composed: true,
-          });
-          this.dispatchEvent(new Event("change"), { bubbles: true });
-        }
+      if (!nextItem.disabled) {
+        this.value = nextItem.value;
         nextItem.focus();
+        this.dispatchEvent(new Event("input"), {
+          bubbles: true,
+          composed: true,
+        });
+        this.dispatchEvent(new Event("change"), { bubbles: true });
         return;
       }
     }
@@ -254,12 +193,6 @@ export class SelectControlBaseElement extends MozLitElement {
     if (changedProperties.has("disabled")) {
       this.childElements.forEach(item => {
         item.requestUpdate();
-      });
-    }
-    if (changedProperties.has("type")) {
-      let childRole = this.type == "radio" ? "radio" : "option";
-      this.childElements.forEach(item => {
-        item.role = childRole;
       });
     }
   }
@@ -278,8 +211,6 @@ export class SelectControlBaseElement extends MozLitElement {
 
   handleSlotChange() {
     this.#childElements = null;
-    this.#focusedIndex = undefined;
-    this.#checkedIndex = undefined;
     this.syncStateToChildElements();
   }
 
@@ -289,7 +220,7 @@ export class SelectControlBaseElement extends MozLitElement {
         part="fieldset"
         description=${ifDefined(this.description)}
         support-page=${ifDefined(this.supportPage)}
-        role=${this.type == "radio" ? "radiogroup" : "listbox"}
+        role="radiogroup"
         ?disabled=${this.disabled}
         label=${this.label}
         exportparts="inputs, support-link"
@@ -326,8 +257,6 @@ export const SelectControlItemMixin = superClass =>
       disabled: { type: Boolean, reflect: true },
       checked: { type: Boolean, reflect: true },
       itemTabIndex: { type: Number, state: true },
-      role: { type: String, state: true },
-      position: { type: Number, state: true },
     };
 
     get controller() {
@@ -341,11 +270,6 @@ export const SelectControlItemMixin = superClass =>
     constructor() {
       super();
       this.checked = false;
-      this.addEventListener("focus", () => {
-        if (!this.disabled) {
-          this.controller.focusedIndex = this.position;
-        }
-      });
     }
 
     connectedCallback() {
@@ -359,7 +283,6 @@ export const SelectControlItemMixin = superClass =>
       }
 
       this.#controller = hostElement;
-      this.role = this.#controller.type == "radio" ? "radio" : "option";
       if (this.#controller.value) {
         this.checked = this.value === this.#controller.value;
       }
@@ -391,18 +314,9 @@ export const SelectControlItemMixin = superClass =>
         // Prevent enabling a items if containing focus manager is disabled.
         if (this.disabled === false && this.#controller.disabled) {
           this.disabled = true;
-          return;
-        }
-
-        // Update items via focus manager parent for proper keyboard nav behavior.
-        if (this.checked || !this.#controller.value) {
-          if (this.controller.checkedIndex != this.position) {
-            this.#controller.syncFocusState();
-          } else {
-            // If the newly disabled element was checked unset the checkedIndex
-            // to recompute which element should be focusable.
-            this.controller.checkedIndex = undefined;
-          }
+        } else if (this.checked || !this.#controller.value) {
+          // Update items via focus manager parent for proper keyboard nav behavior.
+          this.#controller.syncFocusState();
         }
       }
     }
