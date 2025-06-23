@@ -7,6 +7,7 @@
 #define WEBGPU_CHILD_H_
 
 #include "mozilla/webgpu/PWebGPUChild.h"
+#include "mozilla/webgpu/Instance.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
@@ -56,8 +57,6 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
  public:
   explicit WebGPUChild();
 
-  RefPtr<AdapterPromise> InstanceRequestAdapter(
-      const dom::GPURequestAdapterOptions& aOptions);
   Maybe<DeviceRequest> AdapterRequestDevice(
       RawId aSelfId, const ffi::WGPUFfiDeviceDescriptor&);
   RawId RenderBundleEncoderFinish(ffi::WGPURenderBundleEncoder& aEncoder,
@@ -95,11 +94,19 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
                               const nsAString& aMessage);
 
  public:
+  ipc::IPCResult RecvServerMessage(const ipc::ByteBuf& aByteBuf);
   ipc::IPCResult RecvUncapturedError(RawId aDeviceId,
                                      const nsACString& aMessage);
   ipc::IPCResult RecvDeviceLost(RawId aDeviceId, Maybe<uint8_t> aReason,
                                 const nsACString& aMessage);
   void ActorDestroy(ActorDestroyReason) override;
+
+  struct PendingRequestAdapterPromise {
+    RefPtr<dom::Promise> promise;
+    RefPtr<Instance> instance;
+  };
+
+  std::deque<PendingRequestAdapterPromise> mPendingRequestAdapterPromises;
 };
 
 }  // namespace webgpu

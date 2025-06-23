@@ -56,37 +56,6 @@ WebGPUChild::WebGPUChild() : mClient(initialize()) {}
 
 WebGPUChild::~WebGPUChild() = default;
 
-RefPtr<AdapterPromise> WebGPUChild::InstanceRequestAdapter(
-    const dom::GPURequestAdapterOptions& aOptions) {
-  RawId id = ffi::wgpu_client_make_adapter_id(mClient.get());
-  auto* client = mClient.get();
-
-  return SendInstanceRequestAdapter(aOptions, id)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [client, id](ipc::ByteBuf&& aInfoBuf) {
-            // Ideally, we'd just send an empty ByteBuf, but the IPC code
-            // complains if the capacity is zero...
-            // So for the case where an adapter wasn't found, we just
-            // transfer a single 0u64 in this buffer.
-            if (aInfoBuf.mLen > sizeof(uint64_t)) {
-              return AdapterPromise::CreateAndResolve(std::move(aInfoBuf),
-                                                      __func__);
-            } else {
-              if (client) {
-                ffi::wgpu_client_free_adapter_id(client, id);
-              }
-              return AdapterPromise::CreateAndReject(Nothing(), __func__);
-            }
-          },
-          [client, id](const ipc::ResponseRejectReason& aReason) {
-            if (client) {
-              ffi::wgpu_client_free_adapter_id(client, id);
-            }
-            return AdapterPromise::CreateAndReject(Some(aReason), __func__);
-          });
-}
-
 Maybe<DeviceRequest> WebGPUChild::AdapterRequestDevice(
     RawId aSelfId, const ffi::WGPUFfiDeviceDescriptor& aDesc) {
   ffi::WGPUDeviceQueueId ids =
@@ -132,6 +101,28 @@ RawId WebGPUChild::RenderBundleEncoderFinishError(RawId aDeviceId,
   SendMessage(std::move(bb), Nothing());
 
   return id;
+}
+
+void resolve_request_adapter_promise(
+    void* child, const struct ffi::WGPUAdapterInformation* adapter_info) {
+  auto* c = static_cast<WebGPUChild*>(child);
+  auto& pending_promises = c->mPendingRequestAdapterPromises;
+  auto pending_promise = std::move(pending_promises.front());
+  pending_promises.pop_front();
+
+  if (adapter_info == nullptr) {
+    pending_promise.promise->MaybeResolve(JS::NullHandleValue);
+  } else {
+    auto info = std::make_shared<ffi::WGPUAdapterInformation>(*adapter_info);
+    RefPtr<Adapter> adapter = new Adapter(pending_promise.instance, c, info);
+    pending_promise.promise->MaybeResolve(adapter);
+  }
+}
+
+ipc::IPCResult WebGPUChild::RecvServerMessage(const ipc::ByteBuf& aByteBuf) {
+  ffi::wgpu_client_receive_server_message(this, GetClient(), ToFFI(&aByteBuf),
+                                          resolve_request_adapter_promise);
+  return IPC_OK();
 }
 
 ipc::IPCResult WebGPUChild::RecvUncapturedError(RawId aDeviceId,

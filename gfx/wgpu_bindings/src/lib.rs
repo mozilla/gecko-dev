@@ -92,6 +92,11 @@ impl ByteBuf {
     }
 }
 
+fn make_byte_buf<T: serde::Serialize>(data: &T) -> ByteBuf {
+    let vec = bincode::serialize(data).unwrap();
+    ByteBuf::from_vec(vec)
+}
+
 #[repr(C)]
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct AdapterInformation<S> {
@@ -131,7 +136,20 @@ pub struct RemoteTextureTxnType(u32);
 pub struct RemoteTextureTxnId(u64);
 
 #[derive(serde::Serialize, serde::Deserialize)]
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct FfiLUID {
+    low_part: core::ffi::c_ulong,
+    high_part: core::ffi::c_long,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 enum Message<'a> {
+    RequestAdapter {
+        adapter_id: id::AdapterId,
+        power_preference: wgt::PowerPreference,
+        force_fallback_adapter: bool,
+    },
     Device(id::DeviceId, DeviceAction<'a>),
     Texture(id::DeviceId, id::TextureId, TextureAction<'a>),
     CommandEncoder(id::DeviceId, id::CommandEncoderId, CommandEncoderAction),
@@ -271,6 +289,11 @@ enum QueueWriteAction {
 #[derive(serde::Serialize, serde::Deserialize)]
 enum TextureAction<'a> {
     CreateView(id::TextureViewId, wgc::resource::TextureViewDescriptor<'a>),
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+enum ServerMessage<'a> {
+    RequestAdapterResponse(id::AdapterId, Option<AdapterInformation<Cow<'a, str>>>),
 }
 
 #[repr(C)]

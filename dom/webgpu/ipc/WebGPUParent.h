@@ -47,9 +47,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
  public:
   explicit WebGPUParent();
 
-  ipc::IPCResult RecvInstanceRequestAdapter(
-      const dom::GPURequestAdapterOptions& aOptions, RawId aAdapterId,
-      InstanceRequestAdapterResolver&& resolver);
   ipc::IPCResult RecvAdapterRequestDevice(
       RawId aAdapterId, const ipc::ByteBuf& aByteBuf, RawId aDeviceId,
       RawId aQueueId, AdapterRequestDeviceResolver&& resolver);
@@ -153,6 +150,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   void RemoveExternalTexture(RawId aTextureId);
   void DeallocBufferShmem(RawId aBufferId);
   void PreDeviceDrop(RawId aDeviceId);
+  static Maybe<ffi::WGPUFfiLUID> GetCompositorDeviceLuid();
 
  private:
   static void MapCallback(uint8_t* aUserData,
@@ -166,8 +164,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
                   const nsACString& aMessage);
 
   void ReportError(RawId aDeviceId, GPUErrorFilter, const nsCString& message);
-
-  static Maybe<ffi::WGPUFfiLUID> GetCompositorDeviceLuid();
 
   UniquePtr<ffi::WGPUGlobal> mContext;
   base::RepeatingTimer<WebGPUParent> mTimer;

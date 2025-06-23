@@ -264,6 +264,16 @@ extern void wgpu_parent_swap_chain_drop(
   parent->SwapChainDrop(owner, aTxnType, aTxnId);
 }
 
+extern void wgpu_parent_get_compositor_device_luid(
+    struct WGPUFfiLUID* aOutLuid) {
+  auto luid = WebGPUParent::GetCompositorDeviceLuid();
+  if (luid.isSome()) {
+    *aOutLuid = luid.extract();
+  } else {
+    aOutLuid = nullptr;
+  }
+}
+
 }  // namespace ffi
 
 // A fixed-capacity buffer for receiving textual error messages from
@@ -486,38 +496,6 @@ void WebGPUParent::ReportError(RawId aDeviceId, const GPUErrorFilter aType,
   if (!SendUncapturedError(aDeviceId, aMessage)) {
     NS_ERROR("SendDeviceUncapturedError failed");
   }
-}
-
-ipc::IPCResult WebGPUParent::RecvInstanceRequestAdapter(
-    const dom::GPURequestAdapterOptions& aOptions, RawId aAdapterId,
-    InstanceRequestAdapterResolver&& resolver) {
-  ffi::WGPURequestAdapterOptions options = {};
-  if (aOptions.mPowerPreference.WasPassed()) {
-    options.power_preference = static_cast<ffi::WGPUPowerPreference>(
-        aOptions.mPowerPreference.Value());
-  } else {
-    options.power_preference = ffi::WGPUPowerPreference_LowPower;
-  }
-  options.force_fallback_adapter = aOptions.mForceFallbackAdapter;
-
-  auto luid = GetCompositorDeviceLuid();
-
-  ErrorBuffer error;
-  bool success = ffi::wgpu_server_instance_request_adapter(
-      mContext.get(), &options, aAdapterId, luid.ptrOr(nullptr), error.ToFFI());
-
-  ByteBuf infoByteBuf;
-  // Rust side expects an `Option`, so 0 maps to `None`.
-  uint64_t adapterId = 0;
-  if (success) {
-    adapterId = aAdapterId;
-  }
-  ffi::wgpu_server_adapter_pack_info(mContext.get(), adapterId,
-                                     ToFFI(&infoByteBuf));
-  resolver(std::move(infoByteBuf));
-  ForwardError(error);
-
-  return IPC_OK();
 }
 
 struct OnDeviceLostRequest {
@@ -1568,6 +1546,8 @@ ipc::IPCResult WebGPUParent::RecvMessage(
     const ipc::ByteBuf& aByteBuf,
     Maybe<ipc::MutableSharedMemoryHandle>&& aShmem) {
   ErrorBuffer error;
+  ipc::ByteBuf response_bb;
+
   if (aShmem.isSome()) {
     // `aShmem` may be an invalid handle, however this will simply result in an
     // invalid mapping with 0 size, which is used safely below.
@@ -1577,7 +1557,7 @@ ipc::IPCResult WebGPUParent::RecvMessage(
     auto size = mapping.Size();
 
     ffi::wgpu_server_message(mContext.get(), ToFFI(&aByteBuf), ptr, size,
-                             error.ToFFI());
+                             ToFFI(&response_bb), error.ToFFI());
 
     auto maybe_incomplete_buffer_map_data = mIncompleteBufferMapData.take();
     if (maybe_incomplete_buffer_map_data.isSome()) {
@@ -1588,9 +1568,18 @@ ipc::IPCResult WebGPUParent::RecvMessage(
     }
   } else {
     ffi::wgpu_server_message(mContext.get(), ToFFI(&aByteBuf), nullptr, 0,
-                             error.ToFFI());
+                             ToFFI(&response_bb), error.ToFFI());
   }
-  ForwardError(error);
+
+  if (response_bb.mData != nullptr && response_bb.mLen != 0) {
+    MOZ_ASSERT(error.GetError().isNone());
+    if (!SendServerMessage(std::move(response_bb))) {
+      NS_ERROR("SendServerMessage failed");
+    }
+  } else {
+    ForwardError(error);
+  }
+
   return IPC_OK();
 }
 

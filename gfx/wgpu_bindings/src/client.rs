@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    cow_label, error::HasErrorBufferType, wgpu_string, AdapterInformation, ByteBuf,
+    cow_label, error::HasErrorBufferType, make_byte_buf, wgpu_string, AdapterInformation, ByteBuf,
     CommandEncoderAction, DeviceAction, ImplicitLayout, QueueWriteAction, RawString,
     TexelCopyBufferLayout, TextureAction,
 };
 
-use crate::{Message, SwapChainId};
+use crate::{Message, ServerMessage, SwapChainId};
 
 use wgc::naga::front::wgsl::ImplementedLanguageExtension;
 use wgc::{command::RenderBundleEncoder, id, identity::IdentityManager};
@@ -35,11 +35,6 @@ fn make_slice<'a, T>(pointer: *const T, length: usize) -> &'a [T] {
     } else {
         unsafe { std::slice::from_raw_parts(pointer, length) }
     }
-}
-
-fn make_byte_buf<T: serde::Serialize>(data: &T) -> ByteBuf {
-    let vec = bincode::serialize(data).unwrap();
-    ByteBuf::from_vec(vec)
 }
 
 #[repr(C)]
@@ -429,45 +424,6 @@ pub extern "C" fn wgpu_client_instance_get_wgsl_language_feature(
     }
 }
 
-#[no_mangle]
-pub extern "C" fn wgpu_client_adapter_extract_info(
-    byte_buf: &ByteBuf,
-    info: &mut AdapterInformation<nsString>,
-) {
-    let AdapterInformation {
-        backend,
-        device_type,
-        device,
-        driver_info,
-        driver,
-        features,
-        id,
-        limits,
-        name,
-        vendor,
-        support_use_external_texture_in_swap_chain,
-    } = bincode::deserialize::<AdapterInformation<String>>(unsafe { byte_buf.as_slice() }).unwrap();
-
-    let nss = |s: &str| {
-        let mut ns_string = nsString::new();
-        ns_string.assign_str(s);
-        ns_string
-    };
-    *info = AdapterInformation {
-        backend,
-        device_type,
-        device,
-        driver_info: nss(&driver_info),
-        driver: nss(&driver),
-        features,
-        id,
-        limits,
-        name: nss(&name),
-        vendor,
-        support_use_external_texture_in_swap_chain,
-    };
-}
-
 #[repr(C)]
 pub struct FfiDeviceDescriptor<'a> {
     pub label: Option<&'a nsACString>,
@@ -587,6 +543,75 @@ pub extern "C" fn wgpu_client_drop_render_pipeline(
             }),
         });
     *bb = make_byte_buf(&Message::DropRenderPipeline(id, implicit_layout));
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_receive_server_message(
+    child: *mut core::ffi::c_void,
+    client: &Client,
+    byte_buf: &ByteBuf,
+    resolve_request_adapter_promise: extern "C" fn(
+        child: *mut core::ffi::c_void,
+        adapter_info: *const AdapterInformation<nsString>,
+    ),
+) {
+    let message: ServerMessage = bincode::deserialize(unsafe { byte_buf.as_slice() }).unwrap();
+    match message {
+        ServerMessage::RequestAdapterResponse(adapter_id, adapter_information) => {
+            if let Some(AdapterInformation {
+                backend,
+                device_type,
+                device,
+                driver_info,
+                driver,
+                features,
+                id,
+                limits,
+                name,
+                vendor,
+                support_use_external_texture_in_swap_chain,
+            }) = adapter_information
+            {
+                let nss = |s: &str| {
+                    let mut ns_string = nsString::new();
+                    ns_string.assign_str(s);
+                    ns_string
+                };
+                let adapter_info = AdapterInformation {
+                    backend,
+                    device_type,
+                    device,
+                    driver_info: nss(&driver_info),
+                    driver: nss(&driver),
+                    features,
+                    id,
+                    limits,
+                    name: nss(&name),
+                    vendor,
+                    support_use_external_texture_in_swap_chain,
+                };
+                resolve_request_adapter_promise(child, &adapter_info);
+            } else {
+                resolve_request_adapter_promise(child, core::ptr::null());
+                client.identities.lock().adapters.free(adapter_id)
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_request_adapter(
+    adapter_id: id::AdapterId,
+    power_preference: wgt::PowerPreference,
+    force_fallback_adapter: bool,
+    bb: &mut ByteBuf,
+) {
+    let action = Message::RequestAdapter {
+        adapter_id,
+        power_preference,
+        force_fallback_adapter,
+    };
+    *bb = make_byte_buf(&action);
 }
 
 #[no_mangle]

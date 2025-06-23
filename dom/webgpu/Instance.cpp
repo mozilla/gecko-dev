@@ -162,8 +162,6 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
     return promise.forget();
   }
 
-  RefPtr<Instance> instance = this;
-
   if (aOptions.mFeatureLevel.EqualsASCII("core")) {
     // Good! That's all we support.
   } else if (aOptions.mFeatureLevel.EqualsASCII("compatibility")) {
@@ -202,22 +200,29 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
     }
   }
 
-  bridge->InstanceRequestAdapter(aOptions)->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [promise, instance, bridge](ipc::ByteBuf aInfoBuf) {
-        auto info = std::make_shared<ffi::WGPUAdapterInformation>();
-        ffi::wgpu_client_adapter_extract_info(ToFFI(&aInfoBuf), info.get());
-        MOZ_ASSERT(info->id != 0);
-        RefPtr<Adapter> adapter = new Adapter(instance, bridge, info);
-        promise->MaybeResolve(adapter);
-      },
-      [promise](const Maybe<ipc::ResponseRejectReason>& aResponseReason) {
-        if (aResponseReason.isSome()) {
-          promise->MaybeRejectWithAbortError("Internal communication error!");
-        } else {
-          promise->MaybeResolve(JS::NullHandleValue);
-        }
-      });
+  ffi::WGPUPowerPreference power_preference;
+  if (aOptions.mPowerPreference.WasPassed()) {
+    power_preference = static_cast<ffi::WGPUPowerPreference>(
+        aOptions.mPowerPreference.Value());
+  } else {
+    power_preference = ffi::WGPUPowerPreference_LowPower;
+  }
+
+  RawId adapter_id = ffi::wgpu_client_make_adapter_id(bridge->GetClient());
+
+  ipc::ByteBuf bb;
+  ffi::wgpu_client_request_adapter(adapter_id, power_preference,
+                                   aOptions.mForceFallbackAdapter, ToFFI(&bb));
+
+  bool sent = bridge->SendMessage(std::move(bb), Nothing());
+  if (sent) {
+    auto pending_promise = WebGPUChild::PendingRequestAdapterPromise{
+        RefPtr(promise), RefPtr(this)};
+    bridge->mPendingRequestAdapterPromises.push_back(
+        std::move(pending_promise));
+  } else {
+    promise->MaybeRejectWithAbortError("Internal communication error!");
+  }
 
   return promise.forget();
 }

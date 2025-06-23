@@ -4,8 +4,8 @@
 
 use crate::{
     error::{ErrMsg, ErrorBuffer, ErrorBufferType},
-    wgpu_string, AdapterInformation, ByteBuf, CommandEncoderAction, DeviceAction, Message,
-    QueueWriteAction, SwapChainId, TextureAction,
+    make_byte_buf, wgpu_string, AdapterInformation, ByteBuf, CommandEncoderAction, DeviceAction,
+    FfiLUID, Message, QueueWriteAction, ServerMessage, SwapChainId, TextureAction,
 };
 
 use nsstring::{nsACString, nsCString, nsString};
@@ -27,7 +27,6 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 #[allow(unused_imports)]
 use std::ffi::CString;
-use std::ffi::{c_long, c_ulong};
 
 #[cfg(target_os = "windows")]
 use windows::Win32::{Foundation, Graphics::Direct3D12};
@@ -201,63 +200,6 @@ pub extern "C" fn wgpu_server_device_poll(
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct FfiLUID {
-    low_part: c_ulong,
-    high_part: c_long,
-}
-
-/// Request an adapter according to the specified options.
-///
-/// Returns true if we successfully found an adapter.
-#[allow(unused_variables)]
-#[no_mangle]
-pub unsafe extern "C" fn wgpu_server_instance_request_adapter(
-    global: &Global,
-    desc: &wgc::instance::RequestAdapterOptions,
-    adapter_id: id::AdapterId,
-    adapter_luid: Option<&FfiLUID>,
-    mut error_buf: ErrorBuffer,
-) -> bool {
-    // Prefer to use the dx12 backend, if one exists, and use the same DXGI adapter as WebRender.
-    // If wgpu uses a different adapter than WebRender, textures created by
-    // webgpu::ExternalTexture do not work with wgpu.
-    #[cfg(target_os = "windows")]
-    if adapter_luid.is_some() && !desc.force_fallback_adapter {
-        if let Some(instance) = global.global.instance_as_hal::<wgc::api::Dx12>() {
-            for adapter in instance.enumerate_adapters(None) {
-                let raw_adapter = adapter.adapter.raw_adapter();
-                let desc = unsafe { raw_adapter.GetDesc() };
-                if let Ok(desc) = desc {
-                    if desc.AdapterLuid.LowPart == adapter_luid.unwrap().low_part
-                        && desc.AdapterLuid.HighPart == adapter_luid.unwrap().high_part
-                    {
-                        global.create_adapter_from_hal(
-                            wgh::DynExposedAdapter::from(adapter),
-                            Some(adapter_id),
-                        );
-                        return true;
-                    }
-                }
-            }
-            error_buf.init_without_device_id(ErrMsg {
-                message: "Failed to create adapter for dx12",
-                r#type: ErrorBufferType::Internal,
-            });
-            return false;
-        }
-    }
-
-    match global.request_adapter(desc, wgt::Backends::PRIMARY, Some(adapter_id)) {
-        Ok(id) => return true,
-        Err(e) => {
-            error_buf.init_without_device_id(e);
-            return false;
-        }
-    }
-}
-
-#[repr(C)]
 #[derive(Clone, Copy, Debug)]
 #[allow(clippy::upper_case_acronyms)]
 #[cfg(target_os = "macos")]
@@ -391,63 +333,6 @@ fn support_use_external_texture_in_swap_chain(
     }
 
     false
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn wgpu_server_adapter_pack_info(
-    global: &Global,
-    self_id: Option<id::AdapterId>,
-    byte_buf: &mut ByteBuf,
-) {
-    let mut data = Vec::new();
-    match self_id {
-        Some(id) => {
-            let wgt::AdapterInfo {
-                name,
-                vendor,
-                device,
-                device_type,
-                driver,
-                driver_info,
-                backend,
-            } = global.adapter_get_info(id);
-
-            let is_hardware = match device_type {
-                wgt::DeviceType::IntegratedGpu | wgt::DeviceType::DiscreteGpu => true,
-                _ => false,
-            };
-
-            if static_prefs::pref!("dom.webgpu.testing.assert-hardware-adapter") {
-                assert!(
-                    is_hardware,
-                    "Expected a hardware gpu adapter, got {:?}",
-                    device_type
-                );
-            }
-
-            let support_use_external_texture_in_swap_chain =
-                support_use_external_texture_in_swap_chain(global, id, backend, is_hardware);
-
-            let info = AdapterInformation {
-                id,
-                limits: restrict_limits(global.adapter_limits(id)),
-                features: global.adapter_features(id).features_webgpu,
-                name,
-                vendor,
-                device,
-                device_type,
-                driver,
-                driver_info,
-                backend,
-                support_use_external_texture_in_swap_chain,
-            };
-            bincode::serialize_into(&mut data, &info).unwrap();
-        }
-        None => {
-            bincode::serialize_into(&mut data, &0u64).unwrap();
-        }
-    }
-    *byte_buf = ByteBuf::from_vec(data);
 }
 
 static TRACE_IDX: AtomicU32 = AtomicU32::new(0);
@@ -1530,6 +1415,8 @@ extern "C" {
         txn_type: crate::RemoteTextureTxnType,
         txn_id: crate::RemoteTextureTxnId,
     );
+    #[allow(dead_code)]
+    fn wgpu_parent_get_compositor_device_luid(out_luid: *mut FfiLUID);
 }
 
 #[cfg(target_os = "linux")]
@@ -2502,10 +2389,127 @@ pub unsafe extern "C" fn wgpu_server_message(
     byte_buf: &ByteBuf,
     data: *const u8,
     data_length: usize,
+    response_byte_buf: &mut ByteBuf,
     mut error_buf: ErrorBuffer,
 ) {
     let message: Message = bincode::deserialize(byte_buf.as_slice()).unwrap();
     match message {
+        Message::RequestAdapter {
+            adapter_id,
+            power_preference,
+            force_fallback_adapter,
+        } => {
+            let mut result = None;
+
+            // Prefer to use the dx12 backend, if one exists, and use the same DXGI adapter as WebRender.
+            // If wgpu uses a different adapter than WebRender, textures created by
+            // webgpu::ExternalTexture do not work with wgpu.
+            #[cfg(target_os = "windows")]
+            {
+                let mut adapter_luid = core::mem::MaybeUninit::<FfiLUID>::uninit();
+                wgpu_parent_get_compositor_device_luid(adapter_luid.as_mut_ptr());
+                let adapter_luid = if adapter_luid.as_ptr().is_null() {
+                    None
+                } else {
+                    Some(adapter_luid.assume_init())
+                };
+
+                if adapter_luid.is_some() && !force_fallback_adapter {
+                    if let Some(instance) = global.global.instance_as_hal::<wgc::api::Dx12>() {
+                        for adapter in instance.enumerate_adapters(None) {
+                            let raw_adapter = adapter.adapter.raw_adapter();
+                            let desc = unsafe { raw_adapter.GetDesc() };
+                            if let Ok(desc) = desc {
+                                if desc.AdapterLuid.LowPart == adapter_luid.unwrap().low_part
+                                    && desc.AdapterLuid.HighPart == adapter_luid.unwrap().high_part
+                                {
+                                    global.create_adapter_from_hal(
+                                        wgh::DynExposedAdapter::from(adapter),
+                                        Some(adapter_id),
+                                    );
+                                    result = Some(true);
+                                    break;
+                                }
+                            }
+                        }
+                        if result.is_none() {
+                            log::error!("Failed to find D3D12 adapter with the same LUID that the compositor is using!");
+                            result = Some(false);
+                        }
+                    }
+                }
+            }
+
+            if result.is_none() {
+                let desc = wgt::RequestAdapterOptions {
+                    power_preference,
+                    force_fallback_adapter,
+                    compatible_surface: None,
+                };
+                let created =
+                    match global.request_adapter(&desc, wgt::Backends::PRIMARY, Some(adapter_id)) {
+                        Ok(_) => true,
+                        Err(e) => {
+                            log::warn!("{e}");
+                            false
+                        }
+                    };
+                result = Some(created);
+            }
+
+            let response = if result.unwrap() {
+                let wgt::AdapterInfo {
+                    name,
+                    vendor,
+                    device,
+                    device_type,
+                    driver,
+                    driver_info,
+                    backend,
+                } = global.adapter_get_info(adapter_id);
+
+                let is_hardware = match device_type {
+                    wgt::DeviceType::IntegratedGpu | wgt::DeviceType::DiscreteGpu => true,
+                    _ => false,
+                };
+
+                if static_prefs::pref!("dom.webgpu.testing.assert-hardware-adapter") {
+                    assert!(
+                        is_hardware,
+                        "Expected a hardware gpu adapter, got {:?}",
+                        device_type
+                    );
+                }
+
+                let support_use_external_texture_in_swap_chain =
+                    support_use_external_texture_in_swap_chain(
+                        global,
+                        adapter_id,
+                        backend,
+                        is_hardware,
+                    );
+
+                let info = AdapterInformation {
+                    id: adapter_id,
+                    limits: restrict_limits(global.adapter_limits(adapter_id)),
+                    features: global.adapter_features(adapter_id).features_webgpu,
+                    name: Cow::Owned(name),
+                    vendor,
+                    device,
+                    device_type,
+                    driver: Cow::Owned(driver),
+                    driver_info: Cow::Owned(driver_info),
+                    backend,
+                    support_use_external_texture_in_swap_chain,
+                };
+                Some(info)
+            } else {
+                None
+            };
+
+            *response_byte_buf =
+                make_byte_buf(&ServerMessage::RequestAdapterResponse(adapter_id, response));
+        }
         Message::Device(id, action) => global.device_action(
             id,
             action,
