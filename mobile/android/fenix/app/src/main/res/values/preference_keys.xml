@@ -83,6 +83,8 @@
     <string name="pref_key_translations_offer" translatable="false">pref_key_translations_offer</string>
     <string name="pref_key_terms_accepted" translatable="false">pref_key_terms_accepted</string>
     <string name="pref_key_should_show_marketing_onboarding" translatable="false">pref_key_should_show_marketing_onboarding</string>
+    <string name="pref_key_crash_pull_never_show_again" translatable="false">pref_key_crash_pull_never_show_again</string>
+    <string name="pref_key_crash_pull_dont_show_before" translatable="false">pref_key_crash_pull_dont_show_before</string>
 
     <!-- Data Choices -->
     <string name="pref_key_telemetry" translatable="false">pref_key_telemetry</string>

@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.crashes
 
+import android.content.Context
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import mozilla.components.lib.crash.store.CrashState
@@ -14,18 +15,23 @@ import org.mozilla.fenix.components.appstate.AppState
 /**
  * A binding for observing the [CrashState] in the [AppStore] and displaying the crash reporter.
  *
+ * @param context The [Context] used to open links via Intents.
  * @param store The [AppStore] used to observe the [CrashState].
  * @param onReporting a callback that is called when [CrashState] is [CrashState.Reporting].
  */
 class CrashReporterBinding(
+    private val context: Context,
     store: AppStore,
-    private val onReporting: () -> Unit,
+    private val onReporting: (Array<String>?, Context) -> Unit,
 ) : AbstractBinding<AppState>(store) {
     override suspend fun onState(flow: Flow<AppState>) {
         flow.distinctUntilChangedBy { state -> state.crashState }
             .collect { state ->
                 if (state.crashState == CrashState.Reporting) {
-                    onReporting()
+                    onReporting(null, context)
+                }
+                if (state.crashState is CrashState.ReportingPull) {
+                    onReporting(state.crashState.crashIDs, context)
                 }
             }
     }

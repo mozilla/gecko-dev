@@ -161,6 +161,8 @@ import org.mozilla.fenix.theme.StatusBarColorManager
 import org.mozilla.fenix.theme.ThemeManager
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.utils.changeAppLauncherIcon
+import java.lang.Math
+import java.lang.System
 import java.lang.ref.WeakReference
 import java.util.Locale
 
@@ -216,6 +218,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
 
     private val crashReporterBinding by lazy {
         CrashReporterBinding(
+            context = this,
             store = components.appStore,
             onReporting = ::showCrashReporter,
         )
@@ -1435,12 +1438,23 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         messaging.onMessageDisplayed(nextMessage, currentBootUniqueIdentifier)
     }
 
-    private fun showCrashReporter() {
+    private fun showCrashReporter(crashIDs: Array<String>?, ctxt: Context) {
         if (!settings().useNewCrashReporterDialog) {
             return
         }
+
+        var now = Math.round(System.currentTimeMillis() / DateUtils.SECOND_IN_MILLIS * 1.0)
+        if (now < settings().crashPullDontShowBefore) {
+            return
+        }
+
         UnsubmittedCrashDialog(
-            dispatcher = { action -> components.appStore.dispatch(AppAction.CrashActionWrapper(action)) },
+            dispatcher = { action ->
+                components.appStore.dispatch(AppAction.CrashActionWrapper(action))
+                settings().crashPullDontShowBefore = now + CRASH_PULL_SILENCE_FOR_DAYS_IN_S
+            },
+            crashIDs = crashIDs,
+            localContext = ctxt,
         ).show(supportFragmentManager, UnsubmittedCrashDialog.TAG)
     }
 
@@ -1456,5 +1470,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         // PWA must have been used within last 30 days to be considered "recently used" for the
         // telemetry purposes.
         private const val PWA_RECENTLY_USED_THRESHOLD = DateUtils.DAY_IN_MILLIS * 30L
+
+        private const val CRASH_PULL_SILENCE_FOR_DAYS_IN_S = 7L * 86400L
     }
 }

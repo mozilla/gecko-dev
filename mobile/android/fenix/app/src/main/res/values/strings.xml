@@ -1568,12 +1568,20 @@
     <string name="tab_crash_restore">Restore tab</string>
     <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox").  -->
     <string name="unsubmitted_crash_dialog_title">%s had to restart</string>
+    <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+    <string name="unsubmitted_crash_requested_by_devs_dialog_title">You have an unsent crash report related to crashes being investigated. Sending it will help us improve %1$s. Closing this notification will ignore this report.</string>
+    <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+    <string name="unsubmitted_crashes_requested_by_devs_dialog_title">You have unsent crash reports (%1$d) related to crashes being investigated. Sending them will help us improve %2$s. Closing this notification will ignore these reports.</string>
     <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
     <string name="unsubmitted_crash_dialog_checkbox_label">Automatically send crash reports</string>
     <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
     <string name="unsubmitted_crash_dialog_negative_button">Close</string>
+    <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+    <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Never show again</string>
     <!-- Unsubmitted crash dialog positive button to submit crash report -->
     <string name="unsubmitted_crash_dialog_positive_button">Send crash report</string>
+    <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+    <string name="unsubmitted_crash_requested_by_devs_learn_more">Learn More</string>
 
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->

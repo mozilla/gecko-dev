@@ -33,6 +33,12 @@ sealed class CrashState {
     data object Reporting : CrashState()
 
     /**
+     * Crash reporter is presenting UI to the user to send crash reports that
+     * were requested over Remote Settings.
+     */
+    data class ReportingPull(val crashIDs: Array<String>) : CrashState()
+
+    /**
      * Crash reporter is done.
      */
     data object Done : CrashState()

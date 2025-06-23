@@ -281,6 +281,7 @@ public final class GeckoRuntime implements Parcelable {
   private WebPushController mPushController;
   private final ContentBlockingController mContentBlockingController;
   private final Autocomplete.StorageProxy mAutocompleteStorageProxy;
+  private final CrashPullController.CrashPullProxy mCrashPullProxy;
   private final ProfilerController mProfilerController;
   private final GeckoScreenChangeListener mScreenChangeListener;
 
@@ -288,6 +289,7 @@ public final class GeckoRuntime implements Parcelable {
     mWebExtensionController = new WebExtensionController(this);
     mContentBlockingController = new ContentBlockingController();
     mAutocompleteStorageProxy = new Autocomplete.StorageProxy();
+    mCrashPullProxy = new CrashPullController.CrashPullProxy();
     mProfilerController = new ProfilerController();
     mScreenChangeListener = new GeckoScreenChangeListener();
 
@@ -765,6 +767,29 @@ public final class GeckoRuntime implements Parcelable {
   public @Nullable Autocomplete.StorageDelegate getAutocompleteStorageDelegate() {
     ThreadUtils.assertOnUiThread();
     return mAutocompleteStorageProxy.getDelegate();
+  }
+
+  /**
+   * Set the {@link CrashPullController.Delegate} instance set on this runtime.
+   *
+   * @param delegate The {@link CrashPullController.Delegate} handling crash pull from Remote
+   *     Settings.
+   */
+  @UiThread
+  public void setCrashPullDelegate(final @Nullable CrashPullController.Delegate delegate) {
+    ThreadUtils.assertOnUiThread();
+    mCrashPullProxy.setDelegate(delegate);
+  }
+
+  /**
+   * Get the {@link CrashPullController.Delegate} instance set on this runtime.
+   *
+   * @return The {@link CrashPullController.Delegate} set on this runtime.
+   */
+  @UiThread
+  public @Nullable CrashPullController.Delegate getCrashPullDelegate() {
+    ThreadUtils.assertOnUiThread();
+    return mCrashPullProxy.getDelegate();
   }
 
   @UiThread

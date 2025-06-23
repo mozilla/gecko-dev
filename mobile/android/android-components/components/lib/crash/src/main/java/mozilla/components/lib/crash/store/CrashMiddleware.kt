@@ -46,6 +46,12 @@ interface CrashReportCache {
      * Stores the users response to always send crashes.
      */
     suspend fun setAlwaysSend(alwaysSend: Boolean)
+
+    /**
+     * Records that the user does not want to see the remote settings crash pull
+     * anymore
+     */
+    suspend fun setCrashPullNeverShowAgain(neverShowAgain: Boolean)
 }
 
 /**
@@ -62,7 +68,6 @@ class CrashMiddleware(
     private val currentTimeInMillis: () -> TimeInMillis = { System.currentTimeMillis() },
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) {
-
     /**
      * Handle any middleware logic before an action reaches the [crashReducer].
      *
@@ -117,6 +122,9 @@ class CrashMiddleware(
                 }
             }
             CrashAction.CancelTapped -> dispatch(CrashAction.Defer(now = currentTimeInMillis()))
+            CrashAction.CancelForEverTapped -> scope.launch {
+                cache.setCrashPullNeverShowAgain(true)
+            }
             is CrashAction.Defer -> scope.launch {
                 val state = getState()
                 if (state is CrashState.Deferred) {
@@ -124,11 +132,16 @@ class CrashMiddleware(
                 }
             }
             is CrashAction.ReportTapped -> scope.launch {
-                if (action.automaticallySendChecked) {
-                    cache.setAlwaysSend(true)
+                if (action.crashIDs != null && action.crashIDs.size > 0) {
+                    sendCrashReports(action.crashIDs)
+                } else {
+                    if (action.automaticallySendChecked) {
+                        cache.setAlwaysSend(true)
+                    }
+                    sendUnsentCrashReports()
                 }
-                sendUnsentCrashReports()
             }
+            is CrashAction.PullCrashes -> {} // noop
             CrashAction.ShowPrompt -> {} // noop
         }
     }
@@ -141,6 +154,12 @@ class CrashMiddleware(
 
     private suspend fun sendUnsentCrashReports() {
         crashReporter.unsentCrashReportsSince(cutoffDate()).forEach {
+            crashReporter.submitReport(it)
+        }
+    }
+
+    private suspend fun sendCrashReports(crashIDs: Array<String>) {
+        crashReporter.findCrashReports(crashIDs).forEach {
             crashReporter.submitReport(it)
         }
     }
