@@ -211,7 +211,7 @@ pub use self::GenericCaretColor as CaretColor;
 
 /// A light-dark(<light>, <dark>) function.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem, ToCss, ToResolvedValue)]
-#[css(function, comma)]
+#[css(function = "light-dark", comma)]
 #[repr(C)]
 pub struct GenericLightDark<T> {
     /// The value returned when using a light theme.
