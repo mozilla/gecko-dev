@@ -115,6 +115,8 @@ struct ImplicitLayout<'a> {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 enum Message<'a> {
+    Device(id::DeviceId, DeviceAction<'a>),
+
     DestroyBuffer(id::BufferId),
     DestroyTexture(id::TextureId),
     DestroyDevice(id::DeviceId),

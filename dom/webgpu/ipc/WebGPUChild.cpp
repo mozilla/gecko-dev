@@ -113,10 +113,10 @@ RawId WebGPUChild::RenderBundleEncoderFinish(
   desc.label = label.Get();
 
   ipc::ByteBuf bb;
-  RawId id = ffi::wgpu_client_create_render_bundle(mClient.get(), &aEncoder,
-                                                   &desc, ToFFI(&bb));
+  RawId id = ffi::wgpu_client_create_render_bundle(
+      mClient.get(), aDeviceId, &aEncoder, &desc, ToFFI(&bb));
 
-  SendDeviceAction(aDeviceId, std::move(bb));
+  SendMessage(std::move(bb));
 
   return id;
 }
@@ -127,9 +127,9 @@ RawId WebGPUChild::RenderBundleEncoderFinishError(RawId aDeviceId,
 
   ipc::ByteBuf bb;
   RawId id = ffi::wgpu_client_create_render_bundle_error(
-      mClient.get(), label.Get(), ToFFI(&bb));
+      mClient.get(), aDeviceId, label.Get(), ToFFI(&bb));
 
-  SendDeviceAction(aDeviceId, std::move(bb));
+  SendMessage(std::move(bb));
 
   return id;
 }

@@ -92,8 +92,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
                                    layers::RemoteTextureTxnType aTxnType,
                                    layers::RemoteTextureTxnId aTxnId);
 
-  ipc::IPCResult RecvDeviceAction(RawId aDeviceId,
-                                  const ipc::ByteBuf& aByteBuf);
   ipc::IPCResult RecvDeviceActionWithAck(
       RawId aDeviceId, const ipc::ByteBuf& aByteBuf,
       DeviceActionWithAckResolver&& aResolver);

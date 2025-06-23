@@ -1566,16 +1566,6 @@ void WebGPUParent::ActorDestroy(ActorDestroyReason aWhy) {
   mContext = nullptr;
 }
 
-ipc::IPCResult WebGPUParent::RecvDeviceAction(RawId aDeviceId,
-                                              const ipc::ByteBuf& aByteBuf) {
-  ErrorBuffer error;
-  ffi::wgpu_server_device_action(mContext.get(), aDeviceId, ToFFI(&aByteBuf),
-                                 error.ToFFI());
-
-  ForwardError(aDeviceId, error);
-  return IPC_OK();
-}
-
 ipc::IPCResult WebGPUParent::RecvMessage(const ipc::ByteBuf& aByteBuf) {
   ErrorBuffer error;
   ffi::wgpu_server_message(mContext.get(), ToFFI(&aByteBuf), error.ToFFI());
@@ -1586,9 +1576,12 @@ ipc::IPCResult WebGPUParent::RecvMessage(const ipc::ByteBuf& aByteBuf) {
 ipc::IPCResult WebGPUParent::RecvDeviceActionWithAck(
     RawId aDeviceId, const ipc::ByteBuf& aByteBuf,
     DeviceActionWithAckResolver&& aResolver) {
-  auto result = RecvDeviceAction(aDeviceId, aByteBuf);
+  ErrorBuffer error;
+  ffi::wgpu_server_device_action(mContext.get(), aDeviceId, ToFFI(&aByteBuf),
+                                 error.ToFFI());
+  ForwardError(aDeviceId, error);
   aResolver(true);
-  return result;
+  return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvTextureAction(RawId aTextureId,

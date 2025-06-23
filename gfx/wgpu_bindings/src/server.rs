@@ -2380,6 +2380,8 @@ pub unsafe extern "C" fn wgpu_server_message(
 ) {
     let message: Message = bincode::deserialize(byte_buf.as_slice()).unwrap();
     match message {
+        Message::Device(id, action) => global.device_action(id, action, error_buf),
+
         Message::DestroyBuffer(id) => {
             wgpu_server_dealloc_buffer_shmem(global.webgpu_parent, id);
             global.buffer_destroy(id)
@@ -2389,7 +2391,6 @@ pub unsafe extern "C" fn wgpu_server_message(
             global.texture_destroy(id)
         }
         Message::DestroyDevice(id) => global.device_destroy(id),
-
         Message::DropAdapter(id) => global.adapter_drop(id),
         Message::DropDevice(id) => {
             wgpu_server_pre_device_drop(global.webgpu_parent, id);

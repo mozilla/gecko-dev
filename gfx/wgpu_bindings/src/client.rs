@@ -592,6 +592,7 @@ pub extern "C" fn wgpu_client_drop_render_pipeline(
 #[no_mangle]
 pub extern "C" fn wgpu_client_create_texture(
     client: &Client,
+    device_id: id::DeviceId,
     desc: &wgt::TextureDescriptor<Option<&nsACString>, crate::FfiSlice<TextureFormat>>,
     swap_chain_id: Option<&SwapChainId>,
     bb: &mut ByteBuf,
@@ -607,6 +608,7 @@ pub extern "C" fn wgpu_client_create_texture(
         desc.map_label_and_view_formats(|_| label, |_| view_formats),
         swap_chain_id.copied(),
     );
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
 
     id
@@ -654,6 +656,7 @@ pub extern "C" fn wgpu_client_free_texture_view_id(client: &Client, id: id::Text
 #[no_mangle]
 pub extern "C" fn wgpu_client_create_sampler(
     client: &Client,
+    device_id: id::DeviceId,
     desc: &SamplerDescriptor,
     bb: &mut ByteBuf,
 ) -> id::SamplerId {
@@ -674,6 +677,7 @@ pub extern "C" fn wgpu_client_create_sampler(
         border_color: None,
     };
     let action = DeviceAction::CreateSampler(id, wgpu_desc);
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
     id
 }
@@ -705,6 +709,7 @@ pub extern "C" fn wgpu_client_free_command_encoder_id(client: &Client, id: id::C
 #[no_mangle]
 pub extern "C" fn wgpu_client_create_command_encoder(
     client: &Client,
+    device_id: id::DeviceId,
     desc: &wgt::CommandEncoderDescriptor<Option<&nsACString>>,
     bb: &mut ByteBuf,
 ) -> id::CommandEncoderId {
@@ -718,6 +723,7 @@ pub extern "C" fn wgpu_client_create_command_encoder(
         .into_command_encoder_id();
 
     let action = DeviceAction::CreateCommandEncoder(id, desc.map_label(|_| label));
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
     id
 }
@@ -755,6 +761,7 @@ pub extern "C" fn wgpu_device_create_render_bundle_encoder(
                 message,
                 r#type: e.error_type(),
             };
+            let action = Message::Device(device_id, action);
             *bb = make_byte_buf(&action);
             ptr::null_mut()
         }
@@ -773,6 +780,7 @@ pub unsafe extern "C" fn wgpu_render_bundle_encoder_destroy(
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_render_bundle(
     client: &Client,
+    device_id: id::DeviceId,
     encoder: *mut wgc::command::RenderBundleEncoder,
     desc: &wgt::RenderBundleDescriptor<Option<&nsACString>>,
     bb: &mut ByteBuf,
@@ -783,6 +791,7 @@ pub unsafe extern "C" fn wgpu_client_create_render_bundle(
 
     let action =
         DeviceAction::CreateRenderBundle(id, *Box::from_raw(encoder), desc.map_label(|_| label));
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
     id
 }
@@ -790,6 +799,7 @@ pub unsafe extern "C" fn wgpu_client_create_render_bundle(
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_render_bundle_error(
     client: &Client,
+    device_id: id::DeviceId,
     label: Option<&nsACString>,
     bb: &mut ByteBuf,
 ) -> id::RenderBundleId {
@@ -798,6 +808,7 @@ pub unsafe extern "C" fn wgpu_client_create_render_bundle_error(
     let id = client.identities.lock().render_bundles.process();
 
     let action = DeviceAction::CreateRenderBundleError(id, label);
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
     id
 }
@@ -824,6 +835,7 @@ pub enum RawQueryType {
 #[no_mangle]
 pub extern "C" fn wgpu_client_create_query_set(
     client: &Client,
+    device_id: id::DeviceId,
     desc: &RawQuerySetDescriptor,
     bb: &mut ByteBuf,
 ) -> wgc::id::QuerySetId {
@@ -840,6 +852,7 @@ pub extern "C" fn wgpu_client_create_query_set(
     let id = client.identities.lock().query_sets.process();
 
     let action = DeviceAction::CreateQuerySet(id, desc);
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
 
     id
@@ -982,6 +995,7 @@ pub unsafe extern "C" fn wgpu_render_pass_destroy(pass: *mut crate::command::Rec
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_bind_group_layout(
     client: &Client,
+    device_id: id::DeviceId,
     desc: &BindGroupLayoutDescriptor,
     bb: &mut ByteBuf,
 ) -> id::BindGroupLayoutId {
@@ -1060,6 +1074,7 @@ pub unsafe extern "C" fn wgpu_client_create_bind_group_layout(
     };
 
     let action = DeviceAction::CreateBindGroupLayout(id, wgpu_desc);
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
     id
 }
@@ -1075,6 +1090,7 @@ pub extern "C" fn wgpu_client_free_bind_group_layout_id(
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_render_pipeline_get_bind_group_layout(
     client: &Client,
+    device_id: id::DeviceId,
     pipeline_id: id::RenderPipelineId,
     index: u32,
     bb: &mut ByteBuf,
@@ -1082,6 +1098,7 @@ pub unsafe extern "C" fn wgpu_client_render_pipeline_get_bind_group_layout(
     let bgl_id = client.identities.lock().bind_group_layouts.process();
 
     let action = DeviceAction::RenderPipelineGetBindGroupLayout(pipeline_id, index, bgl_id);
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
 
     bgl_id
@@ -1090,6 +1107,7 @@ pub unsafe extern "C" fn wgpu_client_render_pipeline_get_bind_group_layout(
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_compute_pipeline_get_bind_group_layout(
     client: &Client,
+    device_id: id::DeviceId,
     pipeline_id: id::ComputePipelineId,
     index: u32,
     bb: &mut ByteBuf,
@@ -1097,6 +1115,7 @@ pub unsafe extern "C" fn wgpu_client_compute_pipeline_get_bind_group_layout(
     let bgl_id = client.identities.lock().bind_group_layouts.process();
 
     let action = DeviceAction::ComputePipelineGetBindGroupLayout(pipeline_id, index, bgl_id);
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
 
     bgl_id
@@ -1105,6 +1124,7 @@ pub unsafe extern "C" fn wgpu_client_compute_pipeline_get_bind_group_layout(
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_pipeline_layout(
     client: &Client,
+    device_id: id::DeviceId,
     desc: &PipelineLayoutDescriptor,
     bb: &mut ByteBuf,
 ) -> id::PipelineLayoutId {
@@ -1122,6 +1142,7 @@ pub unsafe extern "C" fn wgpu_client_create_pipeline_layout(
     };
 
     let action = DeviceAction::CreatePipelineLayout(id, wgpu_desc);
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
     id
 }
@@ -1134,6 +1155,7 @@ pub extern "C" fn wgpu_client_free_pipeline_layout_id(client: &Client, id: id::P
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_bind_group(
     client: &Client,
+    device_id: id::DeviceId,
     desc: &BindGroupDescriptor,
     bb: &mut ByteBuf,
 ) -> id::BindGroupId {
@@ -1167,6 +1189,7 @@ pub unsafe extern "C" fn wgpu_client_create_bind_group(
     };
 
     let action = DeviceAction::CreateBindGroup(id, wgpu_desc);
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
     id
 }
@@ -1189,6 +1212,7 @@ pub extern "C" fn wgpu_client_free_shader_module_id(client: &Client, id: id::Sha
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_compute_pipeline(
     client: &Client,
+    device_id: id::DeviceId,
     desc: &ComputePipelineDescriptor,
     bb: &mut ByteBuf,
     implicit_pipeline_layout_id: *mut Option<id::PipelineLayoutId>,
@@ -1219,6 +1243,7 @@ pub unsafe extern "C" fn wgpu_client_create_compute_pipeline(
     };
 
     let action = DeviceAction::CreateComputePipeline(id, wgpu_desc, implicit);
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
     id
 }
@@ -1231,6 +1256,7 @@ pub extern "C" fn wgpu_client_free_compute_pipeline_id(client: &Client, id: id::
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_render_pipeline(
     client: &Client,
+    device_id: id::DeviceId,
     desc: &RenderPipelineDescriptor,
     bb: &mut ByteBuf,
     implicit_pipeline_layout_id: *mut Option<id::PipelineLayoutId>,
@@ -1266,6 +1292,7 @@ pub unsafe extern "C" fn wgpu_client_create_render_pipeline(
     };
 
     let action = DeviceAction::CreateRenderPipeline(id, wgpu_desc, implicit);
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
     id
 }

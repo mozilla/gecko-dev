@@ -63,9 +63,9 @@ already_AddRefed<BindGroupLayout> ComputePipeline::GetBindGroupLayout(
 
   ipc::ByteBuf bb;
   const RawId bglId = ffi::wgpu_client_compute_pipeline_get_bind_group_layout(
-      client, mId, aIndex, ToFFI(&bb));
+      client, mParent->GetId(), mId, aIndex, ToFFI(&bb));
 
-  bridge->SendDeviceAction(mParent->GetId(), std::move(bb));
+  bridge->SendMessage(std::move(bb));
 
   RefPtr<BindGroupLayout> object = new BindGroupLayout(mParent, bglId, false);
   return object.forget();

@@ -62,7 +62,7 @@ ffi::WGPURenderBundleEncoder* CreateRenderBundleEncoder(
       aDeviceId, &desc, ToFFI(&failureAction));
   // Report an error only if the operation failed.
   if (!bundle) {
-    aBridge->SendDeviceAction(aDeviceId, std::move(failureAction));
+    aBridge->SendMessage(std::move(failureAction));
   }
   return bundle;
 }
@@ -238,15 +238,15 @@ already_AddRefed<RenderBundle> RenderBundleEncoder::Finish(
   RawId id;
   if (mValid) {
     id = ffi::wgpu_client_create_render_bundle(
-        bridge->GetClient(), mEncoder.get(), &desc, ToFFI(&bb));
+        bridge->GetClient(), deviceId, mEncoder.get(), &desc, ToFFI(&bb));
 
   } else {
-    id = ffi::wgpu_client_create_render_bundle_error(bridge->GetClient(),
-                                                     label.Get(), ToFFI(&bb));
+    id = ffi::wgpu_client_create_render_bundle_error(
+        bridge->GetClient(), deviceId, label.Get(), ToFFI(&bb));
   }
 
   if (bridge->CanSend()) {
-    bridge->SendDeviceAction(deviceId, std::move(bb));
+    bridge->SendMessage(std::move(bb));
   }
 
   Cleanup();
