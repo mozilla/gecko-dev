@@ -11,15 +11,8 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/ScopeExit.h"
+#include "mozilla/Unused.h"
 #include "nsDebug.h"
-#include "nsPrintfCString.h"
-#include "nsString.h"
-
-#define STATE_FLAG_DIR_LTR (1U << 7)
-#define STATE_FLAG_DIR_RTL (1U << 8)
-static_assert(GTK_STATE_FLAG_DIR_LTR == STATE_FLAG_DIR_LTR &&
-                  GTK_STATE_FLAG_DIR_RTL == STATE_FLAG_DIR_RTL,
-              "incorrect direction state flags");
 
 enum class CSDStyle {
   Unknown,
@@ -193,11 +186,8 @@ static void CreateWindowAndHeaderBar() {
     if (headerBarHasBackground && GetBorderRadius(headerBarStyle)) {
       return false;
     }
-    if (HasBackground(fixedStyle) &&
-        (GetBorderRadius(fixedStyle) || !headerBarHasBackground)) {
-      return true;
-    }
-    return false;
+    return HasBackground(fixedStyle) &&
+           (GetBorderRadius(fixedStyle) || !headerBarHasBackground);
   }();
 }
 
