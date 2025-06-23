@@ -78,6 +78,7 @@ parent:
   async QueueOnSubmittedWorkDone(RawId selfId) returns (void_t ok);
   // In the case of a zero-sized write action, `shmem` will be an invalid handle.
   async QueueWriteAction(RawId selfId, RawId aDeviceId, ByteBuf buf, MutableSharedMemoryHandle shmem);
+  async QueueWriteBufferInline(RawId selfId, RawId aDeviceId, RawId aBufferId, uint64_t offset, ByteBuf buf);
 
   async BindGroupLayoutDrop(RawId selfId);
   async PipelineLayoutDrop(RawId selfId);

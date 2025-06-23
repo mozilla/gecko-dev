@@ -81,6 +81,9 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
                                  const nsTArray<RawId>& aTextureIds);
   ipc::IPCResult RecvQueueOnSubmittedWorkDone(
       RawId aQueueId, std::function<void(mozilla::void_t)>&& aResolver);
+  ipc::IPCResult RecvQueueWriteBufferInline(RawId aQueueId, RawId aDeviceId,
+                                            RawId aBufferId, uint64_t offset,
+                                            const ipc::ByteBuf& aByteBuf);
   ipc::IPCResult RecvQueueWriteAction(RawId aQueueId, RawId aDeviceId,
                                       const ipc::ByteBuf& aByteBuf,
                                       ipc::MutableSharedMemoryHandle&& aShmem);

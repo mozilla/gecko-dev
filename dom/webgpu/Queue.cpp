@@ -122,6 +122,15 @@ void Queue::WriteBuffer(
           return;
         }
 
+        if (size < 1024) {
+          ipc::ByteBuf bb{};
+          bb.Allocate(size);
+          memcpy(bb.mData, aData.Elements() + offset, size);
+          mBridge->SendQueueWriteBufferInline(mId, mParent->mId, aBuffer.mId,
+                                              aBufferOffset, std::move(bb));
+          return;
+        }
+
         mozilla::ipc::MutableSharedMemoryHandle handle;
         if (size != 0) {
           handle = mozilla::ipc::shared_memory::Create(size);

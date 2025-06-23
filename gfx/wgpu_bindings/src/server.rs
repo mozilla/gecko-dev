@@ -2710,6 +2710,21 @@ pub unsafe extern "C" fn wgpu_server_on_submitted_work_done(
     global.queue_on_submitted_work_done(self_id, closure);
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn wgpu_server_queue_write_buffer_inline(
+    global: &Global,
+    self_id: id::QueueId,
+    buffer_id: id::BufferId,
+    offset: u64,
+    byte_buf: &ByteBuf,
+    mut error_buf: ErrorBuffer,
+) {
+    let result = global.queue_write_buffer(self_id, buffer_id, offset, byte_buf.as_slice());
+    if let Err(err) = result {
+        error_buf.init(err);
+    }
+}
+
 /// # Safety
 ///
 /// This function is unsafe as there is no guarantee that the given pointer is
