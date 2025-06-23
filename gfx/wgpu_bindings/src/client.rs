@@ -1306,6 +1306,7 @@ pub extern "C" fn wgpu_client_free_render_pipeline_id(client: &Client, id: id::R
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_command_encoder_copy_buffer_to_buffer(
+    command_encoder_id: id::CommandEncoderId,
     src: id::BufferId,
     src_offset: wgt::BufferAddress,
     dst: id::BufferId,
@@ -1328,11 +1329,13 @@ pub unsafe extern "C" fn wgpu_command_encoder_copy_buffer_to_buffer(
         dst_offset,
         size,
     };
+    let action = Message::CommandEncoder(command_encoder_id, action);
     *bb = make_byte_buf(&action);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_command_encoder_copy_texture_to_buffer(
+    command_encoder_id: id::CommandEncoderId,
     src: wgc::command::TexelCopyTextureInfo,
     dst_buffer: wgc::id::BufferId,
     dst_layout: &TexelCopyBufferLayout,
@@ -1347,11 +1350,13 @@ pub unsafe extern "C" fn wgpu_command_encoder_copy_texture_to_buffer(
         },
         size,
     };
+    let action = Message::CommandEncoder(command_encoder_id, action);
     *bb = make_byte_buf(&action);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_command_encoder_copy_buffer_to_texture(
+    command_encoder_id: id::CommandEncoderId,
     src_buffer: wgc::id::BufferId,
     src_layout: &TexelCopyBufferLayout,
     dst: wgc::command::TexelCopyTextureInfo,
@@ -1366,22 +1371,26 @@ pub unsafe extern "C" fn wgpu_command_encoder_copy_buffer_to_texture(
         dst,
         size,
     };
+    let action = Message::CommandEncoder(command_encoder_id, action);
     *bb = make_byte_buf(&action);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_command_encoder_copy_texture_to_texture(
+    command_encoder_id: id::CommandEncoderId,
     src: wgc::command::TexelCopyTextureInfo,
     dst: wgc::command::TexelCopyTextureInfo,
     size: wgt::Extent3d,
     bb: &mut ByteBuf,
 ) {
     let action = CommandEncoderAction::CopyTextureToTexture { src, dst, size };
+    let action = Message::CommandEncoder(command_encoder_id, action);
     *bb = make_byte_buf(&action);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_command_encoder_clear_buffer(
+    command_encoder_id: id::CommandEncoderId,
     dst: wgc::id::BufferId,
     offset: u64,
     size: Option<&u64>,
@@ -1392,34 +1401,47 @@ pub unsafe extern "C" fn wgpu_command_encoder_clear_buffer(
         offset,
         size: size.cloned(),
     };
+    let action = Message::CommandEncoder(command_encoder_id, action);
     *bb = make_byte_buf(&action);
 }
 
 #[no_mangle]
-pub extern "C" fn wgpu_command_encoder_push_debug_group(marker: &nsACString, bb: &mut ByteBuf) {
+pub extern "C" fn wgpu_command_encoder_push_debug_group(
+    command_encoder_id: id::CommandEncoderId,
+    marker: &nsACString,
+    bb: &mut ByteBuf,
+) {
     let string = marker.to_string();
     let action = CommandEncoderAction::PushDebugGroup(string);
+    let action = Message::CommandEncoder(command_encoder_id, action);
     *bb = make_byte_buf(&action);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn wgpu_command_encoder_pop_debug_group(bb: &mut ByteBuf) {
+pub unsafe extern "C" fn wgpu_command_encoder_pop_debug_group(
+    command_encoder_id: id::CommandEncoderId,
+    bb: &mut ByteBuf,
+) {
     let action = CommandEncoderAction::PopDebugGroup;
+    let action = Message::CommandEncoder(command_encoder_id, action);
     *bb = make_byte_buf(&action);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_command_encoder_insert_debug_marker(
+    command_encoder_id: id::CommandEncoderId,
     marker: &nsACString,
     bb: &mut ByteBuf,
 ) {
     let string = marker.to_string();
     let action = CommandEncoderAction::InsertDebugMarker(string);
+    let action = Message::CommandEncoder(command_encoder_id, action);
     *bb = make_byte_buf(&action);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_command_encoder_resolve_query_set(
+    command_encoder_id: id::CommandEncoderId,
     query_set_id: id::QuerySetId,
     start_query: u32,
     query_count: u32,
@@ -1434,6 +1456,7 @@ pub unsafe extern "C" fn wgpu_command_encoder_resolve_query_set(
         destination,
         destination_offset,
     };
+    let action = Message::CommandEncoder(command_encoder_id, action);
     *bb = make_byte_buf(&action);
 }
 

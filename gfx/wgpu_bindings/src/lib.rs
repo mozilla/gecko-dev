@@ -117,6 +117,7 @@ struct ImplicitLayout<'a> {
 enum Message<'a> {
     Device(id::DeviceId, DeviceAction<'a>),
     Texture(id::TextureId, TextureAction<'a>),
+    CommandEncoder(id::CommandEncoderId, CommandEncoderAction),
 
     DestroyBuffer(id::BufferId),
     DestroyTexture(id::TextureId),
