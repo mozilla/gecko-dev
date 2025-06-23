@@ -705,6 +705,13 @@
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
         <action
+            android:id="@+id/action_settingsFragment_to_openDownloadsSettingsFragment"
+            app:destination="@id/openDownloadsSettingsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
             android:id="@+id/action_settingsFragment_to_linkSharingFragment"
             app:destination="@id/linkSharingFragment"
             app:enterAnim="@anim/slide_in_right"
@@ -933,6 +940,9 @@
     <fragment
         android:id="@+id/openLinksInAppsFragment"
         android:name="org.mozilla.fenix.settings.OpenLinksInAppsFragment" />
+    <fragment
+        android:id="@+id/openDownloadsSettingsFragment"
+        android:name="org.mozilla.fenix.settings.DownloadsSettingsFragment" />
     <fragment
         android:id="@+id/linkSharingFragment"
         android:name="org.mozilla.fenix.settings.LinkSharingFragment" />
