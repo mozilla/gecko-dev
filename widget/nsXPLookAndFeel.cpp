@@ -545,6 +545,7 @@ static constexpr struct {
     {"browser.display.foreground_color.dark"_ns,
      widget::ThemeChangeKind::Style},
     {"browser.display.document_color_use"_ns, widget::ThemeChangeKind::Style},
+    {"browser.display.use_document_fonts"_ns, widget::ThemeChangeKind::Style},
     {"browser.display.permit_backplate"_ns, widget::ThemeChangeKind::Style},
     {"ui.use_standins_for_native_colors"_ns, widget::ThemeChangeKind::Style},
     {"privacy.resistFingerprinting"_ns, widget::ThemeChangeKind::Style},
