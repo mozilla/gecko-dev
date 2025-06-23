@@ -47,6 +47,7 @@ category browser-first-window-ready moz-src:///toolkit/profile/ProfilesDatastore
 category browser-first-window-ready resource:///modules/profiles/SelectableProfileService.sys.mjs SelectableProfileService.init
 category browser-first-window-ready moz-src:///browser/components/protections/ContentBlockingPrefs.sys.mjs ContentBlockingPrefs.init
 category browser-first-window-ready resource://gre/modules/CaptchaDetectionPingUtils.sys.mjs CaptchaDetectionPingUtils.init
+category browser-first-window-ready resource:///modules/ipprotection/IPProtection.sys.mjs IPProtection.init
 #ifdef MOZ_SANDBOX
 #ifdef XP_LINUX
 category browser-first-window-ready resource://gre/modules/SandboxUtils.sys.mjs SandboxUtils.maybeWarnAboutMissingUserNamespaces
@@ -94,5 +95,6 @@ category browser-quit-application-granted moz-src:///browser/components/search/S
 category browser-quit-application-granted resource://gre/modules/UpdateListener.sys.mjs UpdateListener.reset
 #endif
 category browser-quit-application-granted resource:///modules/UrlbarSearchTermsPersistence.sys.mjs UrlbarSearchTermsPersistence.uninit
+category browser-quit-application-granted resource:///modules/ipprotection/IPProtection.sys.mjs IPProtection.uninit
 
 category search-service-notification moz-src:///browser/components/search/SearchUIUtils.sys.mjs SearchUIUtils.showSearchServiceNotification

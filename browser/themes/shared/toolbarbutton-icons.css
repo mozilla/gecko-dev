@@ -315,3 +315,7 @@
 #fxms-bmb-button {
   list-style-image: url("chrome://branding/content/about-logo.png");
 }
+
+#ipprotection-button {
+  list-style-image: url("chrome://browser/content/logos/vpn.svg");
+}

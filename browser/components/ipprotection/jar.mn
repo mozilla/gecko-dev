@@ -3,3 +3,5 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 browser.jar:
+    content/browser/ipprotection/ipprotection-customelements.js (content/ipprotection-customelements.js)
+    content/browser/ipprotection/ipprotection-panel.mjs (content/ipprotection-panel.mjs)

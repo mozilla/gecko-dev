@@ -1,0 +1,12 @@
+[DEFAULT]
+support-files = [
+  "head.js",
+]
+
+prefs = [
+  "browser.ipProtection.enabled=true",
+]
+
+["browser_ipprotection_panel.js"]
+
+["browser_ipprotection_toolbar.js"]

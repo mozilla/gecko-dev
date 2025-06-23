@@ -835,5 +835,26 @@
     </vbox>
   </panelview>
 
+  <panelview id="PanelUI-ipprotection"
+             class="PanelUI-subView"
+             mainview-with-header="true">
+    <vbox id="PanelUI-ipprotection-header">
+      <hbox id="PanelUI-ipprotection-header-bar"
+            class="panel-header panel-header-with-additional-element">
+        <!-- Beta tag element -->
+        <html:h1>
+          <html:span data-l10n-id="ipprotection-title"></html:span>
+        </html:h1>
+        <!-- Question mark info element -->
+      </hbox>
+    </vbox>
+    <toolbarseparator />
+    <vbox class="panel-subview-body">
+      <div id="PanelUI-ipprotection-content" namespaceURI="http://www.w3.org/1999/xhtml">
+        <!-- Root for ipprotection-panel content -->
+      </div>
+    </vbox>
+  </panelview>
+
 #include ../../components/reportbrokensite/content/reportBrokenSitePanel.inc.xhtml
 </html:template>

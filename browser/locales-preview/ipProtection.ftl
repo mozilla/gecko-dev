@@ -6,3 +6,5 @@
 ipprotection-button =
   .label = IP Protection
   .tooltiptext = { -brand-product-name } IP Protection
+
+ipprotection-title = { -brand-product-name } IP Protection

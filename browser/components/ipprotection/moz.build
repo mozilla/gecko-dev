@@ -8,3 +8,12 @@ with Files("**"):
     BUG_COMPONENT = ("Firefox", "IP Protection")
 
 JAR_MANIFESTS += ["jar.mn"]
+
+EXTRA_JS_MODULES.ipprotection += [
+    "IPProtection.sys.mjs",
+    "IPProtectionPanel.sys.mjs",
+]
+
+BROWSER_CHROME_MANIFESTS += [
+    "tests/browser/browser.toml",
+]
