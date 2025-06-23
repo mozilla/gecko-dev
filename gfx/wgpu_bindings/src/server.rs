@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    command::{RecordedComputePass, RecordedRenderPass},
     error::{ErrMsg, ErrorBuffer, ErrorBufferType},
     wgpu_string, AdapterInformation, ByteBuf, CommandEncoderAction, DeviceAction, Message,
     QueueWriteAction, SwapChainId, TextureAction,
@@ -2417,6 +2416,12 @@ pub unsafe extern "C" fn wgpu_server_message(
                 error_buf.init(err, device_id);
             }
         }
+        Message::ReplayRenderPass(device_id, id, pass) => {
+            crate::command::replay_render_pass(global, device_id, id, &pass, error_buf);
+        }
+        Message::ReplayComputePass(device_id, id, pass) => {
+            crate::command::replay_compute_pass(global, device_id, id, &pass, error_buf);
+        }
 
         Message::DestroyBuffer(id) => {
             wgpu_server_dealloc_buffer_shmem(global.webgpu_parent, id);
@@ -2481,74 +2486,6 @@ pub unsafe extern "C" fn wgpu_server_device_action(
 ) {
     let action = bincode::deserialize(byte_buf.as_slice()).unwrap();
     global.device_action(self_id, action, error_buf);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn wgpu_server_render_pass(
-    global: &Global,
-    device_id: id::DeviceId,
-    encoder_id: id::CommandEncoderId,
-    byte_buf: &ByteBuf,
-    error_buf: ErrorBuffer,
-) {
-    let pass = bincode::deserialize(byte_buf.as_slice()).unwrap();
-
-    trait ReplayRenderPass {
-        fn replay_render_pass(
-            &self,
-            device_id: id::DeviceId,
-            encoder_id: id::CommandEncoderId,
-            src_pass: &RecordedRenderPass,
-            error_buf: ErrorBuffer,
-        );
-    }
-    impl ReplayRenderPass for Global {
-        fn replay_render_pass(
-            &self,
-            device_id: id::DeviceId,
-            encoder_id: id::CommandEncoderId,
-            src_pass: &RecordedRenderPass,
-            error_buf: ErrorBuffer,
-        ) {
-            crate::command::replay_render_pass(self, device_id, encoder_id, src_pass, error_buf);
-        }
-    }
-
-    global.replay_render_pass(device_id, encoder_id, &pass, error_buf);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn wgpu_server_compute_pass(
-    global: &Global,
-    device_id: id::DeviceId,
-    encoder_id: id::CommandEncoderId,
-    byte_buf: &ByteBuf,
-    error_buf: ErrorBuffer,
-) {
-    let src_pass = bincode::deserialize(byte_buf.as_slice()).unwrap();
-
-    trait ReplayComputePass {
-        fn replay_compute_pass(
-            &self,
-            device_id: id::DeviceId,
-            encoder_id: id::CommandEncoderId,
-            src_pass: &RecordedComputePass,
-            error_buf: ErrorBuffer,
-        );
-    }
-    impl ReplayComputePass for Global {
-        fn replay_compute_pass(
-            &self,
-            device_id: id::DeviceId,
-            encoder_id: id::CommandEncoderId,
-            src_pass: &RecordedComputePass,
-            error_buf: ErrorBuffer,
-        ) {
-            crate::command::replay_compute_pass(self, device_id, encoder_id, src_pass, error_buf);
-        }
-    }
-
-    global.replay_compute_pass(device_id, encoder_id, &src_pass, error_buf);
 }
 
 #[no_mangle]

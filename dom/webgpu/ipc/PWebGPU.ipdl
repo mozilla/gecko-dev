@@ -43,8 +43,6 @@ parent:
   async Message(ByteBuf buf);
 
   async DeviceActionWithAck(RawId selfId, ByteBuf buf) returns (bool dummy);
-  async RenderPass(RawId selfId, RawId aDeviceId, ByteBuf buf);
-  async ComputePass(RawId selfId, RawId aDeviceId, ByteBuf buf);
 
   async DeviceCreateBuffer(RawId deviceId, RawId bufferId, GPUBufferDescriptor desc, MutableSharedMemoryHandle shm);
 

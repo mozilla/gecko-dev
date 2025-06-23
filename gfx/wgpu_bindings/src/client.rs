@@ -914,11 +914,13 @@ pub unsafe extern "C" fn wgpu_command_encoder_begin_compute_pass(
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_compute_pass_finish(
+    device_id: id::DeviceId,
+    encoder_id: id::CommandEncoderId,
     pass: *mut crate::command::RecordedComputePass,
     output: &mut ByteBuf,
 ) {
-    let command = Box::from_raw(pass);
-    *output = make_byte_buf(&command);
+    let pass = *Box::from_raw(pass);
+    *output = make_byte_buf(&Message::ReplayComputePass(device_id, encoder_id, pass));
 }
 
 #[no_mangle]
@@ -983,11 +985,13 @@ pub unsafe extern "C" fn wgpu_command_encoder_begin_render_pass(
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_render_pass_finish(
+    device_id: id::DeviceId,
+    encoder_id: id::CommandEncoderId,
     pass: *mut crate::command::RecordedRenderPass,
     output: &mut ByteBuf,
 ) {
-    let command = Box::from_raw(pass);
-    *output = make_byte_buf(&command);
+    let pass = *Box::from_raw(pass);
+    *output = make_byte_buf(&Message::ReplayRenderPass(device_id, encoder_id, pass));
 }
 
 #[no_mangle]

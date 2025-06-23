@@ -1581,24 +1581,6 @@ ipc::IPCResult WebGPUParent::RecvDeviceActionWithAck(
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvRenderPass(RawId aEncoderId, RawId aDeviceId,
-                                            const ipc::ByteBuf& aByteBuf) {
-  ErrorBuffer error;
-  ffi::wgpu_server_render_pass(mContext.get(), aDeviceId, aEncoderId,
-                               ToFFI(&aByteBuf), error.ToFFI());
-  ForwardError(error);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvComputePass(RawId aEncoderId, RawId aDeviceId,
-                                             const ipc::ByteBuf& aByteBuf) {
-  ErrorBuffer error;
-  ffi::wgpu_server_compute_pass(mContext.get(), aDeviceId, aEncoderId,
-                                ToFFI(&aByteBuf), error.ToFFI());
-  ForwardError(error);
-  return IPC_OK();
-}
-
 ipc::IPCResult WebGPUParent::RecvDevicePushErrorScope(
     RawId aDeviceId, const dom::GPUErrorFilter aFilter) {
   const auto& itr = mErrorScopeStackByDevice.find(aDeviceId);
