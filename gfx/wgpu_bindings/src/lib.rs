@@ -246,11 +246,7 @@ enum DeviceAction<'a> {
         wgc::binding_model::PipelineLayoutDescriptor<'a>,
     ),
     CreateBindGroup(id::BindGroupId, wgc::binding_model::BindGroupDescriptor<'a>),
-    CreateShaderModule(
-        id::ShaderModuleId,
-        wgc::pipeline::ShaderModuleDescriptor<'a>,
-        Cow<'a, str>,
-    ),
+    CreateShaderModule(id::ShaderModuleId, wgc::Label<'a>, Cow<'a, str>),
     CreateComputePipeline(
         id::ComputePipelineId,
         wgc::pipeline::ComputePipelineDescriptor<'a>,
@@ -307,6 +303,15 @@ struct PipelineError {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+pub struct ShaderModuleCompilationMessage {
+    pub line_number: u64,
+    pub line_pos: u64,
+    pub utf16_offset: u64,
+    pub utf16_length: u64,
+    pub message: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 enum ServerMessage<'a> {
     RequestAdapterResponse(id::AdapterId, Option<AdapterInformation<Cow<'a, str>>>),
     RequestDeviceResponse(id::DeviceId, id::QueueId, Option<String>),
@@ -321,6 +326,7 @@ enum ServerMessage<'a> {
         implicit_ids: Option<ImplicitLayout<'a>>,
         error: Option<PipelineError>,
     },
+    CreateShaderModuleResponse(Vec<ShaderModuleCompilationMessage>),
 }
 
 #[repr(C)]

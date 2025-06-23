@@ -64,9 +64,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
                              const nsTArray<RawId>& aBufferIds,
                              const layers::RemoteTextureOwnerId& aOwnerId,
                              bool aUseExternalTextureInSwapChain);
-  ipc::IPCResult RecvDeviceCreateShaderModule(
-      RawId aDeviceId, RawId aModuleId, const nsString& aLabel,
-      const nsCString& aCode, DeviceCreateShaderModuleResolver&& aOutMessage);
 
   void SwapChainPresent(RawId aTextureId, RawId aCommandEncoderId,
                         const layers::RemoteTextureId& aRemoteTextureId,

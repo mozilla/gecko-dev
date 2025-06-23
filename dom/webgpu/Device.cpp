@@ -650,30 +650,19 @@ already_AddRefed<ShaderModule> Device::CreateShaderModule(
 
   shaderModule->SetLabel(aDesc.mLabel);
 
-  RefPtr<Device> device = this;
+  webgpu::StringHelper label(aDesc.mLabel);
 
-  if (mBridge->CanSend()) {
-    mBridge
-        ->SendDeviceCreateShaderModule(mId, moduleId, aDesc.mLabel, aDesc.mCode)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [promise, device,
-             shaderModule](nsTArray<WebGPUCompilationMessage>&& messages)
-                MOZ_CAN_RUN_SCRIPT {
-                  if (!messages.IsEmpty()) {
-                    reportCompilationMessagesToConsole(shaderModule,
-                                                       std::cref(messages));
-                  }
-                  RefPtr<CompilationInfo> infoObject(
-                      new CompilationInfo(device));
-                  infoObject->SetMessages(messages);
-                  promise->MaybeResolve(infoObject);
-                },
-            [promise](const ipc::ResponseRejectReason& aReason) {
-              promise->MaybeRejectWithNotSupportedError("IPC error");
-            });
+  ipc::ByteBuf bb;
+  ffi::wgpu_client_create_shader_module(mId, moduleId, label.Get(),
+                                        &aDesc.mCode, ToFFI(&bb));
+  bool sent = mBridge->SendMessage(std::move(bb), Nothing());
+  if (sent) {
+    auto pending_promise = WebGPUChild::PendingCreateShaderModulePromise{
+        RefPtr(promise), RefPtr(this), RefPtr(shaderModule)};
+    mBridge->mPendingCreateShaderModulePromises.push_back(
+        std::move(pending_promise));
   } else {
-    promise->MaybeRejectWithNotSupportedError("IPC error");
+    promise->MaybeRejectWithOperationError("Internal communication error");
   }
 
   return shaderModule.forget();

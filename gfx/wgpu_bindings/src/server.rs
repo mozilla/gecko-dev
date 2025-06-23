@@ -5,12 +5,13 @@
 use crate::{
     error::{error_to_string, ErrMsg, ErrorBuffer, ErrorBufferType, HasErrorBufferType},
     make_byte_buf, wgpu_string, AdapterInformation, ByteBuf, CommandEncoderAction, DeviceAction,
-    FfiLUID, Message, PipelineError, QueueWriteAction, ServerMessage, SwapChainId, TextureAction,
+    FfiLUID, Message, PipelineError, QueueWriteAction, ServerMessage,
+    ShaderModuleCompilationMessage, SwapChainId, TextureAction,
 };
 
-use nsstring::{nsACString, nsCString, nsString};
+use nsstring::{nsACString, nsCString};
 
-use wgc::{device::DeviceError, id};
+use wgc::id;
 use wgc::{pipeline::CreateShaderModuleError, resource::BufferAccessError};
 #[allow(unused_imports)]
 use wgh::Instance;
@@ -546,7 +547,7 @@ pub unsafe extern "C" fn wgpu_server_set_device_lost_callback(
 }
 
 impl ShaderModuleCompilationMessage {
-    fn set_error(&mut self, error: &CreateShaderModuleError, source: &str) {
+    fn new(error: &CreateShaderModuleError, source: &str) -> Self {
         // The WebGPU spec says that if the message doesn't point to a particular position in
         // the source, the line number, position, offset and lengths should be zero.
         let line_number;
@@ -578,90 +579,16 @@ impl ShaderModuleCompilationMessage {
             utf16_length = 0;
         }
 
-        let message = nsString::from(&error.to_string());
+        let message = error.to_string();
 
-        *self = Self {
+        Self {
             line_number,
             line_pos,
             utf16_offset,
             utf16_length,
             message,
-        };
+        }
     }
-}
-
-/// A compilation message representation for the ffi boundary.
-/// the message is immediately copied into an equivalent C++
-/// structure that owns its strings.
-#[repr(C)]
-#[derive(Clone)]
-pub struct ShaderModuleCompilationMessage {
-    pub line_number: u64,
-    pub line_pos: u64,
-    pub utf16_offset: u64,
-    pub utf16_length: u64,
-    pub message: nsString,
-}
-
-/// Creates a shader module and returns an object describing the errors if any.
-///
-/// If there was no error, the returned pointer is nil.
-#[no_mangle]
-pub extern "C" fn wgpu_server_device_create_shader_module(
-    global: &Global,
-    device_id: id::DeviceId,
-    module_id: id::ShaderModuleId,
-    label: Option<&nsACString>,
-    code: &nsCString,
-    out_message: &mut ShaderModuleCompilationMessage,
-    mut error_buf: ErrorBuffer,
-) -> bool {
-    let utf8_label = label.map(|utf16| utf16.to_string());
-    let label = utf8_label.as_ref().map(|s| Cow::from(&s[..]));
-
-    let source_str = code.to_utf8();
-
-    let source = wgc::pipeline::ShaderModuleSource::Wgsl(Cow::from(&source_str[..]));
-
-    let desc = wgc::pipeline::ShaderModuleDescriptor {
-        label,
-        runtime_checks: Default::default(),
-    };
-
-    let (_, error) = global.device_create_shader_module(device_id, &desc, source, Some(module_id));
-
-    if let Some(err) = error {
-        out_message.set_error(&err, &source_str[..]);
-        let err_type = match &err {
-            CreateShaderModuleError::Device(DeviceError::OutOfMemory) => {
-                ErrorBufferType::OutOfMemory
-            }
-            CreateShaderModuleError::Device(DeviceError::Lost) => ErrorBufferType::DeviceLost,
-            _ => ErrorBufferType::Validation,
-        };
-
-        // Per spec: "User agents should not include detailed compiler error messages or
-        // shader text in the message text of validation errors arising here: these details
-        // are accessible via getCompilationInfo()"
-        let message = match &err {
-            CreateShaderModuleError::Parsing(_) => "Parsing error".to_string(),
-            CreateShaderModuleError::Validation(_) => "Shader validation error".to_string(),
-            CreateShaderModuleError::Device(device_err) => format!("{device_err:?}"),
-            _ => format!("{err:?}"),
-        };
-
-        error_buf.init(
-            ErrMsg {
-                message: &format!("Shader module creation failed: {message}"),
-                r#type: err_type,
-            },
-            device_id,
-        );
-        return false;
-    }
-
-    // Avoid allocating the structure that holds errors in the common case (no errors).
-    return true;
 }
 
 #[no_mangle]
@@ -2161,13 +2088,44 @@ impl Global {
                     error_buf.init(err, device_id);
                 }
             }
-            DeviceAction::CreateShaderModule(id, desc, code) => {
-                let source = wgc::pipeline::ShaderModuleSource::Wgsl(code);
+            DeviceAction::CreateShaderModule(id, label, code) => {
+                let desc = wgc::pipeline::ShaderModuleDescriptor {
+                    label,
+                    runtime_checks: wgt::ShaderRuntimeChecks::checked(),
+                };
+                let source = wgc::pipeline::ShaderModuleSource::Wgsl(Cow::Borrowed(code.as_ref()));
                 let (_, error) =
                     self.device_create_shader_module(device_id, &desc, source, Some(id));
-                if let Some(err) = error {
-                    error_buf.init(err, device_id);
-                }
+
+                let compilation_messages = if let Some(err) = error {
+                    // Per spec: "User agents should not include detailed compiler error messages or
+                    // shader text in the message text of validation errors arising here: these details
+                    // are accessible via getCompilationInfo()"
+                    let message = match &err {
+                        CreateShaderModuleError::Parsing(_) => "Parsing error".to_string(),
+                        CreateShaderModuleError::Validation(_) => {
+                            "Shader validation error".to_string()
+                        }
+                        CreateShaderModuleError::Device(device_err) => format!("{device_err:?}"),
+                        _ => format!("{err:?}"),
+                    };
+
+                    error_buf.init(
+                        ErrMsg {
+                            message: &format!("Shader module creation failed: {message}"),
+                            r#type: err.error_type(),
+                        },
+                        device_id,
+                    );
+
+                    vec![ShaderModuleCompilationMessage::new(&err, code.as_ref())]
+                } else {
+                    Vec::new()
+                };
+
+                *response_byte_buf = make_byte_buf(&ServerMessage::CreateShaderModuleResponse(
+                    compilation_messages,
+                ));
             }
             DeviceAction::CreateComputePipeline(id, desc, implicit, is_async) => {
                 let implicit_ids = implicit

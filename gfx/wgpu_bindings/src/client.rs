@@ -508,6 +508,15 @@ mod drop {
     #[no_mangle] pub extern "C" fn wgpu_client_drop_command_encoder(id: id::CommandEncoderId, bb: &mut ByteBuf) { *bb = make_byte_buf(&Message::DropCommandEncoder(id)); }
 }
 
+#[repr(C)]
+pub struct FfiShaderModuleCompilationMessage {
+    pub line_number: u64,
+    pub line_pos: u64,
+    pub utf16_offset: u64,
+    pub utf16_length: u64,
+    pub message: nsString,
+}
+
 #[no_mangle]
 pub extern "C" fn wgpu_client_drop_compute_pipeline(
     id: id::ComputePipelineId,
@@ -572,6 +581,11 @@ pub extern "C" fn wgpu_client_receive_server_message(
         is_render_pipeline: bool,
         is_validation_error: bool,
         error: Option<&nsCString>,
+    ),
+    resolve_create_shader_module_promise: extern "C" fn(
+        child: *mut core::ffi::c_void,
+        messages_ptr: *const FfiShaderModuleCompilationMessage,
+        messages_len: usize,
     ),
 ) {
     let message: ServerMessage = bincode::deserialize(unsafe { byte_buf.as_slice() }).unwrap();
@@ -684,6 +698,23 @@ pub extern "C" fn wgpu_client_receive_server_message(
                 resolve_create_pipeline_promise(child, is_render_pipeline, false, None);
             }
         }
+        ServerMessage::CreateShaderModuleResponse(compilation_messages) => {
+            let ffi_compilation_messages: Vec<_> = compilation_messages
+                .iter()
+                .map(|m| FfiShaderModuleCompilationMessage {
+                    line_number: m.line_number,
+                    line_pos: m.line_pos,
+                    utf16_offset: m.utf16_offset,
+                    utf16_length: m.utf16_length,
+                    message: nsString::from(&m.message),
+                })
+                .collect();
+            resolve_create_shader_module_promise(
+                child,
+                ffi_compilation_messages.as_ptr(),
+                ffi_compilation_messages.len(),
+            )
+        }
     }
 }
 
@@ -705,6 +736,21 @@ pub extern "C" fn wgpu_client_request_adapter(
 #[no_mangle]
 pub extern "C" fn wgpu_client_pop_error_scope(device_id: id::DeviceId, bb: &mut ByteBuf) {
     let action = Message::Device(device_id, DeviceAction::PopErrorScope);
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_create_shader_module(
+    device_id: id::DeviceId,
+    shader_module_id: id::ShaderModuleId,
+    label: Option<&nsACString>,
+    code: &nsACString,
+    bb: &mut ByteBuf,
+) {
+    let label = wgpu_string(label);
+    let action =
+        DeviceAction::CreateShaderModule(shader_module_id, label, Cow::Owned(code.to_string()));
+    let action = Message::Device(device_id, action);
     *bb = make_byte_buf(&action);
 }
 

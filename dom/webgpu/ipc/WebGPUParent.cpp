@@ -895,45 +895,6 @@ void WebGPUParent::DeviceCreateSwapChain(
   }
 }
 
-ipc::IPCResult WebGPUParent::RecvDeviceCreateShaderModule(
-    RawId aDeviceId, RawId aModuleId, const nsString& aLabel,
-    const nsCString& aCode, DeviceCreateShaderModuleResolver&& aOutMessage) {
-  // TODO: this should probably be an optional label in the IPC message.
-  const nsACString* label = nullptr;
-  NS_ConvertUTF16toUTF8 utf8Label(aLabel);
-  if (!utf8Label.IsEmpty()) {
-    label = &utf8Label;
-  }
-
-  ffi::WGPUShaderModuleCompilationMessage message;
-  ErrorBuffer error;
-
-  bool ok = ffi::wgpu_server_device_create_shader_module(
-      mContext.get(), aDeviceId, aModuleId, label, &aCode, &message,
-      error.ToFFI());
-
-  ForwardError(error);
-
-  nsTArray<WebGPUCompilationMessage> messages;
-
-  if (!ok) {
-    WebGPUCompilationMessage msg;
-    msg.lineNum = message.line_number;
-    msg.linePos = message.line_pos;
-    msg.offset = message.utf16_offset;
-    msg.length = message.utf16_length;
-    msg.message = message.message;
-    // wgpu currently only returns errors.
-    msg.messageType = WebGPUCompilationMessageType::Error;
-
-    messages.AppendElement(msg);
-  }
-
-  aOutMessage(messages);
-
-  return IPC_OK();
-}
-
 struct ReadbackPresentRequest {
   ReadbackPresentRequest(
       const ffi::WGPUGlobal* aContext, RefPtr<PresentationData>& aData,
@@ -1572,13 +1533,12 @@ ipc::IPCResult WebGPUParent::RecvMessage(
                              ToFFI(&response_bb), error.ToFFI());
   }
 
+  ForwardError(error);
+
   if (response_bb.mData != nullptr && response_bb.mLen != 0) {
-    MOZ_ASSERT(error.GetError().isNone());
     if (!SendServerMessage(std::move(response_bb))) {
       NS_ERROR("SendServerMessage failed");
     }
-  } else {
-    ForwardError(error);
   }
 
   return IPC_OK();

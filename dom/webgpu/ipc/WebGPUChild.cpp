@@ -202,11 +202,45 @@ void resolve_create_pipeline_promise(void* child, bool is_render_pipeline,
   }
 }
 
+MOZ_CAN_RUN_SCRIPT void resolve_create_shader_module_promise(
+    void* child,
+    const struct ffi::WGPUFfiShaderModuleCompilationMessage* messages_ptr,
+    uintptr_t messages_len) {
+  auto* c = static_cast<WebGPUChild*>(child);
+  auto& pending_promises = c->mPendingCreateShaderModulePromises;
+  auto pending_promise = std::move(pending_promises.front());
+  pending_promises.pop_front();
+
+  auto ffi_messages = Span(messages_ptr, messages_len);
+
+  auto messages = nsTArray<WebGPUCompilationMessage>(messages_len);
+  for (const auto& message : ffi_messages) {
+    WebGPUCompilationMessage msg;
+    msg.lineNum = message.line_number;
+    msg.linePos = message.line_pos;
+    msg.offset = message.utf16_offset;
+    msg.length = message.utf16_length;
+    msg.message = message.message;
+    // wgpu currently only returns errors.
+    msg.messageType = WebGPUCompilationMessageType::Error;
+    messages.AppendElement(std::move(msg));
+  }
+
+  if (!messages.IsEmpty()) {
+    auto shader_module = pending_promise.shader_module;
+    reportCompilationMessagesToConsole(shader_module, std::cref(messages));
+  }
+  RefPtr<CompilationInfo> infoObject(
+      new CompilationInfo(pending_promise.device));
+  infoObject->SetMessages(messages);
+  pending_promise.promise->MaybeResolve(infoObject);
+};
+
 ipc::IPCResult WebGPUChild::RecvServerMessage(const ipc::ByteBuf& aByteBuf) {
   ffi::wgpu_client_receive_server_message(
       this, GetClient(), ToFFI(&aByteBuf), resolve_request_adapter_promise,
       resolve_request_device_promise, resolve_pop_error_scope_promise,
-      resolve_create_pipeline_promise);
+      resolve_create_pipeline_promise, resolve_create_shader_module_promise);
   return IPC_OK();
 }
 

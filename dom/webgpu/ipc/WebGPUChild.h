@@ -130,6 +130,15 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
   };
 
   std::deque<PendingCreatePipelinePromise> mPendingCreatePipelinePromises;
+
+  struct PendingCreateShaderModulePromise {
+    RefPtr<dom::Promise> promise;
+    RefPtr<Device> device;
+    RefPtr<ShaderModule> shader_module;
+  };
+
+  std::deque<PendingCreateShaderModulePromise>
+      mPendingCreateShaderModulePromises;
 };
 
 }  // namespace webgpu

@@ -42,8 +42,6 @@ async protocol PWebGPU
 parent:
   async Message(ByteBuf buf, MutableSharedMemoryHandle? shm);
 
-  // TODO: We want to return an array of compilation messages.
-  async DeviceCreateShaderModule(RawId selfId, RawId bufferId, nsString label, nsCString code) returns (WebGPUCompilationMessage[] messages);
   async BufferMap(RawId deviceId, RawId bufferId, uint32_t aMode, uint64_t offset, uint64_t size) returns (BufferMapResult result);
 
   async QueueOnSubmittedWorkDone(RawId selfId) returns (void_t ok);
