@@ -12,7 +12,8 @@ subtest_unit = "ms"
 test_url = "http://<host>:<port>/index.html"
 type = "benchmark"
 unit = "ms"
-perfstats = true
+# Bug 1972620 Perfstats failing for twitch-animation on macOS after updating browsertime
+perfstats = false
 
 ["twitch-animation"]
 repository = "https://github.com/mozilla/perf-automation"
