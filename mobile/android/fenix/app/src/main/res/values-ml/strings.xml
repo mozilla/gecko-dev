@@ -322,6 +322,8 @@
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">ഒളിവാക്കുകളും ടാബുകളും എന്നിവയും മറ്റും സമന്വയിപ്പിക്കുക</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">അടയാളക്കുറിപ്പുകളും ഒളിവാക്കുകളും ടാബുകളും എന്നിവയും മറ്റും സമന്വയിപ്പിക്കുക</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_3">ഒളിവാക്കുകളും അടയാളക്കുറിപ്പുകളും എന്നിവയും മറ്റും സമന്വയിപ്പിക്കുക</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">സമന്വയിപ്പിക്കാനായി പ്രവേശിക്കൽ ചെയ്യുക</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -932,6 +934,8 @@
   <string name="addons_permissions_allow_for_all_sites_subtitle">ഈ വിപുലീകരണത്തെ താങ്ങൾ വിശ്വസിക്കുന്നുവെങ്കിൽ, ഓരോ വെബിടത്തിഌം താങ്ങൾക്കു് ഇതിനു് അനുമതി നൽകാം.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">ഈ വിപുലീകരണത്തിനു് അനുമതികളുടെ അവിശ്യമില്ല.</string>
+  <!-- The title of the required permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_permissions">ആവശ്യപ്പെട്ടവനുമതികൾ:</string>
   <!--
     Add-on Preferences
 
@@ -1452,6 +1456,8 @@
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">മായ്ച ഇനങ്ങൾ: %1$d</string>
+  <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
+  <string name="download_app_dialog_title">ഇതിലൂടെ ഫയൽ ഇറക്കിവയ്ക്കൂ:</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">“%1$s”-നെ മായ്ചു</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->

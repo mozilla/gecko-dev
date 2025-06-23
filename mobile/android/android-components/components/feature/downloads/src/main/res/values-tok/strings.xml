@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
   <!-- Name of the "notification channel" used for displaying download notification. See https://developer.android.com/training/notify-user/channels -->
-  <string name="mozac_feature_downloads_notification_channel">kama jo</string>
+  <string name="mozac_feature_downloads_notification_channel">jo lipu</string>
   <!--
     Text shown on the second row of an in progress download notification.
     %1$s will be replaced with the percentage of download completed so far.
