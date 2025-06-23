@@ -715,6 +715,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     context.getString(R.string.browser_custom_tab_menu_handlebar_content_description)
 
                                 CustomTabMenu(
+                                    canGoBack = customTab?.content?.canGoBack ?: true,
+                                    canGoForward = customTab?.content?.canGoForward ?: true,
                                     isSiteLoading = isSiteLoading,
                                     scrollState = scrollState,
                                     isPdf = customTab?.content?.isPdf == true,
