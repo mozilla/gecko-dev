@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  sessionStoreLogger: "resource:///modules/sessionstore/SessionLogger.sys.mjs",
+});
+
 /**
  * We just started (we haven't written anything to disk yet) from
  * `Paths.clean`. The backup directory may not exist.
@@ -234,8 +240,15 @@ const SessionWriterInternal = {
 
       telemetry.writeFileMs = Date.now() - startWriteMs;
       telemetry.fileSizeBytes = fileStat.size;
+      lazy.sessionStoreLogger.debug(
+        `SessionWriter.write wrote ${telemetry.fileSizeBytes} bytes in ${telemetry.writeFileMs}ms`
+      );
     } catch (ex) {
       // Don't throw immediately
+      lazy.sessionStoreLogger.warn(
+        "SessionWriter.write, Caught exception:",
+        ex
+      );
       exn = exn || ex;
     }
 
@@ -256,6 +269,10 @@ const SessionWriterInternal = {
         upgradeBackupComplete = true;
       } catch (ex) {
         // Don't throw immediately
+        lazy.sessionStoreLogger.warn(
+          "SessionWriter.write, Caught exception doing upgrade backup:",
+          ex
+        );
         exn = exn || ex;
       }
 
@@ -269,11 +286,18 @@ const SessionWriterInternal = {
         );
       } catch (ex) {
         // Don't throw immediately
+        lazy.sessionStoreLogger.warn(
+          "SessionWriter.write, Caught exception looking for backups:",
+          ex
+        );
         exn = exn || ex;
       }
 
       // If too many backups exist, delete them
       if (backups.length > this.maxUpgradeBackups) {
+        lazy.sessionStoreLogger.debug(
+          `SessionWriter.write, cleaning up ${backups.length - this.maxUpgradeBackups} backup files`
+        );
         // Use alphanumerical sort since dates are in YYYYMMDDHHMMSS format
         backups.sort();
         // remove backup file if it is among the first (n-maxUpgradeBackups) files
@@ -281,6 +305,10 @@ const SessionWriterInternal = {
           try {
             await IOUtils.remove(backups[i]);
           } catch (ex) {
+            lazy.sessionStoreLogger.warn(
+              "SessionWriter.write, exception on removing backup file",
+              ex
+            );
             exn = exn || ex;
           }
         }

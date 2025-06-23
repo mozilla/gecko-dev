@@ -63,6 +63,38 @@ session_restore:
         type: string
     telemetry_mirror: Session_restore_ShutdownSuccess_SessionStartup
 
+  shutdown_flush_all_outcomes:
+    type: labeled_counter
+    description: >
+      The count of time-outs, abnormal shutdown and frameloader crashes observed during an async shutdown
+    labels:
+      - "timed_out"
+      - "abnormal_content_shutdown"
+      - "oop_frameloader_crashed"
+      - "complete"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903112
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903112
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+
+  shutdown_type:
+    type: labeled_counter
+    description: >
+      On quit-application-granted, is the shutdown sync (immediate) or async
+    labels:
+      - "sync"
+      - "async"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903112
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1903112
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+
   startup_init_session:
     type: timing_distribution
     description: >

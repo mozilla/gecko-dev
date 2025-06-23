@@ -19,6 +19,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   RunState: "resource:///modules/sessionstore/RunState.sys.mjs",
   SessionFile: "resource:///modules/sessionstore/SessionFile.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
+  sessionStoreLogger: "resource:///modules/sessionstore/SessionLogger.sys.mjs",
 });
 
 /*
@@ -56,6 +57,9 @@ export var SessionSaver = Object.freeze({
    * Immediately saves the current session to disk.
    */
   run() {
+    if (!lazy.RunState.isRunning) {
+      lazy.sessionStoreLogger.debug("SessionSave run called during shutdown");
+    }
     return SessionSaverInternal.run();
   },
 
@@ -66,6 +70,13 @@ export var SessionSaver = Object.freeze({
    */
   runDelayed() {
     SessionSaverInternal.runDelayed();
+  },
+
+  /**
+   * Returns the timestamp that keeps track of the last time we attempted to save the session.
+   */
+  get lastSaveTime() {
+    return SessionSaverInternal._lastSaveTime;
   },
 
   /**
@@ -167,9 +178,19 @@ var SessionSaverInternal = {
 
     // Schedule a state save.
     this._wasIdle = this._isIdle;
+    if (!lazy.RunState.isRunning) {
+      lazy.sessionStoreLogger.debug(
+        "SessionSaver scheduling a state save during shutdown"
+      );
+    }
     this._timeoutID = setTimeout(() => {
       // Execute _saveStateAsync when we have idle time.
       let saveStateAsyncWhenIdle = () => {
+        if (!lazy.RunState.isRunning) {
+          lazy.sessionStoreLogger.debug(
+            "SessionSaver saveStateAsyncWhenIdle callback during shutdown"
+          );
+        }
         this._saveStateAsync();
       };
 
@@ -255,6 +276,17 @@ var SessionSaverInternal = {
       // We want to restore closed windows that are marked with _shouldRestore.
       // We're doing this here because we want to control this only when saving
       // the file.
+      if (lazy.sessionStoreLogger.isDebug) {
+        lazy.sessionStoreLogger.debug(
+          "SessionSaver._saveState, closed windows:"
+        );
+        for (let closedWin of state._closedWindows) {
+          lazy.sessionStoreLogger.debug(
+            `\t${closedWin.closedId}\t${closedWin.closedAt}\t${closedWin._shouldRestore}`
+          );
+        }
+      }
+
       while (state._closedWindows.length) {
         let i = state._closedWindows.length - 1;
 
@@ -326,6 +358,11 @@ var SessionSaverInternal = {
    * Write the given state object to disk.
    */
   _writeState(state) {
+    if (!lazy.RunState.isRunning) {
+      lazy.sessionStoreLogger.debug(
+        "SessionSaver writing state during shutdown"
+      );
+    }
     // We update the time stamp before writing so that we don't write again
     // too soon, if saving is requested before the write completes. Without
     // this update we may save repeatedly if actions cause a runDelayed
@@ -335,10 +372,23 @@ var SessionSaverInternal = {
     // Write (atomically) to a session file, using a tmp file. Once the session
     // file is successfully updated, save the time stamp of the last save and
     // notify the observers.
-    return lazy.SessionFile.write(state).then(() => {
-      this.updateLastSaveTime();
-      notify(null, "sessionstore-state-write-complete");
-    }, console.error);
+    return lazy.SessionFile.write(state).then(
+      () => {
+        this.updateLastSaveTime();
+        if (!lazy.RunState.isRunning) {
+          lazy.sessionStoreLogger.debug(
+            "SessionSaver sessionstore-state-write-complete during shutdown"
+          );
+        }
+        notify(null, "sessionstore-state-write-complete");
+      },
+      err => {
+        lazy.sessionStoreLogger.error(
+          "SessionSaver write() rejected with error",
+          err
+        );
+      }
+    );
   },
 };
 

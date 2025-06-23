@@ -449,7 +449,11 @@ var SessionFileInternal = {
       },
       err => {
         // Catch and report any errors.
-        console.error("Could not write session state file ", err, err.stack);
+        lazy.sessionStoreLogger.error(
+          "Could not write session state file ",
+          err,
+          err.stack
+        );
         this._failures++;
         // By not doing anything special here we ensure that |promise| cannot
         // be rejected anymore. The shutdown/cleanup code at the end of the

@@ -2379,6 +2379,9 @@ var SessionStoreInternal = {
         Object.values(this._windows).filter(
           wData => !wData.isPrivate && !wData.isTaskbarTab
         ).length == 1;
+      this._log.debug(
+        `onClose, closing window isLastRegularWindow? ${isLastRegularWindow}`
+      );
 
       let taskbarTabsRemains = Object.values(this._windows).some(
         wData => wData.isTaskbarTab
@@ -2568,6 +2571,10 @@ var SessionStoreInternal = {
         this._capClosedWindows();
         this._saveOpenTabGroupsOnClose(winData);
         this._closedObjectsChanged = true;
+        this._log.debug(
+          `Saved closed window:${winData.closedId} with ${winData.tabs.length} open tabs, ${winData._closedTabs.length} closed tabs`
+        );
+
         // The first time we close a window, ensure it can be restored from the
         // hidden window.
         if (
@@ -2593,7 +2600,7 @@ var SessionStoreInternal = {
           return;
         }
         this._log.warn(
-          `Discarding window with 0 saveable tabs and ${winData._closedTabs.length} closed tabs`
+          `Discarding window:${winData.closedId} with 0 saveable tabs and ${winData._closedTabs.length} closed tabs`
         );
       }
     }
@@ -2692,6 +2699,12 @@ var SessionStoreInternal = {
       this._collectWindowData(window);
       this._windows[window.__SSi].zIndex = ++index;
     }
+    this._log.debug(
+      `onQuitApplicationGranted, shutdown of ${index} windows will be sync? ${syncShutdown}`
+    );
+    this._log.debug(
+      `Last session save attempt: ${Date.now() - lazy.SessionSaver.lastSaveTime}ms ago`
+    );
 
     // Now add an AsyncShutdown blocker that'll spin the event loop
     // until the windows have all been flushed.
@@ -2720,6 +2733,8 @@ var SessionStoreInternal = {
       //    abnormal shutdown) is observed, or
       // 4. flushAllWindowsAsync completes (hopefully the normal case).
 
+      Glean.sessionRestore.shutdownType.async.add(1);
+
       // Set up the list of promises that will signal a complete sessionstore
       // shutdown: either all data is saved, or we crashed or the message IPC
       // channel went away in the meantime.
@@ -2730,18 +2745,32 @@ var SessionStoreInternal = {
         const observer = subject => {
           // Skip abort on ipc:content-shutdown if not abnormal/crashed
           subject.QueryInterface(Ci.nsIPropertyBag2);
-          if (!(topic == "ipc:content-shutdown" && !subject.get("abnormal"))) {
-            deferred.resolve();
+          switch (topic) {
+            case "ipc:content-shutdown":
+              if (subject.get("abnormal")) {
+                this._log.debug(
+                  "Observed abnormal ipc:content-shutdown during shutdown"
+                );
+                Glean.sessionRestore.shutdownFlushAllOutcomes.abnormal_content_shutdown.add(
+                  1
+                );
+                deferred.resolve();
+              }
+              break;
+            case "oop-frameloader-crashed":
+              this._log.debug(`Observed topic: ${topic} during shutdown`);
+              Glean.sessionRestore.shutdownFlushAllOutcomes.oop_frameloader_crashed.add(
+                1
+              );
+              deferred.resolve();
+              break;
           }
         };
         const cleanup = () => {
           try {
             Services.obs.removeObserver(observer, topic);
           } catch (ex) {
-            console.error(
-              "SessionStore: exception whilst flushing all windows: ",
-              ex
-            );
+            this._log.error("Exception whilst flushing all windows", ex);
           }
         };
         Services.obs.addObserver(observer, topic);
@@ -2782,6 +2811,7 @@ var SessionStoreInternal = {
         () => isDone
       );
     } else {
+      Glean.sessionRestore.shutdownType.sync.add(1);
       // We have to shut down NOW, which means we only get to save whatever
       // we already had cached.
     }
@@ -2846,6 +2876,7 @@ var SessionStoreInternal = {
       this.activeWindowSSiCache = activeWindow.__SSi || "";
     }
     DirtyWindows.clear();
+    Glean.sessionRestore.shutdownFlushAllOutcomes.complete.add(1);
   },
 
   /**
@@ -6878,7 +6909,7 @@ var SessionStoreInternal = {
     }
 
     this._log.debug(
-      `Opening window with features: ${features.join(
+      `Opening window:${winState.closedId} with features: ${features.join(
         ","
       )}, argString: ${argString}.`
     );
@@ -7660,6 +7691,8 @@ var SessionStoreInternal = {
     timer.initWithCallback(
       function () {
         if (beats <= 0) {
+          this._log.debug(`looseTimer of ${delay} timed out`);
+          Glean.sessionRestore.shutdownFlushAllOutcomes.timed_out.add(1);
           deferred.resolve();
         }
         --beats;

@@ -39,6 +39,10 @@ class SessionLogManager extends LogManager {
     );
   }
 
+  get isDebug() {
+    return this.level >= Log.Level.Debug;
+  }
+
   async stop() {
     if (this.#observers.has("sessionstore-windows-restored")) {
       Services.obs.removeObserver(this, "sessionstore-windows-restored");
