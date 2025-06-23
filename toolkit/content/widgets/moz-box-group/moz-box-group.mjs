@@ -16,6 +16,8 @@ import { MozLitElement } from "../lit-utils.mjs";
  *   the group is type="list".
  */
 export default class MozBoxGroup extends MozLitElement {
+  #tabbable = true;
+
   static properties = {
     type: { type: String },
     listItems: { type: Array, state: true },
@@ -28,7 +30,13 @@ export default class MozBoxGroup extends MozLitElement {
 
   slotTemplate() {
     if (this.type == "list") {
-      return html`<ul class="list">
+      return html`<ul
+          class="list"
+          aria-orientation="vertical"
+          @keydown=${this.handleKeydown}
+          @focusin=${this.handleFocus}
+          @focusout=${this.handleBlur}
+        >
           ${this.listItems.map((_, i) => {
             return html`<li>
               <slot name=${i}></slot>
@@ -38,6 +46,47 @@ export default class MozBoxGroup extends MozLitElement {
         <slot hidden @slotchange=${this.handleSlotchange}></slot>`;
     }
     return html`<slot></slot>`;
+  }
+
+  handleKeydown(event) {
+    let positionAttr =
+      event.target.getAttribute("position") ??
+      // handles the case where an interactive element is nested in a moz-box-item
+      event.target.closest("moz-box-item").getAttribute("position");
+    let currentPosition = parseInt(positionAttr);
+
+    switch (event.key) {
+      case "Down":
+      case "ArrowDown": {
+        let nextItem = this.listItems[currentPosition + 1];
+        nextItem?.focus(event);
+        break;
+      }
+      case "Up":
+      case "ArrowUp": {
+        let prevItem = this.listItems[currentPosition - 1];
+        prevItem?.focus(event);
+        break;
+      }
+    }
+  }
+
+  handleFocus() {
+    if (this.#tabbable) {
+      this.#tabbable = false;
+      this.listItems.forEach(item => {
+        item.setAttribute("tabindex", "-1");
+      });
+    }
+  }
+
+  handleBlur() {
+    if (!this.#tabbable) {
+      this.#tabbable = true;
+      this.listItems.forEach(item => {
+        item.removeAttribute("tabindex");
+      });
+    }
   }
 
   handleSlotchange() {
@@ -61,6 +110,7 @@ export default class MozBoxGroup extends MozLitElement {
     if (changedProperties.has("listItems") && this.listItems.length) {
       this.listItems.forEach((item, i) => {
         item.slot = i;
+        item.setAttribute("position", i);
       });
     }
   }

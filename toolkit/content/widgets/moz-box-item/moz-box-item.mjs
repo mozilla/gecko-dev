@@ -5,6 +5,20 @@
 import { html } from "../vendor/lit.all.mjs";
 import { MozBoxBase } from "../lit-utils.mjs";
 
+const DIRECTION_RIGHT = "Right";
+const DIRECTION_LEFT = "Left";
+
+const NAVIGATION_DIRECTIONS = {
+  LTR: {
+    FORWARD: DIRECTION_RIGHT,
+    BACKWARD: DIRECTION_LEFT,
+  },
+  RTL: {
+    FORWARD: DIRECTION_LEFT,
+    BACKWARD: DIRECTION_RIGHT,
+  },
+};
+
 /**
  * A custom element used for highlighting important information and/or providing
  * context for specific settings.
@@ -19,6 +33,8 @@ import { MozBoxBase } from "../lit-utils.mjs";
  * @slot actions-start - Slot for the actions positioned at the start of the component container.
  */
 export default class MozBoxItem extends MozBoxBase {
+  #actionEls = [];
+
   static properties = {
     layout: { type: String, reflect: true },
   };
@@ -32,6 +48,74 @@ export default class MozBoxItem extends MozBoxBase {
   constructor() {
     super();
     this.layout = "default";
+    this.addEventListener("keydown", e => this.handleKeydown(e));
+  }
+
+  firstUpdated() {
+    this.getActionEls();
+  }
+
+  handleKeydown(event) {
+    if (
+      event.target?.slot !== "actions" &&
+      event.target?.slot !== "actions-start"
+    ) {
+      return;
+    }
+
+    let directions = this.getNavigationDirections();
+    switch (event.key) {
+      case directions.FORWARD:
+      case `Arrow${directions.FORWARD}`: {
+        let nextIndex = this.#actionEls.indexOf(event.target) + 1;
+        let nextEl = this.#actionEls[nextIndex];
+        nextEl?.focus();
+        break;
+      }
+      case directions.BACKWARD:
+      case `Arrow${directions.BACKWARD}`: {
+        let prevIndex = this.#actionEls.indexOf(event.target) - 1;
+        let prevEl = this.#actionEls[prevIndex];
+        prevEl?.focus();
+        break;
+      }
+    }
+  }
+
+  getNavigationDirections() {
+    if (this.isDocumentRTL) {
+      return NAVIGATION_DIRECTIONS.RTL;
+    }
+    return NAVIGATION_DIRECTIONS.LTR;
+  }
+
+  get isDocumentRTL() {
+    if (typeof Services !== "undefined") {
+      return Services.locale.isAppLocaleRTL;
+    }
+    return document.dir === "rtl";
+  }
+
+  focus(event) {
+    if (event?.key == "Up" || event?.key == "ArrowUp") {
+      let actionEls = this.actionsSlotEl.assignedElements();
+      let lastActions = actionEls.length
+        ? actionEls
+        : this.actionsStartSlotEl.assignedElements();
+      let lastAction = lastActions?.[lastActions.length - 1];
+      lastAction?.focus();
+    } else {
+      let firstAction =
+        this.actionsStartSlotEl.assignedElements()?.[0] ??
+        this.actionsSlotEl.assignedElements()?.[0];
+      firstAction?.focus();
+    }
+  }
+
+  getActionEls() {
+    let startActions = this.actionsStartSlotEl.assignedElements();
+    let endActions = this.actionsSlotEl.assignedElements();
+    this.#actionEls = [...startActions, ...endActions];
   }
 
   stylesTemplate() {
@@ -42,15 +126,29 @@ export default class MozBoxItem extends MozBoxBase {
       />`;
   }
 
+  slotTemplate(name) {
+    return html`
+      <span
+        role="group"
+        aria-labelledby="label"
+        aria-describedby="description"
+        class="actions"
+        @slotchange=${this.getActionEls}
+      >
+        <slot name=${name}></slot>
+      </span>
+    `;
+  }
+
   render() {
     return html`
       ${this.stylesTemplate()}
       <div class="box-container">
-        <slot name="actions-start"></slot>
+        ${this.slotTemplate("actions-start")}
         <div class="box-content">
           ${this.label ? super.textTemplate() : html`<slot></slot>`}
         </div>
-        <slot name="actions"></slot>
+        ${this.slotTemplate("actions")}
       </div>
     `;
   }

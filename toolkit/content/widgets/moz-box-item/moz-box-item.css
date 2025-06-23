@@ -14,11 +14,16 @@
 
 .box-container {
   padding: var(--box-padding);
+  font-size: inherit;
+  text-align: start;
+}
+
+.box-container,
+slot[name="actions"],
+slot[name="actions-start"] {
   display: flex;
   align-items: center;
   gap: var(--space-small);
-  font-size: inherit;
-  text-align: start;
 }
 
 .box-content {
