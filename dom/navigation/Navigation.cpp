@@ -223,6 +223,9 @@ bool Navigation::HasEntriesAndEventsDisabled() const {
 void Navigation::InitializeHistoryEntries(
     mozilla::Span<const SessionHistoryInfo> aNewSHInfos,
     const SessionHistoryInfo* aInitialSHInfo) {
+  MOZ_LOG(gNavigationLog, LogLevel::Debug,
+          ("Attempting to initialize history entries."));
+
   mEntries.Clear();
   mCurrentEntryIndex.reset();
   if (HasEntriesAndEventsDisabled()) {

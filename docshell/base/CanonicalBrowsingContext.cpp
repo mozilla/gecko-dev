@@ -341,6 +341,8 @@ void CanonicalBrowsingContext::ReplacedBy(
   mLoadingEntries.SwapElements(aNewContext->mLoadingEntries);
   MOZ_ASSERT(!aNewContext->mActiveEntry);
   mActiveEntry.swap(aNewContext->mActiveEntry);
+  MOZ_ASSERT(aNewContext->mActiveEntryList.isEmpty());
+  aNewContext->mActiveEntryList.extendBack(std::move(mActiveEntryList));
 
   aNewContext->mPermanentKey = mPermanentKey;
   mPermanentKey.setNull();
@@ -465,6 +467,10 @@ SessionHistoryEntry* CanonicalBrowsingContext::GetActiveSessionHistoryEntry() {
 void CanonicalBrowsingContext::SetActiveSessionHistoryEntry(
     SessionHistoryEntry* aEntry) {
   mActiveEntry = aEntry;
+  mActiveEntryList.clear();
+  if (mActiveEntry) {
+    mActiveEntryList.insertBack(mActiveEntry);
+  }
 }
 
 bool CanonicalBrowsingContext::HasHistoryEntry(nsISHEntry* aEntry) {
@@ -477,6 +483,24 @@ void CanonicalBrowsingContext::SwapHistoryEntries(nsISHEntry* aOldEntry,
   // XXX Should we check also loading entries?
   if (mActiveEntry == aOldEntry) {
     nsCOMPtr<SessionHistoryEntry> newEntry = do_QueryInterface(aNewEntry);
+    MOZ_LOG(gSHLog, LogLevel::Verbose,
+            ("Swapping History Entries: mActiveEntry=%p, aNewEntry=%p\n"
+             "Is in list: mActiveEntry %d, aNewEntry %d",
+             mActiveEntry.get(), aNewEntry,
+             mActiveEntry ? mActiveEntry->isInList() : false,
+             newEntry ? newEntry->isInList() : false));
+    if (!newEntry) {
+      mActiveEntryList.clear();
+      mActiveEntry = nullptr;
+      return;
+    }
+
+    RefPtr beforeOldEntry = mActiveEntry->removeAndGetPrevious();
+    if (beforeOldEntry) {
+      beforeOldEntry->setNext(newEntry);
+    } else {
+      mActiveEntryList.insertFront(newEntry);
+    }
     mActiveEntry = newEntry.forget();
   }
 }
@@ -617,22 +641,26 @@ CanonicalBrowsingContext::ReplaceLoadingSessionHistoryEntryForLoad(
 }
 
 mozilla::Span<const SessionHistoryInfo>
-CanonicalBrowsingContext::GetContiguousSessionHistoryInfos(
-    SessionHistoryInfo& aInfo) {
+CanonicalBrowsingContext::GetContiguousSessionHistoryInfos() {
   MOZ_ASSERT(Navigation::IsAPIEnabled());
 
-  nsISHistory* history = GetSessionHistory();
-  if (!history) {
-    return {};
+  mActiveContiguousEntries.ClearAndRetainStorage();
+  MOZ_LOG(gSHLog, LogLevel::Verbose,
+          ("GetContiguousSessionHistoryInfos called with mActiveEntry=%p, "
+           "active entry list does%s contain the active entry.",
+           mActiveEntry.get(),
+           mActiveEntryList.contains(mActiveEntry) ? "" : "n't"));
+  if (mActiveEntry && mActiveEntry->isInList()) {
+    nsSHistory::WalkContiguousEntriesInOrder(mActiveEntry, [&](auto* aEntry) {
+      if (nsCOMPtr<SessionHistoryEntry> entry = do_QueryObject(aEntry)) {
+        mActiveContiguousEntries.AppendElement(entry->Info());
+      }
+    });
   }
 
-  mActiveContiguousEntries.ClearAndRetainStorage();
-  nsSHistory::WalkContiguousEntriesInOrder(mActiveEntry, [&](auto* aEntry) {
-    if (nsCOMPtr<SessionHistoryEntry> entry = do_QueryObject(aEntry)) {
-      mActiveContiguousEntries.AppendElement(entry->Info());
-    }
-  });
-
+  MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
+              "mActiveContiguousEntries has {} entries",
+              mActiveContiguousEntries.Length());
   return mActiveContiguousEntries;
 }
 
@@ -1011,6 +1039,13 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
             [](nsISHEntry* aEntry) { aEntry->SetName(EmptyString()); });
       }
 
+      MOZ_LOG(gSHLog, LogLevel::Verbose,
+              ("SessionHistoryCommit called with mActiveEntry=%p, "
+               "newActiveEntry=%p, "
+               "active entry list does%s contain the active entry.",
+               mActiveEntry.get(), newActiveEntry.get(),
+               mActiveEntryList.contains(mActiveEntry) ? "" : "n't"));
+
       bool addEntry = ShouldUpdateSessionHistory(aLoadType);
       if (IsTop()) {
         if (mActiveEntry && !mActiveEntry->GetFrameLoader()) {
@@ -1031,17 +1066,50 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
           // If we're trying to replace an inexistant shistory entry then we
           // should append instead.
           addEntry = index < 0;
+          MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
+                      "IsTop: Replacing history with addEntry={}", addEntry);
+
           if (!addEntry) {
             shistory->ReplaceEntry(index, newActiveEntry);
+            RefPtr entry = mActiveEntry;
+            while (entry) {
+              entry = entry->removeAndGetNext();
+            }
           }
+          mActiveEntryList.insertBack(newActiveEntry);
           mActiveEntry = newActiveEntry;
         } else if (LOAD_TYPE_HAS_FLAGS(
                        aLoadType, nsIWebNavigation::LOAD_FLAGS_IS_REFRESH) &&
                    !ShouldAddEntryForRefresh(newActiveEntry) && mActiveEntry) {
+          MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
+                      "IsTop: Refresh without adding entry");
           addEntry = false;
           mActiveEntry->ReplaceWith(*newActiveEntry);
-        } else {
+        } else if (!loadFromSessionHistory && mActiveEntry) {
+          MOZ_LOG_FMT(gSHLog, LogLevel::Verbose, "IsTop: Adding new entry");
+
+          bool isTransient = false;
+          mActiveEntry->IsTransient(&isTransient);
+
+          RefPtr entry =
+              isTransient ? mActiveEntry.get() : mActiveEntry->getNext();
+          while (entry) {
+            entry = entry->removeAndGetNext();
+          }
+          mActiveEntryList.insertBack(newActiveEntry);
           mActiveEntry = newActiveEntry;
+        } else if (!mActiveEntry) {
+          MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
+                      "IsTop: No active entry, adding new entry");
+          mActiveEntryList.insertBack(newActiveEntry);
+          mActiveEntry = newActiveEntry;
+        } else {
+          MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
+                      "IsTop: Loading from session history");
+          mActiveEntry = newActiveEntry;
+          if (!mActiveEntry->isInList()) {
+            mActiveEntryList.insertBack(mActiveEntry);
+          }
         }
 
         if (loadFromSessionHistory) {
@@ -1068,7 +1136,12 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
             mActiveEntry->SyncTreesForSubframeNavigation(newActiveEntry, Top(),
                                                          this);
           }
+          MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
+                      "NotTop: Loading from session history");
           mActiveEntry = newActiveEntry;
+          if (!mActiveEntry->isInList()) {
+            mActiveEntryList.insertBack(mActiveEntry);
+          }
 
           shistory->InternalSetRequestedIndex(indexOfHistoryLoad);
           // FIXME UpdateIndex() here may update index too early (but even the
@@ -1084,11 +1157,19 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
               // FIXME We need to make sure that when we create the info we
               //       make a copy of the shared state.
               mActiveEntry->ReplaceWith(*newActiveEntry);
+              MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
+                          "NotTop: replace current active entry");
             } else {
               // AddNestedSHEntry does update the index of the session
               // history!
+              MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
+                          "NotTop: Adding entry with an active entry");
               shistory->AddNestedSHEntry(mActiveEntry, newActiveEntry, Top(),
                                          aCloneEntryChildren);
+              if (!mActiveEntry->isInList()) {
+                mActiveEntryList.insertBack(mActiveEntry);
+              }
+              mActiveEntry->setNext(newActiveEntry);
               mActiveEntry = newActiveEntry;
             }
           } else {
@@ -1096,7 +1177,10 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
             // XXX What should happen if parent doesn't have mActiveEntry?
             //     Or can that even happen ever?
             if (parentEntry) {
+              MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
+                          "NotTop: Adding entry without an active entry");
               mActiveEntry = newActiveEntry;
+              mActiveEntryList.insertBack(mActiveEntry);
               // FIXME Using IsInProcess for aUseRemoteSubframes isn't quite
               //       right, but aUseRemoteSubframes should be going away.
               parentEntry->AddChild(
@@ -1219,6 +1303,20 @@ void CanonicalBrowsingContext::SetActiveSessionHistoryEntry(
     }
   }
 
+  MOZ_LOG(
+      gSHLog, LogLevel::Verbose,
+      ("SetActiveSessionHistoryEntry called with oldActiveEntry=%p, "
+       "mActiveEntry=%p, active entry list does%s contain the active entry. ",
+       oldActiveEntry.get(), mActiveEntry.get(),
+       mActiveEntryList.contains(mActiveEntry) ? "" : "n't"));
+
+  RefPtr toRemove =
+      oldActiveEntry ? oldActiveEntry->getNext() : mActiveEntryList.getFirst();
+  while (toRemove) {
+    toRemove = toRemove->removeAndGetNext();
+  }
+  mActiveEntryList.insertBack(mActiveEntry);
+
   ResetSHEntryHasUserInteractionCache();
 
   shistory->InternalSetRequestedIndex(-1);
@@ -1251,6 +1349,13 @@ void CanonicalBrowsingContext::ReplaceActiveSessionHistoryEntry(
 
   if (IsTop()) {
     mActiveEntry->SetWireframe(Nothing());
+  }
+
+  MOZ_LOG(gSHLog, LogLevel::Verbose,
+          ("Replacing active session history entry"));
+  RefPtr toRemove = mActiveEntry->getNext();
+  while (toRemove) {
+    toRemove = toRemove->removeAndGetNext();
   }
 
   // FIXME Need to do the equivalent of EvictDocumentViewersOrReplaceEntry.
@@ -3365,16 +3470,16 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(CanonicalBrowsingContext,
   if (tmp->mSessionHistory) {
     tmp->mSessionHistory->SetBrowsingContext(nullptr);
   }
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSessionHistory, mCurrentBrowserParent,
-                                  mWebProgress,
-                                  mSessionStoreSessionStorageUpdateTimer)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(
+      mSessionHistory, mCurrentBrowserParent, mWebProgress,
+      mSessionStoreSessionStorageUpdateTimer, mActiveEntryList)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(CanonicalBrowsingContext,
                                                   BrowsingContext)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSessionHistory, mCurrentBrowserParent,
-                                    mWebProgress,
-                                    mSessionStoreSessionStorageUpdateTimer)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(
+      mSessionHistory, mCurrentBrowserParent, mWebProgress,
+      mSessionStoreSessionStorageUpdateTimer, mActiveEntryList)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(CanonicalBrowsingContext,
