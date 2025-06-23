@@ -11,8 +11,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
-import mozilla.appservices.fxaclient.FxaServer
-import mozilla.appservices.fxaclient.contentUrl
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.menu.view.MenuButton
 import mozilla.components.concept.sync.FxAEntryPoint
@@ -146,13 +144,6 @@ class HomeMenuView(
                                 entrypoint = fxaEntrypoint as FenixFxAEntryPoint,
                             )
                     },
-                )
-            }
-            HomeMenu.Item.ManageAccountAndDevices -> {
-                homeActivity.openToBrowserAndLoad(
-                    searchTermOrURL = FxaServer.Release.contentUrl() + "/settings",
-                    newTab = true,
-                    from = BrowserDirection.FromHome,
                 )
             }
             HomeMenu.Item.Bookmarks -> {

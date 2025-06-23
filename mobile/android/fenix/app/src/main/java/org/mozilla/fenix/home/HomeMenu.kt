@@ -53,10 +53,6 @@ class HomeMenu(
         object Extensions : Item()
         data class SyncAccount(val accountState: AccountState) : Item()
 
-        /**
-         * A button item to open up the settings page of FxA, shown up in mozilla online builds.
-         */
-        object ManageAccountAndDevices : Item()
         object WhatsNew : Item()
         object Help : Item()
         object CustomizeHome : Item()
