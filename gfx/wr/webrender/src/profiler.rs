@@ -1010,25 +1010,27 @@ impl Profiler {
         let color_t2 = ColorU::new(255, 0, 0, 255);
         let color_b2 = ColorU::new(180, 0, 0, 255);
 
-        for (index, sample) in graph.values.iter().enumerate() {
-            if !sample.is_finite() {
-                // NAN means no sample this frame.
-                continue;
+        if stats.max > 0.0 {
+            for (index, sample) in graph.values.iter().enumerate() {
+                if !sample.is_finite() {
+                    // NAN means no sample this frame.
+                    continue;
+                }
+                let sample = *sample as f32;
+                let x1 = bx1 - index as f32 * w;
+                let x0 = x1 - w;
+
+                let y0 = by1 - (sample / stats.max as f32) as f32 * h;
+                let y1 = by1;
+
+                let (color_top, color_bottom) = if counter.is_unexpected_value(sample as f64) {
+                    (color_t2, color_b2)
+                } else {
+                    (color_t0, color_b0)
+                };
+
+                debug_renderer.add_quad(x0, y0, x1, y1, color_top, color_bottom);
             }
-            let sample = *sample as f32;
-            let x1 = bx1 - index as f32 * w;
-            let x0 = x1 - w;
-
-            let y0 = by1 - (sample / stats.max as f32) as f32 * h;
-            let y1 = by1;
-
-            let (color_top, color_bottom) = if counter.is_unexpected_value(sample as f64) {
-                (color_t2, color_b2)
-            } else {
-                (color_t0, color_b0)
-            };
-
-            debug_renderer.add_quad(x0, y0, x1, y1, color_top, color_bottom);
         }
 
         rect
@@ -2151,4 +2153,3 @@ enum Item {
     Column,
     Row,
 }
-
