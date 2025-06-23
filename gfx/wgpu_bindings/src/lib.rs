@@ -132,6 +132,7 @@ enum Message<'a> {
         Option<Cow<'a, [u8]>>,
         QueueWriteAction,
     ),
+    BufferUnmap(id::DeviceId, id::BufferId, bool),
 
     DestroyBuffer(id::BufferId),
     DestroyTexture(id::TextureId),

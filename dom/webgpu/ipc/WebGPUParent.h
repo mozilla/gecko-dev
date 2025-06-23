@@ -56,7 +56,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   ipc::IPCResult RecvBufferMap(RawId aDeviceId, RawId aBufferId, uint32_t aMode,
                                uint64_t aOffset, uint64_t size,
                                BufferMapResolver&& aResolver);
-  ipc::IPCResult RecvBufferUnmap(RawId aDeviceId, RawId aBufferId, bool aFlush);
+  void BufferUnmap(RawId aDeviceId, RawId aBufferId, bool aFlush);
   ipc::IPCResult RecvMessage(const ipc::ByteBuf& aByteBuf,
                              Maybe<ipc::MutableSharedMemoryHandle>&& aShmem);
   ipc::IPCResult RecvQueueSubmit(RawId aQueueId, RawId aDeviceId,

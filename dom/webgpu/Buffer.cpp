@@ -446,8 +446,10 @@ void Buffer::Unmap(JSContext* aCx, ErrorResult& aRv) {
   }
 
   if (!GetDevice().IsLost()) {
-    GetDevice().GetBridge()->SendBufferUnmap(GetDevice().mId, mId,
-                                             mMapped->mWritable);
+    ipc::ByteBuf bb;
+    ffi::wgpu_client_buffer_unmap(GetDevice().mId, mId, mMapped->mWritable,
+                                  ToFFI(&bb));
+    GetDevice().GetBridge()->SendMessage(std::move(bb), Nothing());
   }
 
   mMapped.reset();

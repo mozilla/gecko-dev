@@ -1485,6 +1485,13 @@ extern "C" {
     );
     #[allow(dead_code)]
     fn wgpu_server_device_push_error_scope(param: *mut c_void, device_id: id::DeviceId, filter: u8);
+    #[allow(dead_code)]
+    fn wgpu_parent_buffer_unmap(
+        param: *mut c_void,
+        device_id: id::DeviceId,
+        buffer_id: id::BufferId,
+        flush: bool,
+    );
 }
 
 #[cfg(target_os = "linux")]
@@ -2506,6 +2513,9 @@ pub unsafe extern "C" fn wgpu_server_message(
             if let Err(err) = result {
                 error_buf.init(err, device_id);
             }
+        }
+        Message::BufferUnmap(device_id, buffer_id, flush) => {
+            wgpu_parent_buffer_unmap(global.webgpu_parent, device_id, buffer_id, flush);
         }
 
         Message::DestroyBuffer(id) => {

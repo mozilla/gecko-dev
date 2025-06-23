@@ -208,6 +208,12 @@ extern void wgpu_server_device_push_error_scope(void* aParam,
   parent->DevicePushErrorScope(aDeviceId, (dom::GPUErrorFilter)aFilter);
 }
 
+extern void wgpu_parent_buffer_unmap(void* aParam, WGPUDeviceId aDeviceId,
+                                     WGPUBufferId aBufferId, bool aFlush) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+  parent->BufferUnmap(aDeviceId, aBufferId, aFlush);
+}
+
 }  // namespace ffi
 
 // A fixed-capacity buffer for receiving textual error messages from
@@ -697,8 +703,7 @@ ipc::IPCResult WebGPUParent::RecvBufferMap(RawId aDeviceId, RawId aBufferId,
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvBufferUnmap(RawId aDeviceId, RawId aBufferId,
-                                             bool aFlush) {
+void WebGPUParent::BufferUnmap(RawId aDeviceId, RawId aBufferId, bool aFlush) {
   MOZ_LOG(sLogger, LogLevel::Info,
           ("RecvBufferUnmap %" PRIu64 " flush=%d\n", aBufferId, aFlush));
 
@@ -737,8 +742,6 @@ ipc::IPCResult WebGPUParent::RecvBufferUnmap(RawId aDeviceId, RawId aBufferId,
     // We don't need the shared memory anymore.
     DeallocBufferShmem(aBufferId);
   }
-
-  return IPC_OK();
 }
 
 void WebGPUParent::DeallocBufferShmem(RawId aBufferId) {
