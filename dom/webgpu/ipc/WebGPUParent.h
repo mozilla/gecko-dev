@@ -61,9 +61,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
                                BufferMapResolver&& aResolver);
   ipc::IPCResult RecvBufferUnmap(RawId aDeviceId, RawId aBufferId, bool aFlush);
   ipc::IPCResult RecvMessage(const ipc::ByteBuf& aByteBuf);
-  ipc::IPCResult RecvCommandEncoderFinish(
-      RawId aEncoderId, RawId aDeviceId,
-      const dom::GPUCommandBufferDescriptor& aDesc);
   ipc::IPCResult RecvQueueSubmit(RawId aQueueId, RawId aDeviceId,
                                  const nsTArray<RawId>& aCommandBuffers,
                                  const nsTArray<RawId>& aTextureIds);

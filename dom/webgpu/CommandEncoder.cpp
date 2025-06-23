@@ -345,11 +345,15 @@ void CommandEncoder::EndRenderPass(ffi::WGPURecordedRenderPass& aPass) {
 
 already_AddRefed<CommandBuffer> CommandEncoder::Finish(
     const dom::GPUCommandBufferDescriptor& aDesc) {
+  ffi::WGPUCommandBufferDescriptor desc = {};
+
+  webgpu::StringHelper label(aDesc.mLabel);
+  desc.label = label.Get();
+
   // We rely on knowledge that `CommandEncoderId` == `CommandBufferId`
   // TODO: refactor this to truly behave as if the encoder is being finished,
   // and a new command buffer ID is being created from it. Resolve the ID
   // type aliasing at the place that introduces it: `wgpu-core`.
-  RawId deviceId = mParent->mId;
   if (mBridge->CanSend()) {
     if (mState == CommandEncoderState::Locked) {
       // Most errors that could occur here will be raised by wgpu. But since we
@@ -359,7 +363,9 @@ already_AddRefed<CommandBuffer> CommandEncoder::Finish(
           mParent->mId, dom::GPUErrorFilter::Validation,
           "Encoder is locked by a previously created render/compute pass"_ns);
     }
-    mBridge->SendCommandEncoderFinish(mId, deviceId, aDesc);
+    ipc::ByteBuf bb;
+    ffi::wgpu_command_encoder_finish(mId, &desc, ToFFI(&bb));
+    mBridge->SendMessage(std::move(bb));
   }
   mState = CommandEncoderState::Ended;
 

@@ -2376,13 +2376,19 @@ impl Global {
 pub unsafe extern "C" fn wgpu_server_message(
     global: &Global,
     byte_buf: &ByteBuf,
-    error_buf: ErrorBuffer,
+    mut error_buf: ErrorBuffer,
 ) {
     let message: Message = bincode::deserialize(byte_buf.as_slice()).unwrap();
     match message {
         Message::Device(id, action) => global.device_action(id, action, error_buf),
         Message::Texture(id, action) => global.texture_action(id, action, error_buf),
         Message::CommandEncoder(id, action) => global.command_encoder_action(id, action, error_buf),
+        Message::CommandEncoderFinish(id, desc) => {
+            let (_, error) = global.command_encoder_finish(id, &desc);
+            if let Some(err) = error {
+                error_buf.init(err);
+            }
+        }
 
         Message::DestroyBuffer(id) => {
             wgpu_server_dealloc_buffer_shmem(global.webgpu_parent, id);

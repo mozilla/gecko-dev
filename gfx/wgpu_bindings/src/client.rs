@@ -1461,6 +1461,17 @@ pub unsafe extern "C" fn wgpu_command_encoder_resolve_query_set(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn wgpu_command_encoder_finish(
+    command_encoder_id: id::CommandEncoderId,
+    desc: &wgt::CommandBufferDescriptor<Option<&nsACString>>,
+    bb: &mut ByteBuf,
+) {
+    let label = wgpu_string(desc.label);
+    let action = Message::CommandEncoderFinish(command_encoder_id, desc.map_label(|_| label));
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn wgpu_queue_write_buffer(
     dst: id::BufferId,
     offset: wgt::BufferAddress,

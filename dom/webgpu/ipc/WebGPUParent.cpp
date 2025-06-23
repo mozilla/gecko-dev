@@ -772,23 +772,6 @@ void WebGPUParent::RemoveExternalTexture(RawId aTextureId) {
   }
 }
 
-ipc::IPCResult WebGPUParent::RecvCommandEncoderFinish(
-    RawId aEncoderId, RawId aDeviceId,
-    const dom::GPUCommandBufferDescriptor& aDesc) {
-  Unused << aDesc;
-  ffi::WGPUCommandBufferDescriptor desc = {};
-
-  webgpu::StringHelper label(aDesc.mLabel);
-  desc.label = label.Get();
-
-  ErrorBuffer error;
-  ffi::wgpu_server_encoder_finish(mContext.get(), aEncoderId, &desc,
-                                  error.ToFFI());
-
-  ForwardError(aDeviceId, error);
-  return IPC_OK();
-}
-
 ipc::IPCResult WebGPUParent::RecvQueueSubmit(
     RawId aQueueId, RawId aDeviceId, const nsTArray<RawId>& aCommandBuffers,
     const nsTArray<RawId>& aTextureIds) {

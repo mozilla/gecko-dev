@@ -60,7 +60,6 @@ parent:
   async BufferMap(RawId deviceId, RawId bufferId, uint32_t aMode, uint64_t offset, uint64_t size) returns (BufferMapResult result);
   async BufferUnmap(RawId deviceId, RawId bufferId, bool flush);
 
-  async CommandEncoderFinish(RawId selfId, RawId deviceId, GPUCommandBufferDescriptor desc);
   async QueueSubmit(RawId selfId, RawId aDeviceId, RawId[] commandBuffers, RawId[] textureIds);
   async QueueOnSubmittedWorkDone(RawId selfId) returns (void_t ok);
   // In the case of a zero-sized write action, `shmem` will be an invalid handle.

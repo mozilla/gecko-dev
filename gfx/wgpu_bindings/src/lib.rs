@@ -118,6 +118,10 @@ enum Message<'a> {
     Device(id::DeviceId, DeviceAction<'a>),
     Texture(id::TextureId, TextureAction<'a>),
     CommandEncoder(id::CommandEncoderId, CommandEncoderAction),
+    CommandEncoderFinish(
+        id::CommandEncoderId,
+        wgt::CommandBufferDescriptor<wgc::Label<'a>>,
+    ),
 
     DestroyBuffer(id::BufferId),
     DestroyTexture(id::TextureId),
