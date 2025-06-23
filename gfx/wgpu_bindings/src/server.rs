@@ -2381,6 +2381,7 @@ pub unsafe extern "C" fn wgpu_server_message(
     let message: Message = bincode::deserialize(byte_buf.as_slice()).unwrap();
     match message {
         Message::Device(id, action) => global.device_action(id, action, error_buf),
+        Message::Texture(id, action) => global.texture_action(id, action, error_buf),
 
         Message::DestroyBuffer(id) => {
             wgpu_server_dealloc_buffer_shmem(global.webgpu_parent, id);
@@ -2445,17 +2446,6 @@ pub unsafe extern "C" fn wgpu_server_device_action(
 ) {
     let action = bincode::deserialize(byte_buf.as_slice()).unwrap();
     global.device_action(self_id, action, error_buf);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn wgpu_server_texture_action(
-    global: &Global,
-    self_id: id::TextureId,
-    byte_buf: &ByteBuf,
-    error_buf: ErrorBuffer,
-) {
-    let action = bincode::deserialize(byte_buf.as_slice()).unwrap();
-    global.texture_action(self_id, action, error_buf);
 }
 
 #[no_mangle]

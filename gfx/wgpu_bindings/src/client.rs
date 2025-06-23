@@ -622,6 +622,7 @@ pub extern "C" fn wgpu_client_free_texture_id(client: &Client, id: id::TextureId
 #[no_mangle]
 pub extern "C" fn wgpu_client_create_texture_view(
     client: &Client,
+    texture_id: id::TextureId,
     desc: &TextureViewDescriptor,
     bb: &mut ByteBuf,
 ) -> id::TextureViewId {
@@ -644,6 +645,7 @@ pub extern "C" fn wgpu_client_create_texture_view(
     };
 
     let action = TextureAction::CreateView(id, wgpu_desc);
+    let action = Message::Texture(texture_id, action);
     *bb = make_byte_buf(&action);
     id
 }

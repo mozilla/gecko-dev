@@ -1584,17 +1584,6 @@ ipc::IPCResult WebGPUParent::RecvDeviceActionWithAck(
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvTextureAction(RawId aTextureId,
-                                               RawId aDeviceId,
-                                               const ipc::ByteBuf& aByteBuf) {
-  ErrorBuffer error;
-  ffi::wgpu_server_texture_action(mContext.get(), aTextureId, ToFFI(&aByteBuf),
-                                  error.ToFFI());
-
-  ForwardError(aDeviceId, error);
-  return IPC_OK();
-}
-
 ipc::IPCResult WebGPUParent::RecvCommandEncoderAction(
     RawId aEncoderId, RawId aDeviceId, const ipc::ByteBuf& aByteBuf) {
   ErrorBuffer error;

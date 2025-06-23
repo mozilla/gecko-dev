@@ -95,8 +95,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   ipc::IPCResult RecvDeviceActionWithAck(
       RawId aDeviceId, const ipc::ByteBuf& aByteBuf,
       DeviceActionWithAckResolver&& aResolver);
-  ipc::IPCResult RecvTextureAction(RawId aTextureId, RawId aDevice,
-                                   const ipc::ByteBuf& aByteBuf);
   ipc::IPCResult RecvCommandEncoderAction(RawId aEncoderId, RawId aDeviceId,
                                           const ipc::ByteBuf& aByteBuf);
   ipc::IPCResult RecvRenderPass(RawId aEncoderId, RawId aDeviceId,
