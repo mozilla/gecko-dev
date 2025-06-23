@@ -4,6 +4,10 @@
 
 package org.mozilla.fenix.components.toolbar
 
+import android.graphics.Bitmap
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -23,6 +27,7 @@ import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.SecurityInfoState
 import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
@@ -35,9 +40,12 @@ import mozilla.components.feature.session.TrackingProtectionUseCases
 import mozilla.components.feature.tabs.CustomTabsUseCases
 import mozilla.components.lib.publicsuffixlist.PublicSuffixList
 import mozilla.components.support.test.ext.joinBlocking
+import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -45,6 +53,7 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.CustomTabBrowserToolbarMiddleware.Companion.DisplayActions.MenuClicked
 import org.mozilla.fenix.components.toolbar.CustomTabBrowserToolbarMiddleware.Companion.DisplayActions.ShareClicked
+import org.mozilla.fenix.components.toolbar.CustomTabBrowserToolbarMiddleware.Companion.EndPageActions.CustomButtonClicked
 import org.mozilla.fenix.components.toolbar.CustomTabBrowserToolbarMiddleware.Companion.StartBrowserActions.CloseClicked
 import org.mozilla.fenix.components.toolbar.CustomTabBrowserToolbarMiddleware.Companion.StartPageActions.SiteInfoClicked
 import org.mozilla.fenix.components.toolbar.CustomTabBrowserToolbarMiddleware.LifecycleDependencies
@@ -83,9 +92,10 @@ class CustomTabBrowserToolbarMiddlewareTest {
     fun `GIVEN the custom tab is configured to show a close button WHEN initializing the toolbar THEN add a close button`() {
         val middleware = buildMiddleware().updateDependencies()
         every { customTab.config.showCloseButton } returns true
-        val expectedCloseButton = ActionButtonRes(
-            drawableResId = R.drawable.mozac_ic_cross_24,
-            contentDescription = R.string.mozac_feature_customtabs_exit_button,
+        every { customTab.config.closeButtonIcon } returns null
+        val expectedCloseButton = ActionButton(
+            drawable = AppCompatResources.getDrawable(testContext, R.drawable.mozac_ic_cross_24),
+            contentDescription = testContext.getString(R.string.mozac_feature_customtabs_exit_button),
             onClick = CloseClicked,
         )
 
@@ -95,8 +105,35 @@ class CustomTabBrowserToolbarMiddlewareTest {
 
         val toolbarBrowserActions = toolbarStore.state.displayState.browserActionsStart
         assertEquals(1, toolbarBrowserActions.size)
-        val closeButton = toolbarBrowserActions[0]
-        assertEquals(expectedCloseButton, closeButton)
+        val closeButton = toolbarBrowserActions[0] as ActionButton
+        assertNotNull(closeButton.drawable)
+        assertEquals(expectedCloseButton.drawable?.state, closeButton.drawable?.state)
+    }
+
+    @Test
+    fun `GIVEN the custom tab is configured to show a custom close button WHEN initializing the toolbar THEN add a close button with a custom icon`() {
+        val middleware = buildMiddleware().updateDependencies()
+        every { customTab.config.showCloseButton } returns true
+        val closeButtonIcon: Bitmap = testContext.getDrawable(R.drawable.ic_back_button)!!.toBitmap(10, 10)
+        every { customTab.config.closeButtonIcon } returns closeButtonIcon
+        val expectedCloseButton = ActionButton(
+            drawable = closeButtonIcon.toDrawable(testContext.resources),
+            contentDescription = testContext.getString(R.string.mozac_feature_customtabs_exit_button),
+            onClick = CloseClicked,
+        )
+
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        val toolbarBrowserActions = toolbarStore.state.displayState.browserActionsStart
+        assertEquals(1, toolbarBrowserActions.size)
+        val closeButton = toolbarBrowserActions[0] as ActionButton
+        assertEquals(expectedCloseButton.contentDescription, closeButton.contentDescription)
+        assertEquals(expectedCloseButton.shouldTint, closeButton.shouldTint)
+        assertNotNull(closeButton.drawable)
+        assertEquals(expectedCloseButton.drawable?.state, closeButton.drawable?.state)
+        assertEquals(expectedCloseButton.onClick, closeButton.onClick)
     }
 
     @Test
@@ -110,6 +147,90 @@ class CustomTabBrowserToolbarMiddlewareTest {
 
         val toolbarBrowserActions = toolbarStore.state.displayState.browserActionsStart
         assertTrue(toolbarBrowserActions.isEmpty())
+    }
+
+    @Test
+    fun `GIVEN the custom tab is configured to show a custom button WHEN initializing the toolbar THEN add a custom button with a custom icon`() {
+        val middleware = buildMiddleware().updateDependencies()
+        val customButtonIcon: Bitmap = testContext.getDrawable(R.drawable.mozac_ic_logo_firefox_24)!!.toBitmap(10, 10)
+        every { customTab.config.actionButtonConfig?.icon } returns customButtonIcon
+        every { customTab.config.actionButtonConfig?.description } returns "test"
+        val expectedCustomButton = ActionButton(
+            drawable = customButtonIcon.toDrawable(testContext.resources),
+            shouldTint = false,
+            contentDescription = "test",
+            onClick = CustomButtonClicked,
+        )
+
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        val pageEndActions = toolbarStore.state.displayState.pageActionsEnd
+        assertEquals(1, pageEndActions.size)
+        val customButton = pageEndActions[0] as ActionButton
+        assertEquals(expectedCustomButton.contentDescription, customButton.contentDescription)
+        assertFalse(customButton.shouldTint)
+        assertNotNull(customButton.drawable)
+        assertEquals(expectedCustomButton.drawable?.state, customButton.drawable?.state)
+        assertEquals(expectedCustomButton.onClick, customButton.onClick)
+    }
+
+    @Test
+    fun `GIVEN a private custom tab is configured to show a custom button WHEN initializing the toolbar THEN add a custom button with a custom icon`() {
+        val middleware = buildMiddleware().updateDependencies()
+        val customButtonIcon: Bitmap = testContext.getDrawable(R.drawable.mozac_ic_logo_firefox_24)!!.toBitmap(10, 10)
+        every { customTab.config.actionButtonConfig?.icon } returns customButtonIcon
+        every { customTab.config.actionButtonConfig?.description } returns "test"
+        every { customTab.content.private } returns true
+        val expectedCustomButton = ActionButton(
+            drawable = customButtonIcon.toDrawable(testContext.resources),
+            shouldTint = false,
+            contentDescription = "test",
+            onClick = CustomButtonClicked,
+        )
+
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        val pageEndActions = toolbarStore.state.displayState.pageActionsEnd
+        assertEquals(1, pageEndActions.size)
+        val customButton = pageEndActions[0] as ActionButton
+        assertEquals(expectedCustomButton.contentDescription, customButton.contentDescription)
+        assertTrue(customButton.shouldTint)
+        assertNotNull(customButton.drawable)
+        assertEquals(expectedCustomButton.drawable?.state, customButton.drawable?.state)
+        assertEquals(expectedCustomButton.onClick, customButton.onClick)
+    }
+
+    @Test
+    fun `GIVEN a normal custom tab is configured to show a tinted custom button WHEN initializing the toolbar THEN add a custom button with a custom icon`() {
+        val middleware = buildMiddleware().updateDependencies()
+        val customButtonIcon: Bitmap = testContext.getDrawable(R.drawable.mozac_ic_logo_firefox_24)!!.toBitmap(10, 10)
+        every { customTab.config.actionButtonConfig?.icon } returns customButtonIcon
+        every { customTab.config.actionButtonConfig?.description } returns "test"
+        every { customTab.config.actionButtonConfig?.tint } returns true
+        every { customTab.content.private } returns false
+        val expectedCustomButton = ActionButton(
+            drawable = customButtonIcon.toDrawable(testContext.resources),
+            shouldTint = false,
+            contentDescription = "test",
+            onClick = CustomButtonClicked,
+        )
+
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        val pageEndActions = toolbarStore.state.displayState.pageActionsEnd
+        assertEquals(1, pageEndActions.size)
+        val customButton = pageEndActions[0] as ActionButton
+        assertEquals(expectedCustomButton.contentDescription, customButton.contentDescription)
+        assertTrue(customButton.shouldTint)
+        assertNotNull(customButton.drawable)
+        assertEquals(expectedCustomButton.drawable?.state, customButton.drawable?.state)
+        assertEquals(expectedCustomButton.onClick, customButton.onClick)
     }
 
     @Test
@@ -215,7 +336,7 @@ class CustomTabBrowserToolbarMiddlewareTest {
             BrowserState(customTabs = listOf(customTab)),
         )
         val middleware = buildMiddleware(browserStore).updateDependencies()
-        var expectedDetails = PageOrigin(
+        val expectedDetails = PageOrigin(
             hint = R.string.search_hint,
             title = "Title",
             url = "URL",
@@ -446,7 +567,7 @@ class CustomTabBrowserToolbarMiddlewareTest {
         closeTabDelegate: () -> Unit = this@CustomTabBrowserToolbarMiddlewareTest.closeTabDelegate,
     ) = this.apply {
         updateLifecycleDependencies(
-            LifecycleDependencies(lifecycleOwner, navController, closeTabDelegate),
+            LifecycleDependencies(testContext, lifecycleOwner, navController, closeTabDelegate),
         )
     }
 

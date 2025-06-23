@@ -222,6 +222,7 @@ class BrowserToolbarComposable(
             ).get(CustomTabBrowserToolbarMiddleware::class.java).also {
                 it.updateLifecycleDependencies(
                     CustomTabBrowserToolbarMiddleware.LifecycleDependencies(
+                        context = activity,
                         lifecycleOwner = lifecycleOwner,
                         navController = navController,
                         closeTabDelegate = { activity.finishAndRemoveTask() },

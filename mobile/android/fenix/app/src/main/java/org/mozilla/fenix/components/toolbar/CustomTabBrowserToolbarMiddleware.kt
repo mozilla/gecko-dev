@@ -4,7 +4,11 @@
 
 package org.mozilla.fenix.components.toolbar
 
+import android.content.Context
+import android.content.Intent
 import androidx.annotation.VisibleForTesting
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle.State.RESUMED
 import androidx.lifecycle.LifecycleOwner
@@ -22,6 +26,7 @@ import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.browser.toolbar.concept.Action
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
@@ -57,6 +62,7 @@ import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.CustomTabBrowserToolbarMiddleware.Companion.DisplayActions.MenuClicked
 import org.mozilla.fenix.components.toolbar.CustomTabBrowserToolbarMiddleware.Companion.DisplayActions.ShareClicked
+import org.mozilla.fenix.components.toolbar.CustomTabBrowserToolbarMiddleware.Companion.EndPageActions.CustomButtonClicked
 import org.mozilla.fenix.components.toolbar.CustomTabBrowserToolbarMiddleware.Companion.StartBrowserActions.CloseClicked
 import org.mozilla.fenix.components.toolbar.CustomTabBrowserToolbarMiddleware.Companion.StartPageActions.SiteInfoClicked
 import org.mozilla.fenix.customtabs.ExternalAppBrowserFragmentDirections
@@ -64,6 +70,8 @@ import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.settings.quicksettings.protections.cookiebanners.getCookieBannerUIMode
 import org.mozilla.fenix.utils.Settings
 import mozilla.components.lib.state.Action as MVIAction
+
+private const val CUSTOM_BUTTON_CLICK_RETURN_CODE = 0
 
 /**
  * [Middleware] responsible for configuring and handling interactions with the composable toolbar
@@ -124,6 +132,7 @@ class CustomTabBrowserToolbarMiddleware(
                 updateStartBrowserActions(customTab)
                 updateStartPageActions(customTab)
                 updateCurrentPageOrigin(customTab)
+                updateEndPageActions(customTab)
                 updateEndBrowserActions(customTab)
             }
 
@@ -171,6 +180,15 @@ class CustomTabBrowserToolbarMiddleware(
                         }
                     }
                 }
+            }
+
+            is CustomButtonClicked -> {
+                val customTab = customTab
+                customTab?.config?.actionButtonConfig?.pendingIntent?.send(
+                    dependencies.context,
+                    CUSTOM_BUTTON_CLICK_RETURN_CODE,
+                    Intent(null, customTab.content.url.toUri()),
+                )
             }
 
             is ShareClicked -> {
@@ -264,24 +282,40 @@ class CustomTabBrowserToolbarMiddleware(
         }
     }
 
+    private fun updateEndPageActions(customTab: CustomTabSessionState?) = store?.dispatch(
+        BrowserDisplayToolbarAction.PageActionsEndUpdated(
+            buildEndPageActions(customTab),
+        ),
+    )
+
     private fun updateEndBrowserActions(customTab: CustomTabSessionState?) = store?.dispatch(
         BrowserActionsEndUpdated(
             buildEndBrowserActions(customTab),
         ),
     )
 
-    private fun buildStartBrowserActions(customTab: CustomTabSessionState?): List<Action> =
-        when (customTab?.config?.showCloseButton) {
+    private fun buildStartBrowserActions(customTab: CustomTabSessionState?): List<Action> {
+        val customTabConfig = customTab?.config
+        val customIconBitmap = customTabConfig?.closeButtonIcon
+
+        return when (customTabConfig?.showCloseButton) {
             true -> listOf(
-                ActionButtonRes(
-                    drawableResId = R.drawable.mozac_ic_cross_24,
-                    contentDescription = R.string.mozac_feature_customtabs_exit_button,
+                ActionButton(
+                    drawable = when (customIconBitmap) {
+                        null -> AppCompatResources.getDrawable(
+                            dependencies.context, R.drawable.mozac_ic_cross_24,
+                        )
+
+                        else -> customIconBitmap.toDrawable(dependencies.context.resources)
+                    },
+                    contentDescription = dependencies.context.getString(R.string.mozac_feature_customtabs_exit_button),
                     onClick = CloseClicked,
                 ),
             )
 
             else -> emptyList()
         }
+    }
 
     private fun buildStartPageActions(customTab: CustomTabSessionState?) = buildList {
         if (customTab?.content?.url?.isContentUrl() == true) {
@@ -306,6 +340,23 @@ class CustomTabBrowserToolbarMiddleware(
                     drawableResId = R.drawable.mozac_ic_broken_lock,
                     contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                     onClick = SiteInfoClicked,
+                ),
+            )
+        }
+    }
+
+    private fun buildEndPageActions(customTab: CustomTabSessionState?): List<ActionButton> {
+        val customButtonConfig = customTab?.config?.actionButtonConfig
+        val customButtonIcon = customButtonConfig?.icon
+
+        return when (customButtonIcon) {
+            null -> emptyList()
+            else -> listOf(
+                ActionButton(
+                    drawable = customButtonIcon.toDrawable(dependencies.context.resources),
+                    shouldTint = customTab.content.private || customButtonConfig.tint,
+                    contentDescription = customButtonConfig.description,
+                    onClick = CustomButtonClicked,
                 ),
             )
         }
@@ -378,11 +429,13 @@ class CustomTabBrowserToolbarMiddleware(
     /**
      * Lifecycle dependencies for the [BrowserToolbarMiddleware].
      *
+     * @property context [Context] to access application resources and interact with other system functionalities.
      * @property lifecycleOwner [LifecycleOwner] depending on which lifecycle related operations will be scheduled.
      * @property navController [NavController] to use for navigating to other in-app destinations.
      * @property closeTabDelegate Callback for when the current custom tab needs to be closed.
      */
     data class LifecycleDependencies(
+        val context: Context,
         val lifecycleOwner: LifecycleOwner,
         val navController: NavController,
         val closeTabDelegate: () -> Unit,
@@ -441,6 +494,11 @@ class CustomTabBrowserToolbarMiddleware(
         @VisibleForTesting
         internal sealed class StartPageActions : BrowserToolbarEvent {
             data object SiteInfoClicked : StartPageActions()
+        }
+
+        @VisibleForTesting
+        internal sealed class EndPageActions : BrowserToolbarEvent {
+            data object CustomButtonClicked : EndPageActions()
         }
 
         @VisibleForTesting
