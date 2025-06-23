@@ -1047,8 +1047,12 @@ already_AddRefed<Texture> Device::InitSwapChain(
 
   const layers::RGBDescriptor rgbDesc(aCanvasSize, aFormat);
 
-  mBridge->SendDeviceCreateSwapChain(mId, mQueue->mId, rgbDesc, aBufferIds,
-                                     aOwnerId, aUseExternalTextureInSwapChain);
+  ipc::ByteBuf bb;
+  ffi::wgpu_client_create_swap_chain(
+      mId, mQueue->mId, rgbDesc.size().Width(), rgbDesc.size().Height(),
+      (int8_t)rgbDesc.format(), aBufferIds.Elements(), aBufferIds.Length(),
+      aOwnerId.mId, aUseExternalTextureInSwapChain, ToFFI(&bb));
+  mBridge->SendMessage(std::move(bb), Nothing());
 
   // TODO: `mColorSpace`: <https://bugzilla.mozilla.org/show_bug.cgi?id=1846608>
   // TODO: `mAlphaMode`: <https://bugzilla.mozilla.org/show_bug.cgi?id=1846605>

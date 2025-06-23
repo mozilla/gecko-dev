@@ -590,6 +590,65 @@ pub extern "C" fn wgpu_client_drop_render_pipeline(
 }
 
 #[no_mangle]
+pub extern "C" fn wgpu_client_create_swap_chain(
+    device_id: id::DeviceId,
+    queue_id: id::QueueId,
+    width: i32,
+    height: i32,
+    format: crate::SurfaceFormat,
+    buffer_ids: *const id::BufferId,
+    buffer_ids_length: usize,
+    remote_texture_owner_id: crate::RemoteTextureOwnerId,
+    use_external_texture_in_swap_chain: bool,
+    bb: &mut ByteBuf,
+) {
+    let buffer_ids = unsafe { core::slice::from_raw_parts(buffer_ids, buffer_ids_length) };
+    let action = Message::CreateSwapChain {
+        device_id,
+        queue_id,
+        width,
+        height,
+        format,
+        buffer_ids: Cow::Borrowed(buffer_ids),
+        remote_texture_owner_id,
+        use_external_texture_in_swap_chain,
+    };
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_swap_chain_present(
+    texture_id: id::TextureId,
+    command_encoder_id: id::CommandEncoderId,
+    remote_texture_id: crate::RemoteTextureId,
+    remote_texture_owner_id: crate::RemoteTextureOwnerId,
+    bb: &mut ByteBuf,
+) {
+    let action = Message::SwapChainPresent {
+        texture_id,
+        command_encoder_id,
+        remote_texture_id,
+        remote_texture_owner_id,
+    };
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_swap_chain_drop(
+    remote_texture_owner_id: crate::RemoteTextureOwnerId,
+    txn_type: crate::RemoteTextureTxnType,
+    txn_id: crate::RemoteTextureTxnId,
+    bb: &mut ByteBuf,
+) {
+    let action = Message::SwapChainDrop {
+        remote_texture_owner_id,
+        txn_type,
+        txn_id,
+    };
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
 pub extern "C" fn wgpu_client_queue_submit(
     device_id: id::DeviceId,
     queue_id: id::QueueId,

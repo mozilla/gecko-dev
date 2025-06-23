@@ -115,6 +115,22 @@ struct ImplicitLayout<'a> {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+#[repr(transparent)]
+pub struct SurfaceFormat(i8);
+#[derive(serde::Serialize, serde::Deserialize)]
+#[repr(transparent)]
+pub struct RemoteTextureOwnerId(u64);
+#[derive(serde::Serialize, serde::Deserialize)]
+#[repr(transparent)]
+pub struct RemoteTextureId(u64);
+#[derive(serde::Serialize, serde::Deserialize)]
+#[repr(transparent)]
+pub struct RemoteTextureTxnType(u32);
+#[derive(serde::Serialize, serde::Deserialize)]
+#[repr(transparent)]
+pub struct RemoteTextureTxnId(u64);
+
+#[derive(serde::Serialize, serde::Deserialize)]
 enum Message<'a> {
     Device(id::DeviceId, DeviceAction<'a>),
     Texture(id::DeviceId, id::TextureId, TextureAction<'a>),
@@ -139,6 +155,28 @@ enum Message<'a> {
         Cow<'a, [id::CommandBufferId]>,
         Cow<'a, [id::TextureId]>,
     ),
+
+    CreateSwapChain {
+        device_id: id::DeviceId,
+        queue_id: id::QueueId,
+        width: i32,
+        height: i32,
+        format: SurfaceFormat,
+        buffer_ids: Cow<'a, [id::BufferId]>,
+        remote_texture_owner_id: RemoteTextureOwnerId,
+        use_external_texture_in_swap_chain: bool,
+    },
+    SwapChainPresent {
+        texture_id: id::TextureId,
+        command_encoder_id: id::CommandEncoderId,
+        remote_texture_id: RemoteTextureId,
+        remote_texture_owner_id: RemoteTextureOwnerId,
+    },
+    SwapChainDrop {
+        remote_texture_owner_id: RemoteTextureOwnerId,
+        txn_type: RemoteTextureTxnType,
+        txn_id: RemoteTextureTxnId,
+    },
 
     DestroyBuffer(id::BufferId),
     DestroyTexture(id::TextureId),

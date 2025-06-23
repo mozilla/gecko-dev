@@ -225,6 +225,45 @@ extern void wgpu_parent_queue_submit(
   parent->QueueSubmit(aDeviceId, aQueueId, command_buffers, textures);
 }
 
+extern void wgpu_parent_create_swap_chain(
+    void* aParam, WGPUDeviceId aDeviceId, WGPUQueueId aQueueId, int32_t aWidth,
+    int32_t aHeight, WGPUSurfaceFormat aFormat, const WGPUBufferId* aBufferIds,
+    uintptr_t aBufferIdsLength, WGPURemoteTextureOwnerId aRemoteTextureOwnerId,
+    bool aUseExternalTextureInSwapChain) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+  auto buffer_ids_span = Span(aBufferIds, aBufferIdsLength);
+  auto buffer_ids = nsTArray<RawId>(aBufferIdsLength);
+  for (const RawId id : buffer_ids_span) {
+    buffer_ids.AppendElement(id);
+  }
+  auto size = gfx::IntSize(aWidth, aHeight);
+  auto format = gfx::SurfaceFormat(aFormat);
+  auto desc = layers::RGBDescriptor(size, format);
+  auto owner = layers::RemoteTextureOwnerId{aRemoteTextureOwnerId};
+  parent->DeviceCreateSwapChain(aDeviceId, aQueueId, desc, buffer_ids, owner,
+                                aUseExternalTextureInSwapChain);
+}
+
+extern void wgpu_parent_swap_chain_present(
+    void* aParam, WGPUTextureId aTextureId,
+    WGPUCommandEncoderId aCommandEncoderId,
+    WGPURemoteTextureId aRemoteTextureId,
+    WGPURemoteTextureOwnerId aRemoteTextureOwnerId) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+  auto remote_texture = layers::RemoteTextureId{aRemoteTextureId};
+  auto owner = layers::RemoteTextureOwnerId{aRemoteTextureOwnerId};
+  parent->SwapChainPresent(aTextureId, aCommandEncoderId, remote_texture,
+                           owner);
+}
+
+extern void wgpu_parent_swap_chain_drop(
+    void* aParam, WGPURemoteTextureOwnerId aRemoteTextureOwnerId,
+    WGPURemoteTextureTxnType aTxnType, WGPURemoteTextureTxnId aTxnId) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+  auto owner = layers::RemoteTextureOwnerId{aRemoteTextureOwnerId};
+  parent->SwapChainDrop(owner, aTxnType, aTxnId);
+}
+
 }  // namespace ffi
 
 // A fixed-capacity buffer for receiving textual error messages from
@@ -832,7 +871,7 @@ ipc::IPCResult WebGPUParent::RecvQueueOnSubmittedWorkDone(
 
 // TODO: proper destruction
 
-ipc::IPCResult WebGPUParent::RecvDeviceCreateSwapChain(
+void WebGPUParent::DeviceCreateSwapChain(
     RawId aDeviceId, RawId aQueueId, const RGBDescriptor& aDesc,
     const nsTArray<RawId>& aBufferIds,
     const layers::RemoteTextureOwnerId& aOwnerId,
@@ -843,14 +882,14 @@ ipc::IPCResult WebGPUParent::RecvDeviceCreateSwapChain(
       break;
     default:
       MOZ_ASSERT_UNREACHABLE("Invalid surface format!");
-      return IPC_OK();
+      return;
   }
 
   const auto bufferStrideWithMask =
       Device::BufferStrideWithMask(aDesc.size(), aDesc.format());
   if (!bufferStrideWithMask.isValid()) {
     MOZ_ASSERT_UNREACHABLE("Invalid width / buffer stride!");
-    return IPC_OK();
+    return;
   }
 
   constexpr uint32_t kBufferAlignmentMask = 0xff;
@@ -860,7 +899,7 @@ ipc::IPCResult WebGPUParent::RecvDeviceCreateSwapChain(
   const auto rows = CheckedInt<uint32_t>(aDesc.size().height);
   if (!rows.isValid()) {
     MOZ_ASSERT_UNREACHABLE("Invalid height!");
-    return IPC_OK();
+    return;
   }
 
   if (!mRemoteTextureOwner) {
@@ -875,7 +914,6 @@ ipc::IPCResult WebGPUParent::RecvDeviceCreateSwapChain(
   if (!mPresentationDataMap.emplace(aOwnerId, data).second) {
     NS_ERROR("External image is already registered as WebGPU canvas!");
   }
-  return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvDeviceCreateShaderModule(
@@ -951,8 +989,8 @@ static void ReadbackPresentCallback(uint8_t* userdata,
     if (req->mData->mPendingSwapChainDrop.isSome() && waitingTextures.empty()) {
       if (req->mData->mParent) {
         auto& pendingDrop = req->mData->mPendingSwapChainDrop.ref();
-        req->mData->mParent->RecvSwapChainDrop(
-            req->mOwnerId, pendingDrop.mTxnType, pendingDrop.mTxnId);
+        req->mData->mParent->SwapChainDrop(req->mOwnerId, pendingDrop.mTxnType,
+                                           pendingDrop.mTxnId);
         req->mData->mPendingSwapChainDrop = Nothing();
       }
     }
@@ -1324,7 +1362,7 @@ RefPtr<gfx::FileHandleWrapper> WebGPUParent::GetDeviceFenceHandle(
   return it->second;
 }
 
-ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
+void WebGPUParent::SwapChainPresent(
     RawId aTextureId, RawId aCommandEncoderId,
     const layers::RemoteTextureId& aRemoteTextureId,
     const layers::RemoteTextureOwnerId& aOwnerId) {
@@ -1333,7 +1371,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
   if (lookup == mPresentationDataMap.end() || !mRemoteTextureOwner ||
       !mRemoteTextureOwner->IsRegistered(aOwnerId)) {
     NS_WARNING("WebGPU presenting on a destroyed swap chain!");
-    return IPC_OK();
+    return;
   }
 
   RefPtr<PresentationData> data = lookup->second.get();
@@ -1342,7 +1380,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
     auto it = mExternalTextures.find(aTextureId);
     if (it == mExternalTextures.end()) {
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-      return IPC_OK();
+      return;
     }
     std::shared_ptr<ExternalTexture> externalTexture = it->second;
     mExternalTextures.erase(it);
@@ -1350,7 +1388,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
     MOZ_ASSERT(externalTexture->GetOwnerId() == aOwnerId);
 
     PostExternalTexture(std::move(externalTexture), aRemoteTextureId, aOwnerId);
-    return IPC_OK();
+    return;
   }
 
   RawId bufferId = 0;
@@ -1374,7 +1412,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
                                             bufferId, nullptr, bufferSize,
                                             usage, false, error.ToFFI());
       if (ForwardError(error)) {
-        return IPC_OK();
+        return;
       }
     } else {
       bufferId = 0;
@@ -1389,7 +1427,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
           ("RecvSwapChainPresent with buffer %" PRIu64 "\n", bufferId));
   if (!bufferId) {
     // TODO: add a warning - no buffer are available!
-    return IPC_OK();
+    return;
   }
 
   // step 3: submit a copy command for the frame
@@ -1400,7 +1438,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
                                            &encoderDesc, aCommandEncoderId,
                                            error.ToFFI());
     if (ForwardError(error)) {
-      return IPC_OK();
+      return;
     }
   }
 
@@ -1424,7 +1462,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
         mContext.get(), data->mDeviceId, aCommandEncoderId, &texView, bufferId,
         &bufLayout, &extent, error.ToFFI());
     if (ForwardError(error)) {
-      return IPC_OK();
+      return;
     }
   }
   ffi::WGPUCommandBufferDescriptor commandDesc = {};
@@ -1435,7 +1473,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
                                     error.ToFFI());
     if (ForwardError(error)) {
       ffi::wgpu_server_encoder_drop(mContext.get(), aCommandEncoderId);
-      return IPC_OK();
+      return;
     }
   }
 
@@ -1446,7 +1484,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
                                   error.ToFFI());
     ffi::wgpu_server_encoder_drop(mContext.get(), aCommandEncoderId);
     if (ForwardError(error)) {
-      return IPC_OK();
+      return;
     }
   }
 
@@ -1474,20 +1512,18 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
                               bufferSize, ffi::WGPUHostMap_Read, closure,
                               error.ToFFI());
   if (ForwardError(error)) {
-    return IPC_OK();
+    return;
   }
-
-  return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvSwapChainDrop(
-    const layers::RemoteTextureOwnerId& aOwnerId,
-    layers::RemoteTextureTxnType aTxnType, layers::RemoteTextureTxnId aTxnId) {
+void WebGPUParent::SwapChainDrop(const layers::RemoteTextureOwnerId& aOwnerId,
+                                 layers::RemoteTextureTxnType aTxnType,
+                                 layers::RemoteTextureTxnId aTxnId) {
   const auto& lookup = mPresentationDataMap.find(aOwnerId);
   MOZ_ASSERT(lookup != mPresentationDataMap.end());
   if (lookup == mPresentationDataMap.end()) {
     NS_WARNING("WebGPU presenting on a destroyed swap chain!");
-    return IPC_OK();
+    return;
   }
 
   RefPtr<PresentationData> data = lookup->second.get();
@@ -1496,7 +1532,7 @@ ipc::IPCResult WebGPUParent::RecvSwapChainDrop(
   if (waitingCount > 0) {
     // Defer SwapChainDrop until readback complete
     data->mPendingSwapChainDrop = Some(PendingSwapChainDrop{aTxnType, aTxnId});
-    return IPC_OK();
+    return;
   }
 
   if (mRemoteTextureOwner) {
@@ -1514,7 +1550,6 @@ ipc::IPCResult WebGPUParent::RecvSwapChainDrop(
   for (const auto bid : data->mQueuedBufferIds) {
     ffi::wgpu_server_buffer_drop(mContext.get(), bid);
   }
-  return IPC_OK();
 }
 
 void WebGPUParent::ActorDestroy(ActorDestroyReason aWhy) {

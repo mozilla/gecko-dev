@@ -57,10 +57,6 @@ parent:
 
   async QueueOnSubmittedWorkDone(RawId selfId) returns (void_t ok);
 
-  async DeviceCreateSwapChain(RawId selfId, RawId queueId, RGBDescriptor desc, RawId[] bufferIds, RemoteTextureOwnerId ownerId, bool useExternalTextureInSwapChain);
-  async SwapChainPresent(RawId textureId, RawId commandEncoderId, RemoteTextureId remoteTextureId, RemoteTextureOwnerId remoteTextureOwnerId);
-  async SwapChainDrop(RemoteTextureOwnerId ownerId, RemoteTextureTxnType txnType, RemoteTextureTxnId txnId);
-
   async DevicePopErrorScope(RawId selfId) returns (PopErrorScopeResult result);
   async ReportError(RawId selfId, GPUErrorFilter aType, nsCString message);
 

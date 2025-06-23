@@ -1502,6 +1502,34 @@ extern "C" {
         texture_ids: *const id::TextureId,
         texture_ids_length: usize,
     );
+    #[allow(dead_code)]
+    fn wgpu_parent_create_swap_chain(
+        param: *mut c_void,
+        device_id: id::DeviceId,
+        queue_id: id::QueueId,
+        width: i32,
+        height: i32,
+        format: crate::SurfaceFormat,
+        buffer_ids: *const id::BufferId,
+        buffer_ids_length: usize,
+        remote_texture_owner_id: crate::RemoteTextureOwnerId,
+        use_external_texture_in_swap_chain: bool,
+    );
+    #[allow(dead_code)]
+    fn wgpu_parent_swap_chain_present(
+        param: *mut c_void,
+        texture_id: id::TextureId,
+        command_encoder_id: id::CommandEncoderId,
+        remote_texture_id: crate::RemoteTextureId,
+        remote_texture_owner_id: crate::RemoteTextureOwnerId,
+    );
+    #[allow(dead_code)]
+    fn wgpu_parent_swap_chain_drop(
+        param: *mut c_void,
+        remote_texture_owner_id: crate::RemoteTextureOwnerId,
+        txn_type: crate::RemoteTextureTxnType,
+        txn_id: crate::RemoteTextureTxnId,
+    );
 }
 
 #[cfg(target_os = "linux")]
@@ -2537,6 +2565,56 @@ pub unsafe extern "C" fn wgpu_server_message(
                 texture_ids.as_ptr(),
                 texture_ids.len(),
             )
+        }
+
+        Message::CreateSwapChain {
+            device_id,
+            queue_id,
+            width,
+            height,
+            format,
+            buffer_ids,
+            remote_texture_owner_id,
+            use_external_texture_in_swap_chain,
+        } => {
+            wgpu_parent_create_swap_chain(
+                global.webgpu_parent,
+                device_id,
+                queue_id,
+                width,
+                height,
+                format,
+                buffer_ids.as_ptr(),
+                buffer_ids.len(),
+                remote_texture_owner_id,
+                use_external_texture_in_swap_chain,
+            );
+        }
+        Message::SwapChainPresent {
+            texture_id,
+            command_encoder_id,
+            remote_texture_id,
+            remote_texture_owner_id,
+        } => {
+            wgpu_parent_swap_chain_present(
+                global.webgpu_parent,
+                texture_id,
+                command_encoder_id,
+                remote_texture_id,
+                remote_texture_owner_id,
+            );
+        }
+        Message::SwapChainDrop {
+            remote_texture_owner_id,
+            txn_type,
+            txn_id,
+        } => {
+            wgpu_parent_swap_chain_drop(
+                global.webgpu_parent,
+                remote_texture_owner_id,
+                txn_type,
+                txn_id,
+            );
         }
 
         Message::DestroyBuffer(id) => {

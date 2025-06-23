@@ -64,22 +64,21 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
                    Span<const RawId> aTextureIds);
   ipc::IPCResult RecvQueueOnSubmittedWorkDone(
       RawId aQueueId, std::function<void(mozilla::void_t)>&& aResolver);
-  ipc::IPCResult RecvDeviceCreateSwapChain(
-      RawId aDeviceId, RawId aQueueId, const layers::RGBDescriptor& aDesc,
-      const nsTArray<RawId>& aBufferIds,
-      const layers::RemoteTextureOwnerId& aOwnerId,
-      bool aUseExternalTextureInSwapChain);
+  void DeviceCreateSwapChain(RawId aDeviceId, RawId aQueueId,
+                             const layers::RGBDescriptor& aDesc,
+                             const nsTArray<RawId>& aBufferIds,
+                             const layers::RemoteTextureOwnerId& aOwnerId,
+                             bool aUseExternalTextureInSwapChain);
   ipc::IPCResult RecvDeviceCreateShaderModule(
       RawId aDeviceId, RawId aModuleId, const nsString& aLabel,
       const nsCString& aCode, DeviceCreateShaderModuleResolver&& aOutMessage);
 
-  ipc::IPCResult RecvSwapChainPresent(
-      RawId aTextureId, RawId aCommandEncoderId,
-      const layers::RemoteTextureId& aRemoteTextureId,
-      const layers::RemoteTextureOwnerId& aOwnerId);
-  ipc::IPCResult RecvSwapChainDrop(const layers::RemoteTextureOwnerId& aOwnerId,
-                                   layers::RemoteTextureTxnType aTxnType,
-                                   layers::RemoteTextureTxnId aTxnId);
+  void SwapChainPresent(RawId aTextureId, RawId aCommandEncoderId,
+                        const layers::RemoteTextureId& aRemoteTextureId,
+                        const layers::RemoteTextureOwnerId& aOwnerId);
+  void SwapChainDrop(const layers::RemoteTextureOwnerId& aOwnerId,
+                     layers::RemoteTextureTxnType aTxnType,
+                     layers::RemoteTextureTxnId aTxnId);
 
   ipc::IPCResult RecvDeviceActionWithAck(
       RawId aDeviceId, const ipc::ByteBuf& aByteBuf,

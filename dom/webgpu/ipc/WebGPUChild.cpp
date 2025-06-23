@@ -215,7 +215,12 @@ void WebGPUChild::SwapChainPresent(RawId aTextureId,
   // The parent side needs to create a command encoder which will be submitted
   // and dropped right away so we create and release an encoder ID here.
   RawId encoderId = ffi::wgpu_client_make_encoder_id(mClient.get());
-  SendSwapChainPresent(aTextureId, encoderId, aRemoteTextureId, aOwnerId);
+
+  ipc::ByteBuf bb;
+  ffi::wgpu_client_swap_chain_present(
+      aTextureId, encoderId, aRemoteTextureId.mId, aOwnerId.mId, ToFFI(&bb));
+  SendMessage(std::move(bb), Nothing());
+
   ffi::wgpu_client_free_command_encoder_id(mClient.get(), encoderId);
 }
 
