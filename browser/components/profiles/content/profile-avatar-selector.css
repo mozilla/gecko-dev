@@ -77,3 +77,7 @@
   align-items: center;
   gap: var(--space-small);
 }
+
+moz-visual-picker-item {
+  --visual-picker-item-border-color: transparent;
+}
