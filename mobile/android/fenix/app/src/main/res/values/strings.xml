@@ -1006,6 +1006,12 @@
     <string name="alternative_app_icon_option_momo">Momo</string>
     <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
     <string name="alternative_app_icon_option_momo_subtitle">Created by @heyheymomodraws</string>
+    <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+    <string name="alternative_app_icon_group_solid_colors">Solid colors</string>
+    <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+    <string name="alternative_app_icon_group_gradients">Gradients</string>
+    <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+    <string name="alternative_app_icon_group_other">Other</string>
 
     <!-- Add-ons general availability nimbus message-->
     <!-- Title of the Nimbus message for extension general availability-->

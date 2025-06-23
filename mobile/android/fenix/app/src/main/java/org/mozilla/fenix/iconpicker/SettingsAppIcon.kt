@@ -118,31 +118,44 @@ data class SettingsAppIcon(
         )
 
         /**
-         *  A list of all available [SettingsAppIcon] options used for icon selection.
+         *  Grouped [SettingsAppIcon] options used in the icon picker screen.
          */
-        val settingsAppIcons: List<SettingsAppIcon> = listOf(
-            appDefault,
-            appSolidLight,
-            appSolidDark,
-            appSolidRed,
-            appSolidGreen,
-            appSolidBlue,
-            appSolidPurple,
-            appSolidPurpleDark,
-            appGradientSunrise,
-            appGradientGoldenHour,
-            appGradientSunset,
-            appGradientBlueHour,
-            appGradientTwilight,
-            appGradientMidnight,
-            appGradientNorthernLights,
-            appRetro2004,
-            appRetro2017,
-            appPixelated,
-            appMinimal,
-            appPride,
-            appCute,
-            appMomo,
+        val groupedAppIcons: Map<SettingsGroupTitle, List<SettingsAppIcon>> = mapOf(
+            SettingsGroupTitle(R.string.alternative_app_icon_group_solid_colors) to listOf(
+                appDefault,
+                appSolidLight,
+                appSolidDark,
+                appSolidRed,
+                appSolidGreen,
+                appSolidBlue,
+                appSolidPurple,
+                appSolidPurpleDark,
+            ),
+            SettingsGroupTitle(R.string.alternative_app_icon_group_gradients) to listOf(
+                appGradientSunrise,
+                appGradientGoldenHour,
+                appGradientSunset,
+                appGradientBlueHour,
+                appGradientTwilight,
+                appGradientMidnight,
+                appGradientNorthernLights,
+            ),
+            SettingsGroupTitle(R.string.alternative_app_icon_group_other) to listOf(
+                appRetro2004,
+                appRetro2017,
+                appPixelated,
+                appMinimal,
+                appPride,
+                appCute,
+                appMomo,
+            ),
         )
     }
 }
+
+/**
+ * Type that represents a group title in the icon picker UI.
+ *
+ * @property titleId A string resource describing the group title.
+ */
+data class SettingsGroupTitle(@StringRes val titleId: Int)
