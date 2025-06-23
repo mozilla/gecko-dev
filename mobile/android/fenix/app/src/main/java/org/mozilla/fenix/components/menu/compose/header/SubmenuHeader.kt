@@ -52,7 +52,7 @@ internal fun SubmenuHeader(
             Icon(
                 painter = painterResource(id = R.drawable.mozac_ic_back_24),
                 contentDescription = null,
-                tint = FirefoxTheme.colors.iconSecondary,
+                tint = FirefoxTheme.colors.iconPrimary,
             )
         }
 

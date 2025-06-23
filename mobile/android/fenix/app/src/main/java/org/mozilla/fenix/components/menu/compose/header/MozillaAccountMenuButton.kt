@@ -154,7 +154,7 @@ private fun FallbackAvatarIcon() {
                 shape = ICON_SHAPE,
             )
             .padding(all = 4.dp),
-        tint = FirefoxTheme.colors.iconSecondary,
+        tint = FirefoxTheme.colors.iconPrimary,
     )
 }
 

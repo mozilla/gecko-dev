@@ -68,7 +68,7 @@ internal fun MenuHeader(
                 contentDescription = stringResource(
                     id = R.string.browser_main_menu_content_description_help_button,
                 ),
-                tint = FirefoxTheme.colors.iconSecondary,
+                tint = FirefoxTheme.colors.iconPrimary,
             )
         }
 
@@ -80,7 +80,7 @@ internal fun MenuHeader(
                 contentDescription = stringResource(
                     id = R.string.browser_main_menu_content_description_settings_button,
                 ),
-                tint = FirefoxTheme.colors.iconSecondary,
+                tint = FirefoxTheme.colors.iconPrimary,
             )
         }
     }

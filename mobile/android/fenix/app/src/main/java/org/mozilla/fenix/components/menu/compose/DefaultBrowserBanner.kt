@@ -109,7 +109,7 @@ fun DefaultBrowserBanner(
                     .padding(top = 12.dp, end = 18.dp)
                     .size(20.dp)
                     .clickable(onClick = onDismiss),
-                tint = FirefoxTheme.colors.iconSecondary,
+                tint = FirefoxTheme.colors.iconPrimary,
             )
         }
     }

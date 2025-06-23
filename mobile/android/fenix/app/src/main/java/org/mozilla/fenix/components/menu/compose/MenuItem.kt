@@ -325,7 +325,7 @@ private fun getIconTint(state: MenuItemState): Color {
     return when (state) {
         MenuItemState.ACTIVE -> FirefoxTheme.colors.iconAccentViolet
         MenuItemState.WARNING -> FirefoxTheme.colors.iconCritical
-        else -> FirefoxTheme.colors.iconSecondary
+        else -> FirefoxTheme.colors.iconPrimary
     }
 }
 
