@@ -175,7 +175,7 @@ function* do_run_test() {
   Assert.equal(Services.cookies.countCookiesFromHost("baz.com"), 1);
   let cookies = Services.cookies.getCookiesFromHost("baz.com", {});
   let cookie = cookies[0];
-  Assert.equal(cookie.expiry, futureExpiry + 40);
+  Assert.equal(cookie.expiry, (futureExpiry + 40) * 1000);
 
   finish_test();
 }

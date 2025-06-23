@@ -131,7 +131,7 @@ const DiscoveryInternal = {
           ) {
             continue;
           }
-          Services.cookies.add(
+          const cv = Services.cookies.add(
             site,
             "/",
             TAAR_COOKIE_NAME,
@@ -139,11 +139,14 @@ const DiscoveryInternal = {
             true, // secure
             true, // httpOnly
             true, // session
-            Date.now(),
+            Number.MAX_SAFE_INTEGER,
             originAttributes,
             Ci.nsICookie.SAMESITE_LAX,
             Ci.nsICookie.SCHEME_HTTPS
           );
+          if (cv.result != Ci.nsICookieValidation.eOK) {
+            throw new Error("Invalid cookie!");
+          }
         }
       }
     }

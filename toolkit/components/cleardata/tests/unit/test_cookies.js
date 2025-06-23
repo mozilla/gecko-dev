@@ -8,7 +8,7 @@
 "use strict";
 
 add_task(async function test_all_cookies() {
-  const expiry = Date.now() + 24 * 60 * 60;
+  const expiry = Date.now() + 24 * 60 * 60 * 1000;
   const cv = Services.cookies.add(
     "example.net",
     "path",
@@ -39,7 +39,7 @@ add_task(async function test_all_cookies() {
 });
 
 add_task(async function test_range_cookies() {
-  const expiry = Date.now() + 24 * 60 * 60;
+  const expiry = Date.now() + 24 * 60 * 60 * 1000;
   const cv = Services.cookies.add(
     "example.net",
     "path",
@@ -92,7 +92,7 @@ add_task(async function test_range_cookies() {
 });
 
 add_task(async function test_principal_cookies() {
-  const expiry = Date.now() + 24 * 60 * 60;
+  const expiry = Date.now() + 24 * 60 * 60 * 1000;
   const cv = Services.cookies.add(
     "example.net",
     "path",
@@ -147,7 +147,7 @@ add_task(async function test_principal_cookies() {
 });
 
 add_task(async function test_localfile_cookies() {
-  const expiry = Date.now() + 24 * 60 * 60;
+  const expiry = Date.now() + 24 * 60 * 60 * 1000;
   const cv = Services.cookies.add(
     "", // local file
     "path",
@@ -398,7 +398,7 @@ add_task(async function test_baseDomain_cookies_subdomain() {
 });
 
 function addCookiesForHost(host) {
-  const expiry = Date.now() + 24 * 60 * 60;
+  const expiry = Date.now() + 24 * 60 * 60 * 1000;
   const cv = Services.cookies.add(
     host,
     "path",

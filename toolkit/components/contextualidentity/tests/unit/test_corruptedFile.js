@@ -33,7 +33,7 @@ function createCookie(userContextId) {
     COOKIE.isSecure,
     COOKIE.isHttpOnly,
     COOKIE.isSession,
-    COOKIE.expiry,
+    COOKIE.expiry * 1000,
     { userContextId },
     Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTP

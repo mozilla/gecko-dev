@@ -1011,7 +1011,7 @@ void CookieService::GetCookiesForURI(
         nsMixedContentBlocker::IsPotentiallyTrustworthyOrigin(aHostURI);
 
     int64_t currentTimeInUsec = PR_Now();
-    int64_t currentTime = currentTimeInUsec / PR_USEC_PER_SEC;
+    int64_t currentTime = currentTimeInUsec / PR_USEC_PER_MSEC;
     bool stale = false;
 
     nsTArray<RefPtr<Cookie>> cookies;

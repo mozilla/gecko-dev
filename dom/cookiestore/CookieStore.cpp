@@ -36,8 +36,8 @@ int64_t ComputeExpiry(const CookieInit& aOptions) {
     return INT64_MAX;
   }
 
-  return CookieCommons::MaybeReduceExpiry(
-      PR_Now() / PR_USEC_PER_SEC, aOptions.mExpires.Value() / PR_MSEC_PER_SEC);
+  return CookieCommons::MaybeReduceExpiry(PR_Now() / PR_USEC_PER_MSEC,
+                                          aOptions.mExpires.Value());
 }
 
 int32_t SameSiteToConst(const CookieSameSite& aSameSite) {
@@ -831,7 +831,7 @@ void CookieStore::CookieStructToItem(const CookieStruct& aData,
   }
 
   if (!aData.isSession()) {
-    aItem->mExpires.Construct(aData.expiry() * PR_MSEC_PER_SEC);
+    aItem->mExpires.Construct(aData.expiry());
   } else {
     aItem->mExpires.Construct(nullptr);
   }

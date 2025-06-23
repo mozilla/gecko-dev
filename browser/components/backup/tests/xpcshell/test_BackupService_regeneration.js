@@ -102,7 +102,7 @@ function addTestCookie(isSessionCookie) {
     false,
     false,
     isSessionCookie,
-    Date.now() / 1000 + 1,
+    Date.now() + 1000,
     COOKIE_ORIGIN_ATTRIBUTES,
     Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTP

@@ -24,7 +24,7 @@ function* do_run_test() {
   // Set the base domain limit to 50 so we have a known value.
   Services.prefs.setIntPref("network.cookie.maxPerHost", 50);
 
-  let futureExpiry = Math.floor(Date.now() / 1000 + 1000);
+  let futureExpiry = Date.now() + 1000 * 1000;
 
   // test eviction under the 50 cookies per base domain limit. this means
   // that cookies for foo.com and bar.foo.com should count toward this limit,
@@ -65,7 +65,7 @@ function* do_run_test() {
   }
 
   // Test that expired cookies for a domain are evicted before live ones.
-  let shortExpiry = Math.floor(Date.now() / 1000 + 2);
+  let shortExpiry = Date.now() + 1000 * 2;
   setCookies("captchart.com", 49, futureExpiry);
   let cv = Services.cookies.add(
     "captchart.com",

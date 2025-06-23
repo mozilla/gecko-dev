@@ -75,7 +75,7 @@ function dotest()
       switch (cookie.name) {
         case "test1": {
           is(cookie.value, "value1", "The correct value expected");
-          let d = new Date(cookie.expires * 1000);
+          let d = new Date(cookie.expires);
           let [day, month, year] = [d.getUTCDate(), d.getUTCMonth(), d.getUTCFullYear()];
           let d2 = new Date(kInSevenDays);
           let [day2, month2, year2] = [d2.getUTCDate(), d2.getUTCMonth(), d2.getUTCFullYear()];
@@ -87,7 +87,7 @@ function dotest()
 
       case "test2": {
           is(cookie.value, "value2", "The correct value expected");
-          let d = new Date(cookie.expires * 1000);
+          let d = new Date(cookie.expires);
           let [day, month, year] = [d.getUTCDate(), d.getUTCMonth(), d.getUTCFullYear()];
           let d2 = new Date(kInTwoDays);
           let [day2, month2, year2] = [d2.getUTCDate(), d2.getUTCMonth(), d2.getUTCFullYear()];
@@ -99,7 +99,7 @@ function dotest()
 
       case "test3": {
           is(cookie.value, "value3", "The correct value expected");
-          let d = new Date(cookie.expires * 1000);
+          let d = new Date(cookie.expires);
           let [day, month, year] = [d.getUTCDate(), d.getUTCMonth(), d.getUTCFullYear()];
           let d2 = new Date(kInSevenDays);
           let [day2, month2, year2] = [d2.getUTCDate(), d2.getUTCMonth(), d2.getUTCFullYear()];
@@ -111,7 +111,7 @@ function dotest()
 
       case "test4": {
           is(cookie.value, "value4", "The correct value expected");
-          let d = new Date(cookie.expires * 1000);
+          let d = new Date(cookie.expires);
           let [day, month, year] = [d.getUTCDate(), d.getUTCMonth(), d.getUTCFullYear()];
           let d2 = new Date(kInTwoDays);
           let [day2, month2, year2] = [d2.getUTCDate(), d2.getUTCMonth(), d2.getUTCFullYear()];

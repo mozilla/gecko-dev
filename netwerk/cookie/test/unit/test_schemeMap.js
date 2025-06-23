@@ -184,7 +184,7 @@ add_task(async _ => {
     false,
     false,
     false,
-    Math.floor(Date.now() / 1000 + 1000),
+    Date.now() + 1000 * 1000,
     {},
     Ci.nsICookie.SAMESITE_LAX,
     Ci.nsICookie.SCHEME_UNSET

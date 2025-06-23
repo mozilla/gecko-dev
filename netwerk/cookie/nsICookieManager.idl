@@ -120,7 +120,7 @@ interface nsICookieManager : nsISupports
    *        true if the cookie should exist for the current session only.
    *        see aExpiry.
    * @param aExpiry
-   *        expiration date, in seconds since midnight (00:00:00), January 1,
+   *        expiration date, in mseconds since midnight (00:00:00), January 1,
    *        1970 UTC. note that expiry time will also be honored for session cookies;
    *        in this way, the more restrictive of the two will take effect.
    * @param aOriginAttributes
