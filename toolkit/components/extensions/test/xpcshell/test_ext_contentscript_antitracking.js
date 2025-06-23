@@ -18,9 +18,9 @@ server.registerPathHandler("/dummy", (request, response) => {
 
   response.setStatusLine(request.httpVersion, 200, "OK");
   response.setHeader("Content-Type", "text/html", false);
-  response.write(
-    '<!DOCTYPE html><html><img id="img_from_page" src="http://example.org/img.png"></img></html>'
-  );
+  response.write(`
+    <!DOCTYPE html><html><img id="img_from_page" src="http://example.org/img.png"></img>
+    <script>localStorage.foo = "42"</script></html>`);
 });
 
 server.registerPathHandler("/iframe", (request, response) => {
@@ -108,6 +108,8 @@ async function runTest(pref) {
 
     files: {
       "contentscript.js": async () => {
+        browser.test.assertEq(localStorage.foo, "42");
+
         await document.getElementById("img_from_page").decode();
 
         let img = document.createElement("img");
