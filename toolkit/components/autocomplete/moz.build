@@ -31,6 +31,8 @@ XPCOM_MANIFESTS += [
     "components.conf",
 ]
 
+SPHINX_TREES["docs"] = "docs"
+
 FINAL_LIBRARY = "xul"
 
 with Files("**"):
