@@ -51,12 +51,7 @@ void WebGPUChild::JsWarning(nsIGlobalObject* aGlobal,
   }
 }
 
-static UniquePtr<ffi::WGPUClient> initialize() {
-  ffi::WGPUInfrastructure infra = ffi::wgpu_client_new();
-  return UniquePtr<ffi::WGPUClient>{infra.client};
-}
-
-WebGPUChild::WebGPUChild() : mClient(initialize()) {}
+WebGPUChild::WebGPUChild() : mClient(ffi::wgpu_client_new(this)) {}
 
 WebGPUChild::~WebGPUChild() = default;
 
@@ -91,7 +86,8 @@ RawId WebGPUChild::RenderBundleEncoderFinishError(RawId aDeviceId,
 }
 
 void resolve_request_adapter_promise(
-    void* child, const struct ffi::WGPUAdapterInformation* adapter_info) {
+    ffi::WGPUWebGPUChildPtr child,
+    const struct ffi::WGPUAdapterInformation* adapter_info) {
   auto* c = static_cast<WebGPUChild*>(child);
   auto& pending_promises = c->mPendingRequestAdapterPromises;
   auto pending_promise = std::move(pending_promises.front());
@@ -106,7 +102,8 @@ void resolve_request_adapter_promise(
   }
 }
 
-void resolve_request_device_promise(void* child, const nsCString* error) {
+void resolve_request_device_promise(ffi::WGPUWebGPUChildPtr child,
+                                    const nsCString* error) {
   auto* c = static_cast<WebGPUChild*>(child);
   auto& pending_promises = c->mPendingRequestDevicePromises;
   auto pending_promise = std::move(pending_promises.front());
@@ -124,7 +121,7 @@ void resolve_request_device_promise(void* child, const nsCString* error) {
   }
 }
 
-void resolve_pop_error_scope_promise(void* child, uint8_t ty,
+void resolve_pop_error_scope_promise(ffi::WGPUWebGPUChildPtr child, uint8_t ty,
                                      const nsCString* message) {
   auto* c = static_cast<WebGPUChild*>(child);
   auto& pending_promises = c->mPendingPopErrorScopePromises;
@@ -164,7 +161,8 @@ void resolve_pop_error_scope_promise(void* child, uint8_t ty,
   pending_promise.promise->MaybeResolve(std::move(error));
 }
 
-void resolve_create_pipeline_promise(void* child, bool is_render_pipeline,
+void resolve_create_pipeline_promise(ffi::WGPUWebGPUChildPtr child,
+                                     bool is_render_pipeline,
                                      bool is_validation_error,
                                      const nsCString* error) {
   auto* c = static_cast<WebGPUChild*>(child);
@@ -203,7 +201,7 @@ void resolve_create_pipeline_promise(void* child, bool is_render_pipeline,
 }
 
 MOZ_CAN_RUN_SCRIPT void resolve_create_shader_module_promise(
-    void* child,
+    ffi::WGPUWebGPUChildPtr child,
     const struct ffi::WGPUFfiShaderModuleCompilationMessage* messages_ptr,
     uintptr_t messages_len) {
   auto* c = static_cast<WebGPUChild*>(child);
@@ -236,9 +234,10 @@ MOZ_CAN_RUN_SCRIPT void resolve_create_shader_module_promise(
   pending_promise.promise->MaybeResolve(infoObject);
 };
 
-void resolve_buffer_map_promise(void* child, ffi::WGPUBufferId buffer_id,
-                                bool is_writable, uint64_t offset,
-                                uint64_t size, const nsCString* error) {
+void resolve_buffer_map_promise(ffi::WGPUWebGPUChildPtr child,
+                                ffi::WGPUBufferId buffer_id, bool is_writable,
+                                uint64_t offset, uint64_t size,
+                                const nsCString* error) {
   auto* c = static_cast<WebGPUChild*>(child);
   auto& pending_promises = c->mPendingBufferMapPromises;
 
@@ -273,7 +272,7 @@ void resolve_buffer_map_promise(void* child, ffi::WGPUBufferId buffer_id,
   }
 }
 
-void resolve_on_submitted_work_done_promise(void* child) {
+void resolve_on_submitted_work_done_promise(ffi::WGPUWebGPUChildPtr child) {
   auto* c = static_cast<WebGPUChild*>(child);
   auto& pending_promises = c->mPendingOnSubmittedWorkDonePromises;
   auto pending_promise = std::move(pending_promises.front());
@@ -284,7 +283,7 @@ void resolve_on_submitted_work_done_promise(void* child) {
 
 ipc::IPCResult WebGPUChild::RecvServerMessage(const ipc::ByteBuf& aByteBuf) {
   ffi::wgpu_client_receive_server_message(
-      this, GetClient(), ToFFI(&aByteBuf), resolve_request_adapter_promise,
+      GetClient(), ToFFI(&aByteBuf), resolve_request_adapter_promise,
       resolve_request_device_promise, resolve_pop_error_scope_promise,
       resolve_create_pipeline_promise, resolve_create_shader_module_promise,
       resolve_buffer_map_promise, resolve_on_submitted_work_done_promise);
