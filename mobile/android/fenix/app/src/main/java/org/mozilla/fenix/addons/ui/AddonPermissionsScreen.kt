@@ -45,9 +45,6 @@ fun AddonPermissionsScreen(
     permissions: List<String>,
     optionalPermissions: List<Addon.LocalizedPermission>,
     originPermissions: List<Addon.LocalizedPermission>,
-    requiredDataCollectionPermissions: List<String> = emptyList(),
-    hasNoneDataCollection: Boolean = false,
-    optionalDataCollectionPermissions: List<Addon.LocalizedPermission> = emptyList(),
     isAllSitesSwitchVisible: Boolean,
     isAllSitesEnabled: Boolean,
     onAddOptionalPermissions: (AddonPermissionsUpdateRequest) -> Unit,
@@ -55,6 +52,9 @@ fun AddonPermissionsScreen(
     onAddAllSitesPermissions: () -> Unit,
     onRemoveAllSitesPermissions: () -> Unit,
     onLearnMoreClick: (String) -> Unit,
+    requiredDataCollectionPermissions: List<String> = emptyList(),
+    hasNoneDataCollection: Boolean = false,
+    optionalDataCollectionPermissions: List<Addon.LocalizedPermission> = emptyList(),
 ) {
     val hasNoPermission = permissions.isEmpty() &&
             optionalPermissions.isEmpty() &&
@@ -181,18 +181,7 @@ fun AddonPermissionsScreen(
             }
 
             item {
-                TextListItem(
-                    label = if (hasNoneDataCollection) {
-                        stringResource(id = R.string.addons_permissions_none_required_data_collection_description)
-                    } else {
-                        stringResource(
-                            id = R.string.addons_permissions_required_data_collection_description_2,
-                            Addon.formatLocalizedDataCollectionPermissions(requiredDataCollectionPermissions),
-                        )
-                    },
-                    maxLabelLines = Int.MAX_VALUE,
-                    modifier = Modifier.padding(vertical = 8.dp),
-                )
+                DataCollectionPermission(hasNoneDataCollection, requiredDataCollectionPermissions)
             }
 
             item {
@@ -229,6 +218,25 @@ fun AddonPermissionsScreen(
             LearnMoreItem(onLearnMoreClick)
         }
     }
+}
+
+@Composable
+private fun DataCollectionPermission(
+    hasNoneDataCollection: Boolean,
+    requiredDataCollectionPermissions: List<String>,
+) {
+    TextListItem(
+        label = if (hasNoneDataCollection) {
+            stringResource(id = R.string.addons_permissions_none_required_data_collection_description)
+        } else {
+            stringResource(
+                id = R.string.addons_permissions_required_data_collection_description_2,
+                Addon.formatLocalizedDataCollectionPermissions(requiredDataCollectionPermissions),
+            )
+        },
+        maxLabelLines = Int.MAX_VALUE,
+        modifier = Modifier.padding(vertical = 8.dp),
+    )
 }
 
 /**
@@ -330,34 +338,25 @@ private fun OptionalPermissionSwitch(
         modifier = modifier,
         enabled = isEnabled,
     ) { enabled ->
+        val request = AddonPermissionsUpdateRequest(
+            optionalPermissions = when (type) {
+                OptionalPermissionType.PERMISSION -> listOf(localizedPermission.permission.name)
+                else -> emptyList()
+            },
+            originPermissions = when (type) {
+                OptionalPermissionType.ORIGIN -> listOf(localizedPermission.permission.name)
+                else -> emptyList()
+            },
+            dataCollectionPermissions = when (type) {
+                OptionalPermissionType.DATA_COLLECTION -> listOf(localizedPermission.permission.name)
+                else -> emptyList()
+            },
+        )
+
         if (enabled) {
-            addOptionalPermission(
-                AddonPermissionsUpdateRequest(
-                    optionalPermissions = if (type == OptionalPermissionType.PERMISSION) {
-                        listOf(localizedPermission.permission.name)
-                    } else { emptyList() },
-                    originPermissions = if (type == OptionalPermissionType.ORIGIN) {
-                        listOf(localizedPermission.permission.name)
-                    } else { emptyList() },
-                    dataCollectionPermissions = if (type == OptionalPermissionType.DATA_COLLECTION) {
-                        listOf(localizedPermission.permission.name)
-                    } else { emptyList() },
-                ),
-            )
+            addOptionalPermission(request)
         } else {
-            removeOptionalPermission(
-                AddonPermissionsUpdateRequest(
-                    optionalPermissions = if (type == OptionalPermissionType.PERMISSION) {
-                        listOf(localizedPermission.permission.name)
-                    } else { emptyList() },
-                    originPermissions = if (type == OptionalPermissionType.ORIGIN) {
-                        listOf(localizedPermission.permission.name)
-                    } else { emptyList() },
-                    dataCollectionPermissions = if (type == OptionalPermissionType.DATA_COLLECTION) {
-                        listOf(localizedPermission.permission.name)
-                    } else { emptyList() },
-                ),
-            )
+            removeOptionalPermission(request)
         }
     }
 
