@@ -211,7 +211,7 @@ nsresult ModuleLoader::CompileFetchedModule(
     JSContext* aCx, JS::Handle<JSObject*> aGlobal, JS::CompileOptions& aOptions,
     ModuleLoadRequest* aRequest, JS::MutableHandle<JSObject*> aModuleOut) {
   if (aRequest->IsTextSource()) {
-    ScriptLoader::CalculateBytecodeCacheFlag(aRequest);
+    GetScriptLoader()->CalculateBytecodeCacheFlag(aRequest);
   }
 
   if (!nsJSUtils::IsScriptable(aGlobal)) {
