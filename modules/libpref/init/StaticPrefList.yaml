@@ -16455,21 +16455,13 @@
 # Don't enable this! This is only meant for legacy tests.
 - name: security.allow_eval_with_system_principal
   type: RelaxedAtomicBool
-#ifdef MOZ_WIDGET_ANDROID
-  value: true # Bug 1895823
-#else
   value: false
-#endif
   mirror: always
 
 # Don't enable this! This is only meant for legacy tests.
 - name: security.allow_eval_in_parent_process
   type: RelaxedAtomicBool
-#ifdef MOZ_WIDGET_ANDROID
-  value: true # Bug 1895823
-#else
   value: false
-#endif
   mirror: always
 
 # Disallowed by default, ensure not disallowed content is loaded in the parent
