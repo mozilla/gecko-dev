@@ -13,6 +13,8 @@
 #include "WMFUtils.h"
 #include <comdef.h>
 
+using Microsoft::WRL::ComPtr;
+
 // Missing from MinGW.
 #ifndef CODECAPI_AVEncAdaptiveMode
 #  define STATIC_CODECAPI_AVEncAdaptiveMode \
@@ -90,49 +92,66 @@ static const char* CodecStr(const GUID& aGUID) {
   }
 }
 
-static UINT32 EnumEncoders(const GUID& aSubtype, IMFActivate**& aActivates,
-                           const bool aUseHW = true) {
+static Result<nsTArray<ComPtr<IMFActivate>>, HRESULT> EnumMFT(
+    GUID aCategory, UINT32 aFlags, const MFT_REGISTER_TYPE_INFO* aInType,
+    const MFT_REGISTER_TYPE_INFO* aOutType) {
+  nsTArray<ComPtr<IMFActivate>> activates;
+
+  IMFActivate** enumerated;
   UINT32 num = 0;
+  HRESULT hr =
+      wmf::MFTEnumEx(aCategory, aFlags, aInType, aOutType, &enumerated, &num);
+  if (FAILED(hr)) {
+    return Err(hr);
+  }
+  for (UINT32 i = 0; i < num; ++i) {
+    activates.AppendElement(ComPtr<IMFActivate>(enumerated[i]));
+    // MFTEnumEx increments the reference count for each IMFActivate; decrement
+    // here so ComPtr manages the lifetime correctly
+    enumerated[i]->Release();
+  }
+  if (enumerated) {
+    mscom::wrapped::CoTaskMemFree(enumerated);
+  }
+  return activates;
+}
+
+static nsTArray<ComPtr<IMFActivate>> EnumEncoders(const GUID& aSubtype,
+                                                  const bool aUseHW = true) {
   MFT_REGISTER_TYPE_INFO inType = {.guidMajorType = MFMediaType_Video,
                                    .guidSubtype = MFVideoFormat_NV12};
   MFT_REGISTER_TYPE_INFO outType = {.guidMajorType = MFMediaType_Video,
                                     .guidSubtype = aSubtype};
-  HRESULT hr = S_OK;
   if (aUseHW) {
     if (IsWin32kLockedDown()) {
       // Some HW encoders use DXGI API and crash when locked down.
       // TODO: move HW encoding out of content process (bug 1754531).
       MFT_ENC_SLOGD("Don't use HW encoder when win32k locked down.");
-      return 0;
+      return {};
     }
 
-    hr = wmf::MFTEnumEx(MFT_CATEGORY_VIDEO_ENCODER,
-                        MFT_ENUM_FLAG_HARDWARE | MFT_ENUM_FLAG_SORTANDFILTER,
-                        &inType, &outType, &aActivates, &num);
-    if (FAILED(hr)) {
+    auto r = EnumMFT(MFT_CATEGORY_VIDEO_ENCODER,
+                     MFT_ENUM_FLAG_HARDWARE | MFT_ENUM_FLAG_SORTANDFILTER,
+                     &inType, &outType);
+    if (r.isErr()) {
       MFT_ENC_SLOGE("enumerate HW encoder for %s: error=%s", CodecStr(aSubtype),
-                    ErrorStr(hr));
-      return 0;
+                    ErrorStr(r.unwrapErr()));
+      return {};
     }
-    if (num > 0) {
-      return num;
-    }
+    return r.unwrap();
   }
 
   // Try software MFTs.
-  hr = wmf::MFTEnumEx(MFT_CATEGORY_VIDEO_ENCODER,
-                      MFT_ENUM_FLAG_SYNCMFT | MFT_ENUM_FLAG_ASYNCMFT |
-                          MFT_ENUM_FLAG_SORTANDFILTER,
-                      &inType, &outType, &aActivates, &num);
-  if (FAILED(hr)) {
+  auto r = EnumMFT(MFT_CATEGORY_VIDEO_ENCODER,
+                   MFT_ENUM_FLAG_SYNCMFT | MFT_ENUM_FLAG_ASYNCMFT |
+                       MFT_ENUM_FLAG_SORTANDFILTER,
+                   &inType, &outType);
+  if (r.isErr()) {
     MFT_ENC_SLOGE("enumerate SW encoder for %s: error=%s", CodecStr(aSubtype),
-                  ErrorStr(hr));
-    return 0;
+                  ErrorStr(r.unwrapErr()));
+    return {};
   }
-  if (num == 0) {
-    MFT_ENC_SLOGD("cannot find encoder for %s", CodecStr(aSubtype));
-  }
-  return num;
+  return r.unwrap();
 }
 
 static HRESULT GetFriendlyName(IMFActivate* aAttributes, nsCString& aName) {
@@ -157,17 +176,13 @@ static HRESULT GetFriendlyName(IMFActivate* aAttributes, nsCString& aName) {
 
 static void PopulateEncoderInfo(const GUID& aSubtype,
                                 nsTArray<MFTEncoder::Info>& aInfos) {
-  IMFActivate** activates = nullptr;
-  UINT32 num = EnumEncoders(aSubtype, activates);
-  for (UINT32 i = 0; i < num; ++i) {
+  nsTArray<ComPtr<IMFActivate>> activates = EnumEncoders(aSubtype);
+  for (const auto& activate : activates) {
     MFTEncoder::Info info = {.mSubtype = aSubtype};
-    GetFriendlyName(activates[i], info.mName);
+    GetFriendlyName(activate.Get(), info.mName);
     aInfos.AppendElement(info);
     MFT_ENC_SLOGD("<ENC> [%s] %s\n", CodecStr(aSubtype), info.mName.Data());
-    activates[i]->Release();
-    activates[i] = nullptr;
   }
-  mscom::wrapped::CoTaskMemFree(activates);
 }
 
 Maybe<MFTEncoder::Info> MFTEncoder::GetInfo(const GUID& aSubtype) {
@@ -209,21 +224,15 @@ nsTArray<MFTEncoder::Info>& MFTEncoder::Infos() {
 }
 
 already_AddRefed<IMFActivate> MFTEncoder::CreateFactory(const GUID& aSubtype) {
-  IMFActivate** activates = nullptr;
-  UINT32 num = EnumEncoders(aSubtype, activates, !mHardwareNotAllowed);
-  if (num == 0) {
+  nsTArray<ComPtr<IMFActivate>> activates =
+      EnumEncoders(aSubtype, !mHardwareNotAllowed);
+  if (activates.Length() == 0) {
     return nullptr;
   }
 
   // Keep the first and throw out others, if there is any.
-  RefPtr<IMFActivate> factory = activates[0];
+  RefPtr<IMFActivate> factory = activates[0].Get();
   activates[0] = nullptr;
-  for (UINT32 i = 1; i < num; ++i) {
-    activates[i]->Release();
-    activates[i] = nullptr;
-  }
-  mscom::wrapped::CoTaskMemFree(activates);
-
   return factory.forget();
 }
 
