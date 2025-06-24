@@ -65,6 +65,10 @@ class CustomizationFragment : PreferenceFragmentCompat() {
             setupToolbarCategory()
         }
 
+        (requirePreference(R.string.pref_key_customization_category_toolbar_layout) as PreferenceCategory).apply {
+            isVisible = requireContext().settings().toolbarRedesignEnabled && !tabletAndTabStripEnabled
+        }
+
         // if tab strip is enabled, swipe toolbar to switch tabs should not be enabled so the
         // preference is not shown
         setupGesturesCategory(isSwipeToolbarToSwitchTabsVisible = !tabletAndTabStripEnabled)

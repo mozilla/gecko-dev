@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:baselineAligned="false"
+    android:orientation="horizontal"
+    android:gravity="center"
+    android:paddingHorizontal="60dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <include layout="@layout/preference_widget_radiobutton_vertical"
+        android:id="@+id/option_true"
+        android:layout_width="120dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content" />
+
+    <include layout="@layout/preference_widget_radiobutton_vertical"
+        android:id="@+id/option_false"
+        android:layout_width="120dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content" />
+</LinearLayout>

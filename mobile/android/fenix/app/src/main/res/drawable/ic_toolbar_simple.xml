@@ -1,0 +1,4 @@
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+  <item android:drawable="@drawable/ic_toolbar_simple_selected" android:state_selected="true" />
+  <item android:drawable="@drawable/ic_toolbar_simple_unselected" />
+</selector>

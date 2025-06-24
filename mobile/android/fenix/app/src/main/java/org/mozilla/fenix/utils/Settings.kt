@@ -1061,9 +1061,9 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         persistDefaultIfNotExists = true,
     )
 
-    var shouldUseExpandedToolbar by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_expanded),
-        default = false,
+    var shouldUseSimpleToolbar by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_simple),
+        default = true,
         persistDefaultIfNotExists = true,
     )
 
@@ -1867,10 +1867,9 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Indicates if the user have access to the toolbar redesign option in settings.
+     * Indicates if the user has access to the toolbar redesign option in settings.
      */
-    @VisibleForTesting
-    internal var toolbarRedesignEnabled by booleanPreference(
+    var toolbarRedesignEnabled by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_enable_toolbar_redesign),
         default = { FxNimbus.features.toolbarRedesignOption.value().showOptions },
     )

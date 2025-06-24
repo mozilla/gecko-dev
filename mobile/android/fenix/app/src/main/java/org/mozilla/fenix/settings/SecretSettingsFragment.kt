@@ -69,6 +69,12 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
+        requirePreference<SwitchPreference>(R.string.pref_key_enable_toolbar_redesign).apply {
+            isVisible = Config.channel.isDebug
+            isChecked = context.settings().toolbarRedesignEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreference>(R.string.pref_key_use_new_bookmarks_ui).apply {
             isVisible = true
             isChecked = context.settings().useNewBookmarks

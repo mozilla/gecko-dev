@@ -770,6 +770,8 @@
     <string name="preferences_category_account">Account</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">Address bar location</string>
+    <!-- Preference for changing toolbar layout -->
+    <string name="preferences_toolbar_layout">Toolbar layout</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Theme</string>
     <!-- Preference for customizing the home screen -->
@@ -1154,6 +1156,10 @@
     <string name="preference_top_toolbar">Top</string>
     <!-- Preference for using bottom toolbar -->
     <string name="preference_bottom_toolbar">Bottom</string>
+    <!-- Preference for using simple toolbar -->
+    <string name="preference_simple_toolbar">Simple</string>
+    <!-- Preference for using expanded toolbar -->
+    <string name="preference_expanded_toolbar">Expanded</string>
 
     <!-- Theme Preferences -->
     <!-- Preference for using light theme -->

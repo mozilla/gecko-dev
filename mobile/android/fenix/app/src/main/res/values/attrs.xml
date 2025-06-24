@@ -124,6 +124,14 @@
         <attr name="android:defaultValue"/>
     </declare-styleable>
 
+    <declare-styleable name="TwoOptionTogglePreference">
+        <attr name="sharedPreferenceKey" format="string" />
+        <attr name="trueOptionTitle" format="string" />
+        <attr name="falseOptionTitle" format="string" />
+        <attr name="trueOptionIconRes" format="reference" />
+        <attr name="falseOptionIconRes" format="reference" />
+    </declare-styleable>
+
     <declare-styleable name="PreferenceBackedRadioButton">
         <attr format="string" name="preferenceKey"/>
         <attr format="boolean" name="preferenceKeyDefaultValue"/>
