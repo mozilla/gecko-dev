@@ -65,12 +65,16 @@ def determine_percentile(quantiles_file, duration):
         f.readline()  # skip header
         boundaries = [float(l.strip()) for l in f.readlines()]
 
+    if not boundaries:
+        return 0
+
     boundaries.sort()
     for i, v in enumerate(boundaries):
         if duration < v:
-            break
-    # Estimate percentile from len(boundaries)-quantile
-    return int(100 * i / len(boundaries))
+            # Estimate percentile from len(boundaries)-quantile
+            return int(100 * i / len(boundaries))
+
+    return 100
 
 
 def task_duration_data(cache_dir):
