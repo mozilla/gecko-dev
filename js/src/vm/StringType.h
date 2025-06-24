@@ -1825,6 +1825,9 @@ class JSOffThreadAtom : private JSAtom {
   bool isInline() const { return flags() & INLINE_CHARS_BIT; }
   bool hasIndexValue() const { return flags() & INDEX_VALUE_BIT; }
   bool isIndex() const { return flags() & ATOM_IS_INDEX_BIT; }
+  bool isFatInline() const {
+    return (flags() & FAT_INLINE_MASK) == FAT_INLINE_MASK;
+  }
 
   uint32_t getIndexValue() const {
     MOZ_ASSERT(hasIndexValue());
@@ -1861,6 +1864,13 @@ class JSOffThreadAtom : private JSAtom {
     JS::AutoCheckCannotGC nogc;
     return hasLatin1Chars() ? latin1Chars(nogc)[index]
                             : twoByteChars(nogc)[index];
+  }
+
+  inline HashNumber hash() const {
+    if (isFatInline()) {
+      return reinterpret_cast<const js::FatInlineAtom*>(this)->hash();
+    }
+    return reinterpret_cast<const js::NormalAtom*>(this)->hash();
   }
 
   JSAtom* unwrap() { return this; }

@@ -40,6 +40,17 @@ HashAtomOrSymbolPropertyKey(PropertyKey key) {
   return key.toSymbol()->hash();
 }
 
+// Like HashPropertyKey but safe to call off-thread.
+static MOZ_ALWAYS_INLINE HashNumber HashPropertyKeyThreadSafe(PropertyKey key) {
+  if (MOZ_LIKELY(key.isAtom())) {
+    return key.toAtom()->asOffThreadAtom().hash();
+  }
+  if (key.isSymbol()) {
+    return key.toSymbol()->hash();
+  }
+  return mozilla::HashGeneric(key.asRawBits());
+}
+
 }  // namespace js
 
 namespace mozilla {

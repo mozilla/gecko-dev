@@ -3033,7 +3033,7 @@ void MacroAssembler::emitMegamorphicCacheLookup(
   rshiftPtr(Imm32(MegamorphicCache::ShapeHashShift1), outEntryPtr);
   rshiftPtr(Imm32(MegamorphicCache::ShapeHashShift2), scratch2);
   xorPtr(scratch2, outEntryPtr);
-  addPtr(Imm32(HashAtomOrSymbolPropertyKey(id)), outEntryPtr);
+  addPtr(Imm32(HashPropertyKeyThreadSafe(id)), outEntryPtr);
 
   // outEntryPtr %= MegamorphicCache::NumEntries
   constexpr size_t cacheSize = MegamorphicCache::NumEntries;
@@ -3214,7 +3214,7 @@ void MacroAssembler::emitMegamorphicCachedSetSlot(
     addPtr(scratch2, scratch3);
   } else {
     static_assert(std::is_same<IdType, PropertyKey>::value);
-    addPtr(Imm32(HashAtomOrSymbolPropertyKey(id)), scratch3);
+    addPtr(Imm32(HashPropertyKeyThreadSafe(id)), scratch3);
     movePropertyKey(id, scratch1);
   }
 
