@@ -17,6 +17,7 @@
 #include "mozilla/dom/ViewTransitionBinding.h"
 #include "mozilla/image/WebRenderImageProvider.h"
 #include "mozilla/webrender/WebRenderAPI.h"
+#include "mozilla/FlowMarkers.h"
 #include "mozilla/AnimationEventDispatcher.h"
 #include "mozilla/EffectSet.h"
 #include "mozilla/ElementAnimationData.h"
@@ -465,6 +466,8 @@ Promise* ViewTransition::GetFinished(ErrorResult& aRv) {
 // This performs the step 5 in setup view transition.
 // https://drafts.csswg.org/css-view-transitions-1/#setup-view-transition
 void ViewTransition::MaybeScheduleUpdateCallback() {
+  AUTO_PROFILER_FLOW_MARKER("ViewTransition::MaybeScheduleUpdateCallback",
+                            LAYOUT, Flow::FromPointer(this));
   // 1. If transition’s phase is "done", then abort these steps.
   // Note: This happens if transition was skipped before this point.
   if (mPhase == Phase::Done) {
@@ -488,6 +491,9 @@ void ViewTransition::CallUpdateCallback(ErrorResult& aRv) {
   MOZ_ASSERT(mPhase == Phase::Done ||
              UnderlyingValue(mPhase) <
                  UnderlyingValue(Phase::UpdateCallbackCalled));
+  VT_LOG("ViewTransition::CallUpdateCallback(%d)\n", int(mPhase));
+  AUTO_PROFILER_FLOW_MARKER("ViewTransition::CallUpdateCallback", LAYOUT,
+                            Flow::FromPointer(this));
 
   // Step 5: If transition's phase is not "done", then set transition's phase
   // to "update-callback-called".
@@ -520,6 +526,8 @@ void ViewTransition::CallUpdateCallback(ErrorResult& aRv) {
   callbackPromise->AddCallbacksWithCycleCollectedArgs(
       [](JSContext*, JS::Handle<JS::Value>, ErrorResult& aRv,
          ViewTransition* aVt) {
+        AUTO_PROFILER_FLOW_MARKER("ViewTransition::UpdateCallbackResolve",
+                                  LAYOUT, Flow::FromPointer(aVt));
         // We clear the timeout when we are ready to activate. Otherwise, any
         // animations with the duration longer than
         // StaticPrefs::dom_viewTransitions_timeout_ms() will be interrupted.
@@ -550,6 +558,8 @@ void ViewTransition::CallUpdateCallback(ErrorResult& aRv) {
       },
       [](JSContext*, JS::Handle<JS::Value> aReason, ErrorResult& aRv,
          ViewTransition* aVt) {
+        AUTO_PROFILER_FLOW_MARKER("ViewTransition::UpdateCallbackReject",
+                                  LAYOUT, Flow::FromPointer(aVt));
         // Clear the timeout because we are ready to skip the view transitions.
         aVt->ClearTimeoutTimer();
 
@@ -1036,6 +1046,8 @@ bool ViewTransition::UpdatePseudoElementStyles(bool aNeedsInvalidation) {
 
 // https://drafts.csswg.org/css-view-transitions-1/#activate-view-transition
 void ViewTransition::Activate() {
+  AUTO_PROFILER_FLOW_MARKER("ViewTransition::Activate", LAYOUT,
+                            Flow::FromPointer(this));
   // Step 1: If transition's phase is "done", then return.
   if (mPhase == Phase::Done) {
     return;
@@ -1093,6 +1105,8 @@ void ViewTransition::Activate() {
 void ViewTransition::PerformPendingOperations() {
   MOZ_ASSERT(mDocument);
   MOZ_ASSERT(mDocument->GetActiveViewTransition() == this);
+  AUTO_PROFILER_FLOW_MARKER("ViewTransition::PerformPendingOperations", LAYOUT,
+                            Flow::FromPointer(this));
 
   // Flush the update callback queue.
   // Note: this ensures that any changes to the DOM scheduled by other skipped
@@ -1390,6 +1404,8 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureNewState() {
 
 // https://drafts.csswg.org/css-view-transitions/#setup-view-transition
 void ViewTransition::Setup() {
+  AUTO_PROFILER_FLOW_MARKER("ViewTransition::Setup", LAYOUT,
+                            Flow::FromPointer(this));
   // Step 2: Capture the old state for transition.
   if (auto skipReason = CaptureOldState()) {
     // If failure is returned, then skip the view transition for transition
@@ -1418,6 +1434,8 @@ void ViewTransition::HandleFrame() {
 
   // Step 4: If hasActiveAnimations is false:
   if (!hasActiveAnimations) {
+    AUTO_PROFILER_TERMINATING_FLOW_MARKER("ViewTransition::HandleFrameFinish",
+                                          LAYOUT, Flow::FromPointer(this));
     // 4.1: Set transition's phase to "done".
     mPhase = Phase::Done;
     // 4.2: Clear view transition transition.
@@ -1428,6 +1446,10 @@ void ViewTransition::HandleFrame() {
     }
     return;
   }
+
+  AUTO_PROFILER_FLOW_MARKER("ViewTransition::HandleFrame", LAYOUT,
+                            Flow::FromPointer(this));
+
   // Step 5: If transition’s initial snapshot containing block size is not equal
   // to the snapshot containing block size, then skip the view transition for
   // transition with an "InvalidStateError" DOMException in transition’s
@@ -1631,6 +1653,9 @@ void ViewTransition::SkipTransition(
   MOZ_ASSERT_IF(aReason != SkipTransitionReason::JS, mPhase != Phase::Done);
   MOZ_ASSERT_IF(aReason != SkipTransitionReason::UpdateCallbackRejected,
                 aUpdateCallbackRejectReason == JS::UndefinedHandleValue);
+  VT_LOG("ViewTransition::SkipTransition(%d, %d)\n", int(mPhase), int(aReason));
+  AUTO_PROFILER_TERMINATING_FLOW_MARKER("ViewTransition::SkipTransition",
+                                        LAYOUT, Flow::FromPointer(this));
   if (mPhase == Phase::Done) {
     return;
   }
