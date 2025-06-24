@@ -122,6 +122,11 @@ bool TextRange::Crop(Accessible* aContainer) {
   Accessible* container = nullptr;
   HyperTextAccessibleBase* startHyper = mStartContainer->AsHyperTextBase();
   Accessible* boundary = startHyper->GetChildAtOffset(mStartOffset);
+  if (!boundary) {
+    // mStartContainer is empty.
+    MOZ_ASSERT(mStartOffset == 0 && startHyper->CharacterCount() == 0);
+    boundary = mStartContainer;
+  }
   if (boundary != aContainer) {
     CommonParent(boundary, aContainer, &boundaryParents, &boundaryPos,
                  &containerParents, &containerPos);
@@ -160,6 +165,11 @@ bool TextRange::Crop(Accessible* aContainer) {
 
   HyperTextAccessibleBase* endHyper = mEndContainer->AsHyperTextBase();
   boundary = endHyper->GetChildAtOffset(mEndOffset);
+  if (!boundary) {
+    // mEndContainer is empty.
+    MOZ_ASSERT(mEndOffset == 0 && endHyper->CharacterCount() == 0);
+    boundary = mEndContainer;
+  }
   if (boundary == aContainer) {
     return true;
   }

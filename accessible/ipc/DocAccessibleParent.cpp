@@ -1188,14 +1188,18 @@ void DocAccessibleParent::SelectionRanges(nsTArray<TextRange>* aRanges) const {
     if (!startAcc || !endAcc) {
       continue;
     }
-    uint32_t startCount = startAcc->CharacterCount();
-    if (startCount == 0 ||
-        data.StartOffset() > static_cast<int32_t>(startCount)) {
-      continue;
+    // Offset 0 is always valid, even if the container is empty.
+    if (data.StartOffset() > 0) {
+      uint32_t startCount = startAcc->CharacterCount();
+      if (data.StartOffset() > static_cast<int32_t>(startCount)) {
+        continue;
+      }
     }
-    uint32_t endCount = endAcc->CharacterCount();
-    if (endCount == 0 || data.EndOffset() > static_cast<int32_t>(endCount)) {
-      continue;
+    if (data.EndOffset() > 0) {
+      uint32_t endCount = endAcc->CharacterCount();
+      if (data.EndOffset() > static_cast<int32_t>(endCount)) {
+        continue;
+      }
     }
     aRanges->AppendElement(TextRange(const_cast<DocAccessibleParent*>(this),
                                      startAcc, data.StartOffset(), endAcc,
