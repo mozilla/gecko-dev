@@ -179,10 +179,46 @@ bool IsAnchorLaidOutStrictlyBeforeElement(const nsIFrame* aPossibleAnchorFrame,
   return !isAnchorAbsolutelyPositioned;
 }
 
+/**
+ * https://drafts.csswg.org/css-contain-2/#skips-its-contents
+ */
 bool IsPositionedElementAlsoSkippedWhenAnchorIsSkipped(
-    const nsIFrame* /* aPossibleAnchorFrame */,
-    const nsIFrame* /* aPositionedFrame */) {
-  return true;  // TODO: Implement this check. For now, always true.
+    const nsIFrame* aPossibleAnchorFrame, const nsIFrame* aPositionedFrame) {
+  // If potential anchor is skipped and a root of a visibility subtree,
+  // it can never be acceptable.
+  if (aPossibleAnchorFrame->HidesContentForLayout()) {
+    return false;
+  }
+
+  // If possible anchor is in the skipped contents of another element,
+  // then positioned el shall be in the skipped contents of that same element.
+  const nsIFrame* visibilityAncestor = aPossibleAnchorFrame->GetParent();
+  while (visibilityAncestor) {
+    // If anchor is skipped via auto or hidden, it cannot be acceptable,
+    // be it a root or a non-root of a visibility subtree.
+    if (visibilityAncestor->HidesContentForLayout()) {
+      break;
+    }
+
+    visibilityAncestor = visibilityAncestor->GetParent();
+  }
+
+  // If positioned el is skipped and a root of a visibility subtree,
+  // an anchor can never be acceptable.
+  if (aPositionedFrame->HidesContentForLayout()) {
+    return false;
+  }
+
+  const nsIFrame* ancestor = aPositionedFrame;
+  while (ancestor) {
+    if (ancestor->HidesContentForLayout()) {
+      return ancestor == visibilityAncestor;
+    }
+
+    ancestor = ancestor->GetParent();
+  }
+
+  return true;
 }
 
 bool IsAcceptableAnchorElement(const nsIFrame* aPossibleAnchorFrame,
