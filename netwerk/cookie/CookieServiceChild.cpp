@@ -350,7 +350,8 @@ CookieServiceChild::RecordDocumentCookie(Cookie* aCookie,
           // reducing the likelihood of a mismatch and thus the race condition
           // between the cookie set via IPC and the one parsed in the child
           // process.
-          (cookie->Expiry() / PR_MSEC_PER_SEC) == (aCookie->Expiry()/ PR_MSEC_PER_SEC) &&
+          (cookie->Expiry() / PR_MSEC_PER_SEC) ==
+              (aCookie->Expiry() / PR_MSEC_PER_SEC) &&
 
           cookie->IsSecure() == aCookie->IsSecure() &&
           cookie->SameSite() == aCookie->SameSite() &&
