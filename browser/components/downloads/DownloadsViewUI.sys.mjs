@@ -34,13 +34,6 @@ XPCOMUtils.defineLazyServiceGetter(
   Ci.nsIApplicationReputationService
 );
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "contentAnalysisAgentName",
-  "browser.contentanalysis.agent_name",
-  "A DLP agent"
-);
-
 import { Integration } from "resource://gre/modules/Integration.sys.mjs";
 
 Integration.downloads.defineESModuleGetter(
@@ -884,31 +877,6 @@ DownloadsViewUI.DownloadElementShell.prototype = {
     }
   },
 
-  getContentAnalysisErrorTitle(strings, cancelError) {
-    switch (cancelError) {
-      case Ci.nsIContentAnalysisResponse.eNoAgent:
-        return strings.contentAnalysisNoAgentError(
-          lazy.contentAnalysisAgentName
-        );
-      case Ci.nsIContentAnalysisResponse.eInvalidAgentSignature:
-        return strings.contentAnalysisInvalidAgentSignatureError(
-          lazy.contentAnalysisAgentName
-        );
-      case Ci.nsIContentAnalysisResponse.eTimeout:
-        return strings.contentAnalysisTimeoutError(
-          lazy.contentAnalysisAgentName
-        );
-      case Ci.nsIContentAnalysisResponse.eErrorOther:
-        return strings.contentAnalysisUnspecifiedError(
-          lazy.contentAnalysisAgentName
-        );
-      default:
-        // This also handles the case when cancelError is undefined
-        // because the request wasn't cancelled at all.
-        return strings.blockedByContentAnalysis;
-    }
-  },
-
   /**
    * Returns [title, [details1, details2]] for blocked downloads.
    * The title or details could be raw strings or l10n objects.
@@ -958,10 +926,7 @@ DownloadsViewUI.DownloadElementShell.prototype = {
           break;
         }
         return [
-          this.getContentAnalysisErrorTitle(
-            s,
-            this.download.error.contentAnalysisCancelError
-          ),
+          s.blockedByContentAnalysis,
           [s.unblockContentAnalysis1, s.unblockContentAnalysis2],
         ];
       case lazy.Downloads.Error.BLOCK_VERDICT_DOWNLOAD_SPAM: {

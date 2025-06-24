@@ -151,10 +151,6 @@ export let DownloadHistory = {
     if (download.error && download.error.reputationCheckVerdict) {
       metaData.reputationCheckVerdict = download.error.reputationCheckVerdict;
     }
-    if (download?.error.hasOwnProperty("contentAnalysisCancelError")) {
-      metaData.contentAnalysisCancelError =
-        download.error.contentAnalysisCancelError;
-    }
 
     // This should be executed before any async parts, to ensure the cache is
     // updated before any notifications are activated.
@@ -448,7 +444,6 @@ class HistoryDownload {
       } else if (metaData.state == METADATA_STATE_BLOCKED_CONTENT_ANALYSIS) {
         this.error = {
           becauseBlockedByContentAnalysis: true,
-          contentAnalysisCancelError: metaData.contentAnalysisCancelError,
           reputationCheckVerdict: metaData.reputationCheckVerdict || "",
         };
       } else if (metaData.state == METADATA_STATE_DIRTY) {

@@ -75,10 +75,6 @@ const kDownloadsFluentStrings = new Localization(
 );
 
 const kDownloadsStringsRequiringFormatting = {
-  contentAnalysisNoAgentError: true,
-  contentAnalysisInvalidAgentSignatureError: true,
-  contentAnalysisUnspecifiedError: true,
-  contentAnalysisTimeoutError: true,
   sizeWithUnits: true,
   statusSeparator: true,
   statusSeparatorBeforeNumber: true,
