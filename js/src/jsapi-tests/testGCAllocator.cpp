@@ -12,6 +12,7 @@
 #include "jsmath.h"
 
 #include "gc/Allocator.h"
+#include "gc/BufferAllocatorInternals.h"
 #include "gc/Memory.h"
 #include "gc/Nursery.h"
 #include "gc/Zone.h"
@@ -811,3 +812,38 @@ static void traceAllocs(JSTracer* trc, void* data) {
   }
 }
 END_TEST(testBufferAllocator_stress)
+
+BEGIN_TEST(testBufferAllocator_encodedSize) {
+  CHECK(EncodedSize(0).get() == 0);
+
+  for (size_t i = 0; i < 4096; i += 7) {
+    CHECK(testEncodeDecode<3>(i));
+  }
+
+  for (size_t i = 0; i < 1024 * 1024; i += 10 * 1024) {
+    CHECK(testEncodeDecode<6>(i));
+  }
+
+  return true;
+}
+
+template <size_t GranularityShift = 4>
+bool testEncodeDecode(size_t requested) {
+  using Encoded = EncodedSize<GranularityShift>;
+  Encoded encoded(requested);
+
+  size_t bytes = encoded.get();
+  CHECK(bytes >= requested);
+
+  size_t wastedBytes = bytes - requested;
+  double wastedPercent = 0.0;
+  if (bytes != requested) {
+    wastedPercent = 100.0 * double(wastedBytes) / double(bytes);
+  }
+
+  CHECK((bytes % (1 << GranularityShift)) == 0);
+  CHECK(wastedBytes <= 8 || wastedPercent <= 6.0);
+
+  return true;
+}
+END_TEST(testBufferAllocator_encodedSize)
