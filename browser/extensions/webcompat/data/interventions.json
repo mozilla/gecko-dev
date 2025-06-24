@@ -2928,6 +2928,24 @@
       }
     ]
   },
+  "1927467": {
+    "label": "www.exploretock.com",
+    "bugs": {
+      "1927467": {
+        "issue": "broken-map",
+        "matches": ["*://www.exploretock.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "all_frames": true,
+          "js": ["bug1927467-www.exploretock.com-fix-broken-map.js"]
+        }
+      }
+    ]
+  },
   "1927984": {
     "label": "modules.sms-timing.com",
     "bugs": {
