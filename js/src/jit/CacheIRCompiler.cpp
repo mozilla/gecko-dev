@@ -6883,7 +6883,8 @@ static void EmitStoreDenseElement(MacroAssembler& masm,
 
 bool CacheIRCompiler::emitStoreDenseElement(ObjOperandId objId,
                                             Int32OperandId indexId,
-                                            ValOperandId rhsId) {
+                                            ValOperandId rhsId,
+                                            bool expectPackedElements) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
 
   Register obj = allocator.useRegister(masm, objId);
@@ -6906,9 +6907,15 @@ bool CacheIRCompiler::emitStoreDenseElement(ObjOperandId objId,
   Address initLength(scratch, ObjectElements::offsetOfInitializedLength());
   masm.spectreBoundsCheck32(index, initLength, spectreTemp, failure->label());
 
-  // Hole check.
   BaseObjectElementIndex element(scratch, index);
-  masm.branchTestMagic(Assembler::Equal, element, failure->label());
+  if (expectPackedElements) {
+    Address flags(scratch, ObjectElements::offsetOfFlags());
+    masm.branchTest32(Assembler::NonZero, flags,
+                      Imm32(ObjectElements::NON_PACKED), failure->label());
+  } else {
+    // Hole check.
+    masm.branchTestMagic(Assembler::Equal, element, failure->label());
+  }
 
   // Perform the store.
   EmitPreBarrier(masm, element, MIRType::Value);

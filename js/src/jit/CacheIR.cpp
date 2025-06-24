@@ -5003,7 +5003,8 @@ AttachDecision SetPropIRGenerator::tryAttachSetDenseElement(
 
   TestMatchingNativeReceiver(writer, nobj, objId);
 
-  writer.storeDenseElement(objId, indexId, rhsId);
+  bool expectPackedElements = nobj->denseElementsArePacked();
+  writer.storeDenseElement(objId, indexId, rhsId, expectPackedElements);
   writer.returnFromIC();
 
   trackAttached("SetProp.DenseElement");

@@ -2949,7 +2949,8 @@ bool WarpCacheIRTranspiler::emitAddSlotAndCallAddPropHook(
 
 bool WarpCacheIRTranspiler::emitStoreDenseElement(ObjOperandId objId,
                                                   Int32OperandId indexId,
-                                                  ValOperandId rhsId) {
+                                                  ValOperandId rhsId,
+                                                  bool expectPackedElements) {
   MDefinition* obj = getOperand(objId);
   MDefinition* index = getOperand(indexId);
   MDefinition* rhs = getOperand(rhsId);
@@ -2962,10 +2963,15 @@ bool WarpCacheIRTranspiler::emitStoreDenseElement(ObjOperandId objId,
 
   index = addBoundsCheck(index, length);
 
+  if (expectPackedElements) {
+    auto* guardPacked = MGuardElementsArePacked::New(alloc(), elements);
+    add(guardPacked);
+  }
+
   auto* barrier = MPostWriteElementBarrier::New(alloc(), obj, rhs, index);
   add(barrier);
 
-  bool needsHoleCheck = true;
+  bool needsHoleCheck = !expectPackedElements;
   auto* store = MStoreElement::NewBarriered(alloc(), elements, index, rhs,
                                             needsHoleCheck);
   addEffectful(store);
