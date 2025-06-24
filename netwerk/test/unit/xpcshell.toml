@@ -1331,6 +1331,9 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_trr_idle_time.js"]
 run-if = ["!socketprocess_networking"] # killing connections on socket process is async.
+skip-if = [
+"os == 'win' && msix", # Bug 1948639
+]
 
 ["test_trr_nat64.js"]
 run-sequentially = "node server exceptions dont replay well"
