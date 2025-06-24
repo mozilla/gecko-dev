@@ -103,6 +103,8 @@ support-files = ["!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js
 
 ["test_pointercancel_target_at_dragstart_with_capture.html"]
 
+["test_pointercancel_target_at_dragstart_with_restyle.html"]
+
 ["test_pointercapture_remove_iframe.html"]
 
 ["test_pointercapture_xorigin_iframe.html"]
