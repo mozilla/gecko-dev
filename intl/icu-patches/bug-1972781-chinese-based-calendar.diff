@@ -1,0 +1,25 @@
+diff --git a/intl/icu/source/i18n/smpdtfmt.cpp b/intl/icu/source/i18n/smpdtfmt.cpp
+--- a/intl/icu/source/i18n/smpdtfmt.cpp
++++ b/intl/icu/source/i18n/smpdtfmt.cpp
+@@ -1523,18 +1523,19 @@ SimpleDateFormat::subFormat(UnicodeStrin
+     }
+ 
+     switch (patternCharIndex) {
+ 
+     // for any "G" symbol, write out the appropriate era string
+     // "GGGG" is wide era name, "GGGGG" is narrow era name, anything else is abbreviated name
+     case UDAT_ERA_FIELD:
+         {
+-            if (typeid(cal) == typeid(ChineseCalendar) ||
+-                typeid(cal) == typeid(DangiCalendar)) {
++            const char* type = cal.getType();
++            if (strcmp(type, "chinese") == 0 ||
++                strcmp(type, "dangi") == 0) {
+                 zeroPaddingNumber(currentNumberFormat,appendTo, value, 1, 9); // as in ICU4J
+             } else {
+                 if (count == 5) {
+                     _appendSymbol(appendTo, value, fSymbols->fNarrowEras, fSymbols->fNarrowErasCount);
+                     capContextUsageType = DateFormatSymbols::kCapContextUsageEraNarrow;
+                 } else if (count == 4) {
+                     _appendSymbol(appendTo, value, fSymbols->fEraNames, fSymbols->fEraNamesCount);
+                     capContextUsageType = DateFormatSymbols::kCapContextUsageEraWide;
