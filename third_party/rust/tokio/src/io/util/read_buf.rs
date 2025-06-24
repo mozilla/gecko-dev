@@ -6,7 +6,7 @@ use std::future::Future;
 use std::io;
 use std::marker::PhantomPinned;
 use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::task::{ready, Context, Poll};
 
 pub(crate) fn read_buf<'a, R, B>(reader: &'a mut R, buf: &'a mut B) -> ReadBuf<'a, R, B>
 where
@@ -41,7 +41,6 @@ where
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<usize>> {
         use crate::io::ReadBuf;
-        use std::mem::MaybeUninit;
 
         let me = self.project();
 
@@ -51,7 +50,7 @@ where
 
         let n = {
             let dst = me.buf.chunk_mut();
-            let dst = unsafe { &mut *(dst as *mut _ as *mut [MaybeUninit<u8>]) };
+            let dst = unsafe { dst.as_uninit_slice_mut() };
             let mut buf = ReadBuf::uninit(dst);
             let ptr = buf.filled().as_ptr();
             ready!(Pin::new(me.reader).poll_read(cx, &mut buf)?);

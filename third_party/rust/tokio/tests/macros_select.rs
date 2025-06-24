@@ -1,4 +1,3 @@
-#![allow(unknown_lints, unexpected_cfgs)]
 #![cfg(feature = "macros")]
 #![allow(clippy::disallowed_names)]
 
@@ -11,7 +10,7 @@ use tokio::test as maybe_tokio_test;
 use tokio::sync::oneshot;
 use tokio_test::{assert_ok, assert_pending, assert_ready};
 
-use futures::future::poll_fn;
+use std::future::poll_fn;
 use std::task::Poll::Ready;
 
 #[maybe_tokio_test]
@@ -716,4 +715,28 @@ async fn temporary_lifetime_extension() {
     tokio::select! {
         () = &mut std::future::ready(()) => {},
     }
+}
+
+#[tokio::test]
+async fn select_is_budget_aware() {
+    const BUDGET: usize = 128;
+
+    let task = || {
+        Box::pin(async move {
+            tokio::select! {
+                biased;
+
+                () = tokio::task::coop::consume_budget() => {},
+                () = std::future::ready(()) => {}
+            }
+        })
+    };
+
+    for _ in 0..BUDGET {
+        let poll = futures::poll!(&mut task());
+        assert!(poll.is_ready());
+    }
+
+    let poll = futures::poll!(&mut task());
+    assert!(poll.is_pending());
 }

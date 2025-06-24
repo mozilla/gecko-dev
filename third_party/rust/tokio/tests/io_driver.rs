@@ -32,6 +32,7 @@ impl<T> Task<T> {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // No `socket` in miri.
 fn test_drop_on_notify() {
     // When the reactor receives a kernel notification, it notifies the
     // task that holds the associated socket. If this notification results in
@@ -90,11 +91,15 @@ fn test_drop_on_notify() {
 #[should_panic(
     expected = "A Tokio 1.x context was found, but IO is disabled. Call `enable_io` on the runtime builder to enable IO."
 )]
+#[cfg_attr(miri, ignore)] // No `socket` in miri.
 fn panics_when_io_disabled() {
     let rt = runtime::Builder::new_current_thread().build().unwrap();
 
     rt.block_on(async {
-        let _ =
-            tokio::net::TcpListener::from_std(std::net::TcpListener::bind("127.0.0.1:0").unwrap());
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+
+        listener.set_nonblocking(true).unwrap();
+
+        let _ = tokio::net::TcpListener::from_std(listener);
     });
 }

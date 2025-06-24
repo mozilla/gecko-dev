@@ -1,6 +1,6 @@
-#![allow(unknown_lints, unexpected_cfgs)]
 #![warn(rust_2018_idioms)]
-#![cfg(all(feature = "full", not(target_os = "wasi")))]
+// Too slow on miri.
+#![cfg(all(feature = "full", not(target_os = "wasi"), not(miri)))]
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -8,8 +8,7 @@ use tokio::runtime;
 use tokio::sync::oneshot;
 use tokio_test::{assert_err, assert_ok};
 
-use futures::future::poll_fn;
-use std::future::Future;
+use std::future::{poll_fn, Future};
 use std::pin::Pin;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -189,6 +188,7 @@ fn lifo_slot_budget() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // No `socket` in miri.
 fn spawn_shutdown() {
     let rt = rt();
     let (tx, rx) = mpsc::channel();
@@ -322,6 +322,8 @@ fn start_stop_callbacks_called() {
 }
 
 #[test]
+// too slow on miri
+#[cfg_attr(miri, ignore)]
 fn blocking() {
     // used for notifying the main thread
     const NUM: usize = 1_000;
@@ -643,6 +645,51 @@ fn test_nested_block_in_place_with_block_on_between() {
             .unwrap()
         });
     }
+}
+
+#[test]
+fn yield_now_in_block_in_place() {
+    let rt = runtime::Builder::new_multi_thread()
+        .worker_threads(1)
+        .build()
+        .unwrap();
+
+    rt.block_on(async {
+        tokio::spawn(async {
+            tokio::task::block_in_place(|| {
+                tokio::runtime::Handle::current().block_on(tokio::task::yield_now());
+            })
+        })
+        .await
+        .unwrap()
+    })
+}
+
+#[test]
+fn mutex_in_block_in_place() {
+    const BUDGET: usize = 128;
+
+    let rt = runtime::Builder::new_multi_thread()
+        .worker_threads(1)
+        .build()
+        .unwrap();
+
+    rt.block_on(async {
+        let lock = tokio::sync::Mutex::new(0);
+
+        tokio::spawn(async move {
+            tokio::task::block_in_place(|| {
+                tokio::runtime::Handle::current().block_on(async move {
+                    for i in 0..(BUDGET + 1) {
+                        let mut guard = lock.lock().await;
+                        *guard = i;
+                    }
+                });
+            })
+        })
+        .await
+        .unwrap();
+    })
 }
 
 // Testing the tuning logic is tricky as it is inherently timing based, and more

@@ -3,17 +3,15 @@ use crate::runtime::blocking::BlockingPool;
 use crate::runtime::scheduler::CurrentThread;
 use crate::runtime::{context, EnterGuard, Handle};
 use crate::task::JoinHandle;
+use crate::util::trace::SpawnMeta;
 
 use std::future::Future;
+use std::mem;
 use std::time::Duration;
 
 cfg_rt_multi_thread! {
     use crate::runtime::Builder;
     use crate::runtime::scheduler::MultiThread;
-
-    cfg_unstable! {
-        use crate::runtime::scheduler::MultiThreadAlt;
-    }
 }
 
 /// The Tokio runtime.
@@ -115,9 +113,6 @@ pub enum RuntimeFlavor {
     CurrentThread,
     /// The flavor that executes tasks across multiple threads.
     MultiThread,
-    /// The flavor that executes tasks across multiple threads.
-    #[cfg(tokio_unstable)]
-    MultiThreadAlt,
 }
 
 /// The runtime scheduler is either a multi-thread or a current-thread executor.
@@ -129,10 +124,6 @@ pub(super) enum Scheduler {
     /// Execute tasks across multiple threads.
     #[cfg(feature = "rt-multi-thread")]
     MultiThread(MultiThread),
-
-    /// Execute tasks across multiple threads.
-    #[cfg(all(tokio_unstable, feature = "rt-multi-thread"))]
-    MultiThreadAlt(MultiThreadAlt),
 }
 
 impl Runtime {
@@ -241,10 +232,13 @@ impl Runtime {
         F: Future + Send + 'static,
         F::Output: Send + 'static,
     {
-        if cfg!(debug_assertions) && std::mem::size_of::<F>() > BOX_FUTURE_THRESHOLD {
-            self.handle.spawn_named(Box::pin(future), None)
+        let fut_size = mem::size_of::<F>();
+        if fut_size > BOX_FUTURE_THRESHOLD {
+            self.handle
+                .spawn_named(Box::pin(future), SpawnMeta::new_unnamed(fut_size))
         } else {
-            self.handle.spawn_named(future, None)
+            self.handle
+                .spawn_named(future, SpawnMeta::new_unnamed(fut_size))
         }
     }
 
@@ -329,15 +323,16 @@ impl Runtime {
     /// [handle]: fn@Handle::block_on
     #[track_caller]
     pub fn block_on<F: Future>(&self, future: F) -> F::Output {
-        if cfg!(debug_assertions) && std::mem::size_of::<F>() > BOX_FUTURE_THRESHOLD {
-            self.block_on_inner(Box::pin(future))
+        let fut_size = mem::size_of::<F>();
+        if fut_size > BOX_FUTURE_THRESHOLD {
+            self.block_on_inner(Box::pin(future), SpawnMeta::new_unnamed(fut_size))
         } else {
-            self.block_on_inner(future)
+            self.block_on_inner(future, SpawnMeta::new_unnamed(fut_size))
         }
     }
 
     #[track_caller]
-    fn block_on_inner<F: Future>(&self, future: F) -> F::Output {
+    fn block_on_inner<F: Future>(&self, future: F, _meta: SpawnMeta<'_>) -> F::Output {
         #[cfg(all(
             tokio_unstable,
             tokio_taskdump,
@@ -351,7 +346,7 @@ impl Runtime {
         let future = crate::util::trace::task(
             future,
             "block_on",
-            None,
+            _meta,
             crate::runtime::task::Id::next().as_u64(),
         );
 
@@ -361,8 +356,6 @@ impl Runtime {
             Scheduler::CurrentThread(exec) => exec.block_on(&self.handle.inner, future),
             #[cfg(feature = "rt-multi-thread")]
             Scheduler::MultiThread(exec) => exec.block_on(&self.handle.inner, future),
-            #[cfg(all(tokio_unstable, feature = "rt-multi-thread"))]
-            Scheduler::MultiThreadAlt(exec) => exec.block_on(&self.handle.inner, future),
         }
     }
 
@@ -421,6 +414,7 @@ impl Runtime {
     /// use std::time::Duration;
     ///
     /// fn main() {
+    /// #  if cfg!(miri) { return } // Miri reports error when main thread terminated without waiting all remaining threads.
     ///    let runtime = Runtime::new().unwrap();
     ///
     ///    runtime.block_on(async move {
@@ -489,12 +483,6 @@ impl Drop for Runtime {
             }
             #[cfg(feature = "rt-multi-thread")]
             Scheduler::MultiThread(multi_thread) => {
-                // The threaded scheduler drops its tasks on its worker threads, which is
-                // already in the runtime's context.
-                multi_thread.shutdown(&self.handle.inner);
-            }
-            #[cfg(all(tokio_unstable, feature = "rt-multi-thread"))]
-            Scheduler::MultiThreadAlt(multi_thread) => {
                 // The threaded scheduler drops its tasks on its worker threads, which is
                 // already in the runtime's context.
                 multi_thread.shutdown(&self.handle.inner);

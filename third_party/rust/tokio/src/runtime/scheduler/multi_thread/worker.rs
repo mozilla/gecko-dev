@@ -58,15 +58,14 @@
 
 use crate::loom::sync::{Arc, Mutex};
 use crate::runtime;
-use crate::runtime::context;
 use crate::runtime::scheduler::multi_thread::{
     idle, queue, Counters, Handle, Idle, Overflow, Parker, Stats, TraceStatus, Unparker,
 };
 use crate::runtime::scheduler::{inject, Defer, Lock};
-use crate::runtime::task::OwnedTasks;
-use crate::runtime::{
-    blocking, coop, driver, scheduler, task, Config, SchedulerMetrics, WorkerMetrics,
-};
+use crate::runtime::task::{OwnedTasks, TaskHarnessScheduleHooks};
+use crate::runtime::{blocking, driver, scheduler, task, Config, SchedulerMetrics, WorkerMetrics};
+use crate::runtime::{context, TaskHooks};
+use crate::task::coop;
 use crate::util::atomic_cell::AtomicCell;
 use crate::util::rand::{FastRand, RngSeedGenerator};
 
@@ -75,9 +74,7 @@ use std::task::Waker;
 use std::thread;
 use std::time::Duration;
 
-cfg_unstable_metrics! {
-    mod metrics;
-}
+mod metrics;
 
 cfg_taskdump! {
     mod taskdump;
@@ -284,6 +281,7 @@ pub(super) fn create(
 
     let remotes_len = remotes.len();
     let handle = Arc::new(Handle {
+        task_hooks: TaskHooks::from_config(&config),
         shared: Shared {
             remotes: remotes.into_boxed_slice(),
             inject,
@@ -572,6 +570,9 @@ impl Context {
     }
 
     fn run_task(&self, task: Notified, mut core: Box<Core>) -> RunResult {
+        #[cfg(tokio_unstable)]
+        let task_id = task.task_id();
+
         let task = self.worker.handle.shared.owned.assert_owner(task);
 
         // Make sure the worker is not in the **searching** state. This enables
@@ -591,7 +592,16 @@ impl Context {
 
         // Run the task
         coop::budget(|| {
+            // Unlike the poll time above, poll start callback is attached to the task id,
+            // so it is tightly associated with the actual poll invocation.
+            #[cfg(tokio_unstable)]
+            self.worker.handle.task_hooks.poll_start_callback(task_id);
+
             task.run();
+
+            #[cfg(tokio_unstable)]
+            self.worker.handle.task_hooks.poll_stop_callback(task_id);
+
             let mut lifo_polls = 0;
 
             // As long as there is budget remaining and a task exists in the
@@ -654,7 +664,17 @@ impl Context {
                 // Run the LIFO task, then loop
                 *self.core.borrow_mut() = Some(core);
                 let task = self.worker.handle.shared.owned.assert_owner(task);
+
+                #[cfg(tokio_unstable)]
+                let task_id = task.task_id();
+
+                #[cfg(tokio_unstable)]
+                self.worker.handle.task_hooks.poll_start_callback(task_id);
+
                 task.run();
+
+                #[cfg(tokio_unstable)]
+                self.worker.handle.task_hooks.poll_stop_callback(task_id);
             }
         })
     }
@@ -762,12 +782,13 @@ impl Context {
     }
 
     pub(crate) fn defer(&self, waker: &Waker) {
-        self.defer.defer(waker);
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn get_worker_index(&self) -> usize {
-        self.worker.index
+        if self.core.borrow().is_none() {
+            // If there is no core, then the worker is currently in a block_in_place. In this case,
+            // we cannot use the defer queue as we aren't really in the current runtime.
+            waker.wake_by_ref();
+        } else {
+            self.defer.defer(waker);
+        }
     }
 }
 
@@ -1014,7 +1035,7 @@ impl Core {
             .tuned_global_queue_interval(&worker.handle.shared.config);
 
         // Smooth out jitter
-        if abs_diff(self.global_queue_interval, next) > 2 {
+        if u32::abs_diff(self.global_queue_interval, next) > 2 {
             self.global_queue_interval = next;
         }
     }
@@ -1035,6 +1056,12 @@ impl task::Schedule for Arc<Handle> {
 
     fn schedule(&self, task: Notified) {
         self.schedule_task(task, false);
+    }
+
+    fn hooks(&self) -> TaskHarnessScheduleHooks {
+        TaskHarnessScheduleHooks {
+            task_terminate_callback: self.task_hooks.task_terminate_callback.clone(),
+        }
     }
 
     fn yield_now(&self, task: Notified) {
@@ -1248,13 +1275,4 @@ fn with_current<R>(f: impl FnOnce(Option<&Context>) -> R) -> R {
         Some(MultiThread(ctx)) => f(Some(ctx)),
         _ => f(None),
     })
-}
-
-// `u32::abs_diff` is not available on Tokio's MSRV.
-fn abs_diff(a: u32, b: u32) -> u32 {
-    if a > b {
-        a - b
-    } else {
-        b - a
-    }
 }

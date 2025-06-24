@@ -94,16 +94,30 @@
 //!       `JoinHandle` needs to (i) successfully set `JOIN_WAKER` to zero if it is
 //!       not already zero to gain exclusive access to the waker field per rule
 //!       2, (ii) write a waker, and (iii) successfully set `JOIN_WAKER` to one.
+//!       If the `JoinHandle` unsets `JOIN_WAKER` in the process of being dropped
+//!       to clear the waker field, only steps (i) and (ii) are relevant.
 //!
 //!    6. The `JoinHandle` can change `JOIN_WAKER` only if COMPLETE is zero (i.e.
-//!       the task hasn't yet completed).
+//!       the task hasn't yet completed). The runtime can change `JOIN_WAKER` only
+//!       if COMPLETE is one.
+//!
+//!    7. If `JOIN_INTEREST` is zero and COMPLETE is one, then the runtime has
+//!       exclusive (mutable) access to the waker field. This might happen if the
+//!       `JoinHandle` gets dropped right after the task completes and the runtime
+//!       sets the `COMPLETE` bit. In this case the runtime needs the mutable access
+//!       to the waker field to drop it.
 //!
 //!    Rule 6 implies that the steps (i) or (iii) of rule 5 may fail due to a
 //!    race. If step (i) fails, then the attempt to write a waker is aborted. If
 //!    step (iii) fails because COMPLETE is set to one by another thread after
 //!    step (i), then the waker field is cleared. Once COMPLETE is one (i.e.
 //!    task has completed), the `JoinHandle` will not modify `JOIN_WAKER`. After the
-//!    runtime sets COMPLETE to one, it invokes the waker if there is one.
+//!    runtime sets COMPLETE to one, it invokes the waker if there is one so in this
+//!    case when a task completes the `JOIN_WAKER` bit implicates to the runtime
+//!    whether it should invoke the waker or not. After the runtime is done with
+//!    using the waker during task completion, it unsets the `JOIN_WAKER` bit to give
+//!    the `JoinHandle` exclusive access again so that it is able to drop the waker
+//!    at a later point.
 //!
 //! All other fields are immutable and can be accessed immutably without
 //! synchronization by anyone.
@@ -210,6 +224,7 @@ use crate::future::Future;
 use crate::util::linked_list;
 use crate::util::sharded_list;
 
+use crate::runtime::TaskCallback;
 use std::marker::PhantomData;
 use std::ptr::NonNull;
 use std::{fmt, mem};
@@ -241,6 +256,13 @@ pub(crate) struct LocalNotified<S: 'static> {
     _not_send: PhantomData<*const ()>,
 }
 
+impl<S> LocalNotified<S> {
+    #[cfg(tokio_unstable)]
+    pub(crate) fn task_id(&self) -> Id {
+        self.task.id()
+    }
+}
+
 /// A task that is not owned by any `OwnedTasks`. Used for blocking tasks.
 /// This type holds two ref-counts.
 pub(crate) struct UnownedTask<S: 'static> {
@@ -255,6 +277,12 @@ unsafe impl<S> Sync for UnownedTask<S> {}
 /// Task result sent back.
 pub(crate) type Result<T> = std::result::Result<T, JoinError>;
 
+/// Hooks for scheduling tasks which are needed in the task harness.
+#[derive(Clone)]
+pub(crate) struct TaskHarnessScheduleHooks {
+    pub(crate) task_terminate_callback: Option<TaskCallback>,
+}
+
 pub(crate) trait Schedule: Sync + Sized + 'static {
     /// The task has completed work and is ready to be released. The scheduler
     /// should release it immediately and return it. The task module will batch
@@ -265,6 +293,8 @@ pub(crate) trait Schedule: Sync + Sized + 'static {
 
     /// Schedule the task
     fn schedule(&self, task: Notified<Self>);
+
+    fn hooks(&self) -> TaskHarnessScheduleHooks;
 
     /// Schedule the task to run in the near future, yielding the thread to
     /// other tasks.
@@ -363,6 +393,16 @@ impl<S: 'static> Task<S> {
         self.raw.header_ptr()
     }
 
+    /// Returns a [task ID] that uniquely identifies this task relative to other
+    /// currently spawned tasks.
+    ///
+    /// [task ID]: crate::task::Id
+    #[cfg(tokio_unstable)]
+    pub(crate) fn id(&self) -> crate::task::Id {
+        // Safety: The header pointer is valid.
+        unsafe { Header::get_id(self.raw.header_ptr()) }
+    }
+
     cfg_taskdump! {
         /// Notify the task for task dumping.
         ///
@@ -377,22 +417,18 @@ impl<S: 'static> Task<S> {
             }
         }
 
-        /// Returns a [task ID] that uniquely identifies this task relative to other
-        /// currently spawned tasks.
-        ///
-        /// [task ID]: crate::task::Id
-        #[cfg(tokio_unstable)]
-        #[cfg_attr(docsrs, doc(cfg(tokio_unstable)))]
-        pub(crate) fn id(&self) -> crate::task::Id {
-            // Safety: The header pointer is valid.
-            unsafe { Header::get_id(self.raw.header_ptr()) }
-        }
     }
 }
 
 impl<S: 'static> Notified<S> {
     fn header(&self) -> &Header {
         self.0.header()
+    }
+
+    #[cfg(tokio_unstable)]
+    #[allow(dead_code)]
+    pub(crate) fn task_id(&self) -> crate::task::Id {
+        self.0.id()
     }
 }
 
@@ -532,6 +568,6 @@ unsafe impl<S> sharded_list::ShardedListItem for Task<S> {
     unsafe fn get_shard_id(target: NonNull<Self::Target>) -> usize {
         // SAFETY: The caller guarantees that `target` points at a valid task.
         let task_id = unsafe { Header::get_id(target) };
-        task_id.0 as usize
+        task_id.0.get() as usize
     }
 }

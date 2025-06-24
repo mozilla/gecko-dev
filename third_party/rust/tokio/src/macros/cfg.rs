@@ -97,7 +97,6 @@ macro_rules! cfg_fs {
     ($($item:item)*) => {
         $(
             #[cfg(feature = "fs")]
-            #[cfg(not(target_os = "wasi"))]
             #[cfg_attr(docsrs, doc(cfg(feature = "fs")))]
             $item
         )*
@@ -601,5 +600,19 @@ macro_rules! cfg_is_wasm_not_wasi {
             #[cfg(all(target_family = "wasm", not(target_os = "wasi")))]
             $item
         )*
+    }
+}
+
+/// Use this macro to provide two different implementations of the same API — one for stable
+/// builds and one for unstable builds.
+macro_rules! cfg_metrics_variant {
+    (stable: {$($stable_code:tt)*}, unstable: {$($unstable_code:tt)*}) => {
+        cfg_not_unstable_metrics! {
+            $($stable_code)*
+        }
+
+        cfg_unstable_metrics! {
+            $($unstable_code)*
+        }
     }
 }

@@ -135,20 +135,20 @@ fn socketpair() -> (FileDescriptor, FileDescriptor) {
     fds
 }
 
-fn drain(mut fd: &FileDescriptor) {
+fn drain(mut fd: &FileDescriptor, mut amt: usize) {
     let mut buf = [0u8; 512];
-    #[allow(clippy::unused_io_amount)]
-    loop {
+    while amt > 0 {
         match fd.read(&mut buf[..]) {
-            Err(e) if e.kind() == ErrorKind::WouldBlock => break,
+            Err(e) if e.kind() == ErrorKind::WouldBlock => {}
             Ok(0) => panic!("unexpected EOF"),
-            Err(e) => panic!("unexpected error: {:?}", e),
-            Ok(_) => continue,
+            Err(e) => panic!("unexpected error: {e:?}"),
+            Ok(x) => amt -= x,
         }
     }
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 async fn initially_writable() {
     let (a, b) = socketpair();
 
@@ -167,6 +167,7 @@ async fn initially_writable() {
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 async fn reset_readable() {
     let (a, mut b) = socketpair();
 
@@ -211,6 +212,7 @@ async fn reset_readable() {
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 async fn reset_writable() {
     let (a, b) = socketpair();
 
@@ -219,10 +221,10 @@ async fn reset_writable() {
     let mut guard = afd_a.writable().await.unwrap();
 
     // Write until we get a WouldBlock. This also clears the ready state.
-    while guard
-        .try_io(|_| afd_a.get_ref().write(&[0; 512][..]))
-        .is_ok()
-    {}
+    let mut bytes = 0;
+    while let Ok(Ok(amt)) = guard.try_io(|_| afd_a.get_ref().write(&[0; 512][..])) {
+        bytes += amt;
+    }
 
     // Writable state should be cleared now.
     let writable = afd_a.writable();
@@ -234,7 +236,7 @@ async fn reset_writable() {
     }
 
     // Read from the other side; we should become writable now.
-    drain(&b);
+    drain(&b, bytes);
 
     let _ = writable.await.unwrap();
 }
@@ -248,6 +250,7 @@ impl<T: AsRawFd> AsRawFd for ArcFd<T> {
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 async fn drop_closes() {
     let (a, mut b) = socketpair();
 
@@ -288,6 +291,7 @@ async fn drop_closes() {
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 async fn reregister() {
     let (a, _b) = socketpair();
 
@@ -297,7 +301,8 @@ async fn reregister() {
 }
 
 #[tokio::test]
-async fn try_io() {
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
+async fn guard_try_io() {
     let (a, mut b) = socketpair();
 
     b.write_all(b"0").unwrap();
@@ -332,6 +337,109 @@ async fn try_io() {
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
+async fn try_io_readable() {
+    let (a, mut b) = socketpair();
+    let mut afd_a = AsyncFd::new(a).unwrap();
+
+    // Give the runtime some time to update bookkeeping.
+    tokio::task::yield_now().await;
+
+    {
+        let mut called = false;
+        let _ = afd_a.try_io_mut(Interest::READABLE, |_| {
+            called = true;
+            Ok(())
+        });
+        assert!(
+            !called,
+            "closure should not have been called, since socket should not be readable"
+        );
+    }
+
+    // Make `a` readable by writing to `b`.
+    // Give the runtime some time to update bookkeeping.
+    b.write_all(&[0]).unwrap();
+    tokio::task::yield_now().await;
+
+    {
+        let mut called = false;
+        let _ = afd_a.try_io(Interest::READABLE, |_| {
+            called = true;
+            Ok(())
+        });
+        assert!(
+            called,
+            "closure should have been called, since socket should have data available to read"
+        );
+    }
+
+    {
+        let mut called = false;
+        let _ = afd_a.try_io(Interest::READABLE, |_| {
+            called = true;
+            io::Result::<()>::Err(ErrorKind::WouldBlock.into())
+        });
+        assert!(
+            called,
+            "closure should have been called, since socket should have data available to read"
+        );
+    }
+
+    {
+        let mut called = false;
+        let _ = afd_a.try_io(Interest::READABLE, |_| {
+            called = true;
+            Ok(())
+        });
+        assert!(!called, "closure should not have been called, since socket readable state should have been cleared");
+    }
+}
+
+#[tokio::test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
+async fn try_io_writable() {
+    let (a, _b) = socketpair();
+    let afd_a = AsyncFd::new(a).unwrap();
+
+    // Give the runtime some time to update bookkeeping.
+    tokio::task::yield_now().await;
+
+    {
+        let mut called = false;
+        let _ = afd_a.try_io(Interest::WRITABLE, |_| {
+            called = true;
+            Ok(())
+        });
+        assert!(
+            called,
+            "closure should have been called, since socket should still be marked as writable"
+        );
+    }
+    {
+        let mut called = false;
+        let _ = afd_a.try_io(Interest::WRITABLE, |_| {
+            called = true;
+            io::Result::<()>::Err(ErrorKind::WouldBlock.into())
+        });
+        assert!(
+            called,
+            "closure should have been called, since socket should still be marked as writable"
+        );
+    }
+
+    {
+        let mut called = false;
+        let _ = afd_a.try_io(Interest::WRITABLE, |_| {
+            called = true;
+            Ok(())
+        });
+        assert!(!called, "closure should not have been called, since socket writable state should have been cleared");
+    }
+}
+
+#[tokio::test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 async fn multiple_waiters() {
     let (a, mut b) = socketpair();
     let afd_a = Arc::new(AsyncFd::new(a).unwrap());
@@ -372,7 +480,7 @@ async fn multiple_waiters() {
             panic!("Tasks exited unexpectedly")
         },
         _ = barrier.wait() => {}
-    };
+    }
 
     b.write_all(b"0").unwrap();
 
@@ -380,13 +488,17 @@ async fn multiple_waiters() {
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 async fn poll_fns() {
     let (a, b) = socketpair();
     let afd_a = Arc::new(AsyncFd::new(a).unwrap());
     let afd_b = Arc::new(AsyncFd::new(b).unwrap());
 
     // Fill up the write side of A
-    while afd_a.get_ref().write(&[0; 512]).is_ok() {}
+    let mut bytes = 0;
+    while let Ok(amt) = afd_a.get_ref().write(&[0; 512]) {
+        bytes += amt;
+    }
 
     let waker = TestWaker::new();
 
@@ -398,12 +510,12 @@ async fn poll_fns() {
 
     let read_fut = tokio::spawn(async move {
         // Move waker onto this task first
-        assert_pending!(poll!(futures::future::poll_fn(|cx| afd_a_2
+        assert_pending!(poll!(std::future::poll_fn(|cx| afd_a_2
             .as_ref()
             .poll_read_ready(cx))));
         barrier_clone.wait().await;
 
-        let _ = futures::future::poll_fn(|cx| afd_a_2.as_ref().poll_read_ready(cx)).await;
+        let _ = std::future::poll_fn(|cx| afd_a_2.as_ref().poll_read_ready(cx)).await;
     });
 
     let afd_a_2 = afd_a.clone();
@@ -412,12 +524,12 @@ async fn poll_fns() {
 
     let mut write_fut = tokio::spawn(async move {
         // Move waker onto this task first
-        assert_pending!(poll!(futures::future::poll_fn(|cx| afd_a_2
+        assert_pending!(poll!(std::future::poll_fn(|cx| afd_a_2
             .as_ref()
             .poll_write_ready(cx))));
         barrier_clone.wait().await;
 
-        let _ = futures::future::poll_fn(|cx| afd_a_2.as_ref().poll_write_ready(cx)).await;
+        let _ = std::future::poll_fn(|cx| afd_a_2.as_ref().poll_write_ready(cx)).await;
     });
 
     r_barrier.wait().await;
@@ -446,7 +558,7 @@ async fn poll_fns() {
     }
 
     // Make it writable now
-    drain(afd_b.get_ref());
+    drain(afd_b.get_ref(), bytes);
 
     // now we should be writable (ie - the waker for poll_write should still be registered after we wake the read side)
     let _ = write_fut.await;
@@ -470,6 +582,7 @@ fn rt() -> tokio::runtime::Runtime {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 fn driver_shutdown_wakes_currently_pending() {
     let rt = rt();
 
@@ -491,6 +604,7 @@ fn driver_shutdown_wakes_currently_pending() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 fn driver_shutdown_wakes_future_pending() {
     let rt = rt();
 
@@ -506,6 +620,7 @@ fn driver_shutdown_wakes_future_pending() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 fn driver_shutdown_wakes_pending_race() {
     // TODO: make this a loom test
     for _ in 0..100 {
@@ -528,14 +643,15 @@ fn driver_shutdown_wakes_pending_race() {
 }
 
 async fn poll_readable<T: AsRawFd>(fd: &AsyncFd<T>) -> std::io::Result<AsyncFdReadyGuard<'_, T>> {
-    futures::future::poll_fn(|cx| fd.poll_read_ready(cx)).await
+    std::future::poll_fn(|cx| fd.poll_read_ready(cx)).await
 }
 
 async fn poll_writable<T: AsRawFd>(fd: &AsyncFd<T>) -> std::io::Result<AsyncFdReadyGuard<'_, T>> {
-    futures::future::poll_fn(|cx| fd.poll_write_ready(cx)).await
+    std::future::poll_fn(|cx| fd.poll_write_ready(cx)).await
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 fn driver_shutdown_wakes_currently_pending_polls() {
     let rt = rt();
 
@@ -558,6 +674,7 @@ fn driver_shutdown_wakes_currently_pending_polls() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 fn driver_shutdown_wakes_poll() {
     let rt = rt();
 
@@ -574,6 +691,7 @@ fn driver_shutdown_wakes_poll() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 fn driver_shutdown_then_clear_readiness() {
     let rt = rt();
 
@@ -591,6 +709,7 @@ fn driver_shutdown_then_clear_readiness() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 fn driver_shutdown_wakes_poll_race() {
     // TODO: make this a loom test
     for _ in 0..100 {
@@ -613,6 +732,7 @@ fn driver_shutdown_wakes_poll_race() {
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)] // No socket in miri.
 #[cfg(any(target_os = "linux", target_os = "android"))]
 async fn priority_event_on_oob_data() {
     use std::net::SocketAddr;
@@ -653,6 +773,7 @@ fn send_oob_data<S: AsRawFd>(stream: &S, data: &[u8]) -> io::Result<usize> {
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 async fn clear_ready_matching_clears_ready() {
     use tokio::io::{Interest, Ready};
 
@@ -676,6 +797,7 @@ async fn clear_ready_matching_clears_ready() {
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 async fn clear_ready_matching_clears_ready_mut() {
     use tokio::io::{Interest, Ready};
 
@@ -699,6 +821,7 @@ async fn clear_ready_matching_clears_ready_mut() {
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)] // No socket in miri.
 #[cfg(target_os = "linux")]
 async fn await_error_readiness_timestamping() {
     use std::net::{Ipv4Addr, SocketAddr};
@@ -755,6 +878,7 @@ fn configure_timestamping_socket(udp_socket: &std::net::UdpSocket) -> std::io::R
 }
 
 #[tokio::test]
+#[cfg_attr(miri, ignore)] // No F_GETFL for fcntl in miri.
 #[cfg(target_os = "linux")]
 async fn await_error_readiness_invalid_address() {
     use std::net::{Ipv4Addr, SocketAddr};

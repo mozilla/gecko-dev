@@ -28,7 +28,7 @@ use std::marker::PhantomPinned;
 use std::pin::Pin;
 use std::ptr::NonNull;
 use std::sync::atomic::Ordering::*;
-use std::task::{Context, Poll, Waker};
+use std::task::{ready, Context, Poll, Waker};
 use std::{cmp, fmt};
 
 /// An asynchronous counting semaphore which permits waiting on multiple permits at once.
@@ -147,6 +147,7 @@ impl Semaphore {
         #[cfg(all(tokio_unstable, feature = "tracing"))]
         let resource_span = {
             let resource_span = tracing::trace_span!(
+                parent: None,
                 "runtime.resource",
                 concrete_type = "Semaphore",
                 kind = "Sync",
@@ -590,11 +591,11 @@ impl Future for Acquire<'_> {
         #[cfg(all(tokio_unstable, feature = "tracing"))]
         let coop = ready!(trace_poll_op!(
             "poll_acquire",
-            crate::runtime::coop::poll_proceed(cx),
+            crate::task::coop::poll_proceed(cx),
         ));
 
         #[cfg(not(all(tokio_unstable, feature = "tracing")))]
-        let coop = ready!(crate::runtime::coop::poll_proceed(cx));
+        let coop = ready!(crate::task::coop::poll_proceed(cx));
 
         let result = match semaphore.poll_acquire(cx, needed, node, *queued) {
             Poll::Pending => {

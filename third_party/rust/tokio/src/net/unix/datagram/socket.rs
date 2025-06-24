@@ -1,5 +1,6 @@
 use crate::io::{Interest, PollEvented, ReadBuf, Ready};
 use crate::net::unix::SocketAddr;
+use crate::util::check_socket_for_blocking;
 
 use std::fmt;
 use std::io;
@@ -7,7 +8,7 @@ use std::net::Shutdown;
 use std::os::unix::io::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, RawFd};
 use std::os::unix::net;
 use std::path::Path;
-use std::task::{Context, Poll};
+use std::task::{ready, Context, Poll};
 
 cfg_io_util! {
     use bytes::BufMut;
@@ -38,6 +39,7 @@ cfg_net_unix! {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No `socket` in miri.
     /// use tokio::net::UnixDatagram;
     /// use tempfile::tempdir;
     ///
@@ -70,6 +72,7 @@ cfg_net_unix! {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No SOCK_DGRAM for `socketpair` in miri.
     /// use tokio::net::UnixDatagram;
     ///
     /// // Create the pair of sockets
@@ -374,6 +377,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No `socket` in miri.
     /// use tokio::net::UnixDatagram;
     /// use tempfile::tempdir;
     ///
@@ -406,6 +410,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No SOCK_DGRAM for `socketpair` in miri.
     /// use tokio::net::UnixDatagram;
     ///
     /// // Create the pair of sockets
@@ -445,6 +450,10 @@ impl UnixDatagram {
     /// will block the thread, which will cause unexpected behavior.
     /// Non-blocking mode can be set using [`set_nonblocking`].
     ///
+    /// Passing a listener in blocking mode is always erroneous,
+    /// and the behavior in that case may change in the future.
+    /// For example, it could panic.
+    ///
     /// [`set_nonblocking`]: std::os::unix::net::UnixDatagram::set_nonblocking
     ///
     /// # Panics
@@ -460,6 +469,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No `socket` in miri.
     /// use tokio::net::UnixDatagram;
     /// use std::os::unix::net::UnixDatagram as StdUDS;
     /// use tempfile::tempdir;
@@ -479,6 +489,8 @@ impl UnixDatagram {
     /// ```
     #[track_caller]
     pub fn from_std(datagram: net::UnixDatagram) -> io::Result<UnixDatagram> {
+        check_socket_for_blocking(&datagram)?;
+
         let socket = mio::net::UnixDatagram::from_std(datagram);
         let io = PollEvented::new(socket)?;
         Ok(UnixDatagram { io })
@@ -524,6 +536,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No `socket` in miri.
     /// use tokio::net::UnixDatagram;
     /// use tempfile::tempdir;
     ///
@@ -563,6 +576,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No `socket` in miri.
     /// use tokio::net::UnixDatagram;
     /// use tempfile::tempdir;
     ///
@@ -607,6 +621,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No SOCK_DGRAM for `socketpair` in miri.
     /// use tokio::net::UnixDatagram;
     ///
     /// // Create the pair of sockets
@@ -737,6 +752,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No SOCK_DGRAM for `socketpair` in miri.
     /// use tokio::net::UnixDatagram;
     ///
     /// // Create the pair of sockets
@@ -887,6 +903,7 @@ impl UnixDatagram {
         /// # use std::error::Error;
         /// # #[tokio::main]
         /// # async fn main() -> Result<(), Box<dyn Error>> {
+        /// # if cfg!(miri) { return Ok(()); } // No `socket` in miri.
         /// use tokio::net::UnixDatagram;
         /// use tempfile::tempdir;
         ///
@@ -1003,6 +1020,7 @@ impl UnixDatagram {
         /// # use std::error::Error;
         /// # #[tokio::main]
         /// # async fn main() -> Result<(), Box<dyn Error>> {
+        /// # if cfg!(miri) { return Ok(()); } // No SOCK_DGRAM for `socketpair` in miri.
         /// use tokio::net::UnixDatagram;
         ///
         /// // Create the pair of sockets
@@ -1053,6 +1071,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No `socket` in miri.
     /// use tokio::net::UnixDatagram;
     /// use tempfile::tempdir;
     ///
@@ -1103,6 +1122,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No `socket` in miri.
     /// use tokio::net::UnixDatagram;
     /// use tempfile::tempdir;
     ///
@@ -1419,6 +1439,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No `socket` in miri.
     /// use tokio::net::UnixDatagram;
     /// use tempfile::tempdir;
     ///
@@ -1441,6 +1462,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No `socket` in miri.
     /// use tokio::net::UnixDatagram;
     ///
     /// // Create an unbound socket
@@ -1465,6 +1487,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No `socket` in miri.
     /// use tokio::net::UnixDatagram;
     /// use tempfile::tempdir;
     ///
@@ -1490,6 +1513,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No SOCK_DGRAM for `socketpair` in miri.
     /// use tokio::net::UnixDatagram;
     ///
     /// // Create the pair of sockets
@@ -1511,6 +1535,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No `socket` in miri.
     /// use tokio::net::UnixDatagram;
     ///
     /// // Create an unbound socket
@@ -1538,6 +1563,7 @@ impl UnixDatagram {
     /// # use std::error::Error;
     /// # #[tokio::main]
     /// # async fn main() -> Result<(), Box<dyn Error>> {
+    /// # if cfg!(miri) { return Ok(()); } // No SOCK_DGRAM for `socketpair` in miri.
     /// use tokio::net::UnixDatagram;
     /// use std::net::Shutdown;
     ///

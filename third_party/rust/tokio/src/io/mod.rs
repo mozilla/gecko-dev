@@ -231,6 +231,9 @@ cfg_io_driver_impl! {
     pub(crate) use poll_evented::PollEvented;
 }
 
+// The bsd module can't be build on Windows, so we completely ignore it, even
+// when building documentation.
+#[cfg(unix)]
 cfg_aio! {
     /// BSD-specific I/O types.
     pub mod bsd {
@@ -271,8 +274,8 @@ cfg_io_util! {
     pub(crate) mod seek;
     pub(crate) mod util;
     pub use util::{
-        copy, copy_bidirectional, copy_bidirectional_with_sizes, copy_buf, duplex, empty, repeat, sink, AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt,
-        BufReader, BufStream, BufWriter, DuplexStream, Empty, Lines, Repeat, Sink, Split, Take,
+        copy, copy_bidirectional, copy_bidirectional_with_sizes, copy_buf, duplex, empty, repeat, sink, simplex, AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt,
+        BufReader, BufStream, BufWriter, DuplexStream, Empty, Lines, Repeat, Sink, Split, Take, SimplexStream,
     };
 }
 

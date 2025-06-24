@@ -1,9 +1,9 @@
 use crate::loom::thread::AccessError;
-use crate::runtime::coop;
+use crate::task::coop;
 
 use std::cell::Cell;
 
-#[cfg(any(feature = "rt", feature = "macros", feature = "time"))]
+#[cfg(any(feature = "rt", feature = "macros"))]
 use crate::util::rand::FastRand;
 
 cfg_rt! {
@@ -57,7 +57,7 @@ struct Context {
     #[cfg(feature = "rt")]
     runtime: Cell<EnterRuntime>,
 
-    #[cfg(any(feature = "rt", feature = "macros", feature = "time"))]
+    #[cfg(any(feature = "rt", feature = "macros"))]
     rng: Cell<Option<FastRand>>,
 
     /// Tracks the amount of "work" a task may still do before yielding back to
@@ -100,7 +100,7 @@ tokio_thread_local! {
             #[cfg(feature = "rt")]
             runtime: Cell::new(EnterRuntime::NotEntered),
 
-            #[cfg(any(feature = "rt", feature = "macros", feature = "time"))]
+            #[cfg(any(feature = "rt", feature = "macros"))]
             rng: Cell::new(None),
 
             budget: Cell::new(coop::Budget::unconstrained()),
@@ -121,11 +121,7 @@ tokio_thread_local! {
     }
 }
 
-#[cfg(any(
-    feature = "time",
-    feature = "macros",
-    all(feature = "sync", feature = "rt")
-))]
+#[cfg(any(feature = "macros", all(feature = "sync", feature = "rt")))]
 pub(crate) fn thread_rng_n(n: u32) -> u32 {
     CONTEXT.with(|ctx| {
         let mut rng = ctx.rng.get().unwrap_or_else(FastRand::new);
@@ -135,7 +131,7 @@ pub(crate) fn thread_rng_n(n: u32) -> u32 {
     })
 }
 
-pub(super) fn budget<R>(f: impl FnOnce(&Cell<coop::Budget>) -> R) -> Result<R, AccessError> {
+pub(crate) fn budget<R>(f: impl FnOnce(&Cell<coop::Budget>) -> R) -> Result<R, AccessError> {
     CONTEXT.try_with(|ctx| f(&ctx.budget))
 }
 
@@ -183,7 +179,14 @@ cfg_rt! {
     #[track_caller]
     pub(super) fn with_scheduler<R>(f: impl FnOnce(Option<&scheduler::Context>) -> R) -> R {
         let mut f = Some(f);
-        CONTEXT.try_with(|c| c.scheduler.with(f.take().unwrap()))
+        CONTEXT.try_with(|c| {
+            let f = f.take().unwrap();
+            if matches!(c.runtime.get(), EnterRuntime::Entered { .. }) {
+                c.scheduler.with(f)
+            } else {
+                f(None)
+            }
+        })
             .unwrap_or_else(|_| (f.take().unwrap())(None))
     }
 

@@ -1,4 +1,3 @@
-#![allow(unknown_lints, unexpected_cfgs)]
 #![allow(
     clippy::cognitive_complexity,
     clippy::large_enum_variant,
@@ -19,6 +18,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(docsrs, allow(unused_attributes))]
 #![cfg_attr(loom, allow(dead_code, unreachable_pub))]
+#![cfg_attr(windows, allow(rustdoc::broken_intra_doc_links))]
 
 //! A runtime for writing reliable network applications without compromising speed.
 //!
@@ -283,7 +283,7 @@
 //!             loop {
 //!                 let n = match socket.read(&mut buf).await {
 //!                     // socket closed
-//!                     Ok(n) if n == 0 => return,
+//!                     Ok(0) => return,
 //!                     Ok(n) => n,
 //!                     Err(e) => {
 //!                         eprintln!("failed to read from socket; err = {:?}", e);
@@ -302,7 +302,7 @@
 //! }
 //! ```
 //!
-//! ## Feature flags
+//! # Feature flags
 //!
 //! Tokio uses a set of [feature flags] to reduce the amount of compiled code. It
 //! is possible to just enable certain features over others. By default, Tokio
@@ -340,7 +340,7 @@
 //! _Note: `AsyncRead` and `AsyncWrite` traits do not require any features and are
 //! always available._
 //!
-//! ### Unstable features
+//! ## Unstable features
 //!
 //! Some feature flags are only available when specifying the `tokio_unstable` flag:
 //!
@@ -351,8 +351,10 @@
 //! - [`task::Builder`]
 //! - Some methods on [`task::JoinSet`]
 //! - [`runtime::RuntimeMetrics`]
+//! - [`runtime::Builder::on_task_spawn`]
+//! - [`runtime::Builder::on_task_terminate`]
 //! - [`runtime::Builder::unhandled_panic`]
-//! - [`task::Id`]
+//! - [`runtime::TaskMeta`]
 //!
 //! This flag enables **unstable** features. The public API of these features
 //! may break in 1.x releases. To enable these features, the `--cfg
@@ -366,6 +368,12 @@
 //! [build]
 //! rustflags = ["--cfg", "tokio_unstable"]
 //! ```
+//!
+//! <div class="warning">
+//! The <code>[build]</code> section does <strong>not</strong> go in a
+//! <code>Cargo.toml</code> file. Instead it must be placed in the Cargo config
+//! file <code>.cargo/config.toml</code>.
+//! </div>
 //!
 //! Alternatively, you can specify it with an environment variable:
 //!
@@ -384,7 +392,7 @@
 //! [unstable features]: https://internals.rust-lang.org/t/feature-request-unstable-opt-in-non-transitive-crate-features/16193#why-not-a-crate-feature-2
 //! [feature flags]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-features-section
 //!
-//! ## Supported platforms
+//! # Supported platforms
 //!
 //! Tokio currently guarantees support for the following platforms:
 //!
@@ -410,7 +418,7 @@
 //!
 //! [mio-supported]: https://crates.io/crates/mio#platforms
 //!
-//! ### `WASM` support
+//! ## `WASM` support
 //!
 //! Tokio has some limited support for the `WASM` platform. Without the
 //! `tokio_unstable` flag, the following features are supported:
@@ -432,7 +440,7 @@
 //! immediately instead of blocking forever. On platforms that don't support
 //! time, this means that the runtime can never be idle in any way.
 //!
-//! ### Unstable `WASM` support
+//! ## Unstable `WASM` support
 //!
 //! Tokio also has unstable support for some additional `WASM` features. This
 //! requires the use of the `tokio_unstable` flag.
@@ -625,15 +633,15 @@ pub mod stream {}
 // local re-exports of platform specific things, allowing for decent
 // documentation to be shimmed in on docs.rs
 
-#[cfg(docsrs)]
+#[cfg(all(docsrs, unix))]
 pub mod doc;
 
 #[cfg(any(feature = "net", feature = "fs"))]
-#[cfg(docsrs)]
+#[cfg(all(docsrs, unix))]
 #[allow(unused)]
 pub(crate) use self::doc::os;
 
-#[cfg(not(docsrs))]
+#[cfg(not(all(docsrs, unix)))]
 #[allow(unused)]
 pub(crate) use std::os;
 

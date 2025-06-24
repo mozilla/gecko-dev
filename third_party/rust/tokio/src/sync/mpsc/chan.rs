@@ -9,10 +9,11 @@ use crate::sync::notify::Notify;
 use crate::util::cacheline::CachePadded;
 
 use std::fmt;
+use std::panic;
 use std::process;
 use std::sync::atomic::Ordering::{AcqRel, Acquire, Relaxed, Release};
 use std::task::Poll::{Pending, Ready};
-use std::task::{Context, Poll};
+use std::task::{ready, Context, Poll};
 
 /// Channel sender.
 pub(crate) struct Tx<T, S> {
@@ -108,6 +109,8 @@ impl<T> fmt::Debug for RxFields<T> {
 
 unsafe impl<T: Send, S: Send> Send for Chan<T, S> {}
 unsafe impl<T: Send, S: Sync> Sync for Chan<T, S> {}
+impl<T, S> panic::RefUnwindSafe for Chan<T, S> {}
+impl<T, S> panic::UnwindSafe for Chan<T, S> {}
 
 pub(crate) fn channel<T, S: Semaphore>(semaphore: S) -> (Tx<T, S>, Rx<T, S>) {
     let (tx, rx) = list::channel();
@@ -289,7 +292,7 @@ impl<T, S: Semaphore> Rx<T, S> {
         ready!(crate::trace::trace_leaf(cx));
 
         // Keep track of task budget
-        let coop = ready!(crate::runtime::coop::poll_proceed(cx));
+        let coop = ready!(crate::task::coop::poll_proceed(cx));
 
         self.inner.rx_fields.with_mut(|rx_fields_ptr| {
             let rx_fields = unsafe { &mut *rx_fields_ptr };
@@ -351,7 +354,7 @@ impl<T, S: Semaphore> Rx<T, S> {
         ready!(crate::trace::trace_leaf(cx));
 
         // Keep track of task budget
-        let coop = ready!(crate::runtime::coop::poll_proceed(cx));
+        let coop = ready!(crate::task::coop::poll_proceed(cx));
 
         if limit == 0 {
             coop.made_progress();
@@ -487,10 +490,34 @@ impl<T, S: Semaphore> Drop for Rx<T, S> {
 
         self.inner.rx_fields.with_mut(|rx_fields_ptr| {
             let rx_fields = unsafe { &mut *rx_fields_ptr };
-
-            while let Some(Value(_)) = rx_fields.list.pop(&self.inner.tx) {
-                self.inner.semaphore.add_permit();
+            struct Guard<'a, T, S: Semaphore> {
+                list: &'a mut list::Rx<T>,
+                tx: &'a list::Tx<T>,
+                sem: &'a S,
             }
+
+            impl<'a, T, S: Semaphore> Guard<'a, T, S> {
+                fn drain(&mut self) {
+                    // call T's destructor.
+                    while let Some(Value(_)) = self.list.pop(self.tx) {
+                        self.sem.add_permit();
+                    }
+                }
+            }
+
+            impl<'a, T, S: Semaphore> Drop for Guard<'a, T, S> {
+                fn drop(&mut self) {
+                    self.drain();
+                }
+            }
+
+            let mut guard = Guard {
+                list: &mut rx_fields.list,
+                tx: &self.inner.tx,
+                sem: &self.inner.semaphore,
+            };
+
+            guard.drain();
         });
     }
 }

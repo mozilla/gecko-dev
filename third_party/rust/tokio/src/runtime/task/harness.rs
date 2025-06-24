@@ -4,6 +4,7 @@ use crate::runtime::task::state::{Snapshot, State};
 use crate::runtime::task::waker::waker_ref;
 use crate::runtime::task::{Id, JoinError, Notified, RawTask, Schedule, Task};
 
+use crate::runtime::TaskMeta;
 use std::any::Any;
 use std::mem;
 use std::mem::ManuallyDrop;
@@ -283,9 +284,11 @@ where
     }
 
     pub(super) fn drop_join_handle_slow(self) {
-        // Try to unset `JOIN_INTEREST`. This must be done as a first step in
+        // Try to unset `JOIN_INTEREST` and `JOIN_WAKER`. This must be done as a first step in
         // case the task concurrently completed.
-        if self.state().unset_join_interested().is_err() {
+        let transition = self.state().transition_to_join_handle_dropped();
+
+        if transition.drop_output {
             // It is our responsibility to drop the output. This is critical as
             // the task output may not be `Send` and as such must remain with
             // the scheduler or `JoinHandle`. i.e. if the output remains in the
@@ -300,6 +303,23 @@ where
             }));
         }
 
+        if transition.drop_waker {
+            // If the JOIN_WAKER flag is unset at this point, the task is either
+            // already terminal or not complete so the `JoinHandle` is responsible
+            // for dropping the waker.
+            // Safety:
+            // If the JOIN_WAKER bit is not set the join handle has exclusive
+            // access to the waker as per rule 2 in task/mod.rs.
+            // This can only be the case at this point in two scenarios:
+            // 1. The task completed and the runtime unset `JOIN_WAKER` flag
+            //    after accessing the waker during task completion. So the
+            //    `JoinHandle` is the only one to access the  join waker here.
+            // 2. The task is not completed so the `JoinHandle` was able to unset
+            //    `JOIN_WAKER` bit itself to get mutable access to the waker.
+            //    The runtime will not access the waker when this flag is unset.
+            unsafe { self.trailer().set_waker(None) };
+        }
+
         // Drop the `JoinHandle` reference, possibly deallocating the task
         self.drop_reference();
     }
@@ -310,7 +330,6 @@ where
     fn complete(self) {
         // The future has completed and its output has been written to the task
         // stage. We transition from running to complete.
-
         let snapshot = self.state().transition_to_complete();
 
         // We catch panics here in case dropping the future or waking the
@@ -319,15 +338,43 @@ where
             if !snapshot.is_join_interested() {
                 // The `JoinHandle` is not interested in the output of
                 // this task. It is our responsibility to drop the
-                // output.
+                // output. The join waker was already dropped by the
+                // `JoinHandle` before.
                 self.core().drop_future_or_output();
             } else if snapshot.is_join_waker_set() {
                 // Notify the waker. Reading the waker field is safe per rule 4
                 // in task/mod.rs, since the JOIN_WAKER bit is set and the call
                 // to transition_to_complete() above set the COMPLETE bit.
                 self.trailer().wake_join();
+
+                // Inform the `JoinHandle` that we are done waking the waker by
+                // unsetting the `JOIN_WAKER` bit. If the `JoinHandle` has
+                // already been dropped and `JOIN_INTEREST` is unset, then we must
+                // drop the waker ourselves.
+                if !self
+                    .state()
+                    .unset_waker_after_complete()
+                    .is_join_interested()
+                {
+                    // SAFETY: We have COMPLETE=1 and JOIN_INTEREST=0, so
+                    // we have exclusive access to the waker.
+                    unsafe { self.trailer().set_waker(None) };
+                }
             }
         }));
+
+        // We catch panics here in case invoking a hook panics.
+        //
+        // We call this in a separate block so that it runs after the task appears to have
+        // completed and will still run if the destructor panics.
+        if let Some(f) = self.trailer().hooks.task_terminate_callback.as_ref() {
+            let _ = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+                f(&TaskMeta {
+                    id: self.core().task_id,
+                    _phantom: Default::default(),
+                })
+            }));
+        }
 
         // The task has completed execution and will no longer be scheduled.
         let num_release = self.release();
