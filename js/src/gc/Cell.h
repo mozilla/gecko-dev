@@ -627,8 +627,18 @@ class alignas(gc::CellAlignBytes) CellWithLengthAndFlags : public Cell {
     return uint32_t(header_.get() >> 32);
 #endif
   }
+  uint32_t headerLengthFieldAtomic() const {
+#if JS_BITS_PER_WORD == 32
+    return length_;
+#else
+    return uint32_t(header_.getAtomic() >> 32);
+#endif
+  }
 
   uint32_t headerFlagsField() const { return uint32_t(header_.get()); }
+  uint32_t headerFlagsFieldAtomic() const {
+    return uint32_t(header_.getAtomic());
+  }
 
   void setHeaderFlagBit(uint32_t flag) {
     header_.set(header_.get() | uintptr_t(flag));

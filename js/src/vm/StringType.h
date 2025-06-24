@@ -48,6 +48,7 @@ class JS_PUBLIC_API GenericPrinter;
 class JSONPrinter;
 class PropertyName;
 class StringBuilder;
+class JSOffThreadAtom;
 
 namespace frontend {
 class ParserAtomsTable;
@@ -734,6 +735,12 @@ class JSString : public js::gc::CellWithLengthAndFlags {
   JSAtom& asAtom() const {
     MOZ_ASSERT(isAtom());
     return *(JSAtom*)this;
+  }
+
+  MOZ_ALWAYS_INLINE
+  js::JSOffThreadAtom& asOffThreadAtom() const {
+    MOZ_ASSERT(headerFlagsFieldAtomic() & ATOM_BIT);
+    return *(js::JSOffThreadAtom*)this;
   }
 
   MOZ_ALWAYS_INLINE
@@ -1797,6 +1804,17 @@ class StringSegmentRange {
     }
     return settle(stack.popCopy());
   }
+};
+
+// This class should be used in code that manipulates strings off-thread (for
+// example, Ion compilation). The key difference is that flags are loaded
+// atomically, preventing data races if flags (especially the pinned atom bit)
+// are mutated on the main thread. We use private inheritance to avoid
+// accidentally exposing anything non-thread-safe.
+class JSOffThreadAtom : private JSAtom {
+ public:
+  size_t length() const { return headerLengthFieldAtomic(); }
+  size_t flags() const { return headerFlagsFieldAtomic(); }
 };
 
 }  // namespace js
