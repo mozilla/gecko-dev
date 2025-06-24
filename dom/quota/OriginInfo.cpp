@@ -76,7 +76,8 @@ OriginStateMetadata OriginInfo::LockedFlattenToOriginStateMetadata() const {
 FullOriginMetadata OriginInfo::LockedFlattenToFullOriginMetadata() const {
   AssertCurrentThreadOwnsQuotaMutex();
 
-  return {FlattenToOriginMetadata(), LockedFlattenToOriginStateMetadata()};
+  return {FlattenToOriginMetadata(), LockedFlattenToOriginStateMetadata(),
+          mClientUsages, mUsage, kCurrentQuotaVersion};
 }
 
 nsresult OriginInfo::LockedBindToStatement(

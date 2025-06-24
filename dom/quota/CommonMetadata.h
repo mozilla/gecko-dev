@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "mozilla/dom/quota/Client.h"
+#include "mozilla/dom/quota/ClientUsageArray.h"
 #include "mozilla/dom/quota/Constants.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "nsString.h"
@@ -125,12 +126,21 @@ struct OriginStateMetadata {
 };
 
 struct FullOriginMetadata : OriginMetadata, OriginStateMetadata {
+  ClientUsageArray mClientUsages;
+  uint64_t mOriginUsage;
+  uint32_t mQuotaVersion;
+
   FullOriginMetadata() = default;
 
   FullOriginMetadata(OriginMetadata aOriginMetadata,
-                     OriginStateMetadata aOriginStateMetadata)
+                     OriginStateMetadata aOriginStateMetadata,
+                     const ClientUsageArray& aClientUsages, uint64_t aUsage,
+                     uint32_t aQuotaVersion)
       : OriginMetadata(std::move(aOriginMetadata)),
-        OriginStateMetadata(aOriginStateMetadata) {}
+        OriginStateMetadata(aOriginStateMetadata),
+        mClientUsages(aClientUsages),
+        mOriginUsage(aUsage),
+        mQuotaVersion(aQuotaVersion) {}
 
   // Templated to restrict Equals() to exactly FullOriginMetadata. Prevents
   // derived types from accidentally inheriting Equals() and comparing only
@@ -141,7 +151,10 @@ struct FullOriginMetadata : OriginMetadata, OriginStateMetadata {
     return static_cast<const OriginMetadata&>(*this).Equals(
                static_cast<const OriginMetadata&>(aOther)) &&
            static_cast<const OriginStateMetadata&>(*this).Equals(
-               static_cast<const OriginStateMetadata&>(aOther));
+               static_cast<const OriginStateMetadata&>(aOther)) &&
+           mClientUsages == aOther.mClientUsages &&
+           mOriginUsage == aOther.mOriginUsage &&
+           mQuotaVersion == aOther.mQuotaVersion;
   }
 
   // Convenient method for duplicating a FullOriginMetadata instance. Creates
@@ -149,7 +162,8 @@ struct FullOriginMetadata : OriginMetadata, OriginStateMetadata {
   // parts of this instance.
   FullOriginMetadata Clone() const {
     return {static_cast<const OriginMetadata&>(*this),
-            static_cast<const OriginStateMetadata&>(*this)};
+            static_cast<const OriginStateMetadata&>(*this), mClientUsages,
+            mOriginUsage, mQuotaVersion};
   }
 };
 

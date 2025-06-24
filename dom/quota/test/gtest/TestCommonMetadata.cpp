@@ -179,7 +179,9 @@ TEST(DOM_Quota_CommonMetadata, FullOriginMetadata_Equals)
   OriginStateMetadata originStateMetadata1 = OriginStateMetadata(
       /* aLastAccessTime */ 0, /* aAccessed */ false, /* aPersisted */ false);
 
-  FullOriginMetadata fullOriginMetadata1(originMetadata1, originStateMetadata1);
+  FullOriginMetadata fullOriginMetadata1(originMetadata1, originStateMetadata1,
+                                         ClientUsageArray(), /* aUsage */ 0,
+                                         kCurrentQuotaVersion);
 
   {
     // All fields are the same.
@@ -193,8 +195,9 @@ TEST(DOM_Quota_CommonMetadata, FullOriginMetadata_Equals)
     OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
         /* aLastAccessTime */ 0, /* aAccessed */ false, /* aPersisted */ false);
 
-    FullOriginMetadata fullOriginMetadata2(originMetadata2,
-                                           originStateMetadata2);
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata2, originStateMetadata2, ClientUsageArray(),
+        /* aUsage */ 0, kCurrentQuotaVersion);
 
     EXPECT_TRUE(fullOriginMetadata1.Equals(fullOriginMetadata2));
   }
@@ -212,8 +215,9 @@ TEST(DOM_Quota_CommonMetadata, FullOriginMetadata_Equals)
     OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
         /* aLastAccessTime */ 0, /* aAccessed */ false, /* aPersisted */ false);
 
-    FullOriginMetadata fullOriginMetadata2(originMetadata2,
-                                           originStateMetadata2);
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata2, originStateMetadata2, ClientUsageArray(),
+        /* aUsage */ 0, kCurrentQuotaVersion);
 
     EXPECT_FALSE(fullOriginMetadata1.Equals(fullOriginMetadata2));
   }
@@ -230,8 +234,9 @@ TEST(DOM_Quota_CommonMetadata, FullOriginMetadata_Equals)
     OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
         /* aLastAccessTime */ 0, /* aAccessed */ false, /* aPersisted */ false);
 
-    FullOriginMetadata fullOriginMetadata2(originMetadata2,
-                                           originStateMetadata2);
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata2, originStateMetadata2, ClientUsageArray(),
+        /* aUsage */ 0, kCurrentQuotaVersion);
 
     EXPECT_FALSE(fullOriginMetadata1.Equals(fullOriginMetadata2));
   }
@@ -248,8 +253,61 @@ TEST(DOM_Quota_CommonMetadata, FullOriginMetadata_Equals)
     OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
         /* aLastAccessTime */ 1, /* aAccessed */ false, /* aPersisted */ false);
 
-    FullOriginMetadata fullOriginMetadata2(originMetadata2,
-                                           originStateMetadata2);
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata2, originStateMetadata2, ClientUsageArray(),
+        /* aUsage */ 0, kCurrentQuotaVersion);
+
+    EXPECT_FALSE(fullOriginMetadata1.Equals(fullOriginMetadata2));
+  }
+
+  {
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+    OriginMetadata originMetadata2(principalMetadata2,
+                                   PERSISTENCE_TYPE_DEFAULT);
+
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime*/ 0, /* aAccessed */ false, /* aPersisted */ false);
+
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata2, originStateMetadata2,
+        ClientUsageArray{{Some(1), Nothing(), Nothing(), Nothing(), Nothing()}},
+        /* aUsage */ 0, kCurrentQuotaVersion);
+
+    EXPECT_FALSE(fullOriginMetadata1.Equals(fullOriginMetadata2));
+  }
+
+  {
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+    OriginMetadata originMetadata2(principalMetadata2,
+                                   PERSISTENCE_TYPE_DEFAULT);
+
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime*/ 0, /* aAccessed */ false, /* aPersisted */ false);
+
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata2, originStateMetadata2, ClientUsageArray(),
+        /* aUsage */ 1, kCurrentQuotaVersion);
+
+    EXPECT_FALSE(fullOriginMetadata1.Equals(fullOriginMetadata2));
+  }
+
+  {
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+    OriginMetadata originMetadata2(principalMetadata2,
+                                   PERSISTENCE_TYPE_DEFAULT);
+
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime*/ 0, /* aAccessed */ false, /* aPersisted */ false);
+
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata2, originStateMetadata2, ClientUsageArray(),
+        /* aUsage */ 0, kCurrentQuotaVersion + 1);
 
     EXPECT_FALSE(fullOriginMetadata1.Equals(fullOriginMetadata2));
   }

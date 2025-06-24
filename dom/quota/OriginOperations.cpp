@@ -3581,7 +3581,8 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
 
     FullOriginMetadata fullOriginMetadata = FullOriginMetadata{
         originMetadata,
-        OriginStateMetadata{timestamp, accessed, /* aPersisted */ true}};
+        OriginStateMetadata{timestamp, accessed, /* aPersisted */ true},
+        ClientUsageArray(), /* aUsage */ 0, kCurrentQuotaVersion};
 
     if (aQuotaManager.IsTemporaryStorageInitializedInternal()) {
       // Usually, infallible operations are placed after fallible ones.
@@ -3609,8 +3610,7 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
         // initialized yet. So OriginInfo needs to be created because the
         // origin directory has been just created.
 
-        aQuotaManager.InitQuotaForOrigin(fullOriginMetadata, ClientUsageArray(),
-                                         /* aUsageBytes */ 0);
+        aQuotaManager.InitQuotaForOrigin(fullOriginMetadata);
       }
     }
   } else {

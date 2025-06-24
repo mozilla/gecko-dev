@@ -210,8 +210,7 @@ class QuotaManager final : public BackgroundThreadObject {
    * LSNG.
    */
   void InitQuotaForOrigin(const FullOriginMetadata& aFullOriginMetadata,
-                          const ClientUsageArray& aClientUsages,
-                          uint64_t aUsageBytes, bool aDirectoryExists = true);
+                          bool aDirectoryExists = true);
 
   // XXX clients can use QuotaObject instead of calling this method directly.
   void DecreaseUsageForClient(const ClientMetadata& aClientMetadata,

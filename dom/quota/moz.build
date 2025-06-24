@@ -45,6 +45,7 @@ EXPORTS.mozilla.dom.quota += [
     "ClientDirectoryLockHandle.h",
     "ClientImpl.h",
     "ClientStorageScope.h",
+    "ClientUsageArray.h",
     "CommonMetadata.h",
     "CommonMetadataArray.h",
     "CommonMetadataArrayFwd.h",
