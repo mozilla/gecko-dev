@@ -4648,7 +4648,9 @@ void LIRGenerator::visitLoadElement(MLoadElement* ins) {
 
   auto* lir = new (alloc()) LLoadElementV(useRegister(ins->elements()),
                                           useRegisterOrConstant(ins->index()));
-  assignSnapshot(lir, ins->bailoutKind());
+  if (ins->needsHoleCheck()) {
+    assignSnapshot(lir, ins->bailoutKind());
+  }
   defineBox(lir, ins);
 }
 
@@ -7359,6 +7361,15 @@ void LIRGenerator::visitGuardArrayIsPacked(MGuardArrayIsPacked* ins) {
   assignSnapshot(lir, ins->bailoutKind());
   add(lir, ins);
   redefine(ins, ins->array());
+}
+
+void LIRGenerator::visitGuardElementsArePacked(MGuardElementsArePacked* ins) {
+  MOZ_ASSERT(ins->elements()->type() == MIRType::Elements);
+
+  auto* lir =
+      new (alloc()) LGuardElementsArePacked(useRegister(ins->elements()));
+  assignSnapshot(lir, ins->bailoutKind());
+  add(lir, ins);
 }
 
 void LIRGenerator::visitGetPrototypeOf(MGetPrototypeOf* ins) {

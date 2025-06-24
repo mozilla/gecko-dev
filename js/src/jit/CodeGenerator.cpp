@@ -18230,9 +18230,18 @@ void CodeGenerator::visitLoadElementV(LLoadElementV* load) {
                    out);
   }
 
-  Label testMagic;
-  masm.branchTestMagic(Assembler::Equal, out, &testMagic);
-  bailoutFrom(&testMagic, load->snapshot());
+  if (load->mir()->needsHoleCheck()) {
+    Label testMagic;
+    masm.branchTestMagic(Assembler::Equal, out, &testMagic);
+    bailoutFrom(&testMagic, load->snapshot());
+  } else {
+#ifdef DEBUG
+    Label ok;
+    masm.branchTestMagic(Assembler::NotEqual, out, &ok);
+    masm.assumeUnreachable("LoadElementV had incorrect needsHoleCheck");
+    masm.bind(&ok);
+#endif
+  }
 }
 
 void CodeGenerator::visitLoadElementHole(LLoadElementHole* lir) {
@@ -20888,6 +20897,16 @@ void CodeGenerator::visitGuardArrayIsPacked(LGuardArrayIsPacked* lir) {
 
   Label bail;
   masm.branchArrayIsNotPacked(array, temp0, temp1, &bail);
+  bailoutFrom(&bail, lir->snapshot());
+}
+
+void CodeGenerator::visitGuardElementsArePacked(LGuardElementsArePacked* lir) {
+  Register elements = ToRegister(lir->elements());
+
+  Label bail;
+  Address flags(elements, ObjectElements::offsetOfFlags());
+  masm.branchTest32(Assembler::NonZero, flags,
+                    Imm32(ObjectElements::NON_PACKED), &bail);
   bailoutFrom(&bail, lir->snapshot());
 }
 

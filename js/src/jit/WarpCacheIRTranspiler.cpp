@@ -2032,7 +2032,8 @@ bool WarpCacheIRTranspiler::emitLoadBoundFunctionArgument(
   add(elements);
 
   auto argIndex = constant(Int32Value(index));
-  auto* load = MLoadElement::New(alloc(), elements, argIndex);
+  auto* load = MLoadElement::New(alloc(), elements, argIndex,
+                                 /* needsHoleCheck */ false);
   add(load);
 
   return defineOperand(resultId, load);
@@ -2193,8 +2194,8 @@ MInstruction* WarpCacheIRTranspiler::addBoundsCheck(MDefinition* index,
   return check;
 }
 
-bool WarpCacheIRTranspiler::emitLoadDenseElementResult(ObjOperandId objId,
-                                                       Int32OperandId indexId) {
+bool WarpCacheIRTranspiler::emitLoadDenseElementResult(
+    ObjOperandId objId, Int32OperandId indexId, bool expectPackedElements) {
   MDefinition* obj = getOperand(objId);
   MDefinition* index = getOperand(indexId);
 
@@ -2206,7 +2207,13 @@ bool WarpCacheIRTranspiler::emitLoadDenseElementResult(ObjOperandId objId,
 
   index = addBoundsCheck(index, length);
 
-  auto* load = MLoadElement::New(alloc(), elements, index);
+  if (expectPackedElements) {
+    auto* guardPacked = MGuardElementsArePacked::New(alloc(), elements);
+    add(guardPacked);
+  }
+
+  bool needsHoleCheck = !expectPackedElements;
+  auto* load = MLoadElement::New(alloc(), elements, index, needsHoleCheck);
   add(load);
 
   pushResult(load);
@@ -6439,7 +6446,8 @@ bool WarpCacheIRTranspiler::emitCallBoundScriptedFunction(
       size_t slot = BoundFunctionObject::firstInlineBoundArgSlot() + index;
       arg = MLoadFixedSlot::New(alloc(), callee, slot);
     } else {
-      arg = MLoadElement::New(alloc(), elements, constant(Int32Value(index)));
+      arg = MLoadElement::New(alloc(), elements, constant(Int32Value(index)),
+                              /*needsHoleCheck*/ false);
     }
     add(arg);
     return arg;

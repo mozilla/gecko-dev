@@ -3158,7 +3158,8 @@ AttachDecision GetPropIRGenerator::tryAttachDenseElement(
   } else {
     TestMatchingNativeReceiver(writer, nobj, objId);
   }
-  writer.loadDenseElementResult(objId, indexId);
+  bool expectPackedElements = nobj->denseElementsArePacked();
+  writer.loadDenseElementResult(objId, indexId, expectPackedElements);
   writer.returnFromIC();
 
   trackAttached("GetProp.DenseElement");

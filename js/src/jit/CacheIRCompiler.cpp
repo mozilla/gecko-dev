@@ -4980,7 +4980,8 @@ bool CacheIRCompiler::emitLoadArgumentsObjectArgExistsResult(
 }
 
 bool CacheIRCompiler::emitLoadDenseElementResult(ObjOperandId objId,
-                                                 Int32OperandId indexId) {
+                                                 Int32OperandId indexId,
+                                                 bool expectPackedElements) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
   AutoOutputRegister output(*this);
   Register obj = allocator.useRegister(masm, objId);
@@ -5000,9 +5001,19 @@ bool CacheIRCompiler::emitLoadDenseElementResult(ObjOperandId objId,
   Address initLength(scratch1, ObjectElements::offsetOfInitializedLength());
   masm.spectreBoundsCheck32(index, initLength, scratch2, failure->label());
 
-  // Hole check.
+  if (expectPackedElements) {
+    Address flags(scratch1, ObjectElements::offsetOfFlags());
+    masm.branchTest32(Assembler::NonZero, flags,
+                      Imm32(ObjectElements::NON_PACKED), failure->label());
+  }
+
   BaseObjectElementIndex element(scratch1, index);
-  masm.branchTestMagic(Assembler::Equal, element, failure->label());
+
+  // If we did not check the packed flag, we must check for a hole value.
+  if (!expectPackedElements) {
+    masm.branchTestMagic(Assembler::Equal, element, failure->label());
+  }
+
   masm.loadTypedOrValue(element, output);
   return true;
 }

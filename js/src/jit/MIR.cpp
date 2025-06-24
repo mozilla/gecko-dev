@@ -7398,6 +7398,10 @@ AliasSet MGuardArrayIsPacked::getAliasSet() const {
   return AliasSet::Load(AliasSet::ObjectFields);
 }
 
+AliasSet MGuardElementsArePacked::getAliasSet() const {
+  return AliasSet::Load(AliasSet::ObjectFields);
+}
+
 AliasSet MSuperFunction::getAliasSet() const {
   return AliasSet::Load(AliasSet::ObjectFields);
 }

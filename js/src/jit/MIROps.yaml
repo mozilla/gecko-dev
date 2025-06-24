@@ -3194,6 +3194,16 @@
   congruent_to: if_operands_equal
   alias_set: custom
 
+- name: GuardElementsArePacked
+  operands:
+    elements: Elements
+  type_policy: none
+  guard: true
+  movable: true
+  congruent_to: if_operands_equal
+  alias_set: custom
+  generate_lir: true
+
 - name: GetPrototypeOf
   operands:
     target: Object

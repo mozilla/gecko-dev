@@ -2231,6 +2231,7 @@
   args:
     obj: ObjId
     index: Int32Id
+    expectPackedElements: BoolImm
 
 - name: LoadDenseElementHoleResult
   shared: true
