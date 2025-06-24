@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* eslint-disable mozilla/valid-lazy */
 
 // Each extension that uses DNR has one RuleManager. All registered RuleManagers
 // are checked whenever a network request occurs. Individual extensions may
