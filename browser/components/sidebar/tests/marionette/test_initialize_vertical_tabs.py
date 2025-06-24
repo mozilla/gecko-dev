@@ -2,10 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import json
-
 from marionette_driver.by import By
 from marionette_harness import MarionetteTestCase
+from mozfile import json
 
 vertical_parent_id = "vertical-tabs"
 horizontal_parent_id = "TabsToolbar-customization-target"

@@ -8,13 +8,13 @@ This is used to test OS specific accessibility APIs which can't be tested in JS.
 It is intended to be called from JS browser tests.
 """
 
-import json
 import math
 import os
 import sys
 import traceback
 
 from mod_pywebsocket import msgutil
+from mozfile import json
 
 
 def web_socket_do_extra_handshake(request):

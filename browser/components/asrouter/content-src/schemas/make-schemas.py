@@ -22,7 +22,6 @@ due to the JSONSchema validation library used by Experimenter not fully
 supporting self-references and bundled schema.
 """
 
-import json
 import sys
 from argparse import ArgumentParser
 from itertools import chain
@@ -31,6 +30,7 @@ from typing import Any, NamedTuple, Union
 from urllib.parse import urlparse
 
 import jsonschema
+from mozfile import json
 
 
 class SchemaDefinition(NamedTuple):

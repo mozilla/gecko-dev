@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import json
 import os
 import re
 import shutil
@@ -19,6 +18,7 @@ from mach.decorators import (
     CommandArgument,
     SubCommand,
 )
+from mozfile import json
 
 FIREFOX_L10N_REPO = "https://github.com/mozilla-l10n/firefox-l10n.git"
 FLUENT_FILE = "newtab.ftl"
