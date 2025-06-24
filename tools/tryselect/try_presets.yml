@@ -102,13 +102,13 @@ devtools:
     query:
         - "'node-debugger | 'node-devtools"
         - "'mozlint-eslint"
-        # Windows: skip jobs on asan and 32 bits platforms
-        - "'mochitest-devtools-chrome | 'mochitest-chrome-1proc 'windows !asan !-32"
+        # Windows: skip jobs on win10, asan and 32 bits platforms
+        - "'mochitest-devtools-chrome | 'mochitest-chrome-1proc 'windows !windows10 !asan !-32"
         # macos: no extra platform to filter out
         - "'mochitest-devtools-chrome | 'mochitest-chrome-1proc 'macosx"
-        # Linux is being named "linux1804" and may change over time, so use a more flexible search
-        - "'mochitest-devtools-chrome | 'mochitest-chrome-1proc 'linux '64-qr/ !swr"
-        - "'xpcshell 'linux !nofis '64-qr/"
+        # Linux: skip asan and tsan
+        - "'mochitest-devtools-chrome | 'mochitest-chrome-1proc 'linux !spi !asan !tsan"
+        - "'xpcshell 'linux !nofis !asan !tsan !condprof !ioi"
 
 devtools-linux:
     selector: fuzzy
@@ -119,8 +119,8 @@ devtools-linux:
     query:
         - "'node-debugger | 'node-devtools"
         - "'mozlint-eslint"
-        - "'mochitest-devtools-chrome | 'mochitest-chrome-1proc 'linux '64-qr/ !swr"
-        - "'xpcshell 'linux !nofis '64-qr/"
+        - "'mochitest-devtools-chrome | 'mochitest-chrome-1proc 'linux !spi !asan !tsan"
+        - "'xpcshell 'linux !nofis !asan !tsan !condprof !ioi"
 
 fenix:
     selector: fuzzy
