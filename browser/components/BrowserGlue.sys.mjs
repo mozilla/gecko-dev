@@ -445,8 +445,14 @@ BrowserGlue.prototype = {
     }
 
     if (!AppConstants.NIGHTLY_BUILD && this._isNewProfile) {
-      lazy.FormAutofillUtils.setOSAuthEnabled(false);
-      lazy.LoginHelper.setOSAuthEnabled(false);
+      lazy.FormAutofillUtils.setOSAuthEnabled(
+        lazy.FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
+        false
+      );
+      lazy.LoginHelper.setOSAuthEnabled(
+        lazy.LoginHelper.OS_AUTH_FOR_PASSWORDS_PREF,
+        false
+      );
     }
 
     listeners.init();
@@ -1641,7 +1647,7 @@ BrowserGlue.prototype = {
     // Use an increasing number to keep track of the current state of the user's
     // profile, so we can move data around as needed as the browser evolves.
     // Completely unrelated to the current Firefox release number.
-    const APP_DATA_VERSION = 157;
+    const APP_DATA_VERSION = 156;
     const PREF = "browser.migration.version";
 
     let profileDataVersion = Services.prefs.getIntPref(PREF, -1);

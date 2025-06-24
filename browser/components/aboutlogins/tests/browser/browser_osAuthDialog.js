@@ -25,41 +25,82 @@ add_setup(async function () {
 
 add_task(async function test_os_auth_enabled_with_checkbox() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
-  LoginHelper.setOSAuthEnabled(true);
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: PAGE_PRIVACY },
     async function (browser) {
       await finalPrefPaneLoaded;
 
-      await SpecialPowers.spawn(browser, [SELECTORS], async selectors => {
-        ok(
-          content.document.querySelector(selectors.reauthCheckbox).checked,
-          "OSReauth for Passwords should be checked"
-        );
-      });
-      ok(LoginHelper.getOSAuthEnabled(), "OSAuth should be enabled.");
+      await SpecialPowers.spawn(
+        browser,
+        [SELECTORS, AppConstants.NIGHTLY_BUILD],
+        async (selectors, isNightly) => {
+          is(
+            content.document.querySelector(selectors.reauthCheckbox).checked,
+            isNightly,
+            "OSReauth for Passwords should be checked"
+          );
+        }
+      );
+      is(
+        LoginHelper.getOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF),
+        AppConstants.NIGHTLY_BUILD,
+        "OSAuth should be enabled."
+      );
     }
   );
 });
 
 add_task(async function test_os_auth_disabled_with_checkbox() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
-  LoginHelper.setOSAuthEnabled(false);
+  LoginHelper.setOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF, false);
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: PAGE_PRIVACY },
     async function (browser) {
       await finalPrefPaneLoaded;
 
       await SpecialPowers.spawn(browser, [SELECTORS], async selectors => {
-        ok(
-          !content.document.querySelector(selectors.reauthCheckbox).checked,
+        is(
+          content.document.querySelector(selectors.reauthCheckbox).checked,
+          false,
           "OSReauth for passwords should be unchecked"
         );
       });
-      ok(!LoginHelper.getOSAuthEnabled(), "OSAuth should be disabled");
+      is(
+        LoginHelper.getOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF),
+        false,
+        "OSAuth should be disabled"
+      );
     }
   );
-  LoginHelper.setOSAuthEnabled(true);
+  LoginHelper.setOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF, true);
+});
+
+add_task(async function test_OSAuth_enabled_with_random_value_in_pref() {
+  let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
+  await SpecialPowers.pushPrefEnv({
+    set: [[PASSWORDS_OS_REAUTH_PREF, "poutine-gravy"]],
+  });
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: PAGE_PRIVACY },
+    async function (browser) {
+      await finalPrefPaneLoaded;
+      await SpecialPowers.spawn(browser, [SELECTORS], async selectors => {
+        let reauthCheckbox = content.document.querySelector(
+          selectors.reauthCheckbox
+        );
+        is(
+          reauthCheckbox.checked,
+          true,
+          "OSReauth for passwords should be checked"
+        );
+      });
+      is(
+        LoginHelper.getOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF),
+        true,
+        "OSAuth should be enabled since the pref does not decrypt to 'opt out'."
+      );
+    }
+  );
 });
 
 add_task(async function test_osAuth_shown_on_edit_login() {

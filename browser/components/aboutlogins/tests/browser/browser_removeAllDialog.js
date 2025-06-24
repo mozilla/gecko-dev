@@ -81,8 +81,8 @@ add_setup(async function () {
   // Undo mocking from head.js
   sinon.restore();
 
-  let oldPrefValue = LoginHelper.getOSAuthEnabled();
-  LoginHelper.setOSAuthEnabled(false);
+  let oldPrefValue = LoginHelper.getOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF);
+  LoginHelper.setOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF, false);
   await BrowserTestUtils.openNewForegroundTab({
     gBrowser,
     url: "about:logins",

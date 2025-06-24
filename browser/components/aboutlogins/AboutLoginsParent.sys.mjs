@@ -255,7 +255,9 @@ export class AboutLoginsParent extends JSWindowActorParent {
     let messageText = { value: "NOT SUPPORTED" };
     let captionText = { value: "" };
 
-    const isOSAuthEnabled = lazy.LoginHelper.getOSAuthEnabled();
+    const isOSAuthEnabled = lazy.LoginHelper.getOSAuthEnabled(
+      lazy.LoginHelper.OS_AUTH_FOR_PASSWORDS_PREF
+    );
 
     // This feature is only supported on Windows and macOS
     // but we still call in to OSKeyStore on Linux to get
@@ -370,7 +372,9 @@ export class AboutLoginsParent extends JSWindowActorParent {
     let messageText = { value: "NOT SUPPORTED" };
     let captionText = { value: "" };
 
-    const isOSAuthEnabled = lazy.LoginHelper.getOSAuthEnabled();
+    const isOSAuthEnabled = lazy.LoginHelper.getOSAuthEnabled(
+      lazy.LoginHelper.OS_AUTH_FOR_PASSWORDS_PREF
+    );
 
     // This feature is only supported on Windows and macOS
     // but we still call in to OSKeyStore on Linux to get

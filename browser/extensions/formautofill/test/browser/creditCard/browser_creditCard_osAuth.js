@@ -27,19 +27,29 @@ add_setup(async function () {
  */
 add_task(async function test_os_auth_enabled_with_checkbox() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
-  FormAutofillUtils.setOSAuthEnabled(true);
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: PAGE_PRIVACY },
     async function (browser) {
       await finalPrefPaneLoaded;
 
-      await SpecialPowers.spawn(browser, [SELECTORS], async selectors => {
-        ok(
-          content.document.querySelector(selectors.reauthCheckbox).checked,
-          "OSReauth for credit cards should be checked"
-        );
-      });
-      ok(FormAutofillUtils.getOSAuthEnabled(), "OSAuth should be enabled.");
+      await SpecialPowers.spawn(
+        browser,
+        [SELECTORS, AppConstants.NIGHTLY_BUILD],
+        async (selectors, isNightly) => {
+          is(
+            content.document.querySelector(selectors.reauthCheckbox).checked,
+            isNightly,
+            "OSReauth for credit cards should be checked"
+          );
+        }
+      );
+      is(
+        FormAutofillUtils.getOSAuthEnabled(
+          FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
+        ),
+        AppConstants.NIGHTLY_BUILD,
+        "OSAuth should be enabled."
+      );
     }
   );
 });
@@ -50,7 +60,10 @@ add_task(async function test_os_auth_enabled_with_checkbox() {
  */
 add_task(async function test_os_auth_disabled_with_checkbox() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
-  FormAutofillUtils.setOSAuthEnabled(false);
+  FormAutofillUtils.setOSAuthEnabled(
+    FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
+    false
+  );
 
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: PAGE_PRIVACY },
@@ -65,13 +78,54 @@ add_task(async function test_os_auth_disabled_with_checkbox() {
         );
       });
       is(
-        FormAutofillUtils.getOSAuthEnabled(),
+        FormAutofillUtils.getOSAuthEnabled(
+          FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
+        ),
         false,
         "OSAuth should be disabled"
       );
     }
   );
-  FormAutofillUtils.setOSAuthEnabled(true);
+  FormAutofillUtils.setOSAuthEnabled(
+    FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
+    true
+  );
+});
+
+/*
+ * This test makes sure that a random value in the encrypted pref is interpreted
+ * as "OS auth is enabled".
+ */
+add_task(async function test_OSAuth_enabled_with_random_value_in_pref() {
+  let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF, "poutine-gravy"],
+    ],
+  });
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: PAGE_PRIVACY },
+    async function (browser) {
+      await finalPrefPaneLoaded;
+      await SpecialPowers.spawn(browser, [SELECTORS], async selectors => {
+        let reauthCheckbox = content.document.querySelector(
+          selectors.reauthCheckbox
+        );
+        is(
+          reauthCheckbox.checked,
+          true,
+          "OSReauth for credit cards should be checked"
+        );
+      });
+      is(
+        FormAutofillUtils.getOSAuthEnabled(
+          FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
+        ),
+        true,
+        "OSAuth should be enabled since the pref does not decrypt to 'opt out'."
+      );
+    }
+  );
 });
 
 /*
@@ -81,7 +135,7 @@ add_task(async function test_os_auth_disabled_with_checkbox() {
 add_task(async function test_osAuth_enabled_behaviour() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
   await SpecialPowers.pushPrefEnv({
-    set: [[FormAutofillUtils.AUTOFILL_CREDITCARDS_OS_AUTH_LOCKED_PREF, true]],
+    set: [[FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF, ""]],
   });
 
   await BrowserTestUtils.withNewTab(
@@ -121,7 +175,10 @@ add_task(async function test_osAuth_enabled_behaviour() {
  */
 add_task(async function test_osAuth_disabled_behavior() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
-  FormAutofillUtils.setOSAuthEnabled(false);
+  FormAutofillUtils.setOSAuthEnabled(
+    FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
+    false
+  );
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: PAGE_PRIVACY },
     async function (browser) {
@@ -156,5 +213,8 @@ add_task(async function test_osAuth_disabled_behavior() {
       await waitForSubDialogLoad(content, EDIT_CREDIT_CARD_DIALOG_URL);
     }
   );
-  FormAutofillUtils.setOSAuthEnabled(true);
+  FormAutofillUtils.setOSAuthEnabled(
+    FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
+    true
+  );
 });

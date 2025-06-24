@@ -2653,10 +2653,6 @@ pref("signon.firefoxRelay.firstOfferVersionFallback", "control");
 pref("signon.management.page.breach-alerts.enabled", true);
 pref("signon.management.page.vulnerable-passwords.enabled", true);
 pref("signon.management.page.sort", "name");
-
-pref("signon.management.page.os-auth.locked.enabled", false);
-pref("extensions.formautofill.creditCards.os-auth.locked.enabled", false);
-
 // The utm_creative value is appended within the code (specific to the location on
 // where it is clicked). Be sure that if these two prefs are updated, that
 // the utm_creative param be last.

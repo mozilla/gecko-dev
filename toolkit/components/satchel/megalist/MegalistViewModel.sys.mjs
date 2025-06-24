@@ -208,10 +208,10 @@ export class MegalistViewModel {
       Edit: "edit_cpm",
     };
     const reason = reasonMap[command.id];
-    const osAuthForPw = lazy.LoginHelper.getOSAuthEnabled();
+
     const { isAuthorized } = await lazy.LoginHelper.requestReauth(
       lazy.BrowserWindowTracker.getTopWindow().gBrowser,
-      osAuthForPw,
+      this.getOSAuthEnabled(),
       this.#authExpirationTime,
       command.OSAuthPromptMessage,
       command.OSAuthCaptionMessage,
@@ -228,5 +228,56 @@ export class MegalistViewModel {
 
     this.#messageToView("ReauthResponse", isAuthorized);
     return isAuthorized;
+  }
+
+  /**
+   * Get the decrypted value for a string pref.
+   *
+   * @param {string} prefName -> The pref whose value is needed.
+   * @param {string} safeDefaultValue -> Value to be returned incase the pref is not yet set.
+   * @returns {string}
+   */
+  #getSecurePref(prefName, safeDefaultValue) {
+    try {
+      let encryptedValue = Services.prefs.getStringPref(prefName, "");
+      return this._crypto.decrypt(encryptedValue);
+    } catch {
+      return safeDefaultValue;
+    }
+  }
+
+  /**
+   * Set the pref to the encrypted form of the value.
+   *
+   * @param {string} prefName -> The pref whose value is to be set.
+   * @param {string} value -> The value to be set in its encryoted form.
+   */
+  #setSecurePref(prefName, value) {
+    let encryptedValue = this._crypto.encrypt(value);
+    Services.prefs.setStringPref(prefName, encryptedValue);
+  }
+
+  /**
+   * Get whether the OSAuth is enabled or not.
+   *
+   * @param {string} prefName -> The name of the pref (creditcards or addresses)
+   * @returns {boolean}
+   */
+  getOSAuthEnabled(prefName) {
+    return this.#getSecurePref(prefName, "") !== "opt out";
+  }
+
+  /**
+   * Set whether the OSAuth is enabled or not.
+   *
+   * @param {string} prefName -> The pref to encrypt.
+   * @param {boolean} enable -> Whether the pref is to be enabled.
+   */
+  setOSAuthEnabled(prefName, enable) {
+    if (enable) {
+      Services.prefs.clearUserPref(prefName);
+    } else {
+      this.#setSecurePref(prefName, "opt out");
+    }
   }
 }

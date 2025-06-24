@@ -713,32 +713,76 @@ export let ProfileDataUpgrader = {
       }
     }
 
-    let hasRun146Migration = false;
+    // Version 146 had a typo issue and thus it has been replaced by 147.
+
     if (existingDataVersion < 147) {
-      // Directly copy old os auth pref values prior to 147 to the new boolean
-      // pref for OS auth (UI migration 156). Previously, this migration version
-      // migrated the old OS auth pref values to an encrypted string pref.
-      const prevOsAuthForCc = !Services.prefs.getBoolPref(
-        "signon.management.page.os-auth.enabled",
-        false
-      );
-      const newOSAuthNameForCc =
-        "extensions.formautofill.creditCards.os-auth.locked.enabled";
-      Services.prefs.setBoolPref(newOSAuthNameForCc, prevOsAuthForCc);
-      Services.prefs.lockPref(newOSAuthNameForCc);
+      // We're securing the boolean prefs for OS Authentication.
+      // This is achieved by converting them into a string pref and encrypting the values
+      // stored inside it.
 
-      const prevOsAuthForPw = !Services.prefs.getBoolPref(
-        "extensions.formautofill.reauth.enabled",
-        false
-      );
-      const newOSAuthNameForPw =
-        "signon.management.page.os-auth.locked.enabled";
-      Services.prefs.setBoolPref(newOSAuthNameForPw, prevOsAuthForPw);
-      Services.prefs.lockPref(newOSAuthNameForPw);
+      // Note: we don't run this on nightly builds and we also do not run this
+      // for users with primary password enabled. That means both these sets of
+      // users will have the features turned on by default. For Nightly this is
+      // an intentional product decision; for primary password this is because
+      // we cannot encrypt the opt-out value without asking for the primary
+      // password, which in turn means we cannot migrate without doing so. It
+      // is also very difficult to postpone this migration because there is no
+      // way to know when the user has put in the primary password. We will
+      // probably reconsider some of this architecture in future, but for now
+      // this is the least-painful method considering the alternatives, cf.
+      // bug 1901899.
+      if (
+        !AppConstants.NIGHTLY_BUILD &&
+        !lazy.LoginHelper.isPrimaryPasswordSet()
+      ) {
+        const hasRunBetaMigration = Services.prefs
+          .getCharPref("browser.startup.homepage_override.mstone", "")
+          .startsWith("127.0");
 
-      hasRun146Migration = true;
+        // Version 146 UI migration wrote to a wrong `creditcards` pref when
+        // the feature was disabled, instead it should have used `creditCards`.
+        // The correct pref name is in AUTOFILL_CREDITCARDS_REAUTH_PREF.
+        // Note that we only wrote prefs if the feature was disabled.
+        let ccTypoDisabled = !lazy.FormAutofillUtils.getOSAuthEnabled(
+          "extensions.formautofill.creditcards.reauth.optout"
+        );
+        let ccCorrectPrefDisabled = !lazy.FormAutofillUtils.getOSAuthEnabled(
+          lazy.FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
+        );
+        let ccPrevReauthPrefValue = Services.prefs.getBoolPref(
+          "extensions.formautofill.reauth.enabled",
+          false
+        );
+
+        let userHadEnabledCreditCardReauth =
+          // If we've run beta migration, and neither typo nor correct pref
+          // indicate disablement, the user enabled the pref:
+          (hasRunBetaMigration && !ccTypoDisabled && !ccCorrectPrefDisabled) ||
+          // Or if we never ran beta migration and the bool pref is set:
+          ccPrevReauthPrefValue;
+
+        lazy.FormAutofillUtils.setOSAuthEnabled(
+          lazy.FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
+          userHadEnabledCreditCardReauth
+        );
+
+        if (!hasRunBetaMigration) {
+          const passwordsPrevReauthPrefValue = Services.prefs.getBoolPref(
+            "signon.management.page.os-auth.enabled",
+            false
+          );
+          lazy.LoginHelper.setOSAuthEnabled(
+            lazy.LoginHelper.OS_AUTH_FOR_PASSWORDS_PREF,
+            passwordsPrevReauthPrefValue
+          );
+        }
+      }
+
       Services.prefs.clearUserPref("extensions.formautofill.reauth.enabled");
       Services.prefs.clearUserPref("signon.management.page.os-auth.enabled");
+      Services.prefs.clearUserPref(
+        "extensions.formautofill.creditcards.reauth.optout"
+      );
     }
 
     if (existingDataVersion < 148) {
@@ -866,42 +910,6 @@ export let ProfileDataUpgrader = {
       }
     }
 
-    if (existingDataVersion < 157) {
-      // We've changed the 147 migration to copy the old OS auth pref values of
-      // that version to the new locked boolean prefs instead, so no need to
-      // perform a migration if it's already been done.
-      if (!hasRun146Migration) {
-        // We're moving away from string encrypted prefs for OS Authentication and
-        // using locked boolean prefs instead.
-        // To determine the state of the old OS Auth value, manually read these prefs.
-        // This treats any non-empty-string value as "turned off", irrespective of
-        // whether it correctly decrypts to the correct value, because we cannot do
-        // the decryption if the primary password has not yet been provided.
-        const prevOsAuthForCc = !Services.prefs.getStringPref(
-          "extensions.formautofill.creditCards.reauth.optout",
-          ""
-        );
-        const prevOsAuthForPw = !Services.prefs.getStringPref(
-          "signon.management.page.os-auth.optout",
-          ""
-        );
-
-        lazy.LoginHelper.setOSAuthEnabled(
-          lazy.LoginHelper.OS_AUTH_FOR_PASSWORDS_BOOL_PREF,
-          prevOsAuthForPw
-        );
-
-        lazy.FormAutofillUtils.setOSAuthEnabled(
-          lazy.FormAutofillUtils.AUTOFILL_CREDITCARDS_OS_AUTH_LOCKED_PREF,
-          prevOsAuthForCc
-        );
-
-        Services.prefs.clearUserPref(
-          "extensions.formautofill.creditCards.reauth.optout"
-        );
-        Services.prefs.clearUserPref("signon.management.page.os-auth.optout");
-      }
-    }
     // Update the migration version.
     Services.prefs.setIntPref("browser.migration.version", newVersion);
   },

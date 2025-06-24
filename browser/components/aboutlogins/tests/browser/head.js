@@ -71,8 +71,7 @@ let TEST_LOGIN3 = new nsLoginInfo(
 );
 TEST_LOGIN3.QueryInterface(Ci.nsILoginMetaInfo).timePasswordChanged = 123456;
 
-const PASSWORDS_OS_REAUTH_PREF =
-  "signon.management.page.os-auth.locked.enabled";
+const PASSWORDS_OS_REAUTH_PREF = "signon.management.page.os-auth.optout";
 const CryptoErrors = {
   USER_CANCELED_PASSWORD: "User canceled primary password entry",
   ENCRYPTION_FAILURE: "Couldn't encrypt string",
