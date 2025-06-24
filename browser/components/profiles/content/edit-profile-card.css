@@ -85,18 +85,10 @@
   color: var(--icon-color-success);
 }
 
-#themes::part(inputs) {
-  margin-top: var(--space-medium);
+.avatar-item {
+  --visual-picker-item-border-radius: var(--border-radius-circle);
 }
 
-#avatars::part(inputs) {
-  margin-top: var(--space-medium);
-}
-
-#avatars::part(inputs),
-#themes::part(inputs) {
-  flex-direction: row;
-  flex-wrap: wrap;
-  row-gap: var(--space-small);
-  column-gap: var(--space-medium);
+.theme-item {
+  --visual-picker-item-border-radius: 10px;
 }
