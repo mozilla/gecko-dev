@@ -7,7 +7,7 @@
 #include "nsDeviceContext.h"
 #include "gtk/gtk.h"
 #include "nsPresContext.h"
-#include "gtkdrawing.h"
+#include "GtkWidgets.h"
 #include "nsIFrame.h"
 
 #include "gfxContext.h"
@@ -46,16 +46,15 @@ static inline CSSToLayoutDeviceScale GetWidgetScaleFactor(
   return aFrame->PresContext()->CSSToDevPixelScale();
 }
 
-nsNativeThemeGTK::nsNativeThemeGTK() : Theme(ScrollbarStyle()) {
-  moz_gtk_init();
-}
+nsNativeThemeGTK::nsNativeThemeGTK() : Theme(ScrollbarStyle()) {}
 
-nsNativeThemeGTK::~nsNativeThemeGTK() { moz_gtk_shutdown(); }
+nsNativeThemeGTK::~nsNativeThemeGTK() { GtkWidgets::Shutdown(); }
 
-static Maybe<WidgetNodeType> GeckoToGtkWidgetType(StyleAppearance aAppearance) {
+static Maybe<GtkWidgets::Type> AppearanceToWidgetType(
+    StyleAppearance aAppearance) {
   switch (aAppearance) {
     case StyleAppearance::MozWindowDecorations:
-      return Some(MOZ_GTK_WINDOW_DECORATION);
+      return Some(GtkWidgets::Type::WindowDecoration);
     default:
       MOZ_ASSERT_UNREACHABLE("Unknown widget");
       break;
@@ -128,7 +127,7 @@ class SystemCairoClipper : public ClipExporter {
 };
 
 static void DrawThemeWithCairo(gfxContext* aContext, DrawTarget* aDrawTarget,
-                               const GtkDrawingParams& aParams,
+                               const GtkWidgets::DrawingParams& aParams,
                                double aScaleFactor, bool aSnapped,
                                const Point& aDrawOrigin,
                                const nsIntSize& aDrawSize,
@@ -193,7 +192,7 @@ static void DrawThemeWithCairo(gfxContext* aContext, DrawTarget* aDrawTarget,
           cairo_rectangle(cr, 0, 0, clipSize.width, clipSize.height);
           cairo_clip(cr);
 
-          moz_gtk_widget_paint(cr, &aParams);
+          GtkWidgets::Draw(cr, &aParams);
 
           cairo_destroy(cr);
         }
@@ -235,7 +234,7 @@ static void DrawThemeWithCairo(gfxContext* aContext, DrawTarget* aDrawTarget,
         cairo_rectangle(cr, 0, 0, clipSize.width, clipSize.height);
         cairo_clip(cr);
 
-        moz_gtk_widget_paint(cr, &aParams);
+        GtkWidgets::Draw(cr, &aParams);
 
         cairo_destroy(cr);
       }
@@ -269,7 +268,7 @@ static void DrawThemeWithCairo(gfxContext* aContext, DrawTarget* aDrawTarget,
             }
           }
 
-          moz_gtk_widget_paint(cr, &aParams);
+          GtkWidgets::Draw(cr, &aParams);
         }
       }
 
@@ -304,7 +303,7 @@ void nsNativeThemeGTK::DrawWidgetBackground(
                                        aDirtyRect, aDrawOverflow);
   }
 
-  auto gtkType = GeckoToGtkWidgetType(aAppearance);
+  auto gtkType = AppearanceToWidgetType(aAppearance);
   if (!gtkType) {
     return;
   }
@@ -360,7 +359,7 @@ void nsNativeThemeGTK::DrawWidgetBackground(
 
   // Save actual widget scale to GtkWidgetState as we don't provide
   // the frame to gtk3drawing routines.
-  GtkDrawingParams params{
+  GtkWidgets::DrawingParams params{
       .widget = *gtkType,
       .rect = gdk_rect,
       .state = GTK_STATE_FLAG_NORMAL,

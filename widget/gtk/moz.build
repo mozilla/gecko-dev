@@ -72,8 +72,8 @@ UNIFIED_SOURCES += [
     "DMABufFormats.cpp",
     "DMABufSurface.cpp",
     "GfxInfo.cpp",
-    "gtk3drawing.cpp",
     "GtkCompositorWidget.cpp",
+    "GtkWidgets.cpp",
     "IMContextWrapper.cpp",
     "InProcessGtkCompositorWidget.cpp",
     "MozContainer.cpp",
@@ -99,7 +99,6 @@ UNIFIED_SOURCES += [
     "TaskbarProgress.cpp",
     "WakeLockListener.cpp",
     "WaylandSurfaceLock.cpp",
-    "WidgetStyleCache.cpp",
     "WidgetUtilsGtk.cpp",
     "WindowSurfaceProvider.cpp",
 ]

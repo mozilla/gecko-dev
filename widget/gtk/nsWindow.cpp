@@ -25,7 +25,6 @@
 #include "GLContextProvider.h"
 #include "GLContext.h"
 #include "GtkCompositorWidget.h"
-#include "gtkdrawing.h"
 #include "imgIContainer.h"
 #include "InputData.h"
 #include "mozilla/ArrayUtils.h"
