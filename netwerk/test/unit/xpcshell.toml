@@ -819,15 +819,6 @@ skip-if = [
   "verify",
 ]
 
-["test_http3_timings.js"]
-run-sequentially = "node server exceptions dont replay well"
-skip-if = [
-  "os == 'android' && android_version == '24' && processor == 'x86_64'",
-  "os == 'win' && os_version == '10.2009' && processor == 'x86_64'",
-  "os == 'win' && os_version == '11.26100' && processor == 'x86'",
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
-]
-
 ["test_http3_server_not_existing.js"]
 run-sequentially = "node server exceptions dont replay well"
 
