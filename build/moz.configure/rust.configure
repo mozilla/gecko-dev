@@ -503,11 +503,10 @@ def rust_host_triple(
                 """\
         The rust compiler host ({rustc}) is not suitable for the configure host ({configure}).
 
-        You can solve this by:
-        * Set your configure host to match the rust compiler host by editing your
-        mozconfig and adding "ac_add_options --host={rustc}".
-        * Or, install the rust toolchain for {configure}, if supported, by running
-        "rustup default stable-{rustc_target}"
+        To resolve this, install and select a Rust toolchain for {rustc_target}:
+          rustup default stable-{rustc_target}
+
+        Then rerun configure.
         """.format(
                     rustc=rustc_host,
                     configure=configure_host,
