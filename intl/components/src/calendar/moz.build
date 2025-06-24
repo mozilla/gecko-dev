@@ -17,7 +17,7 @@ EXPORTS.mozilla.intl.calendar = [
 ]
 
 LOCAL_INCLUDES += [
-    "/intl/icu_capi/bindings/c",
+    "/intl/icu_capi/bindings/cpp",
 ]
 
 UNIFIED_SOURCES += [

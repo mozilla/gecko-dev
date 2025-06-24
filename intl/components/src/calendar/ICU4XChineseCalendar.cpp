@@ -8,13 +8,13 @@ namespace mozilla::intl::calendar {
 
 ICU4XChineseCalendar::ICU4XChineseCalendar(const icu::Locale& locale,
                                            UErrorCode& success)
-    : ICU4XChineseBasedCalendar(capi::ICU4XAnyCalendarKind_Chinese, locale,
+    : ICU4XChineseBasedCalendar(icu4x::capi::CalendarKind_Chinese, locale,
                                 success) {}
 
 ICU4XChineseCalendar::ICU4XChineseCalendar(const icu::TimeZone& timeZone,
                                            const icu::Locale& locale,
                                            UErrorCode& success)
-    : ICU4XChineseBasedCalendar(capi::ICU4XAnyCalendarKind_Chinese, timeZone,
+    : ICU4XChineseBasedCalendar(icu4x::capi::CalendarKind_Chinese, timeZone,
                                 locale, success) {}
 
 ICU4XChineseCalendar::ICU4XChineseCalendar(const ICU4XChineseCalendar& other)
@@ -33,7 +33,7 @@ const char* ICU4XChineseCalendar::getType() const { return "chinese"; }
 ////////////////////////////////////////////
 
 std::string_view ICU4XChineseCalendar::eraName(int32_t extendedYear) const {
-  return "chinese";
+  return "";
 }
 
 ////////////////////////////////////////////
