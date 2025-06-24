@@ -16627,11 +16627,12 @@ struct EmulatesUndefinedDependency final : public CompilationDependency {
     return cx->runtime()->hasSeenObjectEmulateUndefinedFuse.ref().intact();
   }
 
-  virtual bool registerDependency(JSContext* cx, HandleScript script) override {
+  virtual bool registerDependency(JSContext* cx,
+                                  const IonScriptKey& ionScript) override {
     MOZ_ASSERT(checkDependency(cx));
     return cx->runtime()
         ->hasSeenObjectEmulateUndefinedFuse.ref()
-        .addFuseDependency(cx, script);
+        .addFuseDependency(cx, ionScript);
   }
 
   virtual UniquePtr<CompilationDependency> clone() const override {
@@ -16652,11 +16653,12 @@ struct ArrayExceedsInt32LengthDependency final : public CompilationDependency {
     return cx->runtime()->hasSeenArrayExceedsInt32LengthFuse.ref().intact();
   }
 
-  virtual bool registerDependency(JSContext* cx, HandleScript script) override {
+  virtual bool registerDependency(JSContext* cx,
+                                  const IonScriptKey& ionScript) override {
     MOZ_ASSERT(checkDependency(cx));
     return cx->runtime()
         ->hasSeenArrayExceedsInt32LengthFuse.ref()
-        .addFuseDependency(cx, script);
+        .addFuseDependency(cx, ionScript);
   }
 
   virtual UniquePtr<CompilationDependency> clone() const override {
@@ -16722,8 +16724,9 @@ bool CodeGenerator::link(JSContext* cx) {
     return true;
   }
 
+  IonScriptKey ionScriptKey(script, compilationId);
   for (auto& dep : tracker.dependencies) {
-    if (!dep->registerDependency(cx, script)) {
+    if (!dep->registerDependency(cx, ionScriptKey)) {
       return false;  // Should we make sure we only return false on OOM and then
                      // eat the OOM here?
     }

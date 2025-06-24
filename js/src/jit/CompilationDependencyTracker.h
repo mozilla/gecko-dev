@@ -15,6 +15,8 @@
 struct JSContext;
 
 namespace js::jit {
+
+class IonScriptKey;
 class MIRGenerator;
 
 struct CompilationDependency {
@@ -36,8 +38,8 @@ struct CompilationDependency {
   // Return true iff this dependency still holds. May only be called on main
   // thread.
   virtual bool checkDependency(JSContext* cx) = 0;
-  [[nodiscard]] virtual bool registerDependency(JSContext* cx,
-                                                HandleScript script) = 0;
+  [[nodiscard]] virtual bool registerDependency(
+      JSContext* cx, const IonScriptKey& ionScript) = 0;
 
   virtual UniquePtr<CompilationDependency> clone() const = 0;
   virtual ~CompilationDependency() = default;

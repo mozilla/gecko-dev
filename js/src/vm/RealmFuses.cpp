@@ -28,17 +28,17 @@ void js::InvalidatingRealmFuse::popFuse(JSContext* cx, RealmFuses& realmFuses) {
   }
 }
 
-bool js::InvalidatingRealmFuse::addFuseDependency(JSContext* cx,
-                                                  Handle<JSScript*> script) {
-  MOZ_ASSERT(script->realm() == cx->realm());
-  auto* dss =
+bool js::InvalidatingRealmFuse::addFuseDependency(
+    JSContext* cx, const jit::IonScriptKey& ionScript) {
+  MOZ_ASSERT(ionScript.script()->realm() == cx->realm());
+  auto* scriptSet =
       cx->realm()->realmFuses.fuseDependencies.getOrCreateDependentScriptSet(
           cx, this);
-  if (!dss) {
+  if (!scriptSet) {
     return false;
   }
 
-  return dss->addScriptForFuse(this, script);
+  return scriptSet->addScriptForFuse(this, ionScript);
 }
 
 void js::PopsOptimizedGetIteratorFuse::popFuse(JSContext* cx,

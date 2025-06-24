@@ -20,16 +20,17 @@ js::DependentScriptSet::DependentScriptSet(JSContext* cx,
                                            InvalidatingFuse* fuse)
     : associatedFuse(fuse), weakScripts(cx->runtime()) {}
 
-bool js::InvalidatingRuntimeFuse::addFuseDependency(JSContext* cx,
-                                                    Handle<JSScript*> script) {
-  auto* zone = script->zone();
-  DependentScriptSet* dss =
-      zone->fuseDependencies.getOrCreateDependentScriptSet(cx, this);
-  if (!dss) {
+bool js::InvalidatingRuntimeFuse::addFuseDependency(
+    JSContext* cx, const jit::IonScriptKey& ionScript) {
+  MOZ_ASSERT(ionScript.script()->zone() == cx->zone());
+
+  auto* scriptSet =
+      cx->zone()->fuseDependencies.getOrCreateDependentScriptSet(cx, this);
+  if (!scriptSet) {
     return false;
   }
 
-  return dss->addScriptForFuse(this, script);
+  return scriptSet->addScriptForFuse(this, ionScript);
 }
 
 void js::InvalidatingRuntimeFuse::popFuse(JSContext* cx) {
@@ -81,10 +82,10 @@ void js::jit::InvalidateAndClearScriptSet(JSContext* cx,
   }
 }
 
-bool js::DependentScriptSet::addScriptForFuse(InvalidatingFuse* fuse,
-                                              Handle<JSScript*> script) {
+bool js::DependentScriptSet::addScriptForFuse(
+    InvalidatingFuse* fuse, const jit::IonScriptKey& ionScript) {
   MOZ_ASSERT(fuse == associatedFuse);
-  return jit::AddScriptToSet(weakScripts, script);
+  return jit::AddScriptToSet(weakScripts, ionScript);
 }
 
 js::DependentScriptSet* js::DependentScriptGroup::getOrCreateDependentScriptSet(
@@ -105,10 +106,10 @@ js::DependentScriptSet* js::DependentScriptGroup::getOrCreateDependentScriptSet(
 }
 
 bool js::jit::AddScriptToSet(WeakScriptCache& scripts,
-                             Handle<JSScript*> script) {
-  js::jit::WeakScriptSet::AddPtr p = scripts.lookupForAdd(script);
+                             const IonScriptKey& ionScript) {
+  js::jit::WeakScriptSet::AddPtr p = scripts.lookupForAdd(ionScript.script());
   if (!p) {
-    if (!scripts.add(p, script)) {
+    if (!scripts.add(p, ionScript.script())) {
       return false;
     }
   }

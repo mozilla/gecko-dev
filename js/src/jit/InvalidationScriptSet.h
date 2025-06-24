@@ -8,6 +8,7 @@
 #define jit_InvalidationScriptSet_h
 
 #include "gc/Barrier.h"
+#include "jit/Invalidation.h"
 #include "jit/IonTypes.h"
 #include "js/AllocPolicy.h"
 #include "js/GCVector.h"
@@ -26,7 +27,7 @@ using WeakScriptCache = JS::WeakCache<WeakScriptSet>;
 
 void InvalidateAndClearScriptSet(JSContext* cx, WeakScriptCache& scripts,
                                  const char* reason);
-bool AddScriptToSet(WeakScriptCache& scripts, Handle<JSScript*> script);
+bool AddScriptToSet(WeakScriptCache& scripts, const IonScriptKey& ionScript);
 
 // Remove a script from a script set if found.
 void RemoveFromScriptSet(WeakScriptCache& scripts, JSScript* script);

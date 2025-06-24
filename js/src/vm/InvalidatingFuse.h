@@ -24,7 +24,8 @@ namespace js {
 class InvalidatingFuse : public GuardFuse {
  public:
   // Register a script's IonScript as having a dependency on this fuse.
-  virtual bool addFuseDependency(JSContext* cx, Handle<JSScript*> script) = 0;
+  virtual bool addFuseDependency(JSContext* cx,
+                                 const jit::IonScriptKey& ionScript) = 0;
 };
 
 // [SMDOC] Invalidating Runtime Fuses
@@ -36,7 +37,7 @@ class InvalidatingFuse : public GuardFuse {
 class InvalidatingRuntimeFuse : public InvalidatingFuse {
  public:
   virtual bool addFuseDependency(JSContext* cx,
-                                 Handle<JSScript*> script) override;
+                                 const jit::IonScriptKey& ionScript) override;
   virtual void popFuse(JSContext* cx) override;
 };
 
@@ -49,7 +50,8 @@ class DependentScriptSet {
   DependentScriptSet(JSContext* cx, InvalidatingFuse* fuse);
 
   InvalidatingFuse* associatedFuse;
-  bool addScriptForFuse(InvalidatingFuse* fuse, Handle<JSScript*> script);
+  bool addScriptForFuse(InvalidatingFuse* fuse,
+                        const jit::IonScriptKey& ionScript);
   void invalidateForFuse(JSContext* cx, InvalidatingFuse* fuse);
 
   void removeScript(JSScript* script) {
