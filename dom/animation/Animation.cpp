@@ -846,17 +846,6 @@ void Animation::CommitStyles(ErrorResult& aRv) {
     return;
   }
 
-  // Count how often the endpoint-inclusive behavior makes a difference so we
-  // can gauge if it is Web-compatible.
-  auto computedTimingWithEndpointIncluded =
-      keyframeEffect->GetComputedTiming(nullptr, EndpointBehavior::Inclusive);
-  auto computedTimingWithEndpointExcluded =
-      keyframeEffect->GetComputedTiming(nullptr, EndpointBehavior::Exclusive);
-  if (computedTimingWithEndpointIncluded.mProgress !=
-      computedTimingWithEndpointExcluded.mProgress) {
-    doc->SetUseCounter(eUseCounter_custom_CommitStylesNonFillingFinalValue);
-  }
-
   // Calling SetCSSDeclaration will trigger attribute setting code.
   // Start the update now so that the old rule doesn't get used
   // between when we mutate the declaration and when we set the new

@@ -107,8 +107,8 @@ use.counter:
     send_in_pings:
       - use-counters
 
-# Total of 2413 use counter metrics (excludes denominators).
-# Total of 365 'page' use counters.
+# Total of 2409 use counter metrics (excludes denominators).
+# Total of 363 'page' use counters.
 use.counter.page:
   svgsvgelement_getelementbyid:
     type: counter
@@ -5431,40 +5431,6 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-  animation_commitstyles:
-    type: counter
-    description: >
-      Whether a page called called Animation.commitStyles.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  commit_styles_non_filling_final_value:
-    type: counter
-    description: >
-      Whether a page calls commitStyles and its result differs depending on whether the endpoint-inclusive pref is enabled or not.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
   fe_blend:
     type: counter
     description: >
@@ -6315,7 +6281,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-# Total of 365 'document' use counters.
+# Total of 363 'document' use counters.
 use.counter.doc:
   svgsvgelement_getelementbyid:
     type: counter
@@ -11625,40 +11591,6 @@ use.counter.doc:
     type: counter
     description: >
       Whether a document calls queryCommandSupported or queryCommandEnabled with insertBrOnReturn.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  animation_commitstyles:
-    type: counter
-    description: >
-      Whether a document called called Animation.commitStyles.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  commit_styles_non_filling_final_value:
-    type: counter
-    description: >
-      Whether a document calls commitStyles and its result differs depending on whether the endpoint-inclusive pref is enabled or not.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
