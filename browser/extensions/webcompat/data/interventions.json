@@ -3995,5 +3995,20 @@
         }
       }
     ]
+  },
+  "1972511": {
+    "label": "cmyportal.tkc.co.jp",
+    "bugs": {
+      "1972511": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://cmyportal.tkc.co.jp/auth/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["change_Firefox_to_FireFox"]
+      }
+    ]
   }
 }
