@@ -283,16 +283,18 @@ add_task(async function test_update_login_without_changes() {
 });
 
 add_task(async function test_update_login_username_notification() {
-  const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
-  if (!canTestOSAuth) {
+  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
+    ok(true, "Cannot test OSAuth.");
     return;
   }
+
+  SidebarController.hide();
 
   info("Add login with no username");
   const login = LoginTestUtils.testData.formLogin({
     username: "",
     password: "pass1",
-    origin: "https://example1.com",
+    origin: "https://blahblah.com",
   });
   await LoginTestUtils.addLogin(login);
 
