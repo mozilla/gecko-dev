@@ -1040,11 +1040,11 @@ export var BrowserTestUtils = {
    * This relies on OpenBrowserWindow in browser.js, and waits for the window
    * to be completely loaded before resolving.
    *
-   * @param {Object} options
+   * @param {Object} [options]
    *        Options to pass to OpenBrowserWindow. Additionally, supports:
-   * @param {bool} options.waitForTabURL
-   *          Forces the initial browserLoaded check to wait for the tab to
-   *          load the given URL (instead of about:blank)
+   * @param {bool} [options.waitForTabURL]
+   *        Forces the initial browserLoaded check to wait for the tab to
+   *        load the given URL (instead of about:blank)
    *
    * @return {Promise}
    *         Resolves with the new window once it is loaded.
@@ -1052,13 +1052,13 @@ export var BrowserTestUtils = {
   async openNewBrowserWindow(options = {}) {
     let startTime = Cu.now();
 
-    let currentWin = lazy.BrowserWindowTracker.getTopWindow({ private: false });
-    if (!currentWin) {
-      throw new Error(
-        "Can't open a new browser window from this helper if no non-private window is open."
-      );
-    }
-    let win = currentWin.OpenBrowserWindow(options);
+    let openerWindow = lazy.BrowserWindowTracker.getTopWindow({
+      private: false,
+    });
+    let win = lazy.BrowserWindowTracker.openWindow({
+      openerWindow,
+      ...options,
+    });
 
     let promises = [
       this.waitForEvent(win, "focus", true),
