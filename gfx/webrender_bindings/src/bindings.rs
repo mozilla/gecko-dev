@@ -2697,7 +2697,7 @@ pub extern "C" fn wr_resource_updates_add_raw_font(
     txn.add_raw_font(key, bytes.flush_into_vec(), index);
 }
 
-fn generate_capture_path(path: *const c_char) -> Option<PathBuf> {
+fn generate_capture_path(path: *const c_char, moz_revision: *const c_char) -> Option<PathBuf> {
     use std::fs::{create_dir_all, File};
     use std::io::Write;
 
@@ -2738,8 +2738,10 @@ fn generate_capture_path(path: *const c_char) -> Option<PathBuf> {
     match File::create(path.join("wr.txt")) {
         Ok(mut file) => {
             // The Gecko HG revision is available at compile time
-            if let Some(moz_revision) = option_env!("GECKO_HEAD_REV") {
-                writeln!(file, "mozilla-central {}", moz_revision).unwrap();
+            if ! moz_revision.is_null() {
+                if let Ok(moz_revision) = unsafe { CStr::from_ptr(moz_revision) }.to_str() {
+                    writeln!(file, "mozilla-central {}", moz_revision).unwrap()
+                }
             }
             Some(path)
         },
@@ -2751,16 +2753,16 @@ fn generate_capture_path(path: *const c_char) -> Option<PathBuf> {
 }
 
 #[no_mangle]
-pub extern "C" fn wr_api_capture(dh: &mut DocumentHandle, path: *const c_char, bits_raw: u32) {
-    if let Some(path) = generate_capture_path(path) {
+pub extern "C" fn wr_api_capture(dh: &mut DocumentHandle, path: *const c_char, moz_revision: *const c_char, bits_raw: u32) {
+    if let Some(path) = generate_capture_path(path, moz_revision) {
         let bits = CaptureBits::from_bits(bits_raw as _).unwrap();
         dh.api.save_capture(path, bits);
     }
 }
 
 #[no_mangle]
-pub extern "C" fn wr_api_start_capture_sequence(dh: &mut DocumentHandle, path: *const c_char, bits_raw: u32) {
-    if let Some(path) = generate_capture_path(path) {
+pub extern "C" fn wr_api_start_capture_sequence(dh: &mut DocumentHandle, path: *const c_char, moz_revision: *const c_char, bits_raw: u32) {
+    if let Some(path) = generate_capture_path(path, moz_revision) {
         let bits = CaptureBits::from_bits(bits_raw as _).unwrap();
         dh.api.start_capture_sequence(path, bits);
     }
