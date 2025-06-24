@@ -27,8 +27,7 @@ WMFMediaDataEncoder::WMFMediaDataEncoder(const EncoderConfig& aConfig,
     : mConfig(aConfig),
       mTaskQueue(aTaskQueue),
       mHardwareNotAllowed(aConfig.mHardwarePreference ==
-                              HardwarePreference::RequireSoftware ||
-                          IsWin32kLockedDown()) {
+                          HardwarePreference::RequireSoftware) {
   WMF_ENC_LOGE("WMFMediaDataEncoder ctor: %s, (hw not allowed: %s)",
                aConfig.ToString().get(), mHardwareNotAllowed ? "yes" : "no");
   MOZ_ASSERT(mTaskQueue);

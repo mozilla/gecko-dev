@@ -7,6 +7,7 @@
 #ifndef DOM_MEDIA_PLATFORM_WMF_MFTENCODER_H
 #define DOM_MEDIA_PLATFORM_WMF_MFTENCODER_H
 
+#include <wrl.h>
 #include <deque>
 #include <functional>
 #include <queue>
@@ -57,6 +58,23 @@ class MFTEncoder final {
   struct Info final {
     GUID mSubtype;
     nsCString mName;
+  };
+
+  struct Factory {
+    MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING_AT_CLASS_SCOPE(Type,
+                                                       (Hardware, Software));
+    Type mType;
+    Microsoft::WRL::ComPtr<IMFActivate> mActivate;
+    nsCString mName;
+
+    Factory(Type aType, Microsoft::WRL::ComPtr<IMFActivate>&& aActivate);
+    Factory(Factory&& aOther) = default;
+    Factory(const Factory& aOther) = delete;
+    ~Factory();
+
+    explicit operator bool() const { return mActivate; }
+
+    HRESULT Shutdown();
   };
 
  private:
@@ -115,7 +133,6 @@ class MFTEncoder final {
   static nsTArray<Info> Enumerate();
   static Maybe<Info> GetInfo(const GUID& aSubtype);
 
-  already_AddRefed<IMFActivate> CreateFactory(const GUID& aSubtype);
   // Return true when successfully enabled, false for MFT that doesn't support
   // async processing model, and error otherwise.
   using AsyncMFTResult = Result<bool, HRESULT>;
@@ -137,7 +154,7 @@ class MFTEncoder final {
   RefPtr<IMFTransform> mEncoder;
   // For MFT object creation. See
   // https://docs.microsoft.com/en-us/windows/win32/medfound/activation-objects
-  RefPtr<IMFActivate> mFactory;
+  Maybe<Factory> mFactory;
   // For encoder configuration. See
   // https://docs.microsoft.com/en-us/windows/win32/directshow/encoder-api
   RefPtr<ICodecAPI> mConfig;

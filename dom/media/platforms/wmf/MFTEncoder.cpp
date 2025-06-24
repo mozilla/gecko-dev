@@ -172,24 +172,21 @@ static const char* CodecStr(const GUID& aGUID) {
   }
 }
 
-static HRESULT GetFriendlyName(IMFActivate* aAttributes, nsCString& aName) {
+static Result<nsCString, HRESULT> GetFriendlyName(IMFActivate* aAttributes) {
   UINT32 len = 0;
-  MFT_RETURN_IF_FAILED_S(
+  MFT_RETURN_ERROR_IF_FAILED_S(
       aAttributes->GetStringLength(MFT_FRIENDLY_NAME_Attribute, &len));
+
+  nsCString name;
   if (len > 0) {
     ++len;  // '\0'.
-    WCHAR name[len];
-    if (SUCCEEDED(aAttributes->GetString(MFT_FRIENDLY_NAME_Attribute, name, len,
-                                         nullptr))) {
-      aName.Append(NS_ConvertUTF16toUTF8(name));
-    }
+    WCHAR str[len];
+    MFT_RETURN_ERROR_IF_FAILED_S(
+        aAttributes->GetString(MFT_FRIENDLY_NAME_Attribute, str, len, nullptr));
+    name.Append(NS_ConvertUTF16toUTF8(str));
   }
 
-  if (aName.Length() == 0) {
-    aName.Append("Unknown MFT");
-  }
-
-  return S_OK;
+  return name.IsEmpty() ? "Unknown MFT"_ns : name;
 }
 
 static Result<nsTArray<ComPtr<IMFActivate>>, HRESULT> EnumMFT(
@@ -213,26 +210,58 @@ static Result<nsTArray<ComPtr<IMFActivate>>, HRESULT> EnumMFT(
   return activates;
 }
 
-static nsTArray<ComPtr<IMFActivate>> EnumEncoders(
+MFTEncoder::Factory::Factory(Type aType, ComPtr<IMFActivate>&& aActivate)
+    : mType(aType), mActivate(std::move(aActivate)) {
+  mName = mozilla::GetFriendlyName(mActivate.Get()).unwrapOr("Unknown"_ns);
+}
+
+MFTEncoder::Factory::~Factory() { Shutdown(); }
+
+HRESULT MFTEncoder::Factory::Shutdown() {
+  HRESULT hr = S_OK;
+  if (mActivate) {
+    MFT_ENC_LOGE("Shutdown %s encoder %s",
+                 MFTEncoder::Factory::EnumValueToString(mType), mName.get());
+    // Release MFT resources via activation object.
+    hr = mActivate->ShutdownObject();
+    if (FAILED(hr)) {
+      MFT_ENC_LOGE("Failed to shutdown MFT: %s", ErrorStr(hr));
+    }
+  }
+  mActivate.Reset();
+  mName.Truncate();
+  return hr;
+}
+
+static nsTArray<MFTEncoder::Factory> IntoFactories(
+    nsTArray<ComPtr<IMFActivate>>&& aActivates,
+    MFTEncoder::Factory::Type aType) {
+  nsTArray<MFTEncoder::Factory> factories;
+  for (auto& activate : aActivates) {
+    if (activate) {
+      factories.AppendElement(MFTEncoder::Factory(aType, std::move(activate)));
+    }
+  }
+  return factories;
+}
+
+static nsTArray<MFTEncoder::Factory> EnumEncoders(
     const GUID& aSubtype, const MFTEncoder::HWPreference aHWPreference) {
   MFT_REGISTER_TYPE_INFO inType = {.guidMajorType = MFMediaType_Video,
                                    .guidSubtype = MFVideoFormat_NV12};
   MFT_REGISTER_TYPE_INFO outType = {.guidMajorType = MFMediaType_Video,
                                     .guidSubtype = aSubtype};
 
-  auto log = [&](const nsTArray<ComPtr<IMFActivate>>& aActivates,
-                 const char* aPrefix) {
-    MFT_ENC_SLOGD("Found %zu %s encoders for %s", aActivates.Length(), aPrefix,
-                  CodecStr(aSubtype));
+  auto log = [&](const nsTArray<MFTEncoder::Factory>& aActivates) {
     for (const auto& activate : aActivates) {
-      nsAutoCString name;
-      GetFriendlyName(activate.Get(), name);
-      MFT_ENC_SLOGD("%s\n", name.get());
+      MFT_ENC_SLOGD("Found %s encoders: %s",
+                    MFTEncoder::Factory::EnumValueToString(activate.mType),
+                    activate.mName.get());
     }
   };
 
-  nsTArray<ComPtr<IMFActivate>> swActivates;
-  nsTArray<ComPtr<IMFActivate>> hwActivates;
+  nsTArray<MFTEncoder::Factory> swFactories;
+  nsTArray<MFTEncoder::Factory> hwFactories;
 
   if (aHWPreference != MFTEncoder::HWPreference::SoftwareOnly) {
     // Some HW encoders use DXGI API and crash when locked down.
@@ -247,8 +276,9 @@ static nsTArray<ComPtr<IMFActivate>> EnumEncoders(
         MFT_ENC_SLOGE("enumerate HW encoder for %s: error=%s",
                       CodecStr(aSubtype), ErrorMessage(r.unwrapErr()).get());
       } else {
-        hwActivates.AppendElements(r.unwrap());
-        log(hwActivates, "HW");
+        hwFactories.AppendElements(
+            IntoFactories(r.unwrap(), MFTEncoder::Factory::Type::Hardware));
+        log(hwFactories);
       }
     }
   }
@@ -262,38 +292,38 @@ static nsTArray<ComPtr<IMFActivate>> EnumEncoders(
       MFT_ENC_SLOGE("enumerate SW encoder for %s: error=%s", CodecStr(aSubtype),
                     ErrorMessage(r.unwrapErr()).get());
     } else {
-      swActivates.AppendElements(r.unwrap());
-      log(swActivates, "SW");
+      swFactories.AppendElements(
+          IntoFactories(r.unwrap(), MFTEncoder::Factory::Type::Software));
+      log(swFactories);
     }
   }
 
-  nsTArray<ComPtr<IMFActivate>> activates;
+  nsTArray<MFTEncoder::Factory> factories;
 
   switch (aHWPreference) {
     case MFTEncoder::HWPreference::HardwareOnly:
-      return hwActivates;
+      return hwFactories;
     case MFTEncoder::HWPreference::SoftwareOnly:
-      return swActivates;
+      return swFactories;
     case MFTEncoder::HWPreference::PreferHardware:
-      activates.AppendElements(std::move(hwActivates));
-      activates.AppendElements(std::move(swActivates));
+      factories.AppendElements(std::move(hwFactories));
+      factories.AppendElements(std::move(swFactories));
       break;
     case MFTEncoder::HWPreference::PreferSoftware:
-      activates.AppendElements(std::move(swActivates));
-      activates.AppendElements(std::move(hwActivates));
+      factories.AppendElements(std::move(swFactories));
+      factories.AppendElements(std::move(hwFactories));
       break;
   }
 
-  return activates;
+  return factories;
 }
 
 static void PopulateEncoderInfo(const GUID& aSubtype,
                                 nsTArray<MFTEncoder::Info>& aInfos) {
-  nsTArray<ComPtr<IMFActivate>> activates =
+  nsTArray<MFTEncoder::Factory> factories =
       EnumEncoders(aSubtype, MFTEncoder::HWPreference::PreferHardware);
-  for (const auto& activate : activates) {
-    MFTEncoder::Info info = {.mSubtype = aSubtype};
-    GetFriendlyName(activate.Get(), info.mName);
+  for (const auto& factory : factories) {
+    MFTEncoder::Info info = {.mSubtype = aSubtype, .mName = factory.mName};
     aInfos.AppendElement(info);
     MFT_ENC_SLOGD("<ENC> [%s] %s\n", CodecStr(aSubtype), info.mName.Data());
   }
@@ -337,53 +367,48 @@ nsTArray<MFTEncoder::Info>& MFTEncoder::Infos() {
   return infos;
 }
 
-already_AddRefed<IMFActivate> MFTEncoder::CreateFactory(const GUID& aSubtype) {
-  nsTArray<ComPtr<IMFActivate>> activates =
-      EnumEncoders(aSubtype, mHWPreference);
-  if (activates.Length() == 0) {
-    return nullptr;
-  }
-
-  // Keep the first and throw out others, if there is any.
-  RefPtr<IMFActivate> factory = activates[0].Get();
-  activates[0] = nullptr;
-  return factory.forget();
-}
-
 HRESULT MFTEncoder::Create(const GUID& aSubtype) {
   MOZ_ASSERT(mscom::IsCurrentThreadMTA());
   MOZ_ASSERT(!mEncoder);
 
-  RefPtr<IMFActivate> factory = CreateFactory(aSubtype);
-  if (!factory) {
-    MFT_ENC_LOGE("CreateFactory error");
-    return E_FAIL;
+  auto cleanup = MakeScopeExit([&] {
+    mEncoder = nullptr;
+    mFactory.reset();
+    mConfig = nullptr;
+  });
+
+  nsTArray<MFTEncoder::Factory> factories =
+      EnumEncoders(aSubtype, mHWPreference);
+  for (auto& f : factories) {
+    MOZ_ASSERT(f);
+    // TODO: Check HW limitations from different vendors.
+    RefPtr<IMFTransform> encoder;
+    // Create the MFT activation object.
+    HRESULT hr = f.mActivate->ActivateObject(
+        IID_PPV_ARGS(static_cast<IMFTransform**>(getter_AddRefs(encoder))));
+    if (SUCCEEDED(hr) && encoder) {
+      MFT_ENC_LOGD("%s for %s is activated", f.mName.get(), CodecStr(aSubtype));
+      mFactory.emplace(std::move(f));
+      mEncoder = std::move(encoder);
+      break;
+    }
+    _com_error error(hr);
+    MFT_ENC_LOGE("ActivateObject %s error = 0x%lX, %ls", f.mName.get(), hr,
+                 error.ErrorMessage());
   }
 
-  // Create MFT via the activation object.
-  RefPtr<IMFTransform> encoder;
-  HRESULT hr = factory->ActivateObject(
-      IID_PPV_ARGS(static_cast<IMFTransform**>(getter_AddRefs(encoder))));
-  if (FAILED(hr)) {
-    _com_error error(hr);
-    MFT_ENC_LOGE("MFTEncoder::Create: error = 0x%lX, %ls", hr,
-                 error.ErrorMessage());
-    return hr;
+  if (!mFactory || !mEncoder) {
+    MFT_ENC_LOGE("Failed to create MFT for %s", CodecStr(aSubtype));
+    return E_FAIL;
   }
 
   RefPtr<ICodecAPI> config;
   // Avoid IID_PPV_ARGS() here for MingGW fails to declare UUID for ICodecAPI.
-  hr = encoder->QueryInterface(IID_ICodecAPI, getter_AddRefs(config));
-  if (FAILED(hr)) {
-    MFT_ENC_LOGE("QueryInterface IID_ICodecAPI error");
-    encoder = nullptr;
-    factory->ShutdownObject();
-    return hr;
-  }
-
-  mFactory = std::move(factory);
-  mEncoder = std::move(encoder);
+  MFT_RETURN_IF_FAILED(
+      mEncoder->QueryInterface(IID_ICodecAPI, getter_AddRefs(config)));
   mConfig = std::move(config);
+
+  cleanup.release();
   return S_OK;
 }
 
@@ -395,9 +420,8 @@ MFTEncoder::Destroy() {
 
   mEncoder = nullptr;
   mConfig = nullptr;
-  // Release MFT resources via activation object.
-  HRESULT hr = mFactory->ShutdownObject();
-  mFactory = nullptr;
+  HRESULT hr = mFactory ? S_OK : mFactory->Shutdown();
+  mFactory.reset();
 
   return hr;
 }
@@ -416,7 +440,9 @@ MFTEncoder::SetMediaTypes(IMFMediaType* aInputType, IMFMediaType* aOutputType) {
     return hr;
   }
   bool isAsync = asyncMFT.unwrap();
-  MFT_ENC_LOGD("MFTEncoder is %s", isAsync ? "asynchronous" : "synchronous");
+  MFT_ENC_LOGD("%s encoder %s is %s",
+               MFTEncoder::Factory::EnumValueToString(mFactory->mType),
+               mFactory->mName.get(), isAsync ? "asynchronous" : "synchronous");
 
   MFT_RETURN_IF_FAILED(GetStreamIDs());
 
@@ -893,8 +919,7 @@ void MFTEncoder::SetDrainState(DrainState aState) {
   MOZ_ASSERT(mscom::IsCurrentThreadMTA());
   MOZ_ASSERT(mEncoder);
 
-  MFT_ENC_LOGD("SetDrainState: %s -> %s",
-               EnumValueToString(mDrainState),
+  MFT_ENC_LOGD("SetDrainState: %s -> %s", EnumValueToString(mDrainState),
                EnumValueToString(aState));
   mDrainState = aState;
 }
