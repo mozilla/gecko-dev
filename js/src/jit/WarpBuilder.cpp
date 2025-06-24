@@ -2882,7 +2882,7 @@ bool WarpBuilder::build_CheckPrivateField(BytecodeLocation loc) {
 bool WarpBuilder::build_NewPrivateName(BytecodeLocation loc) {
   JSAtom* name = loc.getAtom(script_);
 
-  auto* ins = MNewPrivateName::New(alloc(), name);
+  auto* ins = MNewPrivateName::New(alloc(), &name->asOffThreadAtom());
   current->add(ins);
   current->push(ins);
   return resumeAfter(ins, loc);

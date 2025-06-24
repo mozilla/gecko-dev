@@ -6808,9 +6808,8 @@ MDefinition* MGuardSpecificFunction::foldsTo(TempAllocator& alloc) {
 MDefinition* MGuardSpecificAtom::foldsTo(TempAllocator& alloc) {
   if (str()->isConstant()) {
     JSOffThreadAtom* s = str()->toConstant()->toString();
-    // TODO: Use JSOffThreadAtom in MGuardSpecificAtom
-    if (s->unwrap() == atom()) {
-        return str();
+    if (s == atom()) {
+      return str();
     }
   }
 

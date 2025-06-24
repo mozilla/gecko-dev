@@ -96,7 +96,7 @@ gc_pointer_types = [
     "PropertyName*",
     "Shape*",
     "GetterSetter*",
-    "JSAtom*",
+    "JSOffThreadAtom*",
     "ClassBodyScope*",
     "VarScope*",
     "NamedLambdaObject*",
@@ -104,6 +104,22 @@ gc_pointer_types = [
     "JSScript*",
     "LexicalScope*",
 ]
+
+special_storage_types = {
+    "JSOffThreadAtom*": (
+        "CompilerGCPointer<JSAtom*>",
+        "{}->unwrap()",
+        "&{}->asOffThreadAtom()",
+    )
+}
+
+
+def arg_type_sig_to_init(type_sig, arg_name):
+    if type_sig in special_types:
+        _, init, _ = special_types[type_sig]
+        return init.format(arg_name)
+    else:
+        return arg_name
 
 
 def gen_mir_class(
@@ -187,7 +203,10 @@ def gen_mir_class(
         for arg_name in arguments:
             arg_type_sig = arguments[arg_name]
             mir_args.append(arg_type_sig + " " + arg_name)
-            if arg_type_sig in gc_pointer_types:
+            if arg_type_sig in special_storage_types:
+                storage, _, _ = special_storage_types[arg_type_sig]
+                code += "  " + storage
+            elif arg_type_sig in gc_pointer_types:
                 code += "  CompilerGCPointer<" + arg_type_sig + ">"
             else:
                 code += "  " + arg_type_sig
@@ -201,7 +220,14 @@ def gen_mir_class(
     )
     if arguments:
         for arg_name in arguments:
-            code += ", " + arg_name + "_(" + arg_name + ")"
+            code += ", " + arg_name + "_("
+            arg_type_sig = arguments[arg_name]
+            if arg_type_sig in special_storage_types:
+                _, init, _ = special_storage_types[arg_type_sig]
+                code += init.format(arg_name)
+            else:
+                code += arg_name
+            code += ")"
     code += " {\\\n"
     if guard:
         code += "    setGuard();\\\n"
@@ -213,7 +239,12 @@ def gen_mir_class(
     if arguments:
         for arg_name in arguments:
             code += "  " + arguments[arg_name] + " " + arg_name + "() const { "
-            code += "return " + arg_name + "_; }\\\n"
+            arg_type_sig = arguments[arg_name]
+            if arg_type_sig in special_storage_types:
+                _, _, load = special_storage_types[arg_type_sig]
+                code += "return " + load.format(arg_name + "_") + "; }\\\n"
+            else:
+                code += "return " + arg_name + "_; }\\\n"
     code += f"  INSTRUCTION_HEADER({name})\\\n"
     code += "  TRIVIAL_NEW_WRAPPERS\\\n"
     if named_operands:

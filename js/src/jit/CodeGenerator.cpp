@@ -4948,8 +4948,8 @@ void CodeGenerator::visitGuardSpecificAtom(LGuardSpecificAtom* guard) {
   volatileRegs.takeUnchecked(scratch);
 
   Label bail;
-  masm.guardSpecificAtom(str, &guard->mir()->atom()->asOffThreadAtom(), scratch,
-                         volatileRegs, &bail);
+  masm.guardSpecificAtom(str, guard->mir()->atom(), scratch, volatileRegs,
+                         &bail);
   bailoutFrom(&bail, guard->snapshot());
 }
 

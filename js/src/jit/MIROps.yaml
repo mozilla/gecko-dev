@@ -2511,7 +2511,7 @@
   operands:
     str: String
   arguments:
-    atom: JSAtom*
+    atom: JSOffThreadAtom*
   result_type: String
   guard: true
   movable: true
@@ -2861,7 +2861,7 @@
 
 - name: NewPrivateName
   arguments:
-    name: JSAtom*
+    name: JSOffThreadAtom*
   result_type: Symbol
   possibly_calls: true
   generate_lir: true
