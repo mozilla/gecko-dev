@@ -9441,6 +9441,8 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
   DO_GLOBAL_REFLOW_COUNT("nsGridContainerFrame");
   MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
+  GRID_LOG("Reflow grid container frame %p", this);
+
   if (IsFrameTreeTooDeep(aReflowInput, aDesiredSize, aStatus)) {
     return;
   }
@@ -10192,6 +10194,9 @@ void nsGridContainerFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
 
 nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     const IntrinsicSizeInput& aInput, IntrinsicISizeType aType) {
+  GRID_LOG("Compute %s isize for grid container frame %p",
+           aType == IntrinsicISizeType::MinISize ? "min" : "pref", this);
+
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }

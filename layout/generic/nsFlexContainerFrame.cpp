@@ -4642,7 +4642,7 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
       "Unconstrained inline size; this should only result from huge sizes "
       "(not intrinsic sizing w/ orthogonal flows)");
 
-  FLEX_LOG("Reflowing flex container frame %p ...", this);
+  FLEX_LOG("Reflow flex container frame %p", this);
 
   if (IsFrameTreeTooDeep(aReflowInput, aReflowOutput, aStatus)) {
     return;
@@ -6493,6 +6493,9 @@ void nsFlexContainerFrame::ReflowPlaceholders(
 
 nscoord nsFlexContainerFrame::ComputeIntrinsicISize(
     const IntrinsicSizeInput& aInput, IntrinsicISizeType aType) {
+  FLEX_LOG("Compute %s isize for flex container frame %p",
+           aType == IntrinsicISizeType::MinISize ? "min" : "pref", this);
+
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }
