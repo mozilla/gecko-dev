@@ -13,6 +13,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mozilla.appservices.logins.DatabaseLoginsStorage
+import mozilla.appservices.logins.KeyRegenerationEventReason
+import mozilla.appservices.logins.recordKeyRegenerationEvent
+import mozilla.components.concept.storage.KeyGenerationReason
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.concept.storage.LoginsStorage
@@ -88,13 +91,24 @@ class SyncableLoginsStorage(
     val crypto by lazy { LoginsCrypto(context, securePrefs.value, this) }
 
     private val conn: Deferred<DatabaseLoginsStorage> = CoroutineScope(coroutineContext).async {
-        val key = crypto.getOrGenerateKey().key
+        val managedKey = crypto.getOrGenerateKey()
+        val key = managedKey.key
         val keyManager = object : mozilla.appservices.logins.KeyManager {
             override fun getKey(): ByteArray {
                 return key.toByteArray()
             }
         }
-        DatabaseLoginsStorage(context.getDatabasePath(DB_NAME).absolutePath, keyManager)
+        val path = context.getDatabasePath(DB_NAME)
+        val pathExisted = path.exists()
+        val storage = DatabaseLoginsStorage(path.absolutePath, keyManager)
+        // If the path existed, but we generated a new key, then the key can't decrypt any existing
+        // logins.  Run wipeLocal, to try to recover
+        // (https://bugzilla.mozilla.org/show_bug.cgi?id=1970409)
+        if (managedKey.wasGenerated == KeyGenerationReason.New && pathExisted) {
+            recordKeyRegenerationEvent(KeyRegenerationEventReason.Other)
+            storage.wipeLocal()
+        }
+        storage
     }
 
     internal suspend fun getStorage(): DatabaseLoginsStorage = conn.await()
