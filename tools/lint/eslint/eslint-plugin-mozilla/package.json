@@ -28,7 +28,7 @@
     "toml-eslint-parser": "0.10.0"
   },
   "devDependencies": {
-    "eslint": "9.0.0",
+    "eslint": "9.6.0",
     "mocha": "11.4.0"
   },
   "peerDependencies": {
