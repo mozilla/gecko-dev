@@ -3880,12 +3880,12 @@ static bool GetAlphabetOption(JSContext* cx, Handle<JSObject*> options,
     return false;
   }
 
-  if (StringEqualsAscii(linear, "base64")) {
+  if (StringEqualsLiteral(linear, "base64")) {
     *result = Alphabet::Base64;
     return true;
   }
 
-  if (StringEqualsAscii(linear, "base64url")) {
+  if (StringEqualsLiteral(linear, "base64url")) {
     *result = Alphabet::Base64Url;
     return true;
   }
@@ -3924,17 +3924,17 @@ static bool GetLastChunkHandlingOption(JSContext* cx, Handle<JSObject*> options,
     return false;
   }
 
-  if (StringEqualsAscii(linear, "loose")) {
+  if (StringEqualsLiteral(linear, "loose")) {
     *result = LastChunkHandling::Loose;
     return true;
   }
 
-  if (StringEqualsAscii(linear, "strict")) {
+  if (StringEqualsLiteral(linear, "strict")) {
     *result = LastChunkHandling::Strict;
     return true;
   }
 
-  if (StringEqualsAscii(linear, "stop-before-partial")) {
+  if (StringEqualsLiteral(linear, "stop-before-partial")) {
     *result = LastChunkHandling::StopBeforePartial;
     return true;
   }

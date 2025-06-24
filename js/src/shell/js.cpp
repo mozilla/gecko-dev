@@ -4083,7 +4083,7 @@ static bool Fuzzilli(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  if (StringEqualsAscii(operation, "FUZZILLI_CRASH")) {
+  if (StringEqualsLiteral(operation, "FUZZILLI_CRASH")) {
     int type;
     if (!ToInt32(cx, args.get(1), &type)) {
       return false;
@@ -4111,7 +4111,7 @@ static bool Fuzzilli(JSContext* cx, unsigned argc, Value* vp) {
       default:
         exit(1);
     }
-  } else if (StringEqualsAscii(operation, "FUZZILLI_PRINT")) {
+  } else if (StringEqualsLiteral(operation, "FUZZILLI_PRINT")) {
     static FILE* fzliout = fdopen(REPRL_DWFD, "w");
     if (!fzliout) {
       fprintf(
@@ -4130,7 +4130,7 @@ static bool Fuzzilli(JSContext* cx, unsigned argc, Value* vp) {
     }
     fprintf(fzliout, "%s\n", bytes.get());
     fflush(fzliout);
-  } else if (StringEqualsAscii(operation, "FUZZILLI_RANDOM")) {
+  } else if (StringEqualsLiteral(operation, "FUZZILLI_RANDOM")) {
     // This is an entropy source which can be called during fuzzing.
     // Its currently used to tests whether Fuzzilli detects non-deterministic
     // behavior.
@@ -5243,7 +5243,7 @@ static bool SetPrefValue(JSContext* cx, unsigned argc, Value* vp) {
 
   // Search for a matching pref and try to set it to the provided value.
 #define CHECK_PREF(NAME, CPP_NAME, TYPE, SETTER, IS_STARTUP_PREF)             \
-  if (IsPrefAvailable(NAME) && StringEqualsAscii(name, NAME)) {               \
+  if (IsPrefAvailable(NAME) && StringEqualsLiteral(name, NAME)) {             \
     if (IS_STARTUP_PREF) {                                                    \
       JS_ReportErrorASCII(cx, "%s is a startup pref and can't be set", NAME); \
       return false;                                                           \
