@@ -558,8 +558,7 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
     // time be set less than current time and more than server time.
     // The cookie item have to be used to the expired cookie.
 
-    aCookieData.expiry() =
-        CookieCommons::MaybeReduceExpiry(aCurrentTime, expires);
+    aCookieData.expiry() = CookieCommons::MaybeCapExpiry(aCurrentTime, expires);
     return false;
   }
 

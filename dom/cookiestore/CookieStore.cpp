@@ -36,8 +36,8 @@ int64_t ComputeExpiry(const CookieInit& aOptions) {
     return INT64_MAX;
   }
 
-  return CookieCommons::MaybeReduceExpiry(PR_Now() / PR_USEC_PER_MSEC,
-                                          aOptions.mExpires.Value());
+  return CookieCommons::MaybeCapExpiry(PR_Now() / PR_USEC_PER_MSEC,
+                                       aOptions.mExpires.Value());
 }
 
 int32_t SameSiteToConst(const CookieSameSite& aSameSite) {

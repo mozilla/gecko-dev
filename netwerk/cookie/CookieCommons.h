@@ -176,8 +176,8 @@ class CookieCommons final {
 
   // Return a reduced expiry attribute value if needed. Parameters are in
   // milliseconds.
-  static int64_t MaybeReduceExpiry(int64_t aCurrentTimeInMSec,
-                                   int64_t aExpiryInMSec);
+  static int64_t MaybeCapExpiry(int64_t aCurrentTimeInMSec,
+                                int64_t aExpiryInMSec);
 
   // returns true if 'a' is equal to or a subdomain of 'b',
   // assuming no leading dots are present.

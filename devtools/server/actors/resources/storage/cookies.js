@@ -551,6 +551,8 @@ class CookiesStorageActor extends BaseStorageActor {
 
         if (isNaN(newValue)) {
           newValue = MAX_COOKIE_EXPIRY;
+        } else {
+          newValue = Services.cookies.maybeCapExpiry(newValue);
         }
         break;
 
