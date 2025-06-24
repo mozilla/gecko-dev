@@ -397,9 +397,7 @@ async function waitForOSKeyStoreLoginTestSetupComplete() {
         "resource://gre/modules/shared/FormAutofillUtils.sys.mjs"
       );
 
-      return FormAutofillUtils.getOSAuthEnabled(
-        FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
-      );
+      return FormAutofillUtils.getOSAuthEnabled();
     }))
   ) {
     return;
@@ -443,9 +441,7 @@ async function waitForOSKeyStoreLogin(login = false) {
         "resource://gre/modules/shared/FormAutofillUtils.sys.mjs"
       );
 
-      return FormAutofillUtils.getOSAuthEnabled(
-        FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
-      );
+      return FormAutofillUtils.getOSAuthEnabled();
     }))
   ) {
     return;

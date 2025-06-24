@@ -445,10 +445,7 @@ BrowserGlue.prototype = {
     }
 
     if (!AppConstants.NIGHTLY_BUILD && this._isNewProfile) {
-      lazy.FormAutofillUtils.setOSAuthEnabled(
-        lazy.FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
-        false
-      );
+      lazy.FormAutofillUtils.setOSAuthEnabled(false);
       lazy.LoginHelper.setOSAuthEnabled(false);
     }
 

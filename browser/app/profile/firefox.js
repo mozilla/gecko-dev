@@ -2656,8 +2656,10 @@ pref("signon.management.page.sort", "name");
 
 #ifdef NIGHTLY_BUILD
   pref("signon.management.page.os-auth.locked.enabled", true);
+  pref("extensions.formautofill.creditCards.os-auth.locked.enabled", true);
 #else
   pref("signon.management.page.os-auth.locked.enabled", false);
+  pref("extensions.formautofill.creditCards.os-auth.locked.enabled", false);
 #endif
 
 // The utm_creative value is appended within the code (specific to the location on

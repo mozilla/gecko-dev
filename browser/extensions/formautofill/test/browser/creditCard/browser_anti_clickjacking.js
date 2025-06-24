@@ -20,19 +20,11 @@ async function disableOSAuthForThisTest() {
   // Revert head.js change that mocks os auth
   sinon.restore();
 
-  let oldValue = FormAutofillUtils.getOSAuthEnabled(
-    FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
-  );
-  FormAutofillUtils.setOSAuthEnabled(
-    FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
-    false
-  );
+  let oldValue = FormAutofillUtils.getOSAuthEnabled();
+  FormAutofillUtils.setOSAuthEnabled(false);
 
   registerCleanupFunction(() => {
-    FormAutofillUtils.setOSAuthEnabled(
-      FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
-      oldValue
-    );
+    FormAutofillUtils.setOSAuthEnabled(oldValue);
   });
 }
 

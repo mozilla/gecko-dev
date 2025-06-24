@@ -30,11 +30,8 @@ ChromeUtils.defineLazyGetter(
     )
 );
 
-const {
-  ENABLED_AUTOFILL_ADDRESSES_PREF,
-  ENABLED_AUTOFILL_CREDITCARDS_PREF,
-  AUTOFILL_CREDITCARDS_REAUTH_PREF,
-} = FormAutofill;
+const { ENABLED_AUTOFILL_ADDRESSES_PREF, ENABLED_AUTOFILL_CREDITCARDS_PREF } =
+  FormAutofill;
 const {
   MANAGE_ADDRESSES_L10N_IDS,
   EDIT_ADDRESS_L10N_IDS,
@@ -276,7 +273,7 @@ FormAutofillPreferences.prototype = {
         // If target.checked is checked, enable OSAuth. Otherwise, reset the pref value.
         reauthCheckbox.setAttribute(
           "checked",
-          FormAutofillUtils.getOSAuthEnabled(AUTOFILL_CREDITCARDS_REAUTH_PREF)
+          FormAutofillUtils.getOSAuthEnabled()
         );
 
         reauthLearnMore.setAttribute(
@@ -358,10 +355,7 @@ FormAutofillPreferences.prototype = {
           }
 
           // If target.checked is checked, enable OSAuth. Otherwise, reset the pref value.
-          FormAutofillUtils.setOSAuthEnabled(
-            AUTOFILL_CREDITCARDS_REAUTH_PREF,
-            target.checked
-          );
+          FormAutofillUtils.setOSAuthEnabled(target.checked);
           Glean.formautofill.requireOsReauthToggle.record({
             toggle_state: target.checked,
           });
