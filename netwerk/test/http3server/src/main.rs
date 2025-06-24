@@ -61,6 +61,7 @@ struct Http3TestServer {
     // The respons will carry the amount of data received.
     posts: HashMap<Http3OrWebTransportStream, usize>,
     responses: HashMap<Http3OrWebTransportStream, Vec<u8>>,
+    connections_to_close: HashMap<Instant, Vec<ConnectionRef>>,
     current_connection_hash: u64,
     sessions_to_close: HashMap<Instant, Vec<WebTransportRequest>>,
     sessions_to_create_stream: Vec<(WebTransportRequest, StreamType, Option<Vec<u8>>)>,
@@ -75,13 +76,13 @@ impl ::std::fmt::Display for Http3TestServer {
         write!(f, "{}", self.server)
     }
 }
-
 impl Http3TestServer {
     pub fn new(server: Http3Server) -> Self {
         Self {
             server,
             posts: HashMap::new(),
             responses: HashMap::new(),
+            connections_to_close: HashMap::new(),
             current_connection_hash: 0,
             sessions_to_close: HashMap::new(),
             sessions_to_create_stream: Vec::new(),
@@ -142,6 +143,18 @@ impl Http3TestServer {
         self.sessions_to_close.retain(|expires, _| *expires >= now);
     }
 
+    fn maybe_close_connection(&mut self) {
+        let now = Instant::now();
+        for (expires, connections) in self.connections_to_close.iter_mut() {
+            if *expires <= now {
+                for c in connections.iter_mut() {
+                    c.borrow_mut().close(now, 0x0100, "");
+                }
+            }
+        }
+        self.connections_to_close.retain(|expires, _| *expires >= now);
+    }
+
     fn maybe_create_wt_stream(&mut self) {
         if self.sessions_to_create_stream.is_empty() {
             return;
@@ -173,7 +186,7 @@ impl HttpServer for Http3TestServer {
     fn process(&mut self, dgram: Option<Datagram<&mut [u8]>>, now: Instant) -> Output {
         let output = self.server.process(dgram, now);
 
-        let output = if self.sessions_to_close.is_empty() {
+        let output = if self.sessions_to_close.is_empty() && self.connections_to_close.is_empty() {
             output
         } else {
             // In case there are pending sessions to close, use a shorter
@@ -191,6 +204,7 @@ impl HttpServer for Http3TestServer {
     }
 
     fn process_events(&mut self, now: Instant) {
+        self.maybe_close_connection();
         self.maybe_close_session();
         self.maybe_create_wt_stream();
 
@@ -261,6 +275,29 @@ impl HttpServer for Http3TestServer {
                                 stream
                                     .stream_reset_send(Error::HttpRequestRejected.code())
                                     .unwrap();
+                            } else if path == "/closeafter1000ms" {
+                                let response_body = b"0123456789".to_vec();
+                                stream
+                                    .send_headers(&[
+                                        Header::new(":status", "200"),
+                                        Header::new("cache-control", "no-cache"),
+                                        Header::new("content-type", "text/plain"),
+                                        Header::new(
+                                            "content-length",
+                                            response_body.len().to_string(),
+                                        ),
+                                    ])
+                                    .unwrap();
+                                let expires = Instant::now() + Duration::from_millis(1000);
+                                if !self.connections_to_close.contains_key(&expires) {
+                                    self.connections_to_close.insert(expires, Vec::new());
+                                }
+                                self.connections_to_close
+                                    .get_mut(&expires)
+                                    .unwrap()
+                                    .push(stream.conn.clone());
+
+                                self.new_response(stream, response_body);
                             } else if path == "/.well-known/http-opportunistic" {
                                 let host_hdr = headers.iter().find(|&h| h.name() == ":authority");
                                 match host_hdr {
