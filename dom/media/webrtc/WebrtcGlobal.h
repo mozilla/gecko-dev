@@ -123,7 +123,8 @@ DEFINE_IPC_SERIALIZER_WITH_SUPER_CLASS_AND_FIELDS(
     mozilla::dom::RTCIceCandidatePairStats, mozilla::dom::RTCStats,
     mTransportId, mLocalCandidateId, mPriority, mNominated, mWritable,
     mReadable, mRemoteCandidateId, mSelected, mComponentId, mState, mBytesSent,
-    mBytesReceived, mLastPacketSentTimestamp, mLastPacketReceivedTimestamp);
+    mBytesReceived, mLastPacketSentTimestamp, mLastPacketReceivedTimestamp,
+    mTotalRoundTripTime, mResponsesReceived, mCurrentRoundTripTime);
 
 DEFINE_IPC_SERIALIZER_WITH_SUPER_CLASS_AND_FIELDS(
     mozilla::dom::RTCIceCandidateStats, mozilla::dom::RTCStats, mCandidateType,
