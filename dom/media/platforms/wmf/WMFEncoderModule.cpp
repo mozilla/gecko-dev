@@ -14,12 +14,19 @@ namespace mozilla {
 
 extern LazyLogModule sPEMLog;
 
-EncodeSupportSet WMFEncoderModule::SupportsCodec(CodecType aCodecType) const {
-  if (aCodecType > CodecType::_BeginAudio_ &&
-      aCodecType < CodecType::_EndAudio_) {
+static EncodeSupportSet IsSupported(
+    CodecType aCodecType, const gfx::IntSize& aFrameSize,
+    const EncoderConfig::CodecSpecific& aCodecSpecific) {
+  if (CodecToSubtype(aCodecType) == GUID_NULL) {
     return EncodeSupportSet{};
   }
-  return CanCreateWMFEncoder(aCodecType);
+  return CanCreateWMFEncoder(aCodecType, aFrameSize, aCodecSpecific);
+}
+
+EncodeSupportSet WMFEncoderModule::SupportsCodec(CodecType aCodecType) const {
+  gfx::IntSize kDefaultSize(640, 480);
+  EncoderConfig::CodecSpecific kDefaultCodecSpecific = AsVariant(void_t{});
+  return IsSupported(aCodecType, kDefaultSize, kDefaultCodecSpecific);
 }
 
 EncodeSupportSet WMFEncoderModule::Supports(
@@ -34,7 +41,7 @@ EncodeSupportSet WMFEncoderModule::Supports(
       aConfig.mCodec != CodecType::H264) {
     return EncodeSupportSet{};
   }
-  return SupportsCodec(aConfig.mCodec);
+  return IsSupported(aConfig.mCodec, aConfig.mSize, aConfig.mCodecSpecific);
 }
 
 already_AddRefed<MediaDataEncoder> WMFEncoderModule::CreateVideoEncoder(

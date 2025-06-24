@@ -399,7 +399,32 @@ nsTArray<MFTEncoder::Info>& MFTEncoder::Infos() {
   return infos;
 }
 
-HRESULT MFTEncoder::Create(const GUID& aSubtype) {
+static Result<Ok, nsCString> IsSupported(
+    const MFTEncoder::Factory& aFactory, const GUID& aSubtype,
+    const gfx::IntSize& aFrameSize,
+    const EncoderConfig::CodecSpecific& aCodecSpecific) {
+  bool isH264HighProfile = IsEqualGUID(aSubtype, MFVideoFormat_H264) &&
+                           aCodecSpecific.is<H264Specific>() &&
+                           aCodecSpecific.as<H264Specific>().mProfile ==
+                               H264_PROFILE::H264_PROFILE_HIGH;
+  bool isFrameSizeGreaterThan4K =
+      aFrameSize.width > 3840 || aFrameSize.height > 2160;
+
+  // TODO: Check if this limit applies to other HW encoders.
+  if (aFactory.mProvider == MFTEncoder::Factory::Provider::HW_AMD &&
+      isH264HighProfile && isFrameSizeGreaterThan4K) {
+    return Err(nsFmtCString(
+        FMT_STRING(
+            "{} encoder {} does not support H.264 high profile for 4K+ video"),
+        MFTEncoder::Factory::EnumValueToString(aFactory.mProvider),
+        aFactory.mName.get()));
+  }
+  // TODO: Check the SVC support from different HW encoders.
+  return Ok();
+}
+
+HRESULT MFTEncoder::Create(const GUID& aSubtype, const gfx::IntSize& aFrameSize,
+                           const EncoderConfig::CodecSpecific& aCodecSpecific) {
   MOZ_ASSERT(mscom::IsCurrentThreadMTA());
   MOZ_ASSERT(!mEncoder);
 
@@ -413,7 +438,15 @@ HRESULT MFTEncoder::Create(const GUID& aSubtype) {
       EnumEncoders(aSubtype, mHWPreference);
   for (auto& f : factories) {
     MOZ_ASSERT(f);
-    // TODO: Check HW limitations from different vendors.
+    if (auto r = IsSupported(f, aSubtype, aFrameSize, aCodecSpecific);
+        r.isErr()) {
+      nsCString errorMsg = r.unwrapErr();
+      MFT_ENC_LOGE("Skip %s encoder %s for %s: %s",
+                   MFTEncoder::Factory::EnumValueToString(f.mProvider),
+                   f.mName.get(), CodecStr(aSubtype), errorMsg.get());
+      continue;
+    }
+
     RefPtr<IMFTransform> encoder;
     // Create the MFT activation object.
     HRESULT hr = f.mActivate->ActivateObject(

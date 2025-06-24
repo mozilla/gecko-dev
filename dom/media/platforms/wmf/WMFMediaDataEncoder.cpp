@@ -130,7 +130,8 @@ RefPtr<InitPromise> WMFMediaDataEncoder::ProcessInit() {
 }
 
 HRESULT WMFMediaDataEncoder::InitMFTEncoder(RefPtr<MFTEncoder>& aEncoder) {
-  HRESULT hr = aEncoder->Create(CodecToSubtype(mConfig.mCodec));
+  HRESULT hr = aEncoder->Create(CodecToSubtype(mConfig.mCodec), mConfig.mSize,
+                                mConfig.mCodecSpecific);
   if (FAILED(hr)) {
     _com_error error(hr);
     WMF_ENC_LOGE("MFTEncoder::Create: error = 0x%lX, %ls", hr,

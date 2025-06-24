@@ -40,7 +40,8 @@ class MFTEncoder final {
   explicit MFTEncoder(const HWPreference aHWPreference)
       : mHWPreference(aHWPreference) {}
 
-  HRESULT Create(const GUID& aSubtype);
+  HRESULT Create(const GUID& aSubtype, const gfx::IntSize& aFrameSize,
+                 const EncoderConfig::CodecSpecific& aCodecSpecific);
   HRESULT Destroy();
   HRESULT SetMediaTypes(IMFMediaType* aInputType, IMFMediaType* aOutputType);
   HRESULT SetModes(const EncoderConfig& aConfig);

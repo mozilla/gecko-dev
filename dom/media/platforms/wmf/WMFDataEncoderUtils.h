@@ -31,7 +31,9 @@ extern LazyLogModule sPEMLog;
 
 GUID CodecToSubtype(CodecType aCodec);
 
-media::EncodeSupportSet CanCreateWMFEncoder(CodecType aCodec);
+media::EncodeSupportSet CanCreateWMFEncoder(
+    CodecType aCodec, const gfx::IntSize& aFrameSize,
+    const EncoderConfig::CodecSpecific& aCodecSpecific);
 
 already_AddRefed<MediaByteBuffer> ParseH264Parameters(
     nsTArray<uint8_t>& aHeader, const bool aAsAnnexB);
