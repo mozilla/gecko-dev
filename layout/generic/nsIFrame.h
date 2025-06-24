@@ -78,6 +78,7 @@
 #include "mozilla/gfx/CompositorHitTestInfo.h"
 #include "mozilla/gfx/MatrixFwd.h"
 #include "mozilla/intl/BidiEmbeddingLevel.h"
+#include "mozilla/intl/UnicodeProperties.h"
 #include "nsDisplayItemTypes.h"
 #include "nsPresContext.h"
 #include "nsTHashSet.h"
@@ -5467,9 +5468,10 @@ class nsIFrame : public nsQueryFrame {
                 "aOptions should be changed to const reference");
 
   struct PeekWordState {
+    using Script = mozilla::intl::Script;
     // true when we're still at the start of the search, i.e., we can't return
     // this point as a valid offset!
-    bool mAtStart;
+    bool mAtStart = true;
     // true when we've encountered at least one character of the type before the
     // boundary we're looking for:
     // 1. If we're moving forward and eating whitepace, looking for a word
@@ -5478,36 +5480,37 @@ class nsIFrame : public nsQueryFrame {
     // 2. Otherwise, looking for a word beginning (i.e. a boundary between
     //    non-whitespace and whitespace), then mSawBeforeType==true means "we
     //    already saw some non-whitespace".
-    bool mSawBeforeType;
+    bool mSawBeforeType = false;
     // true when we've encountered at least one non-newline character
-    bool mSawInlineCharacter;
+    bool mSawInlineCharacter = false;
     // true when the last character encountered was punctuation
-    bool mLastCharWasPunctuation;
+    bool mLastCharWasPunctuation = false;
     // true when the last character encountered was whitespace
-    bool mLastCharWasWhitespace;
+    bool mLastCharWasWhitespace = false;
     // true when we've seen non-punctuation since the last whitespace
-    bool mSeenNonPunctuationSinceWhitespace;
+    bool mSeenNonPunctuationSinceWhitespace = false;
+    // Script code of most recent character (other than INHERITED).
+    // (Currently only HANGUL vs any-other-script is significant.)
+    Script mLastScript = Script::INVALID;
     // text that's *before* the current frame when aForward is true, *after*
     // the current frame when aForward is false. Only includes the text
     // on the current line.
     nsAutoString mContext;
 
-    PeekWordState()
-        : mAtStart(true),
-          mSawBeforeType(false),
-          mSawInlineCharacter(false),
-          mLastCharWasPunctuation(false),
-          mLastCharWasWhitespace(false),
-          mSeenNonPunctuationSinceWhitespace(false) {}
+    PeekWordState() {}
     void SetSawBeforeType() { mSawBeforeType = true; }
     void SetSawInlineCharacter() { mSawInlineCharacter = true; }
-    void Update(bool aAfterPunctuation, bool aAfterWhitespace) {
+    void Update(bool aAfterPunctuation, bool aAfterWhitespace,
+                Script aScript = Script::INVALID) {
       mLastCharWasPunctuation = aAfterPunctuation;
       mLastCharWasWhitespace = aAfterWhitespace;
       if (aAfterWhitespace) {
         mSeenNonPunctuationSinceWhitespace = false;
       } else if (!aAfterPunctuation) {
         mSeenNonPunctuationSinceWhitespace = true;
+      }
+      if (aScript != Script::INHERITED) {
+        mLastScript = aScript;
       }
       mAtStart = false;
     }
