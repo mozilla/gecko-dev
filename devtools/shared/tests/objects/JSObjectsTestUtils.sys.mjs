@@ -193,6 +193,7 @@ async function runTest(expectedValuesFileName, testFunction) {
   const newExpectedValues = [];
 
   let failed = false;
+  const testPath = "gtestPath" in gTestScope ? gTestScope.gTestPath.replace("chrome://mochitest/content/browser/", "") : "path/to/your/xpcshell/test";
 
   for (const objectDescription of AllObjects) {
     if (objectDescription.disabled) {
@@ -216,7 +217,6 @@ async function runTest(expectedValuesFileName, testFunction) {
       continue;
     }
 
-    const testPath = "gtestPath" in gTestScope ? gTestScope.gTestPath.replace("chrome://mochitest/content/browser/", "") : "path/to/your/xpcshell/test";
     const failureMessage = `This is a JavaScript value processing test, which includes an automatically generated snapshot file (${expectedValuesFileName}).\n` +
       "You may update this file by running:`\n" +
       `  $ mach test ${testPath} --headless --setenv ${UPDATE_SNAPSHOT_ENV}=true\n` +
@@ -257,7 +257,7 @@ async function runTest(expectedValuesFileName, testFunction) {
   if (failed) {
     const failureMessage = "This is a JavaScript value processing test, which includes an automatically generated snapshot file.\n" +
       "If the change made to that snapshot file makes sense, you may simply update them by running:`\n" +
-      "  $ mach test ${testPath} --headless --setenv UPDATE_EXPECTED_VALUES=true\n" +
+      `  $ mach test ${testPath} --headless --setenv ${UPDATE_SNAPSHOT_ENV}=true\n` +
       "`More info in devtools/shared/tests/objects/README.md\n";
     gTestScope.Assert.ok(false, failureMessage);
   }

@@ -5,6 +5,7 @@ run-if = ["os != 'android'"]
 
 ["test_javascript_logging.js"]
 support-files = ["test_javascript_logging.snapshot.mjs"]
+tags = "object-snapshots"
 prefs = ["dom.security.https_first=false"] # JS HttpServer doesn't support https
 
 ["test_webconsole_l10n.js"]

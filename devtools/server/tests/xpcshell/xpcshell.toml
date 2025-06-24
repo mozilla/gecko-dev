@@ -224,6 +224,7 @@ skip-if = [
 
 ["test_javascript_object_actors.js"]
 support-files = ["test_javascript_object_actors.snapshot.mjs"]
+tags = "object-snapshots"
 
 ["test_layout-reflows-observer.js"]
 

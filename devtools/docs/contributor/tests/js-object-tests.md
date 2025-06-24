@@ -12,8 +12,8 @@ This includes:
 
 This test framework consists in:
 * a manifest file, [AllJavaScriptTypes.mjs](https://searchfox.org/mozilla-central/source/devtools/shared/tests/objects/AllJavaScriptTypes.mjs) which defines all the JS objects that gecko can spawn
-* one xpcshell or one mochitest file, using [JSObjectTestUtils](https://searchfox.org/mozilla-central/source/devtools/shared/tests/objects/JSObjectTestUtils.sys.mjs) helper to evaluate all the JS Objects and generate a value for each of them.
-* a snapshot file, read and written by JSObjectTestUtils, specific to each xpcshell/mochitest and storing all its the generated values.
+* one xpcshell or one mochitest file, using [JSObjectsTestUtils](https://searchfox.org/mozilla-central/source/devtools/shared/tests/objects/JSObjectsTestUtils.sys.mjs) helper to evaluate all the JS Objects and generate a value for each of them.
+* a snapshot file, read and written by JSObjectsTestUtils, specific to each xpcshell/mochitest and storing all its the generated values.
 
 You can run your test to execute the assertions:
 ```bash
@@ -24,6 +24,18 @@ And you can update the snapshot by running:
 ```bash
 $ ./mach test my/browser_test.js --setenv UPDATE_SNAPSHOT=true
 ```
+
+You also can run all the tests with:
+```bash
+$ ./mach xpcshell-test --tag object-snapshots
+$ ./mach mochitest --tag object-snapshots
+```
+And update all the snapshots with:
+```bash
+$ ./mach xpcshell-test --tag object-snapshots --setenv UPDATE_SNAPSHOT=true
+$ ./mach mochitest --tag object-snapshots --setenv UPDATE_SNAPSHOT=true
+```
+(you may use `./mach test`, but it will run some unexpected tests, be slower and report unrelated errors)
 
 ## JSObjectsTestUtils APIs
 
