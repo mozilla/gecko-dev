@@ -50,6 +50,24 @@ export const MultiStageProtonScreen = props => {
       ?.removeAttribute("narrow");
   }
 
+  function useMediaQuery(query) {
+    const [doesMatch, setDoesMatch] = useState(
+      () => window.matchMedia(query).matches
+    );
+
+    useEffect(() => {
+      const mediaQueryList = window.matchMedia(query);
+      const onChange = event => setDoesMatch(event.matches);
+
+      mediaQueryList.addEventListener("change", onChange);
+      return () => mediaQueryList.removeEventListener("change", onChange);
+    }, [query]);
+
+    return doesMatch;
+  }
+
+  const isWideScreen = useMediaQuery("(min-width: 800px)");
+
   return (
     <ProtonScreen
       content={props.content}
@@ -83,6 +101,7 @@ export const MultiStageProtonScreen = props => {
       forceHideStepsIndicator={props.forceHideStepsIndicator}
       ariaRole={props.ariaRole}
       aboveButtonStepsIndicator={props.aboveButtonStepsIndicator}
+      isWideScreen={isWideScreen}
     />
   );
 };
@@ -531,6 +550,33 @@ export class ProtonScreen extends React.PureComponent {
       </div>
     );
   }
+  getCombinedInnerStyles(content, isWideScreen) {
+    const CONFIGURABLE_STYLES = [
+      "overflow",
+      "display",
+      "paddingInline",
+      "paddingInlineStart",
+      "paddingInlineEnd",
+      "paddingBlock",
+      "paddingBlockStart",
+      "paddingBlockEnd",
+    ];
+
+    const innerContentStyles = isWideScreen
+      ? content.main_content_style || {}
+      : content.main_content_style_narrow || {};
+
+    const validInnerStyles =
+      AboutWelcomeUtils.getValidStyle(
+        innerContentStyles,
+        CONFIGURABLE_STYLES
+      ) || {};
+
+    return {
+      ...validInnerStyles,
+      justifyContent: content.split_content_justify_content,
+    };
+  }
 
   // eslint-disable-next-line complexity
   render() {
@@ -545,6 +591,7 @@ export class ProtonScreen extends React.PureComponent {
       forceHideStepsIndicator,
       ariaRole,
       aboveButtonStepsIndicator,
+      isWideScreen,
     } = this.props;
     const includeNoodles = content.has_noodles;
     // The default screen position is "center"
@@ -571,6 +618,8 @@ export class ProtonScreen extends React.PureComponent {
     const isEmbeddedMigration = content.tiles?.type === "migration-wizard";
     const isSystemPromptStyleSpotlight =
       content.isSystemPromptStyleSpotlight === true;
+
+    const combinedStyles = this.getCombinedInnerStyles(content, isWideScreen);
 
     return (
       <main
@@ -656,12 +705,7 @@ export class ProtonScreen extends React.PureComponent {
                 )
               : null}
 
-            <div
-              className="main-content-inner"
-              style={{
-                justifyContent: content.split_content_justify_content,
-              }}
-            >
+            <div className="main-content-inner" style={combinedStyles}>
               {content.logo && content.fullscreen
                 ? this.renderPicture(content.logo)
                 : null}
