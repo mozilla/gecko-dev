@@ -48,7 +48,7 @@ nix = { version = "0.29", features = ["fs", "poll", "socket", "uio"] }
 [build-dependencies]
 cc = "1"
 linked-hash-map = "0.5"
-yaml-rust = "0.4"
+yaml-rust = { version = "0.10", package = "yaml-rust2" }
 
 [lib]
 name = "crash_helper_server"
