@@ -147,6 +147,18 @@ export default {
         ) {
           setPropertiesFromArgument(node.init, node.init.arguments[0]);
         }
+        if (
+          node.id.type === "Identifier" &&
+          node.id.name == "lazy" &&
+          node.init.type == "CallExpression" &&
+          node.init.callee.type === "MemberExpression" &&
+          node.init.callee.object.type === "Identifier" &&
+          node.init.callee.object.name === "XPCOMUtils" &&
+          node.init.callee.property.name === "declareLazy" &&
+          node.init.arguments.length >= 1
+        ) {
+          setPropertiesFromArgument(node.init, node.init.arguments[0]);
+        }
       },
 
       CallExpression(node) {
