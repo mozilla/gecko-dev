@@ -44,6 +44,7 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
+import org.mozilla.fenix.components.usecases.FenixBrowserUseCases.Companion.ABOUT_HOME
 import org.mozilla.fenix.ext.DEFAULT_ACTIVE_DAYS
 import org.mozilla.fenix.ext.potentialInactiveTabs
 import org.mozilla.fenix.home.HomeScreenViewModel.Companion.ALL_NORMAL_TABS
@@ -78,6 +79,11 @@ interface TabsTrayController : SyncedTabsController, InactiveTabsController, Tab
      * Navigate from TabsTray to Browser.
      */
     fun handleNavigateToBrowser()
+
+    /**
+     * Navigates from the tabs tray to the homepage.
+     */
+    fun handleNavigateToHome()
 
     /**
      * Deletes the [TabSessionState] with the specified [tabId] or calls [DownloadCancelDialogFragment]
@@ -298,6 +304,21 @@ class DefaultTabsTrayController(
             return
         } else if (!navController.popBackStack(R.id.browserFragment, false)) {
             navController.navigate(R.id.browserFragment)
+        }
+    }
+
+    /**
+     * Dismisses the tabs tray and navigates to the homepage.
+     */
+    override fun handleNavigateToHome() {
+        dismissTray()
+
+        if (navController.currentDestination?.id == R.id.homeFragment) {
+            return
+        } else if (!navController.popBackStack(R.id.homeFragment, false)) {
+            navController.navigate(
+                TabsTrayFragmentDirections.actionGlobalHome(),
+            )
         }
     }
 
@@ -579,9 +600,16 @@ class DefaultTabsTrayController(
                 tabsUseCases.selectTab(tab.id)
                 val mode = BrowsingMode.fromBoolean(tab.content.private)
                 browsingModeManager.mode = mode
-                handleNavigateToBrowser()
+
+                if (tab.content.url == ABOUT_HOME) {
+                    handleNavigateToHome()
+                } else {
+                    handleNavigateToBrowser()
+                }
             }
+
             tab.id in selected.map { it.id } -> handleTabUnselected(tab)
+
             source != INACTIVE_TABS_FEATURE_NAME -> {
                 tabsTrayStore.dispatch(TabsTrayAction.AddSelectTab(tab))
             }

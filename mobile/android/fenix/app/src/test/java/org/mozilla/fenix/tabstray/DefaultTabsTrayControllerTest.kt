@@ -395,6 +395,61 @@ class DefaultTabsTrayControllerTest {
     }
 
     @Test
+    fun `GIVEN the homepage is currently shown WHEN navigate to home is called THEN the tray is dismissed`() {
+        every { navController.currentDestination?.id } returns R.id.homeFragment
+
+        var dismissTrayInvoked = false
+        createController(dismissTray = { dismissTrayInvoked = true }).handleNavigateToHome()
+
+        assertTrue(dismissTrayInvoked)
+        verify(exactly = 0) { navController.popBackStack() }
+        verify(exactly = 0) { navController.popBackStack(any<Int>(), any()) }
+        verify(exactly = 0) { navController.navigate(any<Int>()) }
+        verify(exactly = 0) { navController.navigate(any<NavDirections>()) }
+        verify(exactly = 0) { navController.navigate(any<NavDirections>(), any<NavOptions>()) }
+    }
+
+    @Test
+    fun `GIVEN the browser is currently shown WHEN navigate to home is called THEN the tray is dismissed and popBackStack is executed`() {
+        every { navController.currentDestination?.id } returns R.id.browserFragment
+        every { navController.popBackStack(R.id.homeFragment, false) } returns true
+
+        var dismissTrayInvoked = false
+        createController(dismissTray = { dismissTrayInvoked = true }).handleNavigateToHome()
+
+        assertTrue(dismissTrayInvoked)
+        verify { navController.popBackStack(R.id.homeFragment, false) }
+        verify(exactly = 0) { navController.navigate(any<Int>()) }
+        verify(exactly = 0) { navController.navigate(any<NavDirections>()) }
+        verify(exactly = 0) { navController.navigate(any<NavDirections>(), any<NavOptions>()) }
+    }
+
+    @Test
+    fun `GIVEN the browser is currently shown WHEN navigate to home is called and pop back stack fails THEN it navigates to home`() {
+        every { navController.currentDestination?.id } returns R.id.browserFragment
+        every { navController.popBackStack(R.id.homeFragment, false) } returns false
+
+        var dismissTrayInvoked = false
+        createController(dismissTray = { dismissTrayInvoked = true }).handleNavigateToHome()
+
+        assertTrue(dismissTrayInvoked)
+        verify { navController.popBackStack(R.id.homeFragment, false) }
+        verify { navController.navigate(TabsTrayFragmentDirections.actionGlobalHome()) }
+    }
+
+    @Test
+    fun `WHEN navigate to home is called and popBackStack succeeds THEN the method finishes`() {
+        every { navController.popBackStack(R.id.homeFragment, false) } returns true
+
+        var dismissTrayInvoked = false
+        createController(dismissTray = { dismissTrayInvoked = true }).handleNavigateToHome()
+
+        assertTrue(dismissTrayInvoked)
+        verify(exactly = 1) { navController.popBackStack(R.id.homeFragment, false) }
+        verify(exactly = 0) { navController.navigate(TabsTrayFragmentDirections.actionGlobalHome()) }
+    }
+
+    @Test
     fun `GIVEN more tabs opened WHEN handleTabDeletion is called THEN that tab is removed and an undo snackbar is shown`() {
         val tab: TabSessionState = mockk {
             every { content } returns mockk()
@@ -955,7 +1010,9 @@ class DefaultTabsTrayControllerTest {
         }
     }
 
+    @Test
     fun `WHEN a tab is selected THEN report the metric, update the state, and open the browser`() {
+        trayStore = TabsTrayStore()
         val controller = spyk(createController())
         val tab = TabSessionState(
             id = "tabId",
@@ -974,13 +1031,44 @@ class DefaultTabsTrayControllerTest {
         assertNotNull(TabsTray.openedExistingTab.testGetValue())
         val snapshot = TabsTray.openedExistingTab.testGetValue()!!
         assertEquals(1, snapshot.size)
-        assertEquals(source, snapshot.single().extra?.getValue("opened_existing_tab"))
+        assertEquals(source, snapshot.single().extra?.getValue("source"))
 
         verify { tabsUseCases.selectTab(tab.id) }
         verify { controller.handleNavigateToBrowser() }
     }
 
+    @Test
+    fun `GIVEN homepage as a new tab is enabled WHEN a homepage tab is selected THEN report the metric, update the state, and show the homepage`() {
+        every { settings.enableHomepageAsNewTab } returns true
+
+        trayStore = TabsTrayStore()
+        val controller = spyk(createController())
+        val tab = TabSessionState(
+            id = "tabId",
+            content = ContentState(
+                url = "about:home",
+            ),
+        )
+        val source = "Tabs tray"
+
+        every { controller.handleNavigateToHome() } just runs
+
+        assertNull(TabsTray.openedExistingTab.testGetValue())
+
+        controller.handleTabSelected(tab, source)
+
+        assertNotNull(TabsTray.openedExistingTab.testGetValue())
+        val snapshot = TabsTray.openedExistingTab.testGetValue()!!
+        assertEquals(1, snapshot.size)
+        assertEquals(source, snapshot.single().extra?.getValue("source"))
+
+        verify { tabsUseCases.selectTab(tab.id) }
+        verify { controller.handleNavigateToHome() }
+    }
+
+    @Test
     fun `WHEN a tab is selected without a source THEN report the metric with an unknown source, update the state, and open the browser`() {
+        trayStore = TabsTrayStore()
         val controller = spyk(createController())
         val tab = TabSessionState(
             id = "tabId",
@@ -999,7 +1087,7 @@ class DefaultTabsTrayControllerTest {
         assertNotNull(TabsTray.openedExistingTab.testGetValue())
         val snapshot = TabsTray.openedExistingTab.testGetValue()!!
         assertEquals(1, snapshot.size)
-        assertEquals(sourceText, snapshot.single().extra?.getValue("opened_existing_tab"))
+        assertEquals(sourceText, snapshot.single().extra?.getValue("source"))
 
         verify { tabsUseCases.selectTab(tab.id) }
         verify { controller.handleNavigateToBrowser() }
