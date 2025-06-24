@@ -1366,7 +1366,9 @@ static void nr_ice_component_consent_refreshed(nr_ice_component *comp)
 
 static void nr_ice_component_refresh_consent_cb(NR_SOCKET s, int how, void *cb_arg)
   {
-    nr_ice_component *comp=cb_arg;
+    nr_ice_cand_pair *pair=cb_arg;
+    assert(pair && pair->remote && pair->remote->component);
+    nr_ice_component *comp=pair->remote->component;
 
     switch (comp->consent_ctx->state) {
       case NR_STUN_CLIENT_STATE_FAILED:
@@ -1379,6 +1381,12 @@ static void nr_ice_component_refresh_consent_cb(NR_SOCKET s, int how, void *cb_a
       case NR_STUN_CLIENT_STATE_DONE:
         r_log(LOG_ICE, LOG_INFO, "ICE(%s)/STREAM(%s)/COMP(%d): Consent refreshed",
               comp->ctx->label, comp->stream->label, comp->component_id);
+        if (comp->consent_ctx->rtt_valid) {
+          nr_ice_candidate_pair_update_rtt(pair, comp->consent_ctx->rtt_ms);
+          // clear rtt_ms so we can't double process it.
+          comp->consent_ctx->rtt_valid = 0;
+          comp->consent_ctx->rtt_ms = 0;
+        }
         nr_ice_component_consent_refreshed(comp);
         break;
       case NR_STUN_CLIENT_STATE_TIMED_OUT:
@@ -1452,7 +1460,7 @@ static void nr_ice_component_consent_timer_cb(NR_SOCKET s, int how, void *cb_arg
 
     if (r=nr_ice_component_refresh_consent(comp->consent_ctx,
                                            nr_ice_component_refresh_consent_cb,
-                                           comp)) {
+                                           comp->active)) {
       r_log(LOG_ICE,LOG_ERR,"ICE(%s)/STREAM(%s)/COMP(%d): Refresh consent failed with %d",
             comp->ctx->label, comp->stream->label, comp->component_id, r);
     }
