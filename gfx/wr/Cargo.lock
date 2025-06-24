@@ -3631,14 +3631,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bb76e5c421bbbeb8924c60c030331b345555024d56261dae8f3e786ed817c23"
 
 [[package]]
-name = "yaml-rust2"
-version = "0.10.3"
+name = "yaml-rust"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ce2a4ff45552406d02501cea6c18d8a7e50228e7736a872951fe2fe75c91be7"
+checksum = "65923dd1784f44da1d2c3dbbc5e822045628c590ba72123e1c73d3c230c4434d"
 dependencies = [
- "arraydeque",
- "encoding_rs",
- "hashlink",
+ "linked-hash-map",
 ]
 
 [[package]]

@@ -157,12 +157,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "arraydeque"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d902e3d592a523def97af8f317b08ce16b7ab854c1985a0c671e6f15cebc236"
-
-[[package]]
 name = "arrayref"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1215,7 +1209,7 @@ dependencies = [
  "thiserror 2.0.9",
  "uuid",
  "windows-sys",
- "yaml-rust2",
+ "yaml-rust",
 ]
 
 [[package]]
@@ -1257,7 +1251,7 @@ dependencies = [
  "uuid",
  "warp",
  "windows-sys",
- "yaml-rust2",
+ "yaml-rust",
  "zip",
 ]
 
@@ -2459,7 +2453,7 @@ dependencies = [
  "url",
  "uuid",
  "webdriver",
- "yaml-rust2",
+ "yaml-rust",
  "zip",
 ]
 
@@ -7925,14 +7919,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "yaml-rust2"
-version = "0.10.3"
+name = "yaml-rust"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ce2a4ff45552406d02501cea6c18d8a7e50228e7736a872951fe2fe75c91be7"
+checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
- "arraydeque",
- "encoding_rs",
- "hashlink",
+ "linked-hash-map",
 ]
 
 [[package]]

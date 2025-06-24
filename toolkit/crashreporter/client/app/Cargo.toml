@@ -68,7 +68,7 @@ bindgen = { version = "0.69", default-features = false, features = ["runtime"] }
 embed-manifest = "1.4"
 mozbuild = "0.1"
 phf_codegen = "0.11"
-yaml-rust = { version = "0.10", package = "yaml-rust2" }
+yaml-rust = "0.4"
 
 [dev-dependencies]
 bytes = "1.4"
