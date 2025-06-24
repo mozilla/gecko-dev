@@ -5,8 +5,6 @@ permalink: /changelog/
 ---
 
 # 142.0 (In Development)
-* **concept-engine** and **browser-engine-gecko**
-  * 🌟️ Added `TrackingProtectionPolicy.bounceTrackingProtectionMode` it allows configuring the Bounce Tracking Protection feature, disabled by default. [Bug 1963445](https://bugzilla.mozilla.org/show_bug.cgi?id=1963445)
 
 # 141.0
 * **feature-accounts**:

@@ -1152,10 +1152,6 @@ class GeckoEngine(
                         if (cookiePurging != value.cookiePurging) {
                             setCookiePurging(value.cookiePurging)
                         }
-
-                        if (getBounceTrackingProtectionMode() != policy.bounceTrackingProtectionMode.mode) {
-                            setBounceTrackingProtectionMode(policy.bounceTrackingProtectionMode.mode)
-                        }
                     }
 
                     defaultSettings?.trackingProtectionPolicy = value

@@ -5,7 +5,6 @@
 package mozilla.components.browser.engine.gecko.ext
 
 import mozilla.components.concept.engine.EngineSession
-import mozilla.components.concept.engine.EngineSession.BounceTrackingProtectionMode
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
 import org.mozilla.geckoview.ContentBlocking
@@ -28,7 +27,6 @@ fun TrackingProtectionPolicy.toContentBlockingSetting(
     queryParameterStrippingPrivateBrowsing: Boolean = false,
     queryParameterStrippingAllowList: String = "",
     queryParameterStrippingStripList: String = "",
-    bounceTrackingProtectionMode: BounceTrackingProtectionMode = BounceTrackingProtectionMode.DISABLED,
 ) = ContentBlocking.Settings.Builder().apply {
     enhancedTrackingProtectionLevel(getEtpLevel())
     enhancedTrackingProtectionCategory(getEtpCategory())
@@ -47,7 +45,6 @@ fun TrackingProtectionPolicy.toContentBlockingSetting(
     queryParameterStrippingPrivateBrowsingEnabled(queryParameterStrippingPrivateBrowsing)
     queryParameterStrippingAllowList(*queryParameterStrippingAllowList.split(",").toTypedArray())
     queryParameterStrippingStripList(*queryParameterStrippingStripList.split(",").toTypedArray())
-    bounceTrackingProtectionMode(bounceTrackingProtectionMode.mode)
 }.build()
 
 /**
