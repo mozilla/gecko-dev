@@ -1,0 +1,19 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * bapenda.jabarprov.go.id - main content iframe is invisible
+ * Bug #1971690 - https://bugzilla.mozilla.org/show_bug.cgi?id=1971690
+ * WebCompat issue #161300 - https://webcompat.com/issues/161300
+ *
+ * They are using the non-standard -webkit-fill-available, but we can give
+ * the iframe 100% height to fix the issue. We can also remove superfluous
+ * number-input spinner arrows while we're at it.
+ */
+iframe {
+  height: 100%;
+}
+#root > main.cointainer input[type="number"][placeholder="XXXX"] {
+  appearance: textfield;
+}

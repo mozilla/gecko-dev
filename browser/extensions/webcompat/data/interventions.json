@@ -4015,6 +4015,27 @@
       }
     ]
   },
+  "1971690": {
+    "label": "bapenda.jabarprov.go.id",
+    "bugs": {
+      "1971690": {
+        "issue": "broken-layout",
+        "matches": [
+          "*://bapenda.jabarprov.go.id/infopkb*",
+          "*://sambara-v2.bapenda.jabarprov.go.id/*"
+        ]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "all_frames": true,
+          "css": ["bug1971690-bapenda.jabarprov.go.id-unhide-frame.css"]
+        }
+      }
+    ]
+  },
   "1972511": {
     "label": "cmyportal.tkc.co.jp",
     "bugs": {
