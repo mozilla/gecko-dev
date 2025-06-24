@@ -450,27 +450,27 @@ void JitRuntime::TraceWeakJitcodeGlobalTable(JSRuntime* rt, JSTracer* trc) {
   }
 }
 
-bool JitZone::addInlinedCompilation(const RecompileInfo& info,
+bool JitZone::addInlinedCompilation(const IonScriptKey& ionScriptKey,
                                     JSScript* inlined) {
-  MOZ_ASSERT(inlined != info.script());
+  MOZ_ASSERT(inlined != ionScriptKey.script());
 
   auto p = inlinedCompilations_.lookupForAdd(inlined);
   if (p) {
     auto& compilations = p->value();
-    if (!compilations.empty() && compilations.back() == info) {
+    if (!compilations.empty() && compilations.back() == ionScriptKey) {
       return true;
     }
-    return compilations.append(info);
+    return compilations.append(ionScriptKey);
   }
 
-  RecompileInfoVector compilations;
-  if (!compilations.append(info)) {
+  IonScriptKeyVector compilations;
+  if (!compilations.append(ionScriptKey)) {
     return false;
   }
   return inlinedCompilations_.add(p, inlined, std::move(compilations));
 }
 
-void jit::AddPendingInvalidation(RecompileInfoVector& invalid,
+void jit::AddPendingInvalidation(IonScriptKeyVector& invalid,
                                  JSScript* script) {
   MOZ_ASSERT(script);
 
@@ -484,35 +484,35 @@ void jit::AddPendingInvalidation(RecompileInfoVector& invalid,
     return;
   }
 
-  auto addPendingInvalidation = [&invalid](const RecompileInfo& info) {
+  auto addPendingInvalidation = [&invalid](const IonScriptKey& ionScriptKey) {
     AutoEnterOOMUnsafeRegion oomUnsafe;
-    if (!invalid.append(info)) {
+    if (!invalid.append(ionScriptKey)) {
       // BUG 1536159: For diagnostics, compute the size of the failed
       // allocation. This presumes the vector growth strategy is to double. This
       // is only used for crash reporting so not a problem if we get it wrong.
-      size_t allocSize = 2 * sizeof(RecompileInfo) * invalid.capacity();
-      oomUnsafe.crash(allocSize, "Could not update RecompileInfoVector");
+      size_t allocSize = 2 * sizeof(IonScriptKey) * invalid.capacity();
+      oomUnsafe.crash(allocSize, "Could not update IonScriptKeyVector");
     }
   };
 
   // Trigger invalidation of the IonScript.
   if (jitScript->hasIonScript()) {
-    RecompileInfo info(script, jitScript->ionScript()->compilationId());
-    addPendingInvalidation(info);
+    IonScriptKey ionScriptKey(script, jitScript->ionScript()->compilationId());
+    addPendingInvalidation(ionScriptKey);
   }
 
   // Trigger invalidation of any callers inlining this script.
   auto* inlinedCompilations =
       script->zone()->jitZone()->maybeInlinedCompilations(script);
   if (inlinedCompilations) {
-    for (const RecompileInfo& info : *inlinedCompilations) {
-      addPendingInvalidation(info);
+    for (const auto& ionScriptKey : *inlinedCompilations) {
+      addPendingInvalidation(ionScriptKey);
     }
     script->zone()->jitZone()->removeInlinedCompilations(script);
   }
 }
 
-IonScript* RecompileInfo::maybeIonScriptToInvalidate() const {
+IonScript* IonScriptKey::maybeIonScriptToInvalidate() const {
   // Make sure this is not called under CodeGenerator::link (before the
   // IonScript is created).
   MOZ_ASSERT_IF(
@@ -527,11 +527,11 @@ IonScript* RecompileInfo::maybeIonScriptToInvalidate() const {
   return script_->ionScript();
 }
 
-bool RecompileInfo::traceWeak(JSTracer* trc) {
-  // Sweep the RecompileInfo if either the script is dead or the IonScript has
+bool IonScriptKey::traceWeak(JSTracer* trc) {
+  // Sweep the IonScriptKey if either the script is dead or the IonScript has
   // been invalidated.
 
-  if (!TraceManuallyBarrieredWeakEdge(trc, &script_, "RecompileInfo::script")) {
+  if (!TraceManuallyBarrieredWeakEdge(trc, &script_, "IonScriptKey::script")) {
     return false;
   }
 
@@ -2610,28 +2610,29 @@ static void ClearPendingInvalidationDependencies(JSScript* script) {
   script->realm()->realmFuses.fuseDependencies.removeScript(script);
 }
 
-void jit::Invalidate(JSContext* cx, const RecompileInfoVector& invalid,
+void jit::Invalidate(JSContext* cx, const IonScriptKeyVector& invalid,
                      bool resetUses, bool cancelOffThread) {
   JitSpew(JitSpew_IonInvalidate, "Start invalidation.");
 
   // Add an invalidation reference to all invalidated IonScripts to indicate
   // to the traversal which frames have been invalidated.
   size_t numInvalidations = 0;
-  for (const RecompileInfo& info : invalid) {
+  for (const auto& ionScriptKey : invalid) {
+    JSScript* script = ionScriptKey.script();
     if (cancelOffThread) {
-      CancelOffThreadIonCompile(info.script());
+      CancelOffThreadIonCompile(script);
     }
 
-    IonScript* ionScript = info.maybeIonScriptToInvalidate();
+    IonScript* ionScript = ionScriptKey.maybeIonScriptToInvalidate();
     if (!ionScript) {
       continue;
     }
 
     JitSpew(JitSpew_IonInvalidate, " Invalidate %s:%u:%u, IonScript %p",
-            info.script()->filename(), info.script()->lineno(),
-            info.script()->column().oneOriginValue(), ionScript);
+            script->filename(), script->lineno(),
+            script->column().oneOriginValue(), ionScript);
 
-    ClearPendingInvalidationDependencies(info.script());
+    ClearPendingInvalidationDependencies(script);
 
     // Keep the ion script alive during the invalidation and flag this
     // ionScript as being invalidated.  This increment is removed by the
@@ -2653,8 +2654,8 @@ void jit::Invalidate(JSContext* cx, const RecompileInfoVector& invalid,
   // Drop the references added above. If a script was never active, its
   // IonScript will be immediately destroyed. Otherwise, it will be held live
   // until its last invalidated frame is destroyed.
-  for (const RecompileInfo& info : invalid) {
-    IonScript* ionScript = info.maybeIonScriptToInvalidate();
+  for (const auto& ionScriptKey : invalid) {
+    IonScript* ionScript = ionScriptKey.maybeIonScriptToInvalidate();
     if (!ionScript) {
       continue;
     }
@@ -2664,7 +2665,8 @@ void jit::Invalidate(JSContext* cx, const RecompileInfoVector& invalid,
       // jitScript->ionScript_ now. We don't want to do this unconditionally
       // because maybeIonScriptToInvalidate depends on script->ionScript() (we
       // would leak the IonScript if |invalid| contains duplicates).
-      ClearIonScriptAfterInvalidation(cx, info.script(), ionScript, resetUses);
+      ClearIonScriptAfterInvalidation(cx, ionScriptKey.script(), ionScript,
+                                      resetUses);
     }
 
     ionScript->decrementInvalidationCount(gcx);
@@ -2677,9 +2679,10 @@ void jit::Invalidate(JSContext* cx, const RecompileInfoVector& invalid,
 
   // Finally, null out jitScript->ionScript_ for IonScripts that are still on
   // the stack.
-  for (const RecompileInfo& info : invalid) {
-    if (IonScript* ionScript = info.maybeIonScriptToInvalidate()) {
-      ClearIonScriptAfterInvalidation(cx, info.script(), ionScript, resetUses);
+  for (const auto& ionScriptKey : invalid) {
+    if (IonScript* ionScript = ionScriptKey.maybeIonScriptToInvalidate()) {
+      ClearIonScriptAfterInvalidation(cx, ionScriptKey.script(), ionScript,
+                                      resetUses);
     }
   }
 }
@@ -2693,8 +2696,8 @@ void jit::IonScript::invalidate(JSContext* cx, JSScript* script, bool resetUses,
 
   JitSpew(JitSpew_IonInvalidate, " Invalidate IonScript %p: %s", this, reason);
 
-  // RecompileInfoVector has inline space for at least one element.
-  RecompileInfoVector list;
+  // IonScriptKeyVector has inline space for at least one element.
+  IonScriptKeyVector list;
   MOZ_RELEASE_ASSERT(list.reserve(1));
   list.infallibleEmplaceBack(script, compilationId());
 
@@ -2726,8 +2729,8 @@ void jit::Invalidate(JSContext* cx, JSScript* script, bool resetUses,
     }
   }
 
-  // RecompileInfoVector has inline space for at least one element.
-  RecompileInfoVector scripts;
+  // IonScriptKeyVector has inline space for at least one element.
+  IonScriptKeyVector scripts;
   MOZ_ASSERT(script->hasIonScript());
   MOZ_RELEASE_ASSERT(scripts.reserve(1));
   scripts.infallibleEmplaceBack(script, script->ionScript()->compilationId());

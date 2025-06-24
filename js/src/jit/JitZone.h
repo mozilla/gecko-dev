@@ -123,7 +123,7 @@ class JitZone {
 
   // HashMap that maps scripts to compilations inlining those scripts.
   using InlinedScriptMap =
-      GCHashMap<WeakHeapPtr<BaseScript*>, RecompileInfoVector,
+      GCHashMap<WeakHeapPtr<BaseScript*>, IonScriptKeyVector,
                 StableCellHasher<WeakHeapPtr<BaseScript*>>, SystemAllocPolicy>;
   InlinedScriptMap inlinedCompilations_;
 
@@ -215,10 +215,10 @@ class JitZone {
   ExecutableAllocator& execAlloc() { return execAlloc_.ref(); }
   const ExecutableAllocator& execAlloc() const { return execAlloc_.ref(); }
 
-  [[nodiscard]] bool addInlinedCompilation(const RecompileInfo& info,
+  [[nodiscard]] bool addInlinedCompilation(const IonScriptKey& ionScriptKey,
                                            JSScript* inlined);
 
-  RecompileInfoVector* maybeInlinedCompilations(JSScript* inlined) {
+  IonScriptKeyVector* maybeInlinedCompilations(JSScript* inlined) {
     auto p = inlinedCompilations_.lookup(inlined);
     return p ? &p->value() : nullptr;
   }

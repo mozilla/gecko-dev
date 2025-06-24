@@ -441,7 +441,7 @@ bool js::jit::RecompileBaselineScriptForDebugMode(
 
 static bool InvalidateScriptsInZone(JSContext* cx, Zone* zone,
                                     const Vector<DebugModeOSREntry>& entries) {
-  RecompileInfoVector invalid;
+  IonScriptKeyVector invalid;
   for (UniqueScriptOSREntryIter iter(entries); !iter.done(); ++iter) {
     JSScript* script = iter.entry().script;
     if (script->zone() != zone) {

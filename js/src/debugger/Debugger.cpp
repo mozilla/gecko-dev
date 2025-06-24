@@ -59,7 +59,7 @@
 #include "gc/ZoneAllocator.h"             // for ZoneAllocPolicy
 #include "jit/BaselineDebugModeOSR.h"  // for RecompileOnStackBaselineScriptsForDebugMode
 #include "jit/BaselineJIT.h"           // for FinishDiscardBaselineScript
-#include "jit/Invalidation.h"         // for RecompileInfoVector
+#include "jit/Invalidation.h"         // for IonScriptKeyVector
 #include "jit/JitContext.h"           // for JitContext
 #include "jit/JitOptions.h"           // for fuzzingSafe
 #include "jit/JitScript.h"            // for JitScript
@@ -3262,7 +3262,7 @@ static inline void MarkJitScriptActiveIfObservable(
 
 static bool AppendAndInvalidateScript(JSContext* cx, Zone* zone,
                                       JSScript* script,
-                                      jit::RecompileInfoVector& invalid,
+                                      jit::IonScriptKeyVector& invalid,
                                       Vector<JSScript*>& scripts) {
   // Enter the script's realm as AddPendingInvalidation attempts to
   // cancel off-thread compilations, whose books are kept on the
@@ -3289,7 +3289,7 @@ static bool UpdateExecutionObservabilityOfScriptsInZone(
   // Iterate through observable scripts, invalidating their Ion scripts and
   // appending them to a vector for discarding their baseline scripts later.
   {
-    RecompileInfoVector invalid;
+    IonScriptKeyVector invalid;
     if (JSScript* script = obs.singleScriptForZoneInvalidation()) {
       if (obs.shouldRecompileOrInvalidate(script)) {
         if (!AppendAndInvalidateScript(cx, zone, script, invalid, scripts)) {

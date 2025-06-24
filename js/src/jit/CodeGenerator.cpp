@@ -16583,7 +16583,7 @@ static bool AddInlinedCompilations(JSContext* cx, HandleScript script,
                                    const WarpSnapshot* snapshot,
                                    bool* isValid) {
   MOZ_ASSERT(!*isValid);
-  RecompileInfo recompileInfo(script, compilationId);
+  IonScriptKey ionScriptKey(script, compilationId);
 
   JitZone* jitZone = cx->zone()->jitZone();
 
@@ -16604,7 +16604,7 @@ static bool AddInlinedCompilations(JSContext* cx, HandleScript script,
       return true;
     }
 
-    if (!jitZone->addInlinedCompilation(recompileInfo, inlinedScript)) {
+    if (!jitZone->addInlinedCompilation(ionScriptKey, inlinedScript)) {
       return false;
     }
   }
