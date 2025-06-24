@@ -336,27 +336,30 @@ MFTEncoder::SetMediaTypes(IMFMediaType* aInputType, IMFMediaType* aOutputType) {
 // Async MFT won't work without unlocking. See
 // https://docs.microsoft.com/en-us/windows/win32/medfound/asynchronous-mfts#unlocking-asynchronous-mfts
 MFTEncoder::AsyncMFTResult MFTEncoder::AttemptEnableAsync() {
-  IMFAttributes* pAttributes = nullptr;
-  HRESULT hr = mEncoder->GetAttributes(&pAttributes);
+  ComPtr<IMFAttributes> attributes = nullptr;
+  HRESULT hr = mEncoder->GetAttributes(&attributes);
   if (FAILED(hr)) {
     MFT_ENC_LOGE("Encoder->GetAttribute error");
     return AsyncMFTResult(hr);
   }
 
+  // Retrieve `MF_TRANSFORM_ASYNC` using `MFGetAttributeUINT32` rather than
+  // `attributes->GetUINT32`, since `MF_TRANSFORM_ASYNC` may not be present in
+  // the attributes.
   bool async =
-      MFGetAttributeUINT32(pAttributes, MF_TRANSFORM_ASYNC, FALSE) == TRUE;
-  if (async) {
-    hr = pAttributes->SetUINT32(MF_TRANSFORM_ASYNC_UNLOCK, TRUE);
-  } else {
-    hr = S_OK;
+      MFGetAttributeUINT32(attributes.Get(), MF_TRANSFORM_ASYNC, FALSE) == TRUE;
+  if (!async) {
+    MFT_ENC_LOGD("Encoder is not async");
+    return AsyncMFTResult(false);
   }
-  pAttributes->Release();
 
+  hr = attributes->SetUINT32(MF_TRANSFORM_ASYNC_UNLOCK, TRUE);
   if (FAILED(hr)) {
-    MFT_ENC_LOGE("Setting async unlock");
+    MFT_ENC_LOGE("SetUINT32 async unlock error");
+    return AsyncMFTResult(hr);
   }
 
-  return SUCCEEDED(hr) ? AsyncMFTResult(async) : AsyncMFTResult(hr);
+  return AsyncMFTResult(true);
 }
 
 HRESULT MFTEncoder::GetStreamIDs() {
