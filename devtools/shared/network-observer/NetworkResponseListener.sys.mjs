@@ -467,7 +467,7 @@ export class NetworkResponseListener {
     this.setAsyncListener(this.#sink.inputStream, null);
 
     const responseStatus = this.#httpActivity.responseStatus;
-    if (this.#request.fromCache || responseStatus == 304) {
+    if (responseStatus == 304) {
       this.#fetchCacheInformation();
     }
 
