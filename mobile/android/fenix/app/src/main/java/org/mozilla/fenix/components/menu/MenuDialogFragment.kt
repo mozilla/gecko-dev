@@ -53,7 +53,6 @@ import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.concept.engine.translate.TranslationSupport
 import mozilla.components.concept.engine.translate.findLanguage
 import mozilla.components.feature.addons.Addon
-import mozilla.components.feature.addons.ui.displayName
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
@@ -489,6 +488,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     null
                                 }
 
+                                val extensionsMenuItemDescription = getExtensionsMenuItemDescription(
+                                    isExtensionsProcessDisabled = isExtensionsProcessDisabled,
+                                    allWebExtensionsDisabled = allWebExtensionsDisabled,
+                                    availableAddons = availableAddons,
+                                    browserWebExtensionMenuItems = browserWebExtensionMenuItem,
+                                )
+
                                 MainMenu(
                                     accessPoint = args.accesspoint,
                                     account = account,
@@ -504,12 +510,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isReaderViewActive = isReaderViewActive,
                                     canGoBack = selectedTab?.content?.canGoBack ?: true,
                                     canGoForward = selectedTab?.content?.canGoForward ?: true,
-                                    extensionsMenuItemDescription = getExtensionsMenuItemDescription(
-                                        isExtensionsProcessDisabled = isExtensionsProcessDisabled,
-                                        allWebExtensionsDisabled = allWebExtensionsDisabled,
-                                        availableAddons = availableAddons,
-                                        browserWebExtensionMenuItems = browserWebExtensionMenuItem,
-                                    ),
+                                    extensionsMenuItemDescription = extensionsMenuItemDescription,
                                     scrollState = scrollState,
                                     showBanner = showBanner,
                                     webExtensionMenuCount = webExtensionsCount,
@@ -555,7 +556,11 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         shouldShowDefaultBrowserBanner = false
                                     },
                                     onExtensionsMenuClick = {
-                                        if (allWebExtensionsDisabled || isExtensionsProcessDisabled) {
+                                        if (
+                                            allWebExtensionsDisabled ||
+                                            isExtensionsProcessDisabled ||
+                                            extensionsMenuItemDescription == null
+                                        ) {
                                             store.dispatch(MenuAction.Navigate.ManageExtensions)
                                         } else {
                                             isExtensionsExpanded = !isExtensionsExpanded
@@ -766,16 +771,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
         allWebExtensionsDisabled: Boolean,
         availableAddons: List<Addon>,
         browserWebExtensionMenuItems: List<WebExtensionMenuItem>,
-    ): String {
+    ): String? {
         return when {
             isExtensionsProcessDisabled -> {
                 requireContext().getString(R.string.browser_menu_extensions_disabled_description)
-            }
-
-            args.accesspoint == MenuAccessPoint.Home && availableAddons.isNotEmpty() -> {
-                availableAddons.joinToString(
-                    separator = ", ",
-                ) { it.displayName(requireContext()) }
             }
 
             args.accesspoint == MenuAccessPoint.Browser && browserWebExtensionMenuItems.isNotEmpty() -> {
@@ -790,7 +789,11 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                 requireContext().getString(R.string.browser_menu_no_extensions_installed_description)
             }
 
-            else -> requireContext().getString(R.string.browser_menu_try_a_recommended_extension_description)
+            args.accesspoint == MenuAccessPoint.Browser && availableAddons.isEmpty() -> {
+                requireContext().getString(R.string.browser_menu_try_a_recommended_extension_description)
+            }
+
+            else -> null
         }
     }
 
