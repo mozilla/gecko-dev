@@ -156,20 +156,12 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
       return media::DecodeSupportSet{};
     }
 
-    const auto& trackInfo = aParams.mConfig;
-    const nsACString& mimeType = trackInfo.mMimeType;
-    if (XRE_IsGPUProcess() && !IsHWDecodingSupported(mimeType)) {
-      MOZ_LOG(
-          sPDMLog, LogLevel::Debug,
-          ("FFmpeg decoder rejects requested type '%s' for hardware decoding",
-           mimeType.BeginReading()));
-      return media::DecodeSupportSet{};
-    }
-
     // Temporary - forces use of VPXDecoder when alpha is present.
     // Bug 1263836 will handle alpha scenario once implemented. It will shift
     // the check for alpha to PDMFactory but not itself remove the need for a
     // check.
+    const auto& trackInfo = aParams.mConfig;
+    const nsACString& mimeType = trackInfo.mMimeType;
     if (VPXDecoder::IsVPX(mimeType) && trackInfo.GetAsVideoInfo()->HasAlpha()) {
       MOZ_LOG(sPDMLog, LogLevel::Debug,
               ("FFmpeg decoder rejects requested type '%s'",
@@ -181,6 +173,9 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
         aParams.mOptions.contains(CreateDecoderParams::Option::LowLatency)) {
       // SVC layers are unsupported, and may be used in low latency use cases
       // (WebRTC).
+      MOZ_LOG(sPDMLog, LogLevel::Debug,
+              ("FFmpeg decoder rejects requested type '%s' due to low latency",
+               mimeType.BeginReading()));
       return media::DecodeSupportSet{};
     }
 
@@ -205,28 +200,19 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
     }
     AVCodecID codecId =
         audioCodec != AV_CODEC_ID_NONE ? audioCodec : videoCodec;
-    AVCodec* codec = FFmpegDataDecoder<V>::FindAVCodec(mLib, codecId);
-    MOZ_LOG(sPDMLog, LogLevel::Debug,
-            ("FFmpeg decoder %s requested type '%s'",
-             !!codec ? "supports" : "rejects", mimeType.BeginReading()));
-    if (!codec) {
-      return media::DecodeSupportSet{};
+
+    media::DecodeSupportSet supports;
+    if (FFmpegDataDecoder<V>::FindSoftwareAVCodec(mLib, codecId)) {
+      supports += media::DecodeSupport::SoftwareDecode;
     }
-    // This logic is mirrored in FFmpegDataDecoder<LIBAV_VER>::InitDecoder and
-    // FFmpegVideoDecoder<LIBAV_VER>::InitVAAPIDecoder. We prefer to use our own
-    // OpenH264 decoder through the plugin over ffmpeg by default due to broken
-    // decoding with some versions.
-    if (!strcmp(codec->name, "libopenh264") &&
-        !StaticPrefs::media_ffmpeg_allow_openh264()) {
-      MOZ_LOG(sPDMLog, LogLevel::Debug,
-              ("FFmpeg decoder rejects as openh264 disabled by pref"));
-      return media::DecodeSupportSet{};
-    }
-    media::DecodeSupportSet support = media::DecodeSupport::SoftwareDecode;
     if (IsHWDecodingSupported(mimeType)) {
-      support += media::DecodeSupport::HardwareDecode;
+      supports += media::DecodeSupport::HardwareDecode;
     }
-    return support;
+    MOZ_LOG(
+        sPDMLog, LogLevel::Debug,
+        ("FFmpeg decoder %s requested type '%s'",
+         supports.isEmpty() ? "rejects" : "supports", mimeType.BeginReading()));
+    return supports;
   }
 
  protected:
