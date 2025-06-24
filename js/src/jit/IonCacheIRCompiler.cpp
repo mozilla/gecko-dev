@@ -835,7 +835,7 @@ bool IonCacheIRCompiler::emitGuardSpecificAtom(StringOperandId strId,
   Register str = allocator.useRegister(masm, strId);
   AutoScratchRegister scratch(allocator, masm);
 
-  JSAtom* atom = &stringStubField(expectedOffset)->asAtom();
+  JSOffThreadAtom* atom = &stringStubField(expectedOffset)->asOffThreadAtom();
 
   FailurePath* failure;
   if (!addFailurePath(&failure)) {

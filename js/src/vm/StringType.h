@@ -1815,6 +1815,33 @@ class JSOffThreadAtom : private JSAtom {
  public:
   size_t length() const { return headerLengthFieldAtomic(); }
   size_t flags() const { return headerFlagsFieldAtomic(); }
+
+  bool hasLatin1Chars() const { return flags() & LATIN1_CHARS_BIT; }
+  bool hasTwoByteChars() const { return !(flags() & LATIN1_CHARS_BIT); }
+
+  bool isAtom() const { return flags() & ATOM_BIT; }
+  bool isInline() const { return flags() & INLINE_CHARS_BIT; }
+
+  const JS::Latin1Char* latin1Chars(const JS::AutoRequireNoGC& nogc) const {
+    MOZ_ASSERT(hasLatin1Chars());
+    return isInline() ? d.inlineStorageLatin1 : d.s.u2.nonInlineCharsLatin1;
+  };
+  const char16_t* twoByteChars(const JS::AutoRequireNoGC& nogc) const {
+    MOZ_ASSERT(hasTwoByteChars());
+    return JSLinearString::twoByteChars(nogc);
+    return isInline() ? d.inlineStorageTwoByte : d.s.u2.nonInlineCharsTwoByte;
+  }
+  mozilla::Range<const JS::Latin1Char> latin1Range(
+      const JS::AutoRequireNoGC& nogc) const {
+    return mozilla::Range<const JS::Latin1Char>(latin1Chars(nogc), length());
+  }
+  mozilla::Range<const char16_t> twoByteRange(
+      const JS::AutoRequireNoGC& nogc) const {
+    return mozilla::Range<const char16_t>(twoByteChars(nogc), length());
+  }
+
+  // Should only be used to get an opaque pointer for baking into jitcode.
+  const js::gc::Cell* raw() const { return this; }
 };
 
 }  // namespace js

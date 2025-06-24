@@ -250,6 +250,7 @@ class ImmGCPtr {
     // wasm shouldn't be creating GC things
     MOZ_ASSERT(!IsCompilingWasm());
   }
+  explicit ImmGCPtr(const JSOffThreadAtom* atom) : ImmGCPtr(atom->raw()) {}
 
  private:
   ImmGCPtr() : value(0) {}
