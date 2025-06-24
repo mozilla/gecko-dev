@@ -5,7 +5,7 @@ help:
 
 all: help
 
-.PHONY: tests dist all help
+.PHONY: tests
 
 MANIFEST.in:
 	hg manifest | sed -e 's/^/include /' > MANIFEST.in

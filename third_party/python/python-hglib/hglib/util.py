@@ -94,30 +94,16 @@ def cmdbuilder(name, *args, **kwargs):
     True
     >>> cmdbuilder(b('cmd'), long=True) == [b('cmd'), b('--long')]
     True
-    >>> cmdbuilder(b('cmd'), s=b('hort')) == [b('cmd'), b('-short')]
-    True
-    >>> cmdbuilder(b('cmd'), str=b('s')) == [b('cmd'), b('--str=s')]
+    >>> cmdbuilder(b('cmd'), str=b('s')) == [b('cmd'), b('--str'), b('s')]
     True
     >>> cmdbuilder(b('cmd'), d_ash=True) == [b('cmd'), b('--d-ash')]
     True
     >>> cmdbuilder(b('cmd'), _=True) == [b('cmd'), b('-')]
     True
-    >>> cmdbuilder(b('cmd'), l=[1, 2]) == [b('cmd'), b('-l1'), b('-l2')]
-    True
-    >>> expect = [b('cmd'), b('--list=1'), b('--list=2')]
+    >>> expect = [b('cmd'), b('--list'), b('1'), b('--list'), b('2')]
     >>> cmdbuilder(b('cmd'), list=[1, 2]) == expect
     True
     >>> cmdbuilder(b('cmd'), None) == [b('cmd')]
-    True
-    >>> cmdbuilder(b('cmd'), b('-a')) == [b('cmd'), b('--'), b('-a')]
-    True
-    >>> cmdbuilder(b('cmd'), b('')) == [b('cmd'), b('--'), b('')]
-    True
-    >>> cmdbuilder(b('cmd'), s=b('')) == [b('cmd'), b('-s'), b('')]
-    True
-    >>> cmdbuilder(b('cmd'), s=[b('')]) == [b('cmd'), b('-s'), b('')]
-    True
-    >>> cmdbuilder(b('cmd'), long=b('')) == [b('cmd'), b('--long=')]
     True
     """
     cmd = [name]
@@ -125,36 +111,26 @@ def cmdbuilder(name, *args, **kwargs):
         if val is None:
             continue
 
-        arg = pfx = arg.encode('latin-1').replace(b('_'), b('-'))
-        short = (len(arg) == 1)
+        arg = arg.encode('latin-1').replace(b('_'), b('-'))
         if arg != b('-'):
-            if short:
-                arg = pfx = b('-') + arg
+            if len(arg) == 1:
+                arg = b('-') + arg
             else:
                 arg = b('--') + arg
-                pfx = arg + b('=')
         if isinstance(val, bool):
             if val:
                 cmd.append(arg)
         elif isinstance(val, list):
             for v in val:
-                s = _cmdval(v)
-                if s or not short:
-                    cmd.append(pfx + s)
-                else:
-                    cmd.extend([arg, s])
+                cmd.append(arg)
+                cmd.append(_cmdval(v))
         else:
-            s = _cmdval(val)
-            if s or not short:
-                cmd.append(pfx + s)
-            else:
-                cmd.extend([arg, s])
+            cmd.append(arg)
+            cmd.append(_cmdval(val))
 
-    args = [a for a in args if a is not None]
-    if args:
-        cmd.append(b('--'))
     for a in args:
-        cmd.append(a)
+        if a is not None:
+            cmd.append(a)
 
     return cmd
 

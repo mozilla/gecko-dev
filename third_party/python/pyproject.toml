@@ -43,7 +43,7 @@ dependencies = [
     "pyasn1-modules~=0.2",
     "pyasn1~=0.4",
     "pylru~=1.0",
-    "python-hglib~=2.4",
+    "python-hglib==2.4",
     "pyyaml==6.0.2",
     "redo~=3.0",
     "requests-unixsocket~=0.2",

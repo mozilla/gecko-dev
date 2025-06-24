@@ -46,16 +46,8 @@ class hgclient(object):
         self._args = [hglib.HGPATH, 'serve', '--cmdserver', 'pipe',
                 '--config', 'ui.interactive=True']
         if path:
-            # perhaps path shouldn't be a unicode string, but accepted for
-            # backward compatibility.
-            if isinstance(path, str):
-                # py2: bytes + bytes, py3: unicode + unicode
-                self._args += ['-R' + path]
-            else:
-                # py2: (ascii) bytes + unicode, py3: bytes + bytes
-                self._args += [b('-R') + path]
+            self._args += ['-R', path]
         if configs:
-            # don't use "--config=<value>" form for hg 1.9 compatibility
             for config in configs:
                 self._args += ['--config', config]
         self._env = {'HGPLAIN': '1'}
@@ -147,11 +139,7 @@ class hgclient(object):
     def _readchannel(self):
         data = self.server.stdout.read(hgclient.outputfmtsize)
         if not data:
-            ret, serr = self._close()
-            if ret != 0:
-                raise error.ServerError('server exited with status %d: %s'
-                                        % (ret, serr.strip()))
-            raise error.ResponseError('no response received from server')
+            raise error.ServerError()
         channel, length = struct.unpack(hgclient.outputfmt, data)
         if channel in b('IL'):
             return channel, length
@@ -183,8 +171,6 @@ class hgclient(object):
         if not self.server:
             raise ValueError("server not connected")
 
-        if any(b('\0') in a for a in args):
-            raise ValueError('null character in command arguments')
         self.server.stdin.write(b('runcommand\n'))
         writeblock(b('\0').join(args))
 
@@ -204,7 +190,6 @@ class hgclient(object):
                 return struct.unpack(hgclient.retfmt, data)[0]
             # a channel that we don't know and can't ignore
             elif channel.isupper():
-                self.close()
                 raise error.ResponseError(
                     "unexpected data on required channel '%s'" % channel)
             # optional channel
@@ -250,8 +235,6 @@ class hgclient(object):
                 reply = prompt(size, out.getvalue())
                 return reply
             inchannels[b('L')] = func
-        else:
-            inchannels[b('L')] = lambda _: ''
         if input is not None:
             inchannels[b('I')] = input
 
@@ -272,15 +255,7 @@ class hgclient(object):
         self.server = util.popen(self._args, self._env)
         try:
             self._readhello()
-        except error.ResponseError:
-            if self.server is not None:
-                self._close()
-            raise
         except error.ServerError:
-            if self.server is None:
-                # server is already closed, hopefully the ServerError
-                # we got has enough information.
-                raise
             ret, serr = self._close()
             raise error.ServerError('server exited with status %d: %s'
                                     % (ret, serr.strip()))
@@ -293,8 +268,6 @@ class hgclient(object):
         Attempting to call any function afterwards that needs to
         communicate with the server will raise a ValueError.
         """
-        if not self.server:
-            return 0
         return self._close()[0]
 
     def _close(self):
@@ -693,8 +666,7 @@ class hgclient(object):
 
         conf = []
         if showsource:
-            out = util.skiplines(out, (b('read config from: '),
-                                       b('set config by: ')))
+            out = util.skiplines(out, b('read config from: '))
             for line in out.splitlines():
                 m = re.match(b(r"(.+?:(?:\d+:)?) (.*)"), line)
                 t = splitline(m.group(2))
@@ -873,19 +845,18 @@ class hgclient(object):
 
         args = cmdbuilder(b('grep'), all=all, a=text, f=follow, i=ignorecase,
                           l=fileswithmatches, n=line, u=user, d=date,
-                          I=include, X=exclude, hidden=self.hidden, print0=True,
+                          I=include, X=exclude, hidden=self.hidden,
                           *[pattern] + files)
+        args.append(b('-0'))
 
         def eh(ret, out, err):
             if ret != 1:
                 raise error.CommandError(args, ret, out, err)
             return b('')
 
-        out = self.rawcommand(args, eh=eh).split(b('\0'))[:-1]
+        out = self.rawcommand(args, eh=eh).split(b('\0'))
 
-        fieldcount = 1
-        if all or self.version < (5, 2):
-            fieldcount += 1
+        fieldcount = 3
         if user:
             fieldcount += 1
         if date:
@@ -894,8 +865,8 @@ class hgclient(object):
             fieldcount += 1
         if all:
             fieldcount += 1
-        if not fileswithmatches:
-            fieldcount += 1
+        if fileswithmatches:
+            fieldcount -= 1
 
         return util.grouper(fieldcount, out)
 
@@ -1158,14 +1129,13 @@ class hgclient(object):
 
         """
         # we can't really use --preview since merge doesn't support --template
-        args = cmdbuilder(b('merge'), r=rev, f=force, t=tool,
-                          y=(cb is merge.handlers.noninteractive))
+        args = cmdbuilder(b('merge'), r=rev, f=force, t=tool)
 
         prompt = None
         if cb is merge.handlers.abort:
             prompt = cb
         elif cb is merge.handlers.noninteractive:
-            pass
+            args.append(b('-y'))
         else:
             prompt = lambda size, output: cb(output) + b('\n')
 
@@ -1496,7 +1466,9 @@ class hgclient(object):
         args = cmdbuilder(b('status'), rev=rev, change=change, A=all,
                           m=modified, a=added, r=removed, d=deleted, c=clean,
                           u=unknown, i=ignored, C=copies, S=subrepos, I=include,
-                          X=exclude, hidden=self.hidden, print0=True)
+                          X=exclude, hidden=self.hidden)
+
+        args.append(b('-0'))
 
         out = self.rawcommand(args)
         l = []
@@ -1625,7 +1597,7 @@ class hgclient(object):
             elif name == b('branch'):
                 pass
             elif name == b('commit'):
-                value = b('(clean)') in value
+                value = value == b('(clean)')
             elif name == b('update'):
                 if value == b('(current)'):
                     value = 0

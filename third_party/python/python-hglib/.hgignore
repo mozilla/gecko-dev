@@ -10,4 +10,3 @@ MANIFEST.in
 *.swp
 *.noseids
 build
-.tox

@@ -891,8 +891,8 @@ python-dateutil==2.9.0.post0 \
     # via
     #   arrow
     #   taskcluster
-python-hglib==2.6.2 \
-    --hash=sha256:b18bd1ed53c90ee57d5714d66ad6bb72b64e930d4aeca9830892c08bb28da608
+python-hglib==2.4 \
+    --hash=sha256:693d6ed92a6566e78802c7a03c256cda33d08c63ad3f00fcfa11379b184b9462
     # via mozilla-third-party-python-vendor-dir
 python-slugify==8.0.4 \
     --hash=sha256:276540b79961052b66b7d116620b36518847f52d5fd9e3a70164fc8c50faa6b8 \
