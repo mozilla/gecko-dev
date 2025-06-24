@@ -3204,6 +3204,7 @@ nsresult ScriptLoader::MaybePrepareForBytecodeEncodingAfterExecute(
 
 bool ScriptLoader::IsAlreadyHandledForBytecodeEncodingPreparation(
     ScriptLoadRequest* aRequest) {
+  MOZ_ASSERT_IF(aRequest->isInList(), mBytecodeEncodingQueue.Contains(aRequest));
   return aRequest->isInList() || !aRequest->mCacheInfo;
 }
 
