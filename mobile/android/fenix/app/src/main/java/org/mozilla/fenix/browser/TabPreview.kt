@@ -225,7 +225,7 @@ class TabPreview @JvmOverloads constructor(
         } else if (tab.content.securityInfo.secure == true) {
             add(
                 ActionButtonRes(
-                    drawableResId = R.drawable.mozac_ic_lock_24,
+                    drawableResId = R.drawable.mozac_ic_shield_checkmark_24,
                     contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                     onClick = object : BrowserToolbarEvent {},
                 ),
@@ -233,7 +233,7 @@ class TabPreview @JvmOverloads constructor(
         } else {
             add(
                 ActionButtonRes(
-                    drawableResId = R.drawable.mozac_ic_broken_lock,
+                    drawableResId = R.drawable.mozac_ic_shield_slash_24,
                     contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                     onClick = object : BrowserToolbarEvent {},
                 ),

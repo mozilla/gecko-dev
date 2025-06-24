@@ -155,11 +155,11 @@ class BrowserToolbarIntegration(
             icons = icons.copy(
                 trackingProtectionTrackersBlocked = AppCompatResources.getDrawable(
                     context,
-                    R.drawable.mozac_ic_shield_24,
+                    R.drawable.mozac_ic_shield_checkmark_24,
                 )!!,
                 trackingProtectionNothingBlocked = AppCompatResources.getDrawable(
                     context,
-                    R.drawable.mozac_ic_shield_24,
+                    R.drawable.mozac_ic_shield_checkmark_24,
                 )!!,
                 trackingProtectionException = AppCompatResources.getDrawable(
                     context,

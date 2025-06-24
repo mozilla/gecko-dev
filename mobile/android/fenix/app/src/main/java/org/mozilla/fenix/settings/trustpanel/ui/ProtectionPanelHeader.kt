@@ -93,9 +93,9 @@ internal fun ProtectionPanelHeader(
             ) {
                 Icon(
                     painter = if (websiteInfoState.isSecured) {
-                        painterResource(id = R.drawable.mozac_ic_lock_20)
+                        painterResource(id = R.drawable.mozac_ic_shield_checkmark_24)
                     } else {
-                        painterResource(id = R.drawable.mozac_ic_lock_slash_20)
+                        painterResource(id = R.drawable.mozac_ic_shield_slash_24)
                     },
                     contentDescription = null,
                     tint = FirefoxTheme.colors.iconSecondary,
