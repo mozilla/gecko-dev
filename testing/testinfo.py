@@ -1015,6 +1015,16 @@ class TestInfoReport(TestInfo):
             if task_label.endswith("-cf"):
                 continue
 
+            # skip tier-3
+            if (
+                task.get("task", {})
+                .get("extra", {})
+                .get("treeherder", {})
+                .get("tier", 3)
+                == 3
+            ):
+                continue
+
             try:
                 parts = task_label.split("-")
                 if int(parts[-1]):
