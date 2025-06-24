@@ -894,7 +894,7 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
 #endif
 
   // Support for invalidating fuses
-  js::DependentScriptGroup fuseDependencies;
+  js::DependentIonScriptGroup fuseDependencies;
 
  private:
   js::jit::JitZone* createJitZone(JSContext* cx);

@@ -359,7 +359,7 @@ struct RealmFuses {
     MOZ_CRASH("Fuse Not Found");
   }
 
-  DependentScriptGroup fuseDependencies;
+  DependentIonScriptGroup fuseDependencies;
 
   static int32_t fuseOffsets[];
   static const char* fuseNames[];

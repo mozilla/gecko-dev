@@ -513,11 +513,17 @@ void jit::AddPendingInvalidation(IonScriptKeyVector& invalid,
 }
 
 IonScript* IonScriptKey::maybeIonScriptToInvalidate() const {
+  // This must be called either on the main thread or when sweeping WeakCaches
+  // off-thread.
+  MOZ_ASSERT(CurrentThreadIsMainThread() || CurrentThreadIsGCSweeping());
+
+#ifdef DEBUG
   // Make sure this is not called under CodeGenerator::link (before the
-  // IonScript is created).
-  MOZ_ASSERT_IF(
-      script_->zone()->jitZone()->currentCompilationId(),
-      script_->zone()->jitZone()->currentCompilationId().ref() != id_);
+  // corresponding IonScript is created).
+  auto* jitZone = script_->zoneFromAnyThread()->jitZone();
+  MOZ_ASSERT_IF(jitZone->currentCompilationId(),
+                jitZone->currentCompilationId().ref() != id_);
+#endif
 
   if (!script_->hasIonScript() ||
       script_->ionScript()->compilationId() != id_) {
@@ -2598,18 +2604,6 @@ static void ClearIonScriptAfterInvalidation(JSContext* cx, JSScript* script,
   }
 }
 
-// Remove this script from pending invalidation script caches.
-//
-// This is done to avoid an invalidation leaving behind dependencies which
-// may not actually be real on a recompilation, causing superflous invalidation
-// of recompiled code.
-//
-// Note: This must be kept in sync with the various WeakScriptCaches.
-static void ClearPendingInvalidationDependencies(JSScript* script) {
-  script->realm()->zone()->fuseDependencies.removeScript(script);
-  script->realm()->realmFuses.fuseDependencies.removeScript(script);
-}
-
 void jit::Invalidate(JSContext* cx, const IonScriptKeyVector& invalid,
                      bool resetUses, bool cancelOffThread) {
   JitSpew(JitSpew_IonInvalidate, "Start invalidation.");
@@ -2631,8 +2625,6 @@ void jit::Invalidate(JSContext* cx, const IonScriptKeyVector& invalid,
     JitSpew(JitSpew_IonInvalidate, " Invalidate %s:%u:%u, IonScript %p",
             script->filename(), script->lineno(),
             script->column().oneOriginValue(), ionScript);
-
-    ClearPendingInvalidationDependencies(script);
 
     // Keep the ion script alive during the invalidation and flag this
     // ionScript as being invalidated.  This increment is removed by the

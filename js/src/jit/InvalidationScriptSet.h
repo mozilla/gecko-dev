@@ -14,23 +14,31 @@
 #include "js/GCVector.h"
 #include "js/SweepingAPI.h"
 
-class JSScript;
-
 namespace js::jit {
 
-using WeakScriptSet =
-    GCHashSet<WeakHeapPtr<JSScript*>, StableCellHasher<WeakHeapPtr<JSScript*>>,
-              js::SystemAllocPolicy>;
+// A set of Ion scripts that will be invalidated simultaneously.
+//
+// When using this class, make sure the traceWeak method is called by the GC to
+// sweep dead scripts.
+class DependentIonScriptSet {
+  IonScriptKeyVector ionScripts_;
 
-// A weak cache of scripts all of which will be invalidated simultaneously.
-using WeakScriptCache = JS::WeakCache<WeakScriptSet>;
+  // To avoid keeping a lot of stale entries for invalidated IonScripts between
+  // GCs, we compact the vector when it grows too large.
+  size_t lengthAfterLastCompaction_ = 0;
 
-void InvalidateAndClearScriptSet(JSContext* cx, WeakScriptCache& scripts,
-                                 const char* reason);
-bool AddScriptToSet(WeakScriptCache& scripts, const IonScriptKey& ionScript);
+ public:
+  [[nodiscard]] bool addToSet(const IonScriptKey& ionScript);
+  void invalidateAndClear(JSContext* cx, const char* reason);
 
-// Remove a script from a script set if found.
-void RemoveFromScriptSet(WeakScriptCache& scripts, JSScript* script);
+  bool empty() const { return ionScripts_.empty(); }
+
+  bool traceWeak(JSTracer* trc) {
+    bool res = ionScripts_.traceWeak(trc);
+    lengthAfterLastCompaction_ = ionScripts_.length();
+    return res;
+  }
+};
 
 }  // namespace js::jit
 
