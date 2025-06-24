@@ -18,7 +18,7 @@ add_task(async function test_creditCards_os_auth_disabled_for_new_profile() {
   );
 
   Assert.equal(
-    LoginHelper.getOSAuthEnabled(LoginHelper.OS_AUTH_FOR_PASSWORDS_PREF),
+    LoginHelper.getOSAuthEnabled(),
     AppConstants.NIGHTLY_BUILD,
     "OS Auth should be disabled for passwords by default for a new profile."
   );

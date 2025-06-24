@@ -19,13 +19,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
 });
 
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "Crypto",
-  "@mozilla.org/login-manager/crypto/SDR;1",
-  "nsILoginManagerCrypto"
-);
-
 export class ParentAutocompleteOption {
   image;
   label;
@@ -374,7 +367,10 @@ class ImportRowProcessor {
     return this.summary;
   }
 }
-const OS_AUTH_FOR_PASSWORDS_PREF = "signon.management.page.os-auth.optout";
+
+const OS_AUTH_FOR_PASSWORDS_BOOL_PREF =
+  "signon.management.page.os-auth.locked.enabled";
+
 /**
  * Contains functions shared by different Login Manager components.
  */
@@ -402,7 +398,7 @@ export const LoginHelper = {
   testOnlyUserHasInteractedWithDocument: null,
   userInputRequiredToCapture: null,
   captureInputChanges: null,
-  OS_AUTH_FOR_PASSWORDS_PREF,
+  OS_AUTH_FOR_PASSWORDS_BOOL_PREF,
 
   init() {
     // Watch for pref changes to update cached pref values.
@@ -1504,65 +1500,35 @@ export const LoginHelper = {
   },
 
   /**
-   * Get the decrypted value for a string pref.
-   *
-   * @param {string} prefName -> The pref whose value is needed.
-   * @param {string} safeDefaultValue -> Value to be returned incase the pref is not yet set.
-   * @returns {string}
-   */
-  getSecurePref(prefName, safeDefaultValue) {
-    if (Services.prefs.getBoolPref("security.nocertdb", false)) {
-      return false;
-    }
-    try {
-      const encryptedValue = Services.prefs.getStringPref(prefName, "");
-      return encryptedValue === ""
-        ? safeDefaultValue
-        : lazy.Crypto.decrypt(encryptedValue);
-    } catch {
-      return safeDefaultValue;
-    }
-  },
-
-  /**
-   * Set the pref to the encrypted form of the value.
-   *
-   * @param {string} prefName -> The pref whose value is to be set.
-   * @param {string} value -> The value to be set in its encrypted form.
-   */
-  setSecurePref(prefName, value) {
-    if (Services.prefs.getBoolPref("security.nocertdb", false)) {
-      return;
-    }
-    if (value) {
-      const encryptedValue = lazy.Crypto.encrypt(value);
-      Services.prefs.setStringPref(prefName, encryptedValue);
-    } else {
-      Services.prefs.clearUserPref(prefName);
-    }
-  },
-
-  /**
    * Get whether the OSAuth is enabled or not.
    *
-   * @param {string} prefName -> The name of the pref (creditcards or addresses)
-   * @returns {boolean}
+   * @returns {boolean} Whether or not OS Auth is enabled.
    */
-  getOSAuthEnabled(prefName) {
-    return (
-      lazy.OSKeyStore.canReauth() &&
-      this.getSecurePref(prefName, "") !== "opt out"
-    );
+  getOSAuthEnabled() {
+    if (!lazy.OSKeyStore.canReauth()) {
+      return false;
+    }
+
+    // We need to unlock the pref here to retrieve it's true value, otherwise
+    // the default (false) will be returned.
+    const prefName = OS_AUTH_FOR_PASSWORDS_BOOL_PREF;
+    Services.prefs.unlockPref(prefName);
+    const isEnabled = Services.prefs.getBoolPref(prefName, true);
+    Services.prefs.lockPref(prefName);
+
+    return isEnabled;
   },
 
   /**
    * Set whether the OSAuth is enabled or not.
    *
-   * @param {string} prefName -> The pref to encrypt.
+   * @param {string} prefName -> The pref to set.
    * @param {boolean} enable -> Whether the pref is to be enabled.
    */
-  setOSAuthEnabled(prefName, enable) {
-    this.setSecurePref(prefName, enable ? null : "opt out");
+  setOSAuthEnabled(enable) {
+    const prefName = OS_AUTH_FOR_PASSWORDS_BOOL_PREF;
+    Services.prefs.setBoolPref(prefName, enable);
+    Services.prefs.lockPref(prefName);
   },
 
   async verifyUserOSAuth(
@@ -1652,7 +1618,7 @@ export const LoginHelper = {
       let result;
       try {
         isAuthorized = await this.verifyUserOSAuth(
-          OS_AUTH_FOR_PASSWORDS_PREF,
+          OS_AUTH_FOR_PASSWORDS_BOOL_PREF,
           messageText,
           captionText,
           browser.ownerGlobal,

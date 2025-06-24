@@ -449,10 +449,7 @@ BrowserGlue.prototype = {
         lazy.FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
         false
       );
-      lazy.LoginHelper.setOSAuthEnabled(
-        lazy.LoginHelper.OS_AUTH_FOR_PASSWORDS_PREF,
-        false
-      );
+      lazy.LoginHelper.setOSAuthEnabled(false);
     }
 
     listeners.init();

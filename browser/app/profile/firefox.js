@@ -2653,6 +2653,13 @@ pref("signon.firefoxRelay.firstOfferVersionFallback", "control");
 pref("signon.management.page.breach-alerts.enabled", true);
 pref("signon.management.page.vulnerable-passwords.enabled", true);
 pref("signon.management.page.sort", "name");
+
+#ifdef NIGHTLY_BUILD
+  pref("signon.management.page.os-auth.locked.enabled", true);
+#else
+  pref("signon.management.page.os-auth.locked.enabled", false);
+#endif
+
 // The utm_creative value is appended within the code (specific to the location on
 // where it is clicked). Be sure that if these two prefs are updated, that
 // the utm_creative param be last.
