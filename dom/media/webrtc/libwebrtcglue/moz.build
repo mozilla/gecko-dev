@@ -18,6 +18,10 @@ LOCAL_INCLUDES += [
     "/third_party/libwebrtc",
 ]
 
+EXPORTS.mozilla.media.webrtc += [
+    "WebrtcLocation.h",
+]
+
 UNIFIED_SOURCES += [
     "AudioConduit.cpp",
     "FrameTransformer.cpp",

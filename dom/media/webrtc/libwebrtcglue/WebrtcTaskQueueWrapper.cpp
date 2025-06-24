@@ -7,9 +7,84 @@
 
 #include "api/task_queue/task_queue_factory.h"
 #include "mozilla/TaskQueue.h"
+#include "nsThreadUtils.h"
 #include "VideoUtils.h"
 
+#ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
+#  include "fmt/format.h"
+#endif
+
 namespace mozilla {
+#ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
+class InvocableRunnable final : public nsIRunnable, public nsINamed {
+  // Storage for caching the name returned from GetName().
+  Maybe<nsAutoCString> mName;
+
+  // These are used to construct mName.
+  const char* const mTaskQueueName;
+  const WebrtcLocation mLocation;
+
+  absl::AnyInvocable<void() &&> mTask;
+
+  ~InvocableRunnable() = default;
+
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+
+  InvocableRunnable(const char* aTaskQueueName,
+                    absl::AnyInvocable<void() &&>&& aTask,
+                    const WebrtcLocation& aLocation)
+      : mTaskQueueName(aTaskQueueName),
+        mLocation(aLocation),
+        mTask(std::move(aTask)) {}
+
+  NS_IMETHOD Run() override {
+    std::move(mTask)();
+    return NS_OK;
+  }
+
+  NS_IMETHOD GetName(nsACString& aName) override {
+    if (mName) {
+      aName = *mName;
+      return NS_OK;
+    }
+
+    Maybe<nsDependentCSubstring> fileName;
+    if (mLocation.mFile) {
+      nsDependentCString f(mLocation.mFile);
+#  ifdef XP_WIN
+      // On Windows, path separators are inconsistent per
+      // https://github.com/llvm/llvm-project/issues/45076.
+      int32_t i = f.RFindCharInSet("/\\");
+#  else
+      int32_t i = f.RFindChar('/');
+#  endif
+      if (i == kNotFound) {
+        fileName.emplace(f);
+      } else {
+        fileName.emplace(f, i + 1);
+      }
+    }
+
+    mName.emplace();
+    if (mLocation.mFunction && fileName && mLocation.mLine) {
+      mName->AppendFmt(FMT_STRING("{} - {} ({}:{})"), mTaskQueueName,
+                       mLocation.mFunction, *fileName, mLocation.mLine);
+    } else if (fileName && mLocation.mLine) {
+      mName->AppendFmt(FMT_STRING("{} - InvocableRunnable ({}:{})"),
+                       mTaskQueueName, *fileName, mLocation.mLine);
+    } else {
+      mName->AppendFmt(FMT_STRING("{} - InvocableRunnable"), mTaskQueueName);
+    }
+    aName = *mName;
+
+    return NS_OK;
+  }
+};
+
+NS_IMPL_ISUPPORTS(InvocableRunnable, nsIRunnable, nsINamed)
+#endif
+
 enum class DeletionPolicy : uint8_t { Blocking, NonBlocking };
 
 /**
@@ -79,28 +154,23 @@ class WebrtcTaskQueueWrapper : public webrtc::TaskQueueBase {
     delete this;
   }
 
-  already_AddRefed<Runnable> WrapInvocable(
-      absl::AnyInvocable<void() &&>&& aTask) {
-    struct InvocableRunnable final : public Runnable {
-      absl::AnyInvocable<void() &&> mTask;
-
-      explicit InvocableRunnable(absl::AnyInvocable<void() &&>&& aTask)
-          : Runnable("WebrtcTaskQueueWrapper::InvocableRunnable"),
-            mTask(std::move(aTask)) {}
-
-      NS_IMETHOD Run() {
-        std::move(mTask)();
-        return NS_OK;
-      }
-    };
-
-    return MakeAndAddRef<InvocableRunnable>(std::move(aTask));
+  already_AddRefed<nsIRunnable> WrapInvocable(
+      absl::AnyInvocable<void() &&>&& aTask, const WebrtcLocation& aLocation) {
+#ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
+    return MakeAndAddRef<InvocableRunnable>(mName.get(), std::move(aTask),
+                                            aLocation);
+#else
+    return NS_NewRunnableFunction(
+        "InvocableRunnable",
+        [task = std::move(aTask)]() mutable { std::move(task)(); });
+#endif
   }
 
   void PostTaskImpl(absl::AnyInvocable<void() &&> aTask,
                     const PostTaskTraits& aTraits,
                     const webrtc::Location& aLocation) override {
-    MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(WrapInvocable(std::move(aTask))));
+    MOZ_ALWAYS_SUCCEEDS(
+        mTaskQueue->Dispatch(WrapInvocable(std::move(aTask), aLocation)));
   }
 
   void PostDelayedTaskImpl(absl::AnyInvocable<void() &&> aTask,
@@ -113,7 +183,7 @@ class WebrtcTaskQueueWrapper : public webrtc::TaskQueueBase {
       return;
     }
     MOZ_ALWAYS_SUCCEEDS(mTaskQueue->DelayedDispatch(
-        WrapInvocable(std::move(aTask)), aDelay.ms()));
+        WrapInvocable(std::move(aTask), aLocation), aDelay.ms()));
   }
 
   // If Blocking, access is through WebrtcTaskQueueWrapper, which has to keep

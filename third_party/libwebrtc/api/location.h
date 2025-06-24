@@ -11,6 +11,7 @@
 #ifndef API_LOCATION_H_
 #define API_LOCATION_H_
 
+#if !defined(WEBRTC_MOZILLA_BUILD)
 #include "rtc_base/system/rtc_export.h"
 
 namespace webrtc {
@@ -27,5 +28,12 @@ class RTC_EXPORT Location {
 };
 
 }  // namespace webrtc
+#else
+// Mozilla edit: override
+#include "mozilla/media/webrtc/WebrtcLocation.h"
+namespace webrtc {
+using Location = mozilla::WebrtcLocation;
+}  // namespace webrtc
+#endif
 
 #endif  // API_LOCATION_H_
