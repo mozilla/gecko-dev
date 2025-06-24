@@ -260,8 +260,7 @@ jobs:
           - mozilla-central
           - mozilla-beta
           - mozilla-release
-          # Bug 1965206: Enable this once esr140 has branched off of release
-          # - mozilla-esr140
+          - mozilla-esr140
       when:
           - {weekday: 'Monday', hour: 8, minute: 0}
           - {weekday: 'Thursday', hour: 8, minute: 0}
