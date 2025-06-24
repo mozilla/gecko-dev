@@ -13,6 +13,7 @@
 
 #include "EncoderConfig.h"
 #include "WMF.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/ResultVariant.h"
 #include "nsDeque.h"
@@ -127,6 +128,11 @@ class MFTEncoder final {
   HRESULT ProcessInput();
   HRESULT ProcessOutput();
 
+  MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING_AT_CLASS_SCOPE(DrainState,
+                                                     (DRAINED, DRAINABLE,
+                                                      DRAINING));
+  void SetDrainState(DrainState aState);
+
   const HWPreference mHWPreference;
   RefPtr<IMFTransform> mEncoder;
   // For MFT object creation. See
@@ -143,7 +149,6 @@ class MFTEncoder final {
   bool mOutputStreamProvidesSample;
 
   size_t mNumNeedInput;
-  enum class DrainState { DRAINED, DRAINABLE, DRAINING };
   DrainState mDrainState = DrainState::DRAINABLE;
 
   std::deque<InputSample> mPendingInputs;

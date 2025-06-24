@@ -743,8 +743,7 @@ HRESULT MFTEncoder::ProcessEvents() {
         MFT_RETURN_IF_FAILED(ProcessOutput());
         break;
       case METransformDrainComplete:
-        MFT_ENC_LOGD("State is now DrainState::DRAINED");
-        mDrainState = DrainState::DRAINED;
+        SetDrainState(DrainState::DRAINED);
         break;
       default:
         MFT_ENC_LOGE("unsupported event: %s", MediaEventTypeStr(evType));
@@ -842,8 +841,7 @@ HRESULT MFTEncoder::Drain(nsTArray<RefPtr<IMFSample>>& aOutput) {
         MFT_RETURN_IF_FAILED(ProcessEvents());
       }
       SendMFTMessage(MFT_MESSAGE_COMMAND_DRAIN, 0);
-      MFT_ENC_LOGD("State is now DrainState::DRAINING");
-      mDrainState = DrainState::DRAINING;
+      SetDrainState(DrainState::DRAINING);
       [[fallthrough]];  // To collect and return outputs.
     case DrainState::DRAINING:
       // Collect remaining outputs.
@@ -858,7 +856,7 @@ HRESULT MFTEncoder::Drain(nsTArray<RefPtr<IMFSample>>& aOutput) {
       [[fallthrough]];  // To return outputs.
     case DrainState::DRAINED:
       aOutput.SwapElements(mOutputs);
-      mDrainState = DrainState::DRAINABLE;
+      SetDrainState(DrainState::DRAINABLE);
       return S_OK;
   }
 }
@@ -889,6 +887,16 @@ HRESULT MFTEncoder::GetMPEGSequenceHeader(nsTArray<UINT8>& aHeader) {
   aHeader.SetLength(SUCCEEDED(hr) ? length : 0);
 
   return hr;
+}
+
+void MFTEncoder::SetDrainState(DrainState aState) {
+  MOZ_ASSERT(mscom::IsCurrentThreadMTA());
+  MOZ_ASSERT(mEncoder);
+
+  MFT_ENC_LOGD("SetDrainState: %s -> %s",
+               EnumValueToString(mDrainState),
+               EnumValueToString(aState));
+  mDrainState = aState;
 }
 
 MFTEncoder::Event MFTEncoder::EventSource::GetEvent() {
