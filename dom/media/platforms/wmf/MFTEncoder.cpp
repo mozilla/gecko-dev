@@ -172,21 +172,47 @@ static const char* CodecStr(const GUID& aGUID) {
   }
 }
 
-static Result<nsCString, HRESULT> GetFriendlyName(IMFActivate* aAttributes) {
+static Result<nsCString, HRESULT> GetStringFromAttributes(
+    IMFAttributes* aAttributes, REFGUID aGuidKey) {
   UINT32 len = 0;
-  MFT_RETURN_ERROR_IF_FAILED_S(
-      aAttributes->GetStringLength(MFT_FRIENDLY_NAME_Attribute, &len));
+  MFT_RETURN_ERROR_IF_FAILED_S(aAttributes->GetStringLength(aGuidKey, &len));
 
-  nsCString name;
+  nsCString str;
   if (len > 0) {
     ++len;  // '\0'.
-    WCHAR str[len];
+    WCHAR buffer[len];
     MFT_RETURN_ERROR_IF_FAILED_S(
-        aAttributes->GetString(MFT_FRIENDLY_NAME_Attribute, str, len, nullptr));
-    name.Append(NS_ConvertUTF16toUTF8(str));
+        aAttributes->GetString(aGuidKey, buffer, len, nullptr));
+    str.Append(NS_ConvertUTF16toUTF8(buffer));
   }
 
-  return name.IsEmpty() ? "Unknown MFT"_ns : name;
+  return str;
+}
+
+static Result<nsCString, HRESULT> GetFriendlyName(IMFActivate* aActivate) {
+  return GetStringFromAttributes(aActivate, MFT_FRIENDLY_NAME_Attribute)
+      .map([](const nsCString& aName) {
+        return aName.IsEmpty() ? "Unknown MFT"_ns : aName;
+      });
+}
+
+static Result<MFTEncoder::Factory::Provider, HRESULT> GetHardwareVendor(
+    IMFActivate* aActivate) {
+  nsCString vendor = MOZ_TRY(GetStringFromAttributes(
+      aActivate, MFT_ENUM_HARDWARE_VENDOR_ID_Attribute));
+
+  if (vendor == "VEN_1002"_ns) {
+    return MFTEncoder::Factory::Provider::HW_AMD;
+  } else if (vendor == "VEN_10DE"_ns) {
+    return MFTEncoder::Factory::Provider::HW_NVIDIA;
+  } else if (vendor == "VEN_8086"_ns) {
+    return MFTEncoder::Factory::Provider::HW_Intel;
+  } else if (vendor == "VEN_QCOM"_ns) {
+    return MFTEncoder::Factory::Provider::HW_Qualcomm;
+  }
+
+  MFT_ENC_SLOGD("Undefined hardware vendor id: %s", vendor.get());
+  return MFTEncoder::Factory::Provider::HW_Unknown;
 }
 
 static Result<nsTArray<ComPtr<IMFActivate>>, HRESULT> EnumMFT(
@@ -210,8 +236,9 @@ static Result<nsTArray<ComPtr<IMFActivate>>, HRESULT> EnumMFT(
   return activates;
 }
 
-MFTEncoder::Factory::Factory(Type aType, ComPtr<IMFActivate>&& aActivate)
-    : mType(aType), mActivate(std::move(aActivate)) {
+MFTEncoder::Factory::Factory(Provider aProvider,
+                             ComPtr<IMFActivate>&& aActivate)
+    : mProvider(aProvider), mActivate(std::move(aActivate)) {
   mName = mozilla::GetFriendlyName(mActivate.Get()).unwrapOr("Unknown"_ns);
 }
 
@@ -221,7 +248,8 @@ HRESULT MFTEncoder::Factory::Shutdown() {
   HRESULT hr = S_OK;
   if (mActivate) {
     MFT_ENC_LOGE("Shutdown %s encoder %s",
-                 MFTEncoder::Factory::EnumValueToString(mType), mName.get());
+                 MFTEncoder::Factory::EnumValueToString(mProvider),
+                 mName.get());
     // Release MFT resources via activation object.
     hr = mActivate->ShutdownObject();
     if (FAILED(hr)) {
@@ -234,12 +262,16 @@ HRESULT MFTEncoder::Factory::Shutdown() {
 }
 
 static nsTArray<MFTEncoder::Factory> IntoFactories(
-    nsTArray<ComPtr<IMFActivate>>&& aActivates,
-    MFTEncoder::Factory::Type aType) {
+    nsTArray<ComPtr<IMFActivate>>&& aActivates, bool aIsHardware) {
   nsTArray<MFTEncoder::Factory> factories;
   for (auto& activate : aActivates) {
     if (activate) {
-      factories.AppendElement(MFTEncoder::Factory(aType, std::move(activate)));
+      MFTEncoder::Factory::Provider provider =
+          aIsHardware ? GetHardwareVendor(activate.Get())
+                            .unwrapOr(MFTEncoder::Factory::Provider::HW_Unknown)
+                      : MFTEncoder::Factory::Provider::SW;
+      factories.AppendElement(
+          MFTEncoder::Factory(provider, std::move(activate)));
     }
   }
   return factories;
@@ -255,7 +287,7 @@ static nsTArray<MFTEncoder::Factory> EnumEncoders(
   auto log = [&](const nsTArray<MFTEncoder::Factory>& aActivates) {
     for (const auto& activate : aActivates) {
       MFT_ENC_SLOGD("Found %s encoders: %s",
-                    MFTEncoder::Factory::EnumValueToString(activate.mType),
+                    MFTEncoder::Factory::EnumValueToString(activate.mProvider),
                     activate.mName.get());
     }
   };
@@ -277,7 +309,7 @@ static nsTArray<MFTEncoder::Factory> EnumEncoders(
                       CodecStr(aSubtype), ErrorMessage(r.unwrapErr()).get());
       } else {
         hwFactories.AppendElements(
-            IntoFactories(r.unwrap(), MFTEncoder::Factory::Type::Hardware));
+            IntoFactories(r.unwrap(), true /* aIsHardware */));
         log(hwFactories);
       }
     }
@@ -293,7 +325,7 @@ static nsTArray<MFTEncoder::Factory> EnumEncoders(
                     ErrorMessage(r.unwrapErr()).get());
     } else {
       swFactories.AppendElements(
-          IntoFactories(r.unwrap(), MFTEncoder::Factory::Type::Software));
+          IntoFactories(r.unwrap(), false /* aIsHardware */));
       log(swFactories);
     }
   }
@@ -441,7 +473,7 @@ MFTEncoder::SetMediaTypes(IMFMediaType* aInputType, IMFMediaType* aOutputType) {
   }
   bool isAsync = asyncMFT.unwrap();
   MFT_ENC_LOGD("%s encoder %s is %s",
-               MFTEncoder::Factory::EnumValueToString(mFactory->mType),
+               MFTEncoder::Factory::EnumValueToString(mFactory->mProvider),
                mFactory->mName.get(), isAsync ? "asynchronous" : "synchronous");
 
   MFT_RETURN_IF_FAILED(GetStreamIDs());
@@ -626,7 +658,8 @@ HRESULT MFTEncoder::SetModes(const EncoderConfig& aConfig) {
       break;
   }
 
-  bool isIntel = false;  // TODO check this
+  // TODO check this and replace it with mFactory->mProvider
+  bool isIntel = false;
   if (aConfig.mScalabilityMode != ScalabilityMode::None || isIntel) {
     MFT_RETURN_IF_FAILED(
         mConfig->SetValue(&CODECAPI_AVEncVideoTemporalLayerCount, &var));

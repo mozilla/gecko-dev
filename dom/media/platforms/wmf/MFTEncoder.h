@@ -59,15 +59,16 @@ class MFTEncoder final {
     GUID mSubtype;
     nsCString mName;
   };
-
   struct Factory {
-    MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING_AT_CLASS_SCOPE(Type,
-                                                       (Hardware, Software));
-    Type mType;
+    MOZ_DEFINE_ENUM_CLASS_WITH_TOSTRING_AT_CLASS_SCOPE(
+        Provider, (HW_AMD, HW_Intel, HW_NVIDIA, HW_Qualcomm, HW_Unknown, SW))
+
+    Provider mProvider;
     Microsoft::WRL::ComPtr<IMFActivate> mActivate;
     nsCString mName;
 
-    Factory(Type aType, Microsoft::WRL::ComPtr<IMFActivate>&& aActivate);
+    Factory(Provider aProvider,
+            Microsoft::WRL::ComPtr<IMFActivate>&& aActivate);
     Factory(Factory&& aOther) = default;
     Factory(const Factory& aOther) = delete;
     ~Factory();
