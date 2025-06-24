@@ -3103,6 +3103,21 @@
       }
     ]
   },
+  "1933910": {
+    "label": "www.tiktok.com/tiktokstudio",
+    "bugs": {
+      "1933910": {
+        "issue": "unsupported-warning",
+        "matches": ["*://www.tiktok.com/tiktokstudio*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
   "1934189": {
     "label": "fdj.fr",
     "bugs": {
