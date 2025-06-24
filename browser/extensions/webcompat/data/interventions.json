@@ -2670,6 +2670,26 @@
       }
     ]
   },
+  "1904952": {
+    "label": "idserver.servizicie.interno.gov.it",
+    "bugs": {
+      "1904952": {
+        "issue": "blocked-content",
+        "matches": ["*://*.idserver.servizicie.interno.gov.it/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "js": [
+            "lib/ua_helpers.js",
+            "bug1904952-idserver.servizicie.interno.gov.it-spoof-as-chrome.js"
+          ]
+        }
+      }
+    ]
+  },
   "1905069": {
     "label": "one.geekie.com.br",
     "bugs": {
