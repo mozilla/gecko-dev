@@ -21,6 +21,10 @@ into your (privileged) Javascript code in Firefox or in the browser console:
   const res = await engine.run(request);
   console.log(res[0]["summary_text"]);
 
+In case of problem, go to ``about:logging`` find the ``Machine Learning`` preset
+in the dropdown, start logging, reproduce you issue, upload or save the profile,
+and open a bug with the link or profile file in `Core :: Machine Learning
+<https://bugzilla.mozilla.org/enter_bug.cgi?product=Core&component=Machine%20Learning>`_
 
 Learn more about the platform:
 
