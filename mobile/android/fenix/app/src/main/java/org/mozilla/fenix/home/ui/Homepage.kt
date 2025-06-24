@@ -152,6 +152,8 @@ internal fun Homepage(
                                 targetValue = if (showSearchBar && atTopOfList) 1f else 0f,
                             )
 
+                            Spacer(modifier = Modifier.height(32.dp))
+
                             SearchBar(
                                 modifier = Modifier.graphicsLayer { this.alpha = alpha },
                                 onClick = interactor::onNavigateSearch,

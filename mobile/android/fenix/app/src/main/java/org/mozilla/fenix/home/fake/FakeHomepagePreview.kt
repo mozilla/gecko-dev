@@ -234,21 +234,10 @@ internal object FakeHomepagePreview {
     )
 
     internal fun topSites(
-        pinnedCount: Int = 2,
         providedCount: Int = 2,
-        defaultCount: Int = 2,
+        pinnedCount: Int = 2,
+        defaultCount: Int = 8,
     ) = mutableListOf<TopSite>().apply {
-        repeat(pinnedCount) {
-            add(
-                TopSite.Pinned(
-                    id = randomLong(),
-                    title = "Mozilla",
-                    url = URL,
-                    createdAt = randomLong(),
-                ),
-            )
-        }
-
         repeat(providedCount) {
             add(
                 TopSite.Provided(
@@ -258,6 +247,17 @@ internal object FakeHomepagePreview {
                     clickUrl = URL,
                     imageUrl = URL,
                     impressionUrl = URL,
+                    createdAt = randomLong(),
+                ),
+            )
+        }
+
+        repeat(pinnedCount) {
+            add(
+                TopSite.Pinned(
+                    id = randomLong(),
+                    title = "Mozilla",
+                    url = URL,
                     createdAt = randomLong(),
                 ),
             )

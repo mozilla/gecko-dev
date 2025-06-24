@@ -196,7 +196,9 @@ fun TopSites(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        if (items != topSitesWindows.last()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
                     }
 
                     if (needsInvisibleRow && page > 0) {
@@ -207,8 +209,6 @@ fun TopSites(
         }
 
         if (pagerState.pageCount > 1) {
-            Spacer(modifier = Modifier.height(8.dp))
-
             PagerIndicator(
                 pagerState = pagerState,
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -526,7 +526,7 @@ private fun getMenuItems(
 @PreviewLightDark
 private fun TopSitesPreview() {
     FirefoxTheme {
-        Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
+        Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1).padding(16.dp)) {
             TopSites(
                 topSites = FakeHomepagePreview.topSites(),
                 onTopSiteClick = {},
