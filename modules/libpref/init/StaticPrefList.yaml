@@ -16452,18 +16452,24 @@
   value: true
   mirror: always
 
-# Allowed by default so it doesn't affect Thunderbird/SeaMonkey, but
-# not allowed for Firefox Desktop in firefox.js
+# Don't enable this! This is only meant for legacy tests.
 - name: security.allow_eval_with_system_principal
   type: RelaxedAtomicBool
-  value: true
+#ifdef MOZ_WIDGET_ANDROID
+  value: true # Bug 1895823
+#else
+  value: false
+#endif
   mirror: always
 
-# Allowed by default so it doesn't affect Thunderbird/SeaMonkey, but
-# not allowed for Firefox Desktop in firefox.js
+# Don't enable this! This is only meant for legacy tests.
 - name: security.allow_eval_in_parent_process
   type: RelaxedAtomicBool
-  value: true
+#ifdef MOZ_WIDGET_ANDROID
+  value: true # Bug 1895823
+#else
+  value: false
+#endif
   mirror: always
 
 # Disallowed by default, ensure not disallowed content is loaded in the parent
