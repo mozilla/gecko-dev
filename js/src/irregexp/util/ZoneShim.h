@@ -39,8 +39,12 @@ class Zone {
   T* NewArray(size_t length) {
     js::LifoAlloc::AutoFallibleScope fallible(&lifoAlloc_);
     js::AutoEnterOOMUnsafeRegion oomUnsafe;
+    size_t numBytes = length * sizeof(T);
+    if (MOZ_UNLIKELY(numBytes > INT_MAX)) {
+      oomUnsafe.crash("Irregexp Zone::New");
+    }
     void* memory = lifoAlloc_.alloc(length * sizeof(T));
-    if (!memory) {
+    if (MOZ_UNLIKELY(!memory)) {
       oomUnsafe.crash("Irregexp Zone::New");
     }
     return static_cast<T*>(memory);
