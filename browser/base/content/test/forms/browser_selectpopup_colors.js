@@ -313,7 +313,7 @@ function computeLabels(tab) {
         ) {
           any = true;
           expected[color] = _rgbaToString(
-            InspectorUtils.colorToRGBA(expected[color], content.document)
+            InspectorUtils.colorToRGBA(expected[color])
           );
         }
       }
@@ -797,12 +797,8 @@ add_task(async function test_scrollbar_props() {
 
 if (AppConstants.platform == "win") {
   add_task(async function test_darkmode() {
-    let lightSelectColor = rgbaToString(
-      InspectorUtils.colorToRGBA("MenuText", document)
-    );
-    let lightSelectBgColor = rgbaToString(
-      InspectorUtils.colorToRGBA("Menu", document)
-    );
+    let lightSelectColor = rgbaToString(InspectorUtils.colorToRGBA("MenuText"));
+    let lightSelectBgColor = rgbaToString(InspectorUtils.colorToRGBA("Menu"));
 
     // Force dark mode:
     let darkModeQuery = matchMedia("(prefers-color-scheme: dark)");
@@ -811,12 +807,8 @@ if (AppConstants.platform == "win") {
     await darkModeChange;
 
     // Determine colours from the main context menu:
-    let darkSelectColor = rgbaToString(
-      InspectorUtils.colorToRGBA("MenuText", document)
-    );
-    let darkSelectBgColor = rgbaToString(
-      InspectorUtils.colorToRGBA("Menu", document)
-    );
+    let darkSelectColor = rgbaToString(InspectorUtils.colorToRGBA("MenuText"));
+    let darkSelectBgColor = rgbaToString(InspectorUtils.colorToRGBA("Menu"));
 
     isnot(lightSelectColor, darkSelectColor);
     isnot(lightSelectBgColor, darkSelectBgColor);

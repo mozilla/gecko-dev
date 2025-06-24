@@ -159,8 +159,7 @@ class WaterfallBackground {
       // In theory colorStr shouldn't be null, but we got report that it was for someone (Bug 1924882).
       // Until we actually get to the cause of this, let's use a default color that works
       // for both light and dark themes.
-      colorStr || "#000",
-      document
+      colorStr || "#000"
     );
     return [r, g, b, a * 255];
   }

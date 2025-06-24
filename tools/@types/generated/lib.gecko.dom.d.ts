@@ -24635,7 +24635,7 @@ declare namespace InspectorUtils {
     function addPseudoClassLock(element: Element, pseudoClass: string, enabled?: boolean): void;
     function clearPseudoClassLocks(element: Element): void;
     function colorTo(fromColor: string, toColorSpace: string): InspectorColorToResult | null;
-    function colorToRGBA(colorString: string, doc?: Document | null): InspectorRGBATuple | null;
+    function colorToRGBA(colorString: string): InspectorRGBATuple | null;
     function containingBlockOf(element: Element): Element | null;
     function cssPropertyIsShorthand(property: string): boolean;
     function cssPropertySupportsType(property: string, type: InspectorPropertyType): boolean;
