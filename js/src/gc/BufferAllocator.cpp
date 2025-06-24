@@ -1654,13 +1654,14 @@ bool BufferAllocator::IsSmallAlloc(void* alloc) {
 void* BufferAllocator::allocMedium(size_t bytes, bool nurseryOwned, bool inGC) {
   MOZ_ASSERT(!IsSmallAllocSize(bytes));
   MOZ_ASSERT(!IsLargeAllocSize(bytes));
-  bytes = mozilla::RoundUpPow2(std::max(bytes, MinMediumAllocSize));
+
+  // Round up to next allowed size.
+  bytes = MediumBufferSize(bytes).get();
 
   // Get size class from |bytes|.
   size_t sizeClass = SizeClassForAlloc(bytes);
-  MOZ_ASSERT(SizeClassBytes(sizeClass) == GetGoodAllocSize(bytes));
 
-  void* alloc = bumpAllocOrRetry(sizeClass, inGC);
+  void* alloc = bumpAllocOrRetry(bytes, sizeClass, inGC);
   if (!alloc) {
     return nullptr;
   }
@@ -1673,7 +1674,7 @@ void* BufferAllocator::allocMedium(size_t bytes, bool nurseryOwned, bool inGC) {
 
   MOZ_ASSERT(chunk->allocBytes(alloc) == 0);
   chunk->setAllocBytes(alloc, bytes);
-  MOZ_ASSERT(chunk->allocBytes(alloc) == SizeClassBytes(sizeClass));
+  MOZ_ASSERT(chunk->allocBytes(alloc) == bytes);
 
   if (nurseryOwned && !chunk->hasNurseryOwnedAllocs) {
     mediumTenuredChunks.ref().remove(chunk);
@@ -1692,8 +1693,9 @@ void* BufferAllocator::allocMedium(size_t bytes, bool nurseryOwned, bool inGC) {
   return alloc;
 }
 
-void* BufferAllocator::bumpAllocOrRetry(size_t sizeClass, bool inGC) {
-  void* ptr = bumpAlloc(sizeClass);
+void* BufferAllocator::bumpAllocOrRetry(size_t bytes, size_t sizeClass,
+                                        bool inGC) {
+  void* ptr = bumpAlloc(bytes, sizeClass);
   if (ptr) {
     return ptr;
   }
@@ -1702,7 +1704,7 @@ void* BufferAllocator::bumpAllocOrRetry(size_t sizeClass, bool inGC) {
     // Avoid taking the lock unless we know there is data to merge. This reduces
     // context switches.
     mergeSweptData();
-    ptr = bumpAlloc(sizeClass);
+    ptr = bumpAlloc(bytes, sizeClass);
     if (ptr) {
       return ptr;
     }
@@ -1712,14 +1714,12 @@ void* BufferAllocator::bumpAllocOrRetry(size_t sizeClass, bool inGC) {
     return nullptr;
   }
 
-  ptr = bumpAlloc(sizeClass);
+  ptr = bumpAlloc(bytes, sizeClass);
   MOZ_ASSERT(ptr);
   return ptr;
 }
 
-void* BufferAllocator::bumpAlloc(size_t sizeClass) {
-  size_t requestedBytes = SizeClassBytes(sizeClass);
-
+void* BufferAllocator::bumpAlloc(size_t bytes, size_t sizeClass) {
   mediumFreeLists.ref().checkAvailable();
 
   // Find smallest suitable size class that has free regions.
@@ -1729,13 +1729,12 @@ void* BufferAllocator::bumpAlloc(size_t sizeClass) {
   }
 
   FreeRegion* region = mediumFreeLists.ref().getFirstRegion(sizeClass);
-  void* ptr = allocFromRegion(region, requestedBytes, sizeClass);
+  void* ptr = allocFromRegion(region, bytes, sizeClass);
   updateFreeListsAfterAlloc(&mediumFreeLists.ref(), region, sizeClass);
   return ptr;
 }
 
-void* BufferAllocator::allocFromRegion(FreeRegion* region,
-                                       size_t requestedBytes,
+void* BufferAllocator::allocFromRegion(FreeRegion* region, size_t bytes,
                                        size_t sizeClass) {
   uintptr_t start = region->startAddr;
   MOZ_ASSERT(region->getEnd() > start);
@@ -1749,7 +1748,7 @@ void* BufferAllocator::allocFromRegion(FreeRegion* region,
 
   // Allocate from start of region.
   void* ptr = reinterpret_cast<void*>(start);
-  start += requestedBytes;
+  start += bytes;
   MOZ_ASSERT(region->getEnd() >= start);
 
   // Update region start.

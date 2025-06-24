@@ -57,7 +57,11 @@ inline size_t BufferAllocator::GetGoodAllocSize(size_t requiredBytes) {
   }
 
   // TODO: Support more sizes than powers of 2
-  return mozilla::RoundUpPow2(requiredBytes);
+  if (IsSmallAllocSize(requiredBytes)) {
+    return mozilla::RoundUpPow2(requiredBytes);
+  }
+
+  return MediumBufferSize(requiredBytes).get();
 }
 
 /* static */
