@@ -4844,10 +4844,8 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY void PresShell::ContentWillBeRemoved(
 
   for (AutoConnectedAncestorTracker* tracker = mLastConnectedAncestorTracker;
        tracker; tracker = tracker->mPreviousTracker) {
-    // XXX Shouldn't we need to use IsInclusiveFlatTreeDescendantOf() and
-    // GetFlattenedTreeParentElement()?
-    if (tracker->ConnectedNode().IsInclusiveDescendantOf(aChild)) {
-      tracker->mConnectedAncestor = aChild->GetParentNode();
+    if (tracker->ConnectedNode().IsInclusiveFlatTreeDescendantOf(aChild)) {
+      tracker->mConnectedAncestor = aChild->GetFlattenedTreeParentElement();
     }
   }
 
