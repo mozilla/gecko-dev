@@ -3709,6 +3709,21 @@
       }
     ]
   },
+  "1956045": {
+    "label": "m.daum.net",
+    "bugs": {
+      "1956045": {
+        "issue": "user-interface-frustration",
+        "matches": ["*://m.daum.net/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1956165": {
     "label": "m.youtube.com picture-in-picture fix",
     "bugs": {
