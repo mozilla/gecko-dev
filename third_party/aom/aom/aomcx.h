@@ -1640,7 +1640,7 @@ typedef enum aom_scaling_mode_1d {
 typedef struct aom_roi_map {
   /*! If ROI is enabled. */
   uint8_t enabled;
-  /*! An id between 0 and 7 for each 8x8 region within a frame. */
+  /*! An id between 0 and 7 for each 4x4 region within a frame. */
   unsigned char *roi_map;
   unsigned int rows;               /**< Number of rows. */
   unsigned int cols;               /**< Number of columns. */
@@ -1648,6 +1648,9 @@ typedef struct aom_roi_map {
   int delta_lf[AOM_MAX_SEGMENTS];  /**< Loop filter deltas. */
   int skip[AOM_MAX_SEGMENTS];      /**< Skip this block. */
   int ref_frame[AOM_MAX_SEGMENTS]; /**< Reference frame for this block. */
+  int delta_qp_enabled;            /**< Delta qp feature enabled. */
+  int reference_enabled;           /**< Reference frame feature enabled. */
+  int rdmult_delta_qp;             /**< RD mult for delta qp feature. */
 } aom_roi_map_t;
 
 /*!\brief  aom active region map

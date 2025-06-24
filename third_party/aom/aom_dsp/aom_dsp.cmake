@@ -269,6 +269,8 @@ if(CONFIG_AV1_ENCODER)
                 "${AOM_ROOT}/aom_dsp/x86/sad_hwy_avx2.cc")
     list(APPEND AOM_DSP_ENCODER_INTRIN_AVX512
                 "${AOM_ROOT}/aom_dsp/x86/sad_hwy_avx512.cc")
+    list(REMOVE_ITEM AOM_DSP_ENCODER_INTRIN_AVX2
+                     "${AOM_ROOT}/aom_dsp/x86/sad_impl_avx2.c")
   endif()
 
   list(APPEND AOM_DSP_ENCODER_INTRIN_AVX

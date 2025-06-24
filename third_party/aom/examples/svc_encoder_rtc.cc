@@ -43,6 +43,8 @@
 #define OPTION_BUFFER_SIZE 1024
 #define MAX_NUM_SPATIAL_LAYERS 4
 
+#define GOOD_QUALITY 0
+
 typedef struct {
   const char *output_filename;
   char options[OPTION_BUFFER_SIZE];
@@ -66,6 +68,8 @@ typedef enum {
   AUTO_ALT_REF,
   ALL_OPTION_TYPES
 } LAYER_OPTION_TYPE;
+
+enum { kSkip = 0, kDeltaQ = 1, kDeltaLF = 2, kReference = 3 };
 
 static const arg_def_t outputfile =
     ARG_DEF("o", "output", 1, "Output filename");
@@ -689,7 +693,7 @@ static void set_layer_pattern(
     aom_svc_ref_frame_config_t *ref_frame_config,
     aom_svc_ref_frame_comp_pred_t *ref_frame_comp_pred, int *use_svc_control,
     int spatial_layer_id, int is_key_frame, int ksvc_mode, int speed,
-    int *reference_updated) {
+    int *reference_updated, int test_roi_map) {
   // Setting this flag to 1 enables simplex example of
   // RPS (Reference Picture Selection) for 1 layer.
   int use_rps_example = 0;
@@ -724,6 +728,9 @@ static void set_layer_pattern(
         layer_id->spatial_layer_id = 0;
         ref_frame_config->refresh[0] = 1;
         ref_frame_config->reference[SVC_LAST_FRAME] = 1;
+        // Add additional reference (GOLDEN) if test_roi_map is set,
+        // to test reference frame feature on segment.
+        if (test_roi_map) ref_frame_config->reference[SVC_GOLDEN_FRAME] = 1;
       } else {
         // Pattern of 2 references (ALTREF and GOLDEN) trailing
         // LAST by 4 and 8 frames, with some switching logic to
@@ -952,7 +959,7 @@ static void set_layer_pattern(
         ref_frame_config->reference[SVC_LAST_FRAME] = 1;
       } else if (layer_id->spatial_layer_id == 1) {
         // Reference LAST and GOLDEN. Set buffer_idx for LAST to slot 1
-        // and GOLDEN to slot 0. Update slot 1 (GOLDEN).
+        // and GOLDEN to slot 0. Update slot 1 (LAST).
         ref_frame_config->ref_idx[SVC_LAST_FRAME] = 1;
         ref_frame_config->ref_idx[SVC_GOLDEN_FRAME] = 0;
         ref_frame_config->ref_idx[SVC_LAST2_FRAME] = 2;
@@ -1767,6 +1774,45 @@ static void set_active_map(const aom_codec_enc_cfg_t *cfg,
   free(map.active_map);
 }
 
+static void set_roi_map(const aom_codec_enc_cfg_t *cfg, aom_codec_ctx_t *codec,
+                        int roi_feature) {
+  aom_roi_map_t roi = aom_roi_map_t();
+  const int block_size = 4;
+  roi.rows = (cfg->g_h + block_size - 1) / block_size;
+  roi.cols = (cfg->g_w + block_size - 1) / block_size;
+  memset(&roi.skip, 0, sizeof(roi.skip));
+  memset(&roi.delta_q, 0, sizeof(roi.delta_q));
+  memset(&roi.delta_lf, 0, sizeof(roi.delta_lf));
+  memset(roi.ref_frame, -1, sizeof(roi.ref_frame));
+  // Set ROI map to be 1 (segment #1) in middle square of image,
+  // 0 elsewhere.
+  roi.enabled = 1;
+  roi.roi_map = (uint8_t *)calloc(roi.rows * roi.cols, sizeof(*roi.roi_map));
+  for (unsigned int i = 0; i < roi.rows; ++i) {
+    for (unsigned int j = 0; j < roi.cols; ++j) {
+      const int idx = i * roi.cols + j;
+      if (i > roi.rows / 4 && i < (3 * roi.rows) / 4 && j > roi.cols / 4 &&
+          j < (3 * roi.cols) / 4)
+        roi.roi_map[idx] = 1;
+      else
+        roi.roi_map[idx] = 0;
+    }
+  }
+  // Set the ROI feature, on segment #1.
+  if (roi_feature == kSkip)
+    roi.skip[1] = 1;
+  else if (roi_feature == kDeltaQ)
+    roi.delta_q[1] = -40;
+  else if (roi_feature == kDeltaLF)
+    roi.delta_lf[1] = 40;
+  else if (roi_feature == kReference)
+    roi.ref_frame[1] = 4;  // GOLDEN_FRAME
+
+  if (aom_codec_control(codec, AOME_SET_ROI_MAP, &roi))
+    die_codec(codec, "Failed to set roi map");
+
+  free(roi.roi_map);
+}
 int main(int argc, const char **argv) {
   AppInput app_input;
   AvxVideoWriter *outfile[AOM_MAX_LAYERS] = { NULL };
@@ -1822,6 +1868,9 @@ int main(int argc, const char **argv) {
   // Flag for testing active maps.
   const int test_active_maps = 0;
 
+  // Flag for testing roi map.
+  const int test_roi_map = 0;
+
   /* Setup default input stream settings */
   for (i = 0; i < MAX_NUM_SPATIAL_LAYERS; ++i) {
     app_input.input_ctx[i].framerate.numerator = 30;
@@ -1833,14 +1882,23 @@ int main(int argc, const char **argv) {
   exec_name = argv[0];
 
   // start with default encoder configuration
+#if GOOD_QUALITY
+  aom_codec_err_t res = aom_codec_enc_config_default(aom_codec_av1_cx(), &cfg,
+                                                     AOM_USAGE_GOOD_QUALITY);
+#else
   aom_codec_err_t res = aom_codec_enc_config_default(aom_codec_av1_cx(), &cfg,
                                                      AOM_USAGE_REALTIME);
+#endif
   if (res != AOM_CODEC_OK) {
     die("Failed to get config: %s\n", aom_codec_err_to_string(res));
   }
 
+#if GOOD_QUALITY
+  cfg.g_usage = AOM_USAGE_GOOD_QUALITY;
+#else
   // Real time parameters.
   cfg.g_usage = AOM_USAGE_REALTIME;
+#endif
 
   cfg.rc_end_usage = AOM_CBR;
   cfg.rc_min_quantizer = 2;
@@ -1983,10 +2041,17 @@ int main(int argc, const char **argv) {
   aom_codec_control(&codec, AV1E_SET_ENABLE_ORDER_HINT, 0);
   aom_codec_control(&codec, AV1E_SET_ENABLE_TPL_MODEL, 0);
   aom_codec_control(&codec, AV1E_SET_DELTAQ_MODE, 0);
+#if GOOD_QUALITY
+  aom_codec_control(&codec, AV1E_SET_COEFF_COST_UPD_FREQ, 0);
+  aom_codec_control(&codec, AV1E_SET_MODE_COST_UPD_FREQ, 0);
+  aom_codec_control(&codec, AV1E_SET_MV_COST_UPD_FREQ, 0);
+  aom_codec_control(&codec, AV1E_SET_DV_COST_UPD_FREQ, 0);
+#else
   aom_codec_control(&codec, AV1E_SET_COEFF_COST_UPD_FREQ, 3);
   aom_codec_control(&codec, AV1E_SET_MODE_COST_UPD_FREQ, 3);
   aom_codec_control(&codec, AV1E_SET_MV_COST_UPD_FREQ, 3);
   aom_codec_control(&codec, AV1E_SET_DV_COST_UPD_FREQ, 3);
+#endif
   aom_codec_control(&codec, AV1E_SET_CDF_UPDATE_MODE, 1);
 
   // Settings to reduce key frame encoding time.
@@ -2097,7 +2162,7 @@ int main(int argc, const char **argv) {
                           &ref_frame_config, &ref_frame_comp_pred,
                           &use_svc_control, slx, is_key_frame,
                           (app_input.layering_mode == 10), app_input.speed,
-                          &reference_updated);
+                          &reference_updated, test_roi_map);
         aom_codec_control(&codec, AV1E_SET_SVC_LAYER_ID, &layer_id);
         if (use_svc_control) {
           aom_codec_control(&codec, AV1E_SET_SVC_REF_FRAME_CONFIG,
@@ -2234,6 +2299,8 @@ int main(int argc, const char **argv) {
       }
 
       if (test_active_maps) set_active_map(&cfg, &codec, frame_cnt);
+
+      if (test_roi_map) set_roi_map(&cfg, &codec, kDeltaQ);
 
       // Do the layer encode.
       aom_usec_timer_start(&timer);

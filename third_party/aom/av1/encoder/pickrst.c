@@ -38,6 +38,9 @@
 // Penalty factor for use of dual sgr
 #define DUAL_SGR_PENALTY_MULT 0.01
 
+// Penalty factor to bias against Wiener and SGR filters
+#define WIENER_SGR_PENALTY_MULT 0.005
+
 // Working precision for Wiener filter coefficients
 #define WIENER_TAP_SCALE_FACTOR ((int64_t)1 << 16)
 
@@ -1815,6 +1818,10 @@ static inline void search_switchable(
         x->rdmult, bits >> 4, sse, rsc->cm->seq_params->bit_depth);
     if (r == RESTORE_SGRPROJ && rusi->sgrproj.ep < 10)
       cost *= (1 + DUAL_SGR_PENALTY_MULT * rsc->lpf_sf->dual_sgr_penalty_level);
+
+    if (r == RESTORE_WIENER || r == RESTORE_SGRPROJ)
+      cost *= (1 + WIENER_SGR_PENALTY_MULT *
+                       rsc->lpf_sf->switchable_lr_with_bias_level);
     if (r == 0 || cost < best_cost) {
       best_cost = cost;
       best_bits = bits;
@@ -2167,6 +2174,12 @@ void av1_pick_filter_restoration(const YV12_BUFFER_CONFIG *src, AV1_COMP *cpi) {
         // Disable Loop restoration filter based on the flags set using speed
         // feature 'disable_wiener_filter' and 'disable_sgr_filter'.
         if (disable_lr_filter[r]) continue;
+
+        // Restrict loop restoration search to RESTORE_SWITCHABLE by skipping
+        // WIENER and SGRPROJ.
+        if (lpf_sf->switchable_lr_with_bias_level > 0 &&
+            (r == RESTORE_WIENER || r == RESTORE_SGRPROJ))
+          continue;
 
         double cost_this_plane = RDCOST_DBL_WITH_NATIVE_BD_DIST(
             x->rdmult, rsc.total_bits[r] >> 4, rsc.total_sse[r],

@@ -573,7 +573,10 @@ static void set_allintra_speed_features_framesize_independent(
 
     sf->rt_sf.nonrd_check_partition_merge_mode = 0;
     sf->rt_sf.hybrid_intra_pickmode = 0;
-    sf->rt_sf.var_part_split_threshold_shift = 9;
+    // Note that the threshold value below is intentionally lower than speed
+    // 8's. This is due to the lack of hybrid intra pick mode, which causes
+    // partitions to be bigger on average, causing noticeable ringing artifacts.
+    sf->rt_sf.var_part_split_threshold_shift = 7;
     sf->rt_sf.vbp_prune_16x16_split_using_min_max_sub_blk_var = true;
     sf->rt_sf.prune_h_pred_using_best_mode_so_far = true;
     sf->rt_sf.enable_intra_mode_pruning_using_neighbors = true;
@@ -616,6 +619,7 @@ static void set_good_speed_features_lc_dec_framesize_dependent(
     sf->hl_sf.ref_frame_mvs_lvl = 2;
 
     sf->lpf_sf.dual_sgr_penalty_level = boosted ? 1 : 3;
+    sf->lpf_sf.switchable_lr_with_bias_level = 1;
     sf->lpf_sf.skip_loop_filter_using_filt_error =
         (update_type != OVERLAY_UPDATE && update_type != INTNL_OVERLAY_UPDATE &&
          cpi->common.current_frame.pyramid_level > 1)
@@ -638,6 +642,7 @@ static void set_good_speed_features_lc_dec_framesize_dependent(
     sf->hl_sf.ref_frame_mvs_lvl = 1;
 
     sf->lpf_sf.dual_sgr_penalty_level = boosted ? 1 : 2;
+    sf->lpf_sf.switchable_lr_with_bias_level = 1;
     sf->lpf_sf.skip_loop_filter_using_filt_error =
         (update_type != OVERLAY_UPDATE && update_type != INTNL_OVERLAY_UPDATE &&
          cpi->common.current_frame.pyramid_level > 1)
@@ -2352,6 +2357,7 @@ static inline void init_lpf_sf(LOOP_FILTER_SPEED_FEATURES *lpf_sf) {
   lpf_sf->disable_sgr_filter = false;
   lpf_sf->disable_wiener_coeff_refine_search = false;
   lpf_sf->use_downsampled_wiener_stats = 0;
+  lpf_sf->switchable_lr_with_bias_level = 0;
 }
 
 static inline void init_rt_sf(REAL_TIME_SPEED_FEATURES *rt_sf) {

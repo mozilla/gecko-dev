@@ -2302,6 +2302,8 @@ static void pick_sb_modes_nonrd(AV1_COMP *const cpi, TileDataEnc *tile_data,
   // Save rdmult before it might be changed, so it can be restored later.
   const int orig_rdmult = x->rdmult;
   setup_block_rdmult(cpi, x, mi_row, mi_col, bsize, aq_mode, mbmi);
+  if (cpi->roi.enabled && cpi->roi.delta_qp_enabled && mbmi->segment_id)
+    x->rdmult = cpi->roi.rdmult_delta_qp;
   // Set error per bit for current rdmult
   av1_set_error_per_bit(&x->errorperbit, x->rdmult);
   // Find best coding mode & reconstruct the MB so it is available

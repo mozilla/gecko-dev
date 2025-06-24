@@ -14,4 +14,12 @@
 
 #include "aom_dsp/sad_hwy.h"
 
+// FSAD_4D, FSAD_3D and FSAD_4D_SKIP have similar performance, but migrating
+// to highway adds test coverage and simplifies avx2 when it's enabled by
+// default.
 FOR_EACH_SAD_BLOCK_SIZE(FSAD, avx2)
+FOR_EACH_SAD_BLOCK_SIZE(FSAD_SKIP, avx2)
+FOR_EACH_SAD_BLOCK_SIZE(FSAD_AVG, avx2)
+FOR_EACH_SAD_BLOCK_SIZE(FSAD_4D, avx2)
+FOR_EACH_SAD_BLOCK_SIZE(FSAD_4D_SKIP, avx2)
+FOR_EACH_SAD_BLOCK_SIZE(FSAD_3D, avx2)

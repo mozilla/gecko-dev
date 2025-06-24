@@ -4128,8 +4128,8 @@ static inline int has_no_stats_stage(const AV1_COMP *const cpi) {
 /*!\cond */
 
 static inline int is_one_pass_rt_params(const AV1_COMP *cpi) {
-  return has_no_stats_stage(cpi) && cpi->oxcf.mode == REALTIME &&
-         cpi->oxcf.gf_cfg.lag_in_frames == 0;
+  return has_no_stats_stage(cpi) && cpi->oxcf.gf_cfg.lag_in_frames == 0 &&
+         (cpi->oxcf.mode == REALTIME || cpi->svc.number_spatial_layers > 1);
 }
 
 // Use default/internal reference structure for single-layer RTC.

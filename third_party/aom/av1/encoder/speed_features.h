@@ -1537,6 +1537,15 @@ typedef struct LOOP_FILTER_SPEED_FEATURES {
   // adding a penalty of 1%
   int dual_sgr_penalty_level;
 
+  // Restricts loop restoration to RESTORE_SWITCHABLE by skipping RD cost
+  // comparisons for RESTORE_WIENER and RESTORE_SGRPROJ. Also applies a bias
+  // during switchable restoration search: each level adds a 0.5% penalty to
+  // Wiener and SGR selection.
+  // 0 : No restriction or bias (all restoration types allowed)
+  // 1+: Skip WIENER/SGRPROJ and apply (level x 0.5%) penalty in
+  // search_switchable()
+  int switchable_lr_with_bias_level;
+
   // prune sgr ep using binary search like mechanism
   int enable_sgr_ep_pruning;
 

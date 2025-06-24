@@ -205,6 +205,9 @@ static inline void dealloc_compressor_data(AV1_COMP *cpi) {
   aom_free(cpi->active_map.map);
   cpi->active_map.map = NULL;
 
+  aom_free(cpi->roi.roi_map);
+  cpi->roi.roi_map = NULL;
+
   aom_free(cpi->ssim_rdmult_scaling_factors);
   cpi->ssim_rdmult_scaling_factors = NULL;
 

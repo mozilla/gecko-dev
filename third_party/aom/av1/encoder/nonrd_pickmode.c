@@ -314,7 +314,7 @@ static int search_new_mv(AV1_COMP *cpi, MACROBLOCK *x,
   int_mv *this_ref_frm_newmv = &frame_mv[NEWMV][ref_frame];
   unsigned int y_sad_zero;
   if (ref_frame > LAST_FRAME && cpi->oxcf.rc_cfg.mode == AOM_CBR &&
-      gf_temporal_ref) {
+      (cpi->ref_frame_flags & AOM_LAST_FLAG) && gf_temporal_ref) {
     int tmp_sad;
     int dis;
 
@@ -1792,8 +1792,15 @@ static inline void get_ref_frame_use_mask(AV1_COMP *cpi, MACROBLOCK *x,
 
   if (segfeature_active(seg, mi->segment_id, SEG_LVL_REF_FRAME) &&
       get_segdata(seg, mi->segment_id, SEG_LVL_REF_FRAME) == GOLDEN_FRAME) {
-    use_golden_ref_frame = 1;
-    use_alt_ref_frame = 0;
+    use_ref_frame[GOLDEN_FRAME] = 1;
+    use_ref_frame[ALTREF_FRAME] = 0;
+    return;
+  } else if (segfeature_active(seg, mi->segment_id, SEG_LVL_REF_FRAME) &&
+             get_segdata(seg, mi->segment_id, SEG_LVL_REF_FRAME) ==
+                 ALTREF_FRAME) {
+    use_ref_frame[GOLDEN_FRAME] = 0;
+    use_ref_frame[ALTREF_FRAME] = 1;
+    return;
   }
 
   // Skip golden/altref reference if color is set, on flat blocks with motion.
@@ -2448,8 +2455,21 @@ static AOM_FORCE_INLINE bool skip_inter_mode_nonrd(
       (*this_mode != GLOBALMV || *ref_frame != LAST_FRAME))
     return true;
 
+  // If the segment reference frame feature is enabled then do nothing if the
+  // current ref frame is not allowed.
+  if (segfeature_active(seg, segment_id, SEG_LVL_REF_FRAME)) {
+    if (get_segdata(seg, segment_id, SEG_LVL_REF_FRAME) != (int)(*ref_frame))
+      return true;
+    return false;
+  }
+
   // Skip the mode if use reference frame mask flag is not set.
   if (!search_state->use_ref_frame_mask[*ref_frame]) return true;
+
+  // Don't skip non_last references if LAST is not used a reference.
+  if (!(cpi->ref_frame_flags & AOM_LAST_FLAG) &&
+      (*ref_frame == GOLDEN_FRAME || *ref_frame == ALTREF_FRAME))
+    return false;
 
   // Skip mode for some modes and reference frames when
   // force_zeromv_skip_for_blk flag is true.
@@ -2525,12 +2545,6 @@ static AOM_FORCE_INLINE bool skip_inter_mode_nonrd(
       return true;
     }
   }
-
-  // If the segment reference frame feature is enabled then do nothing if the
-  // current ref frame is not allowed.
-  if (segfeature_active(seg, segment_id, SEG_LVL_REF_FRAME) &&
-      get_segdata(seg, segment_id, SEG_LVL_REF_FRAME) != (int)(*ref_frame))
-    return true;
 
   // For screen content: skip mode testing based on source_sad.
   if (cpi->oxcf.tune_cfg.content == AOM_CONTENT_SCREEN &&
@@ -3228,6 +3242,7 @@ void av1_nonrd_pick_inter_mode_sb(AV1_COMP *cpi, TileDataEnc *tile_data,
   SVC *const svc = &cpi->svc;
   MACROBLOCKD *const xd = &x->e_mbd;
   MB_MODE_INFO *const mi = xd->mi[0];
+  const struct segmentation *const seg = &cm->seg;
   struct macroblockd_plane *const pd = &xd->plane[AOM_PLANE_Y];
   const MB_MODE_INFO_EXT *const mbmi_ext = &x->mbmi_ext;
   MV_REFERENCE_FRAME ref_frame, ref_frame2;
@@ -3325,6 +3340,10 @@ void av1_nonrd_pick_inter_mode_sb(AV1_COMP *cpi, TileDataEnc *tile_data,
   } else {
     tot_num_comp_modes = 0;
   }
+
+  // No compound if SEG_LVL_REF_FRAME is set.
+  if (segfeature_active(seg, segment_id, SEG_LVL_REF_FRAME))
+    tot_num_comp_modes = 0;
 
   if (x->pred_mv_sad[LAST_FRAME] != INT_MAX) {
     thresh_sad_pred = ((int64_t)x->pred_mv_sad[LAST_FRAME]) << 1;
@@ -3534,9 +3553,15 @@ void av1_nonrd_pick_inter_mode_sb(AV1_COMP *cpi, TileDataEnc *tile_data,
       force_palette_test = 1;
   }
 
+  // For the SEG_LVL_REF_FRAME inter_mode must be selected if reference set is
+  // not INTRA_FRAME, so skip all intra mode (and palette below).
+  const int inter_forced_on_segment =
+      segfeature_active(seg, segment_id, SEG_LVL_REF_FRAME) &&
+      get_segdata(seg, segment_id, SEG_LVL_REF_FRAME) != INTRA_FRAME;
+
   // Evaluate Intra modes in inter frame
   unsigned int best_intra_sad_norm = UINT_MAX;
-  if (!x->force_zeromv_skip_for_blk)
+  if (!x->force_zeromv_skip_for_blk && !inter_forced_on_segment)
     av1_estimate_intra_mode(cpi, x, bsize, best_early_term,
                             search_state.ref_costs_single[INTRA_FRAME],
                             reuse_inter_pred, &orig_dst, tmp_buffer,
@@ -3559,10 +3584,13 @@ void av1_nonrd_pick_inter_mode_sb(AV1_COMP *cpi, TileDataEnc *tile_data,
     x->color_palette_thresh =
         cpi->sf.rt_sf.prune_palette_search_nonrd > 2 ? 20 : 32;
 
-  // Perform screen content mode evaluation for non-rd
-  handle_screen_content_mode_nonrd(
-      cpi, x, &search_state, this_mode_pred, ctx, tmp_buffer, &orig_dst,
-      skip_idtx_palette, try_palette, bsize, reuse_inter_pred, mi_col, mi_row);
+  if (!inter_forced_on_segment) {
+    // Perform screen content mode evaluation for non-rd
+    handle_screen_content_mode_nonrd(cpi, x, &search_state, this_mode_pred, ctx,
+                                     tmp_buffer, &orig_dst, skip_idtx_palette,
+                                     try_palette, bsize, reuse_inter_pred,
+                                     mi_col, mi_row);
+  }
 
 #if COLLECT_NONRD_PICK_MODE_STAT
   aom_usec_timer_mark(&x->ms_stat_nonrd.timer1);

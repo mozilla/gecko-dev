@@ -15,6 +15,7 @@
 #include <limits.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -171,7 +172,7 @@ int av1_set_roi_map(AV1_COMP *cpi, unsigned char *map, unsigned int rows,
   AV1_COMMON *cm = &cpi->common;
   aom_roi_map_t *roi = &cpi->roi;
   const int range = 63;
-  const int ref_frame_range = 3;  // Alt-ref
+  const int ref_frame_range = REF_FRAMES;
   const int skip_range = 1;
   const int frame_rows = cpi->common.mi_params.mi_rows;
   const int frame_cols = cpi->common.mi_params.mi_cols;
@@ -3102,7 +3103,7 @@ static int encode_without_recode(AV1_COMP *cpi) {
     }
   }
   av1_apply_active_map(cpi);
-  if (cpi->roi.enabled && !frame_is_intra_only(cm)) {
+  if (cpi->roi.enabled) {
     // For now if roi map is used: don't setup cyclic refresh.
     av1_apply_roi_map(cpi);
   } else if (q_cfg->aq_mode == CYCLIC_REFRESH_AQ) {

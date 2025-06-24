@@ -48,6 +48,7 @@
 #include "av1/encoder/aq_complexity.h"
 #include "av1/encoder/aq_cyclicrefresh.h"
 #include "av1/encoder/aq_variance.h"
+#include "av1/encoder/av1_quantize.h"
 #include "av1/encoder/global_motion_facade.h"
 #include "av1/encoder/encodeframe.h"
 #include "av1/encoder/encodeframe_utils.h"
@@ -2198,7 +2199,8 @@ static inline void encode_frame_internal(AV1_COMP *cpi) {
   cm->delta_q_info.delta_q_res = 0;
   if (cpi->use_ducky_encode) {
     cm->delta_q_info.delta_q_res = DEFAULT_DELTA_Q_RES_DUCKY_ENCODE;
-  } else if (cpi->oxcf.q_cfg.aq_mode != CYCLIC_REFRESH_AQ) {
+  } else if (cpi->oxcf.q_cfg.aq_mode != CYCLIC_REFRESH_AQ &&
+             !cpi->roi.enabled) {
     if (deltaq_mode == DELTA_Q_OBJECTIVE)
       cm->delta_q_info.delta_q_res = DEFAULT_DELTA_Q_RES_OBJECTIVE;
     else if (deltaq_mode == DELTA_Q_PERCEPTUAL)

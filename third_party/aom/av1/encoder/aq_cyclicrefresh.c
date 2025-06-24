@@ -165,7 +165,7 @@ void av1_cyclic_reset_segment_skip(const AV1_COMP *cpi, MACROBLOCK *const x,
 
   assert(cm->seg.enabled);
 
-  if (!cr->skip_over4x4) {
+  if (!cr->skip_over4x4 && !cpi->roi.reference_enabled) {
     mbmi->segment_id =
         av1_get_spatial_seg_pred(cm, xd, &cdf_num, cr->skip_over4x4);
     if (prev_segment_id != mbmi->segment_id) {
@@ -434,13 +434,13 @@ void av1_cyclic_refresh_update_parameters(AV1_COMP *const cpi) {
   // function av1_cyclic_reset_segment_skip(). Skipping over
   // 4x4 will therefore have small bdrate loss (~0.2%), so
   // we use it only for speed > 9 for now.
-  cr->skip_over4x4 = (cpi->oxcf.speed > 9) ? 1 : 0;
+  cr->skip_over4x4 = (cpi->oxcf.speed > 9 && !cpi->roi.enabled) ? 1 : 0;
 
   // should we enable cyclic refresh on this frame.
   cr->apply_cyclic_refresh = 1;
   if (frame_is_intra_only(cm) || is_lossless_requested(&cpi->oxcf.rc_cfg) ||
-      cpi->rc.high_motion_content_screen_rtc || scene_change_detected ||
-      svc->temporal_layer_id > 0 ||
+      cpi->roi.enabled || cpi->rc.high_motion_content_screen_rtc ||
+      scene_change_detected || svc->temporal_layer_id > 0 ||
       svc->prev_number_spatial_layers != svc->number_spatial_layers ||
       p_rc->avg_frame_qindex[INTER_FRAME] < qp_thresh ||
       (svc->number_spatial_layers > 1 &&

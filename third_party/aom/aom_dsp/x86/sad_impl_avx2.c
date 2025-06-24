@@ -56,7 +56,6 @@ static unsigned int sad64x64(const uint8_t *src_ptr, int src_stride,
   return sum;
 }
 
-#if !CONFIG_HIGHWAY
 unsigned int aom_sad128x64_avx2(const uint8_t *src_ptr, int src_stride,
                                 const uint8_t *ref_ptr, int ref_stride) {
   unsigned int half_width = 64;
@@ -84,7 +83,6 @@ unsigned int aom_sad128x128_avx2(const uint8_t *src_ptr, int src_stride,
   sum += aom_sad128x64_avx2(src_ptr, src_stride, ref_ptr, ref_stride);
   return sum;
 }
-#endif
 
 unsigned int aom_sad_skip_128x64_avx2(const uint8_t *src_ptr, int src_stride,
                                       const uint8_t *ref_ptr, int ref_stride) {

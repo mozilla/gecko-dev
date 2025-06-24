@@ -424,6 +424,15 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::ValuesIn(highbd_params_avx2)));
 #endif
 
+#if HAVE_AVX512 && CONFIG_HIGHWAY
+const int highbd_params_avx512[] = { 8, 10, 12 };
+INSTANTIATE_TEST_SUITE_P(
+    AVX512, AV1HighbdSelfguidedFilterTest,
+    ::testing::Combine(
+        ::testing::Values(av1_apply_selfguided_restoration_avx512),
+        ::testing::ValuesIn(highbd_params_avx512)));
+#endif
+
 #if HAVE_NEON
 const int highbd_params_neon[] = { 8, 10, 12 };
 INSTANTIATE_TEST_SUITE_P(

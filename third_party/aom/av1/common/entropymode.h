@@ -12,7 +12,6 @@
 #ifndef AOM_AV1_COMMON_ENTROPYMODE_H_
 #define AOM_AV1_COMMON_ENTROPYMODE_H_
 
-#include "aom_ports/bitops.h"
 #include "av1/common/entropy.h"
 #include "av1/common/entropymv.h"
 #include "av1/common/filter.h"
@@ -189,12 +188,6 @@ void av1_set_default_ref_deltas(int8_t *ref_deltas);
 void av1_set_default_mode_deltas(int8_t *mode_deltas);
 void av1_setup_frame_contexts(struct AV1Common *cm);
 void av1_setup_past_independence(struct AV1Common *cm);
-
-// Returns (int)ceil(log2(n)).
-static inline int av1_ceil_log2(int n) {
-  if (n < 2) return 0;
-  return get_msb(n - 1) + 1;
-}
 
 // Returns the context for palette color index at row 'r' and column 'c',
 // along with the 'color_order' of neighbors and the 'color_idx'.

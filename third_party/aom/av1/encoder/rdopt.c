@@ -5551,9 +5551,6 @@ static void tx_search_best_inter_candidates(
       }
     }
 
-    if (cpi->oxcf.algo_cfg.sharpness == 3 && is_comp_pred && rd_stats.skip_txfm)
-      continue;
-
     rd_stats.rdcost = RDCOST(x->rdmult, rd_stats.rate, rd_stats.dist);
 
     const THR_MODES mode_enum = get_prediction_mode_idx(
@@ -6338,9 +6335,6 @@ void av1_rd_pick_inter_mode(struct AV1_COMP *cpi, struct TileDataEnc *tile_data,
       rd_stats_y.rate = 0;
       rd_stats_uv.rate = 0;
     }
-
-    if (comp_pred && mbmi->skip_txfm && cpi->oxcf.algo_cfg.sharpness == 3)
-      continue;
 
     if (sf->inter_sf.prune_compound_using_single_ref && is_single_pred &&
         this_rd < ref_frame_rd[ref_frame]) {

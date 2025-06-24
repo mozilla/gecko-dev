@@ -89,6 +89,7 @@ list(APPEND AOM_UNIT_TEST_ENCODER_SOURCES
             "${AOM_ROOT}/test/monochrome_test.cc"
             "${AOM_ROOT}/test/postproc_filters_test.cc"
             "${AOM_ROOT}/test/resize_test.cc"
+            "${AOM_ROOT}/test/roi_map_test.cc"
             "${AOM_ROOT}/test/scalability_test.cc"
             "${AOM_ROOT}/test/sharpness_test.cc"
             "${AOM_ROOT}/test/y4m_test.cc"

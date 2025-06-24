@@ -670,14 +670,14 @@ static inline void delta_encode_palette_colors(const int *colors, int num,
     if (delta > max_delta) max_delta = delta;
   }
   const int min_bits = bit_depth - 3;
-  int bits = AOMMAX(av1_ceil_log2(max_delta + 1 - min_val), min_bits);
+  int bits = AOMMAX(aom_ceil_log2(max_delta + 1 - min_val), min_bits);
   assert(bits <= bit_depth);
   int range = (1 << bit_depth) - colors[0] - min_val;
   aom_write_literal(w, bits - min_bits, 2);
   for (int i = 0; i < num - 1; ++i) {
     aom_write_literal(w, deltas[i] - min_val, bits);
     range -= deltas[i];
-    bits = AOMMIN(bits, av1_ceil_log2(range));
+    bits = AOMMIN(bits, aom_ceil_log2(range));
   }
 }
 
