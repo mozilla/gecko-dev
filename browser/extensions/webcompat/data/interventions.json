@@ -3197,6 +3197,26 @@
       }
     ]
   },
+  "1939466": {
+    "label": "www.vodafone.it",
+    "bugs": {
+      "1939466": {
+        "issue": "page-fails-to-load",
+        "matches": ["*://*.vodafone.it/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "all_frames": true,
+          "js": [
+            "bug1939466-vodafone.it-polyfill-ancestorOrigins-and-InstallTrigger.js"
+          ]
+        }
+      }
+    ]
+  },
   "1939697": {
     "label": "paypal.com",
     "bugs": {
