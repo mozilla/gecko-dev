@@ -133,6 +133,11 @@ In this document, we try to list these all tools.
      - `bug 1361342 <https://bugzilla.mozilla.org/show_bug.cgi?id=1361342>`__
      - :ref:`clippy`
      - https://github.com/rust-lang/rust-clippy
+   * - cargo-audit
+     -
+     - `bug 1747536 <https://bugzilla.mozilla.org/show_bug.cgi?id=1747536>`__
+     - :ref:`cargo-audit`
+     - https://rustsec.org/
 
 .. list-table:: Java/Kotlin
    :widths: 20 20 20 20 20

@@ -522,6 +522,20 @@ clippy:
             - sysroot-x86_64-linux-gnu
             - sysroot-wasm32-wasi
 
+cargo-audit:
+    description: Audit cargo lock files for vulnerable dependencies
+    treeherder:
+        symbol: rust(cargo-audit)
+    run:
+        prefix-env:
+            PATH: "$MOZ_FETCHES_DIR/rustc/bin/:/builds/worker/.cargo/bin/:"
+        mach: lint -v --warnings=soft -l cargo-audit -f treeherder -f json:/builds/worker/mozlint.json .
+    when:
+        files-changed:
+            - 'Cargo.lock'
+    fetches:
+        toolchain:
+            - linux64-rust
 
 file-whitespace:
     description: Check for trailing whitespaces and Windows CR

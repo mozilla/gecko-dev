@@ -49,6 +49,13 @@ skip-if = ["os == 'win'"]
 
 ["test_rustfmt.py"]
 
+["test_cargo-audit.py"]
+# testing it on linux is enough
+skip-if = [
+  "os == 'win'",
+  "os == 'mac'",
+]
+
 ["test_shellcheck.py"]
 
 ["test_stylelint.py"]

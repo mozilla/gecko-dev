@@ -193,13 +193,14 @@ mozlint:
         - linux2404-64/opt
         - macosx1470-64/opt
         - windows11-64/opt
-    python-version: [3]
     treeherder:
         symbol: mozlint
         tier: 2
     run:
-        using: python-test
-        subsuite: mozlint
+        using: run-task
+        cwd: '{checkout}'
+        command: >
+          export PATH=$PATH:$MOZ_FETCHES_DIR/rustc/bin/:/builds/worker/.cargo/bin/ && ./mach python-test --subsuite mozlint
     dependencies:
         clang-tidy:
             by-platform:

@@ -1,0 +1,17 @@
+---
+cargo-audit:
+    description: >
+        Audits Rust crate dependencies for vulnerabilities
+        reported in the RustSec Advisory Database.
+    type: external
+    payload: cargo-audit:lint
+    include:
+        - "Cargo.lock"
+    exclude-error:
+        # bug 1973226
+        - "Crate depends on a vulnerable version of time."
+        # bug 1973225
+        - "Crate depends on a vulnerable version of self_cell."
+    extensions:
+        - lock
+    setup: cargo-audit:setup

@@ -1,0 +1,4 @@
+---
+command: cargo-install
+continue_on_error: false
+requires_export: false
