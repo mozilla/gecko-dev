@@ -11797,6 +11797,16 @@
   value: false
   mirror: once
 
+- name: media.hardware-video-encoding.enabled
+  type: bool
+  value: true
+  mirror: once
+
+- name: media.hardware-video-encoding.force-enabled
+  type: bool
+  value: false
+  mirror: once
+
 # Whether to check the decoder supports recycling.
 - name: media.decoder.recycle.enabled
   type: RelaxedAtomicBool

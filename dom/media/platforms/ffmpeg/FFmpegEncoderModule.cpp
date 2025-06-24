@@ -117,8 +117,8 @@ EncodeSupportSet FFmpegEncoderModule<V>::SupportsCodec(CodecType aCodec) const {
     return EncodeSupportSet{};
   }
   EncodeSupportSet supports;
-  if (StaticPrefs::media_ffvpx_hw_enabled() &&
-      FFmpegDataEncoder<V>::FindHardwareEncoder(mLib, id) &&
+  if (StaticPrefs::media_ffvpx_hw_enabled() && gfx::gfxVars::IsInitialized() &&
+      gfx::gfxVars::CanUseHardwareVideoEncoding() &&
       sSupportedHWCodecs.Contains(static_cast<uint32_t>(id))) {
     supports += EncodeSupport::HardwareEncode;
   }

@@ -239,6 +239,9 @@ void gfxPlatformGtk::InitPlatformHardwareVideoConfig() {
   if (!gfxVars::UseEGL()) {
     featureDec.ForceDisable(FeatureStatus::Unavailable, "Requires EGL",
                             "FEATURE_FAILURE_REQUIRES_EGL"_ns);
+    gfxConfig::ForceDisable(Feature::HARDWARE_VIDEO_ENCODING,
+                            FeatureStatus::Unavailable, "Requires EGL",
+                            "FEATURE_FAILURE_REQUIRES_EGL"_ns);
   }
 
   if (!featureDec.IsEnabled()) {

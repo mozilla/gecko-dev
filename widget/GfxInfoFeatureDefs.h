@@ -131,3 +131,5 @@ GFXINFO_FEATURE(HEVC_HW_ENCODE, "HEVC_HW_ENCODE", "hevc.hw-encode")
 GFXINFO_FEATURE(WMF_HW_DRM, "WMF_HW_DRM", "wmf.hw-drm")
 /* Whether OpenGL is allowed to use normalized 16-bit texture formats, starting in 141. */
 GFXINFO_FEATURE(GL_NORM16_TEXTURES, "GL_NORM16", "gl.norm16-textures")
+/* Whether hardware accelerated video encoding is supported, starting in 141. */
+GFXINFO_FEATURE(HARDWARE_VIDEO_ENCODING, "HARDWARE_VIDEO_ENCODING", "hardwarevideoencoding")
