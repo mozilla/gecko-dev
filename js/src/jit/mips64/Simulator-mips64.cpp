@@ -3285,6 +3285,9 @@ void Simulator::decodeTypeImmediate(SimInstruction* instr) {
 
   // Used for arithmetic instructions.
   int64_t alu_out = 0;
+  // Unaligned access
+  uint8_t al_offset = 0;
+  uint64_t al_addr = 0;
   // Floating point.
   double fp_out = 0.0;
   uint32_t cc, cc_value, fcsr_cc;
@@ -3437,22 +3440,34 @@ void Simulator::decodeTypeImmediate(SimInstruction* instr) {
       break;
     case op_lwl: {
       // al_offset is offset of the effective address within an aligned word.
-      uint8_t al_offset = (rs + se_imm16) & 3;
+      al_offset = (rs + se_imm16) & 3;
       uint8_t byte_shift = 3 - al_offset;
       uint32_t mask = (1 << byte_shift * 8) - 1;
-      addr = rs + se_imm16 - al_offset;
-      alu_out = readW(addr, instr);
+      addr = rs + se_imm16;
+      al_addr = addr - al_offset;
+      // handle segfault at the unaligned address first
+      if (handleWasmSegFault(addr - 3, 4)) {
+        alu_out = -1;
+      } else {
+        alu_out = readW(al_addr, instr);
+      }
       alu_out <<= byte_shift * 8;
       alu_out |= rt & mask;
       break;
     }
     case op_lwr: {
       // al_offset is offset of the effective address within an aligned word.
-      uint8_t al_offset = (rs + se_imm16) & 3;
+      al_offset = (rs + se_imm16) & 3;
       uint8_t byte_shift = 3 - al_offset;
       uint32_t mask = al_offset ? (~0 << (byte_shift + 1) * 8) : 0;
-      addr = rs + se_imm16 - al_offset;
-      alu_out = readW(addr, instr);
+      addr = rs + se_imm16;
+      al_addr = addr - al_offset;
+      // handle segfault at the unaligned address first
+      if (handleWasmSegFault(addr, 4)) {
+        alu_out = -1;
+      } else {
+        alu_out = readW(al_addr, instr);
+      }
       alu_out = U32(alu_out) >> al_offset * 8;
       alu_out |= rt & mask;
       alu_out = I32(alu_out);
@@ -3472,22 +3487,34 @@ void Simulator::decodeTypeImmediate(SimInstruction* instr) {
       break;
     case op_ldl: {
       // al_offset is offset of the effective address within an aligned word.
-      uint8_t al_offset = (rs + se_imm16) & 7;
+      al_offset = (rs + se_imm16) & 7;
+      addr = rs + se_imm16;
+      al_addr = addr - al_offset;
       uint8_t byte_shift = 7 - al_offset;
       uint64_t mask = (1ul << byte_shift * 8) - 1;
-      addr = rs + se_imm16 - al_offset;
-      alu_out = readDW(addr, instr);
+      // handle segfault at the unaligned address first
+      if (handleWasmSegFault(addr - 7, 8)) {
+        alu_out = -1;
+      } else {
+        alu_out = readDW(al_addr, instr);
+      }
       alu_out <<= byte_shift * 8;
       alu_out |= rt & mask;
       break;
     }
     case op_ldr: {
       // al_offset is offset of the effective address within an aligned word.
-      uint8_t al_offset = (rs + se_imm16) & 7;
+      al_offset = (rs + se_imm16) & 7;
+      addr = rs + se_imm16;
+      al_addr = addr - al_offset;
       uint8_t byte_shift = 7 - al_offset;
       uint64_t mask = al_offset ? (~0ul << (byte_shift + 1) * 8) : 0;
-      addr = rs + se_imm16 - al_offset;
-      alu_out = readDW(addr, instr);
+      // handle segfault at the unaligned address first
+      if (handleWasmSegFault(addr, 8)) {
+        alu_out = -1;
+      } else {
+        alu_out = readDW(al_addr, instr);
+      }
       alu_out = U64(alu_out) >> al_offset * 8;
       alu_out |= rt & mask;
       break;
@@ -3501,23 +3528,12 @@ void Simulator::decodeTypeImmediate(SimInstruction* instr) {
     case op_sw:
       addr = rs + se_imm16;
       break;
-    case op_swl: {
-      uint8_t al_offset = (rs + se_imm16) & 3;
-      uint8_t byte_shift = 3 - al_offset;
-      uint32_t mask = byte_shift ? (~0 << (al_offset + 1) * 8) : 0;
-      addr = rs + se_imm16 - al_offset;
-      mem_value = readW(addr, instr) & mask;
-      mem_value |= U32(rt) >> byte_shift * 8;
+    case op_swl:
+    case op_swr:
+      al_offset = (rs + se_imm16) & 3;
+      addr = rs + se_imm16;
+      al_addr = addr - al_offset;
       break;
-    }
-    case op_swr: {
-      uint8_t al_offset = (rs + se_imm16) & 3;
-      uint32_t mask = (1 << al_offset * 8) - 1;
-      addr = rs + se_imm16 - al_offset;
-      mem_value = readW(addr, instr);
-      mem_value = (rt << al_offset * 8) | (mem_value & mask);
-      break;
-    }
     case op_sc:
       addr = rs + se_imm16;
       break;
@@ -3527,21 +3543,11 @@ void Simulator::decodeTypeImmediate(SimInstruction* instr) {
     case op_sd:
       addr = rs + se_imm16;
       break;
-    case op_sdl: {
-      uint8_t al_offset = (rs + se_imm16) & 7;
-      uint8_t byte_shift = 7 - al_offset;
-      uint64_t mask = byte_shift ? (~0ul << (al_offset + 1) * 8) : 0;
-      addr = rs + se_imm16 - al_offset;
-      mem_value = readW(addr, instr) & mask;
-      mem_value |= U64(rt) >> byte_shift * 8;
-      break;
-    }
+    case op_sdl:
     case op_sdr: {
-      uint8_t al_offset = (rs + se_imm16) & 7;
-      uint64_t mask = (1ul << al_offset * 8) - 1;
-      addr = rs + se_imm16 - al_offset;
-      mem_value = readW(addr, instr);
-      mem_value = (rt << al_offset * 8) | (mem_value & mask);
+      al_offset = (rs + se_imm16) & 7;
+      addr = rs + se_imm16;
+      al_addr = addr - al_offset;
       break;
     }
     case op_lwc1:
@@ -3620,12 +3626,29 @@ void Simulator::decodeTypeImmediate(SimInstruction* instr) {
     case op_sw:
       writeW(addr, I32(rt), instr);
       break;
-    case op_swl:
-      writeW(addr, I32(mem_value), instr);
+    case op_swl: {
+      // handle segfault at the unaligned address first
+      if (handleWasmSegFault(addr - 3, 4)) {
+        break;
+      }
+      uint8_t byte_shift = 3 - al_offset;
+      uint32_t mask = byte_shift ? (~0 << (al_offset + 1) * 8) : 0;
+      mem_value = readW(al_addr, instr) & mask;
+      mem_value |= U32(rt) >> byte_shift * 8;
+      writeW(al_addr, I32(mem_value), instr);
       break;
-    case op_swr:
-      writeW(addr, I32(mem_value), instr);
+    }
+    case op_swr: {
+      // handle segfault at the unaligned address first
+      if (handleWasmSegFault(addr, 4)) {
+        break;
+      }
+      uint32_t mask = (1 << al_offset * 8) - 1;
+      mem_value = readW(al_addr, instr);
+      mem_value = (rt << al_offset * 8) | (mem_value & mask);
+      writeW(al_addr, I32(mem_value), instr);
       break;
+    }
     case op_sc:
       setRegister(rt_reg, storeConditionalW(addr, I32(rt), instr));
       break;
@@ -3635,12 +3658,29 @@ void Simulator::decodeTypeImmediate(SimInstruction* instr) {
     case op_sd:
       writeDW(addr, rt, instr);
       break;
-    case op_sdl:
-      writeDW(addr, mem_value, instr);
+    case op_sdl: {
+      // handle segfault at the unaligned address first
+      if (handleWasmSegFault(addr - 7, 8)) {
+        break;
+      }
+      uint8_t byte_shift = 7 - al_offset;
+      uint64_t mask = byte_shift ? (~0ul << (al_offset + 1) * 8) : 0;
+      mem_value = readW(al_addr, instr) & mask;
+      mem_value |= U64(rt) >> byte_shift * 8;
+      writeDW(al_addr, mem_value, instr);
       break;
-    case op_sdr:
-      writeDW(addr, mem_value, instr);
+    }
+    case op_sdr: {
+      // handle segfault at the unaligned address first
+      if (handleWasmSegFault(addr, 8)) {
+        break;
+      }
+      uint64_t mask = (1ul << al_offset * 8) - 1;
+      mem_value = readW(al_addr, instr);
+      mem_value = (rt << al_offset * 8) | (mem_value & mask);
+      writeDW(al_addr, mem_value, instr);
       break;
+    }
     case op_lwc1:
       setFpuRegisterLo(ft_reg, alu_out);
       break;
