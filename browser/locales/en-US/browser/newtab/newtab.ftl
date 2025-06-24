@@ -525,8 +525,8 @@ newtab-toast-thanks-for-reporting =
 
 ## Strings for trending searches
 
-# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
-newtab-trending-searches-trending-on-google = Trending on Google
+# "Trending searches refers to popular searches from search engines
+newtab-trending-searches-title = Trending searches
 newtab-trending-searches-show-trending =
     .title = Show trending searches
 newtab-trending-searches-hide-trending =

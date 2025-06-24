@@ -5013,7 +5013,7 @@ function TrendingSearches() {
       className: "trending-searches-icon icon icon-arrow-trending"
     }), /*#__PURE__*/external_React_default().createElement("h2", {
       className: "trending-searches-title",
-      "data-l10n-id": "newtab-trending-searches-trending-on-google"
+      "data-l10n-id": "newtab-trending-searches-title"
     }), /*#__PURE__*/external_React_default().createElement("div", {
       className: "close-open-trending-searches"
     }, /*#__PURE__*/external_React_default().createElement("moz-button", {
@@ -5046,7 +5046,7 @@ function TrendingSearches() {
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "trending-searches-list-view-header"
     }, /*#__PURE__*/external_React_default().createElement("h3", {
-      "data-l10n-id": "newtab-trending-searches-trending-on-google"
+      "data-l10n-id": "newtab-trending-searches-title"
     }), /*#__PURE__*/external_React_default().createElement("div", {
       className: "trending-searches-context-menu-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("div", {

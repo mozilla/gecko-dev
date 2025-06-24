@@ -123,7 +123,7 @@ function TrendingSearches() {
           <span className="trending-searches-icon icon icon-arrow-trending"></span>
           <h2
             className="trending-searches-title"
-            data-l10n-id="newtab-trending-searches-trending-on-google"
+            data-l10n-id="newtab-trending-searches-title"
           ></h2>
           <div className="close-open-trending-searches">
             <moz-button
@@ -169,7 +169,7 @@ function TrendingSearches() {
         className="trending-searches-list-view"
       >
         <div className="trending-searches-list-view-header">
-          <h3 data-l10n-id="newtab-trending-searches-trending-on-google"></h3>
+          <h3 data-l10n-id="newtab-trending-searches-title"></h3>
           <div className="trending-searches-context-menu-wrapper">
             <div
               className={`trending-searches-context-menu ${showContextMenu ? "context-menu-open" : ""}`}
