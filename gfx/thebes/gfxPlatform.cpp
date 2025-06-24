@@ -2399,29 +2399,20 @@ gfxImageFormat gfxPlatform::OptimalFormatForContent(gfxContentType aContent) {
  * and remember the values.  Changing these preferences during the run will
  * not have any effect until we restart.
  */
+static mozilla::Atomic<bool> sLayersSupportsHardwareVideoDecoding(false);
+static bool sLayersHardwareVideoDecodingFailed = false;
+
 static mozilla::Atomic<bool> sLayersAccelerationPrefsInitialized(false);
 
 static void VideoDecodingFailedChangedCallback(const char* aPref, void*) {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  sLayersHardwareVideoDecodingFailed = Preferences::GetBool(aPref, false);
+  gfxPlatform::GetPlatform()->UpdateCanUseHardwareVideoDecoding();
+}
 
-  // We disable both hardware video decoding and encoding based on the same
-  // sanity test. Presumably if hardware decoding is totally broken, hardware
-  // encoding is in a similar state.
-  FeatureState& featureDec =
-      gfxConfig::GetFeature(Feature::HARDWARE_VIDEO_DECODING);
-  FeatureState& featureEnc =
-      gfxConfig::GetFeature(Feature::HARDWARE_VIDEO_ENCODING);
-  if (Preferences::GetBool(aPref, false)) {
-    featureDec.ForceDisable(FeatureStatus::Unavailable,
-                            "Force disabled by failed sanity test",
-                            "FEATURE_FAILURE_SANITY_TEST_FAILED"_ns);
-    featureEnc.ForceDisable(FeatureStatus::Unavailable,
-                            "Force disabled by failed sanity test",
-                            "FEATURE_FAILURE_SANITY_TEST_FAILED"_ns);
+void gfxPlatform::UpdateCanUseHardwareVideoDecoding() {
+  if (XRE_IsParentProcess()) {
+    gfxVars::SetCanUseHardwareVideoDecoding(CanUseHardwareVideoDecoding());
   }
-
-  gfxVars::SetCanUseHardwareVideoDecoding(featureDec.IsEnabled());
-  gfxVars::SetCanUseHardwareVideoEncoding(featureEnc.IsEnabled());
 }
 
 void gfxPlatform::UpdateForceSubpixelAAWherePossible() {
@@ -2443,15 +2434,18 @@ void gfxPlatform::InitAcceleration() {
   // explicit.
   MOZ_ASSERT(NS_IsMainThread(), "can only initialize prefs on the main thread");
 
+#ifndef MOZ_WIDGET_GTK
+  nsCOMPtr<nsIGfxInfo> gfxInfo = components::GfxInfo::Service();
+  nsCString discardFailureId;
+  int32_t status;
+#endif
+
   if (XRE_IsParentProcess()) {
     gfxVars::SetBrowserTabsRemoteAutostart(BrowserTabsRemoteAutostart());
     gfxVars::SetOffscreenFormat(GetOffscreenFormat());
     gfxVars::SetRequiresAcceleratedGLContextForCompositorOGL(
         RequiresAcceleratedGLContextForCompositorOGL());
 #ifdef XP_WIN
-    nsCOMPtr<nsIGfxInfo> gfxInfo = components::GfxInfo::Service();
-    nsCString discardFailureId;
-    int32_t status;
     if (NS_SUCCEEDED(
             gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_D3D11_KEYED_MUTEX,
                                       discardFailureId, &status))) {
@@ -2468,9 +2462,41 @@ void gfxPlatform::InitAcceleration() {
 #endif
   }
 
+  if (StaticPrefs::media_hardware_video_decoding_enabled_AtStartup()) {
+#ifdef MOZ_WIDGET_GTK
+    sLayersSupportsHardwareVideoDecoding =
+        gfxPlatformGtk::GetPlatform()->InitVAAPIConfig(
+            StaticPrefs::
+                media_hardware_video_decoding_force_enabled_AtStartup());
+#else
+    if (
+#  ifdef XP_WIN
+        Preferences::GetBool("media.wmf.dxva.enabled", true) &&
+#  endif
+        NS_SUCCEEDED(gfxInfo->GetFeatureStatus(
+            nsIGfxInfo::FEATURE_HARDWARE_VIDEO_DECODING, discardFailureId,
+            &status))) {
+      if (status == nsIGfxInfo::FEATURE_STATUS_OK ||
+          StaticPrefs::
+              media_hardware_video_decoding_force_enabled_AtStartup()) {
+        sLayersSupportsHardwareVideoDecoding = true;
+      }
+    }
+#endif
+  } else if (XRE_IsParentProcess()) {
+    FeatureState& feature =
+        gfxConfig::GetFeature(Feature::HARDWARE_VIDEO_DECODING);
+    feature.EnableByDefault();
+    feature.UserDisable("User disabled via pref",
+                        "FEATURE_HARDWARE_VIDEO_DECODING_PREF_DISABLED"_ns);
+  }
+
   sLayersAccelerationPrefsInitialized = true;
 
   if (XRE_IsParentProcess()) {
+    Preferences::RegisterCallbackAndCall(
+        VideoDecodingFailedChangedCallback,
+        "media.hardware-video-decoding.failed");
     InitGPUProcessPrefs();
 
     FeatureState& feature = gfxConfig::GetFeature(Feature::REMOTE_CANVAS);
@@ -2973,105 +2999,15 @@ void gfxPlatform::InitHardwareVideoConfig() {
     return;
   }
 
-  FeatureState& featureDec =
-      gfxConfig::GetFeature(Feature::HARDWARE_VIDEO_DECODING);
-  featureDec.EnableByDefault();
-
-  if (!StaticPrefs::media_hardware_video_decoding_enabled_AtStartup()) {
-    featureDec.UserDisable(
-        "User disabled via media.hardware-video-decoding.enabled pref",
-        "FEATURE_HARDWARE_VIDEO_DECODING_PREF_1_DISABLED"_ns);
-  }
-#ifdef XP_WIN
-  else if (!StaticPrefs::media_wmf_dxva_d3d11_enabled()) {
-    featureDec.UserDisable(
-        "User disabled via media.wmf.dxva.d3d11.enabled pref",
-        "FEATURE_HARDWARE_VIDEO_DECODING_PREF_2_DISABLED"_ns);
-  }
-#endif
-  else if (StaticPrefs::
-               media_hardware_video_decoding_force_enabled_AtStartup()) {
-    featureDec.UserForceEnable("Force enabled by pref");
-  }
-
-  int32_t status = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
-  nsCOMPtr<nsIGfxInfo> gfxInfo = components::GfxInfo::Service();
-  nsCString failureId;
-  if (NS_FAILED(gfxInfo->GetFeatureStatus(
-          nsIGfxInfo::FEATURE_HARDWARE_VIDEO_DECODING, failureId, &status))) {
-    featureDec.Disable(FeatureStatus::BlockedNoGfxInfo, "gfxInfo is broken",
-                       "FEATURE_FAILURE_NO_GFX_INFO"_ns);
-  } else if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
-    featureDec.Disable(FeatureStatus::Blocklisted, "Blocklisted by gfxInfo",
-                       failureId);
-  }
-
-  if (status == nsIGfxInfo::FEATURE_BLOCKED_PLATFORM_TEST) {
-    featureDec.ForceDisable(FeatureStatus::Unavailable,
-                            "Force disabled by gfxInfo", failureId);
-  } else if (Preferences::GetBool("media.hardware-video-decoding.failed",
-                                  false)) {
-    featureDec.ForceDisable(FeatureStatus::Unavailable,
-                            "Force disabled by failed sanity test",
-                            "FEATURE_FAILURE_SANITY_TEST_FAILED"_ns);
-  }
-
-  FeatureState& featureEnc =
-      gfxConfig::GetFeature(Feature::HARDWARE_VIDEO_ENCODING);
-  featureEnc.EnableByDefault();
-
-  if (!StaticPrefs::media_hardware_video_encoding_enabled_AtStartup()) {
-    featureDec.UserDisable(
-        "User disabled via media.hardware-video-encoding.enabled pref",
-        "FEATURE_HARDWARE_VIDEO_ENCODING_PREF_1_DISABLED"_ns);
-  }
-#ifdef XP_WIN
-  else if (!StaticPrefs::media_wmf_dxva_d3d11_enabled()) {
-    featureDec.UserDisable(
-        "User disabled via media.wmf.dxva.d3d11.enabled pref",
-        "FEATURE_HARDWARE_VIDEO_ENCODING_PREF_2_DISABLED"_ns);
-  }
-#endif
-  else if (StaticPrefs::
-               media_hardware_video_encoding_force_enabled_AtStartup()) {
-    featureEnc.UserForceEnable("Force enabled by pref");
-  }
-
-  status = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
-  if (NS_FAILED(gfxInfo->GetFeatureStatus(
-          nsIGfxInfo::FEATURE_HARDWARE_VIDEO_ENCODING, failureId, &status))) {
-    featureEnc.Disable(FeatureStatus::BlockedNoGfxInfo, "gfxInfo is broken",
-                       "FEATURE_FAILURE_NO_GFX_INFO"_ns);
-  } else if (status != nsIGfxInfo::FEATURE_STATUS_OK) {
-    featureEnc.Disable(FeatureStatus::Blocklisted, "Blocklisted by gfxInfo",
-                       failureId);
-  }
-
-  if (status == nsIGfxInfo::FEATURE_BLOCKED_PLATFORM_TEST) {
-    featureEnc.ForceDisable(FeatureStatus::Unavailable,
-                            "Force disabled by gfxInfo", failureId);
-  } else if (Preferences::GetBool("media.hardware-video-decoding.failed",
-                                  false)) {
-    featureEnc.ForceDisable(FeatureStatus::Unavailable,
-                            "Force disabled by failed sanity test",
-                            "FEATURE_FAILURE_SANITY_TEST_FAILED"_ns);
-  }
-
-  InitPlatformHardwareVideoConfig();
-
-  // We don't want to expose codec info if whole HW de/encoding is disabled.
-  if (!featureDec.IsEnabled() && !featureEnc.IsEnabled()) {
+#ifdef MOZ_WIDGET_GTK
+  // We don't want to expose codec info if whole HW decoding is disabled.
+  if (!sLayersSupportsHardwareVideoDecoding) {
     return;
   }
-
-  gfxVars::SetCanUseHardwareVideoDecoding(featureDec.IsEnabled());
-  gfxVars::SetCanUseHardwareVideoEncoding(featureEnc.IsEnabled());
-
-  // Monitor for sanity test changes if we are enabled.
-  Preferences::RegisterCallbackAndCall(VideoDecodingFailedChangedCallback,
-                                       "media.hardware-video-decoding.failed");
+#endif
 
   nsCString message;
+  nsCString failureId;
 
 #define CODEC_HW_FEATURE_SETUP(name)                                         \
   FeatureState& featureDec##name =                                           \
@@ -3093,14 +3029,14 @@ void gfxPlatform::InitHardwareVideoConfig() {
   }                                                                          \
   gfxVars::SetUse##name##HwEncode(featureEnc##name.IsEnabled());
 
-  CODEC_HW_FEATURE_SETUP(AV1)
   CODEC_HW_FEATURE_SETUP(VP8)
   CODEC_HW_FEATURE_SETUP(VP9)
 
-  // H264/HEVC_HW_DECODE/ENCODE are used on Linux only right now.
+  // H264/AV1/HEVC_HW_DECODE/ENCODE are used on Linux only right now.
 #ifdef MOZ_WIDGET_GTK
   CODEC_HW_FEATURE_SETUP(H264)
   CODEC_HW_FEATURE_SETUP(HEVC)
+  CODEC_HW_FEATURE_SETUP(AV1)
 #endif
 
 #undef CODEC_HW_FEATURE_SETUP
@@ -3460,6 +3396,14 @@ void gfxPlatform::InitAcceleratedCanvas2DConfig() {
       AcceleratedCanvas2DPrefChangeCallback,
       nsDependentCString(
           StaticPrefs::GetPrefName_gfx_canvas_accelerated_force_enabled()));
+}
+
+bool gfxPlatform::CanUseHardwareVideoDecoding() {
+  // this function is called from the compositor thread, so it is not
+  // safe to init the prefs etc. from here.
+  MOZ_ASSERT(sLayersAccelerationPrefsInitialized);
+  return sLayersSupportsHardwareVideoDecoding &&
+         !sLayersHardwareVideoDecodingFailed;
 }
 
 bool gfxPlatform::AccelerateLayersByDefault() {

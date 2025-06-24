@@ -95,7 +95,6 @@ AVCodec* FFmpegDataEncoder<LIBAV_VER>::FindSoftwareEncoder(
   return fallbackCodec;
 }
 
-#ifdef MOZ_USE_HWDECODE
 /* static */
 AVCodec* FFmpegDataEncoder<LIBAV_VER>::FindHardwareEncoder(
     const FFmpegLibWrapper* aLib, AVCodecID aCodecId) {
@@ -104,30 +103,19 @@ AVCodec* FFmpegDataEncoder<LIBAV_VER>::FindHardwareEncoder(
   AVCodec* fallbackCodec = nullptr;
   void* opaque = nullptr;
   while (AVCodec* codec = aLib->av_codec_iterate(&opaque)) {
-    if (codec->id != aCodecId || !aLib->av_codec_is_encoder(codec)) {
+    if (codec->id != aCodecId || !aLib->av_codec_is_encoder(codec) ||
+        !aLib->avcodec_get_hw_config(codec, 0)) {
       continue;
     }
 
-    bool hasHwConfig = false;
-    for (int i = 0;
-         const AVCodecHWConfig* config = aLib->avcodec_get_hw_config(codec, i);
-         ++i) {
-      if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) {
-        hasHwConfig = true;
-        break;
-      }
-    }
-
-    if (!hasHwConfig) {
-      continue;
-    }
-
+#if LIBAVCODEC_VERSION_MAJOR >= 57
     if (codec->capabilities & AV_CODEC_CAP_EXPERIMENTAL) {
       if (!fallbackCodec) {
         fallbackCodec = codec;
       }
       continue;
     }
+#endif
 
     FFMPEGV_LOG("Using preferred hardware codec %s", codec->name);
     return codec;
@@ -138,7 +126,6 @@ AVCodec* FFmpegDataEncoder<LIBAV_VER>::FindHardwareEncoder(
   }
   return fallbackCodec;
 }
-#endif
 
 /* static */
 Result<RefPtr<MediaRawData>, MediaResult>
@@ -342,14 +329,8 @@ void FFmpegDataEncoder<LIBAV_VER>::ShutdownInternal() {
 
 Result<AVCodecContext*, MediaResult>
 FFmpegDataEncoder<LIBAV_VER>::AllocateCodecContext(bool aHardware) {
-  AVCodec* codec = nullptr;
-  if (aHardware) {
-#ifdef MOZ_USE_HWDECODE
-    codec = FindHardwareEncoder(mLib, mCodecID);
-#endif
-  } else {
-    codec = FindSoftwareEncoder(mLib, mCodecID);
-  }
+  AVCodec* codec = aHardware ? FindHardwareEncoder(mLib, mCodecID)
+                             : FindSoftwareEncoder(mLib, mCodecID);
   if (!codec) {
     return Err(MediaResult(
         NS_ERROR_DOM_MEDIA_FATAL_ERR,
