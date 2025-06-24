@@ -20,8 +20,8 @@ struct EncodedSize {
   static_assert(ShiftBits + ValueBits == 8);
 
   static constexpr size_t Granularity = Bit(GranularityShift);
-  static constexpr size_t MaxSize = BitMask(ValueBits + 1)
-                                    << (BitMask(ShiftBits) - 1 + GranularityShift);
+  static constexpr size_t MaxSize =
+      BitMask(ValueBits + 1) << (BitMask(ShiftBits) - 1 + GranularityShift);
 
   uint8_t bits = 0;
 

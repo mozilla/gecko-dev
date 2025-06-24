@@ -33,8 +33,8 @@ static constexpr size_t MaxMediumAllocSize =
 
 static constexpr size_t MediumAllocGranularityShift =
     BufferAllocator::MinMediumAllocShift;
-static constexpr size_t MediumAllocGranularity =
-    1 << MediumAllocGranularityShift;
+static constexpr size_t MediumAllocGranularity = 1
+                                                 << MediumAllocGranularityShift;
 
 using MediumBufferSize = EncodedSize<MediumAllocGranularityShift>;
 
