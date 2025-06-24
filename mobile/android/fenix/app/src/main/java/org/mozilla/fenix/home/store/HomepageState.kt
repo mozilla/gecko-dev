@@ -148,7 +148,7 @@ internal sealed class HomepageState {
                 if (browsingModeManager.mode.isPrivate) {
                     Private(
                         showPrivateBrowsingButton = !settings.enableHomepageAsNewTab,
-                        firstFrameDrawn = appState.firstFrameDrawn,
+                        firstFrameDrawn = firstFrameDrawn,
                         bottomSpacerHeight = getBottomSpace(),
                     )
                 } else {
@@ -177,12 +177,12 @@ internal sealed class HomepageState {
                         showRecentSyncedTab = shouldShowRecentSyncedTabs() && showSyncedTab,
                         showRecentlyVisited = settings.historyMetadataUIFeature && recentHistory.isNotEmpty(),
                         showPocketStories = settings.showPocketRecommendationsFeature &&
-                            recommendationState.pocketStories.isNotEmpty() && firstFrameDrawn,
+                            recommendationState.pocketStories.isNotEmpty(),
                         showPrivateBrowsingButton = !settings.enableHomepageAsNewTab,
                         showSearchBar = shouldShowSearchBar(appState = appState),
                         searchBarEnabled = settings.enableHomepageSearchBar &&
                             settings.toolbarPosition == ToolbarPosition.TOP,
-                        firstFrameDrawn = appState.firstFrameDrawn,
+                        firstFrameDrawn = firstFrameDrawn,
                         setupChecklistState = setupChecklistState,
                         topSiteColors = TopSiteColors.colors(wallpaperState = wallpaperState),
                         cardBackgroundColor = wallpaperState.cardBackgroundColor,
