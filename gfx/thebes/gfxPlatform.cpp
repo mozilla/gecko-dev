@@ -3033,7 +3033,7 @@ void gfxPlatform::InitHardwareVideoConfig() {
   }
 #endif
   else if (StaticPrefs::
-                 media_hardware_video_encoding_force_enabled_AtStartup()) {
+               media_hardware_video_encoding_force_enabled_AtStartup()) {
     featureEnc.UserForceEnable("Force enabled by pref");
   }
 
