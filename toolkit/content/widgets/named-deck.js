@@ -130,11 +130,6 @@
                 this.activeChild = this.firstElementChild;
               }
             }
-            for (let node of change.addedNodes) {
-              if (!this.activeChild) {
-                this.activeChild = node;
-              }
-            }
           }
         });
       }

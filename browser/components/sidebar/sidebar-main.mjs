@@ -6,7 +6,6 @@ import {
   classMap,
   html,
   ifDefined,
-  nothing,
   repeat,
   when,
 } from "chrome://global/content/vendor/lit.all.mjs";
@@ -91,8 +90,6 @@ export default class SidebarMain extends MozLitElement {
     this._sidebarMain = document.getElementById("sidebar-main");
     this._contextMenu = document.getElementById("sidebar-context-menu");
     this._toolsOverflowMenu = document.getElementById("sidebar-tools-overflow");
-    this._toolsOverflowButtonGroup =
-      this._toolsOverflowMenu.querySelector("button-group");
     this._manageExtensionMenuItem = document.getElementById(
       "sidebar-context-menu-manage-extension"
     );
@@ -174,13 +171,6 @@ export default class SidebarMain extends MozLitElement {
 
             // Hide original button
             entry.target.style.visibility = "hidden";
-            for (const button of this.buttonGroup.children) {
-              const style = window.getComputedStyle(button);
-              if (style.display !== "none" && style.visibility !== "hidden") {
-                this.buttonGroup.activeChild = button;
-                break;
-              }
-            }
           } else if (entry.isIntersecting && buttonAlreadyAddedToOverflow) {
             // Remove copy button from the panel
             copyButton.remove();
@@ -241,7 +231,6 @@ export default class SidebarMain extends MozLitElement {
           this.open && newButtonValues.action.view === this.selectedView;
         newButton.setAttribute("aria-pressed", isActiveView);
         newButton.setAttribute("type", isActiveView ? "icon" : "icon ghost");
-        this._toolsOverflowMenu.hidePopup();
       });
       newButton.setAttribute("title", newButtonValues.tooltip);
       newButton.iconSrc = newButtonValues.action.iconUrl;
@@ -443,13 +432,11 @@ export default class SidebarMain extends MozLitElement {
           this.contextMenuTarget = null;
         } else if (e.target === this._toolsOverflowMenu) {
           this.isOverflowMenuOpen = false;
-          window.removeEventListener("keydown", this.handleOverflowKeypress);
         }
         break;
       case "popupshown":
         if (e.target === this._toolsOverflowMenu) {
           this.isOverflowMenuOpen = true;
-          window.addEventListener("keydown", this.handleOverflowKeypress);
         }
         break;
       case "sidebar-show":
@@ -466,19 +453,6 @@ export default class SidebarMain extends MozLitElement {
         break;
     }
   }
-
-  handleOverflowKeypress = e => {
-    if (
-      (e.key == "ArrowDown" || e.key == "ArrowUp") &&
-      !this._toolsOverflowButtonGroup.matches(":focus-within")
-    ) {
-      if (e.key == "ArrowUp") {
-        this._toolsOverflowButtonGroup.activeChild =
-          this._toolsOverflowButtonGroup.walker.lastChild();
-      }
-      this._toolsOverflowButtonGroup.activeChild.focus();
-    }
-  };
 
   async checkShouldShowCalloutSurveys(view) {
     if (view == "viewGenaiChatSidebar") {
@@ -633,32 +607,9 @@ export default class SidebarMain extends MozLitElement {
     )}`;
   }
 
-  showOverflowMenu(e) {
+  showOverflowMenu() {
     let panel = document.getElementById("sidebar-tools-overflow");
     this.resetPanelButtonValues();
-    let isKeyboardEvent = e.detail == 0;
-    panel.addEventListener(
-      "popupshown",
-      () => {
-        let group = panel.querySelector("button-group");
-        group.activeChild = group.firstElementChild;
-        if (isKeyboardEvent) {
-          group.activeChild.focus();
-        }
-      },
-      { once: true }
-    );
-
-    if (isKeyboardEvent) {
-      panel.addEventListener(
-        "popuphidden",
-        () => {
-          this.moreToolsButton.focus();
-        },
-        { once: true }
-      );
-    }
-
     panel.openPopup(
       this.moreToolsButton.shadowRoot.querySelector(".button-background"),
       window.SidebarController._positionStart
@@ -749,7 +700,7 @@ export default class SidebarMain extends MozLitElement {
                 aria-pressed=${this.isOverflowMenuOpen}
                 @click=${window.SidebarController.sidebarRevampVisibility ===
                 "expand-on-hover"
-                  ? nothing
+                  ? () => {}
                   : this.showOverflowMenu}
                 title=${moreToolsTooltip}
                 .iconSrc=${"chrome://global/skin/icons/chevron.svg"}
