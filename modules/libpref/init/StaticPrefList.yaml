@@ -17311,6 +17311,12 @@
   value: false
   mirror: always
 
+# Whether SVGImageElement loading is forced to be sync.
+- name: svg.image-element.force-sync-load
+  type: bool
+  value: true
+  mirror: always
+
 # Tweak which elements are allowed in <svg:use> subtrees, and in which
 # circumstances. See RemoveForbiddenNodes in SVGUseElement.cpp for the spec
 # text.

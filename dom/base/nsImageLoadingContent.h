@@ -31,6 +31,7 @@ class nsIURI;
 class nsPresContext;
 class nsIContent;
 class imgRequestProxy;
+class ImageLoadTask;
 
 namespace mozilla {
 class AsyncEventDispatcher;
@@ -51,6 +52,7 @@ enum class FetchPriority : uint8_t;
 
 class nsImageLoadingContent : public nsIImageLoadingContent {
  protected:
+  friend class ImageLoadTask;
   template <typename T>
   using Maybe = mozilla::Maybe<T>;
   using Nothing = mozilla::Nothing;
@@ -548,6 +550,18 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
   uint32_t mRequestGeneration;
 
  protected:
+  void QueueImageTask(nsIURI* aURI, nsIPrincipal* aSrcTriggeringPrincipal,
+                      bool aForceAsync, bool aAlwaysLoad, bool aNotify);
+  void QueueImageTask(nsIURI* aURI, bool aAlwaysLoad, bool aNotify) {
+    QueueImageTask(aURI, nullptr, false, aAlwaysLoad, aNotify);
+  }
+
+  void ClearImageLoadTask();
+
+  virtual void LoadSelectedImage(bool aAlwaysLoad, bool aStopLazyLoading) = 0;
+
+  RefPtr<ImageLoadTask> mPendingImageLoadTask;
+
   bool mLoadingEnabled : 1;
   /**
    * Flag to indicate whether the channel should be mark as urgent-start.
@@ -559,9 +573,6 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
 
   // Represents the image is deferred loading until this element gets visible.
   bool mLazyLoading : 1;
-
-  // Whether we have a pending load task scheduled (HTMLImageElement only).
-  bool mHasPendingLoadTask : 1;
 
   // If true, force frames to synchronously decode images on draw.
   bool mSyncDecodingHint : 1;
