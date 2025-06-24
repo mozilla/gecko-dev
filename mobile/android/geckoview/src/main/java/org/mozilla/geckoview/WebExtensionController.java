@@ -691,7 +691,7 @@ public class WebExtensionController {
   public GeckoResult<WebExtension> install(
       final @NonNull String uri, final @Nullable @InstallationMethod String installationMethod) {
     final InstallCanceller canceller = new InstallCanceller();
-    final GeckoBundle bundle = new GeckoBundle(2);
+    final GeckoBundle bundle = new GeckoBundle(3);
     bundle.putString("locationUri", uri);
     bundle.putString("installId", canceller.installId);
     bundle.putString("installMethod", installationMethod);
@@ -822,7 +822,7 @@ public class WebExtensionController {
       @NonNull final String[] permissions,
       @NonNull final String[] origins,
       @NonNull final String[] dataCollectionPermissions) {
-    final GeckoBundle bundle = new GeckoBundle(3);
+    final GeckoBundle bundle = new GeckoBundle(4);
     bundle.putString("extensionId", extensionId);
     bundle.putStringArray("permissions", permissions);
     bundle.putStringArray("origins", origins);
@@ -872,7 +872,7 @@ public class WebExtensionController {
       @NonNull final String[] permissions,
       @NonNull final String[] origins,
       @NonNull final String[] dataCollectionPermissions) {
-    final GeckoBundle bundle = new GeckoBundle(3);
+    final GeckoBundle bundle = new GeckoBundle(4);
     bundle.putString("extensionId", extensionId);
     bundle.putStringArray("permissions", permissions);
     bundle.putStringArray("origins", origins);
