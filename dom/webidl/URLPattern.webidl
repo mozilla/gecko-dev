@@ -8,7 +8,8 @@
 
 typedef (UTF8String or URLPatternInit) URLPatternInput;
 
-[Exposed=(Window,Worker)]
+[Exposed=(Window,Worker),
+  Pref="dom.urlpattern.enabled"]
 interface URLPattern {
 
   [Throws]
