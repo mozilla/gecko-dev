@@ -348,7 +348,7 @@ void Navigation::ScheduleEventsFromNavigation(
 }
 
 // https://html.spec.whatwg.org/#navigation-api-early-error-result
-void Navigation::SetEarlyErrorResult(JSContext* aCx, NavigationResult& aResult,
+void Navigation::SetEarlyErrorResult(NavigationResult& aResult,
                                      ErrorResult&& aRv) const {
   MOZ_ASSERT(aRv.Failed());
   // An early error result for an exception e is a NavigationResult dictionary
@@ -363,17 +363,14 @@ void Navigation::SetEarlyErrorResult(JSContext* aCx, NavigationResult& aResult,
     aRv.SuppressException();
     return;
   }
-  JS::Rooted<JS::Value> rootedExceptionValue(aCx);
-  MOZ_ALWAYS_TRUE(ToJSValue(aCx, std::move(aRv), &rootedExceptionValue));
+  ErrorResult rv2;
+  aRv.CloneTo(rv2);
   aResult.mCommitted.Reset();
   aResult.mCommitted.Construct(
-      Promise::CreateRejected(global, rootedExceptionValue, IgnoreErrors()));
-  MOZ_ASSERT(aResult.mCommitted);
-
+      Promise::CreateRejectedWithErrorResult(global, aRv));
   aResult.mFinished.Reset();
   aResult.mFinished.Construct(
-      Promise::CreateRejected(global, rootedExceptionValue, IgnoreErrors()));
-  MOZ_ASSERT(aResult.mFinished);
+      Promise::CreateRejectedWithErrorResult(global, rv2));
 }
 
 // https://html.spec.whatwg.org/#navigation-api-method-tracker-derived-result
@@ -391,24 +388,22 @@ static void CreateResultFromAPIMethodTracker(
 }
 
 bool Navigation::CheckIfDocumentIsFullyActiveAndMaybeSetEarlyErrorResult(
-    JSContext* aCx, const Document* aDocument,
-    NavigationResult& aResult) const {
+    const Document* aDocument, NavigationResult& aResult) const {
   if (!aDocument || !aDocument->IsFullyActive()) {
     ErrorResult rv;
     rv.ThrowInvalidStateError("Document is not fully active");
-    SetEarlyErrorResult(aCx, aResult, std::move(rv));
+    SetEarlyErrorResult(aResult, std::move(rv));
     return false;
   }
   return true;
 }
 
 bool Navigation::CheckDocumentUnloadCounterAndMaybeSetEarlyErrorResult(
-    JSContext* aCx, const Document* aDocument,
-    NavigationResult& aResult) const {
+    const Document* aDocument, NavigationResult& aResult) const {
   if (!aDocument || aDocument->ShouldIgnoreOpens()) {
     ErrorResult rv;
     rv.ThrowInvalidStateError("Document is unloading");
-    SetEarlyErrorResult(aCx, aResult, std::move(rv));
+    SetEarlyErrorResult(aResult, std::move(rv));
     return false;
   }
   return true;
@@ -436,7 +431,7 @@ Navigation::CreateSerializedStateAndMaybeSetEarlyErrorResult(
           Promise::Reject(global, exception, IgnoreErrors()));
       return nullptr;
     }
-    SetEarlyErrorResult(aCx, aResult, ErrorResult(rv));
+    SetEarlyErrorResult(aResult, ErrorResult(rv));
     return nullptr;
   }
   return serializedState.forget();
@@ -474,14 +469,14 @@ void Navigation::Reload(JSContext* aCx, const NavigationReloadOptions& aOptions,
   }
   // 5. If document is not fully active, then return an early error result for
   //    an "InvalidStateError" DOMException.
-  if (!CheckIfDocumentIsFullyActiveAndMaybeSetEarlyErrorResult(aCx, document,
+  if (!CheckIfDocumentIsFullyActiveAndMaybeSetEarlyErrorResult(document,
                                                                aResult)) {
     return;
   }
 
   // 6. If document's unload counter is greater than 0, then return an early
   //    error result for an "InvalidStateError" DOMException.
-  if (!CheckDocumentUnloadCounterAndMaybeSetEarlyErrorResult(aCx, document,
+  if (!CheckDocumentUnloadCounterAndMaybeSetEarlyErrorResult(document,
                                                              aResult)) {
     return;
   }

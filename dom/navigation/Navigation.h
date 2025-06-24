@@ -178,16 +178,13 @@ class Navigation final : public DOMEventTargetHelper {
   RefPtr<NavigationAPIMethodTracker> AddUpcomingTraverseAPIMethodTracker(
       const nsID& aKey, JS::Handle<JS::Value> aInfo);
 
-  void SetEarlyErrorResult(JSContext* aCx, NavigationResult& aResult,
-                           ErrorResult&& aRv) const;
+  void SetEarlyErrorResult(NavigationResult& aResult, ErrorResult&& aRv) const;
 
   bool CheckIfDocumentIsFullyActiveAndMaybeSetEarlyErrorResult(
-      JSContext* aCx, const Document* aDocument,
-      NavigationResult& aResult) const;
+      const Document* aDocument, NavigationResult& aResult) const;
 
   bool CheckDocumentUnloadCounterAndMaybeSetEarlyErrorResult(
-      JSContext* aCx, const Document* aDocument,
-      NavigationResult& aResult) const;
+      const Document* aDocument, NavigationResult& aResult) const;
 
   already_AddRefed<nsIStructuredCloneContainer>
   CreateSerializedStateAndMaybeSetEarlyErrorResult(
