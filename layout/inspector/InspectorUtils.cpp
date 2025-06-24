@@ -747,31 +747,18 @@ void InspectorUtils::RgbToColorName(GlobalObject&, uint8_t aR, uint8_t aG,
 }
 
 /* static */
-void InspectorUtils::ColorToRGBA(GlobalObject& aGlobal,
-                                 const nsACString& aColorString,
+void InspectorUtils::ColorToRGBA(GlobalObject&, const nsACString& aColorString,
+                                 const Document* aDoc,
                                  Nullable<InspectorRGBATuple>& aResult) {
-  auto* styleSet = [&]() -> ServoStyleSet* {
-    nsCOMPtr<nsIGlobalObject> global =
-        do_QueryInterface(aGlobal.GetAsSupports());
-    if (!global) {
-      return nullptr;
-    }
-    auto* win = global->GetAsInnerWindow();
-    if (!win) {
-      return nullptr;
-    }
-    Document* doc = win->GetExtantDoc();
-    if (!doc) {
-      return nullptr;
-    }
-    PresShell* ps = doc->GetPresShell();
-    if (!ps) {
-      return nullptr;
-    }
-    return ps->StyleSet();
-  }();
-
   nscolor color = NS_RGB(0, 0, 0);
+
+  ServoStyleSet* styleSet = nullptr;
+  if (aDoc) {
+    if (PresShell* ps = aDoc->GetPresShell()) {
+      styleSet = ps->StyleSet();
+    }
+  }
+
   if (!ServoCSSParser::ComputeColor(styleSet, NS_RGB(0, 0, 0), aColorString,
                                     &color)) {
     aResult.SetNull();

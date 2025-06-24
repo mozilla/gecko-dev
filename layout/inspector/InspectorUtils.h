@@ -113,6 +113,7 @@ class InspectorUtils {
   // NOTE: Converting a color to RGBA may be lossy when converting from some
   // formats e.g. CMYK.
   static void ColorToRGBA(GlobalObject&, const nsACString& aColorString,
+                          const Document*,
                           Nullable<InspectorRGBATuple>& aResult);
 
   // Convert a given CSS color string to another color space.
