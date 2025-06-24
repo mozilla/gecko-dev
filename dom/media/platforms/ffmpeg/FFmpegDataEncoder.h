@@ -33,8 +33,10 @@ class FFmpegDataEncoder<LIBAV_VER> : public MediaDataEncoder {
  public:
   static AVCodec* FindSoftwareEncoder(const FFmpegLibWrapper* aLib,
                                       AVCodecID aCodecId);
+#ifdef MOZ_USE_HWDECODE
   static AVCodec* FindHardwareEncoder(const FFmpegLibWrapper* aLib,
                                       AVCodecID aCodecId);
+#endif
 
   FFmpegDataEncoder(const FFmpegLibWrapper* aLib, AVCodecID aCodecID,
                     const RefPtr<TaskQueue>& aTaskQueue,
