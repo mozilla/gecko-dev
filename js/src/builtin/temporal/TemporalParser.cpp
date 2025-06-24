@@ -666,7 +666,7 @@ class TemporalParser final {
   /**
    * Returns true iff the current character is one of `chars`.
    */
-  bool hasOneOf(std::initializer_list<char16_t> chars) const {
+  bool hasOneOf(std::initializer_list<char> chars) const {
     if (!reader_.hasMore(1)) {
       return false;
     }
@@ -678,7 +678,7 @@ class TemporalParser final {
    * Consumes the current character if it's in `chars` and then returns `true`.
    * Otherwise returns `false`.
    */
-  bool oneOf(std::initializer_list<char16_t> chars) {
+  bool oneOf(std::initializer_list<char> chars) {
     if (!hasOneOf(chars)) {
       return false;
     }
