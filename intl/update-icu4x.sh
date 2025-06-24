@@ -14,13 +14,13 @@ set -e
 #   update-icu4x.sh https://github.com/unicode-org/icu4x.git main 45.0.0 release-75-1 1.5.0
 
 # default
-cldr=${3:-45.0.0}
-icuexport=${4:-release-75-1}
-icu4x_version=${5:-1.5.0}
+cldr=${3:-47.0.0}
+icuexport=${4:-release-77-1}
+icu4x_version=${5:-2.0.0}
 
 if [ $# -lt 2 ]; then
   echo "Usage: update-icu4x.sh <URL of ICU4X GIT> <ICU4X release tag name> <CLDR version> <ICU release tag name> <ICU4X version for icu_capi>"
-  echo "Example: update-icu4x.sh https://github.com/unicode-org/icu4x.git icu@1.5.0 45.0.0 release-75-1 1.5.0"
+  echo "Example: update-icu4x.sh https://github.com/unicode-org/icu4x.git icu@2.0.0 47.0.0 release-77-1 2.0.0"
   exit 1
 fi
 
@@ -81,7 +81,6 @@ rm -rf icu_capi_tar.gz
 log "Patching icu_capi"
 for patch in \
     001-Cargo.toml.patch \
-    002-dead-code.patch \
 ; do
     patch -d ${top_src_dir} -p1 --no-backup-if-mismatch < ${top_src_dir}/intl/icu4x-patches/$patch
 done
@@ -100,19 +99,20 @@ log "Saving the data into: ${segmenter_data_dir}"
 #     Path to text file with resource keys to include, one per line. Empty lines and
 #     lines starting with '#' are ignored.
 cargo run --bin icu4x-datagen          \
-  --features=bin                       \
   --                                   \
   --cldr-tag ${cldr}                   \
   --icuexport-root ${tmpicuexportdir}  \
-  --keys segmenter/dictionary/w_auto@1 \
-  --keys segmenter/dictionary/wl_ext@1 \
-  --keys segmenter/grapheme@1          \
-  --keys segmenter/line@1              \
-  --keys segmenter/lstm/wl_auto@1      \
-  --keys segmenter/sentence@1          \
-  --keys segmenter/word@1              \
-  --all-locales                        \
-  --format mod                         \
+  -m SegmenterBreakGraphemeClusterV1   \
+  -m SegmenterBreakLineV1              \
+  -m SegmenterBreakSentenceV1          \
+  -m SegmenterBreakSentenceOverrideV1  \
+  -m SegmenterBreakWordV1              \
+  -m SegmenterBreakWordOverrideV1      \
+  -m SegmenterLstmAutoV1               \
+  -m SegmenterDictionaryAutoV1         \
+  -m SegmenterDictionaryExtendedV1     \
+  --locales full                       \
+  --format baked                       \
   --out ${segmenter_data_dir}          \
 
 log "Record the current cloned git information to:"
