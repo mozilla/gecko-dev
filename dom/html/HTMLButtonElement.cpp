@@ -514,7 +514,7 @@ Element::Command HTMLButtonElement::GetCommand(nsAtom* aAtom) const {
   if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::open)) {
     return Command::Open;
   }
-  if (StringBeginsWith(nsDependentAtomString(aAtom), u"--"_ns)) {
+  if (nsContentUtils::ContainsChar(aAtom, '-')) {
     return Command::Custom;
   }
   return Command::Invalid;
