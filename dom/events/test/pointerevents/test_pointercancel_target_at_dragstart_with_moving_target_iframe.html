@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>`pointercancel` target at drag start should be the draggable element even if iframe moves away from underneath the pointer</title>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+<style>
+body {
+  margin: 0;
+}
+div.spacer {
+  width: 64px;
+  height: 64px;
+}
+iframe {
+  width: 128px;
+  height: 128px;
+  margin: 0;
+  display: block;
+}
+</style>
+<script>
+"use strict";
+
+SimpleTest.waitForExplicitFinish();
+SimpleTest.waitForFocus(async () => {
+  let unexpectedPointerCancel;
+  addEventListener("pointercancel", event => {
+    unexpectedPointerCancel = event;
+  }, {once: true});
+  const iframe = document.querySelector("iframe");
+  const draggable = iframe.contentDocument.querySelector("div[draggable]");
+  draggable.addEventListener("dragstart", () => {
+    // Move down the <iframe> from underneath the mouse cursor.
+    iframe.style.marginTop = "128px";
+  }, {once: true});
+  let pointerCancelTarget;
+  draggable.addEventListener("pointercancel", event => {
+    pointerCancelTarget = event.target;
+  });
+  await synthesizePlainDragAndDrop({
+    srcElement: draggable,
+    destElement: iframe.contentDocument.getElementById("dest"),
+    srcX: draggable.getBoundingClientRect().width / 2,
+    srcY: draggable.getBoundingClientRect().height / 2,
+    srcWindow: iframe.contentWindow,
+    destWindow: iframe.contentWindow,
+  });
+  is(
+    pointerCancelTarget,
+    draggable,
+    "`pointercancel` event target should be the draggable element even if iframe moves away from underneath the pointer"
+  );
+  is(
+    unexpectedPointerCancel,
+    undefined,
+    "`pointercancel event shouldn't be fired on the parent document`"
+  );
+  SimpleTest.finish();
+});
+</script>
+</head>
+<body>
+  <iframe srcdoc="<div draggable=true style=width:64px;height:64px;font-size:64px;overflow:hidden>DragMe!</div><div id=dest style=width:100px;height:100px></div>"></iframe>
+  <div class="spacer"></div>
+</body>
+</html>
