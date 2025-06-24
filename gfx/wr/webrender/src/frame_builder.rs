@@ -18,7 +18,7 @@ use crate::gpu_types::{PrimitiveHeaders, TransformPalette, ZBufferIdGenerator};
 use crate::gpu_types::{QuadSegment, TransformData};
 use crate::internal_types::{FastHashMap, PlaneSplitter, FrameId, FrameStamp};
 use crate::picture::{DirtyRegion, SliceId, TileCacheInstance};
-use crate::picture::{SurfaceInfo, SurfaceIndex};
+use crate::picture::{SurfaceInfo, SurfaceIndex, ResolvedSurfaceTexture};
 use crate::picture::{SubpixelMode, RasterConfig, PictureCompositeMode};
 use crate::prepare::prepare_picture;
 use crate::prim_store::{PictureIndex, PrimitiveScratchBuffer};
@@ -1135,8 +1135,17 @@ pub fn build_render_pass(
                 match task.kind {
                     RenderTaskKind::Picture(ref pic_task) => {
                         let cmd_buffer = cmd_buffers.get(pic_task.cmd_buffer_index);
-                        let scissor_rect = pic_task.scissor_rect.expect("bug: must be set for cache tasks");
-                        let valid_rect = pic_task.valid_rect.expect("bug: must be set for cache tasks");
+                        let mut dirty_rect = pic_task.scissor_rect.expect("bug: must be set for cache tasks");
+                        let mut valid_rect = pic_task.valid_rect.expect("bug: must be set for cache tasks");
+
+                        // If we have a surface size, clip the dirty and vaild rects
+                        // to that size. This ensures that native compositors will
+                        // pass sanity checks (Bug 1971296).
+                        if let ResolvedSurfaceTexture::Native { size, .. } = surface {
+                            let surface_size_rect = <DeviceIntRect>::from_size(*size);
+                            dirty_rect = dirty_rect.intersection(&surface_size_rect).unwrap_or_default();
+                            valid_rect = valid_rect.intersection(&surface_size_rect).unwrap_or_default();
+                        }
 
                         let batcher = AlphaBatchBuilder::new(
                             screen_size,
@@ -1171,7 +1180,7 @@ pub fn build_render_pass(
 
                         let mut batch_containers = ctx.frame_memory.new_vec();
                         let mut alpha_batch_container = AlphaBatchContainer::new(
-                            Some(scissor_rect),
+                            Some(dirty_rect),
                             &ctx.frame_memory
                         );
 
@@ -1189,13 +1198,24 @@ pub fn build_render_pass(
                             kind: PictureCacheTargetKind::Draw {
                                 alpha_batch_container,
                             },
-                            dirty_rect: scissor_rect,
+                            dirty_rect,
                             valid_rect,
                         };
 
                         pass.picture_cache.push(target);
                     }
                     RenderTaskKind::TileComposite(ref tile_task) => {
+                        let mut dirty_rect = tile_task.scissor_rect;
+                        let mut valid_rect = tile_task.valid_rect;
+                        // If we have a surface size, clip the dirty and vaild rects
+                        // to that size. This ensures that native compositors will
+                        // pass sanity checks (Bug 1971296).
+                        if let ResolvedSurfaceTexture::Native { size, .. } = surface {
+                            let surface_size_rect = <DeviceIntRect>::from_size(*size);
+                            dirty_rect = dirty_rect.intersection(&surface_size_rect).unwrap_or_default();
+                            valid_rect = valid_rect.intersection(&surface_size_rect).unwrap_or_default();
+                        }
+
                         let target = PictureCacheTarget {
                             surface: surface.clone(),
                             clear_color: Some(tile_task.clear_color),
@@ -1203,8 +1223,8 @@ pub fn build_render_pass(
                                 task_id: tile_task.task_id.expect("bug: no source task_id set"),
                                 sub_rect_offset: tile_task.sub_rect_offset,
                             },
-                            dirty_rect: tile_task.scissor_rect,
-                            valid_rect: tile_task.valid_rect,
+                            dirty_rect,
+                            valid_rect,
                         };
 
                         pass.picture_cache.push(target);
