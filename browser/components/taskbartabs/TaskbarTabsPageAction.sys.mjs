@@ -68,6 +68,11 @@ export const TaskbarTabsPageAction = {
    * @returns {Promise} Resolves once the event has been handled.
    */
   async handleEvent(aEvent) {
+    if (aEvent.button != 0) {
+      // Only handle left-click events.
+      return;
+    }
+
     let window = aEvent.target.ownerGlobal;
     let currentTab = window.gBrowser.selectedTab;
 
