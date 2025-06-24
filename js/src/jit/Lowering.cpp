@@ -1356,11 +1356,11 @@ void LIRGenerator::visitCompare(MCompare* comp) {
     }
 
     if (constant) {
-      JSLinearString* linear = &constant->toString()->asLinear();
+      JSOffThreadAtom* str = &constant->toString()->asOffThreadAtom();
 
       if (IsEqualityOp(comp->jsop())) {
-        if (MacroAssembler::canCompareStringCharsInline(&linear->asOffThreadAtom())) {
-          auto* lir = new (alloc()) LCompareSInline(useRegister(input), linear);
+        if (MacroAssembler::canCompareStringCharsInline(str)) {
+          auto* lir = new (alloc()) LCompareSInline(useRegister(input), str);
           define(lir, comp);
           assignSafepoint(lir, comp);
           return;
@@ -1368,7 +1368,7 @@ void LIRGenerator::visitCompare(MCompare* comp) {
       } else {
         MOZ_ASSERT(IsRelationalOp(comp->jsop()));
 
-        if (linear->length() == 1) {
+        if (str->length() == 1) {
           // Move the constant value into the right-hand side operand.
           JSOp op = comp->jsop();
           if (left == constant) {
@@ -1376,7 +1376,7 @@ void LIRGenerator::visitCompare(MCompare* comp) {
           }
 
           auto* lir = new (alloc())
-              LCompareSSingle(useRegister(input), temp(), op, linear);
+              LCompareSSingle(useRegister(input), temp(), op, str);
           define(lir, comp);
           return;
         }
@@ -2973,8 +2973,9 @@ void LIRGenerator::visitStringIncludes(MStringIncludes* ins) {
   MOZ_ASSERT(searchStr->type() == MIRType::String);
 
   if (searchStr->isConstant()) {
-    JSLinearString* linear = &searchStr->toConstant()->toString()->asLinear();
-    size_t length = linear->length();
+    JSOffThreadAtom* str =
+        &searchStr->toConstant()->toString()->asOffThreadAtom();
+    size_t length = str->length();
     if (length == 1 || length == 2) {
       LDefinition tempDef = LDefinition::BogusTemp();
       if (length > 1) {
@@ -2982,7 +2983,7 @@ void LIRGenerator::visitStringIncludes(MStringIncludes* ins) {
       }
 
       auto* lir = new (alloc()) LStringIncludesSIMD(useRegister(string), temp(),
-                                                    temp(), tempDef, linear);
+                                                    temp(), tempDef, str);
       define(lir, ins);
       assignSafepoint(lir, ins);
       return;
@@ -3003,16 +3004,17 @@ void LIRGenerator::visitStringIndexOf(MStringIndexOf* ins) {
   MOZ_ASSERT(searchStr->type() == MIRType::String);
 
   if (searchStr->isConstant()) {
-    JSLinearString* linear = &searchStr->toConstant()->toString()->asLinear();
-    size_t length = linear->length();
+    JSOffThreadAtom* str =
+        &searchStr->toConstant()->toString()->asOffThreadAtom();
+    size_t length = str->length();
     if (length == 1 || length == 2) {
       LDefinition tempDef = LDefinition::BogusTemp();
       if (length > 1) {
         tempDef = temp();
       }
 
-      auto* lir = new (alloc()) LStringIndexOfSIMD(useRegister(string), temp(),
-                                                   temp(), tempDef, linear);
+      auto* lir = new (alloc())
+          LStringIndexOfSIMD(useRegister(string), temp(), temp(), tempDef, str);
       define(lir, ins);
       assignSafepoint(lir, ins);
       return;
@@ -3046,11 +3048,12 @@ void LIRGenerator::visitStringStartsWith(MStringStartsWith* ins) {
   MOZ_ASSERT(searchStr->type() == MIRType::String);
 
   if (searchStr->isConstant()) {
-    JSLinearString* linear = &searchStr->toConstant()->toString()->asLinear();
+    JSOffThreadAtom* str =
+        &searchStr->toConstant()->toString()->asOffThreadAtom();
 
-    if (MacroAssembler::canCompareStringCharsInline(&linear->asOffThreadAtom())) {
+    if (MacroAssembler::canCompareStringCharsInline(str)) {
       auto* lir = new (alloc())
-          LStringStartsWithInline(useRegister(string), temp(), linear);
+          LStringStartsWithInline(useRegister(string), temp(), str);
       define(lir, ins);
       assignSafepoint(lir, ins);
       return;
@@ -3071,11 +3074,12 @@ void LIRGenerator::visitStringEndsWith(MStringEndsWith* ins) {
   MOZ_ASSERT(searchStr->type() == MIRType::String);
 
   if (searchStr->isConstant()) {
-    JSLinearString* linear = &searchStr->toConstant()->toString()->asLinear();
+    JSOffThreadAtom* str =
+        &searchStr->toConstant()->toString()->asOffThreadAtom();
 
-    if (MacroAssembler::canCompareStringCharsInline(&linear->asOffThreadAtom())) {
-      auto* lir = new (alloc())
-          LStringEndsWithInline(useRegister(string), temp(), linear);
+    if (MacroAssembler::canCompareStringCharsInline(str)) {
+      auto* lir =
+          new (alloc()) LStringEndsWithInline(useRegister(string), temp(), str);
       define(lir, ins);
       assignSafepoint(lir, ins);
       return;

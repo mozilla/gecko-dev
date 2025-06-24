@@ -1839,6 +1839,12 @@ class JSOffThreadAtom : private JSAtom {
       const JS::AutoRequireNoGC& nogc) const {
     return mozilla::Range<const char16_t>(twoByteChars(nogc), length());
   }
+  char16_t latin1OrTwoByteChar(size_t index) const {
+    MOZ_ASSERT(index < length());
+    JS::AutoCheckCannotGC nogc;
+    return hasLatin1Chars() ? latin1Chars(nogc)[index]
+                            : twoByteChars(nogc)[index];
+  }
 
   // Should only be used to get an opaque pointer for baking into jitcode.
   const js::gc::Cell* raw() const { return this; }

@@ -748,7 +748,7 @@
   operands:
     input: WordSized
   arguments:
-    constant: JSLinearString*
+    constant: JSOffThreadAtom*
   mir_op: Compare
 
 - name: CompareSSingle
@@ -757,7 +757,7 @@
     input: WordSized
   arguments:
     jsop: JSOp
-    constant: JSLinearString*
+    constant: JSOffThreadAtom*
   num_temps: 1
   mir_op: Compare
 
@@ -1571,7 +1571,7 @@
   operands:
     string: WordSized
   arguments:
-    searchString: JSLinearString*
+    searchString: JSOffThreadAtom*
   num_temps: 3
 
 # Search for the first index of the constant search string.
@@ -1580,7 +1580,7 @@
   operands:
     string: WordSized
   arguments:
-    searchString: JSLinearString*
+    searchString: JSOffThreadAtom*
   num_temps: 3
 
 # Test if a string starts with the constant search string
@@ -1589,7 +1589,7 @@
   operands:
     string: WordSized
   arguments:
-    searchString: JSLinearString*
+    searchString: JSOffThreadAtom*
   num_temps: 1
 
 # Test if a string ends with the constant search string
@@ -1598,7 +1598,7 @@
   operands:
     string: WordSized
   arguments:
-    searchString: JSLinearString*
+    searchString: JSOffThreadAtom*
   num_temps: 1
 
 # Calls the ToLowerCase case conversion function. Inlines the case conversion

@@ -12212,7 +12212,7 @@ void CodeGenerator::visitCompareSInline(LCompareSInline* lir) {
   Register input = ToRegister(lir->input());
   Register output = ToRegister(lir->output());
 
-  const JSLinearString* str = lir->constant();
+  const JSOffThreadAtom* str = lir->constant();
   MOZ_ASSERT(str->length() > 0);
 
   OutOfLineCode* ool = nullptr;
@@ -12288,11 +12288,10 @@ void CodeGenerator::visitCompareSInline(LCompareSInline* lir) {
 
   // Load the input string's characters.
   Register stringChars = output;
-  masm.loadStringCharsForCompare(input, &str->asOffThreadAtom(), stringChars,
-                                 ool->entry());
+  masm.loadStringCharsForCompare(input, str, stringChars, ool->entry());
 
   // Start comparing character by character.
-  masm.compareStringChars(op, stringChars, &str->asOffThreadAtom(), output);
+  masm.compareStringChars(op, stringChars, str, output);
 
   masm.bind(ool->rejoin());
 }
@@ -12305,7 +12304,7 @@ void CodeGenerator::visitCompareSSingle(LCompareSSingle* lir) {
   Register output = ToRegister(lir->output());
   Register temp = ToRegister(lir->temp0());
 
-  const JSLinearString* str = lir->constant();
+  const JSOffThreadAtom* str = lir->constant();
   MOZ_ASSERT(str->length() == 1);
 
   char16_t ch = str->latin1OrTwoByteChar(0);
@@ -14081,7 +14080,7 @@ static void CallStringMatch(MacroAssembler& masm, LIns* lir, OutOfLineCode* ool,
   Register tempChars = ToRegister(lir->temp1());
   Register maybeTempPat = ToTempRegisterOrInvalid(lir->temp2());
 
-  const JSLinearString* searchString = lir->searchString();
+  const JSOffThreadAtom* searchString = lir->searchString();
   size_t length = searchString->length();
   MOZ_ASSERT(length == 1 || length == 2);
 
@@ -14265,7 +14264,7 @@ static void CallStringMatch(MacroAssembler& masm, LIns* lir, OutOfLineCode* ool,
 void CodeGenerator::visitStringIncludesSIMD(LStringIncludesSIMD* lir) {
   Register string = ToRegister(lir->string());
   Register output = ToRegister(lir->output());
-  const JSLinearString* searchString = lir->searchString();
+  const JSOffThreadAtom* searchString = lir->searchString();
 
   using Fn = bool (*)(JSContext*, HandleString, HandleString, bool*);
   auto* ool = oolCallVM<Fn, js::StringIncludes>(
@@ -14285,7 +14284,7 @@ void CodeGenerator::visitStringIndexOf(LStringIndexOf* lir) {
 void CodeGenerator::visitStringIndexOfSIMD(LStringIndexOfSIMD* lir) {
   Register string = ToRegister(lir->string());
   Register output = ToRegister(lir->output());
-  const JSLinearString* searchString = lir->searchString();
+  const JSOffThreadAtom* searchString = lir->searchString();
 
   using Fn = bool (*)(JSContext*, HandleString, HandleString, int32_t*);
   auto* ool = oolCallVM<Fn, js::StringIndexOf>(
@@ -14315,7 +14314,7 @@ void CodeGenerator::visitStringStartsWithInline(LStringStartsWithInline* lir) {
   Register output = ToRegister(lir->output());
   Register temp = ToRegister(lir->temp0());
 
-  const JSLinearString* searchString = lir->searchString();
+  const JSOffThreadAtom* searchString = lir->searchString();
 
   size_t length = searchString->length();
   MOZ_ASSERT(length > 0);
@@ -14372,12 +14371,10 @@ void CodeGenerator::visitStringStartsWithInline(LStringStartsWithInline* lir) {
 
   // Load the input string's characters.
   Register stringChars = output;
-  masm.loadStringCharsForCompare(temp, &searchString->asOffThreadAtom(),
-                                 stringChars, ool->entry());
+  masm.loadStringCharsForCompare(temp, searchString, stringChars, ool->entry());
 
   // Start comparing character by character.
-  masm.compareStringChars(JSOp::Eq, stringChars,
-                          &searchString->asOffThreadAtom(), output);
+  masm.compareStringChars(JSOp::Eq, stringChars, searchString, output);
 
   masm.bind(ool->rejoin());
 }
@@ -14395,7 +14392,7 @@ void CodeGenerator::visitStringEndsWithInline(LStringEndsWithInline* lir) {
   Register output = ToRegister(lir->output());
   Register temp = ToRegister(lir->temp0());
 
-  const JSLinearString* searchString = lir->searchString();
+  const JSOffThreadAtom* searchString = lir->searchString();
 
   size_t length = searchString->length();
   MOZ_ASSERT(length > 0);
@@ -14455,8 +14452,7 @@ void CodeGenerator::visitStringEndsWithInline(LStringEndsWithInline* lir) {
 
   // Load the input string's characters.
   Register stringChars = output;
-  masm.loadStringCharsForCompare(temp, &searchString->asOffThreadAtom(),
-                                 stringChars, ool->entry());
+  masm.loadStringCharsForCompare(temp, searchString, stringChars, ool->entry());
 
   // Move string-char pointer to the suffix string.
   masm.loadStringLength(temp, temp);
@@ -14464,8 +14460,7 @@ void CodeGenerator::visitStringEndsWithInline(LStringEndsWithInline* lir) {
   masm.addToCharPtr(stringChars, temp, encoding);
 
   // Start comparing character by character.
-  masm.compareStringChars(JSOp::Eq, stringChars,
-                          &searchString->asOffThreadAtom(), output);
+  masm.compareStringChars(JSOp::Eq, stringChars, searchString, output);
 
   masm.bind(ool->rejoin());
 }
