@@ -601,7 +601,6 @@ nsresult Http3Session::ProcessEvents() {
         if (!mAuthenticationStarted) {
           mAuthenticationStarted = true;
           LOG(("Http3Session::ProcessEvents - AuthenticationNeeded called"));
-          OnTransportStatus(nullptr, NS_NET_STATUS_TLS_HANDSHAKE_STARTING, 0);
           CallCertVerification(Nothing());
         }
         break;
@@ -643,8 +642,6 @@ nsresult Http3Session::ProcessEvents() {
         }
 
         OnTransportStatus(nullptr, NS_NET_STATUS_CONNECTED_TO, 0);
-        // Also send the NS_NET_STATUS_TLS_HANDSHAKE_ENDED event.
-        OnTransportStatus(nullptr, NS_NET_STATUS_TLS_HANDSHAKE_ENDED, 0);
 
         ReportHttp3Connection();
         // Maybe call ResumeSend:
@@ -1514,9 +1511,7 @@ void Http3Session::OnTransportStatus(nsITransport* aTransport, nsresult aStatus,
     case NS_NET_STATUS_RESOLVING_HOST:
     case NS_NET_STATUS_RESOLVED_HOST:
     case NS_NET_STATUS_CONNECTING_TO:
-    case NS_NET_STATUS_CONNECTED_TO:
-    case NS_NET_STATUS_TLS_HANDSHAKE_STARTING:
-    case NS_NET_STATUS_TLS_HANDSHAKE_ENDED: {
+    case NS_NET_STATUS_CONNECTED_TO: {
       if (!mFirstHttpTransaction) {
         // if we still do not have a HttpTransaction store timings info in
         // a HttpConnection.

@@ -586,7 +586,14 @@ void nsHttpTransaction::OnTransportStatus(nsITransport* transport,
     } else if (status == NS_NET_STATUS_RESOLVED_HOST) {
       SetDomainLookupEnd(TimeStamp::Now());
     } else if (status == NS_NET_STATUS_CONNECTING_TO) {
-      SetConnectStart(TimeStamp::Now());
+      TimeStamp tnow = TimeStamp::Now();
+      {
+        MutexAutoLock lock(mLock);
+        mTimings.connectStart = tnow;
+        if (mConnInfo->IsHttp3()) {
+          mTimings.secureConnectionStart = tnow;
+        }
+      }
     } else if (status == NS_NET_STATUS_CONNECTED_TO) {
       TimeStamp tnow = TimeStamp::Now();
       SetConnectEnd(tnow, true);
@@ -604,6 +611,16 @@ void nsHttpTransaction::OnTransportStatus(nsITransport* transport,
     } else if (status == NS_NET_STATUS_SENDING_TO) {
       // Set the timestamp to Now(), only if it null
       SetRequestStart(TimeStamp::Now(), true);
+    }
+  }
+
+  // In the case of HTTP/3 with 0-RTT, NS_NET_STATUS_SENDING_TO is sent before
+  // NS_NET_STATUS_CONNECTED_TO. This means that SetConnectEnd wont't be called
+  // above. To ensure connectEnd is always set, we explicitly set it here if
+  // early data was sent.
+  if ((mEarlyDataDisposition == EARLY_SENT) && mConnInfo->IsHttp3()) {
+    if (status == NS_NET_STATUS_CONNECTED_TO) {
+      SetConnectEnd(TimeStamp::Now(), true);
     }
   }
 
