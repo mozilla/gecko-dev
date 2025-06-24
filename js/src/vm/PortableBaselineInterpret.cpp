@@ -2635,6 +2635,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
       CACHEOP_CASE(LoadDenseElementResult) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         Int32OperandId indexId = cacheIRReader.int32OperandId();
+        bool expectPackedElements = cacheIRReader.readBool();
         NativeObject* nobj =
             reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
         ObjectElements* elems = nobj->getElementsHeader();
@@ -2642,9 +2643,12 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         if (index < 0 || uint32_t(index) >= nobj->getDenseInitializedLength()) {
           FAIL_IC();
         }
+        if (expectPackedElements && !elems->isPacked()) {
+          FAIL_IC();
+        }
         HeapSlot* slot = &elems->elements()[index];
         Value val = slot->get();
-        if (val.isMagic()) {
+        if (!expectPackedElements && val.isMagic()) {
           FAIL_IC();
         }
         retValue = val.asRawBits();
