@@ -114,6 +114,7 @@ class MenuDialogMiddleware(
             is MenuAction.OpenInApp -> openInApp(context.store)
             is MenuAction.OpenInFirefox -> openInFirefox()
             is MenuAction.InstallAddon -> installAddon(context.store, action.addon)
+            is MenuAction.InstallAddonSuccess -> installAddonSuccess()
             is MenuAction.CustomMenuItemAction -> customMenuItemAction(action.intent, action.url)
             is MenuAction.ToggleReaderView -> toggleReaderView(state = currentState)
             is MenuAction.CustomizeReaderView -> customizeReaderView()
@@ -355,7 +356,9 @@ class MenuDialogMiddleware(
                 logger.error("Failed to install addon", e)
             },
         )
+    }
 
+    private fun installAddonSuccess() = scope.launch(Dispatchers.Main) {
         onDismiss()
     }
 

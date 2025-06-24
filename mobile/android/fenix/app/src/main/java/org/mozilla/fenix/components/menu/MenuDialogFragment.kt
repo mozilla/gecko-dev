@@ -678,13 +678,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                                 )
                                             },
                                             onInstallAddonClick = { addon ->
-                                                view?.slideDown {
-                                                    store.dispatch(
-                                                        MenuAction.InstallAddon(
-                                                            addon = addon,
-                                                        ),
-                                                    )
-                                                }
+                                                store.dispatch(
+                                                    MenuAction.InstallAddon(addon = addon),
+                                                )
                                             },
                                             onManageExtensionsMenuClick = {
                                                 store.dispatch(MenuAction.Navigate.ManageExtensions)
