@@ -16,28 +16,20 @@ class ScrollbarDrawingAndroid final : public ScrollbarDrawing {
   ScrollbarDrawingAndroid() : ScrollbarDrawing(Kind::Android) {}
   virtual ~ScrollbarDrawingAndroid() = default;
 
-  LayoutDeviceIntSize GetMinimumWidgetSize(nsPresContext*,
-                                           StyleAppearance aAppearance,
-                                           nsIFrame* aFrame) override;
+  LayoutDeviceIntSize GetMinimumWidgetSize(nsPresContext*, StyleAppearance,
+                                           nsIFrame*) override;
 
   template <typename PaintBackendData>
-  void DoPaintScrollbarThumb(PaintBackendData&, const LayoutDeviceRect& aRect,
-                             ScrollbarKind, nsIFrame* aFrame,
-                             const ComputedStyle& aStyle,
-                             const ElementState& aElementState,
-                             const DocumentState& aDocumentState, const Colors&,
+  void DoPaintScrollbarThumb(PaintBackendData&, const LayoutDeviceRect&,
+                             ScrollbarKind, nsIFrame*, const ComputedStyle&,
+                             const ElementState&, const Colors&,
                              const DPIRatio&);
-  bool PaintScrollbarThumb(DrawTarget&, const LayoutDeviceRect& aRect,
-                           ScrollbarKind, nsIFrame* aFrame,
-                           const ComputedStyle& aStyle,
-                           const ElementState& aElementState,
-                           const DocumentState& aDocumentState, const Colors&,
-                           const DPIRatio&) override;
-  bool PaintScrollbarThumb(WebRenderBackendData&, const LayoutDeviceRect& aRect,
-                           ScrollbarKind, nsIFrame* aFrame,
-                           const ComputedStyle& aStyle,
-                           const ElementState& aElementState,
-                           const DocumentState& aDocumentState, const Colors&,
+  bool PaintScrollbarThumb(DrawTarget&, const LayoutDeviceRect&, ScrollbarKind,
+                           nsIFrame*, const ComputedStyle&, const ElementState&,
+                           const Colors&, const DPIRatio&) override;
+  bool PaintScrollbarThumb(WebRenderBackendData&, const LayoutDeviceRect&,
+                           ScrollbarKind, nsIFrame*, const ComputedStyle&,
+                           const ElementState&, const Colors&,
                            const DPIRatio&) override;
 
   void RecomputeScrollbarParams() override;

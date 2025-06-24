@@ -28,43 +28,37 @@ class ScrollbarDrawingCocoa final : public ScrollbarDrawing {
   void DoPaintScrollbarThumb(PaintBackendData&, const LayoutDeviceRect& aRect,
                              ScrollbarKind, nsIFrame* aFrame,
                              const ComputedStyle& aStyle, const ElementState&,
-                             const DocumentState&, const Colors&,
-                             const DPIRatio&);
+                             const Colors&, const DPIRatio&);
   bool PaintScrollbarThumb(DrawTarget&, const LayoutDeviceRect&, ScrollbarKind,
                            nsIFrame*, const ComputedStyle&, const ElementState&,
-                           const DocumentState&, const Colors&,
-                           const DPIRatio&) override;
+                           const Colors&, const DPIRatio&) override;
   bool PaintScrollbarThumb(WebRenderBackendData&, const LayoutDeviceRect&,
                            ScrollbarKind, nsIFrame*, const ComputedStyle&,
-                           const ElementState&, const DocumentState&,
-                           const Colors&, const DPIRatio&) override;
+                           const ElementState&, const Colors&,
+                           const DPIRatio&) override;
 
   template <typename PaintBackendData>
   void DoPaintScrollbar(PaintBackendData&, const LayoutDeviceRect&,
                         ScrollbarKind, nsIFrame*, const ComputedStyle&,
-                        const ElementState&, const DocumentState&,
-                        const Colors&, const DPIRatio&);
+                        const ElementState&, const Colors&, const DPIRatio&);
   bool PaintScrollbar(DrawTarget&, const LayoutDeviceRect&, ScrollbarKind,
                       nsIFrame*, const ComputedStyle&, const ElementState&,
-                      const DocumentState&, const Colors&,
-                      const DPIRatio&) override;
+                      const Colors&, const DPIRatio&) override;
   bool PaintScrollbar(WebRenderBackendData&, const LayoutDeviceRect&,
                       ScrollbarKind, nsIFrame*, const ComputedStyle&,
-                      const ElementState&, const DocumentState&, const Colors&,
+                      const ElementState&, const Colors&,
                       const DPIRatio&) override;
 
   template <typename PaintBackendData>
   void DoPaintScrollCorner(PaintBackendData&, const LayoutDeviceRect&,
                            ScrollbarKind, nsIFrame*, const ComputedStyle&,
-                           const DocumentState&, const Colors&,
-                           const DPIRatio&);
+                           const Colors&, const DPIRatio&);
   bool PaintScrollCorner(DrawTarget&, const LayoutDeviceRect&, ScrollbarKind,
-                         nsIFrame*, const ComputedStyle&, const DocumentState&,
-                         const Colors&, const DPIRatio&) override;
+                         nsIFrame*, const ComputedStyle&, const Colors&,
+                         const DPIRatio&) override;
   bool PaintScrollCorner(WebRenderBackendData&, const LayoutDeviceRect&,
                          ScrollbarKind, nsIFrame*, const ComputedStyle&,
-                         const DocumentState&, const Colors&,
-                         const DPIRatio&) override;
+                         const Colors&, const DPIRatio&) override;
 
   void RecomputeScrollbarParams() override;
 

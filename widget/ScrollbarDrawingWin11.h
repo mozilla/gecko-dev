@@ -23,41 +23,34 @@ class ScrollbarDrawingWin11 final : public ScrollbarDrawingWin {
                                            nsIFrame* aFrame) override;
 
   sRGBColor ComputeScrollbarTrackColor(nsIFrame*, const ComputedStyle&,
-                                       const DocumentState& aDocumentState,
+
                                        const Colors&) override;
   sRGBColor ComputeScrollbarThumbColor(nsIFrame*, const ComputedStyle&,
-                                       const ElementState& aElementState,
-                                       const DocumentState& aDocumentState,
+                                       const ElementState&,
+
                                        const Colors&) override;
 
   // Returned colors are button, arrow.
   std::pair<sRGBColor, sRGBColor> ComputeScrollbarButtonColors(
-      nsIFrame*, StyleAppearance, const ComputedStyle&,
-      const ElementState& aElementState, const DocumentState& aDocumentState,
+      nsIFrame*, StyleAppearance, const ComputedStyle&, const ElementState&,
       const Colors&) override;
 
   bool PaintScrollbarButton(DrawTarget&, StyleAppearance,
                             const LayoutDeviceRect&, ScrollbarKind, nsIFrame*,
-                            const ComputedStyle&,
-                            const ElementState& aElementState,
-                            const DocumentState& aDocumentState, const Colors&,
-                            const DPIRatio&) override;
+                            const ComputedStyle&, const ElementState&,
+                            const Colors&, const DPIRatio&) override;
 
   template <typename PaintBackendData>
   bool DoPaintScrollbarThumb(PaintBackendData&, const LayoutDeviceRect&,
                              ScrollbarKind, nsIFrame*, const ComputedStyle&,
-                             const ElementState& aElementState,
-                             const DocumentState& aDocumentState, const Colors&,
+                             const ElementState&, const Colors&,
                              const DPIRatio&);
   bool PaintScrollbarThumb(DrawTarget&, const LayoutDeviceRect&, ScrollbarKind,
-                           nsIFrame*, const ComputedStyle&,
-                           const ElementState& aElementState,
-                           const DocumentState& aDocumentState, const Colors&,
-                           const DPIRatio&) override;
+                           nsIFrame*, const ComputedStyle&, const ElementState&,
+                           const Colors&, const DPIRatio&) override;
   bool PaintScrollbarThumb(WebRenderBackendData&, const LayoutDeviceRect&,
                            ScrollbarKind, nsIFrame*, const ComputedStyle&,
-                           const ElementState& aElementState,
-                           const DocumentState& aDocumentState, const Colors&,
+                           const ElementState&, const Colors&,
                            const DPIRatio&) override;
 
   void RecomputeScrollbarParams() override;

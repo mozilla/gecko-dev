@@ -23,7 +23,6 @@ class ScrollbarDrawing {
  protected:
   using DPIRatio = mozilla::CSSToLayoutDeviceScale;
   using ElementState = dom::ElementState;
-  using DocumentState = dom::DocumentState;
   using DrawTarget = mozilla::gfx::DrawTarget;
   using sRGBColor = mozilla::gfx::sRGBColor;
   using Colors = ThemeColors;
@@ -73,11 +72,9 @@ class ScrollbarDrawing {
 
   bool IsScrollbarTrackOpaque(nsIFrame*);
   virtual sRGBColor ComputeScrollbarTrackColor(nsIFrame*, const ComputedStyle&,
-                                               const DocumentState&,
                                                const Colors&);
   virtual sRGBColor ComputeScrollbarThumbColor(nsIFrame*, const ComputedStyle&,
                                                const ElementState&,
-                                               const DocumentState&,
                                                const Colors&);
 
   nscolor GetScrollbarButtonColor(nscolor aTrackColor, ElementState);
@@ -86,52 +83,49 @@ class ScrollbarDrawing {
   // Returned colors are button, arrow.
   virtual std::pair<sRGBColor, sRGBColor> ComputeScrollbarButtonColors(
       nsIFrame*, StyleAppearance, const ComputedStyle&, const ElementState&,
-      const DocumentState&, const Colors&);
+      const Colors&);
 
   virtual bool PaintScrollbarButton(DrawTarget&, StyleAppearance,
                                     const LayoutDeviceRect&, ScrollbarKind,
                                     nsIFrame*, const ComputedStyle&,
-                                    const ElementState&, const DocumentState&,
-                                    const Colors&, const DPIRatio&);
+                                    const ElementState&, const Colors&,
+                                    const DPIRatio&);
 
   virtual bool PaintScrollbarThumb(DrawTarget&, const LayoutDeviceRect&,
                                    ScrollbarKind, nsIFrame*,
                                    const ComputedStyle&, const ElementState&,
-                                   const DocumentState&, const Colors&,
-                                   const DPIRatio&) = 0;
+                                   const Colors&, const DPIRatio&) = 0;
   virtual bool PaintScrollbarThumb(WebRenderBackendData&,
                                    const LayoutDeviceRect&, ScrollbarKind,
                                    nsIFrame*, const ComputedStyle&,
-                                   const ElementState&, const DocumentState&,
-                                   const Colors&, const DPIRatio&) = 0;
+                                   const ElementState&, const Colors&,
+                                   const DPIRatio&) = 0;
 
   template <typename PaintBackendData>
   bool DoPaintDefaultScrollbar(PaintBackendData&, const LayoutDeviceRect&,
                                ScrollbarKind, nsIFrame*, const ComputedStyle&,
-                               const ElementState&, const DocumentState&,
-                               const Colors&, const DPIRatio&);
+                               const ElementState&, const Colors&,
+                               const DPIRatio&);
   virtual bool PaintScrollbar(DrawTarget&, const LayoutDeviceRect&,
                               ScrollbarKind, nsIFrame*, const ComputedStyle&,
-                              const ElementState&, const DocumentState&,
-                              const Colors&, const DPIRatio&);
+                              const ElementState&, const Colors&,
+                              const DPIRatio&);
   virtual bool PaintScrollbar(WebRenderBackendData&, const LayoutDeviceRect&,
                               ScrollbarKind, nsIFrame*, const ComputedStyle&,
-                              const ElementState&, const DocumentState&,
-                              const Colors&, const DPIRatio&);
+                              const ElementState&, const Colors&,
+                              const DPIRatio&);
 
   template <typename PaintBackendData>
   bool DoPaintDefaultScrollCorner(PaintBackendData&, const LayoutDeviceRect&,
                                   ScrollbarKind, nsIFrame*,
-                                  const ComputedStyle&, const DocumentState&,
-                                  const Colors&, const DPIRatio&);
+                                  const ComputedStyle&, const Colors&,
+                                  const DPIRatio&);
   virtual bool PaintScrollCorner(DrawTarget&, const LayoutDeviceRect&,
                                  ScrollbarKind, nsIFrame*, const ComputedStyle&,
-                                 const DocumentState&, const Colors&,
-                                 const DPIRatio&);
+                                 const Colors&, const DPIRatio&);
   virtual bool PaintScrollCorner(WebRenderBackendData&, const LayoutDeviceRect&,
                                  ScrollbarKind, nsIFrame*, const ComputedStyle&,
-                                 const DocumentState&, const Colors&,
-                                 const DPIRatio&);
+                                 const Colors&, const DPIRatio&);
 
   virtual void RecomputeScrollbarParams() = 0;
 

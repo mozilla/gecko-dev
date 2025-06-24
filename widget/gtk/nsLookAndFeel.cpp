@@ -737,12 +737,6 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
         return NS_ERROR_FAILURE;
       }
       break;
-    case ColorID::ThemedScrollbarInactive:
-      aColor = mThemedScrollbarInactive;
-      if (!ShouldUseThemedScrollbarColor(aID, aColor, mIsDark)) {
-        return NS_ERROR_FAILURE;
-      }
-      break;
     case ColorID::ThemedScrollbarThumb:
       aColor = mThemedScrollbarThumb;
       if (!ShouldUseThemedScrollbarColor(aID, aColor, mIsDark)) {
@@ -757,12 +751,6 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
       break;
     case ColorID::ThemedScrollbarThumbActive:
       aColor = mThemedScrollbarThumbActive;
-      if (!ShouldUseThemedScrollbarColor(aID, aColor, mIsDark)) {
-        return NS_ERROR_FAILURE;
-      }
-      break;
-    case ColorID::ThemedScrollbarThumbInactive:
-      aColor = mThemedScrollbarThumbInactive;
       if (!ShouldUseThemedScrollbarColor(aID, aColor, mIsDark)) {
         return NS_ERROR_FAILURE;
       }
@@ -2131,85 +2119,7 @@ void nsLookAndFeel::PerThemeData::Init() {
 
   mIsDark = GetThemeIsDark();
 
-  GdkRGBA color;
-  // Some themes style the <trough>, while others style the <scrollbar>
-  // itself, so we look at both and compose the colors.
-  style = GetStyleContext(MOZ_GTK_SCROLLBAR_VERTICAL);
-  gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL, &color);
-  mThemedScrollbar = GDK_RGBA_TO_NS_RGBA(color);
-  gtk_style_context_get_background_color(style, GTK_STATE_FLAG_BACKDROP,
-                                         &color);
-  mThemedScrollbarInactive = GDK_RGBA_TO_NS_RGBA(color);
-
-  style = GetStyleContext(MOZ_GTK_SCROLLBAR_TROUGH_VERTICAL);
-  gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL, &color);
-  mThemedScrollbar =
-      NS_ComposeColors(mThemedScrollbar, GDK_RGBA_TO_NS_RGBA(color));
-  gtk_style_context_get_background_color(style, GTK_STATE_FLAG_BACKDROP,
-                                         &color);
-  mThemedScrollbarInactive =
-      NS_ComposeColors(mThemedScrollbarInactive, GDK_RGBA_TO_NS_RGBA(color));
-
-  style = GetStyleContext(MOZ_GTK_SCROLLBAR_THUMB_VERTICAL);
-  gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL, &color);
-  mThemedScrollbarThumb = GDK_RGBA_TO_NS_RGBA(color);
-  gtk_style_context_get_background_color(style, GTK_STATE_FLAG_PRELIGHT,
-                                         &color);
-  mThemedScrollbarThumbHover = GDK_RGBA_TO_NS_RGBA(color);
-  gtk_style_context_get_background_color(
-      style, GtkStateFlags(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE),
-      &color);
-  mThemedScrollbarThumbActive = GDK_RGBA_TO_NS_RGBA(color);
-  gtk_style_context_get_background_color(style, GTK_STATE_FLAG_BACKDROP,
-                                         &color);
-  mThemedScrollbarThumbInactive = GDK_RGBA_TO_NS_RGBA(color);
-
-  // Make sure that the thumb is visible, at least.
-  const bool fallbackToUnthemedColors = [&] {
-    if (!StaticPrefs::widget_gtk_theme_scrollbar_colors_enabled()) {
-      return true;
-    }
-
-    if (!ShouldHonorThemeScrollbarColors()) {
-      return true;
-    }
-    // If any of the scrollbar thumb colors are fully transparent, fall back to
-    // non-native ones.
-    if (!NS_GET_A(mThemedScrollbarThumb) ||
-        !NS_GET_A(mThemedScrollbarThumbHover) ||
-        !NS_GET_A(mThemedScrollbarThumbActive)) {
-      return true;
-    }
-    // If the thumb and track are the same color and opaque, fall back to
-    // non-native colors as well.
-    if (mThemedScrollbar == mThemedScrollbarThumb &&
-        NS_GET_A(mThemedScrollbar) == 0xff) {
-      return true;
-    }
-    return false;
-  }();
-
-  if (fallbackToUnthemedColors) {
-    if (mIsDark) {
-      // Taken from Adwaita-dark.
-      mThemedScrollbar = NS_RGB(0x31, 0x31, 0x31);
-      mThemedScrollbarInactive = NS_RGB(0x2d, 0x2d, 0x2d);
-      mThemedScrollbarThumb = NS_RGB(0xa3, 0xa4, 0xa4);
-      mThemedScrollbarThumbInactive = NS_RGB(0x59, 0x5a, 0x5a);
-    } else {
-      // Taken from Adwaita.
-      mThemedScrollbar = NS_RGB(0xce, 0xce, 0xce);
-      mThemedScrollbarInactive = NS_RGB(0xec, 0xed, 0xef);
-      mThemedScrollbarThumb = NS_RGB(0x82, 0x81, 0x7e);
-      mThemedScrollbarThumbInactive = NS_RGB(0xce, 0xcf, 0xce);
-    }
-
-    mThemedScrollbarThumbHover = ThemeColors::AdjustUnthemedScrollbarThumbColor(
-        mThemedScrollbarThumb, dom::ElementState::HOVER);
-    mThemedScrollbarThumbActive =
-        ThemeColors::AdjustUnthemedScrollbarThumbColor(
-            mThemedScrollbarThumb, dom::ElementState::ACTIVE);
-  }
+  GdkRGBA color{};
 
   // The label is not added to a parent widget, but shared for constructing
   // different style contexts.  The node hierarchy is constructed only on
@@ -2240,6 +2150,77 @@ void nsLookAndFeel::PerThemeData::Init() {
   style = GetStyleContext(MOZ_GTK_TOOLTIP);
   mInfo.mBg = GetBackgroundColor(style, mInfo.mFg);
   mTooltipRadius = GetBorderRadius(style);
+
+  // Scrollbar colors: Some themes style the <trough>, while others style the
+  // <scrollbar> itself, so we look at both and compose the colors.
+  {
+    style = GetStyleContext(MOZ_GTK_SCROLLBAR_VERTICAL);
+    gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL,
+                                           &color);
+    mThemedScrollbar = GDK_RGBA_TO_NS_RGBA(color);
+
+    style = GetStyleContext(MOZ_GTK_SCROLLBAR_TROUGH_VERTICAL);
+    gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL,
+                                           &color);
+    mThemedScrollbar =
+        NS_ComposeColors(mThemedScrollbar, GDK_RGBA_TO_NS_RGBA(color));
+
+    style = GetStyleContext(MOZ_GTK_SCROLLBAR_THUMB_VERTICAL);
+    gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL,
+                                           &color);
+    mThemedScrollbarThumb = GDK_RGBA_TO_NS_RGBA(color);
+    gtk_style_context_get_background_color(style, GTK_STATE_FLAG_PRELIGHT,
+                                           &color);
+    mThemedScrollbarThumbHover = GDK_RGBA_TO_NS_RGBA(color);
+    gtk_style_context_get_background_color(
+        style, GtkStateFlags(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE),
+        &color);
+    mThemedScrollbarThumbActive = GDK_RGBA_TO_NS_RGBA(color);
+
+    // Make sure that the thumb is visible, at least.
+    const bool fallbackToUnthemedColors = [&] {
+      if (!StaticPrefs::widget_gtk_theme_scrollbar_colors_enabled()) {
+        return true;
+      }
+
+      if (!ShouldHonorThemeScrollbarColors()) {
+        return true;
+      }
+      // If any of the scrollbar thumb colors are fully transparent, fall back
+      // to non-native ones.
+      if (!NS_GET_A(mThemedScrollbarThumb) ||
+          !NS_GET_A(mThemedScrollbarThumbHover) ||
+          !NS_GET_A(mThemedScrollbarThumbActive)) {
+        return true;
+      }
+      // If the thumb and track are the same color and opaque, fall back to
+      // non-native colors as well.
+      if (mThemedScrollbar == mThemedScrollbarThumb &&
+          NS_GET_A(mThemedScrollbar) == 0xff) {
+        return true;
+      }
+      return false;
+    }();
+
+    if (fallbackToUnthemedColors) {
+      if (mIsDark) {
+        // Taken from Adwaita-dark.
+        mThemedScrollbar = NS_RGB(0x31, 0x31, 0x31);
+        mThemedScrollbarThumb = NS_RGB(0xa3, 0xa4, 0xa4);
+      } else {
+        // Taken from Adwaita.
+        mThemedScrollbar = NS_RGB(0xce, 0xce, 0xce);
+        mThemedScrollbarThumb = NS_RGB(0x82, 0x81, 0x7e);
+      }
+
+      mThemedScrollbarThumbHover =
+          ThemeColors::AdjustUnthemedScrollbarThumbColor(
+              mThemedScrollbarThumb, dom::ElementState::HOVER);
+      mThemedScrollbarThumbActive =
+          ThemeColors::AdjustUnthemedScrollbarThumbColor(
+              mThemedScrollbarThumb, dom::ElementState::ACTIVE);
+    }
+  }
 
   style = GetStyleContext(MOZ_GTK_MENUITEM);
   {

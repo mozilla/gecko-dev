@@ -170,11 +170,9 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
     ColorPair mTitlebarInactive;
 
     nscolor mThemedScrollbar = kWhite;
-    nscolor mThemedScrollbarInactive = kWhite;
     nscolor mThemedScrollbarThumb = kBlack;
     nscolor mThemedScrollbarThumbHover = kBlack;
     nscolor mThemedScrollbarThumbActive = kBlack;
-    nscolor mThemedScrollbarThumbInactive = kBlack;
 
     float mCaretRatio = 0.0f;
     int32_t mTitlebarRadius = 0;
