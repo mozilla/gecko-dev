@@ -2830,6 +2830,23 @@
       }
     ]
   },
+  "1918604": {
+    "label": "g1.globo.com Caça Palavras",
+    "bugs": {
+      "1918604": {
+        "issue": "broken-layout",
+        "matches": ["*://g1.globo.com/jogos/caca-palavras/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1918604-g1.globo.com-fix-clipped-buttons.css"]
+        }
+      }
+    ]
+  },
   "1918609": {
     "label": "www.zara.com",
     "bugs": {
@@ -2843,6 +2860,23 @@
         "platforms": ["desktop"],
         "only_channels": ["nightly"],
         "ua_string": ["reduce_firefox_version_by_one"]
+      }
+    ]
+  },
+  "1918995": {
+    "label": "calculator.net",
+    "bugs": {
+      "1918995": {
+        "issue": "user-interface-frustration",
+        "matches": ["*://www.calculator.net/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1918995-calculator.net-hide-copypaste-ui-for-buttons.css"]
+        }
       }
     ]
   },
@@ -3101,40 +3135,6 @@
       }
     ]
   },
-  "1918604": {
-    "label": "g1.globo.com Caça Palavras",
-    "bugs": {
-      "1918604": {
-        "issue": "broken-layout",
-        "matches": ["*://g1.globo.com/jogos/caca-palavras/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "css": ["bug1918604-g1.globo.com-fix-clipped-buttons.css"]
-        }
-      }
-    ]
-  },
-  "1918995": {
-    "label": "calculator.net",
-    "bugs": {
-      "1918995": {
-        "issue": "user-interface-frustration",
-        "matches": ["*://www.calculator.net/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["android"],
-        "content_scripts": {
-          "css": ["bug1918995-calculator.net-hide-copypaste-ui-for-buttons.css"]
-        }
-      }
-    ]
-  },
   "1935598": {
     "label": "testbook.com",
     "bugs": {
@@ -3179,6 +3179,21 @@
         "content_scripts": {
           "js": ["bug1939248-rosasthai.com-load-event-helper.js"]
         }
+      }
+    ]
+  },
+  "1939697": {
+    "label": "paypal.com",
+    "bugs": {
+      "1939697": {
+        "issue": "broken-captcha",
+        "matches": ["*://www.paypal.com/myaccount/security/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
       }
     ]
   },
