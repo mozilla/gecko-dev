@@ -1424,7 +1424,7 @@ class MConstant : public MNullaryInstruction {
       intptr_t iptr;
       float f;
       double d;
-      JSString* str;
+      JSOffThreadAtom* str;
       JS::Symbol* sym;
       BigInt* bi;
       JSObject* obj;
@@ -1521,7 +1521,7 @@ class MConstant : public MNullaryInstruction {
     MOZ_ASSERT(type() == MIRType::Float32);
     return payload_.f;
   }
-  JSString* toString() const {
+  JSOffThreadAtom* toString() const {
     MOZ_ASSERT(type() == MIRType::String);
     return payload_.str;
   }

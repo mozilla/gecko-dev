@@ -1816,11 +1816,28 @@ class JSOffThreadAtom : private JSAtom {
   size_t length() const { return headerLengthFieldAtomic(); }
   size_t flags() const { return headerFlagsFieldAtomic(); }
 
+  bool empty() const { return length() == 0; }
+
   bool hasLatin1Chars() const { return flags() & LATIN1_CHARS_BIT; }
   bool hasTwoByteChars() const { return !(flags() & LATIN1_CHARS_BIT); }
 
   bool isAtom() const { return flags() & ATOM_BIT; }
   bool isInline() const { return flags() & INLINE_CHARS_BIT; }
+  bool hasIndexValue() const { return flags() & INDEX_VALUE_BIT; }
+  bool isIndex() const { return flags() & ATOM_IS_INDEX_BIT; }
+
+  uint32_t getIndexValue() const {
+    MOZ_ASSERT(hasIndexValue());
+    return flags() >> INDEX_VALUE_SHIFT;
+  }
+  bool isIndex(uint32_t* index) const {
+    if (!isIndex()) {
+      return false;
+    }
+    *index = hasIndexValue() ? getIndexValue() : getIndexSlow();
+    return true;
+  }
+  uint32_t getIndexSlow() const;
 
   const JS::Latin1Char* latin1Chars(const JS::AutoRequireNoGC& nogc) const {
     MOZ_ASSERT(hasLatin1Chars());
@@ -1845,6 +1862,9 @@ class JSOffThreadAtom : private JSAtom {
     return hasLatin1Chars() ? latin1Chars(nogc)[index]
                             : twoByteChars(nogc)[index];
   }
+
+  JSAtom* unwrap() { return this; }
+  const JSAtom* unwrap() const { return this; }
 
   // Should only be used to get an opaque pointer for baking into jitcode.
   const js::gc::Cell* raw() const { return this; }
@@ -2086,6 +2106,12 @@ extern bool CompareStrings(JSContext* cx, JSString* str1, JSString* str2,
  */
 extern int32_t CompareStrings(const JSLinearString* str1,
                               const JSLinearString* str2);
+
+/*
+ * Compare two strings, like CompareChars. Can be called off-thread.
+ */
+extern int32_t CompareStrings(const JSOffThreadAtom* str1,
+                              const JSOffThreadAtom* str2);
 
 /**
  * Return true if the string contains only ASCII characters.

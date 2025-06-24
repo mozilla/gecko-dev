@@ -2418,7 +2418,8 @@ static MOZ_ALWAYS_INLINE int GetFirstDollarIndexImpl(const TextChar* text,
   return -1;
 }
 
-int32_t js::GetFirstDollarIndexRawFlat(const JSLinearString* text) {
+template <typename StringT>
+int32_t js::GetFirstDollarIndexRawFlat(const StringT* text) {
   uint32_t len = text->length();
 
   JS::AutoCheckCannotGC nogc;
@@ -2428,6 +2429,11 @@ int32_t js::GetFirstDollarIndexRawFlat(const JSLinearString* text) {
 
   return GetFirstDollarIndexImpl(text->twoByteChars(nogc), len);
 }
+
+template int32_t js::GetFirstDollarIndexRawFlat<JSLinearString>(
+    const JSLinearString* text);
+template int32_t js::GetFirstDollarIndexRawFlat<JSOffThreadAtom>(
+    const JSOffThreadAtom* text);
 
 bool js::GetFirstDollarIndexRaw(JSContext* cx, JSString* str, int32_t* index) {
   JSLinearString* text = str->ensureLinear(cx);

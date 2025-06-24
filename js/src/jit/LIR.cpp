@@ -452,7 +452,7 @@ UniqueChars LAllocation::toString() const {
               if (!spr.init()) {
                 oomUnsafe.crash("LAllocation::toString()");
               }
-              spr.putString(cx, c->toString());
+              spr.putString(cx, c->toString()->unwrap());
               buf = spr.release();
             } else {
               buf = JS_smprintf("string");

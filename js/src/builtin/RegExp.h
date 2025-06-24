@@ -153,7 +153,8 @@ JSObject* InitRegExpClass(JSContext* cx, HandleObject obj);
 [[nodiscard]] extern bool GetFirstDollarIndexRaw(JSContext* cx, JSString* str,
                                                  int32_t* index);
 
-extern int32_t GetFirstDollarIndexRawFlat(const JSLinearString* text);
+template <typename StringT>
+extern int32_t GetFirstDollarIndexRawFlat(const StringT* text);
 
 // RegExp ClassSpec members used in RegExpObject.cpp.
 [[nodiscard]] extern bool regexp_construct(JSContext* cx, unsigned argc,

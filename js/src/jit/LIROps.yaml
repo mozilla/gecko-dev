@@ -166,7 +166,7 @@
 - name: Pointer
   result_type: WordSized
   arguments:
-    gcptr: gc::Cell*
+    gcptr: const gc::Cell*
 
 # Constant double.
 - name: Double

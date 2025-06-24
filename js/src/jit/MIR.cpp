@@ -1117,12 +1117,8 @@ MConstant::MConstant(TempAllocator& alloc, const js::Value& vp)
       break;
     case MIRType::String: {
       JSString* str = vp.toString();
-      if (str->isAtomRef()) {
-        str = str->atom();
-      }
       MOZ_ASSERT(!IsInsideNursery(str));
-      MOZ_ASSERT(str->isAtom());
-      payload_.str = vp.toString();
+      payload_.str = &str->asOffThreadAtom();
       break;
     }
     case MIRType::Symbol:
@@ -1359,7 +1355,7 @@ Value MConstant::toJSValue() const {
     case MIRType::Float32:
       return Float32Value(toFloat32());
     case MIRType::String:
-      return StringValue(toString());
+      return StringValue(toString()->unwrap());
     case MIRType::Symbol:
       return SymbolValue(toSymbol());
     case MIRType::BigInt:
@@ -1788,7 +1784,7 @@ MCallClassHook* MCallClassHook::New(TempAllocator& alloc, JSNative target,
 
 MDefinition* MStringLength::foldsTo(TempAllocator& alloc) {
   if (string()->isConstant()) {
-    JSString* str = string()->toConstant()->toString();
+    JSOffThreadAtom* str = string()->toConstant()->toString();
     return MConstant::New(alloc, Int32Value(str->length()));
   }
 
@@ -2072,7 +2068,7 @@ MDefinition* MCharCodeAt::foldsTo(TempAllocator& alloc) {
     return charCode;
   }
 
-  JSLinearString* str = &string->toConstant()->toString()->asLinear();
+  JSOffThreadAtom* str = string->toConstant()->toString();
   if (idx < 0 || uint32_t(idx) >= str->length()) {
     return this;
   }
@@ -2112,7 +2108,7 @@ MDefinition* MCodePointAt::foldsTo(TempAllocator& alloc) {
     return charCode;
   }
 
-  JSLinearString* str = &string->toConstant()->toString()->asLinear();
+  JSOffThreadAtom* str = string->toConstant()->toString();
   if (idx < 0 || uint32_t(idx) >= str->length()) {
     return this;
   }
@@ -2485,8 +2481,7 @@ MDefinition* MPhi::foldsTernary(TempAllocator& alloc) {
   // If testArg is a string type we can:
   // - fold testArg ? testArg : "" to testArg
   // - fold testArg ? "" : testArg to ""
-  if (testArg->type() == MIRType::String &&
-      c->toString() == GetJitContext()->runtime->emptyString()) {
+  if (testArg->type() == MIRType::String && c->toString()->empty()) {
     // When folding to the constant we need to hoist it.
     if (trueDef == c && !c->block()->dominates(block())) {
       c->block()->moveBefore(pred->lastIns(), c);
@@ -4741,7 +4736,7 @@ bool MCompare::tryFoldEqualOperands(bool* result) {
   return true;
 }
 
-static JSType TypeOfName(const JSLinearString* str) {
+static JSType TypeOfName(const JSOffThreadAtom* str) {
   static constexpr std::array types = {
       JSTYPE_UNDEFINED, JSTYPE_OBJECT,  JSTYPE_FUNCTION, JSTYPE_STRING,
       JSTYPE_NUMBER,    JSTYPE_BOOLEAN, JSTYPE_SYMBOL,   JSTYPE_BIGINT,
@@ -4750,7 +4745,8 @@ static JSType TypeOfName(const JSLinearString* str) {
 
   const JSAtomState& names = GetJitContext()->runtime->names();
   for (auto type : types) {
-    if (EqualStrings(str, TypeName(type, names))) {
+    // Both sides are atoms, so we can simply compare pointer identity.
+    if (TypeName(type, names) == str->unwrap()) {
       return type;
     }
   }
@@ -4830,7 +4826,7 @@ static mozilla::Maybe<TypeOfCompareInput> IsTypeOfCompare(MCompare* ins) {
 
   auto* constant = lhs->isConstant() ? lhs->toConstant() : rhs->toConstant();
 
-  JSType type = TypeOfName(&constant->toString()->asLinear());
+  JSType type = TypeOfName(constant->toString());
   return mozilla::Some(TypeOfCompareInput(typeOfName, typeOf, type, false));
 }
 
@@ -5135,8 +5131,7 @@ bool MCompare::evaluateConstantOperands(TempAllocator& alloc, bool* result) {
       return true;
     }
     case Compare_String: {
-      int32_t comp = CompareStrings(&lhs->toString()->asLinear(),
-                                    &rhs->toString()->asLinear());
+      int32_t comp = CompareStrings(lhs->toString(), rhs->toString());
       *result = FoldComparison(jsop_, comp, 0);
       return true;
     }
@@ -5152,12 +5147,12 @@ bool MCompare::evaluateConstantOperands(TempAllocator& alloc, bool* result) {
       return true;
     }
     case Compare_BigInt_String: {
-      JSLinearString* linear = &rhs->toString()->asLinear();
-      if (!linear->hasIndexValue()) {
+      JSOffThreadAtom* str = rhs->toString();
+      if (!str->hasIndexValue()) {
         return false;
       }
       *result =
-          FoldBigIntComparison(jsop_, lhs->toBigInt(), linear->getIndexValue());
+          FoldBigIntComparison(jsop_, lhs->toBigInt(), str->getIndexValue());
       return true;
     }
 
@@ -5274,7 +5269,7 @@ MDefinition* MCompare::tryFoldCharCompare(TempAllocator& alloc) {
       return this;
     }
 
-    char16_t charCode = constant->toString()->asLinear().latin1OrTwoByteChar(0);
+    char16_t charCode = constant->toString()->latin1OrTwoByteChar(0);
     MConstant* charCodeConst = MConstant::New(alloc, Int32Value(charCode));
     block()->insertBefore(this, charCodeConst);
 
@@ -6511,7 +6506,7 @@ MDefinition* MGetFirstDollarIndex::foldsTo(TempAllocator& alloc) {
     return this;
   }
 
-  JSLinearString* str = &strArg->toConstant()->toString()->asLinear();
+  JSOffThreadAtom* str = strArg->toConstant()->toString();
   int32_t index = GetFirstDollarIndexRawFlat(str);
   return MConstant::New(alloc, Int32Value(index));
 }
@@ -6812,12 +6807,10 @@ MDefinition* MGuardSpecificFunction::foldsTo(TempAllocator& alloc) {
 
 MDefinition* MGuardSpecificAtom::foldsTo(TempAllocator& alloc) {
   if (str()->isConstant()) {
-    JSString* s = str()->toConstant()->toString();
-    if (s->isAtom()) {
-      JSAtom* cstAtom = &s->asAtom();
-      if (cstAtom == atom()) {
+    JSOffThreadAtom* s = str()->toConstant()->toString();
+    // TODO: Use JSOffThreadAtom in MGuardSpecificAtom
+    if (s->unwrap() == atom()) {
         return str();
-      }
     }
   }
 
@@ -6976,11 +6969,11 @@ static PropertyKey ToNonIntPropertyKey(MDefinition* idval) {
     return PropertyKey::Void();
   }
   if (constant->type() == MIRType::String) {
-    JSString* str = constant->toString();
-    if (!str->isAtom() || str->asAtom().isIndex()) {
+    JSOffThreadAtom* str = constant->toString();
+    if (str->isIndex()) {
       return PropertyKey::Void();
     }
-    return PropertyKey::NonIntAtom(str);
+    return PropertyKey::NonIntAtom(str->unwrap());
   }
   if (constant->type() == MIRType::Symbol) {
     return PropertyKey::Symbol(constant->toSymbol());
@@ -7118,10 +7111,10 @@ MDefinition* MGuardStringToIndex::foldsTo(TempAllocator& alloc) {
     return this;
   }
 
-  JSString* str = string()->toConstant()->toString();
+  JSOffThreadAtom* str = string()->toConstant()->toString();
 
-  int32_t index = GetIndexFromString(str);
-  if (index < 0) {
+  uint32_t index = UINT32_MAX;
+  if (!str->isIndex(&index) || index > INT32_MAX) {
     return this;
   }
 
@@ -7133,8 +7126,8 @@ MDefinition* MGuardStringToInt32::foldsTo(TempAllocator& alloc) {
     return this;
   }
 
-  JSLinearString* str = &string()->toConstant()->toString()->asLinear();
-  double number = LinearStringToNumber(str);
+  JSOffThreadAtom* str = string()->toConstant()->toString();
+  double number = OffThreadAtomToNumber(str);
 
   int32_t n;
   if (!mozilla::NumberIsInt32(number, &n)) {
@@ -7149,8 +7142,8 @@ MDefinition* MGuardStringToDouble::foldsTo(TempAllocator& alloc) {
     return this;
   }
 
-  JSLinearString* str = &string()->toConstant()->toString()->asLinear();
-  double number = LinearStringToNumber(str);
+  JSOffThreadAtom* str = string()->toConstant()->toString();
+  double number = OffThreadAtomToNumber(str);
   return MConstant::New(alloc, DoubleValue(number));
 }
 

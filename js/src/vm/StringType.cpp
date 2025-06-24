@@ -1554,6 +1554,32 @@ int32_t js::CompareStrings(const JSLinearString* str1,
   return CompareStringsImpl(str1, str2);
 }
 
+int32_t js::CompareStrings(const JSOffThreadAtom* str1,
+                           const JSOffThreadAtom* str2) {
+  MOZ_ASSERT(str1);
+  MOZ_ASSERT(str2);
+
+  if (str1 == str2) {
+    return 0;
+  }
+
+  size_t len1 = str1->length();
+  size_t len2 = str2->length();
+
+  AutoCheckCannotGC nogc;
+  if (str1->hasLatin1Chars()) {
+    const Latin1Char* chars1 = str1->latin1Chars(nogc);
+    return str2->hasLatin1Chars()
+               ? CompareChars(chars1, len1, str2->latin1Chars(nogc), len2)
+               : CompareChars(chars1, len1, str2->twoByteChars(nogc), len2);
+  }
+
+  const char16_t* chars1 = str1->twoByteChars(nogc);
+  return str2->hasLatin1Chars()
+             ? CompareChars(chars1, len1, str2->latin1Chars(nogc), len2)
+             : CompareChars(chars1, len1, str2->twoByteChars(nogc), len2);
+}
+
 bool js::StringIsAscii(const JSLinearString* str) {
   JS::AutoCheckCannotGC nogc;
   if (str->hasLatin1Chars()) {
@@ -1657,6 +1683,17 @@ static uint32_t AtomCharsToIndex(const CharT* s, size_t length) {
 }
 
 uint32_t JSAtom::getIndexSlow() const {
+  MOZ_ASSERT(isIndex());
+  MOZ_ASSERT(!hasIndexValue());
+
+  size_t len = length();
+
+  AutoCheckCannotGC nogc;
+  return hasLatin1Chars() ? AtomCharsToIndex(latin1Chars(nogc), len)
+                          : AtomCharsToIndex(twoByteChars(nogc), len);
+}
+
+uint32_t JSOffThreadAtom::getIndexSlow() const {
   MOZ_ASSERT(isIndex());
   MOZ_ASSERT(!hasIndexValue());
 

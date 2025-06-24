@@ -1936,7 +1936,8 @@ template double js::CharsToNumber(const Latin1Char* chars, size_t length);
 
 template double js::CharsToNumber(const char16_t* chars, size_t length);
 
-double js::LinearStringToNumber(const JSLinearString* str) {
+template <class StringT>
+static double StringToNumberImpl(const StringT* str) {
   if (str->hasIndexValue()) {
     return str->getIndexValue();
   }
@@ -1945,6 +1946,13 @@ double js::LinearStringToNumber(const JSLinearString* str) {
   return str->hasLatin1Chars()
              ? CharsToNumber(str->latin1Chars(nogc), str->length())
              : CharsToNumber(str->twoByteChars(nogc), str->length());
+}
+
+double js::LinearStringToNumber(const JSLinearString* str) {
+  return StringToNumberImpl<JSLinearString>(str);
+}
+double js::OffThreadAtomToNumber(const JSOffThreadAtom* str) {
+  return StringToNumberImpl<JSOffThreadAtom>(str);
 }
 
 bool js::StringToNumber(JSContext* cx, JSString* str, double* result) {

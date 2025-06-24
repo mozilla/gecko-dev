@@ -1356,7 +1356,7 @@ void LIRGenerator::visitCompare(MCompare* comp) {
     }
 
     if (constant) {
-      JSOffThreadAtom* str = &constant->toString()->asOffThreadAtom();
+      JSOffThreadAtom* str = constant->toString();
 
       if (IsEqualityOp(comp->jsop())) {
         if (MacroAssembler::canCompareStringCharsInline(str)) {
@@ -2973,8 +2973,7 @@ void LIRGenerator::visitStringIncludes(MStringIncludes* ins) {
   MOZ_ASSERT(searchStr->type() == MIRType::String);
 
   if (searchStr->isConstant()) {
-    JSOffThreadAtom* str =
-        &searchStr->toConstant()->toString()->asOffThreadAtom();
+    JSOffThreadAtom* str = searchStr->toConstant()->toString();
     size_t length = str->length();
     if (length == 1 || length == 2) {
       LDefinition tempDef = LDefinition::BogusTemp();
@@ -3004,8 +3003,7 @@ void LIRGenerator::visitStringIndexOf(MStringIndexOf* ins) {
   MOZ_ASSERT(searchStr->type() == MIRType::String);
 
   if (searchStr->isConstant()) {
-    JSOffThreadAtom* str =
-        &searchStr->toConstant()->toString()->asOffThreadAtom();
+    JSOffThreadAtom* str = searchStr->toConstant()->toString();
     size_t length = str->length();
     if (length == 1 || length == 2) {
       LDefinition tempDef = LDefinition::BogusTemp();
@@ -3048,8 +3046,7 @@ void LIRGenerator::visitStringStartsWith(MStringStartsWith* ins) {
   MOZ_ASSERT(searchStr->type() == MIRType::String);
 
   if (searchStr->isConstant()) {
-    JSOffThreadAtom* str =
-        &searchStr->toConstant()->toString()->asOffThreadAtom();
+    JSOffThreadAtom* str = searchStr->toConstant()->toString();
 
     if (MacroAssembler::canCompareStringCharsInline(str)) {
       auto* lir = new (alloc())
@@ -3074,8 +3071,7 @@ void LIRGenerator::visitStringEndsWith(MStringEndsWith* ins) {
   MOZ_ASSERT(searchStr->type() == MIRType::String);
 
   if (searchStr->isConstant()) {
-    JSOffThreadAtom* str =
-        &searchStr->toConstant()->toString()->asOffThreadAtom();
+    JSOffThreadAtom* str = searchStr->toConstant()->toString();
 
     if (MacroAssembler::canCompareStringCharsInline(str)) {
       auto* lir =
@@ -7923,7 +7919,7 @@ void LIRGenerator::visitConstant(MConstant* ins) {
 #endif
       break;
     case MIRType::String:
-      define(new (alloc()) LPointer(ins->toString()), ins);
+      define(new (alloc()) LPointer(ins->toString()->raw()), ins);
       break;
     case MIRType::Symbol:
       define(new (alloc()) LPointer(ins->toSymbol()), ins);
