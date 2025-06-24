@@ -1102,6 +1102,15 @@ static bool IsElementEscaped(MDefinition* def, MInstruction* newArray,
         }
         break;
 
+      case MDefinition::Opcode::GuardElementsArePacked:
+        MOZ_ASSERT(access->toGuardElementsArePacked()->elements() == def);
+        if (!IsPackedArray(newArray)) {
+          JitSpewDef(JitSpew_Escape, "is not guaranteed to be packed\n",
+                     access);
+          return true;
+        }
+        break;
+
       default:
         JitSpewDef(JitSpew_Escape, "is escaped by\n", access);
         return true;
@@ -1305,6 +1314,7 @@ class ArrayMemoryView : public MDefinitionVisitorDefaultNoop {
   void visitLoadElement(MLoadElement* ins);
   void visitSetInitializedLength(MSetInitializedLength* ins);
   void visitInitializedLength(MInitializedLength* ins);
+  void visitGuardElementsArePacked(MGuardElementsArePacked* ins);
   void visitArrayLength(MArrayLength* ins);
   void visitPostWriteBarrier(MPostWriteBarrier* ins);
   void visitPostWriteElementBarrier(MPostWriteElementBarrier* ins);
@@ -1568,6 +1578,18 @@ void ArrayMemoryView::visitInitializedLength(MInitializedLength* ins) {
 
   // Replace by the value of the length.
   ins->replaceAllUsesWith(state_->initializedLength());
+
+  // Remove original instruction.
+  discardInstruction(ins, elements);
+}
+
+void ArrayMemoryView::visitGuardElementsArePacked(
+    MGuardElementsArePacked* ins) {
+  // Skip other array objects.
+  MDefinition* elements = ins->elements();
+  if (!isArrayStateElements(elements)) {
+    return;
+  }
 
   // Remove original instruction.
   discardInstruction(ins, elements);
@@ -2572,6 +2594,7 @@ class RestReplacer : public MDefinitionVisitorDefaultNoop {
   void visitLoadElement(MLoadElement* ins);
   void visitArrayLength(MArrayLength* ins);
   void visitInitializedLength(MInitializedLength* ins);
+  void visitGuardElementsArePacked(MGuardElementsArePacked* ins);
   void visitApplyArray(MApplyArray* ins);
   void visitConstructArray(MConstructArray* ins);
 
@@ -2738,6 +2761,10 @@ bool RestReplacer::escapes(MElements* ins) {
 
       case MDefinition::Opcode::ConstructArray:
         MOZ_ASSERT(def->toConstructArray()->getElements() == ins);
+        break;
+
+      case MDefinition::Opcode::GuardElementsArePacked:
+        MOZ_ASSERT(def->toGuardElementsArePacked()->elements() == ins);
         break;
 
       default:
@@ -2956,6 +2983,17 @@ void RestReplacer::visitArrayLength(MArrayLength* ins) {
 void RestReplacer::visitInitializedLength(MInitializedLength* ins) {
   // The initialized length of a rest array is equal to its length.
   visitLength(ins, ins->elements());
+}
+
+void RestReplacer::visitGuardElementsArePacked(MGuardElementsArePacked* ins) {
+  // Skip other array objects.
+  MDefinition* elements = ins->elements();
+  if (!isRestElements(elements)) {
+    return;
+  }
+
+  // Remove original instruction.
+  discardInstruction(ins, elements);
 }
 
 void RestReplacer::visitApplyArray(MApplyArray* ins) {
