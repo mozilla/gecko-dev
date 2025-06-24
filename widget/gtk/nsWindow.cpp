@@ -1716,9 +1716,9 @@ void nsWindow::LogPopupHierarchy() {
             "Anchored %d Visible %d MovedByRect %d\n",
             indentString.get(), window->GetFrameTag().get(),
             window->GetPopupTypeName().get(), window,
-            window->WaylandPopupIsPermanent(),
-            window->mPopupContextMenu, window->mPopupAnchored,
-            gtk_widget_is_visible(window->mShell), window->mPopupUseMoveToRect);
+            window->WaylandPopupIsPermanent(), window->mPopupContextMenu,
+            window->mPopupAnchored, gtk_widget_is_visible(window->mShell),
+            window->mPopupUseMoveToRect);
       } else {
         LOG("%s null window\n", indentString.get());
       }
@@ -7037,17 +7037,10 @@ void nsWindow::UpdateOpaqueRegionInternal() {
     return;
   }
 
-  if (!IsTopLevelWidget()) {
-    // We need to clear target buffer alpha values of popup windows as
-    // SW-WR paints with alpha blending (see Bug 1674473).
-    return;
-  }
-
   GdkWindow* window = GetToplevelGdkWindow();
   if (!window) {
     return;
   }
-  MOZ_ASSERT(gdk_window_get_window_type(window) == GDK_WINDOW_TOPLEVEL);
 
   {
     AutoReadLock lock(mOpaqueRegionLock);
