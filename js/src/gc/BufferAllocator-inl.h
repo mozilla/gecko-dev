@@ -13,6 +13,7 @@
 #include "mozilla/MathAlgorithms.h"
 
 #include "ds/SlimLinkedList.h"
+#include "gc/BufferAllocatorInternals.h"
 #include "gc/Cell.h"
 #include "js/HeapAPI.h"
 
@@ -29,6 +30,13 @@ static constexpr size_t MinMediumAllocSize =
     1 << BufferAllocator::MinMediumAllocShift;
 static constexpr size_t MaxMediumAllocSize =
     1 << BufferAllocator::MaxMediumAllocShift;
+
+static constexpr size_t MediumAllocGranularityShift =
+    BufferAllocator::MinMediumAllocShift;
+static constexpr size_t MediumAllocGranularity =
+    1 << MediumAllocGranularityShift;
+
+using MediumBufferSize = EncodedSize<MediumAllocGranularityShift>;
 
 /* static */
 inline bool BufferAllocator::IsSmallAllocSize(size_t bytes) {
