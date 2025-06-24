@@ -3662,6 +3662,7 @@ pub fn ast_to_hir(state: &mut State, tu: &syntax::TranslationUnit) -> Translatio
         vec![Type::new(Vec4), Type::new(Vec4)],
     );
     declare_function(state, "any", None, Type::new(Bool), vec![Type::new(BVec2)]);
+    declare_function(state, "any", None, Type::new(Bool), vec![Type::new(BVec4)]);
     declare_function(state, "all", None, Type::new(Bool), vec![Type::new(BVec2)]);
     declare_function(state, "all", None, Type::new(Bool), vec![Type::new(BVec4)]);
 

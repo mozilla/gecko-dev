@@ -245,9 +245,17 @@ void main(void) {
     write_output(color);
 }
 
-#ifdef WR_FEATURE_FAST_PATH
 #ifdef SWGL_DRAW_SPAN
 void swgl_drawSpanRGBA8() {
+
+#ifndef WR_FEATURE_FAST_PATH
+    // If there is per-fragment clipping to do, we need to bail
+    // out of the span shader.
+    if (any(greaterThan(vRoundedClipRadii, vec4(0.0)))) {
+        return;
+    }
+#endif      // WR_FEATURE_FAST_PATH
+
 #ifdef WR_FEATURE_YUV
     if (vYuvFormat.x == YUV_FORMAT_PLANAR) {
         swgl_commitTextureLinearYUV(sColor0, vUV_y, vUVBounds_y,
@@ -289,6 +297,5 @@ void swgl_drawSpanRGBA8() {
 #endif
 }
 #endif      // SWGL_DRAW_SPAN
-#endif      // WR_FEATURE_FAST_PATH
 
 #endif
