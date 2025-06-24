@@ -19,7 +19,7 @@ and a panic hook in order to compile as a C library.
 
 More information on using ICU4X from C++ can be found in [our tutorial].
 
-[our tutorial]: https://github.com/unicode-org/icu4x/blob/main/tutorials/cpp.md
+[our tutorial]: https://github.com/unicode-org/icu4x/blob/main/tutorials/using-from-cpp.md
 [TypeScript]: https://unicode-org.github.io/icu4x/tsdoc
 [C++]: https://unicode-org.github.io/icu4x/cppdoc
 

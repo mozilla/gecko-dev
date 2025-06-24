@@ -3,12 +3,14 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 #[diplomat::bridge]
+#[diplomat::abi_rename = "icu4x_{0}_mv1"]
+#[diplomat::attr(auto, namespace = "icu4x")]
 pub mod ffi {
     use alloc::boxed::Box;
     use core::ops::RangeInclusive;
 
     /// Result of a single iteration of [`CodePointRangeIterator`].
-    /// Logically can be considered to be an `Option<RangeInclusive<u32>>`,
+    /// Logically can be considered to be an `Option<RangeInclusive<DiplomatChar>>`,
     ///
     /// `start` and `end` represent an inclusive range of code points [start, end],
     /// and `done` will be true if the iterator has already finished. The last contentful
@@ -16,15 +18,17 @@ pub mod ffi {
     /// values if and only if `done=false`.
     #[diplomat::out]
     pub struct CodePointRangeIteratorResult {
-        pub start: u32,
-        pub end: u32,
+        pub start: DiplomatChar,
+        pub end: DiplomatChar,
         pub done: bool,
     }
 
-    /// An iterator over code point ranges, produced by `ICU4XCodePointSetData` or
-    /// one of the `ICU4XCodePointMapData` types
+    /// An iterator over code point ranges, produced by `CodePointSetData` or
+    /// one of the `CodePointMapData` types
     #[diplomat::opaque]
-    pub struct CodePointRangeIterator<'a>(pub Box<dyn Iterator<Item = RangeInclusive<u32>> + 'a>);
+    pub struct CodePointRangeIterator<'a>(
+        pub Box<dyn Iterator<Item = RangeInclusive<DiplomatChar>> + 'a>,
+    );
 
     impl<'a> CodePointRangeIterator<'a> {
         /// Advance the iterator by one and return the next range.
