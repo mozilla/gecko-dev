@@ -40,12 +40,12 @@ EncodeSupportSet CanCreateWMFEncoder(CodecType aCodec) {
       return;
     }
     // Try HW encoder.
-    auto hwEnc = MakeRefPtr<MFTEncoder>(false /* HW not allowed */);
+    auto hwEnc = MakeRefPtr<MFTEncoder>(MFTEncoder::HWPreference::HardwareOnly);
     if (SUCCEEDED(hwEnc->Create(CodecToSubtype(aCodec)))) {
       supports += EncodeSupport::HardwareEncode;
     }
     // Try SW encoder.
-    auto swEnc = MakeRefPtr<MFTEncoder>(true /* HW not allowed */);
+    auto swEnc = MakeRefPtr<MFTEncoder>(MFTEncoder::HWPreference::SoftwareOnly);
     if (SUCCEEDED(swEnc->Create(CodecToSubtype(aCodec)))) {
       supports += EncodeSupport::SoftwareEncode;
     }

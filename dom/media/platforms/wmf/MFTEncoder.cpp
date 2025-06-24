@@ -116,42 +116,65 @@ static Result<nsTArray<ComPtr<IMFActivate>>, HRESULT> EnumMFT(
   return activates;
 }
 
-static nsTArray<ComPtr<IMFActivate>> EnumEncoders(const GUID& aSubtype,
-                                                  const bool aUseHW = true) {
+static nsTArray<ComPtr<IMFActivate>> EnumEncoders(
+    const GUID& aSubtype, const MFTEncoder::HWPreference aHWPreference) {
   MFT_REGISTER_TYPE_INFO inType = {.guidMajorType = MFMediaType_Video,
                                    .guidSubtype = MFVideoFormat_NV12};
   MFT_REGISTER_TYPE_INFO outType = {.guidMajorType = MFMediaType_Video,
                                     .guidSubtype = aSubtype};
-  if (aUseHW) {
-    if (IsWin32kLockedDown()) {
-      // Some HW encoders use DXGI API and crash when locked down.
-      // TODO: move HW encoding out of content process (bug 1754531).
-      MFT_ENC_SLOGD("Don't use HW encoder when win32k locked down.");
-      return {};
-    }
 
+  nsTArray<ComPtr<IMFActivate>> swActivates;
+  nsTArray<ComPtr<IMFActivate>> hwActivates;
+
+  if (aHWPreference != MFTEncoder::HWPreference::SoftwareOnly) {
+    // Some HW encoders use DXGI API and crash when locked down.
+    // TODO: move HW encoding out of content process (bug 1754531).
+    if (IsWin32kLockedDown()) {
+      MFT_ENC_SLOGD("Don't use HW encoder when win32k locked down.");
+    } else {
+      auto r = EnumMFT(MFT_CATEGORY_VIDEO_ENCODER,
+                       MFT_ENUM_FLAG_HARDWARE | MFT_ENUM_FLAG_SORTANDFILTER,
+                       &inType, &outType);
+      if (r.isErr()) {
+        MFT_ENC_SLOGE("enumerate HW encoder for %s: error=%s",
+                      CodecStr(aSubtype), ErrorStr(r.unwrapErr()));
+      } else {
+        hwActivates.AppendElements(r.unwrap());
+      }
+    }
+  }
+
+  if (aHWPreference != MFTEncoder::HWPreference::HardwareOnly) {
     auto r = EnumMFT(MFT_CATEGORY_VIDEO_ENCODER,
-                     MFT_ENUM_FLAG_HARDWARE | MFT_ENUM_FLAG_SORTANDFILTER,
+                     MFT_ENUM_FLAG_SYNCMFT | MFT_ENUM_FLAG_ASYNCMFT |
+                         MFT_ENUM_FLAG_SORTANDFILTER,
                      &inType, &outType);
     if (r.isErr()) {
-      MFT_ENC_SLOGE("enumerate HW encoder for %s: error=%s", CodecStr(aSubtype),
+      MFT_ENC_SLOGE("enumerate SW encoder for %s: error=%s", CodecStr(aSubtype),
                     ErrorStr(r.unwrapErr()));
-      return {};
+    } else {
+      swActivates.AppendElements(r.unwrap());
     }
-    return r.unwrap();
   }
 
-  // Try software MFTs.
-  auto r = EnumMFT(MFT_CATEGORY_VIDEO_ENCODER,
-                   MFT_ENUM_FLAG_SYNCMFT | MFT_ENUM_FLAG_ASYNCMFT |
-                       MFT_ENUM_FLAG_SORTANDFILTER,
-                   &inType, &outType);
-  if (r.isErr()) {
-    MFT_ENC_SLOGE("enumerate SW encoder for %s: error=%s", CodecStr(aSubtype),
-                  ErrorStr(r.unwrapErr()));
-    return {};
+  nsTArray<ComPtr<IMFActivate>> activates;
+
+  switch(aHWPreference) {
+    case MFTEncoder::HWPreference::HardwareOnly:
+      return hwActivates;
+    case MFTEncoder::HWPreference::SoftwareOnly:
+      return swActivates;
+    case MFTEncoder::HWPreference::PreferHardware:
+      activates.AppendElements(std::move(hwActivates));
+      activates.AppendElements(std::move(swActivates));
+      break;
+    case MFTEncoder::HWPreference::PreferSoftware:
+      activates.AppendElements(std::move(swActivates));
+      activates.AppendElements(std::move(hwActivates));
+      break;
   }
-  return r.unwrap();
+
+  return activates;
 }
 
 static HRESULT GetFriendlyName(IMFActivate* aAttributes, nsCString& aName) {
@@ -176,7 +199,8 @@ static HRESULT GetFriendlyName(IMFActivate* aAttributes, nsCString& aName) {
 
 static void PopulateEncoderInfo(const GUID& aSubtype,
                                 nsTArray<MFTEncoder::Info>& aInfos) {
-  nsTArray<ComPtr<IMFActivate>> activates = EnumEncoders(aSubtype);
+  nsTArray<ComPtr<IMFActivate>> activates =
+      EnumEncoders(aSubtype, MFTEncoder::HWPreference::PreferHardware);
   for (const auto& activate : activates) {
     MFTEncoder::Info info = {.mSubtype = aSubtype};
     GetFriendlyName(activate.Get(), info.mName);
@@ -225,7 +249,7 @@ nsTArray<MFTEncoder::Info>& MFTEncoder::Infos() {
 
 already_AddRefed<IMFActivate> MFTEncoder::CreateFactory(const GUID& aSubtype) {
   nsTArray<ComPtr<IMFActivate>> activates =
-      EnumEncoders(aSubtype, !mHardwareNotAllowed);
+      EnumEncoders(aSubtype, mHWPreference);
   if (activates.Length() == 0) {
     return nullptr;
   }

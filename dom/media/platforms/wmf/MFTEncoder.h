@@ -29,8 +29,14 @@ class MFTEncoder final {
   };
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MFTEncoder)
 
-  explicit MFTEncoder(const bool aHardwareNotAllowed)
-      : mHardwareNotAllowed(aHardwareNotAllowed) {}
+  enum class HWPreference {
+    HardwareOnly,
+    SoftwareOnly,
+    PreferHardware,
+    PreferSoftware
+  };
+  explicit MFTEncoder(const HWPreference aHWPreference)
+      : mHWPreference(aHWPreference) {}
 
   HRESULT Create(const GUID& aSubtype);
   HRESULT Destroy();
@@ -121,7 +127,7 @@ class MFTEncoder final {
   HRESULT ProcessInput();
   HRESULT ProcessOutput();
 
-  const bool mHardwareNotAllowed;
+  const HWPreference mHWPreference;
   RefPtr<IMFTransform> mEncoder;
   // For MFT object creation. See
   // https://docs.microsoft.com/en-us/windows/win32/medfound/activation-objects

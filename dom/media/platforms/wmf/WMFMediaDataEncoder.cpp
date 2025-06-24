@@ -108,7 +108,9 @@ RefPtr<InitPromise> WMFMediaDataEncoder::ProcessInit() {
         __func__);
   }
 
-  RefPtr<MFTEncoder> encoder = new MFTEncoder(mHardwareNotAllowed);
+  RefPtr<MFTEncoder> encoder = new MFTEncoder(
+      mHardwareNotAllowed ? MFTEncoder::HWPreference::SoftwareOnly
+                          : MFTEncoder::HWPreference::PreferHardware);
   HRESULT hr;
   mscom::EnsureMTA([&]() { hr = InitMFTEncoder(encoder); });
 
