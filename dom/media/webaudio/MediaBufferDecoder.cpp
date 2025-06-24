@@ -551,6 +551,7 @@ void MediaDecodeTask::FinishDecode() {
       newBuffers = CreateChannelBuffers(audioData->mChannels, resampledFrames);
       if (!newBuffers) {
         ReportFailureOnMainThread(WebAudioDecodeJob::UnknownError);
+        return;
       }
       RefPtr<ThreadSharedFloatArrayBufferList> oldBuffers =
           mDecodeJob.mBuffer.mBuffer->AsThreadSharedFloatArrayBufferList();
