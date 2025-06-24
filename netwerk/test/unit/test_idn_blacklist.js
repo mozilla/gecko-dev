@@ -25,8 +25,10 @@ const testcases = [
   ["\u0702", "xn--vmb"],
   ["\u0703", "xn--wmb"],
   ["\u0704", "xn--xmb"],
-  ["\u115F", "xn--osd"],
-  ["\u1160", "xn--psd"],
+  // This test is turned off due to https://bugzilla.mozilla.org/show_bug.cgi?id=1960300#c13.
+  // ["\u115F", "xn--osd"],
+  // This test is turned off due to https://bugzilla.mozilla.org/show_bug.cgi?id=1960300#c13.
+  // ["\u1160", "xn--psd"],
   ["\u1735", "xn--d0e"],
   ["\u2027", "xn--svg"],
   ["\u2028", "xn--tvg"],
@@ -72,7 +74,8 @@ const testcases = [
   ["\u3014", "xn--96j"],
   ["\u3015", "xn--b7j"],
   ["\u3033", "xn--57j"],
-  ["\u3164", "xn--psd"],
+  // This test is turned off due to https://bugzilla.mozilla.org/show_bug.cgi?id=1960300#c13.
+  // ["\u3164", "xn--psd"],
   ["\u321D", "xn--()-357j35d"],
   ["\u321E", "xn--()-357jf36c"],
   ["\u33AE", "xn--rads-id9a"],
@@ -83,7 +86,8 @@ const testcases = [
   ["\uFE3F", "xn--x6j"],
   ["\uFE5D", "xn--96j"],
   ["\uFE5E", "xn--b7j"],
-  ["\uFFA0", "xn--psd"],
+  // This test is turned off due to https://bugzilla.mozilla.org/show_bug.cgi?id=1960300#c13.
+  // ["\uFFA0", "xn--psd"],
   ["\uFFF9", "xn--vn7c"],
   ["\uFFFA", "xn--wn7c"],
   ["\uFFFB", "xn--xn7c"],
