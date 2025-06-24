@@ -10,3 +10,4 @@ prefs = [
 ["browser_ipprotection_panel.js"]
 
 ["browser_ipprotection_toolbar.js"]
+skip-if = ["devedition"]
