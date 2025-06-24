@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use icu_properties::bidi::BidiClassAdapter;
-use icu_properties::maps;
+use icu_properties::CodePointMapData;
 
 use unicode_bidi::level::Level;
 use unicode_bidi::utf16;
@@ -41,7 +40,7 @@ impl UnicodeBidi<'_> {
         } else {
             None
         };
-        let adapter = BidiClassAdapter::new(maps::bidi_class());
+        let adapter = CodePointMapData::<icu_properties::props::BidiClass>::new();
         Box::new(UnicodeBidi {
             paragraph_info: utf16::ParagraphBidiInfo::new_with_data_source(&adapter, text, level),
             resolved: None,
@@ -151,7 +150,7 @@ pub extern "C" fn bidi_get_base_direction(
     first_paragraph: bool,
 ) -> i8 {
     let text = unsafe { slice::from_raw_parts(text, length) };
-    let adapter = BidiClassAdapter::new(maps::bidi_class());
+    let adapter = CodePointMapData::<icu_properties::props::BidiClass>::new();
     let direction = if first_paragraph {
         unicode_bidi::get_base_direction_with_data_source(&adapter, text)
     } else {
