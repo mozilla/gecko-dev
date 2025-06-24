@@ -2577,13 +2577,11 @@ void nsRFPService::GetMediaDeviceGroup(nsString& aGroup,
                                        dom::MediaDeviceKind aKind) {
   switch (aKind) {
     case dom::MediaDeviceKind::Audioinput:
+    case dom::MediaDeviceKind::Audiooutput:
       aGroup.Assign(u"Audio Device Group"_ns);
       break;
     case dom::MediaDeviceKind::Videoinput:
       aGroup = u"Video Device Group"_ns;
-      break;
-    case dom::MediaDeviceKind::Audiooutput:
-      aGroup = u"Speaker Device Group"_ns;
       break;
   }
 }
