@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html } from "chrome://global/content/vendor/lit.all.mjs";
+import { html, nothing } from "chrome://global/content/vendor/lit.all.mjs";
 import {
   SelectControlItemMixin,
   SelectControlBaseElement,
@@ -103,9 +103,10 @@ export class MozVisualPickerItem extends SelectControlItemMixin(MozLitElement) {
       />
       <div
         class="picker-item"
-        role="radio"
+        role=${this.role}
         value=${this.value}
-        aria-checked=${this.checked}
+        aria-checked=${this.role == "radio" ? this.checked : nothing}
+        aria-selected=${this.role == "option" ? this.checked : nothing}
         tabindex=${this.itemTabIndex}
         ?checked=${this.checked}
         ?disabled=${this.isDisabled}
