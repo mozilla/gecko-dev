@@ -14,7 +14,7 @@
 
 #include <stddef.h>
 
-static const PRTime kCTExpirationTime = INT64_C(1756380095000000);
+static const PRTime kCTExpirationTime = INT64_C(1756725615000000);
 
 namespace mozilla::ct {
 
@@ -451,10 +451,21 @@ const CTLogInfo kCTLogList[] = {
      "\x9d\x7d\x05\x53\xc7\x9e\x94\xea\x9b\x57\x46\xbf\x4f\xa4\x7e\xfb\xdf\xfa"
      "\x85",
      91},
+    {"Bogus placeholder log to unbreak misbehaving CT libraries",
+     CTLogState::Retired,
+     1750489200000,  // 2025-06-21T07:00:00Z
+     6,              // operated by Geomys
+     "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
+     "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\x8f\x89\x42\x03\x15\x82\x63\xa4\xb3"
+     "\x22\xd8\x64\xa9\x98\x70\x89\x45\x73\x70\xae\xb6\x8b\xa1\x5c\xfb\xf6\x12"
+     "\xd1\x61\xda\x37\xa8\xe3\x3b\x52\x13\x50\x5b\xae\xf1\xb7\x8e\x89\x4f\x4f"
+     "\x75\xe3\x66\x75\xa9\x59\x70\x2d\xe2\x5a\x8b\xc0\x7c\x0a\x6f\x5d\x2d\xf7"
+     "\x37",
+     91},
 #ifdef DEBUG
     {"Mozilla Test RSA Log 1", CTLogState::Admissible,
      1721666666000,  // 2024-07-22T16:44:26Z
-     6,              // operated by Mozilla Test Org 1
+     7,              // operated by Mozilla Test Org 1
      "\x30\x82\x01\x22\x30\x0d\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01\x05"
      "\x00\x03\x82\x01\x0f\x00\x30\x82\x01\x0a\x02\x82\x01\x01\x00\xba\x88\x51"
      "\xa8\x44\x8e\x16\xd6\x41\xfd\x6e\xb6\x88\x06\x36\x10\x3d\x3c\x13\xd9\xea"
@@ -477,7 +488,7 @@ const CTLogInfo kCTLogList[] = {
 #ifdef DEBUG
     {"Mozilla Test EC Log", CTLogState::Admissible,
      1721666666000,  // 2024-07-22T16:44:26Z
-     6,              // operated by Mozilla Test Org 1
+     7,              // operated by Mozilla Test Org 1
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\x4f\xbf\xbb\xbb\x61\xe0\xf8\xf9\xb1"
      "\xa6\x0a\x59\xac\x87\x04\xe2\xec\x05\x0b\x42\x3e\x3c\xf7\x2e\x92\x3f\x2c"
@@ -489,7 +500,7 @@ const CTLogInfo kCTLogList[] = {
 #ifdef DEBUG
     {"Mozilla Test RSA Log 2", CTLogState::Admissible,
      1721666666000,  // 2024-07-22T16:44:26Z
-     7,              // operated by Mozilla Test Org 2
+     8,              // operated by Mozilla Test Org 2
      "\x30\x82\x01\x22\x30\x0d\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01\x05"
      "\x00\x03\x82\x01\x0f\x00\x30\x82\x01\x0a\x02\x82\x01\x01\x00\xc1\x75\xc6"
      "\x52\x66\x09\x9f\x77\x08\x2a\x67\x91\xf1\xb8\x76\xc3\x7f\x5c\xe5\x38\xb0"
@@ -518,11 +529,12 @@ const CTLogOperatorInfo kCTLogOperatorList[] = {
     {"Sectigo", 3},
     {"Let's Encrypt", 4},
     {"TrustAsia", 5},
+    {"Geomys", 6},
 #ifdef DEBUG
-    {"Mozilla Test Org 1", 6},
+    {"Mozilla Test Org 1", 7},
 #endif  // DEBUG
 #ifdef DEBUG
-    {"Mozilla Test Org 2", 7},
+    {"Mozilla Test Org 2", 8},
 #endif  // DEBUG
 };
 

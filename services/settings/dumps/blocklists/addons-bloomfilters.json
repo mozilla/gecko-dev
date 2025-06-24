@@ -3,6 +3,36 @@
     {
       "stash": {
         "blocked": [
+          "okx-wallet-portal@gitsources.site:13.54.2",
+          "okx-wallet-portal@gitsources.site:13.54.3"
+        ],
+        "unblocked": [],
+        "softblocked": []
+      },
+      "schema": 1750336584732,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1750358105279,
+      "id": "1c9dff77-22d2-404c-b37e-b40988ae42eb",
+      "last_modified": 1750358175311
+    },
+    {
+      "stash": {
+        "blocked": [
+          "support@TronLink.org:1.0.0",
+          "support@TronLink.org:1.1.2"
+        ],
+        "unblocked": [],
+        "softblocked": []
+      },
+      "schema": 1750324786841,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1750336505891,
+      "id": "c9e2fdca-ebe4-4772-aae2-edaf5cadf650",
+      "last_modified": 1750336584527
+    },
+    {
+      "stash": {
+        "blocked": [
           "{6883dad1-208a-4bd3-a516-f83df7dee19e}:1.0.5",
           "{6883dad1-208a-4bd3-a516-f83df7dee19e}:1.0.6",
           "{6883dad1-208a-4bd3-a516-f83df7dee19e}:1.1.2",
@@ -730,5 +760,5 @@
       "last_modified": 1739466430716
     }
   ],
-  "timestamp": 1750271777017
+  "timestamp": 1750358175311
 }
