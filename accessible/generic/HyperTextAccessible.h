@@ -154,11 +154,6 @@ class HyperTextAccessible : public AccessibleWrap,
    */
   mozilla::LayoutDeviceIntRect GetCaretRect(nsIWidget** aWidget);
 
-  virtual int32_t SelectionCount() override;
-
-  virtual bool SelectionBoundsAt(int32_t aSelectionNum, int32_t* aStartOffset,
-                                 int32_t* aEndOffset) override;
-
   MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual bool RemoveFromSelection(
       int32_t aSelectionNum) override;
 
@@ -208,12 +203,6 @@ class HyperTextAccessible : public AccessibleWrap,
    * Return frame selection object for the accessible.
    */
   already_AddRefed<nsFrameSelection> FrameSelection() const;
-
-  /**
-   * Return selection ranges within the accessible subtree.
-   */
-  void GetSelectionDOMRanges(SelectionType aSelectionType,
-                             nsTArray<nsRange*>* aRanges);
 
   // Helpers
 

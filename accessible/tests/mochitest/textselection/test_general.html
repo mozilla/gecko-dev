@@ -181,8 +181,13 @@
       await eventsForSelectingAllTextAndFocus("textarea");
       await changeSelection("textarea", 0, [1, 3]);
 
+      // XXX Bug 1973154: Because the two spans don't occupy hyperText
+      // characters, the only way to represent this selection is (c2, 2, 2).
+      // Because that is a collapsed range, it gets removed by
+      // HyperTextAccessibleBase::CroppedSelectionRanges, resulting in
+      // accessibility incorrectly reporting no selection.
       await changeDOMSelection("c1", "c1_span1", 0, "c1_span2", 0,
-                               [["c1", 2, 2]]);
+                               []);
       await changeDOMSelection("c2", "c2", 0, "c2_div2", 1,
                                [["c2", 0, 3], ["c2_div2", 0, 2]]);
 

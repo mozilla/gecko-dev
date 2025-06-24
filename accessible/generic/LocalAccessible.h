@@ -450,6 +450,11 @@ class LocalAccessible : public nsISupports, public Accessible {
 
   DocAccessible* AsDoc();
 
+  const DocAccessible* AsDoc() const {
+    DocAccessible* doc = const_cast<LocalAccessible*>(this)->AsDoc();
+    return const_cast<const DocAccessible*>(doc);
+  }
+
   HyperTextAccessible* AsHyperText();
   virtual HyperTextAccessibleBase* AsHyperTextBase() override;
 
