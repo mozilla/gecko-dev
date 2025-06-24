@@ -570,9 +570,8 @@ class UpdateVerifyConfigCreator(BaseScript):
         #   files and use a \\0 block separator. It's ugly, but it works.
         args = cmdbuilder(
             b"cat",
-            b"--cwd",
-            bytes(self.config["local_repo"], "utf-8"),
             *[bytes(p, "utf-8") for p in paths],
+            cwd=self.config["local_repo"].encode("utf-8"),
             r=bytes(rev, "utf-8"),
             T=b"{path}\\0{data}\\0",
         )
