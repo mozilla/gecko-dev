@@ -1,7 +1,9 @@
 [DEFAULT]
 prefs = [
   "gfx.font_loader.delay=0",
-  "dom.w3c_pointer_events.getcoalescedevents_only_in_securecontext=false"
+  "dom.w3c_pointer_events.getcoalescedevents_only_in_securecontext=false",
+  "ui.dragThresholdX=4", # Bug 1873142
+  "ui.dragThresholdY=4", # Bug 1873142
 ]
 
 support-files = [
@@ -96,6 +98,10 @@ skip-if = [
 support-files = ["!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js"]
 
 ["test_multiple_touches.html"]
+
+["test_pointercancel_target_at_dragstart.html"]
+
+["test_pointercancel_target_at_dragstart_with_capture.html"]
 
 ["test_pointercapture_remove_iframe.html"]
 

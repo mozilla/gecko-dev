@@ -862,6 +862,12 @@ class WidgetPointerEvent : public WidgetMouseEvent {
     mClass = ePointerEventClass;
   }
 
+  explicit WidgetPointerEvent(EventMessage aMsg,
+                              const WidgetPointerEvent& aOther)
+      : WidgetPointerEvent(aOther.IsTrusted(), aMsg, aOther.mWidget, &aOther) {
+    AssignPointerEventData(aOther, false);
+  }
+
   virtual WidgetEvent* Duplicate() const override {
     MOZ_ASSERT(mClass == ePointerEventClass,
                "Duplicate() must be overridden by sub class");

@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>`pointercancel` target at drag start should not be the body element which captures the pointer</title>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+<style>
+div[draggable=true] {
+  width: 64px;
+  height: 64px;
+  font-size: 64px;
+  padding: 0;
+  overflow: hidden;
+}
+</style>
+<script>
+"use strict";
+
+SimpleTest.waitForExplicitFinish();
+SimpleTest.waitForFocus(async () => {
+  const draggable = document.querySelector("div[draggable]");
+  let pointerId;
+  draggable.addEventListener("pointerdown", event => {
+    pointerId = event.pointerId;
+  }, {once: true});
+  draggable.addEventListener("dragstart", () => {
+    document.body.setPointerCapture(pointerId);
+  }, {once: true});
+  let pointerCancelTarget;
+  document.body.addEventListener("pointercancel", event => {
+    pointerCancelTarget = event.target;
+  });
+  await synthesizePlainDragAndDrop({
+    srcElement: draggable,
+    destElement: document.getElementById("dest"),
+    srcX: draggable.getBoundingClientRect().width / 2,
+    srcY: draggable.getBoundingClientRect().height / 2,
+  });
+  is(
+    pointerCancelTarget,
+    draggable,
+    "`pointercancel` event target should not be the body element which captures the pointer"
+  );
+
+  SimpleTest.finish();
+});
+</script>
+</head>
+<body>
+  <div draggable="true">DragMe!</div>
+  <div id="dest" style="width: 100px; height: 100px"></div>
+</body>
+</html>

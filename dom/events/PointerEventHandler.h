@@ -20,6 +20,7 @@
 
 #include "mozilla/layers/InputAPZContext.h"
 
+class AutoWeakFrame;
 class nsIFrame;
 class nsIContent;
 class nsPresContext;
@@ -190,6 +191,71 @@ class PointerEventHandler final {
 
   // Return the preference value of implicit capture.
   static bool IsPointerEventImplicitCaptureForTouchEnabled();
+
+  /**
+   * Dispatch a pointer event on aTargetWeakFrame if and only if the frame is
+   * available or aTargetContent if the target content does not have a frame.
+   *
+   * This follows the steps of "fire a pointer event" definition.
+   * https://w3c.github.io/pointerevents/#dfn-fire-a-pointer-event
+   *
+   * @param aPointerEventMessage The event message which you want to dispatch a
+   * pointer event.
+   * @param aMouseOrPointerEvent The source event which caused the dispatching
+   * pointer event.  Must be a mouse or pointer event.
+   * @param aTargetWeakFrame If target frame is available, this should be set to
+   * non-nullptr.
+   * @param aTargetContent If target frame is not available for the content
+   * node, set this to the proper target node.
+   * @param aStatus [optional, out] The dispatched event status.
+   */
+  MOZ_CAN_RUN_SCRIPT static nsresult DispatchPointerEventWithTarget(
+      EventMessage aPointerEventMessage,
+      const WidgetMouseEvent& aMouseOrPointerEvent,
+      const AutoWeakFrame& aTargetWeakFrame, nsIContent* aTargetContent,
+      nsEventStatus* aStatus = nullptr);
+
+  /**
+   * Dispatch a pointer event on aTargetWeakFrame if and only if the frame is
+   * available or aTargetContent if the target content does not have a frame.
+   *
+   * This follows the steps of "fire a pointer event" definition.
+   * https://w3c.github.io/pointerevents/#dfn-fire-a-pointer-event
+   *
+   * @param aPointerEventMessage The event message which you want to dispatch a
+   * pointer event.
+   * @param aTouchEvent The source touch event which caused the dispatching
+   * pointer event.
+   * @param aTouchIndex The source touch index in aTouchEvent.
+   * @param aTargetWeakFrame If target frame is available, this should be set to
+   * non-nullptr.
+   * @param aTargetContent If target frame is not available for the content
+   * node, set this to the proper target node.
+   * @param aStatus [optional, in/out] The dispatched event status.
+   */
+  MOZ_CAN_RUN_SCRIPT static nsresult DispatchPointerEventWithTarget(
+      EventMessage aPointerEventMessage, const WidgetTouchEvent& aTouchEvent,
+      size_t aTouchIndex, const AutoWeakFrame& aTargetWeakFrame,
+      nsIContent* aTargetContent, nsEventStatus* aStatus = nullptr);
+
+  /**
+   * Dispatch a pointer event on aTargetWeakFrame if and only if the frame is
+   * available or aTargetContent if the target content does not have a frame.
+   *
+   * This follows the steps of "fire a pointer event" definition.
+   * https://w3c.github.io/pointerevents/#dfn-fire-a-pointer-event
+   *
+   * @param aPointerEvent The pointer event which should be dispatched.
+   * @param aTouchIndex The source touch index in aTouchEvent.
+   * @param aTargetWeakFrame If target frame is available, this should be set to
+   * non-nullptr.
+   * @param aTargetContent If target frame is not available for the content
+   * node, set this to the proper target node.
+   * @param aStatus [optional, in/out] The dispatched event status.
+   */
+  MOZ_CAN_RUN_SCRIPT static nsresult DispatchPointerEventWithTarget(
+      WidgetPointerEvent& aPointerEvent, const AutoWeakFrame& aTargetWeakFrame,
+      nsIContent* aTargetContent, nsEventStatus* aStatus = nullptr);
 
   /**
    * Return true if click/auxclick/contextmenu event should be fired on
@@ -441,7 +507,7 @@ class PointerEventHandler final {
       const WidgetMouseEvent* aEvent);
 
   static void InitPointerEventFromMouse(WidgetPointerEvent* aPointerEvent,
-                                        WidgetMouseEvent* aMouseEvent,
+                                        const WidgetMouseEvent* aMouseEvent,
                                         EventMessage aMessage);
 
   static void InitPointerEventFromTouch(WidgetPointerEvent& aPointerEvent,

@@ -25,6 +25,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/CaretAssociationHint.h"
+#include "mozilla/ConnectedAncestorTracker.h"
 #include "mozilla/ContentIterator.h"
 #include "mozilla/css/ImageLoader.h"
 #include "mozilla/DisplayPortUtils.h"
@@ -703,6 +704,12 @@ void PresShell::AddWeakFrame(WeakFrame* aWeakFrame) {
   mWeakFrames.Insert(aWeakFrame);
 }
 
+void PresShell::AddConnectedAncestorTracker(
+    AutoConnectedAncestorTracker& aTracker) {
+  aTracker.mPreviousTracker = mLastConnectedAncestorTracker;
+  mLastConnectedAncestorTracker = &aTracker;
+}
+
 void PresShell::RemoveAutoWeakFrame(AutoWeakFrame* aWeakFrame) {
   if (mAutoWeakFrames == aWeakFrame) {
     mAutoWeakFrames = aWeakFrame->GetPreviousWeakFrame();
@@ -720,6 +727,21 @@ void PresShell::RemoveAutoWeakFrame(AutoWeakFrame* aWeakFrame) {
 void PresShell::RemoveWeakFrame(WeakFrame* aWeakFrame) {
   MOZ_ASSERT(mWeakFrames.Contains(aWeakFrame));
   mWeakFrames.Remove(aWeakFrame);
+}
+
+void PresShell::RemoveConnectedAncestorTracker(
+    const AutoConnectedAncestorTracker& aTracker) {
+  if (mLastConnectedAncestorTracker == &aTracker) {
+    mLastConnectedAncestorTracker = aTracker.mPreviousTracker;
+    return;
+  }
+  AutoConnectedAncestorTracker* nextTracker = mLastConnectedAncestorTracker;
+  while (nextTracker && nextTracker->mPreviousTracker != &aTracker) {
+    nextTracker = nextTracker->mPreviousTracker;
+  }
+  if (nextTracker) {
+    nextTracker->mPreviousTracker = aTracker.mPreviousTracker;
+  }
 }
 
 already_AddRefed<nsFrameSelection> PresShell::FrameSelection() {
@@ -751,7 +773,6 @@ PresShell::PresShell(Document* aDocument)
     : mDocument(aDocument),
       mViewManager(nullptr),
       mLastSelectionForToString(nullptr),
-      mAutoWeakFrames(nullptr),
 #ifdef ACCESSIBILITY
       mDocAccessible(nullptr),
 #endif  // ACCESSIBILITY
@@ -4812,9 +4833,20 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY void PresShell::ContentWillBeRemoved(
 
   // After removing aChild from tree we should save information about live
   // ancestor
+  // XXX Shouldn't we need to use IsInclusiveFlatTreeDescendantOf() and
+  // GetFlattenedTreeParentElement()?
   if (mPointerEventTarget &&
       mPointerEventTarget->IsInclusiveDescendantOf(aChild)) {
     mPointerEventTarget = aChild->GetParent();
+  }
+
+  for (AutoConnectedAncestorTracker* tracker = mLastConnectedAncestorTracker;
+       tracker; tracker = tracker->mPreviousTracker) {
+    // XXX Shouldn't we need to use IsInclusiveFlatTreeDescendantOf() and
+    // GetFlattenedTreeParentElement()?
+    if (tracker->ConnectedNode().IsInclusiveDescendantOf(aChild)) {
+      tracker->mConnectedAncestor = aChild->GetParentNode();
+    }
   }
 
   mFrameConstructor->ContentWillBeRemoved(

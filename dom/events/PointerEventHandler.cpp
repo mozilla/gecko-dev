@@ -8,6 +8,7 @@
 
 #include "PointerEvent.h"
 #include "PointerLockManager.h"
+#include "mozilla/ConnectedAncestorTracker.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_ui.h"
@@ -886,7 +887,7 @@ void PointerEventHandler::PostHandlePointerEventsPreventDefault(
 
 /* static */
 void PointerEventHandler::InitPointerEventFromMouse(
-    WidgetPointerEvent* aPointerEvent, WidgetMouseEvent* aMouseEvent,
+    WidgetPointerEvent* aPointerEvent, const WidgetMouseEvent* aMouseEvent,
     EventMessage aMessage) {
   MOZ_ASSERT(aPointerEvent);
   MOZ_ASSERT(aMouseEvent);
@@ -1012,6 +1013,123 @@ bool PointerEventHandler::NeedToDispatchPointerRawUpdate(
       aDocument ? aDocument->GetInnerWindow() : nullptr;
   return innerWindow && innerWindow->HasPointerRawUpdateEventListeners() &&
          innerWindow->IsSecureContext();
+}
+
+/* static */
+nsresult PointerEventHandler::DispatchPointerEventWithTarget(
+    EventMessage aPointerEventMessage,
+    const WidgetMouseEvent& aMouseOrPointerEvent,
+    const AutoWeakFrame& aTargetWeakFrame, nsIContent* aTargetContent,
+    nsEventStatus* aStatus /* = nullptr */) {
+  Maybe<WidgetPointerEvent> pointerEvent;
+  if (aMouseOrPointerEvent.mClass == ePointerEventClass) {
+    pointerEvent.emplace(aPointerEventMessage,
+                         *aMouseOrPointerEvent.AsPointerEvent());
+  } else {
+    pointerEvent.emplace(aMouseOrPointerEvent);
+    PointerEventHandler::InitPointerEventFromMouse(
+        pointerEvent.ptr(), &aMouseOrPointerEvent, ePointerCancel);
+  }
+  pointerEvent->convertToPointer = false;
+
+  return DispatchPointerEventWithTarget(pointerEvent.ref(), aTargetWeakFrame,
+                                        aTargetContent, aStatus);
+}
+
+/* static */
+nsresult PointerEventHandler::DispatchPointerEventWithTarget(
+    EventMessage aPointerEventMessage, const WidgetTouchEvent& aTouchEvent,
+    size_t aTouchIndex, const AutoWeakFrame& aTargetWeakFrame,
+    nsIContent* aTargetContent, nsEventStatus* aStatus /* = nullptr */) {
+  WidgetPointerEvent pointerEvent(aTouchEvent.IsTrusted(), aPointerEventMessage,
+                                  aTouchEvent.mWidget);
+  PointerEventHandler::InitPointerEventFromTouch(
+      pointerEvent, aTouchEvent, *aTouchEvent.mTouches[aTouchIndex]);
+  pointerEvent.convertToPointer = false;
+
+  return DispatchPointerEventWithTarget(pointerEvent, aTargetWeakFrame,
+                                        aTargetContent, aStatus);
+}
+
+/* static */
+nsresult PointerEventHandler::DispatchPointerEventWithTarget(
+    WidgetPointerEvent& aPointerEvent, const AutoWeakFrame& aTargetWeakFrame,
+    nsIContent* aTargetContent, nsEventStatus* aStatus /* = nullptr */) {
+  if (aStatus) {
+    *aStatus = nsEventStatus_eIgnore;
+  }
+
+  AutoWeakFrame targetWeakFrame(aTargetWeakFrame);
+  nsCOMPtr<nsIContent> targetContent = aTargetContent;
+  if (targetWeakFrame) {
+    MOZ_ASSERT_IF(
+        targetContent,
+        targetContent == targetWeakFrame->GetContentForEvent(&aPointerEvent));
+    if (!targetContent) {
+      targetContent = targetWeakFrame->GetContentForEvent(&aPointerEvent);
+      if (NS_WARN_IF(!targetContent)) {
+        return NS_ERROR_FAILURE;
+      }
+    }
+  } else if (NS_WARN_IF(!targetContent)) {
+    return NS_ERROR_FAILURE;
+  }
+  const RefPtr<PresShell> presShell =
+      targetWeakFrame ? targetWeakFrame->PresShell()
+                      : targetContent->OwnerDoc()->GetPresShell();
+  if (NS_WARN_IF(!presShell)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // If the event is not a gotpointercapture, lostpointercapture, click,
+  // auxclick or contextmenu event, run the process pending pointer capture
+  // steps for this PointerEvent.
+  switch (aPointerEvent.mMessage) {
+    case ePointerGotCapture:
+    case ePointerLostCapture:
+    case ePointerClick:
+    case ePointerAuxClick:
+    case eContextMenu:
+      break;
+    default: {
+      Maybe<AutoConnectedAncestorTracker> trackTargetContent;
+      if (targetContent->IsInComposedDoc()) {
+        trackTargetContent.emplace(*targetContent);
+      }
+      CheckPointerCaptureState(&aPointerEvent);
+      // If the event target was disconnected from the document, we should use
+      // its connected ancestor as the target of aPointerEvent.
+      if (trackTargetContent && trackTargetContent->ContentWasRemoved()) {
+        MOZ_ASSERT(!targetWeakFrame);
+        targetContent = trackTargetContent->GetConnectedContent();
+        if (NS_WARN_IF(!targetContent)) {
+          targetWeakFrame = nullptr;
+          // FIXME: If we lost the target content with dispatching
+          // ePointerGotCapture or ePointerLostCapture event, we may need to
+          // retarget the pointer event to the Document.
+          return NS_ERROR_FAILURE;
+        }
+      }
+      break;
+    }
+  }
+
+  // The active document of the pointerId and pointer capture for the pointerId
+  // should be handled by EventStateManager::PreHandleEvent() immediately before
+  // dispatching the event to the DOM.
+
+  // Pointer boundary events should be handled by
+  // EventStateManager::PreHandleEvent() too.
+
+  nsEventStatus dummyStatus = nsEventStatus_eIgnore;
+  nsresult rv = presShell->HandleEventWithTarget(
+      &aPointerEvent, targetWeakFrame, targetContent,
+      aStatus ? aStatus : &dummyStatus);
+
+  // EventStateManager must have store the last `pointerover` target at handling
+  // the pointer boundary events. So, we need to do nothing here.
+
+  return rv;
 }
 
 /* static */

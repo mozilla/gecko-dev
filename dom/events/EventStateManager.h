@@ -1179,11 +1179,10 @@ class EventStateManager : public nsSupportsWeakReference, public nsIObserver {
                            WidgetInputEvent* aEvent);
 
   /**
-   * When starting a dnd session, UA must fire a pointercancel event and stop
-   * firing the subsequent pointer events.
+   * Try to dispatch ePointerCancel for aSourceEvent to aTargetContent.
    */
-  MOZ_CAN_RUN_SCRIPT
-  void MaybeFirePointerCancel(WidgetInputEvent* aEvent);
+  MOZ_CAN_RUN_SCRIPT void MaybeDispatchPointerCancel(
+      const WidgetInputEvent& aSourceEvent, nsIContent& aTargetContent);
 
   /**
    * Determine which node the drag should be targeted at.
