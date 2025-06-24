@@ -4652,7 +4652,7 @@
 
 - name: dom.workers.throttling.enabled
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: once
 
 - name: dom.workers.timeoutmanager
