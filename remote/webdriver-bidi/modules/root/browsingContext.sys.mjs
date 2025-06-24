@@ -173,7 +173,6 @@ const WaitCondition = {
  */
 
 class BrowsingContextModule extends RootBiDiModule {
-  #blockedCreateCommands;
   #contextListener;
   #navigationListener;
   #promptListener;
@@ -220,14 +219,9 @@ class BrowsingContextModule extends RootBiDiModule {
 
     // Treat the event of moving a page to BFCache as context discarded event for iframes.
     this.messageHandler.on("windowglobal-pagehide", this.#onPageHideEvent);
-
-    // Maps browsers to a promise and resolver that is used to block the create method.
-    this.#blockedCreateCommands = new WeakMap();
   }
 
   destroy() {
-    this.#blockedCreateCommands = new WeakMap();
-
     this.#contextListener.off("attached", this.#onContextAttached);
     this.#contextListener.off("discarded", this.#onContextDiscarded);
     this.#contextListener.destroy();
@@ -712,18 +706,6 @@ class BrowsingContextModule extends RootBiDiModule {
       }
     }
 
-    // ConfigurationModule cannot block parsing for initial about:blank load, so we block
-    // browsing_context.create till configuration is applied.
-    let blocker = this.#blockedCreateCommands.get(browser);
-    // If the configuration is done before we have a browser, a resolved blocker already exists.
-    if (!blocker) {
-      blocker = Promise.withResolvers();
-      if (!this.#hasConfigurationForContext(userContext)) {
-        blocker.resolve();
-      }
-      this.#blockedCreateCommands.set(browser, blocker);
-    }
-
     await Promise.all([
       lazy.waitForInitialNavigationCompleted(
         browser.browsingContext.webProgress,
@@ -732,10 +714,7 @@ class BrowsingContextModule extends RootBiDiModule {
         }
       ),
       waitForVisibilityChangePromise,
-      blocker.promise,
     ]);
-
-    this.#blockedCreateCommands.delete(browser);
 
     // The tab on Android is always opened in the foreground,
     // so we need to select the previous tab,
@@ -1916,20 +1895,6 @@ class BrowsingContextModule extends RootBiDiModule {
     return contextInfo;
   }
 
-  #hasConfigurationForContext(userContext) {
-    const internalId = lazy.UserContextManager.getInternalIdById(userContext);
-    // The following should be refactored into a method on SessionData (bug 1972865)
-    for (const entry of this.messageHandler.sessionData._data) {
-      if (
-        entry.moduleName == "_configuration" &&
-        entry.contextDescriptor.id == internalId
-      ) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   #onContextAttached = async (eventName, data = {}) => {
     if (this.#subscribedEvents.has("browsingContext.contextCreated")) {
       const { browsingContext, why } = data;
@@ -2298,23 +2263,6 @@ class BrowsingContextModule extends RootBiDiModule {
         this.#subscribeEvent(value);
       }
     }
-  }
-
-  /**
-   * Communicate to this module that the _ConfigurationModule is done.
-   *
-   * @param {BrowsingContext} navigable
-   *     Browsing context for which the configuration completed.
-   */
-  _onConfigurationComplete({ navigable }) {
-    const browser = navigable.embedderElement;
-
-    if (!this.#blockedCreateCommands.has(browser)) {
-      this.#blockedCreateCommands.set(browser, Promise.withResolvers());
-    }
-
-    const blocker = this.#blockedCreateCommands.get(browser);
-    blocker.resolve();
   }
 
   /**

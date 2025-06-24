@@ -58,7 +58,6 @@ class _ConfigurationModule extends WindowGlobalBiDiModule {
         this.#viewportConfiguration.size === 0 &&
         this.#geolocationConfiguration === null
       ) {
-        this.#onConfigurationComplete(window);
         return;
       }
 
@@ -121,7 +120,6 @@ class _ConfigurationModule extends WindowGlobalBiDiModule {
 
       // Continue script parsing.
       this.#resolveBlockerPromise();
-      this.#onConfigurationComplete(window);
     }
   }
 
@@ -170,23 +168,6 @@ class _ConfigurationModule extends WindowGlobalBiDiModule {
           }
         }
       }
-    }
-  }
-
-  async #onConfigurationComplete(window) {
-    // parser blocking doesn't work for initial about:blank, so ensure
-    // browsing_context.create waits for configuration to complete
-    if (window.location.href.startsWith("about:blank")) {
-      await this.messageHandler.forwardCommand({
-        moduleName: "browsingContext",
-        commandName: "_onConfigurationComplete",
-        destination: {
-          type: lazy.RootMessageHandler.type,
-        },
-        params: {
-          navigable: this.messageHandler.context,
-        },
-      });
     }
   }
 }
