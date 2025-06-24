@@ -186,7 +186,6 @@ pref("media.volume_scale", "1.0");
 pref("media.play-stand-alone", true);
 
 #ifdef MOZ_WMF
-  pref("media.wmf.dxva.enabled", true);
   pref("media.wmf.play-stand-alone", true);
 #endif
 

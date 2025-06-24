@@ -65,7 +65,7 @@ class gfxPlatformGtk final : public gfxPlatform {
   void InitAcceleration() override;
   void InitX11EGLConfig();
   void InitDmabufConfig();
-  bool InitVAAPIConfig(bool aForceEnabledByUser);
+  void InitPlatformHardwareVideoConfig() override;
   void InitPlatformGPUProcessPrefs() override;
   void InitWebRenderConfig() override;
   void BuildContentDeviceData(mozilla::gfx::ContentDeviceData* aOut) override;
