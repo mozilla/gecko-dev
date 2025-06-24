@@ -145,58 +145,38 @@ class ProviderCalculator extends UrlbarProvider {
   }
 
   getViewUpdate(result) {
-    let input;
     const { value } = result.payload;
 
-    if (value == UNDEFINED_VALUE) {
-      input = {
-        l10n: { id: "urlbar-result-action-undefined-calculator-result" },
-      };
-    } else if (value.toString().includes("e")) {
-      input = {
-        l10n: {
-          id: "urlbar-result-action-calculator-result-scientific-notation",
-          args: { result: value },
-        },
-      };
-    } else {
-      const l10nId =
-        Math.abs(value) < 1
-          ? "urlbar-result-action-calculator-result-decimal"
-          : "urlbar-result-action-calculator-result-3";
-      input = {
-        l10n: {
-          id: l10nId,
-          args: { result: value },
-        },
-      };
-    }
-
-    const viewUpdate = {
+    return {
       icon: {
         attributes: {
           src: "chrome://global/skin/icons/edit-copy.svg",
         },
       },
-      input,
+      input:
+        value == UNDEFINED_VALUE
+          ? {
+              l10n: { id: "urlbar-result-action-undefined-calculator-result" },
+            }
+          : {
+              textContent: `= ${value}`,
+              attributes: { dir: "ltr" },
+            },
       action: {
         l10n: { id: "urlbar-result-action-copy-to-clipboard" },
       },
     };
-
-    return viewUpdate;
   }
 
   onEngagement(queryContext, controller, details) {
-    let { result } = details;
-    const resultL10n = this.getViewUpdate(result).input.l10n;
-    const res = resultL10n.args || {};
-
-    let localizedResult = lazy.l10n.formatValueSync(resultL10n.id, res);
-
-    // Remove "= " from the start of the string.
-    if (localizedResult.startsWith("=")) {
-      localizedResult = localizedResult.slice(1).trim();
+    const { result } = details;
+    const input = this.getViewUpdate(result).input;
+    let localizedResult;
+    if ("l10n" in input) {
+      const args = input.l10n.args || {};
+      localizedResult = lazy.l10n.formatValueSync(input.l10n.id, args);
+    } else {
+      localizedResult = input.textContent.replace(/^=\s*/, "");
     }
 
     lazy.ClipboardHelper.copyString(localizedResult);
@@ -319,16 +299,6 @@ class BaseCalculator {
     "^": (a, b) => a ** b,
   };
 
-  toScientificNotation(num) {
-    let res = new Intl.NumberFormat("en-US", {
-      style: "decimal",
-      notation: "scientific",
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 8,
-    }).format(num);
-    return res.toLowerCase();
-  }
-
   evaluatePostfix(postfix) {
     let stack = [];
 
@@ -352,13 +322,35 @@ class BaseCalculator {
     if (isNaN(finalResult) || !isFinite(finalResult)) {
       throw new Error("Value is " + finalResult);
     }
+
+    let locale = Services.locale.appLocaleAsBCP47;
+
     if (
       Math.abs(finalResult) >= FULL_NUMBER_MAX_THRESHOLD ||
       (Math.abs(finalResult) <= FULL_NUMBER_MIN_THRESHOLD && finalResult != 0)
     ) {
-      finalResult = this.toScientificNotation(finalResult);
+      return new Intl.NumberFormat(locale, {
+        style: "decimal",
+        notation: "scientific",
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 8,
+        numberingSystem: "latn",
+      })
+        .format(finalResult)
+        .toLowerCase();
+    } else if (Math.abs(finalResult) < 1) {
+      return new Intl.NumberFormat(locale, {
+        style: "decimal",
+        maximumSignificantDigits: 9,
+        numberingSystem: "latn",
+      }).format(finalResult);
     }
-    return finalResult;
+    return new Intl.NumberFormat(locale, {
+      style: "decimal",
+      useGrouping: false,
+      maximumFractionDigits: 8,
+      numberingSystem: "latn",
+    }).format(finalResult);
   }
 }
 

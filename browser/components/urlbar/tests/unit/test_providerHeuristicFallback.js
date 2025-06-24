@@ -453,7 +453,7 @@ add_task(async function () {
         heuristic: true,
       }),
       makeCalculatorResult(context, {
-        value: (123 / 12).toString(),
+        value: Number((123 / 12).toFixed(8)).toString(),
       }),
     ],
   });
@@ -469,7 +469,7 @@ add_task(async function () {
         heuristic: true,
       }),
       makeCalculatorResult(context, {
-        value: (123.12 / 12.1).toString(),
+        value: Number((123.12 / 12.1).toFixed(8)).toString(),
       }),
     ],
   });
