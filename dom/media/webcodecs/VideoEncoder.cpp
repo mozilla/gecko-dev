@@ -125,7 +125,7 @@ nsCString VideoEncoderConfigInternal::ToString() const {
 
   rv.AppendLiteral("Codec: ");
   rv.Append(NS_ConvertUTF16toUTF8(mCodec));
-  rv.AppendPrintf(" [%" PRIu32 "x%" PRIu32 "],", mWidth, mHeight);
+  rv.AppendPrintf(" [%" PRIu32 "x%" PRIu32 "]", mWidth, mHeight);
   if (mDisplayWidth.isSome()) {
     rv.AppendPrintf(", display[%" PRIu32 "x%" PRIu32 "]", mDisplayWidth.value(),
                     mDisplayHeight.value());
@@ -136,7 +136,7 @@ nsCString VideoEncoderConfigInternal::ToString() const {
   if (mFramerate.isSome()) {
     rv.AppendPrintf(", %lfHz", mFramerate.value());
   }
-  rv.AppendPrintf(" hw: %s", GetEnumString(mHardwareAcceleration).get());
+  rv.AppendPrintf(", hw: %s", GetEnumString(mHardwareAcceleration).get());
   rv.AppendPrintf(", alpha: %s", GetEnumString(mAlpha).get());
   if (mScalabilityMode.isSome()) {
     rv.AppendPrintf(", scalability mode: %s",
