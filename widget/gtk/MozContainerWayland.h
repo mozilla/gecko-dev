@@ -43,7 +43,6 @@ struct MozContainerWayland {
       : mSurface(aSurface) {}
 
   RefPtr<mozilla::widget::WaylandSurface> mSurface;
-  gboolean opaque_region_needs_updates = false;
   gboolean before_first_size_alloc = false;
   gboolean waiting_to_show = false;
 };
@@ -56,7 +55,6 @@ void moz_container_wayland_unmap(GtkWidget*);
 struct wl_egl_window* moz_container_wayland_get_egl_window(
     MozContainer* container);
 
-gboolean moz_container_wayland_has_egl_window(MozContainer* container);
 void moz_container_wayland_add_or_fire_initial_draw_callback(
     MozContainer* container, const std::function<void(void)>& initial_draw_cb);
 

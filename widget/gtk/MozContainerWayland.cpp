@@ -272,10 +272,8 @@ static bool moz_container_wayland_ensure_surface(MozContainer* container,
     surface->EnableCeiledScaleLocked(lock);
   }
 
-  if (MOZ_WL_CONTAINER(container)->opaque_region_needs_updates) {
-    surface->SetOpaqueRegionLocked(lock,
-                                   window->GetOpaqueRegion().ToUnknownRegion());
-  }
+  surface->SetOpaqueRegionLocked(lock,
+                                 window->GetOpaqueRegion().ToUnknownRegion());
   surface->DisableUserInputLocked(lock);
 
   // Commit eplicitly now as moz_container_wayland_invalidate() initiated
@@ -305,22 +303,10 @@ struct wl_egl_window* moz_container_wayland_get_egl_window(
   return MOZ_WL_SURFACE(container)->GetEGLWindow(unscaledSize);
 }
 
-gboolean moz_container_wayland_has_egl_window(MozContainer* container) {
-  return MOZ_WL_SURFACE(container)->HasEGLWindow();
-}
-
 void moz_container_wayland_update_opaque_region(MozContainer* container) {
-  MOZ_WL_CONTAINER(container)->opaque_region_needs_updates = true;
-
-  // When GL compositor / WebRender is used,
-  // moz_container_wayland_get_egl_window() is called only once when window
-  // is created or resized so update opaque region now.
-  if (MOZ_WL_SURFACE(container)->HasEGLWindow()) {
-    MOZ_WL_CONTAINER(container)->opaque_region_needs_updates = false;
-    nsWindow* window = moz_container_get_nsWindow(container);
-    MOZ_WL_SURFACE(container)->SetOpaqueRegion(
-        window->GetOpaqueRegion().ToUnknownRegion());
-  }
+  nsWindow* window = moz_container_get_nsWindow(container);
+  MOZ_WL_SURFACE(container)->SetOpaqueRegion(
+      window->GetOpaqueRegion().ToUnknownRegion());
 }
 
 gboolean moz_container_wayland_can_draw(MozContainer* container) {
