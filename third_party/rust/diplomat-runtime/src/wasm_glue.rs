@@ -1,5 +1,4 @@
 use alloc::format;
-use core::panic::PanicInfo;
 
 #[no_mangle]
 unsafe extern "C" fn diplomat_init() {
@@ -11,7 +10,7 @@ unsafe extern "C" fn diplomat_init() {
         .unwrap();
 }
 
-fn panic_handler(info: &PanicInfo) {
+fn panic_handler(info: &std::panic::PanicInfo) {
     let msg = match info.payload().downcast_ref::<&'static str>() {
         Some(&s) => s,
         None => match info.payload().downcast_ref::<String>() {

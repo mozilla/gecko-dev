@@ -233,7 +233,7 @@ impl YearInfo {
         // The last six hours of Hebrew Saturday (i.e. after noon on Regular Saturday)
         // get unconditionally postponed to Monday according to the Four Gates table. This
         // puts us in a new week!
-        if ḥalakim > ḥal!(7 - 18 - 0) {
+        if ḥalakim >= ḥal!(7 - 18 - 0) {
             weeks_since_beharad += 1;
         }
 
@@ -314,7 +314,9 @@ impl YearInfo {
     }
 }
 
-/// The Keviyah (קביעה) of a year. A year may be one of fourteen types, categorized by the day of
+/// The Keviyah (קביעה) of a year.
+///
+/// A year may be one of fourteen types, categorized by the day of
 /// week of the new year (the first number, 1 = Sunday), the type of year (Deficient, Regular,
 /// Complete), and the day of week of the first day of Passover. The last segment disambiguates
 /// between cases that have the same first two but differ on whether they are leap years (since
@@ -675,7 +677,7 @@ impl Keviyah {
         // The last six hours of Hebrew Saturday (i.e. after noon on Regular Saturday)
         // get unconditionally postponed to Monday according to the Four Gates table. This
         // puts us in a new week!
-        if ḥalakim > ḥal!(7 - 18 - 0) {
+        if ḥalakim >= ḥal!(7 - 18 - 0) {
             weeks_since_beharad += 1;
         }
 
@@ -722,10 +724,9 @@ impl Keviyah {
 
 // Four Gates Table
 // ======================
-///
+//
 // The Four Gates table is a table that takes the time of week of the molad
 // and produces a Keviyah for the year
-
 /// "Metonic cycle" in general refers to any 19-year repeating pattern used by lunisolar
 /// calendars. The Hebrew calendar uses one where years 3, 6, 8, 11, 14, 17, 19
 /// are leap years.
@@ -1037,6 +1038,30 @@ mod test {
             } else {
                 assert_eq!(num_months, 12, "{year0}");
             }
+        }
+    }
+    #[test]
+    fn test_issue_6262() {
+        // These are years where the molad ḥalakim is *exactly* ḥal!(7 - 18 - 0), we need
+        // to ensure the Saturday wraparound logic works correctly
+
+        let rds = [
+            // 72036-07-10
+            (26310435, 75795),
+            // 189394-12-06
+            (69174713, 193152),
+        ];
+
+        for (rd, expected_year) in rds {
+            let rd = RataDie::new(rd);
+            let (yi, year) = YearInfo::year_containing_rd(rd);
+            assert_eq!(year, expected_year);
+
+            let yi_recomputed = yi.keviyah.year_info(year);
+            assert_eq!(yi, yi_recomputed);
+            // Double check that these testcases are on the boundary
+            let (_weeks, ḥalakim) = molad_details(year);
+            assert_eq!(ḥalakim, ḥal!(7 - 18 - 0));
         }
     }
 }

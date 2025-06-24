@@ -6,29 +6,29 @@
 //!
 //! # Types of Forking Providers
 //!
-//! ## Key-Based
+//! ## Marker-Based
 //!
-//! To fork between providers that support different data keys, see:
+//! To fork between providers that support different data markers, see:
 //!
-//! - [`ForkByKeyProvider`]
-//! - [`MultiForkByKeyProvider`]
+//! - [`ForkByMarkerProvider`]
+//! - [`MultiForkByMarkerProvider`]
 //!
 //! ## Locale-Based
 //!
 //! To fork between providers that support different locales, see:
 //!
-//! - [`ForkByErrorProvider`]`<`[`MissingLocalePredicate`]`>`
-//! - [`MultiForkByErrorProvider`]`<`[`MissingLocalePredicate`]`>`
+//! - [`ForkByErrorProvider`]`<`[`IdentiferNotFoundPredicate`]`>`
+//! - [`MultiForkByErrorProvider`]`<`[`IdentiferNotFoundPredicate`]`>`
 //!
-//! [`MissingLocalePredicate`]: predicates::MissingLocalePredicate
+//! [`IdentiferNotFoundPredicate`]: predicates::IdentifierNotFoundPredicate
 //!
 //! # Examples
 //!
 //! See:
 //!
-//! - [`ForkByKeyProvider`]
-//! - [`MultiForkByKeyProvider`]
-//! - [`MissingLocalePredicate`]
+//! - [`ForkByMarkerProvider`]
+//! - [`MultiForkByMarkerProvider`]
+//! - [`IdentiferNotFoundPredicate`]
 
 use alloc::vec::Vec;
 
@@ -36,191 +36,184 @@ mod by_error;
 
 pub mod predicates;
 
-#[macro_use]
-mod macros;
-
 pub use by_error::ForkByErrorProvider;
 pub use by_error::MultiForkByErrorProvider;
 
 use predicates::ForkByErrorPredicate;
-use predicates::MissingDataKeyPredicate;
+use predicates::MarkerNotFoundPredicate;
 
-/// Create a provider that returns data from one of two child providers based on the key.
+/// Create a provider that returns data from one of two child providers based on the marker.
 ///
-/// The result of the first provider that supports a particular [`DataKey`] will be returned,
+/// The result of the first provider that supports a particular [`DataMarkerInfo`] will be returned,
 /// even if the request failed for other reasons (such as an unsupported language). Therefore,
-/// you should add child providers that support disjoint sets of keys.
+/// you should add child providers that support disjoint sets of markers.
 ///
-/// [`ForkByKeyProvider`] does not support forking between [`DataProvider`]s. However, it
-/// supports forking between [`AnyProvider`], [`BufferProvider`], and [`DynamicDataProvider`].
+/// [`ForkByMarkerProvider`] does not support forking between [`DataProvider`]s. However, it
+/// supports forking between [`BufferProvider`], and [`DynamicDataProvider`].
 ///
 /// # Examples
 ///
 /// Normal usage:
 ///
 /// ```
-/// use icu_locid::langid;
+/// use icu_locale::langid;
 /// use icu_provider::hello_world::*;
 /// use icu_provider::prelude::*;
-/// use icu_provider_adapters::fork::ForkByKeyProvider;
+/// use icu_provider_adapters::fork::ForkByMarkerProvider;
 ///
 /// struct DummyBufferProvider;
-/// impl BufferProvider for DummyBufferProvider {
-///     fn load_buffer(
+/// impl DynamicDataProvider<BufferMarker> for DummyBufferProvider {
+///     fn load_data(
 ///         &self,
-///         key: DataKey,
+///         marker: DataMarkerInfo,
 ///         req: DataRequest,
 ///     ) -> Result<DataResponse<BufferMarker>, DataError> {
-///         Err(DataErrorKind::MissingDataKey.with_req(key, req))
+///         Err(DataErrorKind::MarkerNotFound.with_req(marker, req))
 ///     }
 /// }
 ///
-/// let forking_provider = ForkByKeyProvider::new(
+/// let forking_provider = ForkByMarkerProvider::new(
 ///     DummyBufferProvider,
 ///     HelloWorldProvider.into_json_provider(),
 /// );
 ///
 /// let provider = forking_provider.as_deserializing();
 ///
-/// let german_hello_world: DataPayload<HelloWorldV1Marker> = provider
+/// let german_hello_world: DataResponse<HelloWorldV1> = provider
 ///     .load(DataRequest {
-///         locale: &langid!("de").into(),
-///         metadata: Default::default(),
+///         id: DataIdentifierBorrowed::for_locale(&langid!("de").into()),
+///         ..Default::default()
 ///     })
-///     .expect("Loading should succeed")
-///     .take_payload()
-///     .expect("Data should be present");
+///     .expect("Loading should succeed");
 ///
-/// assert_eq!("Hallo Welt", german_hello_world.get().message);
+/// assert_eq!("Hallo Welt", german_hello_world.payload.get().message);
 /// ```
 ///
-/// Stops at the first provider supporting a key, even if the locale is not supported:
+/// Stops at the first provider supporting a marker, even if the locale is not supported:
 ///
 /// ```
-/// use icu_locid::{subtags::language, langid};
+/// use icu_locale::{subtags::language, langid};
 /// use icu_provider::hello_world::*;
 /// use icu_provider::prelude::*;
-/// use icu_provider_adapters::filter::Filterable;
-/// use icu_provider_adapters::fork::ForkByKeyProvider;
+/// use icu_provider_adapters::filter::FilterDataProvider;
+/// use icu_provider_adapters::fork::ForkByMarkerProvider;
 ///
-/// let forking_provider = ForkByKeyProvider::new(
-///     HelloWorldProvider
-///         .into_json_provider()
-///         .filterable("Chinese")
-///         .filter_by_langid(|langid| langid.language == language!("zh")),
-///     HelloWorldProvider
-///         .into_json_provider()
-///         .filterable("German")
-///         .filter_by_langid(|langid| langid.language == language!("de")),
+/// let forking_provider = ForkByMarkerProvider::new(
+///     FilterDataProvider::new(
+///         HelloWorldProvider.into_json_provider(),
+///         "Chinese"
+///     )
+///     .with_filter(|id| id.locale.language == language!("zh")),
+///     FilterDataProvider::new(
+///         HelloWorldProvider.into_json_provider(),
+///         "German"
+///     )
+///     .with_filter(|id| id.locale.language == language!("de")),
 /// );
 ///
-/// let provider: &dyn DataProvider<HelloWorldV1Marker> =
+/// let provider: &dyn DataProvider<HelloWorldV1> =
 ///     &forking_provider.as_deserializing();
 ///
 /// // Chinese is the first provider, so this succeeds
 /// let chinese_hello_world = provider
 ///     .load(DataRequest {
-///         locale: &langid!("zh").into(),
-///         metadata: Default::default(),
+///         id: DataIdentifierBorrowed::for_locale(&langid!("zh").into()),
+///         ..Default::default()
 ///     })
-///     .expect("Loading should succeed")
-///     .take_payload()
-///     .expect("Data should be present");
+///     .expect("Loading should succeed");
 ///
-/// assert_eq!("你好世界", chinese_hello_world.get().message);
+/// assert_eq!("你好世界", chinese_hello_world.payload.get().message);
 ///
 /// // German is shadowed by Chinese, so this fails
 /// provider
 ///     .load(DataRequest {
-///         locale: &langid!("de").into(),
-///         metadata: Default::default(),
+///         id: DataIdentifierBorrowed::for_locale(&langid!("de").into()),
+///         ..Default::default()
 ///     })
 ///     .expect_err("Should stop at the first provider, even though the second has data");
 /// ```
 ///
-/// [`DataKey`]: icu_provider::DataKey
+/// [`DataMarkerInfo`]: icu_provider::DataMarkerInfo
 /// [`DataProvider`]: icu_provider::DataProvider
-/// [`AnyProvider`]: icu_provider::AnyProvider
-/// [`BufferProvider`]: icu_provider::BufferProvider
+/// [`BufferProvider`]: icu_provider::buf::BufferProvider
 /// [`DynamicDataProvider`]: icu_provider::DynamicDataProvider
-pub type ForkByKeyProvider<P0, P1> = ForkByErrorProvider<P0, P1, MissingDataKeyPredicate>;
+pub type ForkByMarkerProvider<P0, P1> = ForkByErrorProvider<P0, P1, MarkerNotFoundPredicate>;
 
-impl<P0, P1> ForkByKeyProvider<P0, P1> {
-    /// A provider that returns data from one of two child providers based on the key.
+impl<P0, P1> ForkByMarkerProvider<P0, P1> {
+    /// A provider that returns data from one of two child providers based on the marker.
     ///
-    /// See [`ForkByKeyProvider`].
+    /// See [`ForkByMarkerProvider`].
     pub fn new(p0: P0, p1: P1) -> Self {
-        ForkByErrorProvider::new_with_predicate(p0, p1, MissingDataKeyPredicate)
+        ForkByErrorProvider::new_with_predicate(p0, p1, MarkerNotFoundPredicate)
     }
 }
 
-/// A provider that returns data from the first child provider supporting the key.
+/// A provider that returns data from the first child provider supporting the marker.
 ///
-/// The result of the first provider that supports a particular [`DataKey`] will be returned,
+/// The result of the first provider that supports a particular [`DataMarkerInfo`] will be returned,
 /// even if the request failed for other reasons (such as an unsupported language). Therefore,
-/// you should add child providers that support disjoint sets of keys.
+/// you should add child providers that support disjoint sets of markers.
 ///
-/// [`MultiForkByKeyProvider`] does not support forking between [`DataProvider`]s. However, it
-/// supports forking between [`AnyProvider`], [`BufferProvider`], and [`DynamicDataProvider`].
+/// [`MultiForkByMarkerProvider`] does not support forking between [`DataProvider`]s. However, it
+/// supports forking between [`BufferProvider`], and [`DynamicDataProvider`].
 ///
 /// # Examples
 ///
 /// ```
-/// use icu_locid::{subtags::language, langid};
+/// use icu_locale::{subtags::language, langid};
 /// use icu_provider::hello_world::*;
 /// use icu_provider::prelude::*;
-/// use icu_provider_adapters::filter::Filterable;
-/// use icu_provider_adapters::fork::MultiForkByKeyProvider;
+/// use icu_provider_adapters::filter::FilterDataProvider;
+/// use icu_provider_adapters::fork::MultiForkByMarkerProvider;
 ///
-/// let forking_provider = MultiForkByKeyProvider::new(
+/// let forking_provider = MultiForkByMarkerProvider::new(
 ///     vec![
-///         HelloWorldProvider
-///             .into_json_provider()
-///             .filterable("Chinese")
-///             .filter_by_langid(|langid| langid.language == language!("zh")),
-///         HelloWorldProvider
-///             .into_json_provider()
-///             .filterable("German")
-///             .filter_by_langid(|langid| langid.language == language!("de")),
+///         FilterDataProvider::new(
+///             HelloWorldProvider.into_json_provider(),
+///             "Chinese"
+///         )
+///         .with_filter(|id| id.locale.language == language!("zh")),
+///         FilterDataProvider::new(
+///             HelloWorldProvider.into_json_provider(),
+///             "German"
+///         )
+///         .with_filter(|id| id.locale.language == language!("de")),
 ///     ],
 /// );
 ///
-/// let provider: &dyn DataProvider<HelloWorldV1Marker> =
+/// let provider: &dyn DataProvider<HelloWorldV1> =
 ///     &forking_provider.as_deserializing();
 ///
 /// // Chinese is the first provider, so this succeeds
 /// let chinese_hello_world = provider
 ///     .load(DataRequest {
-///         locale: &langid!("zh").into(),
-///         metadata: Default::default(),
+///         id: DataIdentifierBorrowed::for_locale(&langid!("zh").into()),
+///         ..Default::default()
 ///     })
-///     .expect("Loading should succeed")
-///     .take_payload()
-///     .expect("Data should be present");
+///     .expect("Loading should succeed");
 ///
-/// assert_eq!("你好世界", chinese_hello_world.get().message);
+/// assert_eq!("你好世界", chinese_hello_world.payload.get().message);
 ///
 /// // German is shadowed by Chinese, so this fails
 /// provider
 ///     .load(DataRequest {
-///         locale: &langid!("de").into(),
-///         metadata: Default::default(),
+///         id: DataIdentifierBorrowed::for_locale(&langid!("de").into()),
+///         ..Default::default()
 ///     })
 ///     .expect_err("Should stop at the first provider, even though the second has data");
 /// ```
 ///
-/// [`DataKey`]: icu_provider::DataKey
+/// [`DataMarkerInfo`]: icu_provider::DataMarkerInfo
 /// [`DataProvider`]: icu_provider::DataProvider
-/// [`AnyProvider`]: icu_provider::AnyProvider
-/// [`BufferProvider`]: icu_provider::BufferProvider
+/// [`BufferProvider`]: icu_provider::buf::BufferProvider
 /// [`DynamicDataProvider`]: icu_provider::DynamicDataProvider
-pub type MultiForkByKeyProvider<P> = MultiForkByErrorProvider<P, MissingDataKeyPredicate>;
+pub type MultiForkByMarkerProvider<P> = MultiForkByErrorProvider<P, MarkerNotFoundPredicate>;
 
-impl<P> MultiForkByKeyProvider<P> {
-    /// Create a provider that returns data from the first child provider supporting the key.
+impl<P> MultiForkByMarkerProvider<P> {
+    /// Create a provider that returns data from the first child provider supporting the marker.
     ///
-    /// See [`MultiForkByKeyProvider`].
+    /// See [`MultiForkByMarkerProvider`].
     pub fn new(providers: Vec<P>) -> Self {
-        MultiForkByErrorProvider::new_with_predicate(providers, MissingDataKeyPredicate)
+        MultiForkByErrorProvider::new_with_predicate(providers, MarkerNotFoundPredicate)
     }
 }

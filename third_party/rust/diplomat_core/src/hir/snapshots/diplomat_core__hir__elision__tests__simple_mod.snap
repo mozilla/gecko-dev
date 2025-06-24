@@ -1,5 +1,6 @@
 ---
 source: core/src/hir/elision.rs
+assertion_line: 473
 expression: tcx
 ---
 TypeContext {
@@ -37,6 +38,28 @@ TypeContext {
                             ),
                         },
                     ),
+                    attrs: Attrs {
+                        disable: false,
+                        namespace: None,
+                        rename: RenameAttr {
+                            pattern: None,
+                        },
+                        abi_rename: RenameAttr {
+                            pattern: None,
+                        },
+                        special_method: None,
+                        custom_errors: false,
+                        demo_attrs: DemoInfo {
+                            generate: false,
+                            default_constructor: false,
+                            external: false,
+                            custom_func: None,
+                            input_cfg: DemoInputCFG {
+                                label: "",
+                                default_value: "",
+                            },
+                        },
+                    },
                 },
             ],
             methods: [
@@ -46,6 +69,7 @@ TypeContext {
                         [],
                     ),
                     name: "new",
+                    abi_name: "OutStruct_new",
                     lifetime_env: LifetimeEnv {
                         nodes: [
                             BoundedLifetime {
@@ -72,6 +96,28 @@ TypeContext {
                                     UnvalidatedUtf8,
                                 ),
                             ),
+                            attrs: Attrs {
+                                disable: false,
+                                namespace: None,
+                                rename: RenameAttr {
+                                    pattern: None,
+                                },
+                                abi_rename: RenameAttr {
+                                    pattern: None,
+                                },
+                                special_method: None,
+                                custom_errors: false,
+                                demo_attrs: DemoInfo {
+                                    generate: false,
+                                    default_constructor: false,
+                                    external: false,
+                                    custom_func: None,
+                                    input_cfg: DemoInputCFG {
+                                        label: "",
+                                        default_value: "",
+                                    },
+                                },
+                            },
                         },
                     ],
                     output: Infallible(
@@ -106,6 +152,17 @@ TypeContext {
                             pattern: None,
                         },
                         special_method: None,
+                        custom_errors: false,
+                        demo_attrs: DemoInfo {
+                            generate: false,
+                            default_constructor: false,
+                            external: false,
+                            custom_func: None,
+                            input_cfg: DemoInputCFG {
+                                label: "",
+                                default_value: "",
+                            },
+                        },
                     },
                 },
             ],
@@ -119,6 +176,17 @@ TypeContext {
                     pattern: None,
                 },
                 special_method: None,
+                custom_errors: false,
+                demo_attrs: DemoInfo {
+                    generate: false,
+                    default_constructor: false,
+                    external: false,
+                    custom_func: None,
+                    input_cfg: DemoInputCFG {
+                        label: "",
+                        default_value: "",
+                    },
+                },
             },
             lifetimes: LifetimeEnv {
                 nodes: [
@@ -163,6 +231,28 @@ TypeContext {
                             UnvalidatedUtf8,
                         ),
                     ),
+                    attrs: Attrs {
+                        disable: false,
+                        namespace: None,
+                        rename: RenameAttr {
+                            pattern: None,
+                        },
+                        abi_rename: RenameAttr {
+                            pattern: None,
+                        },
+                        special_method: None,
+                        custom_errors: false,
+                        demo_attrs: DemoInfo {
+                            generate: false,
+                            default_constructor: false,
+                            external: false,
+                            custom_func: None,
+                            input_cfg: DemoInputCFG {
+                                label: "",
+                                default_value: "",
+                            },
+                        },
+                    },
                 },
             ],
             methods: [
@@ -172,6 +262,7 @@ TypeContext {
                         [],
                     ),
                     name: "rustc_elision",
+                    abi_name: "Struct_rustc_elision",
                     lifetime_env: LifetimeEnv {
                         nodes: [
                             BoundedLifetime {
@@ -200,6 +291,28 @@ TypeContext {
                                     ),
                                 },
                             ),
+                            attrs: Attrs {
+                                disable: false,
+                                namespace: None,
+                                rename: RenameAttr {
+                                    pattern: None,
+                                },
+                                abi_rename: RenameAttr {
+                                    pattern: None,
+                                },
+                                special_method: None,
+                                custom_errors: false,
+                                demo_attrs: DemoInfo {
+                                    generate: false,
+                                    default_constructor: false,
+                                    external: false,
+                                    custom_func: None,
+                                    input_cfg: DemoInputCFG {
+                                        label: "",
+                                        default_value: "",
+                                    },
+                                },
+                            },
                         },
                     ),
                     params: [
@@ -217,6 +330,28 @@ TypeContext {
                                     UnvalidatedUtf8,
                                 ),
                             ),
+                            attrs: Attrs {
+                                disable: false,
+                                namespace: None,
+                                rename: RenameAttr {
+                                    pattern: None,
+                                },
+                                abi_rename: RenameAttr {
+                                    pattern: None,
+                                },
+                                special_method: None,
+                                custom_errors: false,
+                                demo_attrs: DemoInfo {
+                                    generate: false,
+                                    default_constructor: false,
+                                    external: false,
+                                    custom_func: None,
+                                    input_cfg: DemoInputCFG {
+                                        label: "",
+                                        default_value: "",
+                                    },
+                                },
+                            },
                         },
                     ],
                     output: Infallible(
@@ -245,6 +380,17 @@ TypeContext {
                             pattern: None,
                         },
                         special_method: None,
+                        custom_errors: false,
+                        demo_attrs: DemoInfo {
+                            generate: false,
+                            default_constructor: false,
+                            external: false,
+                            custom_func: None,
+                            input_cfg: DemoInputCFG {
+                                label: "",
+                                default_value: "",
+                            },
+                        },
                     },
                 },
             ],
@@ -258,6 +404,17 @@ TypeContext {
                     pattern: None,
                 },
                 special_method: None,
+                custom_errors: false,
+                demo_attrs: DemoInfo {
+                    generate: false,
+                    default_constructor: false,
+                    external: false,
+                    custom_func: None,
+                    input_cfg: DemoInputCFG {
+                        label: "",
+                        default_value: "",
+                    },
+                },
             },
             lifetimes: LifetimeEnv {
                 nodes: [
@@ -294,6 +451,17 @@ TypeContext {
                     pattern: None,
                 },
                 special_method: None,
+                custom_errors: false,
+                demo_attrs: DemoInfo {
+                    generate: false,
+                    default_constructor: false,
+                    external: false,
+                    custom_func: None,
+                    input_cfg: DemoInputCFG {
+                        label: "",
+                        default_value: "",
+                    },
+                },
             },
             lifetimes: LifetimeEnv {
                 nodes: [
@@ -310,7 +478,9 @@ TypeContext {
                 iterator: None,
                 iterable: None,
             },
+            dtor_abi_name: "Opaque_destroy",
         },
     ],
     enums: [],
+    traits: [],
 }

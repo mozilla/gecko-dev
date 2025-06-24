@@ -10,8 +10,8 @@
 //! This file contains important structs and functions relating to location,
 //! time, and astronomy; these are intended for calender calculations and based off
 //! _Calendrical Calculations_ by Reingold & Dershowitz.
-//!
-//! TODO(#3709): Address inconcistencies with existing ICU code for extreme dates.
+
+// TODO(#3709): Address inconcistencies with existing ICU code for extreme dates.
 
 use crate::error::LocationOutOfBoundsError;
 use crate::helpers::{binary_search, i64_to_i32, invert_angular, next_moment, poly};
@@ -32,30 +32,21 @@ fn div_euclid_f64(n: f64, d: f64) -> f64 {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 /// A Location on the Earth given as a latitude, longitude, elevation, and standard time zone.
 /// Latitude is given in degrees from -90 to 90, longitude in degrees from -180 to 180,
 /// elevation in meters, and zone as a UTC offset in fractional days (ex. UTC+1 would have zone = 1.0 / 24.0)
 #[allow(clippy::exhaustive_structs)] // This is all that is needed by the book algorithms
 pub struct Location {
     /// latitude from -90 to 90
-    pub latitude: f64,
+    pub(crate) latitude: f64,
     /// longitude from -180 to 180
-    pub longitude: f64,
+    pub(crate) longitude: f64,
     /// elevation in meters
-    pub elevation: f64,
+    pub(crate) elevation: f64,
     /// UTC timezone offset in fractional days (1 hr = 1.0 / 24.0 day)
-    pub zone: f64,
+    pub(crate) utc_offset: f64,
 }
-
-/// The location of Mecca; used for Islamic calendar calculations.
-#[allow(dead_code)]
-pub const MECCA: Location = Location {
-    latitude: 6427.0 / 300.0,
-    longitude: 11947.0 / 300.0,
-    elevation: 298.0,
-    zone: (1_f64 / 8_f64),
-};
 
 /// The mean synodic month in days of 86400 atomic seconds
 /// (86400 seconds = 24 hours * 60 minutes/hour * 60 seconds/minute)
@@ -89,11 +80,11 @@ impl Location {
     /// Create a location; latitude is from -90 to 90, and longitude is from -180 to 180;
     /// attempting to create a location outside of these bounds will result in a LocationOutOfBoundsError.
     #[allow(dead_code)] // TODO: Remove dead_code tag after use
-    pub fn try_new(
+    pub(crate) fn try_new(
         latitude: f64,
         longitude: f64,
         elevation: f64,
-        zone: f64,
+        utc_offset: f64,
     ) -> Result<Location, LocationOutOfBoundsError> {
         if !(-90.0..=90.0).contains(&latitude) {
             return Err(LocationOutOfBoundsError::Latitude(latitude));
@@ -101,9 +92,9 @@ impl Location {
         if !(-180.0..=180.0).contains(&longitude) {
             return Err(LocationOutOfBoundsError::Longitude(longitude));
         }
-        if !(MIN_UTC_OFFSET..=MAX_UTC_OFFSET).contains(&zone) {
+        if !(MIN_UTC_OFFSET..=MAX_UTC_OFFSET).contains(&utc_offset) {
             return Err(LocationOutOfBoundsError::Offset(
-                zone,
+                utc_offset,
                 MIN_UTC_OFFSET,
                 MAX_UTC_OFFSET,
             ));
@@ -112,54 +103,39 @@ impl Location {
             latitude,
             longitude,
             elevation,
-            zone,
+            utc_offset,
         })
-    }
-
-    /// Create a new Location without checking for bounds
-    pub const fn new_unchecked(
-        latitude: f64,
-        longitude: f64,
-        elevation: f64,
-        zone: f64,
-    ) -> Location {
-        Location {
-            latitude,
-            longitude,
-            elevation,
-            zone,
-        }
     }
 
     /// Get the longitude of a Location
     #[allow(dead_code)]
-    pub fn longitude(&self) -> f64 {
+    pub(crate) fn longitude(&self) -> f64 {
         self.longitude
     }
 
     /// Get the latitude of a Location
     #[allow(dead_code)]
-    pub fn latitude(&self) -> f64 {
+    pub(crate) fn latitude(&self) -> f64 {
         self.latitude
     }
 
     /// Get the elevation of a Location
     #[allow(dead_code)]
-    pub fn elevation(&self) -> f64 {
+    pub(crate) fn elevation(&self) -> f64 {
         self.elevation
     }
 
     /// Get the utc-offset of a Location
     #[allow(dead_code)]
-    pub fn zone(&self) -> f64 {
-        self.zone
+    pub(crate) fn zone(&self) -> f64 {
+        self.utc_offset
     }
 
     /// Convert a longitude into a mean time zone;
     /// this yields the difference in Moment given a longitude
     /// e.g. a longitude of 90 degrees is 0.25 (90 / 360) days ahead
     /// of a location with a longitude of 0 degrees.
-    pub fn zone_from_longitude(longitude: f64) -> f64 {
+    pub(crate) fn zone_from_longitude(longitude: f64) -> f64 {
         longitude / (360.0)
     }
 
@@ -168,7 +144,7 @@ impl Location {
     /// Based on functions from _Calendrical Calculations_ by Reingold & Dershowitz.
     /// Reference lisp code: <https://github.com/EdReingold/calendar-code2/blob/9afc1f3/calendar.l#L3501-L3506>
     #[allow(dead_code)]
-    pub fn standard_from_local(standard_time: Moment, location: Location) -> Moment {
+    pub(crate) fn standard_from_local(standard_time: Moment, location: Location) -> Moment {
         Self::standard_from_universal(
             Self::universal_from_local(standard_time, location),
             location,
@@ -179,7 +155,7 @@ impl Location {
     ///
     /// Based on functions from _Calendrical Calculations_ by Reingold & Dershowitz.
     /// Reference lisp code: <https://github.com/EdReingold/calendar-code2/blob/9afc1f3/calendar.l#L3496-L3499>
-    pub fn universal_from_local(local_time: Moment, location: Location) -> Moment {
+    pub(crate) fn universal_from_local(local_time: Moment, location: Location) -> Moment {
         local_time - Self::zone_from_longitude(location.longitude)
     }
 
@@ -188,7 +164,7 @@ impl Location {
     /// Based on functions from _Calendrical Calculations_ by Reingold & Dershowitz.
     /// Reference lisp code: <https://github.com/EdReingold/calendar-code2/blob/9afc1f3/calendar.l#L3491-L3494>
     #[allow(dead_code)] // TODO: Remove dead_code tag after use
-    pub fn local_from_universal(universal_time: Moment, location: Location) -> Moment {
+    pub(crate) fn local_from_universal(universal_time: Moment, location: Location) -> Moment {
         universal_time + Self::zone_from_longitude(location.longitude)
     }
 
@@ -199,9 +175,9 @@ impl Location {
     ///
     /// Based on functions from _Calendrical Calculations_ by Reingold & Dershowitz.
     /// Reference lisp code: <https://github.com/EdReingold/calendar-code2/blob/9afc1f3/calendar.l#L3479-L3483>
-    pub fn universal_from_standard(standard_moment: Moment, location: Location) -> Moment {
-        debug_assert!(location.zone > MIN_UTC_OFFSET && location.zone < MAX_UTC_OFFSET, "UTC offset {0} was not within the possible range of offsets (see astronomy::MIN_UTC_OFFSET and astronomy::MAX_UTC_OFFSET)", location.zone);
-        standard_moment - location.zone
+    pub(crate) fn universal_from_standard(standard_moment: Moment, location: Location) -> Moment {
+        debug_assert!(location.utc_offset > MIN_UTC_OFFSET && location.utc_offset < MAX_UTC_OFFSET, "UTC offset {0} was not within the possible range of offsets (see astronomy::MIN_UTC_OFFSET and astronomy::MAX_UTC_OFFSET)", location.utc_offset);
+        standard_moment - location.utc_offset
     }
     /// Given a Moment in standard time and UTC-offset in hours,
     /// return the Moment in standard time from the time zone with the given offset.
@@ -211,9 +187,9 @@ impl Location {
     /// Based on functions from _Calendrical Calculations_ by Reingold & Dershowitz.
     /// Reference lisp code: <https://github.com/EdReingold/calendar-code2/blob/9afc1f3/calendar.l#L3473-L3477>
     #[allow(dead_code)]
-    pub fn standard_from_universal(standard_time: Moment, location: Location) -> Moment {
-        debug_assert!(location.zone > MIN_UTC_OFFSET && location.zone < MAX_UTC_OFFSET, "UTC offset {0} was not within the possible range of offsets (see astronomy::MIN_UTC_OFFSET and astronomy::MAX_UTC_OFFSET)", location.zone);
-        standard_time + location.zone
+    pub(crate) fn standard_from_universal(standard_time: Moment, location: Location) -> Moment {
+        debug_assert!(location.utc_offset > MIN_UTC_OFFSET && location.utc_offset < MAX_UTC_OFFSET, "UTC offset {0} was not within the possible range of offsets (see astronomy::MIN_UTC_OFFSET and astronomy::MAX_UTC_OFFSET)", location.utc_offset);
+        standard_time + location.utc_offset
     }
 }
 
@@ -2235,7 +2211,7 @@ mod tests {
 
         for (rd, expected_alt) in rd_vals.iter().zip(expected_altitude_deg.iter()) {
             let moment: Moment = Moment::new(*rd as f64);
-            let lunar_alt = Astronomical::lunar_altitude(moment, MECCA);
+            let lunar_alt = Astronomical::lunar_altitude(moment, crate::islamic::MECCA);
             let expected_alt_value = *expected_alt;
 
             assert_eq_f64!(expected_alt_value, lunar_alt, moment)
@@ -2341,7 +2317,7 @@ mod tests {
 
         for (rd, parallax) in rd_vals.iter().zip(expected_parallax.iter()) {
             let moment: Moment = Moment::new(*rd as f64);
-            let lunar_altitude_val = Astronomical::lunar_altitude(moment, MECCA);
+            let lunar_altitude_val = Astronomical::lunar_altitude(moment, crate::islamic::MECCA);
             let parallax_val = Astronomical::lunar_parallax(lunar_altitude_val, moment);
             let expected_parallax_val = *parallax;
 
@@ -2397,7 +2373,7 @@ mod tests {
 
         for (rd, expected_val) in rd_vals.iter().zip(expected_values.iter()) {
             let moment: Moment = Moment::new(*rd);
-            let moonset_val = Astronomical::moonset(moment, MECCA);
+            let moonset_val = Astronomical::moonset(moment, crate::islamic::MECCA);
             let expected_moonset_val = *expected_val;
             #[allow(clippy::unnecessary_unwrap)]
             if moonset_val.is_none() {
@@ -2458,7 +2434,7 @@ mod tests {
             latitude: 31.78,
             longitude: 35.24,
             elevation: 740.0,
-            zone: (1_f64 / 12_f64),
+            utc_offset: (1_f64 / 12_f64),
         };
 
         for (rd, expected_sunset_value) in rd_vals.iter().zip(expected_values.iter()) {

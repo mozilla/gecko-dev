@@ -2,16 +2,20 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use icu_locale_core::langid;
+use icu_properties::PropertyNamesLong;
+use icu_segmenter::options::WordBreakOptions;
 use icu_segmenter::GraphemeClusterSegmenter;
 use icu_segmenter::LineSegmenter;
 use icu_segmenter::SentenceSegmenter;
 use icu_segmenter::WordSegmenter;
 use std::char;
+use std::io::BufRead;
 
-struct TestContentIterator(core::str::Split<'static, char>);
+struct TestContentIterator<LineIterator>(LineIterator);
 
 struct TestData {
-    original_line: &'static str,
+    original_line: String,
     utf8_vec: Vec<char>,
     utf16_vec: Vec<u16>,
     latin1_vec: Vec<u8>,
@@ -20,18 +24,21 @@ struct TestData {
     break_result_latin1: Option<Vec<usize>>,
 }
 
-impl TestContentIterator {
+impl TestContentIterator<core::str::Split<'static, char>> {
     pub fn new(file: &'static str) -> Self {
         Self(file.split('\n'))
     }
 }
 
-impl Iterator for TestContentIterator {
+impl<LineIterator: std::iter::Iterator> Iterator for TestContentIterator<LineIterator>
+where
+    LineIterator::Item: Into<String>,
+{
     type Item = TestData;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let line = self.0.next()?;
+            let line: String = self.0.next()?.into();
             if line.is_empty() {
                 // EOF
                 return None;
@@ -94,8 +101,12 @@ impl Iterator for TestContentIterator {
 }
 
 fn line_break_test(file: &'static str) {
-    let test_iter = TestContentIterator::new(file);
-    let segmenter = LineSegmenter::new_dictionary();
+    let test_iter = TestContentIterator(
+        std::io::BufReader::new(std::fs::File::open(file).unwrap())
+            .lines()
+            .map(|l| l.unwrap()),
+    );
+    let segmenter = LineSegmenter::new_dictionary(Default::default());
     for (i, mut test) in test_iter.enumerate() {
         let s: String = test.utf8_vec.into_iter().collect();
         let iter = segmenter.segment_str(&s);
@@ -106,11 +117,18 @@ fn line_break_test(file: &'static str) {
             test.break_result_utf8.insert(0, 0);
         }
         if result != test.break_result_utf8 {
-            let lb = icu::properties::maps::line_break();
-            let lb_name = icu::properties::LineBreak::enum_to_long_name_mapper();
+            use icu::properties::{
+                props::{GeneralCategory, LineBreak},
+                CodePointMapData,
+            };
+            let lb = CodePointMapData::<LineBreak>::new();
+            let lb_name = PropertyNamesLong::<LineBreak>::new();
+            let gc = CodePointMapData::<GeneralCategory>::new();
+            let gc_name = PropertyNamesLong::<GeneralCategory>::new();
+
             let mut iter = segmenter.segment_str(&s);
             // TODO(egg): It would be really nice to have Name here.
-            println!("  | A | E | Code pt. | Line_Break     | Literal");
+            println!("  | A | E | Code pt. | Line_Break         | General_Category | Literal");
             for (i, c) in s.char_indices() {
                 let expected_break = test.break_result_utf8.contains(&i);
                 let actual_break = result.contains(&i);
@@ -118,7 +136,7 @@ fn line_break_test(file: &'static str) {
                     iter.next();
                 }
                 println!(
-                    "{}| {} | {} | {:>8} | {:>18} | {}",
+                    "{}| {} | {} | {:>8} | {:>18} | {:>18} | {}",
                     if actual_break != expected_break {
                         "😭"
                     } else {
@@ -130,6 +148,9 @@ fn line_break_test(file: &'static str) {
                     lb_name
                         .get(lb.get(c))
                         .unwrap_or(&format!("{:?}", lb.get(c))),
+                    gc_name
+                        .get(gc.get(c))
+                        .unwrap_or(&format!("{:?}", gc.get(c))),
                     c
                 )
             }
@@ -166,27 +187,38 @@ fn line_break_test(file: &'static str) {
 
 #[test]
 fn run_line_break_test() {
-    line_break_test(include_str!("testdata/LineBreakTest.txt"));
+    line_break_test("./tests/testdata/LineBreakTest.txt");
 }
 
 #[test]
 fn run_line_break_extra_test() {
-    line_break_test(include_str!("testdata/LineBreakExtraTest.txt"));
+    line_break_test("./tests/testdata/LineBreakExtraTest.txt");
+}
+
+#[test]
+fn run_line_break_random_test() {
+    line_break_test("./tests/testdata/LineBreakRandomTest.txt");
 }
 
 fn word_break_test(file: &'static str) {
     let test_iter = TestContentIterator::new(file);
-    let segmenter = WordSegmenter::new_dictionary();
+    // Default word segmenter isn't UAX29 rule. Swedish is UAX29 rule.
+    let mut options = WordBreakOptions::default();
+    let langid = langid!("sv");
+    options.content_locale = Some(&langid);
+    let segmenter = WordSegmenter::try_new_dictionary(options).expect("Loading should succeed!");
+    let segmenter = segmenter.as_borrowed();
     for (i, test) in test_iter.enumerate() {
         let s: String = test.utf8_vec.into_iter().collect();
         let iter = segmenter.segment_str(&s);
         let result: Vec<usize> = iter.collect();
         if result != test.break_result_utf8 {
-            let wb = icu::properties::maps::word_break();
-            let wb_name = icu::properties::WordBreak::enum_to_long_name_mapper();
+            use icu::properties::{props::WordBreak, CodePointMapData};
+            let wb = CodePointMapData::<WordBreak>::new();
+            let wb_name = PropertyNamesLong::<WordBreak>::new();
             let mut iter = segmenter.segment_str(&s);
             // TODO(egg): It would be really nice to have Name here.
-            println!("  | A | E | Code pt. |   Word_Break   | State | Literal");
+            println!("  | A | E | Code pt. |     Word_Break     | State | Literal");
             for (i, c) in s.char_indices() {
                 let expected_break = test.break_result_utf8.contains(&i);
                 let actual_break = result.contains(&i);
@@ -194,7 +226,7 @@ fn word_break_test(file: &'static str) {
                     iter.next();
                 }
                 println!(
-                    "{}| {} | {} | {:>8} | {:>14} | {} | {}",
+                    "{}| {} | {} | {:>8} | {:>18} | {} | {}",
                     if actual_break != expected_break {
                         "😭"
                     } else {
@@ -247,6 +279,11 @@ fn run_word_break_extra_test() {
     word_break_test(include_str!("testdata/WordBreakExtraTest.txt"));
 }
 
+#[test]
+fn run_word_break_random_test() {
+    word_break_test(include_str!("testdata/WordBreakRandomTest.txt"));
+}
+
 fn grapheme_break_test(file: &'static str) {
     let test_iter = TestContentIterator::new(file);
     let segmenter = GraphemeClusterSegmenter::new();
@@ -255,8 +292,9 @@ fn grapheme_break_test(file: &'static str) {
         let iter = segmenter.segment_str(&s);
         let result: Vec<usize> = iter.collect();
         if result != test.break_result_utf8 {
-            let gcb = icu::properties::maps::grapheme_cluster_break();
-            let gcb_name = icu::properties::GraphemeClusterBreak::enum_to_long_name_mapper();
+            use icu::properties::{props::GraphemeClusterBreak, CodePointMapData};
+            let gcb = CodePointMapData::<GraphemeClusterBreak>::new();
+            let gcb_name = PropertyNamesLong::<GraphemeClusterBreak>::new();
             let mut iter = segmenter.segment_str(&s);
             // TODO(egg): It would be really nice to have Name here.
             println!("  | A | E | Code pt. |            GCB | State | Literal");
@@ -320,16 +358,22 @@ fn run_grapheme_break_extra_test() {
     grapheme_break_test(include_str!("testdata/GraphemeBreakExtraTest.txt"));
 }
 
+#[test]
+fn run_grapheme_break_random_test() {
+    grapheme_break_test(include_str!("testdata/GraphemeBreakRandomTest.txt"));
+}
+
 fn sentence_break_test(file: &'static str) {
     let test_iter = TestContentIterator::new(file);
-    let segmenter = SentenceSegmenter::new();
+    let segmenter = SentenceSegmenter::new(Default::default());
     for (i, test) in test_iter.enumerate() {
         let s: String = test.utf8_vec.into_iter().collect();
         let iter = segmenter.segment_str(&s);
         let result: Vec<usize> = iter.collect();
         if result != test.break_result_utf8 {
-            let sb = icu::properties::maps::sentence_break();
-            let sb_name = icu::properties::SentenceBreak::enum_to_long_name_mapper();
+            use icu::properties::{props::SentenceBreak, CodePointMapData};
+            let sb = CodePointMapData::<SentenceBreak>::new();
+            let sb_name = PropertyNamesLong::<SentenceBreak>::new();
             let mut iter = segmenter.segment_str(&s);
             // TODO(egg): It would be really nice to have Name here.
             println!("  | A | E | Code pt. | Sentence_Break | State | Literal");

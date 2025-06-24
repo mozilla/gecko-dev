@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 use super::docs::Docs;
-use super::{Attrs, Ident, LifetimeEnv, Method, Mutability, PathType, TypeName};
+use super::{Attrs, Ident, LifetimeEnv, Method, PathType, TypeName};
 
 /// A struct declaration in an FFI module that is not opaque.
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Debug)]
@@ -10,7 +10,7 @@ pub struct Struct {
     pub name: Ident,
     pub docs: Docs,
     pub lifetimes: LifetimeEnv,
-    pub fields: Vec<(Ident, TypeName, Docs)>,
+    pub fields: Vec<(Ident, TypeName, Docs, Attrs)>,
     pub methods: Vec<Method>,
     pub output_only: bool,
     pub attrs: Attrs,
@@ -24,16 +24,18 @@ impl Struct {
             .fields
             .iter()
             .map(|field| {
+                use quote::ToTokens;
                 // Non-opaque tuple structs will never be allowed
-                let name = field
-                    .ident
-                    .as_ref()
-                    .map(Into::into)
-                    .expect("non-opaque tuples structs are disallowed");
+                let name = field.ident.as_ref().map(Into::into).unwrap_or_else(|| {
+                    panic!(
+                        "non-opaque tuples structs are disallowed ({:?})",
+                        field.ty.to_token_stream().to_string()
+                    )
+                });
                 let type_name = TypeName::from_syn(&field.ty, Some(self_path_type.clone()));
                 let docs = Docs::from_attrs(&field.attrs);
 
-                (name, type_name, docs)
+                (name, type_name, docs, Attrs::from_attrs(&field.attrs))
             })
             .collect();
 
@@ -47,36 +49,6 @@ impl Struct {
             fields,
             methods: vec![],
             output_only,
-            attrs,
-        }
-    }
-}
-
-/// A struct annotated with [`diplomat::opaque`] whose fields are not visible.
-/// Opaque structs cannot be passed by-value across the FFI boundary, so they
-/// must be boxed or passed as references.
-#[derive(Clone, Serialize, Debug, Hash, PartialEq, Eq)]
-#[non_exhaustive]
-pub struct OpaqueStruct {
-    pub name: Ident,
-    pub docs: Docs,
-    pub lifetimes: LifetimeEnv,
-    pub methods: Vec<Method>,
-    pub mutability: Mutability,
-    pub attrs: Attrs,
-}
-
-impl OpaqueStruct {
-    /// Extract a [`OpaqueStruct`] metadata value from an AST node.
-    pub fn new(strct: &syn::ItemStruct, mutability: Mutability, parent_attrs: &Attrs) -> Self {
-        let mut attrs = parent_attrs.clone();
-        attrs.add_attrs(&strct.attrs);
-        OpaqueStruct {
-            name: Ident::from(&strct.ident),
-            docs: Docs::from_attrs(&strct.attrs),
-            lifetimes: LifetimeEnv::from_struct_item(strct, &[]),
-            methods: vec![],
-            mutability,
             attrs,
         }
     }

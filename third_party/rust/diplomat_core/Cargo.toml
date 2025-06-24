@@ -11,28 +11,38 @@
 
 [package]
 edition = "2021"
+rust-version = "1.81"
 name = "diplomat_core"
-version = "0.8.0"
+version = "0.11.0"
 authors = [
     "Shadaj Laddad <shadaj@users.noreply.github.com>",
     "Manish Goregaokar <manishsmail@gmail.com>",
     "Quinn Okabayashi <QnnOkabayashi@users.noreply.github.com>",
 ]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Shared utilities between Diplomat macros and code generation"
-documentation = "https://docs.rs/diplomat_core/"
+readme = "README.md"
 keywords = [
     "ffi",
     "codegen",
 ]
-categories = ["development-tools"]
+categories = [
+    "development-tools",
+    "compilers",
+]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-diplomat/diplomat"
-resolver = "1"
 
 [package.metadata.docs.rs]
 all-features = true
 
 [lib]
+name = "diplomat_core"
 path = "src/lib.rs"
 
 [dependencies.displaydoc]
@@ -42,10 +52,7 @@ optional = true
 [dependencies.either]
 version = "1.9.0"
 optional = true
-default_features = false
-
-[dependencies.lazy_static]
-version = "1.4.0"
+default-features = false
 
 [dependencies.proc-macro2]
 version = "1.0.27"
@@ -55,14 +62,18 @@ version = "1.0"
 
 [dependencies.serde]
 version = "1.0"
-features = ["derive"]
+features = [
+    "derive",
+    "alloc",
+]
+default-features = false
 
 [dependencies.smallvec]
 version = "1.9.0"
 
-[dependencies.strck_ident]
-version = "0.1"
-features = ["rust"]
+[dependencies.strck]
+version = "1.0"
+features = ["ident"]
 
 [dependencies.syn]
 version = "2"
@@ -73,6 +84,7 @@ features = [
 
 [dev-dependencies.insta]
 version = "1.7.1"
+features = ["yaml"]
 
 [features]
 hir = ["either"]

@@ -37,13 +37,6 @@ pub struct Attrs {
     /// During AST attribute inheritance, HIR backend attributes are copied over from impls to their methods since the HIR does
     /// not see the impl blocks.
     pub attrs: Vec<DiplomatBackendAttr>,
-    /// AST backends only. For using features that may panic AST backends, like returning references.
-    ///
-    /// This isn't a regular attribute since AST backends do not handle regular attributes. Do not use
-    /// in HIR backends,
-    ///
-    /// Not inherited
-    pub skip_if_ast: bool,
 
     /// Renames to apply to the underlying C symbol. Can be found on methods, impls, and bridge modules, and is inherited.
     ///
@@ -53,6 +46,9 @@ pub struct Attrs {
     ///
     /// Inherited.
     pub abi_rename: RenameAttr,
+
+    /// For use by [`crate::hir::Attrs::demo_attrs`]
+    pub demo_attrs: Vec<DemoBackendAttr>,
 }
 
 impl Attrs {
@@ -60,8 +56,8 @@ impl Attrs {
         match attr {
             Attr::Cfg(attr) => self.cfg.push(attr),
             Attr::DiplomatBackend(attr) => self.attrs.push(attr),
-            Attr::SkipIfAst => self.skip_if_ast = true,
             Attr::CRename(rename) => self.abi_rename.extend(&rename),
+            Attr::DemoBackend(attr) => self.demo_attrs.push(attr),
         }
     }
 
@@ -79,14 +75,19 @@ impl Attrs {
             Vec::new()
         };
 
+        let demo_attrs = if context == AttrInheritContext::MethodFromImpl {
+            self.demo_attrs.clone()
+        } else {
+            Vec::new()
+        };
+
         let abi_rename = self.abi_rename.attrs_for_inheritance(context, true);
         Self {
             cfg: self.cfg.clone(),
 
             attrs,
-            // HIR only, for methods only. not inherited
-            skip_if_ast: false,
             abi_rename,
+            demo_attrs,
         }
     }
 
@@ -111,8 +112,8 @@ impl From<&[Attribute]> for Attrs {
 enum Attr {
     Cfg(Attribute),
     DiplomatBackend(DiplomatBackendAttr),
-    SkipIfAst,
     CRename(RenameAttr),
+    DemoBackend(DemoBackendAttr),
     // More goes here
 }
 
@@ -120,7 +121,7 @@ fn syn_attr_to_ast_attr(attrs: &[Attribute]) -> impl Iterator<Item = Attr> + '_ 
     let cfg_path: syn::Path = syn::parse_str("cfg").unwrap();
     let dattr_path: syn::Path = syn::parse_str("diplomat::attr").unwrap();
     let crename_attr: syn::Path = syn::parse_str("diplomat::abi_rename").unwrap();
-    let skipast: syn::Path = syn::parse_str("diplomat::skip_if_ast").unwrap();
+    let demo_path: syn::Path = syn::parse_str("diplomat::demo").unwrap();
     attrs.iter().filter_map(move |a| {
         if a.path() == &cfg_path {
             Some(Attr::Cfg(a.clone()))
@@ -131,8 +132,11 @@ fn syn_attr_to_ast_attr(attrs: &[Attribute]) -> impl Iterator<Item = Attr> + '_ 
             ))
         } else if a.path() == &crename_attr {
             Some(Attr::CRename(RenameAttr::from_meta(&a.meta).unwrap()))
-        } else if a.path() == &skipast {
-            Some(Attr::SkipIfAst)
+        } else if a.path() == &demo_path {
+            Some(Attr::DemoBackend(
+                a.parse_args()
+                    .expect("Failed to parse malformed diplomat::demo"),
+            ))
         } else {
             None
         }
@@ -156,9 +160,6 @@ impl Serialize for Attrs {
         }
         if !self.attrs.is_empty() {
             state.serialize_field("attrs", &self.attrs)?;
-        }
-        if self.skip_if_ast {
-            state.serialize_field("skip_if_ast", &self.skip_if_ast)?;
         }
         if !self.abi_rename.is_empty() {
             state.serialize_field("abi_rename", &self.abi_rename)?;
@@ -195,6 +196,8 @@ pub enum DiplomatBackendAttrCfg {
     Any(Vec<DiplomatBackendAttrCfg>),
     All(Vec<DiplomatBackendAttrCfg>),
     Star,
+    // "auto", smartly figure out based on the attribute used
+    Auto,
     BackendName(String),
     NameValue(String, String),
 }
@@ -204,7 +207,9 @@ impl Parse for DiplomatBackendAttrCfg {
         let lookahead = input.lookahead1();
         if lookahead.peek(Ident) {
             let name: Ident = input.parse()?;
-            if name == "not" {
+            if name == "auto" {
+                Ok(DiplomatBackendAttrCfg::Auto)
+            } else if name == "not" {
                 let content;
                 let _paren = syn::parenthesized!(content in input);
                 Ok(DiplomatBackendAttrCfg::Not(Box::new(content.parse()?)))
@@ -258,6 +263,25 @@ impl Parse for DiplomatBackendAttr {
     }
 }
 
+// #region demo_gen specific attributes
+/// A `#[diplomat::demo(...)]` attribute
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize)]
+#[non_exhaustive]
+pub struct DemoBackendAttr {
+    #[serde(serialize_with = "serialize_meta")]
+    pub meta: Meta,
+}
+
+/// Meant to be used with Attribute::parse_args()
+impl Parse for DemoBackendAttr {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        let meta = input.parse()?;
+        Ok(Self { meta })
+    }
+}
+
+// #endregion
+
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum AttrInheritContext {
     Variant,
@@ -303,7 +327,7 @@ impl RenameAttr {
     }
 
     /// Whether this rename is empty and will perform no changes
-    fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.pattern.is_none()
     }
 

@@ -11,10 +11,11 @@
 
 [package]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.81"
 name = "writeable"
-version = "0.5.5"
+version = "0.6.1"
 authors = ["The ICU4X Project Developers"]
+build = false
 include = [
     "data/**/*",
     "src/**/*",
@@ -25,13 +26,15 @@ include = [
     "LICENSE",
     "README.md",
 ]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A more efficient alternative to fmt::Display"
 readme = "README.md"
 license = "Unicode-3.0"
 repository = "https://github.com/unicode-org/icu4x"
-
-[package.metadata.cargo-all-features]
-denylist = ["bench"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -39,11 +42,25 @@ all-features = true
 [package.metadata.workspaces]
 independent = true
 
+[features]
+either = ["dep:either"]
+
 [lib]
+name = "writeable"
+path = "src/lib.rs"
 bench = false
+
+[[example]]
+name = "writeable_message"
+path = "examples/writeable_message.rs"
+
+[[test]]
+name = "writeable"
+path = "tests/writeable.rs"
 
 [[bench]]
 name = "writeable"
+path = "benches/writeable.rs"
 harness = false
 
 [dependencies.either]
@@ -55,9 +72,5 @@ default-features = false
 version = "0.8"
 features = ["small_rng"]
 
-[features]
-bench = []
-either = ["dep:either"]
-
-[target."cfg(not(target_arch = \"wasm32\"))".dev-dependencies.criterion]
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies.criterion]
 version = "0.5.0"

@@ -23,10 +23,10 @@ use crate::map2d::ZeroMap2dCursor;
 /// use zerovec::maps::ZeroMap2dBorrowed;
 ///
 /// // Example byte buffer representing the map { 1: {2: "three" } }
-/// let BINCODE_BYTES: &[u8; 51] = &[
+/// let BINCODE_BYTES: &[u8; 47] = &[
 ///     2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 4, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0,
-///     0, 0, 0, 0, 0, 0, 2, 0, 11, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 116,
-///     104, 114, 101, 101,
+///     0, 0, 0, 0, 0, 0, 2, 0, 7, 0, 0, 0, 0, 0, 0, 0, 1, 0, 116, 104, 114,
+///     101, 101,
 /// ];
 ///
 /// // Deserializing to ZeroMap2d requires no heap allocations.
@@ -274,7 +274,7 @@ where
     V: ?Sized,
 {
     /// Produce an ordered iterator over keys0
-    pub fn iter0<'l>(&'l self) -> impl Iterator<Item = ZeroMap2dCursor<'a, 'a, K0, K1, V>> + '_ {
+    pub fn iter0<'l>(&'l self) -> impl Iterator<Item = ZeroMap2dCursor<'a, 'a, K0, K1, V>> + 'l {
         (0..self.keys0.zvl_len()).map(move |idx| ZeroMap2dCursor::from_borrowed(self, idx))
     }
 }

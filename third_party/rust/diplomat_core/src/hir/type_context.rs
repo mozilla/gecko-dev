@@ -4,7 +4,7 @@ use super::lowering::{ErrorAndContext, ErrorStore, ItemAndInfo};
 use super::ty_position::StructPathLike;
 use super::{
     AttributeValidator, Attrs, EnumDef, LoweringContext, LoweringError, MaybeStatic, OpaqueDef,
-    OutStructDef, StructDef, TypeDef,
+    OutStructDef, StructDef, TraitDef, TypeDef,
 };
 use crate::ast::attrs::AttrInheritContext;
 #[allow(unused_imports)] // use in docs links
@@ -12,6 +12,7 @@ use crate::hir;
 use crate::{ast, Env};
 use core::fmt::{self, Display};
 use smallvec::SmallVec;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ops::Index;
 
@@ -22,6 +23,15 @@ pub struct TypeContext {
     structs: Vec<StructDef>,
     opaques: Vec<OpaqueDef>,
     enums: Vec<EnumDef>,
+    traits: Vec<TraitDef>,
+}
+
+/// Additional features/config to support while lowering
+#[non_exhaustive]
+#[derive(Default, Debug, Copy, Clone)]
+pub struct LoweringConfig {
+    /// Support references in callback params (unsafe)
+    pub unsafe_references_in_callbacks: bool,
 }
 
 /// Key used to index into a [`TypeContext`] representing a struct.
@@ -40,6 +50,10 @@ pub struct OpaqueId(usize);
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EnumId(usize);
 
+/// Key used to index into a [`TypeContext`] representing a trait.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TraitId(usize);
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum TypeId {
@@ -47,6 +61,13 @@ pub enum TypeId {
     OutStruct(OutStructId),
     Opaque(OpaqueId),
     Enum(EnumId),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[non_exhaustive]
+pub enum SymbolId {
+    TypeId(TypeId),
+    TraitId(TraitId),
 }
 
 enum Param<'a> {
@@ -90,6 +111,13 @@ impl TypeContext {
             )
     }
 
+    pub fn all_traits<'tcx>(&'tcx self) -> impl Iterator<Item = (TraitId, &'tcx TraitDef)> {
+        self.traits
+            .iter()
+            .enumerate()
+            .map(|(i, trt)| (TraitId(i), trt))
+    }
+
     pub fn out_structs(&self) -> &[OutStructDef] {
         &self.out_structs
     }
@@ -104,6 +132,10 @@ impl TypeContext {
 
     pub fn enums(&self) -> &[EnumDef] {
         &self.enums
+    }
+
+    pub fn traits(&self) -> &[TraitDef] {
+        &self.traits
     }
 
     pub fn resolve_type<'tcx>(&'tcx self, id: TypeId) -> TypeDef<'tcx> {
@@ -143,12 +175,31 @@ impl TypeContext {
         self.enums.index(id.0)
     }
 
+    pub fn resolve_trait(&self, id: TraitId) -> &TraitDef {
+        self.traits.index(id.0)
+    }
+
+    /// Resolve and format a named type for use in diagnostics
+    /// (don't apply rename rules and such)
+    pub fn fmt_type_name_diagnostics(&self, id: TypeId) -> Cow<str> {
+        self.resolve_type(id).name().as_str().into()
+    }
+
+    pub fn fmt_symbol_name_diagnostics(&self, id: SymbolId) -> Cow<str> {
+        match id {
+            SymbolId::TypeId(id) => self.fmt_type_name_diagnostics(id),
+            SymbolId::TraitId(id) => self.resolve_trait(id).name.as_str().into(),
+        }
+    }
+
     /// Lower the AST to the HIR while simultaneously performing validation.
-    pub fn from_ast<'ast>(
-        env: &'ast Env,
+    pub fn from_syn<'ast>(
+        s: &'ast syn::File,
+        cfg: LoweringConfig,
         attr_validator: impl AttributeValidator + 'static,
     ) -> Result<Self, Vec<ErrorAndContext>> {
-        let (mut ctx, hir) = Self::from_ast_without_validation(env, attr_validator)?;
+        let types = ast::File::from(s).all_types();
+        let (mut ctx, hir) = Self::from_ast_without_validation(&types, cfg, attr_validator)?;
         ctx.errors.set_item("(validation)");
         hir.validate(&mut ctx.errors);
         if !ctx.errors.is_empty() {
@@ -160,12 +211,14 @@ impl TypeContext {
     /// Lower the AST to the HIR, without validation. For testing
     pub(super) fn from_ast_without_validation<'ast>(
         env: &'ast Env,
+        cfg: LoweringConfig,
         attr_validator: impl AttributeValidator + 'static,
-    ) -> Result<(LoweringContext, Self), Vec<ErrorAndContext>> {
+    ) -> Result<(LoweringContext<'ast>, Self), Vec<ErrorAndContext>> {
         let mut ast_out_structs = SmallVec::<[_; 16]>::new();
         let mut ast_structs = SmallVec::<[_; 16]>::new();
         let mut ast_opaques = SmallVec::<[_; 16]>::new();
         let mut ast_enums = SmallVec::<[_; 16]>::new();
+        let mut ast_traits = SmallVec::<[_; 16]>::new();
 
         let mut errors = ErrorStore::default();
 
@@ -187,8 +240,8 @@ impl TypeContext {
                 mod_attrs.for_inheritance(AttrInheritContext::MethodOrImplFromModule);
 
             for sym in mod_env.items() {
-                if let ast::ModSymbol::CustomType(custom_type) = sym {
-                    match custom_type {
+                match sym {
+                    ast::ModSymbol::CustomType(custom_type) => match custom_type {
                         ast::CustomType::Struct(strct) => {
                             let id = if strct.output_only {
                                 TypeId::OutStruct(OutStructId(ast_out_structs.len()))
@@ -200,7 +253,7 @@ impl TypeContext {
                                 in_path: path,
                                 ty_parent_attrs: ty_attrs.clone(),
                                 method_parent_attrs: method_attrs.clone(),
-                                id,
+                                id: id.into(),
                             };
                             if strct.output_only {
                                 ast_out_structs.push(item);
@@ -214,7 +267,7 @@ impl TypeContext {
                                 in_path: path,
                                 ty_parent_attrs: ty_attrs.clone(),
                                 method_parent_attrs: method_attrs.clone(),
-                                id: TypeId::Opaque(OpaqueId(ast_opaques.len())),
+                                id: TypeId::Opaque(OpaqueId(ast_opaques.len())).into(),
                             };
                             ast_opaques.push(item)
                         }
@@ -224,11 +277,22 @@ impl TypeContext {
                                 in_path: path,
                                 ty_parent_attrs: ty_attrs.clone(),
                                 method_parent_attrs: method_attrs.clone(),
-                                id: TypeId::Enum(EnumId(ast_enums.len())),
+                                id: TypeId::Enum(EnumId(ast_enums.len())).into(),
                             };
                             ast_enums.push(item)
                         }
+                    },
+                    ast::ModSymbol::Trait(trt) => {
+                        let item = ItemAndInfo {
+                            item: trt,
+                            in_path: path,
+                            ty_parent_attrs: ty_attrs.clone(),
+                            method_parent_attrs: method_attrs.clone(),
+                            id: TraitId(ast_traits.len()).into(),
+                        };
+                        ast_traits.push(item)
                     }
+                    _ => {}
                 }
             }
         }
@@ -238,6 +302,7 @@ impl TypeContext {
             &ast_structs[..],
             &ast_opaques[..],
             &ast_enums[..],
+            &ast_traits[..],
         );
         let attr_validator = Box::new(attr_validator);
 
@@ -246,12 +311,14 @@ impl TypeContext {
             env,
             errors,
             attr_validator,
+            cfg,
         };
 
         let out_structs = ctx.lower_all_out_structs(ast_out_structs.into_iter());
         let structs = ctx.lower_all_structs(ast_structs.into_iter());
         let opaques = ctx.lower_all_opaques(ast_opaques.into_iter());
         let enums = ctx.lower_all_enums(ast_enums.into_iter());
+        let traits = ctx.lower_all_traits(ast_traits.into_iter()).unwrap();
 
         match (out_structs, structs, opaques, enums) {
             (Ok(out_structs), Ok(structs), Ok(opaques), Ok(enums)) => {
@@ -260,6 +327,7 @@ impl TypeContext {
                     structs,
                     opaques,
                     enums,
+                    traits,
                 };
 
                 if !ctx.errors.is_empty() {
@@ -318,7 +386,7 @@ impl TypeContext {
                         Param::Input(param.name.as_str()),
                         &param.ty,
                         method,
-                    );
+                    )
                 }
 
                 method.output.with_contained_types(|out_ty| {
@@ -402,8 +470,9 @@ impl TypeContext {
 pub(super) struct LookupId<'ast> {
     out_struct_map: HashMap<&'ast ast::Struct, OutStructId>,
     struct_map: HashMap<&'ast ast::Struct, StructId>,
-    opaque_map: HashMap<&'ast ast::OpaqueStruct, OpaqueId>,
+    opaque_map: HashMap<&'ast ast::OpaqueType, OpaqueId>,
     enum_map: HashMap<&'ast ast::Enum, EnumId>,
+    trait_map: HashMap<&'ast ast::Trait, TraitId>,
 }
 
 impl<'ast> LookupId<'ast> {
@@ -411,8 +480,9 @@ impl<'ast> LookupId<'ast> {
     fn new(
         out_structs: &[ItemAndInfo<'ast, ast::Struct>],
         structs: &[ItemAndInfo<'ast, ast::Struct>],
-        opaques: &[ItemAndInfo<'ast, ast::OpaqueStruct>],
+        opaques: &[ItemAndInfo<'ast, ast::OpaqueType>],
         enums: &[ItemAndInfo<'ast, ast::Enum>],
+        traits: &[ItemAndInfo<'ast, ast::Trait>],
     ) -> Self {
         Self {
             out_struct_map: out_structs
@@ -435,6 +505,11 @@ impl<'ast> LookupId<'ast> {
                 .enumerate()
                 .map(|(index, item)| (item.item, EnumId(index)))
                 .collect(),
+            trait_map: traits
+                .iter()
+                .enumerate()
+                .map(|(index, item)| (item.item, TraitId(index)))
+                .collect(),
         }
     }
 
@@ -446,12 +521,16 @@ impl<'ast> LookupId<'ast> {
         self.struct_map.get(strct).copied()
     }
 
-    pub(super) fn resolve_opaque(&self, opaque: &ast::OpaqueStruct) -> Option<OpaqueId> {
+    pub(super) fn resolve_opaque(&self, opaque: &ast::OpaqueType) -> Option<OpaqueId> {
         self.opaque_map.get(opaque).copied()
     }
 
     pub(super) fn resolve_enum(&self, enm: &ast::Enum) -> Option<EnumId> {
         self.enum_map.get(enm).copied()
+    }
+
+    pub(super) fn resolve_trait(&self, trt: &ast::Trait) -> Option<TraitId> {
+        self.trait_map.get(trt).copied()
     }
 }
 
@@ -479,6 +558,38 @@ impl From<EnumId> for TypeId {
     }
 }
 
+impl From<TypeId> for SymbolId {
+    fn from(x: TypeId) -> Self {
+        SymbolId::TypeId(x)
+    }
+}
+
+impl From<TraitId> for SymbolId {
+    fn from(x: TraitId) -> Self {
+        SymbolId::TraitId(x)
+    }
+}
+
+impl TryInto<TypeId> for SymbolId {
+    type Error = ();
+    fn try_into(self) -> Result<TypeId, Self::Error> {
+        match self {
+            SymbolId::TypeId(id) => Ok(id),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryInto<TraitId> for SymbolId {
+    type Error = ();
+    fn try_into(self) -> Result<TraitId, Self::Error> {
+        match self {
+            SymbolId::TraitId(id) => Ok(id),
+            _ => Err(()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::hir;
@@ -487,14 +598,12 @@ mod tests {
     macro_rules! uitest_lowering {
         ($($file:tt)*) => {
             let parsed: syn::File = syn::parse_quote! { $($file)* };
-            let custom_types = crate::ast::File::from(&parsed);
-            let env = custom_types.all_types();
 
             let mut output = String::new();
 
-
-            let attr_validator = hir::BasicAttributeValidator::new("tests");
-            match hir::TypeContext::from_ast(&env, attr_validator) {
+            let mut attr_validator = hir::BasicAttributeValidator::new("tests");
+            attr_validator.support.option = true;
+            match hir::TypeContext::from_syn(&parsed, Default::default(), attr_validator) {
                 Ok(_context) => (),
                 Err(e) => {
                     for (ctx, err) in e {
@@ -603,6 +712,21 @@ mod tests {
                     pub fn do_thing_broken(self) {}
                     pub fn broken_differently(&self, x: &MyOpaqueStruct) {}
                 }
+
+                #[diplomat::opaque]
+                enum MyOpaqueEnum {
+                    A(UnknownType),
+                    B,
+                    C(i32, i32, UnknownType2),
+                }
+
+                impl MyOpaqueEnum {
+                    pub fn new() -> Box<MyOpaqueEnum> {}
+                    pub fn new_broken() -> MyOpaqueEnum {}
+                    pub fn do_thing(&self) {}
+                    pub fn do_thing_broken(self) {}
+                    pub fn broken_differently(&self, x: &MyOpaqueEnum) {}
+                }
             }
         }
     }
@@ -615,7 +739,7 @@ mod tests {
                 struct NonOpaqueStruct {}
 
                 impl NonOpaqueStruct {
-                    fn new(x: i32) -> NonOpaqueStruct {
+                    pub fn new(x: i32) -> NonOpaqueStruct {
                         unimplemented!();
                     }
                 }
@@ -662,9 +786,11 @@ mod tests {
         uitest_lowering! {
             #[diplomat::bridge]
             mod ffi {
-                struct OpaqueStruct;
+                struct NonOpaque;
 
-                enum OpaqueEnum {}
+                impl NonOpaque {
+                    pub fn foo(self) {}
+                }
             }
         };
     }
@@ -760,6 +886,70 @@ mod tests {
                 impl Opaque {
                     pub fn returns_self(&self) -> &Self {}
                     pub fn returns_foo(&self) -> Foo {}
+                }
+            }
+        };
+    }
+    #[test]
+    fn test_struct_forbidden() {
+        uitest_lowering! {
+            #[diplomat::bridge]
+            mod ffi {
+                struct Crimes<'a> {
+                    slice1: &'a str,
+                    slice1: &'a DiplomatStr,
+                    slice2: &'a [u8],
+                    slice3: Box<str>,
+                    slice3: Box<DiplomatStr>,
+                    slice4: Box<[u8]>,
+                }
+            }
+        };
+    }
+
+    #[test]
+    fn test_option() {
+        uitest_lowering! {
+            #[diplomat::bridge]
+                mod ffi {
+                use diplomat_runtime::DiplomatOption;
+                #[diplomat::opaque]
+                struct Foo {}
+                struct CustomStruct {
+                    num: u8,
+                    b: bool,
+                    diplo_option: DiplomatOption<u8>,
+                }
+
+                struct BrokenStruct {
+                    regular_option: Option<u8>,
+                    regular_option: Option<CustomStruct>,
+                }
+                impl Foo {
+                    pub fn diplo_option_u8(x: DiplomatOption<u8>) -> DiplomatOption<u8> {
+                        x
+                    }
+                    pub fn diplo_option_ref(x: DiplomatOption<&Foo>) -> DiplomatOption<&Foo> {
+                        x
+                    }
+                    pub fn diplo_option_box() -> DiplomatOption<Box<Foo>> {
+                        x
+                    }
+                    pub fn diplo_option_struct(x: DiplomatOption<CustomStruct>) -> DiplomatOption<CustomStruct> {
+                        x
+                    }
+                    pub fn option_u8(x: Option<u8>) -> Option<u8> {
+                        x
+                    }
+                    pub fn option_ref(x: Option<&Foo>) -> Option<&Foo> {
+                        x
+                    }
+                    pub fn option_box() -> Option<Box<Foo>> {
+                        x
+                    }
+                    pub fn option_struct(x: Option<CustomStruct>) -> Option<CustomStruct> {
+                        x
+                    }
                 }
             }
         };

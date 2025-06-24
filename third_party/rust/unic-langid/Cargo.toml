@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "unic-langid"
-version = "0.9.5"
+version = "0.9.6"
 authors = ["Zibi Braniecki <gandalf@mozilla.com>"]
 build = false
 include = [
@@ -24,6 +24,7 @@ include = [
     "LICENSE-MIT",
     "README.md",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -34,6 +35,12 @@ categories = ["internationalization"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/zbraniecki/unic-locale"
 
+[features]
+default = []
+likelysubtags = ["unic-langid-impl/likelysubtags"]
+macros = ["unic-langid-macros"]
+serde = ["unic-langid-impl/serde"]
+
 [lib]
 name = "unic_langid"
 path = "src/lib.rs"
@@ -43,17 +50,11 @@ name = "langid"
 path = "tests/langid.rs"
 
 [dependencies.unic-langid-impl]
-version = "0.9.5"
+version = "0.9.6"
 
 [dependencies.unic-langid-macros]
-version = "0.9.5"
+version = "0.9.6"
 optional = true
 
 [dev-dependencies.unic-langid-macros]
-version = "0.9.5"
-
-[features]
-default = []
-likelysubtags = ["unic-langid-impl/likelysubtags"]
-macros = ["unic-langid-macros"]
-serde = ["unic-langid-impl/serde"]
+version = "0.9.6"

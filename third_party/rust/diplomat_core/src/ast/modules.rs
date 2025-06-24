@@ -6,8 +6,8 @@ use serde::Serialize;
 use syn::{ImplItem, Item, ItemMod, UseTree, Visibility};
 
 use super::{
-    AttrInheritContext, Attrs, CustomType, Enum, Ident, Method, ModSymbol, Mutability,
-    OpaqueStruct, Path, PathType, RustLink, Struct,
+    AttrInheritContext, Attrs, CustomType, Enum, Ident, Method, ModSymbol, Mutability, OpaqueType,
+    Path, PathType, RustLink, Struct, Trait,
 };
 use crate::environment::*;
 
@@ -17,13 +17,20 @@ enum DiplomatStructAttribute {
     /// The `#[diplomat::out]` attribute, used for non-opaque structs that
     /// contain an owned opaque in the form of a `Box`.
     Out,
-    /// The `#[diplomat::opaque]` attribute, used for marking a struct as opaque.
+    /// An attribute that can correspond to a type (struct or enum).
+    TypeAttr(DiplomatTypeAttribute),
+}
+
+/// Custom Diplomat attribute that can be placed on an enum or struct definition.
+#[derive(Debug)]
+enum DiplomatTypeAttribute {
+    /// The `#[diplomat::opaque]` attribute, used for marking a type as opaque.
     /// Note that opaque structs can be borrowed in return types, but cannot
     /// be passed into a function behind a mutable reference.
     Opaque,
-    /// The `#[diplomat::opaque_mut]` attribute, used for marking a struct as
+    /// The `#[diplomat::opaque_mut]` attribute, used for marking a type as
     /// opaque and mutable.
-    /// Note that mutable opaque structs can never be borrowed in return types
+    /// Note that mutable opaque types can never be borrowed in return types
     /// (even immutably!), but can be passed into a function behind a mutable
     /// reference.
     OpaqueMut,
@@ -41,6 +48,35 @@ impl DiplomatStructAttribute {
             write!(&mut buf, "{}", attr.path().to_token_stream()).unwrap();
             let parsed = match buf.as_str() {
                 "diplomat :: out" => Some(Self::Out),
+                "diplomat :: opaque" => Some(Self::TypeAttr(DiplomatTypeAttribute::Opaque)),
+                "diplomat :: opaque_mut" => Some(Self::TypeAttr(DiplomatTypeAttribute::OpaqueMut)),
+                _ => None,
+            };
+
+            if let Some(parsed) = parsed {
+                match res {
+                    Ok(None) => res = Ok(Some(parsed)),
+                    Ok(Some(first)) => res = Err(vec![first, parsed]),
+                    Err(ref mut errors) => errors.push(parsed),
+                }
+            }
+        }
+
+        res
+    }
+}
+
+impl DiplomatTypeAttribute {
+    /// Parses a [`DiplomatTypeAttribute`] from an array of [`syn::Attribute`]s.
+    /// If more than one kind is found, an error is returned containing all the
+    /// ones encountered, since all the current attributes are disjoint.
+    fn parse(attrs: &[syn::Attribute]) -> Result<Option<Self>, Vec<Self>> {
+        let mut buf = String::with_capacity(32);
+        let mut res = Ok(None);
+        for attr in attrs {
+            buf.clear();
+            write!(&mut buf, "{}", attr.path().to_token_stream()).unwrap();
+            let parsed = match buf.as_str() {
                 "diplomat :: opaque" => Some(Self::Opaque),
                 "diplomat :: opaque_mut" => Some(Self::OpaqueMut),
                 _ => None,
@@ -65,6 +101,7 @@ pub struct Module {
     pub name: Ident,
     pub imports: Vec<(Path, Ident)>,
     pub declared_types: BTreeMap<Ident, CustomType>,
+    pub declared_traits: BTreeMap<Ident, Trait>,
     pub sub_modules: Vec<Module>,
     pub attrs: Attrs,
 }
@@ -95,7 +132,16 @@ impl Module {
                 .insert(k.clone(), ModSymbol::CustomType(v.clone()))
                 .is_some()
             {
-                panic!("Two types were declared with the same name, this needs to be implemented");
+                panic!("Two types were declared with the same name, this needs to be implemented (key: {k})");
+            }
+        });
+
+        self.declared_traits.iter().for_each(|(k, v)| {
+            if mod_symbols
+                .insert(k.clone(), ModSymbol::Trait(v.clone()))
+                .is_some()
+            {
+                panic!("Two traits were declared with the same name, this needs to be implemented (key: {k})");
             }
         });
 
@@ -110,6 +156,7 @@ impl Module {
 
     pub fn from_syn(input: &ItemMod, force_analyze: bool) -> Module {
         let mut custom_types_by_name = BTreeMap::new();
+        let mut custom_traits_by_name = BTreeMap::new();
         let mut sub_modules = Vec::new();
         let mut imports = Vec::new();
 
@@ -144,11 +191,11 @@ impl Module {
                             Ok(Some(DiplomatStructAttribute::Out)) => {
                                 CustomType::Struct(Struct::new(strct, true, &type_parent_attrs))
                             }
-                            Ok(Some(DiplomatStructAttribute::Opaque)) => {
-                                CustomType::Opaque(OpaqueStruct::new(strct, Mutability::Immutable, &type_parent_attrs))
+                            Ok(Some(DiplomatStructAttribute::TypeAttr(DiplomatTypeAttribute::Opaque))) => {
+                                CustomType::Opaque(OpaqueType::new_struct(strct, Mutability::Immutable, &type_parent_attrs))
                             }
-                            Ok(Some(DiplomatStructAttribute::OpaqueMut)) => {
-                                CustomType::Opaque(OpaqueStruct::new(strct, Mutability::Mutable, &type_parent_attrs))
+                            Ok(Some(DiplomatStructAttribute::TypeAttr(DiplomatTypeAttribute::OpaqueMut))) => {
+                                CustomType::Opaque(OpaqueType::new_struct(strct, Mutability::Mutable, &type_parent_attrs))
                             }
                             Err(errors) => {
                                 panic!("Multiple conflicting Diplomat struct attributes, there can be at most one: {errors:?}");
@@ -162,16 +209,25 @@ impl Module {
                 Item::Enum(enm) => {
                     if analyze_types {
                         let ident = (&enm.ident).into();
-                        let enm = Enum::new(enm, &type_parent_attrs);
+                        let custom_enum = match DiplomatTypeAttribute::parse(&enm.attrs[..]) {
+                            Ok(None) => CustomType::Enum(Enum::new(enm, &type_parent_attrs)),
+                            Ok(Some(DiplomatTypeAttribute::Opaque)) => {
+                                CustomType::Opaque(OpaqueType::new_enum(enm, Mutability::Immutable, &type_parent_attrs))
+                            }
+                            Ok(Some(DiplomatTypeAttribute::OpaqueMut)) => {
+                                CustomType::Opaque(OpaqueType::new_enum(enm, Mutability::Mutable, &type_parent_attrs))
+                            }
+                            Err(errors) => {
+                                panic!("Multiple conflicting Diplomat enum attributes, there can be at most one: {errors:?}");
+                            }
+                        };
                         custom_types_by_name
-                            .insert(ident, CustomType::Enum(enm));
+                            .insert(ident, custom_enum);
                     }
                 }
 
                 Item::Impl(imp) => {
-                    if analyze_types {
-                        assert!(imp.trait_.is_none());
-
+                    if analyze_types && imp.trait_.is_none() {
                         let self_path = match imp.self_ty.as_ref() {
                             syn::Type::Path(s) => PathType::from(s),
                             _ => panic!("Self type not found"),
@@ -179,6 +235,7 @@ impl Module {
                         let mut impl_attrs = impl_parent_attrs.clone();
                         impl_attrs.add_attrs(&imp.attrs);
                         let method_parent_attrs = impl_attrs.attrs_for_inheritance(AttrInheritContext::MethodFromImpl);
+                        let self_ident = self_path.path.elements.last().unwrap();
                         let mut new_methods = imp
                             .items
                             .iter()
@@ -186,13 +243,17 @@ impl Module {
                                 ImplItem::Fn(m) => Some(m),
                                 _ => None,
                             })
-                            .filter(|m| matches!(m.vis, Visibility::Public(_)))
+                            .filter(|m| {
+                                let is_public = matches!(m.vis, Visibility::Public(_));
+                                let has_diplomat_attrs = m.attrs.iter().any(|a| a.path().segments.iter().next().unwrap().ident == "diplomat");
+                                assert!(is_public || !has_diplomat_attrs, "Non-public method with diplomat attrs found: {self_ident}::{}", m.sig.ident);
+                                is_public
+                            })
                             .map(|m| Method::from_syn(m, self_path.clone(), Some(&imp.generics), &method_parent_attrs))
                             .collect();
 
-                        let self_ident = self_path.path.elements.last().unwrap();
-
-                        match custom_types_by_name.get_mut(self_ident).unwrap() {
+                        match custom_types_by_name.get_mut(self_ident)
+                                                  .expect("Diplomat currently requires impls to be in the same module as their self type") {
                             CustomType::Struct(strct) => {
                                 strct.methods.append(&mut new_methods);
                             }
@@ -208,6 +269,14 @@ impl Module {
                 Item::Mod(item_mod) => {
                     sub_modules.push(Module::from_syn(item_mod, false));
                 }
+                Item::Trait(trt) => {
+                    if analyze_types {
+                        let ident = (&trt.ident).into();
+                        let trt = Trait::new(trt, &type_parent_attrs);
+                        custom_traits_by_name
+                            .insert(ident, trt);
+                    }
+                }
                 _ => {}
             });
 
@@ -215,6 +284,7 @@ impl Module {
             name: (&input.ident).into(),
             imports,
             declared_types: custom_types_by_name,
+            declared_traits: custom_traits_by_name,
             sub_modules,
             attrs: mod_attrs,
         }

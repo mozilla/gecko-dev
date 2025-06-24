@@ -3,7 +3,6 @@
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
 use icu_collections::codepointtrie::planes::get_planes_trie;
-use icu_collections::codepointtrie::Error;
 use icu_collections::codepointtrie::*;
 use zerovec::ZeroVec;
 
@@ -39,8 +38,7 @@ fn planes_trie_deserialize_check_test() {
 
     let data = ZeroVec::from_slice_or_alloc(code_point_trie_struct.data_8.as_ref().unwrap());
     let index = ZeroVec::from_slice_or_alloc(&code_point_trie_struct.index);
-    let trie_result: Result<CodePointTrie<u8>, Error> =
-        CodePointTrie::try_new(trie_header, index, data);
+    let trie_result = CodePointTrie::try_new(trie_header, index, data);
     let act_planes_trie = trie_result.unwrap();
 
     // Get check ranges (inversion map-style sequence of range+value) and
@@ -263,9 +261,11 @@ pub fn check_trie<T: TrieValue + Into<u32>>(trie: &CodePointTrie<T>, check_range
     }
 }
 
-/// Test .get_range() / .iter_ranges() on CodePointTrie by calling
-/// .iter_ranges() on the trie (which returns an iterator that produces values
-/// by calls to .get_range) and see if it matches the values in check_ranges.
+/// Test `.get_range()` / `.iter_ranges()` on CodePointTrie by calling
+/// `.iter_ranges()` on the trie.
+///
+/// `.iter_ranges()` returns an iterator that produces values
+/// by calls to .get_range, and this checks if it matches the values in check_ranges.
 pub fn test_check_ranges_get_ranges<T: TrieValue + Into<u32>>(
     trie: &CodePointTrie<T>,
     check_ranges: &[u32],
@@ -442,8 +442,7 @@ pub fn run_deserialize_test_from_test_data(test_file: &str) {
     match (test_struct.data_8, test_struct.data_16, test_struct.data_32) {
         (Some(data_8), _, _) => {
             let data = ZeroVec::from_slice_or_alloc(&data_8);
-            let trie_result: Result<CodePointTrie<u8>, Error> =
-                CodePointTrie::try_new(trie_header, index, data);
+            let trie_result = CodePointTrie::try_new(trie_header, index, data);
             assert!(trie_result.is_ok(), "Could not construct trie");
             assert_eq!(
                 test_struct.value_width_enum_val,
@@ -457,8 +456,7 @@ pub fn run_deserialize_test_from_test_data(test_file: &str) {
 
         (_, Some(data_16), _) => {
             let data = ZeroVec::from_slice_or_alloc(&data_16);
-            let trie_result: Result<CodePointTrie<u16>, Error> =
-                CodePointTrie::try_new(trie_header, index, data);
+            let trie_result = CodePointTrie::try_new(trie_header, index, data);
             assert!(trie_result.is_ok(), "Could not construct trie");
             assert_eq!(
                 test_struct.value_width_enum_val,
@@ -472,8 +470,7 @@ pub fn run_deserialize_test_from_test_data(test_file: &str) {
 
         (_, _, Some(data_32)) => {
             let data = ZeroVec::from_slice_or_alloc(&data_32);
-            let trie_result: Result<CodePointTrie<u32>, Error> =
-                CodePointTrie::try_new(trie_header, index, data);
+            let trie_result = CodePointTrie::try_new(trie_header, index, data);
             assert!(trie_result.is_ok(), "Could not construct trie");
             assert_eq!(
                 test_struct.value_width_enum_val,

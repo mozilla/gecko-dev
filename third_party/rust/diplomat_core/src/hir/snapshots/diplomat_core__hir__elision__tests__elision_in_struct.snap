@@ -1,5 +1,6 @@
 ---
 source: core/src/hir/elision.rs
+assertion_line: 536
 expression: method
 ---
 Method {
@@ -8,6 +9,7 @@ Method {
         [],
     ),
     name: "elided",
+    abi_name: "Opaque_elided",
     lifetime_env: LifetimeEnv {
         nodes: [],
         num_lifetimes: 3,
@@ -33,6 +35,28 @@ Method {
                     ),
                 },
             ),
+            attrs: Attrs {
+                disable: false,
+                namespace: None,
+                rename: RenameAttr {
+                    pattern: None,
+                },
+                abi_rename: RenameAttr {
+                    pattern: None,
+                },
+                special_method: None,
+                custom_errors: false,
+                demo_attrs: DemoInfo {
+                    generate: false,
+                    default_constructor: false,
+                    external: false,
+                    custom_func: None,
+                    input_cfg: DemoInputCFG {
+                        label: "",
+                        default_value: "",
+                    },
+                },
+            },
         },
     ),
     params: [
@@ -65,6 +89,28 @@ Method {
                     ),
                 },
             ),
+            attrs: Attrs {
+                disable: false,
+                namespace: None,
+                rename: RenameAttr {
+                    pattern: None,
+                },
+                abi_rename: RenameAttr {
+                    pattern: None,
+                },
+                special_method: None,
+                custom_errors: false,
+                demo_attrs: DemoInfo {
+                    generate: false,
+                    default_constructor: false,
+                    external: false,
+                    custom_func: None,
+                    input_cfg: DemoInputCFG {
+                        label: "",
+                        default_value: "",
+                    },
+                },
+            },
         },
     ],
     output: Infallible(
@@ -80,5 +126,16 @@ Method {
             pattern: None,
         },
         special_method: None,
+        custom_errors: false,
+        demo_attrs: DemoInfo {
+            generate: false,
+            default_constructor: false,
+            external: false,
+            custom_func: None,
+            input_cfg: DemoInputCFG {
+                label: "",
+                default_value: "",
+            },
+        },
     },
 }

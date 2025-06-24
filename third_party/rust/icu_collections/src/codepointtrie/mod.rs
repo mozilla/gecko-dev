@@ -49,6 +49,3 @@ pub use cptrie::CodePointTrieHeader;
 pub use cptrie::TrieType;
 pub use cptrie::TrieValue;
 pub use error::Error as CodePointTrieError;
-
-#[doc(no_inline)]
-pub use CodePointTrieError as Error;

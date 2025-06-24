@@ -13,9 +13,9 @@
 //!
 //! Broadly speaking, the Nomicon defines the elision rules are such:
 //! 1. If there's a `&self` or `&mut self`, the lifetime of that borrow
-//! corresponds to elision in the output.
+//!    corresponds to elision in the output.
 //! 2. Otherwise, if there's exactly one lifetime in the input, then that lifetime
-//! corresponds to elision in the output.
+//!    corresponds to elision in the output.
 //! 3. If neither of these cases hold, then the output cannot contain elision.
 //!
 //! What the Nomicon doesn't tell you is that there are weird corner cases around
@@ -114,7 +114,6 @@ pub trait LifetimeLowerer {
     /// Lowers a slice of [`ast::Lifetime`]s by calling
     /// [`LifetimeLowerer::lower_lifetime`] repeatedly.
     ///
-
     /// `type_generics` is the full list of generics on the type definition of the type
     /// this lifetimes list is found on (needed for generating anon lifetimes)
     fn lower_lifetimes(
@@ -143,7 +142,6 @@ pub trait LifetimeLowerer {
     ///
     /// `type_generics` is the full list of generics on the type definition of the type
     /// this generics list is found on (needed for generating anon lifetimes)
-
     fn lower_generics(
         &mut self,
         lifetimes: &[ast::Lifetime],
@@ -430,7 +428,7 @@ impl LifetimeLowerer for &ast::LifetimeEnv {
 
 #[cfg(test)]
 mod tests {
-    use strck_ident::IntoCk;
+    use strck::IntoCk;
 
     /// Convert a syntax tree into a [`TypeContext`].
     macro_rules! tcx {
@@ -445,10 +443,13 @@ mod tests {
 
             env.insert(crate::ast::Path::empty(), top_symbols);
 
+            let mut backend = crate::hir::BasicAttributeValidator::new("test-backend");
+            backend.support.static_slices = true;
+
             // Don't run validation: it will error on elision. We want this code to support
             // elision even if we don't actually allow it, since good diagnostics involve understanding
             // broken code.
-            let (_, tcx) = crate::hir::TypeContext::from_ast_without_validation(&env, crate::hir::BasicAttributeValidator::new("test-backend")).unwrap();
+            let (_, tcx) = crate::hir::TypeContext::from_ast_without_validation(&env, Default::default(), backend).unwrap();
 
             tcx
         }}
@@ -473,11 +474,11 @@ mod tests {
             mod ffi {
                 #[diplomat::opaque]
                 struct Opaque<'a> {
-                    s: &'a DiplomatStr,
+                    s: DiplomatStrSlice<'a>,
                 }
 
                 struct Struct<'a> {
-                    s: &'a DiplomatStr,
+                    s:  DiplomatStrSlice<'a>,
                 }
 
                 #[diplomat::out]
@@ -548,12 +549,12 @@ mod tests {
                 struct Input<'p, 'q> {
                     p_data: &'p Opaque,
                     q_data: &'q Opaque,
-                    name: &'static DiplomatStr,
+                    name: DiplomatStrSlice<'static>,
                     inner: Inner<'q>,
                 }
 
                 struct Inner<'a> {
-                    more_data: &'a DiplomatStr,
+                    more_data: DiplomatStrSlice<'a>,
                 }
 
                 struct Output<'p,'q> {

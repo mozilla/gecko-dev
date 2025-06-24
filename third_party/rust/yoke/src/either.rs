@@ -56,6 +56,7 @@ impl<C0, C1, T> Deref for EitherCart<C0, C1>
 where
     C0: Deref<Target = T>,
     C1: Deref<Target = T>,
+    T: ?Sized,
 {
     type Target = T;
     fn deref(&self) -> &T {
@@ -67,17 +68,18 @@ where
     }
 }
 
-// Safe because both sub-types implement the trait.
+// Safety: Safe because both sub-types implement the trait.
 unsafe impl<C0, C1, T> StableDeref for EitherCart<C0, C1>
 where
     C0: StableDeref,
     C1: StableDeref,
     C0: Deref<Target = T>,
     C1: Deref<Target = T>,
+    T: ?Sized,
 {
 }
 
-// Safe because both sub-types implement the trait.
+// Safety: Safe because both sub-types implement the trait.
 unsafe impl<C0, C1> CloneableCart for EitherCart<C0, C1>
 where
     C0: CloneableCart,

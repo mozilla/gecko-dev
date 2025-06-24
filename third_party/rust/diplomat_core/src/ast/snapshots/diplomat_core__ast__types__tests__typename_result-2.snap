@@ -1,6 +1,6 @@
 ---
 source: core/src/ast/types.rs
-expression: "TypeName::from_syn(&syn::parse_quote! {\n                DiplomatResult < (), MyLocalStruct >\n            }, None)"
+expression: "TypeName::from_syn(&syn::parse_quote! { DiplomatResult<(), MyLocalStruct> },\n    None)"
 ---
 Result:
   - Unit
@@ -9,5 +9,4 @@ Result:
         elements:
           - MyLocalStruct
       lifetimes: []
-  - false
-
+  - Diplomat

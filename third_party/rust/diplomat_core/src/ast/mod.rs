@@ -7,21 +7,27 @@ pub(crate) use attrs::AttrInheritContext;
 pub use attrs::Attrs;
 
 mod methods;
-pub use methods::{BorrowedParams, Method, Param, SelfParam};
+pub use methods::{BorrowedParams, Method, Param, SelfParam, TraitSelfParam};
 
 mod modules;
 pub use modules::{File, Module};
 
 mod structs;
-pub use structs::{OpaqueStruct, Struct};
+pub use structs::Struct;
+
+mod opaque;
+pub use opaque::OpaqueType;
+
+mod traits;
+pub use traits::{Trait, TraitMethod};
 
 mod enums;
 pub use enums::Enum;
 
 mod types;
 pub use types::{
-    CustomType, LifetimeOrigin, ModSymbol, Mutability, PathType, PrimitiveType, StringEncoding,
-    TypeName,
+    CustomType, LifetimeOrigin, ModSymbol, Mutability, PathType, PrimitiveType, StdlibOrDiplomat,
+    StringEncoding, TypeName,
 };
 
 pub(crate) mod lifetimes;
@@ -34,4 +40,4 @@ mod idents;
 pub use idents::Ident;
 
 mod docs;
-pub use docs::{DocType, Docs, DocsUrlGenerator, MarkdownStyle, RustLink, RustLinkDisplay};
+pub use docs::{DocType, Docs, DocsUrlGenerator, RustLink, RustLinkDisplay};

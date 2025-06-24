@@ -11,10 +11,11 @@
 
 [package]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.82"
 name = "icu_provider_adapters"
-version = "1.5.0"
+version = "2.0.0"
 authors = ["The ICU4X Project Developers"]
+build = false
 include = [
     "data/**/*",
     "src/**/*",
@@ -24,7 +25,13 @@ include = [
     "Cargo.toml",
     "LICENSE",
     "README.md",
+    "build.rs",
 ]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Adapters for composing and manipulating data providers."
 homepage = "https://icu4x.unicode.org"
 readme = "README.md"
@@ -32,24 +39,26 @@ categories = ["internationalization"]
 license = "Unicode-3.0"
 repository = "https://github.com/unicode-org/icu4x"
 
+[features]
+export = ["icu_provider/export"]
+
+[lib]
+name = "icu_provider_adapters"
+path = "src/lib.rs"
+
 [dependencies.databake]
-version = "0.1.8"
+version = "0.2.0"
 features = ["derive"]
 optional = true
 default-features = false
 
-[dependencies.icu_locid]
-version = "~1.5.0"
-features = ["zerovec"]
-default-features = false
-
-[dependencies.icu_locid_transform]
-version = "~1.5.0"
+[dependencies.icu_locale]
+version = "~2.0.0"
 default-features = false
 
 [dependencies.icu_provider]
-version = "~1.5.0"
-features = ["macros"]
+version = "2.0.0"
+features = ["alloc"]
 default-features = false
 
 [dependencies.serde]
@@ -62,31 +71,13 @@ optional = true
 default-features = false
 
 [dependencies.tinystr]
-version = "0.7.5"
+version = "0.8.0"
 features = ["zerovec"]
 default-features = false
 
 [dependencies.zerovec]
-version = "0.10.2"
+version = "0.11.1"
 features = ["yoke"]
 default-features = false
 
 [dev-dependencies]
-
-[features]
-datagen = [
-    "std",
-    "serde",
-    "icu_provider/datagen",
-]
-serde = [
-    "dep:serde",
-    "zerovec/serde",
-    "icu_locid/serde",
-    "icu_locid_transform/serde",
-    "icu_provider/serde",
-]
-std = [
-    "icu_locid/std",
-    "icu_provider/std",
-]

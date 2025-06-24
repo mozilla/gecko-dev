@@ -10,30 +10,42 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.81"
 name = "diplomat"
-version = "0.8.0"
+version = "0.11.0"
 authors = [
     "Shadaj Laddad <shadaj@users.noreply.github.com>",
     "Manish Goregaokar <manishsmail@gmail.com>",
     "Quinn Okabayashi <QnnOkabayashi@users.noreply.github.com>",
 ]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "The diplomat FFI generation macro"
-documentation = "https://docs.rs/diplomat_core/"
+readme = "README.md"
 keywords = [
     "ffi",
     "codegen",
 ]
-categories = ["development-tools"]
+categories = [
+    "development-tools",
+    "compilers",
+]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-diplomat/diplomat"
 
 [lib]
+name = "diplomat"
 path = "src/lib.rs"
 proc-macro = true
 
 [dependencies.diplomat_core]
-version = "0.8.0"
+version = "0.11.0"
+default-features = false
 
 [dependencies.proc-macro2]
 version = "1.0.27"
@@ -50,6 +62,9 @@ features = [
 
 [dev-dependencies.insta]
 version = "1.7.1"
+
+[dev-dependencies.prettyplease]
+version = "0.2.30"
 
 [dev-dependencies.tempfile]
 version = "3.2.0"

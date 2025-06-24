@@ -21,6 +21,8 @@ pub fn gen_transparent_convert(s: ItemStruct) -> proc_macro2::TokenStream {
         impl #impl_generics #struct_name #ty_generics {
             // can potentially add transparent_convert_owned, _mut later
             pub(crate) fn transparent_convert(from: &'transparent_convert_outer #field1) -> &'transparent_convert_outer Self {
+                // Safety: This is safe because the caller of gen_transparent_convert
+                // adds a repr(transparent) to the struct.
                 unsafe {
                     &*(from as *const #field1 as *const Self)
                 }

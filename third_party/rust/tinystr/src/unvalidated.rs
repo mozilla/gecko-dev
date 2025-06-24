@@ -2,8 +2,8 @@
 // called LICENSE at the top level of the ICU4X source tree
 // (online at: https://github.com/unicode-org/icu4x/blob/main/LICENSE ).
 
+use crate::ParseError;
 use crate::TinyAsciiStr;
-use crate::TinyStrError;
 use core::fmt;
 
 /// A fixed-length bytes array that is expected to be an ASCII string but does not enforce that invariant.
@@ -28,13 +28,14 @@ impl<const N: usize> fmt::Debug for UnvalidatedTinyAsciiStr<N> {
 
 impl<const N: usize> UnvalidatedTinyAsciiStr<N> {
     #[inline]
-    // Converts into a [`TinyAsciiStr`]. Fails if the bytes are not valid ASCII.
-    pub fn try_into_tinystr(&self) -> Result<TinyAsciiStr<N>, TinyStrError> {
+    /// Converts into a [`TinyAsciiStr`]. Fails if the bytes are not valid ASCII.
+    pub fn try_into_tinystr(self) -> Result<TinyAsciiStr<N>, ParseError> {
         TinyAsciiStr::try_from_raw(self.0)
     }
 
-    #[doc(hidden)]
-    pub const fn from_bytes_unchecked(bytes: [u8; N]) -> Self {
+    #[inline]
+    /// Unsafely converts into a [`TinyAsciiStr`].
+    pub const fn from_utf8_unchecked(bytes: [u8; N]) -> Self {
         Self(bytes)
     }
 }
