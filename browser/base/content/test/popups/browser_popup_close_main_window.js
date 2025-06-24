@@ -3,19 +3,6 @@
 
 "use strict";
 
-function muffleMainWindowType() {
-  let oldWinType = document.documentElement.getAttribute("windowtype");
-  // Check if we've already done this to allow calling multiple times:
-  if (oldWinType != "navigator:testrunner") {
-    // Make the main test window not count as a browser window any longer
-    document.documentElement.setAttribute("windowtype", "navigator:testrunner");
-
-    registerCleanupFunction(() => {
-      document.documentElement.setAttribute("windowtype", oldWinType);
-    });
-  }
-}
-
 /**
  * Check that if we close the 1 remaining window, we treat it as quitting on
  * non-mac.
@@ -28,7 +15,11 @@ add_task(async function closing_last_window_equals_quitting() {
     ok(true, "Not testing on mac");
     return;
   }
-  muffleMainWindowType();
+
+  let controller = new AbortController();
+  let { signal } = controller;
+
+  BrowserTestUtils.concealWindow(window, { signal });
 
   let observed = 0;
   function obs() {
@@ -41,6 +32,8 @@ add_task(async function closing_last_window_equals_quitting() {
   await closedPromise;
   is(observed, 1, "Got a notification for closing the normal window.");
   Services.obs.removeObserver(obs, "browser-lastwindow-close-requested");
+
+  controller.abort();
 });
 
 /**
@@ -55,7 +48,11 @@ add_task(async function closing_last_window_equals_quitting() {
     ok(true, "Not testing on mac");
     return;
   }
-  muffleMainWindowType();
+
+  let controller = new AbortController();
+  let { signal } = controller;
+
+  BrowserTestUtils.concealWindow(window, { signal });
   let observed = 0;
   function obs() {
     observed++;
@@ -81,4 +78,6 @@ add_task(async function closing_last_window_equals_quitting() {
     "Got no notification now that we're closing the last window, as it's a popup."
   );
   Services.obs.removeObserver(obs, "browser-lastwindow-close-requested");
+
+  controller.abort();
 });

@@ -2852,6 +2852,36 @@ export var BrowserTestUtils = {
 
     return wizardTab;
   },
+
+  /**
+   * When calling this function, the window will be hidden from various APIs,
+   * so that they won't be able to find it.
+   *
+   * This makes it possible to hide the main window to test some behaviors when
+   * it doesn't exist, e.g. when only private or non-browser windows exist.
+   *
+   * @param {ChromeWindow} window The window to be concealed.
+   * @param {object} options
+   * @param {AbortSignal} options.signal
+   *        Unconceals the window when the signal aborts.
+   */
+  concealWindow(window, { signal }) {
+    let oldWinType = window.document.documentElement.getAttribute("windowtype");
+    // Check if we've already done this to allow calling multiple times:
+    if (oldWinType != "navigator:testrunner") {
+      // Make the main test window not count as a browser window any longer
+      window.document.documentElement.setAttribute(
+        "windowtype",
+        "navigator:testrunner"
+      );
+      lazy.BrowserWindowTracker.untrackForTestsOnly(window);
+
+      signal.addEventListener("abort", () => {
+        lazy.BrowserWindowTracker.track(window);
+        window.document.documentElement.setAttribute("windowtype", oldWinType);
+      });
+    }
+  },
 };
 
 XPCOMUtils.defineLazyPreferenceGetter(

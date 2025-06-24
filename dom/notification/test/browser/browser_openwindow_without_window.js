@@ -29,37 +29,21 @@ let mockAlertsService = {
   },
 };
 
-// Stolen from https://searchfox.org/mozilla-central/source/browser/base/content/test/popups/browser_popup_close_main_window.js
-// When calling this function, the main window where the test runs will be
-// hidden from various APIs, so that they won't be able to find it. This makes
-// it possible to test some behaviors when no browser window is present.
-// See bug 1972344 to move this function to BrowserTestUtils.
-function concealMainWindow() {
-  info("Concealing main window.");
-  let oldWinType = document.documentElement.getAttribute("windowtype");
-  // Check if we've already done this to allow calling multiple times:
-  if (oldWinType != "navigator:testrunner") {
-    // Make the main test window not count as a browser window any longer
-    document.documentElement.setAttribute("windowtype", "navigator:testrunner");
-
-    registerCleanupFunction(() => {
-      info("Unconcealing the main window in the cleanup phase.");
-      document.documentElement.setAttribute("windowtype", oldWinType);
-    });
-  }
-}
-
 add_setup(() => {
   let mockCid = MockRegistrar.register(
     "@mozilla.org/alerts-service;1",
     mockAlertsService
   );
 
+  let controller = new AbortController();
+  let { signal } = controller;
+
   registerCleanupFunction(() => {
     MockRegistrar.unregister(mockCid);
+    controller.abort();
   });
 
-  concealMainWindow();
+  BrowserTestUtils.concealWindow(window, { signal });
 });
 
 for (let permanentPbm of [false, true]) {
