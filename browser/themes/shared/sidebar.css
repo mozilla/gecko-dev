@@ -42,14 +42,15 @@
 #sidebar-box {
   text-shadow: none;
   max-width: 75vw;
+}
 
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media not -moz-pref("sidebar.revamp") {
+/* stylelint-disable-next-line media-query-no-invalid */
+@media not -moz-pref("sidebar.revamp") {
+  #sidebar-main,
+  #sidebar-header,
+  #sidebar {
     background-color: var(--sidebar-background-color);
     color: var(--sidebar-text-color);
-    /* Note that with sidebar.revamp we apply the --sidebar-background-color to the
-     * #sidebar browser. We still need the #sidebar-box background to match the
-     * toolbar tho - this background is set on the #browser ancestor rather than here */
   }
 }
 
