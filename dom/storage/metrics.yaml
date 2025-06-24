@@ -24,6 +24,7 @@ localdomstorage:
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
     notification_emails:
+      - jan.varga@gmail.com
       - storage-telemetry@mozilla.com
     expires: never
     telemetry_mirror: LOCALDOMSTORAGE_SHUTDOWN_DATABASE_MS
@@ -44,6 +45,7 @@ localdomstorage:
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1935420
     notification_emails:
+      - jan.varga@gmail.com
       - storage-telemetry@mozilla.com
     expires: never
     telemetry_mirror: h#LOCALDOMSTORAGE_PRELOAD_PENDING_ON_FIRST_ACCESS

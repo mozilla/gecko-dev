@@ -27,7 +27,7 @@ dom.quota.try:
     data_reviews:
       - https://bugzil.la/1665088
     notification_emails:
-      - jvarga@mozilla.com
+      - jan.varga@gmail.com
       - storage-telemetry@mozilla.com
     expires: never
     extra_keys:
@@ -87,7 +87,7 @@ quotamanager:
     data_sensitivity:
       - technical
     notification_emails:
-      - jvarga@mozilla.com
+      - jan.varga@gmail.com
       - storage-telemetry@mozilla.com
     expires: never
 quotamanager.initialize.repository:
@@ -116,7 +116,7 @@ quotamanager.initialize.repository:
     data_sensitivity:
       - technical
     notification_emails:
-      - jvarga@mozilla.com
+      - jan.varga@gmail.com
       - storage-telemetry@mozilla.com
     expires: never
     labels:
@@ -147,7 +147,7 @@ quotamanager.initialize.temporarystorage:
     data_sensitivity:
       - technical
     notification_emails:
-      - jvarga@mozilla.com
+      - jan.varga@gmail.com
       - storage-telemetry@mozilla.com
     expires: never
 quotamanager.shutdown:
@@ -175,7 +175,7 @@ quotamanager.shutdown:
     data_sensitivity:
       - technical
     notification_emails:
-      - jvarga@mozilla.com
+      - jan.varga@gmail.com
       - storage-telemetry@mozilla.com
     expires: never
 
@@ -197,7 +197,7 @@ dom.quota:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1609625
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1683102
     notification_emails:
-      - ttung@mozilla.com
+      - jan.varga@gmail.com
       - storage-telemetry@mozilla.com
     expires: never
     telemetry_mirror: QM_QUOTA_INFO_LOAD_TIME_V0
@@ -217,7 +217,7 @@ dom.quota:
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1824075
     notification_emails:
-      - jvarga@mozilla.com
+      - jan.varga@gmail.com
       - storage-telemetry@mozilla.com
     expires: never
     telemetry_mirror: QM_SHUTDOWN_TIME_V0

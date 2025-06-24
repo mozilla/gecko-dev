@@ -3214,8 +3214,7 @@ dom.quota.try:
       No dynamic data is included in the event beyond the error code which will be added through
       Bug 1670555.
     notification_emails:
-      - jvarga@mozilla.com
-      - sgiesecke@mozilla.com
+      - jan.varga@gmail.com
       - storage-telemetry@mozilla.com
     products:
       - firefox
