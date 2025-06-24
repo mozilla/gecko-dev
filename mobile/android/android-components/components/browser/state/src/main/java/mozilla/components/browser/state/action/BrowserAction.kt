@@ -1716,7 +1716,8 @@ sealed class DownloadAction : BrowserAction() {
     data class RestoreDownloadStateAction(val download: DownloadState) : DownloadAction()
 
     /**
-     * [BrowserAction] to remove downloads from the storage that no longer exist on disk.
+     * [BrowserAction] to remove completed and cancelled downloads from the storage that no longer
+     * exist on disk.
      *
      * This action is used to clean up the download storage by removing entries for files
      * that have been deleted or moved from their original download location.

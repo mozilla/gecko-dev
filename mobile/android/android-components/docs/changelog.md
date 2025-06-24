@@ -5,6 +5,8 @@ permalink: /changelog/
 ---
 
 # 142.0 (In Development)
+* **feature-downloads**:
+  * `DownloadAction.RemoveDeletedDownloads` will now only remove downloads that are cancelled or completed. [Bug 1971848](https://bugzilla.mozilla.org/show_bug.cgi?id=1971848).
 
 # 141.0
 * **feature-accounts**:

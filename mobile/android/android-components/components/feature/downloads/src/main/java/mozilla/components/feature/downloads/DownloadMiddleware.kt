@@ -151,9 +151,11 @@ class DownloadMiddleware(
     }
 
     private fun removeDeletedDownloads(store: Store<BrowserState, BrowserAction>) = scope.launch {
-        downloadStorage.getDownloadsList().filter { !File(it.filePath).exists() }.forEach { download ->
-            store.dispatch(DownloadAction.RemoveDownloadAction(download.id))
-        }
+        downloadStorage.getDownloadsList()
+            .filter { (it.status == COMPLETED || it.status == CANCELLED) && !File(it.filePath).exists() }
+            .forEach { download ->
+                store.dispatch(DownloadAction.RemoveDownloadAction(download.id))
+            }
     }
 
     private fun restoreDownloads(store: Store<BrowserState, BrowserAction>) = scope.launch {
