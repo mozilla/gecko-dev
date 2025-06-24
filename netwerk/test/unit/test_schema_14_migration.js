@@ -80,7 +80,7 @@ add_task(async function test_schema_14_migration() {
       do_get_cookie_file(profile)
     );
     const stmt = dbConnection.createStatement(
-      "SELECT COUNT(name) FROM moz_cookies WHERE expiry <= (unixepoch() + 34560000) * 1000"
+      "SELECT COUNT(name) FROM moz_cookies WHERE expiry <= unixepoch() + 34560000"
     );
     const success = stmt.executeStep();
     Assert.ok(success);

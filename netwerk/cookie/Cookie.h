@@ -83,7 +83,7 @@ class Cookie final : public nsICookie {
     return nsDependentCSubstring(mData.host(), IsDomain() ? 1 : 0);
   }
   inline const nsCString& Path() const { return mData.path(); }
-  inline int64_t Expiry() const { return mData.expiry(); }  // in milliseconds
+  inline int64_t Expiry() const { return mData.expiry(); }  // in seconds
   inline int64_t LastAccessed() const {
     return mData.lastAccessed();
   }  // in microseconds

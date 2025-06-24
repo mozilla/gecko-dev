@@ -1011,7 +1011,7 @@ void CookieService::GetCookiesForURI(
         nsMixedContentBlocker::IsPotentiallyTrustworthyOrigin(aHostURI);
 
     int64_t currentTimeInUsec = PR_Now();
-    int64_t currentTime = currentTimeInUsec / PR_USEC_PER_MSEC;
+    int64_t currentTime = currentTimeInUsec / PR_USEC_PER_SEC;
     bool stale = false;
 
     nsTArray<RefPtr<Cookie>> cookies;
@@ -1873,14 +1873,6 @@ CookieService::TestGet3PCBExceptions(nsTArray<nsCString>& aExceptions) {
 
   mThirdPartyCookieBlockingExceptions.GetExceptions(aExceptions);
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-CookieService::MaybeCapExpiry(int64_t aExpiryInMSec, int64_t* aResult) {
-  NS_ENSURE_ARG_POINTER(aResult);
-  *aResult =
-      CookieCommons::MaybeCapExpiry(PR_Now() / PR_USEC_PER_MSEC, aExpiryInMSec);
   return NS_OK;
 }
 

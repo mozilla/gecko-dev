@@ -619,7 +619,7 @@ void CookieStorage::AddCookie(CookieParser* aCookieParser,
     return;
   }
 
-  int64_t currentTime = aCurrentTimeInUsec / PR_USEC_PER_MSEC;
+  int64_t currentTime = aCurrentTimeInUsec / PR_USEC_PER_SEC;
 
   CookieListIter exactIter{};
   bool foundCookie = false;
@@ -993,7 +993,7 @@ already_AddRefed<nsIArray> CookieStorage::PurgeCookiesWithCallbacks(
   nsCOMPtr<nsIMutableArray> removedList =
       do_CreateInstance(NS_ARRAY_CONTRACTID);
 
-  int64_t currentTime = aCurrentTimeInUsec / PR_USEC_PER_MSEC;
+  int64_t currentTime = aCurrentTimeInUsec / PR_USEC_PER_SEC;
   int64_t purgeTime = aCurrentTimeInUsec - aCookiePurgeAge;
   int64_t oldestTime = INT64_MAX;
 

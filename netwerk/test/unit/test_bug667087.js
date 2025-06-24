@@ -5,7 +5,7 @@
 
 add_task(async () => {
   Services.prefs.setBoolPref("dom.security.https_first", false);
-  var expiry = Date.now() + 10000;
+  var expiry = (Date.now() + 1000) * 1000;
 
   // Test our handling of host names with a single character consisting only
   // of a single character

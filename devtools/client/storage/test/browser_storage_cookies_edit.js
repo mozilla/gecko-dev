@@ -22,11 +22,8 @@ add_task(async function () {
   id = getCookieId("newTest3", "test1.example.org", "/browser");
   await editCell(id, "path", "/");
 
-  const date = new Date();
-  date.setDate(date.getDate() + 8);
-
   id = getCookieId("newTest3", "test1.example.org", "/");
-  await editCell(id, "expires", date.toGMTString());
+  await editCell(id, "expires", "Tue, 14 Feb 2040 17:41:14 GMT");
   await editCell(id, "value", "newValue3");
   await editCell(id, "isSecure", "true");
   await editCell(id, "isHttpOnly", "true");

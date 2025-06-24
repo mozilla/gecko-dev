@@ -56,7 +56,7 @@ function* do_run_test() {
   Services.prefs.setIntPref("network.cookie.purgeAge", gPurgeAge);
   Services.prefs.setIntPref("network.cookie.maxNumber", 100);
 
-  let expiry = Date.now() + 1000 * 1000;
+  let expiry = Date.now() / 1000 + 1000;
 
   // eviction is performed based on two limits: when the total number of cookies
   // exceeds maxNumber + 10% (110), and when cookies are older than purgeAge
@@ -157,7 +157,7 @@ function* do_run_test() {
   // 6) Excess and age are satisfied, but the cookie limit can be satisfied by
   // purging expired cookies.
   Services.cookies.removeAll();
-  let shortExpiry = Date.now() + 1000 * gShortExpiry;
+  let shortExpiry = Math.floor(Date.now() / 1000) + gShortExpiry;
   if (!set_cookies(0, 20, shortExpiry)) {
     repeat_test();
     return;

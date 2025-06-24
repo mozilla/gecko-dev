@@ -18,7 +18,7 @@ function test() {
     false,
     false,
     true,
-    Date.now() + 1000 * 60,
+    Date.now() / 1000 + 60,
     {},
     Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTP

@@ -51,7 +51,7 @@ add_task(async () => {
 
   // Create a cookie object for testing.
   let now = Date.now() * 1000;
-  let futureExpiry = Math.round(now / 1e3 + 1000000);
+  let futureExpiry = Math.round(now / 1e6 + 1000);
   cookie = new Cookie(
     "oh",
     "hai",

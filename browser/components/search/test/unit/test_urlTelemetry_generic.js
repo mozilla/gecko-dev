@@ -198,7 +198,7 @@ const TESTS = [
         false,
         false,
         false,
-        Date.now() + 10 * 60 * 60 * 1000,
+        Math.round(Date.now() / 1000) + 10 * 60 * 60,
         {},
         Ci.nsICookie.SAMESITE_UNSET,
         Ci.nsICookie.SCHEME_HTTPS
@@ -237,7 +237,7 @@ const TESTS = [
         false,
         false,
         false,
-        Date.now() + 10 * 60 * 60 * 1000,
+        Math.round(Date.now() / 1000) + 10 * 60 * 60,
         {},
         Ci.nsICookie.SAMESITE_UNSET,
         Ci.nsICookie.SCHEME_HTTPS
@@ -277,7 +277,7 @@ const TESTS = [
         false,
         false,
         false,
-        Date.now() + 10 * 60 * 60 * 1000,
+        Math.round(Date.now() / 1000) + 10 * 60 * 60,
         {},
         Ci.nsICookie.SAMESITE_UNSET,
         Ci.nsICookie.SCHEME_HTTPS

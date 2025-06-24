@@ -41,13 +41,13 @@ conn.executeSimpleSQL("PRAGMA synchronous = OFF");
 conn.executeSimpleSQL("PRAGMA journal_mode = WAL");
 conn.executeSimpleSQL("PRAGMA wal_autocheckpoint = 16");
 
-let now = Date.now();
+let now = Math.round(Date.now() / 1000);
 conn.executeSimpleSQL(
   "INSERT INTO moz_cookies(" +
     "baseDomain, host, name, value, path, expiry, " +
     "lastAccessed, creationTime, isSecure, isHttpOnly) VALUES (" +
     "'foo.com', '.foo.com', 'foo', 'bar=baz', '/', " +
-    Math.round(now / 1000) +
+    now +
     ", " +
     now +
     ", " +
@@ -80,7 +80,7 @@ stmt = conn.createStatement(
     "      value = 'bar=baz' AND " +
     "      path = '/' AND " +
     "      expiry = " +
-    Math.round(now / 1000) * 1000 +
+    now +
     " AND " +
     "      lastAccessed = " +
     now +
