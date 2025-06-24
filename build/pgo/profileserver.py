@@ -5,14 +5,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import glob
-import json
 import os
 import subprocess
 import sys
 
 import mozcrash
 from mozbuild.base import BinaryNotFoundException, MozbuildObject
-from mozfile import TemporaryDirectory
+from mozfile import TemporaryDirectory, json
 from mozhttpd import MozHttpd
 from mozprofile import FirefoxProfile, Preferences
 from mozprofile.permissions import ServerLocations

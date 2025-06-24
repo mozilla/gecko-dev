@@ -18,6 +18,7 @@ import mozpack.path as mozpath
 from mozbuild.bootstrap import bootstrap_toolchain
 from mozbuild.dirutils import mkdir
 from mozbuild.frontend.sandbox import alphabetical_sorted
+from mozfile import json as mozfile_json
 
 license_header = """# This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -765,7 +766,7 @@ def generate_gn_config(
             raw_json = fh.read()
             raw_json = raw_json.replace(f"{target_dir}/", "")
             raw_json = raw_json.replace(f"{target_dir}:", ":")
-            gn_config = json.loads(raw_json)
+            gn_config = mozfile_json.loads(raw_json)
             gn_config = filter_gn_config(
                 resolved_tempdir,
                 gn_config,
@@ -794,7 +795,7 @@ def main():
         raise Exception("The GN program must be present to generate GN configs.")
 
     with open(args.config) as fh:
-        config = json.load(fh)
+        config = mozfile_json.load(fh)
 
     topsrcdir = Path(__file__).parent.parent.resolve()
 

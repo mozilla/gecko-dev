@@ -12,6 +12,7 @@ import unittest
 from io import StringIO
 
 from buildconfig import topobjdir, topsrcdir
+from mozfile import json
 from mozpack import path as mozpath
 
 from mozbuild.configure import ConfigureSandbox
@@ -120,7 +121,7 @@ class ConfigureTestSandbox(ConfigureSandbox):
 
     @memoized_property
     def _wrapped_mozfile(self):
-        return ReadOnlyNamespace(which=self.which)
+        return ReadOnlyNamespace(which=self.which, json=json)
 
     @memoized_property
     def _wrapped_os(self):

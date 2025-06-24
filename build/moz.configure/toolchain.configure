@@ -756,7 +756,7 @@ def check_compiler(configure_cache, compiler, language, target, android_version)
 
 
 @imports(_from="__builtin__", _import="open")
-@imports("json")
+@imports(_from="mozfile", _import="json")
 @imports("os")
 def get_vc_paths(host, topsrcdir):
     def vswhere(args):

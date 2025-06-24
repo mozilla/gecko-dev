@@ -7,11 +7,11 @@
 # run the Winchecksec tool (https://github.com/trailofbits/winchecksec)
 # against a given Windows binary.
 
-import json
 import subprocess
 import sys
 
 import buildconfig
+from mozfile import json
 
 # usage
 if len(sys.argv) != 2:

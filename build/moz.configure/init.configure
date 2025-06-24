@@ -28,7 +28,7 @@ def build_environment(_):
 
 
 @depends(build_environment)
-@imports(_import="json")
+@imports(_from="mozfile", _import="json")
 @imports(_from="pathlib", _import="Path")
 def configure_cache(build_environment):
     """
