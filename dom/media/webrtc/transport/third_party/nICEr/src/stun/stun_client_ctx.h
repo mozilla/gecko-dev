@@ -181,9 +181,6 @@ struct nr_stun_client_ctx_ {
   nr_stun_message *request;
   nr_stun_message *response;
   UINT2 error_code;
-  struct timeval request_time;
-  int rtt_valid;
-  INT8 rtt_ms;
 };
 
 int nr_stun_client_ctx_create(char *label, nr_socket *sock, nr_transport_addr *peer, UINT4 RTO, nr_stun_client_ctx **ctxp);

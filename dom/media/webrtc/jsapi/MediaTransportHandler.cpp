@@ -1387,9 +1387,6 @@ void MediaTransportHandlerSTS::GetIceStats(
     s.mLastPacketSentTimestamp.Construct(candPair.ms_since_last_send);
     s.mLastPacketReceivedTimestamp.Construct(candPair.ms_since_last_recv);
     s.mState.Construct(dom::RTCStatsIceCandidatePairState(candPair.state));
-    s.mResponsesReceived.Construct(candPair.responses_recvd);
-    s.mCurrentRoundTripTime.Construct(candPair.current_rtt_ms);
-    s.mTotalRoundTripTime.Construct(candPair.total_rtt_ms);
     s.mComponentId.Construct(candPair.component_id);
     if (!aStats->mIceCandidatePairStats.AppendElement(s, fallible)) {
       // XXX(Bug 1632090) Instead of extending the array 1-by-1 (which might

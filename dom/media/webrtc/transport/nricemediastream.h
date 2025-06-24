@@ -122,9 +122,6 @@ struct NrIceCandidatePair {
   uint64_t bytes_recvd;
   uint64_t ms_since_last_send;
   uint64_t ms_since_last_recv;
-  uint64_t responses_recvd;
-  uint64_t current_rtt_ms;
-  uint64_t total_rtt_ms;
 };
 
 class NrIceMediaStream {

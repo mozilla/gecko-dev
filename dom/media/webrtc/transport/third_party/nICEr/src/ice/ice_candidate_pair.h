@@ -68,9 +68,6 @@ struct nr_ice_cand_pair_ {
   UINT8 bytes_recvd;
   struct timeval last_sent;
   struct timeval last_recvd;
-  UINT8 responses_recvd;
-  UINT8 current_rtt_ms;
-  UINT8 total_rtt_ms;
 
   nr_stun_client_ctx *stun_client;    /* STUN context when acting as a client */
   void *stun_client_handle;
@@ -96,7 +93,6 @@ int nr_ice_candidate_pair_trigger_check_append(nr_ice_cand_pair_head *head,nr_ic
 void nr_ice_candidate_pair_restart_stun_nominated_cb(NR_SOCKET s, int how, void *cb_arg);
 int nr_ice_candidate_pair_destroy(nr_ice_cand_pair **pairp);
 void nr_ice_candidate_pair_role_change(nr_ice_cand_pair *pair);
-void nr_ice_candidate_pair_update_rtt(nr_ice_cand_pair *pair, UINT8 rtt_ms);
 
 #ifdef __cplusplus
 }

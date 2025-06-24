@@ -199,9 +199,6 @@ dictionary RTCIceCandidatePairStats : RTCStats {
   DOMHighResTimeStamp lastPacketSentTimestamp;
   DOMHighResTimeStamp lastPacketReceivedTimestamp;
   boolean selected;
-  double totalRoundTripTime;
-  double currentRoundTripTime;
-  unsigned long long responsesReceived;
   [ChromeOnly]
   unsigned long componentId; // moz
 };
