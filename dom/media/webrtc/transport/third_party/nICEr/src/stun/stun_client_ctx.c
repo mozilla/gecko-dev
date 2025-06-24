@@ -377,6 +377,11 @@ static int nr_stun_client_send_request(nr_stun_client_ctx *ctx)
 
     assert(ctx->my_addr.protocol==ctx->peer_addr.protocol);
 
+    // Set request_time on the initial request, not retransmissions. (mjf)
+    if (!ctx->retransmit_ct) {
+      gettimeofday(&ctx->request_time, 0);
+    }
+
     if(r=nr_socket_sendto(ctx->sock, ctx->request->buffer, ctx->request->length, 0, &ctx->peer_addr)) {
       if (r != R_WOULDBLOCK) {
         ABORT(r);
@@ -572,6 +577,18 @@ int nr_stun_client_process_response(nr_stun_client_ctx *ctx, UCHAR *msg, int len
     if ((r=nr_stun_receive_message(ctx->request, ctx->response))) {
         r_log(NR_LOG_STUN,LOG_DEBUG,"STUN-CLIENT(%s): Response is not for us",ctx->label);
         ABORT(r);
+    }
+
+    if (!ctx->rtt_valid) {
+      struct timeval now;
+      gettimeofday(&now, 0);
+      INT8 ms_rtt = 0;
+      if (!r_timeval_diff_ms(&now, &ctx->request_time, &ms_rtt)) {
+          /* It would be great if we had access to std::optional here instead
+             of using a "boolean" to indicate validity. */
+          ctx->rtt_valid = 1;
+          ctx->rtt_ms = ms_rtt;
+      }
     }
 
     r_log(NR_LOG_STUN,LOG_INFO,
