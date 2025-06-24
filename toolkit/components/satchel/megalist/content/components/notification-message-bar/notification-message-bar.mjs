@@ -389,7 +389,6 @@ class NotificationMessageBar extends MozLitElement {
       case "login-already-exists-warning":
         return this.#renderAddLoginAlreadyExistsWarning();
       case "update-login-success":
-      case "update-username-success":
         return this.#renderUpdateLoginSuccess(this.notification?.id);
       case "delete-login-success":
         return this.#renderDeleteLoginSuccess();
