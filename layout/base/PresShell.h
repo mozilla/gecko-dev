@@ -3218,11 +3218,6 @@ class PresShell final : public nsStubDocumentObserver,
   // our <body> background and scrollbars.
   nsCOMPtr<nsITimer> mPaintSuppressionTimer;
 
-  // Information about live content (which still stay in DOM tree).
-  // Used in case we need re-dispatch event after sending pointer event,
-  // when target of pointer event was deleted during executing user handlers.
-  nsCOMPtr<nsIContent> mPointerEventTarget;
-
   nsCOMPtr<nsIContent> mLastAnchorScrolledTo;
 
   // Text directives are supposed to be scrolled to the center of the viewport.
