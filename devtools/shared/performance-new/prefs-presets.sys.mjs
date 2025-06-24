@@ -177,6 +177,29 @@ export const presets = {
       },
     },
   },
+  ml: {
+    entries: 128 * 1024 * 1024,
+    interval: 1,
+    features: ["js", "stackwalk", "cpu", "ipcmessages", "processcpu", "memory"],
+    threads: [
+      "BackgroundThreadPool",
+      "DOM Worker",
+      "GeckoMain",
+      "IPDL Background",
+      "onnx_worker",
+    ],
+    duration: 0,
+    l10nIds: {
+      popup: {
+        label: "profiler-popup-presets-ml-label",
+        description: "profiler-popup-presets-ml-description",
+      },
+      devtools: {
+        label: "perftools-presets-ml-label",
+        description: "perftools-presets-ml-description",
+      },
+    },
+  },
   networking: {
     entries: 128 * 1024 * 1024,
     interval: 1,

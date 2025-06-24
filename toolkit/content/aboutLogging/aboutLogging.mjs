@@ -159,6 +159,15 @@ const gLoggingPresets = {
     // We could add an extra preset for that if we miss it.
     profilerPreset: "graphics",
   },
+  ml: {
+    modules:
+      "GeckoMLEngineParent:4,GeckoMLEngineChild:4,GeckoMLUtils:4,GeckoMLUtils:4,GeckoMLModelHub:4,GeckoMLONNXPipeline:4,GeckoMLOPFS:4,GeckoMLEmbeddingsGenerator:4,GeckoML:4,GeckoMLONNXNative:4",
+    l10nIds: {
+      label: "about-logging-preset-ml-label",
+      description: "about-logging-preset-ml-description",
+    },
+    profilerPreset: "ml",
+  },
   ...gOsSpecificLoggingPresets,
   custom: {
     modules: "",

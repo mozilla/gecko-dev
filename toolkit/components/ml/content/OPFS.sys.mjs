@@ -12,7 +12,7 @@ const ES_MODULES_OPTIONS = IN_WORKER ? { global: "current" } : {};
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
   return console.createInstance({
     maxLogLevelPref: IN_WORKER ? "Error" : "browser.ml.logLevel",
-    prefix: "ML:OPFS",
+    prefix: "GeckoMLOPFS",
   });
 });
 

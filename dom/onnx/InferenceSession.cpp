@@ -23,7 +23,7 @@
 #include "nsString.h"
 #include "mozilla/dom/Tensor.h"
 #include "mozilla/Attributes.h"
-mozilla::LazyLogModule gONNXLog("ONNXNative");
+mozilla::LazyLogModule gONNXLog("GeckoMLONNXNative");
 #define LOGV(fmt, ...) \
   MOZ_LOG_FMT(gONNXLog, LogLevel::Verbose, fmt, ##__VA_ARGS__)
 #define LOGD(fmt, ...) \
