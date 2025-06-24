@@ -483,6 +483,12 @@ export class NetworkObserver {
       // Retrieve or create the http activity.
       const httpActivity = this.#createOrGetActivityObject(channel);
 
+      // Preserve the initial responseStatus which can be modified over the
+      // course of the network request, especially for 304 Not Modified channels
+      // which will be replaced by the original 200 channel from the cache.
+      // (this is the correct behavior according to the fetch spec).
+      httpActivity.responseStatus = httpActivity.channel.responseStatus;
+
       if (topic === "http-on-examine-cached-response") {
         this.#handleExamineCachedResponse(httpActivity);
       } else if (topic === "http-on-failed-opening-request") {

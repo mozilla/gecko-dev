@@ -356,30 +356,6 @@ function isFromCache(channel) {
   return false;
 }
 
-const REDIRECT_STATES = [
-  301, // HTTP Moved Permanently
-  302, // HTTP Found
-  303, // HTTP See Other
-  307, // HTTP Temporary Redirect
-];
-/**
- * Check if the channel's status corresponds to a known redirect status.
- *
- * @param {nsIChannel} channel
- *     The channel for which we need to check the redirect status.
- *
- * @returns {boolean}
- *     True if the channel data is a redirect, false otherwise.
- */
-function isRedirectedChannel(channel) {
-  try {
-    return REDIRECT_STATES.includes(channel.responseStatus);
-  } catch (e) {
-    // Throws NS_ERROR_NOT_AVAILABLE if the request was not sent yet.
-  }
-  return false;
-}
-
 /**
  * isNavigationRequest is true for the one request used to load a new top level
  * document of a given tab, or top level window. It will typically be false for
@@ -852,7 +828,6 @@ export const NetworkUtils = {
   isFromCache,
   isNavigationRequest,
   isPreloadRequest,
-  isRedirectedChannel,
   isThirdPartyTrackingResource,
   matchRequest,
   NETWORK_EVENT_TYPES,

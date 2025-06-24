@@ -466,13 +466,7 @@ export class NetworkResponseListener {
     // Remove our listener from the request input stream.
     this.setAsyncListener(this.#sink.inputStream, null);
 
-    let responseStatus;
-    try {
-      responseStatus = this.#httpActivity.channel.responseStatus;
-    } catch (e) {
-      // Will throw NS_ERROR_NOT_AVAILABLE if the response has not been received
-      // yet.
-    }
+    const responseStatus = this.#httpActivity.responseStatus;
     if (this.#request.fromCache || responseStatus == 304) {
       this.#fetchCacheInformation();
     }

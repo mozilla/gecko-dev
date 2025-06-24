@@ -3,10 +3,35 @@
 
 "use strict";
 
-const CACHE_TEST_URL = EXAMPLE_URL + "html_cache-test-page.html";
-
 // Test the cache details panel.
 add_task(async function () {
+  let isCacheReady = false;
+  const httpServer = createTestHTTPServer();
+  httpServer.registerContentType("html", "text/html");
+
+  httpServer.registerPathHandler(`/`, function (request, response) {
+    response.setStatusLine(request.httpVersion, 200, "OK");
+    response.write(`
+      <html>Test page for regular 304 requests</html>`);
+  });
+
+  httpServer.registerPathHandler(`/cached`, function (request, response) {
+    if (isCacheReady) {
+      response.setStatusLine(request.httpVersion, 304, "Not Modified");
+    } else {
+      response.setStatusLine(request.httpVersion, 200, "OK");
+      response.setHeader("Content-Type", "text/plain");
+      response.setHeader("Cache-Control", "no-cache");
+      response.write(`cached`);
+      // Flip the isCachedReady flag so that the next call will hit the 304
+      // branch and the browser can reuse the cached response.
+      isCacheReady = true;
+    }
+  });
+
+  const port = httpServer.identity.primaryPort;
+  const CACHE_TEST_URL = `http://localhost:${port}/`;
+
   const { monitor } = await initNetMonitor(CACHE_TEST_URL, {
     enableCache: true,
     requestCount: 1,
@@ -18,7 +43,7 @@ add_task(async function () {
   info("Create a 200 request");
   let waitForRequest = waitForNetworkEvents(monitor, 1);
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
-    content.wrappedJSObject.sendRequestWithStatus("200");
+    content.fetch("/cached");
   });
   await waitForRequest;
 
@@ -33,7 +58,7 @@ add_task(async function () {
   info("Create a 304 request");
   waitForRequest = waitForNetworkEvents(monitor, 1);
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
-    content.wrappedJSObject.sendRequestWithStatus("304");
+    content.fetch("/cached");
   });
   await waitForRequest;
 

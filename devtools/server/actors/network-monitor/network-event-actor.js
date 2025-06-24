@@ -29,6 +29,13 @@ ChromeUtils.defineESModuleGetters(
 
 const CONTENT_TYPE_REGEXP = /^content-type/i;
 
+const REDIRECT_STATES = [
+  301, // HTTP Moved Permanently
+  302, // HTTP Found
+  303, // HTTP See Other
+  307, // HTTP Temporary Redirect
+];
+
 function isDataChannel(channel) {
   return channel instanceof Ci.nsIDataChannel;
 }
@@ -525,6 +532,14 @@ class NetworkEventActor extends Actor {
       return;
     }
 
+    // Avoid reading responseStatus and responseStatusText dynamically from
+    // the channel as much as possible. In some cases, eg 304 Not Modified, the
+    // channel is dynamically replaced with the original channel and we lose the
+    // original information about the channel status as the request progresses.
+    // Reading this synchronously in this method is fine, but we extract them as
+    // separate variables here to bring some attention to this issue.
+    const { responseStatus, responseStatusText } = channel;
+
     fromCache = fromCache || lazy.NetworkUtils.isFromCache(channel);
     const isDataOrFile = isDataChannel(channel) || isFileChannel(channel);
 
@@ -555,8 +570,8 @@ class NetworkEventActor extends Actor {
       this._earlyHintsResponse.rawHeaders = earlyHintsResponseRawHeaders;
     }
 
-    // Discard the response body for known response statuses.
-    if (lazy.NetworkUtils.isRedirectedChannel(channel)) {
+    // Discard the response body for known redirect response statuses.
+    if (REDIRECT_STATES.includes(responseStatus)) {
       this._discardResponseBody = true;
     }
 
@@ -592,8 +607,8 @@ class NetworkEventActor extends Actor {
       mimeType,
       remoteAddress: fromCache ? "" : channel.remoteAddress,
       remotePort: fromCache ? "" : channel.remotePort,
-      status: isDataOrFile ? "200" : channel.responseStatus + "",
-      statusText: isDataOrFile ? "0K" : channel.responseStatusText,
+      status: isDataOrFile ? "200" : responseStatus + "",
+      statusText: isDataOrFile ? "0K" : responseStatusText,
       earlyHintsStatus: earlyHintsResponseRawHeaders ? "103" : "",
       waitingTime,
       isResolvedByTRR: channel.isResolvedByTRR,
