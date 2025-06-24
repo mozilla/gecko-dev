@@ -3996,6 +3996,25 @@
       }
     ]
   },
+  "1969245": {
+    "label": "www.wills-vegan-store.com",
+    "bugs": {
+      "1969245": {
+        "issue": "broken-images",
+        "matches": ["*://www.wills-vegan-store.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": [
+            "bug1969245-www.wills-vegan-store.com-unhide-product-images.css"
+          ]
+        }
+      }
+    ]
+  },
   "1972511": {
     "label": "cmyportal.tkc.co.jp",
     "bugs": {
