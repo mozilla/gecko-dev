@@ -40,6 +40,9 @@ skip-if = [
 ]
 
 ["test_group_displayport.html"]
+support-files = [
+  "slow_content.sjs",
+]
 
 ["test_group_double_tap_zoom-2.html"]
 run-if = [ # FIXME: enable on more desktop platforms (see bug 1608506 comment 4)

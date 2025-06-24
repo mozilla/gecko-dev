@@ -2571,6 +2571,8 @@ void PresShell::MaybeReleaseCapturingContent() {
 void PresShell::BeginLoad(Document* aDocument) {
   mDocumentLoading = true;
 
+  SuppressDisplayport(true);
+
   gfxTextPerfMetrics* tp = nullptr;
   if (mPresContext) {
     tp = mPresContext->GetTextPerfMetrics();
@@ -2592,6 +2594,7 @@ void PresShell::BeginLoad(Document* aDocument) {
 void PresShell::EndLoad(Document* aDocument) {
   MOZ_ASSERT(aDocument == mDocument, "Wrong document");
 
+  SuppressDisplayport(false);
   RestoreRootScrollPosition();
 
   mDocumentLoading = false;

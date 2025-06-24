@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html id="html">
+<title>Test for displayport supression is stopped by wheel scroll</title>
+<meta charset="utf-8">
+<script src="apz_test_utils.js"></script>
+<script src="apz_test_native_event_utils.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<script src="/tests/SimpleTest/paint_listener.js"></script>
+<style>
+iframe {
+  width: 500px;
+  height: 500px;
+  border: none;
+}
+</style>
+<body>
+<iframe></iframe>
+</body>
+<script>
+async function test() {
+  const readyPromise = new Promise(resolve => {
+    window.addEventListener("message", event => {
+      if (event.data === "ready") {
+        resolve();
+      }
+    });
+  });
+
+  // Load the iframe content that loading it will take 3s.
+  const iframe = document.querySelector("iframe");
+  iframe.src = "slow_content.sjs";
+  await readyPromise;
+
+  await promiseApzFlushedRepaints();
+
+  // Scroll the iframe content by mouse wheel.
+  const scrollPromise = new Promise(resolve => {
+    iframe.contentWindow.addEventListener("scroll", resolve);
+  });
+  await synthesizeNativeWheel(iframe.contentWindow, 50, 50, 0, -50);
+  await scrollPromise;
+
+  await promiseApzFlushedRepaints();
+
+  const displayport =
+    getLastContentDisplayportFor(iframe.contentDocument.documentElement.id);
+  isfuzzy(displayport.width, iframe.contentWindow.innerWidth,  1,
+     "The displayport width should equal to the window visible area " +
+     "because it's not horizontally scrollable");
+  ok(displayport.height - iframe.contentWindow.innerHeight > 1,
+    `Now the displayport height ${displayport.height} should be bigger
+      than window visible area ${iframe.contentWindow.innerHeight}`);
+}
+
+waitUntilApzStable()
+.then(test)
+.then(subtestDone, subtestFailed);
+</script>
+</html>

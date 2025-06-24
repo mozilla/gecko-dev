@@ -715,6 +715,12 @@ static bool PrepareForSetTargetAPZCNotification(
   if (!guidIsValid) {
     return false;
   }
+
+  // Stop suppressing displayport while the page is still loading.
+  if (MOZ_UNLIKELY(aRootFrame->PresShell()->IsDocumentLoading())) {
+    aRootFrame->PresShell()->SuppressDisplayport(false);
+  }
+
   if (DisplayPortUtils::HasNonMinimalNonZeroDisplayPort(dpElement)) {
     // If the element has a displayport but it hasn't been painted yet,
     // we want the caller to wait for the paint to happen, but we don't
