@@ -38,11 +38,16 @@ LoadContext::LoadContext(OriginAttributes& aAttrs)
       mIsContent(false),
       mUseRemoteTabs(false),
       mUseRemoteSubframes(false),
-      mUseTrackingProtection(false),
 #ifdef DEBUG
       mIsNotNull(true),
 #endif
       mOriginAttributes(aAttrs) {
+  // This constructor does not have a base load context, so we need to decide
+  // the mUseTrackingProtection based on prefs.
+  mUseTrackingProtection =
+      StaticPrefs::privacy_trackingprotection_enabled() ||
+      (UsePrivateBrowsing() &&
+       StaticPrefs::privacy_trackingprotection_pbmode_enabled());
 }
 
 LoadContext::LoadContext(nsIPrincipal* aPrincipal,
@@ -57,6 +62,12 @@ LoadContext::LoadContext(nsIPrincipal* aPrincipal,
 #endif
       mOriginAttributes(aPrincipal->OriginAttributesRef()) {
   if (!aOptionalBase) {
+    // Fallback to prefs to determine if tracking protection is enabled.
+    mUseTrackingProtection =
+        StaticPrefs::privacy_trackingprotection_enabled() ||
+        (UsePrivateBrowsing() &&
+         StaticPrefs::privacy_trackingprotection_pbmode_enabled());
+
     return;
   }
 

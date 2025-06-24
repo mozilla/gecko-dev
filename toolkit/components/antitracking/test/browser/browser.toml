@@ -374,5 +374,14 @@ support-files = ["file_stripping.html"]
 
 ["browser_viewsource_localhost_request.js"]
 
+["browser_workerFetch_trackingProtection.js"]
+support-files = [
+  "corsAllowed.html",
+  "corsAllowed.html^headers^",
+  "sharedWorkerFetch.js",
+  "serviceWorkerFetch.js",
+  "workerFetch.js",
+]
+
 ["browser_workerPropagation.js"]
 support-files = ["workerIframe.html"]
