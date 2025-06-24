@@ -431,7 +431,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   static bool IsMediumAlloc(void* alloc);
 
   void* allocMedium(size_t bytes, bool nurseryOwned, bool inGC);
-  void* bumpAllocOrRetry(size_t requestedBytes, size_t sizeClass, bool inGC);
+  void* retryBumpAlloc(size_t requestedBytes, size_t sizeClass, bool inGC);
   void* bumpAlloc(size_t bytes, size_t sizeClass);
   void* allocFromRegion(FreeRegion* region, size_t bytes, size_t sizeClass);
   void updateFreeListsAfterAlloc(FreeLists* freeLists, FreeRegion* region,

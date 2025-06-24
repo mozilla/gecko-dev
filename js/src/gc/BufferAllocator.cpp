@@ -1661,9 +1661,12 @@ void* BufferAllocator::allocMedium(size_t bytes, bool nurseryOwned, bool inGC) {
   // Get size class from |bytes|.
   size_t sizeClass = SizeClassForAlloc(bytes);
 
-  void* alloc = bumpAllocOrRetry(bytes, sizeClass, inGC);
-  if (!alloc) {
-    return nullptr;
+  void* alloc = bumpAlloc(bytes, sizeClass);
+  if (MOZ_UNLIKELY(!alloc)) {
+    alloc = retryBumpAlloc(bytes, sizeClass, inGC);
+    if (!alloc) {
+      return nullptr;
+    }
   }
 
   BufferChunk* chunk = BufferChunk::from(alloc);
@@ -1693,18 +1696,14 @@ void* BufferAllocator::allocMedium(size_t bytes, bool nurseryOwned, bool inGC) {
   return alloc;
 }
 
-void* BufferAllocator::bumpAllocOrRetry(size_t bytes, size_t sizeClass,
-                                        bool inGC) {
-  void* ptr = bumpAlloc(bytes, sizeClass);
-  if (ptr) {
-    return ptr;
-  }
-
+MOZ_NEVER_INLINE void* BufferAllocator::retryBumpAlloc(size_t bytes,
+                                                       size_t sizeClass,
+                                                       bool inGC) {
   if (hasMinorSweepDataToMerge) {
     // Avoid taking the lock unless we know there is data to merge. This reduces
     // context switches.
     mergeSweptData();
-    ptr = bumpAlloc(bytes, sizeClass);
+    void* ptr = bumpAlloc(bytes, sizeClass);
     if (ptr) {
       return ptr;
     }
@@ -1714,7 +1713,7 @@ void* BufferAllocator::bumpAllocOrRetry(size_t bytes, size_t sizeClass,
     return nullptr;
   }
 
-  ptr = bumpAlloc(bytes, sizeClass);
+  void* ptr = bumpAlloc(bytes, sizeClass);
   MOZ_ASSERT(ptr);
   return ptr;
 }
