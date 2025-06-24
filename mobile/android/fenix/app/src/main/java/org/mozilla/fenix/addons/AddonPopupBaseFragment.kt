@@ -117,16 +117,21 @@ abstract class AddonPopupBaseFragment : Fragment(), EngineSession.Observer, User
                 customFirstPartyDownloadDialog = { filename, contentSize, positiveAction, negativeAction ->
                     run {
                         if (downloadDialog == null) {
-                            val contentSizeInBytes =
-                                requireComponents.core.fileSizeFormatter.formatSizeInBytes(contentSize.value)
+                            val title = if (contentSize.value > 0L) {
+                                val contentSizeInBytes =
+                                    requireComponents.core.fileSizeFormatter.formatSizeInBytes(
+                                        contentSize.value,
+                                    )
+                                getString(
+                                    R.string.mozac_feature_downloads_dialog_title_3,
+                                    contentSizeInBytes,
+                                )
+                            } else {
+                                getString(R.string.mozac_feature_downloads_dialog_title_with_unknown_size)
+                            }
 
                             downloadDialog = AlertDialog.Builder(requireContext())
-                                .setTitle(
-                                    getString(
-                                        R.string.mozac_feature_downloads_dialog_title_3,
-                                        contentSizeInBytes,
-                                    ),
-                                )
+                                .setTitle(title)
                                 .setMessage(filename.value)
                                 .setPositiveButton(R.string.mozac_feature_downloads_dialog_download) { dialog, _ ->
                                     positiveAction.value.invoke()
