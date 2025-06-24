@@ -376,6 +376,7 @@ class RelevancyManager {
       ) ??
       false
     ) {
+      await this.#storeManager.store.ensureInterestDataPopulated();
       interestVector = await this.#storeManager.store.ingest(urls);
     }
 
