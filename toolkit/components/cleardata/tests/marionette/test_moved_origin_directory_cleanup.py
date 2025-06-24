@@ -47,7 +47,7 @@ class MovedOriginDirectoryCleanupTestCase(MarionetteTestCase):
                     false,
                     false,
                     false,
-                    Math.floor(Date.now() / 1000) + 24 * 60 * 60,
+                    Date.now() + 1000 * 24 * 60 * 60,
                     {},
                     Ci.nsICookie.SAMESITE_UNSET,
                     Ci.nsICookie.SCHEME_UNSET

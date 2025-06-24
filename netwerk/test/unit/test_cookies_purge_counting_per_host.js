@@ -17,8 +17,8 @@ add_task(async function test_purge_counting_per_host() {
   let schema12db = new CookieDatabaseConnection(dbFile, 12);
 
   let now = Date.now() * 1000; // date in microseconds
-  let pastExpiry = Math.round(now / 1e6 - 1000);
-  let futureExpiry = Math.round(now / 1e6 + 1000);
+  let pastExpiry = Math.round(now / 1e3 - 1000);
+  let futureExpiry = Math.round(now / 1e3 + 1000);
 
   let host = "cookie-host1.com";
 

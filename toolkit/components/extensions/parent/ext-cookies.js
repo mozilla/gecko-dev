@@ -162,7 +162,7 @@ const convertCookie = ({ cookie, isPrivate }) => {
   };
 
   if (!cookie.isSession) {
-    result.expirationDate = cookie.expiry;
+    result.expirationDate = cookie.expiry / 1000;
   }
 
   if (cookie.originAttributes.userContextId) {
@@ -608,7 +608,7 @@ this.cookies = class extends ExtensionAPIPersistent {
             );
             for (let i = 0; i < cookieArray.length; i++) {
               let cookie = cookieArray.queryElementAt(i, Ci.nsICookie);
-              if (!cookie.isSession && cookie.expiry * 1000 <= Date.now()) {
+              if (!cookie.isSession && cookie.expiry <= Date.now()) {
                 notify(true, cookie, "expired");
               } else {
                 notify(true, cookie, "evicted");
@@ -695,16 +695,15 @@ this.cookies = class extends ExtensionAPIPersistent {
           let secure = details.secure !== null ? details.secure : false;
           let httpOnly = details.httpOnly !== null ? details.httpOnly : false;
           let isSession = details.expirationDate === null;
+
+          // expiry is in milliseconds.
           let expiry = isSession
             ? Number.MAX_SAFE_INTEGER
-            : details.expirationDate;
+            : details.expirationDate * 1000;
 
           // maxage cap for expiry
           if (gCookiesMaxageCap > 0) {
-            expiry = Math.min(
-              expiry,
-              Math.round(Date.now() / 1000) + gCookiesMaxageCap
-            );
+            expiry = Math.min(expiry, Date.now() + gCookiesMaxageCap * 1000);
           }
 
           let { originAttributes } = oaFromDetails(details, context);

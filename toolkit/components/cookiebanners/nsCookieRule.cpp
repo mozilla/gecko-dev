@@ -91,8 +91,8 @@ NS_IMETHODIMP nsCookieRule::GetCookie(nsICookie** aCookie) {
   cookieNative->SetCreationTime(
       net::Cookie::GenerateUniqueCreationTime(currentTimeInUsec));
   cookieNative->SetLastAccessed(currentTimeInUsec);
-  cookieNative->SetExpiry((currentTimeInUsec / PR_USEC_PER_SEC) +
-                          mExpiryRelative);
+  cookieNative->SetExpiry((currentTimeInUsec / PR_USEC_PER_MSEC) +
+                          mExpiryRelative * PR_MSEC_PER_SEC);
 
   cookieNative.forget(aCookie);
   return NS_OK;

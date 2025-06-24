@@ -167,12 +167,15 @@ cookie.add = function (
   if (typeof newCookie.httpOnly == "undefined") {
     newCookie.httpOnly = false;
   }
+
   if (typeof newCookie.expiry == "undefined") {
     // The XPCOM interface requires the expiry field even for session cookies.
     newCookie.expiry = Number.MAX_SAFE_INTEGER;
     newCookie.session = true;
   } else {
     newCookie.session = false;
+    // Gecko expects the expiry value to be in milliseconds, WebDriver uses seconds.
+    newCookie.expiry *= 1000;
   }
 
   let sameSite = [...SAMESITE_MAP].find(
@@ -309,7 +312,8 @@ cookie.iter = function* (host, currentPath = "/") {
         };
 
         if (!cookie.isSession) {
-          data.expiry = cookie.expiry;
+          // Internally expiry is in ms, WebDriver expects seconds.
+          data.expiry = Math.round(cookie.expiry / 1000);
         }
 
         data.sameSite = SAMESITE_MAP.get(cookie.sameSite) || "None";
