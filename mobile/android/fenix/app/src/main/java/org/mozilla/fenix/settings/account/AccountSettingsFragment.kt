@@ -24,6 +24,7 @@ import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
+import mozilla.appservices.syncmanager.SyncTelemetry
 import mozilla.components.concept.sync.AccountObserver
 import mozilla.components.concept.sync.ConstellationState
 import mozilla.components.concept.sync.DeviceConstellationObserver
@@ -88,7 +89,33 @@ class AccountSettingsFragment : PreferenceFragmentCompat() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SyncTelemetry.processOpenSyncSettingsMenuTelemetry()
         SyncAccount.opened.record(NoExtras())
+    }
+
+    override fun onStop() {
+        super.onStop()
+        val allEngines = listOf(
+            SyncEngine.Bookmarks,
+            SyncEngine.Addresses,
+            SyncEngine.CreditCards,
+            SyncEngine.History,
+            SyncEngine.Passwords,
+            SyncEngine.Tabs,
+        )
+        val enabledEngines = mutableListOf<String>()
+        val disabledEngines = mutableListOf<String>()
+        val syncEnginesStatus = SyncEnginesStorage(requireContext()).getStatus()
+        for (syncEngine in allEngines) {
+            if (syncEnginesStatus.containsKey(syncEngine)) {
+                if (syncEnginesStatus.getOrElse(syncEngine) { true }) {
+                    enabledEngines.add(syncEngine.nativeName)
+                } else {
+                    disabledEngines.add(syncEngine.nativeName)
+                }
+            }
+        }
+        SyncTelemetry.processSaveSyncSettingsTelemetry(enabledEngines, disabledEngines)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

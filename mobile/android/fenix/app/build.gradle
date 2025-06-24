@@ -559,6 +559,8 @@ dependencies {
 
     implementation libs.thirdparty.sentry
 
+    implementation ComponentsDependencies.mozilla_appservices_syncmanager
+
     implementation project(':components:compose-awesomebar')
     implementation project(':components:compose-base')
     implementation project(':components:compose-browser-toolbar')
