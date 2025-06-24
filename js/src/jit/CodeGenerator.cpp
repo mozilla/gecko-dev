@@ -17464,17 +17464,21 @@ void CodeGenerator::visitGetNameCache(LGetNameCache* ins) {
   addIC(ins, allocateIC(ic));
 }
 
+static bool IsConstantNonIndexString(const ConstantOrRegister& id) {
+  if (!id.constant() || !id.value().isString()) {
+    return false;
+  }
+  return !id.value().toString()->asOffThreadAtom().isIndex();
+}
+
 void CodeGenerator::addGetPropertyCache(LInstruction* ins,
                                         LiveRegisterSet liveRegs,
                                         TypedOrValueRegister value,
                                         const ConstantOrRegister& id,
                                         ValueOperand output) {
   CacheKind kind = CacheKind::GetElem;
-  if (id.constant() && id.value().isString()) {
-    JSString* idString = id.value().toString();
-    if (idString->isAtom() && !idString->asAtom().isIndex()) {
-      kind = CacheKind::GetProp;
-    }
+  if (IsConstantNonIndexString(id)) {
+    kind = CacheKind::GetProp;
   }
   IonGetPropertyIC cache(kind, liveRegs, value, id, output);
   addIC(ins, allocateIC(cache));
@@ -17487,11 +17491,8 @@ void CodeGenerator::addSetPropertyCache(LInstruction* ins,
                                         const ConstantOrRegister& value,
                                         bool strict) {
   CacheKind kind = CacheKind::SetElem;
-  if (id.constant() && id.value().isString()) {
-    JSString* idString = id.value().toString();
-    if (idString->isAtom() && !idString->asAtom().isIndex()) {
-      kind = CacheKind::SetProp;
-    }
+  if (IsConstantNonIndexString(id)) {
+    kind = CacheKind::SetProp;
   }
   IonSetPropertyIC cache(kind, liveRegs, objReg, temp, id, value, strict);
   addIC(ins, allocateIC(cache));
@@ -17535,11 +17536,8 @@ void CodeGenerator::visitGetPropSuperCache(LGetPropSuperCache* ins) {
   ValueOperand output = ToOutValue(ins);
 
   CacheKind kind = CacheKind::GetElemSuper;
-  if (id.constant() && id.value().isString()) {
-    JSString* idString = id.value().toString();
-    if (idString->isAtom() && !idString->asAtom().isIndex()) {
-      kind = CacheKind::GetPropSuper;
-    }
+  if (IsConstantNonIndexString(id)) {
+    kind = CacheKind::GetPropSuper;
   }
 
   IonGetPropSuperIC cache(kind, liveRegs, obj, receiver, id, output);
