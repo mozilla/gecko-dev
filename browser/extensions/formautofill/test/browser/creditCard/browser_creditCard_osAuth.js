@@ -27,27 +27,19 @@ add_setup(async function () {
  */
 add_task(async function test_os_auth_enabled_with_checkbox() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
+  FormAutofillUtils.setOSAuthEnabled(true);
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: PAGE_PRIVACY },
     async function (browser) {
       await finalPrefPaneLoaded;
 
-      await SpecialPowers.spawn(
-        browser,
-        [SELECTORS, AppConstants.NIGHTLY_BUILD],
-        async (selectors, isNightly) => {
-          is(
-            content.document.querySelector(selectors.reauthCheckbox).checked,
-            isNightly,
-            "OSReauth for credit cards should be checked"
-          );
-        }
-      );
-      is(
-        FormAutofillUtils.getOSAuthEnabled(),
-        AppConstants.NIGHTLY_BUILD,
-        "OSAuth should be enabled."
-      );
+      await SpecialPowers.spawn(browser, [SELECTORS], async selectors => {
+        ok(
+          content.document.querySelector(selectors.reauthCheckbox).checked,
+          "OSReauth for credit cards should be checked"
+        );
+      });
+      ok(FormAutofillUtils.getOSAuthEnabled(), "OSAuth should be enabled.");
     }
   );
 });
