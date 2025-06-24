@@ -53,14 +53,8 @@ static void moz_gtk_window_decoration_paint(cairo_t* cr,
     // Doesn't seem to be needed.
     return;
   }
-  GtkStyleContext* windowStyle =
-      GetStyleContext(MOZ_GTK_HEADERBAR_WINDOW, aParams.image_scale);
-  const bool solidDecorations =
-      gtk_style_context_has_class(windowStyle, "solid-csd");
-  GtkStyleContext* decorationStyle =
-      GetStyleContext(solidDecorations ? MOZ_GTK_WINDOW_DECORATION_SOLID
-                                       : MOZ_GTK_WINDOW_DECORATION,
-                      aParams.image_scale, aParams.state);
+  GtkStyleContext* decorationStyle = GetStyleContext(
+      MOZ_GTK_WINDOW_DECORATION, aParams.image_scale, aParams.state);
 
   const auto& rect = aParams.rect;
   gtk_render_background(decorationStyle, cr, rect.x, rect.y, rect.width,
