@@ -490,19 +490,16 @@ void HTMLButtonElement::GetCommand(nsAString& aValue) const {
 }
 
 Element::Command HTMLButtonElement::GetCommand(nsAtom* aAtom) const {
-  if (aAtom == nsGkAtoms::_empty) {
-    return Command::Auto;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::showpopover)) {
+  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::show_popover)) {
     return Command::ShowPopover;
   }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::hidepopover)) {
+  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::hide_popover)) {
     return Command::HidePopover;
   }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::togglepopover)) {
+  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::toggle_popover)) {
     return Command::TogglePopover;
   }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::showmodal)) {
+  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::show_modal)) {
     return Command::ShowModal;
   }
   if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::toggle)) {
