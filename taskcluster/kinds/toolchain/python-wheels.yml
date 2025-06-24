@@ -50,6 +50,18 @@ linux64-2404-dbus-python:
     worker:
         docker-image: {in-tree: ubuntu2404-build-python-wheels}
 
+linux64-aarch64-2404-dbus-python:
+    treeherder:
+        symbol: TL(py3.12-arm64-dbus-python)
+    fetches:
+        fetch:
+            - dbus-python-1.3.2
+    run:
+        toolchain-artifact: public/build/dbus_python-1.3.2-cp312-cp312-linux_aarch64.whl
+    worker:
+        docker-image: {in-tree: ubuntu2404-arm64-build-python-wheels}
+    worker-type: images-gcp-aarch64
+
 linux-python-dbusmock:
     treeherder:
         symbol: TL(py-python-dbusmock)

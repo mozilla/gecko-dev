@@ -29,6 +29,17 @@ linux64-minidump-stackwalk:
             - linux64-rust-toolchain
             - sysroot-x86_64-linux-gnu
 
+linux64-aarch64-minidump-stackwalk:
+    treeherder:
+        symbol: TLA64(stackwalk)
+    run:
+        arguments: ['aarch64-unknown-linux-gnu']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-rust-toolchain
+            - sysroot-aarch64-linux-gnu
+
 macosx64-minidump-stackwalk:
     treeherder:
         symbol: TM(stackwalk)
