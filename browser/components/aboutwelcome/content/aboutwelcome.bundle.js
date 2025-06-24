@@ -996,17 +996,6 @@ const MultiStageProtonScreen = props => {
     // Clear narrow attribute in case it was set by a previous screen
     document.querySelector("#multi-stage-message-root")?.removeAttribute("narrow");
   }
-  function useMediaQuery(query) {
-    const [doesMatch, setDoesMatch] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(() => window.matchMedia(query).matches);
-    (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-      const mediaQueryList = window.matchMedia(query);
-      const onChange = event => setDoesMatch(event.matches);
-      mediaQueryList.addEventListener("change", onChange);
-      return () => mediaQueryList.removeEventListener("change", onChange);
-    }, [query]);
-    return doesMatch;
-  }
-  const isWideScreen = useMediaQuery("(min-width: 800px)");
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(ProtonScreen, {
     content: props.content,
     id: props.id,
@@ -1038,8 +1027,7 @@ const MultiStageProtonScreen = props => {
     langPackInstallPhase: props.langPackInstallPhase,
     forceHideStepsIndicator: props.forceHideStepsIndicator,
     ariaRole: props.ariaRole,
-    aboveButtonStepsIndicator: props.aboveButtonStepsIndicator,
-    isWideScreen: isWideScreen
+    aboveButtonStepsIndicator: props.aboveButtonStepsIndicator
   });
 };
 const ProtonScreenActionButtons = props => {
@@ -1386,15 +1374,6 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       role: "presentation"
     }));
   }
-  getCombinedInnerStyles(content, isWideScreen) {
-    const CONFIGURABLE_STYLES = ["overflow", "display", "paddingInline", "paddingInlineStart", "paddingInlineEnd", "paddingBlock", "paddingBlockStart", "paddingBlockEnd"];
-    const innerContentStyles = isWideScreen ? content.main_content_style || {} : content.main_content_style_narrow || {};
-    const validInnerStyles = _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.getValidStyle(innerContentStyles, CONFIGURABLE_STYLES) || {};
-    return {
-      ...validInnerStyles,
-      justifyContent: content.split_content_justify_content
-    };
-  }
 
   // eslint-disable-next-line complexity
   render() {
@@ -1408,8 +1387,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       isSingleScreen,
       forceHideStepsIndicator,
       ariaRole,
-      aboveButtonStepsIndicator,
-      isWideScreen
+      aboveButtonStepsIndicator
     } = this.props;
     const includeNoodles = content.has_noodles;
     // The default screen position is "center"
@@ -1421,7 +1399,6 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
     const screenClassName = isCenterPosition ? this.getScreenClassName(isFirstScreen, isLastScreen, includeNoodles, content?.video_container, content.tiles?.type === "addons-picker") : "";
     const isEmbeddedMigration = content.tiles?.type === "migration-wizard";
     const isSystemPromptStyleSpotlight = content.isSystemPromptStyleSpotlight === true;
-    const combinedStyles = this.getCombinedInnerStyles(content, isWideScreen);
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("main", {
       className: `screen ${this.props.id || ""}
           ${screenClassName} ${textColorClass}`,
@@ -1456,7 +1433,9 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       }
     }, content.logo && !content.fullscreen ? this.renderPicture(content.logo) : null, isRtamo && !content.fullscreen ? this.renderRTAMOIcon(addonType, this.props.themeScreenshots, this.props.addonIconURL) : null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       className: "main-content-inner",
-      style: combinedStyles
+      style: {
+        justifyContent: content.split_content_justify_content
+      }
     }, content.logo && content.fullscreen ? this.renderPicture(content.logo) : null, isRtamo && content.fullscreen ? this.renderRTAMOIcon(addonType, this.props.themeScreenshots, this.props.addonIconURL) : null, content.title || content.subtitle ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       id: "multi-stage-message-welcome-text",
       className: `welcome-text ${content.title_style || ""}`
@@ -3398,7 +3377,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3);
 /* harmony import */ var _components_MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(4);
-function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
