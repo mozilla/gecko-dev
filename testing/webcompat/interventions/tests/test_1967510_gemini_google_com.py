@@ -38,11 +38,59 @@ async def check_paste_works(client):
     )
 
 
+async def check_addons_work(client):
+    # This is a regression test for the issue described in
+    # https://bugzilla.mozilla.org/show_bug.cgi?id=1967510#c25.
+    client.install_addon(
+        {
+            "manifest.json": """{
+                "manifest_version": 2,
+                "name": "Pasting Test",
+                "version": "1.0",
+                "content_scripts": [
+                  {
+                    "matches": ["*://gemini.google.com/*"],
+                    "js": ["test.js"]
+                  }
+                ]
+              }
+              """,
+            "test.js": """
+                document.addEventListener("paste", e => {
+                  const clipboardInit = cloneInto({}, window);
+                  clipboardInit.clipboardData = new DataTransfer();
+                  const newEvent = new wrappedJSObject.ClipboardEvent(e.type, clipboardInit);
+                  try {
+                    newEvent.clipboardData.setData("text/plain", e.clipboardData.getData("text/plain"));
+                    console.error("Test result: success");
+                  } catch (_) {
+                    console.error("Test result: failed");
+                  }
+                });
+                """,
+        }
+    )
+    await client.navigate(URL)
+    client.set_clipboard("test")
+    client.await_css(ADD_PROMPT_CSS, is_displayed=True).click()
+    promise = await client.promise_console_message_listener("Test result:")
+    client.do_paste()
+    msg = (await promise)["args"][0]["value"]
+    assert msg == "Test result: success"
+
+
 @pytest.mark.skip_platforms("android")
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
     assert await check_paste_works(client)
+
+
+@pytest.mark.skip_platforms("android")
+@pytest.mark.asyncio
+@pytest.mark.with_interventions
+async def test_addons_works(client):
+    await check_addons_work(client)
 
 
 @pytest.mark.skip_platforms("android")
