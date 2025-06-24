@@ -137,6 +137,8 @@ extern crate oblivious_http;
 
 extern crate mime_guess_ffi;
 
+extern crate urlpattern;
+
 #[cfg(feature = "libz-rs-sys")]
 extern crate libz_rs_sys;
 

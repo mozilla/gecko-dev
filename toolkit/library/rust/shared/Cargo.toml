@@ -108,6 +108,7 @@ aa-stroke = { git = "https://github.com/FirefoxGraphics/aa-stroke", rev = "a821f
 etagere = { version = "0.2.13", features = ["ffi"] }
 
 url = "2.5.0"
+urlpattern = "0.3.0"
 
 libz-rs-sys = { version = "0.4.1", features = ["custom-prefix"], optional = true }
 
