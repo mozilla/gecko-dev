@@ -567,7 +567,7 @@ nsresult nsHttpConnection::Activate(nsAHttpTransaction* trans, uint32_t caps,
   // See Bug 1968908
   nsHttpTransaction* httpTrans = mTransaction->QueryHttpTransaction();
 
-  if (httpTrans && httpTrans->Connection()) {
+  if (httpTrans && httpTrans->Connection() && !mConnInfo->UsingProxy()) {
     NetAddr peerAddr;
     httpTrans->Connection()->GetPeerAddr(&peerAddr);
     if (!httpTrans->AllowedToConnectToIpAddressSpace(
@@ -655,7 +655,8 @@ nsresult nsHttpConnection::AddTransaction(nsAHttpTransaction* httpTransaction,
   // it is important to start the stream using the specific connection
   // info of the transaction to ensure it is routed on the right tunnel
   nsHttpTransaction* httpTrans = httpTransaction->QueryHttpTransaction();
-  if (httpTrans) {
+  nsHttpConnectionInfo* transCI = httpTransaction->ConnectionInfo();
+  if (httpTrans && !transCI->UsingProxy()) {
     // this is a httptransaction object, being dispatched into a H2 session
     // ensure it does not violate local network access.
     NetAddr peerAddr;
@@ -669,8 +670,6 @@ nsresult nsHttpConnection::AddTransaction(nsAHttpTransaction* httpTransaction,
       return mSocketOutCondition;
     }
   }
-
-  nsHttpConnectionInfo* transCI = httpTransaction->ConnectionInfo();
 
   bool needTunnel = transCI->UsingHttpsProxy();
   needTunnel = needTunnel && !mHasTLSTransportLayer;
