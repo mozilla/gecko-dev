@@ -116,7 +116,7 @@ public class NetworkUtils {
         return ConnectionType.BLUETOOTH;
       case ConnectivityManager.TYPE_ETHERNET:
         return ConnectionType.ETHERNET;
-        // Fallthrough, MOBILE and WIMAX both map to CELLULAR.
+      // Fallthrough, MOBILE and WIMAX both map to CELLULAR.
       case ConnectivityManager.TYPE_MOBILE:
       case ConnectivityManager.TYPE_WIMAX:
         return ConnectionType.CELLULAR;
@@ -140,14 +140,14 @@ public class NetworkUtils {
 
   private static ConnectionSubType getGenericMobileSubtype(final int subtype) {
     switch (subtype) {
-        // 2G types: fallthrough 5x
+      // 2G types: fallthrough 5x
       case TelephonyManager.NETWORK_TYPE_GPRS:
       case TelephonyManager.NETWORK_TYPE_EDGE:
       case TelephonyManager.NETWORK_TYPE_CDMA:
       case TelephonyManager.NETWORK_TYPE_1xRTT:
       case TelephonyManager.NETWORK_TYPE_IDEN:
         return ConnectionSubType.CELL_2G;
-        // 3G types: fallthrough 9x
+      // 3G types: fallthrough 9x
       case TelephonyManager.NETWORK_TYPE_UMTS:
       case TelephonyManager.NETWORK_TYPE_EVDO_0:
       case TelephonyManager.NETWORK_TYPE_EVDO_A:
@@ -158,7 +158,7 @@ public class NetworkUtils {
       case TelephonyManager.NETWORK_TYPE_EHRPD:
       case TelephonyManager.NETWORK_TYPE_HSPAP:
         return ConnectionSubType.CELL_3G;
-        // 4G - just one type!
+      // 4G - just one type!
       case TelephonyManager.NETWORK_TYPE_LTE:
         return ConnectionSubType.CELL_4G;
       default:

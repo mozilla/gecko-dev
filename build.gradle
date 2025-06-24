@@ -489,7 +489,7 @@ subprojects { project ->
                     include '**/*.java'
                     exclude '**/thirdparty/**'
                 }
-                googleJavaFormat('1.17.0')
+                googleJavaFormat('1.27.0')
             }
             kotlin {
                 target project.fileTree(project.projectDir) {

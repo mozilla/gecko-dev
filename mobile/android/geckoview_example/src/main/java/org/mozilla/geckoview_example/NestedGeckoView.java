@@ -87,7 +87,7 @@ public class NestedGeckoView extends GeckoView implements NestedScrollingChild {
         event.recycle();
         return true;
 
-        // We don't care about other touch events
+      // We don't care about other touch events
       case MotionEvent.ACTION_UP:
       case MotionEvent.ACTION_CANCEL:
         stopNestedScroll();

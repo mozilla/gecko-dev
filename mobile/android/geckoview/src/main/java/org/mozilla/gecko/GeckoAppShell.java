@@ -624,7 +624,7 @@ public class GeckoAppShell {
         if (gGameRotationVectorSensor != null) {
           break;
         }
-        // Fallthrough
+      // Fallthrough
 
       case SENSOR_ROTATION_VECTOR:
         if (gRotationVectorSensor == null) {
@@ -637,7 +637,7 @@ public class GeckoAppShell {
         if (gRotationVectorSensor != null) {
           break;
         }
-        // Fallthrough
+      // Fallthrough
 
       case SENSOR_ORIENTATION:
         if (gOrientationSensor == null) {
@@ -705,14 +705,14 @@ public class GeckoAppShell {
           sm.unregisterListener(sAndroidListeners, gGameRotationVectorSensor);
           break;
         }
-        // Fallthrough
+      // Fallthrough
 
       case SENSOR_ROTATION_VECTOR:
         if (gRotationVectorSensor != null) {
           sm.unregisterListener(sAndroidListeners, gRotationVectorSensor);
           break;
         }
-        // Fallthrough
+      // Fallthrough
 
       case SENSOR_ORIENTATION:
         if (gOrientationSensor != null) {

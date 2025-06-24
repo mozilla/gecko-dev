@@ -2642,7 +2642,7 @@ import org.mozilla.geckoview.SessionTextInput.EditableListener.IMEState;
       case KeyEvent.KEYCODE_VOLUME_DOWN:
       case KeyEvent.KEYCODE_VOLUME_MUTE:
       case KeyEvent.KEYCODE_SEARCH:
-        // ignore HEADSETHOOK to allow hold-for-voice-search to work
+      // ignore HEADSETHOOK to allow hold-for-voice-search to work
       case KeyEvent.KEYCODE_HEADSETHOOK:
         return false;
     }
