@@ -195,7 +195,8 @@
     max-width: 225px;
     transition:
       min-width 100ms ease-out,
-      max-width 100ms ease-out;
+      max-width 100ms ease-out,
+      visibility 100ms;
 
     #tabbrowser-tabs[orient="horizontal"] &[fadein] {
       min-width: var(--tab-min-width-pref, var(--tab-min-width));
@@ -1011,6 +1012,7 @@ tab-group {
   #tabbrowser-tabs[orient="horizontal"] &[collapsed] > .tabbrowser-tab {
     min-width: 0 !important;
     max-width: 0 !important;
+    visibility: hidden;
     padding: 0;
     overflow-clip-margin: 0;
   }
