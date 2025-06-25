@@ -107,8 +107,8 @@ use.counter:
     send_in_pings:
       - use-counters
 
-# Total of 2409 use counter metrics (excludes denominators).
-# Total of 363 'page' use counters.
+# Total of 2399 use counter metrics (excludes denominators).
+# Total of 358 'page' use counters.
 use.counter.page:
   svgsvgelement_getelementbyid:
     type: counter
@@ -675,91 +675,6 @@ use.counter.page:
     type: counter
     description: >
       Whether a page OOMed while creating IC stub.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  js_errorstack_getter:
-    type: counter
-    description: >
-      Whether a page called error.stack getter.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  js_errorstack_getter_no_errordata:
-    type: counter
-    description: >
-      Whether a page called error.stack getter on object without ErrorData internal slot.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  js_errorstack_setter:
-    type: counter
-    description: >
-      Whether a page called error.stack setter.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  js_errorstack_setter_nonstring:
-    type: counter
-    description: >
-      Whether a page called error.stack setter with non-string input.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  js_errorstack_setter_no_errordata:
-    type: counter
-    description: >
-      Whether a page called error.stack setter on object without ErrorData internal slot.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -6281,7 +6196,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-# Total of 363 'document' use counters.
+# Total of 358 'document' use counters.
 use.counter.doc:
   svgsvgelement_getelementbyid:
     type: counter
@@ -6848,91 +6763,6 @@ use.counter.doc:
     type: counter
     description: >
       Whether a document OOMed while creating IC stub.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  js_errorstack_getter:
-    type: counter
-    description: >
-      Whether a document called error.stack getter.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  js_errorstack_getter_no_errordata:
-    type: counter
-    description: >
-      Whether a document called error.stack getter on object without ErrorData internal slot.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  js_errorstack_setter:
-    type: counter
-    description: >
-      Whether a document called error.stack setter.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  js_errorstack_setter_nonstring:
-    type: counter
-    description: >
-      Whether a document called error.stack setter with non-string input.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  js_errorstack_setter_no_errordata:
-    type: counter
-    description: >
-      Whether a document called error.stack setter on object without ErrorData internal slot.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:

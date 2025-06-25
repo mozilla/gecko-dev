@@ -765,30 +765,6 @@ static bool FindErrorInstanceOrPrototype(JSContext* cx, HandleObject obj,
 
 static MOZ_ALWAYS_INLINE bool IsObject(HandleValue v) { return v.isObject(); }
 
-// This is a helper method for telemetry to provide feedback for
-// proposal-error-stack-accessor and can be removed (Bug 1943623).
-// It is based upon the implementation of exn_isError.
-static bool HasErrorDataSlot(JSContext* cx, HandleObject obj) {
-  JSObject* unwrappedObject = CheckedUnwrapStatic(obj);
-  if (!unwrappedObject) {
-    return false;
-  }
-
-  if (JS_IsDeadWrapper(unwrappedObject)) {
-    return false;
-  }
-
-  if (unwrappedObject->is<ErrorObject>()) {
-    return true;
-  }
-  if (unwrappedObject->getClass()->isDOMClass()) {
-    return cx->runtime()->DOMcallbacks->instanceClassIsError(
-        unwrappedObject->getClass());
-  }
-
-  return false;
-}
-
 /* static */
 bool js::ErrorObject::getStack(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -799,14 +775,6 @@ bool js::ErrorObject::getStack(JSContext* cx, unsigned argc, Value* vp) {
 /* static */
 bool js::ErrorObject::getStack_impl(JSContext* cx, const CallArgs& args) {
   RootedObject thisObj(cx, &args.thisv().toObject());
-
-  // This telemetry to provide feedback for proposal-error-stack-accessor and
-  // can later be removed (Bug 1943623).
-  cx->runtime()->setUseCounter(cx->global(), JSUseCounter::ERRORSTACK_GETTER);
-  if (!HasErrorDataSlot(cx, thisObj)) {
-    cx->runtime()->setUseCounter(cx->global(),
-                                 JSUseCounter::ERRORSTACK_GETTER_NO_ERRORDATA);
-  }
 
   RootedObject obj(cx);
   if (!FindErrorInstanceOrPrototype(cx, thisObj, &obj)) {
@@ -865,20 +833,8 @@ bool js::ErrorObject::setStack_impl(JSContext* cx, const CallArgs& args) {
   if (!args.requireAtLeast(cx, "(set stack)", 1)) {
     return false;
   }
-  RootedValue val(cx, args[0]);
 
-  // This telemetry to provide feedback for proposal-error-stack-accessor and
-  // can later be removed (Bug 1943623).
-  cx->runtime()->setUseCounter(cx->global(), JSUseCounter::ERRORSTACK_SETTER);
-  if (!val.isString()) {
-    cx->runtime()->setUseCounter(cx->global(),
-                                 JSUseCounter::ERRORSTACK_SETTER_NONSTRING);
-  }
-  if (!HasErrorDataSlot(cx, thisObj)) {
-    cx->runtime()->setUseCounter(cx->global(),
-                                 JSUseCounter::ERRORSTACK_SETTER_NO_ERRORDATA);
-  }
-  return DefineDataProperty(cx, thisObj, cx->names().stack, val);
+  return DefineDataProperty(cx, thisObj, cx->names().stack, args[0]);
 }
 
 void js::ErrorObject::setFromWasmTrap() {

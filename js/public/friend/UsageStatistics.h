@@ -94,11 +94,6 @@ extern JS_PUBLIC_API void JS_SetAccumulateTelemetryCallback(
   _(LEGACY_LANG_SUBTAG, LegacyLangSubtag)                                 \
   _(IC_STUB_TOO_LARGE, ICStubTooLarge)                                    \
   _(IC_STUB_OOM, ICStubOOM)                                               \
-  _(ERRORSTACK_GETTER, ErrorStackGetter)                                  \
-  _(ERRORSTACK_GETTER_NO_ERRORDATA, ErrorStackGetterNoErrorData)          \
-  _(ERRORSTACK_SETTER, ErrorStackSetter)                                  \
-  _(ERRORSTACK_SETTER_NONSTRING, ErrorStackSetterNonString)               \
-  _(ERRORSTACK_SETTER_NO_ERRORDATA, ErrorStackSetterNoErrorData)          \
   _(DATEPARSE, DateParse)                                                 \
   _(DATEPARSE_IMPL_DEF, DateParseImplDef)                                 \
   _(OPTIMIZE_ARRAY_SPECIES_FUSE, OptimizeArraySpeciesFuse)                \
