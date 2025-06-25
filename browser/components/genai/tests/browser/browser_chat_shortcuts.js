@@ -188,7 +188,11 @@ add_task(async function test_show_warning_label() {
       Assert.equal(events.length, 1, "Shortcuts shown once");
       Assert.ok(events[0].extra.delay, "Waited some time");
       Assert.equal(events[0].extra.inputType, "", "Not in input");
-      Assert.ok(events[0].extra.selection > 8192, "Selected enough text");
+      Assert.greater(
+        Number(events[0].extra.selection),
+        8192,
+        "Selected enough text"
+      );
       // Hover button
       EventUtils.sendMouseEvent({ type: "mouseover" }, aiActionButton);
 

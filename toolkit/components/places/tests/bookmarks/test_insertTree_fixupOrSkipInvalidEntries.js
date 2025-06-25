@@ -32,6 +32,8 @@ add_task(async function () {
           event.index == 0 || event.index == lastIndex + 1,
           "Consecutive indices"
         );
+        // This test is comparing dates and strings, tracked in bug 1973910.
+        // eslint-disable-next-line mozilla/no-comparison-or-assignment-inside-ok
         Assert.ok(event.dateAdded >= now, "Found a valid dateAdded");
         Assert.ok(PlacesUtils.isValidGuid(event.guid), "guid is valid");
       }
