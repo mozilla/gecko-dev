@@ -182,6 +182,10 @@ def _instantiate_metrics(
     global_tags = content.get("$tags", [])
     assert isinstance(global_tags, list)
 
+    # Duplicate category names end up on the root content.
+    if not hasattr(all_objects, "duplicate"):
+        setattr(all_objects, "duplicate", getattr(content, "duplicate", None))
+
     for category_key, category_val in sorted(content.items()):
         if category_key.startswith("$"):
             continue
@@ -273,6 +277,12 @@ def _instantiate_metrics(
                     metric_obj.defined_in["line"],
                 )
             else:
+                if not hasattr(all_objects[category_key], "duplicate"):
+                    setattr(
+                        all_objects[category_key],
+                        "duplicate",
+                        getattr(content[category_key], "duplicate", None),
+                    )
                 all_objects[category_key][metric_key] = metric_obj
                 sources[(category_key, metric_key)] = filepath
 
@@ -291,6 +301,15 @@ def _instantiate_pings(
     global_no_lint = content.get("no_lint", [])
     assert isinstance(global_no_lint, list)
     ping_schedule_reverse_map: Dict[str, Set[str]] = dict()
+
+    # Duplicate ping names end up on the root content.
+    duplicate_ping = getattr(content, "duplicate", None)
+    if duplicate_ping:
+        yield util.format_error(
+            filepath,
+            "",
+            f"Duplicate ping named '{duplicate_ping}'.",
+        )
 
     for ping_key, ping_val in sorted(content.items()):
         if ping_key.startswith("$"):
@@ -344,8 +363,7 @@ def _instantiate_pings(
             yield util.format_error(
                 filepath,
                 "",
-                f"Duplicate ping name '{ping_key}' "
-                f"already defined in '{already_seen}'",
+                f"Duplicate ping name '{ping_key}' already defined in '{already_seen}'",
             )
         else:
             all_objects.setdefault("pings", {})[ping_key] = ping_obj
@@ -403,8 +421,7 @@ def _instantiate_tags(
             yield util.format_error(
                 filepath,
                 "",
-                f"Duplicate tag name '{tag_key}' "
-                f"already defined in '{already_seen}'",
+                f"Duplicate tag name '{tag_key}' already defined in '{already_seen}'",
             )
         else:
             all_objects.setdefault("tags", {})[tag_key] = tag_obj

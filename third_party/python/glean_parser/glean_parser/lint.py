@@ -572,6 +572,20 @@ def lint_metrics(
 
     nits.extend(_lint_all_objects(objs, parser_config))
 
+    # The information for whether there's duplicate categories found within the
+    # same YAML document is on the objs value, which is not presently linted
+    # (we pull out its metrics, pings, and tags and lint those).
+    # So we perform that custom work here.
+    if getattr(objs, "duplicate", None):
+        nits.append(
+            GlinterNit(
+                "REDEFINED_CATEGORY",
+                getattr(objs, "duplicate", ""),
+                f"Category redefined {objs.duplicate}",  # type: ignore[attr-defined]
+                CheckType.error,
+            )
+        )
+
     for category_name, category in sorted(list(objs.items())):
         if category_name == "pings":
             nits.extend(_lint_pings(category, parser_config, valid_tag_names))
@@ -580,6 +594,20 @@ def lint_metrics(
         if category_name == "tags":
             # currently we have no linting for tags
             continue
+
+        # The information for whether there's duplicate metrics found within the
+        # same YAML document is on the category value, which is not presently linted
+        # (we lint only its metrics).
+        # So we perform that custom work here.
+        if getattr(objs[category_name], "duplicate", None):
+            nits.append(
+                GlinterNit(
+                    "REDEFINED_METRIC",
+                    category_name,
+                    f"Metric redefined {getattr(objs[category_name], 'duplicate', '')}",
+                    CheckType.error,
+                )
+            )
 
         # Make sure the category has only Metrics, not Pings or Tags
         category_metrics = dict(
