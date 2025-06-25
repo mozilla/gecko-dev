@@ -782,6 +782,18 @@ bool ValueNumberer::visitDefinition(MDefinition* def) {
       def->block()->insertAfter(def->toInstruction(), sim->toInstruction());
     }
 
+    // Get rid of flags that are meaningless for wasm and that hinder dead code
+    // removal below.  Do this separately for |def| and |sim| to guard against
+    // future scenarios where they come from different (JS-vs-wasm) worlds.
+    // See bug 1969987.  This is an interim fix to a larger problem, as
+    // described in bug 1973635.
+    if (def->isGuardRangeBailouts() && def->block()->info().compilingWasm()) {
+      def->setNotGuardRangeBailoutsUnchecked();
+    }
+    if (sim->isGuardRangeBailouts() && sim->block()->info().compilingWasm()) {
+      sim->setNotGuardRangeBailoutsUnchecked();
+    }
+
 #ifdef JS_JITSPEW
     JitSpew(JitSpew_GVN, "      Folded %s%u to %s%u", def->opName(), def->id(),
             sim->opName(), sim->id());
@@ -789,8 +801,8 @@ bool ValueNumberer::visitDefinition(MDefinition* def) {
     MOZ_ASSERT(!sim->isDiscarded());
     ReplaceAllUsesWith(def, sim);
 
-    // The node's foldsTo said |def| can be replaced by |rep|. If |def| is a
-    // guard, then either |rep| is also a guard, or a guard isn't actually
+    // The node's foldsTo said |def| can be replaced by |sim|. If |def| is a
+    // guard, then either |sim| is also a guard, or a guard isn't actually
     // needed, so we can clear |def|'s guard flag and let it be discarded.
     def->setNotGuardUnchecked();
 
