@@ -20,18 +20,6 @@ using mozilla::DebugOnly;
 using namespace js;
 using namespace js::jit;
 
-// Note this is used for inter-wasm calls and may pass arguments and results
-// in floating point registers even if the system ABI does not.
-
-void ABIArgGenerator::startWasm() {
-  stackOffset_ += wasm::FrameWithInstances::sizeOfInstanceFields();
-}
-
-// TODO(loong64): Inconsistent with LoongArch's calling convention.
-// LoongArch floating-point parameters calling convention:
-//   The first eight floating-point parameters should be passed in f0-f7, and
-//   the other floating point parameters will be passed like integer parameters.
-// But we just pass the other floating-point parameters on stack here.
 ABIArg ABIArgGenerator::next(MIRType type) {
   switch (type) {
     case MIRType::Int32:
@@ -52,9 +40,14 @@ ABIArg ABIArgGenerator::next(MIRType type) {
     case MIRType::Float32:
     case MIRType::Double: {
       if (floatRegIndex_ == NumFloatArgRegs) {
-        // See above comment, on system ABIs we should be switching to pass
-        // these with integers.
-        MOZ_ASSERT(kind_ == ABIKind::Wasm);
+        // LoongArch floating-point parameters calling convention:
+        //   The first 8 floating-point parameters should be passed in f0-f7,
+        //   and the rest will be passed like integer parameters.
+        if (kind_ == ABIKind::System && intRegIndex_ != NumIntArgRegs) {
+          current_ = ABIArg(Register::FromCode(intRegIndex_ + a0.encoding()));
+          intRegIndex_++;
+          break;
+        }
         current_ = ABIArg(stackOffset_);
         stackOffset_ += sizeof(double);
         break;
