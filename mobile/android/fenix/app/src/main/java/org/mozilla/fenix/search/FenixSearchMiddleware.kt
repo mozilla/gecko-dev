@@ -6,6 +6,8 @@ package org.mozilla.fenix.search
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import mozilla.components.browser.state.action.AwesomeBarAction
 import mozilla.components.browser.state.search.SearchEngine
@@ -30,7 +32,10 @@ import org.mozilla.fenix.components.search.TABS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.navigateSafe
 import org.mozilla.fenix.ext.telemetryName
+import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.search.SearchFragmentAction.Init
+import org.mozilla.fenix.search.SearchFragmentAction.SearchEnginesSelectedActions
+import org.mozilla.fenix.search.SearchFragmentAction.SearchProvidersUpdated
 import org.mozilla.fenix.search.SearchFragmentAction.SearchStarted
 import org.mozilla.fenix.search.awesomebar.SearchSuggestionsProvidersBuilder
 import org.mozilla.fenix.search.awesomebar.toSearchProviderState
@@ -44,7 +49,7 @@ import org.mozilla.fenix.utils.Settings
  * @param nimbusComponents [NimbusComponents] used for accessing Nimbus events to use in telemetry.
  * @param settings [Settings] application settings.
  * @param browserStore [BrowserStore] used for updating search related data.
- * @param includeSelectedTab Whether to include the currently selected tab in search suggestions.
+ * @param includeSelectedTab Whether to include the currently selected tab in the search suggestions.
  */
 class FenixSearchMiddleware(
     private val engine: Engine,
@@ -52,8 +57,8 @@ class FenixSearchMiddleware(
     private val nimbusComponents: NimbusComponents,
     private val settings: Settings,
     private val browserStore: BrowserStore,
-    private val includeSelectedTab: Boolean,
-) : Middleware<SearchFragmentState, SearchFragmentAction> {
+    private val includeSelectedTab: Boolean = false,
+) : Middleware<SearchFragmentState, SearchFragmentAction>, ViewModel() {
     private lateinit var dependencies: LifecycleDependencies
     internal lateinit var searchStore: SearchFragmentStore
 
@@ -61,7 +66,7 @@ class FenixSearchMiddleware(
     internal lateinit var suggestionsProvidersBuilder: SearchSuggestionsProvidersBuilder
 
     /**
-     * Updates the lifecycle [LifecycleDependencies].
+     * Updates the [LifecycleDependencies] for this middleware.
      *
      * @param dependencies The new [LifecycleDependencies].
      */
@@ -97,8 +102,23 @@ class FenixSearchMiddleware(
 
                 engine.speculativeCreateSession(action.inPrivateMode)
                 suggestionsProvidersBuilder = buildSearchSuggestionsProvider()
-                updateSearchProviders()
                 setSearchEngine(action.selectedSearchEngine)
+            }
+
+            is SearchFragmentAction.UpdateQuery -> {
+                next(action)
+
+                val shouldShowSuggestions = with(searchStore.state) {
+                    url != action.query && action.query.isNotBlank() || showSearchShortcuts
+                }
+                searchStore.dispatch(SearchFragmentAction.SearchSuggestionsVisibilityUpdated(shouldShowSuggestions))
+            }
+
+            is SearchEnginesSelectedActions -> {
+                next(action)
+
+                updateSearchProviders()
+                maybeShowSearchSuggestions()
             }
 
             else -> next(action)
@@ -118,6 +138,14 @@ class FenixSearchMiddleware(
                 ?.let { handleSearchShortcutEngineSelected(it) }
     }
 
+    private fun maybeShowSearchSuggestions() {
+        val shouldShowSuggestions = with(searchStore.state) {
+            (showTrendingSearches || showRecentSearches || showShortcutsSuggestions) &&
+                (query.isNotEmpty() || FxNimbus.features.searchSuggestionsOnHomepage.value().enabled)
+        }
+        searchStore.dispatch(SearchFragmentAction.SearchSuggestionsVisibilityUpdated(shouldShowSuggestions))
+    }
+
     /**
      * Handle a search shortcut engine being selected by the user.
      *
@@ -133,7 +161,7 @@ class FenixSearchMiddleware(
 
     private fun updateSearchProviders() {
         searchStore.dispatch(
-            SearchFragmentAction.SearchProvidersUpdated(
+            SearchProvidersUpdated(
                 buildList {
                     if (searchStore.state.showSearchShortcuts) {
                         add(suggestionsProvidersBuilder.shortcutsEnginePickerProvider)
@@ -256,8 +284,7 @@ class FenixSearchMiddleware(
             searchEngine.type == SearchEngine.Type.APPLICATION && searchEngine.id == HISTORY_SEARCH_ENGINE_ID -> {
                 searchStore.dispatch(SearchFragmentAction.SearchHistoryEngineSelected(searchEngine))
             }
-            searchEngine.type == SearchEngine.Type.APPLICATION &&
-                searchEngine.id == BOOKMARKS_SEARCH_ENGINE_ID -> {
+            searchEngine.type == SearchEngine.Type.APPLICATION && searchEngine.id == BOOKMARKS_SEARCH_ENGINE_ID -> {
                 searchStore.dispatch(SearchFragmentAction.SearchBookmarksEngineSelected(searchEngine))
             }
             searchEngine.type == SearchEngine.Type.APPLICATION && searchEngine.id == TABS_SEARCH_ENGINE_ID -> {
@@ -312,4 +339,38 @@ class FenixSearchMiddleware(
         val navController: NavController,
         val fenixBrowserUseCases: FenixBrowserUseCases,
     )
+
+    /**
+     * Static functionalities of the [FenixSearchMiddleware].
+     */
+    companion object {
+        /**
+         * [ViewModelProvider.Factory] for creating a [FenixSearchMiddleware].
+         *
+         * @param engine [Engine] used for speculative connections to search suggestions URLs.
+         * @param tabsUseCases [TabsUseCases] used for operations related to current open tabs.
+         * @param nimbusComponents [NimbusComponents] used for accessing Nimbus events to use in telemetry.
+         * @param settings [Settings] application settings.
+         * @param browserStore [BrowserStore] used for updating search related data.
+         * @param includeSelectedTab Whether to include the currently selected tab in the search suggestions.
+         */
+        fun viewModelFactory(
+            engine: Engine,
+            tabsUseCases: TabsUseCases,
+            nimbusComponents: NimbusComponents,
+            settings: Settings,
+            browserStore: BrowserStore,
+            includeSelectedTab: Boolean,
+        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T = FenixSearchMiddleware(
+                engine = engine,
+                tabsUseCases = tabsUseCases,
+                nimbusComponents = nimbusComponents,
+                settings = settings,
+                browserStore = browserStore,
+                includeSelectedTab = includeSelectedTab,
+            ) as? T ?: throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
 }

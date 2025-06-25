@@ -17,6 +17,7 @@ import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.UiStore
 import org.mozilla.fenix.HomeActivity
+import org.mozilla.fenix.automotive.isAndroidAutomotiveAvailable
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.metrics.MetricsUtils
@@ -90,8 +91,11 @@ sealed class SearchEngineSource {
  * @property searchTerms The search terms used to search previously in this tab (if this fragment is shown
  * for an already existing tab).
  * @property searchEngineSource The current selected search engine with the context of how it was selected.
- * @property searchSuggestionsProviders The list of search suggestions providers that the user can choose from.
  * @property defaultEngine The current default search engine (or null if none is available yet).
+ * @property searchSuggestionsProviders The list of search suggestions providers that the user can choose from.
+ * @property searchSuggestionsOrientedAtBottom Whether or not the search suggestions should be oriented at the
+ * bottom of the screen.
+ * @property shouldShowSearchSuggestions Whether or not to show search suggestions in the AwesomeBar.
  * @property showSearchSuggestions Whether or not to show search suggestions from the search engine in the AwesomeBar.
  * @property showSearchSuggestionsHint Whether or not to show search suggestions in private hint panel.
  * @property showSearchShortcuts Whether or not to show search shortcuts in the AwesomeBar.
@@ -132,8 +136,10 @@ data class SearchFragmentState(
     val url: String,
     val searchTerms: String,
     val searchEngineSource: SearchEngineSource,
-    val searchSuggestionsProviders: List<SuggestionProvider>,
     val defaultEngine: SearchEngine?,
+    val searchSuggestionsProviders: List<SuggestionProvider>,
+    val searchSuggestionsOrientedAtBottom: Boolean,
+    val shouldShowSearchSuggestions: Boolean,
     val showSearchSuggestions: Boolean,
     val showSearchSuggestionsHint: Boolean,
     val showSearchShortcuts: Boolean,
@@ -171,7 +177,7 @@ fun createInitialSearchFragmentState(
     pastedText: String?,
     searchAccessPoint: MetricsUtils.Source,
     searchEngine: SearchEngine? = null,
-    isAndroidAutomotiveAvailable: Boolean,
+    isAndroidAutomotiveAvailable: Boolean = activity.isAndroidAutomotiveAvailable(),
 ): SearchFragmentState {
     val settings = components.settings
     val tab = tabId?.let { components.core.store.state.findTab(it) }
@@ -189,6 +195,8 @@ fun createInitialSearchFragmentState(
         searchTerms = tab?.content?.searchTerms.orEmpty(),
         searchEngineSource = searchEngineSource,
         searchSuggestionsProviders = emptyList(),
+        searchSuggestionsOrientedAtBottom = false,
+        shouldShowSearchSuggestions = false,
         defaultEngine = null,
         showSearchSuggestions = shouldShowSearchSuggestions(
             browsingMode = activity.browsingModeManager.mode,
@@ -249,6 +257,15 @@ sealed class SearchFragmentAction : Action {
     ) : SearchFragmentAction()
 
     /**
+     * Action for when search suggestions should be visible or not.
+     *
+     * @property visible Whether or not the search suggestions should be visible.
+     */
+    data class SearchSuggestionsVisibilityUpdated(
+        val visible: Boolean,
+    ) : SearchFragmentAction()
+
+    /**
      * Action to update the search suggestions providers.
      *
      * @property providers The new search suggestions providers.
@@ -263,13 +280,18 @@ sealed class SearchFragmentAction : Action {
     data class SetShowSearchSuggestions(val show: Boolean) : SearchFragmentAction()
 
     /**
+     * All actions through which a new search engine is selected
+     */
+    sealed class SearchEnginesSelectedActions : SearchFragmentAction()
+
+    /**
      * Action when default search engine is selected.
      */
     data class SearchDefaultEngineSelected(
         val engine: SearchEngine,
         val browsingMode: BrowsingMode,
         val settings: Settings,
-    ) : SearchFragmentAction()
+    ) : SearchEnginesSelectedActions()
 
     /**
      * Action when shortcut search engine is selected.
@@ -278,22 +300,22 @@ sealed class SearchFragmentAction : Action {
         val engine: SearchEngine,
         val browsingMode: BrowsingMode,
         val settings: Settings,
-    ) : SearchFragmentAction()
+    ) : SearchEnginesSelectedActions()
 
     /**
      * Action when history search engine is selected.
      */
-    data class SearchHistoryEngineSelected(val engine: SearchEngine) : SearchFragmentAction()
+    data class SearchHistoryEngineSelected(val engine: SearchEngine) : SearchEnginesSelectedActions()
 
     /**
      * Action when bookmarks search engine is selected.
      */
-    data class SearchBookmarksEngineSelected(val engine: SearchEngine) : SearchFragmentAction()
+    data class SearchBookmarksEngineSelected(val engine: SearchEngine) : SearchEnginesSelectedActions()
 
     /**
      * Action when tabs search engine is selected.
      */
-    data class SearchTabsEngineSelected(val engine: SearchEngine) : SearchFragmentAction()
+    data class SearchTabsEngineSelected(val engine: SearchEngine) : SearchEnginesSelectedActions()
 
     /**
      * Action when allow search suggestion in private mode hint is tapped.
@@ -500,6 +522,10 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
             state.copy(
                 searchSuggestionsProviders = action.providers,
             )
+        }
+
+        is SearchFragmentAction.SearchSuggestionsVisibilityUpdated -> {
+            state.copy(shouldShowSearchSuggestions = action.visible)
         }
 
         is SearchFragmentAction.SearchStarted -> {

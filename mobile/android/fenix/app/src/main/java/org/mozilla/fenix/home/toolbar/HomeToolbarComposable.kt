@@ -55,6 +55,8 @@ import org.mozilla.fenix.utils.Settings
  * @param browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
  * @param settings [Settings] for querying various application settings.
  * @param tabStripContent [Composable] as the tab strip content to be displayed together with this toolbar.
+ * @param searchSuggestionsContent [Composable] as the search suggestions content to be displayed
+ * together with this toolbar.
  */
 @Suppress("LongParameterList")
 internal class HomeToolbarComposable(
@@ -67,6 +69,7 @@ internal class HomeToolbarComposable(
     private val browsingModeManager: BrowsingModeManager,
     private val settings: Settings,
     private val tabStripContent: @Composable () -> Unit,
+    private val searchSuggestionsContent: @Composable (BrowserToolbarStore) -> Unit,
 ) : FenixHomeToolbar {
     private var showDivider by mutableStateOf(true)
 
@@ -85,16 +88,16 @@ internal class HomeToolbarComposable(
             val shouldShowTabStrip: Boolean = remember { context.isTabStripEnabled() }
 
             AcornTheme {
-                when (shouldShowTabStrip) {
-                    true -> Column {
+                Column {
+                    if (shouldShowTabStrip) {
                         tabStripContent()
-                        BrowserToolbar(showDivider, settings.shouldUseBottomToolbar)
                     }
-
-                    false -> BrowserToolbar(showDivider, settings.shouldUseBottomToolbar)
+                    BrowserToolbar(showDivider, settings.shouldUseBottomToolbar)
+                    searchSuggestionsContent(store)
                 }
             }
         }
+        translationZ = context.resources.getDimension(R.dimen.browser_fragment_above_toolbar_panels_elevation)
         homeBinding.homeLayout.addView(this)
     }
 
