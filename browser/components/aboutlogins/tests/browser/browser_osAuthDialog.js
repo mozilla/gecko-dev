@@ -25,54 +25,41 @@ add_setup(async function () {
 
 add_task(async function test_os_auth_enabled_with_checkbox() {
   let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
-  await BrowserTestUtils.withNewTab(
-    { gBrowser, url: PAGE_PRIVACY },
-    async function (browser) {
-      await finalPrefPaneLoaded;
-
-      await SpecialPowers.spawn(
-        browser,
-        [SELECTORS, AppConstants.NIGHTLY_BUILD],
-        async (selectors, isNightly) => {
-          is(
-            content.document.querySelector(selectors.reauthCheckbox).checked,
-            isNightly,
-            "OSReauth for Passwords should be checked"
-          );
-        }
-      );
-      is(
-        LoginHelper.getOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF),
-        AppConstants.NIGHTLY_BUILD,
-        "OSAuth should be enabled."
-      );
-    }
-  );
-});
-
-add_task(async function test_os_auth_disabled_with_checkbox() {
-  let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
-  LoginHelper.setOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF, false);
+  LoginHelper.setOSAuthEnabled(true);
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: PAGE_PRIVACY },
     async function (browser) {
       await finalPrefPaneLoaded;
 
       await SpecialPowers.spawn(browser, [SELECTORS], async selectors => {
-        is(
+        ok(
           content.document.querySelector(selectors.reauthCheckbox).checked,
-          false,
+          "OSReauth for Passwords should be checked"
+        );
+      });
+      ok(LoginHelper.getOSAuthEnabled(), "OSAuth should be enabled.");
+    }
+  );
+});
+
+add_task(async function test_os_auth_disabled_with_checkbox() {
+  let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
+  LoginHelper.setOSAuthEnabled(false);
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: PAGE_PRIVACY },
+    async function (browser) {
+      await finalPrefPaneLoaded;
+
+      await SpecialPowers.spawn(browser, [SELECTORS], async selectors => {
+        ok(
+          !content.document.querySelector(selectors.reauthCheckbox).checked,
           "OSReauth for passwords should be unchecked"
         );
       });
-      is(
-        LoginHelper.getOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF),
-        false,
-        "OSAuth should be disabled"
-      );
+      ok(!LoginHelper.getOSAuthEnabled(), "OSAuth should be disabled");
     }
   );
-  LoginHelper.setOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF, true);
+  LoginHelper.setOSAuthEnabled(true);
 });
 
 add_task(async function test_osAuth_shown_on_edit_login() {

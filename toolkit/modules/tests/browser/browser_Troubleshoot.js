@@ -481,6 +481,14 @@ const SNAPSHOT_SCHEMA = {
           required: true,
           type: "boolean",
         },
+        "extensions.formautofill.creditCards.os-auth.locked.enabled": {
+          required: false,
+          type: "boolean",
+        },
+        "signon.management.page.os-auth.locked.enabled": {
+          required: false,
+          type: "boolean",
+        },
       },
     },
     places: {
