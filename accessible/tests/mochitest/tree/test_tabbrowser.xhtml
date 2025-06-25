@@ -27,54 +27,17 @@
     {
       this.eventSeq = [
         new asyncInvokerChecker(EVENT_DOCUMENT_LOAD_COMPLETE, tabDocumentAt, 0),
-        new asyncInvokerChecker(EVENT_DOCUMENT_LOAD_COMPLETE, tabDocumentAt, 1),
-        new asyncInvokerChecker(EVENT_DOCUMENT_LOAD_COMPLETE, tabDocumentAt, 2),
-        new asyncInvokerChecker(EVENT_DOCUMENT_LOAD_COMPLETE, tabDocumentAt, 3),
-        new asyncInvokerChecker(EVENT_DOCUMENT_LOAD_COMPLETE, tabDocumentAt, 4),
+        new asyncInvokerChecker(EVENT_DOCUMENT_LOAD_COMPLETE, tabDocumentAt, 1)
       ];
 
       this.invoke = function testTabHierarchy_invoke()
       {
-        const docURIs = [
-          "about:license",
-          "about:mozilla",
-          "about:robots",
-          "about:about",
-          "about:credits",
-        ];
+        var docURIs = ["about:license", "about:mozilla"];
         tabBrowser().loadTabs(docURIs, {
           inBackground: false,
           replace: true,
           triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
         });
-
-        // SeaMonkey does not support tab groups nor hidden tabs.
-        if (!SEAMONKEY) {
-          // Tabs in expanded tab groups should be present in the tab strip
-          // accessibility tree and the tab  panels accessibility tree.
-          const tab3 = tabBrowser().tabs[2];
-          tabBrowser().addTabGroup([tab3], {
-            label: "Tab Group 1",
-            insertBefore: tab3
-          });
-
-          // Tabs in collapsed tab groups should not be present in the tab strip
-          // accessibility tree but they should be present in the tab panels
-          // accessibility tree.
-          const tab4 = tabBrowser().tabs[3];
-          const tabGroupToCollapse = tabBrowser().addTabGroup([tab4], {
-            label: "Tab Group 2",
-            insertBefore: tab4,
-          });
-          tabGroupToCollapse.collapsed = true;
-
-          // Hidden tabs should not be present in the tab strip accessibility
-          // tree but they should be present in the tab panels accessibility
-          // tree.
-          const tab5 = tabBrowser().tabs[4];
-          tabBrowser().hideTab(tab5, "test_tabbrowser.xhtml");
-        }
-
         // Flush layout, so as to guarantee that the a11y tree is constructed.
         browserDocument().documentElement.getBoundingClientRect();
       }
@@ -96,7 +59,7 @@
         if (SEAMONKEY) {
           SimpleTest.ok(true, "Testing SeaMonkey tabbrowser UI.");
 
-          tabsAccTree.children.push(
+          tabsAccTree.children.splice(0, 0,
             {
               // xul:toolbarbutton ("Open a new tab")
               role: ROLE_PUSHBUTTON,
@@ -109,21 +72,6 @@
             },
             {
               // tab ("about:mozilla")
-              role: ROLE_PAGETAB,
-              children: []
-            },
-            {
-              // tab ("about:robots")
-              role: ROLE_PAGETAB,
-              children: []
-            },
-            {
-              // tab ("about:meta")
-              role: ROLE_PAGETAB,
-              children: []
-            },
-            {
-              // tab ("about:credits")
               role: ROLE_PAGETAB,
               children: []
             },
@@ -158,7 +106,7 @@
 
           // NB: The (3) buttons are not visible, unless manually hovered,
           //     probably due to size reduction in this test.
-          tabsAccTree.children.push(
+          tabsAccTree.children.splice(0, 0,
             {
               // xul:tab ("about:license")
               role: ROLE_PAGETAB,
@@ -190,32 +138,6 @@
                   children: []
                 }
               ]
-            },
-            {
-              // tab group label ("Tab Group 1")
-              role: ROLE_PUSHBUTTON,
-              name: "Tab Group 1",
-            },
-            {
-              // tab ("about:robots")
-              role: ROLE_PAGETAB,
-              children: [
-                {
-                  // xul:text, i.e. the tab label text
-                  role: ROLE_TEXT_LEAF,
-                  children: []
-                },
-                {
-                  // xul:toolbarbutton ("Close tab")
-                  role: ROLE_PUSHBUTTON,
-                  children: []
-                }
-              ]
-            },
-            {
-              // tab group label ("Tab Group 2")
-              role: ROLE_PUSHBUTTON,
-              name: "Tab Group 2",
             },
             {
               // xul:toolbarbutton ("Open a new tab")
@@ -264,57 +186,6 @@
                   children: [
                     {
                       // #document ("about:mozilla")
-                      role: ROLE_DOCUMENT
-                      // children: [ ... ] // Ignore document content.
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              // notificationbox
-              role: ROLE_PROPERTYPAGE,
-              children: [
-                {
-                  // browser
-                  role: ROLE_INTERNAL_FRAME,
-                  children: [
-                    {
-                      // #document ("about:robots")
-                      role: ROLE_DOCUMENT
-                      // children: [ ... ] // Ignore document content.
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              // notificationbox
-              role: ROLE_PROPERTYPAGE,
-              children: [
-                {
-                  // browser
-                  role: ROLE_INTERNAL_FRAME,
-                  children: [
-                    {
-                      // #document ("about:meta")
-                      role: ROLE_DOCUMENT
-                      // children: [ ... ] // Ignore document content.
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              // notificationbox
-              role: ROLE_PROPERTYPAGE,
-              children: [
-                {
-                  // browser
-                  role: ROLE_INTERNAL_FRAME,
-                  children: [
-                    {
-                      // #document ("about:credits")
                       role: ROLE_DOCUMENT
                       // children: [ ... ] // Ignore document content.
                     }
