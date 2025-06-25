@@ -1,0 +1,14 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * neopets.com/explore.phtml - mobile layout has offscreen content
+ * Bug #1924334 - https://bugzilla.mozilla.org/show_bug.cgi?id=1924334
+ *
+ * The site has an element which makes their content window larger in Firefox,
+ * as it is not far enough off-screen due to an interop issue (bug 1267004).
+ */
+body > span[style*="left: -1000px;"] {
+  left: -10000px !important;
+}

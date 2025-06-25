@@ -2927,6 +2927,23 @@
       }
     ]
   },
+  "1924334": {
+    "label": "netpets.com",
+    "bugs": {
+      "1924334": {
+        "issue": "broken-layout",
+        "matches": ["*://www.neopets.com/explore.phtml*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1924334-neopets.com-fix-content-width.css"]
+        }
+      }
+    ]
+  },
   "1925508": {
     "label": "developer.apple.com",
     "bugs": {
