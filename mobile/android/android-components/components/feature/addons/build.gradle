@@ -69,6 +69,7 @@ dependencies {
 
     testImplementation project(':components:support-test')
     testImplementation project(':components:support-test-libstate')
+    testImplementation project(':components:browser-engine-gecko')
     testImplementation libs.androidx.concurrent
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

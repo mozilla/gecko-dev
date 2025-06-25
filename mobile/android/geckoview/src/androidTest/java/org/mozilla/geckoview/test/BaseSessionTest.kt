@@ -293,6 +293,9 @@ open class BaseSessionTest(
 
     fun GeckoSession.getLinkColor(selector: String) = sessionRule.getLinkColor(this, selector)
 
+    fun GeckoSession.getWebExtensionsSchemaPermissionNames(typeNames: Array<String>): List<String> =
+        sessionRule.getWebExtensionsSchemaPermissionNames(this, typeNames).asJSList<String>()
+
     fun GeckoSession.setResolutionAndScaleTo(resolution: Float) =
         sessionRule.setResolutionAndScaleTo(this, resolution)
 

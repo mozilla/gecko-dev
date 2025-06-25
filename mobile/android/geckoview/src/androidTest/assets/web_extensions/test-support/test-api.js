@@ -271,6 +271,13 @@ this.test = class extends ExtensionAPI {
             { handlingUserInput }
           );
         },
+
+        async getWebExtensionsSchemaPermissionNames(typeNames) {
+          const { Schemas } = ChromeUtils.importESModule(
+            "resource://gre/modules/Schemas.sys.mjs"
+          );
+          return Schemas.getPermissionNames(typeNames);
+        },
       },
     };
   }
