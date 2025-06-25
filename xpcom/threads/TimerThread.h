@@ -180,6 +180,11 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
                                             TimeDuration minDelay,
                                             TimeDuration maxDelay) const;
 
+  static constexpr size_t kMaxQueuedTimersFired = 128;
+  static void AccumulateAndMaybeSendTelemetry(
+      uint64_t timersFiredThisWakeup, size_t& queuedTimersFiredCount,
+      AutoTArray<uint64_t, kMaxQueuedTimersFired>& queuedTimersFiredPerWakeup);
+
 #ifdef XP_WIN
   UINT ComputeDesiredTimerPeriod() const;
 #endif
