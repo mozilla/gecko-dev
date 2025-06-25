@@ -130,6 +130,11 @@
                 this.activeChild = this.firstElementChild;
               }
             }
+            for (let node of change.addedNodes) {
+              if (!this.activeChild) {
+                this.activeChild = node;
+              }
+            }
           }
         });
       }
@@ -187,6 +192,10 @@
         newActiveChild = node;
       } else {
         newActiveChild = this.firstElementChild;
+      }
+
+      if (!(newActiveChild instanceof Element)) {
+        return;
       }
 
       this._activeChild = newActiveChild;
