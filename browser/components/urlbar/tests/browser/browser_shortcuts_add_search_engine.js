@@ -111,7 +111,7 @@ async function do_test_shortcuts(activateTask) {
 
     info("Activate the first button");
     rebuildPromise = BrowserTestUtils.waitForEvent(shortcutButtons, "rebuild");
-    let enginePromise = promiseEngine("engine-added", "add_search_engine_0");
+    let enginePromise = SearchTestUtils.promiseEngine("add_search_engine_0");
     await activateTask(addEngineButtons[0]);
     info("await engine install");
     let engine = await enginePromise;
@@ -197,20 +197,6 @@ add_task(async function shortcuts_many() {
     );
   });
 });
-
-function promiseEngine(expectedData, expectedEngineName) {
-  info(`Waiting for engine ${expectedData}`);
-  return TestUtils.topicObserved(
-    "browser-search-engine-modified",
-    (engine, data) => {
-      info(`Got engine ${engine.wrappedJSObject.name} ${data}`);
-      return (
-        expectedData == data &&
-        expectedEngineName == engine.wrappedJSObject.name
-      );
-    }
-  ).then(([engine]) => engine);
-}
 
 add_task(async function shortcuts_without_other_engines() {
   info("Checks the shortcuts without other engines.");

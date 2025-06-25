@@ -49,7 +49,7 @@ add_task(async function context_one() {
       );
 
       info("Click on the menuitem");
-      let enginePromise = promiseEngine("engine-added", "add_search_engine_0");
+      let enginePromise = SearchTestUtils.promiseEngine("add_search_engine_0");
       popup.activateItem(elt);
       await enginePromise;
       Assert.equal(popup.state, "closed");
@@ -201,7 +201,7 @@ add_task(async function context_many() {
       }
 
       info("Click on the first engine to install it");
-      let enginePromise = promiseEngine("engine-added", "add_search_engine_0");
+      let enginePromise = SearchTestUtils.promiseEngine("add_search_engine_0");
       let elt = popup.parentNode.getMenuItem("add-engine-0");
 
       elt.closest("menupopup").activateItem(elt);
@@ -313,17 +313,3 @@ add_task(async function context_after_customize() {
     });
   });
 });
-
-function promiseEngine(expectedData, expectedEngineName) {
-  info(`Waiting for engine ${expectedData}`);
-  return TestUtils.topicObserved(
-    "browser-search-engine-modified",
-    (engine, data) => {
-      info(`Got engine ${engine.wrappedJSObject.name} ${data}`);
-      return (
-        expectedData == data &&
-        expectedEngineName == engine.wrappedJSObject.name
-      );
-    }
-  ).then(([engine]) => engine);
-}

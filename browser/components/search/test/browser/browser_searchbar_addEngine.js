@@ -11,6 +11,7 @@ const { PromptTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/PromptTestUtils.sys.mjs"
 );
 
+const rootDir = getRootDirectory(gTestPath);
 const searchPopup = document.getElementById("PopupSearchAutoComplete");
 let searchbar;
 
@@ -23,8 +24,46 @@ add_setup(async function () {
   });
 });
 
+add_task(async function test_addEngine() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    rootDir + "opensearch.html"
+  );
+
+  let shownPromise = promiseEvent(searchPopup, "popupshown");
+  let builtPromise = promiseEvent(searchPopup.oneOffButtons, "rebuild");
+  EventUtils.synthesizeMouseAtCenter(
+    searchbar.querySelector(".searchbar-search-button"),
+    {}
+  );
+  await Promise.all([shownPromise, builtPromise]);
+
+  let addEngineList = searchPopup.querySelectorAll(
+    ".searchbar-engine-one-off-add-engine"
+  );
+  Assert.equal(addEngineList.length, 3, "All items are in addEngineList");
+  let item = addEngineList[0];
+
+  let enginePromise = SearchTestUtils.promiseEngine("Foo");
+  builtPromise = promiseEvent(searchPopup.oneOffButtons, "rebuild");
+  EventUtils.synthesizeMouseAtCenter(item, {});
+  info("Waiting for engine to be installed.");
+  let engine = await enginePromise;
+  Assert.ok(true, "Engine was installed.");
+  await builtPromise;
+
+  let oneOffButton = searchPopup.oneOffButtons
+    .getSelectableButtons(false)
+    .find(b => b.engine?.id == engine.id);
+
+  // Image URL in testEngine.xml is very long, so we only check its end.
+  Assert.ok(oneOffButton?.image.endsWith("AElFTkSuQmCC"), "Image is correct");
+
+  await Services.search.removeEngine(engine);
+  BrowserTestUtils.removeTab(tab);
+});
+
 add_task(async function test_invalidEngine() {
-  let rootDir = getRootDirectory(gTestPath);
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
     rootDir + "opensearch.html"
@@ -82,7 +121,6 @@ add_task(async function test_onOnlyDefaultEngine() {
   }
 
   info("Show popup");
-  const rootDir = getRootDirectory(gTestPath);
   const tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
     rootDir + "opensearch.html"

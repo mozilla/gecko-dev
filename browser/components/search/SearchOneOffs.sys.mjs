@@ -380,6 +380,17 @@ export class SearchOneOffs {
       // Make sure the engine list was updated.
       this.invalidateCache();
     }
+
+    if (aData === "engine-icon-changed") {
+      aEngine.getIconURL().then(icon => {
+        this.getSelectableButtons(false)
+          .find(b => b.engine?.id == aEngine.id)
+          ?.setAttribute(
+            "image",
+            icon || "chrome://browser/skin/search-engine-placeholder.png"
+          );
+      });
+    }
   }
 
   get _maxInlineAddEngines() {

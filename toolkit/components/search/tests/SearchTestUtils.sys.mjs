@@ -781,6 +781,29 @@ class _SearchTestUtils {
 
     return binaryStream.readBytes(binaryStream.available());
   }
+
+  /**
+   * Wait until a specific engine event on a specific engine.
+   *
+   * @param {string} expectedEngineName
+   *   Name of the engine to wait for.
+   * @param {string} expectedData
+   *   Data to wait for.
+   * @returns {Promise<nsISearchEngine>}
+   *   Resolves to the search engine with the expected name.
+   */
+  promiseEngine(expectedEngineName, expectedData = "engine-added") {
+    let { promise, resolve } = Promise.withResolvers();
+    Services.obs.addObserver(function obs(subject, _topic, data) {
+      let engine = subject.QueryInterface(Ci.nsISearchEngine);
+
+      if (data == expectedData && engine.name == expectedEngineName) {
+        Services.obs.removeObserver(obs, "browser-search-engine-modified");
+        resolve(engine);
+      }
+    }, "browser-search-engine-modified");
+    return promise;
+  }
 }
 
 export const SearchTestUtils = new _SearchTestUtils();
