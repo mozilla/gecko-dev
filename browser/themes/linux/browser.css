@@ -177,6 +177,8 @@
   align-items: center;
   padding: 0;
   padding-inline: calc(env(-moz-gtk-csd-titlebar-button-spacing) / 2);
+  /* In GTK applications, you can drag the window by titlebar buttons */
+  -moz-window-dragging: drag;
 
   > .toolbarbutton-icon {
     border-radius: 100%;
