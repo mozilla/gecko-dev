@@ -26,6 +26,7 @@ namespace mozilla {
 
 using dom::CallerType;
 using dom::ConstrainBooleanParameters;
+using dom::VideoResizeModeEnum;
 
 template <class ValueType>
 template <class ConstrainRange>
