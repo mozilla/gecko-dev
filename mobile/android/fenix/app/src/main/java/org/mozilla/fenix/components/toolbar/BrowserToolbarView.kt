@@ -24,6 +24,7 @@ import mozilla.components.concept.toolbar.ScrollableToolbar
 import mozilla.components.support.ktx.util.URLStringUtils
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
+import org.mozilla.fenix.components.usecases.FenixBrowserUseCases.Companion.ABOUT_HOME
 import org.mozilla.fenix.customtabs.CustomTabToolbarIntegration
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.theme.ThemeManager
@@ -131,7 +132,12 @@ class BrowserToolbarView(
                 }
 
                 display.urlFormatter = { url ->
-                    URLStringUtils.toDisplayUrl(url)
+                    if (url.contentEquals(ABOUT_HOME)) {
+                        // Default to showing the toolbar hint when the URL is ABOUT_HOME.
+                        ""
+                    } else {
+                        URLStringUtils.toDisplayUrl(url)
+                    }
                 }
 
                 display.hint = context.getString(R.string.search_hint)

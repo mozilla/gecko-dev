@@ -99,6 +99,7 @@ import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivate
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.CloseCurrentTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterClicked
+import org.mozilla.fenix.components.usecases.FenixBrowserUseCases.Companion.ABOUT_HOME
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.navigateSafe
@@ -703,8 +704,14 @@ class BrowserToolbarMiddleware(
     }
 
     private fun updateCurrentPageOrigin() {
-        val urlString = browserStore.state.selectedTab?.content?.url
-            ?.let { URLStringUtils.toDisplayUrl(it).toString() }
+        val urlString = browserStore.state.selectedTab?.content?.url?.let { originalUrl ->
+            if (originalUrl == ABOUT_HOME) {
+                // Default to showing the toolbar hint when the URL is ABOUT_HOME.
+                ""
+            } else {
+                URLStringUtils.toDisplayUrl(originalUrl).toString()
+            }
+        }
 
         store?.dispatch(
             BrowserDisplayToolbarAction.PageOriginUpdated(

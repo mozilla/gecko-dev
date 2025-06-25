@@ -25,6 +25,7 @@ import kotlinx.coroutines.test.setMain
 import mozilla.components.browser.state.action.ContentAction.UpdateLoadingStateAction
 import mozilla.components.browser.state.action.ContentAction.UpdateProgressAction
 import mozilla.components.browser.state.action.ContentAction.UpdateSecurityInfoAction
+import mozilla.components.browser.state.action.ContentAction.UpdateUrlAction
 import mozilla.components.browser.state.action.TabListAction.AddTabAction
 import mozilla.components.browser.state.action.TabListAction.RemoveTabAction
 import mozilla.components.browser.state.ext.getUrl
@@ -60,6 +61,7 @@ import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.TrackingProtectionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.publicsuffixlist.PublicSuffixList
+import mozilla.components.support.ktx.util.URLStringUtils
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -113,6 +115,7 @@ import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivate
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.CloseCurrentTab
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
+import org.mozilla.fenix.components.usecases.FenixBrowserUseCases.Companion.ABOUT_HOME
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.settings
@@ -225,7 +228,7 @@ class BrowserToolbarMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN WHEN initializing the toolbar THEN setup showing the website origin`() {
+    fun `WHEN initializing the toolbar THEN setup showing the website origin`() {
         val initialTab = createTab("test.com")
         val browserStore = BrowserStore(
             BrowserState(
@@ -248,6 +251,38 @@ class BrowserToolbarMiddlewareTest {
 
         val originConfiguration = toolbarStore.state.displayState.pageOrigin
         assertEquals(expectedConfiguration, originConfiguration)
+    }
+
+    @Test
+    fun `GIVEN ABOUT_HOME URL WHEN the page origin is modified THEN update the page origin`() = runTestOnMain {
+        Dispatchers.setMain(StandardTestDispatcher())
+
+        val tab = createTab("https://mozilla.com/")
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(tab),
+                selectedTabId = tab.id,
+            ),
+        )
+        val middleware = buildMiddleware(browserStore = browserStore).updateDependencies()
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+        testScheduler.advanceUntilIdle()
+
+        val pageOrigin = PageOrigin(
+            hint = R.string.search_hint,
+            title = null,
+            url = URLStringUtils.toDisplayUrl(tab.getUrl()!!).toString(),
+            contextualMenuOptions = ContextualMenuOption.entries,
+            onClick = OriginClicked,
+        )
+        assertEquals(pageOrigin, toolbarStore.state.displayState.pageOrigin)
+
+        browserStore.dispatch(UpdateUrlAction(sessionId = tab.id, url = ABOUT_HOME)).joinBlocking()
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(pageOrigin.copy(url = ""), toolbarStore.state.displayState.pageOrigin)
     }
 
     @Test
