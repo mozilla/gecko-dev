@@ -547,6 +547,7 @@ void MediaConstraintsHelper::LogConstraints(
     LogConstraintRange(c.mFrameRate);
     LogConstraintStringRange(c.mMediaSource);
     LogConstraintStringRange(c.mFacingMode);
+    LogConstraintStringRange(c.mResizeMode);
     LogConstraintStringRange(c.mDeviceId);
     LogConstraintStringRange(c.mGroupId);
     LogConstraintRange(c.mEchoCancellation);

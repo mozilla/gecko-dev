@@ -12,6 +12,7 @@ dictionary MediaTrackSettings {
     long      height;
     double    frameRate;
     DOMString facingMode;
+    DOMString resizeMode;
     boolean   echoCancellation;
     boolean   autoGainControl;
     boolean   noiseSuppression;

@@ -184,6 +184,7 @@ using dom::OwningStringOrStringSequenceOrConstrainDOMStringParameters;
 using dom::Promise;
 using dom::Sequence;
 using dom::UserActivation;
+using dom::VideoResizeModeEnum;
 using dom::WindowGlobalChild;
 using ConstDeviceSetPromise = MediaManager::ConstDeviceSetPromise;
 using DeviceSetPromise = MediaManager::DeviceSetPromise;
@@ -2381,6 +2382,7 @@ MediaManager::MediaManager(already_AddRefed<TaskQueue> aMediaThread)
   mPrefs.mFreq = 1000;  // 1KHz test tone
   mPrefs.mWidth = 0;    // adaptive default
   mPrefs.mHeight = 0;   // adaptive default
+  mPrefs.mResizeMode = VideoResizeModeEnum::None;
   mPrefs.mFPS = MediaEnginePrefs::DEFAULT_VIDEO_FPS;
   mPrefs.mUsePlatformProcessing = false;
   mPrefs.mAecOn = false;
@@ -2435,6 +2437,7 @@ static void ForeachObservedPref(const Function& aFunction) {
   aFunction("media.video_loopback_dev"_ns);
   aFunction("media.getusermedia.fake-camera-name"_ns);
 #ifdef MOZ_WEBRTC
+  aFunction("media.navigator.video.default_resize_mode"_ns);
   aFunction("media.getusermedia.audio.processing.aec.enabled"_ns);
   aFunction("media.getusermedia.audio.processing.aec"_ns);
   aFunction("media.getusermedia.audio.processing.agc.enabled"_ns);
@@ -3694,6 +3697,15 @@ void MediaManager::GetPrefBool(nsIPrefBranch* aBranch, const char* aPref,
   }
 }
 
+#ifdef MOZ_WEBRTC
+template <class Enum, class Int>
+constexpr Enum ClampEnum(Int v) {
+  return std::clamp(
+      static_cast<Enum>(SaturatingCast<std::underlying_type_t<Enum>>(v)),
+      ContiguousEnumValues<Enum>::min, ContiguousEnumValues<Enum>::max);
+}
+#endif
+
 void MediaManager::GetPrefs(nsIPrefBranch* aBranch, const char* aData) {
   GetPref(aBranch, "media.navigator.video.default_width", aData,
           &mPrefs.mWidth);
@@ -3703,6 +3715,10 @@ void MediaManager::GetPrefs(nsIPrefBranch* aBranch, const char* aData) {
   GetPref(aBranch, "media.navigator.audio.fake_frequency", aData,
           &mPrefs.mFreq);
 #ifdef MOZ_WEBRTC
+  int32_t resizeMode{};
+  GetPref(aBranch, "media.navigator.video.default_resize_mode", aData,
+          &resizeMode);
+  mPrefs.mResizeMode = ClampEnum<VideoResizeModeEnum>(resizeMode);
   GetPrefBool(aBranch, "media.getusermedia.audio.processing.platform.enabled",
               aData, &mPrefs.mUsePlatformProcessing);
   GetPrefBool(aBranch, "media.getusermedia.audio.processing.aec.enabled", aData,
@@ -3730,11 +3746,13 @@ void MediaManager::GetPrefs(nsIPrefBranch* aBranch, const char* aData) {
   GetPref(aBranch, "media.getusermedia.audio.max_channels", aData,
           &mPrefs.mChannels);
 #endif
-  LOG("%s: default prefs: %dx%d @%dfps, %dHz test tones, platform processing: "
-      "%s, aec: %s, agc: %s, hpf: %s, noise: %s, drift: %s, agc level: %d, agc "
+  LOG("%s: default prefs: %dx%d @%dfps, %dHz test tones, "
+      "resize mode: %s, platform processing: %s, "
+      "aec: %s, agc: %s, hpf: %s, noise: %s, drift: %s, agc level: %d, agc "
       "version: "
       "%s, noise level: %d, transient: %s, channels %d",
       __FUNCTION__, mPrefs.mWidth, mPrefs.mHeight, mPrefs.mFPS, mPrefs.mFreq,
+      dom::GetEnumString(mPrefs.mResizeMode).get(),
       mPrefs.mUsePlatformProcessing ? "on" : "off",
       mPrefs.mAecOn ? "on" : "off", mPrefs.mAgcOn ? "on" : "off",
       mPrefs.mHPFOn ? "on" : "off", mPrefs.mNoiseOn ? "on" : "off",

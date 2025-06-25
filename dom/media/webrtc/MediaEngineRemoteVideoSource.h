@@ -45,8 +45,12 @@ namespace mozilla {
 // Fitness distance is defined in
 // https://w3c.github.io/mediacapture-main/getusermedia.html#dfn-selectsettings
 
-// The main difference of feasibility and fitness distance is that if the
-// constraint is required ('max', or 'exact'), and the settings dictionary's
+// In contrast, feasibility distance — used in the implementatioon of
+// crop_and_scale — effectively rounds width and height up to the nearest
+// native width and height before calculating distance (sorta).
+//
+// Another difference is that if the constraint is required
+// (min, 'max', or 'exact'), and the settings dictionary's
 // value for the constraint does not satisfy the constraint, the fitness
 // distance is positive infinity. Given a continuous space of settings
 // dictionaries comprising all discrete combinations of dimension and frame-rate

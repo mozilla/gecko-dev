@@ -216,6 +216,7 @@ class NormalizedConstraintSet {
   LongRange mWidth, mHeight;
   DoubleRange mFrameRate;
   StringRange mFacingMode;
+  StringRange mResizeMode;
   StringRange mMediaSource;
   LongLongRange mBrowserWindow;
   StringRange mDeviceId;
@@ -236,6 +237,8 @@ class NormalizedConstraintSet {
         mFrameRate(&T::mFrameRate, "frameRate", aOther.mFrameRate, advanced,
                    aList),
         mFacingMode(&T::mFacingMode, "facingMode", aOther.mFacingMode, advanced,
+                    aList),
+        mResizeMode(&T::mResizeMode, "resizeMode", aOther.mResizeMode, advanced,
                     aList),
         mMediaSource(&T::mMediaSource, "mediaSource", aOther.mMediaSource,
                      aList),

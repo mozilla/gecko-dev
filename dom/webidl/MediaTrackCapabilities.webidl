@@ -25,7 +25,7 @@ dictionary MediaTrackCapabilities {
   // DoubleRange aspectRatio;
   DoubleRange frameRate;
   sequence<DOMString> facingMode;
-  // sequence<DOMString> resizeMode;
+  sequence<DOMString> resizeMode;
   // ULongRange sampleRate;
   // ULongRange sampleSize;
   sequence<boolean> echoCancellation;

@@ -13,6 +13,7 @@ dictionary MediaTrackSupportedConstraints {
     boolean aspectRatio;        // to be supported
     boolean frameRate = true;
     boolean facingMode = true;
+    boolean resizeMode = true;
     boolean volume;             // to be supported
     boolean sampleRate;         // to be supported
     boolean sampleSize;         // to be supported

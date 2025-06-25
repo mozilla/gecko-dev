@@ -227,6 +227,7 @@ pref("media.videocontrols.keyboard-tab-to-all-controls", true);
 #ifdef MOZ_WEBRTC
   pref("media.navigator.video.enabled", true);
   pref("media.navigator.video.default_fps",30);
+  pref("media.navigator.video.default_resize_mode", 0); // 0=none, 1=crop-and-scale
   pref("media.navigator.video.use_remb", true);
   pref("media.navigator.video.use_transport_cc", true);
   pref("media.peerconnection.video.use_rtx", true);

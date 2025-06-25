@@ -21,6 +21,11 @@ enum VideoFacingModeEnum {
     "right"
 };
 
+enum VideoResizeModeEnum {
+  "none",
+  "crop-and-scale"
+};
+
 enum MediaSourceEnum {
     "camera",
     "screen",
@@ -70,6 +75,7 @@ dictionary MediaTrackConstraintSet {
     ConstrainLong height;
     ConstrainDouble frameRate;
     ConstrainDOMString facingMode;
+    ConstrainDOMString resizeMode;
     DOMString mediaSource;
     long long browserWindow;
     boolean scrollWithPage;

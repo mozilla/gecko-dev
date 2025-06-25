@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include "mozilla/dom/MediaStreamTrackBinding.h"
 
 namespace mozilla {
 
@@ -26,6 +27,7 @@ class MediaEnginePrefs {
   MediaEnginePrefs()
       : mWidth(0),
         mHeight(0),
+        mResizeMode(dom::VideoResizeModeEnum::None),
         mFPS(0),
         mFreq(0),
         mUsePlatformProcessing(false),
@@ -43,6 +45,7 @@ class MediaEnginePrefs {
 
   int32_t mWidth;
   int32_t mHeight;
+  dom::VideoResizeModeEnum mResizeMode;
   int32_t mFPS;
   int32_t mFreq;  // for test tones (fake:true)
   bool mUsePlatformProcessing;
