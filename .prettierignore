@@ -1027,8 +1027,6 @@ browser/components/enterprisepolicies/schemas/schema.sys.mjs
 
 # Ignore newtab files
 browser/extensions/newtab/logs/
-# JS file using the #include pre-processor macro, leading to syntax errors.
-browser/extensions/newtab/webext-glue/builtin-newtab.js
 
 # Ignore about:welcome files
 browser/components/aboutwelcome/logs/

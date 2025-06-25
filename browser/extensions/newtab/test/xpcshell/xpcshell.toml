@@ -2,6 +2,7 @@
 firefox-appdir = "browser"
 head = "head.js"
 prefs = [
+  "browser.newtabpage.resource-mapping.log=true",
   "browser.startup.homepage.abouthome_cache.enabled=true",
   "browser.startup.homepage.abouthome_cache.testing=true",
 ]

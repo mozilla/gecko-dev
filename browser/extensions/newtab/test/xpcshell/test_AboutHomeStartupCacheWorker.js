@@ -118,9 +118,8 @@ add_setup(async function () {
     { setAsDefault: true }
   );
 
-  // Initialize Activity Stream, and pretend that a new window has been loaded
-  // to kick off initializing all of the feeds.
-  AboutNewTab.init();
+  // Pretend that a new window has been loaded to kick off initializing all of
+  // the feeds.
   AboutNewTab.onBrowserReady();
 
   // Much of Activity Stream initializes asynchronously. This is the easiest way

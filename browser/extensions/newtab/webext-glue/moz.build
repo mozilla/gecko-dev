@@ -23,10 +23,6 @@ FINAL_TARGET_FILES += [
 FINAL_TARGET_FILES["webext-glue"] += [
     "background.js",
     "metrics/**",
-    "schema.json",
-]
-FINAL_TARGET_PP_FILES["webext-glue"] += [
-    "builtin-newtab.js",
 ]
 FINAL_TARGET_FILES.lib += [
     "../lib/**",
