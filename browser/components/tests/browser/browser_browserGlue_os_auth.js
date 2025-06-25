@@ -10,9 +10,7 @@ const { FormAutofillUtils } = ChromeUtils.importESModule(
 // Check whether os auth is disabled by default on a new profile in Beta and Release.
 add_task(async function test_creditCards_os_auth_disabled_for_new_profile() {
   Assert.equal(
-    FormAutofillUtils.getOSAuthEnabled(
-      FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
-    ),
+    FormAutofillUtils.getOSAuthEnabled(),
     AppConstants.NIGHTLY_BUILD,
     "OS Auth should be disabled for credit cards by default for a new profile."
   );

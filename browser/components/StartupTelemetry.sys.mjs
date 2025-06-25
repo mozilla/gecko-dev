@@ -441,16 +441,7 @@ export let StartupTelemetry = {
   },
 
   osAuthEnabled() {
-    // Manually read these prefs. This treats any non-empty-string
-    // value as "turned off", irrespective of whether it correctly
-    // decrypts to the correct value, because we cannot do the
-    // decryption if the primary password has not yet been provided,
-    // and for telemetry treating that situation as "turned off"
-    // seems reasonable.
-    const osAuthForCc = !Services.prefs.getStringPref(
-      lazy.FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
-      ""
-    );
+    const osAuthForCc = lazy.FormAutofillUtils.getOSAuthEnabled();
     const osAuthForPw = lazy.LoginHelper.getOSAuthEnabled();
 
     Glean.formautofill.osAuthEnabled.set(osAuthForCc);

@@ -35,13 +35,8 @@ add_setup(async () => {
       ],
     ],
   });
-  const oldValue = FormAutofillUtils.getOSAuthEnabled(
-    FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
-  );
-  FormAutofillUtils.setOSAuthEnabled(
-    FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
-    false
-  );
+  const oldValue = FormAutofillUtils.getOSAuthEnabled();
+  FormAutofillUtils.setOSAuthEnabled(false);
 
   await setStorage(TEST_ADDRESS_1);
   await setStorage(TEST_CREDIT_CARD_1);
@@ -50,10 +45,7 @@ add_setup(async () => {
 
   registerCleanupFunction(async () => {
     await removeAllRecords();
-    FormAutofillUtils.setOSAuthEnabled(
-      FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
-      oldValue
-    );
+    FormAutofillUtils.setOSAuthEnabled(oldValue);
     await clearGleanTelemetry();
   });
 });

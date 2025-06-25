@@ -1704,40 +1704,24 @@ async function add_heuristic_tests(
 }
 
 async function add_capture_heuristic_tests(patterns, fixturePathPrefix = "") {
-  const oldValue = FormAutofillUtils.getOSAuthEnabled(
-    FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
-  );
+  const oldValue = FormAutofillUtils.getOSAuthEnabled();
 
-  FormAutofillUtils.setOSAuthEnabled(
-    FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
-    false
-  );
+  FormAutofillUtils.setOSAuthEnabled(false);
 
   registerCleanupFunction(() => {
-    FormAutofillUtils.setOSAuthEnabled(
-      FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
-      oldValue
-    );
+    FormAutofillUtils.setOSAuthEnabled(oldValue);
   });
 
   add_heuristic_tests(patterns, fixturePathPrefix, { testCapture: true });
 }
 
 async function add_autofill_heuristic_tests(patterns, fixturePathPrefix = "") {
-  const oldValue = FormAutofillUtils.getOSAuthEnabled(
-    FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF
-  );
+  const oldValue = FormAutofillUtils.getOSAuthEnabled();
 
-  FormAutofillUtils.setOSAuthEnabled(
-    FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
-    false
-  );
+  FormAutofillUtils.setOSAuthEnabled(false);
 
   registerCleanupFunction(() => {
-    FormAutofillUtils.setOSAuthEnabled(
-      FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
-      oldValue
-    );
+    FormAutofillUtils.setOSAuthEnabled(oldValue);
   });
 
   add_heuristic_tests(patterns, fixturePathPrefix, { testAutofill: true });

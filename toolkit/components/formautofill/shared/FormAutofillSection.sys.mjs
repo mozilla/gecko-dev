@@ -701,11 +701,7 @@ export class FormAutofillCreditCardSection extends FormAutofillSection {
   }
 
   async getDecryptedString(cipherText, reauth) {
-    if (
-      !lazy.FormAutofillUtils.getOSAuthEnabled(
-        lazy.FormAutofill.AUTOFILL_CREDITCARDS_REAUTH_PREF
-      )
-    ) {
+    if (!lazy.FormAutofillUtils.getOSAuthEnabled()) {
       this.log.debug("Reauth is disabled");
       reauth = false;
     }

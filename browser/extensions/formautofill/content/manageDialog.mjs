@@ -382,7 +382,7 @@ export class ManageCreditCards extends ManageRecords {
       let result;
       try {
         verified = await lazy.FormAutofillUtils.verifyUserOSAuth(
-          FormAutofill.AUTOFILL_CREDITCARDS_REAUTH_PREF,
+          FormAutofill.AUTOFILL_CREDITCARDS_OS_AUTH_LOCKED_PREF,
           promptMessage
         );
         result = verified ? "success" : "fail_user_canceled";
