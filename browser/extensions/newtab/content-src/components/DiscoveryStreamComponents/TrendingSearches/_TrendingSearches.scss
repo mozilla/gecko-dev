@@ -103,6 +103,20 @@
 
 // Variant B styles
 .trending-searches-list-view {
+  .ds-section-grid & {
+    order: 1;
+    grid-row: span 2;
+    grid-column: span 1;
+
+    & ~ .col-3-small {
+      @media (min-width: $break-point-widest) and (max-width: $break-point-sections-variant){
+        // only hide the small cards in the 3 column layout
+        // to allow for trending searches to have space within the grid
+        display: none;
+      }
+    }
+  }
+
   &:not(.placeholder) {
     border-radius: var(--border-radius-large);
     box-shadow: var(--box-shadow-card);

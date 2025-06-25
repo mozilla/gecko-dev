@@ -9146,6 +9146,16 @@ main section {
   outline: var(--focus-outline);
 }
 
+.ds-section-grid .trending-searches-list-view {
+  order: 1;
+  grid-row: span 2;
+  grid-column: span 1;
+}
+@media (min-width: 1122px) and (max-width: 1390px) {
+  .ds-section-grid .trending-searches-list-view ~ .col-3-small {
+    display: none;
+  }
+}
 .trending-searches-list-view:not(.placeholder) {
   border-radius: var(--border-radius-large);
   box-shadow: var(--box-shadow-card);
