@@ -27,7 +27,7 @@
 #ifdef MOZ_SOURCE_STAMP
 #  define MOZ_SOURCE_STAMP_VALUE MOZ_STRINGIFY(MOZ_SOURCE_STAMP)
 #else
-#  define MOZ_SOURCE_STAMP_VALUE nullptr;
+#  define MOZ_SOURCE_STAMP_VALUE nullptr
 #endif
 
 static mozilla::LazyLogModule sWrDLLog("wr.dl");
