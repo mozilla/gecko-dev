@@ -483,17 +483,3 @@ test.nested:
             type: number
           CamelCasedParameter:
             type: number
-
-  a_dual_labeled_counter:
-    type: dual_labeled_counter
-    description: An example DLC
-    bugs: [https://bugzilla.mozilla.org/1973102]
-    data_reviews: [https://bugzilla.mozilla.org/1973102]
-    notification_emails: [CHANGE_ME@example.com]
-    expires: never
-    dual_labels:
-      key:
-        description: An example key
-      category:
-        description: Some example categories
-        labels: ['cat1', 'cat2', 'catred', 'catblu']

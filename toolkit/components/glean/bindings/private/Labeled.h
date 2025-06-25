@@ -117,12 +117,11 @@ class Labeled<BooleanMetric, E> {
 };
 
 template <typename E>
-class Labeled<CounterMetric<CounterType::eBaseOrLabeled>, E> {
+class Labeled<CounterMetric, E> {
  public:
   constexpr explicit Labeled(uint32_t id) : mId(id) {}
 
-  CounterMetric<CounterType::eBaseOrLabeled> Get(
-      const nsACString& aLabel) const {
+  CounterMetric Get(const nsACString& aLabel) const {
     auto submetricId = fog_labeled_counter_get(mId, &aLabel);
     // If this labeled metric is mirrored, we need to map the submetric id back
     // to the label string and mirrored scalar so we can mirror its operations.
@@ -133,10 +132,10 @@ class Labeled<CounterMetric<CounterType::eBaseOrLabeled>, E> {
       UpdateLabeledDistributionMirror(mirrorHgramId.extract(), submetricId,
                                       aLabel);
     }
-    return CounterMetric<CounterType::eBaseOrLabeled>(submetricId);
+    return CounterMetric(submetricId);
   }
 
-  CounterMetric<CounterType::eBaseOrLabeled> EnumGet(E aLabel) const {
+  CounterMetric EnumGet(E aLabel) const {
     auto submetricId =
         fog_labeled_counter_enum_get(mId, static_cast<uint16_t>(aLabel));
     auto mirrorId = ScalarIdForMetric(mId);
@@ -152,7 +151,7 @@ class Labeled<CounterMetric<CounterType::eBaseOrLabeled>, E> {
       UpdateLabeledDistributionMirror(mirrorHgramId.extract(), submetricId,
                                       label);
     }
-    return CounterMetric<CounterType::eBaseOrLabeled>(submetricId);
+    return CounterMetric(submetricId);
   }
 
  private:
@@ -342,12 +341,11 @@ class Labeled<BooleanMetric, DynamicLabel> {
 };
 
 template <>
-class Labeled<CounterMetric<CounterType::eBaseOrLabeled>, DynamicLabel> {
+class Labeled<CounterMetric, DynamicLabel> {
  public:
   constexpr explicit Labeled(uint32_t id) : mId(id) {}
 
-  CounterMetric<CounterType::eBaseOrLabeled> Get(
-      const nsACString& aLabel) const {
+  CounterMetric Get(const nsACString& aLabel) const {
     auto submetricId = fog_labeled_counter_get(mId, &aLabel);
     // If this labeled metric is mirrored, we need to map the submetric id back
     // to the label string and mirrored scalar so we can mirror its operations.
@@ -358,11 +356,10 @@ class Labeled<CounterMetric<CounterType::eBaseOrLabeled>, DynamicLabel> {
       UpdateLabeledDistributionMirror(mirrorHgramId.extract(), submetricId,
                                       aLabel);
     }
-    return CounterMetric<CounterType::eBaseOrLabeled>(submetricId);
+    return CounterMetric(submetricId);
   }
 
-  CounterMetric<CounterType::eBaseOrLabeled> EnumGet(
-      DynamicLabel aLabel) const = delete;
+  CounterMetric EnumGet(DynamicLabel aLabel) const = delete;
 
  private:
   const uint32_t mId;

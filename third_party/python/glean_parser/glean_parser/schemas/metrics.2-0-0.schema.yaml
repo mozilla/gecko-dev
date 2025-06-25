@@ -52,16 +52,7 @@ definitions:
   labeled_metric_id:
     type: string
     pattern: "^[ -~]+$"
-    maxLength: 111  # Note: this should be category + metric + 1
-
-  optional_labels:
-    anyOf:
-      - type: array
-        uniqueItems: true
-        items:
-          $ref: "#/definitions/labeled_metric_id"
-        maxItems: 4096
-      - type: "null"
+    maxLength: 71  # Note: this should be category + metric + 1
 
   metric:
     description: |
@@ -130,19 +121,13 @@ definitions:
               metric types include:
 
                 `labeled_boolean`, `labeled_string`, `labeled_counter`,
-                `dual_labeled_counter`, `labeled_custom_distribution`,
-                `labeled_memory_distribution`, `labeled_timing_distribution`,
-                `labeled_quantity`.
+                `labeled_custom_distribution`, `labeled_memory_distribution`,
+                `labeled_timing_distribution`, `labeled_quantity`.
 
             - `text`: Record long text data.
 
             - `object`: Record structured data based on a pre-defined schema
               Additional properties: `structure`.
-
-            - `dual_labeled_counter`: A counter with two label dimensions.
-              This metric type is used to record a counter with two different
-              label axes, such as a key and a category. Additional properties:
-              `dual_labels`.
 
         type: string
         enum:
@@ -170,7 +155,6 @@ definitions:
           - rate
           - text
           - object
-          - dual_labeled_counter
 
       description:
         title: Description
@@ -386,51 +370,13 @@ definitions:
           labels in the special label `__other__`.
 
           Valid with any of the labeled metric types.
-        $ref: "#/definitions/optional_labels"
-
-      dual_labels:
-        type: object
-        description: Defines the two label dimensions for a dual-labeled metric.
-        properties:
-          key:
-            type: object
-            description: The primary label dimension.
-            properties:
-              description:
-                type: string
-                description: |
-                  Human-readable description of the key dimension (first label
-                  axis).
-              labels:
-                description: |
-                  Optional list of statically defined label values for the key
-                  dimension.
-                $ref: "#/definitions/optional_labels"
-            required:
-              - description
-            additionalProperties: false
-          category:
-            type: object
-            description: The secondary label dimension.
-            properties:
-              description:
-                type: string
-                description: |
-                  Human-readable description of the category dimension (second
-                  label axis).
-              labels:
-                description: |
-                  Optional list of statically defined label values for the
-                  category dimension.
-                $ref: "#/definitions/optional_labels"
-            required:
-              - description
-            additionalProperties: false
-        required:
-          - key
-          - category
-        additionalProperties: false
-
+        anyOf:
+          - type: array
+            uniqueItems: true
+            items:
+              $ref: "#/definitions/labeled_metric_id"
+            maxItems: 4096
+          - type: "null"
 
       extra_keys:
         title: Extra keys

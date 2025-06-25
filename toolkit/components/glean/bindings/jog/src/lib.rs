@@ -27,8 +27,6 @@ struct ExtraMetricArgs {
     numerators: Option<Vec<CommonMetricData>>,
     ordered_labels: Option<Vec<Cow<'static, str>>>,
     permit_non_commutative_operations_over_ipc: Option<bool>,
-    ordered_keys: Option<Vec<Cow<'static, str>>>,
-    ordered_categories: Option<Vec<Cow<'static, str>>>,
 }
 
 /// Test-only method.
@@ -194,8 +192,6 @@ fn create_and_register_metric(
         extra_args.numerators,
         extra_args.ordered_labels,
         extra_args.permit_non_commutative_operations_over_ipc,
-        extra_args.ordered_keys,
-        extra_args.ordered_categories,
     );
     extern "C" {
         fn JOG_RegisterMetric(

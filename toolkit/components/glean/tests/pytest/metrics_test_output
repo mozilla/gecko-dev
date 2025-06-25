@@ -469,25 +469,6 @@ pub mod test_nested {
     use glean::HistogramType;
     use once_cell::sync::Lazy;
 
-    #[allow(non_upper_case_globals)]
-    /// generated from test.nested.a_dual_labeled_counter
-    ///
-    /// An example DLC
-    pub static a_dual_labeled_counter: Lazy<DualLabeledCounterMetric> = Lazy::new(|| {
-        let meta =
-            CommonMetricData {
-                name: "a_dual_labeled_counter".into(),
-                category: "test.nested".into(),
-                send_in_pings: vec!["metrics".into()],
-                lifetime: Lifetime::Ping,
-                disabled: false,
-                ..Default::default()
-            };
-        let metric = DualLabeledCounterMetric::new(BaseMetricId(18), meta, None,
-        Some(vec![::std::borrow::Cow::from("cat1"), ::std::borrow::Cow::from("cat2"), ::std::borrow::Cow::from("catblu"), ::std::borrow::Cow::from("catred")]));
-        metric
-    });
-
         pub type AnObjectObject = Vec<AnObjectObjectItem>;
 
         #[derive(Debug, Hash, Eq, PartialEq, Clone, ::glean::traits::__serde::Serialize, ::glean::traits::__serde::Deserialize)]
@@ -516,7 +497,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        let metric = ObjectMetric::new(BaseMetricId(19), meta)
+        let metric = ObjectMetric::new(BaseMetricId(18), meta)
 ;
         #[cfg(feature = "with_gecko")]
         {
@@ -543,7 +524,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        let metric = DatetimeMetric::new(BaseMetricId(20), meta, TimeUnit::Millisecond)
+        let metric = DatetimeMetric::new(BaseMetricId(19), meta, TimeUnit::Millisecond)
 ;
         metric
     });
@@ -563,7 +544,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        let metric = EventMetric::new(BaseMetricId(21), meta)
+        let metric = EventMetric::new(BaseMetricId(20), meta)
 ;
         #[cfg(feature = "with_gecko")]
         {
@@ -611,7 +592,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        let metric = EventMetric::new(BaseMetricId(22), meta)
+        let metric = EventMetric::new(BaseMetricId(21), meta)
 ;
         #[cfg(feature = "with_gecko")]
         {
@@ -638,7 +619,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        let metric = DenominatorMetric::new(BaseMetricId(23), meta, vec![CommonMetricData {name: "rate_with_external_denominator".into(), category: "test.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: false,  ..Default::default()}, CommonMetricData {name: "rate_with_external_denominator".into(), category: "test2.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: true,  ..Default::default()}])
+        let metric = DenominatorMetric::new(BaseMetricId(22), meta, vec![CommonMetricData {name: "rate_with_external_denominator".into(), category: "test.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: false,  ..Default::default()}, CommonMetricData {name: "rate_with_external_denominator".into(), category: "test2.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: true,  ..Default::default()}])
 ;
         metric
     });
@@ -650,7 +631,7 @@ pub mod test_nested {
     /// description
     pub static optimizable_counter_metric: Lazy<CounterMetric> = Lazy::new(|| {
         CounterMetric::codegen_new(
-            24,
+            23,
             "test.nested",
             "optimizable_counter_metric",
             "metrics"
@@ -664,7 +645,7 @@ pub mod test_nested {
     /// description
     pub static optimizable_disabled_counter_metric: Lazy<CounterMetric> = Lazy::new(|| {
         CounterMetric::codegen_disabled_new(
-            25,
+            24,
             "test.nested",
             "optimizable_disabled_counter_metric",
             "metrics"
@@ -686,7 +667,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        let metric = QuantityMetric::new(BaseMetricId(26), meta)
+        let metric = QuantityMetric::new(BaseMetricId(25), meta)
 ;
         metric
     });
@@ -706,7 +687,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        let metric = RateMetric::new(BaseMetricId(27), meta)
+        let metric = RateMetric::new(BaseMetricId(26), meta)
 ;
         metric
     });
@@ -726,7 +707,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        let metric = NumeratorMetric::new(BaseMetricId(28), meta)
+        let metric = NumeratorMetric::new(BaseMetricId(27), meta)
 ;
         metric
     });
@@ -746,7 +727,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        let metric = UuidMetric::new(BaseMetricId(29), meta)
+        let metric = UuidMetric::new(BaseMetricId(28), meta)
 ;
         metric
     });
@@ -775,7 +756,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = BooleanMetric::new(BaseMetricId(30), meta)
+        let metric = BooleanMetric::new(BaseMetricId(29), meta)
 ;
         metric
     });
@@ -795,7 +776,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = CounterMetric::new(BaseMetricId(31), meta)
+        let metric = CounterMetric::new(BaseMetricId(30), meta)
 ;
         metric
     });
@@ -815,7 +796,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = CustomDistributionMetric::new(BaseMetricId(32), meta, 0, 100, 100, HistogramType::Linear)
+        let metric = CustomDistributionMetric::new(BaseMetricId(31), meta, 0, 100, 100, HistogramType::Linear)
 ;
         metric
     });
@@ -837,7 +818,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(33), meta, None);
+        let metric = LabeledMetric::new(BaseMetricId(32), meta, None);
         metric
     });
 
@@ -906,7 +887,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(34), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]));
+        let metric = LabeledMetric::new(BaseMetricId(33), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]));
         metric
     });
 
@@ -927,7 +908,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(35), meta, None);
+        let metric = LabeledMetric::new(BaseMetricId(34), meta, None);
         metric
     });
 
@@ -972,7 +953,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(36), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]));
+        let metric = LabeledMetric::new(BaseMetricId(35), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]));
         metric
     });
 
@@ -993,7 +974,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(37), meta, None);
+        let metric = LabeledMetric::new(BaseMetricId(36), meta, None);
         metric
     });
 
@@ -1038,7 +1019,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::new(BaseMetricId(38), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]));
+        let metric = LabeledMetric::new(BaseMetricId(37), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]));
         metric
     });
 
@@ -1057,7 +1038,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = MemoryDistributionMetric::new(BaseMetricId(39), meta, MemoryUnit::Kilobyte)
+        let metric = MemoryDistributionMetric::new(BaseMetricId(38), meta, MemoryUnit::Kilobyte)
 ;
         metric
     });
@@ -1077,7 +1058,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = StringListMetric::new(BaseMetricId(40), meta)
+        let metric = StringListMetric::new(BaseMetricId(39), meta)
 ;
         metric
     });
@@ -1097,7 +1078,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = StringMetric::new(BaseMetricId(41), meta)
+        let metric = StringMetric::new(BaseMetricId(40), meta)
 ;
         metric
     });
@@ -1117,7 +1098,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = TextMetric::new(BaseMetricId(42), meta)
+        let metric = TextMetric::new(BaseMetricId(41), meta)
 ;
         metric
     });
@@ -1137,7 +1118,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = TimespanMetric::new(BaseMetricId(43), meta, TimeUnit::Millisecond)
+        let metric = TimespanMetric::new(BaseMetricId(42), meta, TimeUnit::Millisecond)
 ;
         metric
     });
@@ -1157,7 +1138,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = TimingDistributionMetric::new(BaseMetricId(44), meta, TimeUnit::Nanosecond)
+        let metric = TimingDistributionMetric::new(BaseMetricId(43), meta, TimeUnit::Nanosecond)
 ;
         metric
     });
@@ -1177,7 +1158,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = BooleanMetric::with_unordered_ipc(BaseMetricId(45), meta)
+        let metric = BooleanMetric::with_unordered_ipc(BaseMetricId(44), meta)
 ;
         metric
     });
@@ -1199,7 +1180,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        let metric = LabeledMetric::with_unordered_ipc(BaseMetricId(46), meta, None);
+        let metric = LabeledMetric::with_unordered_ipc(BaseMetricId(45), meta, None);
         metric
     });
 
@@ -1240,7 +1221,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = ObjectMetric::new(BaseMetricId(47), meta)
+        let metric = ObjectMetric::new(BaseMetricId(46), meta)
 ;
         #[cfg(feature = "with_gecko")]
         {
@@ -1267,7 +1248,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = DatetimeMetric::new(BaseMetricId(48), meta, TimeUnit::Millisecond)
+        let metric = DatetimeMetric::new(BaseMetricId(47), meta, TimeUnit::Millisecond)
 ;
         metric
     });
@@ -1287,7 +1268,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = EventMetric::new(BaseMetricId(49), meta)
+        let metric = EventMetric::new(BaseMetricId(48), meta)
 ;
         #[cfg(feature = "with_gecko")]
         {
@@ -1331,7 +1312,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = EventMetric::new(BaseMetricId(50), meta)
+        let metric = EventMetric::new(BaseMetricId(49), meta)
 ;
         #[cfg(feature = "with_gecko")]
         {
@@ -1350,7 +1331,7 @@ pub mod test2_nested {
     /// description
     pub static external_denominator: Lazy<CounterMetric> = Lazy::new(|| {
         CounterMetric::codegen_disabled_new(
-            51,
+            50,
             "test2.nested",
             "external_denominator",
             "metrics"
@@ -1364,7 +1345,7 @@ pub mod test2_nested {
     /// description
     pub static optimizable_counter_metric: Lazy<CounterMetric> = Lazy::new(|| {
         CounterMetric::codegen_disabled_new(
-            52,
+            51,
             "test2.nested",
             "optimizable_counter_metric",
             "metrics"
@@ -1378,7 +1359,7 @@ pub mod test2_nested {
     /// description
     pub static optimizable_disabled_counter_metric: Lazy<CounterMetric> = Lazy::new(|| {
         CounterMetric::codegen_disabled_new(
-            53,
+            52,
             "test2.nested",
             "optimizable_disabled_counter_metric",
             "metrics"
@@ -1400,7 +1381,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = QuantityMetric::new(BaseMetricId(54), meta)
+        let metric = QuantityMetric::new(BaseMetricId(53), meta)
 ;
         metric
     });
@@ -1420,7 +1401,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = RateMetric::new(BaseMetricId(55), meta)
+        let metric = RateMetric::new(BaseMetricId(54), meta)
 ;
         metric
     });
@@ -1440,7 +1421,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = NumeratorMetric::new(BaseMetricId(56), meta)
+        let metric = NumeratorMetric::new(BaseMetricId(55), meta)
 ;
         metric
     });
@@ -1460,7 +1441,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        let metric = UuidMetric::new(BaseMetricId(57), meta)
+        let metric = UuidMetric::new(BaseMetricId(56), meta)
 ;
         metric
     });
@@ -1588,121 +1569,121 @@ pub(crate) mod __glean_metric_maps {
         let mut map = HashMap::with_capacity(4);
         map.insert(BaseMetricId(1), &super::test::boolean_metric);
         map.insert(BaseMetricId(16), &super::test::unordered_boolean_metric);
-        map.insert(BaseMetricId(30), &super::test2::boolean_metric);
-        map.insert(BaseMetricId(45), &super::test2::unordered_boolean_metric);
+        map.insert(BaseMetricId(29), &super::test2::boolean_metric);
+        map.insert(BaseMetricId(44), &super::test2::unordered_boolean_metric);
         map
     });
 
     pub static COUNTER_MAP: Lazy<HashMap<BaseMetricId, &Lazy<CounterMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(7);
         map.insert(BaseMetricId(2), &super::test::counter_metric);
-        map.insert(BaseMetricId(24), &super::test_nested::optimizable_counter_metric);
-        map.insert(BaseMetricId(25), &super::test_nested::optimizable_disabled_counter_metric);
-        map.insert(BaseMetricId(31), &super::test2::counter_metric);
-        map.insert(BaseMetricId(51), &super::test2_nested::external_denominator);
-        map.insert(BaseMetricId(52), &super::test2_nested::optimizable_counter_metric);
-        map.insert(BaseMetricId(53), &super::test2_nested::optimizable_disabled_counter_metric);
+        map.insert(BaseMetricId(23), &super::test_nested::optimizable_counter_metric);
+        map.insert(BaseMetricId(24), &super::test_nested::optimizable_disabled_counter_metric);
+        map.insert(BaseMetricId(30), &super::test2::counter_metric);
+        map.insert(BaseMetricId(50), &super::test2_nested::external_denominator);
+        map.insert(BaseMetricId(51), &super::test2_nested::optimizable_counter_metric);
+        map.insert(BaseMetricId(52), &super::test2_nested::optimizable_disabled_counter_metric);
         map
     });
 
     pub static CUSTOM_DISTRIBUTION_MAP: Lazy<HashMap<BaseMetricId, &Lazy<CustomDistributionMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
         map.insert(BaseMetricId(3), &super::test::custom_distribution_metric);
-        map.insert(BaseMetricId(32), &super::test2::custom_distribution_metric);
+        map.insert(BaseMetricId(31), &super::test2::custom_distribution_metric);
         map
     });
 
     pub static MEMORY_DISTRIBUTION_MAP: Lazy<HashMap<BaseMetricId, &Lazy<MemoryDistributionMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
         map.insert(BaseMetricId(10), &super::test::memory_distribution_metric);
-        map.insert(BaseMetricId(39), &super::test2::memory_distribution_metric);
+        map.insert(BaseMetricId(38), &super::test2::memory_distribution_metric);
         map
     });
 
     pub static STRING_LIST_MAP: Lazy<HashMap<BaseMetricId, &Lazy<StringListMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
         map.insert(BaseMetricId(11), &super::test::string_list_metric);
-        map.insert(BaseMetricId(40), &super::test2::string_list_metric);
+        map.insert(BaseMetricId(39), &super::test2::string_list_metric);
         map
     });
 
     pub static STRING_MAP: Lazy<HashMap<BaseMetricId, &Lazy<StringMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
         map.insert(BaseMetricId(12), &super::test::string_metric);
-        map.insert(BaseMetricId(41), &super::test2::string_metric);
+        map.insert(BaseMetricId(40), &super::test2::string_metric);
         map
     });
 
     pub static TEXT_MAP: Lazy<HashMap<BaseMetricId, &Lazy<TextMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
         map.insert(BaseMetricId(13), &super::test::text_metric);
-        map.insert(BaseMetricId(42), &super::test2::text_metric);
+        map.insert(BaseMetricId(41), &super::test2::text_metric);
         map
     });
 
     pub static TIMESPAN_MAP: Lazy<HashMap<BaseMetricId, &Lazy<TimespanMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
         map.insert(BaseMetricId(14), &super::test::timespan_metric);
-        map.insert(BaseMetricId(43), &super::test2::timespan_metric);
+        map.insert(BaseMetricId(42), &super::test2::timespan_metric);
         map
     });
 
     pub static TIMING_DISTRIBUTION_MAP: Lazy<HashMap<BaseMetricId, &Lazy<TimingDistributionMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
         map.insert(BaseMetricId(15), &super::test::timing_distribution_metric);
-        map.insert(BaseMetricId(44), &super::test2::timing_distribution_metric);
+        map.insert(BaseMetricId(43), &super::test2::timing_distribution_metric);
         map
     });
 
     pub static DATETIME_MAP: Lazy<HashMap<BaseMetricId, &Lazy<DatetimeMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(BaseMetricId(20), &super::test_nested::datetime_metric);
-        map.insert(BaseMetricId(48), &super::test2_nested::datetime_metric);
+        map.insert(BaseMetricId(19), &super::test_nested::datetime_metric);
+        map.insert(BaseMetricId(47), &super::test2_nested::datetime_metric);
         map
     });
 
     pub static DENOMINATOR_MAP: Lazy<HashMap<BaseMetricId, &Lazy<DenominatorMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(1);
-        map.insert(BaseMetricId(23), &super::test_nested::external_denominator);
+        map.insert(BaseMetricId(22), &super::test_nested::external_denominator);
         map
     });
 
     pub static QUANTITY_MAP: Lazy<HashMap<BaseMetricId, &Lazy<QuantityMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(BaseMetricId(26), &super::test_nested::quantity_metric);
-        map.insert(BaseMetricId(54), &super::test2_nested::quantity_metric);
+        map.insert(BaseMetricId(25), &super::test_nested::quantity_metric);
+        map.insert(BaseMetricId(53), &super::test2_nested::quantity_metric);
         map
     });
 
     pub static RATE_MAP: Lazy<HashMap<BaseMetricId, &Lazy<RateMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(BaseMetricId(27), &super::test_nested::rate_metric);
-        map.insert(BaseMetricId(55), &super::test2_nested::rate_metric);
+        map.insert(BaseMetricId(26), &super::test_nested::rate_metric);
+        map.insert(BaseMetricId(54), &super::test2_nested::rate_metric);
         map
     });
 
     pub static NUMERATOR_MAP: Lazy<HashMap<BaseMetricId, &Lazy<NumeratorMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(BaseMetricId(28), &super::test_nested::rate_with_external_denominator);
-        map.insert(BaseMetricId(56), &super::test2_nested::rate_with_external_denominator);
+        map.insert(BaseMetricId(27), &super::test_nested::rate_with_external_denominator);
+        map.insert(BaseMetricId(55), &super::test2_nested::rate_with_external_denominator);
         map
     });
 
     pub static UUID_MAP: Lazy<HashMap<BaseMetricId, &Lazy<UuidMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(BaseMetricId(29), &super::test_nested::uuid_metric);
-        map.insert(BaseMetricId(57), &super::test2_nested::uuid_metric);
+        map.insert(BaseMetricId(28), &super::test_nested::uuid_metric);
+        map.insert(BaseMetricId(56), &super::test2_nested::uuid_metric);
         map
     });
 
 
     pub(crate) fn set_object_by_id(metric_id: u32, value: String) -> Result<(), ()> {
         match metric_id {
-          19 => {
+          18 => {
               super::test_nested::an_object.set_string(value);
               Ok(())
           }
-          47 => {
+          46 => {
               super::test2_nested::an_object.set_string(value);
               Ok(())
           }
@@ -1727,8 +1708,8 @@ pub(crate) mod __glean_metric_maps {
     /// Panics if no object by the given metric ID could be found.
     pub(crate) fn object_test_get_value(metric_id: u32, ping_name: Option<String>) -> Option<String> {
         match metric_id {
-           19 => super::test_nested::an_object.test_get_value_as_str(ping_name.as_deref()),
-           47 => super::test2_nested::an_object.test_get_value_as_str(ping_name.as_deref()),
+           18 => super::test_nested::an_object.test_get_value_as_str(ping_name.as_deref()),
+           46 => super::test2_nested::an_object.test_get_value_as_str(ping_name.as_deref()),
            _ => panic!("No object for metric id {}", metric_id),
         }
     }
@@ -1750,8 +1731,8 @@ pub(crate) mod __glean_metric_maps {
     pub(crate) fn object_test_get_error(metric_id: u32) -> Option<String> {
         #[cfg(feature = "with_gecko")]
         match metric_id {
-           19 => test_get_errors!(super::test_nested::an_object),
-           47 => test_get_errors!(super::test2_nested::an_object),
+           18 => test_get_errors!(super::test_nested::an_object),
+           46 => test_get_errors!(super::test2_nested::an_object),
            _ => panic!("No object for metric id {}", metric_id),
         }
 
@@ -1775,19 +1756,19 @@ pub(crate) mod __glean_metric_maps {
     /// or an `EventRecordingError::InvalidExtraKey` if the `extra` map could not be deserialized.
     pub(crate) fn record_event_by_id(metric_id: u32, extra: HashMap<String, String>) -> Result<(), EventRecordingError> {
         match metric_id {
-          21 => {
+          20 => {
               super::test_nested::event_metric.record_raw(extra);
               Ok(())
           }
-          22 => {
+          21 => {
               super::test_nested::event_metric_with_extra.record_raw(extra);
               Ok(())
           }
-          49 => {
+          48 => {
               super::test2_nested::event_metric.record_raw(extra);
               Ok(())
           }
-          50 => {
+          49 => {
               super::test2_nested::event_metric_with_extra.record_raw(extra);
               Ok(())
           }
@@ -1811,7 +1792,7 @@ pub(crate) mod __glean_metric_maps {
     /// but some are passed in.
     pub(crate) fn record_event_by_id_with_time(metric_id: BaseMetricId, timestamp: u64, extra: HashMap<String, String>) -> Result<(), EventRecordingError> {
         match metric_id {
-          BaseMetricId(21) => {
+          BaseMetricId(20) => {
               if extra_keys_len(&super::test_nested::event_metric) == 0 && !extra.is_empty() {
                 return Err(EventRecordingError::InvalidExtraKey);
               }
@@ -1819,7 +1800,7 @@ pub(crate) mod __glean_metric_maps {
               super::test_nested::event_metric.record_with_time(timestamp, extra);
               Ok(())
           }
-          BaseMetricId(22) => {
+          BaseMetricId(21) => {
               if extra_keys_len(&super::test_nested::event_metric_with_extra) == 0 && !extra.is_empty() {
                 return Err(EventRecordingError::InvalidExtraKey);
               }
@@ -1827,7 +1808,7 @@ pub(crate) mod __glean_metric_maps {
               super::test_nested::event_metric_with_extra.record_with_time(timestamp, extra);
               Ok(())
           }
-          BaseMetricId(49) => {
+          BaseMetricId(48) => {
               if extra_keys_len(&super::test2_nested::event_metric) == 0 && !extra.is_empty() {
                 return Err(EventRecordingError::InvalidExtraKey);
               }
@@ -1835,7 +1816,7 @@ pub(crate) mod __glean_metric_maps {
               super::test2_nested::event_metric.record_with_time(timestamp, extra);
               Ok(())
           }
-          BaseMetricId(50) => {
+          BaseMetricId(49) => {
               if extra_keys_len(&super::test2_nested::event_metric_with_extra) == 0 && !extra.is_empty() {
                 return Err(EventRecordingError::InvalidExtraKey);
               }
@@ -1864,10 +1845,10 @@ pub(crate) mod __glean_metric_maps {
     /// Panics if no event by the given metric ID could be found.
     pub(crate) fn event_test_get_value_wrapper(metric_id: u32, ping_name: Option<String>) -> Option<Vec<RecordedEvent>> {
         match metric_id {
-           21 => super::test_nested::event_metric.test_get_value(ping_name.as_deref()),
-           22 => super::test_nested::event_metric_with_extra.test_get_value(ping_name.as_deref()),
-           49 => super::test2_nested::event_metric.test_get_value(ping_name.as_deref()),
-           50 => super::test2_nested::event_metric_with_extra.test_get_value(ping_name.as_deref()),
+           20 => super::test_nested::event_metric.test_get_value(ping_name.as_deref()),
+           21 => super::test_nested::event_metric_with_extra.test_get_value(ping_name.as_deref()),
+           48 => super::test2_nested::event_metric.test_get_value(ping_name.as_deref()),
+           49 => super::test2_nested::event_metric_with_extra.test_get_value(ping_name.as_deref()),
            _ => panic!("No event for metric id {}", metric_id),
         }
     }
@@ -1891,10 +1872,10 @@ pub(crate) mod __glean_metric_maps {
     pub(crate) fn event_test_get_error(metric_id: u32) -> Option<String> {
         #[cfg(feature = "with_gecko")]
         match metric_id {
-           21 => test_get_errors!(super::test_nested::event_metric),
-           22 => test_get_errors!(super::test_nested::event_metric_with_extra),
-           49 => test_get_errors!(super::test2_nested::event_metric),
-           50 => test_get_errors!(super::test2_nested::event_metric_with_extra),
+           20 => test_get_errors!(super::test_nested::event_metric),
+           21 => test_get_errors!(super::test_nested::event_metric_with_extra),
+           48 => test_get_errors!(super::test2_nested::event_metric),
+           49 => test_get_errors!(super::test2_nested::event_metric_with_extra),
            _ => panic!("No event for metric id {}", metric_id),
         }
 
@@ -1924,9 +1905,9 @@ pub(crate) mod __glean_metric_maps {
             4 => super::test::labeled_boolean_metric.get(label),
             5 => super::test::labeled_boolean_metric_labels.get(label),
             17 => super::test::unordered_labeled_boolean_metric.get(label),
-            33 => super::test2::labeled_boolean_metric.get(label),
-            34 => super::test2::labeled_boolean_metric_labels.get(label),
-            46 => super::test2::unordered_labeled_boolean_metric.get(label),
+            32 => super::test2::labeled_boolean_metric.get(label),
+            33 => super::test2::labeled_boolean_metric_labels.get(label),
+            45 => super::test2::unordered_labeled_boolean_metric.get(label),
             _ => panic!("No labeled_boolean for metric id {}", metric_id),
         }
     }
@@ -1949,8 +1930,8 @@ pub(crate) mod __glean_metric_maps {
         match metric_id {
             6 => super::test::labeled_counter_metric.get(label),
             7 => super::test::labeled_counter_metric_labels.get(label),
-            35 => super::test2::labeled_counter_metric.get(label),
-            36 => super::test2::labeled_counter_metric_labels.get(label),
+            34 => super::test2::labeled_counter_metric.get(label),
+            35 => super::test2::labeled_counter_metric_labels.get(label),
             _ => panic!("No labeled_counter for metric id {}", metric_id),
         }
     }
@@ -1973,8 +1954,8 @@ pub(crate) mod __glean_metric_maps {
         match metric_id {
             8 => super::test::labeled_string_metric.get(label),
             9 => super::test::labeled_string_metric_labels.get(label),
-            37 => super::test2::labeled_string_metric.get(label),
-            38 => super::test2::labeled_string_metric_labels.get(label),
+            36 => super::test2::labeled_string_metric.get(label),
+            37 => super::test2::labeled_string_metric_labels.get(label),
             _ => panic!("No labeled_string for metric id {}", metric_id),
         }
     }
@@ -1984,9 +1965,9 @@ pub(crate) mod __glean_metric_maps {
             5 => super::test::LabeledBooleanMetricLabelsLabel::from(label).into(),
             7 => super::test::LabeledCounterMetricLabelsLabel::from(label).into(),
             9 => super::test::LabeledStringMetricLabelsLabel::from(label).into(),
-            34 => super::test2::LabeledBooleanMetricLabelsLabel::from(label).into(),
-            36 => super::test2::LabeledCounterMetricLabelsLabel::from(label).into(),
-            38 => super::test2::LabeledStringMetricLabelsLabel::from(label).into(),
+            33 => super::test2::LabeledBooleanMetricLabelsLabel::from(label).into(),
+            35 => super::test2::LabeledCounterMetricLabelsLabel::from(label).into(),
+            37 => super::test2::LabeledStringMetricLabelsLabel::from(label).into(),
             _ => panic!("Can't turn label enum to string for metric {} which isn't a labeled metric with static labels", metric_id),
         }
     }
@@ -2000,28 +1981,14 @@ pub(crate) mod __glean_metric_maps {
             8 => super::test::labeled_string_metric.get_submetric_id(label),
             9 => super::test::labeled_string_metric_labels.get_submetric_id(label),
             17 => super::test::unordered_labeled_boolean_metric.get_submetric_id(label),
-            33 => super::test2::labeled_boolean_metric.get_submetric_id(label),
-            34 => super::test2::labeled_boolean_metric_labels.get_submetric_id(label),
-            35 => super::test2::labeled_counter_metric.get_submetric_id(label),
-            36 => super::test2::labeled_counter_metric_labels.get_submetric_id(label),
-            37 => super::test2::labeled_string_metric.get_submetric_id(label),
-            38 => super::test2::labeled_string_metric_labels.get_submetric_id(label),
-            46 => super::test2::unordered_labeled_boolean_metric.get_submetric_id(label),
+            32 => super::test2::labeled_boolean_metric.get_submetric_id(label),
+            33 => super::test2::labeled_boolean_metric_labels.get_submetric_id(label),
+            34 => super::test2::labeled_counter_metric.get_submetric_id(label),
+            35 => super::test2::labeled_counter_metric_labels.get_submetric_id(label),
+            36 => super::test2::labeled_string_metric.get_submetric_id(label),
+            37 => super::test2::labeled_string_metric_labels.get_submetric_id(label),
+            45 => super::test2::unordered_labeled_boolean_metric.get_submetric_id(label),
             _ => panic!("No labeled metric for id {}", metric_id),
-        }
-    }
-
-    pub(crate) fn dual_labeled_counter_get(metric_id: u32, key: &str, category: &str) -> Arc<DualLabeledCounterSubMetric> {
-        match metric_id {
-            18 => super::test_nested::a_dual_labeled_counter.get(key, category),
-            _ => panic!("No dual_labeled_counter for metric id {}", metric_id),
-        }
-    }
-
-    pub(crate) fn dual_labeled_submetric_id_get(metric_id: u32, key: &str, category: &str) -> u32 {
-        match metric_id {
-            18 => super::test_nested::a_dual_labeled_counter.get_submetric_id(key, category),
-            _ => panic!("No dual-labeled metric for id {}", metric_id),
         }
     }
 
@@ -2061,10 +2028,6 @@ pub(crate) mod __glean_metric_maps {
             RwLock::new(HashMap::new())
         );
         pub static QUANTITY_MAP: Lazy<RwLock<HashMap<SubMetricId, Arc<LabeledQuantityMetric>>>> = Lazy::new(||
-            RwLock::new(HashMap::new())
-        );
-
-        pub static DUAL_COUNTER_MAP: Lazy<RwLock<HashMap<SubMetricId, Arc<DualLabeledCounterSubMetric>>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );
     }

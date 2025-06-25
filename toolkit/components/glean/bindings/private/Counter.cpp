@@ -36,23 +36,6 @@ void accumulateToBoolean(HistogramID aId, const nsACString& aLabel,
 }
 
 /* static */
-void accumulateToKeyedBoolean(HistogramID aId, const nsACString& aKey,
-                              const nsACString& aCategory, int32_t aAmount) {
-  MOZ_ASSERT(aAmount == 1,
-             "When mirroring to keyed boolean histograms, we only support "
-             "accumulating one sample at a time.");
-  if (aCategory.EqualsASCII("true")) {
-    TelemetryHistogram::Accumulate(aId, PromiseFlatCString(aKey), true);
-  } else if (aCategory.EqualsASCII("false")) {
-    TelemetryHistogram::Accumulate(aId, PromiseFlatCString(aKey), false);
-  } else {
-    MOZ_ASSERT_UNREACHABLE(
-        "When mirroring to keyed boolean histograms, we only support labels "
-        "'true' and 'false'");
-  }
-}
-
-/* static */
 void accumulateToKeyedCount(HistogramID aId, const nsCString& aLabel,
                             int32_t aAmount) {
   TelemetryHistogram::Accumulate(aId, aLabel, aAmount);
@@ -67,21 +50,11 @@ void accumulateToCategorical(HistogramID aId, const nsCString& aLabel,
   TelemetryHistogram::AccumulateCategorical(aId, aLabel);
 }
 
-/* static */
-void accumulateToKeyedCategorical(HistogramID aId, const nsCString& aKey,
-                                  const nsCString& aCategory, int32_t aAmount) {
-  MOZ_ASSERT(aAmount == 1,
-             "When mirroring to keyed categorical histograms, we only support "
-             "accumulating one sample at a time.");
-  TelemetryHistogram::AccumulateCategorical(aId, aKey, aCategory);
-}
-
 namespace mozilla::glean {
 
 namespace impl {
 
-template <>
-void CounterMetric<CounterType::eBaseOrLabeled>::Add(int32_t aAmount) const {
+void CounterMetric::Add(int32_t aAmount) const {
   auto scalarId = ScalarIdForMetric(mId);
   if (aAmount >= 0) {
     if (scalarId) {
@@ -130,37 +103,7 @@ void CounterMetric<CounterType::eBaseOrLabeled>::Add(int32_t aAmount) const {
   fog_counter_add(mId, aAmount);
 }
 
-template <>
-void CounterMetric<CounterType::eDualLabeled>::Add(int32_t aAmount) const {
-  if (IsSubmetricId(mId)) {
-    GetDualLabeledDistributionMirrorLock().apply([&](const auto& lock) {
-      auto tuple = lock.ref()->MaybeGet(mId);
-      if (tuple) {
-        HistogramID hId = std::get<0>(tuple.ref());
-        switch (TelemetryHistogram::GetHistogramType(hId)) {
-          case nsITelemetry::HISTOGRAM_BOOLEAN:
-            accumulateToKeyedBoolean(hId, std::get<1>(tuple.ref()),
-                                     std::get<2>(tuple.ref()), aAmount);
-            break;
-          case nsITelemetry::HISTOGRAM_CATEGORICAL:
-            accumulateToKeyedCategorical(hId, std::get<1>(tuple.ref()),
-                                         std::get<2>(tuple.ref()), aAmount);
-            break;
-          default:
-            MOZ_ASSERT_UNREACHABLE(
-                "Asked to mirror dual_labeled_counter to unsupported "
-                "histogram type.");
-            break;
-        }
-      }
-    });
-  }
-  fog_dual_labeled_counter_add(mId, aAmount);
-}
-
-template <>
-Result<Maybe<int32_t>, nsCString>
-CounterMetric<CounterType::eBaseOrLabeled>::TestGetValue(
+Result<Maybe<int32_t>, nsCString> CounterMetric::TestGetValue(
     const nsACString& aPingName) const {
   nsCString err;
   if (fog_counter_test_get_error(mId, &err)) {
@@ -172,20 +115,6 @@ CounterMetric<CounterType::eBaseOrLabeled>::TestGetValue(
   return Some(fog_counter_test_get_value(mId, &aPingName));
 }
 
-template <>
-Result<Maybe<int32_t>, nsCString>
-CounterMetric<CounterType::eDualLabeled>::TestGetValue(
-    const nsACString& aPingName) const {
-  nsCString err;
-  if (fog_dual_labeled_counter_test_get_error(mId, &err)) {
-    return Err(err);
-  }
-  if (!fog_dual_labeled_counter_test_has_value(mId, &aPingName)) {
-    return Maybe<int32_t>();  // can't use Nothing() or templates will fail.
-  }
-  return Some(fog_dual_labeled_counter_test_get_value(mId, &aPingName));
-}
-
 }  // namespace impl
 
 /* virtual */
@@ -194,35 +123,12 @@ JSObject* GleanCounter::WrapObject(JSContext* aCx,
   return dom::GleanCounter_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void GleanCounter::Add(int32_t aAmount) {
-  switch (mType) {
-    case impl::CounterType::eBaseOrLabeled:
-      impl::CounterMetric<impl::CounterType::eBaseOrLabeled>(mId).Add(aAmount);
-      break;
-    case impl::CounterType::eDualLabeled:
-      impl::CounterMetric<impl::CounterType::eDualLabeled>(mId).Add(aAmount);
-      break;
-    default:
-      MOZ_ASSERT_UNREACHABLE();
-  }
-}
+void GleanCounter::Add(int32_t aAmount) { mCounter.Add(aAmount); }
 
 dom::Nullable<int32_t> GleanCounter::TestGetValue(const nsACString& aPingName,
                                                   ErrorResult& aRv) {
   dom::Nullable<int32_t> ret;
-  Result<Maybe<int32_t>, nsCString> result(Err(VoidCString()));
-  switch (mType) {
-    case impl::CounterType::eBaseOrLabeled:
-      result = impl::CounterMetric<impl::CounterType::eBaseOrLabeled>(mId)
-                   .TestGetValue(aPingName);
-      break;
-    case impl::CounterType::eDualLabeled:
-      result = impl::CounterMetric<impl::CounterType::eDualLabeled>(mId)
-                   .TestGetValue(aPingName);
-      break;
-    default:
-      MOZ_ASSERT_UNREACHABLE();
-  }
+  auto result = mCounter.TestGetValue(aPingName);
   if (result.isErr()) {
     aRv.ThrowDataError(result.unwrapErr());
     return ret;

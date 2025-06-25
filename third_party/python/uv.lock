@@ -616,7 +616,7 @@ wheels = [
 
 [[package]]
 name = "glean-parser"
-version = "17.2.0"
+version = "17.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -626,9 +626,9 @@ dependencies = [
     { name = "platformdirs" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1b/7a/494c865ec376b886243764f6274d44cb2fdf6e20fdbb54c511ba8a3cc2c4/glean_parser-17.2.0.tar.gz", hash = "sha256:6a4da6cd3869a0b19e2edbc96e7d81cec5f6d7587cb628881725f44212f46273", size = 124433, upload-time = "2025-06-17T19:39:54.155Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5c/5e/a2c499e871398869372361a733dc612bb108079c3113ea35f67b6846e58d/glean_parser-17.1.0.tar.gz", hash = "sha256:a59ab66dd734a8bea7d7a2cb632276602dd899411ee1c1cb89f439a833ba1598", size = 291725, upload-time = "2025-03-31T19:01:46.877Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/c5/5c280b548d7ee00455ddc47c800bd80e113ec4ee14582140f2d1722215f2/glean_parser-17.2.0-py3-none-any.whl", hash = "sha256:75ace75de6fd7a77d291c67557ae581e00f843c56777caffd0dd0770ef7939e2", size = 115120, upload-time = "2025-06-17T19:39:52.763Z" },
+    { url = "https://files.pythonhosted.org/packages/8a/bd/be94c7243ff7666ee6c3170fc52791323b0b4d70d9522a9da1911dbbe40d/glean_parser-17.1.0-py3-none-any.whl", hash = "sha256:d353c7eae4f369f6ec198cb61432e7c24d1d06b14aecc05b367f6c498053defc", size = 124309, upload-time = "2025-03-31T19:01:45.2Z" },
 ]
 
 [[package]]
@@ -961,7 +961,7 @@ requires-dist = [
     { name = "filelock", specifier = "~=3.6" },
     { name = "fluent-migrate", specifier = "~=0.13" },
     { name = "fluent-syntax", specifier = "==0.19.0" },
-    { name = "glean-parser", specifier = "==17.2.0" },
+    { name = "glean-parser", specifier = "==17.1.0" },
     { name = "importlib-metadata", specifier = "~=8.0" },
     { name = "jinja2", specifier = "==3.1.6" },
     { name = "jsmin", specifier = "~=3.0" },

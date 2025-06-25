@@ -18,7 +18,6 @@ mod counter;
 mod custom_distribution;
 mod datetime;
 mod denominator;
-pub(crate) mod dual_labeled_counter;
 mod event;
 mod experiment;
 pub(crate) mod labeled;
@@ -41,7 +40,6 @@ mod url;
 mod uuid;
 
 use crate::common_metric_data::CommonMetricDataInternal;
-pub use crate::common_metric_data::DynamicLabelType;
 pub use crate::event_database::RecordedEvent;
 use crate::histogram::{Functional, Histogram, PrecomputedExponential, PrecomputedLinear};
 pub use crate::metrics::datetime::Datetime;
@@ -53,12 +51,11 @@ pub use self::counter::CounterMetric;
 pub use self::custom_distribution::{CustomDistributionMetric, LocalCustomDistribution};
 pub use self::datetime::DatetimeMetric;
 pub use self::denominator::DenominatorMetric;
-pub use self::dual_labeled_counter::DualLabeledCounterMetric;
 pub use self::event::EventMetric;
 pub(crate) use self::experiment::ExperimentMetric;
 pub use self::labeled::{
     LabeledBoolean, LabeledCounter, LabeledCustomDistribution, LabeledMemoryDistribution,
-    LabeledMetric, LabeledMetricData, LabeledQuantity, LabeledString, LabeledTimingDistribution,
+    LabeledMetric, LabeledQuantity, LabeledString, LabeledTimingDistribution,
 };
 pub use self::memory_distribution::{LocalMemoryDistribution, MemoryDistributionMetric};
 pub use self::memory_unit::MemoryUnit;
@@ -196,7 +193,7 @@ pub trait MetricType {
     }
 
     /// Create a new metric from this with a specific label.
-    fn with_dynamic_label(&self, _label: DynamicLabelType) -> Self
+    fn with_dynamic_label(&self, _label: String) -> Self
     where
         Self: Sized,
     {

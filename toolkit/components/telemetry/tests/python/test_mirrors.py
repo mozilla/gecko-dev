@@ -58,6 +58,56 @@ UNMIRRORED_EVENT_ALLOWLIST = [
     "pwmgr#open_management",
 ]
 
+# Histograms permitted to be not mirrored, pending bug 1949494.
+BUG_1949494_ALLOWLIST = [
+    "GC_REASON_2",
+    "GC_IS_COMPARTMENTAL",
+    "GC_ZONE_COUNT",
+    "GC_ZONES_COLLECTED",
+    "GC_MS",
+    "GC_BUDGET_MS_2",
+    "GC_BUDGET_WAS_INCREASED",
+    "GC_SLICE_WAS_LONG",
+    "GC_ANIMATION_MS",
+    "GC_MAX_PAUSE_MS_2",
+    "GC_PREPARE_MS",
+    "GC_MARK_MS",
+    "GC_SWEEP_MS",
+    "GC_COMPACT_MS",
+    "GC_MARK_ROOTS_US",
+    "GC_MARK_GRAY_MS_2",
+    "GC_MARK_WEAK_MS",
+    "GC_SLICE_MS",
+    "GC_SLOW_PHASE",
+    "GC_SLOW_TASK",
+    "GC_MMU_50",
+    "GC_RESET",
+    "GC_RESET_REASON",
+    "GC_NON_INCREMENTAL",
+    "GC_NON_INCREMENTAL_REASON",
+    "GC_MINOR_REASON",
+    "GC_MINOR_REASON_LONG",
+    "GC_MINOR_US",
+    "GC_NURSERY_BYTES_2",
+    "GC_PRETENURE_COUNT_2",
+    "GC_BUDGET_OVERRUN",
+    "GC_NURSERY_PROMOTION_RATE",
+    "GC_TENURED_SURVIVAL_RATE",
+    "GC_MARK_RATE_2",
+    "GC_TIME_BETWEEN_S",
+    "GC_TIME_BETWEEN_SLICES_MS",
+    "GC_SLICE_COUNT",
+    "GC_EFFECTIVENESS",
+    "GC_PARALLEL_MARK",
+    "GC_PARALLEL_MARK_SPEEDUP",
+    "GC_PARALLEL_MARK_UTILIZATION",
+    "GC_PARALLEL_MARK_INTERRUPTIONS",
+    "GC_TASK_START_DELAY_US",
+    "DESERIALIZE_BYTES",
+    "DESERIALIZE_ITEMS",
+    "DESERIALIZE_US",
+]
+
 # This import can error, but in that case we want the test to fail anyway.
 from mozbuild.base import MozbuildObject
 
@@ -126,20 +176,6 @@ def ensure_compatible_histogram(metric, probe):
             assert (
                 False
             ), f"Metric {metric.identifier()} is a `labeled_counter` mapping to a histogram, but {probe.name()} isn't a 'boolean, keyed 'count', or 'categorical' Histogram (is '{probe.kind()}')."
-        return
-    elif metric.type == "dual_labeled_counter":
-        assert (
-            probe.keyed()
-        ), f"Metric {metric.identifier()} must mirror to a keyed histogram."
-        if probe.kind() == "boolean":
-            assert metric.ordered_categories == [
-                "false",
-                "true",
-            ], f"Metric {metric.identifier()} is a `dual_labeled_counter` mapping to a keyed boolean histogram, but it doesn't have labels ['false', 'true'] (has {metric.ordered_labels} instead)."
-        elif probe.kind() == "categorical":
-            assert (
-                metric.ordered_categories == probe.labels()
-            ), f"Metric {metric.identifier()} is a `dual_labeled_counter` mapping to keyed categorical histogram {probe.name()}, but the labels don't match."
         return
 
     assert probe.kind() in [
@@ -290,6 +326,8 @@ class TestTelemetryMirrors(unittest.TestCase):
         for hgram in hgrams:
             if hgram.keyed() and hgram.kind() in ("categorical", "boolean"):
                 continue  # bug 1960567
+            if hgram.name() in BUG_1949494_ALLOWLIST:
+                continue  # bug 1949494
             if hgram.name().startswith("TELEMETRY_TEST_"):
                 continue
             assert any(

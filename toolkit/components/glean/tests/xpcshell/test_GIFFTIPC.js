@@ -66,15 +66,6 @@ const INVALID_COUNTERS = 7;
 const IRATE_NUMERATOR = 44;
 const IRATE_DENOMINATOR = 14;
 const LABELED_MEMORY_BUCKETS = ["13509772", "32131834"];
-const KEYED_CATEGORIES = [
-  ["turn", "CommonLabel"],
-  ["mon", "Label1"],
-  ["mon", "Label2"],
-];
-const KEYED_BOOLS = [
-  ["tur", "true"],
-  ["chun", "false"],
-];
 
 add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
   let oldCanRecordBase = Telemetry.canRecordBase;
@@ -158,14 +149,6 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
   Glean.testOnlyIpc.anUnorderedBool.set(true);
 
   Glean.testOnlyIpc.anUnorderedLabeledBoolean.aLabel.set(true);
-
-  for (let [key, category] of KEYED_CATEGORIES) {
-    Glean.testOnlyIpc.aDualLabeledCounter.get(key, category).add(1);
-  }
-
-  for (let [key, buul] of KEYED_BOOLS) {
-    Glean.testOnlyIpc.anotherDualLabeledCounter.get(key, buul).add(1);
-  }
 
   Telemetry.canRecordBase = oldCanRecordBase;
 });
@@ -520,67 +503,6 @@ add_task(
         0
       ),
       "Only two samples"
-    );
-
-    // dual_labeled_counter -> keyed categorical hgram
-    for (let [key, category] of KEYED_CATEGORIES) {
-      Assert.equal(
-        1,
-        Glean.testOnlyIpc.aDualLabeledCounter.get(key, category).testGetValue()
-      );
-    }
-    const keyedCatHist =
-      keyedHistSnapshot.content.TELEMETRY_TEST_MIRROR_FOR_DUAL_LABELED_COUNTER;
-    Assert.deepEqual(
-      {
-        turn: {
-          bucket_count: 51,
-          histogram_type: 5,
-          sum: 0,
-          range: [1, 50],
-          values: { 0: 1, 1: 0 },
-        },
-        mon: {
-          bucket_count: 51,
-          histogram_type: 5,
-          sum: 1,
-          range: [1, 50],
-          values: { 0: 0, 1: 1, 2: 0 },
-        },
-      },
-      keyedCatHist
-    );
-
-    // dual_labeled_counter -> keyed boolean hgram
-    for (let [key, buul] of KEYED_BOOLS) {
-      Assert.equal(
-        1,
-        Glean.testOnlyIpc.anotherDualLabeledCounter
-          .get(key, buul)
-          .testGetValue()
-      );
-    }
-    const keyedBoolHist =
-      keyedHistSnapshot.content
-        .TELEMETRY_TEST_ANOTHER_MIRROR_FOR_DUAL_LABELED_COUNTER;
-    Assert.deepEqual(
-      {
-        chun: {
-          bucket_count: 3,
-          histogram_type: 2,
-          sum: 0,
-          range: [1, 2],
-          values: { 0: 1, 1: 0 },
-        },
-        tur: {
-          bucket_count: 3,
-          histogram_type: 2,
-          sum: 1,
-          range: [1, 2],
-          values: { 0: 0, 1: 1, 2: 0 },
-        },
-      },
-      keyedBoolHist
     );
   }
 );

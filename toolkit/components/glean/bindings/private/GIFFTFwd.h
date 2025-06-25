@@ -34,8 +34,6 @@ void Accumulate(mozilla::Telemetry::HistogramID aID, const nsCString& aKey,
                 uint32_t aSample);
 void AccumulateCategorical(mozilla::Telemetry::HistogramID aId,
                            const nsCString& aLabel);
-void AccumulateCategorical(mozilla::Telemetry::HistogramID aId,
-                           const nsCString& aKey, const nsCString& aLabel);
 }  // namespace TelemetryHistogram
 
 #endif /* mozilla_glean_GIFFTFwd_h */

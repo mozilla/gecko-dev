@@ -35,7 +35,6 @@ This compatibility table explains which Telemetry probe types can be mirrors for
 | [labeled_boolean](https://mozilla.github.io/glean/book/reference/metrics/labeled_booleans.html) | [Keyed scalar of kind: boolean](/toolkit/components/telemetry/collection/scalars.html) |
 | [counter](https://mozilla.github.io/glean/book/reference/metrics/counter.html) | [Scalar of kind: uint](/toolkit/components/telemetry/collection/scalars.html) |
 | [labeled_counter](https://mozilla.github.io/glean/book/reference/metrics/labeled_counters.html) | [Keyed Scalar of kind: uint](/toolkit/components/telemetry/collection/scalars.html) |
-| [dual_labeled_counter](https://mozilla.github.io/glean/book/reference/metrics/dual_labeled_counters.html) | [Keyed Histogram of kind: categorical](/toolkit/components/telemetry/collection/scalars.html) |
 | [string](https://mozilla.github.io/glean/book/reference/metrics/string.html) | [Scalar of kind: string](/toolkit/components/telemetry/collection/scalars.html) |
 | [labeled_string](https://mozilla.github.io/glean/book/reference/metrics/labeled_strings.html) | *No Supported Telemetry Type* |
 | [string_list](https://mozilla.github.io/glean/book/reference/metrics/string_list.html) | [Keyed Scalar of kind: boolean](/toolkit/components/telemetry/collection/scalars.html). The keys are the strings. The values are all `true`. Calling `Set` on the labeled_string is not mirrored (since there's no way to remove keys from a keyed scalar of kind boolean). Doing so will log a warning. |
