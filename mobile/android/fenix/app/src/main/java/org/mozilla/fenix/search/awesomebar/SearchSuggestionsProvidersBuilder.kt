@@ -57,7 +57,7 @@ import org.mozilla.fenix.search.SearchEngineSource
 @Suppress("LargeClass", "LongParameterList")
 class SearchSuggestionsProvidersBuilder(
     private val activity: HomeActivity,
-    private val fromHomeFragment: Boolean,
+    private val includeSelectedTab: Boolean,
     private val loadUrlUseCase: LoadUrlUseCase,
     private val searchUseCase: SearchUseCases.SearchUseCase,
     private val selectTabUseCase: TabsUseCases.SelectTabUseCase,
@@ -532,7 +532,7 @@ class SearchSuggestionsProvidersBuilder(
             selectTabUseCase,
             components.core.icons,
             getDrawable(activity, R.drawable.ic_search_results_tab),
-            excludeSelectedSession = !fromHomeFragment,
+            excludeSelectedSession = !includeSelectedTab,
             suggestionsHeader = activity.getString(R.string.firefox_suggest_header),
             resultsUriFilter = filter?.let { it::shouldIncludeUri },
         )

@@ -77,7 +77,7 @@ class SearchSuggestionsProvidersBuilderTest {
 
         builder = SearchSuggestionsProvidersBuilder(
             activity = activity,
-            fromHomeFragment = false,
+            includeSelectedTab = false,
             loadUrlUseCase = mockk(),
             searchUseCase = mockk(),
             selectTabUseCase = mockk(),
