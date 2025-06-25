@@ -640,6 +640,9 @@
         "EmailTracking": {
           "type": "boolean"
         },
+        "SuspectedFingerprinting": {
+          "type": "boolean"
+        },
         "Exceptions": {
           "type": "array",
           "strict": false,
