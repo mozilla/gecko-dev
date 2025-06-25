@@ -16,7 +16,7 @@ use api::{FramePublishId, PrimitiveKeyKind, RenderReasons};
 use api::units::*;
 use api::channel::{single_msg_channel, Sender, Receiver};
 use crate::bump_allocator::ChunkPool;
-use crate::AsyncPropertySampler;
+use crate::{AsyncPropertySampler, GenerateFrameParams};
 use crate::box_shadow::BoxShadow;
 #[cfg(any(feature = "capture", feature = "replay"))]
 use crate::render_api::CaptureBits;
@@ -1063,11 +1063,8 @@ impl RenderBackend {
                 txn.resource_updates.take(),
                 txn.frame_ops.take(),
                 txn.notifications.take(),
-                txn.render_frame,
-                txn.present,
-                txn.tracked,
+                txn.generate_frame.as_ref(),
                 RenderReasons::SCENE,
-                None,
                 txn.invalidate_rendered_frame,
                 frame_counter,
                 has_built_scene,
@@ -1404,7 +1401,7 @@ impl RenderBackend {
 
         let mut built_frame = false;
         for mut txn in txns {
-            if txn.generate_frame.as_bool() {
+            if txn.generate_frame.is_some() {
                 txn.profile.end_time(profiler::API_SEND_TIME);
             }
 
@@ -1415,11 +1412,8 @@ impl RenderBackend {
                 txn.resource_updates.take(),
                 txn.frame_ops.take(),
                 txn.notifications.take(),
-                txn.generate_frame.as_bool(),
-                txn.generate_frame.present(),
-                txn.generate_frame.tracked(),
+                txn.generate_frame.as_ref(),
                 txn.render_reasons,
-                txn.generate_frame.id(),
                 txn.invalidate_rendered_frame,
                 frame_counter,
                 false,
@@ -1456,11 +1450,8 @@ impl RenderBackend {
                     Vec::default(),
                     Vec::default(),
                     Vec::default(),
-                    false,
-                    false,
-                    false,
-                    RenderReasons::empty(),
                     None,
+                    RenderReasons::empty(),
                     false,
                     frame_counter,
                     false,
@@ -1480,11 +1471,8 @@ impl RenderBackend {
         resource_updates: Vec<ResourceUpdate>,
         mut frame_ops: Vec<FrameMsg>,
         mut notifications: Vec<NotificationRequest>,
-        mut render_frame: bool,
-        mut present: bool,
-        tracked: bool,
+        generate_frame: Option<&GenerateFrameParams>,
         render_reasons: RenderReasons,
-        generated_frame_id: Option<u64>,
         invalidate_rendered_frame: bool,
         frame_counter: &mut u32,
         has_built_scene: bool,
@@ -1492,10 +1480,27 @@ impl RenderBackend {
     ) -> bool {
         let update_doc_start = precise_time_ns();
 
-        let requested_frame = render_frame;
+        let requested_frame = generate_frame.is_some();
 
         let requires_frame_build = self.requires_frame_build();
+
         let doc = self.documents.get_mut(&document_id).unwrap();
+
+        // We may not be able to render if we are building the first scene asynchronously
+        // and scroll at the same time. we should keep track of the fact that we skipped
+        // composition here and do it as soon as we receive the scene.
+        let mut render_frame = (requested_frame || requires_frame_build) && doc.can_render();
+
+        // Avoid re-building the frame if the current built frame is still valid.
+        // However, if the resource_cache requires a frame build, _always_ do that, unless
+        // doc.can_render() is false, as in that case a frame build can't happen anyway.
+        // We want to ensure we do this because even if the doc doesn't have pixels it
+        // can still try to access stale texture cache items.
+        let build_frame = render_frame && !doc.frame_is_valid && doc.has_pixels();
+
+        // If a frame was not quested we but had to generate one anyway, present it by
+        // default.
+        let present = generate_frame.map(|params| params.present).unwrap_or(requested_frame);
 
         // If we have a sampler, get more frame ops from it and add them
         // to the transaction. This is a hook to allow the WR user code to
@@ -1504,6 +1509,7 @@ impl RenderBackend {
         // async transforms.
         if requested_frame {
             if let Some(ref sampler) = self.sampler {
+                let generated_frame_id = generate_frame.map(|params| params.id);
                 frame_ops.append(&mut sampler.sample(document_id, generated_frame_id));
             }
         }
@@ -1534,21 +1540,6 @@ impl RenderBackend {
             doc.hit_tester_is_valid = false;
         }
 
-        if !doc.can_render() {
-            // TODO: this happens if we are building the first scene asynchronously and
-            // scroll at the same time. we should keep track of the fact that we skipped
-            // composition here and do it as soon as we receive the scene.
-            render_frame = false;
-        }
-
-        // Avoid re-building the frame if the current built frame is still valid.
-        // However, if the resource_cache requires a frame build, _always_ do that, unless
-        // doc.can_render() is false, as in that case a frame build can't happen anyway.
-        // We want to ensure we do this because even if the doc doesn't have pixels it
-        // can still try to access stale texture cache items.
-        let build_frame = (render_frame && !doc.frame_is_valid && doc.has_pixels()) ||
-            (requires_frame_build && doc.can_render());
-
         // Request composite is true when we want to composite frame even when
         // there is no frame update. This happens when video frame is updated under
         // external image with NativeTexture or when platform requested to composite frame.
@@ -1561,14 +1552,6 @@ impl RenderBackend {
         }
 
         if build_frame {
-            if !requested_frame {
-                // When we don't request a frame, present defaults to false. If for some
-                // reason we did not request the frame but must render it anyway, set
-                // present to true (it was false as a byproduct of expecting we wouldn't
-                // produce the frame but we did not explicitly opt out of it).
-                present = true;
-            }
-
             if start_time.is_some() {
               Telemetry::record_time_to_frame_build(Duration::from_nanos(precise_time_ns() - start_time.unwrap()));
             }
@@ -1699,7 +1682,7 @@ impl RenderBackend {
                 present,
                 render: render_frame,
                 scrolled: scroll,
-                tracked,
+                tracked: generate_frame.map_or(false, |params| params.tracked),
             };
             self.notifier.new_frame_ready(document_id, self.frame_publish_id, &params);
         }
