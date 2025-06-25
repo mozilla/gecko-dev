@@ -173,7 +173,7 @@ add_task(async function test_changeUrl() {
   engine.wrappedJSObject.changeUrl(
     SearchUtils.URL_TYPE.SUGGEST_JSON,
     "https://example.com/suggest?query={searchTerms}",
-    "GET"
+    null
   );
   submission = engine.getSubmission("foo", SearchUtils.URL_TYPE.SUGGEST_JSON);
   Assert.equal(
@@ -181,6 +181,11 @@ add_task(async function test_changeUrl() {
     "https://example.com/suggest?query=foo",
     "Suggest URL was changed."
   );
+  Assert.equal(submission.postData, null, "Suggest URL uses GET");
+
+  engine.wrappedJSObject.changeUrl(SearchUtils.URL_TYPE.SUGGEST_JSON, null);
+  submission = engine.getSubmission("foo", SearchUtils.URL_TYPE.SUGGEST_JSON);
+  Assert.ok(!submission, "Suggest URL was removed");
 
   await Services.search.removeEngine(engine);
 });

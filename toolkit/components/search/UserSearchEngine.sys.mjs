@@ -145,23 +145,32 @@ export class UserSearchEngine extends SearchEngine {
    *
    * @param {string} type
    *   The type of url to change. Must be a `SearchUtils.URL_TYPE`.
-   * @param {string} template
+   * @param {?string} template
    *    The URL to which search queries should be sent. Should contain
    *    "{searchTerms}" as the placeholder for the search terms for GET
-   *    requests.
+   *    requests. Use null to remove the URL of the specified type.
    * @param {?string} postData
    *   x-www-form-urlencoded body containing "{searchTerms}" for POST or
    *   null for GET.
    */
   changeUrl(type, template, postData) {
+    if (type == lazy.SearchUtils.URL_TYPE.SEARCH && !template) {
+      throw new Error("Cannot remove search URL.");
+    }
+
+    // Remove existing URL.
     this._urls = this._urls.filter(url => url.type != type);
 
-    let method = postData ? "POST" : "GET";
-    let url = new EngineURL(type, method, template);
-    for (let [key, value] of new URLSearchParams(postData ?? "").entries()) {
-      url.addParam(key, value);
+    if (template) {
+      let method = postData ? "POST" : "GET";
+      let url = new EngineURL(type, method, template);
+      for (let [key, value] of new URLSearchParams(postData ?? "").entries()) {
+        url.addParam(key, value);
+      }
+      this._urls.push(url);
     }
-    this._urls.push(url);
+
+    // Notify about added/changed/removed URL.
     lazy.SearchUtils.notifyAction(this, lazy.SearchUtils.MODIFIED_TYPE.CHANGED);
   }
 

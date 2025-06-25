@@ -270,6 +270,11 @@ add_task(async function test_editGetEngine() {
     url: "https://example.com/user?q={searchTerms}&b=ff",
     alias: "u",
   });
+  engine.wrappedJSObject.changeUrl(
+    SearchUtils.URL_TYPE.SUGGEST_JSON,
+    "https://example.com/suggest?query={searchTerms}",
+    null
+  );
 
   // Check buttons of all search engines + local shortcuts.
   let removeButton = doc.querySelector("#removeEngineButton");
@@ -315,8 +320,8 @@ add_task(async function test_editGetEngine() {
     "URL in dialog is correct."
   );
   Assert.ok(
-    dialogWin.document.getElementById("advanced-section").hidden,
-    "Advanced section is hidden."
+    !dialogWin.document.getElementById("advanced-section").hidden,
+    "Advanced section is visible"
   );
   Assert.equal(
     dialogWin.document.getElementById("enginePostData").value,
@@ -325,8 +330,8 @@ add_task(async function test_editGetEngine() {
   );
   Assert.equal(
     dialogWin.document.getElementById("suggestUrl").value,
-    "",
-    "Suggest URL in dialog is empty."
+    "https://example.com/suggest?query=%s",
+    "Suggest URL in dialog is correct"
   );
   Assert.equal(
     dialogWin.document.getElementById("engineAlias").value,
@@ -338,6 +343,7 @@ add_task(async function test_editGetEngine() {
   setName("Searchfox", dialogWin);
   setUrl("https://searchfox.org/mozilla-central/search", dialogWin);
   await setAlias("sf", dialogWin);
+  setSuggestUrl("", dialogWin);
 
   dialogWin.document.querySelector("dialog").getButton("extra1").click();
   setPostData("q=%s&path=&case=false&regexp=false", dialogWin);
@@ -369,19 +375,35 @@ add_task(async function test_editGetEngine() {
     "sf",
     "Alias in dialog reflects change"
   );
+  Assert.ok(
+    !dialogWin.document.getElementById("advanced-section").hidden,
+    "Advanced section is still visible"
+  );
+  Assert.equal(
+    dialogWin.document.getElementById("enginePostData").value,
+    "q=%s&path=&case=false&regexp=false",
+    "Post data reflects changes"
+  );
+  Assert.equal(
+    dialogWin.document.getElementById("suggestUrl").value,
+    "",
+    "Suggest URL in dialog was removed"
+  );
 
   // Check search engine object.
   let submission = engine.getSubmission("foo");
   Assert.equal(
     submission.uri.spec,
     "https://searchfox.org/mozilla-central/search",
-    "Submission URL reflects changes"
+    "Search URL reflects changes"
   );
   Assert.equal(
     decodePostData(submission.postData),
     "q=foo&path=&case=false&regexp=false",
     "Engine was converted into a POST engine."
   );
+  submission = engine.getSubmission("foo", SearchUtils.URL_TYPE.SUGGEST_JSON);
+  Assert.ok(!submission, "Suggest URL was removed");
 
   // Clean up.
   BrowserTestUtils.removeTab(gBrowser.selectedTab);

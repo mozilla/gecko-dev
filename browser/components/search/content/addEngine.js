@@ -359,7 +359,7 @@ class EditEngineDialog extends EngineDialog {
     if (newSuggestURL != prevSuggestUrl) {
       this.#engine.changeUrl(
         lazy.SearchUtils.URL_TYPE.SUGGEST_JSON,
-        newSuggestURL.replace(/%s/, "{searchTerms}"),
+        newSuggestURL?.replace(/%s/, "{searchTerms}"),
         null
       );
     }
