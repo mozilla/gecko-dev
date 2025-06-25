@@ -15,9 +15,21 @@ add_task(async function test_creditCards_os_auth_disabled_for_new_profile() {
     "OS Auth should be disabled for credit cards by default for a new profile."
   );
 
+  Assert.ok(
+    Services.prefs.prefIsLocked(
+      FormAutofillUtils.AUTOFILL_CREDITCARDS_OS_AUTH_LOCKED_PREF
+    ),
+    "Pref should be locked"
+  );
+
   Assert.equal(
     LoginHelper.getOSAuthEnabled(),
     AppConstants.NIGHTLY_BUILD,
     "OS Auth should be disabled for passwords by default for a new profile."
+  );
+
+  Assert.ok(
+    Services.prefs.prefIsLocked(LoginHelper.OS_AUTH_FOR_PASSWORDS_BOOL_PREF),
+    "Pref should be locked"
   );
 });
