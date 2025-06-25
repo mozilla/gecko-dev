@@ -735,6 +735,59 @@ TimeDuration TimerThread::ComputeAcceptableFiringDelay(
   return std::clamp(tmp, minDelay, maxDelay);
 }
 
+uint64_t TimerThread::FireDueTimers(TimeDuration aAllowedEarlyFiring) {
+  RemoveLeadingCanceledTimersInternal();
+
+  uint64_t timersFired = 0;
+  TimeStamp lastNow = TimeStamp::Now();
+
+  // Fire timers that are due. We have to keep removing leading cancelled timers
+  // and looking at the front of the list each time through because firing a
+  // timer can result in timers getting added to/removed from the list.
+  while (!mTimers.IsEmpty()) {
+    Entry& frontEntry = mTimers[0];
+
+    if (lastNow + aAllowedEarlyFiring < frontEntry.Timeout()) {
+      // This timer is not ready to execute yet, and we need to preserve the
+      // order of timers, so we might have to stop here. First let's
+      // re-evaluate 'now' though, because some time might have passed since
+      // we last got it.
+      lastNow = TimeStamp::Now();
+      if (lastNow + aAllowedEarlyFiring < frontEntry.Timeout()) {
+        break;
+      }
+    }
+
+    // NB: AddRef before the Release under RemoveTimerInternal to avoid mRefCnt
+    // passing through zero, in case all other refs than the one from mTimers
+    // have gone away (the last non-mTimers[i]-ref's Release must be racing with
+    // us, blocked in gThread->RemoveTimer waiting for TimerThread::mMonitor,
+    // under nsTimerImpl::Release.
+    RefPtr<nsTimerImpl> timerRef(frontEntry.Take());
+    RemoveFirstTimerInternal();
+
+    // We are going to let the call to PostTimerEvent here handle the release of
+    // the timer so that we don't end up releasing the timer on the TimerThread
+    // instead of on the thread it targets.
+    {
+      ++timersFired;
+      LogTimerEvent::Run run(timerRef.get());
+      PostTimerEvent(timerRef.forget());
+    }
+
+    // PostTimerEvent releases mMonitor, which means that mShutdown could have
+    // gotten set during that time. If so, just stop firing timers. TODO: This
+    // is probably not necessary and, if so, should be removed.
+    if (mShutdown) {
+      break;
+    }
+
+    RemoveLeadingCanceledTimersInternal();
+  }
+
+  return timersFired;
+}
+
 void MOZ_ALWAYS_INLINE TimerThread::AccumulateAndMaybeSendTelemetry(
     const uint64_t timersFiredThisWakeup, size_t& queuedTimersFiredCount,
     AutoTArray<uint64_t, kMaxQueuedTimersFired>& queuedTimersFiredPerWakeup) {
@@ -795,13 +848,9 @@ TimerThread::Run() {
   }
 #endif
 
-  uint64_t timersFiredThisWakeup = 0;
   while (!mShutdown) {
     const bool chaosModeActive =
         ChaosMode::isActive(ChaosFeature::TimerScheduling);
-
-    // Have to use PRIntervalTime here, since PR_WaitCondVar takes it
-    TimeDuration waitFor;
 
 #ifdef DEBUG
     VerifyTimerListConsistency();
@@ -816,8 +865,51 @@ TimerThread::Run() {
               : TimeDuration::FromMicroseconds(ChaosMode::randomUint32LessThan(
                     4 * mAllowedEarlyFiringMicroseconds));
 
-      waitFor = TimeDuration::Forever();
-      TimeStamp now = TimeStamp::Now();
+      // In chaos mode we mess with our wait time.
+      const TimeDuration chaosWaitDelay =
+          !chaosModeActive ? TimeDuration::Zero()
+                           : TimeDuration::FromMicroseconds(
+                                 ChaosMode::randomInt32InRange(-10000, 10000));
+
+      const uint64_t timersFiredThisWakeup = FireDueTimers(allowedEarlyFiring);
+
+      // mMonitor gets released when a timer is fired, so a shutdown could have
+      // snuck in during that time. That empties the timer list so we need to
+      // bail out here or else we will attempt an indefinite wait.
+      if (mShutdown) {
+        break;
+      }
+
+      // Determine when we should wake up.
+      const TimeStamp wakeupTime =
+          !mTimers.IsEmpty() ? ComputeWakeupTimeFromTimers() : TimeStamp{};
+      mIntendedWakeupTime = wakeupTime;
+
+      // About to sleep - let's make note of how many timers we processed and
+      // see if we should send out a new batch of telemetry.
+      AccumulateAndMaybeSendTelemetry(timersFiredThisWakeup,
+                                      queuedTimersFiredCount,
+                                      queuedTimersFiredPerWakeup);
+
+#if TIMER_THREAD_STATISTICS
+      CollectTimersFiredStatistics(timersFiredThisWakeup);
+#endif
+
+      // Determine how long to sleep for. Do this calculation at the last moment
+      // to get the most accurate value.
+      const TimeStamp now = TimeStamp::Now();
+      const TimeDuration waitFor =
+          !wakeupTime.IsNull() ? std::max(TimeDuration::Zero(),
+                                          wakeupTime + chaosWaitDelay - now)
+                               : TimeDuration::Forever();
+
+      if (MOZ_LOG_TEST(GetTimerLog(), LogLevel::Debug)) {
+        if (waitFor == TimeDuration::Forever())
+          MOZ_LOG(GetTimerLog(), LogLevel::Debug, ("waiting forever\n"));
+        else
+          MOZ_LOG(GetTimerLog(), LogLevel::Debug,
+                  ("waiting for %f\n", waitFor.ToMilliseconds()));
+      }
 
 #ifdef XP_WIN
       if (now >= nextTimerPeriodEval) {
@@ -833,123 +925,23 @@ TimerThread::Run() {
       }
 #endif
 
+      // We're finished firing the timers that were ready, so wait until it's
+      // time for the next one.
+      Wait(waitFor);
+
 #if TIMER_THREAD_STATISTICS
       CollectWakeupStatistics();
 #endif
-
-      RemoveLeadingCanceledTimersInternal();
-
-      if (!mTimers.IsEmpty()) {
-        if (now + allowedEarlyFiring >= mTimers[0].Value()->mTimeout) {
-        next:
-          // NB: AddRef before the Release under RemoveTimerInternal to avoid
-          // mRefCnt passing through zero, in case all other refs than the one
-          // from mTimers have gone away (the last non-mTimers[i]-ref's Release
-          // must be racing with us, blocked in gThread->RemoveTimer waiting
-          // for TimerThread::mMonitor, under nsTimerImpl::Release.
-
-          RefPtr<nsTimerImpl> timerRef(mTimers[0].Take());
-          RemoveFirstTimerInternal();
-          MOZ_LOG(GetTimerLog(), LogLevel::Debug,
-                  ("Timer thread woke up %fms from when it was supposed to\n",
-                   fabs((now - timerRef->mTimeout).ToMilliseconds())));
-
-          // We are going to let the call to PostTimerEvent here handle the
-          // release of the timer so that we don't end up releasing the timer
-          // on the TimerThread instead of on the thread it targets.
-          {
-            ++timersFiredThisWakeup;
-            LogTimerEvent::Run run(timerRef.get());
-            PostTimerEvent(timerRef.forget());
-          }
-
-          if (mShutdown) {
-            break;
-          }
-
-          // Update now, as PostTimerEvent plus the locking may have taken a
-          // tick or two, and we may goto next below.
-          now = TimeStamp::Now();
-        }
-      }
-
-      RemoveLeadingCanceledTimersInternal();
-
-      if (!mTimers.IsEmpty()) {
-        TimeStamp timeout = mTimers[0].Value()->mTimeout;
-
-        // Don't wait at all (even for PR_INTERVAL_NO_WAIT) if the next timer
-        // is due now or overdue.
-        //
-        // Note that we can only sleep for integer values of a certain
-        // resolution. We use mAllowedEarlyFiringMicroseconds, calculated
-        // before, to do the optimal rounding (i.e., of how to decide what
-        // interval is so small we should not wait at all).
-        const TimeDuration timeToNextTimer = timeout - now;
-
-        if (timeToNextTimer < allowedEarlyFiring) {
-          goto next;  // round down; execute event now
-        }
-
-        // TECHNICAL NOTE: Determining waitFor (by subtracting |now| from our
-        // desired wake-up time) at this point is not ideal. For one thing, the
-        // |now| that we have at this point is somewhat old. Secondly, there is
-        // quite a bit of code between here and where we actually use waitFor to
-        // request sleep. If I am thinking about this correctly, both of these
-        // will contribute to us requesting more sleep than is actually needed
-        // to wake up at our desired time. We could avoid this problem by only
-        // determining our desired wake-up time here and then calculating the
-        // wait time when we're actually about to sleep.
-        const TimeStamp wakeupTime = ComputeWakeupTimeFromTimers();
-        waitFor = wakeupTime - now;
-
-        // If this were to fail that would mean that we had more timers that we
-        // should have fired.
-        MOZ_ASSERT(!waitFor.IsZero());
-
-        // If chaos mode is active then we will add a random amount to the
-        // calculated wait (sleep) time to simulate early/late wake-ups.
-        const TimeDuration chaosWaitDelay =
-            !chaosModeActive
-                ? TimeDuration::Zero()
-                : TimeDuration::FromMicroseconds(
-                      ChaosMode::randomInt32InRange(-10000, 10000));
-        waitFor = std::max(TimeDuration::Zero(), waitFor + chaosWaitDelay);
-
-        mIntendedWakeupTime = wakeupTime;
-      } else {
-        mIntendedWakeupTime = TimeStamp{};
-      }
-
-      if (MOZ_LOG_TEST(GetTimerLog(), LogLevel::Debug)) {
-        if (waitFor == TimeDuration::Forever())
-          MOZ_LOG(GetTimerLog(), LogLevel::Debug, ("waiting forever\n"));
-        else
-          MOZ_LOG(GetTimerLog(), LogLevel::Debug,
-                  ("waiting for %f\n", waitFor.ToMilliseconds()));
-      }
     } else {
+      mIntendedWakeupTime = TimeStamp{};
       // Sleep for 0.1 seconds while not firing timers.
       uint32_t milliseconds = 100;
       if (chaosModeActive) {
         milliseconds = ChaosMode::randomUint32LessThan(200);
       }
-      waitFor = TimeDuration::FromMilliseconds(milliseconds);
+      const TimeDuration waitFor = TimeDuration::FromMilliseconds(milliseconds);
+      Wait(waitFor);
     }
-
-    // About to sleep - let's make note of how many timers we processed and see
-    // if we should send out a new batch of telemetry.
-    AccumulateAndMaybeSendTelemetry(timersFiredThisWakeup,
-                                    queuedTimersFiredCount,
-                                    queuedTimersFiredPerWakeup);
-
-#if TIMER_THREAD_STATISTICS
-    CollectTimersFiredStatistics(timersFiredThisWakeup);
-#endif
-
-    timersFiredThisWakeup = 0;
-
-    Wait(waitFor);
   }
 
   // About to shut down - let's send out the final batch of timers fired counts.

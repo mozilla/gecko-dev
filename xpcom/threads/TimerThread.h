@@ -180,6 +180,12 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
                                             TimeDuration minDelay,
                                             TimeDuration maxDelay) const;
 
+  // Fires and removes all timers in mTimers that are "due" to be fired,
+  // according to the current time and the passed-in early firing tolerance.
+  // Return value is the number of timers that were fired by the operation.
+  uint64_t FireDueTimers(TimeDuration aAllowedEarlyFiring)
+      MOZ_REQUIRES(mMonitor);
+
   static constexpr size_t kMaxQueuedTimersFired = 128;
   static void AccumulateAndMaybeSendTelemetry(
       uint64_t timersFiredThisWakeup, size_t& queuedTimersFiredCount,
