@@ -605,11 +605,16 @@ export var DownloadIntegration = {
         /* autoAcknowledge*/ true
       )
       .then(response => {
+        let cancelError;
+        if (response?.action === Ci.nsIContentAnalysisResponse.eCanceled) {
+          cancelError = response.cancelError;
+        }
         return {
           verdict: response.shouldAllowContent
             ? Ci.nsIApplicationReputationService.VERDICT_SAFE
             : Ci.nsIApplicationReputationService.VERDICT_DANGEROUS,
           shouldBlock: !response.shouldAllowContent,
+          contentAnalysisCancelError: cancelError,
           contentAnalysisWarnRequestToken: undefined,
         };
       });

@@ -2001,6 +2001,7 @@ export var DownloadError = function (aProperties) {
   } else if (aProperties.becauseBlockedByContentAnalysis) {
     this.becauseBlocked = true;
     this.becauseBlockedByContentAnalysis = true;
+    this.contentAnalysisCancelError = aProperties.contentAnalysisCancelError;
     this.contentAnalysisWarnRequestToken =
       aProperties.contentAnalysisWarnRequestToken;
     this.reputationCheckVerdict = aProperties.reputationCheckVerdict;
@@ -2067,6 +2068,12 @@ DownloadError.prototype = {
   becauseBlockedByContentAnalysis: false,
 
   /**
+   * The cancelError returned by the content analysis tool, which corresponds
+   * to the nsIContentAnalysisResponse.CancelError enum. May be undefined.
+   */
+  contentAnalysisCancelError: undefined,
+
+  /**
    * If becauseBlockedByReputationCheck is true, indicates the detailed reason
    * why the download was blocked, according to the "BLOCK_VERDICT_" constants.
    *
@@ -2128,7 +2135,8 @@ DownloadError.fromSerializable = function (aSerializable) {
       property != "becauseBlockedByParentalControls" &&
       property != "becauseBlockedByReputationCheck" &&
       property != "becauseBlockedByContentAnalysis" &&
-      property != "reputationCheckVerdict"
+      property != "reputationCheckVerdict" &&
+      property != "contentAnalysisCancelError"
   );
 
   return e;
@@ -2835,6 +2843,8 @@ DownloadCopySaver.prototype = {
         throw new DownloadError({
           becauseBlockedByContentAnalysis: true,
           reputationCheckVerdict: downloadErrorVerdict,
+          contentAnalysisCancelError:
+            permissionResult.contentAnalysisCancelError,
           contentAnalysisWarnRequestToken:
             permissionResult.contentAnalysisWarnRequestToken,
         });

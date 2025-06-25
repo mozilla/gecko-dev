@@ -352,8 +352,8 @@ export const ContentAnalysis = {
           windowAndResourceNameOrOperationType.resourceNameOrOperationType
             ?.operationType === Ci.nsIContentAnalysisRequest.eDownload
         ) {
-          // Don't show warn/block dialogs for downloads; they're shown inside
-          // the downloads panel.
+          // Don't show warn/block/error dialogs for downloads; they're shown
+          // inside the downloads panel.
           return;
         }
         const responseResult =
@@ -744,10 +744,7 @@ export const ContentAnalysis = {
   _getErrorDialogMessage(aResourceNameOrOperationType) {
     if (aResourceNameOrOperationType.name) {
       return this.l10n.formatValueSync(
-        aResourceNameOrOperationType.operationType ==
-          Ci.nsIContentAnalysisRequest.eUpload
-          ? "contentanalysis-error-message-upload-file"
-          : "contentanalysis-error-message-download-file",
+        "contentanalysis-error-message-upload-file",
         { filename: aResourceNameOrOperationType.name }
       );
     }
