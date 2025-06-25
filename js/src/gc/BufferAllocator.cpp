@@ -2011,8 +2011,7 @@ void BufferAllocator::addSweptRegion(BufferChunk* chunk, uintptr_t freeStart,
   freeStart += uintptr_t(chunk);
   freeEnd += uintptr_t(chunk);
 
-  size_t sizeClass = SizeClassForFreeRegion(freeEnd - freeStart);
-  addFreeRegion(&freeLists, sizeClass, freeStart, freeEnd, anyDecommitted,
+  addFreeRegion(&freeLists, freeStart, freeEnd - freeStart, anyDecommitted,
                 ListPosition::Back, expectUnchanged);
 }
 
@@ -2066,9 +2065,8 @@ void BufferAllocator::freeMedium(void* alloc) {
     // The new region is added to the front of relevant list so as to reuse
     // recently freed memory preferentially. This may reduce fragmentation. See
     // "The Memory Fragmentation Problem: Solved?"  by Johnstone et al.
-    size_t sizeClass = SizeClassForFreeRegion(bytes);
-    region = addFreeRegion(freeLists, sizeClass, startAddr, endAddr, false,
-                           ListPosition::Front);
+    region =
+        addFreeRegion(freeLists, startAddr, bytes, false, ListPosition::Front);
   } else {
     // There is a free region following this allocation. Expand the existing
     // region down to cover the newly freed space.
@@ -2130,11 +2128,10 @@ bool BufferAllocator::isSweepingChunk(BufferChunk* chunk) {
 }
 
 BufferAllocator::FreeRegion* BufferAllocator::addFreeRegion(
-    FreeLists* freeLists, size_t sizeClass, uintptr_t start, uintptr_t end,
-    bool anyDecommitted, ListPosition position,
-    bool expectUnchanged /* = false */) {
+    FreeLists* freeLists, uintptr_t start, size_t bytes, bool anyDecommitted,
+    ListPosition position, bool expectUnchanged /* = false */) {
+  uintptr_t end = start + bytes;
 #ifdef DEBUG
-  MOZ_ASSERT(end - start >= SizeClassBytes(sizeClass));
   if (expectUnchanged) {
     // We didn't free any allocations so there should already be a FreeRegion
     // from |start| to |end|.
@@ -2143,6 +2140,9 @@ BufferAllocator::FreeRegion* BufferAllocator::addFreeRegion(
     MOZ_ASSERT(region->startAddr == start);
   }
 #endif
+
+  size_t sizeClass = SizeClassForFreeRegion(bytes);
+  MOZ_ASSERT(bytes >= SizeClassBytes(sizeClass));
 
   void* ptr = reinterpret_cast<void*>(end - sizeof(FreeRegion));
   FreeRegion* region = new (ptr) FreeRegion(start, anyDecommitted);
@@ -2283,11 +2283,8 @@ bool BufferAllocator::shrinkMedium(void* alloc, size_t newBytes) {
 
   // If we abut another allocation then add a new free region.
   if (oldEndOffset == ChunkSize || chunk->isAllocated(oldEndOffset)) {
-    size_t sizeClass = SizeClassForFreeRegion(sizeChange);
     uintptr_t freeStart = chunkAddr + newEndOffset;
-    uintptr_t freeEnd = chunkAddr + oldEndOffset;
-    addFreeRegion(freeLists, sizeClass, freeStart, freeEnd, false,
-                  ListPosition::Front);
+    addFreeRegion(freeLists, freeStart, sizeChange, false, ListPosition::Front);
     return true;
   }
 
