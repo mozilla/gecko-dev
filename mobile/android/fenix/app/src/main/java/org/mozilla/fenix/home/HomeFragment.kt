@@ -1041,9 +1041,6 @@ class HomeFragment : Fragment() {
                     showUndoSnackbar(requireContext().tabClosedUndoMessage(isPrivate))
                     TabStripMetrics.closeTab.record()
                 },
-                onPrivateModeToggleClick = { mode ->
-                    browsingModeManager.mode = mode
-                },
                 onTabCounterClick = { openTabsTray() },
             )
         }

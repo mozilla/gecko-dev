@@ -1354,12 +1354,6 @@ abstract class BaseBrowserFragment :
                     showUndoSnackbar(activity.tabClosedUndoMessage(isPrivate))
                     TabStripMetrics.closeTab.record()
                 },
-                onPrivateModeToggleClick = { mode ->
-                    activity.browsingModeManager.mode = mode
-                    findNavController().navigate(
-                        BrowserFragmentDirections.actionGlobalHome(),
-                    )
-                },
                 onTabCounterClick = { onTabCounterClicked(activity.browsingModeManager.mode) },
             )
         }

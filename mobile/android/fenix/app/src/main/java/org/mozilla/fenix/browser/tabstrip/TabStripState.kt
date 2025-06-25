@@ -67,14 +67,12 @@ data class TabStripItem(
  * @param isSelectDisabled When true, the tabs will show as unselected.
  * @param isPossiblyPrivateMode Whether or not the browser is in private mode.
  * @param addTab Invoked when conditions are met for adding a new normal browsing mode tab.
- * @param toggleBrowsingMode Invoked when conditions are met for toggling the browsing mode.
  * @param closeTab Invoked when close tab is clicked.
  */
 internal fun BrowserState.toTabStripState(
     isSelectDisabled: Boolean,
     isPossiblyPrivateMode: Boolean,
     addTab: () -> Unit,
-    toggleBrowsingMode: (isCurrentlyPrivate: Boolean) -> Unit,
     closeTab: (isPrivate: Boolean, numberOfTabs: Int) -> Unit,
 ): TabStripState {
     val isPrivateMode = if (isSelectDisabled) {
@@ -99,7 +97,6 @@ internal fun BrowserState.toTabStripState(
             isSelectEnabled = !isSelectDisabled,
             isPrivateMode = isPrivateMode,
             addTab = addTab,
-            toggleBrowsingMode = toggleBrowsingMode,
             closeTab = closeTab,
             numberOfTabs = tabs.size,
         ),
@@ -109,31 +106,12 @@ internal fun BrowserState.toTabStripState(
 private fun mapToMenuItems(
     isSelectEnabled: Boolean,
     isPrivateMode: Boolean,
-    toggleBrowsingMode: (isCurrentlyPrivate: Boolean) -> Unit,
     addTab: () -> Unit,
     closeTab: (isPrivate: Boolean, numberOfTabs: Int) -> Unit,
     numberOfTabs: Int,
 ): List<TabCounterMenuItem> = buildList {
     if (isSelectEnabled || isPrivateMode) {
-        val onClick = {
-            if (isPrivateMode) {
-                toggleBrowsingMode(true)
-            } else {
-                addTab()
-            }
-        }
-        add(TabCounterMenuItem.IconItem.NewTab(onClick = onClick))
-    }
-
-    if (isSelectEnabled || !isPrivateMode) {
-        val onClick = {
-            if (isPrivateMode) {
-                addTab()
-            } else {
-                toggleBrowsingMode(false)
-            }
-        }
-        add(TabCounterMenuItem.IconItem.NewPrivateTab(onClick = onClick))
+        add(TabCounterMenuItem.IconItem.NewTab(onClick = addTab))
     }
 
     if (isSelectEnabled) {

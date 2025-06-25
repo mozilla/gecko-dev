@@ -18,7 +18,6 @@ class TabStripStateTest {
             isSelectDisabled = false,
             isPossiblyPrivateMode = false,
             addTab = {},
-            toggleBrowsingMode = {},
             closeTab = { _, _ -> },
         )
 
@@ -61,7 +60,6 @@ class TabStripStateTest {
                 isSelectDisabled = false,
                 isPossiblyPrivateMode = false,
                 addTab = {},
-                toggleBrowsingMode = {},
                 closeTab = { _, _ -> },
             )
 
@@ -117,7 +115,6 @@ class TabStripStateTest {
             isSelectDisabled = true,
             isPossiblyPrivateMode = true,
             addTab = {},
-            toggleBrowsingMode = {},
             closeTab = { _, _ -> },
         )
 
@@ -174,7 +171,6 @@ class TabStripStateTest {
             isSelectDisabled = false,
             isPossiblyPrivateMode = true,
             addTab = {},
-            toggleBrowsingMode = {},
             closeTab = { _, _ -> },
         )
 
@@ -218,7 +214,6 @@ class TabStripStateTest {
             isSelectDisabled = false,
             isPossiblyPrivateMode = false,
             addTab = {},
-            toggleBrowsingMode = {},
             closeTab = { _, _ -> },
         )
 
@@ -275,7 +270,6 @@ class TabStripStateTest {
             isSelectDisabled = false,
             isPossiblyPrivateMode = false,
             addTab = {},
-            toggleBrowsingMode = {},
             closeTab = { _, _ -> },
         )
 
@@ -326,7 +320,6 @@ class TabStripStateTest {
             isSelectDisabled = true,
             isPossiblyPrivateMode = false,
             addTab = {},
-            toggleBrowsingMode = {},
             closeTab = { _, _ -> },
         )
 
@@ -377,7 +370,6 @@ class TabStripStateTest {
             isSelectDisabled = false,
             isPossiblyPrivateMode = false,
             addTab = {},
-            toggleBrowsingMode = {},
             closeTab = { _, _ -> },
         )
 
@@ -408,8 +400,6 @@ class TabStripStateTest {
     @Test
     fun `WHEN menu items are clicked THEN the correct action is performed`() {
         var addTabClicked = false
-        var shouldOpenPrivateTab: Boolean? = null
-        var toggleBrowsingModeClicked = false
         var closeTabClicked = false
         var closTabParams: Pair<Boolean, Int>? = null
         val browserState = BrowserState(
@@ -432,10 +422,6 @@ class TabStripStateTest {
         val addTab = {
             addTabClicked = true
         }
-        val toggleBrowsingMode: (isPrivate: Boolean) -> Unit = {
-            toggleBrowsingModeClicked = true
-            shouldOpenPrivateTab = it
-        }
         val closeTab: (isPrivate: Boolean, numberOfTabs: Int) -> Unit = { isPrivate, numberOfTabs ->
             closeTabClicked = true
             closTabParams = Pair(isPrivate, numberOfTabs)
@@ -444,13 +430,10 @@ class TabStripStateTest {
             isSelectDisabled = false,
             isPossiblyPrivateMode = false,
             addTab = addTab,
-            toggleBrowsingMode = toggleBrowsingMode,
             closeTab = closeTab,
         )
 
         val newTab = TabCounterMenuItem.IconItem.NewTab(onClick = addTab)
-        val newPrivateTab =
-            TabCounterMenuItem.IconItem.NewPrivateTab(onClick = { toggleBrowsingMode(true) })
         val closeTabItem = TabCounterMenuItem.IconItem.CloseTab(onClick = { closeTab(false, 2) })
         val expected = TabStripState(
             tabs = listOf(
@@ -472,7 +455,6 @@ class TabStripStateTest {
             isPrivateMode = false,
             tabCounterMenuItems = listOf(
                 newTab,
-                newPrivateTab,
                 TabCounterMenuItem.Divider,
                 closeTabItem,
             ),
@@ -482,9 +464,6 @@ class TabStripStateTest {
 
         newTab.onClick()
         assertEquals(true, addTabClicked)
-        newPrivateTab.onClick()
-        assertEquals(true, shouldOpenPrivateTab)
-        assertEquals(true, toggleBrowsingModeClicked)
         closeTabItem.onClick()
         assertEquals(true, closeTabClicked)
         assertEquals(Pair(false, 2), closTabParams)
@@ -512,7 +491,6 @@ class TabStripStateTest {
                 isSelectDisabled = false,
                 isPossiblyPrivateMode = false,
                 addTab = {},
-                toggleBrowsingMode = {},
                 closeTab = { _, _ -> },
             )
 
@@ -566,14 +544,11 @@ class TabStripStateTest {
 
     private val allMenuItems = listOf(
         TabCounterMenuItem.IconItem.NewTab(onClick = {}),
-        TabCounterMenuItem.IconItem.NewPrivateTab(onClick = {}),
         TabCounterMenuItem.Divider,
         TabCounterMenuItem.IconItem.CloseTab(onClick = {}),
     )
 
-    private val noTabSelectedNormalModeMenuItems = listOf(
-        TabCounterMenuItem.IconItem.NewPrivateTab(onClick = {}),
-    )
+    private val noTabSelectedNormalModeMenuItems: List<TabCounterMenuItem> = emptyList()
 
     private val noTabSelectedPrivateModeMenuItems = listOf(
         TabCounterMenuItem.IconItem.NewTab(onClick = {}),
