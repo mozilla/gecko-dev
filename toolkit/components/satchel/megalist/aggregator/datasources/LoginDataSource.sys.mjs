@@ -362,19 +362,42 @@ export class LoginDataSource extends DataSourceBase {
 
       // Sort by origin, then by username, then by GUID
       this.#displayMode = DISPLAY_MODES.ALL;
-      Services.obs.addObserver(this, "passwordmgr-storage-changed");
-      Services.obs.addObserver(this, "passwordmgr-crypto-login");
-      Services.prefs.addObserver("signon.rememberSignons", this);
-      Services.prefs.addObserver(
-        "signon.management.page.breach-alerts.enabled",
-        this
-      );
-      Services.prefs.addObserver(
-        "signon.management.page.vulnerable-passwords.enabled",
-        this
-      );
+      this.#addObservers();
       this.#reloadDataSource();
     });
+  }
+
+  willDestroy() {
+    this.#removeObservers();
+  }
+
+  #addObservers() {
+    Services.obs.addObserver(this, "passwordmgr-storage-changed");
+    Services.obs.addObserver(this, "passwordmgr-crypto-login");
+    Services.prefs.addObserver("signon.rememberSignons", this);
+    Services.prefs.addObserver(
+      "signon.management.page.breach-alerts.enabled",
+      this
+    );
+    Services.prefs.addObserver(
+      "signon.management.page.vulnerable-passwords.enabled",
+      this
+    );
+  }
+
+  #removeObservers() {
+    Services.obs.removeObserver(this, "passwordmgr-storage-changed");
+    Services.obs.removeObserver(this, "passwordmgr-crypto-login");
+
+    Services.prefs.removeObserver("signon.rememberSignons", this);
+    Services.prefs.removeObserver(
+      "signon.management.page.breach-alerts.enabled",
+      this
+    );
+    Services.prefs.removeObserver(
+      "signon.management.page.vulnerable-passwords.enabled",
+      this
+    );
   }
 
   #recordLoginsUpdate(changeType) {
@@ -419,6 +442,8 @@ export class LoginDataSource extends DataSourceBase {
           l10nArgs: counts,
           url: IMPORT_FILE_REPORT_URL,
         });
+
+        this.#recordLoginsUpdate("import");
       } catch (e) {
         this.setNotification({
           id: "import-error",
@@ -901,13 +926,6 @@ export class LoginDataSource extends DataSourceBase {
       message == "signon.management.page.breach-alerts.enabled" ||
       message == "signon.management.page.vulnerable-passwords.enabled"
     ) {
-      if (
-        topic == "passwordmgr-storage-changed" &&
-        message === "importLogins"
-      ) {
-        this.#recordLoginsUpdate("import");
-      }
-
       this.#reloadDataSource();
     }
   }

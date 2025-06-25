@@ -36,6 +36,7 @@ add_task(async function test_breached_origin_alert() {
   if (!canTestOSAuth) {
     return;
   }
+
   await addBreach();
   info("Adding a login with a breached origin.");
   await Services.logins.addLoginAsync(BREACHED_LOGIN);
@@ -59,6 +60,7 @@ add_task(async function test_breached_origin_alert() {
   info("Click on change password.");
   const editBtn = notifMsgBar.shadowRoot.querySelector("moz-button");
   await waitForReauth(() => editBtn.click());
+
   await BrowserTestUtils.waitForCondition(
     () => megalist.querySelector("login-form"),
     "Login form failed to render"
@@ -66,6 +68,9 @@ add_task(async function test_breached_origin_alert() {
   testNotificationInteractionTelemetry("breached_origin_warning");
 
   await close_sidebar(megalist);
+
+  await Services.fog.testFlushAllChildren();
+  Services.fog.testResetFOG();
 });
 
 add_task(async function test_no_username_alert() {
@@ -73,9 +78,6 @@ add_task(async function test_no_username_alert() {
   if (!canTestOSAuth) {
     return;
   }
-
-  Services.fog.testResetFOG();
-  await Services.fog.testFlushAllChildren();
 
   info("Adding a login with no username.");
   await Services.logins.addLoginAsync({ ...TEST_LOGIN_1, username: "" });
@@ -111,6 +113,9 @@ add_task(async function test_no_username_alert() {
   testNotificationInteractionTelemetry("no_username_warning");
 
   await close_sidebar(megalist);
+
+  await Services.fog.testFlushAllChildren();
+  Services.fog.testResetFOG();
 });
 
 add_task(async function test_vulnerable_password_alert() {
@@ -118,6 +123,7 @@ add_task(async function test_vulnerable_password_alert() {
   if (!canTestOSAuth) {
     return;
   }
+
   await addBreach();
   info("Adding a login with a vulnerable password.");
   await Services.logins.addLoginAsync(BREACHED_LOGIN);
@@ -148,4 +154,7 @@ add_task(async function test_vulnerable_password_alert() {
 
   testNotificationInteractionTelemetry("vulnerable_password_warning");
   await close_sidebar(megalist);
+
+  await Services.fog.testFlushAllChildren();
+  Services.fog.testResetFOG();
 });
