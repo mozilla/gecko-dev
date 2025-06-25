@@ -17,7 +17,7 @@ object MainMenuComposeSelectors {
 
     val EXTENSIONS_BUTTON = Selector(
         strategy = SelectorStrategy.COMPOSE_BY_CONTENT_DESCRIPTION,
-        value = getStringResource(R.string.browser_menu_extensions) + getStringResource(R.string.browser_menu_try_a_recommended_extension_description),
+        value = getStringResource(R.string.browser_menu_extensions),
         description = "Main menu Extensions button",
         groups = listOf("requiredForPage"),
     )
