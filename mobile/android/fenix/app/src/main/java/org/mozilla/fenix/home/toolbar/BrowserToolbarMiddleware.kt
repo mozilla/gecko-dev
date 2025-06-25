@@ -30,6 +30,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAct
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageOriginUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Init
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
@@ -145,7 +146,7 @@ class BrowserToolbarMiddleware(
             }
 
             is OriginClicked -> {
-                openNewTab()
+                store?.dispatch(ToggleEditMode(true))
             }
             is PasteFromClipboardClicked -> {
                 openNewTab(searchTerms = clipboard.text)

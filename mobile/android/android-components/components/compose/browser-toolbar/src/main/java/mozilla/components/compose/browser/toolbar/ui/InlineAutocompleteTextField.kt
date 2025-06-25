@@ -14,6 +14,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.viewinterop.AndroidView
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserEditToolbar
+import mozilla.components.support.ktx.android.view.showKeyboard
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
 
 /**
@@ -38,6 +39,7 @@ internal fun InlineAutocompleteTextField(
                 setTextColor(textColor.toArgb())
 
                 setText(text = url, shouldAutoComplete = false)
+                showKeyboard()
 
                 setOnCommitListener {
                     onUrlCommitted(text.toString())

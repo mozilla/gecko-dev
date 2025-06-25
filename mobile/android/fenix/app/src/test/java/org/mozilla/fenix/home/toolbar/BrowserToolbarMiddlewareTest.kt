@@ -43,6 +43,7 @@ import mozilla.components.support.test.rule.runTestOnMain
 import mozilla.components.support.utils.ClipboardHandler
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -466,28 +467,9 @@ class BrowserToolbarMiddlewareTest {
             middleware = listOf(middleware),
         )
 
-        mockkStatic(Context::settings) {
-            mockkStatic(NavController::nav) {
-                every { testContext.settings().toolbarPosition } returns ToolbarPosition.TOP
+        toolbarStore.dispatch(toolbarStore.state.displayState.pageOrigin.onClick as BrowserToolbarAction)
 
-                toolbarStore.dispatch(toolbarStore.state.displayState.pageOrigin.onClick as BrowserToolbarAction)
-
-                assertEquals(Normal, browsingModeManager.mode)
-                verify {
-                    navController.nav(
-                        R.id.homeFragment,
-                        NavGraphDirections.actionGlobalSearchDialog(
-                            sessionId = null,
-                            pastedText = null,
-                        ),
-                        NavOptions.Builder()
-                            .setEnterAnim(R.anim.fade_in)
-                            .setExitAnim(R.anim.fade_out)
-                            .build(),
-                    )
-                }
-            }
-        }
+        assertTrue(toolbarStore.state.isEditMode())
     }
 
     @Test
@@ -503,28 +485,9 @@ class BrowserToolbarMiddlewareTest {
             middleware = listOf(middleware),
         )
 
-        mockkStatic(Context::settings) {
-            mockkStatic(NavController::nav) {
-                every { testContext.settings().toolbarPosition } returns ToolbarPosition.TOP
+        toolbarStore.dispatch(toolbarStore.state.displayState.pageOrigin.onClick as BrowserToolbarAction)
 
-                toolbarStore.dispatch(toolbarStore.state.displayState.pageOrigin.onClick as BrowserToolbarAction)
-
-                assertEquals(Private, browsingModeManager.mode)
-                verify {
-                    navController.nav(
-                        R.id.homeFragment,
-                        NavGraphDirections.actionGlobalSearchDialog(
-                            sessionId = null,
-                            pastedText = null,
-                        ),
-                        NavOptions.Builder()
-                            .setEnterAnim(R.anim.fade_in)
-                            .setExitAnim(R.anim.fade_out)
-                            .build(),
-                    )
-                }
-            }
-        }
+        assertTrue(toolbarStore.state.isEditMode())
     }
 
     @Test
