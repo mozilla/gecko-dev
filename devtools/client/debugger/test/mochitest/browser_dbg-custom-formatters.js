@@ -76,7 +76,7 @@ add_task(async function () {
   info(
     `Check that '${VARIABLE_NAME}' is in the scopes panel and custom formatted`
   );
-  const index = 4;
+  const index = 5;
   is(
     getScopeNodeLabel(dbg, index),
     VARIABLE_NAME,
@@ -119,7 +119,12 @@ add_task(async function () {
   invokeInTab(TEST_FUNCTION_NAME);
   await waitForPaused(dbg);
 
-  await assertPreviewTextValue(dbg, 26, 16, {
+  await assertPreviewTextValue(dbg, 43, 16, {
+    expression: "abc",
+    result: "object tag: null",
+  });
+
+  await assertPreviewTextValue(dbg, 44, 16, {
     expression: VARIABLE_NAME,
     result: "CUSTOM",
     doNotClose: true,

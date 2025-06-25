@@ -20,9 +20,27 @@
           },
           hasBody: obj => true,
           body: obj => ["span", {"style": "font-family: serif; font-size: 2rem;"}, obj.customFormatHeaderAndBody]
+        }, {
+          header: (obj, config) => {
+            if (obj.hasOwnProperty("customFormatObjectAndConfig")) {
+              return [
+                "span",
+                {},
+                `object tag: `,
+                [
+                  "object",
+                  {
+                    object: null,
+                  }
+                ],
+              ];
+            }
+            return null;
+          },
         }];
 
       function pauseWithCustomFormattedObject() {
+        const abc = {customFormatObjectAndConfig: true};
         const xyz = {customFormatHeaderAndBody: "customFormattedBody"};
         debugger;
       }
