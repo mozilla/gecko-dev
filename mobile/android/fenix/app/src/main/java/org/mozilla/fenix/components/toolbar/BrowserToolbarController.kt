@@ -219,10 +219,15 @@ class DefaultBrowserToolbarController(
 
     override fun handleHomeButtonClick() {
         Events.browserToolbarHomeTapped.record(NoExtras())
-        browserAnimator.captureEngineViewAndDrawStatically {
-            navController.navigate(
-                BrowserFragmentDirections.actionGlobalHome(),
-            )
+
+        if (settings.enableHomepageAsNewTab) {
+            fenixBrowserUseCases.navigateToHomepage()
+        } else {
+            browserAnimator.captureEngineViewAndDrawStatically {
+                navController.navigate(
+                    BrowserFragmentDirections.actionGlobalHome(),
+                )
+            }
         }
     }
 

@@ -387,6 +387,19 @@ class DefaultBrowserToolbarControllerTest {
     }
 
     @Test
+    fun `GIVEN homepage as a new tab is enabled WHEN home button is clicked THEN navigate to ABOUT_HOME`() {
+        every { settings.enableHomepageAsNewTab } returns true
+
+        assertNull(Events.browserToolbarHomeTapped.testGetValue())
+
+        val controller = createController()
+        controller.handleHomeButtonClick()
+
+        verify { fenixBrowserUseCases.navigateToHomepage() }
+        assertNotNull(Events.browserToolbarHomeTapped.testGetValue())
+    }
+
+    @Test
     fun handleTranslationsButtonClick() {
         val controller = createController()
         controller.handleTranslationsButtonClick()

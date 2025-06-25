@@ -128,6 +128,13 @@ class FenixBrowserUseCases(
     }
 
     /**
+     * Loads the homepage ("about:home").
+     */
+    fun navigateToHomepage() {
+        loadUrlUseCase.invoke(url = ABOUT_HOME)
+    }
+
+    /**
      * Contains constants used by [FenixBrowserUseCases].
      */
     companion object {
