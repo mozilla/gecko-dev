@@ -44,16 +44,17 @@ export class AboutNewTabParent extends JSWindowActorParent {
     switch (message.name) {
       case "AboutNewTabVisible":
         await lazy.ASRouter.waitForInitialized;
-        lazy.ASRouter.sendTriggerMessage({
+        await lazy.ASRouter.sendTriggerMessage({
           browser: this.browsingContext.top.embedderElement,
           // triggerId and triggerContext
           id: "defaultBrowserCheck",
           context: { source: "newtab" },
         });
-        lazy.ASRouter.sendTriggerMessage({
+        await lazy.ASRouter.sendTriggerMessage({
           browser: this.browsingContext.top.embedderElement,
           id: "newtabMessageCheck",
         });
+
         break;
 
       case "Init": {
