@@ -13,8 +13,6 @@ import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.P
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.PageOriginContextualMenuInteractions.LoadFromClipboardClicked
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.PageOriginContextualMenuInteractions.PasteFromClipboardClicked
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.ContentDescription.StringResContentDescription
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Text.StringResText
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.utils.ClipboardHandler
 import org.junit.Assert.assertEquals
@@ -89,21 +87,21 @@ class PageOriginContextualMenuBuilderTest {
 
     private companion object {
         val expectedCopyItem = BrowserToolbarMenuButton(
-            icon = null,
-            text = StringResText(R.string.mozac_browser_toolbar_long_press_popup_copy),
-            contentDescription = StringResContentDescription(R.string.mozac_browser_toolbar_long_press_popup_copy),
+            iconResource = null,
+            text = R.string.mozac_browser_toolbar_long_press_popup_copy,
+            contentDescription = R.string.mozac_browser_toolbar_long_press_popup_copy,
             onClick = CopyToClipboardClicked,
         )
         val expectedPasteItem = BrowserToolbarMenuButton(
-            icon = null,
-            text = StringResText(R.string.mozac_browser_toolbar_long_press_popup_paste),
-            contentDescription = StringResContentDescription(R.string.mozac_browser_toolbar_long_press_popup_paste),
+            iconResource = null,
+            text = R.string.mozac_browser_toolbar_long_press_popup_paste,
+            contentDescription = R.string.mozac_browser_toolbar_long_press_popup_paste,
             onClick = PasteFromClipboardClicked,
         )
         val expectedLoadItem = BrowserToolbarMenuButton(
-            icon = null,
-            text = StringResText(R.string.mozac_browser_toolbar_long_press_popup_paste_and_go),
-            contentDescription = StringResContentDescription(R.string.mozac_browser_toolbar_long_press_popup_paste_and_go),
+            iconResource = null,
+            text = R.string.mozac_browser_toolbar_long_press_popup_paste_and_go,
+            contentDescription = R.string.mozac_browser_toolbar_long_press_popup_paste_and_go,
             onClick = LoadFromClipboardClicked,
         )
     }

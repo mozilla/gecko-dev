@@ -69,6 +69,8 @@
     <ID>UndocumentedPublicClass:AppViewHolder.kt$AppViewHolder : ViewHolder</ID>
     <ID>UndocumentedPublicClass:AppViewHolder.kt$AppViewHolder$Companion</ID>
     <ID>UndocumentedPublicClass:AutofillSettingFragment.kt$AutofillSettingFragment$Companion</ID>
+    <ID>UndocumentedPublicClass:AwesomeBarView.kt$AwesomeBarView$Companion</ID>
+    <ID>UndocumentedPublicClass:AwesomeBarView.kt$AwesomeBarView$SearchProviderState</ID>
     <ID>UndocumentedPublicClass:BaseBrowserFragment.kt$BaseBrowserFragment$Companion</ID>
     <ID>UndocumentedPublicClass:BiometricPromptFeature.kt$BiometricPromptFeature$Companion</ID>
     <ID>UndocumentedPublicClass:BlankDragShadowBuilder.kt$BlankDragShadowBuilder : DragShadowBuilder</ID>
@@ -621,6 +623,9 @@
     <ID>UndocumentedPublicFunction:AddonDetailsBindingDelegate.kt$AddonDetailsBindingDelegate$fun bind(addon: Addon)</ID>
     <ID>UndocumentedPublicFunction:AppRequestInterceptor.kt$AppRequestInterceptor$fun setNavigationController(navController: NavController)</ID>
     <ID>UndocumentedPublicFunction:AppViewHolder.kt$AppViewHolder$fun bind(item: AppShareOption)</ID>
+    <ID>UndocumentedPublicFunction:AwesomeBarView.kt$AwesomeBarView$fun update(state: SearchFragmentState)</ID>
+    <ID>UndocumentedPublicFunction:AwesomeBarView.kt$AwesomeBarView$fun updateSuggestionProvidersVisibility( state: SearchProviderState, )</ID>
+    <ID>UndocumentedPublicFunction:AwesomeBarView.kt$fun SearchFragmentState.toSearchProviderState()</ID>
     <ID>UndocumentedPublicFunction:BackgroundServices.kt$BackgroundServices$@VisibleForTesting(otherwise = PRIVATE) fun makeAccountManager( context: Context, serverConfig: ServerConfig, deviceConfig: DeviceConfig, syncConfig: SyncConfig?, crashReporter: CrashReporter?, )</ID>
     <ID>UndocumentedPublicFunction:BackgroundServices.kt$BackgroundServices$fun defaultDeviceName(context: Context): String</ID>
     <ID>UndocumentedPublicFunction:BookmarkAdapter.kt$BookmarkAdapter$fun updateData(tree: BookmarkNode?, mode: BookmarkFragmentState.Mode)</ID>

@@ -24,7 +24,6 @@ import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTab
 import org.mozilla.fenix.home.recentsyncedtabs.controller.RecentSyncedTabController
 import org.mozilla.fenix.home.recenttabs.controller.RecentTabController
 import org.mozilla.fenix.home.recentvisits.controller.RecentVisitsController
-import org.mozilla.fenix.home.search.HomeSearchController
 import org.mozilla.fenix.home.sessioncontrol.DefaultSessionControlController
 import org.mozilla.fenix.home.sessioncontrol.SessionControlInteractor
 import org.mozilla.fenix.home.toolbar.ToolbarController
@@ -40,7 +39,6 @@ class SessionControlInteractorTest {
     private val privateBrowsingController: PrivateBrowsingController = mockk(relaxed = true)
     private val searchSelectorController: SearchSelectorController = mockk(relaxed = true)
     private val toolbarController: ToolbarController = mockk(relaxed = true)
-    private val homeSearchController: HomeSearchController = mockk(relaxed = true)
 
     // Note: the recent visits tests are handled in [RecentVisitsInteractorTest] and [RecentVisitsControllerTest]
     private val recentVisitsController: RecentVisitsController = mockk(relaxed = true)
@@ -59,7 +57,6 @@ class SessionControlInteractorTest {
             privateBrowsingController,
             searchSelectorController,
             toolbarController,
-            homeSearchController,
         )
     }
 
@@ -148,12 +145,6 @@ class SessionControlInteractorTest {
     fun onNavigateSearch() {
         interactor.onNavigateSearch()
         verify { toolbarController.handleNavigateSearch() }
-    }
-
-    @Test
-    fun onHomeContentFocusedWhileSearchIsActive() {
-        interactor.onHomeContentFocusedWhileSearchIsActive()
-        verify { homeSearchController.handleHomeContentFocusedWhileSearchIsActive() }
     }
 
     @Test

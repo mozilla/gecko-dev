@@ -25,7 +25,6 @@ import org.mozilla.fenix.home.recenttabs.controller.RecentTabController
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryGroup
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHighlight
 import org.mozilla.fenix.home.recentvisits.controller.RecentVisitsController
-import org.mozilla.fenix.home.search.HomeSearchController
 import org.mozilla.fenix.home.toolbar.ToolbarController
 import org.mozilla.fenix.search.toolbar.SearchSelectorController
 import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
@@ -245,7 +244,6 @@ class SessionControlInteractor(
     private val privateBrowsingController: PrivateBrowsingController,
     private val searchSelectorController: SearchSelectorController,
     private val toolbarController: ToolbarController,
-    private val homeSearchController: HomeSearchController,
 ) : HomepageInteractor {
 
     override fun onCollectionAddTabTapped(collection: TabCollection) {
@@ -346,10 +344,6 @@ class SessionControlInteractor(
 
     override fun onNavigateSearch() {
         toolbarController.handleNavigateSearch()
-    }
-
-    override fun onHomeContentFocusedWhileSearchIsActive() {
-        homeSearchController.handleHomeContentFocusedWhileSearchIsActive()
     }
 
     override fun onRemoveCollectionsPlaceholder() {

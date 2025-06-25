@@ -14,7 +14,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
-import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction
+import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption
@@ -47,11 +47,6 @@ import org.mozilla.samples.toolbar.middleware.StartPageInteractions.SecurityIndi
 import org.mozilla.samples.toolbar.middleware.TabCounterInteractions.Add10TabsClicked
 import org.mozilla.samples.toolbar.middleware.TabCounterInteractions.Remove10TabsClicked
 import org.mozilla.samples.toolbar.middleware.TabCounterInteractions.TabCounterClicked
-import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.ContentDescription.StringResContentDescription as SearchSelectorDescriptionRes
-import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.Icon.DrawableResIcon as SearchSelectorIconRes
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.ContentDescription.StringResContentDescription as MenuItemDescriptionRes
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Icon.DrawableResIcon as MenuItemIconRes
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Text.StringResText as MenuItemTextRes
 import mozilla.components.ui.icons.R as iconsR
 
 private sealed class SearchSelectorInteractions : BrowserToolbarEvent {
@@ -166,44 +161,45 @@ internal class BrowserToolbarMiddleware(
     )
 
     private fun buildStartPageActions() = listOf(
-        SearchSelectorAction(
-            icon = SearchSelectorIconRes(iconsR.drawable.mozac_ic_search_24),
-            contentDescription = SearchSelectorDescriptionRes(R.string.search_selector_description),
+        DropdownAction(
+            icon = null,
+            iconResource = iconsR.drawable.mozac_ic_search_24,
+            contentDescription = R.string.clear_button_description,
             menu = {
                 listOfNotNull(
                     BrowserToolbarMenuButton(
                         icon = null,
-                        text = MenuItemTextRes(R.string.search_selector_header),
-                        contentDescription = MenuItemDescriptionRes(R.string.search_selector_header),
+                        iconResource = null,
+                        text = R.string.search_selector_header,
+                        contentDescription = R.string.search_selector_header,
                         onClick = null,
                     ),
                     BrowserToolbarMenuButton(
-                        icon = MenuItemIconRes(iconsR.drawable.mozac_ic_bookmark_tray_24),
-                        text = MenuItemTextRes(R.string.bookmarks_search_engine_name),
-                        contentDescription = MenuItemDescriptionRes(R.string.bookmarks_search_engine_description),
+                        iconResource = iconsR.drawable.mozac_ic_bookmark_tray_24,
+                        text = R.string.bookmarks_search_engine_name,
+                        contentDescription = R.string.bookmarks_search_engine_description,
                         onClick = BookmarksClicked,
                     ),
                     BrowserToolbarMenuButton(
-                        icon = MenuItemIconRes(iconsR.drawable.mozac_ic_tab_tray_24),
-                        text = MenuItemTextRes(R.string.tabs_search_engine_name),
-                        contentDescription = MenuItemDescriptionRes(R.string.tabs_search_engine_description),
+                        iconResource = iconsR.drawable.mozac_ic_tab_tray_24,
+                        text = R.string.tabs_search_engine_name,
+                        contentDescription = R.string.tabs_search_engine_description,
                         onClick = TabsClicked,
                     ),
                     BrowserToolbarMenuButton(
-                        icon = MenuItemIconRes(iconsR.drawable.mozac_ic_history_24),
-                        text = MenuItemTextRes(R.string.history_search_engine_name),
-                        contentDescription = MenuItemDescriptionRes(R.string.tabs_search_engine_description),
+                        iconResource = iconsR.drawable.mozac_ic_history_24,
+                        text = R.string.history_search_engine_name,
+                        contentDescription = R.string.tabs_search_engine_description,
                         onClick = HistoryClicked,
                     ),
                     BrowserToolbarMenuButton(
-                        icon = MenuItemIconRes(iconsR.drawable.mozac_ic_settings_24),
-                        text = MenuItemTextRes(R.string.search_settings),
-                        contentDescription = MenuItemDescriptionRes(R.string.tabs_search_engine_description),
+                        iconResource = iconsR.drawable.mozac_ic_settings_24,
+                        text = R.string.search_settings,
+                        contentDescription = R.string.tabs_search_engine_description,
                         onClick = SettingsClicked,
                     ),
                 )
             },
-            onClick = null,
         ),
         ActionButtonRes(
             drawableResId = iconsR.drawable.mozac_ic_lock_24,
@@ -240,58 +236,59 @@ internal class BrowserToolbarMiddleware(
         ),
     )
 
-    private fun buildSearchSelector(): Action = SearchSelectorAction(
-        icon = SearchSelectorIconRes(iconsR.drawable.mozac_ic_search_24),
-        contentDescription = SearchSelectorDescriptionRes(R.string.search_selector_description),
+    private fun buildSearchSelector(): Action = DropdownAction(
+        icon = null,
+        iconResource = iconsR.drawable.mozac_ic_search_24,
+        contentDescription = R.string.clear_button_description,
         menu = {
             listOfNotNull(
                 BrowserToolbarMenuButton(
-                    null,
-                    text = MenuItemTextRes(R.string.search_selector_header),
-                    contentDescription = MenuItemDescriptionRes(R.string.search_selector_header),
+                    icon = null,
+                    iconResource = null,
+                    text = R.string.search_selector_header,
+                    contentDescription = R.string.search_selector_header,
                     onClick = null,
                 ),
                 BrowserToolbarMenuButton(
-                    MenuItemIconRes(iconsR.drawable.mozac_ic_bookmark_tray_24),
-                    text = MenuItemTextRes(R.string.bookmarks_search_engine_name),
-                    contentDescription = MenuItemDescriptionRes(R.string.bookmarks_search_engine_description),
+                    iconResource = iconsR.drawable.mozac_ic_bookmark_tray_24,
+                    text = R.string.bookmarks_search_engine_name,
+                    contentDescription = R.string.bookmarks_search_engine_description,
                     onClick = BookmarksClicked,
                 ),
                 BrowserToolbarMenuButton(
-                    MenuItemIconRes(iconsR.drawable.mozac_ic_tab_tray_24),
-                    text = MenuItemTextRes(R.string.tabs_search_engine_name),
-                    contentDescription = MenuItemDescriptionRes(R.string.tabs_search_engine_description),
+                    iconResource = iconsR.drawable.mozac_ic_tab_tray_24,
+                    text = R.string.tabs_search_engine_name,
+                    contentDescription = R.string.tabs_search_engine_description,
                     onClick = TabsClicked,
                 ),
                 BrowserToolbarMenuButton(
-                    MenuItemIconRes(iconsR.drawable.mozac_ic_history_24),
-                    text = MenuItemTextRes(R.string.history_search_engine_name),
-                    contentDescription = MenuItemDescriptionRes(R.string.tabs_search_engine_description),
+                    iconResource = iconsR.drawable.mozac_ic_history_24,
+                    text = R.string.history_search_engine_name,
+                    contentDescription = R.string.tabs_search_engine_description,
                     onClick = HistoryClicked,
                 ),
                 BrowserToolbarMenuButton(
-                    MenuItemIconRes(iconsR.drawable.mozac_ic_settings_24),
-                    text = MenuItemTextRes(R.string.search_settings),
-                    contentDescription = MenuItemDescriptionRes(R.string.tabs_search_engine_description),
+                    iconResource = iconsR.drawable.mozac_ic_settings_24,
+                    text = R.string.search_settings,
+                    contentDescription = R.string.tabs_search_engine_description,
                     onClick = SettingsClicked,
                 ),
             )
         },
-        onClick = null,
     )
 
     private fun buildTabCounter() = BrowserToolbarMenu {
         listOfNotNull(
             BrowserToolbarMenuButton(
-                MenuItemIconRes(android.R.drawable.ic_menu_add),
-                text = MenuItemTextRes(R.string.tab_counter_add_10_tabs),
-                contentDescription = MenuItemDescriptionRes(R.string.tab_counter_add_10_tabs),
+                iconResource = android.R.drawable.ic_menu_add,
+                text = R.string.tab_counter_add_10_tabs,
+                contentDescription = R.string.tab_counter_add_10_tabs,
                 onClick = Add10TabsClicked,
             ),
             BrowserToolbarMenuButton(
-                MenuItemIconRes(android.R.drawable.ic_menu_delete),
-                text = MenuItemTextRes(R.string.tab_counter_remove_10_tabs),
-                contentDescription = MenuItemDescriptionRes(R.string.tab_counter_remove_10_tabs),
+                iconResource = android.R.drawable.ic_menu_delete,
+                text = R.string.tab_counter_remove_10_tabs,
+                contentDescription = R.string.tab_counter_remove_10_tabs,
                 onClick = Remove10TabsClicked,
             ),
         )

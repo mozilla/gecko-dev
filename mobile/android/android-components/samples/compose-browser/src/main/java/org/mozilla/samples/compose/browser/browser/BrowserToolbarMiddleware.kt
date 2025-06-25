@@ -14,9 +14,6 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Tog
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.ContentDescription
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Icon
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Text
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.DisplayState
 import mozilla.components.compose.browser.toolbar.store.EditState
@@ -124,11 +121,9 @@ internal class BrowserToolbarMiddleware(
             onClick = BrowserToolbarMenu {
                 listOf(
                     BrowserToolbarMenuButton(
-                        icon = Icon.DrawableResIcon(iconsR.drawable.mozac_ic_settings_24),
-                        text = Text.StringResText(R.string.menu_item_settings),
-                        contentDescription = ContentDescription.StringResContentDescription(
-                            R.string.menu_item_settings_description,
-                        ),
+                        iconResource = iconsR.drawable.mozac_ic_settings_24,
+                        text = R.string.menu_item_settings,
+                        contentDescription = R.string.menu_item_settings_description,
                         onClick = MenuInteractions.SettingsClicked,
                     ),
                 )

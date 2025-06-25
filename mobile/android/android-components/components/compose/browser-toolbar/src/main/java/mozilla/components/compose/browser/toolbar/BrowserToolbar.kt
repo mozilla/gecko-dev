@@ -9,9 +9,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
-import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UpdateEditText
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.CommitUrl
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.DisplayState
@@ -39,8 +39,8 @@ fun BrowserToolbar(
             url = uiState.editState.editText ?: uiState.displayState.pageOrigin.url.orEmpty(),
             editActionsStart = uiState.editState.editActionsStart,
             editActionsEnd = uiState.editState.editActionsEnd,
-            onUrlCommitted = { text -> store.dispatch(CommitUrl(text)) },
-            onUrlEdit = { text -> store.dispatch(UpdateEditText(text)) },
+            onUrlCommitted = { text -> store.dispatch(BrowserToolbarAction.CommitUrl(text)) },
+            onUrlEdit = { text -> store.dispatch(BrowserEditToolbarAction.UpdateEditText(text)) },
             onInteraction = { store.dispatch(it) },
         )
     } else {
@@ -85,7 +85,7 @@ private fun BrowserToolbarPreview_DisplayMode() {
         hint = 0,
         title = "Preview Title",
         url = "https://www.mozilla.org",
-        onClick = object : BrowserToolbarEvent {},
+        onClick = object : BrowserToolbarInteraction.BrowserToolbarEvent {},
         onLongClick = null,
         textGravity = PageOrigin.Companion.TextGravity.TEXT_GRAVITY_START,
     )

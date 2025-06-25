@@ -4,7 +4,6 @@
 
 package mozilla.components.compose.browser.toolbar.ui
 
-import android.os.Build
 import android.text.InputType.TYPE_CLASS_TEXT
 import android.text.InputType.TYPE_TEXT_VARIATION_URI
 import android.view.Gravity
@@ -15,7 +14,6 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.viewinterop.AndroidView
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserEditToolbar
-import mozilla.components.support.ktx.android.view.showKeyboard
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
 
 /**
@@ -37,10 +35,9 @@ internal fun InlineAutocompleteTextField(
                 inputType = TYPE_CLASS_TEXT or TYPE_TEXT_VARIATION_URI
                 gravity = Gravity.CENTER_VERTICAL
                 setLines(1)
-                setFocusable(true)
                 setTextColor(textColor.toArgb())
 
-                updateText(url)
+                setText(text = url, shouldAutoComplete = false)
 
                 setOnCommitListener {
                     onUrlCommitted(text.toString())
@@ -52,27 +49,7 @@ internal fun InlineAutocompleteTextField(
             }
         },
         modifier = modifier,
-        update = {
-            it.updateText(url)
-        },
     )
-}
-
-private fun InlineAutocompleteEditText.updateText(newText: String) {
-    // Avoid running the code for focusing this if the updated text is the one user already typed.
-    // But ensure focusing this if just starting to type.
-    if (text.toString() == newText && newText.isNotEmpty()) return
-
-    setText(text = newText, shouldAutoComplete = false)
-    setSelection(newText.length)
-    if (!hasFocus()) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            // On Android 14 this needs to be called before requestFocus() in order to receive focus.
-            isFocusableInTouchMode = true
-        }
-        requestFocus()
-        showKeyboard()
-    }
 }
 
 @PreviewLightDark

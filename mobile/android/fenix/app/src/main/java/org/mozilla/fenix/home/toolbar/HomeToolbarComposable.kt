@@ -40,8 +40,6 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition.TOP
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.home.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
-import org.mozilla.fenix.search.BrowserToolbarSearchMiddleware
-import org.mozilla.fenix.search.BrowserToolbarSearchStatusSyncMiddleware
 import org.mozilla.fenix.utils.Settings
 
 /**
@@ -57,8 +55,6 @@ import org.mozilla.fenix.utils.Settings
  * @param browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
  * @param settings [Settings] for querying various application settings.
  * @param tabStripContent [Composable] as the tab strip content to be displayed together with this toolbar.
- * @param searchSuggestionsContent [Composable] as the search suggestions content to be displayed
- * together with this toolbar.
  */
 @Suppress("LongParameterList")
 internal class HomeToolbarComposable(
@@ -71,17 +67,14 @@ internal class HomeToolbarComposable(
     private val browsingModeManager: BrowsingModeManager,
     private val settings: Settings,
     private val tabStripContent: @Composable () -> Unit,
-    private val searchSuggestionsContent: @Composable (BrowserToolbarStore) -> Unit,
 ) : FenixHomeToolbar {
     private var showDivider by mutableStateOf(true)
 
-    private val displayMiddleware = getOrCreate<BrowserToolbarMiddleware>()
-    private val searchMiddleware = getOrCreate<BrowserToolbarSearchMiddleware>()
-    private val searchSyncMiddleware = getOrCreate<BrowserToolbarSearchStatusSyncMiddleware>()
+    private val middleware = getOrCreate<BrowserToolbarMiddleware>()
     private val store = StoreProvider.get(lifecycleOwner) {
         BrowserToolbarStore(
             initialState = BrowserToolbarState(),
-            middleware = listOf(displayMiddleware, searchMiddleware, searchSyncMiddleware),
+            middleware = listOf(middleware),
         )
     }
 
@@ -92,16 +85,16 @@ internal class HomeToolbarComposable(
             val shouldShowTabStrip: Boolean = remember { context.isTabStripEnabled() }
 
             AcornTheme {
-                Column {
-                    if (shouldShowTabStrip) {
+                when (shouldShowTabStrip) {
+                    true -> Column {
                         tabStripContent()
+                        BrowserToolbar(showDivider, settings.shouldUseBottomToolbar)
                     }
-                    BrowserToolbar(showDivider, settings.shouldUseBottomToolbar)
-                    searchSuggestionsContent(store)
+
+                    false -> BrowserToolbar(showDivider, settings.shouldUseBottomToolbar)
                 }
             }
         }
-        translationZ = context.resources.getDimension(R.dimen.browser_fragment_above_toolbar_panels_elevation)
         homeBinding.homeLayout.addView(this)
     }
 
@@ -183,34 +176,6 @@ internal class HomeToolbarComposable(
                         navController = navController,
                         browsingModeManager = browsingModeManager,
                         useCases = context.components.useCases,
-                    ),
-                )
-            } as T
-
-        BrowserToolbarSearchStatusSyncMiddleware::class.java ->
-            ViewModelProvider(
-                lifecycleOwner,
-                BrowserToolbarSearchStatusSyncMiddleware.viewModelFactory(
-                    appStore = appStore,
-                ),
-            ).get(BrowserToolbarSearchStatusSyncMiddleware::class.java).also {
-                it.updateLifecycleDependencies(
-                    BrowserToolbarSearchStatusSyncMiddleware.LifecycleDependencies(
-                        lifecycleOwner = lifecycleOwner,
-                    ),
-                )
-            } as T
-
-        BrowserToolbarSearchMiddleware::class.java ->
-            ViewModelProvider(
-                lifecycleOwner,
-                BrowserToolbarSearchMiddleware.viewModelFactory(appStore, browserStore),
-            ).get(BrowserToolbarSearchMiddleware::class.java).also {
-                it.updateLifecycleDependencies(
-                    BrowserToolbarSearchMiddleware.LifecycleDependencies(
-                        lifecycleOwner = lifecycleOwner,
-                        navController = navController,
-                        resources = context.resources,
                     ),
                 )
             } as T

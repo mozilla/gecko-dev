@@ -5,7 +5,6 @@
 package mozilla.components.compose.browser.toolbar.ui
 
 import android.view.SoundEffectConstants
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Row
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Icon
@@ -21,13 +19,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -45,12 +41,6 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteractio
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.CombinedEventAndMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.ContentDescription.StringContentDescription
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.ContentDescription.StringResContentDescription
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Icon.DrawableIcon
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Icon.DrawableResIcon
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Text.StringResText
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Text.StringText
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuDivider
 
 @Stable
@@ -61,7 +51,6 @@ internal fun BrowserToolbarInteraction.toMenuItems(): List<BrowserToolbarMenuIte
 }
 
 @Composable
-@Suppress("LongMethod")
 internal fun menuItemComposable(
     source: BrowserToolbarMenuItem,
     onInteraction: (BrowserToolbarEvent) -> Unit,
@@ -69,70 +58,52 @@ internal fun menuItemComposable(
     return when (source) {
         is BrowserToolbarMenuButton -> {
             @Composable {
-                val view = LocalView.current
-                val contentDescription = source.contentDescription()
+                if (source.text != null) {
+                    val view = LocalView.current
+                    val contentDescription = stringResource(source.text)
+                    val iconPainter = key(source) { source.iconPainter() }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .thenConditional(
-                            Modifier.clickable(
-                                role = Role.Button,
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = ripple(
-                                    bounded = true,
-                                    color = AcornTheme.colors.ripple,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .thenConditional(
+                                Modifier.clickable(
+                                    role = Role.Button,
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = ripple(
+                                        bounded = true,
+                                        color = AcornTheme.colors.ripple,
+                                    ),
+                                    onClick = {
+                                        view.playSoundEffect(SoundEffectConstants.CLICK)
+                                        source.onClick?.let { onInteraction(it) }
+                                    },
                                 ),
-                                onClick = {
-                                    view.playSoundEffect(SoundEffectConstants.CLICK)
-                                    source.onClick?.let { onInteraction(it) }
-                                },
-                            ),
-                        ) { source.onClick != null }
-                        .semantics(mergeDescendants = true) {
-                            this.contentDescription = contentDescription
-                        }
-                        .fillMaxWidth()
-                        .minimumInteractiveComponentSize()
-                        .padding(horizontal = 16.dp),
-                ) {
-                    when (source.icon) {
-                        is DrawableIcon -> {
-                            Image(
-                                painter = rememberDrawablePainter(source.icon.drawable),
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                                contentScale = ContentScale.Crop,
-                                colorFilter = when (source.icon.shouldTint) {
-                                    true -> ColorFilter.tint(AcornTheme.colors.iconPrimary)
-                                    else -> null
-                                },
-                            )
-                        }
-                        is DrawableResIcon -> {
+                            ) { source.onClick != null }
+                            .semantics { this.contentDescription = contentDescription }
+                            .fillMaxWidth()
+                            .minimumInteractiveComponentSize()
+                            .padding(horizontal = 16.dp),
+                    ) {
+                        if (iconPainter != null) {
                             Icon(
-                                painter = painterResource(source.icon.resourceId),
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
+                                painter = iconPainter,
+                                contentDescription = stringResource(source.text),
                                 tint = AcornTheme.colors.iconPrimary,
                             )
+                            Spacer(modifier = Modifier.width(20.dp))
                         }
-                        null -> {}
-                    }
 
-                    if (source.icon != null) {
-                        Spacer(modifier = Modifier.width(20.dp))
+                        Text(
+                            text = stringResource(source.text),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .wrapContentSize(Alignment.CenterStart),
+                            color = AcornTheme.colors.textPrimary,
+                            maxLines = 1,
+                            style = AcornTheme.typography.subtitle1,
+                        )
                     }
-
-                    Text(
-                        text = source.text(),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .wrapContentSize(Alignment.CenterStart),
-                        color = AcornTheme.colors.textPrimary,
-                        maxLines = 1,
-                        style = AcornTheme.typography.subtitle1,
-                    )
                 }
             }
         }
@@ -148,15 +119,8 @@ internal fun menuItemComposable(
 }
 
 @Composable
-@ReadOnlyComposable
-private fun BrowserToolbarMenuButton.text() = when (text) {
-    is StringText -> text.text
-    is StringResText -> stringResource(text.resourceId)
-}
-
-@Composable
-@ReadOnlyComposable
-private fun BrowserToolbarMenuButton.contentDescription() = when (contentDescription) {
-    is StringContentDescription -> contentDescription.text
-    is StringResContentDescription -> stringResource(contentDescription.resourceId)
+private fun BrowserToolbarMenuButton.iconPainter() = when {
+    icon != null -> rememberDrawablePainter(icon)
+    iconResource != null -> painterResource(iconResource)
+    else -> null
 }

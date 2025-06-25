@@ -105,18 +105,16 @@ sealed class BrowserEditToolbarAction : BrowserToolbarAction {
     data class UpdateEditText(val text: String) : BrowserEditToolbarAction()
 
     /**
-     * Replaces the currently displayed list of start actions while searching with the provided list of actions.
-     * These are displayed to the start of the input query, in the same bounding box.
+     * Adds an [Action] to be displayed at the start of the URL in the browser edit toolbar.
      *
-     * @property actions The new list of [ToolbarAction]s.
+     * @property action The [Action] to be added.
      */
-    data class SearchActionsStartUpdated(val actions: List<ToolbarAction>) : BrowserEditToolbarAction()
+    data class AddEditActionStart(val action: ToolbarAction) : BrowserEditToolbarAction()
 
     /**
-     * Replaces the currently displayed list of end actions while searching with the provided list of actions.
-     * These are displayed to the end of the input query, in the same bounding box.
+     * Adds an [Action] to be displayed at the end of the URL in the browser edit toolbar.
      *
-     * @property actions The new list of [ToolbarAction]s.
+     * @property action The [Action] to be added.
      */
-    data class SearchActionsEndUpdated(val actions: List<ToolbarAction>) : BrowserEditToolbarAction()
+    data class AddEditActionEnd(val action: ToolbarAction) : BrowserEditToolbarAction()
 }

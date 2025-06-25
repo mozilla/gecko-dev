@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.search.awesomebar
 
+import android.app.Activity
 import android.graphics.drawable.VectorDrawable
 import androidx.core.net.toUri
 import io.mockk.every
@@ -29,7 +30,6 @@ import mozilla.components.feature.awesomebar.provider.TrendingSearchProvider
 import mozilla.components.feature.fxsuggest.FxSuggestSuggestionProvider
 import mozilla.components.feature.syncedtabs.SyncedTabsStorageSuggestionProvider
 import mozilla.components.support.ktx.android.content.getColorFromAttr
-import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -39,52 +39,47 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
-import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.Core.Companion
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.search.SearchEngineSource
-import org.mozilla.fenix.search.awesomebar.SearchSuggestionsProvidersBuilder.SearchProviderState
+import org.mozilla.fenix.search.awesomebar.AwesomeBarView.SearchProviderState
 import org.mozilla.fenix.utils.Settings
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
-class SearchSuggestionsProvidersBuilderTest {
-    private lateinit var builder: SearchSuggestionsProvidersBuilder
-    private val browsingModeManager: BrowsingModeManager = mockk(relaxed = true)
+class AwesomeBarViewTest {
+    private var activity: HomeActivity = mockk(relaxed = true)
+    private lateinit var awesomeBarView: AwesomeBarView
 
     @Before
     fun setup() {
         // The following setup is needed to complete the init block of AwesomeBarView
         mockkStatic("org.mozilla.fenix.ext.ContextKt")
         mockkStatic("mozilla.components.support.ktx.android.content.ContextKt")
-        mockkObject(SearchSuggestionsProvidersBuilder.Companion)
-        every { testContext.components.core.engine } returns mockk()
-        every { testContext.components.core.icons } returns mockk()
-        every { testContext.components.core.store } returns mockk()
-        every { testContext.components.core.historyStorage } returns mockk()
-        every { testContext.components.core.bookmarksStorage } returns mockk()
-        every { testContext.components.core.topSitesStorage } returns mockk()
-        every { testContext.components.core.client } returns mockk()
-        every { testContext.components.backgroundServices.syncedTabsStorage } returns mockk()
-        every { testContext.components.core.store.state.search } returns mockk(relaxed = true)
-        every { testContext.getColorFromAttr(any()) } returns 0
-        every { SearchSuggestionsProvidersBuilder.Companion.getDrawable(any(), any()) } returns mockk<VectorDrawable>(relaxed = true) {
+        mockkObject(AwesomeBarView.Companion)
+        every { any<Activity>().components.core.engine } returns mockk()
+        every { any<Activity>().components.core.icons } returns mockk()
+        every { any<Activity>().components.core.store } returns mockk()
+        every { any<Activity>().components.core.historyStorage } returns mockk()
+        every { any<Activity>().components.core.bookmarksStorage } returns mockk()
+        every { any<Activity>().components.core.topSitesStorage } returns mockk()
+        every { any<Activity>().components.core.client } returns mockk()
+        every { any<Activity>().components.backgroundServices.syncedTabsStorage } returns mockk()
+        every { any<Activity>().components.core.store.state.search } returns mockk(relaxed = true)
+        every { any<Activity>().getColorFromAttr(any()) } returns 0
+        every { AwesomeBarView.Companion.getDrawable(any(), any()) } returns mockk<VectorDrawable>(relaxed = true) {
             every { intrinsicWidth } returns 10
             every { intrinsicHeight } returns 10
         }
 
-        builder = SearchSuggestionsProvidersBuilder(
-            context = testContext,
-            browsingModeManager = browsingModeManager,
-            includeSelectedTab = false,
-            loadUrlUseCase = mockk(),
-            searchUseCase = mockk(),
-            selectTabUseCase = mockk(),
-            onSearchEngineShortcutSelected = {},
-            onSearchEngineSuggestionSelected = {},
-            onSearchEngineSettingsClicked = {},
+        awesomeBarView = AwesomeBarView(
+            activity = activity,
+            interactor = mockk(),
+            view = mockk(),
+            fromHomeFragment = false,
         )
     }
 
@@ -92,7 +87,7 @@ class SearchSuggestionsProvidersBuilderTest {
     fun tearDown() {
         unmockkStatic("org.mozilla.fenix.ext.ContextKt")
         unmockkStatic("mozilla.components.support.ktx.android.content.ContextKt")
-        unmockkObject(SearchSuggestionsProvidersBuilder.Companion)
+        unmockkObject(AwesomeBarView.Companion)
     }
 
     @Test
@@ -100,18 +95,18 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.History(mockk(relaxed = true)),
             showSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider }
         assertNotNull(historyProvider)
         assertEquals(
-            SearchSuggestionsProvidersBuilder.METADATA_SUGGESTION_LIMIT,
+            AwesomeBarView.METADATA_SUGGESTION_LIMIT,
             (historyProvider as CombinedHistorySuggestionProvider).getMaxNumberOfSuggestions(),
         )
     }
@@ -121,13 +116,13 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.History(mockk(relaxed = true)),
             showSponsoredSuggestions = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider }
         assertNotNull(historyProvider)
@@ -142,18 +137,18 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.History(mockk(relaxed = true)),
             showSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProvider = result.firstOrNull { it is HistoryStorageSuggestionProvider }
         assertNotNull(historyProvider)
         assertEquals(
-            SearchSuggestionsProvidersBuilder.METADATA_SUGGESTION_LIMIT,
+            AwesomeBarView.METADATA_SUGGESTION_LIMIT,
             (historyProvider as HistoryStorageSuggestionProvider).getMaxNumberOfSuggestions(),
         )
     }
@@ -163,13 +158,13 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.History(mockk(relaxed = true)),
             showSponsoredSuggestions = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProvider = result.firstOrNull { it is HistoryStorageSuggestionProvider }
         assertNotNull(historyProvider)
@@ -184,18 +179,18 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Shortcut(mockk(relaxed = true)),
             showSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider }
         assertNotNull(historyProvider)
         assertEquals(
-            SearchSuggestionsProvidersBuilder.METADATA_SUGGESTION_LIMIT,
+            AwesomeBarView.METADATA_SUGGESTION_LIMIT,
             (historyProvider as CombinedHistorySuggestionProvider).getMaxNumberOfSuggestions(),
         )
     }
@@ -205,18 +200,18 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Shortcut(mockk(relaxed = true)),
             showSponsoredSuggestions = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider }
         assertNotNull(historyProvider)
         assertEquals(
-            SearchSuggestionsProvidersBuilder.METADATA_SUGGESTION_LIMIT,
+            AwesomeBarView.METADATA_SUGGESTION_LIMIT,
             (historyProvider as CombinedHistorySuggestionProvider).getMaxNumberOfSuggestions(),
         )
     }
@@ -226,18 +221,18 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Bookmarks(mockk(relaxed = true)),
             showSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider }
         assertNotNull(historyProvider)
         assertEquals(
-            SearchSuggestionsProvidersBuilder.METADATA_SUGGESTION_LIMIT,
+            AwesomeBarView.METADATA_SUGGESTION_LIMIT,
             (historyProvider as CombinedHistorySuggestionProvider).getMaxNumberOfSuggestions(),
         )
     }
@@ -247,17 +242,17 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Bookmarks(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider }
         assertNotNull(historyProvider)
         assertEquals(
-            SearchSuggestionsProvidersBuilder.METADATA_SUGGESTION_LIMIT,
+            AwesomeBarView.METADATA_SUGGESTION_LIMIT,
             (historyProvider as CombinedHistorySuggestionProvider).getMaxNumberOfSuggestions(),
         )
     }
@@ -268,7 +263,7 @@ class SearchSuggestionsProvidersBuilderTest {
             every { historyMetadataUIFeature } returns true
         }
         val url = "test.com".toUri()
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -279,12 +274,12 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider }
         assertNotNull(historyProvider)
         assertNotNull((historyProvider as CombinedHistorySuggestionProvider).resultsUriFilter)
-        assertEquals(SearchSuggestionsProvidersBuilder.METADATA_SUGGESTION_LIMIT, historyProvider.getMaxNumberOfSuggestions())
+        assertEquals(AwesomeBarView.METADATA_SUGGESTION_LIMIT, historyProvider.getMaxNumberOfSuggestions())
     }
 
     @Test
@@ -293,7 +288,7 @@ class SearchSuggestionsProvidersBuilderTest {
             every { historyMetadataUIFeature } returns true
         }
         val url = "test.com".toUri()
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -304,13 +299,13 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider }
         assertNotNull(historyProvider)
         assertNotNull((historyProvider as CombinedHistorySuggestionProvider).resultsUriFilter)
         assertEquals(
-            SearchSuggestionsProvidersBuilder.METADATA_SUGGESTION_LIMIT,
+            AwesomeBarView.METADATA_SUGGESTION_LIMIT,
             historyProvider.getMaxNumberOfSuggestions(),
         )
     }
@@ -320,7 +315,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showHistorySuggestionsForCurrentEngine = false,
@@ -330,7 +325,7 @@ class SearchSuggestionsProvidersBuilderTest {
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val combinedHistoryProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider } as CombinedHistorySuggestionProvider
         assertNotNull(combinedHistoryProvider)
@@ -346,7 +341,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showHistorySuggestionsForCurrentEngine = false,
@@ -356,7 +351,7 @@ class SearchSuggestionsProvidersBuilderTest {
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val defaultHistoryProvider = result.firstOrNull { it is HistoryStorageSuggestionProvider } as HistoryStorageSuggestionProvider
         assertNotNull(defaultHistoryProvider)
@@ -372,7 +367,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showHistorySuggestionsForCurrentEngine = false,
@@ -390,7 +385,7 @@ class SearchSuggestionsProvidersBuilderTest {
             ),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val combinedHistoryProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider }
         assertNull(combinedHistoryProvider)
@@ -404,7 +399,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showHistorySuggestionsForCurrentEngine = false,
@@ -422,7 +417,7 @@ class SearchSuggestionsProvidersBuilderTest {
             ),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val defaultHistoryProvider = result.firstOrNull { it is HistoryStorageSuggestionProvider }
         assertNull(defaultHistoryProvider)
@@ -436,7 +431,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showAllHistorySuggestions = false,
@@ -450,7 +445,7 @@ class SearchSuggestionsProvidersBuilderTest {
             ),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val combinedHistoryProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider } as CombinedHistorySuggestionProvider
         assertNotNull(combinedHistoryProvider)
@@ -466,7 +461,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showAllHistorySuggestions = false,
@@ -480,7 +475,7 @@ class SearchSuggestionsProvidersBuilderTest {
             ),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val defaultHistoryProvider = result.firstOrNull { it is HistoryStorageSuggestionProvider } as HistoryStorageSuggestionProvider
         assertNotNull(defaultHistoryProvider)
@@ -496,7 +491,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showSearchTermHistory = false,
@@ -511,7 +506,7 @@ class SearchSuggestionsProvidersBuilderTest {
             searchEngineSource = SearchEngineSource.History(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val combinedHistoryProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider } as CombinedHistorySuggestionProvider
         assertNotNull(combinedHistoryProvider)
@@ -526,7 +521,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showSearchTermHistory = false,
@@ -541,7 +536,7 @@ class SearchSuggestionsProvidersBuilderTest {
             searchEngineSource = SearchEngineSource.History(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val defaultHistoryProvider = result.firstOrNull { it is HistoryStorageSuggestionProvider } as HistoryStorageSuggestionProvider
         assertNotNull(defaultHistoryProvider)
@@ -556,7 +551,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showSearchTermHistory = false,
@@ -570,7 +565,7 @@ class SearchSuggestionsProvidersBuilderTest {
             searchEngineSource = SearchEngineSource.Tabs(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val combinedHistoryProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider }
         assertNull(combinedHistoryProvider)
@@ -584,7 +579,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showSearchTermHistory = false,
@@ -598,7 +593,7 @@ class SearchSuggestionsProvidersBuilderTest {
             searchEngineSource = SearchEngineSource.Tabs(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val defaultHistoryProvider = result.firstOrNull { it is HistoryStorageSuggestionProvider }
         assertNull(defaultHistoryProvider)
@@ -612,7 +607,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showSearchTermHistory = false,
@@ -627,7 +622,7 @@ class SearchSuggestionsProvidersBuilderTest {
             searchEngineSource = SearchEngineSource.Bookmarks(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val combinedHistoryProvider = result.firstOrNull { it is CombinedHistorySuggestionProvider }
         assertNull(combinedHistoryProvider)
@@ -642,7 +637,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showSearchTermHistory = false,
@@ -657,7 +652,7 @@ class SearchSuggestionsProvidersBuilderTest {
             searchEngineSource = SearchEngineSource.Bookmarks(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val defaultHistoryProvider = result.firstOrNull { it is HistoryStorageSuggestionProvider }
         assertNull(defaultHistoryProvider)
@@ -673,7 +668,7 @@ class SearchSuggestionsProvidersBuilderTest {
             every { historyMetadataUIFeature } returns false
         }
         val url = "test.com".toUri()
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -684,12 +679,12 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProvider = result.firstOrNull { it is HistoryStorageSuggestionProvider }
         assertNotNull(historyProvider)
         assertNotNull((historyProvider as HistoryStorageSuggestionProvider).resultsUriFilter)
-        assertEquals(SearchSuggestionsProvidersBuilder.METADATA_SUGGESTION_LIMIT, historyProvider.getMaxNumberOfSuggestions())
+        assertEquals(AwesomeBarView.METADATA_SUGGESTION_LIMIT, historyProvider.getMaxNumberOfSuggestions())
     }
 
     @Test
@@ -698,7 +693,7 @@ class SearchSuggestionsProvidersBuilderTest {
             every { historyMetadataUIFeature } returns false
         }
         val url = "test.com".toUri()
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -709,24 +704,24 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProvider = result.firstOrNull { it is HistoryStorageSuggestionProvider }
         assertNotNull(historyProvider)
         assertNotNull((historyProvider as HistoryStorageSuggestionProvider).resultsUriFilter)
-        assertEquals(SearchSuggestionsProvidersBuilder.METADATA_SUGGESTION_LIMIT, historyProvider.getMaxNumberOfSuggestions())
+        assertEquals(AwesomeBarView.METADATA_SUGGESTION_LIMIT, historyProvider.getMaxNumberOfSuggestions())
     }
 
     @Test
     fun `GIVEN a search from the default engine WHEN configuring providers THEN add search action and search suggestions providers`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(1, result.filterIsInstance<SearchActionProvider>().size)
         assertEquals(1, result.filterIsInstance<SearchSuggestionProvider>().size)
@@ -735,13 +730,13 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN a search from a shortcut engine WHEN configuring providers THEN add search action and search suggestions providers`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(1, result.filterIsInstance<SearchActionProvider>().size)
         assertEquals(1, result.filterIsInstance<SearchSuggestionProvider>().size)
@@ -750,7 +745,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN searches from other than default and shortcut engines WHEN configuring providers THEN don't add search action and search suggestion providers`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
 
         val historyState = getSearchProviderState(
             searchEngineSource = SearchEngineSource.History(mockk(relaxed = true)),
@@ -763,10 +758,10 @@ class SearchSuggestionsProvidersBuilderTest {
         )
         val noneState = getSearchProviderState()
 
-        val historyResult = builder.getProvidersToAdd(historyState)
-        val bookmarksResult = builder.getProvidersToAdd(bookmarksState)
-        val tabsResult = builder.getProvidersToAdd(tabsState)
-        val noneResult = builder.getProvidersToAdd(noneState)
+        val historyResult = awesomeBarView.getProvidersToAdd(historyState)
+        val bookmarksResult = awesomeBarView.getProvidersToAdd(bookmarksState)
+        val tabsResult = awesomeBarView.getProvidersToAdd(tabsState)
+        val noneResult = awesomeBarView.getProvidersToAdd(noneState)
         val allResults = historyResult + bookmarksResult + tabsResult + noneResult
 
         assertEquals(0, allResults.filterIsInstance<SearchActionProvider>().size)
@@ -777,8 +772,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN normal browsing mode and needing to show all local tabs suggestions and sponsored suggestions are enabled WHEN configuring providers THEN add the tabs provider`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Normal
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showSessionSuggestionsForCurrentEngine = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -789,7 +784,7 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val localSessionsProviders = result.filterIsInstance<SessionSuggestionProvider>()
         assertEquals(1, localSessionsProviders.size)
@@ -800,8 +795,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN normal browsing mode and needing to show all local tabs suggestions and sponsored suggestions are disabled WHEN configuring providers THEN add the tabs provider`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Normal
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showSessionSuggestionsForCurrentEngine = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -812,7 +807,7 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val localSessionsProviders = result.filterIsInstance<SessionSuggestionProvider>()
         assertEquals(1, localSessionsProviders.size)
@@ -823,8 +818,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN normal browsing mode and needing to show filtered local tabs suggestions WHEN configuring providers THEN add the tabs provider with an engine filter`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Normal
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showAllSessionSuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -834,7 +829,7 @@ class SearchSuggestionsProvidersBuilderTest {
             ),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val localSessionsProviders = result.filterIsInstance<SessionSuggestionProvider>()
         assertEquals(1, localSessionsProviders.size)
@@ -844,13 +839,13 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN private browsing mode and needing to show tabs suggestions WHEN configuring providers THEN don't add the tabs provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Private
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Private
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Shortcut(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(0, result.filterIsInstance<SessionSuggestionProvider>().size)
     }
@@ -859,8 +854,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN needing to show all synced tabs suggestions and sponsored suggestions are enabled WHEN configuring providers THEN add the synced tabs provider with a sponsored filter`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Normal
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showSyncedTabsSuggestionsForCurrentEngine = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -871,7 +866,7 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val localSessionsProviders = result.filterIsInstance<SyncedTabsStorageSuggestionProvider>()
         assertEquals(1, localSessionsProviders.size)
@@ -882,8 +877,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN needing to show filtered synced tabs suggestions and sponsored suggestions are enabled WHEN configuring providers THEN add the synced tabs provider with an engine filter`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Normal
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showAllSyncedTabsSuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -894,7 +889,7 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val localSessionsProviders = result.filterIsInstance<SyncedTabsStorageSuggestionProvider>()
         assertEquals(1, localSessionsProviders.size)
@@ -905,8 +900,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN needing to show all synced tabs suggestions and sponsored suggestions are disabled WHEN configuring providers THEN add the synced tabs provider`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Normal
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showSyncedTabsSuggestionsForCurrentEngine = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -917,7 +912,7 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val localSessionsProviders = result.filterIsInstance<SyncedTabsStorageSuggestionProvider>()
         assertEquals(1, localSessionsProviders.size)
@@ -928,8 +923,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN needing to show all bookmarks suggestions and sponsored suggestions are enabled WHEN configuring providers THEN add the bookmarks provider with a sponsored filter`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Normal
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showBookmarksSuggestionsForCurrentEngine = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -940,7 +935,7 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val localSessionsProviders = result.filterIsInstance<BookmarksStorageSuggestionProvider>()
         assertEquals(1, localSessionsProviders.size)
@@ -951,8 +946,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN needing to show all bookmarks suggestions and sponsored suggestions are disabled WHEN configuring providers THEN add the bookmarks provider`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Normal
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showBookmarksSuggestionsForCurrentEngine = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -963,7 +958,7 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val localSessionsProviders = result.filterIsInstance<BookmarksStorageSuggestionProvider>()
         assertEquals(1, localSessionsProviders.size)
@@ -974,8 +969,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN needing to show filtered bookmarks suggestions WHEN configuring providers THEN add the bookmarks provider with an engine filter`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Normal
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showAllBookmarkSuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -985,7 +980,7 @@ class SearchSuggestionsProvidersBuilderTest {
             ),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val localSessionsProviders = result.filterIsInstance<BookmarksStorageSuggestionProvider>()
         assertEquals(1, localSessionsProviders.size)
@@ -995,12 +990,12 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN a search is made by the user WHEN configuring providers THEN search engine suggestion provider should always be added`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(1, result.filterIsInstance<SearchEngineSuggestionProvider>().size)
     }
@@ -1009,8 +1004,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN a search from the default engine with all suggestions asked and sponsored suggestions are enabled WHEN configuring providers THEN add them all`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Normal
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(
                 mockk(relaxed = true) {
@@ -1020,7 +1015,7 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProviders: List<HistoryStorageSuggestionProvider> = result.filterIsInstance<HistoryStorageSuggestionProvider>()
         assertEquals(2, historyProviders.size)
@@ -1047,8 +1042,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN a search from the default engine with all suggestions asked and sponsored suggestions are disabled WHEN configuring providers THEN add them all`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Normal
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(
                 mockk(relaxed = true) {
@@ -1058,7 +1053,7 @@ class SearchSuggestionsProvidersBuilderTest {
             showSponsoredSuggestions = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val historyProviders: List<HistoryStorageSuggestionProvider> = result.filterIsInstance<HistoryStorageSuggestionProvider>()
         assertEquals(2, historyProviders.size)
@@ -1084,8 +1079,8 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN a search from the default engine with no suggestions asked WHEN configuring providers THEN add only search engine suggestion provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
-        every { browsingModeManager.mode } returns BrowsingMode.Normal
+        every { activity.settings() } returns settings
+        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showHistorySuggestionsForCurrentEngine = false,
             showSearchShortcuts = false,
@@ -1100,7 +1095,7 @@ class SearchSuggestionsProvidersBuilderTest {
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(0, result.filterIsInstance<HistoryStorageSuggestionProvider>().size)
         assertEquals(0, result.filterIsInstance<BookmarksStorageSuggestionProvider>().size)
@@ -1114,13 +1109,19 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN sponsored suggestions are enabled WHEN configuring providers THEN add the Firefox Suggest suggestion provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
+        val awesomeBarView = AwesomeBarView(
+            activity = activity,
+            interactor = mockk(),
+            view = mockk(),
+            fromHomeFragment = false,
+        )
         val state = getSearchProviderState(
             showSponsoredSuggestions = true,
             showNonSponsoredSuggestions = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val fxSuggestProvider = result.firstOrNull { it is FxSuggestSuggestionProvider }
         assertNotNull(fxSuggestProvider)
@@ -1129,13 +1130,19 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN non-sponsored suggestions are enabled WHEN configuring providers THEN add the Firefox Suggest suggestion provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
+        val awesomeBarView = AwesomeBarView(
+            activity = activity,
+            interactor = mockk(),
+            view = mockk(),
+            fromHomeFragment = false,
+        )
         val state = getSearchProviderState(
             showSponsoredSuggestions = false,
             showNonSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val fxSuggestProvider = result.firstOrNull { it is FxSuggestSuggestionProvider }
         assertNotNull(fxSuggestProvider)
@@ -1144,13 +1151,19 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN sponsored and non-sponsored suggestions are enabled WHEN configuring providers THEN add the Firefox Suggest suggestion provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
+        val awesomeBarView = AwesomeBarView(
+            activity = activity,
+            interactor = mockk(),
+            view = mockk(),
+            fromHomeFragment = false,
+        )
         val state = getSearchProviderState(
             showSponsoredSuggestions = true,
             showNonSponsoredSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val fxSuggestProvider = result.firstOrNull { it is FxSuggestSuggestionProvider }
         assertNotNull(fxSuggestProvider)
@@ -1159,13 +1172,19 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN sponsored and non-sponsored suggestions are disabled WHEN configuring providers THEN don't add the Firefox Suggest suggestion provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
+        val awesomeBarView = AwesomeBarView(
+            activity = activity,
+            interactor = mockk(),
+            view = mockk(),
+            fromHomeFragment = false,
+        )
         val state = getSearchProviderState(
             showSponsoredSuggestions = false,
             showNonSponsoredSuggestions = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         val fxSuggestProvider = result.firstOrNull { it is FxSuggestSuggestionProvider }
         assertNull(fxSuggestProvider)
@@ -1176,18 +1195,18 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk {
             every { historyMetadataUIFeature } returns true
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val searchEngineSource = SearchEngineSource.Shortcut(mockk(relaxed = true))
         val state = getSearchProviderState(searchEngineSource = searchEngineSource)
 
-        val result = builder.getHistoryProvider(
-            filter = builder.getFilterForCurrentEngineResults(state),
+        val result = awesomeBarView.getHistoryProvider(
+            filter = awesomeBarView.getFilterForCurrentEngineResults(state),
         )
 
         assertNotNull(result)
         assertTrue(result is CombinedHistorySuggestionProvider)
         assertNotNull((result as CombinedHistorySuggestionProvider).resultsUriFilter)
-        assertEquals(SearchSuggestionsProvidersBuilder.METADATA_SUGGESTION_LIMIT, result.getMaxNumberOfSuggestions())
+        assertEquals(AwesomeBarView.METADATA_SUGGESTION_LIMIT, result.getMaxNumberOfSuggestions())
     }
 
     @Test
@@ -1195,27 +1214,27 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk {
             every { historyMetadataUIFeature } returns false
         }
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val searchEngineSource = SearchEngineSource.Shortcut(mockk(relaxed = true))
         val state = getSearchProviderState(
             searchEngineSource = searchEngineSource,
         )
 
-        val result = builder.getHistoryProvider(
-            filter = builder.getFilterForCurrentEngineResults(state),
+        val result = awesomeBarView.getHistoryProvider(
+            filter = awesomeBarView.getFilterForCurrentEngineResults(state),
         )
 
         assertNotNull(result)
         assertTrue(result is HistoryStorageSuggestionProvider)
         assertNotNull((result as HistoryStorageSuggestionProvider).resultsUriFilter)
-        assertEquals(SearchSuggestionsProvidersBuilder.METADATA_SUGGESTION_LIMIT, result.getMaxNumberOfSuggestions())
+        assertEquals(AwesomeBarView.METADATA_SUGGESTION_LIMIT, result.getMaxNumberOfSuggestions())
     }
 
     @Test
     fun `GIVEN a search engine is not available WHEN asking for a search term provider THEN return null`() {
         val searchEngineSource: SearchEngineSource = SearchEngineSource.None
 
-        val result = builder.getSearchTermSuggestionsProvider(searchEngineSource)
+        val result = awesomeBarView.getSearchTermSuggestionsProvider(searchEngineSource)
 
         assertNull(result)
     }
@@ -1224,7 +1243,7 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN a search engine is available WHEN asking for a search term provider THEN return a valid provider`() {
         val searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true))
 
-        val result = builder.getSearchTermSuggestionsProvider(searchEngineSource)
+        val result = awesomeBarView.getSearchTermSuggestionsProvider(searchEngineSource)
 
         assertTrue(result is SearchTermSuggestionsProvider)
     }
@@ -1235,14 +1254,14 @@ class SearchSuggestionsProvidersBuilderTest {
             every { name } returns "Test"
         }
         val searchEngineSource = SearchEngineSource.Default(engine)
-        every { SearchSuggestionsProvidersBuilder.Companion.getString(any(), any(), any()) } answers {
+        every { AwesomeBarView.Companion.getString(any(), any(), any()) } answers {
             "Search Test"
         }
 
         mockkStatic("mozilla.components.browser.state.state.SearchStateKt") {
             every { any<SearchState>().selectedOrDefaultSearchEngine } returns engine
 
-            val result = builder.getSearchTermSuggestionsProvider(searchEngineSource)
+            val result = awesomeBarView.getSearchTermSuggestionsProvider(searchEngineSource)
 
             assertTrue(result is SearchTermSuggestionsProvider)
             assertEquals("Search Test", result?.groupTitle())
@@ -1258,14 +1277,14 @@ class SearchSuggestionsProvidersBuilderTest {
             every { name } returns "Other"
         }
         val searchEngineSource = SearchEngineSource.Shortcut(otherEngine)
-        every { SearchSuggestionsProvidersBuilder.Companion.getString(any(), any(), any()) } answers {
+        every { AwesomeBarView.Companion.getString(any(), any(), any()) } answers {
             "Search Test"
         }
 
         mockkStatic("mozilla.components.browser.state.state.SearchStateKt") {
             every { any<SearchState>().selectedOrDefaultSearchEngine } returns defaultEngine
 
-            val result = builder.getSearchTermSuggestionsProvider(searchEngineSource)
+            val result = awesomeBarView.getSearchTermSuggestionsProvider(searchEngineSource)
 
             assertTrue(result is SearchTermSuggestionsProvider)
             assertNull(result?.groupTitle())
@@ -1279,14 +1298,14 @@ class SearchSuggestionsProvidersBuilderTest {
             every { name } returns "Other"
         }
         val searchEngineSource = SearchEngineSource.Shortcut(otherEngine)
-        every { SearchSuggestionsProvidersBuilder.Companion.getString(any(), any(), any()) } answers {
+        every { AwesomeBarView.Companion.getString(any(), any(), any()) } answers {
             "Search Test"
         }
 
         mockkStatic("mozilla.components.browser.state.state.SearchStateKt") {
             every { any<SearchState>().selectedOrDefaultSearchEngine } returns defaultEngine
 
-            val result = builder.getSearchTermSuggestionsProvider(searchEngineSource)
+            val result = awesomeBarView.getSearchTermSuggestionsProvider(searchEngineSource)
 
             assertTrue(result is SearchTermSuggestionsProvider)
             assertNull(result?.groupTitle())
@@ -1295,68 +1314,68 @@ class SearchSuggestionsProvidersBuilderTest {
 
     @Test
     fun `GIVEN history search term suggestions disabled WHEN getting suggestions providers THEN don't search term provider of past searches`() {
-        every { testContext.settings() } returns mockk(relaxed = true)
+        every { activity.settings() } returns mockk(relaxed = true)
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSearchTermHistory = false,
             showRecentSearches = false,
         )
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(0, result.filterIsInstance<SearchTermSuggestionsProvider>().size)
     }
 
     @Test
     fun `GIVEN history search term suggestions enabled WHEN getting suggestions providers THEN add a search term provider of past searches`() {
-        every { testContext.settings() } returns mockk(relaxed = true)
+        every { activity.settings() } returns mockk(relaxed = true)
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSearchTermHistory = true,
             showRecentSearches = false,
         )
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(1, result.filterIsInstance<SearchTermSuggestionsProvider>().size)
     }
 
     @Test
     fun `GIVEN sponsored suggestions are enabled WHEN getting a filter to exclude sponsored suggestions THEN return the filter`() {
-        every { testContext.settings() } returns mockk(relaxed = true) {
+        every { activity.settings() } returns mockk(relaxed = true) {
             every { frecencyFilterQuery } returns "query=value"
         }
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSponsoredSuggestions = true,
         )
-        val filter = builder.getFilterToExcludeSponsoredResults(state)
+        val filter = awesomeBarView.getFilterToExcludeSponsoredResults(state)
 
-        assertEquals(SearchSuggestionsProvidersBuilder.SearchResultFilter.ExcludeSponsored("query=value"), filter)
+        assertEquals(AwesomeBarView.SearchResultFilter.ExcludeSponsored("query=value"), filter)
     }
 
     @Test
     fun `GIVEN sponsored suggestions are disabled WHEN getting a filter to exclude sponsored suggestions THEN return null`() {
-        every { testContext.settings() } returns mockk(relaxed = true) {
+        every { activity.settings() } returns mockk(relaxed = true) {
             every { frecencyFilterQuery } returns "query=value"
         }
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSponsoredSuggestions = false,
         )
-        val filter = builder.getFilterToExcludeSponsoredResults(state)
+        val filter = awesomeBarView.getFilterToExcludeSponsoredResults(state)
 
         assertNull(filter)
     }
 
     @Test
     fun `GIVEN a sponsored query parameter and a sponsored filter WHEN a URL contains the sponsored query parameter THEN that URL should be excluded`() {
-        every { testContext.settings() } returns mockk(relaxed = true) {
+        every { activity.settings() } returns mockk(relaxed = true) {
             every { frecencyFilterQuery } returns "query=value"
         }
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSponsoredSuggestions = true,
         )
-        val filter = requireNotNull(builder.getFilterToExcludeSponsoredResults(state))
+        val filter = requireNotNull(awesomeBarView.getFilterToExcludeSponsoredResults(state))
 
         assertFalse(filter.shouldIncludeUri("http://example.com?query=value".toUri()))
         assertFalse(filter.shouldIncludeUri("http://example.com/a?query=value".toUri()))
@@ -1371,14 +1390,14 @@ class SearchSuggestionsProvidersBuilderTest {
 
     @Test
     fun `GIVEN a sponsored query parameter and a sponsored filter WHEN a URL does not contain the sponsored query parameter THEN that URL should be included`() {
-        every { testContext.settings() } returns mockk(relaxed = true) {
+        every { activity.settings() } returns mockk(relaxed = true) {
             every { frecencyFilterQuery } returns "query=value"
         }
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSponsoredSuggestions = true,
         )
-        val filter = requireNotNull(builder.getFilterToExcludeSponsoredResults(state))
+        val filter = requireNotNull(awesomeBarView.getFilterToExcludeSponsoredResults(state))
 
         assertTrue(filter.shouldIncludeUri("http://example.com".toUri()))
         assertTrue(filter.shouldIncludeUri("http://example.com?query".toUri()))
@@ -1404,7 +1423,7 @@ class SearchSuggestionsProvidersBuilderTest {
             ),
         )
 
-        val filter = requireNotNull(builder.getFilterForCurrentEngineResults(state))
+        val filter = requireNotNull(awesomeBarView.getFilterForCurrentEngineResults(state))
 
         assertTrue(filter.shouldIncludeUri("http://test.com".toUri()))
         assertTrue(filter.shouldIncludeUri("http://test.com/a".toUri()))
@@ -1426,7 +1445,7 @@ class SearchSuggestionsProvidersBuilderTest {
             ),
         )
 
-        val filter = requireNotNull(builder.getFilterForCurrentEngineResults(state))
+        val filter = requireNotNull(awesomeBarView.getFilterForCurrentEngineResults(state))
 
         assertFalse(filter.shouldIncludeUri("http://other.com".toUri()))
         assertFalse(filter.shouldIncludeUri("http://subdomain.test.com".toUri()))
@@ -1437,12 +1456,12 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN should show trending searches WHEN configuring providers THEN add the trending search provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showTrendingSearches = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(1, result.filterIsInstance<TrendingSearchProvider>().size)
     }
@@ -1450,12 +1469,12 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN should not show trending searches WHEN configuring providers THEN don't add the trending search provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showTrendingSearches = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(0, result.filterIsInstance<TrendingSearchProvider>().size)
     }
@@ -1463,12 +1482,12 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN should show shortcuts suggestions WHEN configuring providers THEN add the top sites provider and top sites suggestion providers`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showShortcutsSuggestions = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(1, result.filterIsInstance<TopSitesSuggestionProvider>().size)
     }
@@ -1476,12 +1495,12 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN should not show shortcuts suggestions WHEN configuring providers THEN don't add the top sites provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             showShortcutsSuggestions = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(0, result.filterIsInstance<TopSitesSuggestionProvider>().size)
     }
@@ -1489,14 +1508,14 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN should show recent searches WHEN configuring providers THEN add the recent search suggestions provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSearchTermHistory = false,
             showRecentSearches = true,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(1, result.filterIsInstance<RecentSearchSuggestionsProvider>().size)
     }
@@ -1504,14 +1523,14 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN should not show recent searches WHEN configuring providers THEN don't add the recent search suggestions provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { testContext.settings() } returns settings
+        every { activity.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSearchTermHistory = false,
             showRecentSearches = false,
         )
 
-        val result = builder.getProvidersToAdd(state)
+        val result = awesomeBarView.getProvidersToAdd(state)
 
         assertEquals(0, result.filterIsInstance<RecentSearchSuggestionsProvider>().size)
     }

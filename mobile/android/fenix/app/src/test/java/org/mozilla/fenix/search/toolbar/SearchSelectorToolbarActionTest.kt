@@ -39,9 +39,10 @@ import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.search.SearchDialogFragmentStore
+import org.mozilla.fenix.search.SearchEngineSource
 import org.mozilla.fenix.search.SearchFragmentAction.SearchDefaultEngineSelected
 import org.mozilla.fenix.search.SearchFragmentAction.SearchHistoryEngineSelected
-import org.mozilla.fenix.search.fixtures.EMPTY_SEARCH_FRAGMENT_STATE
+import org.mozilla.fenix.search.SearchFragmentState
 import org.mozilla.fenix.utils.Settings
 import org.robolectric.RobolectricTestRunner
 import java.util.UUID
@@ -271,15 +272,32 @@ class SearchSelectorToolbarActionTest {
     }
 }
 
-private val testSearchFragmentState = EMPTY_SEARCH_FRAGMENT_STATE.copy(
+private val testSearchFragmentState = SearchFragmentState(
     query = "https://example.com",
     url = "https://example.com",
     searchTerms = "search terms",
+    searchEngineSource = SearchEngineSource.None,
+    defaultEngine = null,
     showSearchTermHistory = true,
+    showSearchSuggestions = false,
+    showSearchShortcutsSetting = false,
+    showSearchSuggestionsHint = false,
+    showSearchShortcuts = false,
+    areShortcutsAvailable = false,
+    showClipboardSuggestions = false,
     showHistorySuggestionsForCurrentEngine = true,
+    showAllHistorySuggestions = false,
+    showBookmarksSuggestionsForCurrentEngine = false,
+    showAllBookmarkSuggestions = false,
+    showSyncedTabsSuggestionsForCurrentEngine = false,
+    showAllSyncedTabsSuggestions = false,
+    showSessionSuggestionsForCurrentEngine = false,
     showAllSessionSuggestions = true,
     showSponsoredSuggestions = true,
     showNonSponsoredSuggestions = true,
+    showTrendingSearches = false,
+    showRecentSearches = false,
+    showShortcutsSuggestions = false,
     showQrButton = true,
     tabId = "tabId",
     pastedText = "",

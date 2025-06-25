@@ -57,7 +57,6 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.Divider
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.cfr.CFRPopup
 import mozilla.components.compose.cfr.CFRPopupProperties
 import mozilla.components.concept.sync.AccountObserver
@@ -117,7 +116,6 @@ import org.mozilla.fenix.home.recenttabs.RecentTabsListFeature
 import org.mozilla.fenix.home.recenttabs.controller.DefaultRecentTabsController
 import org.mozilla.fenix.home.recentvisits.RecentVisitsFeature
 import org.mozilla.fenix.home.recentvisits.controller.DefaultRecentVisitsController
-import org.mozilla.fenix.home.search.DefaultHomeSearchController
 import org.mozilla.fenix.home.sessioncontrol.DefaultSessionControlController
 import org.mozilla.fenix.home.sessioncontrol.SessionControlInteractor
 import org.mozilla.fenix.home.sessioncontrol.SessionControlView
@@ -147,7 +145,6 @@ import org.mozilla.fenix.onboarding.HomeScreenPopupManager
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
 import org.mozilla.fenix.perf.StartupTimeline
 import org.mozilla.fenix.search.SearchDialogFragment
-import org.mozilla.fenix.search.awesomebar.AwesomeBarComposable
 import org.mozilla.fenix.search.toolbar.DefaultSearchSelectorController
 import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
 import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
@@ -177,7 +174,6 @@ class HomeFragment : Fragment() {
     private var _bottomToolbarContainerView: BottomToolbarContainerView? = null
     private val bottomToolbarContainerView: BottomToolbarContainerView
         get() = _bottomToolbarContainerView!!
-    private var awesomeBarComposable: AwesomeBarComposable? = null
 
     private val searchSelectorMenu by lazy {
         SearchSelectorMenu(
@@ -527,9 +523,6 @@ class HomeFragment : Fragment() {
                 store = components.core.store,
                 navController = findNavController(),
             ),
-            homeSearchController = DefaultHomeSearchController(
-                appStore = components.appStore,
-            ),
         )
 
         nullableToolbarView = buildToolbar(activity)
@@ -578,9 +571,6 @@ class HomeFragment : Fragment() {
                 browsingModeManager = activity.browsingModeManager,
                 settings = activity.settings(),
                 tabStripContent = { TabStrip() },
-                searchSuggestionsContent = { toolbarStore ->
-                    (awesomeBarComposable ?: initializeAwesomeBarComposable(toolbarStore))?.SearchSuggestions()
-                },
             )
 
             false -> HomeToolbarView(
@@ -1102,7 +1092,6 @@ class HomeFragment : Fragment() {
         _sessionControlInteractor = null
         sessionControlView = null
         _bottomToolbarContainerView = null
-        awesomeBarComposable = null
         _binding = null
 
         if (!requireContext().components.appStore.state.isPrivateScreenLocked) {
@@ -1328,21 +1317,6 @@ class HomeFragment : Fragment() {
                         )
                     }
                 }
-        }
-    }
-
-    private fun initializeAwesomeBarComposable(toolbarStore: BrowserToolbarStore) = context?.let {
-        AwesomeBarComposable(
-            activity = requireActivity() as HomeActivity,
-            components = requireComponents,
-            appStore = requireComponents.appStore,
-            browserStore = requireComponents.core.store,
-            toolbarStore = toolbarStore,
-            navController = findNavController(),
-            lifecycleOwner = this,
-            includeSelectedTab = true,
-        ).also {
-            awesomeBarComposable = it
         }
     }
 

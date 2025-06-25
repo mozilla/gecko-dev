@@ -61,12 +61,12 @@ class BrowserToolbarStoreTest {
 
         assertEquals(0, store.state.editState.editActionsStart.size)
 
-        store.dispatch(BrowserEditToolbarAction.SearchActionsStartUpdated(listOf(action1)))
+        store.dispatch(BrowserEditToolbarAction.AddEditActionStart(action = action1))
 
         assertEquals(1, store.state.editState.editActionsStart.size)
         assertEquals(action1, store.state.editState.editActionsStart.first())
 
-        store.dispatch(BrowserEditToolbarAction.SearchActionsStartUpdated(listOf(action1, action2)))
+        store.dispatch(BrowserEditToolbarAction.AddEditActionStart(action = action2))
 
         assertEquals(2, store.state.editState.editActionsStart.size)
         assertEquals(action1, store.state.editState.editActionsStart.first())
@@ -81,12 +81,12 @@ class BrowserToolbarStoreTest {
 
         assertEquals(0, store.state.editState.editActionsEnd.size)
 
-        store.dispatch(BrowserEditToolbarAction.SearchActionsEndUpdated(listOf(action1)))
+        store.dispatch(BrowserEditToolbarAction.AddEditActionEnd(action = action1))
 
         assertEquals(1, store.state.editState.editActionsEnd.size)
         assertEquals(action1, store.state.editState.editActionsEnd.first())
 
-        store.dispatch(BrowserEditToolbarAction.SearchActionsEndUpdated(listOf(action1, action2)))
+        store.dispatch(BrowserEditToolbarAction.AddEditActionEnd(action = action2))
 
         assertEquals(2, store.state.editState.editActionsEnd.size)
         assertEquals(action1, store.state.editState.editActionsEnd.first())

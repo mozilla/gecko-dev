@@ -79,7 +79,11 @@ class SitePermissionOptionsFragment : BaseComposeFragment() {
         val isAndroidPermissionGranted = sitePermissionOptionsScreenStore.observeAsComposableState { state ->
             state.isAndroidPermissionGranted
         }.value
-        if (sitePermissionOptionSelected != null) {
+        if (
+            sitePermissionOptionSelected != null &&
+            sitePermissionOptionsList != null &&
+            isAndroidPermissionGranted != null
+        ) {
             CreateOptionsPermissionList(
                 sitePermissionOptionSelected,
                 sitePermissionOptionsList,

@@ -23,7 +23,6 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -86,7 +85,7 @@ private const val MIDDLE_SEARCH_SCROLL_THRESHOLD_PX = 10
  * @param onTopSitesItemBound Invoked during the composition of a top site item.
  */
 @OptIn(ExperimentalComposeUiApi::class)
-@Suppress("LongMethod", "CyclomaticComplexMethod")
+@Suppress("LongMethod")
 @Composable
 internal fun Homepage(
     state: HomepageState,
@@ -101,13 +100,6 @@ internal fun Homepage(
             .semantics {
                 testTagsAsResourceId = true
                 testTag = HOMEPAGE
-            }
-            .pointerInput(state.isSearchInProgress) {
-                if (state.isSearchInProgress) {
-                    awaitPointerEventScope {
-                        interactor.onHomeContentFocusedWhileSearchIsActive()
-                    }
-                }
             }
             .verticalScroll(scrollState),
     ) {
@@ -465,7 +457,6 @@ private fun HomepagePreview() {
                     buttonTextColor = WallpaperState.default.buttonTextColor,
                     buttonBackgroundColor = WallpaperState.default.buttonBackgroundColor,
                     bottomSpacerHeight = 188.dp,
-                    isSearchInProgress = false,
                 ),
                 interactor = FakeHomepagePreview.homepageInteractor,
                 onTopSitesItemBound = {},
@@ -505,7 +496,6 @@ private fun HomepagePreviewCollections() {
                 buttonTextColor = WallpaperState.default.buttonTextColor,
                 buttonBackgroundColor = WallpaperState.default.buttonBackgroundColor,
                 bottomSpacerHeight = 188.dp,
-                isSearchInProgress = false,
             ),
             interactor = FakeHomepagePreview.homepageInteractor,
             onTopSitesItemBound = {},
@@ -527,7 +517,6 @@ private fun PrivateHomepagePreview() {
                 HomepageState.Private(
                     showPrivateBrowsingButton = true,
                     firstFrameDrawn = true,
-                    isSearchInProgress = false,
                     bottomSpacerHeight = 188.dp,
                 ),
                 interactor = FakeHomepagePreview.homepageInteractor,

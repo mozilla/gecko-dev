@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.components.appstate
 
-import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.sync.TabData
@@ -33,6 +32,7 @@ import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.library.history.PendingDeletionHistory
 import org.mozilla.fenix.messaging.MessagingState
+import org.mozilla.fenix.search.SearchDialogFragment
 import org.mozilla.fenix.wallpapers.Wallpaper
 
 /**
@@ -60,18 +60,9 @@ sealed class AppAction : Action {
     data class UpdateFirstFrameDrawn(val drawn: Boolean) : AppAction()
 
     /**
-     * Updates whether the user is currently performing a search.
-     *
-     * @property isSearchActive Whether whether the user is currently performing a search or not.
+     * Updates whether the [SearchDialogFragment] is visible.
      */
-    data class UpdateSearchBeingActiveState(val isSearchActive: Boolean) : AppAction()
-
-    /**
-     * Updates the [SearchEngine] used for the current in-progress browser search.
-     *
-     * @property searchEngine The new [SearchEngine] to use for the current in-progress browser search.
-     */
-    data class SearchEngineSelected(val searchEngine: SearchEngine) : AppAction()
+    data class UpdateSearchDialogVisibility(val isVisible: Boolean) : AppAction()
     data class AddNonFatalCrash(val crash: NativeCodeCrash) : AppAction()
     data class RemoveNonFatalCrash(val crash: NativeCodeCrash) : AppAction()
     object RemoveAllNonFatalCrashes : AppAction()

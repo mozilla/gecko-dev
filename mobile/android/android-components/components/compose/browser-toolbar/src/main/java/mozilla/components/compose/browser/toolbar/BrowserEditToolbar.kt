@@ -32,9 +32,7 @@ import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
-import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction
-import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.ContentDescription.StringResContentDescription
-import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.Icon.DrawableIcon
+import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.ui.InlineAutocompleteTextField
 import mozilla.components.ui.icons.R as iconsR
@@ -186,13 +184,10 @@ private fun BrowserEditToolbarPreview() {
             url = "http://www.mozilla.org",
             useComposeTextField = true,
             editActionsStart = listOf(
-                SearchSelectorAction(
-                    icon = DrawableIcon(
-                        AppCompatResources.getDrawable(LocalContext.current, iconsR.drawable.mozac_ic_search_24)!!,
-                    ),
-                    contentDescription = StringResContentDescription(android.R.string.untitled),
+                DropdownAction(
+                    icon = AppCompatResources.getDrawable(LocalContext.current, iconsR.drawable.mozac_ic_search_24)!!,
+                    contentDescription = android.R.string.untitled,
                     menu = { emptyList() },
-                    onClick = null,
                 ),
             ),
             editActionsEnd = listOf(
