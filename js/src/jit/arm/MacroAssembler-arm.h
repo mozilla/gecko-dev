@@ -429,7 +429,7 @@ class MacroAssemblerARM : public Assembler {
                                 AutoRegisterScope& scratch, Index mode = Offset,
                                 Condition cc = Always);
 
-  BufferOffset ma_pop(Register r);
+  void ma_pop(Register r);
   void ma_popn_pc(Imm32 n, AutoRegisterScope& scratch,
                   AutoRegisterScope& scratch2);
   void ma_push(Register r);
@@ -643,7 +643,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM {
   void branch(const Register reg) { ma_bx(reg); }
   void nop() { ma_nop(); }
   void shortJumpSizedNop() { ma_nop(); }
-  BufferOffset ret() { return ma_pop(pc); }
+  void ret() { ma_pop(pc); }
   void retn(Imm32 n) {
     ScratchRegisterScope scratch(asMasm());
     SecondScratchRegisterScope scratch2(asMasm());

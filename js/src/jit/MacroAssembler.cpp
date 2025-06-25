@@ -5814,13 +5814,6 @@ static ReturnCallTrampolineData MakeReturnCallTrampoline(MacroAssembler& masm) {
   masm.append(wasm::CodeRangeUnwindInfo::UseFpLr, masm.currentOffset());
   masm.Mov(PseudoStackPointer64, vixl::sp);
   masm.abiret();
-#elif defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64)
-  masm.loadPtr(Address(FramePointer, wasm::Frame::returnAddressOffset()), ra);
-  masm.loadPtr(Address(FramePointer, wasm::Frame::callerFPOffset()),
-               FramePointer);
-  masm.append(wasm::CodeRangeUnwindInfo::UseFpLr, masm.currentOffset());
-  masm.addToStackPtr(Imm32(sizeof(wasm::Frame)));
-  masm.abiret();
 #else
   masm.pop(FramePointer);
   masm.append(wasm::CodeRangeUnwindInfo::UseFp, masm.currentOffset());
@@ -6052,15 +6045,7 @@ static void CollapseWasmFrameSlow(MacroAssembler& masm,
       tempForRA);
   masm.append(desc, CodeOffset(data.trampolineOffset));
 #else
-
-#  if defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64)
-  // intermediate values in ra can break the unwinder.
-  masm.mov(&data.trampoline, ScratchRegister);
-  // thus, modify ra in only one instruction.
-  masm.mov(ScratchRegister, tempForRA);
-#  else
   masm.mov(&data.trampoline, tempForRA);
-#  endif
 
   masm.addCodeLabel(data.trampoline);
   // Add slow trampoline callsite description, to be annotated in

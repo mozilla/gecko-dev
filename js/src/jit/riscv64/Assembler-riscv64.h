@@ -379,9 +379,9 @@ class Assembler : public AssemblerShared,
       nop();
     }
   }
-  virtual BufferOffset emit(Instr x) {
+  virtual void emit(Instr x) {
     MOZ_ASSERT(hasCreator());
-    BufferOffset offset = m_buffer.putInt(x);
+    m_buffer.putInt(x);
 #ifdef DEBUG
     if (!oom()) {
       DEBUG_PRINTF(
@@ -391,16 +391,15 @@ class Assembler : public AssemblerShared,
       disassembleInstr(x, JitSpewEnabled(JitSpew_Codegen));
     }
 #endif
-    return offset;
   }
-  virtual BufferOffset emit(ShortInstr x) { MOZ_CRASH(); }
-  virtual BufferOffset emit(uint64_t x) { MOZ_CRASH(); }
-  virtual BufferOffset emit(uint32_t x) {
+  virtual void emit(ShortInstr x) { MOZ_CRASH(); }
+  virtual void emit(uint64_t x) { MOZ_CRASH(); }
+  virtual void emit(uint32_t x) {
     DEBUG_PRINTF(
         "0x%" PRIx64 "(%" PRIxPTR "): uint32_t: %" PRId32 "\n",
         (uint64_t)editSrc(BufferOffset(currentOffset() - sizeof(Instr))),
         currentOffset() - sizeof(Instr), x);
-    return m_buffer.putInt(x);
+    m_buffer.putInt(x);
   }
 
   void instr_at_put(BufferOffset offset, Instr instr) {

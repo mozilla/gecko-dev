@@ -22,8 +22,8 @@ void AssemblerRISCVI::jal(Register rd, int32_t imm21) {
   GenInstrJ(JAL, rd, imm21);
 }
 
-BufferOffset AssemblerRISCVI::jalr(Register rd, Register rs1, int16_t imm12) {
-  return GenInstrI(0b000, JALR, rd, rs1, imm12);
+void AssemblerRISCVI::jalr(Register rd, Register rs1, int16_t imm12) {
+  GenInstrI(0b000, JALR, rd, rs1, imm12);
 }
 
 // Branches

@@ -504,19 +504,19 @@ static const unsigned PushedRetAddr = 8;
 static const unsigned PushedFP = 16;
 static const unsigned SetFP = 20;
 static const unsigned PoppedFP = 4;
-static const unsigned PoppedFPJitEntry = 8;
+static const unsigned PoppedFPJitEntry = 0;
 #elif defined(JS_CODEGEN_LOONG64)
 static const unsigned PushedRetAddr = 8;
 static const unsigned PushedFP = 16;
 static const unsigned SetFP = 20;
 static const unsigned PoppedFP = 4;
-static const unsigned PoppedFPJitEntry = 8;
+static const unsigned PoppedFPJitEntry = 0;
 #elif defined(JS_CODEGEN_RISCV64)
 static const unsigned PushedRetAddr = 8;
 static const unsigned PushedFP = 16;
 static const unsigned SetFP = 20;
 static const unsigned PoppedFP = 4;
-static const unsigned PoppedFPJitEntry = 8;
+static const unsigned PoppedFPJitEntry = 0;
 #elif defined(JS_CODEGEN_NONE) || defined(JS_CODEGEN_WASM32)
 // Synthetic values to satisfy asserts and avoid compiler warnings.
 static const unsigned PushedRetAddr = 0;
@@ -679,12 +679,12 @@ static void GenerateCallableEpilogue(MacroAssembler& masm, unsigned framePushed,
 
 #elif defined(JS_CODEGEN_LOONG64)
 
-  masm.loadPtr(Address(StackPointer, Frame::returnAddressOffset()), ra);
   masm.loadPtr(Address(StackPointer, Frame::callerFPOffset()), FramePointer);
   poppedFP = masm.currentOffset();
+  masm.loadPtr(Address(StackPointer, Frame::returnAddressOffset()), ra);
 
-  masm.addToStackPtr(Imm32(sizeof(Frame)));
   *ret = masm.currentOffset();
+  masm.addToStackPtr(Imm32(sizeof(Frame)));
   masm.as_jirl(zero, ra, BOffImm16(0));
 
 #elif defined(JS_CODEGEN_RISCV64)
@@ -1102,7 +1102,8 @@ void wasm::GenerateJitEntryEpilogue(MacroAssembler& masm,
   masm.pop(FramePointer);
   poppedFP = masm.currentOffset();
 
-  offsets->ret = masm.ret().getOffset();
+  offsets->ret = masm.currentOffset();
+  masm.ret();
 #endif
   MOZ_ASSERT_IF(!masm.oom(), PoppedFPJitEntry == offsets->ret - poppedFP);
 }
@@ -1493,6 +1494,16 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
         fixedPC = Frame::fromUntaggedWasmExitFP(sp)->returnAddress();
         fixedFP = fp;
         AssertMatchesCallSite(fixedPC, fixedFP);
+#elif defined(JS_CODEGEN_LOONG64)
+      } else if (offsetInCode >= codeRange->ret() - PoppedFP &&
+                 offsetInCode <= codeRange->ret()) {
+        // The fixedFP field of the Frame has been loaded into fp.
+        // The ra might also be loaded, but the Frame structure is still on
+        // stack, so we can acess the ra from there.
+        MOZ_ASSERT(*sp == fp);
+        fixedPC = Frame::fromUntaggedWasmExitFP(sp)->returnAddress();
+        fixedFP = fp;
+        AssertMatchesCallSite(fixedPC, fixedFP);
 #elif defined(JS_CODEGEN_RISCV64)
       } else if (offsetInCode >= codeRange->ret() - PoppedFP &&
                  offsetInCode <= codeRange->ret()) {
@@ -1503,7 +1514,7 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
         fixedPC = Frame::fromUntaggedWasmExitFP(sp)->returnAddress();
         fixedFP = fp;
         AssertMatchesCallSite(fixedPC, fixedFP);
-#elif defined(JS_CODEGEN_ARM64) || defined(JS_CODEGEN_LOONG64)
+#elif defined(JS_CODEGEN_ARM64)
         // The stack pointer does not move until all values have
         // been restored so several cases can be coalesced here.
       } else if (offsetInCode >= codeRange->ret() - PoppedFP &&

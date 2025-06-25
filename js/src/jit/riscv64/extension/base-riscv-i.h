@@ -19,7 +19,7 @@ class AssemblerRISCVI : public AssemblerRiscvBase {
 
   // Jumps
   void jal(Register rd, int32_t imm20);
-  BufferOffset jalr(Register rd, Register rs1, int16_t imm12);
+  void jalr(Register rd, Register rs1, int16_t imm12);
 
   // Branches
   void beq(Register rs1, Register rs2, int16_t imm12);

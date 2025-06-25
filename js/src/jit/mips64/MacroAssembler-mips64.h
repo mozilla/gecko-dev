@@ -293,11 +293,10 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
     as_nop();
   }
   void nop() { as_nop(); }
-  BufferOffset ret() {
+  void ret() {
     ma_pop(ra);
-    BufferOffset offset = as_jr(ra);
+    as_jr(ra);
     as_nop();
-    return offset;
   }
   inline void retn(Imm32 n);
   void push(Imm32 imm) {

@@ -1255,8 +1255,8 @@ BufferOffset MacroAssemblerARM::ma_dataTransferN(LoadStore ls, int size,
   }
 }
 
-BufferOffset MacroAssemblerARM::ma_pop(Register r) {
-  return as_dtr(IsLoad, 32, PostIndex, r, DTRAddr(sp, DtrOffImm(4)));
+void MacroAssemblerARM::ma_pop(Register r) {
+  as_dtr(IsLoad, 32, PostIndex, r, DTRAddr(sp, DtrOffImm(4)));
 }
 
 void MacroAssemblerARM::ma_popn_pc(Imm32 n, AutoRegisterScope& scratch,
