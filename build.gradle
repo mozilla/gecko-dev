@@ -520,6 +520,23 @@ subprojects { project ->
                 jvmToolchain(config.jvmTargetCompatibility)
             }
         }
+
+        if (it.hasProperty('android')
+                && (project.projectDir.absolutePath.contains("android-components")
+                || projectName == "fenix"
+                || projectName == "focus-android")
+        ) {
+            dependencies {
+                lintChecks project.project(':components:tooling-lint')
+            }
+
+            android {
+                // Copied from subbproject's build.gradle
+                lint {
+                    baseline = file("${project.projectDir}/lint-baseline.xml")
+                }
+            }
+        }
     }
 
     project.configurations.configureEach {
@@ -539,7 +556,6 @@ tasks.register("lint-a-c") {
     subprojects.each{
         if (it.tasks.findByName("lint") != null && it.projectDir.absolutePath.contains("android-components")) {
             dependsOn it.tasks.named("lint")
-            println("Subproject ${it.name} has a lint task")
         }
     }
 }
