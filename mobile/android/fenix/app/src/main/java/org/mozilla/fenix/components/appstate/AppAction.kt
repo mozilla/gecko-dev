@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.appstate
 
+import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.sync.TabData
@@ -64,6 +65,13 @@ sealed class AppAction : Action {
      * @property isSearchActive Whether whether the user is currently performing a search or not.
      */
     data class UpdateSearchBeingActiveState(val isSearchActive: Boolean) : AppAction()
+
+    /**
+     * Updates the [SearchEngine] used for the current in-progress browser search.
+     *
+     * @property searchEngine The new [SearchEngine] to use for the current in-progress browser search.
+     */
+    data class SearchEngineSelected(val searchEngine: SearchEngine) : AppAction()
     data class AddNonFatalCrash(val crash: NativeCodeCrash) : AppAction()
     data class RemoveNonFatalCrash(val crash: NativeCodeCrash) : AppAction()
     object RemoveAllNonFatalCrashes : AppAction()

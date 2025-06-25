@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.appstate
 
+import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
@@ -34,6 +35,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * should be expanded when the tray is opened.
  * @property firstFrameDrawn Flag indicating whether the first frame of the homescreen has been drawn.
  * @property isSearchActive Flag indicating whether the user is currently performing a search.
+ * @property shortcutSearchEngine New search engine to use for the current in-progress browser search.
  * @property openInFirefoxRequested Flag indicating whether a custom tab should be opened in the browser.
  * @property nonFatalCrashes List of non-fatal crashes that allow the app to continue being used.
  * @property collections The list of [TabCollection] to display in the [HomeFragment].
@@ -71,6 +73,7 @@ data class AppState(
     val inactiveTabsExpanded: Boolean = false,
     val firstFrameDrawn: Boolean = false,
     val isSearchActive: Boolean = false,
+    val shortcutSearchEngine: SearchEngine? = null,
     val openInFirefoxRequested: Boolean = false,
     val nonFatalCrashes: List<NativeCodeCrash> = emptyList(),
     val collections: List<TabCollection> = emptyList(),
