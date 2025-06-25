@@ -67,10 +67,11 @@ pub extern "C" fn fog_object_test_get_value(
             .read()
             .expect("Read lock for dynamic metric map was poisoned");
         match map.get(&id.into()) {
-            Some(metric) => match metric.test_get_value_as_str(storage.as_deref()) {
-                Some(object) => value.assign(&object),
-                None => return,
-            },
+            Some(metric) => {
+                if let Some(object) = metric.test_get_value_as_str(storage.as_deref()) {
+                    value.assign(&object);
+                }
+            }
             None => panic!("No (dynamic) metric for id {}", id),
         }
     } else {
