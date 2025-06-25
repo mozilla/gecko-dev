@@ -831,12 +831,7 @@ TimerThread::Run() {
 #endif
 
 #if TIMER_THREAD_STATISTICS
-      if (!mNotified && !mIntendedWakeupTime.IsNull() &&
-          now < mIntendedWakeupTime) {
-        ++mEarlyWakeups;
-        const double earlinessms = (mIntendedWakeupTime - now).ToMilliseconds();
-        mTotalEarlyWakeupTime += earlinessms;
-      }
+      CollectWakeupStatistics();
 #endif
 
       RemoveLeadingCanceledTimersInternal();
@@ -939,25 +934,7 @@ TimerThread::Run() {
                                     queuedTimersFiredPerWakeup);
 
 #if TIMER_THREAD_STATISTICS
-    {
-      size_t bucketIndex = 0;
-      while (bucketIndex < sTimersFiredPerWakeupBucketCount - 1 &&
-             timersFiredThisWakeup >
-                 sTimersFiredPerWakeupThresholds[bucketIndex]) {
-        ++bucketIndex;
-      }
-      MOZ_ASSERT(bucketIndex < sTimersFiredPerWakeupBucketCount);
-      ++mTimersFiredPerWakeup[bucketIndex];
-
-      ++mTotalWakeupCount;
-      if (mNotified) {
-        ++mTimersFiredPerNotifiedWakeup[bucketIndex];
-        ++mTotalNotifiedWakeupCount;
-      } else {
-        ++mTimersFiredPerUnnotifiedWakeup[bucketIndex];
-        ++mTotalUnnotifiedWakeupCount;
-      }
-    }
+    CollectTimersFiredStatistics(timersFiredThisWakeup);
 #endif
 
     timersFiredThisWakeup = 0;
@@ -1389,6 +1366,41 @@ uint32_t TimerThread::AllowedEarlyFiringMicroseconds() {
 }
 
 #if TIMER_THREAD_STATISTICS
+void TimerThread::CollectTimersFiredStatistics(uint64_t timersFiredThisWakeup) {
+  mMonitor.AssertCurrentThreadOwns();
+
+  size_t bucketIndex = 0;
+  while (bucketIndex < sTimersFiredPerWakeupBucketCount - 1 &&
+         timersFiredThisWakeup > sTimersFiredPerWakeupThresholds[bucketIndex]) {
+    ++bucketIndex;
+  }
+  MOZ_ASSERT(bucketIndex < sTimersFiredPerWakeupBucketCount);
+  ++mTimersFiredPerWakeup[bucketIndex];
+
+  ++mTotalWakeupCount;
+  if (mNotified) {
+    ++mTimersFiredPerNotifiedWakeup[bucketIndex];
+    ++mTotalNotifiedWakeupCount;
+  } else {
+    ++mTimersFiredPerUnnotifiedWakeup[bucketIndex];
+    ++mTotalUnnotifiedWakeupCount;
+  }
+}
+
+void TimerThread::CollectWakeupStatistics() {
+  mMonitor.AssertCurrentThreadOwns();
+
+  // We've just woken up. If we weren't notified, and had a specific
+  // wake-up time in mind, let's measure how early we woke up.
+  const TimeStamp now = TimeStamp::Now();
+  if (!mNotified && !mIntendedWakeupTime.IsNull() &&
+      now < mIntendedWakeupTime) {
+    ++mEarlyWakeups;
+    const double earlinessms = (mIntendedWakeupTime - now).ToMilliseconds();
+    mTotalEarlyWakeupTime += earlinessms;
+  }
+}
+
 void TimerThread::PrintStatistics() const {
   mMonitor.AssertCurrentThreadOwns();
 
