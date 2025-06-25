@@ -341,23 +341,6 @@
             "name": "handlingUserInput"
           }
         ]
-      },
-
-      {
-        "name": "getWebExtensionsSchemaPermissionNames",
-        "type": "function",
-        "async": true,
-        "description": "Returns all the permission names defined in the WebExtensions API JSONSchema given an array of type names",
-        "parameters": [
-          {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minItems": 1
-            },
-            "name": "typeNames"
-          }
-        ]
       }
     ]
   }

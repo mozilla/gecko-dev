@@ -406,13 +406,6 @@ class GeckoWebExtension(
     internal fun getIcon(size: Int): GeckoResult<Bitmap> {
         return nativeExtension.metaData.icon.getBitmap(size)
     }
-
-    /**
-     * Companion object for [GeckoWebExtension].
-     */
-    companion object {
-        val DATA_COLLECTION_PERMISSIONS: List<String> = GeckoNativeWebExtension.DATA_COLLECTION_PERMISSIONS
-    }
 }
 
 /**
