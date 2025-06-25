@@ -4140,6 +4140,12 @@ with only_when(target_is_windows & compile_environment):
 # ONNX runtime support
 # ==============================================================
 
+
+@depends(target)
+def onnxruntime_task_name(target):
+    return f"onnxruntime-{target.toolchain}"
+
+
 option(
     "--with-onnx-runtime",
     nargs="?",
@@ -4149,29 +4155,29 @@ option(
 
 @depends("--with-onnx-runtime")
 def need_boostrap_onnxruntime(with_onnx_runtime):
-    return with_onnx_runtime and len(with_onnx_runtime) == 0
+    return (with_onnx_runtime and len(with_onnx_runtime) == 0) or (
+        with_onnx_runtime.origin == "default"
+    )
 
 
-@depends(target)
-def onnxruntime_task_name(target):
-    return f"onnxruntime-{target.toolchain}"
-
-
-@depends_if(
+@depends(
     "--with-onnx-runtime",
     library_name_info.dll,
     target.toolchain,
     bootstrap_path(onnxruntime_task_name, when=need_boostrap_onnxruntime),
 )
+@checking("ONNX install path")
 @imports("os")
 def onnx_runtime_path(with_onnx_runtime, dllinfo, toolchain, bootstrap):
-    if not with_onnx_runtime:
+    if not with_onnx_runtime and with_onnx_runtime.origin != "default":
         return
 
     if len(with_onnx_runtime):
         dirname = with_onnx_runtime[0]
     elif bootstrap:
         dirname = bootstrap
+    elif with_onnx_runtime.origin == "default":
+        return
     else:
         die(
             f"Cannot find onnxruntime for {toolchain}. Provide one with --with-onnx-runtime=location"
