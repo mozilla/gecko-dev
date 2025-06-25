@@ -807,14 +807,7 @@ TimerThread::Run() {
     VerifyTimerListConsistency();
 #endif
 
-    if (mSleeping) {
-      // Sleep for 0.1 seconds while not firing timers.
-      uint32_t milliseconds = 100;
-      if (chaosModeActive) {
-        milliseconds = ChaosMode::randomUint32LessThan(200);
-      }
-      waitFor = TimeDuration::FromMilliseconds(milliseconds);
-    } else {
+    if (!mSleeping) {
       // Determine how early we are going to allow timers to fire. In chaos mode
       // we mess with this a little bit.
       const TimeDuration allowedEarlyFiring =
@@ -935,6 +928,13 @@ TimerThread::Run() {
           MOZ_LOG(GetTimerLog(), LogLevel::Debug,
                   ("waiting for %f\n", waitFor.ToMilliseconds()));
       }
+    } else {
+      // Sleep for 0.1 seconds while not firing timers.
+      uint32_t milliseconds = 100;
+      if (chaosModeActive) {
+        milliseconds = ChaosMode::randomUint32LessThan(200);
+      }
+      waitFor = TimeDuration::FromMilliseconds(milliseconds);
     }
 
     // About to sleep - let's make note of how many timers we processed and see
