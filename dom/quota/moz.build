@@ -52,6 +52,7 @@ EXPORTS.mozilla.dom.quota += [
     "ConditionalCompilation.h",
     "Config.h",
     "Constants.h",
+    "Date.h",
     "DecryptingInputStream.h",
     "DecryptingInputStream_impl.h",
     "DirectoryLock.h",
