@@ -146,6 +146,10 @@ h2 {
 search-addons {
   display: inline-flex;
 
+  > moz-input-search {
+    width: 20em;
+  }
+
   > moz-button {
     margin-inline-start: var(--space-xsmall);
   }
