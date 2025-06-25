@@ -921,8 +921,6 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_ip_space_glean.js"]
 skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"]
 
-["test_invalid_cookie_fix.js"]
-
 ["test_large_port.js"]
 
 ["test_loadgroup_cancel.js"]

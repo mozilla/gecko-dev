@@ -117,7 +117,6 @@ class Cookie final : public nsICookie {
   inline void SetSchemeMap(uint8_t aSchemeMap) {
     mData.schemeMap() = aSchemeMap;
   }
-  inline void SetSameSite(int32_t aSameSite) { mData.sameSite() = aSameSite; }
   inline void SetHost(const nsACString& aHost) { mData.host() = aHost; }
 
   uint32_t NameAndValueBytes() {
