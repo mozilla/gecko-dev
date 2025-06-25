@@ -310,11 +310,13 @@ export class SearchSettings {
 
     // Persist metadata for AppProvided engines even if they aren't currently
     // active, this means if they become active again their settings
-    // will be restored.
+    // will be restored. This can happen if a user switches between regions.
     if (this.#settings?.engines) {
       for (let engine of this.#settings.engines) {
+        // TODO: The line below should compare names instead of ids.
         let included = settings.engines.some(e => e._name == engine._name);
-        if (engine._isAppProvided && !included) {
+        let userInstalled = engine._metaData["user-installed"];
+        if (engine._isAppProvided && !userInstalled && !included) {
           settings.engines.push(engine);
         }
       }

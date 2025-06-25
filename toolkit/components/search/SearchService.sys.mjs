@@ -849,7 +849,8 @@ export class SearchService {
       );
     }
 
-    if (engineToRemove.inMemory) {
+    let userInstalled = engineToRemove instanceof lazy.UserInstalledAppEngine;
+    if (engineToRemove.inMemory && !userInstalled) {
       // Just hide it (the "hidden" setter will notify) and remove its alias to
       // avoid future conflicts with other engines.
       engineToRemove.hidden = true;
@@ -865,8 +866,17 @@ export class SearchService {
         }
         engineToRemove._filePath = null;
       }
-      this.#internalRemoveEngine(engineToRemove);
 
+      if (userInstalled) {
+        // If the engine is a user-installed app provided engine,
+        // reset its seen counter so it can be added again.
+        let seenEngines =
+          this._settings.getMetaDataAttribute(ENGINES_SEEN_KEY) ?? {};
+        delete seenEngines[engineToRemove._loadPath];
+        this._settings.setMetaDataAttribute(ENGINES_SEEN_KEY, seenEngines);
+      }
+
+      this.#internalRemoveEngine(engineToRemove);
       // Since we removed an engine, we may need to update the preferences.
       if (!this.#dontSetUseSavedOrder) {
         this.#saveSortedEngineList();

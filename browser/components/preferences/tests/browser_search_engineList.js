@@ -20,9 +20,31 @@ const { sinon } = ChromeUtils.importESModule(
 
 SearchTestUtils.init(this);
 
+const CONFIG = [
+  { identifier: "engine1" },
+  { identifier: "engine2" },
+  {
+    identifier: "de_only_engine",
+    base: {
+      urls: {
+        search: {
+          base: "https://moz.test/",
+          searchTermParamName: "search",
+        },
+      },
+    },
+    variants: [
+      {
+        environment: { locales: ["de"] },
+      },
+    ],
+  },
+];
+
 let userEngine;
 let extensionEngine;
 let installedEngines;
+let userInstalledAppEngine;
 
 function getCellText(tree, i, cellName) {
   return tree.view.getCellText(i, tree.columns.getNamedColumn(cellName));
@@ -75,6 +97,7 @@ async function selectEngine(tree, index) {
 }
 
 add_setup(async function () {
+  await SearchTestUtils.updateRemoteSettingsConfig(CONFIG);
   installedEngines = await Services.search.getAppProvidedEngines();
 
   await SearchTestUtils.installSearchExtension({
@@ -92,6 +115,11 @@ add_setup(async function () {
     alias: "u",
   });
   installedEngines.push(userEngine);
+
+  userInstalledAppEngine =
+    await Services.search.findContextualSearchEngineByHost("moz.test");
+
+  await Services.search.addSearchEngine(userInstalledAppEngine);
   // The added engines are removed in the last test.
 });
 
@@ -279,6 +307,31 @@ engine_list_test(async function test_remove_button(tree, doc) {
   doc.querySelector("#removeEngineButton").click();
   await TestUtils.waitForCondition(() => alertSpy.calledOnce);
   Assert.ok(true, "Alert is shown when attempting to remove extension engine.");
+
+  info("Removing user installed app engine.");
+  let index = installedEngines.findIndex(
+    e => e.id == userInstalledAppEngine.id
+  );
+
+  await selectEngine(tree, index);
+
+  promptPromise = PromptTestUtils.handleNextPrompt(
+    gBrowser.selectedBrowser,
+    { modalType: Services.prompt.MODAL_TYPE_CONTENT },
+    { buttonNumClick: 0 } // 0 = cancel, 1 = remove
+  );
+  removedPromise = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.REMOVED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  doc.querySelector("#removeEngineButton").click();
+  await promptPromise;
+  removedEngine = await removedPromise;
+  Assert.equal(
+    removedEngine.id,
+    userInstalledAppEngine.id,
+    "User installed app engine was removed after a prompt."
+  );
 
   info("Removing (last) app provided engine.");
   let appProvidedEngines = await Services.search.getAppProvidedEngines();

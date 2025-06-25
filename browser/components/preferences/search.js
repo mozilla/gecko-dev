@@ -13,6 +13,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
   SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
+  UserInstalledAppEngine:
+    "moz-src:///toolkit/components/search/AppProvidedSearchEngine.sys.mjs",
   UserSearchEngine:
     "moz-src:///toolkit/components/search/UserSearchEngine.sys.mjs",
 });
@@ -510,14 +512,6 @@ class EngineStore {
   engines = [];
 
   /**
-   * A list of application provided engines used when restoring the list of
-   * engines to the default set and order.
-   *
-   * @type {nsISearchEngine[]}
-   */
-  #appProvidedEngines = [];
-
-  /**
    * A list of listeners to be notified when the engine list changes.
    *
    * @type {Object[]}
@@ -525,19 +519,17 @@ class EngineStore {
   #listeners = [];
 
   async init() {
-    let visibleEngines = await Services.search.getVisibleEngines();
+    let engines = await Services.search.getEngines();
+
+    let visibleEngines = engines.filter(e => !e.hidden);
     for (let engine of visibleEngines) {
       this.addEngine(engine);
     }
-
-    let appProvidedEngines = await Services.search.getAppProvidedEngines();
-    this.#appProvidedEngines = appProvidedEngines.map(this._cloneEngine, this);
-
     this.notifyRowCountChanged(0, visibleEngines.length);
 
-    // check if we need to disable the restore defaults button
-    var someHidden = this.#appProvidedEngines.some(e => e.hidden);
-    gSearchPane.showRestoreDefaults(someHidden);
+    gSearchPane.showRestoreDefaults(
+      engines.some(e => e.isAppProvided && e.hidden)
+    );
   }
 
   /**
@@ -607,6 +599,15 @@ class EngineStore {
     return this.engines.find(engine => engine.name == aName);
   }
 
+  /**
+   * Converts an nsISearchEngine object into an Engine Store
+   * search engine object.
+   *
+   * @param {nsISearchEngine} aEngine
+   *   The search engine to convert.
+   * @returns {object}
+   *   The EngineStore search engine object.
+   */
   _cloneEngine(aEngine) {
     var clonedObj = {
       iconURL: null,
@@ -618,6 +619,8 @@ class EngineStore {
       aEngine.wrappedJSObject instanceof lazy.AddonSearchEngine;
     clonedObj.isUserEngine =
       aEngine.wrappedJSObject instanceof lazy.UserSearchEngine;
+    clonedObj.isUserInstalledAppEngine =
+      aEngine.wrappedJSObject instanceof lazy.UserInstalledAppEngine;
     clonedObj.originalEngine = aEngine;
 
     // Trigger getting the iconURL for this engine.
@@ -676,6 +679,12 @@ class EngineStore {
     return Services.search.moveEngine(aEngine.originalEngine, aNewIndex);
   }
 
+  /**
+   * Called when a search engine is removed.
+   *
+   * @param {nsISearchEngine} aEngine
+   *   The Engine being removed. Note that this is an nsISearchEngine object.
+   */
   removeEngine(aEngine) {
     if (this.engines.length == 1) {
       throw new Error("Cannot remove last engine!");
@@ -690,7 +699,10 @@ class EngineStore {
 
     this.engines.splice(index, 1)[0];
 
-    if (aEngine.isAppProvided) {
+    if (
+      aEngine.isAppProvided &&
+      !(aEngine.wrappedJSObject instanceof lazy.UserInstalledAppEngine)
+    ) {
       gSearchPane.showRestoreDefaults(true);
     }
 
@@ -732,9 +744,14 @@ class EngineStore {
 
   async restoreDefaultEngines() {
     var added = 0;
+    // _cloneEngine is necessary here because all functions in
+    // this file work on EngineStore search engine objects.
+    let appProvidedEngines = (
+      await Services.search.getAppProvidedEngines()
+    ).map(this._cloneEngine, this);
 
-    for (var i = 0; i < this.#appProvidedEngines.length; ++i) {
-      var e = this.#appProvidedEngines[i];
+    for (var i = 0; i < appProvidedEngines.length; ++i) {
+      var e = appProvidedEngines[i];
 
       // If the engine is already in the list, just move it.
       if (this.engines.some(this._isSameEngine, e)) {
@@ -961,7 +978,7 @@ class EngineView {
    *   The search engine object from EngineStore to remove.
    */
   async promptAndRemoveEngine(engine) {
-    if (engine.isAppProvided) {
+    if (engine.isAppProvided && !engine.isUserInstalledAppEngine) {
       Services.search.removeEngine(
         this.selectedEngine.originalEngine,
         Ci.nsISearchService.CHANGE_REASON_USER

@@ -9,26 +9,8 @@
 "use strict";
 
 const CONFIG = [
+  { identifier: "default" },
   {
-    recordType: "engine",
-    identifier: "default",
-    base: {
-      name: "Default Engine",
-      urls: {
-        search: {
-          base: "https://example.org",
-          searchTermParamName: "q",
-        },
-      },
-    },
-    variants: [
-      {
-        environment: { allRegionsAndLocales: true },
-      },
-    ],
-  },
-  {
-    recordType: "engine",
     identifier: "additional",
     base: {
       name: "Additional Engine",
@@ -45,59 +27,74 @@ const CONFIG = [
       },
     ],
   },
-  {
-    recordType: "defaultEngines",
-    globalDefault: "default",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
-  },
 ];
+
+async function assertEngines(expectedNumber, message) {
+  let engines = await Services.search.getVisibleEngines();
+  Assert.equal(engines.length, expectedNumber, message);
+}
 
 add_setup(async function () {
   SearchTestUtils.updateRemoteSettingsConfig(CONFIG);
   await Services.search.init();
 });
 
-add_task(async () => {
-  let initialEngines = await Services.search.getVisibleEngines();
-  Assert.ok(initialEngines.length, "There are initial engines installed");
-
+add_task(async function install() {
   let engine =
     await Services.search.findContextualSearchEngineByHost("example.net");
   let settingsFileWritten = promiseAfterSettings();
   await Services.search.addSearchEngine(engine);
   await settingsFileWritten;
 
-  let newEngines = await Services.search.getVisibleEngines();
-  Assert.ok(
-    newEngines.length > initialEngines.length,
-    "New engine is installed"
-  );
+  await assertEngines(2, "New engine is installed");
+});
 
+add_task(async function update() {
   let updatedName = "Updated Additional Engine";
   CONFIG[1].base.name = updatedName;
   await SearchTestUtils.updateRemoteSettingsConfig(CONFIG);
+  await assertEngines(2, "Engine is persisted after reload");
 
   Assert.ok(
-    (await Services.search.getVisibleEngines()).length > initialEngines.length,
-    "Engine is persisted after reload"
-  );
-
-  Assert.ok(
-    await Services.search.getEngineByName(updatedName),
+    Services.search.getEngineByName(updatedName),
     "The engines details are updated when configuration changes"
   );
 
-  settingsFileWritten = promiseAfterSettings();
+  let settingsFileWritten = promiseAfterSettings();
   await Services.search.wrappedJSObject.reset();
   await Services.search.init(true);
   await settingsFileWritten;
 
+  await assertEngines(2, "Engine is persisted after restart");
+});
+
+add_task(async function remove() {
+  let engine = Services.search.getEngineById("additional");
+  let engineLoadPath = engine.wrappedJSObject._loadPath;
+  // Set the seen counter to some value so we can check if it was reset.
+  Services.search.wrappedJSObject._settings.setMetaDataAttribute(
+    "contextual-engines-seen",
+    { [engineLoadPath]: -1 }
+  );
+
+  let settingsFileWritten = promiseAfterSettings();
+  await Services.search.removeEngine(engine);
+  await settingsFileWritten;
+  await assertEngines(1, "Engine was removed");
+
+  await Services.search.wrappedJSObject.reset();
+  await Services.search.init(true);
+  await assertEngines(1, "Engine stays removed after restart");
+
+  Services.search.restoreDefaultEngines();
+  await assertEngines(1, "Engine stays removed after restore");
+
+  let seenEngines =
+    Services.search.wrappedJSObject._settings.getMetaDataAttribute(
+      "contextual-engines-seen"
+    );
   Assert.ok(
-    (await Services.search.getVisibleEngines()).length > initialEngines.length,
-    "Engine is persisted after restart"
+    !Object.keys(seenEngines).includes(engineLoadPath),
+    "Seen counter was reset."
   );
 });
