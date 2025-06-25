@@ -51,8 +51,8 @@ struct OriginStateMetadata;
  *     If the Initialized flag is not set, the flags field is considered
  *     invalid and mAccessed is conservatively set to true to ensure a full
  *     initialization scan.
- * - uint32_t reservedData
- *     Reserved for future use. Currently ignored.
+ * - int32_t mLastMaintenanceDate
+ *     The last maintenance date of the origin in days since the epoch.
  *
  * Legacy fields (still written and read for backward compatibility, but no
  * longer used):

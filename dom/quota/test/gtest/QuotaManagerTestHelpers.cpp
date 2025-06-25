@@ -51,10 +51,12 @@ OriginMetadata GetOriginMetadata(const nsCString& aOriginSuffix,
 FullOriginMetadata GetFullOriginMetadata(const nsCString& aOriginSuffix,
                                          const nsCString& aGroupNoSuffix,
                                          const nsCString& aOriginNoSuffix) {
-  return {GetOriginMetadata(aOriginSuffix, aGroupNoSuffix, aOriginNoSuffix),
-          OriginStateMetadata{/* aLastAccessTime */ 0, /* aAccessed */ false,
-                              /* aPersisted */ false},
-          ClientUsageArray(), /* aUsage */ 0, kCurrentQuotaVersion};
+  return {
+      GetOriginMetadata(aOriginSuffix, aGroupNoSuffix, aOriginNoSuffix),
+      OriginStateMetadata{/* aLastAccessTime */ 0, /* aLastMaintenanceDate */ 0,
+                          /* aAccessed */ false,
+                          /* aPersisted */ false},
+      ClientUsageArray(), /* aUsage */ 0, kCurrentQuotaVersion};
 }
 
 }  // namespace mozilla::dom::quota::test

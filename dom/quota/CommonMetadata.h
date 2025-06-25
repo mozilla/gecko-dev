@@ -104,13 +104,16 @@ struct OriginMetadata : public PrincipalMetadata {
 
 struct OriginStateMetadata {
   int64_t mLastAccessTime;
+  int32_t mLastMaintenanceDate;
   bool mAccessed;
   bool mPersisted;
 
   OriginStateMetadata() = default;
 
-  OriginStateMetadata(int64_t aLastAccessTime, bool aAccessed, bool aPersisted)
+  OriginStateMetadata(int64_t aLastAccessTime, int32_t aLastMaintenanceDate,
+                      bool aAccessed, bool aPersisted)
       : mLastAccessTime(aLastAccessTime),
+        mLastMaintenanceDate(aLastMaintenanceDate),
         mAccessed(aAccessed),
         mPersisted(aPersisted) {}
 
@@ -121,6 +124,7 @@ struct OriginStateMetadata {
                             std::is_same<T, OriginStateMetadata>::value>>
   bool Equals(const T& aOther) const {
     return mLastAccessTime == aOther.mLastAccessTime &&
+           mLastMaintenanceDate == aOther.mLastMaintenanceDate &&
            mAccessed == aOther.mAccessed && mPersisted == aOther.mPersisted;
   }
 };

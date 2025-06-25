@@ -55,10 +55,8 @@ Result<OriginStateMetadata, nsresult> ReadDirectoryMetadataHeader(
       rawFlags == 0 || (flags & DirectoryMetadataFlags::Accessed) !=
                            DirectoryMetadataFlags::None;
 
-  // XXX Use for the persistence type.
-  QM_TRY_INSPECT(const bool& reservedData2,
-                 MOZ_TO_RESULT_INVOKE_MEMBER(aStream, Read32));
-  Unused << reservedData2;
+  QM_TRY_UNWRAP(originStateMetadata.mLastMaintenanceDate,
+                MOZ_TO_RESULT_INVOKE_MEMBER(aStream, Read32));
 
   return originStateMetadata;
 }
@@ -84,8 +82,8 @@ nsresult WriteDirectoryMetadataHeader(
 
   QM_TRY(MOZ_TO_RESULT(aStream.Write32(rawFlags)));
 
-  // Reserved data
-  QM_TRY(MOZ_TO_RESULT(aStream.Write32(0)));
+  QM_TRY(MOZ_TO_RESULT(
+      aStream.Write32(aOriginStateMetadata.mLastMaintenanceDate)));
 
   return NS_OK;
 }

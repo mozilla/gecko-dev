@@ -26,7 +26,8 @@ class OriginInfo final {
   OriginInfo(GroupInfo* aGroupInfo, const nsACString& aOrigin,
              const nsACString& aStorageOrigin, bool aIsPrivate,
              const ClientUsageArray& aClientUsages, uint64_t aUsage,
-             int64_t aAccessTime, bool aPersisted, bool aDirectoryExists);
+             int64_t aAccessTime, int32_t aMaintenanceDate, bool aPersisted,
+             bool aDirectoryExists);
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(OriginInfo)
 
@@ -56,6 +57,12 @@ class OriginInfo final {
     AssertCurrentThreadOwnsQuotaMutex();
 
     return mAccessTime;
+  }
+
+  int32_t LockedMaintenanceDate() const {
+    AssertCurrentThreadOwnsQuotaMutex();
+
+    return mMaintenanceDate;
   }
 
   bool LockedAccessed() const {
@@ -109,6 +116,12 @@ class OriginInfo final {
     }
   }
 
+  void LockedUpdateMaintenanceDate(int32_t aMaintenanceDate) {
+    AssertCurrentThreadOwnsQuotaMutex();
+
+    mMaintenanceDate = aMaintenanceDate;
+  }
+
   void LockedUpdateAccessed() {
     AssertCurrentThreadOwnsQuotaMutex();
 
@@ -129,6 +142,7 @@ class OriginInfo final {
   const nsCString mStorageOrigin;
   uint64_t mUsage;
   int64_t mAccessTime;
+  int32_t mMaintenanceDate;
   bool mIsPrivate;
   bool mAccessed;
   bool mPersisted;

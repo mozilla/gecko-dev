@@ -98,6 +98,7 @@
 #include "mozilla/dom/quota/ClientDirectoryLockHandle.h"
 #include "mozilla/dom/quota/Config.h"
 #include "mozilla/dom/quota/Constants.h"
+#include "mozilla/dom/quota/Date.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/FileUtils.h"
 #include "mozilla/dom/quota/MozPromiseUtils.h"
@@ -292,7 +293,7 @@ const char kContextualIdentityServiceLoadFinishedTopic[] =
     "contextual-identity-service-load-finished";
 const char kPrivateBrowsingObserverTopic[] = "last-pb-context-exited";
 
-const int32_t kCacheVersion = 2;
+const int32_t kCacheVersion = 3;
 
 // Sentinel value written at the end of the metadata file to indicate that the
 // file includes the extended origin metadata format. The sentinel allows us to
@@ -396,6 +397,7 @@ nsresult CreateCacheTables(mozIStorageConnection& aConnection) {
                                    ", client_usages TEXT NOT NULL"
                                    ", usage INTEGER NOT NULL"
                                    ", last_access_time INTEGER NOT NULL"
+                                   ", last_maintenance_date INTEGER NOT NULL"
                                    ", accessed INTEGER NOT NULL"
                                    ", persisted INTEGER NOT NULL"
                                    ", PRIMARY KEY (repository_id, origin)"
@@ -467,6 +469,27 @@ nsresult UpgradeCacheFrom1To2(mozIStorageConnection& aConnection) {
   return NS_OK;
 }
 
+nsresult UpgradeCacheFrom2To3(mozIStorageConnection& aConnection) {
+  AssertIsOnIOThread();
+
+  QM_TRY(InvalidateCache(aConnection));
+
+  QM_TRY(MOZ_TO_RESULT(aConnection.ExecuteSimpleSQL(
+      "ALTER TABLE origin ADD COLUMN last_maintenance_date INTEGER NOT NULL"_ns)));
+
+#ifdef DEBUG
+  {
+    QM_TRY_INSPECT(const int32_t& cacheVersion, LoadCacheVersion(aConnection));
+
+    MOZ_ASSERT(cacheVersion == 2);
+  }
+#endif
+
+  QM_TRY(MOZ_TO_RESULT(SaveCacheVersion(aConnection, 3)));
+
+  return NS_OK;
+}
+
 Result<bool, nsresult> MaybeCreateOrUpgradeCache(
     mozIStorageConnection& aConnection) {
   bool cacheUsable = true;
@@ -521,12 +544,14 @@ Result<bool, nsresult> MaybeCreateOrUpgradeCache(
       }
     } else {
       // This logic needs to change next time we change the cache!
-      static_assert(kCacheVersion == 2,
+      static_assert(kCacheVersion == 3,
                     "Upgrade function needed due to cache version increase.");
 
       while (cacheVersion != kCacheVersion) {
         if (cacheVersion == 1) {
           QM_TRY(MOZ_TO_RESULT(UpgradeCacheFrom1To2(aConnection)));
+        } else if (cacheVersion == 2) {
+          QM_TRY(MOZ_TO_RESULT(UpgradeCacheFrom2To3(aConnection)));
         } else {
           QM_FAIL(Err(NS_ERROR_FAILURE), []() {
             QM_WARNING(
@@ -2581,7 +2606,8 @@ void QuotaManager::InitQuotaForOrigin(
       groupInfo, aFullOriginMetadata.mOrigin,
       aFullOriginMetadata.mStorageOrigin, aFullOriginMetadata.mIsPrivate,
       aFullOriginMetadata.mClientUsages, aFullOriginMetadata.mOriginUsage,
-      aFullOriginMetadata.mLastAccessTime, aFullOriginMetadata.mPersisted,
+      aFullOriginMetadata.mLastAccessTime,
+      aFullOriginMetadata.mLastMaintenanceDate, aFullOriginMetadata.mPersisted,
       aDirectoryExists));
 }
 
@@ -2688,6 +2714,33 @@ void QuotaManager::UpdateOriginAccessTime(const OriginMetadata& aOriginMetadata,
   originInfo->LockedUpdateAccessTime(aTimestamp);
 }
 
+void QuotaManager::UpdateOriginMaintenanceDate(
+    const OriginMetadata& aOriginMetadata, int32_t aMaintenanceDate) {
+  AssertIsOnIOThread();
+  MOZ_ASSERT(aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
+
+  MutexAutoLock lock(mQuotaMutex);
+
+  GroupInfoPair* pair;
+  if (!mGroupInfoPairs.Get(aOriginMetadata.mGroup, &pair)) {
+    return;
+  }
+
+  RefPtr<GroupInfo> groupInfo =
+      pair->LockedGetGroupInfo(aOriginMetadata.mPersistenceType);
+  if (!groupInfo) {
+    return;
+  }
+
+  RefPtr<OriginInfo> originInfo =
+      groupInfo->LockedGetOriginInfo(aOriginMetadata.mOrigin);
+  if (!originInfo) {
+    return;
+  }
+
+  originInfo->LockedUpdateMaintenanceDate(aMaintenanceDate);
+}
+
 void QuotaManager::UpdateOriginAccessed(const OriginMetadata& aOriginMetadata) {
   AssertIsOnIOThread();
   MOZ_ASSERT(aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
@@ -2779,7 +2832,7 @@ nsresult QuotaManager::LoadQuota() {
             nsCOMPtr<mozIStorageStatement>, mStorageConnection, CreateStatement,
             "SELECT repository_id, suffix, group_, "
             "origin, client_usages, usage, "
-            "last_access_time, accessed, persisted "
+            "last_access_time, last_maintenance_date, accessed, persisted "
             "FROM origin"_ns));
 
     auto autoRemoveQuota = MakeScopeExit([&] {
@@ -2844,10 +2897,12 @@ nsresult QuotaManager::LoadQuota() {
 
           QM_TRY_UNWRAP(fullOriginMetadata.mLastAccessTime,
                         MOZ_TO_RESULT_INVOKE_MEMBER(stmt, GetInt64, 6));
-          QM_TRY_UNWRAP(fullOriginMetadata.mAccessed,
+          QM_TRY_UNWRAP(fullOriginMetadata.mLastMaintenanceDate,
                         MOZ_TO_RESULT_INVOKE_MEMBER(stmt, GetInt32, 7));
-          QM_TRY_UNWRAP(fullOriginMetadata.mPersisted,
+          QM_TRY_UNWRAP(fullOriginMetadata.mAccessed,
                         MOZ_TO_RESULT_INVOKE_MEMBER(stmt, GetInt32, 8));
+          QM_TRY_UNWRAP(fullOriginMetadata.mPersisted,
+                        MOZ_TO_RESULT_INVOKE_MEMBER(stmt, GetInt32, 9));
 
           QM_TRY_INSPECT(const bool& groupUpdated,
                          MaybeUpdateGroupForOrigin(fullOriginMetadata));
@@ -2902,6 +2957,12 @@ nsresult QuotaManager::LoadQuota() {
             // wrap this check in a warn-only try macro for now.
             QM_WARNONLY_TRY(
                 OkIf(fullOriginMetadata.mAccessed == metadata.mAccessed));
+
+            // There was a previous regression where mLastAccessTime did not
+            // match. To avoid failing on similar non-critical mismatches, we
+            // wrap this check in a warn-only try macro for now.
+            QM_WARNONLY_TRY(OkIf(fullOriginMetadata.mLastMaintenanceDate ==
+                                 metadata.mLastMaintenanceDate));
 
             QM_TRY(OkIf(fullOriginMetadata.mPersistenceType ==
                         metadata.mPersistenceType),
@@ -3109,10 +3170,10 @@ void QuotaManager::UnloadQuota() {
                     CreateStatement,
                     "INSERT INTO origin (repository_id, suffix, group_, "
                     "origin, client_usages, usage, last_access_time, "
-                    "accessed, persisted) "
+                    "last_maintenance_date, accessed, persisted) "
                     "VALUES (:repository_id, :suffix, :group_, :origin, "
-                    ":client_usages, :usage, :last_access_time, :accessed, "
-                    ":persisted)"_ns),
+                    ":client_usages, :usage, :last_access_time, "
+                    ":last_maintenance_date, :accessed, :persisted)"_ns),
                 QM_VOID);
           }
 
@@ -3446,19 +3507,22 @@ QuotaManager::GetOrCreateTemporaryOriginDirectory(
     // respective origin directory. So OriginInfo already exists and it needs
     // to be updated because the origin directory has been just created.
 
-    auto [timestamp, accessed, persisted] =
+    auto [timestamp, maintenanceDate, accessed, persisted] =
         WithOriginInfo(aOriginMetadata, [](const auto& originInfo) {
           const int64_t timestamp = originInfo->LockedAccessTime();
+          const int32_t maintenanceDate = originInfo->LockedMaintenanceDate();
           const bool accessed = originInfo->LockedAccessed();
           const bool persisted = originInfo->LockedPersisted();
 
           originInfo->LockedDirectoryCreated();
 
-          return std::make_tuple(timestamp, accessed, persisted);
+          return std::make_tuple(timestamp, maintenanceDate, accessed,
+                                 persisted);
         });
 
     FullOriginMetadata fullOriginMetadata{
-        aOriginMetadata, OriginStateMetadata{timestamp, accessed, persisted},
+        aOriginMetadata,
+        OriginStateMetadata{timestamp, maintenanceDate, accessed, persisted},
         ClientUsageArray(), /* aUsage */ 0, kCurrentQuotaVersion};
 
     // Usually, infallible operations are placed after fallible ones. However,
@@ -6182,9 +6246,13 @@ QuotaManager::EnsurePersistentOriginIsInitializedInternal(
         ([this, created, &directory,
           &aOriginMetadata]() -> Result<FullOriginMetadata, nsresult> {
           if (created) {
+            const int64_t timestamp = PR_Now();
+
             FullOriginMetadata fullOriginMetadata{
                 aOriginMetadata,
-                OriginStateMetadata{/* aLastAccessTime */ PR_Now(),
+                OriginStateMetadata{/* aLastAccessTime */ timestamp,
+                                    /* aLastMaintenanceDate */
+                                    Date::FromTimestamp(timestamp).ToDays(),
                                     /* aAccessed */ false,
                                     /* aPersisted */ true},
                 ClientUsageArray(), /* aUsage */ 0, kCurrentQuotaVersion};
@@ -6353,11 +6421,15 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
       return std::pair(std::move(directory), false);
     }
 
+    const int64_t timestamp = PR_Now();
+
     FullOriginMetadata fullOriginMetadata{
         aOriginMetadata,
-        OriginStateMetadata{/* aLastAccessTime */ PR_Now(),
-                            /* aAccessed */ false,
-                            /* aPersisted */ false},
+        OriginStateMetadata{
+            /* aLastAccessTime */ timestamp,
+            /* aLastMaintenanceDate */ Date::FromTimestamp(timestamp).ToDays(),
+            /* aAccessed */ false,
+            /* aPersisted */ false},
         ClientUsageArray(), /* aUsage */ 0, kCurrentQuotaVersion};
 
     if (!aCreateIfNonExistent) {
@@ -9789,12 +9861,15 @@ nsresult RestoreDirectoryMetadata2Helper::ProcessOriginDirectory(
   // We don't have any approach to restore aPersisted, so reset it to false.
   QM_TRY(MOZ_TO_RESULT(QuotaManager::CreateDirectoryMetadata2(
       *aOriginProps.mDirectory,
-      FullOriginMetadata{aOriginProps.mOriginMetadata,
-                         OriginStateMetadata{aOriginProps.mTimestamp,
-                                             /* aAccessed */ true,
-                                             /* aPersisted */ false},
-                         ClientUsageArray(), /* aUsage */ 0,
-                         kNoQuotaVersion})));
+      FullOriginMetadata{
+          aOriginProps.mOriginMetadata,
+          OriginStateMetadata{
+              aOriginProps.mTimestamp,
+              /* aLastMaintenanceDate */
+              Date::FromTimestamp(aOriginProps.mTimestamp).ToDays(),
+              /* aAccessed */ true,
+              /* aPersisted */ false},
+          ClientUsageArray(), /* aUsage */ 0, kNoQuotaVersion})));
 
   return NS_OK;
 }
