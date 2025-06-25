@@ -130,7 +130,8 @@ struct BufferChunk : public ChunkBase,
   MainThreadData<bool> hasNurseryOwnedAllocs;
   MainThreadOrGCTaskData<bool> hasNurseryOwnedAllocsAfterSweep;
 
-  static constexpr size_t MaxAllocsPerChunk = ChunkSize / MediumAllocGranularity;
+  static constexpr size_t MaxAllocsPerChunk =
+      ChunkSize / MediumAllocGranularity;
   using EncodedSizeArray = MediumBufferSize[MaxAllocsPerChunk];
   EncodedSizeArray encodedSizeArray;
 
