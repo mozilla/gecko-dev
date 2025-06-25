@@ -114,4 +114,67 @@ class LoginsReducerTest {
         assertEquals(4, filterUrl.loginItems.size)
         assertEquals(listOf(items[0], items[2], items[4], items[6]), filterUrl.loginItems)
     }
+
+    @Test
+    fun `GIVEN we are on the list logins screen WHEN a login is clicked THEN initialize the detail login state`() {
+        val items = List(7) {
+            LoginItem(
+                guid = "$it",
+                url = if (it % 2 == 0) "$it url" else "$it uri",
+                username = "user$it",
+                password = "pass$it",
+                timeLastUsed = System.currentTimeMillis(),
+            )
+        }
+
+        val state = LoginsState().copy(loginItems = items)
+        val result = loginsReducer(state, LoginClicked(items[1]))
+        val expectedState = state.copy(loginsLoginDetailState = LoginsLoginDetailState(items[1]))
+
+        assertEquals(result.loginsLoginDetailState, expectedState.loginsLoginDetailState)
+        assertEquals(result, expectedState)
+    }
+
+    @Test
+    fun `WHEN login is clicked THEN it is added to state`() {
+        val state = LoginsState()
+        val loginItem = LoginItem(
+            guid = "guid123",
+            url = "url123",
+            username = "user123",
+            password = "pass123",
+            timeLastUsed = System.currentTimeMillis(),
+        )
+
+        val result = loginsReducer(
+            state,
+            LoginClicked(item = loginItem),
+        )
+
+        val expected = state.copy(
+            loginsLoginDetailState = LoginsLoginDetailState(loginItem),
+        )
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `GIVEN we are on the login details screen WHEN the back button is clicked THEN go back to login list state`() {
+        val items = List(7) {
+            LoginItem(
+                guid = "$it",
+                url = if (it % 2 == 0) "$it url" else "$it uri",
+                username = "user$it",
+                password = "pass$it",
+                timeLastUsed = System.currentTimeMillis(),
+            )
+        }
+
+        val state = LoginsState().copy(loginItems = items)
+        loginsReducer(state, LoginClicked(items[1]))
+
+        val resultListStateAfterBackClick = loginsReducer(state, LoginsListBackClicked)
+        val expectedListStateAfterBackClick = state.copy(loginsLoginDetailState = null)
+
+        assertEquals(resultListStateAfterBackClick, expectedListStateAfterBackClick)
+    }
 }

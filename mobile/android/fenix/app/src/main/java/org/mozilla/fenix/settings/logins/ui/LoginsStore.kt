@@ -16,21 +16,18 @@ import org.mozilla.fenix.lifecycle.LifecycleHolder
  * @param reducer Reducer to handle state updates based on dispatched actions.
  * @param middleware Middleware to handle side-effects in response to dispatched actions.
  * @property lifecycleHolder a hack to box the references to objects that get recreated with the activity.
- * @param loginToLoad The guid of a login to load when landing on the edit/details screen.
  */
 internal class LoginsStore(
     initialState: LoginsState = LoginsState(),
     reducer: Reducer<LoginsState, LoginsAction> = ::loginsReducer,
     middleware: List<Middleware<LoginsState, LoginsAction>> = listOf(),
     val lifecycleHolder: LifecycleHolder? = null,
-    loginToLoad: String? = null,
 ) : UiStore<LoginsState, LoginsAction>(
     initialState = initialState,
     reducer = reducer,
     middleware = middleware,
 ) {
     init {
-        val action = loginToLoad?.let { InitEdit(loginToLoad) } ?: Init
-        dispatch(action)
+        dispatch(Init)
     }
 }

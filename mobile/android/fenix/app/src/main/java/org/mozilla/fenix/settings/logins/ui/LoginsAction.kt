@@ -15,7 +15,6 @@ internal sealed interface LoginsAction : Action
  * The Store is initializing.
  */
 internal data object Init : LoginsAction
-internal data class InitDetails(val guid: String) : LoginsAction
 internal data class InitEdit(val guid: String) : LoginsAction
 internal data class InitEditLoaded(
     val login: LoginItem,
@@ -43,16 +42,19 @@ internal sealed class LoginsListSortMenuAction : LoginsAction {
     data object OrderByLastUsedClicked : LoginsListSortMenuAction()
 }
 
+internal data class SearchLogins(val searchText: String, val loginItems: List<LoginItem>) :
+    LoginsAction
+
+internal data object LearnMoreAboutSync : LoginsAction
+
+internal data class LoginClicked(val item: LoginItem) : LoginsAction
+
 internal sealed class DetailLoginMenuAction : LoginsAction {
     data class EditLoginMenuItemClicked(val item: LoginItem) : DetailLoginMenuAction()
     data class DeleteLoginMenuItemClicked(val item: LoginItem) : DetailLoginMenuAction()
 }
 
-internal data class SearchLogins(val searchText: String, val loginItems: List<LoginItem>) :
-    LoginsAction
-
-internal data class LoginClicked(val item: LoginItem) : LoginsAction
-internal data object LearnMoreAboutSync : LoginsAction
+internal data object LoginsDetailBackClicked : LoginsAction
 
 internal sealed class EditLoginAction : LoginsAction {
     data class UsernameChanged(val usernameChanged: String) : EditLoginAction()
@@ -76,10 +78,8 @@ internal sealed class AddLoginAction : LoginsAction {
 }
 
 internal sealed class DetailLoginAction : LoginsAction {
-    data object OptionsMenuClicked : DetailLoginAction()
     data class GoToSiteClicked(val url: String) : DetailLoginAction()
     data class CopyUsernameClicked(val username: String) : DetailLoginAction()
     data class CopyPasswordClicked(val password: String) : DetailLoginAction()
     data class PasswordVisibleClicked(val visible: Boolean) : DetailLoginAction()
-    data object BackDetailClicked : DetailLoginAction()
 }

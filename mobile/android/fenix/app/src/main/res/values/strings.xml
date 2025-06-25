@@ -2410,6 +2410,15 @@
     <string name="saved_login_clear_username">Clear username</string>
     <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
     <string name="saved_login_clear_hostname">Clear hostname</string>
+    <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+    <string name="login_detail_menu_button_content_description">Login detail menu</string>
+    <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+    <string name="login_details_navigate_back_button_content_description">Navigate back</string>
+    <!-- Edit text for the login detail menu edit button -->
+    <string name="login_detail_menu_edit_button">Edit</string>
+    <!-- Delete text for the login detail menu delete button -->
+    <string name="login_detail_menu_delete_button">Delete</string>
+
     <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
     <string name="saved_login_open_site">Open site in browser</string>
     <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
