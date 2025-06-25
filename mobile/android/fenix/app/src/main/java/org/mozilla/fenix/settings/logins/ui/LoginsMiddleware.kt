@@ -4,16 +4,11 @@
 
 package org.mozilla.fenix.settings.logins.ui
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.os.Build
-import android.os.PersistableBundle
 import androidx.navigation.NavController
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import mozilla.components.concept.storage.LoginsStorage
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
@@ -29,9 +24,6 @@ import org.mozilla.fenix.settings.SupportUtils
  * @param persistLoginsSortOrder Invoked to persist the new sorting order for logins.
  * @param openTab Invoked when opening a tab when a login url is clicked.
  * @param ioDispatcher Coroutine dispatcher for IO operations.
- * @param clipboardManager For copying logins URLs.
- * @param showUsernameCopiedSnackbar Invoked when a login username is copied.
- * @param showPasswordCopiedSnackbar Invoked when a login password is copied.
  */
 @Suppress("LongParameterList")
 internal class LoginsMiddleware(
@@ -41,9 +33,6 @@ internal class LoginsMiddleware(
     private val persistLoginsSortOrder: suspend (LoginsSortOrder) -> Unit,
     private val openTab: (url: String, openInNewTab: Boolean) -> Unit,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    private val clipboardManager: ClipboardManager?,
-    private val showUsernameCopiedSnackbar: () -> Unit,
-    private val showPasswordCopiedSnackbar: () -> Unit,
 ) : Middleware<LoginsState, LoginsAction> {
 
     private val scope = CoroutineScope(ioDispatcher)
@@ -79,23 +68,19 @@ internal class LoginsMiddleware(
             is InitAdd -> {
                 getNavController().navigate(LoginsDestinations.ADD_LOGIN)
             }
+            is LoginClicked -> {
+                getNavController().navigate(LoginsDestinations.LOGIN_DETAILS)
+            }
             is SearchLogins -> {
                 context.store.loadLoginsList()
             }
             is LoginsListBackClicked -> exitLogins()
-            is LoginClicked -> {
-                getNavController().navigate(LoginsDestinations.LOGIN_DETAILS)
-            }
             is DetailLoginMenuAction.EditLoginMenuItemClicked -> getNavController().navigate(
                 LoginsDestinations.EDIT_LOGIN,
             )
             is DetailLoginMenuAction.DeleteLoginMenuItemClicked -> {
                 scope.launch {
                     loginsStorage.delete(action.item.guid)
-
-                    withContext(Dispatchers.Main) {
-                        getNavController().navigate(LoginsDestinations.LIST)
-                    }
                 }
             }
             is LoginsListSortMenuAction -> scope.launch {
@@ -110,21 +95,17 @@ internal class LoginsMiddleware(
             is DetailLoginAction.GoToSiteClicked -> {
                 openTab(action.url, true)
             }
-            is LoginsDetailBackClicked -> {
-                getNavController().navigate(LoginsDestinations.LIST)
-            }
-            is DetailLoginAction.CopyUsernameClicked -> {
-                handleUsernameClicked(action.username)
-            }
-            is DetailLoginAction.CopyPasswordClicked -> {
-                handlePasswordClicked(action.password)
-            }
             is InitEditLoaded,
             is EditLoginAction.UsernameChanged,
             is AddLoginAction.BackAddClicked,
+            is DetailLoginAction.BackDetailClicked,
             is EditLoginAction.BackEditClicked,
+            is DetailLoginAction.CopyPasswordClicked,
+            is DetailLoginAction.CopyUsernameClicked,
             is InitAddLoaded,
+            is InitDetails,
             is LoginsLoaded,
+            is DetailLoginAction.OptionsMenuClicked,
             is EditLoginAction.PasswordChanged,
             is AddLoginAction.PasswordChanged,
             is EditLoginAction.PasswordClearClicked,
@@ -145,8 +126,8 @@ internal class LoginsMiddleware(
 
     private fun Store<LoginsState, LoginsAction>.loadLoginsList() = scope.launch {
         val loginItems = arrayListOf<LoginItem>()
-
-        loginsStorage.list().forEach { login ->
+        val items = loginsStorage.list()
+        items.forEach { login ->
             loginItems.add(
                 LoginItem(
                     guid = login.guid,
@@ -159,39 +140,5 @@ internal class LoginsMiddleware(
         }
 
         dispatch(LoginsLoaded(loginItems))
-    }
-
-    private fun handleUsernameClicked(username: String) {
-        val usernameClipData = ClipData.newPlainText(username, username)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            usernameClipData.apply {
-                description.extras = PersistableBundle().apply {
-                    putBoolean("android.content.extra.IS_SENSITIVE", false)
-                }
-            }
-        }
-        clipboardManager?.setPrimaryClip(usernameClipData)
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            showUsernameCopiedSnackbar()
-        }
-    }
-
-    private fun handlePasswordClicked(password: String) {
-        val passwordClipData = ClipData.newPlainText(password, password)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            passwordClipData.apply {
-                description.extras = PersistableBundle().apply {
-                    putBoolean("android.content.extra.IS_SENSITIVE", true)
-                }
-            }
-        }
-        clipboardManager?.setPrimaryClip(passwordClipData)
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            showPasswordCopiedSnackbar()
-        }
     }
 }

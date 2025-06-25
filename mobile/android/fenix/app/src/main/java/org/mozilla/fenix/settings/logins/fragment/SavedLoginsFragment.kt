@@ -22,7 +22,6 @@ import androidx.appcompat.widget.Toolbar
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.getSystemService
 import androidx.core.os.bundleOf
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
@@ -43,8 +42,6 @@ import org.mozilla.fenix.SecureFragment
 import org.mozilla.fenix.biometricauthentication.AuthenticationStatus
 import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationManager
 import org.mozilla.fenix.components.StoreProvider
-import org.mozilla.fenix.compose.snackbar.Snackbar
-import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.databinding.FragmentSavedLoginsBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.hideToolbar
@@ -175,9 +172,8 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
                                     getNavController = { lifecycleHolder.composeNavController },
                                     exitLogins = { lifecycleHolder.navController.popBackStack() },
                                     persistLoginsSortOrder = {
-                                        DefaultSavedLoginsStorage(
-                                            lifecycleHolder.context.settings(),
-                                        ).savedLoginsSortOrder = it
+                                        DefaultSavedLoginsStorage(requireContext().settings()).savedLoginsSortOrder =
+                                            it
                                     },
                                     openTab = { url, openInNewTab ->
                                         lifecycleHolder.homeActivity.openToBrowserAndLoad(
@@ -187,17 +183,6 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
                                             flags = EngineSession.LoadUrlFlags.select(
                                                 EngineSession.LoadUrlFlags.ALLOW_JAVASCRIPT_URL,
                                             ),
-                                        )
-                                    },
-                                    clipboardManager = requireActivity().getSystemService(),
-                                    showUsernameCopiedSnackbar = {
-                                        showSnackBarWithText(
-                                            lifecycleHolder.context.getString(R.string.logins_username_copied),
-                                        )
-                                    },
-                                    showPasswordCopiedSnackbar = {
-                                        showSnackBarWithText(
-                                            lifecycleHolder.context.getString(R.string.logins_password_copied),
                                         )
                                     },
                                 ),
@@ -443,17 +428,5 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
 
     private fun setSecureContentVisibility(isVisible: Boolean) {
         binding.savedLoginsLayout.isVisible = isVisible
-    }
-
-    private fun showSnackBarWithText(text: String) {
-        view?.let {
-            Snackbar.make(
-                snackBarParentView = it,
-                snackbarState = SnackbarState(
-                    message = text,
-                    duration = SnackbarState.Duration.Preset.Short,
-                ),
-            ).show()
-        }
     }
 }

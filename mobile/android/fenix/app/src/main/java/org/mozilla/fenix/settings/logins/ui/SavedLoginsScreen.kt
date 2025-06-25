@@ -55,7 +55,6 @@ import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.list.IconListItem
 import org.mozilla.fenix.compose.list.SelectableFaviconListItem
-import org.mozilla.fenix.settings.logins.ui.LoginsSortOrder.Alphabetical.isGuidToDelete
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -94,8 +93,7 @@ internal fun SavedLoginsScreen(
             BackHandler { store.dispatch(EditLoginAction.BackEditClicked) }
         }
         composable(route = LoginsDestinations.LOGIN_DETAILS) {
-            BackHandler { store.dispatch(LoginsDetailBackClicked) }
-            LoginDetailsScreen(store = store)
+            BackHandler { store.dispatch(DetailLoginAction.BackDetailClicked) }
         }
     }
 }
@@ -136,10 +134,6 @@ private fun LoginsList(store: LoginsStore) {
                 },
         ) {
             itemsIndexed(state.loginItems) { _, item ->
-
-                if (state.isGuidToDelete(item.guid)) {
-                    return@itemsIndexed
-                }
 
                 SelectableFaviconListItem(
                     label = item.url.trimmed(),
@@ -393,7 +387,7 @@ private fun LoginsListScreenPreview() {
                 loginsAddLoginState = null,
                 loginsEditLoginState = null,
                 loginsLoginDetailState = null,
-                loginsDeletionState = null,
+                loginsDeletionDialogState = null,
             ),
         )
     }
@@ -419,7 +413,7 @@ private fun EmptyLoginsListScreenPreview() {
                 loginsAddLoginState = null,
                 loginsEditLoginState = null,
                 loginsLoginDetailState = null,
-                loginsDeletionState = null,
+                loginsDeletionDialogState = null,
             ),
         )
     }
