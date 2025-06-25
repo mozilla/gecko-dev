@@ -15,7 +15,6 @@ async function test_sidebar_theme(theme, isBrightText) {
     },
   });
 
-  const sidebarBox = document.getElementById("sidebar-box");
   const browserRoot = document.documentElement;
   const content = SidebarController.browser.contentWindow;
   const root = content.document.documentElement;
@@ -115,17 +114,15 @@ async function test_sidebar_theme(theme, isBrightText) {
   );
 
   if (isCustomSidebar) {
-    const sidebarBoxCS = window.getComputedStyle(sidebarBox);
-    is(
-      sidebarBoxCS.backgroundColor,
-      actualBackground,
-      "Sidebar box background should be set."
-    );
-    is(
-      sidebarBoxCS.color,
-      actualColor,
-      "Sidebar box text color should be set."
-    );
+    for (let id of ["sidebar-header", "sidebar"]) {
+      const cs = window.getComputedStyle(document.getElementById(id));
+      is(
+        cs.backgroundColor,
+        actualBackground,
+        "Sidebar box background should be set."
+      );
+      is(cs.color, actualColor, "Sidebar box text color should be set.");
+    }
     is(
       rootCS.backgroundColor,
       actualBackground,
