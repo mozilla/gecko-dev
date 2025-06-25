@@ -163,10 +163,9 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
       MOZ_REQUIRES(mMonitor);
 
   // Computes and returns when we should next try to wake up in order to handle
-  // the triggering of the timers in mTimers.
-  // If mTimers is empty, returns a null TimeStamp. If mTimers is not empty,
-  // returns the timeout of the last timer that can be bundled with the first
-  // timer in mTimers.
+  // the triggering of the timers in mTimers. Currently this is very simple and
+  // we always just plan to wake up for the next timer in the list. In the
+  // future this will be more sophisticated.
   TimeStamp ComputeWakeupTimeFromTimers() const MOZ_REQUIRES(mMonitor);
 
   // Computes how late a timer can acceptably fire.
@@ -181,15 +180,9 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
                                             TimeDuration minDelay,
                                             TimeDuration maxDelay) const;
 
-  // Fires and removes all timers in mTimers that are "due" to be fired,
-  // according to the current time and the passed-in early firing tolerance.
-  // Return value is the number of timers that were fired by the operation.
-  uint64_t FireDueTimers(TimeDuration aAllowedEarlyFiring)
-      MOZ_REQUIRES(mMonitor);
-
-  // Suspends thread execution using mMonitor.Wait(waitFor). Also sets and
-  // clears a few flags before and after.
-  void Wait(TimeDuration aWaitFor) MOZ_REQUIRES(mMonitor);
+#ifdef XP_WIN
+  UINT ComputeDesiredTimerPeriod() const;
+#endif
 
 #ifdef DEBUG
   // Checks mTimers to see if any entries are out of order or any cached
@@ -247,10 +240,6 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
 
   mutable size_t mEarlyWakeups MOZ_GUARDED_BY(mMonitor) = 0;
   mutable double mTotalEarlyWakeupTime MOZ_GUARDED_BY(mMonitor) = 0.0;
-
-  void CollectTimersFiredStatistics(uint64_t timersFiredThisWakeup);
-
-  void CollectWakeupStatistics();
 
   void PrintStatistics() const;
 #endif

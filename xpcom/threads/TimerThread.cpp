@@ -30,90 +30,37 @@ using namespace mozilla;
 #  include <windows.h>
 #  include <mmsystem.h>
 
-// WindowsTimerFrequencyManager manages adjusting the Windows timer resolution
-// based on whether we're on battery power and the current process priority.
-class WindowsTimerFrequencyManager {
- public:
-  WindowsTimerFrequencyManager(const hal::ProcessPriority processPriority)
-      : mTimerPeriodEvalInterval(
-            TimeDuration::FromSeconds(kTimerPeriodEvalIntervalSec)),
-        mNextTimerPeriodEval(TimeStamp::Now() + mTimerPeriodEvalInterval),
-        mLastTimePeriodSet(ComputeDesiredTimerPeriod(processPriority)),
-        mAdjustTimerPeriod(
-            StaticPrefs::timer_auto_increase_timer_resolution()) {
-    if (mAdjustTimerPeriod) {
-      timeBeginPeriod(mLastTimePeriodSet);
-    }
-  }
+static constexpr UINT kTimerPeriodHiRes = 1;
+static constexpr UINT kTimerPeriodLowRes = 16;
 
-  ~WindowsTimerFrequencyManager() {
-    // About to shut down - let's finish off the last time period that we set.
-    if (mAdjustTimerPeriod) {
-      timeEndPeriod(mLastTimePeriodSet);
-    }
-  }
+// Helper functions to determine what Windows timer resolution to target.
+static constexpr UINT GetDesiredTimerPeriod(const bool aOnBatteryPower,
+                                            const bool aLowProcessPriority) {
+  const bool useLowResTimer = aOnBatteryPower || aLowProcessPriority;
+  return useLowResTimer ? kTimerPeriodLowRes : kTimerPeriodHiRes;
+}
 
-  void Update(const TimeStamp now, const hal::ProcessPriority processPriority) {
-    if (now >= mNextTimerPeriodEval) {
-      const UINT newTimePeriod = ComputeDesiredTimerPeriod(processPriority);
-      if (newTimePeriod != mLastTimePeriodSet) {
-        if (mAdjustTimerPeriod) {
-          timeEndPeriod(mLastTimePeriodSet);
-          timeBeginPeriod(newTimePeriod);
-        }
-        mLastTimePeriodSet = newTimePeriod;
-      }
-      mNextTimerPeriodEval = now + mTimerPeriodEvalInterval;
-    }
-  }
+static_assert(GetDesiredTimerPeriod(true, false) == kTimerPeriodLowRes);
+static_assert(GetDesiredTimerPeriod(false, true) == kTimerPeriodLowRes);
+static_assert(GetDesiredTimerPeriod(true, true) == kTimerPeriodLowRes);
+static_assert(GetDesiredTimerPeriod(false, false) == kTimerPeriodHiRes);
 
- private:
-  const TimeDuration mTimerPeriodEvalInterval;
-  TimeStamp mNextTimerPeriodEval;
-  UINT mLastTimePeriodSet;
+UINT TimerThread::ComputeDesiredTimerPeriod() const {
+  const bool lowPriorityProcess =
+      mCachedPriority.load(std::memory_order_relaxed) <
+      hal::PROCESS_PRIORITY_FOREGROUND;
 
-  // If this is false, we will perform all of the logic but will stop short of
-  // actually changing the timer period.
-  const bool mAdjustTimerPeriod;
+  // NOTE: Using short-circuiting here to avoid call to GetSystemPowerStatus()
+  // when we know that that result will not affect the final result. (As
+  // confirmed by the static_assert's above, onBatteryPower does not affect the
+  // result when the lowPriorityProcess is true.)
+  SYSTEM_POWER_STATUS status;
+  const bool onBatteryPower = !lowPriorityProcess &&
+                              GetSystemPowerStatus(&status) &&
+                              (status.ACLineStatus == 0);
 
-  // kTimerPeriodEvalIntervalSec is the minimum amount of time that must pass
-  // before we will consider changing the timer period again.
-  static constexpr float kTimerPeriodEvalIntervalSec = 2.0f;
-
-  static constexpr UINT kTimerPeriodHiRes = 1;
-  static constexpr UINT kTimerPeriodLowRes = 16;
-
-  // Helper functions to determine what Windows timer resolution to target.
-  static constexpr UINT GetDesiredTimerPeriod(const bool aOnBatteryPower,
-                                              const bool aLowProcessPriority) {
-    const bool useLowResTimer = aOnBatteryPower || aLowProcessPriority;
-    return useLowResTimer ? kTimerPeriodLowRes : kTimerPeriodHiRes;
-  }
-
-  static constexpr void StaticUnitTests() {
-    static_assert(GetDesiredTimerPeriod(true, false) == kTimerPeriodLowRes);
-    static_assert(GetDesiredTimerPeriod(false, true) == kTimerPeriodLowRes);
-    static_assert(GetDesiredTimerPeriod(true, true) == kTimerPeriodLowRes);
-    static_assert(GetDesiredTimerPeriod(false, false) == kTimerPeriodHiRes);
-  }
-
-  static UINT ComputeDesiredTimerPeriod(
-      const hal::ProcessPriority processPriority) {
-    const bool lowPriorityProcess =
-        processPriority < hal::PROCESS_PRIORITY_FOREGROUND;
-
-    // NOTE: Using short-circuiting here to avoid call to GetSystemPowerStatus()
-    // when we know that that result will not affect the final result. (As
-    // confirmed by the static_assert's above, onBatteryPower does not affect
-    // the result when the lowPriorityProcess is true.)
-    SYSTEM_POWER_STATUS status;
-    const bool onBatteryPower = !lowPriorityProcess &&
-                                GetSystemPowerStatus(&status) &&
-                                (status.ACLineStatus == 0);
-
-    return GetDesiredTimerPeriod(onBatteryPower, lowPriorityProcess);
-  }
-};
+  return GetDesiredTimerPeriod(onBatteryPower, lowPriorityProcess);
+}
 #endif
 
 // Uncomment the following line to enable runtime stats during development.
@@ -715,11 +662,9 @@ size_t TimerThread::ComputeTimerInsertionIndex(const TimeStamp& timeout) const {
 TimeStamp TimerThread::ComputeWakeupTimeFromTimers() const {
   mMonitor.AssertCurrentThreadOwns();
 
-  if (mTimers.IsEmpty()) {
-    return TimeStamp{};
-  }
-
-  // The first timer should be non-canceled and we rely on that here.
+  // Timer list should be non-empty and first timer should always be
+  // non-canceled at this point and we rely on that here.
+  MOZ_ASSERT(!mTimers.IsEmpty());
   MOZ_ASSERT(mTimers[0].Value());
 
   // Overview: Find the last timer in the list that can be "bundled" together in
@@ -790,106 +735,6 @@ TimeDuration TimerThread::ComputeAcceptableFiringDelay(
   return std::clamp(tmp, minDelay, maxDelay);
 }
 
-uint64_t TimerThread::FireDueTimers(TimeDuration aAllowedEarlyFiring) {
-  RemoveLeadingCanceledTimersInternal();
-
-  uint64_t timersFired = 0;
-  TimeStamp lastNow = TimeStamp::Now();
-
-  // Fire timers that are due. We have to keep removing leading cancelled timers
-  // and looking at the front of the list each time through because firing a
-  // timer can result in timers getting added to/removed from the list.
-  while (!mTimers.IsEmpty()) {
-    Entry& frontEntry = mTimers[0];
-
-    if (lastNow + aAllowedEarlyFiring < frontEntry.Timeout()) {
-      // This timer is not ready to execute yet, and we need to preserve the
-      // order of timers, so we might have to stop here. First let's
-      // re-evaluate 'now' though, because some time might have passed since
-      // we last got it.
-      lastNow = TimeStamp::Now();
-      if (lastNow + aAllowedEarlyFiring < frontEntry.Timeout()) {
-        break;
-      }
-    }
-
-    // NB: AddRef before the Release under RemoveTimerInternal to avoid mRefCnt
-    // passing through zero, in case all other refs than the one from mTimers
-    // have gone away (the last non-mTimers[i]-ref's Release must be racing with
-    // us, blocked in gThread->RemoveTimer waiting for TimerThread::mMonitor,
-    // under nsTimerImpl::Release.
-    RefPtr<nsTimerImpl> timerRef(frontEntry.Take());
-    RemoveFirstTimerInternal();
-
-    // We are going to let the call to PostTimerEvent here handle the release of
-    // the timer so that we don't end up releasing the timer on the TimerThread
-    // instead of on the thread it targets.
-    {
-      ++timersFired;
-      LogTimerEvent::Run run(timerRef.get());
-      PostTimerEvent(timerRef.forget());
-    }
-
-    // PostTimerEvent releases mMonitor, which means that mShutdown could have
-    // gotten set during that time. If so, just stop firing timers. TODO: This
-    // is probably not necessary and, if so, should be removed.
-    if (mShutdown) {
-      break;
-    }
-
-    RemoveLeadingCanceledTimersInternal();
-  }
-
-  return timersFired;
-}
-
-// Queue for tracking of how many timers are fired on each wake-up. We need to
-// buffer these locally and only send off to glean occasionally to avoid
-// performance problems.
-class TelemetryQueue {
- public:
-  TelemetryQueue() {
-    mQueuedTimersFiredPerWakeup.SetLengthAndRetainStorage(
-        kMaxQueuedTimersFired);
-  }
-
-  ~TelemetryQueue() {
-    // About to shut down - let's send out the final batch of telemetry.
-    if (mQueuedTimersFiredCount != 0) {
-      mQueuedTimersFiredPerWakeup.SetLengthAndRetainStorage(
-          mQueuedTimersFiredCount);
-      glean::timer_thread::timers_fired_per_wakeup.AccumulateSamples(
-          mQueuedTimersFiredPerWakeup);
-    }
-  }
-
-  void AccumulateAndMaybeSendTelemetry(uint64_t timersFiredThisWakeup) {
-    mQueuedTimersFiredPerWakeup[mQueuedTimersFiredCount] =
-        timersFiredThisWakeup;
-    ++mQueuedTimersFiredCount;
-    if (mQueuedTimersFiredCount == kMaxQueuedTimersFired) {
-      glean::timer_thread::timers_fired_per_wakeup.AccumulateSamples(
-          mQueuedTimersFiredPerWakeup);
-      mQueuedTimersFiredCount = 0;
-    }
-  }
-
- private:
-  static constexpr size_t kMaxQueuedTimersFired = 128;
-  AutoTArray<uint64_t, kMaxQueuedTimersFired> mQueuedTimersFiredPerWakeup;
-  size_t mQueuedTimersFiredCount = 0;
-};
-
-void TimerThread::Wait(TimeDuration aWaitFor) MOZ_REQUIRES(mMonitor) {
-  mWaiting = true;
-  mNotified = false;
-  {
-    AUTO_PROFILER_TRACING_MARKER("TimerThread", "Wait", OTHER);
-    mMonitor.Wait(aWaitFor);
-  }
-  mWaiting = false;
-}
-
 NS_IMETHODIMP
 TimerThread::Run() {
   MonitorAutoLock lock(mMonitor);
@@ -902,23 +747,53 @@ TimerThread::Run() {
   const TimeDuration normalAllowedEarlyFiring =
       TimeDuration::FromMicroseconds(mAllowedEarlyFiringMicroseconds);
 
-  TelemetryQueue telemetryQueue;
+  // Queue for tracking of how many timers are fired on each wake-up. We need to
+  // buffer these locally and only send off to glean occasionally to avoid
+  // performance hit.
+  static constexpr size_t kMaxQueuedTimerFired = 128;
+  size_t queuedTimerFiredCount = 0;
+  AutoTArray<uint64_t, kMaxQueuedTimerFired> queuedTimersFiredPerWakeup;
+  queuedTimersFiredPerWakeup.SetLengthAndRetainStorage(kMaxQueuedTimerFired);
 
 #ifdef XP_WIN
-  WindowsTimerFrequencyManager wTFM{
-      mCachedPriority.load(std::memory_order_relaxed)};
+  // kTimerPeriodEvalIntervalSec is the minimum amount of time that must pass
+  // before we will consider changing the timer period again.
+  static constexpr float kTimerPeriodEvalIntervalSec = 2.0f;
+  const TimeDuration timerPeriodEvalInterval =
+      TimeDuration::FromSeconds(kTimerPeriodEvalIntervalSec);
+  TimeStamp nextTimerPeriodEval = TimeStamp::Now() + timerPeriodEvalInterval;
+
+  // If this is false, we will perform all of the logic but will stop short of
+  // actually changing the timer period.
+  const bool adjustTimerPeriod =
+      StaticPrefs::timer_auto_increase_timer_resolution();
+  UINT lastTimePeriodSet = ComputeDesiredTimerPeriod();
+
+  if (adjustTimerPeriod) {
+    timeBeginPeriod(lastTimePeriodSet);
+  }
 #endif
 
+  uint64_t timersFiredThisWakeup = 0;
   while (!mShutdown) {
     const bool chaosModeActive =
         ChaosMode::isActive(ChaosFeature::TimerScheduling);
+
+    // Have to use PRIntervalTime here, since PR_WaitCondVar takes it
+    TimeDuration waitFor;
 
 #ifdef DEBUG
     VerifyTimerListConsistency();
 #endif
 
-    TimeDuration waitFor;
-    if (!mSleeping) {
+    if (mSleeping) {
+      // Sleep for 0.1 seconds while not firing timers.
+      uint32_t milliseconds = 100;
+      if (chaosModeActive) {
+        milliseconds = ChaosMode::randomUint32LessThan(200);
+      }
+      waitFor = TimeDuration::FromMilliseconds(milliseconds);
+    } else {
       // Determine how early we are going to allow timers to fire. In chaos mode
       // we mess with this a little bit.
       const TimeDuration allowedEarlyFiring =
@@ -927,40 +802,115 @@ TimerThread::Run() {
               : TimeDuration::FromMicroseconds(ChaosMode::randomUint32LessThan(
                     4 * mAllowedEarlyFiringMicroseconds));
 
-      // In chaos mode we mess with our wait time.
-      const TimeDuration chaosWaitDelay =
-          !chaosModeActive ? TimeDuration::Zero()
-                           : TimeDuration::FromMicroseconds(
-                                 ChaosMode::randomInt32InRange(-10000, 10000));
+      waitFor = TimeDuration::Forever();
+      TimeStamp now = TimeStamp::Now();
 
-      const uint64_t timersFiredThisWakeup = FireDueTimers(allowedEarlyFiring);
-
-      // mMonitor gets released when a timer is fired, so a shutdown could have
-      // snuck in during that time. That empties the timer list so we need to
-      // bail out here or else we will attempt an indefinite wait.
-      if (mShutdown) {
-        break;
+#ifdef XP_WIN
+      if (now >= nextTimerPeriodEval) {
+        const UINT newTimePeriod = ComputeDesiredTimerPeriod();
+        if (newTimePeriod != lastTimePeriodSet) {
+          if (adjustTimerPeriod) {
+            timeEndPeriod(lastTimePeriodSet);
+            timeBeginPeriod(newTimePeriod);
+          }
+          lastTimePeriodSet = newTimePeriod;
+        }
+        nextTimerPeriodEval = now + timerPeriodEvalInterval;
       }
-
-      // Determine when we should wake up.
-      const TimeStamp wakeupTime = ComputeWakeupTimeFromTimers();
-      mIntendedWakeupTime = wakeupTime;
-
-      // About to sleep - let's make note of how many timers we processed and
-      // see if we should send out a new batch of telemetry.
-      telemetryQueue.AccumulateAndMaybeSendTelemetry(timersFiredThisWakeup);
-
-#if TIMER_THREAD_STATISTICS
-      CollectTimersFiredStatistics(timersFiredThisWakeup);
 #endif
 
-      // Determine how long to sleep for. Grab TimeStamp::Now() at the last
-      // moment to get the most accurate value.
-      const TimeStamp now = TimeStamp::Now();
-      waitFor = !wakeupTime.IsNull()
-                    ? std::max(TimeDuration::Zero(),
-                               wakeupTime + chaosWaitDelay - now)
-                    : TimeDuration::Forever();
+#if TIMER_THREAD_STATISTICS
+      if (!mNotified && !mIntendedWakeupTime.IsNull() &&
+          now < mIntendedWakeupTime) {
+        ++mEarlyWakeups;
+        const double earlinessms = (mIntendedWakeupTime - now).ToMilliseconds();
+        mTotalEarlyWakeupTime += earlinessms;
+      }
+#endif
+
+      RemoveLeadingCanceledTimersInternal();
+
+      if (!mTimers.IsEmpty()) {
+        if (now + allowedEarlyFiring >= mTimers[0].Value()->mTimeout) {
+        next:
+          // NB: AddRef before the Release under RemoveTimerInternal to avoid
+          // mRefCnt passing through zero, in case all other refs than the one
+          // from mTimers have gone away (the last non-mTimers[i]-ref's Release
+          // must be racing with us, blocked in gThread->RemoveTimer waiting
+          // for TimerThread::mMonitor, under nsTimerImpl::Release.
+
+          RefPtr<nsTimerImpl> timerRef(mTimers[0].Take());
+          RemoveFirstTimerInternal();
+          MOZ_LOG(GetTimerLog(), LogLevel::Debug,
+                  ("Timer thread woke up %fms from when it was supposed to\n",
+                   fabs((now - timerRef->mTimeout).ToMilliseconds())));
+
+          // We are going to let the call to PostTimerEvent here handle the
+          // release of the timer so that we don't end up releasing the timer
+          // on the TimerThread instead of on the thread it targets.
+          {
+            ++timersFiredThisWakeup;
+            LogTimerEvent::Run run(timerRef.get());
+            PostTimerEvent(timerRef.forget());
+          }
+
+          if (mShutdown) {
+            break;
+          }
+
+          // Update now, as PostTimerEvent plus the locking may have taken a
+          // tick or two, and we may goto next below.
+          now = TimeStamp::Now();
+        }
+      }
+
+      RemoveLeadingCanceledTimersInternal();
+
+      if (!mTimers.IsEmpty()) {
+        TimeStamp timeout = mTimers[0].Value()->mTimeout;
+
+        // Don't wait at all (even for PR_INTERVAL_NO_WAIT) if the next timer
+        // is due now or overdue.
+        //
+        // Note that we can only sleep for integer values of a certain
+        // resolution. We use mAllowedEarlyFiringMicroseconds, calculated
+        // before, to do the optimal rounding (i.e., of how to decide what
+        // interval is so small we should not wait at all).
+        const TimeDuration timeToNextTimer = timeout - now;
+
+        if (timeToNextTimer < allowedEarlyFiring) {
+          goto next;  // round down; execute event now
+        }
+
+        // TECHNICAL NOTE: Determining waitFor (by subtracting |now| from our
+        // desired wake-up time) at this point is not ideal. For one thing, the
+        // |now| that we have at this point is somewhat old. Secondly, there is
+        // quite a bit of code between here and where we actually use waitFor to
+        // request sleep. If I am thinking about this correctly, both of these
+        // will contribute to us requesting more sleep than is actually needed
+        // to wake up at our desired time. We could avoid this problem by only
+        // determining our desired wake-up time here and then calculating the
+        // wait time when we're actually about to sleep.
+        const TimeStamp wakeupTime = ComputeWakeupTimeFromTimers();
+        waitFor = wakeupTime - now;
+
+        // If this were to fail that would mean that we had more timers that we
+        // should have fired.
+        MOZ_ASSERT(!waitFor.IsZero());
+
+        // If chaos mode is active then we will add a random amount to the
+        // calculated wait (sleep) time to simulate early/late wake-ups.
+        const TimeDuration chaosWaitDelay =
+            !chaosModeActive
+                ? TimeDuration::Zero()
+                : TimeDuration::FromMicroseconds(
+                      ChaosMode::randomInt32InRange(-10000, 10000));
+        waitFor = std::max(TimeDuration::Zero(), waitFor + chaosWaitDelay);
+
+        mIntendedWakeupTime = wakeupTime;
+      } else {
+        mIntendedWakeupTime = TimeStamp{};
+      }
 
       if (MOZ_LOG_TEST(GetTimerLog(), LogLevel::Debug)) {
         if (waitFor == TimeDuration::Forever())
@@ -969,26 +919,67 @@ TimerThread::Run() {
           MOZ_LOG(GetTimerLog(), LogLevel::Debug,
                   ("waiting for %f\n", waitFor.ToMilliseconds()));
       }
-
-#ifdef XP_WIN
-      wTFM.Update(now, mCachedPriority.load(std::memory_order_relaxed));
-#endif
-    } else {
-      mIntendedWakeupTime = TimeStamp{};
-      // Sleep for 0.1 seconds while not firing timers.
-      uint32_t milliseconds = 100;
-      if (chaosModeActive) {
-        milliseconds = ChaosMode::randomUint32LessThan(200);
-      }
-      waitFor = TimeDuration::FromMilliseconds(milliseconds);
     }
 
-    Wait(waitFor);
+    {
+      // About to sleep - let's make note of how many timers we processed and
+      // see if we should send out a new batch of telemetry.
+      queuedTimersFiredPerWakeup[queuedTimerFiredCount] = timersFiredThisWakeup;
+      ++queuedTimerFiredCount;
+      if (queuedTimerFiredCount == kMaxQueuedTimerFired) {
+        glean::timer_thread::timers_fired_per_wakeup.AccumulateSamples(
+            queuedTimersFiredPerWakeup);
+        queuedTimerFiredCount = 0;
+      }
+    }
 
 #if TIMER_THREAD_STATISTICS
-    CollectWakeupStatistics();
+    {
+      size_t bucketIndex = 0;
+      while (bucketIndex < sTimersFiredPerWakeupBucketCount - 1 &&
+             timersFiredThisWakeup >
+                 sTimersFiredPerWakeupThresholds[bucketIndex]) {
+        ++bucketIndex;
+      }
+      MOZ_ASSERT(bucketIndex < sTimersFiredPerWakeupBucketCount);
+      ++mTimersFiredPerWakeup[bucketIndex];
+
+      ++mTotalWakeupCount;
+      if (mNotified) {
+        ++mTimersFiredPerNotifiedWakeup[bucketIndex];
+        ++mTotalNotifiedWakeupCount;
+      } else {
+        ++mTimersFiredPerUnnotifiedWakeup[bucketIndex];
+        ++mTotalUnnotifiedWakeupCount;
+      }
+    }
 #endif
+
+    timersFiredThisWakeup = 0;
+
+    mWaiting = true;
+    mNotified = false;
+
+    {
+      AUTO_PROFILER_TRACING_MARKER("TimerThread", "Wait", OTHER);
+      mMonitor.Wait(waitFor);
+    }
+    mWaiting = false;
   }
+
+  // About to shut down - let's send out the final batch of timers fired counts.
+  if (queuedTimerFiredCount != 0) {
+    queuedTimersFiredPerWakeup.SetLengthAndRetainStorage(queuedTimerFiredCount);
+    glean::timer_thread::timers_fired_per_wakeup.AccumulateSamples(
+        queuedTimersFiredPerWakeup);
+  }
+
+#ifdef XP_WIN
+  // About to shut down - let's finish off the last time period that we set.
+  if (adjustTimerPeriod) {
+    timeEndPeriod(lastTimePeriodSet);
+  }
+#endif
 
   return NS_OK;
 }
@@ -1392,41 +1383,6 @@ uint32_t TimerThread::AllowedEarlyFiringMicroseconds() {
 }
 
 #if TIMER_THREAD_STATISTICS
-void TimerThread::CollectTimersFiredStatistics(uint64_t timersFiredThisWakeup) {
-  mMonitor.AssertCurrentThreadOwns();
-
-  size_t bucketIndex = 0;
-  while (bucketIndex < sTimersFiredPerWakeupBucketCount - 1 &&
-         timersFiredThisWakeup > sTimersFiredPerWakeupThresholds[bucketIndex]) {
-    ++bucketIndex;
-  }
-  MOZ_ASSERT(bucketIndex < sTimersFiredPerWakeupBucketCount);
-  ++mTimersFiredPerWakeup[bucketIndex];
-
-  ++mTotalWakeupCount;
-  if (mNotified) {
-    ++mTimersFiredPerNotifiedWakeup[bucketIndex];
-    ++mTotalNotifiedWakeupCount;
-  } else {
-    ++mTimersFiredPerUnnotifiedWakeup[bucketIndex];
-    ++mTotalUnnotifiedWakeupCount;
-  }
-}
-
-void TimerThread::CollectWakeupStatistics() {
-  mMonitor.AssertCurrentThreadOwns();
-
-  // We've just woken up. If we weren't notified, and had a specific
-  // wake-up time in mind, let's measure how early we woke up.
-  const TimeStamp now = TimeStamp::Now();
-  if (!mNotified && !mIntendedWakeupTime.IsNull() &&
-      now < mIntendedWakeupTime) {
-    ++mEarlyWakeups;
-    const double earlinessms = (mIntendedWakeupTime - now).ToMilliseconds();
-    mTotalEarlyWakeupTime += earlinessms;
-  }
-}
-
 void TimerThread::PrintStatistics() const {
   mMonitor.AssertCurrentThreadOwns();
 
