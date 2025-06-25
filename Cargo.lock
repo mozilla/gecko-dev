@@ -5663,7 +5663,7 @@ dependencies = [
 name = "remove_dir_all"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3acd125665422973a33ac9d3dd2df85edad0f4ae9b00dafb1a05e43a9f5ef8e7"
+checksum = "629af41d19eca2791285af048b61d8422995c0b16d2758981f45643121521f0e"
 dependencies = [
  "winapi",
 ]
