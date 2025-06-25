@@ -16,7 +16,7 @@ function run_test() {
   const asyncUtils = require(path);
   // XXX: do_check_eq only works on primitive types, so we have this
   // do_check_true of an equality expression.
-  Assert.ok(o.asyncUtils === asyncUtils);
+  Assert.strictEqual(o.asyncUtils, asyncUtils);
 
   // A non-main loader should get a new object via |lazyRequireGetter|, just
   // as it would via a direct |require|.
@@ -28,11 +28,11 @@ function run_test() {
   loader2.require("resource://devtools/shared/DevToolsUtils.js");
 
   loader2.lazyRequireGetter(o2, name, path);
-  Assert.ok(o2.asyncUtils !== asyncUtils);
+  Assert.notStrictEqual(o2.asyncUtils, asyncUtils);
 
   // A module required via a non-main loader that then uses |lazyRequireGetter|
   // should also get the same object from that non-main loader.
   const exposeLoader = loader2.require("xpcshell-test/exposeLoader");
   const o3 = exposeLoader.exerciseLazyRequire(name, path);
-  Assert.ok(o3.asyncUtils === o2.asyncUtils);
+  Assert.strictEqual(o3.asyncUtils, o2.asyncUtils);
 }

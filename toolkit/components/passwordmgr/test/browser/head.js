@@ -88,14 +88,16 @@ async function verifyLogins(expectedLogins = []) {
         Assert.equal(login.password, expected.password, "Check password");
       }
       if (typeof expected.usedSince !== "undefined") {
-        Assert.ok(
-          login.timeLastUsed > expected.usedSince,
+        Assert.greater(
+          login.timeLastUsed,
+          expected.usedSince,
           "Check timeLastUsed"
         );
       }
       if (typeof expected.passwordChangedSince !== "undefined") {
-        Assert.ok(
-          login.timePasswordChanged > expected.passwordChangedSince,
+        Assert.greater(
+          login.timePasswordChanged,
+          expected.passwordChangedSince,
           "Check timePasswordChanged"
         );
       }
@@ -279,8 +281,9 @@ async function checkOnlyLoginWasUsedTwice({ justChanged }) {
     2,
     "check .timesUsed for existing login submission"
   );
-  Assert.ok(
-    logins[0].timeCreated < logins[0].timeLastUsed,
+  Assert.less(
+    logins[0].timeCreated,
+    logins[0].timeLastUsed,
     "timeLastUsed bumped"
   );
   if (justChanged) {
@@ -605,7 +608,7 @@ async function _selectDoorhanger(text, inputSelector, dropmarkerSelector) {
   );
 
   let targetIndex = suggestionText.indexOf(text);
-  Assert.ok(targetIndex != -1, "Suggestions include expected text");
+  Assert.notEqual(targetIndex, -1, "Suggestions include expected text");
 
   let promiseHidden = BrowserTestUtils.waitForEvent(
     autocompletePopup,

@@ -35,8 +35,9 @@ add_task(async function () {
     "Last update time for test timer must not be 0."
   );
   let nowSeconds = Date.now() / 1000; // update timer lastUpdate prefs are set in seconds.
-  Assert.ok(
-    Math.abs(nowSeconds - prefValue) < 2,
+  Assert.less(
+    Math.abs(nowSeconds - prefValue),
+    2,
     "Last update time for test timer must be now-ish."
   );
 

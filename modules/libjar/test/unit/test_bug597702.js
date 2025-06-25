@@ -32,6 +32,6 @@ function run_test() {
     badChannel.open();
     do_throw("Failed to report that file doesn't exist");
   } catch (e) {
-    Assert.ok(e.name == "NS_ERROR_FILE_NOT_FOUND");
+    Assert.equal(e.name, "NS_ERROR_FILE_NOT_FOUND");
   }
 }

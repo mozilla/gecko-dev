@@ -347,7 +347,7 @@ add_task(async function update_move_same_folder() {
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX,
   });
-  Assert.ok(bm.index > 0);
+  Assert.greater(bm.index, 0);
   observer.check([
     {
       type: "bookmark-moved",

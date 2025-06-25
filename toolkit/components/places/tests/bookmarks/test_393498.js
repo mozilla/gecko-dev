@@ -69,7 +69,7 @@ add_task(async function test_bookmark_update_notifications() {
   });
 
   // Sanity check.
-  Assert.ok(observer.itemChangedProperty === undefined);
+  Assert.strictEqual(observer.itemChangedProperty, undefined);
 
   // Set dateAdded in the past and verify the changes.
   await PlacesUtils.bookmarks.update({

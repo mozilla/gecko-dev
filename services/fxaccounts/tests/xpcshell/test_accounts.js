@@ -1135,11 +1135,11 @@ add_test(function test_resend_email() {
     log.debug("Alice signing in");
 
     // We're polling for the first email
-    Assert.ok(fxa._internal.currentAccountState !== initialState);
+    Assert.notStrictEqual(fxa._internal.currentAccountState, initialState);
     let aliceState = fxa._internal.currentAccountState;
 
     // The polling timer is ticking
-    Assert.ok(fxa._internal.currentTimer > 0);
+    Assert.greater(fxa._internal.currentTimer, 0);
 
     fxa._internal.getUserAccountData().then(user => {
       Assert.equal(user.email, alice.email);
@@ -1152,10 +1152,10 @@ add_test(function test_resend_email() {
         Assert.equal(result, "alice's session token");
 
         // Timer was not restarted
-        Assert.ok(fxa._internal.currentAccountState === aliceState);
+        Assert.strictEqual(fxa._internal.currentAccountState, aliceState);
 
         // Timer is still ticking
-        Assert.ok(fxa._internal.currentTimer > 0);
+        Assert.greater(fxa._internal.currentTimer, 0);
 
         // Ok abort polling before we go on to the next test
         fxa._internal.abortExistingFlow();

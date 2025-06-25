@@ -297,8 +297,9 @@ function createHTTPProxy() {
 async function isPageProxied(browser, url) {
   await loadPage(browser, url);
   return SpecialPowers.spawn(browser, [], async () => {
-    Assert.ok(
-      content.document.body.textContent === "Proxied",
+    Assert.strictEqual(
+      content.document.body.textContent,
+      "Proxied",
       "The page was proxied"
     );
   });
@@ -307,8 +308,9 @@ async function isPageProxied(browser, url) {
 async function isPageNotProxied(browser, url) {
   await loadPage(browser, url);
   return SpecialPowers.spawn(browser, [], async () => {
-    Assert.ok(
-      content.document.body.textContent === "Not proxied",
+    Assert.strictEqual(
+      content.document.body.textContent,
+      "Not proxied",
       "The page was not proxied"
     );
   });

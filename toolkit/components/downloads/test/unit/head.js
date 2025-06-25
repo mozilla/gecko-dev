@@ -265,7 +265,7 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
   }
 
   if (aOptions && aOptions.launcherPath) {
-    Assert.ok(mimeInfo != null);
+    Assert.notEqual(mimeInfo, null);
 
     let localHandlerApp = Cc[
       "@mozilla.org/uriloader/local-handler-app;1"
@@ -276,7 +276,7 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
     mimeInfo.preferredAction = Ci.nsIMIMEInfo.useHelperApp;
   }
   if (aOptions && aOptions.launcherId) {
-    Assert.ok(mimeInfo != null);
+    Assert.notEqual(mimeInfo, null);
 
     let gioHandlerApp = Cc["@mozilla.org/gio-service;1"]
       .getService(Ci.nsIGIOService)
@@ -287,7 +287,7 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
   }
 
   if (aOptions && aOptions.launchWhenSucceeded) {
-    Assert.ok(mimeInfo != null);
+    Assert.notEqual(mimeInfo, null);
 
     mimeInfo.preferredAction = Ci.nsIMIMEInfo.useHelperApp;
   }
@@ -617,7 +617,7 @@ async function promiseVerifyContents(aPath, aExpectedContents) {
         ) {
           // Do not print the entire content string to the test log.
           Assert.equal(contents.length, aExpectedContents.length);
-          Assert.ok(contents == aExpectedContents);
+          Assert.equal(contents, aExpectedContents);
         } else {
           // Print the string if it is short and made of printable characters.
           Assert.equal(contents, aExpectedContents);

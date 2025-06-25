@@ -154,7 +154,7 @@ add_task(async function test_get_changed_ids() {
   _(
     "Change time: " + changeTime + ", addon change: " + changes[addon.syncGUID]
   );
-  Assert.ok(changes[addon.syncGUID] >= changeTime);
+  Assert.greaterOrEqual(changes[addon.syncGUID], changeTime);
 
   let oldTime = changes[addon.syncGUID];
   let guid2 = addon.syncGUID;
@@ -162,7 +162,7 @@ add_task(async function test_get_changed_ids() {
   changes = await engine.getChangedIDs();
   Assert.equal(1, Object.keys(changes).length);
   Assert.ok(guid2 in changes);
-  Assert.ok(changes[guid2] > oldTime);
+  Assert.greater(changes[guid2], oldTime);
 
   _("Ensure non-syncable add-ons aren't picked up by reconciler changes.");
   reconciler._addons = {};

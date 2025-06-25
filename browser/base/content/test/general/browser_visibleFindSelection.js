@@ -47,8 +47,9 @@ add_task(async function () {
   await scrollPromise;
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
-    Assert.ok(
-      content.document.getElementById("s").getBoundingClientRect().left >= 0,
+    Assert.greaterOrEqual(
+      content.document.getElementById("s").getBoundingClientRect().left,
+      0,
       "scroll should include find result"
     );
   });

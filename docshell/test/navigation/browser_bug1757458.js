@@ -15,8 +15,9 @@ add_task(async function () {
     { gBrowser, url: testPage },
     async function (browser) {
       await ContentTask.spawn(browser, [], async () => {
-        Assert.ok(
-          content.document.getElementById("viewsource").localName == "body",
+        Assert.equal(
+          content.document.getElementById("viewsource").localName,
+          "body",
           "view-source document's body should have id='viewsource'."
         );
         content.document
@@ -36,8 +37,9 @@ add_task(async function () {
       await pageShownPromise;
 
       await ContentTask.spawn(browser, [], async () => {
-        Assert.ok(
-          content.document.getElementById("viewsource").localName == "body",
+        Assert.equal(
+          content.document.getElementById("viewsource").localName,
+          "body",
           "view-source document's body should have id='viewsource'."
         );
       });

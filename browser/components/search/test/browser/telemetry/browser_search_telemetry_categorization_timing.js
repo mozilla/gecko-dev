@@ -53,7 +53,7 @@ add_task(async function test_tab_contains_measurement() {
   );
 
   let durations = Glean.serp.categorizationDuration.testGetValue();
-  Assert.ok(durations.sum > 0, "Sum should be more than 0.");
+  Assert.greater(durations.sum, 0, "Sum should be more than 0.");
 
   BrowserTestUtils.removeTab(tab);
 });

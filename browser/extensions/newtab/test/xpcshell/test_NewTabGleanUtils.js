@@ -182,8 +182,9 @@ add_task(async function test_registerMetricIfNeeded_telemetrySent() {
   );
 
   // Check instrumented telemetry records failure
-  Assert.ok(
-    Glean.newtab.metricRegistered.metric2.testGetValue() === false,
+  Assert.strictEqual(
+    Glean.newtab.metricRegistered.metric2.testGetValue(),
+    false,
     "Glean metricRegistered telemetry sent with value as false"
   );
 });
@@ -234,8 +235,9 @@ add_task(async function test_registerPingIfNeeded_telemetrySent() {
   );
 
   // Check instrumented telemetry records failure
-  Assert.ok(
-    Glean.newtab.pingRegistered.ping2.testGetValue() === false,
+  Assert.strictEqual(
+    Glean.newtab.pingRegistered.ping2.testGetValue(),
+    false,
     "Glean pingRegistered telemetry sent with value as false for ping2"
   );
 });

@@ -52,7 +52,7 @@ function stopDefaultIndexHandler(ch, status) {
 
 function myIndexHandler(metadata, response) {
   var dir = metadata.getProperty("directory");
-  Assert.ok(dir != null);
+  Assert.notEqual(dir, null);
   Assert.ok(dir instanceof Ci.nsIFile);
   Assert.ok(dir.equals(serverBasePath));
 

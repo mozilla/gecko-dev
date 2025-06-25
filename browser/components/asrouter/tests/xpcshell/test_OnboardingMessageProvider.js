@@ -176,8 +176,9 @@ add_task(async function test_schemaValidation() {
   for (const message of messages) {
     const validator = messageValidators[message.template];
 
-    Assert.ok(
-      typeof validator !== "undefined",
+    Assert.notStrictEqual(
+      typeof validator,
+      "undefined",
       typeof validator !== "undefined"
         ? `Schema validator found for ${message.template}.`
         : `No schema validator found for template ${message.template}. Please update this test to add one.`

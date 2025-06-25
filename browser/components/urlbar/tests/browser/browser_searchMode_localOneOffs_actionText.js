@@ -39,7 +39,11 @@ add_task(async function localOneOff() {
     window,
     value: "query",
   });
-  Assert.ok(UrlbarTestUtils.getResultCount(window) > 1, "Sanity check results");
+  Assert.greater(
+    UrlbarTestUtils.getResultCount(window),
+    1,
+    "Sanity check results"
+  );
 
   info("Alt UP to select the last local one-off.");
   EventUtils.synthesizeKey("KEY_ArrowUp", { altKey: true });
@@ -162,7 +166,11 @@ add_task(async function localOneOff_withVisit() {
     window,
     value: searchString,
   });
-  Assert.ok(UrlbarTestUtils.getResultCount(window) > 1, "Sanity check results");
+  Assert.greater(
+    UrlbarTestUtils.getResultCount(window),
+    1,
+    "Sanity check results"
+  );
   let oneOffButtons = UrlbarTestUtils.getOneOffSearchButtons(window);
 
   let [actionHistory, actionTabs, actionBookmarks] =
@@ -306,7 +314,7 @@ add_task(async function localOneOff_suggestion() {
     value: "query",
   });
   let count = UrlbarTestUtils.getResultCount(window);
-  Assert.ok(count > 1, "Sanity check results");
+  Assert.greater(count, 1, "Sanity check results");
   let result = null;
   let suggestionIndex = -1;
   for (let i = 1; i < count; ++i) {
@@ -407,7 +415,7 @@ add_task(async function localOneOff_shortcut() {
     value: "",
   });
   let count = UrlbarTestUtils.getResultCount(window);
-  Assert.ok(count > 1, "Sanity check results");
+  Assert.greater(count, 1, "Sanity check results");
   let result = null;
   let shortcutIndex = -1;
   for (let i = 0; i < count; ++i) {

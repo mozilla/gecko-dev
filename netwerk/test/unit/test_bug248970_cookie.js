@@ -88,8 +88,9 @@ function run_test() {
     req.QueryInterface(Ci.nsIHttpChannel);
     Assert.equal(req.responseStatus, 200);
     try {
-      Assert.ok(
-        req.getResponseHeader("Set-Cookie") != "",
+      Assert.notEqual(
+        req.getResponseHeader("Set-Cookie"),
+        "",
         "expected a Set-Cookie header"
       );
     } catch (x) {

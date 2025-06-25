@@ -33,7 +33,7 @@ function run_test() {
   print(`String positions: ${bazPos} ${barPos} ${fooPos}`);
 
   print("Make sure the desired messages show up");
-  Assert.ok(bazPos >= 0);
-  Assert.ok(barPos > bazPos);
-  Assert.ok(fooPos > barPos);
+  Assert.greaterOrEqual(bazPos, 0);
+  Assert.greater(barPos, bazPos);
+  Assert.greater(fooPos, barPos);
 }

@@ -47,5 +47,5 @@ function run_test() {
    */
   run_sql(d, "DELETE FROM bloat");
   run_sql(d, "VACUUM");
-  Assert.ok(get_size(filename) >= CHUNK_SIZE);
+  Assert.greaterOrEqual(get_size(filename), CHUNK_SIZE);
 }

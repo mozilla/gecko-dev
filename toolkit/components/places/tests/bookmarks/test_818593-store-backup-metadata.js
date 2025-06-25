@@ -18,7 +18,7 @@ add_task(async function test_saveBookmarksToJSONFile_and_create() {
   let backupFile = PathUtils.join(PathUtils.tempDir, "bookmarks.json");
 
   let nodeCount = await PlacesBackups.saveBookmarksToJSONFile(backupFile, true);
-  Assert.ok(nodeCount > 0);
+  Assert.greater(nodeCount, 0);
   Assert.ok(await IOUtils.exists(backupFile));
 
   // Ensure the backup would be copied to our backups folder when the original

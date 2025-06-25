@@ -195,8 +195,9 @@ add_task(async function test_loadingErrorOnEmptyRecipesWithNullLastModified() {
     trigger: "test",
   }));
 
-  Assert.ok(
-    loadingError === false,
+  Assert.strictEqual(
+    loadingError,
+    false,
     "should not error when loading nonempty recipes collection"
   );
 

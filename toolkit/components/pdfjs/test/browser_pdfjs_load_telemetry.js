@@ -39,7 +39,7 @@ add_task(async function test() {
       await waitForPdfJS(browser, TESTROOT + "file_pdfjs_test.pdf");
 
       await Services.fog.testFlushAllChildren();
-      Assert.ok(Glean.pdfjs.timeToView.testGetValue().sum !== 0);
+      Assert.notStrictEqual(Glean.pdfjs.timeToView.testGetValue().sum, 0);
       Assert.equal(Glean.pdfjs.used.testGetValue(), 1);
 
       await waitForPdfJSClose(browser);

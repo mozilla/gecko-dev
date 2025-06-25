@@ -559,8 +559,9 @@ add_task(
           2,
           "Width should be set on the frame from the dialog"
         );
-        Assert.ok(
-          docEl.scrollHeight > contentOldHeight,
+        Assert.greater(
+          docEl.scrollHeight,
+          contentOldHeight,
           "Content height increased (from " +
             contentOldHeight +
             " to " +

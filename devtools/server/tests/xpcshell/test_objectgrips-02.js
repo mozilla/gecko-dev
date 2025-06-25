@@ -21,7 +21,7 @@ add_task(
 
     const objectFront = threadFront.pauseGrip(args[0]);
     const response = await objectFront.getPrototype();
-    Assert.ok(response.prototype != undefined);
+    Assert.notEqual(response.prototype, undefined);
 
     await threadFront.resume();
   })

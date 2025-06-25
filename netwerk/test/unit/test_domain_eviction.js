@@ -104,7 +104,7 @@ function* do_run_test() {
   Assert.equal(countCookies("captchart.com", "captchart.com"), 50);
 
   for (let cookie of Services.cookies.getCookiesFromHost("captchart.com", {})) {
-    Assert.ok(cookie.expiry == futureExpiry);
+    Assert.equal(cookie.expiry, futureExpiry);
   }
 
   do_finish_generator_test(test_generator);

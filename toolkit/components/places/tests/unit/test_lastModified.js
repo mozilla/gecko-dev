@@ -45,8 +45,9 @@ add_task(async function test_bookmarkLastModified() {
   bookmark = await PlacesUtils.bookmarks.fetch(guid);
 
   assert_date_eq(bookmark.lastModified, dateAdded + 1000);
-  Assert.ok(
-    bookmark.dateAdded < bookmark.lastModified,
+  Assert.less(
+    bookmark.dateAdded,
+    bookmark.lastModified,
     "Date added should be earlier than last modified."
   );
 

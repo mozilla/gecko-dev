@@ -454,7 +454,7 @@ add_task(
     Assert.equal(spy.getDeviceList.count, 1);
     Assert.equal(spy.getDeviceList.args[0].length, 1);
     Assert.equal(spy.getDeviceList.args[0][0], credentials.sessionToken);
-    Assert.ok(spy.getDeviceList.time >= spy.updateDevice.time);
+    Assert.greaterOrEqual(spy.getDeviceList.time, spy.updateDevice.time);
 
     const state = fxa._internal.currentAccountState;
     const data = await state.getUserAccountData();

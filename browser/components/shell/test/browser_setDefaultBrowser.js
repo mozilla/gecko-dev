@@ -40,8 +40,9 @@ add_task(async function need_user_choice() {
   await ShellService.setDefaultBrowser();
   defaultUserChoice = userChoiceStub.called;
 
-  Assert.ok(
-    defaultUserChoice !== undefined,
+  Assert.notStrictEqual(
+    defaultUserChoice,
+    undefined,
     "Decided which default browser method to use"
   );
   Assert.equal(

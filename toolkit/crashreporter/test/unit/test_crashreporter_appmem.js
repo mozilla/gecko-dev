@@ -6,7 +6,7 @@ add_task(async function run_test() {
     },
     function (mdump) {
       Assert.ok(mdump.exists());
-      Assert.ok(mdump.fileSize > 0);
+      Assert.greater(mdump.fileSize, 0);
       Assert.ok(CrashTestUtils.dumpCheckMemory(mdump.path));
     }
   );

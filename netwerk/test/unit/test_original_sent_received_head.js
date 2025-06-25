@@ -217,9 +217,10 @@ function checkResponse(request) {
       }
     },
   });
-  Assert.ok(linkOrgHeaderFound2 == 3, "Original link header still here.");
-  Assert.ok(
-    locationOrgHeaderFound2 == 1,
+  Assert.equal(linkOrgHeaderFound2, 3, "Original link header still here.");
+  Assert.equal(
+    locationOrgHeaderFound2,
+    1,
     "Original location header still here."
   );
 
@@ -239,7 +240,7 @@ function checkResponse(request) {
       linkOrgHeaderFound3++;
     },
   });
-  Assert.ok(linkOrgHeaderFound2 == 3, "Original link header still here.");
+  Assert.equal(linkOrgHeaderFound2, 3, "Original link header still here.");
 
   if (dbg) {
     print("============== checkResponse: out");

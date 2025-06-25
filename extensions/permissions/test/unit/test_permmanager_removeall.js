@@ -9,12 +9,12 @@ add_task(async function test() {
   // We need to execute a pm method to be sure that the DB is fully
   // initialized.
   var pm = Services.perms;
-  Assert.ok(pm.all.length === 0);
+  Assert.strictEqual(pm.all.length, 0);
 
   Services.obs.notifyObservers(null, "testonly-reload-permissions-from-disk");
 
   // Let's force the completion of the DB reading.
-  Assert.ok(pm.all.length === 0);
+  Assert.strictEqual(pm.all.length, 0);
 
   // get the db file
   var file = dir.clone();

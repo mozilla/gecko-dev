@@ -41,8 +41,9 @@ add_task(async function test_download_filename_extension() {
   let download = await downloadFinishedPromise;
   // We cannot assume that the filename didn't change.
   let filename = PathUtils.filename(download.target.path);
-  Assert.ok(
-    filename.indexOf(".") == filename.lastIndexOf("."),
+  Assert.equal(
+    filename.indexOf("."),
+    filename.lastIndexOf("."),
     "Should not duplicate extension"
   );
   Assert.ok(filename.endsWith(".EXE"), "Should not change extension");

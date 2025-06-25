@@ -50,7 +50,7 @@ add_task(async function ready() {
 });
 
 // Everything here is Windows.
-Assert.ok(AppConstants.platform == "win", "Platform is Windows");
+Assert.equal(AppConstants.platform, "win", "Platform is Windows");
 
 add_task(async function remoteEnableWithPDF() {
   let doCleanup = await NimbusTestUtils.enrollWithFeatureConfig(

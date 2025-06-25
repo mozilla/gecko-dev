@@ -50,7 +50,7 @@ add_task(async function test_add_user_pref() {
       row.editColumnButton.click();
       Assert.ok(!row.hasClass("deleted"));
       Assert.ok(!row.hasClass("add"));
-      Assert.ok(Preferences.get(PREF_NEW) === expectedValue);
+      Assert.strictEqual(Preferences.get(PREF_NEW), expectedValue);
 
       // Number and String preferences should be in edit mode.
       Assert.equal(!!row.valueInput, expectedEditingMode);
@@ -93,7 +93,7 @@ add_task(async function test_delete_user_pref() {
       Assert.ok(row.element.querySelectorAll("input")[radioIndex].checked);
       row.editColumnButton.click();
       Assert.ok(!row.hasClass("deleted"));
-      Assert.ok(Preferences.get(PREF_NEW) === testValue);
+      Assert.strictEqual(Preferences.get(PREF_NEW), testValue);
 
       // Filtering again after deleting should remove the row.
       row.resetColumnButton.click();
@@ -138,7 +138,10 @@ add_task(async function test_click_type_label_multiple_forms() {
 
       // Adding the preference should set the default for the data type.
       newRow.editColumnButton.click();
-      Assert.ok(Preferences.get(PREF_NEW_WHILE_DELETED) === expectedValue);
+      Assert.strictEqual(
+        Preferences.get(PREF_NEW_WHILE_DELETED),
+        expectedValue
+      );
 
       // Reset the preference, then continue by adding a different type.
       newRow.resetColumnButton.click();
@@ -146,7 +149,7 @@ add_task(async function test_click_type_label_multiple_forms() {
 
     // Re-adding the deleted preference should restore the value.
     existingRow.editColumnButton.click();
-    Assert.ok(Preferences.get(PREF_TO_DELETE) === true);
+    Assert.strictEqual(Preferences.get(PREF_TO_DELETE), true);
   });
 });
 

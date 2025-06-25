@@ -213,7 +213,7 @@ add_task(async function test_tabGroupPanelAddTab() {
   let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
   addNewTabButton.click();
   await panelHidden;
-  Assert.ok(tabgroupPanel.state === "closed", "Group editor is closed");
+  Assert.strictEqual(tabgroupPanel.state, "closed", "Group editor is closed");
   Assert.equal(group.tabs.length, 2, "Group has 2 tabs");
 
   await removeTabGroup(group);
@@ -230,7 +230,7 @@ add_task(async function test_tabGroupPanelUngroupTabs() {
     "#tabGroupEditor_ungroupTabs"
   );
 
-  Assert.ok(tab.group.id == group.id, "Tab is in group");
+  Assert.equal(tab.group.id, group.id, "Tab is in group");
   let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
   ungroupTabsButton.click();
   await panelHidden;
@@ -281,7 +281,7 @@ add_task(async function test_moveGroupToNewWindow() {
   let newWindowOpened = BrowserTestUtils.waitForNewWindow();
   document.getElementById("tabGroupEditor_moveGroupToNewWindow").click();
   let newWin = await newWindowOpened;
-  Assert.ok(newWin != window, "Group is moved to new window");
+  Assert.notEqual(newWin, window, "Group is moved to new window");
 
   let movedTabs = newWin.gBrowser.tabs;
   let movedGroup = movedTabs[0].group;

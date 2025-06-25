@@ -90,7 +90,7 @@ function do_corrupt_db(file) {
   // Sanity check: the database size should be larger than 320k, since we've
   // written about 460k of data. If it's not, let's make it obvious now.
   let size = file.fileSize;
-  Assert.ok(size > 320e3);
+  Assert.greater(size, 320e3);
 
   // Corrupt the database by writing bad data to the end of the file. We
   // assume that the important metadata -- table structure etc -- is stored

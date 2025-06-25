@@ -21,8 +21,9 @@ add_task(async () => {
   Assert.equal(collectSystemInfoResults.length, kLoopCount);
 
   for (const result of collectSystemInfoResults) {
-    Assert.ok(
-      result.status == "fulfilled",
+    Assert.equal(
+      result.status,
+      "fulfilled",
       "All results from collectSystemInfo() are resolved."
     );
   }

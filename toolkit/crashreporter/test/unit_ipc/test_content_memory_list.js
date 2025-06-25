@@ -20,7 +20,7 @@ add_task(async function run_test() {
 
   await do_content_crash(null, function (mdump) {
     Assert.ok(mdump.exists());
-    Assert.ok(mdump.fileSize > 0);
+    Assert.greater(mdump.fileSize, 0);
     if (is_win7_or_newer) {
       Assert.ok(
         CrashTestUtils.dumpHasStream(

@@ -23,7 +23,7 @@ function test_uri(obj) {
     do_throw(message);
   }
   if (obj.result) {
-    Assert.ok(uri != null);
+    Assert.notEqual(uri, null);
     Assert.equal(uri.spec, obj.uri);
   }
 }

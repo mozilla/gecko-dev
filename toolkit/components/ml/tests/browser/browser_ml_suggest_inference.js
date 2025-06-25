@@ -140,8 +140,9 @@ async function perform_inference(queries, type) {
     results.push(res);
   }
 
-  Assert.ok(
-    results.length === queries.length,
+  Assert.strictEqual(
+    results.length,
+    queries.length,
     "results size should be equal to queries size."
   );
   // Write results to a file

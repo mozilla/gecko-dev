@@ -767,7 +767,7 @@ add_task(async function test_registerDevice() {
   Assert.equal(Object.keys(result).length, 4);
   Assert.equal(result.id, DEVICE_ID);
   Assert.equal(typeof result.createdAt, "number");
-  Assert.ok(result.createdAt > 0);
+  Assert.greater(result.createdAt, 0);
   Assert.equal(result.name, DEVICE_NAME);
   Assert.equal(result.type, DEVICE_TYPE);
 

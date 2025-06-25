@@ -68,7 +68,7 @@ function evalXPathInDocumentFragment(aContextNode, aPath) {
     childIndex = Number(
       prefix.substring(bracketIndex + 1, prefix.indexOf("]"))
     );
-    Assert.ok(childIndex > 0);
+    Assert.greater(childIndex, 0);
     prefix = prefix.substr(0, bracketIndex);
   }
 
@@ -172,7 +172,7 @@ function getParsedDocument(aPath) {
 }
 
 function processParsedDocument(doc) {
-  Assert.ok(doc.documentElement.localName != "parsererror");
+  Assert.notEqual(doc.documentElement.localName, "parsererror");
   Assert.equal(ChromeUtils.getClassName(doc), "XMLDocument");
 
   // Clean out whitespace.
@@ -450,7 +450,7 @@ function do_miscellaneous_tests(doc) {
   baseRange.setEnd(doc.firstChild, 2);
   var frag = baseRange.extractContents();
   Assert.equal(frag.childNodes.length, 1);
-  Assert.ok(ChromeUtils.getClassName(frag.firstChild) == "Comment");
+  Assert.equal(ChromeUtils.getClassName(frag.firstChild), "Comment");
   Assert.equal(frag.firstChild.nodeType, frag.COMMENT_NODE);
   Assert.equal(frag.firstChild.nodeValue, "f");
 

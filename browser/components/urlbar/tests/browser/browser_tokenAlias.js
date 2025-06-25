@@ -893,8 +893,9 @@ function assertHighlighted(highlighted, expectedAlias) {
   }
   Assert.equal(selection.rangeCount, 1);
   let index = gURLBar.value.indexOf(expectedAlias);
-  Assert.ok(
-    index >= 0,
+  Assert.greaterOrEqual(
+    index,
+    0,
     `gURLBar.value="${gURLBar.value}" expectedAlias="${expectedAlias}"`
   );
   let range = selection.getRangeAt(0);

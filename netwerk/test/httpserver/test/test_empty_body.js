@@ -41,7 +41,7 @@ function run_test() {
 // TEST DATA
 
 function ensureEmpty(ch) {
-  Assert.ok(ch.contentLength == 0);
+  Assert.equal(ch.contentLength, 0);
 }
 
 // PATH HANDLERS

@@ -62,7 +62,7 @@ add_test(function test_corruptFormHistoryDB_addEntry() {
 
   updateEntry("add", "name-A", "value-A", function () {
     countEntries("name-A", "value-A", function (count) {
-      Assert.ok(count == 1);
+      Assert.equal(count, 1);
       run_next_test();
     });
   });
@@ -73,7 +73,7 @@ add_test(function test_corruptFormHistoryDB_removeEntry() {
 
   updateEntry("remove", "name-A", "value-A", function () {
     countEntries("name-A", "value-A", function (count) {
-      Assert.ok(count == 0);
+      Assert.equal(count, 0);
       run_next_test();
     });
   });

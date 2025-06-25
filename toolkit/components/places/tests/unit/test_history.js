@@ -153,6 +153,6 @@ add_task(async function test_execute() {
   result = histsvc.executeQuery(query, options);
   root = result.root;
   root.containerOpen = true;
-  Assert.ok(root.childCount > 0);
+  Assert.greater(root.childCount, 0);
   root.containerOpen = false;
 });

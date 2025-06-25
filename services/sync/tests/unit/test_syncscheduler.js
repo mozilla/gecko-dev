@@ -258,7 +258,7 @@ add_task(async function test_updateClientMode() {
 
   Assert.equal(scheduler.syncThreshold, MULTI_DEVICE_THRESHOLD);
   Assert.equal(scheduler.syncInterval, scheduler.activeInterval);
-  Assert.ok(scheduler.numClients > 1);
+  Assert.greater(scheduler.numClients, 1);
   Assert.ok(!scheduler.idle);
 
   // Resets the number of clients to 0.
@@ -374,7 +374,7 @@ add_task(async function test_scheduleNextSync_future_noBackoff() {
 
   // nextSync - Date.now() might be smaller than expectedInterval
   // since some time has passed since we called scheduleNextSync().
-  Assert.ok(scheduler.nextSync - Date.now() <= scheduler.syncInterval);
+  Assert.lessOrEqual(scheduler.nextSync - Date.now(), scheduler.syncInterval);
   Assert.equal(scheduler.syncTimer.delay, scheduler.syncInterval);
 
   _("Test setting sync interval when nextSync != 0");
@@ -383,8 +383,8 @@ add_task(async function test_scheduleNextSync_future_noBackoff() {
 
   // nextSync - Date.now() might be smaller than expectedInterval
   // since some time has passed since we called scheduleNextSync().
-  Assert.ok(scheduler.nextSync - Date.now() <= scheduler.syncInterval);
-  Assert.ok(scheduler.syncTimer.delay <= scheduler.syncInterval);
+  Assert.lessOrEqual(scheduler.nextSync - Date.now(), scheduler.syncInterval);
+  Assert.lessOrEqual(scheduler.syncTimer.delay, scheduler.syncInterval);
 
   _(
     "Scheduling requests for intervals larger than the current one will be ignored."
@@ -401,12 +401,12 @@ add_task(async function test_scheduleNextSync_future_noBackoff() {
   // We can schedule anything we want if there isn't a sync scheduled.
   scheduler.nextSync = 0;
   scheduler.scheduleNextSync(requestedInterval);
-  Assert.ok(scheduler.nextSync <= Date.now() + requestedInterval);
+  Assert.lessOrEqual(scheduler.nextSync, Date.now() + requestedInterval);
   Assert.equal(scheduler.syncTimer.delay, requestedInterval);
 
   // Request a sync at the smallest possible interval (0 triggers now).
   scheduler.scheduleNextSync(1);
-  Assert.ok(scheduler.nextSync <= Date.now() + 1);
+  Assert.lessOrEqual(scheduler.nextSync, Date.now() + 1);
   Assert.equal(scheduler.syncTimer.delay, 1);
 
   await cleanUpAndGo();
@@ -426,7 +426,7 @@ add_task(async function test_scheduleNextSync_future_backoff() {
 
   // nextSync - Date.now() might be smaller than expectedInterval
   // since some time has passed since we called scheduleNextSync().
-  Assert.ok(scheduler.nextSync - Date.now() <= Status.backoffInterval);
+  Assert.lessOrEqual(scheduler.nextSync - Date.now(), Status.backoffInterval);
   Assert.equal(scheduler.syncTimer.delay, Status.backoffInterval);
 
   _("Test setting sync interval when nextSync != 0");
@@ -435,15 +435,15 @@ add_task(async function test_scheduleNextSync_future_backoff() {
 
   // nextSync - Date.now() might be smaller than expectedInterval
   // since some time has passed since we called scheduleNextSync().
-  Assert.ok(scheduler.nextSync - Date.now() <= Status.backoffInterval);
-  Assert.ok(scheduler.syncTimer.delay <= Status.backoffInterval);
+  Assert.lessOrEqual(scheduler.nextSync - Date.now(), Status.backoffInterval);
+  Assert.lessOrEqual(scheduler.syncTimer.delay, Status.backoffInterval);
 
   // Request a sync at a longer interval. The sync that's already scheduled
   // for sooner takes precedence.
   let nextSync = scheduler.nextSync;
   let timerDelay = scheduler.syncTimer.delay;
   let requestedInterval = scheduler.syncInterval * 10;
-  Assert.ok(requestedInterval > Status.backoffInterval);
+  Assert.greater(requestedInterval, Status.backoffInterval);
   scheduler.scheduleNextSync(requestedInterval);
   Assert.equal(scheduler.nextSync, nextSync);
   Assert.equal(scheduler.syncTimer.delay, timerDelay);
@@ -451,12 +451,12 @@ add_task(async function test_scheduleNextSync_future_backoff() {
   // We can schedule anything we want if there isn't a sync scheduled.
   scheduler.nextSync = 0;
   scheduler.scheduleNextSync(requestedInterval);
-  Assert.ok(scheduler.nextSync <= Date.now() + requestedInterval);
+  Assert.lessOrEqual(scheduler.nextSync, Date.now() + requestedInterval);
   Assert.equal(scheduler.syncTimer.delay, requestedInterval);
 
   // Request a sync at the smallest possible interval (0 triggers now).
   scheduler.scheduleNextSync(1);
-  Assert.ok(scheduler.nextSync <= Date.now() + Status.backoffInterval);
+  Assert.lessOrEqual(scheduler.nextSync, Date.now() + Status.backoffInterval);
   Assert.equal(scheduler.syncTimer.delay, Status.backoffInterval);
 
   await cleanUpAndGo();
@@ -481,7 +481,10 @@ add_task(async function test_handleSyncError() {
   // functionality of handleSyncError()
   _("Test first error calls scheduleNextSync on default interval");
   await Service.sync();
-  Assert.ok(scheduler.nextSync <= Date.now() + scheduler.singleDeviceInterval);
+  Assert.lessOrEqual(
+    scheduler.nextSync,
+    Date.now() + scheduler.singleDeviceInterval
+  );
   Assert.equal(scheduler.syncTimer.delay, scheduler.singleDeviceInterval);
   Assert.equal(scheduler._syncErrors, 1);
   Assert.ok(!Status.enforceBackoff);
@@ -489,7 +492,10 @@ add_task(async function test_handleSyncError() {
 
   _("Test second error still calls scheduleNextSync on default interval");
   await Service.sync();
-  Assert.ok(scheduler.nextSync <= Date.now() + scheduler.singleDeviceInterval);
+  Assert.lessOrEqual(
+    scheduler.nextSync,
+    Date.now() + scheduler.singleDeviceInterval
+  );
   Assert.equal(scheduler.syncTimer.delay, scheduler.singleDeviceInterval);
   Assert.equal(scheduler._syncErrors, 2);
   Assert.ok(!Status.enforceBackoff);
@@ -499,8 +505,8 @@ add_task(async function test_handleSyncError() {
   await Service.sync();
   let maxInterval = scheduler._syncErrors * (2 * MINIMUM_BACKOFF_INTERVAL);
   Assert.equal(Status.backoffInterval, 0);
-  Assert.ok(scheduler.nextSync <= Date.now() + maxInterval);
-  Assert.ok(scheduler.syncTimer.delay <= maxInterval);
+  Assert.lessOrEqual(scheduler.nextSync, Date.now() + maxInterval);
+  Assert.lessOrEqual(scheduler.syncTimer.delay, maxInterval);
   Assert.equal(scheduler._syncErrors, 3);
   Assert.ok(Status.enforceBackoff);
 
@@ -515,8 +521,8 @@ add_task(async function test_handleSyncError() {
   );
   await Service.sync();
   maxInterval = scheduler._syncErrors * (2 * MINIMUM_BACKOFF_INTERVAL);
-  Assert.ok(scheduler.nextSync <= Date.now() + maxInterval);
-  Assert.ok(scheduler.syncTimer.delay <= maxInterval);
+  Assert.lessOrEqual(scheduler.nextSync, Date.now() + maxInterval);
+  Assert.lessOrEqual(scheduler.syncTimer.delay, maxInterval);
   Assert.equal(scheduler._syncErrors, 4);
   Assert.ok(Status.enforceBackoff);
   scheduler.syncTimer.clear();
@@ -551,7 +557,7 @@ add_task(async function test_client_sync_finish_updateClientMode() {
 
   Assert.equal(scheduler.syncThreshold, MULTI_DEVICE_THRESHOLD);
   Assert.equal(scheduler.syncInterval, scheduler.activeInterval);
-  Assert.ok(scheduler.numClients > 1);
+  Assert.greater(scheduler.numClients, 1);
   Assert.ok(!scheduler.idle);
 
   // Resets the number of clients to 0.
@@ -605,7 +611,7 @@ add_task(async function test_autoconnect_nextSync_future() {
   await promiseZeroTimer();
 
   Assert.equal(scheduler.nextSync, expectedSync);
-  Assert.ok(scheduler.syncTimer.delay >= expectedInterval);
+  Assert.greaterOrEqual(scheduler.syncTimer.delay, expectedInterval);
 
   Svc.Obs.remove("weave:service:login:start", onLoginStart);
   await cleanUpAndGo();
@@ -790,7 +796,7 @@ add_task(async function test_active_triggersSync_observesBackoff() {
   await promiseTimer;
   Svc.Obs.remove("weave:service:login:start", onLoginStart);
 
-  Assert.ok(scheduler.nextSync <= Date.now() + Status.backoffInterval);
+  Assert.lessOrEqual(scheduler.nextSync, Date.now() + Status.backoffInterval);
   Assert.equal(scheduler.syncTimer.delay, Status.backoffInterval);
 
   await cleanUpAndGo();
@@ -881,8 +887,8 @@ add_task(async function test_sync_failed_partial_500s() {
   Assert.equal(Status.backoffInterval, 0);
   Assert.ok(Status.enforceBackoff);
   Assert.equal(scheduler._syncErrors, 4);
-  Assert.ok(scheduler.nextSync <= Date.now() + maxInterval);
-  Assert.ok(scheduler.syncTimer.delay <= maxInterval);
+  Assert.lessOrEqual(scheduler.nextSync, Date.now() + maxInterval);
+  Assert.lessOrEqual(scheduler.syncTimer.delay, maxInterval);
 
   await cleanUpAndGo(server);
 });
@@ -947,8 +953,8 @@ add_task(async function test_sync_failed_partial_400s() {
   Assert.equal(Status.backoffInterval, 0);
   Assert.ok(!Status.enforceBackoff);
   Assert.equal(scheduler._syncErrors, 0);
-  Assert.ok(scheduler.nextSync <= Date.now() + scheduler.activeInterval);
-  Assert.ok(scheduler.syncTimer.delay <= scheduler.activeInterval);
+  Assert.lessOrEqual(scheduler.nextSync, Date.now() + scheduler.activeInterval);
+  Assert.lessOrEqual(scheduler.syncTimer.delay, scheduler.activeInterval);
 
   await cleanUpAndGo(server);
 });
@@ -991,23 +997,26 @@ add_task(async function test_sync_X_Weave_Backoff() {
   Assert.equal(Status.backoffInterval, 0);
   Assert.equal(Status.minimumNextSync, 0);
   Assert.equal(scheduler.syncInterval, scheduler.activeInterval);
-  Assert.ok(scheduler.nextSync <= Date.now() + scheduler.syncInterval);
+  Assert.lessOrEqual(scheduler.nextSync, Date.now() + scheduler.syncInterval);
   // Sanity check that we picked the right value for BACKOFF:
-  Assert.ok(scheduler.syncInterval < BACKOFF * 1000);
+  Assert.less(scheduler.syncInterval, BACKOFF * 1000);
 
   // Turn on server maintenance and sync again.
   serverBackoff = true;
   await Service.sync();
 
-  Assert.ok(Status.backoffInterval >= BACKOFF * 1000);
+  Assert.greaterOrEqual(Status.backoffInterval, BACKOFF * 1000);
   // Allowing 20 seconds worth of of leeway between when Status.minimumNextSync
   // was set and when this line gets executed.
   let minimumExpectedDelay = (BACKOFF - 20) * 1000;
-  Assert.ok(Status.minimumNextSync >= Date.now() + minimumExpectedDelay);
+  Assert.greaterOrEqual(
+    Status.minimumNextSync,
+    Date.now() + minimumExpectedDelay
+  );
 
   // Verify that the next sync is actually going to wait that long.
-  Assert.ok(scheduler.nextSync >= Date.now() + minimumExpectedDelay);
-  Assert.ok(scheduler.syncTimer.delay >= minimumExpectedDelay);
+  Assert.greaterOrEqual(scheduler.nextSync, Date.now() + minimumExpectedDelay);
+  Assert.greaterOrEqual(scheduler.syncTimer.delay, minimumExpectedDelay);
 
   await cleanUpAndGo(server);
 });
@@ -1053,24 +1062,27 @@ add_task(async function test_sync_503_Retry_After() {
   Assert.equal(Status.backoffInterval, 0);
   Assert.equal(Status.minimumNextSync, 0);
   Assert.equal(scheduler.syncInterval, scheduler.activeInterval);
-  Assert.ok(scheduler.nextSync <= Date.now() + scheduler.syncInterval);
+  Assert.lessOrEqual(scheduler.nextSync, Date.now() + scheduler.syncInterval);
   // Sanity check that we picked the right value for BACKOFF:
-  Assert.ok(scheduler.syncInterval < BACKOFF * 1000);
+  Assert.less(scheduler.syncInterval, BACKOFF * 1000);
 
   // Turn on server maintenance and sync again.
   serverMaintenance = true;
   await Service.sync();
 
   Assert.ok(Status.enforceBackoff);
-  Assert.ok(Status.backoffInterval >= BACKOFF * 1000);
+  Assert.greaterOrEqual(Status.backoffInterval, BACKOFF * 1000);
   // Allowing 3 seconds worth of of leeway between when Status.minimumNextSync
   // was set and when this line gets executed.
   let minimumExpectedDelay = (BACKOFF - 3) * 1000;
-  Assert.ok(Status.minimumNextSync >= Date.now() + minimumExpectedDelay);
+  Assert.greaterOrEqual(
+    Status.minimumNextSync,
+    Date.now() + minimumExpectedDelay
+  );
 
   // Verify that the next sync is actually going to wait that long.
-  Assert.ok(scheduler.nextSync >= Date.now() + minimumExpectedDelay);
-  Assert.ok(scheduler.syncTimer.delay >= minimumExpectedDelay);
+  Assert.greaterOrEqual(scheduler.nextSync, Date.now() + minimumExpectedDelay);
+  Assert.greaterOrEqual(scheduler.syncTimer.delay, minimumExpectedDelay);
 
   await cleanUpAndGo(server);
 });
@@ -1105,10 +1117,10 @@ add_task(async function test_loginError_recoverable_reschedules() {
   Assert.equal(Status.login, LOGIN_FAILED_NETWORK_ERROR);
 
   let expectedNextSync = Date.now() + scheduler.syncInterval;
-  Assert.ok(scheduler.nextSync > Date.now());
-  Assert.ok(scheduler.nextSync <= expectedNextSync);
-  Assert.ok(scheduler.syncTimer.delay > 0);
-  Assert.ok(scheduler.syncTimer.delay <= scheduler.syncInterval);
+  Assert.greater(scheduler.nextSync, Date.now());
+  Assert.lessOrEqual(scheduler.nextSync, expectedNextSync);
+  Assert.greater(scheduler.syncTimer.delay, 0);
+  Assert.lessOrEqual(scheduler.syncTimer.delay, scheduler.syncInterval);
 
   Svc.Obs.remove("weave:service:sync:start", onSyncStart);
   await cleanUpAndGo();
@@ -1144,8 +1156,8 @@ add_task(async function test_loginError_fatal_clearsTriggers() {
   // error, probably due to an inability to fetch a token.
   Assert.equal(Status.login, LOGIN_FAILED_NETWORK_ERROR);
   // syncs should still be scheduled.
-  Assert.ok(scheduler.nextSync > Date.now());
-  Assert.ok(scheduler.syncTimer.delay > 0);
+  Assert.greater(scheduler.nextSync, Date.now());
+  Assert.greater(scheduler.syncTimer.delay, 0);
 
   await cleanUpAndGo(server);
 });

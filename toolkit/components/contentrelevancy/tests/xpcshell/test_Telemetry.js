@@ -48,8 +48,9 @@ add_task(async function test_classify_succeed() {
     Glean.relevancyClassify.succeed.testGetValue()[0].extra,
     "Should record the succeed event"
   );
-  Assert.ok(
-    Glean.relevancyClassify.duration.testGetValue().sum > 0,
+  Assert.greater(
+    Glean.relevancyClassify.duration.testGetValue().sum,
+    0,
     "Should record the duration"
   );
 });

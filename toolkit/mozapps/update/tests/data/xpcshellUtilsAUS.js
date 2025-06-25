@@ -1359,8 +1359,9 @@ function checkAppBundleModTime() {
   let now = Date.now();
   let applyToDir = getApplyDirFile();
   let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
-  Assert.ok(
-    timeDiff < MAC_MAX_TIME_DIFFERENCE,
+  Assert.less(
+    timeDiff,
+    MAC_MAX_TIME_DIFFERENCE,
     "the last modified time on the apply to directory should " +
       "change after a successful update"
   );

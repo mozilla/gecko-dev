@@ -234,7 +234,7 @@ add_task(async function test_disabled_no_track() {
 
   await tracker.addChangedID("abcdefghijkl");
   changes = await tracker.getChangedIDs();
-  Assert.ok(0 < changes.abcdefghijkl);
+  Assert.less(0, changes.abcdefghijkl);
   promisePrefChangeHandled = Promise.withResolvers();
   Svc.PrefBranch.setBoolPref("engine." + engine.prefName, false);
   await promisePrefChangeHandled.promise;

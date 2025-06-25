@@ -11,10 +11,11 @@ add_task(async function () {
     title: "A title",
   });
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
-  Assert.ok(
-    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+  Assert.greater(
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
       url: TEST_URI,
-    })) > 0
+    }),
+    0
   );
 
   // Removing the bookmark should leave an orphan page with zero frecency.
@@ -30,9 +31,10 @@ add_task(async function () {
 
   // Now add a valid visit to the page, frecency should increase.
   await PlacesTestUtils.addVisits({ uri: TEST_URI });
-  Assert.ok(
-    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+  Assert.greater(
+    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
       url: TEST_URI,
-    })) > 0
+    }),
+    0
   );
 });

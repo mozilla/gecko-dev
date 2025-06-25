@@ -170,8 +170,9 @@ add_task(async function testAllowBlock() {
     EXPIRY_MS_B
   );
 
-  Assert.ok(
-    permissionsA[PERM_A].expireTimeout != expireTimeoutA,
+  Assert.notEqual(
+    permissionsA[PERM_A].expireTimeout,
+    expireTimeoutA,
     "Overwritten permission A should have new timer"
   );
 
@@ -204,8 +205,9 @@ add_task(async function testAllowBlock() {
     SitePermissions.ALLOW,
     "Should have correct updated state"
   );
-  Assert.ok(
-    permissionB.expireTimeout != expireTimeoutB,
+  Assert.notEqual(
+    permissionB.expireTimeout,
+    expireTimeoutB,
     "Overwritten permission B should have new timer"
   );
 

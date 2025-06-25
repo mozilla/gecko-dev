@@ -165,11 +165,11 @@ add_task(async function test_signature() {
   // There's only one Array of certs(raw bytes) in the signature array.
   Assert.equal(1, saver.signatureInfo.length);
   let certLists = saver.signatureInfo;
-  Assert.ok(certLists.length === 1);
+  Assert.strictEqual(certLists.length, 1);
 
   // Check that it has 3 certs(raw bytes).
   let certs = certLists[0];
-  Assert.ok(certs.length === 3);
+  Assert.strictEqual(certs.length, 3);
 
   const certDB = Cc["@mozilla.org/security/x509certdb;1"].getService(
     Ci.nsIX509CertDB

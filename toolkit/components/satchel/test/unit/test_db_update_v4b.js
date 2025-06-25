@@ -42,7 +42,7 @@ add_task(async function () {
     dbConnection.close();
 
     // check that an entry still exists
-    Assert.ok((await promiseCountEntries("name-A", "value-A")) > 0);
+    Assert.greater(await promiseCountEntries("name-A", "value-A"), 0);
   } catch (e) {
     throw new Error(`FAILED in test #${testnum} -- ${e}`);
   }

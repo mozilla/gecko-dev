@@ -138,15 +138,17 @@ var HandshakeTelemetryHelpers = {
     // SSL_TIME_UNTIL_READY_{FLAVOR} should only contain values if we expected success.
     if (resultCode === 0) {
       for (let h of this.getHistograms(["SSL_TIME_UNTIL_READY"], flavors)) {
-        Assert.ok(
-          this.countHistogramEntries(h) === resultCount,
+        Assert.strictEqual(
+          this.countHistogramEntries(h),
+          resultCount,
           "Timing entry count correct"
         );
       }
     } else {
       for (let h of this.getHistograms(["SSL_TIME_UNTIL_READY"], flavors)) {
-        Assert.ok(
-          this.countHistogramEntries(h) === 0,
+        Assert.strictEqual(
+          this.countHistogramEntries(h),
+          0,
           "No timing entries expected"
         );
       }
@@ -160,8 +162,9 @@ var HandshakeTelemetryHelpers = {
   checkEmpty(flavors) {
     for (let h of this.getHistogramNames(this.HISTOGRAMS, flavors)) {
       let hObj = Services.telemetry.getHistogramById(h);
-      Assert.ok(
-        this.countHistogramEntries(hObj) === 0,
+      Assert.strictEqual(
+        this.countHistogramEntries(hObj),
+        0,
         `No entries expected in ${h.name}. Contents: ${JSON.stringify(
           hObj.snapshot()
         )}`

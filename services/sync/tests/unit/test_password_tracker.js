@@ -226,8 +226,9 @@ add_task(async function test_removeAllLogins() {
             2,
             "deleted login syncCounter"
           );
-          Assert.ok(
-            deletedLogin.timePasswordChanged > 0,
+          Assert.greater(
+            deletedLogin.timePasswordChanged,
+            0,
             "deleted login timePasswordChanged"
           );
         }

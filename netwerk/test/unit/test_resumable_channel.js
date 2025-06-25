@@ -252,7 +252,7 @@ function run_test() {
   function test_auth(request) {
     dump("*** test_auth()\n");
     Assert.equal(request.status, NS_ERROR_NOT_RESUMABLE);
-    Assert.ok(request.nsIHttpChannel.responseStatus < 300);
+    Assert.less(request.nsIHttpChannel.responseStatus, 300);
 
     // Authentication + working resume
     var chan = make_channel(

@@ -5,7 +5,7 @@ function check_enumerator(principal, permissions) {
   let perms = Services.perms.getAllForPrincipal(principal);
   for (let [type, capability, expireType] of permissions) {
     let perm = perms.shift();
-    Assert.ok(perm != null);
+    Assert.notEqual(perm, null);
     Assert.equal(perm.type, type);
     Assert.equal(perm.capability, capability);
     Assert.equal(perm.expireType, expireType);
@@ -22,7 +22,7 @@ add_task(async function test() {
   // We need to execute a pm method to be sure that the DB is fully
   // initialized.
   var pm = Services.perms;
-  Assert.ok(pm.all.length === 0);
+  Assert.strictEqual(pm.all.length, 0);
 
   let principal =
     Services.scriptSecurityManager.createContentPrincipalFromOrigin(
@@ -48,7 +48,7 @@ add_task(async function test() {
   // Let's reload the DB.
   Services.obs.notifyObservers(null, "testonly-reload-permissions-from-disk");
 
-  Assert.ok(pm.all.length === 1);
+  Assert.strictEqual(pm.all.length, 1);
   check_enumerator(principal, [["test/foo", pm.ALLOW_ACTION, pm.EXPIRE_NEVER]]);
 
   info("From persistent to session");
@@ -65,7 +65,7 @@ add_task(async function test() {
 
   // Let's reload the DB.
   Services.obs.notifyObservers(null, "testonly-reload-permissions-from-disk");
-  Assert.ok(pm.all.length === 0);
+  Assert.strictEqual(pm.all.length, 0);
 
   info("From persistent to persistent");
   pm.addFromPrincipal(principal, "test/foo", pm.ALLOW_ACTION, pm.EXPIRE_NEVER);
@@ -75,7 +75,7 @@ add_task(async function test() {
 
   // Let's reload the DB.
   Services.obs.notifyObservers(null, "testonly-reload-permissions-from-disk");
-  Assert.ok(pm.all.length === 1);
+  Assert.strictEqual(pm.all.length, 1);
   check_enumerator(principal, [["test/foo", pm.DENY_ACTION, pm.EXPIRE_NEVER]]);
 
   info("Cleanup");

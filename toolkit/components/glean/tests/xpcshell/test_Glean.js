@@ -73,7 +73,7 @@ add_task(async function test_fog_timespan_works() {
   await sleep(10);
   Glean.testOnly.canWeTimeIt.stop();
 
-  Assert.ok(Glean.testOnly.canWeTimeIt.testGetValue("test-ping") > 0);
+  Assert.greater(Glean.testOnly.canWeTimeIt.testGetValue("test-ping"), 0);
 });
 
 add_task(async function test_fog_timespan_throws_on_stop_wout_start() {

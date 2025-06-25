@@ -356,7 +356,7 @@ function checkItem(aExpected, aNode) {
           let { dataURI: base64Icon } = await PlacesTestUtils.getFaviconForPage(
             aExpected.url
           );
-          Assert.ok(base64Icon.spec == aExpected.icon);
+          Assert.equal(base64Icon.spec, aExpected.icon);
           break;
         }
         case "keyword": {

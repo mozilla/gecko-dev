@@ -148,8 +148,9 @@ const PINNED_STATE = {
 async function runScenarios(scenarios) {
   for (let [scenarioIndex, scenario] of scenarios.entries()) {
     info("Running scenario " + scenarioIndex);
-    Assert.ok(
-      scenario.initialSelectedTab > 0,
+    Assert.greater(
+      scenario.initialSelectedTab,
+      0,
       "You must define an initially selected tab"
     );
 

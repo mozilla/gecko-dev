@@ -40,8 +40,9 @@ add_task(async function () {
     await db.execute("PRAGMA favicons.freelist_count")
   )[0].getResultByIndex(0);
   info(`Found ${newCount} freelist pages`);
-  Assert.ok(
-    newCount < count,
+  Assert.less(
+    newCount,
+    count,
     "The number of freelist pages should have reduced"
   );
 });

@@ -468,15 +468,15 @@ function assertCategorizationValues(expectedResults) {
     let expected = expectedResults[index];
     let actual = actualResults[index].extra;
 
-    Assert.ok(
-      Number(actual?.organic_num_domains) <=
-        CATEGORIZATION_SETTINGS.MAX_DOMAINS_TO_CATEGORIZE,
+    Assert.lessOrEqual(
+      Number(actual?.organic_num_domains),
+      CATEGORIZATION_SETTINGS.MAX_DOMAINS_TO_CATEGORIZE,
       "Number of organic domains categorized should not exceed threshold."
     );
 
-    Assert.ok(
-      Number(actual?.sponsored_num_domains) <=
-        CATEGORIZATION_SETTINGS.MAX_DOMAINS_TO_CATEGORIZE,
+    Assert.lessOrEqual(
+      Number(actual?.sponsored_num_domains),
+      CATEGORIZATION_SETTINGS.MAX_DOMAINS_TO_CATEGORIZE,
       "Number of sponsored domains categorized should not exceed threshold."
     );
 

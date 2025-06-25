@@ -284,8 +284,9 @@ add_task(async function test_last_visit_property() {
   Assert.equal(tabResults.length, 1, "One tab result");
   Assert.equal(historyResults.length, 2, "Two history results");
   console.log(historyResults.map(r => r.result.providerName));
-  Assert.ok(
-    historyResults[0].result.providerName == "InputHistory",
+  Assert.equal(
+    historyResults[0].result.providerName,
+    "InputHistory",
     "First history result is from InputHistoryProvider"
   );
   Assert.ok(

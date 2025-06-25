@@ -40,7 +40,7 @@ var listener = {
   },
 
   onDataAvailable(request, stream, offset, count) {
-    Assert.ok(Date.now() - this._lastEvent >= MIN_TIME_DIFFERENCE);
+    Assert.greaterOrEqual(Date.now() - this._lastEvent, MIN_TIME_DIFFERENCE);
     read_stream(stream, count);
 
     // Ensure that suspending and resuming inside a callback works correctly

@@ -189,7 +189,7 @@ async function testLoadAndRedirect(
 
       info(`thirdProcessID: ${thirdProcessID}`);
       Assert.equal(firstProcessID != thirdProcessID, expectedProcessSwitch);
-      Assert.ok(secondProcessID == thirdProcessID);
+      Assert.equal(secondProcessID, thirdProcessID);
     }
   );
 }

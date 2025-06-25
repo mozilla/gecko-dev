@@ -132,5 +132,5 @@ add_task(async function test_calling_sync_calls_ext_storage_sync() {
   } finally {
     extensionStorageSync.syncAll = oldSync;
   }
-  Assert.ok(syncMock.calls.length >= 1);
+  Assert.greaterOrEqual(syncMock.calls.length, 1);
 });

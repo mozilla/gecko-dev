@@ -29,9 +29,9 @@ add_task(function test_toplevel_parent_is_null() {
 
     // not required by API, but a property on which the implementation of
     // parent == null relies for correctness
-    Assert.ok(lf.path.length == 2);
+    Assert.equal(lf.path.length, 2);
 
-    Assert.ok(lf.parent === null);
+    Assert.strictEqual(lf.parent, null);
   } catch (e) {
     // not Windows
     Assert.equal(e.result, Cr.NS_ERROR_FILE_UNRECOGNIZED_PATH);
@@ -67,13 +67,13 @@ add_task(async function test_file_modification_time() {
   // Modification time may be out by up to 2 seconds on FAT filesystems. Test
   // with a bit of leeway, close enough probably means it is correct.
   let diff = Math.abs(file.lastModifiedTime - now);
-  Assert.ok(diff < MAX_TIME_DIFFERENCE);
+  Assert.less(diff, MAX_TIME_DIFFERENCE);
 
   const yesterday = now - MILLIS_PER_DAY;
   file.lastModifiedTime = yesterday;
 
   diff = Math.abs(file.lastModifiedTime - yesterday);
-  Assert.ok(diff < MAX_TIME_DIFFERENCE);
+  Assert.less(diff, MAX_TIME_DIFFERENCE);
   Assert.equal(
     file.lastAccessedTime,
     atime,
@@ -84,13 +84,13 @@ add_task(async function test_file_modification_time() {
   file.lastModifiedTime = tomorrow;
 
   diff = Math.abs(file.lastModifiedTime - tomorrow);
-  Assert.ok(diff < MAX_TIME_DIFFERENCE);
+  Assert.less(diff, MAX_TIME_DIFFERENCE);
 
   const bug377307 = 1172950238000;
   file.lastModifiedTime = bug377307;
 
   diff = Math.abs(file.lastModifiedTime - bug377307);
-  Assert.ok(diff < MAX_TIME_DIFFERENCE);
+  Assert.less(diff, MAX_TIME_DIFFERENCE);
 
   await sleep(1000);
 
@@ -121,13 +121,13 @@ add_task(async function test_lastAccessedTime() {
   // Modification time may be out by up to 2 seconds on FAT filesystems. Test
   // with a bit of leeway, close enough probably means it is correct.
   let diff = Math.abs(file.lastModifiedTime - now);
-  Assert.ok(diff < MAX_TIME_DIFFERENCE);
+  Assert.less(diff, MAX_TIME_DIFFERENCE);
 
   const yesterday = now - MILLIS_PER_DAY;
   file.lastAccessedTime = yesterday;
 
   diff = Math.abs(file.lastAccessedTime - yesterday);
-  Assert.ok(diff < MAX_TIME_DIFFERENCE, `${diff} < ${MAX_TIME_DIFFERENCE}`);
+  Assert.less(diff, MAX_TIME_DIFFERENCE, `${diff} < ${MAX_TIME_DIFFERENCE}`);
   Assert.equal(
     file.lastModifiedTime,
     mtime,
@@ -138,13 +138,13 @@ add_task(async function test_lastAccessedTime() {
   file.lastAccessedTime = tomorrow;
 
   diff = Math.abs(file.lastAccessedTime - tomorrow);
-  Assert.ok(diff < MAX_TIME_DIFFERENCE);
+  Assert.less(diff, MAX_TIME_DIFFERENCE);
 
   const bug377307 = 1172950238000;
   file.lastAccessedTime = bug377307;
 
   diff = Math.abs(file.lastAccessedTime - bug377307);
-  Assert.ok(diff < MAX_TIME_DIFFERENCE);
+  Assert.less(diff, MAX_TIME_DIFFERENCE);
 
   await sleep(1000);
 
@@ -173,19 +173,19 @@ add_task(function test_directory_modification_time() {
   // Modification time may be out by up to 2 seconds on FAT filesystems. Test
   // with a bit of leeway, close enough probably means it is correct.
   var diff = Math.abs(dir.lastModifiedTime - now);
-  Assert.ok(diff < MAX_TIME_DIFFERENCE);
+  Assert.less(diff, MAX_TIME_DIFFERENCE);
 
   var yesterday = now - MILLIS_PER_DAY;
   dir.lastModifiedTime = yesterday;
 
   diff = Math.abs(dir.lastModifiedTime - yesterday);
-  Assert.ok(diff < MAX_TIME_DIFFERENCE);
+  Assert.less(diff, MAX_TIME_DIFFERENCE);
 
   var tomorrow = now - MILLIS_PER_DAY;
   dir.lastModifiedTime = tomorrow;
 
   diff = Math.abs(dir.lastModifiedTime - tomorrow);
-  Assert.ok(diff < MAX_TIME_DIFFERENCE);
+  Assert.less(diff, MAX_TIME_DIFFERENCE);
 
   dir.remove(true);
 });
@@ -195,7 +195,7 @@ add_task(function test_diskSpaceAvailable() {
   file.QueryInterface(Ci.nsIFile);
 
   let bytes = file.diskSpaceAvailable;
-  Assert.ok(bytes > 0);
+  Assert.greater(bytes, 0);
 
   file.append("testfile");
   if (file.exists()) {
@@ -204,7 +204,7 @@ add_task(function test_diskSpaceAvailable() {
   file.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0o644);
 
   bytes = file.diskSpaceAvailable;
-  Assert.ok(bytes > 0);
+  Assert.greater(bytes, 0);
 
   file.remove(true);
 });
@@ -224,7 +224,7 @@ add_task(function test_diskCapacity() {
 
   const endBytes = file.diskCapacity;
   Assert.ok(!!endBytes); // Not 0, undefined etc.
-  Assert.ok(startBytes === endBytes);
+  Assert.strictEqual(startBytes, endBytes);
 
   file.remove(true);
 });
@@ -252,12 +252,12 @@ add_task(
     Assert.ok(file.exists());
 
     const creationTime = file.creationTime;
-    Assert.ok(creationTime === file.lastModifiedTime);
+    Assert.strictEqual(creationTime, file.lastModifiedTime);
 
     file.lastModifiedTime = now + MILLIS_PER_DAY;
 
-    Assert.ok(creationTime !== file.lastModifiedTime);
-    Assert.ok(creationTime === file.creationTime);
+    Assert.notStrictEqual(creationTime, file.lastModifiedTime);
+    Assert.strictEqual(creationTime, file.creationTime);
 
     file.remove(true);
   }

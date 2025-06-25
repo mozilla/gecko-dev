@@ -654,7 +654,7 @@ add_task(async function enroll_in_reference_aw_experiment() {
   );
   // In case some regression causes us to store a significant amount of data
   // in prefs.
-  Assert.ok(prefValue.length < 3498, "Make sure we don't bloat the prefs");
+  Assert.less(prefValue.length, 3498, "Make sure we don't bloat the prefs");
 
   manager.unenroll(recipe.slug);
 

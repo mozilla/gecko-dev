@@ -63,7 +63,7 @@ add_task(async function testHomeEndKeys() {
   let firstButton = enabledButtons[0];
   let lastButton = enabledButtons.pop();
 
-  Assert.ok(firstButton != lastButton, "There is more than one button");
+  Assert.notEqual(firstButton, lastButton, "There is more than one button");
 
   EventUtils.synthesizeKey("KEY_End");
   Assert.equal(

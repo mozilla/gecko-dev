@@ -59,7 +59,7 @@ add_task(async function testTruncation() {
   // Long values should be truncated
   XULStore.setValue(browserURI, "dos", "dos", dos);
   dos = XULStore.getValue(browserURI, "dos", "dos");
-  Assert.ok(dos.length == 4096);
+  Assert.equal(dos.length, 4096);
   XULStore.removeValue(browserURI, "dos", "dos");
 });
 

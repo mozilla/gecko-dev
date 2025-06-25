@@ -34,7 +34,7 @@ async function task_add_visit(uri, timestamp, transition) {
 
 add_task(async function test_visitAdded() {
   let promiseNotify = promiseVisitAdded(async function (visit) {
-    Assert.ok(visit.visitId > 0);
+    Assert.greater(visit.visitId, 0);
     Assert.equal(visit.url, testuri.spec);
     Assert.equal(visit.visitTime, testtime / 1000);
     Assert.equal(visit.referringVisitId, 0);
@@ -53,7 +53,7 @@ add_task(async function test_visitAdded() {
 
 add_task(async function test_visitAdded() {
   let promiseNotify = promiseVisitAdded(async function (visit) {
-    Assert.ok(visit.visitId > 0);
+    Assert.greater(visit.visitId, 0);
     Assert.equal(visit.url, testuri.spec);
     Assert.equal(visit.visitTime, testtime / 1000);
     Assert.equal(visit.referringVisitId, 0);
@@ -79,8 +79,8 @@ add_task(async function test_multiple_onVisit() {
         Assert.equal(aEvents[i].type, "page-visited");
         let visit = aEvents[i];
         Assert.equal(testuri.spec, visit.url);
-        Assert.ok(visit.visitId > 0);
-        Assert.ok(visit.visitTime > 0);
+        Assert.greater(visit.visitId, 0);
+        Assert.greater(visit.visitTime, 0);
         Assert.ok(!visit.hidden);
         let uri = NetUtil.newURI(visit.url);
         await check_guid_for_uri(uri, visit.pageGuid);
@@ -92,7 +92,7 @@ add_task(async function test_multiple_onVisit() {
             Assert.equal(visit.typedCount, 0);
             break;
           case 1:
-            Assert.ok(visit.referringVisitId > 0);
+            Assert.greater(visit.referringVisitId, 0);
             Assert.equal(visit.transitionType, TRANSITION_LINK);
             Assert.equal(visit.visitCount, 2);
             Assert.equal(visit.typedCount, 0);

@@ -125,7 +125,11 @@ add_task(async function test_multi_action_set_pref_ordered_execution() {
   await originalHandleAction(action, browser);
   let duration = Date.now() - start;
   // Total minimum delay: 60 + 50 + 20 = 130ms.
-  Assert.ok(duration >= 130, "Ordered execution should take at least 130ms");
+  Assert.greaterOrEqual(
+    duration,
+    130,
+    "Ordered execution should take at least 130ms"
+  );
   Assert.deepEqual(
     callOrder,
     ["first", "second", "third"],

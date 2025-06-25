@@ -86,7 +86,7 @@ add_task(
     await c.get();
 
     Assert.ok(!!called.records.length);
-    Assert.ok(called.timestamp >= 1694684362860);
+    Assert.greaterOrEqual(called.timestamp, 1694684362860);
     Assert.ok(called.metadata.flags.includes("startup"));
   }
 );

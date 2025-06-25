@@ -18,7 +18,7 @@ AutoCompleteNoMatchResult.prototype = Object.create(
  * of matches.
  */
 function AutoCompleteBadIndexResult(aValues, aDefaultIndex) {
-  Assert.ok(aValues.length <= aDefaultIndex);
+  Assert.lessOrEqual(aValues.length, aDefaultIndex);
   this._values = aValues;
   this.defaultIndex = aDefaultIndex;
 }

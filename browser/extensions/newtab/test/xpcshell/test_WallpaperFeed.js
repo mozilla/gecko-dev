@@ -33,9 +33,10 @@ add_task(async function test_construction() {
   info("WallpaperFeed constructor should create initial values");
 
   Assert.ok(feed, "Could construct a WallpaperFeed");
-  Assert.ok(feed.loaded === false, "WallpaperFeed is not loaded");
-  Assert.ok(
-    feed.wallpaperClient === null,
+  Assert.strictEqual(feed.loaded, false, "WallpaperFeed is not loaded");
+  Assert.strictEqual(
+    feed.wallpaperClient,
+    null,
     "wallpaperClient is initialized as null"
   );
 });
@@ -66,7 +67,7 @@ add_task(async function test_onAction_INIT() {
     type: actionTypes.INIT,
   });
 
-  Assert.ok(feed.store.dispatch.callCount >= 3);
+  Assert.greaterOrEqual(feed.store.dispatch.callCount, 3);
 
   const matchingCall = feed.store.dispatch
     .getCalls()

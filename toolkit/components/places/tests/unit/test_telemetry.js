@@ -21,12 +21,12 @@ const histograms = {
   PLACES_KEYWORDS_COUNT: val => Assert.equal(val, 1),
   PLACES_SORTED_BOOKMARKS_PERC: val => Assert.equal(val, 100),
   PLACES_TAGGED_BOOKMARKS_PERC: val => Assert.equal(val, 100),
-  PLACES_DATABASE_FILESIZE_MB: val => Assert.ok(val > 0),
-  PLACES_DATABASE_FAVICONS_FILESIZE_MB: val => Assert.ok(val > 0),
-  PLACES_EXPIRATION_STEPS_TO_CLEAN2: val => Assert.ok(val > 1),
-  PLACES_IDLE_MAINTENANCE_TIME_MS: val => Assert.ok(val > 0),
+  PLACES_DATABASE_FILESIZE_MB: val => Assert.greater(val, 0),
+  PLACES_DATABASE_FAVICONS_FILESIZE_MB: val => Assert.greater(val, 0),
+  PLACES_EXPIRATION_STEPS_TO_CLEAN2: val => Assert.greater(val, 1),
+  PLACES_IDLE_MAINTENANCE_TIME_MS: val => Assert.greater(val, 0),
   PLACES_ANNOS_PAGES_COUNT: val => Assert.equal(val, 1),
-  PLACES_MAINTENANCE_DAYSFROMLAST: val => Assert.ok(val >= 0),
+  PLACES_MAINTENANCE_DAYSFROMLAST: val => Assert.greaterOrEqual(val, 0),
 };
 
 const scalars = {
@@ -136,7 +136,10 @@ add_task(async function test_execute() {
     let validate = histograms[histogramId];
     let snapshot = Services.telemetry.getHistogramById(histogramId).snapshot();
     validate(snapshot.sum);
-    Assert.ok(Object.values(snapshot.values).reduce((a, b) => a + b, 0) > 0);
+    Assert.greater(
+      Object.values(snapshot.values).reduce((a, b) => a + b, 0),
+      0
+    );
   }
   for (let scalarName in scalars) {
     let scalar = "places." + scalarName;

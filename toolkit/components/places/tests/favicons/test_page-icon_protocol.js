@@ -125,7 +125,7 @@ add_task(async function unknown_url() {
 add_task(async function invalid_url() {
   let { data, contentType } = await fetchIconForSpec("page-icon:test");
   Assert.equal(contentType, gDefaultFavicon.contentType);
-  Assert.ok(data == gDefaultFavicon.data, "Got the default favicon data");
+  Assert.equal(data, gDefaultFavicon.data, "Got the default favicon data");
 });
 
 add_task(async function subpage_url_fallback() {

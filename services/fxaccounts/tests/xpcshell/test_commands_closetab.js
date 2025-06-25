@@ -435,7 +435,7 @@ add_task(async function test_timer_reset_on_new_tab() {
   Assert.equal(unsentCmds.length, 2);
 
   // _ensureTimer should've been called at least twice
-  Assert.ok(ensureTimerSpy.callCount > 1);
+  Assert.greater(ensureTimerSpy.callCount, 1);
   commandMock.verify();
   queueMock.verify();
   commandQueue.shutdown();
@@ -610,8 +610,9 @@ add_task(async function test_closetab_chunking() {
       }
 
       const chunkSize = encoder.encode(JSON.stringify(urls)).length;
-      Assert.ok(
-        chunkSize <= COMMAND_MAX_PAYLOAD_SIZE,
+      Assert.lessOrEqual(
+        chunkSize,
+        COMMAND_MAX_PAYLOAD_SIZE,
         `Chunk size (${chunkSize}) should not exceed max payload size (${COMMAND_MAX_PAYLOAD_SIZE})`
       );
 

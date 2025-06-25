@@ -158,19 +158,19 @@ add_task(function test_dedupeLogins() {
 });
 
 add_task(async function test_dedupeLogins_resolveBy() {
-  Assert.ok(
-    DOMAIN1_HTTP_TO_HTTP_U1_P1.timeLastUsed >
-      DOMAIN1_HTTPS_TO_HTTP_U1_P1.timeLastUsed,
+  Assert.greater(
+    DOMAIN1_HTTP_TO_HTTP_U1_P1.timeLastUsed,
+    DOMAIN1_HTTPS_TO_HTTP_U1_P1.timeLastUsed,
     "Sanity check timeLastUsed difference"
   );
-  Assert.ok(
-    DOMAIN1_HTTP_TO_HTTP_U1_P1.timePasswordChanged <
-      DOMAIN1_HTTPS_TO_HTTP_U1_P1.timePasswordChanged,
+  Assert.less(
+    DOMAIN1_HTTP_TO_HTTP_U1_P1.timePasswordChanged,
+    DOMAIN1_HTTPS_TO_HTTP_U1_P1.timePasswordChanged,
     "Sanity check timePasswordChanged difference"
   );
-  Assert.ok(
-    DOMAIN1_HTTPS_LOGIN.timePasswordChanged <
-      DOMAIN2_HTTPS_LOGIN_NEWER.timePasswordChanged,
+  Assert.less(
+    DOMAIN1_HTTPS_LOGIN.timePasswordChanged,
+    DOMAIN2_HTTPS_LOGIN_NEWER.timePasswordChanged,
     "Sanity check timePasswordChanged difference"
   );
 
