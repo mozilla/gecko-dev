@@ -71,6 +71,7 @@
 #  include "MediaEngineWebRTC.h"
 #  include "MediaEngineWebRTCAudio.h"
 #  include "browser_logging/WebRtcLog.h"
+#  include "libwebrtcglue/WebrtcTaskQueueWrapper.h"
 #  include "modules/audio_processing/include/audio_processing.h"
 #endif
 
@@ -2477,8 +2478,16 @@ MediaManager* MediaManager::Get() {
     timesCreated++;
     MOZ_RELEASE_ASSERT(timesCreated == 1);
 
-    RefPtr<TaskQueue> mediaThread = TaskQueue::Create(
-        GetMediaThreadPool(MediaThreadType::SUPERVISOR), "MediaManager");
+    constexpr bool kSupportsTailDispatch = false;
+    RefPtr<TaskQueue> mediaThread =
+#ifdef MOZ_WEBRTC
+        CreateWebrtcTaskQueueWrapper(
+            GetMediaThreadPool(MediaThreadType::SUPERVISOR), "MediaManager"_ns,
+            kSupportsTailDispatch);
+#else
+        TaskQueue::Create(GetMediaThreadPool(MediaThreadType::SUPERVISOR),
+                          "MediaManager", kSupportsTailDispatch);
+#endif
     LOG("New Media thread for gum");
 
     sSingleton = new MediaManager(mediaThread.forget());
