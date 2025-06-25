@@ -15,8 +15,6 @@ const { AboutNewTab } = ChromeUtils.importESModule(
   "resource:///modules/AboutNewTab.sys.mjs"
 );
 
-AboutNewTab.init();
-
 const IS_RELEASE_OR_BETA = AppConstants.RELEASE_OR_BETA;
 
 const DOWNLOADS_URL =
@@ -83,6 +81,10 @@ function setBoolPrefAndWaitForChange(pref, value, testMessage) {
     Services.prefs.setBoolPref(pref, value);
   });
 }
+
+add_setup(() => {
+  AboutNewTab.init();
+});
 
 add_task(async function test_as_initial_values() {
   Assert.ok(

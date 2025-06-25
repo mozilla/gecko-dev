@@ -3,10 +3,9 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
-const { AboutNewTabRedirectorParent, AboutNewTabRedirectorChild } =
-  ChromeUtils.importESModule(
-    "resource:///modules/AboutNewTabRedirector.sys.mjs"
-  );
+const { AboutNewTabRedirectorChild } = ChromeUtils.importESModule(
+  "resource:///modules/AboutNewTabRedirector.sys.mjs"
+);
 
 const { NetUtil } = ChromeUtils.importESModule(
   "resource://gre/modules/NetUtil.sys.mjs"
@@ -19,7 +18,12 @@ const BLANK_TAB_URI = Services.io.newURI(
   "chrome://browser/content/blanktab.html"
 );
 
-const PARENT_INSTANCE = new AboutNewTabRedirectorParent();
+// We get the AboutNewTabRedirectorParent singleton, and will test that rather
+// than a test instance, since accessing the singleton has registration
+// side-effects that can only occur once.
+const PARENT_INSTANCE = Cc[
+  "@mozilla.org/network/protocol/about;1?what=newtab"
+].getService(Ci.nsIAboutModule).wrappedJSObject;
 const CHILD_INSTANCE = new AboutNewTabRedirectorChild();
 
 /**

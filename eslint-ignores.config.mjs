@@ -79,8 +79,6 @@ export default [
 
   // Ignore newtab files
   "browser/extensions/newtab/logs/",
-  // JS file using the #include pre-processor macro, leading to syntax errors.
-  "browser/extensions/newtab/webext-glue/builtin-newtab.js",
 
   // Ignore devtools debugger files which aren't intended for linting.
   "devtools/client/debugger/bin/",
