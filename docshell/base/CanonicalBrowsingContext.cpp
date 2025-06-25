@@ -341,8 +341,10 @@ void CanonicalBrowsingContext::ReplacedBy(
   mLoadingEntries.SwapElements(aNewContext->mLoadingEntries);
   MOZ_ASSERT(!aNewContext->mActiveEntry);
   mActiveEntry.swap(aNewContext->mActiveEntry);
-  MOZ_ASSERT(aNewContext->mActiveEntryList.isEmpty());
-  aNewContext->mActiveEntryList.extendBack(std::move(mActiveEntryList));
+  if (Navigation::IsAPIEnabled()) {
+    MOZ_ASSERT(aNewContext->mActiveEntryList.isEmpty());
+    aNewContext->mActiveEntryList.extendBack(std::move(mActiveEntryList));
+  }
 
   aNewContext->mPermanentKey = mPermanentKey;
   mPermanentKey.setNull();
@@ -467,9 +469,11 @@ SessionHistoryEntry* CanonicalBrowsingContext::GetActiveSessionHistoryEntry() {
 void CanonicalBrowsingContext::SetActiveSessionHistoryEntry(
     SessionHistoryEntry* aEntry) {
   mActiveEntry = aEntry;
-  mActiveEntryList.clear();
-  if (mActiveEntry) {
-    mActiveEntryList.insertBack(mActiveEntry);
+  if (Navigation::IsAPIEnabled()) {
+    mActiveEntryList.clear();
+    if (mActiveEntry) {
+      mActiveEntryList.insertBack(mActiveEntry);
+    }
   }
 }
 
@@ -494,12 +498,13 @@ void CanonicalBrowsingContext::SwapHistoryEntries(nsISHEntry* aOldEntry,
       mActiveEntry = nullptr;
       return;
     }
-
-    RefPtr beforeOldEntry = mActiveEntry->removeAndGetPrevious();
-    if (beforeOldEntry) {
-      beforeOldEntry->setNext(newEntry);
-    } else {
-      mActiveEntryList.insertFront(newEntry);
+    if (Navigation::IsAPIEnabled() && mActiveEntry->isInList()) {
+      RefPtr beforeOldEntry = mActiveEntry->removeAndGetPrevious();
+      if (beforeOldEntry) {
+        beforeOldEntry->setNext(newEntry);
+      } else {
+        mActiveEntryList.insertFront(newEntry);
+      }
     }
     mActiveEntry = newEntry.forget();
   }
@@ -1071,12 +1076,16 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
 
           if (!addEntry) {
             shistory->ReplaceEntry(index, newActiveEntry);
-            RefPtr entry = mActiveEntry;
-            while (entry) {
-              entry = entry->removeAndGetNext();
+            if (Navigation::IsAPIEnabled() && mActiveEntry->isInList()) {
+              RefPtr entry = mActiveEntry;
+              while (entry) {
+                entry = entry->removeAndGetNext();
+              }
             }
           }
-          mActiveEntryList.insertBack(newActiveEntry);
+          if (Navigation::IsAPIEnabled()) {
+            mActiveEntryList.insertBack(newActiveEntry);
+          }
           mActiveEntry = newActiveEntry;
         } else if (LOAD_TYPE_HAS_FLAGS(
                        aLoadType, nsIWebNavigation::LOAD_FLAGS_IS_REFRESH) &&
@@ -1088,26 +1097,30 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
         } else if (!loadFromSessionHistory && mActiveEntry) {
           MOZ_LOG_FMT(gSHLog, LogLevel::Verbose, "IsTop: Adding new entry");
 
-          bool isTransient = false;
-          mActiveEntry->IsTransient(&isTransient);
+          if (Navigation::IsAPIEnabled() && mActiveEntry->isInList()) {
+            bool isTransient = false;
+            mActiveEntry->IsTransient(&isTransient);
 
-          RefPtr entry =
-              isTransient ? mActiveEntry.get() : mActiveEntry->getNext();
-          while (entry) {
-            entry = entry->removeAndGetNext();
+            RefPtr entry =
+                isTransient ? mActiveEntry.get() : mActiveEntry->getNext();
+            while (entry) {
+              entry = entry->removeAndGetNext();
+            }
+            mActiveEntryList.insertBack(newActiveEntry);
           }
-          mActiveEntryList.insertBack(newActiveEntry);
           mActiveEntry = newActiveEntry;
         } else if (!mActiveEntry) {
           MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
                       "IsTop: No active entry, adding new entry");
-          mActiveEntryList.insertBack(newActiveEntry);
+          if (Navigation::IsAPIEnabled()) {
+            mActiveEntryList.insertBack(newActiveEntry);
+          }
           mActiveEntry = newActiveEntry;
         } else {
           MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
                       "IsTop: Loading from session history");
           mActiveEntry = newActiveEntry;
-          if (!mActiveEntry->isInList()) {
+          if (Navigation::IsAPIEnabled() && !mActiveEntry->isInList()) {
             mActiveEntryList.insertBack(mActiveEntry);
           }
         }
@@ -1139,7 +1152,7 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
           MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
                       "NotTop: Loading from session history");
           mActiveEntry = newActiveEntry;
-          if (!mActiveEntry->isInList()) {
+          if (Navigation::IsAPIEnabled() && !mActiveEntry->isInList()) {
             mActiveEntryList.insertBack(mActiveEntry);
           }
 
@@ -1166,10 +1179,12 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
                           "NotTop: Adding entry with an active entry");
               shistory->AddNestedSHEntry(mActiveEntry, newActiveEntry, Top(),
                                          aCloneEntryChildren);
-              if (!mActiveEntry->isInList()) {
-                mActiveEntryList.insertBack(mActiveEntry);
+              if (Navigation::IsAPIEnabled()) {
+                if (!mActiveEntry->isInList()) {
+                  mActiveEntryList.insertBack(mActiveEntry);
+                }
+                mActiveEntry->setNext(newActiveEntry);
               }
-              mActiveEntry->setNext(newActiveEntry);
               mActiveEntry = newActiveEntry;
             }
           } else {
@@ -1180,7 +1195,9 @@ void CanonicalBrowsingContext::SessionHistoryCommit(
               MOZ_LOG_FMT(gSHLog, LogLevel::Verbose,
                           "NotTop: Adding entry without an active entry");
               mActiveEntry = newActiveEntry;
-              mActiveEntryList.insertBack(mActiveEntry);
+              if (Navigation::IsAPIEnabled()) {
+                mActiveEntryList.insertBack(mActiveEntry);
+              }
               // FIXME Using IsInProcess for aUseRemoteSubframes isn't quite
               //       right, but aUseRemoteSubframes should be going away.
               parentEntry->AddChild(
@@ -1310,12 +1327,15 @@ void CanonicalBrowsingContext::SetActiveSessionHistoryEntry(
        oldActiveEntry.get(), mActiveEntry.get(),
        mActiveEntryList.contains(mActiveEntry) ? "" : "n't"));
 
-  RefPtr toRemove =
-      oldActiveEntry ? oldActiveEntry->getNext() : mActiveEntryList.getFirst();
-  while (toRemove) {
-    toRemove = toRemove->removeAndGetNext();
+  if (Navigation::IsAPIEnabled() &&
+      (!oldActiveEntry || oldActiveEntry->isInList())) {
+    RefPtr toRemove = oldActiveEntry ? oldActiveEntry->getNext()
+                                     : mActiveEntryList.getFirst();
+    while (toRemove) {
+      toRemove = toRemove->removeAndGetNext();
+    }
+    mActiveEntryList.insertBack(mActiveEntry);
   }
-  mActiveEntryList.insertBack(mActiveEntry);
 
   ResetSHEntryHasUserInteractionCache();
 
@@ -1353,9 +1373,11 @@ void CanonicalBrowsingContext::ReplaceActiveSessionHistoryEntry(
 
   MOZ_LOG(gSHLog, LogLevel::Verbose,
           ("Replacing active session history entry"));
-  RefPtr toRemove = mActiveEntry->getNext();
-  while (toRemove) {
-    toRemove = toRemove->removeAndGetNext();
+  if (Navigation::IsAPIEnabled() && mActiveEntry->isInList()) {
+    RefPtr toRemove = mActiveEntry->getNext();
+    while (toRemove) {
+      toRemove = toRemove->removeAndGetNext();
+    }
   }
 
   // FIXME Need to do the equivalent of EvictDocumentViewersOrReplaceEntry.
