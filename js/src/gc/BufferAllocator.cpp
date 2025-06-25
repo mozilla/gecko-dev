@@ -145,6 +145,8 @@ struct BufferChunk : public ChunkBase,
   using PerPageBitmap = mozilla::BitSet<PagesPerChunk, uint32_t>;
   MainThreadOrGCTaskData<PerPageBitmap> decommittedPages;
 
+  class AllocIter;
+
   static BufferChunk* from(void* alloc) {
     ChunkBase* chunk = js::gc::detail::GetGCAddressChunkBase(alloc);
     MOZ_ASSERT(chunk->kind == ChunkKind::MediumBuffers);
@@ -213,42 +215,34 @@ bool BufferChunk::isValidOffset(uintptr_t offset) {
 }
 #endif
 
-// Iterate allocations in a BufferChunk.
-class BufferChunkIter {
+class BufferChunk::AllocIter {
   BufferChunk* chunk;
-  size_t offset = FirstMediumAllocOffset;
-  size_t size = 0;
+  size_t bit = 0;
 
  public:
-  explicit BufferChunkIter(BufferChunk* chunk) : chunk(chunk) { settle(); }
-  bool done() const { return offset == ChunkSize; }
+  explicit AllocIter(BufferChunk* chunk) : chunk(chunk) {
+    MOZ_ASSERT(!chunk->allocBitmap.ref()[bit]);
+    next();
+  }
+  bool done() const {
+    MOZ_ASSERT(bit <= MaxAllocsPerChunk || bit == SIZE_MAX);
+    return bit >= MaxAllocsPerChunk;
+  }
   void next() {
     MOZ_ASSERT(!done());
-    offset += size;
-    MOZ_ASSERT(offset <= ChunkSize);
-    if (!done()) {
-      settle();
+    bit++;
+    if (bit != MaxAllocsPerChunk) {
+      bit = chunk->allocBitmap.ref().FindNext(bit);
     }
   }
   size_t getOffset() const {
     MOZ_ASSERT(!done());
-    return offset;
+    return bit * MediumAllocGranularity;
   }
   void* get() const {
-    MOZ_ASSERT(!done());
-    MOZ_ASSERT(offset < ChunkSize);
-    MOZ_ASSERT((offset % MediumAllocGranularity) == 0);
-    return reinterpret_cast<void*>(uintptr_t(chunk) + offset);
+    return reinterpret_cast<void*>(uintptr_t(chunk) + getOffset());
   }
   operator void*() { return get(); }
-
- private:
-  void settle() {
-    offset = chunk->findNextAllocated(offset);
-    if (!done()) {
-      size = chunk->allocBytes(get());
-    }
-  }
 };
 
 static void CheckHighBitsOfPointer(void* ptr) {
@@ -1550,7 +1544,7 @@ void BufferAllocator::verifyChunk(BufferChunk* chunk,
 
   size_t freeOffset = FirstMediumAllocOffset;
 
-  for (BufferChunkIter iter(chunk); !iter.done(); iter.next()) {
+  for (BufferChunk::AllocIter iter(chunk); !iter.done(); iter.next()) {
     // Check any free region preceding this allocation.
     size_t offset = iter.getOffset();
     MOZ_ASSERT(offset >= FirstMediumAllocOffset);
@@ -1874,7 +1868,7 @@ bool BufferAllocator::sweepChunk(BufferChunk* chunk, OwnerKind ownerKindToSweep,
   bool sweptAny = false;
   size_t mallocHeapBytesFreed = 0;
 
-  for (BufferChunkIter iter(chunk); !iter.done(); iter.next()) {
+  for (BufferChunk::AllocIter iter(chunk); !iter.done(); iter.next()) {
     void* alloc = iter.get();
 
     size_t bytes = chunk->allocBytes(alloc);
@@ -2706,7 +2700,7 @@ size_t BufferAllocator::getSizeOfNurseryBuffers() {
   size_t bytes = 0;
 
   for (BufferChunk* chunk : mediumMixedChunks.ref()) {
-    for (BufferChunkIter alloc(chunk); !alloc.done(); alloc.next()) {
+    for (BufferChunk::AllocIter alloc(chunk); !alloc.done(); alloc.next()) {
       if (chunk->isNurseryOwned(alloc)) {
         bytes += chunk->allocBytes(alloc);
       }
