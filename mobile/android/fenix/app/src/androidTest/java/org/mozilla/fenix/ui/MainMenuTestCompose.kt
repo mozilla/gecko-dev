@@ -278,8 +278,7 @@ class MainMenuTestCompose : TestSetup() {
         var recommendedExtensionTitle = ""
         val genericURL = getGenericAsset(mockWebServer, 1)
 
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(genericURL.url) {
+        homeScreen {
         }.openThreeDotMenu(composeTestRule) {
         }.openExtensionsFromMainMenu {
             recommendedExtensionTitle = getRecommendedExtensionTitle(composeTestRule)
@@ -314,8 +313,7 @@ class MainMenuTestCompose : TestSetup() {
         var recommendedExtensionTitle = ""
         val genericURL = getGenericAsset(mockWebServer, 1)
 
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(genericURL.url) {
+        homeScreen {
         }.openThreeDotMenu(composeTestRule) {
         }.openExtensionsFromMainMenu {
             recommendedExtensionTitle = getRecommendedExtensionTitle(composeTestRule)

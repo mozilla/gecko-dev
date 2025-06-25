@@ -93,6 +93,7 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param allWebExtensionsDisabled Whether or not all web extensions are disabled.
  * @param canGoBack Whether or not the back button is enabled.
  * @param canGoForward Whether or not the forward button is enabled.
+ * @param extensionsMenuItemDescription The label of extensions menu item description.
  * @param scrollState The [ScrollState] used for vertical scrolling.
  * @param showBanner Whether or not the default browser banner should be shown.
  * @param webExtensionMenuCount The number of web extensions.
@@ -122,7 +123,6 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param onShareButtonClick Invoked when the user clicks on the share button.
  * @param moreSettingsSubmenu The content of more menu item.
  * @param extensionSubmenu The content of extensions menu item to avoid configuration during animation.
- * @param extensionsMenuItemDescription The label of extensions menu item description.
  */
 @Suppress("LongParameterList", "LongMethod")
 @Composable
@@ -142,6 +142,7 @@ fun MainMenu(
     allWebExtensionsDisabled: Boolean,
     canGoBack: Boolean,
     canGoForward: Boolean,
+    extensionsMenuItemDescription: String,
     scrollState: ScrollState,
     showBanner: Boolean,
     webExtensionMenuCount: Int,
@@ -169,7 +170,6 @@ fun MainMenu(
     onShareButtonClick: () -> Unit,
     moreSettingsSubmenu: @Composable ColumnScope.() -> Unit,
     extensionSubmenu: @Composable ColumnScope.() -> Unit,
-    extensionsMenuItemDescription: String?,
 ) {
     MenuFrame(
         header = {
@@ -226,12 +226,12 @@ fun MainMenu(
             HomepageMenuGroup(
                 onCustomizeHomepageMenuClick = onCustomizeHomepageMenuClick,
                 onExtensionsMenuClick = onExtensionsMenuClick,
+                extensionsMenuItemDescription = extensionsMenuItemDescription,
                 isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                 isExtensionsExpanded = isExtensionsExpanded,
                 webExtensionMenuCount = webExtensionMenuCount,
                 allWebExtensionsDisabled = allWebExtensionsDisabled,
                 extensionSubmenu = extensionSubmenu,
-                extensionsMenuItemDescription = extensionsMenuItemDescription,
             )
         }
 
@@ -240,6 +240,7 @@ fun MainMenu(
                 isBookmarked = isBookmarked,
                 isDesktopMode = isDesktopMode,
                 isPdf = isPdf,
+                extensionsMenuItemDescription = extensionsMenuItemDescription,
                 isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                 isExtensionsExpanded = isExtensionsExpanded,
                 moreMenuExpanded = isMoreMenuExpanded,
@@ -253,7 +254,6 @@ fun MainMenu(
                 onMoreMenuClick = onMoreMenuClick,
                 moreSettingsSubmenu = moreSettingsSubmenu,
                 extensionSubmenu = extensionSubmenu,
-                extensionsMenuItemDescription = extensionsMenuItemDescription,
                 )
         }
 
@@ -289,13 +289,13 @@ fun MainMenu(
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun ExtensionsMenuItem(
+    extensionsMenuItemDescription: String,
     isExtensionsProcessDisabled: Boolean,
     isExtensionsExpanded: Boolean,
     webExtensionMenuCount: Int,
     allWebExtensionsDisabled: Boolean,
     onExtensionsMenuClick: () -> Unit,
     extensionSubmenu: @Composable ColumnScope.() -> Unit,
-    extensionsMenuItemDescription: String?,
 ) {
     Column {
         val leftPadding = if (webExtensionMenuCount > 0) 8.dp else 2.dp
@@ -318,10 +318,6 @@ private fun ExtensionsMenuItem(
                 testTagsAsResourceId = true
             },
         ) {
-            if (extensionsMenuItemDescription == null) {
-                return@MenuItem
-            }
-
             if (isExtensionsProcessDisabled || allWebExtensionsDisabled) {
                 Icon(
                     painter = painterResource(id = R.drawable.mozac_ic_settings_24),
@@ -432,6 +428,7 @@ private fun ToolsAndActionsMenuGroup(
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isExtensionsProcessDisabled: Boolean,
+    extensionsMenuItemDescription: String,
     isExtensionsExpanded: Boolean,
     moreMenuExpanded: Boolean,
     webExtensionMenuCount: Int,
@@ -444,7 +441,6 @@ private fun ToolsAndActionsMenuGroup(
     onMoreMenuClick: () -> Unit,
     moreSettingsSubmenu: @Composable ColumnScope.() -> Unit,
     extensionSubmenu: @Composable ColumnScope.() -> Unit,
-    extensionsMenuItemDescription: String?,
     ) {
     MenuGroup {
         val labelId = R.string.browser_menu_desktop_site
@@ -501,13 +497,13 @@ private fun ToolsAndActionsMenuGroup(
         }
 
         ExtensionsMenuItem(
+            extensionsMenuItemDescription = extensionsMenuItemDescription,
             isExtensionsProcessDisabled = isExtensionsProcessDisabled,
             isExtensionsExpanded = isExtensionsExpanded,
             webExtensionMenuCount = webExtensionMenuCount,
             allWebExtensionsDisabled = allWebExtensionsDisabled,
             onExtensionsMenuClick = onExtensionsMenuClick,
             extensionSubmenu = extensionSubmenu,
-            extensionsMenuItemDescription = extensionsMenuItemDescription,
         )
 
         MoreMenuButtonGroup(
@@ -638,6 +634,7 @@ private fun LibraryMenuGroup(
 @Suppress("LongParameterList")
 @Composable
 private fun HomepageMenuGroup(
+    extensionsMenuItemDescription: String,
     isExtensionsProcessDisabled: Boolean,
     isExtensionsExpanded: Boolean,
     webExtensionMenuCount: Int,
@@ -645,7 +642,6 @@ private fun HomepageMenuGroup(
     onExtensionsMenuClick: () -> Unit,
     onCustomizeHomepageMenuClick: () -> Unit,
     extensionSubmenu: @Composable ColumnScope.() -> Unit,
-    extensionsMenuItemDescription: String?,
 ) {
     MenuGroup {
         MenuItem(
@@ -655,13 +651,13 @@ private fun HomepageMenuGroup(
         )
 
         ExtensionsMenuItem(
+            extensionsMenuItemDescription = extensionsMenuItemDescription,
             isExtensionsProcessDisabled = isExtensionsProcessDisabled,
             isExtensionsExpanded = isExtensionsExpanded,
             webExtensionMenuCount = webExtensionMenuCount,
             allWebExtensionsDisabled = allWebExtensionsDisabled,
             onExtensionsMenuClick = onExtensionsMenuClick,
             extensionSubmenu = extensionSubmenu,
-            extensionsMenuItemDescription = extensionsMenuItemDescription,
         )
     }
 }
