@@ -303,6 +303,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
             interactor,
             awesomeBar,
             fromHomeFragment,
+            browsingModeManager = activity.browsingModeManager,
         )
 
         binding.awesomeBar.setOnTouchListener { _, _ ->
