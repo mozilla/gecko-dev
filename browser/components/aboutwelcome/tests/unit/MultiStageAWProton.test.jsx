@@ -942,6 +942,53 @@ describe("MultiStageAboutWelcomeProton module", () => {
         "https://example.com/test-cn.svg"
       );
     });
+    let listeners = {};
+    let mediaQueryListMock;
+
+    beforeEach(() => {
+      listeners = {};
+      mediaQueryListMock = {
+        matches: false,
+        media: "(min-width: 800px)",
+        addEventListener: (event, cb) => {
+          listeners[event] = cb;
+        },
+        removeEventListener: event => {
+          delete listeners[event];
+        },
+        dispatchEvent: event => {
+          if (listeners[event.type]) {
+            listeners[event.type](event);
+          }
+        },
+      };
+
+      window.matchMedia = () => mediaQueryListMock;
+    });
+
+    it("responds to media query changes and uses main_content_style on wide screens, main_content_style_narrow on narrow screens", () => {
+      // narrow screen
+      mediaQueryListMock.matches = false;
+
+      const content = {
+        main_content_style: { paddingInline: "30px" },
+        main_content_style_narrow: { paddingInline: "10px" },
+      };
+
+      const wrapper = mount(<MultiStageProtonScreen content={content} />);
+
+      let styleProp = wrapper.find(".main-content-inner").prop("style");
+      assert.equal(styleProp.paddingInline, "10px");
+
+      mediaQueryListMock.matches = true;
+      mediaQueryListMock.dispatchEvent({ type: "change", matches: true });
+
+      wrapper.update();
+
+      // wide styles should be applied
+      styleProp = wrapper.find(".main-content-inner").prop("style");
+      assert.equal(styleProp.paddingInline, "30px");
+    });
   });
 
   describe("AboutWelcomeDefaults prepareContentForReact", () => {
