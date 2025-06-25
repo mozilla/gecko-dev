@@ -5,6 +5,8 @@ import { INITIAL_STATE, reducers } from "common/Reducers.sys.mjs";
 import { CardSections } from "content-src/components/DiscoveryStreamComponents/CardSections/CardSections";
 import { combineReducers, createStore } from "redux";
 import { DSCard } from "../../../../../content-src/components/DiscoveryStreamComponents/DSCard/DSCard";
+import { FollowSectionButtonHighlight } from "../../../../../content-src/components/DiscoveryStreamComponents/FeatureHighlight/FollowSectionButtonHighlight";
+
 const PREF_SECTIONS_PERSONALIZATION_ENABLED =
   "discoverystream.sections.personalization.enabled";
 
@@ -14,6 +16,7 @@ const DEFAULT_PROPS = {
   is_collection: true,
   spocMessageVariant: "",
   ctaButtonSponsors: [""],
+  anySectionsFollowed: false,
   data: {
     sections: [
       {
@@ -364,5 +367,86 @@ describe("<CardSections />", () => {
         skipLocal: true,
       },
     });
+  });
+
+  it("should render <FollowSectionButtonHighlight> when conditions match", () => {
+    const fakeMessageData = {
+      content: {
+        messageType: "FollowSectionButtonHighlight",
+      },
+    };
+
+    const layout = {
+      title: "layout_name",
+      responsiveLayouts: [
+        {
+          columnCount: 1,
+          tiles: [{ size: "large", position: 0, hasExcerpt: true }],
+        },
+      ],
+    };
+
+    const state = {
+      ...INITIAL_STATE,
+      DiscoveryStream: {
+        ...INITIAL_STATE.DiscoveryStream,
+        sectionPersonalization: {}, // no sections followed
+      },
+      Prefs: {
+        ...INITIAL_STATE.Prefs,
+        values: {
+          ...INITIAL_STATE.Prefs.values,
+          [PREF_SECTIONS_PERSONALIZATION_ENABLED]: true,
+        },
+      },
+      Messages: {
+        messageData: fakeMessageData,
+      },
+    };
+
+    wrapper = mount(
+      <WrapWithProvider state={state}>
+        <CardSections
+          dispatch={dispatch}
+          {...DEFAULT_PROPS}
+          data={{
+            ...DEFAULT_PROPS.data,
+            sections: [
+              {
+                data: [
+                  {
+                    title: "Card 1",
+                    image_src: "image1.jpg",
+                    url: "http://example.com",
+                  },
+                ],
+                receivedRank: 0,
+                sectionKey: "section_key_1",
+                title: "title",
+                layout,
+              },
+              {
+                data: [
+                  {
+                    title: "Card 2",
+                    image_src: "image2.jpg",
+                    url: "http://example.com",
+                  },
+                ],
+                receivedRank: 0,
+                sectionKey: "section_key_2",
+                title: "title",
+                layout,
+              },
+            ],
+          }}
+        />
+      </WrapWithProvider>
+    );
+
+    // Should only render for the second section (index 1)
+    const highlight = wrapper.find(FollowSectionButtonHighlight);
+    assert.equal(highlight.length, 1);
+    assert.isTrue(wrapper.html().includes("follow-section-button-highlight"));
   });
 });
