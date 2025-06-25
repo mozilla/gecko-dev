@@ -5094,12 +5094,6 @@
   value: false
   mirror: always
 
-# Whether view transitions use webrender for old-capture
-- name: dom.viewTransitions.wr-old-capture
-  type: bool
-  value: true
-  mirror: always
-
 # Is support for WebVR APIs enabled?
 # Disabled everywhere, but not removed.
 - name: dom.vr.enabled

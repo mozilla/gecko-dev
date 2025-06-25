@@ -4,13 +4,11 @@
 
 #include "ViewTransition.h"
 
-#include "mozilla/gfx/2D.h"
 #include "WindowRenderer.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/layers/RenderRootStateManager.h"
 #include "mozilla/dom/BindContext.h"
 #include "mozilla/layers/WebRenderBridgeChild.h"
-#include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/DocumentTimeline.h"
 #include "mozilla/dom/Promise-inl.h"
@@ -93,44 +91,6 @@ static inline nsSize CapturedSize(const nsIFrame* aFrame,
              : aFrame->InkOverflowRectRelativeToSelf().Size();
 }
 
-static RefPtr<gfx::DataSourceSurface> CaptureFallbackSnapshot(
-    nsIFrame* aFrame) {
-  VT_LOG_DEBUG("CaptureFallbackSnapshot(%s)", aFrame->ListTag().get());
-  nsPresContext* pc = aFrame->PresContext();
-  nsIFrame* frameToCapture = aFrame->Style()->IsRootElementStyle()
-                                 ? pc->PresShell()->GetCanvasFrame()
-                                 : aFrame;
-  const nsRect& rect = CapturedRect(aFrame);
-  const auto surfaceRect = LayoutDeviceIntRect::FromAppUnitsToOutside(
-      rect, pc->AppUnitsPerDevPixel());
-
-  // TODO: Should we use the DrawTargetRecorder infra or what not?
-  const auto format = gfx::SurfaceFormat::B8G8R8A8;
-  RefPtr<gfx::DrawTarget> dt = gfx::Factory::CreateDrawTarget(
-      gfxPlatform::GetPlatform()->GetSoftwareBackend(),
-      surfaceRect.Size().ToUnknownSize(), format);
-  if (NS_WARN_IF(!dt) || NS_WARN_IF(!dt->IsValid())) {
-    return nullptr;
-  }
-
-  {
-    using PaintFrameFlags = nsLayoutUtils::PaintFrameFlags;
-    gfxContext thebes(dt);
-    // TODO: This matches the drawable code we use for -moz-element(), but is
-    // this right?
-    const PaintFrameFlags flags = PaintFrameFlags::InTransform;
-    nsLayoutUtils::PaintFrame(&thebes, frameToCapture, rect,
-                              NS_RGBA(0, 0, 0, 0),
-                              nsDisplayListBuilderMode::Painting, flags);
-  }
-
-  RefPtr<gfx::SourceSurface> surf = dt->GetBackingSurface();
-  if (NS_WARN_IF(!surf)) {
-    return nullptr;
-  }
-  return surf->GetDataSurface();
-}
-
 // TODO(emilio): Bug 1970954. These aren't quite correct, per spec we're
 // supposed to only honor names and classes coming from the document, but that's
 // quite some magic, and it's getting actively discussed, see:
@@ -202,7 +162,6 @@ static constexpr wr::ImageKey kNoKey{{0}, 0};
 struct OldSnapshotData {
   wr::ImageKey mImageKey = kNoKey;
   nsSize mSize;
-  RefPtr<gfx::DataSourceSurface> mFallback;
   RefPtr<layers::RenderRootStateManager> mManager;
   bool mUsed = false;
 
@@ -211,9 +170,6 @@ struct OldSnapshotData {
   explicit OldSnapshotData(nsIFrame* aFrame,
                            const nsSize& aSnapshotContainingBlockSize)
       : mSize(CapturedSize(aFrame, aSnapshotContainingBlockSize)) {
-    if (!StaticPrefs::dom_viewTransitions_wr_old_capture()) {
-      mFallback = CaptureFallbackSnapshot(aFrame);
-    }
   }
 
   void EnsureKey(layers::RenderRootStateManager* aManager,
@@ -222,27 +178,9 @@ struct OldSnapshotData {
       MOZ_ASSERT(mManager == aManager, "Stale manager?");
       return;
     }
-    if (StaticPrefs::dom_viewTransitions_wr_old_capture()) {
-      mManager = aManager;
-      mImageKey = aManager->WrBridge()->GetNextImageKey();
-      aResources.AddSnapshotImage(wr::SnapshotImageKey{mImageKey});
-      return;
-    }
-    if (NS_WARN_IF(!mFallback)) {
-      return;
-    }
-    gfx::DataSourceSurface::ScopedMap map(mFallback,
-                                          gfx::DataSourceSurface::READ);
-    if (NS_WARN_IF(!map.IsMapped())) {
-      return;
-    }
     mManager = aManager;
     mImageKey = aManager->WrBridge()->GetNextImageKey();
-    auto size = mFallback->GetSize();
-    auto format = mFallback->GetFormat();
-    wr::ImageDescriptor desc(size, format);
-    Range<uint8_t> bytes(map.GetData(), map.GetStride() * size.height);
-    Unused << NS_WARN_IF(!aResources.AddImage(mImageKey, desc, bytes));
+    aResources.AddSnapshotImage(wr::SnapshotImageKey{mImageKey});
   }
 
   ~OldSnapshotData() {
@@ -1346,8 +1284,7 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
     mNames.AppendElement(name);
   }
 
-  if (!captureElements.IsEmpty() &&
-      StaticPrefs::dom_viewTransitions_wr_old_capture()) {
+  if (!captureElements.IsEmpty()) {
     // When snapshotting an iframe, we need to paint from the root subdoc.
     if (RefPtr<PresShell> ps =
             nsContentUtils::GetInProcessSubtreeRootDocument(mDocument)
