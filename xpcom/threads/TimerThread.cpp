@@ -915,6 +915,7 @@ TimerThread::Run() {
     VerifyTimerListConsistency();
 #endif
 
+    TimeDuration waitFor;
     if (!mSleeping) {
       // Determine how early we are going to allow timers to fire. In chaos mode
       // we mess with this a little bit.
@@ -952,13 +953,13 @@ TimerThread::Run() {
       CollectTimersFiredStatistics(timersFiredThisWakeup);
 #endif
 
-      // Determine how long to sleep for. Do this calculation at the last moment
-      // to get the most accurate value.
+      // Determine how long to sleep for. Grab TimeStamp::Now() at the last
+      // moment to get the most accurate value.
       const TimeStamp now = TimeStamp::Now();
-      const TimeDuration waitFor =
-          !wakeupTime.IsNull() ? std::max(TimeDuration::Zero(),
-                                          wakeupTime + chaosWaitDelay - now)
-                               : TimeDuration::Forever();
+      waitFor = !wakeupTime.IsNull()
+                    ? std::max(TimeDuration::Zero(),
+                               wakeupTime + chaosWaitDelay - now)
+                    : TimeDuration::Forever();
 
       if (MOZ_LOG_TEST(GetTimerLog(), LogLevel::Debug)) {
         if (waitFor == TimeDuration::Forever())
@@ -971,14 +972,6 @@ TimerThread::Run() {
 #ifdef XP_WIN
       wTFM.Update(now, mCachedPriority.load(std::memory_order_relaxed));
 #endif
-
-      // We're finished firing the timers that were ready, so wait until it's
-      // time for the next one.
-      Wait(waitFor);
-
-#if TIMER_THREAD_STATISTICS
-      CollectWakeupStatistics();
-#endif
     } else {
       mIntendedWakeupTime = TimeStamp{};
       // Sleep for 0.1 seconds while not firing timers.
@@ -986,9 +979,14 @@ TimerThread::Run() {
       if (chaosModeActive) {
         milliseconds = ChaosMode::randomUint32LessThan(200);
       }
-      const TimeDuration waitFor = TimeDuration::FromMilliseconds(milliseconds);
-      Wait(waitFor);
+      waitFor = TimeDuration::FromMilliseconds(milliseconds);
     }
+
+    Wait(waitFor);
+
+#if TIMER_THREAD_STATISTICS
+    CollectWakeupStatistics();
+#endif
   }
 
   return NS_OK;
