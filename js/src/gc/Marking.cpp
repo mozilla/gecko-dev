@@ -3034,7 +3034,7 @@ uintptr_t* GetMarkWordAddress(Cell* cell) {
     return nullptr;
   }
 
-  MarkBitmapWord* wordp;
+  AtomicBitmapWord* wordp;
   uintptr_t mask;
   ArenaChunkBase* chunk = gc::detail::GetCellChunkBase(&cell->asTenured());
   chunk->markBits.getMarkWordAndMask(&cell->asTenured(), ColorBit::BlackBit,
@@ -3050,7 +3050,7 @@ uintptr_t GetMarkMask(Cell* cell, uint32_t colorBit) {
   }
 
   ColorBit bit = colorBit == 0 ? ColorBit::BlackBit : ColorBit::GrayOrBlackBit;
-  MarkBitmapWord* wordp;
+  AtomicBitmapWord* wordp;
   uintptr_t mask;
   ArenaChunkBase* chunk = gc::detail::GetCellChunkBase(&cell->asTenured());
   chunk->markBits.getMarkWordAndMask(&cell->asTenured(), bit, &wordp, &mask);

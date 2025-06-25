@@ -7873,12 +7873,12 @@ void MacroAssembler::emitPreBarrierFastPath(JSRuntime* rt, MIRType type,
   andPtr(Imm32(gc::ChunkMask), temp1);
   rshiftPtr(Imm32(3), temp1);
 
-  static_assert(gc::MarkBitmapWordBits == JS_BITS_PER_WORD,
+  static_assert(gc::ChunkMarkBitmap::BitsPerWord == JS_BITS_PER_WORD,
                 "Calculation below relies on this");
 
   // Load the bitmap word in temp2.
   //
-  // word = chunk.bitmap[bit / MarkBitmapWordBits];
+  // word = chunk.bitmap[bit / WordBits];
 
   // Fold the adjustment for the fact that arenas don't start at the beginning
   // of the chunk into the offset to the chunk bitmap.
@@ -7898,8 +7898,8 @@ void MacroAssembler::emitPreBarrierFastPath(JSRuntime* rt, MIRType type,
 
   // Load the mask in temp1.
   //
-  // mask = uintptr_t(1) << (bit % MarkBitmapWordBits);
-  andPtr(Imm32(gc::MarkBitmapWordBits - 1), temp3);
+  // mask = uintptr_t(1) << (bit % WordBits);
+  andPtr(Imm32(gc::ChunkMarkBitmap::BitsPerWord - 1), temp3);
   move32(Imm32(1), temp1);
 #ifdef JS_CODEGEN_X64
   MOZ_ASSERT(temp3 == rcx);

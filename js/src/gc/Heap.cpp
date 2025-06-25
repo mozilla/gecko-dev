@@ -119,7 +119,7 @@ bool Arena::allocated() const {
 }
 
 void Arena::unmarkAll() {
-  MarkBitmapWord* arenaBits = chunk()->markBits.arenaBits(this);
+  AtomicBitmapWord* arenaBits = chunk()->markBits.arenaBits(this);
   for (size_t i = 0; i < ArenaBitmapWords; i++) {
     arenaBits[i] = 0;
   }

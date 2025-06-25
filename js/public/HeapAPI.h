@@ -223,11 +223,55 @@ static_assert(ArenasPerChunk == 252,
 
 const size_t FirstArenaOffset = ChunkSize - ArenasPerChunk * ArenaSize;
 
-// Mark bitmaps are atomic because they can be written by gray unmarking on the
-// main thread while read by sweeping on a background thread. The former does
-// not affect the result of the latter.
-using MarkBitmapWord = mozilla::Atomic<uintptr_t, mozilla::Relaxed>;
-static constexpr size_t MarkBitmapWordBits = sizeof(MarkBitmapWord) * CHAR_BIT;
+using AtomicBitmapWord = mozilla::Atomic<uintptr_t, mozilla::Relaxed>;
+
+// A bitmap backed by atomic storage.
+template <size_t N>
+class AtomicBitmap {
+ public:
+  static constexpr size_t BitCount = N;
+
+  using Word = AtomicBitmapWord;
+  static constexpr size_t BitsPerWord = sizeof(Word) * CHAR_BIT;
+
+  static_assert(N % BitsPerWord == 0);
+  static constexpr size_t WordCount = N / BitsPerWord;
+
+ private:
+  Word bitmap[WordCount];
+
+  static uintptr_t BitMask(size_t bit) {
+    MOZ_ASSERT(bit < N);
+    return uintptr_t(1) << (bit % BitsPerWord);
+  }
+
+ public:
+  bool getBit(size_t bit) const {
+    return getWord(bit / BitsPerWord) & BitMask(bit);
+  }
+
+  void setBit(size_t bit, bool value) {
+    Word& word = wordRef(bit / BitsPerWord);
+    if (value) {
+      word |= BitMask(bit);
+    } else {
+      word &= ~BitMask(bit);
+    }
+  }
+
+  uintptr_t getWord(size_t index) const {
+    MOZ_ASSERT(index < WordCount);
+    return bitmap[index];
+  }
+  Word& wordRef(size_t index) {
+    MOZ_ASSERT(index < WordCount);
+    return bitmap[index];
+  }
+
+  inline bool isEmpty() const;
+  inline void clear();
+  inline void copyFrom(const AtomicBitmap& other);
+};
 
 /*
  * Live objects are marked black or gray. Everything reachable from a JS root is
@@ -245,42 +289,48 @@ enum class ColorBit : uint32_t { BlackBit = 0, GrayOrBlackBit = 1 };
 // cell is.
 enum class MarkColor : uint8_t { Gray = 1, Black = 2 };
 
+static constexpr size_t ChunkMarkBitCount =
+    (ChunkSize - FirstArenaOffset) / CellBytesPerMarkBit;
+
 // Mark bitmap for a tenured heap chunk.
-template <size_t BytesPerMarkBit, size_t FirstThingOffset>
-class alignas(TypicalCacheLineSize) MarkBitmap {
-  static constexpr size_t ByteCount =
-      (ChunkSize - FirstThingOffset) / BytesPerMarkBit;
-  static constexpr size_t WordCount = HowMany(ByteCount, MarkBitmapWordBits);
-  MarkBitmapWord bitmap[WordCount];
+//
+// Mark bitmaps are atomic because they can be written by gray unmarking on the
+// main thread while read by sweeping on a background thread. The former does
+// not affect the result of the latter.
+class alignas(TypicalCacheLineSize) ChunkMarkBitmap
+    : protected AtomicBitmap<ChunkMarkBitCount> {
+  using Bitmap = AtomicBitmap<ChunkMarkBitCount>;
 
  public:
-  static constexpr size_t FirstThingAdjustmentBits =
-      FirstThingOffset / BytesPerMarkBit;
+  using Bitmap::BitsPerWord;
+  using Bitmap::WordCount;
 
+  static constexpr size_t FirstThingAdjustmentBits =
+      FirstArenaOffset / CellBytesPerMarkBit;
+  static_assert(FirstThingAdjustmentBits % BitsPerWord == 0);
   static constexpr size_t FirstThingAdjustmentWords =
-      FirstThingAdjustmentBits / MarkBitmapWordBits;
+      FirstThingAdjustmentBits / BitsPerWord;
 
   MOZ_ALWAYS_INLINE void getMarkWordAndMask(const void* cell, ColorBit colorBit,
-                                            MarkBitmapWord** wordp,
-                                            uintptr_t* maskp) {
+                                            Word** wordp, uintptr_t* maskp) {
     // Note: the JIT pre-barrier trampolines inline this code. Update
     // MacroAssembler::emitPreBarrierFastPath code too when making changes here!
 
     MOZ_ASSERT(size_t(colorBit) < MarkBitsPerCell);
 
     size_t offset = uintptr_t(cell) & ChunkMask;
-    MOZ_ASSERT(offset >= FirstThingOffset);
+    MOZ_ASSERT(offset >= FirstArenaOffset);
 
-    const size_t bit = offset / BytesPerMarkBit + size_t(colorBit);
-    size_t word = bit / MarkBitmapWordBits - FirstThingAdjustmentWords;
+    const size_t bit = offset / CellBytesPerMarkBit + size_t(colorBit);
+    size_t word = bit / BitsPerWord - FirstThingAdjustmentWords;
     MOZ_ASSERT(word < WordCount);
-    *wordp = &bitmap[word];
-    *maskp = uintptr_t(1) << (bit % MarkBitmapWordBits);
+    *wordp = &wordRef(word);
+    *maskp = uintptr_t(1) << (bit % BitsPerWord);
   }
 
   // The following are not exported and are defined in gc/Heap.h:
   MOZ_ALWAYS_INLINE bool markBit(const void* cell, ColorBit colorBit) {
-    MarkBitmapWord* word;
+    Word* word;
     uintptr_t mask;
     getMarkWordAndMask(cell, colorBit, &word, &mask);
     return *word & mask;
@@ -310,13 +360,11 @@ class alignas(TypicalCacheLineSize) MarkBitmap {
                           ColorBit colorBit);
   inline void unmark(const void* cell);
   inline void unmarkOneBit(const void* cell, ColorBit colorBit);
-  inline MarkBitmapWord* arenaBits(Arena* arena);
+  inline AtomicBitmapWord* arenaBits(Arena* arena);
 
-  inline void copyFrom(const MarkBitmap& other);
-  inline void clear();
+  inline void copyFrom(const ChunkMarkBitmap& other);
+  using Bitmap::clear;
 };
-
-using ChunkMarkBitmap = MarkBitmap<CellBytesPerMarkBit, FirstArenaOffset>;
 
 // Bitmap with one bit per page used for decommitted page set.
 using ChunkPageBitmap = mozilla::BitSet<PagesPerChunk, uint32_t>;

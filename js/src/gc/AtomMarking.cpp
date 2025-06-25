@@ -134,7 +134,8 @@ void AtomMarkingRuntime::refineZoneBitmapsForCollectedZones(GCRuntime* gc) {
       for (ArenaIterInGC aiter(gc->atomsZone(), thingKind); !aiter.done();
            aiter.next()) {
         Arena* arena = aiter.get();
-        MarkBitmapWord* chunkWords = arena->chunk()->markBits.arenaBits(arena);
+        AtomicBitmapWord* chunkWords =
+            arena->chunk()->markBits.arenaBits(arena);
         zone->markedAtoms().bitwiseAndRangeWith(arena->atomBitmapStart(),
                                                 ArenaBitmapWords, chunkWords);
       }
@@ -155,7 +156,7 @@ bool AtomMarkingRuntime::computeBitmapFromChunkMarkBits(GCRuntime* gc,
     for (ArenaIterInGC aiter(atomsZone, thingKind); !aiter.done();
          aiter.next()) {
       Arena* arena = aiter.get();
-      MarkBitmapWord* chunkWords = arena->chunk()->markBits.arenaBits(arena);
+      AtomicBitmapWord* chunkWords = arena->chunk()->markBits.arenaBits(arena);
       bitmap.copyBitsFrom(arena->atomBitmapStart(), ArenaBitmapWords,
                           chunkWords);
     }
@@ -190,7 +191,7 @@ static void BitwiseOrIntoChunkMarkBits(Zone* atomsZone, Bitmap& bitmap) {
     for (ArenaIterInGC aiter(atomsZone, thingKind); !aiter.done();
          aiter.next()) {
       Arena* arena = aiter.get();
-      MarkBitmapWord* chunkWords = arena->chunk()->markBits.arenaBits(arena);
+      AtomicBitmapWord* chunkWords = arena->chunk()->markBits.arenaBits(arena);
       bitmap.bitwiseOrRangeInto(arena->atomBitmapStart(), ArenaBitmapWords,
                                 chunkWords);
     }

@@ -94,11 +94,9 @@ inline size_t& js::gc::Arena::atomBitmapStart() {
 // unmarking occurs in parallel with background sweeping.
 
 // The return value indicates if the cell went from unmarked to marked.
-template <size_t BytesPerMarkBit, size_t FirstThingOffset>
-MOZ_ALWAYS_INLINE bool
-js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markIfUnmarked(
+MOZ_ALWAYS_INLINE bool js::gc::ChunkMarkBitmap::markIfUnmarked(
     const void* cell, MarkColor color) {
-  MarkBitmapWord* word;
+  Word* word;
   uintptr_t mask;
   getMarkWordAndMask(cell, ColorBit::BlackBit, &word, &mask);
   if (*word & mask) {
@@ -126,11 +124,9 @@ js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markIfUnmarked(
 //
 // This method is used for parallel marking where the extra synchronization
 // required to avoid this results in worse performance overall.
-template <size_t BytesPerMarkBit, size_t FirstThingOffset>
-MOZ_ALWAYS_INLINE bool
-js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markIfUnmarkedThreadSafe(
+MOZ_ALWAYS_INLINE bool js::gc::ChunkMarkBitmap::markIfUnmarkedThreadSafe(
     const void* cell, MarkColor color) {
-  MarkBitmapWord* word;
+  Word* word;
   uintptr_t mask;
   getMarkWordAndMask(cell, ColorBit::BlackBit, &word, &mask);
   if (*word & mask) {
@@ -150,37 +146,30 @@ js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markIfUnmarkedThreadSafe(
   return true;
 }
 
-template <size_t BytesPerMarkBit, size_t FirstThingOffset>
-MOZ_ALWAYS_INLINE void
-js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markBlack(
-    const void* cell) {
-  MarkBitmapWord* word;
+MOZ_ALWAYS_INLINE void js::gc::ChunkMarkBitmap::markBlack(const void* cell) {
+  Word* word;
   uintptr_t mask;
   getMarkWordAndMask(cell, ColorBit::BlackBit, &word, &mask);
   uintptr_t bits = *word;
   *word = bits | mask;
 }
 
-template <size_t BytesPerMarkBit, size_t FirstThingOffset>
-MOZ_ALWAYS_INLINE void
-js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::markBlackAtomic(
+MOZ_ALWAYS_INLINE void js::gc::ChunkMarkBitmap::markBlackAtomic(
     const void* cell) {
-  MarkBitmapWord* word;
+  Word* word;
   uintptr_t mask;
   getMarkWordAndMask(cell, ColorBit::BlackBit, &word, &mask);
   *word |= mask;
 }
 
-template <size_t BytesPerMarkBit, size_t FirstThingOffset>
-MOZ_ALWAYS_INLINE void
-js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::copyMarkBit(
+MOZ_ALWAYS_INLINE void js::gc::ChunkMarkBitmap::copyMarkBit(
     TenuredCell* dst, const TenuredCell* src, ColorBit colorBit) {
   ArenaChunkBase* srcChunk = detail::GetCellChunkBase(src);
-  MarkBitmapWord* srcWord;
+  Word* srcWord;
   uintptr_t srcMask;
   srcChunk->markBits.getMarkWordAndMask(src, colorBit, &srcWord, &srcMask);
 
-  MarkBitmapWord* dstWord;
+  Word* dstWord;
   uintptr_t dstMask;
   getMarkWordAndMask(dst, colorBit, &dstWord, &dstMask);
 
@@ -192,19 +181,14 @@ js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::copyMarkBit(
   *dstWord = bits;
 }
 
-template <size_t BytesPerMarkBit, size_t FirstThingOffset>
-MOZ_ALWAYS_INLINE void
-js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::unmark(
-    const void* cell) {
+MOZ_ALWAYS_INLINE void js::gc::ChunkMarkBitmap::unmark(const void* cell) {
   unmarkOneBit(cell, ColorBit::BlackBit);
   unmarkOneBit(cell, ColorBit::GrayOrBlackBit);
 }
 
-template <size_t BytesPerMarkBit, size_t FirstThingOffset>
-MOZ_ALWAYS_INLINE void
-js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::unmarkOneBit(
+MOZ_ALWAYS_INLINE void js::gc::ChunkMarkBitmap::unmarkOneBit(
     const void* cell, ColorBit colorBit) {
-  MarkBitmapWord* word;
+  Word* word;
   uintptr_t mask;
   uintptr_t bits;
   getMarkWordAndMask(cell, colorBit, &word, &mask);
@@ -212,34 +196,47 @@ js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::unmarkOneBit(
   *word = bits & ~mask;
 }
 
-template <size_t BytesPerMarkBit, size_t FirstThingOffset>
-inline js::gc::MarkBitmapWord*
-js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::arenaBits(Arena* arena) {
+inline js::gc::AtomicBitmapWord* js::gc::ChunkMarkBitmap::arenaBits(
+    Arena* arena) {
   static_assert(
       ArenaBitmapBits == ArenaBitmapWords * JS_BITS_PER_WORD,
       "We assume that the part of the bitmap corresponding to the arena "
       "has the exact number of words so we do not need to deal with a word "
       "that covers bits from two arenas.");
 
-  MarkBitmapWord* word;
+  Word* word;
   uintptr_t unused;
   getMarkWordAndMask(arena, ColorBit::BlackBit, &word, &unused);
   return word;
 }
 
-template <size_t BytesPerMarkBit, size_t FirstThingOffset>
-void js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::copyFrom(
-    const MarkBitmap& other) {
+inline void js::gc::ChunkMarkBitmap::copyFrom(const ChunkMarkBitmap& other) {
+  Bitmap::copyFrom(other);
+}
+
+template <size_t N>
+void js::gc::AtomicBitmap<N>::copyFrom(const AtomicBitmap& other) {
   for (size_t i = 0; i < WordCount; i++) {
     bitmap[i] = uintptr_t(other.bitmap[i]);
   }
 }
 
-template <size_t BytesPerMarkBit, size_t FirstThingOffset>
-void js::gc::MarkBitmap<BytesPerMarkBit, FirstThingOffset>::clear() {
+template <size_t N>
+void js::gc::AtomicBitmap<N>::clear() {
   for (size_t i = 0; i < WordCount; i++) {
     bitmap[i] = 0;
   }
+}
+
+template <size_t N>
+bool js::gc::AtomicBitmap<N>::isEmpty() const {
+  for (size_t i = 0; i < WordCount; i++) {
+    if (bitmap[i]) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 bool js::gc::TenuredCell::markIfUnmarked(MarkColor color /* = Black */) const {
