@@ -293,8 +293,8 @@ void TransactionBuilder::ClearDisplayList(Epoch aEpoch,
 }
 
 void TransactionBuilder::GenerateFrame(const VsyncId& aVsyncId, bool aPresent,
-                                       wr::RenderReasons aReasons) {
-  wr_transaction_generate_frame(mTxn, aVsyncId.mId, aPresent, aReasons);
+                                       bool aTracked, wr::RenderReasons aReasons) {
+  wr_transaction_generate_frame(mTxn, aVsyncId.mId, aPresent, aTracked, aReasons);
 }
 
 void TransactionBuilder::InvalidateRenderedFrame(wr::RenderReasons aReasons) {
@@ -724,6 +724,7 @@ void WebRenderAPI::Readback(const TimeStamp& aStartTime, gfx::IntSize size,
           .present = true,
           .render = true,
           .scrolled = false,
+          .tracked = false,
       };
       aRenderThread.UpdateAndRender(aWindowId, VsyncId(), mStartTime, params,
                                     Some(mSize),

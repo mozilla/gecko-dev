@@ -1034,6 +1034,19 @@ impl RenderBackend {
                         pending_update,
                     );
                     self.result_tx.send(msg).unwrap();
+
+                    let params = api::FrameReadyParams {
+                        present: false,
+                        render: true,
+                        scrolled: false,
+                        tracked: false,
+                    };
+
+                    self.notifier.new_frame_ready(
+                        txn.document_id,
+                        self.frame_publish_id,
+                        &params
+                    );
                 }
             } else {
                 // The document was removed while we were building it, skip it.
@@ -1052,6 +1065,7 @@ impl RenderBackend {
                 txn.notifications.take(),
                 txn.render_frame,
                 txn.present,
+                txn.tracked,
                 RenderReasons::SCENE,
                 None,
                 txn.invalidate_rendered_frame,
@@ -1403,6 +1417,7 @@ impl RenderBackend {
                 txn.notifications.take(),
                 txn.generate_frame.as_bool(),
                 txn.generate_frame.present(),
+                txn.generate_frame.tracked(),
                 txn.render_reasons,
                 txn.generate_frame.id(),
                 txn.invalidate_rendered_frame,
@@ -1443,6 +1458,7 @@ impl RenderBackend {
                     Vec::default(),
                     false,
                     false,
+                    false,
                     RenderReasons::empty(),
                     None,
                     false,
@@ -1466,6 +1482,7 @@ impl RenderBackend {
         mut notifications: Vec<NotificationRequest>,
         mut render_frame: bool,
         mut present: bool,
+        tracked: bool,
         render_reasons: RenderReasons,
         generated_frame_id: Option<u64>,
         invalidate_rendered_frame: bool,
@@ -1682,6 +1699,7 @@ impl RenderBackend {
                 present,
                 render: render_frame,
                 scrolled: scroll,
+                tracked,
             };
             self.notifier.new_frame_ready(document_id, self.frame_publish_id, &params);
         }
@@ -2070,6 +2088,7 @@ impl RenderBackend {
                         present: true,
                         render: true,
                         scrolled: false,
+                        tracked: false,
                     };
                     self.notifier.new_frame_ready(id, self.frame_publish_id, &params);
 

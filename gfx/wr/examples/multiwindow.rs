@@ -278,7 +278,7 @@ impl Window {
             builder.end(),
         );
         txn.set_root_pipeline(self.pipeline_id);
-        txn.generate_frame(0, true, RenderReasons::empty());
+        txn.generate_frame(0, true, false, RenderReasons::empty());
         api.send_transaction(self.document_id, txn);
 
         renderer.update();

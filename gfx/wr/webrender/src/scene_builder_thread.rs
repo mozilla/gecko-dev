@@ -71,6 +71,7 @@ pub struct BuiltTransaction {
     pub spatial_tree_updates: Option<SpatialTreeUpdates>,
     pub render_frame: bool,
     pub present: bool,
+    pub tracked: bool,
     pub invalidate_rendered_frame: bool,
     pub profile: TransactionProfile,
     pub frame_stats: FullFrameStats,
@@ -486,6 +487,7 @@ impl SceneBuilderThread {
             let txns = vec![Box::new(BuiltTransaction {
                 document_id: item.document_id,
                 render_frame: item.build_frame,
+                tracked: false,
                 present: true,
                 invalidate_rendered_frame: false,
                 built_scene,
@@ -701,6 +703,7 @@ impl SceneBuilderThread {
             document_id: txn.document_id,
             render_frame: txn.generate_frame.as_bool(),
             present: txn.generate_frame.present(),
+            tracked: txn.generate_frame.tracked(),
             invalidate_rendered_frame: txn.invalidate_rendered_frame,
             built_scene,
             offscreen_scenes,
