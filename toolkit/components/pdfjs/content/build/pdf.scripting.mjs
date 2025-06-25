@@ -21,8 +21,8 @@
  */
 
 /**
- * pdfjsVersion = 5.3.42
- * pdfjsBuild = 250cc7d29
+ * pdfjsVersion = 5.3.77
+ * pdfjsBuild = 85b67f19b
  */
 
 ;// ./src/scripting_api/constants.js
@@ -247,6 +247,8 @@ class ColorConverters {
     return ["CMYK", c, m, y, k];
   }
 }
+const DateFormats = ["m/d", "m/d/yy", "mm/dd/yy", "mm/yy", "d-mmm", "d-mmm-yy", "dd-mmm-yy", "yy-mm-dd", "mmm-yy", "mmmm-yy", "mmm d, yyyy", "mmmm d, yyyy", "m/d/yy h:MM tt", "m/d/yy HH:MM"];
+const TimeFormats = ["HH:MM", "h:MM tt", "HH:MM:ss", "h:MM:ss tt"];
 
 ;// ./src/scripting_api/pdf_object.js
 class PDFObject {
@@ -947,29 +949,25 @@ class CheckboxField extends RadioButtonField {
 
 ;// ./src/scripting_api/aform.js
 
+
 class AForm {
   constructor(document, app, util, color) {
     this._document = document;
     this._app = app;
     this._util = util;
     this._color = color;
-    this._dateFormats = ["m/d", "m/d/yy", "mm/dd/yy", "mm/yy", "d-mmm", "d-mmm-yy", "dd-mmm-yy", "yy-mm-dd", "mmm-yy", "mmmm-yy", "mmm d, yyyy", "mmmm d, yyyy", "m/d/yy h:MM tt", "m/d/yy HH:MM"];
-    this._timeFormats = ["HH:MM", "h:MM tt", "HH:MM:ss", "h:MM:ss tt"];
     this._emailRegex = new RegExp("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+" + "@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?" + "(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$");
   }
   _mkTargetName(event) {
     return event.target ? `[ ${event.target.name} ]` : "";
   }
-  _parseDate(cFormat, cDate, strict = false) {
+  _parseDate(cFormat, cDate) {
     let date = null;
     try {
-      date = this._util._scand(cFormat, cDate, strict);
+      date = this._util._scand(cFormat, cDate, false);
     } catch {}
     if (date) {
       return date;
-    }
-    if (strict) {
-      return null;
     }
     date = Date.parse(cDate);
     return isNaN(date) ? null : new Date(date);
@@ -1122,9 +1120,7 @@ class AForm {
     }
   }
   AFDate_Format(pdf) {
-    if (pdf >= 0 && pdf < this._dateFormats.length) {
-      this.AFDate_FormatEx(this._dateFormats[pdf]);
-    }
+    this.AFDate_FormatEx(DateFormats[pdf] ?? pdf);
   }
   AFDate_KeystrokeEx(cFormat) {
     const event = globalThis.event;
@@ -1135,7 +1131,7 @@ class AForm {
     if (!value) {
       return;
     }
-    if (this._parseDate(cFormat, value, true) === null) {
+    if (this._parseDate(cFormat, value) === null) {
       const invalid = GlobalConstants.IDS_INVALID_DATE;
       const invalid2 = GlobalConstants.IDS_INVALID_DATE2;
       const err = `${invalid} ${this._mkTargetName(event)}${invalid2}${cFormat}`;
@@ -1144,8 +1140,8 @@ class AForm {
     }
   }
   AFDate_Keystroke(pdf) {
-    if (pdf >= 0 && pdf < this._dateFormats.length) {
-      this.AFDate_KeystrokeEx(this._dateFormats[pdf]);
+    if (pdf >= 0 && pdf < DateFormats.length) {
+      this.AFDate_KeystrokeEx(DateFormats[pdf]);
     }
   }
   AFRange_Validate(bGreaterThan, nGreaterThan, bLessThan, nLessThan) {
@@ -1383,16 +1379,14 @@ class AForm {
     this.AFDate_FormatEx(cFormat);
   }
   AFTime_Format(pdf) {
-    if (pdf >= 0 && pdf < this._timeFormats.length) {
-      this.AFDate_FormatEx(this._timeFormats[pdf]);
-    }
+    this.AFDate_FormatEx(TimeFormats[pdf] ?? pdf);
   }
   AFTime_KeystrokeEx(cFormat) {
     this.AFDate_KeystrokeEx(cFormat);
   }
   AFTime_Keystroke(pdf) {
-    if (pdf >= 0 && pdf < this._timeFormats.length) {
-      this.AFDate_KeystrokeEx(this._timeFormats[pdf]);
+    if (pdf >= 0 && pdf < TimeFormats.length) {
+      this.AFDate_KeystrokeEx(TimeFormats[pdf]);
     }
   }
   eMailValidate(str) {
@@ -3507,7 +3501,7 @@ class Util extends PDFObject {
       ddd: data => this._days[data.dayOfWeek].substring(0, 3),
       dd: data => data.day.toString().padStart(2, "0"),
       d: data => data.day.toString(),
-      yyyy: data => data.year.toString(),
+      yyyy: data => data.year.toString().padStart(4, "0"),
       yy: data => (data.year % 100).toString().padStart(2, "0"),
       HH: data => data.hours.toString().padStart(2, "0"),
       H: data => data.hours.toString(),
