@@ -1,0 +1,144 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tests for smooth scroll preferences changes triggered by prefers-reduced-motion setting</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script type="text/javascript" src="/tests/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js"></script>
+<script type="text/javascript" src="/tests/gfx/layers/apz/test/mochitest/apz_test_utils.js"></script>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
+<style>
+.spacer {
+  height: 500vh;
+}
+</style>
+</head>
+<body>
+<p id="display"></p>
+<div id="content" style="display: none"></div>
+<pre id="test"></pre>
+<div class="spacer"></div>
+<script>
+async function changePrefersReducedMotion(aValue) {
+  const uiPrefChangedPromise = new Promise(resolve => {
+    SpecialPowers.addAsyncObserver(function LookAndFeelChanged() {
+      SpecialPowers.removeAsyncObserver(LookAndFeelChanged, "look-and-feel-changed");
+      resolve();
+    }, "look-and-feel-changed");
+  });
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["ui.prefersReducedMotion", aValue]],
+  });
+  await uiPrefChangedPromise;
+
+  // NOTE: Changing "ui.prefersReducedMotion" takes some amount of time for
+  // some reasons, without this `promiseWaitForCondition`
+  // `SpecialPowers.getBoolPref("general.smoothScroll")` checks in this test
+  // intermittently fail specifically in verify runs.
+  await SimpleTest.promiseWaitForCondition(() =>
+    SpecialPowers.getIntPref("ui.prefersReducedMotion") == aValue, "");
+  // Give a chance to reflect the "ui.prefersReducedMotion" change to
+  // "general.smoothScroll".
+  await new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+add_setup(async () => {
+  if (SpecialPowers.Services.prefs.prefHasUserValue("general.smoothScroll")) {
+    const original = SpecialPowers.getBoolPref("general.smoothScroll");
+    await SpecialPowers.clearUserPref("general.smoothScroll");
+    // Restore the original value when this test finished.
+    SimpleTest.registerCleanupFunction(async () => {
+      await SpecialPowers.setBoolPref("general.smoothScroll", original);
+    });
+  }
+
+  // Clear out `ui.prefersReducedMotion`.
+  await SpecialPowers.pushPrefEnv({
+    clear: [["ui.prefersReducedMotion"]],
+  });
+
+  SimpleTest.registerCleanupFunction(async () => {
+    await SpecialPowers.clearUserPref("ui.prefersReducedMotion");
+  });
+
+  await changePrefersReducedMotion(0);
+});
+
+function promiseTwoScrollEvents(aTarget) {
+  return new Promise(resolve => {
+    let count = 0;
+    const listener = event => {
+      if (++count == 2) {
+        aTarget.removeEventListener("scroll", listener);
+        resolve();
+      }
+    }
+    aTarget.addEventListener("scroll", listener);
+  });
+}
+
+add_task(async () => {
+  // This test assumes that the default value of `general.smoothScroll` is
+  // true.
+  ok(SpecialPowers.getBoolPref("general.smoothScroll"),
+     "The default smoothScroll is true");
+
+  // Do a smooth scroll operation.
+  let twoScrollEventsPromise = promiseTwoScrollEvents(window);
+  window.scrollBy({top: 500, behavior: "smooth"});
+  await twoScrollEventsPromise;
+
+  // Clobber the smooth scrolling.
+  window.scrollTo({top: 0, behavior: "instant"});
+  is(window.scrollY, 0);
+
+  // Set preferes-reduced-motion.
+  await changePrefersReducedMotion(1);
+  ok(!SpecialPowers.getBoolPref("general.smoothScroll"),
+     "The default smoothScroll is now false");
+
+  // Do a smooth scroll operation, but it should be now instant.
+  let scrollEventPromise = promiseOneEvent(window, "scroll");
+  window.scrollBy({top: 500, behavior: "smooth"});
+  await scrollEventPromise;
+  // Allow 1px difference here since this test document gets loaded in an
+  // iframe and the top level content document doesn't have any meta viewport
+  // tag, thus this test document gets scaled down by < 1.0 value.
+  isfuzzy(window.scrollY, 500, 1);
+
+  // Reset the scroll position.
+  window.scrollTo({top: 0, behavior: "instant"});
+  is(window.scrollY, 0);
+
+  // Disable preferes-reduced-motion.
+  await changePrefersReducedMotion(0);
+  ok(SpecialPowers.getBoolPref("general.smoothScroll"),
+     "The default smoothScroll is now true again");
+
+  // Set `general.smoothScroll` to true.
+  await SpecialPowers.setBoolPref("general.smoothScroll", true);
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  // Do a smooth scroll operation.
+  twoScrollEventsPromise = promiseTwoScrollEvents(window);
+  window.scrollBy({top: 500, behavior: "smooth"});
+  await twoScrollEventsPromise;
+
+  // Clobber the smooth scrolling.
+  window.scrollTo({top: 0, behavior: "instant"});
+  is(window.scrollY, 0);
+
+  // Set preferes-reduced-motion again.
+  await changePrefersReducedMotion(1);
+  ok(SpecialPowers.getBoolPref("general.smoothScroll"),
+     "The default smoothScroll is no longer be able to be changed by prefers-reduced-motion");
+
+  // Do a smooth scroll operation again, it should be smooth.
+  twoScrollEventsPromise = promiseTwoScrollEvents(window);
+  window.scrollBy({top: 500, behavior: "smooth"});
+  await twoScrollEventsPromise;
+});
+</script>
+</body>
+</html>

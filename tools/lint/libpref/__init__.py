@@ -23,6 +23,7 @@ IGNORE_PREFS = {
     "apz.fling_curve_function_y2",  # This pref is a part of a series.
     "dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled",  # NOQA: E501; Uses the 'locked' attribute.
     "extensions.backgroundServiceWorker.enabled",  # NOQA: E501; Uses the 'locked' attribute.
+    "general.smoothScroll",  # Uses the 'sticky` attribute.
 }
 
 # A regular expression to match preference names and values from js preference

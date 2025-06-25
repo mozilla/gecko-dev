@@ -589,6 +589,8 @@ support-files = [
 
 ["test_scroll_space_no_range_overflow_scroll.html"]
 
+["test_smooth_scroll_preference.html"]
+
 ["test_synthmousemove.html"]
 support-files = [
   "helper_synthmousemove.html",

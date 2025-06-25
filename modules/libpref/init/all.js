@@ -4127,3 +4127,7 @@ pref("privacy.query_stripping.strip_on_share.canDisable", true);
 // Captcha Detection
 pref("captchadetection.loglevel", "Warn");
 pref("captchadetection.actor.enabled", true);
+
+// Make general.smoothScroll sticky to avoid being clobbered by
+// preferes-reduced-motion system setting.
+pref("general.smoothScroll", true, sticky);
