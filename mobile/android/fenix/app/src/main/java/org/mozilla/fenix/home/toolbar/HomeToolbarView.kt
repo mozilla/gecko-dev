@@ -158,7 +158,6 @@ internal class HomeToolbarView(
         lifecycleOwner = homeFragment.viewLifecycleOwner,
         homeActivity = homeActivity,
         navController = homeFragment.findNavController(),
-        homeFragment = homeFragment,
         menuButton = WeakReference(toolbarBinding.menuButton),
     ).also { it.build() }
 

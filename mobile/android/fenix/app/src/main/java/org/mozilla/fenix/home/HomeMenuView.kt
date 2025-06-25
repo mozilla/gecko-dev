@@ -39,7 +39,6 @@ import org.mozilla.fenix.GleanMetrics.HomeMenu as HomeMenuMetrics
  * @param lifecycleOwner [LifecycleOwner] for the view.
  * @param homeActivity [HomeActivity] used to open URLs in a new tab.
  * @param navController [NavController] used for navigation.
- * @param homeFragment [HomeFragment] used to attach the biometric prompt.
  * @param menuButton The [MenuButton] that will be used to create a menu when the button is
  * clicked.
  * @param fxaEntrypoint The source entry point to FxA.
@@ -50,7 +49,6 @@ class HomeMenuView(
     private val lifecycleOwner: LifecycleOwner,
     private val homeActivity: HomeActivity,
     private val navController: NavController,
-    private val homeFragment: HomeFragment,
     private val menuButton: WeakReference<MenuButton>,
     private val fxaEntrypoint: FxAEntryPoint = FenixFxAEntryPoint.HomeMenu,
 ) {
