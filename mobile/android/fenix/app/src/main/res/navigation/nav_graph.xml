@@ -183,9 +183,8 @@
         app:destination="@id/trust_panel_graph" />
     <action
         android:id="@+id/action_global_unlockPrivateTabsFragment"
-        app:launchSingleTop="true"
         app:popUpTo="@id/unlockPrivateTabsFragment"
-        app:popUpToInclusive="false"
+        app:popUpToInclusive="true"
         app:destination="@+id/unlockPrivateTabsFragment"/>
     <action
         android:id="@+id/action_global_customReviewPromptDialogFragment"
