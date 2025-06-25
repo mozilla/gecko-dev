@@ -1094,6 +1094,8 @@ export var AddonTestUtils = {
         await IOUtils.writeJSON(leafPath, data);
       } else if (typeof data == "string") {
         await IOUtils.writeUTF8(leafPath, data);
+      } else if (ChromeUtils.getClassName(data) === "ArrayBuffer") {
+        await IOUtils.write(leafPath, new Uint8Array(data));
       }
     }
 

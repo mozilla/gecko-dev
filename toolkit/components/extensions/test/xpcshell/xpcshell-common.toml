@@ -40,6 +40,8 @@ skip-if = ["os == 'android'"] # Bug 1545439
 
 ["test_ext_asyncAPICall_isHandlingUserInput.js"]
 
+["test_ext_audio_mozextension.js"]
+
 ["test_ext_background_api_injection.js"]
 
 ["test_ext_background_early_shutdown.js"]

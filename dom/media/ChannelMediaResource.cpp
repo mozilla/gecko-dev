@@ -357,6 +357,9 @@ nsresult ChannelMediaResource::OnStopRequest(nsIRequest* aRequest,
   // But don't reopen if we need to seek and we don't think we can... that would
   // cause us to just re-read the stream, which would be really bad.
   /*
+   * The conditions below were added in bug 522114 (offset 0 or seekable check)
+   * and bug 1373618 (offset != length check).
+   *
    * | length |    offset |   reopen |
    * +--------+-----------+----------+
    * |     -1 |         0 |      yes |
@@ -371,7 +374,12 @@ nsresult ChannelMediaResource::OnStopRequest(nsIRequest* aRequest,
    * +--------+-----------+----------+
    * |    > 0 | == length |       no |
    */
-  if (aStatus != NS_ERROR_PARSED_DATA_CACHED && aStatus != NS_BINDING_ABORTED) {
+  // Seek() below calls into OpenChannel(), which would fail in
+  // SetupChannelHeaders() with non-http channels.
+  nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(mChannel);
+  if (aStatus != NS_ERROR_PARSED_DATA_CACHED && aStatus != NS_BINDING_ABORTED &&
+      hc) {
+    // TODO: Move this logic to NotifyDataEnded, see bug 1464045.
     auto lengthAndOffset = mCacheStream.GetLengthAndOffset();
     int64_t length = lengthAndOffset.mLength;
     int64_t offset = lengthAndOffset.mOffset;
