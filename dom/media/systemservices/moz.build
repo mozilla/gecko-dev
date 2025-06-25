@@ -18,6 +18,9 @@ if CONFIG["MOZ_WEBRTC"]:
         "VideoEngine.cpp",
         "VideoFrameUtils.cpp",
     ]
+    SOURCES += [
+        "fake_video_capture/video_capture_fake.cpp",
+    ]
     LOCAL_INCLUDES += [
         "/dom/media/webrtc",
         "/media/libyuv/libyuv/include",
