@@ -85,9 +85,9 @@
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Os scripts não verificados podem apresentar riscos de segurança e de privacidade. Apenas execute scripts de extensões ou fontes em que confia.</string>
   <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
-  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">O programador diz que esta extensão recolhe: %1$s.</string>
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">O programador indica que esta extensão recolhe: %1$s.</string>
   <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
-  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">O programador diz que esta extensão recolhe: %1$s</string>
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">O programador indica que esta extensão recolhe: %1$s</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">O programador indica que esta extensão não requer a recolha de dados.</string>
   <!-- Description for devtools permission. -->
@@ -103,7 +103,7 @@
   <!-- Short description for the browsingActivity data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_short_description">atividade de navegação</string>
   <!-- Short description for the financialAndPaymentInfo data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_short_description">informação financeira e de pagamento</string>
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_short_description">informação financeira e de pagamentos</string>
   <!-- Short description for the healthInfo data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_healthInfo_short_description">informação de saúde</string>
   <!-- Short description for the locationInfo data collection permission -->
@@ -117,33 +117,33 @@
   <!-- Short description for the technicalAndInteraction data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_short_description">dados técnicos e de interação</string>
   <!-- Short description for the websiteActivity data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">atividade de website</string>
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">atividade de websites</string>
   <!-- Short description for the websiteContent data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">conteúdo do website</string>
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">conteúdo de websites</string>
   <!-- Long description for the authenticationInfo data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">Partilhar a informação de autenticação com o programador da extensão</string>
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">Partilha de informação de autenticação com o programador da extensão</string>
   <!-- Long description for the bookmarksInfo data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">Partilha de informação de marcadores com o programador da extensão</string>
   <!-- Long description for the browsingActivity data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">Partilhar a atividade de navegação com o programador da extensão</string>
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">Partilha de atividade de navegação com o programador da extensão</string>
   <!-- Long description for the financialAndPaymentInfo data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description">Partilhar informações financeiras e de pagamento com o programador da extensão</string>
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description">Partilha de informações financeiras e de pagamento com o programador da extensão</string>
   <!-- Long description for the healthInfo data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">Partilhar informações de saúde com o programador da extensão</string>
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">Partilha de informações de saúde com o programador da extensão</string>
   <!-- Long description for the locationInfo data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_long_description">Partilhar a informação de localização com o programador da extensão</string>
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_long_description">Partilha de informação de localização com o programador da extensão</string>
   <!-- Long description for the personalCommunications data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_long_description">Partilhar comunicações pessoais com o programador da extensão</string>
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_long_description">Partilha de comunicações pessoais com o programador da extensão</string>
   <!-- Long description for the personallyIdentifyingInfo data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_long_description">Partilhar informações de identificação pessoal com o programador da extensão</string>
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_long_description">Partilha de informações de identificação pessoal com o programador da extensão</string>
   <!-- Long description for the searchTerms data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_long_description">Partilhar termos de pesquisa com o programador da extensão</string>
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_long_description">Partilha de termos de pesquisa com o programador da extensão</string>
   <!-- Long description for the technicalAndInteraction data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_long_description">Partilhar dados técnicos e de interação com o programador da extensão</string>
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_long_description">Partilha de dados técnicos e de interação com o programador da extensão</string>
   <!-- Long description for the websiteActivity data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_long_description">Partilhar a atividade do website com o programador da extensão</string>
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_long_description">Partilha de atividade de websites com o programador da extensão</string>
   <!-- Long description for the websiteContent data collection permission -->
-  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_long_description">Partilhar o conteúdo do website com o programador da extensão</string>
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_long_description">Partilha de conteúdo de websites com o programador da extensão</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Versão</string>
   <!-- The author of an add-on. -->
@@ -215,7 +215,7 @@
   <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
   <string name="mozac_feature_addons_permissions_dialog_learn_more">Saber mais</string>
   <!-- This is the text for the "technical and interaction" checkbox shown in the add-on permissions dialog. -->
-  <string name="mozac_feature_addons_permissions_dialog_technical_and_interaction_data">Partilhar dados técnicos e de interação com o programador da extensão</string>
+  <string name="mozac_feature_addons_permissions_dialog_technical_and_interaction_data">Partilha de dados técnicos e de interação com o programador da extensão</string>
   <!-- This is a button to cancel the add-on installation . -->
   <string name="mozac_feature_addons_permissions_dialog_cancel">Cancelar</string>
   <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->

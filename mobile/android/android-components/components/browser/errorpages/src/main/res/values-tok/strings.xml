@@ -67,7 +67,7 @@
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_title">lipu li wile ike tawa ilo sina</string>
   <!-- The %1$s will be replaced by the malicious website URL -->
-  <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_message"><![CDATA[<p>lipu %1$s li pana e nasin ike tawa ilo sina. mi weka e ona tan wile ilo sina.</p]]></string>
+  <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_message"><![CDATA[<p>lipu %1$s li pana e nasin ike tawa ilo sina. mi weka e ona tan wile ilo sina.</p>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_safe_harmful_uri_title">lipu li ken pakala e ilo sina</string>
   <!-- The %1$s will be replaced by the malicious website URL -->
