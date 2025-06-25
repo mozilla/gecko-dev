@@ -2099,6 +2099,21 @@
       }
     ]
   },
+  "1898935": {
+    "label": "mysunlife.sunlife.com.hk",
+    "bugs": {
+      "1898935": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://mysunlife.sunlife.com.hk/ClientAppWeb/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1898937": {
     "label": "goodyearfiaetrc.com",
     "bugs": {
