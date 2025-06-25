@@ -136,7 +136,7 @@ impl MidirWrapper {
 
     // We explicitly disable Microsoft's soft synthesizer, see bug 1798097
     fn is_microsoft_synth_output(port: &MidiPortWrapper) -> bool {
-        (port.input() == false) && (port.name == "Microsoft GS Wavetable Synth")
+        !port.input() && (port.name == "Microsoft GS Wavetable Synth")
     }
 
     fn open_port(
