@@ -50,39 +50,54 @@ class DefaultFileItemDescriptionProvider(
         }
         DownloadState.Status.FAILED -> context.getString(R.string.download_item_status_failed)
         DownloadState.Status.CANCELLED -> "" // Cancelled downloads are not shown
-        DownloadState.Status.PAUSED -> context.getString(
-            R.string.download_item_paused_description,
-            fileSizeFormatter.formatSizeInBytes(downloadState.currentBytesCopied),
-            fileSizeFormatter.formatSizeInBytes(downloadState.contentLength ?: 0),
-        )
+        DownloadState.Status.PAUSED -> {
+            val contentLength = downloadState.contentLength?.takeIf { it > 0 }
+
+            if (contentLength == null) {
+                context.getString(
+                    R.string.download_item_paused_description_unknown_total_size,
+                    fileSizeFormatter.formatSizeInBytes(downloadState.currentBytesCopied),
+                )
+            } else {
+                context.getString(
+                    R.string.download_item_paused_description,
+                    fileSizeFormatter.formatSizeInBytes(downloadState.currentBytesCopied),
+                    fileSizeFormatter.formatSizeInBytes(contentLength),
+                )
+            }
+        }
         DownloadState.Status.INITIATED -> context.getString(
             R.string.download_item_in_progress_description_preparing,
         )
         DownloadState.Status.DOWNLOADING -> {
-            val estimatedSecsRemaining = downloadState.contentLength?.let { contentLength ->
-                downloadEstimator.estimatedRemainingTime(
+            val contentLength = downloadState.contentLength?.takeIf { it > 0 }
+
+            if (contentLength == null) {
+                context.getString(
+                    R.string.download_item_in_progress_description_unknown_total_size,
+                    fileSizeFormatter.formatSizeInBytes(downloadState.currentBytesCopied),
+                )
+            } else {
+                val estimatedSecsRemaining = downloadEstimator.estimatedRemainingTime(
                     startTime = downloadState.createdTime,
                     bytesDownloaded = downloadState.currentBytesCopied,
                     totalBytes = contentLength,
                 )
-            }
 
-            if (downloadState.contentLength == null) {
-                // This will be changed in https://bugzilla.mozilla.org/show_bug.cgi?id=1971338
-                fileSizeFormatter.formatSizeInBytes(downloadState.currentBytesCopied)
-            } else if (estimatedSecsRemaining == null) {
-                context.getString(
-                    R.string.download_item_in_progress_description_pending,
-                    fileSizeFormatter.formatSizeInBytes(downloadState.currentBytesCopied),
-                    fileSizeFormatter.formatSizeInBytes(downloadState.contentLength ?: 0),
-                )
-            } else {
-                context.getString(
-                    R.string.download_item_in_progress_description_2,
-                    fileSizeFormatter.formatSizeInBytes(downloadState.currentBytesCopied),
-                    fileSizeFormatter.formatSizeInBytes(downloadState.contentLength ?: 0),
-                    estimatedSecsRemaining.seconds.toString(),
-                )
+                if (estimatedSecsRemaining == null) {
+                    context.getString(
+                        R.string.download_item_in_progress_description_pending,
+                        fileSizeFormatter.formatSizeInBytes(downloadState.currentBytesCopied),
+                        fileSizeFormatter.formatSizeInBytes(contentLength),
+                    )
+                } else {
+                    context.getString(
+                        R.string.download_item_in_progress_description_2,
+                        fileSizeFormatter.formatSizeInBytes(downloadState.currentBytesCopied),
+                        fileSizeFormatter.formatSizeInBytes(contentLength),
+                        estimatedSecsRemaining.seconds.toString(),
+                    )
+                }
             }
         }
     }

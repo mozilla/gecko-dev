@@ -357,17 +357,14 @@ private fun DownloadState.getPercent(): Int? =
 @VisibleForTesting
 internal fun DownloadState.getProgress(fileSizeFormatter: FileSizeFormatter): String {
     return if (isIndeterminate()) {
-        ""
+        fileSizeFormatter.formatSizeInBytes(currentBytesCopied)
     } else {
         "${fileSizeFormatter.formatSizeInBytes(currentBytesCopied)} / " +
             fileSizeFormatter.formatSizeInBytes(contentLength!!)
     }
 }
 
-private fun DownloadState.isIndeterminate(): Boolean {
-    val bytesCopied = currentBytesCopied
-    return contentLength == null || bytesCopied == 0L || contentLength == 0L
-}
+private fun DownloadState.isIndeterminate(): Boolean = contentLength == null || contentLength == 0L
 
 @VisibleForTesting
 internal fun DownloadState.getStatusDescription(
@@ -402,10 +399,11 @@ private fun formatDownloadTimeRemaining(
     currentBytes: Long,
     totalBytes: Long?,
 ): String {
+    if (totalBytes == null) return context.getString(R.string.mozac_feature_downloads_time_remaining_unknown)
     val timeRemaining = downloadEstimator.estimatedRemainingTime(
         startTime = startTime,
         bytesDownloaded = currentBytes,
-        totalBytes = totalBytes ?: 0,
+        totalBytes = totalBytes,
     )
     if (timeRemaining == null) return ""
     val formattedTimeRemaining = timeRemaining.seconds.toString()

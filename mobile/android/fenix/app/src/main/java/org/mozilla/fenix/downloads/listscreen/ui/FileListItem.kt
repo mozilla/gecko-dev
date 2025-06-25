@@ -97,18 +97,18 @@ internal fun FileListItem(
         },
         belowListItemContent = {
             when (fileItem.status) {
-                FileItem.Status.Cancelled -> {}
-                FileItem.Status.Completed -> {}
-                is FileItem.Status.Downloading -> {
-                    DownloadProgressIndicator(progress = fileItem.status.progress)
-                }
-                FileItem.Status.Failed -> {}
                 FileItem.Status.Initiated -> {
                     DownloadProgressIndicator(progress = null)
                 }
-                is FileItem.Status.Paused -> {
+                is FileItem.Status.Downloading -> {
                     DownloadProgressIndicator(progress = fileItem.status.progress)
                 }
+                is FileItem.Status.Paused -> {
+                    if (fileItem.status.progress != null) {
+                        DownloadProgressIndicator(progress = fileItem.status.progress)
+                    }
+                }
+                else -> {}
             }
         },
     )

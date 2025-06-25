@@ -55,7 +55,7 @@ class DownloadNotificationTest {
         val newDownload = downloadJobState.copy(state = downloadJobState.state.copy(contentLength = null))
 
         assertEquals(
-            "",
+            "10",
             newDownload.state.getProgress(
                 fileSizeFormatter = fakeFileSizeFormatter,
             ),
@@ -64,7 +64,7 @@ class DownloadNotificationTest {
         val downloadWithNoSize = downloadJobState.copy(state = downloadJobState.state.copy(contentLength = 0))
 
         assertEquals(
-            "",
+            "10",
             downloadWithNoSize.state.getProgress(
                 fileSizeFormatter = fakeFileSizeFormatter,
             ),
@@ -73,7 +73,7 @@ class DownloadNotificationTest {
         val downloadWithNullSize = downloadJobState.copy(state = downloadJobState.state.copy(contentLength = null))
 
         assertEquals(
-            "",
+            "10",
             downloadWithNullSize.state.getProgress(
                 fileSizeFormatter = fakeFileSizeFormatter,
             ),
