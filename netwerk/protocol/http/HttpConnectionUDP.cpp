@@ -208,8 +208,10 @@ nsresult HttpConnectionUDP::Activate(nsAHttpTransaction* trans, uint32_t caps,
         caps));
 
   nsHttpTransaction* hTrans = trans->QueryHttpTransaction();
+  nsHttpConnectionInfo* transCI = trans->ConnectionInfo();
   NetAddr peerAddr;
-  if (hTrans && NS_SUCCEEDED(GetPeerAddr(&peerAddr))) {
+  if (!transCI->UsingProxy() && hTrans &&
+      NS_SUCCEEDED(GetPeerAddr(&peerAddr))) {
     if (!hTrans->AllowedToConnectToIpAddressSpace(
             peerAddr.GetIpAddressSpace())) {
       // we could probably fail early and avoid recreating the H3 session
