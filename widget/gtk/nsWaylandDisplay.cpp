@@ -20,6 +20,7 @@
 #include "WidgetUtilsGtk.h"
 #include "mozilla/widget/xx-pip-v1-client-protocol.h"
 #include "nsGtkKeyUtils.h"
+#include "nsLayoutUtils.h"
 #include "nsWindow.h"
 #include "wayland-proxy.h"
 
@@ -103,7 +104,7 @@ class WaylandPointerEvent {
   void SetTime(uint32_t aTime) { mTime = aTime; }
 
   void SendScrollEvent() {
-    if (!mWindow || !StaticPrefs::general_smoothScroll()) {
+    if (!mWindow || !nsLayoutUtils::IsSmoothScrollingEnabled()) {
       return;
     }
 
