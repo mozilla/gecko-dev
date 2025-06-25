@@ -153,12 +153,10 @@
 /* Lightweight theme roots */
 
 :root[lwtheme] {
-  &,
   toolbar,
   &[lwt-popup="light"] panel {
     color-scheme: light;
   }
-  &[lwtheme-brighttext],
   toolbar[brighttext],
   &[lwt-popup="dark"] panel {
     color-scheme: dark;
