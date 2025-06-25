@@ -14,6 +14,7 @@ if CONFIG["MOZ_WEBRTC"]:
     UNIFIED_SOURCES += [
         "CamerasChild.cpp",
         "CamerasParent.cpp",
+        "fake_video_capture/device_info_fake.cpp",
         "video_engine/video_capture_factory.cc",
         "VideoEngine.cpp",
         "VideoFrameUtils.cpp",

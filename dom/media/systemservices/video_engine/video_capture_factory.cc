@@ -8,6 +8,8 @@
 
 #include "mozilla/StaticPrefs_media.h"
 #include "desktop_capture_impl.h"
+#include "fake_video_capture/device_info_fake.h"
+#include "fake_video_capture/video_capture_fake.h"
 #include "VideoEngine.h"
 
 #if defined(WEBRTC_USE_PIPEWIRE)
@@ -22,7 +24,12 @@
 
 namespace mozilla {
 
-VideoCaptureFactory::VideoCaptureFactory() {
+VideoCaptureFactory::VideoCaptureFactory()
+    :  // Disallow switching the fake camera backend on/off on the fly, since
+       // nothing guards us if it's switched between enumeration
+       // (CreateDeviceInfo) and instantiating a backend instance
+       // (CreateVideoCapture).
+      mUseFakeCamera(StaticPrefs::media_getusermedia_camera_fake_force()) {
 #if (defined(WEBRTC_LINUX) || defined(WEBRTC_BSD)) && !defined(WEBRTC_ANDROID)
   mVideoCaptureOptions = std::make_unique<webrtc::VideoCaptureOptions>();
   // In case pipewire is enabled, this acts as a fallback and can be always
@@ -47,6 +54,10 @@ VideoCaptureFactory::CreateDeviceInfo(
     int32_t aId, mozilla::camera::CaptureDeviceType aType) {
   if (aType == mozilla::camera::CaptureDeviceType::Camera) {
     std::shared_ptr<webrtc::VideoCaptureModule::DeviceInfo> deviceInfo;
+    if (mUseFakeCamera) {
+      deviceInfo.reset(new webrtc::videocapturemodule::DeviceInfoFake());
+      return deviceInfo;
+    }
 #if (defined(WEBRTC_LINUX) || defined(WEBRTC_BSD)) && !defined(WEBRTC_ANDROID)
 #  if defined(WEBRTC_USE_PIPEWIRE)
     // Special case when PipeWire is not initialized yet and we need to insert
@@ -82,6 +93,14 @@ VideoCaptureFactory::CreateVideoCapture(
     mozilla::camera::CaptureDeviceType aType) {
   CreateVideoCaptureResult result;
   if (aType == mozilla::camera::CaptureDeviceType::Camera) {
+    if (mUseFakeCamera) {
+      nsCOMPtr<nsISerialEventTarget> target;
+      NS_CreateBackgroundTaskQueue("VideoCaptureFake::mTarget",
+                                   getter_AddRefs(target));
+      result.mCapturer = webrtc::videocapturemodule::VideoCaptureFake::Create(
+          std::move(target));
+      return result;
+    }
 #if (defined(WEBRTC_LINUX) || defined(WEBRTC_BSD)) && !defined(WEBRTC_ANDROID)
     result.mCapturer = webrtc::VideoCaptureFactory::Create(
         mVideoCaptureOptions.get(), aUniqueId);
