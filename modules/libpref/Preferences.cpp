@@ -841,12 +841,12 @@ class Pref {
       if (aIsLocked) {
         SetIsLocked(true);
       }
+      if (aIsSticky) {
+        mIsSticky = true;
+      }
       if (!ValueMatches(PrefValueKind::Default, aType, aValue)) {
         mDefaultValue.Replace(mHasDefaultValue, Type(), aType, aValue);
         mHasDefaultValue = true;
-        if (aIsSticky) {
-          mIsSticky = true;
-        }
         if (!mHasUserValue) {
           *aValueChanged = true;
         }
