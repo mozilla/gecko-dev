@@ -2650,24 +2650,19 @@ nsresult ScriptLoader::FillCompileOptionsForRequest(
   return NS_OK;
 }
 
+/* static */
 void ScriptLoader::CalculateBytecodeCacheFlag(ScriptLoadRequest* aRequest) {
   using mozilla::TimeDuration;
   using mozilla::TimeStamp;
 
-  if (aRequest->IsModuleRequest() &&
-      aRequest->AsModuleRequest()->mModuleType != JS::ModuleType::JavaScript) {
-    aRequest->MarkSkippedBytecodeEncoding();
+  if (aRequest->IsStencil()) {
+    aRequest->MarkPassedConditionForBytecodeEncoding();
     return;
   }
 
-  if (aRequest->IsStencil()) {
-    aRequest->MarkPassedConditionForBytecodeEncoding();
-
-    if (aRequest->IsModuleRequest() &&
-        !aRequest->AsModuleRequest()->IsTopLevel()) {
-      MOZ_ASSERT(!aRequest->isInList());
-      mBytecodeEncodableDependencyModules.AppendElement(aRequest);
-    }
+  if (aRequest->IsModuleRequest() &&
+      aRequest->AsModuleRequest()->mModuleType != JS::ModuleType::JavaScript) {
+    aRequest->MarkSkippedBytecodeEncoding();
     return;
   }
 
@@ -2757,12 +2752,6 @@ void ScriptLoader::CalculateBytecodeCacheFlag(ScriptLoadRequest* aRequest) {
 
   LOG(("ScriptLoadRequest (%p): Bytecode-cache: Trigger encoding.", aRequest));
   aRequest->MarkPassedConditionForBytecodeEncoding();
-
-  if (aRequest->IsModuleRequest() &&
-      !aRequest->AsModuleRequest()->IsTopLevel()) {
-    MOZ_ASSERT(!aRequest->isInList());
-    mBytecodeEncodableDependencyModules.AppendElement(aRequest);
-  }
 }
 
 class MOZ_RAII AutoSetProcessingScriptTag {
@@ -3215,33 +3204,27 @@ nsresult ScriptLoader::MaybePrepareForBytecodeEncodingAfterExecute(
 
 bool ScriptLoader::IsAlreadyHandledForBytecodeEncodingPreparation(
     ScriptLoadRequest* aRequest) {
-  MOZ_ASSERT_IF(aRequest->isInList(),
-                mBytecodeEncodingQueue.Contains(aRequest));
   return aRequest->isInList() || !aRequest->mCacheInfo;
 }
 
 void ScriptLoader::MaybePrepareModuleForBytecodeEncodingBeforeExecute(
     JSContext* aCx, ModuleLoadRequest* aRequest) {
-  if (aRequest->IsMarkedForBytecodeEncoding()) {
-    // This module is imported multiple times, and already marked.
-    return;
-  }
+  {
+    ModuleScript* moduleScript = aRequest->mModuleScript;
+    JS::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
 
-  if (aRequest->PassedConditionForBytecodeEncoding()) {
-    aRequest->MarkModuleForBytecodeEncoding();
-  }
-
-  for (auto* r = mBytecodeEncodableDependencyModules.getFirst(); r;
-       r = r->getNext()) {
-    auto* dep = r->AsModuleRequest();
-    MOZ_ASSERT(dep->PassedConditionForBytecodeEncoding());
-
-    if (dep->GetRootModule() != aRequest) {
-      continue;
+    if (aRequest->IsMarkedForBytecodeEncoding()) {
+      // This module is imported multiple times, and already marked.
+      return;
     }
-    MOZ_ASSERT(!dep->IsMarkedForBytecodeEncoding());
 
-    dep->MarkModuleForBytecodeEncoding();
+    if (aRequest->PassedConditionForBytecodeEncoding()) {
+      aRequest->MarkModuleForBytecodeEncoding();
+    }
+  }
+
+  for (ModuleLoadRequest* childRequest : aRequest->mImports) {
+    MaybePrepareModuleForBytecodeEncodingBeforeExecute(aCx, childRequest);
   }
 }
 
@@ -3254,21 +3237,8 @@ nsresult ScriptLoader::MaybePrepareModuleForBytecodeEncodingAfterExecute(
 
   aRv = MaybePrepareForBytecodeEncodingAfterExecute(aRequest, aRv);
 
-  for (auto* r = mBytecodeEncodableDependencyModules.getFirst(); r;) {
-    auto* dep = r->AsModuleRequest();
-    MOZ_ASSERT(dep->PassedConditionForBytecodeEncoding());
-
-    r = r->getNext();
-
-    if (dep->GetRootModule() != aRequest) {
-      continue;
-    }
-
-    mBytecodeEncodableDependencyModules.Remove(aRequest);
-
-    if (!IsAlreadyHandledForBytecodeEncodingPreparation(dep)) {
-      aRv = MaybePrepareForBytecodeEncodingAfterExecute(dep, aRv);
-    }
+  for (ModuleLoadRequest* childRequest : aRequest->mImports) {
+    aRv = MaybePrepareModuleForBytecodeEncodingAfterExecute(childRequest, aRv);
   }
 
   return aRv;
@@ -3636,10 +3606,6 @@ void ScriptLoader::GiveUpBytecodeEncoding() {
 
     request->DropBytecode();
     request->DropBytecodeCacheReferences();
-  }
-
-  while (!mBytecodeEncodableDependencyModules.isEmpty()) {
-    (void)mBytecodeEncodableDependencyModules.StealFirst();
   }
 }
 
