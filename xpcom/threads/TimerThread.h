@@ -186,11 +186,6 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
   uint64_t FireDueTimers(TimeDuration aAllowedEarlyFiring)
       MOZ_REQUIRES(mMonitor);
 
-  static constexpr size_t kMaxQueuedTimersFired = 128;
-  static void AccumulateAndMaybeSendTelemetry(
-      uint64_t timersFiredThisWakeup, size_t& queuedTimersFiredCount,
-      AutoTArray<uint64_t, kMaxQueuedTimersFired>& queuedTimersFiredPerWakeup);
-
   // Suspends thread execution using mMonitor.Wait(waitFor). Also sets and
   // clears a few flags before and after.
   void Wait(TimeDuration aWaitFor) MOZ_REQUIRES(mMonitor);
