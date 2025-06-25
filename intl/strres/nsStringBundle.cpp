@@ -126,6 +126,7 @@ class StringBundleProxy : public nsIStringBundle {
   NS_IMETHOD GetStringFromID(int32_t aID, nsAString& _retval) override {
     return Target()->GetStringFromID(aID, _retval);
   }
+
   NS_IMETHOD GetStringFromAUTF8Name(const nsACString& aName,
                                     nsAString& _retval) override {
     return Target()->GetStringFromAUTF8Name(aName, _retval);
@@ -133,10 +134,7 @@ class StringBundleProxy : public nsIStringBundle {
   NS_IMETHOD GetStringFromName(const char* aName, nsAString& _retval) override {
     return Target()->GetStringFromName(aName, _retval);
   }
-  NS_IMETHOD FormatStringFromID(int32_t aID, const nsTArray<nsString>& params,
-                                nsAString& _retval) override {
-    return Target()->FormatStringFromID(aID, params, _retval);
-  }
+
   NS_IMETHOD FormatStringFromAUTF8Name(const nsACString& aName,
                                        const nsTArray<nsString>& params,
                                        nsAString& _retval) override {
@@ -604,15 +602,6 @@ nsresult SharedStringBundle::GetStringImpl(const nsACString& aName,
     return NS_OK;
   }
   return NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-nsStringBundleBase::FormatStringFromID(int32_t aID,
-                                       const nsTArray<nsString>& aParams,
-                                       nsAString& aResult) {
-  nsAutoCString idStr;
-  idStr.AppendInt(aID, 10);
-  return FormatStringFromName(idStr.get(), aParams, aResult);
 }
 
 // this function supports at most 10 parameters.. see below for why
