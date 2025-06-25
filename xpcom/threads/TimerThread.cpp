@@ -747,6 +747,16 @@ void MOZ_ALWAYS_INLINE TimerThread::AccumulateAndMaybeSendTelemetry(
   }
 }
 
+void TimerThread::Wait(TimeDuration aWaitFor) MOZ_REQUIRES(mMonitor) {
+  mWaiting = true;
+  mNotified = false;
+  {
+    AUTO_PROFILER_TRACING_MARKER("TimerThread", "Wait", OTHER);
+    mMonitor.Wait(aWaitFor);
+  }
+  mWaiting = false;
+}
+
 NS_IMETHODIMP
 TimerThread::Run() {
   MonitorAutoLock lock(mMonitor);
@@ -939,14 +949,7 @@ TimerThread::Run() {
 
     timersFiredThisWakeup = 0;
 
-    mWaiting = true;
-    mNotified = false;
-
-    {
-      AUTO_PROFILER_TRACING_MARKER("TimerThread", "Wait", OTHER);
-      mMonitor.Wait(waitFor);
-    }
-    mWaiting = false;
+    Wait(waitFor);
   }
 
   // About to shut down - let's send out the final batch of timers fired counts.
