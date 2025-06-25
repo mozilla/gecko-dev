@@ -121,28 +121,13 @@ MediaEngineRemoteVideoSource::MediaEngineRemoteVideoSource(
       mMediaDevice(aMediaDevice),
       mDeviceUUID(NS_ConvertUTF16toUTF8(aMediaDevice->mRawID)) {
   LOG("%s", __PRETTY_FUNCTION__);
-  mSettings->mWidth.Construct(0);
-  mSettings->mHeight.Construct(0);
-  mSettings->mFrameRate.Construct(0);
-  NS_ConvertASCIItoUTF16 noneString(
-      dom::GetEnumString(VideoResizeModeEnum::None));
-  NS_ConvertASCIItoUTF16 cropString(
-      dom::GetEnumString(VideoResizeModeEnum::Crop_and_scale));
-  mSettings->mResizeMode.Construct(noneString);
-  mTrackCapabilities->mResizeMode.Construct(
-      nsTArray<nsString>{noneString, cropString});
-
   if (mCapEngine == camera::CameraEngine) {
     // Only cameras can have a facing mode.
     Maybe<VideoFacingModeEnum> facingMode =
         GetFacingMode(mMediaDevice->mRawName);
     if (facingMode.isSome()) {
-      NS_ConvertASCIItoUTF16 facingString(dom::GetEnumString(*facingMode));
-      mSettings->mFacingMode.Construct(facingString);
-      nsTArray<nsString> facing;
-      facing.AppendElement(facingString);
-      mTrackCapabilities->mFacingMode.Construct(std::move(facing));
-      mFacingMode.emplace(facingString);
+      mFacingMode.emplace(
+          NS_ConvertASCIItoUTF16(dom::GetEnumString(*facingMode)));
     }
   }
 }
@@ -208,6 +193,32 @@ nsresult MediaEngineRemoteVideoSource::Allocate(
     mTrackingId =
         TrackingId(CaptureEngineToTrackingSourceStr(mCapEngine), mCaptureId);
   }
+
+  NS_DispatchToMainThread(NS_NewRunnableFunction(
+      "MediaEngineRemoteVideoSource::Allocate::MainUpdate",
+      [settings = mSettings, caps = mTrackCapabilities,
+       facingMode = mFacingMode]() {
+        *settings = dom::MediaTrackSettings();
+        *caps = dom::MediaTrackCapabilities();
+
+        settings->mWidth.Construct(0);
+        settings->mHeight.Construct(0);
+        settings->mFrameRate.Construct(0);
+
+        if (facingMode.isSome()) {
+          settings->mFacingMode.Construct(*facingMode);
+          nsTArray<nsString> facing;
+          facing.AppendElement(*facingMode);
+          caps->mFacingMode.Construct(std::move(facing));
+        }
+
+        NS_ConvertASCIItoUTF16 noneString(
+            dom::GetEnumString(VideoResizeModeEnum::None));
+        NS_ConvertASCIItoUTF16 cropString(
+            dom::GetEnumString(VideoResizeModeEnum::Crop_and_scale));
+        settings->mResizeMode.Construct(noneString);
+        caps->mResizeMode.Construct(nsTArray<nsString>{noneString, cropString});
+      }));
 
   LOG("Video device %d allocated", mCaptureId);
   return NS_OK;
