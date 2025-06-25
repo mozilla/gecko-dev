@@ -53,5 +53,6 @@
 
   &[type="search"] {
     --input-background-icon: url(chrome://global/skin/icons/search-textbox.svg);
+    padding-inline-end: var(--space-xxsmall);
   }
 }
