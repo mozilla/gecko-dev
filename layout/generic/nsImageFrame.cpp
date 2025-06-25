@@ -997,7 +997,7 @@ wr::ImageKey nsImageFrame::GetViewTransitionImageKey(
   }
   const auto* key =
       Style()->GetPseudoType() == PseudoStyleType::viewTransitionOld
-          ? vt->ReadOldImageKey(name, aManager, aResources)
+          ? vt->GetOldImageKey(name, aManager, aResources)
           : vt->GetNewImageKey(name);
   return key ? *key : kNoKey;
 }

@@ -23,6 +23,10 @@ struct Keyframe;
 struct PseudoStyleRequest;
 struct StyleLockedDeclarationBlock;
 
+namespace gfx {
+class DataSourceSurface;
+}
+
 namespace layers {
 class RenderRootStateManager;
 }
@@ -100,19 +104,9 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
 
   Maybe<nsSize> GetOldSize(nsAtom* aName) const;
   Maybe<nsSize> GetNewSize(nsAtom* aName) const;
-  // Use this to generate the old state image key for use in a stacking context.
-  // Do not use the returned image key in an image display item, use
-  // ReadOldImageKey instead.
-  const wr::ImageKey* GetOrCreateOldImageKey(nsAtom* aName,
-                                             layers::RenderRootStateManager*,
-                                             wr::IpcResourceUpdateQueue&) const;
-  // Use this to get the already-created old state image key for use in an image
-  // display item.
-  // This marks the old state image key as used which influences the how eagerly
-  // it can be deleted.
-  const wr::ImageKey* ReadOldImageKey(nsAtom* aName,
-                                      layers::RenderRootStateManager*,
-                                      wr::IpcResourceUpdateQueue&) const;
+  const wr::ImageKey* GetOldImageKey(nsAtom* aName,
+                                     layers::RenderRootStateManager*,
+                                     wr::IpcResourceUpdateQueue&) const;
   const wr::ImageKey* GetNewImageKey(nsAtom* aName) const;
   const wr::ImageKey* GetImageKeyForCapturedFrame(
       nsIFrame* aFrame, layers::RenderRootStateManager*,

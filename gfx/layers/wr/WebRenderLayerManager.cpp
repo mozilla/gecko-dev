@@ -444,20 +444,14 @@ void WebRenderLayerManager::EndTransactionWithoutLayer(
     mStateManager.mAsyncResourceUpdates.reset();
   }
 
-  if (aRenderOffscreen) {
-    // Unused images are safe to discard since we know that no display list
-    // references them. We Want to do this because in some contrived cases
-    // we can end up generating a lot of offscreen transactions that produce
-    // a lot of unused images without sending a non-offscreen transaction
-    // to clean them up.
-    mStateManager.DiscardUnusedImagesInTransaction(resourceUpdates);
-  } else {
-    // Don't discard images and fonts in an offscreen transaction. It won't
-    // replace the display list in the active scene so the images may still
-    // be used by the previous (which remains current) display list.
+  if (!aRenderOffscreen) {
+    // Don't discard images in an offscreen transaction. It won't replace the
+    // display list in the active scene so the images may still be used by the
+    // previous (which remains current) display list.
     mStateManager.DiscardImagesInTransaction(resourceUpdates);
-    WrBridge()->RemoveExpiredFontKeys(resourceUpdates);
   }
+
+  WrBridge()->RemoveExpiredFontKeys(resourceUpdates);
 
   // Skip the synchronization for buffer since we also skip the painting during
   // device-reset status.

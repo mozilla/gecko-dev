@@ -264,10 +264,6 @@ pub struct FrameReadyParams {
     pub present: bool,
     pub render: bool,
     pub scrolled: bool,
-    /// Firefox uses this to indicate that the frame does not participate
-    /// in the frame throttling mechanism.
-    /// Frames from off-screen transactions are not tracked.
-    pub tracked: bool,
 }
 
 /// A handler to integrate WebRender with the thread that contains the `Renderer`.

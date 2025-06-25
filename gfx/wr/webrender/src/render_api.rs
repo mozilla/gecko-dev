@@ -113,25 +113,47 @@ impl fmt::Debug for ResourceUpdate {
     }
 }
 
-/// Parameters for generating a frame in a transaction.
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct GenerateFrameParams {
-    /// An id that allows tracking the frame transaction through the various
-    /// frame stages. Specified by the caller of generate_frame().
-    pub id: u64,
-    /// If false, (a subset of) the frame will be rendered, but nothing will
-    /// be presented on the window.
-    pub present: bool,
-    /// Firefox uses this to indicate that the frame does not participate
-    /// in the frame throttling mechanism.
-    /// Frames from off-screen transactions are not tracked.
-    pub tracked: bool,
+/// Whether to generate a frame, and if so, an id that allows tracking this
+/// transaction through the various frame stages.
+#[derive(Clone, Debug)]
+pub enum GenerateFrame {
+    /// Generate a frame if something changed.
+    Yes {
+        /// An id that allows tracking the frame transaction through the various
+        /// frame stages. Specified by the caller of generate_frame().
+        id: u64,
+        /// If false, (a subset of) the frame will be rendered, but nothing will
+        /// be presented on the window.
+        present: bool,
+    },
+    /// Don't generate a frame even if something has changed.
+    No,
 }
 
-impl Default for GenerateFrameParams {
-    fn default() -> Self {
-        GenerateFrameParams { id: 0, present: true, tracked: false }
+impl GenerateFrame {
+    ///
+    pub fn as_bool(&self) -> bool {
+        match self {
+            GenerateFrame::Yes { .. } => true,
+            GenerateFrame::No => false,
+        }
+    }
+
+    /// If false, a frame may be (partially) generated but it will not be
+    /// presented to the window.
+    pub fn present(&self) -> bool {
+        match self {
+            GenerateFrame::Yes { present, .. } => *present,
+            GenerateFrame::No => false,
+        }
+    }
+
+    /// Return the frame ID, if a frame is generated.
+    pub fn id(&self) -> Option<u64> {
+        match self {
+            GenerateFrame::Yes { id, .. } => Some(*id),
+            GenerateFrame::No => None,
+        }
     }
 }
 
@@ -164,7 +186,7 @@ pub struct Transaction {
     /// Whether to generate a frame, and if so, an id that allows tracking this
     /// transaction through the various frame stages. Specified by the caller of
     /// generate_frame().
-    generate_frame: Option<GenerateFrameParams>,
+    generate_frame: GenerateFrame,
 
     /// Time when this transaction was constructed.
     creation_time: u64,
@@ -188,7 +210,7 @@ impl Transaction {
             resource_updates: Vec::new(),
             notifications: Vec::new(),
             use_scene_builder_thread: true,
-            generate_frame: None,
+            generate_frame: GenerateFrame::No,
             creation_time: precise_time_ns(),
             invalidate_rendered_frame: false,
             low_priority: false,
@@ -215,7 +237,7 @@ impl Transaction {
 
     /// Returns true if the transaction has no effect.
     pub fn is_empty(&self) -> bool {
-        self.generate_frame.is_none() &&
+        !self.generate_frame.as_bool() &&
             !self.invalidate_rendered_frame &&
             self.scene_ops.is_empty() &&
             self.frame_ops.is_empty() &&
@@ -353,8 +375,8 @@ impl Transaction {
     /// as to when happened.
     ///
     /// [notifier]: trait.RenderNotifier.html#tymethod.new_frame_ready
-    pub fn generate_frame(&mut self, params: &GenerateFrameParams, reasons: RenderReasons) {
-        self.generate_frame = Some(*params);
+    pub fn generate_frame(&mut self, id: u64, present: bool, reasons: RenderReasons) {
+        self.generate_frame = GenerateFrame::Yes{ id, present };
         self.render_reasons |= reasons;
     }
 
@@ -600,7 +622,7 @@ pub struct TransactionMsg {
     /// Updates to resources that persist across display lists.
     pub resource_updates: Vec<ResourceUpdate>,
     /// Whether to trigger frame building and rendering if something has changed.
-    pub generate_frame: Option<GenerateFrameParams>,
+    pub generate_frame: GenerateFrame,
     /// Creation time of this transaction.
     pub creation_time: Option<u64>,
     /// Whether to force frame building and rendering even if no changes are internally
@@ -651,7 +673,7 @@ impl fmt::Debug for TransactionMsg {
 impl TransactionMsg {
     /// Returns true if this transaction has no effect.
     pub fn is_empty(&self) -> bool {
-        self.generate_frame.is_none() &&
+        !self.generate_frame.as_bool() &&
             !self.invalidate_rendered_frame &&
             self.scene_ops.is_empty() &&
             self.frame_ops.is_empty() &&
@@ -1257,7 +1279,7 @@ impl RenderApi {
             frame_ops: vec![msg],
             resource_updates: Vec::new(),
             notifications: Vec::new(),
-            generate_frame: None,
+            generate_frame: GenerateFrame::No,
             creation_time: None,
             invalidate_rendered_frame: false,
             use_scene_builder_thread: false,
@@ -1286,7 +1308,7 @@ impl RenderApi {
 
         self.resources.update(&mut transaction);
 
-        if transaction.generate_frame.is_some() {
+        if transaction.generate_frame.as_bool() {
             transaction.profile.start_time(profiler::API_SEND_TIME);
             transaction.profile.start_time(profiler::TOTAL_FRAME_CPU_TIME);
         }

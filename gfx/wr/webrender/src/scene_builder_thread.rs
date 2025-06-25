@@ -33,7 +33,7 @@ use crate::renderer::{FullFrameStats, PipelineInfo};
 use crate::scene::{BuiltScene, Scene, SceneStats};
 use crate::spatial_tree::{SceneSpatialTree, SpatialTreeUpdates};
 use crate::telemetry::Telemetry;
-use crate::{GenerateFrameParams, SceneBuilderHooks};
+use crate::SceneBuilderHooks;
 use std::iter;
 use time::precise_time_ns;
 use crate::util::drain_filter;
@@ -69,7 +69,8 @@ pub struct BuiltTransaction {
     pub notifications: Vec<NotificationRequest>,
     pub interner_updates: Option<InternerUpdates>,
     pub spatial_tree_updates: Option<SpatialTreeUpdates>,
-    pub generate_frame: Option<GenerateFrameParams>,
+    pub render_frame: bool,
+    pub present: bool,
     pub invalidate_rendered_frame: bool,
     pub profile: TransactionProfile,
     pub frame_stats: FullFrameStats,
@@ -482,19 +483,10 @@ impl SceneBuilderThread {
                 },
             );
 
-            let generate_frame = if item.build_frame {
-                Some(GenerateFrameParams {
-                    id: 0,
-                    present: true,
-                    tracked: false,
-                })
-            } else {
-                None
-            };
-
             let txns = vec![Box::new(BuiltTransaction {
                 document_id: item.document_id,
-                generate_frame,
+                render_frame: item.build_frame,
+                present: true,
                 invalidate_rendered_frame: false,
                 built_scene,
                 view: item.view,
@@ -707,7 +699,8 @@ impl SceneBuilderThread {
 
         Box::new(BuiltTransaction {
             document_id: txn.document_id,
-            generate_frame: txn.generate_frame,
+            render_frame: txn.generate_frame.as_bool(),
+            present: txn.generate_frame.present(),
             invalidate_rendered_frame: txn.invalidate_rendered_frame,
             built_scene,
             offscreen_scenes,
@@ -772,7 +765,7 @@ impl SceneBuilderThread {
         // schedule one whenever appropriate (probably at the next vsync) to present
         // the changes in the scene.
         let compositor_should_schedule_a_frame = !txns.iter().any(|txn| {
-            txn.generate_frame.is_some()
+            txn.render_frame
         });
 
         #[cfg(feature = "capture")]

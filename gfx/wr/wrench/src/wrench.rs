@@ -587,7 +587,7 @@ impl Wrench {
                     txn.set_scroll_offsets(*id, offsets.clone());
                 }
 
-                txn.generate_frame(&GenerateFrameParams { id: 0, present, tracked: false }, RenderReasons::TESTING);
+                txn.generate_frame(0, present, RenderReasons::TESTING);
                 self.api.send_transaction(self.document_id, txn);
                 txn = Transaction::new();
 
@@ -617,7 +617,7 @@ impl Wrench {
     pub fn refresh(&mut self) {
         self.begin_frame();
         let mut txn = Transaction::new();
-        txn.generate_frame(&GenerateFrameParams { id: 0, present: true, tracked: false }, RenderReasons::TESTING);
+        txn.generate_frame(0, true, RenderReasons::TESTING);
         self.api.send_transaction(self.document_id, txn);
     }
 

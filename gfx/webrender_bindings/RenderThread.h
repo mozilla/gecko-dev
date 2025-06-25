@@ -266,9 +266,6 @@ class RenderThread final {
   /// Can be called from any thread.
   bool TooManyPendingFrames(wr::WindowId aWindowId);
   /// Can be called from any thread.
-  ///
-  /// Should always be paired with a call to `WebRenderAPI::GenerateFrame` that
-  /// has `tracked` set to true.
   void IncPendingFrameCount(wr::WindowId aWindowId, const VsyncId& aStartId,
                             const TimeStamp& aStartTime);
   /// Can be called from any thread.
@@ -394,7 +391,6 @@ class RenderThread final {
         .present = false,
         .render = false,
         .scrolled = false,
-        .tracked = false,
     };
     UniquePtr<RendererEvent> mRendererEvent;
 
@@ -404,7 +400,6 @@ class RenderThread final {
           .present = aCompositeNeeded,
           .render = aCompositeNeeded,
           .scrolled = false,
-          .tracked = false,
       };
       return WrNotifierEvent(Tag::WakeUp, params);
     }
@@ -445,6 +440,7 @@ class RenderThread final {
 
   void HandleFrameOneDocInner(wr::WindowId aWindowId,
                               const wr::FrameReadyParams& aParams,
+                              bool aTrackedFrame,
                               Maybe<FramePublishId> aPublishId);
 
   void DeferredRenderTextureHostDestroy();
@@ -453,7 +449,7 @@ class RenderThread final {
   void PostResumeShaderWarmupRunnable();
   void ResumeShaderWarmup();
   void HandleFrameOneDoc(wr::WindowId aWindowId, const wr::FrameReadyParams&,
-                         Maybe<FramePublishId> aPublishId);
+                         bool aTrackedFrame, Maybe<FramePublishId> aPublishId);
   void RunEvent(wr::WindowId aWindowId, UniquePtr<RendererEvent> aEvent,
                 bool aViaWebRender);
   void PostRunnable(already_AddRefed<nsIRunnable> aRunnable);
