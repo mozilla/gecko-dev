@@ -811,6 +811,7 @@
     }
 
     let acornElements = [
+      ["moz-badge", "chrome://global/content/elements/moz-badge.mjs"],
       ["moz-box-button", "chrome://global/content/elements/moz-box-button.mjs"],
       ["moz-box-group", "chrome://global/content/elements/moz-box-group.mjs"],
       ["moz-box-item", "chrome://global/content/elements/moz-box-item.mjs"],

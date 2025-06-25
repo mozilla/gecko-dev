@@ -22,6 +22,8 @@ skip-if = [
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1933983
 ]
 
+["test_moz_badge.html"]
+
 ["test_moz_base_input_element.html"]
 
 ["test_moz_box_button.html"]

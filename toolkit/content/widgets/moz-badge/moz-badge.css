@@ -1,0 +1,26 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+.moz-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xsmall);
+  padding: var(--space-xsmall) var(--space-small);
+  width: fit-content;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+}
+
+.moz-badge-icon {
+  width: var(--icon-size-xsmall);
+  height: var(--icon-size-xsmall);
+  -moz-context-properties: fill, stroke;
+  fill: var(--icon-color);
+  stroke: var(--icon-color);
+}
+
+.moz-badge-label {
+  font-size: var(--font-size-small);
+}

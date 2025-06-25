@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>MozBadge tests</title>
+    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+    <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+    <link
+      rel="stylesheet"
+      href="chrome://mochikit/content/tests/SimpleTest/test.css"
+    />
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-badge.mjs"
+    ></script>
+  </head>
+  <body>
+    <p id="display"></p>
+    <div id="content">
+      <moz-badge
+        id="mozBadge1"
+        label="Beta"
+        l10nId="Beta"
+        iconSrc="chrome://global/skin/icons/info.svg"
+      ></moz-badge>
+      <moz-badge
+        id="mozBadge2"
+        label="Beta"
+        l10nId="Beta"
+        title="Beta experiment"
+      ></moz-badge>
+    </div>
+    <script>
+      add_task(async function test_badge_icon() {
+        const mozBadge = document.querySelector("#mozBadge1");
+        ok(mozBadge, "moz-badge component is rendered.");
+        const label = mozBadge.shadowRoot.querySelector(".moz-badge-label");
+        ok(label, "Label is appearing");
+        is(label.textContent.trim(), "Beta", "Label text is set");
+        const icon = mozBadge.shadowRoot.querySelector(".moz-badge-icon");
+        const iconUrl = icon.src;
+        ok(iconUrl.includes("info.svg"), "Badge icon is appearing");
+        const iconRole = icon.getAttribute("role");
+        is(iconRole, "presentation", "Badge icon has the correct role");
+      });
+      add_task(async function test_badge_tooltip() {
+        const mozBadge = document.querySelector("#mozBadge2");
+        ok(mozBadge, "moz-badge component is rendered.");
+        const tooltip = mozBadge.title;
+        ok(tooltip, "Tooltip content is populated");
+        is(tooltip, "Beta experiment", "Tooltip content is correct");
+      });
+    </script>
+  </body>
+</html>

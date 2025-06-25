@@ -89,6 +89,8 @@ toolkit.jar:
    content/global/elements/menu.js             (widgets/menu.js)
    content/global/elements/menupopup.js        (widgets/menupopup.js)
    content/global/elements/menupopup.css       (widgets/menupopup.css)
+   content/global/elements/moz-badge.css    (widgets/moz-badge/moz-badge.css)
+   content/global/elements/moz-badge.mjs    (widgets/moz-badge/moz-badge.mjs)
    content/global/elements/moz-box-common.css    (widgets/moz-box-common.css)
    content/global/elements/moz-box-button.css    (widgets/moz-box-button/moz-box-button.css)
    content/global/elements/moz-box-button.mjs    (widgets/moz-box-button/moz-box-button.mjs)
