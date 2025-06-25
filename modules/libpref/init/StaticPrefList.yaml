@@ -4291,12 +4291,6 @@
   value: false
   mirror: always
 
-# Perform IPC based Principal vetting in ContentParent
-- name: dom.security.enforceIPCBasedPrincipalVetting
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 # For testing purposes only: Flipping this pref to true allows
 # to skip the allowlist for about: pages and do not ship with a
 # CSP and NS_ASSERT right away.

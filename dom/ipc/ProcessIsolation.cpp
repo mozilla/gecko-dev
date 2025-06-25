@@ -1153,11 +1153,6 @@ bool IsIsolateHighValueSiteEnabled() {
 bool ValidatePrincipalCouldPotentiallyBeLoadedBy(
     nsIPrincipal* aPrincipal, const nsACString& aRemoteType,
     const EnumSet<ValidatePrincipalOptions>& aOptions) {
-  // If the pref says we should not validate, then there is nothing to do
-  if (!StaticPrefs::dom_security_enforceIPCBasedPrincipalVetting()) {
-    return true;
-  }
-
   // Don't bother validating principals from the parent process.
   if (aRemoteType == NOT_REMOTE_TYPE) {
     return true;
