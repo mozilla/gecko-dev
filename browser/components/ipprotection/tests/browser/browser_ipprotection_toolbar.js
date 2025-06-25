@@ -37,3 +37,22 @@ add_task(async function toolbar_added_and_removed() {
     "IP Protection widget should be added back to the navbar"
   );
 });
+
+/**
+ * Tests that dropmarker has l10n attributes.
+ */
+add_task(async function dropmarker_has_l10n() {
+  let dropmarker = document.getElementById(
+    lazy.IPProtectionWidget.DROPMARKER_ID
+  );
+  ok(
+    BrowserTestUtils.isVisible(dropmarker),
+    "IP Protection dropmarker is visible"
+  );
+
+  is(
+    dropmarker.getAttribute("data-l10n-id"),
+    lazy.IPProtectionWidget.DROPMARKER_ID,
+    "Dropmarker has l10n attributes set"
+  );
+});

@@ -27,6 +27,7 @@ const EXT_WIDGET_ID = "unified-extensions-button";
  */
 class IPProtectionWidget {
   static WIDGET_ID = "ipprotection-button";
+  static DROPMARKER_ID = "ipprotection-button-dropmarker";
   static PANEL_ID = "PanelUI-ipprotection";
 
   static ENABLED_PREF = "browser.ipProtection.enabled";
@@ -89,6 +90,7 @@ class IPProtectionWidget {
     const onViewShowing = this.#onViewShowing.bind(this);
     const onViewHiding = this.#onViewHiding.bind(this);
     const onBeforeCreated = this.#onBeforeCreated.bind(this);
+    const onCreated = this.#onCreated.bind(this);
     lazy.CustomizableUI.createWidget({
       id: IPProtectionWidget.WIDGET_ID,
       l10nId: IPProtectionWidget.WIDGET_ID,
@@ -98,6 +100,7 @@ class IPProtectionWidget {
       onViewShowing,
       onViewHiding,
       onBeforeCreated,
+      onCreated,
     });
 
     this.#placeWidget();
@@ -198,6 +201,24 @@ class IPProtectionWidget {
     let { ownerGlobal } = doc;
     let panel = new lazy.IPProtectionPanel(ownerGlobal);
     this.#panels.set(ownerGlobal, panel);
+  }
+
+  /**
+   * Gets the toolbaritem after the widget has been created.
+   *
+   * @param {XULElement} toolbaritem - the widget toolbaritem.
+   */
+  #onCreated(toolbaritem) {
+    // Add l10n attributes for the dropmarker.
+    let dropmarker = toolbaritem.querySelector(
+      "#" + IPProtectionWidget.DROPMARKER_ID
+    );
+    if (dropmarker) {
+      toolbaritem.ownerDocument.l10n.setAttributes(
+        dropmarker,
+        IPProtectionWidget.DROPMARKER_ID
+      );
+    }
   }
 }
 
