@@ -82,7 +82,11 @@ internal fun ProtectionPanelHeader(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        Divider(modifier = Modifier.size(width = 2.dp, height = 32.dp))
+        Divider(
+            modifier = Modifier
+            .size(width = 2.dp, height = 32.dp)
+            .background(FirefoxTheme.colors.layer3),
+        )
 
         IconButton(
             modifier = Modifier.padding(horizontal = 10.dp),
@@ -162,7 +166,7 @@ private fun ProtectionPanelHeaderPreview() {
     FirefoxTheme {
         Column(
             modifier = Modifier
-                .background(color = FirefoxTheme.colors.layer3),
+                .background(color = FirefoxTheme.colors.layer1),
         ) {
             ProtectionPanelHeader(
                 icon = null,

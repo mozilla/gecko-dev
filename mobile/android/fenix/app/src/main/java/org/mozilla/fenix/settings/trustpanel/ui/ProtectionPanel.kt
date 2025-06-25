@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -39,7 +40,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.menu.DropdownMenu
 import mozilla.components.compose.base.menu.MenuItem.CheckableItem
 import mozilla.components.compose.base.text.Text
@@ -59,6 +59,9 @@ import org.mozilla.fenix.settings.trustpanel.store.WebsitePermission
 import org.mozilla.fenix.theme.FirefoxTheme
 
 private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
+private val BANNER_ROUNDED_CORNER_SHAPE = RoundedCornerShape(
+    topStart = 28.dp, topEnd = 28.dp, bottomStart = 4.dp, bottomEnd = 4.dp,
+)
 
 @Suppress("LongParameterList", "LongMethod")
 @Composable
@@ -108,12 +111,15 @@ internal fun ProtectionPanel(
                 )
             }
 
-            Divider(color = FirefoxTheme.colors.borderSecondary)
-
             SwitchWithLabel(
                 label = stringResource(id = R.string.protection_panel_etp_toggle_label),
                 checked = isTrackingProtectionEnabled,
-                modifier = Modifier.padding(start = 16.dp, top = 6.dp, end = 9.dp, bottom = 14.dp),
+                modifier = Modifier
+                    .clip(shape = ROUNDED_CORNER_SHAPE)
+                    .background(
+                        color = FirefoxTheme.colors.layer3,
+                    )
+                    .padding(start = 16.dp, top = 6.dp, end = 9.dp, bottom = 14.dp),
                 description = if (isTrackingProtectionEnabled) {
                     stringResource(id = R.string.protection_panel_etp_toggle_enabled_description)
                 } else {
@@ -186,38 +192,44 @@ private fun ProtectionPanelBanner(
         description = stringResource(id = R.string.protection_panel_banner_protected_description)
     }
 
-    Card(
+    Column(
         modifier = Modifier
-            .padding(start = 8.dp, top = 8.dp, end = 8.dp)
-            .fillMaxWidth(),
-        backgroundColor = backgroundColor,
-        elevation = 0.dp,
-        shape = ROUNDED_CORNER_SHAPE,
+            .clip(shape = ROUNDED_CORNER_SHAPE)
+            .background(color = FirefoxTheme.colors.layer3),
     ) {
-        Row(
-            modifier = Modifier.padding(start = 12.dp, top = 16.dp, end = 16.dp, bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        Card(
+            modifier = Modifier
+                .padding(start = 8.dp, top = 8.dp, end = 8.dp)
+                .fillMaxWidth(),
+            backgroundColor = backgroundColor,
+            elevation = 0.dp,
+            shape = BANNER_ROUNDED_CORNER_SHAPE,
         ) {
-            Image(
-                modifier = Modifier.size(90.dp),
-                painter = painterResource(id = imageId),
-                contentDescription = null,
-            )
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            Row(
+                modifier = Modifier.padding(start = 12.dp, top = 16.dp, end = 16.dp, bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(
-                    text = title,
-                    color = FirefoxTheme.colors.textPrimary,
-                    style = FirefoxTheme.typography.headline7,
+                Image(
+                    modifier = Modifier.size(90.dp),
+                    painter = painterResource(id = imageId),
+                    contentDescription = null,
                 )
 
-                Text(
-                    text = description,
-                    color = FirefoxTheme.colors.textPrimary,
-                    style = FirefoxTheme.typography.body2,
-                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = title,
+                        color = FirefoxTheme.colors.textPrimary,
+                        style = FirefoxTheme.typography.headline7,
+                    )
+
+                    Text(
+                        text = description,
+                        color = FirefoxTheme.colors.textPrimary,
+                        style = FirefoxTheme.typography.body2,
+                    )
+                }
             }
         }
     }
@@ -231,8 +243,13 @@ private fun WebsitePermissionsMenuGroup(
 ) {
     MenuGroup {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    color = FirefoxTheme.colors.layer3,
+                )
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
             Text(
                 text = stringResource(id = R.string.protection_panel_permissions_title),
                 color = FirefoxTheme.colors.textAccent,
@@ -241,10 +258,6 @@ private fun WebsitePermissionsMenuGroup(
         }
 
         websitePermissions.forEachIndexed { index, websitePermission ->
-            if (index != 0) {
-                Divider(color = FirefoxTheme.colors.borderSecondary)
-            }
-
             MenuItem(
                 label = stringResource(id = websitePermission.deviceFeature.getLabelId()),
                 beforeIconPainter = painterResource(id = websitePermission.deviceFeature.getIconId()),
@@ -353,7 +366,7 @@ private fun ProtectionPanelPreview() {
     FirefoxTheme {
         Column(
             modifier = Modifier
-                .background(color = FirefoxTheme.colors.layer3),
+                .background(color = FirefoxTheme.colors.layer1),
         ) {
             ProtectionPanel(
                 icon = null,
