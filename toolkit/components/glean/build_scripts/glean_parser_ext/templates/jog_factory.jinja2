@@ -30,6 +30,9 @@ CommonMetricData {
 {%- if metric_type_name.startswith('labeled_') -%}
     , labels
 {%- endif -%}
+{%- if metric_type_name.startswith('dual_labeled_') -%}
+    , keys, categories
+{%- endif -%}
 )
 {%- endmacro -%}
 
@@ -143,6 +146,8 @@ map of argument name to argument type. I may regret this if I need it again. #}
 {# And, don't forget the list of acceptable labels for a labeled metric. #}
     labels: Option<Vec<Cow<'static, str>>>,
     permit_non_commutative_operations_over_ipc: Option<bool>,
+    keys: Option<Vec<Cow<'static, str>>>,
+    categories: Option<Vec<Cow<'static, str>>>,
 ) -> Result<(u32, u32), Box<dyn std::error::Error>> {
     let metric_id = NEXT_METRIC_ID.fetch_add(1, Ordering::SeqCst);
     let metric32 = match metric_type {

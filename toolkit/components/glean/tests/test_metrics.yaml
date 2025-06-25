@@ -1260,6 +1260,65 @@ test_only.ipc:
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_LABELED_COUNTER
+  a_dual_labeled_counter:
+    type: dual_labeled_counter
+    description: |
+      This is a test-only metric.
+      Just counting keyed categorical things.
+    dual_labels:
+      key:
+        description: |
+          A small notch out of a milled round piece.
+      category:
+        description: |
+          Boxes too narrow for their contents.
+        labels:
+          - CommonLabel
+          - Label2
+          - Label3
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1973102
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1973102
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - test-ping
+    no_lint:
+      - COMMON_PREFIX
+    telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_DUAL_LABELED_COUNTER
+  another_dual_labeled_counter:
+    type: dual_labeled_counter
+    description: |
+      This is a test-only metric.
+      Just counting other keyed categorical things.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1973102
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1973102
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - test-ping
+    no_lint:
+      - COMMON_PREFIX
+    dual_labels:
+      key:
+        description: |
+          Presumably unlocks things.
+      category:
+        description: |
+          The order here is important.
+        labels:
+          - "false"
+          - "true"
+    telemetry_mirror: TELEMETRY_TEST_ANOTHER_MIRROR_FOR_DUAL_LABELED_COUNTER
   a_quantity:
     type: quantity
     unit: squad
