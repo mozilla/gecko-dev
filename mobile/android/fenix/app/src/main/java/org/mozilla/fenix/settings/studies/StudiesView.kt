@@ -59,6 +59,7 @@ class StudiesView(
             provideStudiesTitle().text = getSwitchCheckedTitle()
 
             settings.isExperimentationEnabled = isChecked
+            settings.hasUserDisabledExperimentation = !isChecked
             val experimentsKey = context.getPreferenceKey(R.string.pref_key_experimentation_v2)
             context.settings().preferences.edit(commit = true) { putBoolean(experimentsKey, isChecked) }
 

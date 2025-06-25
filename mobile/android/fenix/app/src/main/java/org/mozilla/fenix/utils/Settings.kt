@@ -418,6 +418,15 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = isTelemetryEnabled,
     )
 
+    /**
+     * This lets us know if the user has disabled experimentation manually so that we know
+     * if we should re-enable experimentation if the user disables and re-enables telemetry.
+     */
+    var hasUserDisabledExperimentation by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_user_disabled_experimentation),
+        default = false,
+    )
+
     var isOverrideTPPopupsForPerformanceTest = false
 
     // We do not use `booleanPreference` because we only want the "read" part of this setting to be

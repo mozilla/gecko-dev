@@ -57,7 +57,10 @@ class DefaultPrivacyPreferencesRepository(
     ) {
         when (type) {
             PreferenceType.CrashReporting -> settings.crashReportAlwaysSend = enabled
-            PreferenceType.UsageData -> settings.isTelemetryEnabled = enabled
+            PreferenceType.UsageData -> {
+                settings.isExperimentationEnabled = enabled
+                settings.isTelemetryEnabled = enabled
+            }
         }
     }
 }

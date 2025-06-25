@@ -42,4 +42,21 @@ class DefaultPrivacyPreferencesRepositoryTest {
         settings.isTelemetryEnabled = true
         assertTrue(repository.getPreference(PreferenceType.UsageData))
     }
+
+    @Test
+    fun `WHEN setPreference is called THEN the preference value is updated`() {
+        val settings = Settings(testContext)
+        val repository = DefaultPrivacyPreferencesRepository(settings)
+        assertTrue(settings.isTelemetryEnabled)
+        assertTrue(settings.isExperimentationEnabled)
+
+        repository.setPreference(PreferenceType.UsageData, false)
+
+        assertFalse(settings.isTelemetryEnabled)
+        assertFalse(settings.isExperimentationEnabled)
+
+        repository.setPreference(PreferenceType.UsageData, true)
+        assertTrue(settings.isTelemetryEnabled)
+        assertTrue(settings.isExperimentationEnabled)
+    }
 }

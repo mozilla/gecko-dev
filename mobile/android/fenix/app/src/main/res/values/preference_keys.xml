@@ -62,6 +62,7 @@
     <string name="pref_key_remote_debugging" translatable="false">pref_key_remote_debugging</string>
     <string name="pref_key_studies_section" translatable="false">pref_key_studies_section</string>
     <string name="pref_key_experimentation_v2" translatable="false">pref_key_experimentation_v2</string>
+    <string name="pref_key_user_disabled_experimentation" translatable="false">pref_key_user_disabled_experimentation</string>
     <string name="pref_key_private_mode_opened" translatable="false">pref_key_private_mode_opened</string>
     <string name="pref_key_open_in_app_opened" translatable="false">pref_key_open_in_app_opened</string>
     <string name="pref_key_install_pwa_opened" translatable="false">pref_key_install_pwa_opened</string>

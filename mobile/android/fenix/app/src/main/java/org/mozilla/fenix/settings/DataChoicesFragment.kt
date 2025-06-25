@@ -34,7 +34,9 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
             if (key == getPreferenceKey(R.string.pref_key_telemetry)) {
                 if (context.settings().isTelemetryEnabled) {
                     context.components.analytics.metrics.start(MetricServiceType.Data)
-                    context.settings().isExperimentationEnabled = true
+                    if (!context.settings().hasUserDisabledExperimentation) {
+                        context.settings().isExperimentationEnabled = true
+                    }
                     requireComponents.nimbus.sdk.globalUserParticipation = true
                     context.components.core.engine.notifyTelemetryPrefChanged(true)
                 } else {
