@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.home.pocket
 
+import androidx.navigation.NavController
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -23,20 +24,17 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.GleanMetrics.Pocket
-import org.mozilla.fenix.HomeActivity
+import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsState
-import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.home.mars.MARSUseCases
 import org.mozilla.fenix.home.pocket.controller.DefaultPocketStoriesController
@@ -52,17 +50,12 @@ class DefaultPocketStoriesControllerTest {
     @get:Rule
     val gleanTestRule = FenixGleanTestRule(testContext)
 
-    private val homeActivity: HomeActivity = mockk(relaxed = true)
+    private val navController: NavController = mockk(relaxed = true)
     private val settings: Settings = mockk(relaxed = true)
+    private val fenixBrowserUseCases: FenixBrowserUseCases = mockk(relaxed = true)
     private val marsUseCases: MARSUseCases = mockk(relaxed = true)
 
     private val scope = coroutinesTestRule.scope
-
-    @Before
-    fun setup() {
-        every { homeActivity.components.settings } returns settings
-        every { homeActivity.settings() } returns settings
-    }
 
     @Test
     fun `GIVEN a category is selected WHEN that same category is clicked THEN deselect it and record telemetry`() {
@@ -340,7 +333,14 @@ class DefaultPocketStoriesControllerTest {
 
         controller.handleStoryClicked(story, storyPosition = Triple(1, 2, 3))
 
-        verify { homeActivity.openToBrowserAndLoad(story.url, true, BrowserDirection.FromHome) }
+        verify {
+            navController.navigate(R.id.browserFragment)
+            fenixBrowserUseCases.loadUrlOrSearch(
+                searchTermOrURL = story.url,
+                newTab = true,
+                private = false,
+            )
+        }
 
         assertNotNull(Pocket.homeRecsStoryClicked.testGetValue())
         val event = Pocket.homeRecsStoryClicked.testGetValue()!!
@@ -353,7 +353,7 @@ class DefaultPocketStoriesControllerTest {
 
     @Test
     fun `GIVEN homepage as a new tab is enabled WHEN a recommended story is clicked THEN open that story's url using HomeActivity and record telemetry`() {
-        every { homeActivity.settings().enableHomepageAsNewTab } returns true
+        every { settings.enableHomepageAsNewTab } returns true
 
         val story = PocketRecommendedStory(
             title = "",
@@ -369,7 +369,14 @@ class DefaultPocketStoriesControllerTest {
 
         controller.handleStoryClicked(story, storyPosition = Triple(1, 2, 3))
 
-        verify { homeActivity.openToBrowserAndLoad(story.url, false, BrowserDirection.FromHome) }
+        verify {
+            navController.navigate(R.id.browserFragment)
+            fenixBrowserUseCases.loadUrlOrSearch(
+                searchTermOrURL = story.url,
+                newTab = false,
+                private = false,
+            )
+        }
 
         assertNotNull(Pocket.homeRecsStoryClicked.testGetValue())
         val event = Pocket.homeRecsStoryClicked.testGetValue()!!
@@ -410,7 +417,15 @@ class DefaultPocketStoriesControllerTest {
 
             controller.handleStoryClicked(storyClicked, storyPosition = Triple(2, 3, 4))
 
-            verify { homeActivity.openToBrowserAndLoad(storyClicked.url, true, BrowserDirection.FromHome) }
+            verify {
+                navController.navigate(R.id.browserFragment)
+                fenixBrowserUseCases.loadUrlOrSearch(
+                    searchTermOrURL = storyClicked.url,
+                    newTab = true,
+                    private = false,
+                )
+            }
+
             assertNotNull(Pocket.homeRecsSpocClicked.testGetValue())
             assertEquals(1, Pocket.homeRecsSpocClicked.testGetValue()!!.size)
             val data = Pocket.homeRecsSpocClicked.testGetValue()!!.single().extra
@@ -422,8 +437,8 @@ class DefaultPocketStoriesControllerTest {
     }
 
     @Test
-    fun `GIVEN homepage as a new tab is enabled WHEN a sponsored story is clicked THEN open that story's url using HomeActivity and record telemetry`() {
-        every { homeActivity.settings().enableHomepageAsNewTab } returns true
+    fun `GIVEN homepage as a new tab is enabled WHEN a sponsored story is clicked THEN navigate to the sponsored story's url and record the interaction`() {
+        every { settings.enableHomepageAsNewTab } returns true
 
         val storyClicked = PocketSponsoredStory(
             id = 7,
@@ -453,7 +468,15 @@ class DefaultPocketStoriesControllerTest {
 
             controller.handleStoryClicked(storyClicked, storyPosition = Triple(2, 3, 4))
 
-            verify { homeActivity.openToBrowserAndLoad(storyClicked.url, false, BrowserDirection.FromHome) }
+            verify {
+                navController.navigate(R.id.browserFragment)
+                fenixBrowserUseCases.loadUrlOrSearch(
+                    searchTermOrURL = storyClicked.url,
+                    newTab = false,
+                    private = false,
+                )
+            }
+
             assertNotNull(Pocket.homeRecsSpocClicked.testGetValue())
             assertEquals(1, Pocket.homeRecsSpocClicked.testGetValue()!!.size)
             val data = Pocket.homeRecsSpocClicked.testGetValue()!!.single().extra
@@ -497,10 +520,11 @@ class DefaultPocketStoriesControllerTest {
             assertEquals("3", data?.entries?.first { it.key == "times_shown" }?.value)
 
             verify {
-                homeActivity.openToBrowserAndLoad(
-                    sponsoredContent.url,
-                    true,
-                    BrowserDirection.FromHome,
+                navController.navigate(R.id.browserFragment)
+                fenixBrowserUseCases.loadUrlOrSearch(
+                    searchTermOrURL = sponsoredContent.url,
+                    newTab = true,
+                    private = false,
                 )
                 marsUseCases.recordInteraction(sponsoredContent.callbacks.clickUrl)
             }
@@ -515,13 +539,18 @@ class DefaultPocketStoriesControllerTest {
         controller.handleStoryClicked(story, storyPosition = Triple(1, 2, 3))
 
         verifyOrder {
-            homeActivity.openToBrowserAndLoad(story.url, true, BrowserDirection.FromHome)
+            navController.navigate(R.id.browserFragment)
+            fenixBrowserUseCases.loadUrlOrSearch(
+                searchTermOrURL = story.url,
+                newTab = true,
+                private = false,
+            )
         }
     }
 
     @Test
     fun `GIVEN homepage as a new tab is enabled WHEN a story is clicked THEN its link is opened`() {
-        every { homeActivity.settings().enableHomepageAsNewTab } returns true
+        every { settings.enableHomepageAsNewTab } returns true
 
         val story = PocketRecommendedStory("", "url", "", "", "", 0, 0)
         val controller = createController()
@@ -529,16 +558,22 @@ class DefaultPocketStoriesControllerTest {
         controller.handleStoryClicked(story, storyPosition = Triple(1, 2, 3))
 
         verifyOrder {
-            homeActivity.openToBrowserAndLoad(story.url, false, BrowserDirection.FromHome)
+            navController.navigate(R.id.browserFragment)
+            fenixBrowserUseCases.loadUrlOrSearch(
+                searchTermOrURL = story.url,
+                newTab = false,
+                private = false,
+            )
         }
     }
 
     private fun createController(
         appStore: AppStore = AppStore(),
     ) = DefaultPocketStoriesController(
-        homeActivity = homeActivity,
+        navController = navController,
         appStore = appStore,
         settings = settings,
+        fenixBrowserUseCases = fenixBrowserUseCases,
         marsUseCases = marsUseCases,
         viewLifecycleScope = scope,
     )

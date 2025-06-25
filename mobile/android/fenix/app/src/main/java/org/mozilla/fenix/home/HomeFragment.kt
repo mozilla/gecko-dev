@@ -502,9 +502,10 @@ class HomeFragment : Fragment() {
                 store = components.core.store,
             ),
             pocketStoriesController = DefaultPocketStoriesController(
-                homeActivity = activity,
+                navController = findNavController(),
                 appStore = components.appStore,
                 settings = components.settings,
+                fenixBrowserUseCases = requireComponents.useCases.fenixBrowserUseCases,
                 marsUseCases = components.useCases.marsUseCases,
                 viewLifecycleScope = viewLifecycleOwner.lifecycleScope,
             ),
