@@ -2654,14 +2654,14 @@ void ScriptLoader::CalculateBytecodeCacheFlag(ScriptLoadRequest* aRequest) {
   using mozilla::TimeDuration;
   using mozilla::TimeStamp;
 
-  if (aRequest->IsStencil()) {
-    aRequest->MarkPassedConditionForBytecodeEncoding();
-    return;
-  }
-
   if (aRequest->IsModuleRequest() &&
       aRequest->AsModuleRequest()->mModuleType != JS::ModuleType::JavaScript) {
     aRequest->MarkSkippedBytecodeEncoding();
+    return;
+  }
+
+  if (aRequest->IsStencil()) {
+    aRequest->MarkPassedConditionForBytecodeEncoding();
     return;
   }
 
