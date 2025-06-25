@@ -1431,7 +1431,7 @@ const BASE_MESSAGES = () => [
       id: "defaultBrowserCheck",
     },
     targeting:
-      "source == 'startup' && ((currentDate|date - profileAgeCreated|date) / 86400000 <= 7)",
+      "source == 'startup' && ((currentDate|date - profileAgeCreated|date) / 86400000 <= 7) && !hasActiveEnterprisePolicies",
   },
   {
     id: "FINISH_SETUP_CHECKLIST",
@@ -2016,7 +2016,7 @@ const BASE_MESSAGES = () => [
       ],
     },
     priority: 3,
-    targeting: `tabsClosedCount > 4
+    targeting: `!hasActiveEnterprisePolicies && tabsClosedCount > 4
       && (!isDefaultBrowserUncached
         || doesAppNeedPinUncached
         || (!hasMigratedBookmarks || !hasMigratedCSVPasswords || !hasMigratedHistory || !hasMigratedPasswords)
