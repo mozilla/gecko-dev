@@ -18,9 +18,11 @@ exclude: true
 - ⚠️ Removed deprecated functions that were scheduled for removal in GeckoView 142. ([bug 1963053]({{bugzilla}}1963053))
 - Added `setBounceTrackingProtectionMode`, `getBounceTrackingProtectionMode` to [`ContentBlocking.Settings`][142.2].
   ([bug 1963445]({{bugzilla}}1963445))
+- Added the list of data collection permission names to [`WebExtension`][142.3] ([bug 1972228]({{bugzilla}}1972228))
 
 [142.1]: {{javadoc_uri}}/WebExtensionController.html#onOptionalPrompt
 [142.2]: {{javadoc_uri}}/ContentBlocking.html
+[142.3]: {{javadoc_uri}}/WebExtension.html
 
 ## v141
 - Changed the methods in [`ProfilerController`][141.1] to static.
@@ -1788,4 +1790,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: ee6b7b0c4bb7945defd9bfb8c8e21be0d20b7e74
+[api-version]: b282e190de186cecdff8160ce6e5e4c2ddd230bb
