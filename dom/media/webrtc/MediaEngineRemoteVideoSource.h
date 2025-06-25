@@ -222,9 +222,11 @@ class MediaEngineRemoteVideoSource : public MediaEngineSource,
   MozPromiseHolder<GenericNonExclusivePromise> mFirstFramePromiseHolder;
   RefPtr<GenericNonExclusivePromise> mFirstFramePromise;
 
-  // The capability currently chosen by constraints of the user of this source.
+  // The capability currently chosen by constraints of the user of this source,
+  // and the distance calculation used when applying them.
   // Set under mMutex on the owning thread. Accessed under one of the two.
   webrtc::CaptureCapability mCapability;
+  DistanceCalculation mCalculation;
 
   /**
    * Capabilities that we choose between when applying constraints.

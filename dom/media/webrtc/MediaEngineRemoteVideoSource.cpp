@@ -204,6 +204,7 @@ nsresult MediaEngineRemoteVideoSource::Allocate(
     MutexAutoLock lock(mMutex);
     mState = kAllocated;
     mCapability = newCapability;
+    mCalculation = distanceMode;
     mTrackingId =
         TrackingId(CaptureEngineToTrackingSourceStr(mCapEngine), mCaptureId);
   }
@@ -293,7 +294,8 @@ nsresult MediaEngineRemoteVideoSource::Start() {
   NS_DispatchToMainThread(NS_NewRunnableFunction(
       "MediaEngineRemoteVideoSource::SetLastCapability",
       [settings = mSettings, updated = mSettingsUpdatedByFrame,
-       capEngine = mCapEngine, cap = mCapability]() mutable {
+       capEngine = mCapEngine, cap = mCapability,
+       calc = mCalculation]() mutable {
         switch (capEngine) {
           case camera::ScreenEngine:
           case camera::WinEngine:
@@ -314,6 +316,11 @@ nsresult MediaEngineRemoteVideoSource::Start() {
           settings->mHeight.Value() = cap.height;
         }
         settings->mFrameRate.Value() = cap.maxFPS;
+        auto resizeMode = (calc == kFitness)
+                              ? VideoResizeModeEnum::None
+                              : VideoResizeModeEnum::Crop_and_scale;
+        settings->mResizeMode.Value() =
+            NS_ConvertASCIItoUTF16(dom::GetEnumString(resizeMode));
       }));
 
   return NS_OK;
@@ -372,7 +379,7 @@ nsresult MediaEngineRemoteVideoSource::Reconfigure(
   LOG("ChooseCapability(%s) for mTargetCapability (Reconfigure) --",
       ToString(distanceMode));
 
-  if (mCapability == newCapability) {
+  if (mCapability == newCapability && mCalculation == distanceMode) {
     return NS_OK;
   }
 
@@ -380,6 +387,7 @@ nsresult MediaEngineRemoteVideoSource::Reconfigure(
     MutexAutoLock lock(mMutex);
     // Start() applies mCapability on the device.
     mCapability = newCapability;
+    mCalculation = distanceMode;
   }
 
   if (mState == kStarted) {
