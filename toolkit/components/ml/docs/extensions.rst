@@ -177,7 +177,7 @@ Last, but not least, if the device memory resources are getting too low, engine 
 be deleted and an error will be thrown.
 
 
-Full example
-------------
+Examples
+--------
 
-We've implemented a full example that leverages our `image-to-text model` to generate a caption on a right click. :ref:`See the README <Trial Inference API Extension Example>`.
+We've implemented some examples, look for all repositories starting with `webext-ai` in https://github.com/firefox-ai.

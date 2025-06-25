@@ -505,8 +505,6 @@ export default [
       "testing/talos/talos/tests/twinopen/driver.js",
       "testing/talos/talos/webextensions/dummy/background.js",
       "testing/talos/talos/webextensions/dummy/content.js",
-      "toolkit/components/ml/docs/extensions-api-example/background.js",
-      "toolkit/components/ml/docs/extensions-api-example/contextmenu-shim.js",
       "toolkit/components/remotebrowserutils/tests/browser/browser_documentChannel.js",
     ],
     languageOptions: { globals: globals.webextensions },

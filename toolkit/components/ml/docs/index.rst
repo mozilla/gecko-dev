@@ -37,4 +37,3 @@ Learn more about the platform:
    models
    perf
    extensions
-   extensions-api-example/README
