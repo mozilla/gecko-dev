@@ -124,11 +124,13 @@ EncodeSupportSet FFmpegEncoderModule<V>::SupportsCodec(CodecType aCodec) const {
     return EncodeSupportSet{};
   }
   EncodeSupportSet supports;
+#ifdef MOZ_USE_HWDECODE
   if (StaticPrefs::media_ffvpx_hw_enabled() &&
       FFmpegDataEncoder<V>::FindHardwareEncoder(mLib, id) &&
       sSupportedHWCodecs.Contains(static_cast<uint32_t>(id))) {
     supports += EncodeSupport::HardwareEncode;
   }
+#endif
   if (FFmpegDataEncoder<V>::FindSoftwareEncoder(mLib, id)) {
     supports += EncodeSupport::SoftwareEncode;
   }
