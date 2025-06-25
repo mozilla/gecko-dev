@@ -1911,10 +1911,10 @@ static Maybe<AnchorPosInfo> GetAnchorPosRect(const nsIFrame* aPositioned,
   const auto* containingBlock = aPositioned->GetParent();
   auto rect = [&]() -> Maybe<nsRect> {
     if (aCBRectIsvalid) {
-      nsRect result = anchor->GetRectRelativeToSelf();
-      nsLayoutUtils::TransformRect(anchor, containingBlock, result);
+      const nsRect result = anchor->GetRectRelativeToSelf();
+      const auto offset = anchor->GetOffsetTo(containingBlock);
       // Easy, just use the existing function.
-      return Some(result);
+      return Some(result + offset);
     }
 
     // Ok, containing block doesn't have its rect fully resolved. Figure out
@@ -1934,10 +1934,9 @@ static Maybe<AnchorPosInfo> GetAnchorPosRect(const nsIFrame* aPositioned,
 
     // TODO(dshin): Already traversed up to find `containerChild`, and we're
     // going to do it again here, which feels a little wasteful.
-    nsRect rectToContainerChild = anchor->GetRectRelativeToSelf();
-    nsLayoutUtils::TransformRect(anchor, containerChild, rectToContainerChild);
-
-    return Some(rectToContainerChild + containerChild->GetPosition());
+    const nsRect rectToContainerChild = anchor->GetRectRelativeToSelf();
+    const auto offset = anchor->GetOffsetTo(containerChild);
+    return Some(rectToContainerChild + offset + containerChild->GetPosition());
   }();
   return rect.map([&](const nsRect& aRect) {
     // We need to position the border box of the anchor within the abspos
