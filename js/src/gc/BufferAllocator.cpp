@@ -1843,7 +1843,7 @@ static inline StallAndRetry ShouldStallAndRetry(bool inGC) {
 bool BufferAllocator::allocNewChunk(bool inGC) {
   GCRuntime* gc = &zone->runtimeFromMainThread()->gc;
   AutoLockGCBgAlloc lock(gc);
-  ArenaChunk* baseChunk = gc->takeOrAllocChunk(ShouldStallAndRetry(inGC), lock);
+  ArenaChunk* baseChunk = gc->getOrAllocChunk(ShouldStallAndRetry(inGC), lock);
   if (!baseChunk) {
     return false;
   }
@@ -1949,8 +1949,7 @@ bool BufferAllocator::sweepChunk(BufferChunk* chunk, OwnerKind ownerKindToSweep,
     // Chunk is empty. Give it back to the system.
     bool allMemoryCommitted = chunk->decommittedPages.ref().IsEmpty();
     chunk->~BufferChunk();
-    ArenaChunk* tenuredChunk =
-        ArenaChunk::emplace(chunk, gc, allMemoryCommitted);
+    ArenaChunk* tenuredChunk = ArenaChunk::init(chunk, gc, allMemoryCommitted);
     AutoLockGC lock(gc);
     gc->recycleChunk(tenuredChunk, lock);
     return false;

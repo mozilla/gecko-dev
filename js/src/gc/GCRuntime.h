@@ -593,14 +593,9 @@ class GCRuntime {
   void verifyAllChunks();
 #endif
 
-  // Get a free chunk or allocate one if needed. The chunk is left in the empty
-  // chunks pool.
+  // Get or allocate a free chunk, removing it from the empty chunks pool.
   ArenaChunk* getOrAllocChunk(StallAndRetry stallAndRetry,
                               AutoLockGCBgAlloc& lock);
-
-  // Get or allocate a free chunk, removing it from the empty chunks pool.
-  ArenaChunk* takeOrAllocChunk(StallAndRetry stallAndRetry,
-                               AutoLockGCBgAlloc& lock);
 
   void recycleChunk(ArenaChunk* chunk, const AutoLockGC& lock);
 

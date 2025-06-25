@@ -245,7 +245,7 @@ void js::NurseryDecommitTask::run(AutoLockHelperThreadState& lock) {
     AutoUnlockHelperThreadState unlock(lock);
     nurseryChunk->~NurseryChunk();
     ArenaChunk* tenuredChunk =
-        ArenaChunk::emplace(nurseryChunk, gc, /* allMemoryCommitted = */ false);
+        ArenaChunk::init(nurseryChunk, gc, /* allMemoryCommitted = */ false);
     AutoLockGC lock(gc);
     gc->recycleChunk(tenuredChunk, lock);
   }
@@ -2314,14 +2314,14 @@ bool js::Nursery::allocateNextChunk(AutoLockGCBgAlloc& lock) {
     return false;
   }
 
-  ArenaChunk* toSpaceChunk = gc->takeOrAllocChunk(StallAndRetry::No, lock);
+  ArenaChunk* toSpaceChunk = gc->getOrAllocChunk(StallAndRetry::No, lock);
   if (!toSpaceChunk) {
     return false;
   }
 
   ArenaChunk* fromSpaceChunk = nullptr;
   if (semispaceEnabled_ &&
-      !(fromSpaceChunk = gc->takeOrAllocChunk(StallAndRetry::No, lock))) {
+      !(fromSpaceChunk = gc->getOrAllocChunk(StallAndRetry::No, lock))) {
     gc->recycleChunk(toSpaceChunk, lock);
     return false;
   }

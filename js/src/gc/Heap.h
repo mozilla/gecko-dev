@@ -541,7 +541,7 @@ class ArenaChunk : public ArenaChunkBase {
   void decommitFreeArenasWithoutUnlocking(const AutoLockGC& lock);
 
   static void* allocate(GCRuntime* gc, StallAndRetry stallAndRetry);
-  static ArenaChunk* emplace(void* ptr, GCRuntime* gc, bool allMemoryCommitted);
+  static ArenaChunk* init(void* ptr, GCRuntime* gc, bool allMemoryCommitted);
 
   /* Unlink and return the freeArenasHead. */
   Arena* fetchNextFreeArena(GCRuntime* gc);

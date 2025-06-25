@@ -563,19 +563,8 @@ Arena* ArenaChunk::fetchNextFreeArena(GCRuntime* gc) {
 
 // ///////////  System -> ArenaChunk Allocator  ////////////////////////////////
 
-ArenaChunk* GCRuntime::takeOrAllocChunk(StallAndRetry stallAndRetry,
-                                        AutoLockGCBgAlloc& lock) {
-  ArenaChunk* chunk = getOrAllocChunk(stallAndRetry, lock);
-  if (!chunk) {
-    return nullptr;
-  }
-
-  emptyChunks(lock).remove(chunk);
-  return chunk;
-}
-
 ArenaChunk* GCRuntime::getOrAllocChunk(StallAndRetry stallAndRetry,
-                                       AutoLockGCBgAlloc& lock) {
+                                        AutoLockGCBgAlloc& lock) {
   ArenaChunk* chunk;
   if (!emptyChunks(lock).empty()) {
     chunk = emptyChunks(lock).head();
@@ -584,21 +573,21 @@ ArenaChunk* GCRuntime::getOrAllocChunk(StallAndRetry stallAndRetry,
     SetMemCheckKind(chunk, sizeof(ChunkBase), MemCheckKind::MakeUndefined);
     chunk->initBaseForArenaChunk(rt);
     MOZ_ASSERT(chunk->isEmpty());
+    emptyChunks(lock).remove(chunk);
   } else {
     void* ptr = ArenaChunk::allocate(this, stallAndRetry);
     if (!ptr) {
       return nullptr;
     }
 
-    chunk = ArenaChunk::emplace(ptr, this, /* allMemoryCommitted = */ true);
-    MOZ_ASSERT(chunk->isEmpty());
-    emptyChunks(lock).push(chunk);
+    chunk = ArenaChunk::init(ptr, this, /* allMemoryCommitted = */ true);
   }
 
   if (wantBackgroundAllocation(lock)) {
     lock.tryToStartBackgroundAllocation();
   }
 
+  MOZ_ASSERT(chunk);
   return chunk;
 }
 
@@ -624,7 +613,7 @@ ArenaChunk* GCRuntime::pickChunk(StallAndRetry stallAndRetry,
     return chunk;
   }
 
-  ArenaChunk* chunk = takeOrAllocChunk(stallAndRetry, lock);
+  ArenaChunk* chunk = getOrAllocChunk(stallAndRetry, lock);
   if (!chunk) {
     return nullptr;
   }
@@ -656,7 +645,7 @@ void BackgroundAllocTask::run(AutoLockHelperThreadState& lock) {
       if (!ptr) {
         break;
       }
-      chunk = ArenaChunk::emplace(ptr, gc, /* allMemoryCommitted = */ true);
+      chunk = ArenaChunk::init(ptr, gc, /* allMemoryCommitted = */ true);
     }
     chunkPool_.ref().push(chunk);
   }
@@ -682,8 +671,8 @@ static inline bool ShouldDecommitNewChunk(bool allMemoryCommitted,
   return !allMemoryCommitted || !state.inHighFrequencyGCMode();
 }
 
-ArenaChunk* ArenaChunk::emplace(void* ptr, GCRuntime* gc,
-                                bool allMemoryCommitted) {
+ArenaChunk* ArenaChunk::init(void* ptr, GCRuntime* gc,
+                             bool allMemoryCommitted) {
   /* The chunk may still have some regions marked as no-access. */
   MOZ_MAKE_MEM_UNDEFINED(ptr, ChunkSize);
 

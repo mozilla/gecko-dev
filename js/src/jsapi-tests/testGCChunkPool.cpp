@@ -21,7 +21,7 @@ BEGIN_TEST(testGCChunkPool) {
   for (int i = 0; i < N; ++i) {
     void* ptr = ArenaChunk::allocate(&cx->runtime()->gc, StallAndRetry::No);
     CHECK(ptr);
-    ArenaChunk* chunk = ArenaChunk::emplace(ptr, &cx->runtime()->gc, true);
+    ArenaChunk* chunk = ArenaChunk::init(ptr, &cx->runtime()->gc, true);
     CHECK(chunk);
     pool.push(chunk);
   }
