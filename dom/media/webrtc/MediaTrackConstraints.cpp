@@ -366,6 +366,19 @@ uint32_t MediaConstraintsHelper::FitnessDistance(
   auto& c = aConstraints;
   LogConstraints(c);
 
+  if (!aDevices.IsEmpty() &&
+      aDevices[0]->Kind() == dom::MediaDeviceKind::Videoinput) {
+    // Check invalid exact resizeMode constraint (not a device property)
+    nsString none =
+        NS_ConvertASCIItoUTF16(dom::GetEnumString(VideoResizeModeEnum::None));
+    nsString crop = NS_ConvertASCIItoUTF16(
+        dom::GetEnumString(VideoResizeModeEnum::Crop_and_scale));
+    if (FitnessDistance(Some(none), c.mResizeMode) == UINT32_MAX &&
+        FitnessDistance(Some(crop), c.mResizeMode) == UINT32_MAX) {
+      return "resizeMode";
+    }
+  }
+
   // First apply top-level constraints.
 
   // Stack constraintSets that pass, starting with the required one, because the

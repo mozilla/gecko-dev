@@ -1191,18 +1191,29 @@ nsresult LocalMediaDevice::Reconfigure(
     const MediaTrackConstraints& aConstraints, const MediaEnginePrefs& aPrefs,
     const char** aOutBadConstraint) {
   MOZ_ASSERT(MediaManager::IsInMediaThread());
+  using H = MediaConstraintsHelper;
   auto type = GetMediaSource();
   if (type == MediaSourceEnum::Camera || type == MediaSourceEnum::Microphone) {
     NormalizedConstraints c(aConstraints);
-    if (MediaConstraintsHelper::FitnessDistance(Some(mID), c.mDeviceId) ==
-        UINT32_MAX) {
+    if (H::FitnessDistance(Some(mID), c.mDeviceId) == UINT32_MAX) {
       *aOutBadConstraint = "deviceId";
       return NS_ERROR_INVALID_ARG;
     }
-    if (MediaConstraintsHelper::FitnessDistance(Some(mGroupID), c.mGroupId) ==
-        UINT32_MAX) {
+    if (H::FitnessDistance(Some(mGroupID), c.mGroupId) == UINT32_MAX) {
       *aOutBadConstraint = "groupId";
       return NS_ERROR_INVALID_ARG;
+    }
+    if (type == MediaSourceEnum::Camera) {
+      // Check invalid exact resizeMode constraint (not a device property)
+      nsString none =
+          NS_ConvertASCIItoUTF16(dom::GetEnumString(VideoResizeModeEnum::None));
+      nsString crop = NS_ConvertASCIItoUTF16(
+          dom::GetEnumString(VideoResizeModeEnum::Crop_and_scale));
+      if (H::FitnessDistance(Some(none), c.mResizeMode) == UINT32_MAX &&
+          H::FitnessDistance(Some(crop), c.mResizeMode) == UINT32_MAX) {
+        *aOutBadConstraint = "resizeMode";
+        return NS_ERROR_INVALID_ARG;
+      }
     }
   }
   return Source()->Reconfigure(aConstraints, aPrefs, aOutBadConstraint);
