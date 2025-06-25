@@ -16,7 +16,7 @@ import org.mozilla.fenix.search.SearchFragmentState
  * @param fromHomeFragment Whether the awesome bar is being shown from the home fragment.
  */
 @Suppress("OutdatedDocumentation")
-class AwesomeBarViewSuggestions(
+class AwesomeBarView(
     activity: HomeActivity,
     private val interactor: AwesomeBarInteractor,
     val view: AwesomeBarWrapper,
