@@ -10,7 +10,10 @@ transforms = TransformSequence()
 
 @transforms.add
 def maybe_setup_os_integration(config, tasks):
-    if config.params["target_tasks_method"] != "os-integration":
+    if (
+        config.params["tasks_for"] != "cron"
+        or config.params["target_tasks_method"] != "os-integration"
+    ):
         yield from tasks
         return
 

@@ -242,6 +242,8 @@ os-integration:
     selector: fuzzy
     description: >-
         Run the same tasks as the "os-integration" cron.
+    env:
+        - MOZHARNESS_TEST_TAG=["os_integration"]
     try_config_params:
         target_tasks_method: os-integration
 
