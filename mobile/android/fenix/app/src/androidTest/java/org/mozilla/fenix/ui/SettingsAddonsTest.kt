@@ -5,6 +5,7 @@
 package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.core.net.toUri
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.R
@@ -22,6 +23,7 @@ import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.helpers.perf.DetectMemoryLeaksRule
 import org.mozilla.fenix.ui.robots.addonsMenu
 import org.mozilla.fenix.ui.robots.homeScreen
+import org.mozilla.fenix.ui.robots.navigationToolbar
 
 /**
  *  Tests for verifying the functionality of installing or removing addons
@@ -167,16 +169,16 @@ class SettingsAddonsTest : TestSetup() {
     @Test
     fun verifyUBlockWorksInNormalModeTest() {
         val addonName = "uBlock Origin"
+        val webPage = "https://mozilla-mobile.github.io/testapp/"
 
         addonsMenu {
             installAddon(addonName, activityTestRule.activityRule)
             closeAddonInstallCompletePrompt()
         }.goBack {
-        }.openTopSiteTabWithTitle(
-            activityTestRule,
-            getStringResource(R.string.default_top_site_google),
-        ) {
-            verifyUrl("google.com")
+        }
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(webPage.toUri()) {
+            verifyPageContent("Lets test!")
         }.openThreeDotMenu {
             openAddonsSubList()
             verifyTrackersBlockedByUblock()
