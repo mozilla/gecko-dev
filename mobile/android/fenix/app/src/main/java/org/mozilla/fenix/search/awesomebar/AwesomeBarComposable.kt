@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.search.awesomebar
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -24,11 +25,13 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
+import mozilla.components.browser.state.action.AwesomeBarAction
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.awesomebar.AwesomeBar
 import mozilla.components.compose.browser.awesomebar.AwesomeBarDefaults
 import mozilla.components.compose.browser.awesomebar.AwesomeBarOrientation
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.lib.state.ext.observeAsComposableState
 import org.mozilla.fenix.HomeActivity
@@ -41,6 +44,9 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.search.BrowserToolbarToFenixSearchMapperMiddleware
 import org.mozilla.fenix.search.FenixSearchMiddleware
 import org.mozilla.fenix.search.SearchDialogFragmentStore
+import org.mozilla.fenix.search.SearchFragmentAction.SearchSuggestionsVisibilityUpdated
+import org.mozilla.fenix.search.SearchFragmentAction.SuggestionClicked
+import org.mozilla.fenix.search.SearchFragmentAction.SuggestionSelected
 import org.mozilla.fenix.search.SearchFragmentStore
 import org.mozilla.fenix.search.createInitialSearchFragmentState
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -101,6 +107,12 @@ class AwesomeBarComposable(
             }
         }
 
+        BackHandler {
+            store.dispatch(SearchSuggestionsVisibilityUpdated(false))
+            toolbarStore.dispatch(ToggleEditMode(false))
+            browserStore.dispatch(AwesomeBarAction.EngagementFinished(abandoned = true))
+        }
+
         if (state.shouldShowSearchSuggestions) {
             Box(
                 modifier = Modifier
@@ -124,8 +136,12 @@ class AwesomeBarComposable(
                         autocompleteIcon = FirefoxTheme.colors.textSecondary,
                         groupTitle = FirefoxTheme.colors.textSecondary,
                     ),
-                    onSuggestionClicked = {},
-                    onAutoComplete = {},
+                    onSuggestionClicked = { suggestion ->
+                        store.dispatch(SuggestionClicked(suggestion))
+                    },
+                    onAutoComplete = { suggestion ->
+                        store.dispatch(SuggestionSelected(suggestion))
+                    },
                     onVisibilityStateUpdated = {},
                     onScroll = { keyboardController?.hide() },
                     profiler = components.core.engine.profiler,
@@ -157,6 +173,7 @@ class AwesomeBarComposable(
                     nimbusComponents = components.nimbus,
                     settings = components.settings,
                     browserStore = browserStore,
+                    toolbarStore = toolbarStore,
                     includeSelectedTab = includeSelectedTab,
                 ),
             )[FenixSearchMiddleware::class.java].also {

@@ -12,6 +12,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
+import mozilla.components.browser.state.action.AwesomeBarAction
 import mozilla.components.browser.state.action.AwesomeBarAction.EngagementFinished
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.search.RegionState
@@ -20,6 +21,9 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SearchState
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UpdateEditText
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.concept.awesomebar.AwesomeBar.Suggestion
 import mozilla.components.concept.awesomebar.AwesomeBar.SuggestionProvider
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
@@ -31,19 +35,27 @@ import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.experiments.nimbus.NimbusEventStore
+import org.mozilla.fenix.GleanMetrics.BookmarksManagement
+import org.mozilla.fenix.GleanMetrics.Events
+import org.mozilla.fenix.GleanMetrics.History
 import org.mozilla.fenix.GleanMetrics.UnifiedSearch
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.NimbusComponents
 import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
+import org.mozilla.fenix.ext.telemetryName
 import org.mozilla.fenix.search.SearchEngineSource.Bookmarks
 import org.mozilla.fenix.search.SearchEngineSource.Shortcut
 import org.mozilla.fenix.search.SearchFragmentAction.SearchStarted
+import org.mozilla.fenix.search.SearchFragmentAction.SuggestionClicked
+import org.mozilla.fenix.search.SearchFragmentAction.SuggestionSelected
 import org.mozilla.fenix.search.SearchFragmentAction.UpdateQuery
 import org.mozilla.fenix.search.awesomebar.SearchSuggestionsProvidersBuilder
 import org.mozilla.fenix.search.fixtures.EMPTY_SEARCH_FRAGMENT_STATE
@@ -64,10 +76,12 @@ class FenixSearchMiddlewareTest {
     private val nimbusComponents: NimbusComponents = mockk()
     private val settings: Settings = mockk(relaxed = true)
     private val browserActionsCaptor = CaptureActionsMiddleware<BrowserState, BrowserAction>()
+    private val searchActionsCaptor = CaptureActionsMiddleware<SearchFragmentState, SearchFragmentAction>()
     private var browserStore = BrowserStore(
         initialState = BrowserState(search = fakeSearchEnginesState()),
         middleware = listOf(browserActionsCaptor),
     )
+    private val toolbarStore: BrowserToolbarStore = mockk(relaxed = true)
     private val navController: NavController = mockk(relaxed = true)
 
     @Test
@@ -104,6 +118,29 @@ class FenixSearchMiddlewareTest {
         assertNotNull(store.state.defaultEngine)
         assertEquals(defaultSearchEngine?.id, store.state.defaultEngine?.id)
         assertFalse(store.state.shouldShowSearchSuggestions)
+    }
+
+    @Test
+    fun `WHEN search is started with a preselected search engine THEN record telemetry`() {
+        val preselectedSearchEngine = SearchEngine("engine-a", "Engine A", mockk(), type = SearchEngine.Type.BUNDLED)
+        val (middleware, store) = buildMiddlewareAndAddToSearchStore()
+        every { middleware.buildSearchSuggestionsProvider() } returns mockk(relaxed = true)
+
+        store.dispatch(SearchStarted(preselectedSearchEngine, false))
+
+        val telemetry = UnifiedSearch.engineSelected.testGetValue()
+        assertEquals("engine_selected", telemetry?.get(0)?.name)
+        assertEquals(preselectedSearchEngine.telemetryName(), telemetry?.get(0)?.extra?.get("engine"))
+    }
+
+    @Test
+    fun `WHEN search is started with the default search engine then don't record telemetry`() {
+        val (middleware, store) = buildMiddlewareAndAddToSearchStore()
+        every { middleware.buildSearchSuggestionsProvider() } returns mockk(relaxed = true)
+
+        store.dispatch(SearchStarted(null, false))
+
+        assertNull(UnifiedSearch.engineSelected.testGetValue())
     }
 
     @Test
@@ -169,7 +206,7 @@ class FenixSearchMiddlewareTest {
     }
 
     @Test
-    fun `When needing to load an URL THEN open it in browser and record search ended`() {
+    fun `When needing to load an URL THEN open it in browser, record search ended and record telemetry`() {
         val url = "https://mozilla.com"
         val flags = LoadUrlFlags.all()
         every { settings.enableHomepageAsNewTab } returns true
@@ -189,14 +226,20 @@ class FenixSearchMiddlewareTest {
         browserActionsCaptor.assertLastAction(EngagementFinished::class) {
             assertEquals(false, it.abandoned)
         }
+        val telemetry = Events.enteredUrl.testGetValue()
+        assertEquals("entered_url", telemetry?.get(0)?.name)
+        assertEquals("false", telemetry?.get(0)?.extra?.get("autocomplete"))
     }
 
     @Test
-    fun `WHEN needing to search for specific terms THEN open them in browser and record search ended`() {
+    fun `WHEN needing to search for specific terms THEN open them in browser, record search ended and record telemetry`() {
         val searchTerm = "test"
         every { settings.enableHomepageAsNewTab } returns true
-        every { nimbusComponents.events } returns mockk(relaxed = true)
-        val middleware = buildMiddleware()
+        val nimbusEventsStore: NimbusEventStore = mockk {
+            every { recordEvent(any()) } just Runs
+        }
+        every { nimbusComponents.events } returns nimbusEventsStore
+        val middleware = buildMiddleware(nimbusComponents = nimbusComponents)
         val store = SearchFragmentStore(
             initialState = buildEmptySearchState(),
             middleware = listOf(middleware),
@@ -218,6 +261,10 @@ class FenixSearchMiddlewareTest {
         browserActionsCaptor.assertLastAction(EngagementFinished::class) {
             assertEquals(false, it.abandoned)
         }
+        verify { nimbusEventsStore.recordEvent("performed_search") }
+        val telemetry = Events.performedSearch.testGetValue()
+        assertEquals("performed_search", telemetry?.get(0)?.name)
+        assertEquals("default.suggestion", telemetry?.get(0)?.extra?.get("source"))
     }
 
     @Test
@@ -280,21 +327,72 @@ class FenixSearchMiddlewareTest {
         }
     }
 
+    @Test
+    fun `WHEN a search suggestion is clicked THEN exit search mode and execute the custom actions for it`() {
+        var wasSuggestionClickHandled = false
+        val customSuggestionClickedAction = { wasSuggestionClickHandled = true }
+        val clickedSuggestion = Suggestion(provider = mockk(), onSuggestionClicked = customSuggestionClickedAction)
+        val (_, store) = buildMiddlewareAndAddToSearchStore()
+
+        store.dispatch(SuggestionClicked(clickedSuggestion))
+
+        assertTrue(wasSuggestionClickHandled)
+        verify { toolbarStore.dispatch(UpdateEditText("")) }
+        browserActionsCaptor.assertLastAction(AwesomeBarAction.SuggestionClicked::class) {
+            assertEquals(clickedSuggestion, it.suggestion)
+        }
+    }
+
+    @Test
+    fun `GIVEN the search selector menu is opened WHEN the history search engine item is clicked THEN record telemetry`() {
+        val historySuggestion: Suggestion = mockk(relaxed = true) {
+            every { flags } returns setOf(Suggestion.Flag.HISTORY)
+        }
+        val (_, store) = buildMiddlewareAndAddToSearchStore()
+
+        store.dispatch(SuggestionClicked(historySuggestion))
+
+        assertNotNull(History.searchResultTapped.testGetValue())
+    }
+
+    @Test
+    fun `GIVEN the search selector menu is opened WHEN the bookmarks search engine item is clicked THEN record telemetry`() {
+        val bookmarksSuggestion: Suggestion = mockk(relaxed = true) {
+            every { flags } returns setOf(Suggestion.Flag.BOOKMARK)
+        }
+        val (_, store) = buildMiddlewareAndAddToSearchStore()
+
+        store.dispatch(SuggestionClicked(bookmarksSuggestion))
+
+        assertNotNull(BookmarksManagement.searchResultTapped.testGetValue())
+    }
+
+    @Test
+    fun `WHEN a search suggestion is selected for edit THEN update the current search query with the search suggestion text`() {
+        val selectedSuggestion = Suggestion(provider = mockk(), editSuggestion = "test")
+        val (_, store) = buildMiddlewareAndAddToSearchStore()
+
+        store.dispatch(SuggestionSelected(selectedSuggestion))
+
+        verify { toolbarStore.dispatch(UpdateEditText("test")) }
+    }
+
     private fun buildMiddlewareAndAddToSearchStore(
         engine: Engine = this.engine,
         tabsUseCases: TabsUseCases = this.tabsUseCases,
         settings: Settings = this.settings,
         browserStore: BrowserStore = this.browserStore,
+        toolbarStore: BrowserToolbarStore = this.toolbarStore,
         includeSelectedTab: Boolean = true,
     ): Pair<FenixSearchMiddleware, SearchFragmentStore> {
         val middleware = spyk(
             buildMiddleware(
-                engine, tabsUseCases, nimbusComponents, settings, browserStore, includeSelectedTab,
+                engine, tabsUseCases, nimbusComponents, settings, browserStore, toolbarStore, includeSelectedTab,
             ),
         )
         val store = SearchFragmentStore(
             initialState = buildEmptySearchState(),
-            middleware = listOf(middleware),
+            middleware = listOf(middleware, searchActionsCaptor),
         )
         store.waitUntilIdle()
         return middleware to store
@@ -306,6 +404,7 @@ class FenixSearchMiddlewareTest {
         nimbusComponents: NimbusComponents = this.nimbusComponents,
         settings: Settings = this.settings,
         browserStore: BrowserStore = this.browserStore,
+        toolbarStore: BrowserToolbarStore = this.toolbarStore,
         includeSelectedTab: Boolean = true,
     ) = FenixSearchMiddleware(
         engine = engine,
@@ -313,6 +412,7 @@ class FenixSearchMiddlewareTest {
         nimbusComponents = nimbusComponents,
         settings = settings,
         browserStore = browserStore,
+        toolbarStore = toolbarStore,
         includeSelectedTab = includeSelectedTab,
     ).apply {
         updateLifecycleDependencies(

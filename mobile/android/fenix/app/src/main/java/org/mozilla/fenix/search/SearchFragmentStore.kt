@@ -10,6 +10,7 @@ import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.SearchState
 import mozilla.components.browser.state.state.searchEngines
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
+import mozilla.components.concept.awesomebar.AwesomeBar.Suggestion
 import mozilla.components.concept.awesomebar.AwesomeBar.SuggestionProvider
 import mozilla.components.lib.state.Action
 import mozilla.components.lib.state.Middleware
@@ -337,6 +338,20 @@ sealed class SearchFragmentAction : Action {
      * If the unified search is enabled, then search shortcuts should not be shown.
      */
     data class UpdateSearchState(val search: SearchState, val isUnifiedSearchEnabled: Boolean) : SearchFragmentAction()
+
+    /**
+     * Action indicating a suggestion was clicked.
+     */
+    data class SuggestionClicked(
+        val suggestion: Suggestion,
+    ) : SearchFragmentAction()
+
+    /**
+     * Action indicating a suggestion was selected for being edited before loading it.
+     */
+    data class SuggestionSelected(
+        val suggestion: Suggestion,
+    ) : SearchFragmentAction()
 }
 
 /**
@@ -528,7 +543,10 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
             state.copy(shouldShowSearchSuggestions = action.visible)
         }
 
-        is SearchFragmentAction.SearchStarted -> {
+        is SearchFragmentAction.SearchStarted,
+        is SearchFragmentAction.SuggestionClicked,
+        is SearchFragmentAction.SuggestionSelected,
+            -> {
             // no-op. Expected to be handled in middlewares.
             state
         }
