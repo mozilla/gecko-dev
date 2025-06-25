@@ -169,8 +169,7 @@ struct OldSnapshotData {
 
   explicit OldSnapshotData(nsIFrame* aFrame,
                            const nsSize& aSnapshotContainingBlockSize)
-      : mSize(CapturedSize(aFrame, aSnapshotContainingBlockSize)) {
-  }
+      : mSize(CapturedSize(aFrame, aSnapshotContainingBlockSize)) {}
 
   void EnsureKey(layers::RenderRootStateManager* aManager,
                  wr::IpcResourceUpdateQueue& aResources) {
@@ -185,11 +184,11 @@ struct OldSnapshotData {
 
   ~OldSnapshotData() {
     if (mManager) {
-      wr::SnapshotImageKey key = { mImageKey };
+      wr::SnapshotImageKey key = {mImageKey};
       if (mUsed) {
-          mManager->AddSnapshotImageKeyForDiscard(key);
+        mManager->AddSnapshotImageKeyForDiscard(key);
       } else {
-          mManager->AddUnusedSnapshotImageKeyForDiscard(key);
+        mManager->AddUnusedSnapshotImageKeyForDiscard(key);
       }
     }
   }

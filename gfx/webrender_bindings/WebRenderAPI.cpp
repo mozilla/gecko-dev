@@ -293,7 +293,8 @@ void TransactionBuilder::ClearDisplayList(Epoch aEpoch,
 }
 
 void TransactionBuilder::GenerateFrame(const VsyncId& aVsyncId, bool aPresent,
-                                       bool aTracked, wr::RenderReasons aReasons) {
+                                       bool aTracked,
+                                       wr::RenderReasons aReasons) {
   wr::GenerateFrameParams params;
   params.id = aVsyncId.mId;
   params.present = aPresent;
