@@ -876,11 +876,10 @@ class gfxFontEntry {
 
     // Transfer (not copy) elements of aTable to a new hb_blob_t and
     // return ownership to the caller.  A weak reference to the blob is
-    // recorded in the hashtable entry so that others may use the same
-    // table.
-    hb_blob_t* ShareTableAndGetBlob(
-        nsTArray<uint8_t>&& aTable,
-        nsTHashtable<FontTableHashEntry>* aHashtable);
+    // recorded in the font entry's table cache so that others may use
+    // the same table.
+    hb_blob_t* ShareTableAndGetBlob(nsTArray<uint8_t>&& aTable,
+                                    gfxFontEntry* aFontEntry);
 
     // Return a strong reference to the blob.
     // Callers must hb_blob_destroy the returned blob.
