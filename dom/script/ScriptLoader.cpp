@@ -3203,24 +3203,20 @@ nsresult ScriptLoader::MaybePrepareForBytecodeEncodingAfterExecute(
 
 bool ScriptLoader::IsAlreadyHandledForBytecodeEncodingPreparation(
     ScriptLoadRequest* aRequest) {
-  MOZ_ASSERT_IF(aRequest->isInList(), mBytecodeEncodingQueue.Contains(aRequest));
+  MOZ_ASSERT_IF(aRequest->isInList(),
+                mBytecodeEncodingQueue.Contains(aRequest));
   return aRequest->isInList() || !aRequest->mCacheInfo;
 }
 
 void ScriptLoader::MaybePrepareModuleForBytecodeEncodingBeforeExecute(
     JSContext* aCx, ModuleLoadRequest* aRequest) {
-  {
-    ModuleScript* moduleScript = aRequest->mModuleScript;
-    JS::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
+  if (aRequest->IsMarkedForBytecodeEncoding()) {
+    // This module is imported multiple times, and already marked.
+    return;
+  }
 
-    if (aRequest->IsMarkedForBytecodeEncoding()) {
-      // This module is imported multiple times, and already marked.
-      return;
-    }
-
-    if (aRequest->PassedConditionForBytecodeEncoding()) {
-      aRequest->MarkModuleForBytecodeEncoding();
-    }
+  if (aRequest->PassedConditionForBytecodeEncoding()) {
+    aRequest->MarkModuleForBytecodeEncoding();
   }
 
   for (ModuleLoadRequest* childRequest : aRequest->mImports) {
