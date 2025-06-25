@@ -3,7 +3,7 @@ import pytest
 URL = "https://www.qq.com/"
 
 LOGIN_CSS = "#qqcom-login .login-button"
-CHECKBOX_CSS = "#web-choose"
+CHECKBOX_CSS = ".qqcom-modal-content #web-choose"
 QQ_BUTTON_CSS = "#QQ-face"
 IFRAME_CSS = "iframe[src*=login_qq_news_web]"
 WAIT_LOG_MSG = "load event end at"

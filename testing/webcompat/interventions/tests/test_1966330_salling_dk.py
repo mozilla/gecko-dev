@@ -21,18 +21,18 @@ async def are_filters_onscreen(client):
             client.await_css(FILTERS_CSS, is_displayed=True).click()
         except (WebDriverException, ElementClickInterceptedException):
             continue
-        brands = client.find_css(BRANDS_CSS, is_displayed=True)
-        if brands:
+        if client.find_css(BRANDS_CSS, is_displayed=True):
             break
     for _ in range(20):
         try:
-            brands.click()
+            client.await_css(BRANDS_CSS, is_displayed=True).click()
             break
         except (WebDriverException, ElementClickInterceptedException):
             await asyncio.sleep(0.1)
     await asyncio.sleep(0.5)
     return client.execute_script(
-        "return arguments[0].getBoundingClientRect().top >= 0", brands
+        "return arguments[0].getBoundingClientRect().top >= 0",
+        client.await_css(BRANDS_CSS, is_displayed=True),
     )
 
 
