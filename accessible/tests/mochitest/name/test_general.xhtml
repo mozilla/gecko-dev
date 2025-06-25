@@ -8,6 +8,7 @@
         title="Accessibility Name Calculating Test.">
 
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js" />
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"/>
 
   <script type="application/javascript"
           src="../common.js"></script>
@@ -15,10 +16,11 @@
           src="../role.js"></script>
   <script type="application/javascript"
           src="../name.js"></script>
+  <script src="../promisified-events.js"></script>
 
   <script type="application/javascript">
   <![CDATA[
-    function doTest()
+    async function doTest()
     {
       // aria-label
 
@@ -147,6 +149,22 @@
       //////////////////////////////////////////////////////////////////////////
       // groupbox labeling from first label
       testName("groupbox", "Some caption");
+
+      //////////////////////////////////////////////////////////////////////////
+      // menuitem tests
+      const menu = getNode("menu");
+      info("Opening menu");
+      let opened = waitForEvent(EVENT_MENUPOPUP_START, menu);
+      menu.openPopup(null, "after_start", 0, 0, true, false, null);
+      await opened;
+      testName("menuitemLabel", "menuitemLabel");
+      testName("menuitemAriaLabel", "menuitemAriaLabel");
+      testName("menuitemLabelBadge", "menuitemLabelBadge New");
+      testName("menuitemAriaLabelBadge", "menuitemAriaLabelBadge New");
+      info("Closing menu");
+      let closed = waitForEvent(EVENT_MENUPOPUP_END, menu);
+      synthesizeKey("KEY_Escape");
+      await closed;
 
       SimpleTest.finish();
     }
@@ -339,6 +357,13 @@
       </menupopup>
     </menulist>
   </hbox>
+
+  <menupopup id="menu">
+    <menuitem id="menuitemLabel" label="menuitemLabel"/>
+    <menuitem id="menuitemAriaLabel" aria-label="menuitemAriaLabel"/>
+    <menuitem id="menuitemLabelBadge" label="menuitemLabelBadge" badge="New"/>
+    <menuitem id="menuitemAriaLabelBadge" aria-label="menuitemAriaLabelBadge" badge="New"/>
+  </menupopup>
 
   </vbox> <!-- close tests area -->
   </hbox> <!-- close main area -->

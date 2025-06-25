@@ -130,6 +130,22 @@ ENameValueFlag XULMenuitemAccessible::NativeName(nsString& aName) const {
   return eNameOK;
 }
 
+ENameValueFlag XULMenuitemAccessible::Name(nsString& aName) const {
+  ENameValueFlag flag = AccessibleWrap::Name(aName);
+  if (!aName.IsEmpty()) {
+    // We can't handle this in NativeName() because some menuitems use
+    // aria-label rather than label, and aria-label is returned by
+    // LocalAccessible::name().
+    nsAutoString badge;
+    mContent->AsElement()->GetAttr(nsGkAtoms::badge, badge);
+    if (!badge.IsEmpty()) {
+      aName += ' ';
+      aName.Append(badge);
+    }
+  }
+  return flag;
+}
+
 void XULMenuitemAccessible::Description(nsString& aDescription) const {
   mContent->AsElement()->GetAttr(nsGkAtoms::description, aDescription);
 }
