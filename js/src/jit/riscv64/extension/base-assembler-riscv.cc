@@ -188,21 +188,22 @@ void AssemblerRiscvBase::GenInstrRFrm(uint8_t funct7, BaseOpcode opcode,
   emit(instr);
 }
 
-void AssemblerRiscvBase::GenInstrI(uint8_t funct3, BaseOpcode opcode,
-                                   Register rd, Register rs1, int16_t imm12) {
+BufferOffset AssemblerRiscvBase::GenInstrI(uint8_t funct3, BaseOpcode opcode,
+                                           Register rd, Register rs1,
+                                           int16_t imm12) {
   MOZ_ASSERT(is_uint3(funct3) && (is_uint12(imm12) || is_int12(imm12)));
   Instr instr = opcode | (rd.code() << kRdShift) | (funct3 << kFunct3Shift) |
                 (rs1.code() << kRs1Shift) | (imm12 << kImm12Shift);
-  emit(instr);
+  return emit(instr);
 }
 
-void AssemblerRiscvBase::GenInstrI(uint8_t funct3, BaseOpcode opcode,
-                                   FPURegister rd, Register rs1,
-                                   int16_t imm12) {
+BufferOffset AssemblerRiscvBase::GenInstrI(uint8_t funct3, BaseOpcode opcode,
+                                           FPURegister rd, Register rs1,
+                                           int16_t imm12) {
   MOZ_ASSERT(is_uint3(funct3) && (is_uint12(imm12) || is_int12(imm12)));
   Instr instr = opcode | (rd.code() << kRdShift) | (funct3 << kFunct3Shift) |
                 (rs1.code() << kRs1Shift) | (imm12 << kImm12Shift);
-  emit(instr);
+  return emit(instr);
 }
 
 void AssemblerRiscvBase::GenInstrIShift(bool arithshift, uint8_t funct3,

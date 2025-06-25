@@ -483,9 +483,9 @@ class MacroAssemblerLOONG64Compat : public MacroAssemblerLOONG64 {
   }
   void branch(const Register reg) { as_jirl(zero, reg, BOffImm16(0)); }
   void nop() { as_nop(); }
-  void ret() {
+  BufferOffset ret() {
     ma_pop(ra);
-    as_jirl(zero, ra, BOffImm16(0));
+    return as_jirl(zero, ra, BOffImm16(0));
   }
   inline void retn(Imm32 n);
   void push(Imm32 imm) {

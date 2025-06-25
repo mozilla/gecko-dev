@@ -1098,9 +1098,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
-  void ret() {
+  BufferOffset ret() {
     MOZ_ASSERT(hasCreator());
+    BufferOffset ret(masm.currentOffset());
     masm.ret();
+    return ret;
   }
   void retn(Imm32 n) {
     MOZ_ASSERT(hasCreator());
