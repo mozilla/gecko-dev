@@ -163,9 +163,10 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
       MOZ_REQUIRES(mMonitor);
 
   // Computes and returns when we should next try to wake up in order to handle
-  // the triggering of the timers in mTimers. Currently this is very simple and
-  // we always just plan to wake up for the next timer in the list. In the
-  // future this will be more sophisticated.
+  // the triggering of the timers in mTimers.
+  // If mTimers is empty, returns a null TimeStamp. If mTimers is not empty,
+  // returns the timeout of the last timer that can be bundled with the first
+  // timer in mTimers.
   TimeStamp ComputeWakeupTimeFromTimers() const MOZ_REQUIRES(mMonitor);
 
   // Computes how late a timer can acceptably fire.

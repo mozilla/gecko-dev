@@ -716,9 +716,11 @@ size_t TimerThread::ComputeTimerInsertionIndex(const TimeStamp& timeout) const {
 TimeStamp TimerThread::ComputeWakeupTimeFromTimers() const {
   mMonitor.AssertCurrentThreadOwns();
 
-  // Timer list should be non-empty and first timer should always be
-  // non-canceled at this point and we rely on that here.
-  MOZ_ASSERT(!mTimers.IsEmpty());
+  if (mTimers.IsEmpty()) {
+    return TimeStamp{};
+  }
+
+  // The first timer should be non-canceled and we rely on that here.
   MOZ_ASSERT(mTimers[0].Value());
 
   // Overview: Find the last timer in the list that can be "bundled" together in
@@ -942,8 +944,7 @@ TimerThread::Run() {
       }
 
       // Determine when we should wake up.
-      const TimeStamp wakeupTime =
-          !mTimers.IsEmpty() ? ComputeWakeupTimeFromTimers() : TimeStamp{};
+      const TimeStamp wakeupTime = ComputeWakeupTimeFromTimers();
       mIntendedWakeupTime = wakeupTime;
 
       // About to sleep - let's make note of how many timers we processed and
