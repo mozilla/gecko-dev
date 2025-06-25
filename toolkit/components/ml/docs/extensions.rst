@@ -112,7 +112,7 @@ one.
 - **summarization**: Xenova/distilbart-cnn-6-6
 - **translation**: Xenova/t5-small
 - **text2text-generation**: Xenova/flan-t5-small
-- **text-generation**: Xenova/gpt2
+- **text-generation**: onnx-community/gpt2-ONNX
 - **zero-shot-classification**: Xenova/distilbert-base-uncased-mnli
 - **image-to-text**: Mozilla/distilvit
 - **image-classification**: Xenova/vit-base-patch16-224

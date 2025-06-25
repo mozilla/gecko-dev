@@ -71,7 +71,7 @@ export const DEFAULT_MODELS = Object.freeze({
   summarization: { modelId: "Xenova/distilbart-cnn-6-6", dtype: "q8" },
   translation: { modelId: "Xenova/t5-small", dtype: "q8" },
   "text2text-generation": { modelId: "Xenova/flan-t5-small", dtype: "q8" },
-  "text-generation": { modelId: "Xenova/gpt2", dtype: "q8" },
+  "text-generation": { modelId: "onnx-community/gpt2-ONNX", dtype: "q8" },
   "zero-shot-classification": {
     modelId: "Xenova/distilbert-base-uncased-mnli",
     dtype: "q8",
