@@ -879,6 +879,32 @@ export class TelemetryFeed {
         });
         break;
       }
+      // Bug 1969452 - Feature Highlight Telemetry Events
+      case "FEATURE_HIGHLIGHT_DISMISS":
+      case "FEATURE_HIGHLIGHT_IMPRESSION":
+      case "FEATURE_HIGHLIGHT_OPEN": {
+        // Note that Feature Highlight CLICK events are covered via newtab.tooltipClick Glean event
+        const { feature } = action.data.value ?? {};
+
+        if (action.data.event === "FEATURE_HIGHLIGHT_DISMISS") {
+          Glean.newtab.featureHighlightDismiss.record({
+            newtab_visit_id: session.session_id,
+            feature,
+          });
+        } else if (action.data.event === "FEATURE_HIGHLIGHT_IMPRESSION") {
+          Glean.newtab.featureHighlightImpression.record({
+            newtab_visit_id: session.session_id,
+            feature,
+          });
+        } else if (action.data.event === "FEATURE_HIGHLIGHT_OPEN") {
+          Glean.newtab.featureHighlightOpen.record({
+            newtab_visit_id: session.session_id,
+            feature,
+          });
+        }
+
+        break;
+      }
     }
   }
 

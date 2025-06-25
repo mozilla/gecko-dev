@@ -472,7 +472,7 @@ export class BaseContent extends React.PureComponent {
           ac.DiscoveryStreamUserEvent({
             event: "FEATURE_HIGHLIGHT_OPEN",
             source: "FEATURE_HIGHLIGHT",
-            value: "FEATURE_DOWNLOAD_MOBILE_PROMO",
+            value: { feature: "FEATURE_DOWNLOAD_MOBILE_PROMO" },
           })
         );
       }

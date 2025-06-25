@@ -14469,7 +14469,9 @@ function DownloadMobilePromoHighlight({
     dispatch(actionCreators.DiscoveryStreamUserEvent({
       event: "FEATURE_HIGHLIGHT_DISMISS",
       source: "FEATURE_HIGHLIGHT",
-      value: DownloadMobilePromoHighlight_FEATURE_ID
+      value: {
+        feature: DownloadMobilePromoHighlight_FEATURE_ID
+      }
     }));
     handleDismiss();
     handleBlock();
@@ -14481,7 +14483,9 @@ function DownloadMobilePromoHighlight({
       dispatch(actionCreators.DiscoveryStreamUserEvent({
         event: "FEATURE_HIGHLIGHT_IMPRESSION",
         source: "FEATURE_HIGHLIGHT",
-        value: DownloadMobilePromoHighlight_FEATURE_ID
+        value: {
+          feature: DownloadMobilePromoHighlight_FEATURE_ID
+        }
       }));
     }
   }, [dispatch, isIntersecting]);
@@ -15027,7 +15031,9 @@ class BaseContent extends (external_React_default()).PureComponent {
         this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
           event: "FEATURE_HIGHLIGHT_OPEN",
           source: "FEATURE_HIGHLIGHT",
-          value: "FEATURE_DOWNLOAD_MOBILE_PROMO"
+          value: {
+            feature: "FEATURE_DOWNLOAD_MOBILE_PROMO"
+          }
         }));
       }
       return {

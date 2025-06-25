@@ -235,8 +235,8 @@ newtab:
     expires: never
     extra_keys:
       newtab_visit_id: *newtab_visit_id
-      feature:
-        description: The feature that was clicked on.
+      feature: &feature
+        description: The feature highlight that was interacted with.
         type: string
     send_in_pings:
       - newtab
@@ -1114,6 +1114,63 @@ newtab:
     extra_keys:
       variant: *variant
       newtab_visit_id: *newtab_visit_id
+    send_in_pings:
+      - newtab
+
+  feature_highlight_dismiss:
+    type: event
+    description: >
+      recorded when a feature highlight is dismissed
+    bugs:
+      - https://bugzil.la/1972931
+    data_reviews:
+      - https://bugzil.la/1972931
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - mcrawford@mozilla.com
+    expires: never
+    extra_keys:
+      newtab_visit_id: *newtab_visit_id
+      feature: *feature
+    send_in_pings:
+      - newtab
+
+  feature_highlight_impression:
+    type: event
+    description: >
+        recorded when a feature highlight impression occurs
+    bugs:
+      - https://bugzil.la/1972931
+    data_reviews:
+      - https://bugzil.la/1972931
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - mcrawford@mozilla.com
+    expires: never
+    extra_keys:
+      newtab_visit_id: *newtab_visit_id
+      feature: *feature
+    send_in_pings:
+      - newtab
+
+  feature_highlight_open:
+    type: event
+    description: >
+        recorded when a feature highlight is opened
+    bugs:
+      - https://bugzil.la/1972931
+    data_reviews:
+      - https://bugzil.la/1972931
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - mcrawford@mozilla.com
+    expires: never
+    extra_keys:
+      newtab_visit_id: *newtab_visit_id
+      feature: *feature
     send_in_pings:
       - newtab
 
