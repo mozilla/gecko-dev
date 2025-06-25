@@ -98,9 +98,6 @@ const APIS = {
   SetHandlingUserInput({ tab, handlingUserInput }) {
     return browser.test.setHandlingUserInput(tab.id, handlingUserInput);
   },
-  GetWebExtensionSchemaPermissionNames({ typeNames }) {
-    return browser.test.getWebExtensionsSchemaPermissionNames(typeNames);
-  },
 };
 
 port.onMessage.addListener(async message => {

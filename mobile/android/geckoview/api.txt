@@ -2501,7 +2501,6 @@ package org.mozilla.geckoview {
     method @UiThread public void setDownloadDelegate(@Nullable WebExtension.DownloadDelegate);
     method @UiThread public void setMessageDelegate(@Nullable WebExtension.MessageDelegate, @NonNull String);
     method @UiThread public void setTabDelegate(@Nullable WebExtension.TabDelegate);
-    field public static final List<String> DATA_COLLECTION_PERMISSIONS;
     field public final long flags;
     field @NonNull public final String id;
     field public final boolean isBuiltIn;

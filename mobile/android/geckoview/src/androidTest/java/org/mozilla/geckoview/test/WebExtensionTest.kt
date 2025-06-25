@@ -4718,25 +4718,4 @@ class WebExtensionTest : BaseSessionTest() {
 
         sessionRule.waitForResult(controller.uninstall(extension))
     }
-
-    @Test
-    fun verifyDataCollectionPermissionNames() {
-        mainSession.loadUri("https://example.com")
-        sessionRule.waitForPageStop()
-        val result = mainSession.getWebExtensionsSchemaPermissionNames(
-            arrayOf(
-                "CommonDataCollectionPermission",
-                "DataCollectionPermission",
-                "OptionalDataCollectionPermission",
-            ),
-        )
-
-        // A test failure here due to a mismatch will very likely involve more
-        // work than just updating the list of permissions in the Java file.
-        assertEquals(
-            "Expect list of the data collection permissions to be in sync between Gecko and Android",
-            WebExtension.DATA_COLLECTION_PERMISSIONS.sorted(),
-            result.sorted(),
-        )
-    }
 }

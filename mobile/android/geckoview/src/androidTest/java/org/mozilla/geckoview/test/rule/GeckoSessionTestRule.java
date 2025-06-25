@@ -2825,28 +2825,6 @@ public class GeckoSessionTestRule implements TestRule {
     return (Boolean) webExtensionApiCall("IsFissionRunning", null);
   }
 
-  /**
-   * Gets all the permission names defined in the WebExtensions API JSONSchema given an array of
-   * type names.
-   *
-   * @param typeNames JSONSchema type names to retrieve permission names for.
-   * @return JSONArray array of the permission names found.
-   */
-  public JSONArray getWebExtensionsSchemaPermissionNames(
-      final GeckoSession session, final String[] typeNames) {
-    return (JSONArray)
-        webExtensionApiCall(
-            session,
-            "GetWebExtensionSchemaPermissionNames",
-            args -> {
-              JSONArray jsonTypeNames = new JSONArray();
-              for (String str : typeNames) {
-                jsonTypeNames.put(str);
-              }
-              args.put("typeNames", jsonTypeNames);
-            });
-  }
-
   private Object webExtensionApiCall(
       final @NonNull String apiName, final @NonNull SetArgs argsSetter) {
     return webExtensionApiCall(null, apiName, argsSetter);

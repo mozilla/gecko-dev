@@ -103,30 +103,6 @@ public class WebExtension {
 
   private static final String LOGTAG = "WebExtension";
 
-  /**
-   * The list of data collection permission names.
-   *
-   * <p>This list should be kept in sync with the WebExtensions JSON schema defined at the gecko
-   * toolkit level. It is made public so that upper Android layers can have access to a list of data
-   * collection permissions that is guaranteed to match the gecko one, which can be useful in tests
-   * for instance.
-   */
-  public static final List<String> DATA_COLLECTION_PERMISSIONS =
-      List.of(
-          "authenticationInfo",
-          "bookmarksInfo",
-          "browsingActivity",
-          "financialAndPaymentInfo",
-          "healthInfo",
-          "locationInfo",
-          "none",
-          "personalCommunications",
-          "personallyIdentifyingInfo",
-          "searchTerms",
-          "technicalAndInteraction",
-          "websiteActivity",
-          "websiteContent");
-
   // Keep in sync with GeckoViewWebExtension.sys.mjs
   public static class Flags {
     /*
