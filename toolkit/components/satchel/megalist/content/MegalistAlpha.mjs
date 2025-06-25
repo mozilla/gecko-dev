@@ -401,6 +401,14 @@ export class MegalistAlpha extends MozLitElement {
       this.viewMode = VIEW_MODES.EDIT;
     };
 
+    const getIconSrc = () => {
+      return document.dir === "rtl"
+        ? // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
+          "chrome://browser/skin/forward.svg"
+        : // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
+          "chrome://browser/skin/back.svg";
+    };
+
     return html`
       <moz-card
         class="alert-card"
@@ -408,7 +416,7 @@ export class MegalistAlpha extends MozLitElement {
       >
         <moz-button
           type="icon ghost"
-          iconSrc="chrome://browser/skin/back.svg"
+          iconSrc=${getIconSrc()}
           data-l10n-id="contextual-manager-passwords-alert-back-button"
           @click=${() => (this.viewMode = VIEW_MODES.LIST)}
         >

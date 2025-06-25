@@ -271,6 +271,14 @@ export class PasswordCard extends MozLitElement {
       return "";
     }
 
+    const getIconSrc = () => {
+      return document.dir === "rtl"
+        ? // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
+          "chrome://browser/skin/back.svg"
+        : // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
+          "chrome://browser/skin/forward.svg";
+    };
+
     return html`
       <moz-message-bar
         type="warning"
@@ -283,7 +291,7 @@ export class PasswordCard extends MozLitElement {
           data-l10n-args=${alertCountArg}
           slot="actions"
           type="icon"
-          iconSrc="chrome://browser/skin/forward.svg"
+          iconSrc=${getIconSrc()}
           @click=${this.onViewAlertClick}
         >
         </moz-button>
