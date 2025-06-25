@@ -27,6 +27,7 @@ class MediaEnginePrefs {
   MediaEnginePrefs()
       : mWidth(0),
         mHeight(0),
+        mResizeModeEnabled(false),
         mResizeMode(dom::VideoResizeModeEnum::None),
         mFPS(0),
         mFreq(0),
@@ -45,6 +46,7 @@ class MediaEnginePrefs {
 
   int32_t mWidth;
   int32_t mHeight;
+  bool mResizeModeEnabled;
   dom::VideoResizeModeEnum mResizeMode;
   int32_t mFPS;
   int32_t mFreq;  // for test tones (fake:true)

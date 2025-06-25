@@ -367,7 +367,8 @@ uint32_t MediaConstraintsHelper::FitnessDistance(
   LogConstraints(c);
 
   if (!aDevices.IsEmpty() &&
-      aDevices[0]->Kind() == dom::MediaDeviceKind::Videoinput) {
+      aDevices[0]->Kind() == dom::MediaDeviceKind::Videoinput &&
+      aPrefs.mResizeModeEnabled) {
     // Check invalid exact resizeMode constraint (not a device property)
     nsString none =
         NS_ConvertASCIItoUTF16(dom::GetEnumString(VideoResizeModeEnum::None));

@@ -86,6 +86,9 @@ static Maybe<VideoFacingModeEnum> GetFacingMode(const nsString& aDeviceName) {
 
 static VideoResizeModeEnum GetResizeMode(const NormalizedConstraintSet& c,
                                          const MediaEnginePrefs& aPrefs) {
+  if (!aPrefs.mResizeModeEnabled) {
+    return dom::VideoResizeModeEnum::None;
+  }
   auto defaultResizeMode = aPrefs.mResizeMode;
   nsString defaultResizeModeString =
       NS_ConvertASCIItoUTF16(dom::GetEnumString(defaultResizeMode));
@@ -118,6 +121,7 @@ MediaEngineRemoteVideoSource::MediaEngineRemoteVideoSource(
       mTrackCapabilities(
           MakeAndAddRef<media::Refcountable<MediaTrackCapabilities>>()),
       mFirstFramePromise(mFirstFramePromiseHolder.Ensure(__func__)),
+      mPrefs(MakeUnique<MediaEnginePrefs>()),
       mMediaDevice(aMediaDevice),
       mDeviceUUID(NS_ConvertUTF16toUTF8(aMediaDevice->mRawID)) {
   LOG("%s", __PRETTY_FUNCTION__);
@@ -190,6 +194,7 @@ nsresult MediaEngineRemoteVideoSource::Allocate(
     mState = kAllocated;
     mCapability = newCapability;
     mCalculation = distanceMode;
+    *mPrefs = aPrefs;
     mTrackingId =
         TrackingId(CaptureEngineToTrackingSourceStr(mCapEngine), mCaptureId);
   }
@@ -197,7 +202,8 @@ nsresult MediaEngineRemoteVideoSource::Allocate(
   NS_DispatchToMainThread(NS_NewRunnableFunction(
       "MediaEngineRemoteVideoSource::Allocate::MainUpdate",
       [settings = mSettings, caps = mTrackCapabilities,
-       facingMode = mFacingMode]() {
+       facingMode = mFacingMode,
+       resizeModeEnabled = aPrefs.mResizeModeEnabled]() {
         *settings = dom::MediaTrackSettings();
         *caps = dom::MediaTrackCapabilities();
 
@@ -212,12 +218,15 @@ nsresult MediaEngineRemoteVideoSource::Allocate(
           caps->mFacingMode.Construct(std::move(facing));
         }
 
-        NS_ConvertASCIItoUTF16 noneString(
-            dom::GetEnumString(VideoResizeModeEnum::None));
-        NS_ConvertASCIItoUTF16 cropString(
-            dom::GetEnumString(VideoResizeModeEnum::Crop_and_scale));
-        settings->mResizeMode.Construct(noneString);
-        caps->mResizeMode.Construct(nsTArray<nsString>{noneString, cropString});
+        if (resizeModeEnabled) {
+          NS_ConvertASCIItoUTF16 noneString(
+              dom::GetEnumString(VideoResizeModeEnum::None));
+          NS_ConvertASCIItoUTF16 cropString(
+              dom::GetEnumString(VideoResizeModeEnum::Crop_and_scale));
+          settings->mResizeMode.Construct(noneString);
+          caps->mResizeMode.Construct(
+              nsTArray<nsString>{noneString, cropString});
+        }
       }));
 
   LOG("Video device %d allocated", mCaptureId);
@@ -305,8 +314,8 @@ nsresult MediaEngineRemoteVideoSource::Start() {
   NS_DispatchToMainThread(NS_NewRunnableFunction(
       "MediaEngineRemoteVideoSource::SetLastCapability",
       [settings = mSettings, updated = mSettingsUpdatedByFrame,
-       capEngine = mCapEngine, cap = mCapability,
-       calc = mCalculation]() mutable {
+       capEngine = mCapEngine, cap = mCapability, calc = mCalculation,
+       resizeModeEnabled = mPrefs->mResizeModeEnabled]() mutable {
         switch (capEngine) {
           case camera::ScreenEngine:
           case camera::WinEngine:
@@ -327,11 +336,14 @@ nsresult MediaEngineRemoteVideoSource::Start() {
           settings->mHeight.Value() = cap.height;
         }
         settings->mFrameRate.Value() = cap.maxFPS;
-        auto resizeMode = (calc == kFitness)
-                              ? VideoResizeModeEnum::None
-                              : VideoResizeModeEnum::Crop_and_scale;
-        settings->mResizeMode.Value() =
-            NS_ConvertASCIItoUTF16(dom::GetEnumString(resizeMode));
+        if (resizeModeEnabled) {
+          auto resizeMode = (calc == kFitness)
+                                ? VideoResizeModeEnum::None
+                                : VideoResizeModeEnum::Crop_and_scale;
+          settings->mResizeMode.Reset();
+          settings->mResizeMode.Construct(
+              NS_ConvertASCIItoUTF16(dom::GetEnumString(resizeMode)));
+        }
       }));
 
   return NS_OK;
@@ -399,6 +411,7 @@ nsresult MediaEngineRemoteVideoSource::Reconfigure(
     // Start() applies mCapability on the device.
     mCapability = newCapability;
     mCalculation = distanceMode;
+    *mPrefs = aPrefs;
   }
 
   if (mState == kStarted) {

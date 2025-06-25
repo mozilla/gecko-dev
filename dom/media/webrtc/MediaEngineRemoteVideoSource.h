@@ -228,6 +228,9 @@ class MediaEngineRemoteVideoSource : public MediaEngineSource,
   webrtc::CaptureCapability mCapability;
   DistanceCalculation mCalculation;
 
+  // Owning thread only.
+  UniquePtr<MediaEnginePrefs> mPrefs;
+
   /**
    * Capabilities that we choose between when applying constraints.
    *

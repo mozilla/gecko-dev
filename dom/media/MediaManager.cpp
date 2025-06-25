@@ -1203,7 +1203,7 @@ nsresult LocalMediaDevice::Reconfigure(
       *aOutBadConstraint = "groupId";
       return NS_ERROR_INVALID_ARG;
     }
-    if (type == MediaSourceEnum::Camera) {
+    if (aPrefs.mResizeModeEnabled && type == MediaSourceEnum::Camera) {
       // Check invalid exact resizeMode constraint (not a device property)
       nsString none =
           NS_ConvertASCIItoUTF16(dom::GetEnumString(VideoResizeModeEnum::None));
@@ -2393,6 +2393,7 @@ MediaManager::MediaManager(already_AddRefed<TaskQueue> aMediaThread)
   mPrefs.mFreq = 1000;  // 1KHz test tone
   mPrefs.mWidth = 0;    // adaptive default
   mPrefs.mHeight = 0;   // adaptive default
+  mPrefs.mResizeModeEnabled = false;
   mPrefs.mResizeMode = VideoResizeModeEnum::None;
   mPrefs.mFPS = MediaEnginePrefs::DEFAULT_VIDEO_FPS;
   mPrefs.mUsePlatformProcessing = false;
@@ -2448,6 +2449,7 @@ static void ForeachObservedPref(const Function& aFunction) {
   aFunction("media.video_loopback_dev"_ns);
   aFunction("media.getusermedia.fake-camera-name"_ns);
 #ifdef MOZ_WEBRTC
+  aFunction("media.navigator.video.resize_mode.enabled"_ns);
   aFunction("media.navigator.video.default_resize_mode"_ns);
   aFunction("media.getusermedia.audio.processing.aec.enabled"_ns);
   aFunction("media.getusermedia.audio.processing.aec"_ns);
@@ -3726,6 +3728,8 @@ void MediaManager::GetPrefs(nsIPrefBranch* aBranch, const char* aData) {
   GetPref(aBranch, "media.navigator.audio.fake_frequency", aData,
           &mPrefs.mFreq);
 #ifdef MOZ_WEBRTC
+  GetPrefBool(aBranch, "media.navigator.video.resize_mode.enabled", aData,
+              &mPrefs.mResizeModeEnabled);
   int32_t resizeMode{};
   GetPref(aBranch, "media.navigator.video.default_resize_mode", aData,
           &resizeMode);
@@ -3763,7 +3767,8 @@ void MediaManager::GetPrefs(nsIPrefBranch* aBranch, const char* aData) {
       "version: "
       "%s, noise level: %d, transient: %s, channels %d",
       __FUNCTION__, mPrefs.mWidth, mPrefs.mHeight, mPrefs.mFPS, mPrefs.mFreq,
-      dom::GetEnumString(mPrefs.mResizeMode).get(),
+      mPrefs.mResizeModeEnabled ? dom::GetEnumString(mPrefs.mResizeMode).get()
+                                : "disabled",
       mPrefs.mUsePlatformProcessing ? "on" : "off",
       mPrefs.mAecOn ? "on" : "off", mPrefs.mAgcOn ? "on" : "off",
       mPrefs.mHPFOn ? "on" : "off", mPrefs.mNoiseOn ? "on" : "off",

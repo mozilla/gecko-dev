@@ -13,6 +13,7 @@
 #include "mozilla/dom/MediaStreamBinding.h"
 #include "mozilla/dom/MediaDeviceInfo.h"
 #include "mozilla/dom/MediaDevicesBinding.h"
+#include "mozilla/dom/MediaTrackSupportedConstraintsBinding.h"
 #include "mozilla/dom/NavigatorBinding.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/WindowContext.h"
@@ -41,6 +42,15 @@ MediaDevices::MediaDevices(nsPIDOMWindowInner* aWindow)
 MediaDevices::~MediaDevices() {
   MOZ_ASSERT(NS_IsMainThread());
   mDeviceChangeListener.DisconnectIfExists();
+}
+
+// No code needed, unless controlled by prefs, as
+// MediaTrackSupportedConstraints members default to true.
+void MediaDevices::GetSupportedConstraints(
+    MediaTrackSupportedConstraints& aResult) {
+  if (Preferences::GetBool("media.navigator.video.resize_mode.enabled")) {
+    aResult.mResizeMode.Construct(true);
+  }
 }
 
 already_AddRefed<Promise> MediaDevices::GetUserMedia(

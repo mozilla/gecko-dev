@@ -227,6 +227,10 @@ pref("media.videocontrols.keyboard-tab-to-all-controls", true);
 #ifdef MOZ_WEBRTC
   pref("media.navigator.video.enabled", true);
   pref("media.navigator.video.default_fps",30);
+  // Whether to expose the resizeMode constraint/setting/capability to content.
+  // Kept false while implementing the feature in bug 1286945 and dependencies,
+  // to allow for gradually gaining support and test coverage.
+  pref("media.navigator.video.resize_mode.enabled", false);
   pref("media.navigator.video.default_resize_mode", 0); // 0=none, 1=crop-and-scale
   pref("media.navigator.video.use_remb", true);
   pref("media.navigator.video.use_transport_cc", true);
