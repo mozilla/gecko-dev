@@ -255,6 +255,8 @@ def vcs_checkout_type(build_env, automation, js_package, help):
         return "hg"
     elif os.path.exists(os.path.join(build_env.topsrcdir, ".git")):
         return "git"
+    elif os.path.exists(os.path.join(build_env.topsrcdir, ".jj")):
+        return "jj"
     elif automation and not js_package and not help:
         raise FatalCheckError(
             "unable to resolve VCS type; must run "
@@ -280,7 +282,13 @@ git = check_prog(
     "GIT",
     ("git",),
     allow_missing=True,
-    when=depends(vcs_checkout_type)(lambda x: x == "git"),
+    when=depends(vcs_checkout_type)(lambda x: x in ("git", "jj")),
+)
+jj = check_prog(
+    "JJ",
+    ("jj",),
+    allow_missing=True,
+    when=depends(vcs_checkout_type)(lambda x: x == "jj"),
 )
 
 
@@ -310,8 +318,6 @@ def hg_version(hg):
 # Resolve Mercurial config items so other checks have easy access.
 # Do NOT set this in the config because it may contain sensitive data
 # like API keys.
-
-
 @depends_all(build_environment, hg, hg_version)
 @imports("os")
 def hg_config(build_env, hg, version):
@@ -349,10 +355,8 @@ def git_version(git):
 # Only set VCS_CHECKOUT_TYPE if we resolved the VCS binary.
 # Require resolved VCS info when running in automation so automation's
 # environment is more well-defined.
-
-
-@depends(vcs_checkout_type, hg_version, git_version, moz_automation)
-def exposed_vcs_checkout_type(vcs_checkout_type, hg, git, automation):
+@depends(vcs_checkout_type, hg_version, git_version, jj, moz_automation)
+def exposed_vcs_checkout_type(vcs_checkout_type, hg, git, jj, automation):
     if vcs_checkout_type == "hg":
         if hg:
             return "hg"
@@ -366,6 +370,14 @@ def exposed_vcs_checkout_type(vcs_checkout_type, hg, git, automation):
 
         if automation:
             raise FatalCheckError("could not resolve Git binary info")
+
+    elif vcs_checkout_type == "jj":
+        # mozversioncontrol wants both jj and git
+        if jj and git:
+            return "jj"
+
+        if automation:
+            raise FatalCheckError("could not resolve Jujutsu binary info")
     elif vcs_checkout_type:
         raise FatalCheckError("unhandled VCS type: %s" % vcs_checkout_type)
 
