@@ -2197,6 +2197,21 @@
       }
     ]
   },
+  "1898931": {
+    "label": "facturador.afip.gob.ar",
+    "bugs": {
+      "1898931": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://facturador.afip.gob.ar/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1898994": {
     "label": "eportal.uestc.edu.cn",
     "bugs": {
