@@ -445,8 +445,6 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   void freeMedium(void* alloc);
   bool growMedium(void* alloc, size_t newBytes);
   bool shrinkMedium(void* alloc, size_t newBytes);
-  FreeRegion* findFollowingFreeRegion(uintptr_t start);
-  FreeRegion* findPrecedingFreeRegion(uintptr_t start);
   enum class ListPosition { Front, Back };
   FreeRegion* addFreeRegion(FreeLists* freeLists, uintptr_t start,
                             uintptr_t bytes, bool anyDecommitted,
