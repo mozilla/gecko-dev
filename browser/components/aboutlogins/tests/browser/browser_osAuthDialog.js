@@ -75,34 +75,6 @@ add_task(async function test_os_auth_disabled_with_checkbox() {
   LoginHelper.setOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF, true);
 });
 
-add_task(async function test_OSAuth_enabled_with_random_value_in_pref() {
-  let finalPrefPaneLoaded = TestUtils.topicObserved("sync-pane-loaded");
-  await SpecialPowers.pushPrefEnv({
-    set: [[PASSWORDS_OS_REAUTH_PREF, "poutine-gravy"]],
-  });
-  await BrowserTestUtils.withNewTab(
-    { gBrowser, url: PAGE_PRIVACY },
-    async function (browser) {
-      await finalPrefPaneLoaded;
-      await SpecialPowers.spawn(browser, [SELECTORS], async selectors => {
-        let reauthCheckbox = content.document.querySelector(
-          selectors.reauthCheckbox
-        );
-        is(
-          reauthCheckbox.checked,
-          true,
-          "OSReauth for passwords should be checked"
-        );
-      });
-      is(
-        LoginHelper.getOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF),
-        true,
-        "OSAuth should be enabled since the pref does not decrypt to 'opt out'."
-      );
-    }
-  );
-});
-
 add_task(async function test_osAuth_shown_on_edit_login() {
   if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
     Assert.ok(

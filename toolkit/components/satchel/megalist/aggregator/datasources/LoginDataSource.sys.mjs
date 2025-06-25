@@ -520,9 +520,7 @@ export class LoginDataSource extends DataSourceBase {
     );
     const browsingContext = BrowserWindowTracker.getTopWindow().browsingContext;
 
-    const isOSAuthEnabled = LoginHelper.getOSAuthEnabled(
-      LoginHelper.OS_AUTH_FOR_PASSWORDS_PREF
-    );
+    const isOSAuthEnabled = LoginHelper.getOSAuthEnabled();
 
     const reason = "export_cpm";
     let { isAuthorized, telemetryEvent } = await LoginHelper.requestReauth(

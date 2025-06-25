@@ -3,6 +3,7 @@ run-if = ["!release_or_beta"]
 
 prefs = [
   "sidebar.revamp=true",
+  "signon.management.page.os-auth.locked.enabled=true",
 ]
 
 support-files = [

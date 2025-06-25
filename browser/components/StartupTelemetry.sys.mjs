@@ -451,10 +451,7 @@ export let StartupTelemetry = {
       lazy.FormAutofillUtils.AUTOFILL_CREDITCARDS_REAUTH_PREF,
       ""
     );
-    const osAuthForPw = !Services.prefs.getStringPref(
-      lazy.LoginHelper.OS_AUTH_FOR_PASSWORDS_PREF,
-      ""
-    );
+    const osAuthForPw = lazy.LoginHelper.getOSAuthEnabled();
 
     Glean.formautofill.osAuthEnabled.set(osAuthForCc);
     Glean.pwmgr.osAuthEnabled.set(osAuthForPw);
