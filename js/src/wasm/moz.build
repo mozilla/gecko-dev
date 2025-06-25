@@ -64,7 +64,7 @@ GeneratedFile(
     inputs=["WasmBuiltinModule.yaml"],
 )
 
-# Make sure all WebAssembly code is built with libfuzzer
-# coverage instrumentation in FUZZING mode.
-if CONFIG["FUZZING_INTERFACES"] and CONFIG["LIBFUZZER"]:
+# Make sure all WebAssembly code is built with coverage instrumentation
+# in FUZZING modes.
+if CONFIG["FUZZING_INTERFACES"] or CONFIG["FUZZING_JS_FUZZILLI"]:
     include("/tools/fuzzing/libfuzzer-config.mozbuild")
