@@ -2800,18 +2800,18 @@
       }
     ]
   },
-  "1919004": {
-    "label": "www.editoracontexto.com.br",
+  "1914565": {
+    "label": "myassurity.com",
     "bugs": {
-      "1919004": {
-        "issue": "desktop-layout-not-mobile",
-        "matches": ["*://www.editoracontexto.com.br/*"]
+      "1914565": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://myassurity.com/*"]
       }
     },
     "interventions": [
       {
-        "platforms": ["android"],
-        "ua_string": ["Chrome"]
+        "platforms": ["all"],
+        "ua_string": ["Chrome_with_FxQuantum"]
       }
     ]
   },
@@ -2877,6 +2877,21 @@
         "content_scripts": {
           "css": ["bug1918995-calculator.net-hide-copypaste-ui-for-buttons.css"]
         }
+      }
+    ]
+  },
+  "1919004": {
+    "label": "www.editoracontexto.com.br",
+    "bugs": {
+      "1919004": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://www.editoracontexto.com.br/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
       }
     ]
   },
