@@ -22,6 +22,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 class ProfilesDatastoreServiceClass {
   #connection = null;
   #asyncShutdownBlocker = null;
+  #asyncShutdownBarrier = null;
   #initialized = false;
   #storeID = null;
   #initPromise = null;
@@ -42,6 +43,16 @@ class ProfilesDatastoreServiceClass {
   async getConnection() {
     await this.init();
     return this.#connection;
+  }
+
+  /**
+   * Return the AsyncShutdown client for the ProfilesDatastoreService.
+   *
+   * Consumers can register blockers with this barrier that will block the
+   * ProfilesDatastoreService from closing its connection.
+   */
+  get shutdown() {
+    return this.#asyncShutdownBarrier?.client;
   }
 
   /**
@@ -280,6 +291,9 @@ class ProfilesDatastoreServiceClass {
 
   constructor() {
     this.#asyncShutdownBlocker = () => this.uninit();
+    this.#asyncShutdownBarrier = new lazy.AsyncShutdown.Barrier(
+      "ProfilesDatastoreService: waiting for clients to finish pending writes"
+    );
     this.#profileService = Cc[
       "@mozilla.org/toolkit/profile-service;1"
     ].getService(Ci.nsIToolkitProfileService);
@@ -340,6 +354,10 @@ class ProfilesDatastoreServiceClass {
   }
 
   async uninit() {
+    if (this.#asyncShutdownBarrier) {
+      await this.#asyncShutdownBarrier.wait();
+    }
+
     lazy.AsyncShutdown.profileChangeTeardown.removeBlocker(
       this.#asyncShutdownBlocker
     );
