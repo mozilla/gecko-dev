@@ -1243,6 +1243,11 @@ static unsigned quant_band(struct band_ctx *ctx, celt_norm *X,
    return cm;
 }
 
+#ifdef FIXED_POINT
+#define MIN_STEREO_ENERGY 2
+#else
+#define MIN_STEREO_ENERGY 1e-10f
+#endif
 
 /* This function is responsible for encoding and decoding a band for the stereo case. */
 static unsigned quant_band_stereo(struct band_ctx *ctx, celt_norm *X, celt_norm *Y,
@@ -1273,6 +1278,12 @@ static unsigned quant_band_stereo(struct band_ctx *ctx, celt_norm *X, celt_norm 
 
    orig_fill = fill;
 
+   if (encode) {
+      if (ctx->bandE[ctx->i] < MIN_STEREO_ENERGY || ctx->bandE[ctx->m->nbEBands+ctx->i] < MIN_STEREO_ENERGY) {
+         if (ctx->bandE[ctx->i] > ctx->bandE[ctx->m->nbEBands+ctx->i]) OPUS_COPY(Y, X, N);
+         else OPUS_COPY(X, Y, N);
+      }
+   }
    compute_theta(ctx, &sctx, X, Y, N, &b, B, B, LM, 1, &fill);
    inv = sctx.inv;
    imid = sctx.imid;
