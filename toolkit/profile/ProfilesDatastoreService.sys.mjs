@@ -61,7 +61,7 @@ class ProfilesDatastoreServiceClass {
   async createTables() {
     // TODO: (Bug 1902320) Handle exceptions on connection opening
     let currentVersion = await this.#connection.getSchemaVersion();
-    if (currentVersion == 5) {
+    if (currentVersion == 6) {
       return;
     }
 
@@ -152,6 +152,30 @@ class ProfilesDatastoreServiceClass {
       });
 
       await this.#connection.setSchemaVersion(5);
+    }
+
+    if (currentVersion < 6) {
+      await this.#connection.executeTransaction(async () => {
+        const createMessageImpressionsTable = `
+          CREATE TABLE IF NOT EXISTS "MessagingSystemMessageImpressions" (
+            id                  INTEGER PRIMARY KEY,
+            messageId           TEXT UNIQUE NOT NULL,
+            impressions         JSONB
+          );
+        `;
+
+        const createMessageBlocklistTable = `
+          CREATE TABLE IF NOT EXISTS "MessagingSystemMessageBlocklist" (
+            id                  INTEGER PRIMARY KEY,
+            messageId           TEXT UNIQUE NOT NULL
+          );
+        `;
+
+        await this.#connection.execute(createMessageImpressionsTable);
+        await this.#connection.execute(createMessageBlocklistTable);
+      });
+
+      await this.#connection.setSchemaVersion(6);
     }
   }
 
