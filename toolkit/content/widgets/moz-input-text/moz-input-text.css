@@ -55,4 +55,8 @@
     --input-background-icon: url(chrome://global/skin/icons/search-textbox.svg);
     padding-inline-end: var(--space-xxsmall);
   }
+
+  &::placeholder {
+    text-overflow: ellipsis;
+  }
 }
