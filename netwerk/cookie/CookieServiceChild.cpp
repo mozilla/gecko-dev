@@ -336,7 +336,23 @@ CookieServiceChild::RecordDocumentCookie(Cookie* aCookie,
         cookie->Host().Equals(aCookie->Host()) &&
         cookie->Path().Equals(aCookie->Path())) {
       if (cookie->Value().Equals(aCookie->Value()) &&
-          cookie->Expiry() == aCookie->Expiry() &&
+          // FIXME: This is a horrible hack and will be removed as soon as
+          // possible.
+          //
+          // When the expiry is computed using Max-Age (creationTime +
+          // max-age), the result may differ slightly between the parent and
+          // child processes. If this mismatch is detected, we end up removing
+          // the cookie and replacing it with a new one, which has a different
+          // creation time. Since the creation time is used to sort cookies,
+          // this leads to a different cookie order.
+          //
+          // To mitigate this, we compare the expiry values in seconds —
+          // reducing the likelihood of a mismatch and thus the race condition
+          // between the cookie set via IPC and the one parsed in the child
+          // process.
+          (cookie->Expiry() / PR_MSEC_PER_SEC) ==
+              (aCookie->Expiry() / PR_MSEC_PER_SEC) &&
+
           cookie->IsSecure() == aCookie->IsSecure() &&
           cookie->SameSite() == aCookie->SameSite() &&
           cookie->IsSession() == aCookie->IsSession() &&

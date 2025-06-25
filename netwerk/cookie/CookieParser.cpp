@@ -501,19 +501,6 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
                              const nsACString& aDateHeader, bool aFromHttp) {
   int64_t maxageCap = StaticPrefs::network_cookie_maxageCap();
 
-  int64_t serverTime = -1;
-
-  // If we have the server time, we can use it for the cookie creation time.
-  if (StaticPrefs::network_cookie_useServerTime() && !aDateHeader.IsEmpty()) {
-    MOZ_ASSERT(aFromHttp);
-
-    PRTime dateHeaderTime;
-    if (PR_ParseTimeString(aDateHeader.BeginReading(), true, &dateHeaderTime) ==
-        PR_SUCCESS) {
-      serverTime = dateHeaderTime / int64_t(PR_USEC_PER_MSEC);
-    }
-  }
-
   /* Determine when the cookie should expire. This is done by taking the
    * difference between the server time and the time the server wants the cookie
    * to expire, and adding that difference to the client time. This localizes
@@ -528,10 +515,7 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
     if (maxage == INT64_MIN) {
       aCookieData.expiry() = maxage;
     } else {
-      CheckedInt<int64_t> value(
-          serverTime != -1 && StaticPrefs::network_cookie_useServerTime()
-              ? serverTime
-              : aCurrentTime);
+      CheckedInt<int64_t> value(aCurrentTime);
       value += (maxageCap ? std::min(maxage, maxageCap) : maxage) * 1000;
 
       aCookieData.expiry() = value.isValid() ? value.value() : INT64_MAX;
@@ -555,9 +539,17 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
     // by adding the delta between the server and the local times.  If the
     // current time is set in the future, we can consider valid cookies that
     // are not expired for the server.
-    if (serverTime != -1 && StaticPrefs::network_cookie_useServerTime()) {
-      int64_t delta = aCurrentTime - serverTime;
-      expires += delta;
+    if (!aDateHeader.IsEmpty()) {
+      MOZ_ASSERT(aFromHttp);
+
+      PRTime dateHeaderTime;
+      if (PR_ParseTimeString(aDateHeader.BeginReading(), true,
+                             &dateHeaderTime) == PR_SUCCESS &&
+          StaticPrefs::network_cookie_useServerTime()) {
+        int64_t serverTime = dateHeaderTime / int64_t(PR_USEC_PER_MSEC);
+        int64_t delta = aCurrentTime - serverTime;
+        expires += delta;
+      }
     }
 
     // If set-cookie used absolute time to set expiration, and it can't use
