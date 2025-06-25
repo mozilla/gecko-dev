@@ -213,8 +213,12 @@ class BrowserToolbarComposable(
                     appStore = appStore,
                     browserScreenStore = browserScreenStore,
                     browserStore = browserStore,
+                    permissionsStorage = components.core.geckoSitePermissionsStorage,
+                    cookieBannersStorage = components.core.cookieBannersStorage,
+                    trackingProtectionUseCases = components.useCases.trackingProtectionUseCases,
                     useCases = components.useCases,
                     clipboard = activity.components.clipboardHandler,
+                    publicSuffixList = components.publicSuffixList,
                     settings = settings,
                 ),
             ).get(BrowserToolbarMiddleware::class.java).also {

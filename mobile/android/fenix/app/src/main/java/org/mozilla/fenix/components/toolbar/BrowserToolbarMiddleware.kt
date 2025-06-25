@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
@@ -22,6 +23,7 @@ import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.selector.selectedTab
+import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.compose.browser.toolbar.concept.Action
@@ -49,13 +51,20 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
+import mozilla.components.concept.engine.cookiehandling.CookieBannersStorage
+import mozilla.components.concept.engine.permission.SitePermissions
+import mozilla.components.concept.engine.permission.SitePermissionsStorage
 import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.feature.session.TrackingProtectionUseCases
+import mozilla.components.lib.publicsuffixlist.PublicSuffixList
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.ktx.kotlin.getOrigin
+import mozilla.components.support.ktx.kotlin.isContentUrl
 import mozilla.components.support.ktx.util.URLStringUtils
 import mozilla.components.support.utils.ClipboardHandler
 import org.mozilla.fenix.GleanMetrics.Translations
@@ -93,6 +102,7 @@ import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterCli
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.navigateSafe
+import org.mozilla.fenix.settings.quicksettings.protections.cookiebanners.getCookieBannerUIMode
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.tabstray.ext.isActiveDownload
 import org.mozilla.fenix.utils.Settings
@@ -110,6 +120,11 @@ internal sealed class DisplayActions : BrowserToolbarEvent {
         val bypassCache: Boolean,
     ) : DisplayActions()
     data object StopRefreshClicked : DisplayActions()
+}
+
+@VisibleForTesting
+internal sealed class StartPageActions : BrowserToolbarEvent {
+    data object SiteInfoClicked : StartPageActions()
 }
 
 @VisibleForTesting
@@ -142,22 +157,34 @@ internal sealed class PageEndActionsInteractions : BrowserToolbarEvent {
  * @param appStore [AppStore] allowing to integrate with other features of the applications.
  * @param browserScreenStore [BrowserScreenStore] used for integration with other browser screen functionalities.
  * @param browserStore [BrowserStore] to sync from.
+ * @param permissionsStorage [SitePermissionsStorage] to find currently selected tab site permissions.
+ * @param cookieBannersStorage [CookieBannersStorage] to get the current status of cookie banner ui mode.
+ * @param trackingProtectionUseCases [TrackingProtectionUseCases] allowing to query
+ * tracking protection data of the current tab.
  * @param useCases [UseCases] helping this integrate with other features of the applications.
  * @param clipboard [ClipboardHandler] to use for reading from device's clipboard.
+ * @param publicSuffixList [PublicSuffixList] used to obtain the base domain of the current site.
  * @param settings [Settings] for accessing user preferences.
  * @param sessionUseCases [SessionUseCases] for interacting with the current session.
  */
+@Suppress("LongParameterList", "TooManyFunctions")
 class BrowserToolbarMiddleware(
     private val appStore: AppStore,
     private val browserScreenStore: BrowserScreenStore,
     private val browserStore: BrowserStore,
+    private val permissionsStorage: SitePermissionsStorage,
+    private val cookieBannersStorage: CookieBannersStorage,
+    private val trackingProtectionUseCases: TrackingProtectionUseCases,
     private val useCases: UseCases,
     private val clipboard: ClipboardHandler,
+    private val publicSuffixList: PublicSuffixList,
     private val settings: Settings,
     private val sessionUseCases: SessionUseCases = SessionUseCases(browserStore),
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
     private lateinit var dependencies: LifecycleDependencies
     private var store: BrowserToolbarStore? = null
+    private val currentTab
+        get() = browserStore.state.selectedTab
 
     /**
      * Updates the [LifecycleDependencies] of this middleware.
@@ -176,6 +203,7 @@ class BrowserToolbarMiddleware(
         observeReaderModeUpdates()
         observePageTranslationsUpdates()
         observePageRefreshUpdates()
+        observePageSecurityUpdates()
     }
 
     @Suppress("LongMethod")
@@ -191,6 +219,12 @@ class BrowserToolbarMiddleware(
                 updateStartBrowserActions()
                 updateCurrentPageOrigin()
                 updateEndBrowserActions()
+                updateCurrentPageOrigin()
+                updateStartPageActions(currentTab)
+            }
+
+            is StartPageActions.SiteInfoClicked -> {
+                onSiteInfoClicked()
             }
 
             is HomeClicked -> {
@@ -359,6 +393,61 @@ class BrowserToolbarMiddleware(
         }
     }
 
+    private fun onSiteInfoClicked() {
+        val tab = requireNotNull(currentTab)
+        dependencies.lifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val sitePermissions: SitePermissions? = tab.content.url.getOrigin()?.let { origin ->
+                permissionsStorage.findSitePermissionsBy(origin, private = tab.content.private)
+            }
+
+            dependencies.lifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+                trackingProtectionUseCases.containsException(tab.id) { hasTrackingProtectionException ->
+                    dependencies.lifecycleOwner.lifecycleScope.launch {
+                        val cookieBannerUIMode = cookieBannersStorage.getCookieBannerUIMode(
+                            tab = tab,
+                            isFeatureEnabledInPrivateMode = settings.shouldUseCookieBannerPrivateMode,
+                            publicSuffixList = publicSuffixList,
+                        )
+
+                        val isTrackingProtectionEnabled =
+                            tab.trackingProtection.enabled && !hasTrackingProtectionException
+                        val directions = if (settings.enableUnifiedTrustPanel) {
+                            BrowserFragmentDirections.actionBrowserFragmentToTrustPanelFragment(
+                                sessionId = tab.id,
+                                url = tab.content.url,
+                                title = tab.content.title,
+                                isSecured = tab.content.securityInfo.secure,
+                                sitePermissions = sitePermissions,
+                                certificateName = tab.content.securityInfo.issuer,
+                                permissionHighlights = tab.content.permissionHighlights,
+                                isTrackingProtectionEnabled = isTrackingProtectionEnabled,
+                                cookieBannerUIMode = cookieBannerUIMode,
+                            )
+                        } else {
+                            BrowserFragmentDirections.actionBrowserFragmentToQuickSettingsSheetDialogFragment(
+                                sessionId = tab.id,
+                                url = tab.content.url,
+                                title = tab.content.title,
+                                isLocalPdf = tab.content.url.isContentUrl(),
+                                isSecured = tab.content.securityInfo.secure,
+                                sitePermissions = sitePermissions,
+                                gravity = settings.toolbarPosition.androidGravity,
+                                certificateName = tab.content.securityInfo.issuer,
+                                permissionHighlights = tab.content.permissionHighlights,
+                                isTrackingProtectionEnabled = isTrackingProtectionEnabled,
+                                cookieBannerUIMode = cookieBannerUIMode,
+                            )
+                        }
+                        dependencies.navController.nav(
+                            R.id.browserFragment,
+                            directions,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     private fun getCurrentNumberOfOpenedTabs() = when (dependencies.browsingModeManager.mode) {
         Normal -> browserStore.state.normalTabs.size
         Private -> browserStore.state.privateTabs.size
@@ -367,6 +456,12 @@ class BrowserToolbarMiddleware(
     private fun updateStartBrowserActions() = store?.dispatch(
         BrowserActionsStartUpdated(
             buildStartBrowserActions(),
+        ),
+    )
+
+    private fun updateStartPageActions(tab: SessionState?) = store?.dispatch(
+        BrowserDisplayToolbarAction.PageActionsStartUpdated(
+            buildStartPageActions(tab),
         ),
     )
 
@@ -433,6 +528,33 @@ class BrowserToolbarMiddleware(
                     ),
                 )
             }
+        }
+    }
+    private fun buildStartPageActions(tab: SessionState?) = buildList {
+        if (tab?.content?.url?.isContentUrl() == true) {
+            add(
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_page_portrait_24,
+                    contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+                    onClick = StartPageActions.SiteInfoClicked,
+                ),
+            )
+        } else if (tab?.content?.securityInfo?.secure == true) {
+            add(
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_lock_24,
+                    contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+                    onClick = StartPageActions.SiteInfoClicked,
+                ),
+            )
+        } else {
+            add(
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_broken_lock,
+                    contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+                    onClick = StartPageActions.SiteInfoClicked,
+                ),
+            )
         }
     }
 
@@ -597,6 +719,15 @@ class BrowserToolbarMiddleware(
         )
     }
 
+    private fun observePageSecurityUpdates() {
+        observeWhileActive(browserStore) {
+            distinctUntilChangedBy { it.selectedTab?.content?.securityInfo }
+                .collect {
+                    updateStartPageActions(it.selectedTab)
+                }
+        }
+    }
+
     private fun observeAcceptingCancellingPrivateDownloads() {
         observeWhileActive(browserScreenStore) {
             distinctUntilChangedBy { it.cancelPrivateDownloadsAccepted }
@@ -705,17 +836,27 @@ class BrowserToolbarMiddleware(
          * @param appStore [AppStore] allowing to integrate with other features of the applications.
          * @param browserScreenStore [BrowserScreenStore] used for integration with other
          * browser screen functionalities.
+         * @param permissionsStorage [SitePermissionsStorage] to find currently selected tab site permissions.
+         * @param cookieBannersStorage [CookieBannersStorage] to get the current status of cookie banner ui mode.
          * @param browserStore [BrowserStore] to sync from.
+         * @param trackingProtectionUseCases [TrackingProtectionUseCases] allowing to query
+         * tracking protection data of the current tab.
          * @param useCases [UseCases] helping this integrate with other features of the applications.
          * @param clipboard [ClipboardHandler] to use for reading from device's clipboard.
+         * @param publicSuffixList [PublicSuffixList] used to obtain the base domain of the current site.
          * @param settings [Settings] for accessing user preferences.
          */
+        @Suppress("LongParameterList")
         fun viewModelFactory(
             appStore: AppStore,
             browserScreenStore: BrowserScreenStore,
+            permissionsStorage: SitePermissionsStorage,
+            cookieBannersStorage: CookieBannersStorage,
             browserStore: BrowserStore,
+            trackingProtectionUseCases: TrackingProtectionUseCases,
             useCases: UseCases,
             clipboard: ClipboardHandler,
+            publicSuffixList: PublicSuffixList,
             settings: Settings,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -724,9 +865,13 @@ class BrowserToolbarMiddleware(
                     return BrowserToolbarMiddleware(
                         appStore = appStore,
                         browserScreenStore = browserScreenStore,
+                        permissionsStorage = permissionsStorage,
+                        cookieBannersStorage = cookieBannersStorage,
                         browserStore = browserStore,
+                        trackingProtectionUseCases = trackingProtectionUseCases,
                         useCases = useCases,
                         clipboard = clipboard,
+                        publicSuffixList = publicSuffixList,
                         settings = settings,
                     ) as T
                 }

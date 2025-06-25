@@ -18,15 +18,19 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.setMain
 import mozilla.components.browser.state.action.ContentAction.UpdateLoadingStateAction
 import mozilla.components.browser.state.action.ContentAction.UpdateProgressAction
+import mozilla.components.browser.state.action.ContentAction.UpdateSecurityInfoAction
 import mozilla.components.browser.state.action.TabListAction.AddTabAction
 import mozilla.components.browser.state.action.TabListAction.RemoveTabAction
 import mozilla.components.browser.state.ext.getUrl
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.SecurityInfoState
+import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
@@ -50,8 +54,12 @@ import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity.Bottom
 import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity.Top
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
+import mozilla.components.concept.engine.cookiehandling.CookieBannersStorage
+import mozilla.components.concept.engine.permission.SitePermissionsStorage
 import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.feature.session.TrackingProtectionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.lib.publicsuffixlist.PublicSuffixList
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -131,6 +139,16 @@ class BrowserToolbarMiddlewareTest {
     private val useCases: UseCases = mockk()
     private val settings: Settings = mockk {
         every { shouldUseBottomToolbar } returns true
+    }
+    private val tabId = "test"
+    private val tab: TabSessionState = mockk(relaxed = true) {
+        every { id } returns tabId
+    }
+    private val permissionsStorage: SitePermissionsStorage = mockk()
+    private val cookieBannersStorage: CookieBannersStorage = mockk()
+    private val trackingProtectionUseCases: TrackingProtectionUseCases = mockk()
+    private val publicSuffixList: PublicSuffixList = mockk {
+        every { getPublicSuffixPlusOne(any()) } returns CompletableDeferred(null)
     }
 
     @Test
@@ -1105,6 +1123,10 @@ class BrowserToolbarMiddlewareTest {
             useCases = useCases,
             clipboard = mockk(),
             settings = settings,
+            permissionsStorage = permissionsStorage,
+            cookieBannersStorage = cookieBannersStorage,
+            trackingProtectionUseCases = trackingProtectionUseCases,
+            publicSuffixList = publicSuffixList,
         ).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(
@@ -1156,6 +1178,10 @@ class BrowserToolbarMiddlewareTest {
             useCases = useCases,
             clipboard = mockk(),
             settings = settings,
+            permissionsStorage = permissionsStorage,
+            cookieBannersStorage = cookieBannersStorage,
+            trackingProtectionUseCases = trackingProtectionUseCases,
+            publicSuffixList = publicSuffixList,
         ).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(
@@ -1226,6 +1252,10 @@ class BrowserToolbarMiddlewareTest {
             useCases = useCases,
             clipboard = mockk(),
             settings = settings,
+            permissionsStorage = permissionsStorage,
+            cookieBannersStorage = cookieBannersStorage,
+            trackingProtectionUseCases = trackingProtectionUseCases,
+            publicSuffixList = publicSuffixList,
         ).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(
@@ -1287,6 +1317,10 @@ class BrowserToolbarMiddlewareTest {
                 useCases = useCases,
                 clipboard = mockk(),
                 settings = settings,
+                permissionsStorage = permissionsStorage,
+                cookieBannersStorage = cookieBannersStorage,
+                trackingProtectionUseCases = trackingProtectionUseCases,
+                publicSuffixList = publicSuffixList,
             ).apply {
                 updateLifecycleDependencies(
                     LifecycleDependencies(
@@ -1347,6 +1381,10 @@ class BrowserToolbarMiddlewareTest {
                 useCases = useCases,
                 clipboard = mockk(),
                 settings = settings,
+                permissionsStorage = permissionsStorage,
+                cookieBannersStorage = cookieBannersStorage,
+                trackingProtectionUseCases = trackingProtectionUseCases,
+                publicSuffixList = publicSuffixList,
             ).apply {
                 updateLifecycleDependencies(
                     LifecycleDependencies(
@@ -1422,6 +1460,10 @@ class BrowserToolbarMiddlewareTest {
                 clipboard = mockk(),
                 settings = settings,
                 sessionUseCases = sessionUseCases,
+                permissionsStorage = permissionsStorage,
+                cookieBannersStorage = cookieBannersStorage,
+                trackingProtectionUseCases = trackingProtectionUseCases,
+                publicSuffixList = publicSuffixList,
             ).apply {
                 updateLifecycleDependencies(
                     LifecycleDependencies(
@@ -1490,6 +1532,10 @@ class BrowserToolbarMiddlewareTest {
                 clipboard = mockk(),
                 settings = settings,
                 sessionUseCases = sessionUseCases,
+                permissionsStorage = permissionsStorage,
+                cookieBannersStorage = cookieBannersStorage,
+                trackingProtectionUseCases = trackingProtectionUseCases,
+                publicSuffixList = publicSuffixList,
             ).apply {
                 updateLifecycleDependencies(
                     LifecycleDependencies(
@@ -1531,6 +1577,130 @@ class BrowserToolbarMiddlewareTest {
             assertEquals(expectedRefreshButton, pageLoadButton)
         }
     }
+
+    @Test
+    fun `GIVEN the url if of a local file WHEN initializing the toolbar THEN add an appropriate security indicator`() {
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(tab),
+                selectedTabId = tab.id,
+            ),
+        )
+        val middleware = buildMiddleware(
+            browserStore = browserStore,
+            useCases = useCases,
+        ).updateDependencies()
+        every { tab.content.url } returns "content://test"
+        val expectedSecurityIndicator = ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_page_portrait_24,
+            contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+            onClick = StartPageActions.SiteInfoClicked,
+        )
+
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        val toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
+        assertEquals(1, toolbarPageActions.size)
+        val securityIndicator = toolbarPageActions[0] as ActionButtonRes
+        assertEquals(expectedSecurityIndicator, securityIndicator)
+    }
+
+    @Test
+    fun `GIVEN the website is secure WHEN initializing the toolbar THEN add an appropriate security indicator`() {
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(tab),
+                selectedTabId = tab.id,
+            ),
+        )
+        val middleware = buildMiddleware(
+            browserStore = browserStore,
+            useCases = useCases,
+        ).updateDependencies()
+        every { tab.content.securityInfo.secure } returns true
+        val expectedSecurityIndicator = ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_lock_24,
+            contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+            onClick = StartPageActions.SiteInfoClicked,
+        )
+
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        val toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
+        assertEquals(1, toolbarPageActions.size)
+        val securityIndicator = toolbarPageActions[0] as ActionButtonRes
+        assertEquals(expectedSecurityIndicator, securityIndicator)
+    }
+
+    @Test
+    fun `GIVEN the website is insecure WHEN initializing the toolbar THEN add an appropriate security indicator`() {
+        val middleware = buildMiddleware(
+            browserStore = browserStore,
+            useCases = useCases,
+        ).updateDependencies()
+        every { tab.content.securityInfo.secure } returns false
+        val expectedSecurityIndicator = ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_broken_lock,
+            contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+            onClick = StartPageActions.SiteInfoClicked,
+        )
+
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        val toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
+        assertEquals(1, toolbarPageActions.size)
+        val securityIndicator = toolbarPageActions[0] as ActionButtonRes
+        assertEquals(expectedSecurityIndicator, securityIndicator)
+    }
+
+    @Test
+    fun `GIVEN the website is insecure WHEN the conection becomes secure THEN update appropriate security indicator`() =
+        runTestOnMain {
+            Dispatchers.setMain(StandardTestDispatcher())
+            val tab = createTab(url = "URL", id = tabId)
+            val browserStore = BrowserStore(
+                BrowserState(
+                    tabs = listOf(tab),
+                    selectedTabId = tab.id,
+                ),
+            )
+            val middleware = buildMiddleware(
+                browserStore = browserStore,
+                useCases = useCases,
+            ).updateDependencies()
+            val expectedSecureIndicator = ActionButtonRes(
+                drawableResId = R.drawable.mozac_ic_lock_24,
+                contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+                onClick = StartPageActions.SiteInfoClicked,
+            )
+            val expectedInsecureIndicator = ActionButtonRes(
+                drawableResId = R.drawable.mozac_ic_broken_lock,
+                contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+                onClick = StartPageActions.SiteInfoClicked,
+            )
+            val toolbarStore = BrowserToolbarStore(
+                middleware = listOf(middleware),
+            )
+            testScheduler.advanceUntilIdle()
+            var toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
+            assertEquals(1, toolbarPageActions.size)
+            var securityIndicator = toolbarPageActions[0] as ActionButtonRes
+            assertEquals(expectedInsecureIndicator, securityIndicator)
+
+            browserStore.dispatch(UpdateSecurityInfoAction(tab.id, SecurityInfoState(true)))
+                .joinBlocking()
+            testScheduler.advanceUntilIdle()
+            toolbarPageActions = toolbarStore.state.displayState.pageActionsStart
+            assertEquals(1, toolbarPageActions.size)
+            securityIndicator = toolbarPageActions[0] as ActionButtonRes
+            assertEquals(expectedSecureIndicator, securityIndicator)
+        }
 
     private fun assertEqualsTabCounterButton(expected: TabCounterAction, actual: TabCounterAction) {
         assertEquals(expected.count, actual.count)
@@ -1666,6 +1836,10 @@ class BrowserToolbarMiddlewareTest {
         useCases: UseCases = this.useCases,
         clipboard: ClipboardHandler = this.clipboard,
         settings: Settings = this.settings,
+        permissionsStorage: SitePermissionsStorage = this.permissionsStorage,
+        cookieBannersStorage: CookieBannersStorage = this.cookieBannersStorage,
+        trackingProtectionUseCases: TrackingProtectionUseCases = this.trackingProtectionUseCases,
+        publicSuffixList: PublicSuffixList = this.publicSuffixList,
     ) = BrowserToolbarMiddleware(
         appStore = appStore,
         browserScreenStore = browserScreenStore,
@@ -1673,6 +1847,10 @@ class BrowserToolbarMiddlewareTest {
         useCases = useCases,
         clipboard = clipboard,
         settings = settings,
+        permissionsStorage = permissionsStorage,
+        cookieBannersStorage = cookieBannersStorage,
+        trackingProtectionUseCases = trackingProtectionUseCases,
+        publicSuffixList = publicSuffixList,
     )
 
     private fun BrowserToolbarMiddleware.updateDependencies(
