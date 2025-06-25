@@ -788,17 +788,42 @@ uint64_t TimerThread::FireDueTimers(TimeDuration aAllowedEarlyFiring) {
   return timersFired;
 }
 
-void MOZ_ALWAYS_INLINE TimerThread::AccumulateAndMaybeSendTelemetry(
-    const uint64_t timersFiredThisWakeup, size_t& queuedTimersFiredCount,
-    AutoTArray<uint64_t, kMaxQueuedTimersFired>& queuedTimersFiredPerWakeup) {
-  queuedTimersFiredPerWakeup[queuedTimersFiredCount] = timersFiredThisWakeup;
-  ++queuedTimersFiredCount;
-  if (queuedTimersFiredCount == kMaxQueuedTimersFired) {
-    glean::timer_thread::timers_fired_per_wakeup.AccumulateSamples(
-        queuedTimersFiredPerWakeup);
-    queuedTimersFiredCount = 0;
+// Queue for tracking of how many timers are fired on each wake-up. We need to
+// buffer these locally and only send off to glean occasionally to avoid
+// performance problems.
+class TelemetryQueue {
+ public:
+  TelemetryQueue() {
+    mQueuedTimersFiredPerWakeup.SetLengthAndRetainStorage(
+        kMaxQueuedTimersFired);
   }
-}
+
+  ~TelemetryQueue() {
+    // About to shut down - let's send out the final batch of telemetry.
+    if (mQueuedTimersFiredCount != 0) {
+      mQueuedTimersFiredPerWakeup.SetLengthAndRetainStorage(
+          mQueuedTimersFiredCount);
+      glean::timer_thread::timers_fired_per_wakeup.AccumulateSamples(
+          mQueuedTimersFiredPerWakeup);
+    }
+  }
+
+  void AccumulateAndMaybeSendTelemetry(uint64_t timersFiredThisWakeup) {
+    mQueuedTimersFiredPerWakeup[mQueuedTimersFiredCount] =
+        timersFiredThisWakeup;
+    ++mQueuedTimersFiredCount;
+    if (mQueuedTimersFiredCount == kMaxQueuedTimersFired) {
+      glean::timer_thread::timers_fired_per_wakeup.AccumulateSamples(
+          mQueuedTimersFiredPerWakeup);
+      mQueuedTimersFiredCount = 0;
+    }
+  }
+
+ private:
+  static constexpr size_t kMaxQueuedTimersFired = 128;
+  AutoTArray<uint64_t, kMaxQueuedTimersFired> mQueuedTimersFiredPerWakeup;
+  size_t mQueuedTimersFiredCount = 0;
+};
 
 void TimerThread::Wait(TimeDuration aWaitFor) MOZ_REQUIRES(mMonitor) {
   mWaiting = true;
@@ -822,12 +847,7 @@ TimerThread::Run() {
   const TimeDuration normalAllowedEarlyFiring =
       TimeDuration::FromMicroseconds(mAllowedEarlyFiringMicroseconds);
 
-  // Queue for tracking of how many timers are fired on each wake-up. We need to
-  // buffer these locally and only send off to glean occasionally to avoid
-  // performance problems.
-  size_t queuedTimersFiredCount = 0;
-  AutoTArray<uint64_t, kMaxQueuedTimersFired> queuedTimersFiredPerWakeup;
-  queuedTimersFiredPerWakeup.SetLengthAndRetainStorage(kMaxQueuedTimersFired);
+  TelemetryQueue telemetryQueue;
 
 #ifdef XP_WIN
   // kTimerPeriodEvalIntervalSec is the minimum amount of time that must pass
@@ -887,9 +907,7 @@ TimerThread::Run() {
 
       // About to sleep - let's make note of how many timers we processed and
       // see if we should send out a new batch of telemetry.
-      AccumulateAndMaybeSendTelemetry(timersFiredThisWakeup,
-                                      queuedTimersFiredCount,
-                                      queuedTimersFiredPerWakeup);
+      telemetryQueue.AccumulateAndMaybeSendTelemetry(timersFiredThisWakeup);
 
 #if TIMER_THREAD_STATISTICS
       CollectTimersFiredStatistics(timersFiredThisWakeup);
@@ -942,14 +960,6 @@ TimerThread::Run() {
       const TimeDuration waitFor = TimeDuration::FromMilliseconds(milliseconds);
       Wait(waitFor);
     }
-  }
-
-  // About to shut down - let's send out the final batch of timers fired counts.
-  if (queuedTimersFiredCount != 0) {
-    queuedTimersFiredPerWakeup.SetLengthAndRetainStorage(
-        queuedTimersFiredCount);
-    glean::timer_thread::timers_fired_per_wakeup.AccumulateSamples(
-        queuedTimersFiredPerWakeup);
   }
 
 #ifdef XP_WIN
