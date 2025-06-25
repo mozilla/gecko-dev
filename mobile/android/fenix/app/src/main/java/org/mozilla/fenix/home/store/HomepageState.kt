@@ -54,16 +54,23 @@ internal sealed class HomepageState {
     abstract val firstFrameDrawn: Boolean
 
     /**
+     * Whether search is currently active on the homepage.
+     */
+    abstract val isSearchInProgress: Boolean
+
+    /**
      * State type corresponding with private browsing mode.
      *
      * @property showPrivateBrowsingButton Whether to show the private browsing button.
      * @property firstFrameDrawn Flag indicating whether the first frame of the homescreen has been drawn.
+     * @property isSearchInProgress Whether search is currently active on the homepage.
      * @property bottomSpacerHeight Height in [Dp] for the bottom of the scrollable view, based on
      * what's currently visible on the screen.
      */
     internal data class Private(
         override val showPrivateBrowsingButton: Boolean,
         override val firstFrameDrawn: Boolean = false,
+        override val isSearchInProgress: Boolean,
         override val bottomSpacerHeight: Dp,
     ) : HomepageState()
 
@@ -95,6 +102,7 @@ internal sealed class HomepageState {
      * @property buttonTextColor Text [Color] for buttons.
      * @property bottomSpacerHeight Height in [Dp] for the bottom of the scrollable view, based on
      * what's currently visible on the screen.
+     * @property isSearchInProgress Whether search is currently active on the homepage.
      */
     internal data class Normal(
         val nimbusMessage: NimbusMessageState?,
@@ -121,6 +129,7 @@ internal sealed class HomepageState {
         val buttonBackgroundColor: Color,
         val buttonTextColor: Color,
         override val bottomSpacerHeight: Dp,
+        override val isSearchInProgress: Boolean,
     ) : HomepageState()
 
     val browsingMode: BrowsingMode
@@ -149,6 +158,7 @@ internal sealed class HomepageState {
                     Private(
                         showPrivateBrowsingButton = !settings.enableHomepageAsNewTab,
                         firstFrameDrawn = firstFrameDrawn,
+                        isSearchInProgress = isSearchActive,
                         bottomSpacerHeight = getBottomSpace(),
                     )
                 } else {
@@ -189,6 +199,7 @@ internal sealed class HomepageState {
                         buttonBackgroundColor = wallpaperState.buttonBackgroundColor,
                         buttonTextColor = wallpaperState.buttonTextColor,
                         bottomSpacerHeight = getBottomSpace(),
+                        isSearchInProgress = isSearchActive,
                     )
                 }
             }
@@ -217,6 +228,6 @@ private fun getBottomSpace(): Dp {
  * search bar's visibility.
  */
 private fun shouldShowSearchBar(appState: AppState) =
-    !appState.isSearchDialogVisible
+    !appState.isSearchActive
 
 private val HOME_APP_BAR_HEIGHT = 48.dp

@@ -117,6 +117,7 @@ import org.mozilla.fenix.home.recenttabs.RecentTabsListFeature
 import org.mozilla.fenix.home.recenttabs.controller.DefaultRecentTabsController
 import org.mozilla.fenix.home.recentvisits.RecentVisitsFeature
 import org.mozilla.fenix.home.recentvisits.controller.DefaultRecentVisitsController
+import org.mozilla.fenix.home.search.DefaultHomeSearchController
 import org.mozilla.fenix.home.sessioncontrol.DefaultSessionControlController
 import org.mozilla.fenix.home.sessioncontrol.SessionControlInteractor
 import org.mozilla.fenix.home.sessioncontrol.SessionControlView
@@ -525,6 +526,9 @@ class HomeFragment : Fragment() {
                 activity = activity,
                 store = components.core.store,
                 navController = findNavController(),
+            ),
+            homeSearchController = DefaultHomeSearchController(
+                appStore = components.appStore,
             ),
         )
 
@@ -1331,6 +1335,7 @@ class HomeFragment : Fragment() {
         AwesomeBarComposable(
             activity = requireActivity() as HomeActivity,
             components = requireComponents,
+            appStore = requireComponents.appStore,
             browserStore = requireComponents.core.store,
             toolbarStore = toolbarStore,
             navController = findNavController(),

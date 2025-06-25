@@ -10,6 +10,7 @@ import org.mozilla.fenix.home.privatebrowsing.interactor.PrivateBrowsingInteract
 import org.mozilla.fenix.home.recentsyncedtabs.interactor.RecentSyncedTabInteractor
 import org.mozilla.fenix.home.recenttabs.interactor.RecentTabInteractor
 import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
+import org.mozilla.fenix.home.search.HomeSearchInteractor
 import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
 import org.mozilla.fenix.home.sessioncontrol.MessageCardInteractor
 import org.mozilla.fenix.home.sessioncontrol.SetupChecklistInteractor
@@ -27,6 +28,7 @@ interface HomepageInteractor :
     TopSiteInteractor,
     TabSessionInteractor,
     ToolbarInteractor,
+    HomeSearchInteractor,
     MessageCardInteractor,
     RecentTabInteractor,
     RecentSyncedTabInteractor,

@@ -24,7 +24,6 @@ import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.library.history.PendingDeletionHistory
 import org.mozilla.fenix.messaging.MessagingState
-import org.mozilla.fenix.search.SearchDialogFragment
 import org.mozilla.fenix.wallpapers.WallpaperState
 
 /**
@@ -34,7 +33,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property inactiveTabsExpanded A flag to know if the Inactive Tabs section of the Tabs Tray
  * should be expanded when the tray is opened.
  * @property firstFrameDrawn Flag indicating whether the first frame of the homescreen has been drawn.
- * @property isSearchDialogVisible Flag indicating whether the user is interacting with the [SearchDialogFragment].
+ * @property isSearchActive Flag indicating whether the user is currently performing a search.
  * @property openInFirefoxRequested Flag indicating whether a custom tab should be opened in the browser.
  * @property nonFatalCrashes List of non-fatal crashes that allow the app to continue being used.
  * @property collections The list of [TabCollection] to display in the [HomeFragment].
@@ -71,7 +70,7 @@ data class AppState(
     val isForeground: Boolean = true,
     val inactiveTabsExpanded: Boolean = false,
     val firstFrameDrawn: Boolean = false,
-    val isSearchDialogVisible: Boolean = false,
+    val isSearchActive: Boolean = false,
     val openInFirefoxRequested: Boolean = false,
     val nonFatalCrashes: List<NativeCodeCrash> = emptyList(),
     val collections: List<TabCollection> = emptyList(),

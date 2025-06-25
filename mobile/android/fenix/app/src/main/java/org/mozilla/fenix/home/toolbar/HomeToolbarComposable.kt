@@ -40,6 +40,7 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition.TOP
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.home.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
+import org.mozilla.fenix.search.BrowserToolbarSearchStatusSyncMiddleware
 import org.mozilla.fenix.utils.Settings
 
 /**
@@ -73,11 +74,12 @@ internal class HomeToolbarComposable(
 ) : FenixHomeToolbar {
     private var showDivider by mutableStateOf(true)
 
-    private val middleware = getOrCreate<BrowserToolbarMiddleware>()
+    private val displayMiddleware = getOrCreate<BrowserToolbarMiddleware>()
+    private val searchSyncMiddleware = getOrCreate<BrowserToolbarSearchStatusSyncMiddleware>()
     private val store = StoreProvider.get(lifecycleOwner) {
         BrowserToolbarStore(
             initialState = BrowserToolbarState(),
-            middleware = listOf(middleware),
+            middleware = listOf(displayMiddleware, searchSyncMiddleware),
         )
     }
 
@@ -179,6 +181,20 @@ internal class HomeToolbarComposable(
                         navController = navController,
                         browsingModeManager = browsingModeManager,
                         useCases = context.components.useCases,
+                    ),
+                )
+            } as T
+
+        BrowserToolbarSearchStatusSyncMiddleware::class.java ->
+            ViewModelProvider(
+                lifecycleOwner,
+                BrowserToolbarSearchStatusSyncMiddleware.viewModelFactory(
+                    appStore = appStore,
+                ),
+            ).get(BrowserToolbarSearchStatusSyncMiddleware::class.java).also {
+                it.updateLifecycleDependencies(
+                    BrowserToolbarSearchStatusSyncMiddleware.LifecycleDependencies(
+                        lifecycleOwner = lifecycleOwner,
                     ),
                 )
             } as T

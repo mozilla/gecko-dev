@@ -47,6 +47,7 @@ import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryGroup
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHighlight
 import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
+import org.mozilla.fenix.home.search.HomeSearchInteractor
 import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
 import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
 import org.mozilla.fenix.home.store.NimbusMessageState
@@ -72,6 +73,7 @@ internal object FakeHomepagePreview {
             RecentSyncedTabInteractor by recentSyncedTabInterator,
             BookmarksInteractor by bookmarksInteractor,
             RecentVisitsInteractor by recentVisitsInteractor,
+            HomeSearchInteractor by homeSearchInteractor,
             CollectionInteractor by collectionInteractor {
             override fun reportSessionMetrics(state: AppState) { /* no op */ }
 
@@ -202,6 +204,11 @@ internal object FakeHomepagePreview {
             override fun onAddTabsToCollectionTapped() { /* no op */ }
 
             override fun onRemoveCollectionsPlaceholder() { /* no op */ }
+        }
+
+    internal val homeSearchInteractor: HomeSearchInteractor
+        get() = object : HomeSearchInteractor {
+            override fun onHomeContentFocusedWhileSearchIsActive() { /* no op */ }
         }
 
     @Composable

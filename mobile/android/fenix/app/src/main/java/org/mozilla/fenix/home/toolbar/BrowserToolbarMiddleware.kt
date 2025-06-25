@@ -116,6 +116,8 @@ class BrowserToolbarMiddleware(
                 store = context.store as BrowserToolbarStore
                 updateEndBrowserActions()
                 updatePageOrigin()
+
+                next(action)
             }
 
             is MenuClicked -> {

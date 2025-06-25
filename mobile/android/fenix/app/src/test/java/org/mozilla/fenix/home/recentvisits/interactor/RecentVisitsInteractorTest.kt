@@ -19,6 +19,7 @@ import org.mozilla.fenix.home.recenttabs.controller.RecentTabController
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryGroup
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHighlight
 import org.mozilla.fenix.home.recentvisits.controller.RecentVisitsController
+import org.mozilla.fenix.home.search.HomeSearchController
 import org.mozilla.fenix.home.sessioncontrol.DefaultSessionControlController
 import org.mozilla.fenix.home.sessioncontrol.SessionControlInteractor
 import org.mozilla.fenix.home.toolbar.ToolbarController
@@ -35,6 +36,7 @@ class RecentVisitsInteractorTest {
     private val privateBrowsingController: PrivateBrowsingController = mockk(relaxed = true)
     private val searchSelectorController: SearchSelectorController = mockk(relaxed = true)
     private val toolbarController: ToolbarController = mockk(relaxed = true)
+    private val homeSearchController: HomeSearchController = mockk(relaxed = true)
 
     private lateinit var interactor: SessionControlInteractor
 
@@ -50,6 +52,7 @@ class RecentVisitsInteractorTest {
             privateBrowsingController,
             searchSelectorController,
             toolbarController,
+            homeSearchController,
         )
     }
 

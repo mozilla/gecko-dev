@@ -81,24 +81,24 @@ class AppStoreReducerTest {
     }
 
     @Test
-    fun `WHEN UpdateSearchDialogVisibility is called THEN isSearchDialogVisible gets updated`() {
+    fun `WHEN search in progress state changes THEN update state to reflect it`() {
         val initialState = AppState()
 
-        assertFalse(initialState.isSearchDialogVisible)
+        assertFalse(initialState.isSearchActive)
 
         var updatedState = AppStoreReducer.reduce(
             initialState,
-            AppAction.UpdateSearchDialogVisibility(isVisible = true),
+            AppAction.UpdateSearchBeingActiveState(isSearchActive = true),
         )
 
-        assertTrue(updatedState.isSearchDialogVisible)
+        assertTrue(updatedState.isSearchActive)
 
         updatedState = AppStoreReducer.reduce(
             initialState,
-            AppAction.UpdateSearchDialogVisibility(isVisible = false),
+            AppAction.UpdateSearchBeingActiveState(isSearchActive = false),
         )
 
-        assertFalse(updatedState.isSearchDialogVisible)
+        assertFalse(updatedState.isSearchActive)
     }
 
     @Test
