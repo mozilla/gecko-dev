@@ -2974,6 +2974,21 @@
       }
     ]
   },
+  "1924441": {
+    "label": "contractorinduction.colesgroup.com.au",
+    "bugs": {
+      "1924441": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://contractorinduction.colesgroup.com.au/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1925508": {
     "label": "developer.apple.com",
     "bugs": {
