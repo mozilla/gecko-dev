@@ -4143,7 +4143,18 @@ with only_when(target_is_windows & compile_environment):
 
 @depends(target)
 def onnxruntime_task_name(target):
-    return f"onnxruntime-{target.toolchain}"
+    # FIXME: see bug 1973674
+    os = target.raw_os
+    cpu = target.raw_cpu
+    if os.startswith("darwin"):
+        target = f"{cpu}-apple-darwin"
+    elif os.startswith("ios-sim"):
+        target = f"{cpu}-apple-ios-sim"
+    elif os.startswith("ios"):
+        target = f"{cpu}-apple-ios"
+    else:
+        target = target.toolchain
+    return f"onnxruntime-{target}"
 
 
 option(
