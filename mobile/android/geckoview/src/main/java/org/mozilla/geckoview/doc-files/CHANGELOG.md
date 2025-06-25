@@ -16,8 +16,11 @@ exclude: true
 ## v142
 - Added support for data collection permissions to [`WebExtensionController.onOptionalPrompt`][142.1] ([bug 1964999]({{bugzilla}}1964999))
 - ⚠️ Removed deprecated functions that were scheduled for removal in GeckoView 142. ([bug 1963053]({{bugzilla}}1963053))
+- Added `setBounceTrackingProtectionMode`, `getBounceTrackingProtectionMode` to [`ContentBlocking.Settings`][142.2].
+  ([bug 1963445]({{bugzilla}}1963445))
 
 [142.1]: {{javadoc_uri}}/WebExtensionController.html#onOptionalPrompt
+[142.2]: {{javadoc_uri}}/ContentBlocking.html
 
 ## v141
 - Changed the methods in [`ProfilerController`][141.1] to static.
@@ -34,6 +37,7 @@ exclude: true
 - Added support for special "technical and interaction" data collection permission ([bug 1964992]({{bugilla}}1964992))
 - Added support for data collection permissions in [`WebExtensionController.addOptionalPermissions`][141.16] and [`WebExtensionController.removeOptionalPermissions`][141.17] ([bug 1964992]({{bugzilla}}1964992))
 - Added [`CrashPullController.Delegate`][141.18] interface, which allows Gecko's `RemoteSettingsCrashPull` module to request that the application uploads a specified subset of user crash dumps.
+
 
 [141.1]: {{javadoc_uri}}/ProfilerController.html
 [141.2]: {{javadoc_uri}}/GeckoRuntime.html#getProfilerController()
@@ -1784,4 +1788,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: ee9192be945b3ab5f27cfd04e609a97931d6cc27
+[api-version]: ee6b7b0c4bb7945defd9bfb8c8e21be0d20b7e74
