@@ -256,7 +256,8 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
   promises.AppendElement(InvokeAsync(
       mPipeline->mCallThread, __func__,
       [pipeline = mPipeline, trackName, mid = std::move(mid),
-       videoSsrcToRidMap = std::move(videoSsrcToRidMap)] {
+       videoSsrcToRidMap = std::move(videoSsrcToRidMap),
+       audioCodec = mAudioCodec.Ref()] {
         auto report = MakeUnique<dom::RTCStatsCollection>();
         auto asAudio = pipeline->mConduit->AsAudioSessionConduit();
         auto asVideo = pipeline->mConduit->AsVideoSessionConduit();
@@ -295,12 +296,25 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
                   if (aRtcpData.extended_highest_sequence_number() <
                       *base_seq) {
                     aRemote.mPacketsReceived.Construct(0);
+                    aRemote.mPacketsLost.Construct(0);
                   } else {
                     aRemote.mPacketsReceived.Construct(
                         aRtcpData.extended_highest_sequence_number() -
                         aRtcpData.cumulative_lost() - *base_seq + 1);
+                    aRemote.mPacketsLost.Construct(aRtcpData.cumulative_lost());
                   }
                 }
+                if (aRtcpData.has_rtt()) {
+                  aRemote.mRoundTripTime.Construct(
+                      static_cast<double>(aRtcpData.last_rtt().ms()) / 1000.0);
+                }
+                aRemote.mTotalRoundTripTime.Construct(
+                    static_cast<double>(aRtcpData.sum_rtts().ms()) / 1000.0);
+                aRemote.mFractionLost.Construct(
+                    static_cast<float>(aRtcpData.fraction_lost_raw()) /
+                    (1 << 8));
+                aRemote.mRoundTripTimeMeasurements.Construct(
+                    aRtcpData.num_rtts());
               };
 
           auto constructCommonOutboundRtpStats =
@@ -365,21 +379,10 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
             reportBlockData.apply([&](auto& aReportBlockData) {
               RTCRemoteInboundRtpStreamStats remote;
               constructCommonRemoteInboundRtpStats(remote, aReportBlockData);
-              if (audioStats->jitter_ms >= 0) {
-                remote.mJitter.Construct(audioStats->jitter_ms / 1000.0);
+              if (aReportBlockData.jitter() >= 0 && audioCodec) {
+                remote.mJitter.Construct(
+                    aReportBlockData.jitter(audioCodec->mFreq).ms() / 1000.0);
               }
-              if (audioStats->packets_lost >= 0) {
-                remote.mPacketsLost.Construct(audioStats->packets_lost);
-              }
-              if (audioStats->rtt_ms >= 0) {
-                remote.mRoundTripTime.Construct(
-                    static_cast<double>(audioStats->rtt_ms) / 1000.0);
-              }
-              remote.mFractionLost.Construct(audioStats->fraction_lost);
-              remote.mTotalRoundTripTime.Construct(
-                  double(aReportBlockData.sum_rtts().ms()) / 1000);
-              remote.mRoundTripTimeMeasurements.Construct(
-                  aReportBlockData.num_rtts());
               if (!report->mRemoteInboundRtpStreamStats.AppendElement(
                       std::move(remote), fallible)) {
                 mozalloc_handle_oom(0);
@@ -464,20 +467,7 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
               remote.mJitter.Construct(
                   static_cast<double>(rtcpReportData.jitter()) /
                   webrtc::kVideoPayloadTypeFrequency);
-              remote.mPacketsLost.Construct(rtcpReportData.cumulative_lost());
-              if (rtcpReportData.has_rtt()) {
-                remote.mRoundTripTime.Construct(
-                    static_cast<double>(rtcpReportData.last_rtt().ms()) /
-                    1000.0);
-              }
               constructCommonRemoteInboundRtpStats(remote, rtcpReportData);
-              remote.mTotalRoundTripTime.Construct(
-                  streamStats->report_block_data->sum_rtts().ms() / 1000.0);
-              remote.mFractionLost.Construct(
-                  static_cast<float>(rtcpReportData.fraction_lost_raw()) /
-                  (1 << 8));
-              remote.mRoundTripTimeMeasurements.Construct(
-                  streamStats->report_block_data->num_rtts());
               if (!report->mRemoteInboundRtpStreamStats.AppendElement(
                       std::move(remote), fallible)) {
                 mozalloc_handle_oom(0);
