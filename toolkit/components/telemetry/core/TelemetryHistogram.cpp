@@ -2578,6 +2578,25 @@ void TelemetryHistogram::AccumulateCategorical(HistogramID aId,
   internal_Accumulate(locker, aId, labelId);
 }
 
+void TelemetryHistogram::AccumulateCategorical(HistogramID aId,
+                                               const nsCString& aKey,
+                                               const nsCString& aLabel) {
+  if (NS_WARN_IF(!internal_IsHistogramEnumId(aId))) {
+    MOZ_ASSERT_UNREACHABLE("Histogram usage requires valid ids.");
+    return;
+  }
+
+  StaticMutexAutoLock locker(gTelemetryHistogramMutex);
+  if (!internal_CanRecordBase()) {
+    return;
+  }
+  uint32_t labelId = 0;
+  if (NS_FAILED(gHistogramInfos[aId].label_id(aLabel.get(), &labelId))) {
+    return;
+  }
+  internal_Accumulate(locker, aId, aKey, labelId);
+}
+
 void TelemetryHistogram::AccumulateChild(
     ProcessID aProcessType,
     const nsTArray<HistogramAccumulation>& aAccumulations) {

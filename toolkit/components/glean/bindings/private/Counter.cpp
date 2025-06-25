@@ -36,6 +36,23 @@ void accumulateToBoolean(HistogramID aId, const nsACString& aLabel,
 }
 
 /* static */
+void accumulateToKeyedBoolean(HistogramID aId, const nsACString& aKey,
+                              const nsACString& aCategory, int32_t aAmount) {
+  MOZ_ASSERT(aAmount == 1,
+             "When mirroring to keyed boolean histograms, we only support "
+             "accumulating one sample at a time.");
+  if (aCategory.EqualsASCII("true")) {
+    TelemetryHistogram::Accumulate(aId, PromiseFlatCString(aKey), true);
+  } else if (aCategory.EqualsASCII("false")) {
+    TelemetryHistogram::Accumulate(aId, PromiseFlatCString(aKey), false);
+  } else {
+    MOZ_ASSERT_UNREACHABLE(
+        "When mirroring to keyed boolean histograms, we only support labels "
+        "'true' and 'false'");
+  }
+}
+
+/* static */
 void accumulateToKeyedCount(HistogramID aId, const nsCString& aLabel,
                             int32_t aAmount) {
   TelemetryHistogram::Accumulate(aId, aLabel, aAmount);
@@ -48,6 +65,15 @@ void accumulateToCategorical(HistogramID aId, const nsCString& aLabel,
              "When mirroring to categorical histograms, we only support "
              "accumulating one sample at a time.");
   TelemetryHistogram::AccumulateCategorical(aId, aLabel);
+}
+
+/* static */
+void accumulateToKeyedCategorical(HistogramID aId, const nsCString& aKey,
+                                  const nsCString& aCategory, int32_t aAmount) {
+  MOZ_ASSERT(aAmount == 1,
+             "When mirroring to keyed categorical histograms, we only support "
+             "accumulating one sample at a time.");
+  TelemetryHistogram::AccumulateCategorical(aId, aKey, aCategory);
 }
 
 namespace mozilla::glean {
@@ -106,6 +132,29 @@ void CounterMetric<CounterType::eBaseOrLabeled>::Add(int32_t aAmount) const {
 
 template <>
 void CounterMetric<CounterType::eDualLabeled>::Add(int32_t aAmount) const {
+  if (IsSubmetricId(mId)) {
+    GetDualLabeledDistributionMirrorLock().apply([&](const auto& lock) {
+      auto tuple = lock.ref()->MaybeGet(mId);
+      if (tuple) {
+        HistogramID hId = std::get<0>(tuple.ref());
+        switch (TelemetryHistogram::GetHistogramType(hId)) {
+          case nsITelemetry::HISTOGRAM_BOOLEAN:
+            accumulateToKeyedBoolean(hId, std::get<1>(tuple.ref()),
+                                     std::get<2>(tuple.ref()), aAmount);
+            break;
+          case nsITelemetry::HISTOGRAM_CATEGORICAL:
+            accumulateToKeyedCategorical(hId, std::get<1>(tuple.ref()),
+                                         std::get<2>(tuple.ref()), aAmount);
+            break;
+          default:
+            MOZ_ASSERT_UNREACHABLE(
+                "Asked to mirror dual_labeled_counter to unsupported "
+                "histogram type.");
+            break;
+        }
+      }
+    });
+  }
   fog_dual_labeled_counter_add(mId, aAmount);
 }
 

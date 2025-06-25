@@ -40,6 +40,8 @@ void Accumulate(mozilla::Telemetry::HistogramID aID, const nsCString& aKey,
 
 void AccumulateCategorical(mozilla::Telemetry::HistogramID aId,
                            const nsCString& aLabel);
+void AccumulateCategorical(mozilla::Telemetry::HistogramID aId,
+                           const nsCString& aKey, const nsCString& aLabel);
 
 void AccumulateChild(
     mozilla::Telemetry::ProcessID aProcessType,

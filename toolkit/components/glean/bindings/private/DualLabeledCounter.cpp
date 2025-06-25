@@ -14,11 +14,28 @@
 
 namespace mozilla::glean {
 
+/* static */
+void UpdateDualLabeledMirror(Telemetry::HistogramID aMirrorId,
+                             uint32_t aSubmetricId, const nsACString& aKey,
+                             const nsACString& aCategory) {
+  GetDualLabeledDistributionMirrorLock().apply([&](const auto& lock) {
+    auto tuple = std::make_tuple<Telemetry::HistogramID, nsCString, nsCString>(
+        std::move(aMirrorId), nsCString(aKey), nsCString(aCategory));
+    lock.ref()->InsertOrUpdate(aSubmetricId, std::move(tuple));
+  });
+}
+
 namespace impl {
 
 CounterMetric<CounterType::eDualLabeled> DualLabeledCounterMetric::Get(
     const nsACString& aKey, const nsACString& aCategory) const {
   uint32_t submetricId = fog_dual_labeled_counter_get(mId, &aKey, &aCategory);
+
+  auto mirrorId = HistogramIdForMetric(mId);
+  if (mirrorId) {
+    UpdateDualLabeledMirror(mirrorId.extract(), submetricId, aKey, aCategory);
+  }
+
   return CounterMetric<CounterType::eDualLabeled>(submetricId);
 }
 
@@ -34,6 +51,11 @@ already_AddRefed<GleanCounter> GleanDualLabeledCounter::Get(
     const nsACString& aKey, const nsACString& aCategory) {
   uint32_t submetricId =
       impl::fog_dual_labeled_counter_get(mId, &aKey, &aCategory);
+
+  auto mirrorId = HistogramIdForMetric(mId);
+  if (mirrorId) {
+    UpdateDualLabeledMirror(mirrorId.extract(), submetricId, aKey, aCategory);
+  }
 
   return MakeAndAddRef<GleanCounter>(submetricId, mParent,
                                      impl::CounterType::eDualLabeled);

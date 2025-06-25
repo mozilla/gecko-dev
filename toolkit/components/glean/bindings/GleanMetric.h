@@ -52,6 +52,16 @@ typedef StaticDataMutex<UniquePtr<SubmetricToLabeledDistributionMirrorMapType>>
 Maybe<SubmetricToDistributionMirrorMutex::AutoLock>
 GetLabeledDistributionMirrorLock();
 
+typedef nsTHashMap<SubmetricIdHashKey,
+                   std::tuple<Telemetry::HistogramID, nsCString, nsCString>>
+    SubmetricToDualLabeledDistributionMirrorMapType;
+typedef StaticDataMutex<
+    UniquePtr<SubmetricToDualLabeledDistributionMirrorMapType>>
+    SubmetricToDualLabeledDistributionMirrorMutex;
+
+Maybe<SubmetricToDualLabeledDistributionMirrorMutex::AutoLock>
+GetDualLabeledDistributionMirrorLock();
+
 }  // namespace mozilla::glean
 
 #endif /* mozilla_glean_GleanMetric_h */
