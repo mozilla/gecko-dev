@@ -915,3 +915,25 @@ glam_experiment:
       - tlong@mozilla.com
       - efilho@mozilla.com
     expires: 146
+
+pdfjs.digital_signature:
+  certificate:
+    type: labeled_counter
+    description: >
+      Counts the number of certificates used to sign a PDF document.
+    labels:
+      - adbe_x509_rsa_sha1
+      - adbe_pkcs7_detached
+      - adbe_pkcs7_sha1
+      - etsi_cades_detached
+      - etsi_rfc3161
+      - unsupported
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1973573
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1973573#c1
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - pdfjs-team@mozilla.com
+    expires: 147

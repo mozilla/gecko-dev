@@ -60,6 +60,30 @@ export class PdfJsTelemetry {
           }
         }
         break;
+      case "signatureCertificates":
+        this.onSignatureCertificates(aData.data);
+        break;
+    }
+  }
+
+  static onSignatureCertificates(data) {
+    if (!(data?.length > 0)) {
+      return;
+    }
+    const labels = new Set([
+      "adbe_x509_rsa_sha1",
+      "adbe_pkcs7_detached",
+      "adbe_pkcs7_sha1",
+      "etsi_cades_detached",
+      "etsi_rfc3161",
+    ]);
+    for (const cert of data) {
+      const label = cert.toLowerCase().replaceAll(".", "_");
+      if (labels.has(label)) {
+        Glean.pdfjsDigitalSignature.certificate[label].add(1);
+      } else {
+        Glean.pdfjsDigitalSignature.certificate.unsupported.add(1);
+      }
     }
   }
 
