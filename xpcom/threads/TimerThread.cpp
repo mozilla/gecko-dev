@@ -735,6 +735,18 @@ TimeDuration TimerThread::ComputeAcceptableFiringDelay(
   return std::clamp(tmp, minDelay, maxDelay);
 }
 
+void MOZ_ALWAYS_INLINE TimerThread::AccumulateAndMaybeSendTelemetry(
+    const uint64_t timersFiredThisWakeup, size_t& queuedTimersFiredCount,
+    AutoTArray<uint64_t, kMaxQueuedTimersFired>& queuedTimersFiredPerWakeup) {
+  queuedTimersFiredPerWakeup[queuedTimersFiredCount] = timersFiredThisWakeup;
+  ++queuedTimersFiredCount;
+  if (queuedTimersFiredCount == kMaxQueuedTimersFired) {
+    glean::timer_thread::timers_fired_per_wakeup.AccumulateSamples(
+        queuedTimersFiredPerWakeup);
+    queuedTimersFiredCount = 0;
+  }
+}
+
 NS_IMETHODIMP
 TimerThread::Run() {
   MonitorAutoLock lock(mMonitor);
@@ -749,11 +761,10 @@ TimerThread::Run() {
 
   // Queue for tracking of how many timers are fired on each wake-up. We need to
   // buffer these locally and only send off to glean occasionally to avoid
-  // performance hit.
-  static constexpr size_t kMaxQueuedTimerFired = 128;
-  size_t queuedTimerFiredCount = 0;
-  AutoTArray<uint64_t, kMaxQueuedTimerFired> queuedTimersFiredPerWakeup;
-  queuedTimersFiredPerWakeup.SetLengthAndRetainStorage(kMaxQueuedTimerFired);
+  // performance problems.
+  size_t queuedTimersFiredCount = 0;
+  AutoTArray<uint64_t, kMaxQueuedTimersFired> queuedTimersFiredPerWakeup;
+  queuedTimersFiredPerWakeup.SetLengthAndRetainStorage(kMaxQueuedTimersFired);
 
 #ifdef XP_WIN
   // kTimerPeriodEvalIntervalSec is the minimum amount of time that must pass
@@ -921,17 +932,11 @@ TimerThread::Run() {
       }
     }
 
-    {
-      // About to sleep - let's make note of how many timers we processed and
-      // see if we should send out a new batch of telemetry.
-      queuedTimersFiredPerWakeup[queuedTimerFiredCount] = timersFiredThisWakeup;
-      ++queuedTimerFiredCount;
-      if (queuedTimerFiredCount == kMaxQueuedTimerFired) {
-        glean::timer_thread::timers_fired_per_wakeup.AccumulateSamples(
-            queuedTimersFiredPerWakeup);
-        queuedTimerFiredCount = 0;
-      }
-    }
+    // About to sleep - let's make note of how many timers we processed and see
+    // if we should send out a new batch of telemetry.
+    AccumulateAndMaybeSendTelemetry(timersFiredThisWakeup,
+                                    queuedTimersFiredCount,
+                                    queuedTimersFiredPerWakeup);
 
 #if TIMER_THREAD_STATISTICS
     {
@@ -968,8 +973,9 @@ TimerThread::Run() {
   }
 
   // About to shut down - let's send out the final batch of timers fired counts.
-  if (queuedTimerFiredCount != 0) {
-    queuedTimersFiredPerWakeup.SetLengthAndRetainStorage(queuedTimerFiredCount);
+  if (queuedTimersFiredCount != 0) {
+    queuedTimersFiredPerWakeup.SetLengthAndRetainStorage(
+        queuedTimersFiredCount);
     glean::timer_thread::timers_fired_per_wakeup.AccumulateSamples(
         queuedTimersFiredPerWakeup);
   }
