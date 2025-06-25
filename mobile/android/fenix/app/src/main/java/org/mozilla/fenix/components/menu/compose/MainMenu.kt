@@ -72,7 +72,7 @@ import org.mozilla.fenix.components.menu.compose.header.MenuNavHeader
 import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
-import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
+import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU_ITEM
 
 /**
  * Wrapper column containing the main menu items.
@@ -376,24 +376,24 @@ private fun MenuItemAnimation(
         enter = expandVertically(
             expandFrom = Alignment.Top,
             animationSpec = tween(
-                durationMillis = DURATION_MS_MAIN_MENU,
+                durationMillis = DURATION_MS_MAIN_MENU_ITEM,
                 easing = LinearEasing,
             ),
         ) + fadeIn(
             animationSpec = tween(
-                durationMillis = DURATION_MS_MAIN_MENU,
+                durationMillis = DURATION_MS_MAIN_MENU_ITEM,
                 easing = LinearEasing,
             ),
         ),
         exit = shrinkVertically(
             shrinkTowards = Alignment.Top,
             animationSpec = tween(
-                durationMillis = DURATION_MS_MAIN_MENU,
+                durationMillis = DURATION_MS_MAIN_MENU_ITEM,
                 easing = LinearEasing,
             ),
         ) + fadeOut(
             animationSpec = tween(
-                durationMillis = DURATION_MS_MAIN_MENU,
+                durationMillis = DURATION_MS_MAIN_MENU_ITEM,
                 easing = LinearEasing,
             ),
         ),
