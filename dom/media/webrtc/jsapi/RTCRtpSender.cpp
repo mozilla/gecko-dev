@@ -306,10 +306,10 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
                 }
                 if (aRtcpData.has_rtt()) {
                   aRemote.mRoundTripTime.Construct(
-                      static_cast<double>(aRtcpData.last_rtt().ms()) / 1000.0);
+                      aRtcpData.last_rtt().template ms<double>() / 1000.0);
                 }
                 aRemote.mTotalRoundTripTime.Construct(
-                    static_cast<double>(aRtcpData.sum_rtts().ms()) / 1000.0);
+                    aRtcpData.sum_rtts().template ms<double>() / 1000.0);
                 aRemote.mFractionLost.Construct(
                     static_cast<float>(aRtcpData.fraction_lost_raw()) /
                     (1 << 8));
@@ -381,7 +381,9 @@ nsTArray<RefPtr<dom::RTCStatsPromise>> RTCRtpSender::GetStatsInternal(
               constructCommonRemoteInboundRtpStats(remote, aReportBlockData);
               if (aReportBlockData.jitter() >= 0 && audioCodec) {
                 remote.mJitter.Construct(
-                    aReportBlockData.jitter(audioCodec->mFreq).ms() / 1000.0);
+                    aReportBlockData.jitter(audioCodec->mFreq)
+                        .template ms<double>() /
+                    1000.0);
               }
               if (!report->mRemoteInboundRtpStreamStats.AppendElement(
                       std::move(remote), fallible)) {
