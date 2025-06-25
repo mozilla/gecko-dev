@@ -190,10 +190,6 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
   // clears a few flags before and after.
   void Wait(TimeDuration aWaitFor) MOZ_REQUIRES(mMonitor);
 
-#ifdef XP_WIN
-  UINT ComputeDesiredTimerPeriod() const;
-#endif
-
 #ifdef DEBUG
   // Checks mTimers to see if any entries are out of order or any cached
   // timeouts are incorrect and will assert if any inconsistency is found. Has

@@ -30,37 +30,91 @@ using namespace mozilla;
 #  include <windows.h>
 #  include <mmsystem.h>
 
-static constexpr UINT kTimerPeriodHiRes = 1;
-static constexpr UINT kTimerPeriodLowRes = 16;
+// WindowsTimerFrequencyManager manages adjusting the Windows timer resolution
+// based on whether we're on battery power and the current process priority.
+class WindowsTimerFrequencyManager {
+ public:
+  explicit WindowsTimerFrequencyManager(
+      const hal::ProcessPriority processPriority)
+      : mTimerPeriodEvalInterval(
+            TimeDuration::FromSeconds(kTimerPeriodEvalIntervalSec)),
+        mNextTimerPeriodEval(TimeStamp::Now() + mTimerPeriodEvalInterval),
+        mLastTimePeriodSet(ComputeDesiredTimerPeriod(processPriority)),
+        mAdjustTimerPeriod(
+            StaticPrefs::timer_auto_increase_timer_resolution()) {
+    if (mAdjustTimerPeriod) {
+      timeBeginPeriod(mLastTimePeriodSet);
+    }
+  }
 
-// Helper functions to determine what Windows timer resolution to target.
-static constexpr UINT GetDesiredTimerPeriod(const bool aOnBatteryPower,
-                                            const bool aLowProcessPriority) {
-  const bool useLowResTimer = aOnBatteryPower || aLowProcessPriority;
-  return useLowResTimer ? kTimerPeriodLowRes : kTimerPeriodHiRes;
-}
+  ~WindowsTimerFrequencyManager() {
+    // About to shut down - let's finish off the last time period that we set.
+    if (mAdjustTimerPeriod) {
+      timeEndPeriod(mLastTimePeriodSet);
+    }
+  }
 
-static_assert(GetDesiredTimerPeriod(true, false) == kTimerPeriodLowRes);
-static_assert(GetDesiredTimerPeriod(false, true) == kTimerPeriodLowRes);
-static_assert(GetDesiredTimerPeriod(true, true) == kTimerPeriodLowRes);
-static_assert(GetDesiredTimerPeriod(false, false) == kTimerPeriodHiRes);
+  void Update(const TimeStamp now, const hal::ProcessPriority processPriority) {
+    if (now >= mNextTimerPeriodEval) {
+      const UINT newTimePeriod = ComputeDesiredTimerPeriod(processPriority);
+      if (newTimePeriod != mLastTimePeriodSet) {
+        if (mAdjustTimerPeriod) {
+          timeEndPeriod(mLastTimePeriodSet);
+          timeBeginPeriod(newTimePeriod);
+        }
+        mLastTimePeriodSet = newTimePeriod;
+      }
+      mNextTimerPeriodEval = now + mTimerPeriodEvalInterval;
+    }
+  }
 
-UINT TimerThread::ComputeDesiredTimerPeriod() const {
-  const bool lowPriorityProcess =
-      mCachedPriority.load(std::memory_order_relaxed) <
-      hal::PROCESS_PRIORITY_FOREGROUND;
+ private:
+  const TimeDuration mTimerPeriodEvalInterval;
+  TimeStamp mNextTimerPeriodEval;
+  UINT mLastTimePeriodSet;
 
-  // NOTE: Using short-circuiting here to avoid call to GetSystemPowerStatus()
-  // when we know that that result will not affect the final result. (As
-  // confirmed by the static_assert's above, onBatteryPower does not affect the
-  // result when the lowPriorityProcess is true.)
-  SYSTEM_POWER_STATUS status;
-  const bool onBatteryPower = !lowPriorityProcess &&
-                              GetSystemPowerStatus(&status) &&
-                              (status.ACLineStatus == 0);
+  // If this is false, we will perform all of the logic but will stop short of
+  // actually changing the timer period.
+  const bool mAdjustTimerPeriod;
 
-  return GetDesiredTimerPeriod(onBatteryPower, lowPriorityProcess);
-}
+  // kTimerPeriodEvalIntervalSec is the minimum amount of time that must pass
+  // before we will consider changing the timer period again.
+  static constexpr float kTimerPeriodEvalIntervalSec = 2.0f;
+
+  static constexpr UINT kTimerPeriodHiRes = 1;
+  static constexpr UINT kTimerPeriodLowRes = 16;
+
+  // Helper functions to determine what Windows timer resolution to target.
+  static constexpr UINT GetDesiredTimerPeriod(const bool aOnBatteryPower,
+                                              const bool aLowProcessPriority) {
+    const bool useLowResTimer = aOnBatteryPower || aLowProcessPriority;
+    return useLowResTimer ? kTimerPeriodLowRes : kTimerPeriodHiRes;
+  }
+
+  static constexpr void StaticUnitTests() {
+    static_assert(GetDesiredTimerPeriod(true, false) == kTimerPeriodLowRes);
+    static_assert(GetDesiredTimerPeriod(false, true) == kTimerPeriodLowRes);
+    static_assert(GetDesiredTimerPeriod(true, true) == kTimerPeriodLowRes);
+    static_assert(GetDesiredTimerPeriod(false, false) == kTimerPeriodHiRes);
+  }
+
+  static UINT ComputeDesiredTimerPeriod(
+      const hal::ProcessPriority processPriority) {
+    const bool lowPriorityProcess =
+        processPriority < hal::PROCESS_PRIORITY_FOREGROUND;
+
+    // NOTE: Using short-circuiting here to avoid call to GetSystemPowerStatus()
+    // when we know that that result will not affect the final result. (As
+    // confirmed by the static_assert's above, onBatteryPower does not affect
+    // the result when the lowPriorityProcess is true.)
+    SYSTEM_POWER_STATUS status;
+    const bool onBatteryPower = !lowPriorityProcess &&
+                                GetSystemPowerStatus(&status) &&
+                                (status.ACLineStatus == 0);
+
+    return GetDesiredTimerPeriod(onBatteryPower, lowPriorityProcess);
+  }
+};
 #endif
 
 // Uncomment the following line to enable runtime stats during development.
@@ -850,22 +904,8 @@ TimerThread::Run() {
   TelemetryQueue telemetryQueue;
 
 #ifdef XP_WIN
-  // kTimerPeriodEvalIntervalSec is the minimum amount of time that must pass
-  // before we will consider changing the timer period again.
-  static constexpr float kTimerPeriodEvalIntervalSec = 2.0f;
-  const TimeDuration timerPeriodEvalInterval =
-      TimeDuration::FromSeconds(kTimerPeriodEvalIntervalSec);
-  TimeStamp nextTimerPeriodEval = TimeStamp::Now() + timerPeriodEvalInterval;
-
-  // If this is false, we will perform all of the logic but will stop short of
-  // actually changing the timer period.
-  const bool adjustTimerPeriod =
-      StaticPrefs::timer_auto_increase_timer_resolution();
-  UINT lastTimePeriodSet = ComputeDesiredTimerPeriod();
-
-  if (adjustTimerPeriod) {
-    timeBeginPeriod(lastTimePeriodSet);
-  }
+  WindowsTimerFrequencyManager wTFM{
+      mCachedPriority.load(std::memory_order_relaxed)};
 #endif
 
   while (!mShutdown) {
@@ -930,17 +970,7 @@ TimerThread::Run() {
       }
 
 #ifdef XP_WIN
-      if (now >= nextTimerPeriodEval) {
-        const UINT newTimePeriod = ComputeDesiredTimerPeriod();
-        if (newTimePeriod != lastTimePeriodSet) {
-          if (adjustTimerPeriod) {
-            timeEndPeriod(lastTimePeriodSet);
-            timeBeginPeriod(newTimePeriod);
-          }
-          lastTimePeriodSet = newTimePeriod;
-        }
-        nextTimerPeriodEval = now + timerPeriodEvalInterval;
-      }
+      wTFM.Update(now, mCachedPriority.load(std::memory_order_relaxed));
 #endif
 
       // We're finished firing the timers that were ready, so wait until it's
@@ -961,13 +991,6 @@ TimerThread::Run() {
       Wait(waitFor);
     }
   }
-
-#ifdef XP_WIN
-  // About to shut down - let's finish off the last time period that we set.
-  if (adjustTimerPeriod) {
-    timeEndPeriod(lastTimePeriodSet);
-  }
-#endif
 
   return NS_OK;
 }
