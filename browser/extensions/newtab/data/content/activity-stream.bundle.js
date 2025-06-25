@@ -3109,7 +3109,9 @@ function FeatureHighlight({
   message,
   icon,
   toggle,
+  arrowPosition = "",
   position = "top-left",
+  verticalPosition = "",
   title,
   ariaLabel,
   feature = "FEATURE_HIGHLIGHT_DEFAULT",
@@ -3161,7 +3163,7 @@ function FeatureHighlight({
   const openedClassname = opened ? `opened` : `closed`;
   return /*#__PURE__*/external_React_default().createElement("div", {
     ref: ref,
-    className: "feature-highlight"
+    className: `feature-highlight ${verticalPosition}`
   }, /*#__PURE__*/external_React_default().createElement("button", {
     title: title,
     "aria-haspopup": "true",
@@ -3169,7 +3171,7 @@ function FeatureHighlight({
     className: `toggle-button ${hideButtonClass}`,
     onClick: onToggleClick
   }, toggle), /*#__PURE__*/external_React_default().createElement("div", {
-    className: `feature-highlight-modal ${position} ${openedClassname}`
+    className: `feature-highlight-modal ${position} ${arrowPosition} ${openedClassname}`
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "message-icon"
   }, icon), /*#__PURE__*/external_React_default().createElement("p", {
@@ -11329,6 +11331,77 @@ const PersonalizedCard = ({
     }
   }, messageData.content.linkText)));
 };
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/FeatureHighlight/FollowSectionButtonHighlight.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+const FEATURE_ID = "FEATURE_FOLLOW_SECTION_BUTTON";
+function FollowSectionButtonHighlight({
+  arrowPosition,
+  position,
+  verticalPosition,
+  dispatch,
+  handleDismiss,
+  handleBlock,
+  isIntersecting
+}) {
+  const onDismiss = (0,external_React_namespaceObject.useCallback)(() => {
+    // This event is emitted manually because the feature may be triggered outside the OMC flow,
+    // and may not be captured by the messaging-system’s automatic reporting.
+    dispatch(actionCreators.DiscoveryStreamUserEvent({
+      event: "FEATURE_HIGHLIGHT_DISMISS",
+      source: "FEATURE_HIGHLIGHT",
+      value: FEATURE_ID
+    }));
+    handleDismiss();
+    handleBlock();
+  }, [dispatch, handleDismiss, handleBlock]);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    if (isIntersecting) {
+      // This event is emitted manually because the feature may be triggered outside the OMC flow,
+      // and may not be captured by the messaging-system’s automatic reporting.
+      dispatch(actionCreators.DiscoveryStreamUserEvent({
+        event: "FEATURE_HIGHLIGHT_IMPRESSION",
+        source: "FEATURE_HIGHLIGHT",
+        value: FEATURE_ID
+      }));
+    }
+  }, [dispatch, isIntersecting]);
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    className: "follow-section-button-highlight"
+  }, /*#__PURE__*/external_React_default().createElement(FeatureHighlight, {
+    position: position,
+    arrowPosition: arrowPosition,
+    verticalPosition: verticalPosition,
+    feature: FEATURE_ID,
+    dispatch: dispatch,
+    message: /*#__PURE__*/external_React_default().createElement("div", {
+      className: "follow-section-button-highlight-content"
+    }, /*#__PURE__*/external_React_default().createElement("img", {
+      src: "chrome://browser/content/asrouter/assets/smiling-fox-icon.svg",
+      "data-l10n-id": "newtab-download-mobile-highlight-image",
+      width: "24",
+      height: "24",
+      alt: ""
+    }), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "follow-section-button-highlight-copy"
+    }, /*#__PURE__*/external_React_default().createElement("p", {
+      className: "title",
+      "data-l10n-id": "newtab-section-follow-highlight-title"
+    }), /*#__PURE__*/external_React_default().createElement("p", {
+      className: "subtitle",
+      "data-l10n-id": "newtab-section-follow-highlight-subtitle"
+    }))),
+    openedOverride: true,
+    showButtonIcon: false,
+    dismissCallback: onDismiss,
+    outsideClickCallback: handleDismiss
+  }));
+}
 ;// CONCATENATED MODULE: ./content-src/components/MessageWrapper/MessageWrapper.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -11463,6 +11536,7 @@ function MessageWrapper({
 
 
 
+
 // Prefs
 const CardSections_PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
 const PREF_SECTIONS_CARDS_THUMBS_UP_DOWN_ENABLED = "discoverystream.sections.cards.thumbsUpDown.enabled";
@@ -11532,6 +11606,12 @@ function getMaxTiles(responsiveLayouts) {
 const prefToArray = (pref = "") => {
   return pref.split(",").map(item => item.trim()).filter(item => item);
 };
+function shouldShowOMCHighlight(messageData, componentId) {
+  if (!messageData || Object.keys(messageData).length === 0) {
+    return false;
+  }
+  return messageData?.content?.messageType === componentId;
+}
 function CardSection({
   sectionPosition,
   section,
@@ -11541,9 +11621,13 @@ function CardSection({
   is_collection,
   spocMessageVariant,
   ctaButtonVariant,
-  ctaButtonSponsors
+  ctaButtonSponsors,
+  anySectionsFollowed
 }) {
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const {
+    messageData
+  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Messages);
   const {
     sectionPersonalization
   } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
@@ -11639,7 +11723,13 @@ function CardSection({
     className: "section-context-wrapper"
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: following ? "section-follow following" : "section-follow"
-  }, /*#__PURE__*/external_React_default().createElement("moz-button", {
+  }, !anySectionsFollowed && sectionPosition === 1 && shouldShowOMCHighlight(messageData, "FollowSectionButtonHighlight") && /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
+    dispatch: dispatch
+  }, /*#__PURE__*/external_React_default().createElement(FollowSectionButtonHighlight, {
+    verticalPosition: "inset-block-center",
+    position: "arrow-inline-start",
+    dispatch: dispatch
+  })), /*#__PURE__*/external_React_default().createElement("moz-button", {
     onClick: following ? onUnfollowClick : onFollowClick,
     type: "default",
     index: sectionPosition,
@@ -11772,6 +11862,9 @@ function CardSections({
   const {
     interestPicker
   } = data;
+
+  // Used to determine if we should show FollowSectionButtonHighlight
+  const anySectionsFollowed = sectionPersonalization && Object.values(sectionPersonalization).some(section => section?.isFollowed);
   let filteredSections = data.sections.filter(section => !sectionPersonalization[section.sectionKey]?.isBlocked);
   if (interestPickerEnabled && visibleSections.length) {
     filteredSections = visibleSections.reduce((acc, visibleSection) => {
@@ -11794,7 +11887,8 @@ function CardSections({
     is_collection: is_collection,
     spocMessageVariant: spocMessageVariant,
     ctaButtonVariant: ctaButtonVariant,
-    ctaButtonSponsors: ctaButtonSponsors
+    ctaButtonSponsors: ctaButtonSponsors,
+    anySectionsFollowed: anySectionsFollowed
   }));
 
   // Add a billboard/leaderboard IAB ad to the sectionsToRender array (if enabled/possible).
@@ -11836,7 +11930,7 @@ function CardSections({
   }
   function displayP13nCard() {
     if (messageData && Object.keys(messageData).length >= 1) {
-      if (messageData?.content?.messageType === "PersonalizedCard" && prefs[PREF_INFERRED_PERSONALIZATION_USER]) {
+      if (shouldShowOMCHighlight(messageData, "PersonalizedCard") && prefs[PREF_INFERRED_PERSONALIZATION_USER]) {
         const row = messageData.content.position;
         sectionsToRender.splice(row, 0, /*#__PURE__*/external_React_default().createElement(MessageWrapper, {
           dispatch: dispatch,
@@ -14361,7 +14455,7 @@ function TopicSelection({
 const PREF_MOBILE_DOWNLOAD_HIGHLIGHT_VARIANT_A = "mobileDownloadModal.variant-a";
 const PREF_MOBILE_DOWNLOAD_HIGHLIGHT_VARIANT_B = "mobileDownloadModal.variant-b";
 const PREF_MOBILE_DOWNLOAD_HIGHLIGHT_VARIANT_C = "mobileDownloadModal.variant-c";
-const FEATURE_ID = "FEATURE_DOWNLOAD_MOBILE_PROMO";
+const DownloadMobilePromoHighlight_FEATURE_ID = "FEATURE_DOWNLOAD_MOBILE_PROMO";
 function DownloadMobilePromoHighlight({
   position,
   dispatch,
@@ -14375,7 +14469,7 @@ function DownloadMobilePromoHighlight({
     dispatch(actionCreators.DiscoveryStreamUserEvent({
       event: "FEATURE_HIGHLIGHT_DISMISS",
       source: "FEATURE_HIGHLIGHT",
-      value: FEATURE_ID
+      value: DownloadMobilePromoHighlight_FEATURE_ID
     }));
     handleDismiss();
     handleBlock();
@@ -14387,7 +14481,7 @@ function DownloadMobilePromoHighlight({
       dispatch(actionCreators.DiscoveryStreamUserEvent({
         event: "FEATURE_HIGHLIGHT_IMPRESSION",
         source: "FEATURE_HIGHLIGHT",
-        value: FEATURE_ID
+        value: DownloadMobilePromoHighlight_FEATURE_ID
       }));
     }
   }, [dispatch, isIntersecting]);
@@ -14437,7 +14531,7 @@ function DownloadMobilePromoHighlight({
     className: "download-firefox-feature-highlight"
   }, /*#__PURE__*/external_React_default().createElement(FeatureHighlight, {
     position: position,
-    feature: FEATURE_ID,
+    feature: DownloadMobilePromoHighlight_FEATURE_ID,
     dispatch: dispatch,
     message: /*#__PURE__*/external_React_default().createElement("div", {
       className: "download-firefox-feature-highlight-content"

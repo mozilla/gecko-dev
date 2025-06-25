@@ -12,6 +12,7 @@ import { SectionContextMenu } from "../SectionContextMenu/SectionContextMenu";
 import { InterestPicker } from "../InterestPicker/InterestPicker";
 import { AdBanner } from "../AdBanner/AdBanner.jsx";
 import { PersonalizedCard } from "../PersonalizedCard/PersonalizedCard";
+import { FollowSectionButtonHighlight } from "../FeatureHighlight/FollowSectionButtonHighlight";
 import { MessageWrapper } from "content-src/components/MessageWrapper/MessageWrapper";
 
 // Prefs
@@ -103,6 +104,13 @@ const prefToArray = (pref = "") => {
     .filter(item => item);
 };
 
+function shouldShowOMCHighlight(messageData, componentId) {
+  if (!messageData || Object.keys(messageData).length === 0) {
+    return false;
+  }
+  return messageData?.content?.messageType === componentId;
+}
+
 function CardSection({
   sectionPosition,
   section,
@@ -113,8 +121,12 @@ function CardSection({
   spocMessageVariant,
   ctaButtonVariant,
   ctaButtonSponsors,
+  anySectionsFollowed,
 }) {
   const prefs = useSelector(state => state.Prefs.values);
+
+  const { messageData } = useSelector(state => state.Messages);
+
   const { sectionPersonalization } = useSelector(
     state => state.DiscoveryStream
   );
@@ -221,6 +233,20 @@ function CardSection({
       <div
         className={following ? "section-follow following" : "section-follow"}
       >
+        {!anySectionsFollowed &&
+          sectionPosition === 1 &&
+          shouldShowOMCHighlight(
+            messageData,
+            "FollowSectionButtonHighlight"
+          ) && (
+            <MessageWrapper dispatch={dispatch}>
+              <FollowSectionButtonHighlight
+                verticalPosition="inset-block-center"
+                position="arrow-inline-start"
+                dispatch={dispatch}
+              />
+            </MessageWrapper>
+          )}
         <moz-button
           onClick={following ? onUnfollowClick : onFollowClick}
           type="default"
@@ -367,6 +393,11 @@ function CardSections({
   const visibleSections = prefToArray(prefs[PREF_VISIBLE_SECTIONS]);
   const { interestPicker } = data;
 
+  // Used to determine if we should show FollowSectionButtonHighlight
+  const anySectionsFollowed =
+    sectionPersonalization &&
+    Object.values(sectionPersonalization).some(section => section?.isFollowed);
+
   let filteredSections = data.sections.filter(
     section => !sectionPersonalization[section.sectionKey]?.isBlocked
   );
@@ -395,6 +426,7 @@ function CardSections({
       spocMessageVariant={spocMessageVariant}
       ctaButtonVariant={ctaButtonVariant}
       ctaButtonSponsors={ctaButtonSponsors}
+      anySectionsFollowed={anySectionsFollowed}
     />
   ));
 
@@ -461,7 +493,7 @@ function CardSections({
   function displayP13nCard() {
     if (messageData && Object.keys(messageData).length >= 1) {
       if (
-        messageData?.content?.messageType === "PersonalizedCard" &&
+        shouldShowOMCHighlight(messageData, "PersonalizedCard") &&
         prefs[PREF_INFERRED_PERSONALIZATION_USER]
       ) {
         const row = messageData.content.position;
