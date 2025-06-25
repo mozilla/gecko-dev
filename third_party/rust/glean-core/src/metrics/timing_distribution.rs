@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use malloc_size_of_derive::MallocSizeOf;
 
-use crate::common_metric_data::CommonMetricDataInternal;
+use crate::common_metric_data::{CommonMetricDataInternal, DynamicLabelType};
 use crate::error_recording::{record_error, test_get_num_recorded_errors, ErrorType};
 use crate::histogram::{Functional, Histogram};
 use crate::metrics::time_unit::TimeUnit;
@@ -111,7 +111,7 @@ impl MetricType for TimingDistributionMetric {
         }
     }
 
-    fn with_dynamic_label(&self, label: String) -> Self {
+    fn with_dynamic_label(&self, label: DynamicLabelType) -> Self {
         let mut meta = (*self.meta).clone();
         meta.inner.dynamic_label = Some(label);
         Self {

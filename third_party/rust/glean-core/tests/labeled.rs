@@ -643,3 +643,50 @@ fn caching_metrics_with_dynamic_labels_across_pings() {
     assert_eq!(json!(20), cached_labels["label20"]);
     assert_eq!(json!(null), cached_labels["__other__"]);
 }
+
+#[test]
+fn overrun_the_label_count_with_a_single_label() {
+    let (mut glean, _t) = new_glean(None);
+
+    let pings = (0..16)
+        .map(|i| new_test_ping(&mut glean, &format!("test-ping-{i}")))
+        .collect::<Vec<_>>();
+
+    let send_in_pings = pings
+        .iter()
+        .map(|p| p.name().to_string())
+        .collect::<Vec<_>>();
+
+    let labeled = LabeledCounter::new(
+        LabeledMetricData::Common {
+            cmd: CommonMetricData {
+                name: "one_too_many_labels".into(),
+                category: "telemetry".into(),
+                send_in_pings,
+                disabled: false,
+                lifetime: Lifetime::Ping,
+                ..Default::default()
+            },
+        },
+        None,
+    );
+
+    let metric1 = labeled.get("label-1");
+    metric1.add_sync(&glean, 1);
+    assert_eq!(1, metric1.get_value(&glean, None).unwrap());
+
+    let metric2 = labeled.get("label-2");
+    metric2.add_sync(&glean, 23);
+
+    assert_eq!(1, metric1.get_value(&glean, None).unwrap());
+    assert_eq!(23, metric2.get_value(&glean, None).unwrap());
+
+    let snapshot = StorageManager
+        .snapshot_as_json(glean.storage(), "test-ping-1", true)
+        .unwrap();
+
+    let cached_labels = &snapshot["labeled_counter"]["telemetry.one_too_many_labels"];
+    assert_eq!(json!(1), cached_labels["label-1"]);
+    assert_eq!(json!(23), cached_labels["label-2"]);
+    assert_eq!(json!(null), cached_labels["__other__"]);
+}

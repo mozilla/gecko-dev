@@ -15,6 +15,7 @@ mod metrics {
     use glean::private::*;
     use glean::traits;
     use glean::CommonMetricData;
+    use glean_core::DynamicLabelType;
     use once_cell::sync::Lazy;
     use std::collections::HashMap;
 
@@ -44,7 +45,7 @@ mod metrics {
             name: "count_von_count".into(),
             category: "sesame".into(),
             send_in_pings: vec!["validation".into()],
-            dynamic_label: Some("ah_ah_ah".into()),
+            dynamic_label: Some(DynamicLabelType::Label("ah_ah_ah".into())),
             ..Default::default()
         })
     });
@@ -55,7 +56,7 @@ mod metrics {
             name: "birthday".into(),
             category: "shire".into(),
             send_in_pings: vec!["validation".into()],
-            dynamic_label: Some("111th".into()),
+            dynamic_label: Some(DynamicLabelType::Label("111th".into())),
             ..Default::default()
         })
     });

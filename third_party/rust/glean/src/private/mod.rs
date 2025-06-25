@@ -12,6 +12,7 @@ pub use event::EventMetric;
 pub use glean_core::BooleanMetric;
 pub use glean_core::CounterMetric;
 pub use glean_core::DenominatorMetric;
+pub use glean_core::DualLabeledCounterMetric;
 pub use glean_core::NumeratorMetric;
 pub use glean_core::QuantityMetric;
 pub use glean_core::RateMetric;

@@ -5,7 +5,7 @@
 use std::mem;
 use std::sync::Arc;
 
-use crate::common_metric_data::CommonMetricDataInternal;
+use crate::common_metric_data::{CommonMetricDataInternal, DynamicLabelType};
 use crate::error_recording::{record_error, test_get_num_recorded_errors, ErrorType};
 use crate::histogram::{Bucketing, Histogram, HistogramType, LinearOrExponential};
 use crate::metrics::{DistributionData, Metric, MetricType};
@@ -55,7 +55,7 @@ impl MetricType for CustomDistributionMetric {
         }
     }
 
-    fn with_dynamic_label(&self, label: String) -> Self {
+    fn with_dynamic_label(&self, label: DynamicLabelType) -> Self {
         let mut meta = (*self.meta).clone();
         meta.inner.dynamic_label = Some(label);
         Self {
