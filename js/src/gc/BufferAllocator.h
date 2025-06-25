@@ -417,8 +417,7 @@ class BufferAllocator : public SlimLinkedListElement<BufferAllocator> {
   static SmallBuffer* GetSmallBuffer(void* alloc);
   friend struct LargeBuffer;
 
-  void* allocSmall(size_t bytes, bool nurseryOwned);
-  void* allocSmallInGC(size_t bytes, bool nurseryOwned);
+  void* allocSmall(size_t bytes, bool nurseryOwned, bool inGC);
   void traceSmallAlloc(JSTracer* trc, Cell* owner, void** allocp,
                        const char* name);
   void markSmallNurseryOwnedBuffer(SmallBuffer* buffer, bool ownerWasTenured);

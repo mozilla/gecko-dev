@@ -549,7 +549,7 @@ void* BufferAllocator::alloc(size_t bytes, bool nurseryOwned) {
   }
 
   if (IsSmallAllocSize(bytes)) {
-    return allocSmall(bytes, nurseryOwned);
+    return allocSmall(bytes, nurseryOwned, false);
   }
 
   return allocMedium(bytes, nurseryOwned, false);
@@ -565,7 +565,7 @@ void* BufferAllocator::allocInGC(size_t bytes, bool nurseryOwned) {
   if (IsLargeAllocSize(bytes)) {
     result = allocLarge(bytes, nurseryOwned, true);
   } else if (IsSmallAllocSize(bytes)) {
-    result = allocSmallInGC(bytes, nurseryOwned);
+    result = allocSmall(bytes, nurseryOwned, true);
   } else {
     result = allocMedium(bytes, nurseryOwned, true);
   }
@@ -1602,10 +1602,16 @@ void BufferAllocator::checkAllocListGCStateNotInUse(LargeAllocList& list,
 
 #endif
 
-void* BufferAllocator::allocSmall(size_t bytes, bool nurseryOwned) {
+void* BufferAllocator::allocSmall(size_t bytes, bool nurseryOwned, bool inGC) {
   AllocKind kind = AllocKindForSmallAlloc(bytes);
 
-  void* ptr = CellAllocator::AllocTenuredCellUnchecked<NoGC>(zone, kind);
+  void* ptr;
+  if (inGC) {
+    ptr = AllocateTenuredCellInGC(zone, kind);
+  } else {
+    ptr = CellAllocator::AllocTenuredCellUnchecked<NoGC>(zone, kind);
+  }
+
   if (!ptr) {
     return nullptr;
   }
@@ -1613,26 +1619,6 @@ void* BufferAllocator::allocSmall(size_t bytes, bool nurseryOwned) {
   auto* cell = new (ptr) SmallBuffer();
   cell->setNurseryOwned(nurseryOwned);
   MOZ_ASSERT(cell->isNurseryOwned() == nurseryOwned);
-  void* alloc = cell->data();
-
-  MOZ_ASSERT(IsSmallAlloc(alloc));
-  MOZ_ASSERT(getAllocSize(alloc) >= bytes);
-  MOZ_ASSERT(getAllocSize(alloc) < 2 * bytes);
-
-  return alloc;
-}
-
-/* static */
-void* BufferAllocator::allocSmallInGC(size_t bytes, bool nurseryOwned) {
-  AllocKind kind = AllocKindForSmallAlloc(bytes);
-
-  void* ptr = AllocateTenuredCellInGC(zone, kind);
-  if (!ptr) {
-    return nullptr;
-  }
-
-  auto* cell = new (ptr) SmallBuffer();
-  cell->setNurseryOwned(nurseryOwned);
   void* alloc = cell->data();
 
   MOZ_ASSERT(IsSmallAlloc(alloc));
@@ -2448,7 +2434,7 @@ void* BufferAllocator::allocLarge(size_t bytes, bool nurseryOwned, bool inGC) {
 
   // Allocate a small buffer the size of a LargeBuffer to hold the metadata.
   static_assert(sizeof(LargeBuffer) <= MaxSmallAllocSize);
-  void* bufferPtr = allocSmall(sizeof(LargeBuffer), nurseryOwned);
+  void* bufferPtr = allocSmall(sizeof(LargeBuffer), nurseryOwned, inGC);
   if (!bufferPtr) {
     return nullptr;
   }
