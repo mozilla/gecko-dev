@@ -884,7 +884,6 @@ package org.mozilla.geckoview {
     method @Nullable @UiThread public GeckoRuntime.Delegate getDelegate();
     method @NonNull @UiThread public OrientationController getOrientationController();
     method @AnyThread @Nullable public GeckoPreferenceController.Observer.Delegate getPreferencesObserverDelegate();
-    method @Deprecated @DeprecationSchedule(id="GeckoRuntime-getProfilerController",version=142) @NonNull @UiThread public ProfilerController getProfilerController();
     method @Nullable @UiThread public GeckoRuntime.ServiceWorkerDelegate getServiceWorkerDelegate();
     method @AnyThread @NonNull public GeckoRuntimeSettings getSettings();
     method @NonNull @UiThread public StorageController getStorageController();
@@ -905,9 +904,6 @@ package org.mozilla.geckoview {
     method @UiThread public void setWebNotificationDelegate(@Nullable WebNotificationDelegate);
     method @AnyThread public void shutdown();
     field public static final String ACTION_CRASHED = "org.mozilla.gecko.ACTION_CRASHED";
-    field @Deprecated @DeprecationSchedule(id="GeckoRuntime-CRASHED_PROCESS_TYPE_BACKGROUND_CHILD",version=142) public static final String CRASHED_PROCESS_TYPE_BACKGROUND_CHILD = "BACKGROUND_CHILD";
-    field @Deprecated @DeprecationSchedule(id="GeckoRuntime-CRASHED_PROCESS_TYPE_FOREGROUND_CHILD",version=142) public static final String CRASHED_PROCESS_TYPE_FOREGROUND_CHILD = "FOREGROUND_CHILD";
-    field @Deprecated @DeprecationSchedule(id="GeckoRuntime-CRASHED_PROCESS_TYPE_MAIN",version=142) public static final String CRASHED_PROCESS_TYPE_MAIN = "MAIN";
     field public static final String CRASHED_PROCESS_VISIBILITY_BACKGROUND_CHILD = "BACKGROUND_CHILD";
     field public static final String CRASHED_PROCESS_VISIBILITY_FOREGROUND_CHILD = "FOREGROUND_CHILD";
     field public static final String CRASHED_PROCESS_VISIBILITY_MAIN = "MAIN";
@@ -921,9 +917,6 @@ package org.mozilla.geckoview {
 
   public static interface GeckoRuntime.ActivityDelegate {
     method @Nullable @UiThread public GeckoResult<Intent> onStartActivityForResult(@NonNull PendingIntent);
-  }
-
-  @Deprecated @DeprecationSchedule(id="GeckoRuntime-CrashedProcessType",version=142) @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoRuntime.CrashedProcessType {
   }
 
   @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoRuntime.CrashedProcessVisibility {

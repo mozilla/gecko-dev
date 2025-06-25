@@ -15,6 +15,7 @@ exclude: true
 
 ## v142
 - Added support for data collection permissions to [`WebExtensionController.onOptionalPrompt`][142.1] ([bug 1964999]({{bugzilla}}1964999))
+- ⚠️ Removed deprecated functions that were scheduled for removal in GeckoView 142. ([bug 1963053]({{bugzilla}}1963053))
 
 [142.1]: {{javadoc_uri}}/WebExtensionController.html#onOptionalPrompt
 
@@ -1783,4 +1784,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 77e6bec20be0cdb25d428c78d9a22799ef387cfc
+[api-version]: ee9192be945b3ab5f27cfd04e609a97931d6cc27

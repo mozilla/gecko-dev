@@ -130,21 +130,12 @@ public final class GeckoRuntime implements Parcelable {
    */
   public static final String CRASHED_PROCESS_VISIBILITY_MAIN = "MAIN";
 
-  @Deprecated
-  @DeprecationSchedule(id = "GeckoRuntime-CRASHED_PROCESS_TYPE_MAIN", version = 142)
-  public static final String CRASHED_PROCESS_TYPE_MAIN = CRASHED_PROCESS_VISIBILITY_MAIN;
-
   /**
    * Value for {@link #EXTRA_CRASH_PROCESS_VISIBILITY} indicating a foreground child process, such
    * as a content process, crashed. The application may be able to recover from this crash, but it
    * was likely noticable to the user.
    */
   public static final String CRASHED_PROCESS_VISIBILITY_FOREGROUND_CHILD = "FOREGROUND_CHILD";
-
-  @Deprecated
-  @DeprecationSchedule(id = "GeckoRuntime-CRASHED_PROCESS_TYPE_FOREGROUND_CHILD", version = 142)
-  public static final String CRASHED_PROCESS_TYPE_FOREGROUND_CHILD =
-      CRASHED_PROCESS_VISIBILITY_FOREGROUND_CHILD;
 
   /**
    * Value for {@link #EXTRA_CRASH_PROCESS_VISIBILITY} indicating a background child process
@@ -153,23 +144,7 @@ public final class GeckoRuntime implements Parcelable {
    */
   public static final String CRASHED_PROCESS_VISIBILITY_BACKGROUND_CHILD = "BACKGROUND_CHILD";
 
-  @Deprecated
-  @DeprecationSchedule(id = "GeckoRuntime-CRASHED_PROCESS_TYPE_BACKGROUND_CHILD", version = 142)
-  public static final String CRASHED_PROCESS_TYPE_BACKGROUND_CHILD =
-      CRASHED_PROCESS_VISIBILITY_BACKGROUND_CHILD;
-
   private final MemoryController mMemoryController = new MemoryController();
-
-  @Deprecated
-  @DeprecationSchedule(id = "GeckoRuntime-CrashedProcessType", version = 142)
-  @Retention(RetentionPolicy.SOURCE)
-  @StringDef(
-      value = {
-        CRASHED_PROCESS_TYPE_MAIN,
-        CRASHED_PROCESS_TYPE_FOREGROUND_CHILD,
-        CRASHED_PROCESS_TYPE_BACKGROUND_CHILD
-      })
-  public @interface CrashedProcessType {}
 
   @Retention(RetentionPolicy.SOURCE)
   @StringDef(
@@ -282,7 +257,6 @@ public final class GeckoRuntime implements Parcelable {
   private final ContentBlockingController mContentBlockingController;
   private final Autocomplete.StorageProxy mAutocompleteStorageProxy;
   private final CrashPullController.CrashPullProxy mCrashPullProxy;
-  private final ProfilerController mProfilerController;
   private final GeckoScreenChangeListener mScreenChangeListener;
 
   private GeckoRuntime() {
@@ -290,7 +264,6 @@ public final class GeckoRuntime implements Parcelable {
     mContentBlockingController = new ContentBlockingController();
     mAutocompleteStorageProxy = new Autocomplete.StorageProxy();
     mCrashPullProxy = new CrashPullController.CrashPullProxy();
-    mProfilerController = new ProfilerController();
     mScreenChangeListener = new GeckoScreenChangeListener();
 
     if (sRuntime != null) {
@@ -654,18 +627,6 @@ public final class GeckoRuntime implements Parcelable {
   @UiThread
   public @NonNull ContentBlockingController getContentBlockingController() {
     return mContentBlockingController;
-  }
-
-  /**
-   * Returns a ProfilerController for this GeckoRuntime.
-   *
-   * @return an instance of {@link ProfilerController}.
-   */
-  @UiThread
-  @Deprecated
-  @DeprecationSchedule(id = "GeckoRuntime-getProfilerController", version = 142)
-  public @NonNull ProfilerController getProfilerController() {
-    return mProfilerController;
   }
 
   /**
