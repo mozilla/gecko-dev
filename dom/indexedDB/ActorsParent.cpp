@@ -125,6 +125,7 @@
 #include "mozilla/dom/quota/ClientDirectoryLockHandle.h"
 #include "mozilla/dom/quota/ClientImpl.h"
 #include "mozilla/dom/quota/ConditionalCompilation.h"
+#include "mozilla/dom/quota/Date.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/DirectoryMetadata.h"
@@ -13508,11 +13509,32 @@ nsresult Maintenance::DirectoryWork() {
 
                   auto originStateMetadata = maybeOriginStateMetadata.extract();
 
+                  // Skip origin maintenance if the origin hasn't been accessed
+                  // since its last recorded maintenance. This avoids
+                  // unnecessary I/O and prevents updating the accessed flag in
+                  // metadata, which helps preserve the effectiveness of the L2
+                  // quota info cache.
+                  //
+                  // This early-out is safe because maintenance is only needed
+                  // when something has changed (e.g., new access or activity).
+                  const Date accessDate =
+                      Date::FromTimestamp(originStateMetadata.mLastAccessTime);
+                  const Date maintenanceDate =
+                      Date::FromDays(originStateMetadata.mLastMaintenanceDate);
+
+                  if (accessDate <= maintenanceDate) {
+                    return Ok{};
+                  }
+
+                  originStateMetadata.mLastMaintenanceDate =
+                      Date::Today().ToDays();
                   originStateMetadata.mAccessed = true;
 
                   QM_TRY(MOZ_TO_RESULT(SaveDirectoryMetadataHeader(
                       *originDir, originStateMetadata)));
 
+                  quotaManager->UpdateOriginMaintenanceDate(
+                      metadata, originStateMetadata.mLastMaintenanceDate);
                   quotaManager->UpdateOriginAccessed(metadata);
                 }
 
