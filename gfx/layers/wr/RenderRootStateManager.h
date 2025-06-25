@@ -38,7 +38,9 @@ class RenderRootStateManager {
   void AddImageKeyForDiscard(wr::ImageKey);
   void AddBlobImageKeyForDiscard(wr::BlobImageKey);
   void AddSnapshotImageKeyForDiscard(wr::SnapshotImageKey);
+  void AddUnusedSnapshotImageKeyForDiscard(wr::SnapshotImageKey);
   void DiscardImagesInTransaction(wr::IpcResourceUpdateQueue& aResources);
+  void DiscardUnusedImagesInTransaction(wr::IpcResourceUpdateQueue& aResources);
   void DiscardLocalImages();
 
   void ClearCachedResources();
@@ -78,6 +80,7 @@ class RenderRootStateManager {
   nsTArray<wr::ImageKey> mImageKeysToDelete;
   nsTArray<wr::BlobImageKey> mBlobImageKeysToDelete;
   nsTArray<wr::SnapshotImageKey> mSnapshotImageKeysToDelete;
+  nsTArray<wr::SnapshotImageKey> mUnusedSnapshotImageKeysToDelete;
   std::unordered_map<uint64_t, RefPtr<SharedSurfacesAnimation>>
       mAsyncAnimations;
 
