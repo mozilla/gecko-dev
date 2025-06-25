@@ -89,15 +89,15 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
             ),
         )
 
-        is BrowserEditToolbarAction.AddEditActionStart -> state.copy(
+        is BrowserEditToolbarAction.SearchActionsStartUpdated -> state.copy(
             editState = state.editState.copy(
-                editActionsStart = state.editState.editActionsStart + action.action,
+                editActionsStart = action.actions,
             ),
         )
 
-        is BrowserEditToolbarAction.AddEditActionEnd -> state.copy(
+        is BrowserEditToolbarAction.SearchActionsEndUpdated -> state.copy(
             editState = state.editState.copy(
-                editActionsEnd = state.editState.editActionsEnd + action.action,
+                editActionsEnd = action.actions,
             ),
         )
 

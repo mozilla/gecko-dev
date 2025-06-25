@@ -11,6 +11,8 @@ import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.C
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption.LoadFromClipboard
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption.PasteFromClipboard
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.ContentDescription.StringResContentDescription
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Text.StringResText
 import mozilla.components.support.utils.ClipboardHandler
 
 /**
@@ -42,9 +44,11 @@ internal object PageOriginContextualMenuBuilder {
                     CopyURLToClipboard -> {
                         add(
                             BrowserToolbarMenuButton(
-                                iconResource = null,
-                                text = R.string.mozac_browser_toolbar_long_press_popup_copy,
-                                contentDescription = R.string.mozac_browser_toolbar_long_press_popup_copy,
+                                icon = null,
+                                text = StringResText(R.string.mozac_browser_toolbar_long_press_popup_copy),
+                                contentDescription = StringResContentDescription(
+                                    R.string.mozac_browser_toolbar_long_press_popup_copy,
+                                ),
                                 onClick = option.event,
                             ),
                         )
@@ -53,9 +57,11 @@ internal object PageOriginContextualMenuBuilder {
                         if (containsText) {
                             add(
                                 BrowserToolbarMenuButton(
-                                    iconResource = null,
-                                    text = R.string.mozac_browser_toolbar_long_press_popup_paste,
-                                    contentDescription = R.string.mozac_browser_toolbar_long_press_popup_paste,
+                                    icon = null,
+                                    text = StringResText(R.string.mozac_browser_toolbar_long_press_popup_paste),
+                                    contentDescription = StringResContentDescription(
+                                        R.string.mozac_browser_toolbar_long_press_popup_paste,
+                                    ),
                                     onClick = option.event,
                                 ),
                             )
@@ -65,9 +71,13 @@ internal object PageOriginContextualMenuBuilder {
                         if (containsUrl) {
                             add(
                                 BrowserToolbarMenuButton(
-                                    iconResource = null,
-                                    text = R.string.mozac_browser_toolbar_long_press_popup_paste_and_go,
-                                    contentDescription = R.string.mozac_browser_toolbar_long_press_popup_paste_and_go,
+                                    icon = null,
+                                    text = StringResText(
+                                        R.string.mozac_browser_toolbar_long_press_popup_paste_and_go,
+                                    ),
+                                    contentDescription = StringResContentDescription(
+                                        R.string.mozac_browser_toolbar_long_press_popup_paste_and_go,
+                                    ),
                                     onClick = option.event,
                                 ),
                             )

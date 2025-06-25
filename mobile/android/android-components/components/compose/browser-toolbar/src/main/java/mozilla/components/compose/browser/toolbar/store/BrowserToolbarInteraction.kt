@@ -64,18 +64,73 @@ sealed class BrowserToolbarMenuItem {
      * Button to shown in a [BrowserToolbarMenu].
      *
      * @property icon Optional [Drawable] icon for the menu item.
-     * @property iconResource Optional resource id of the icon to use for this button if a [Drawable] is not provided.
-     * @property text Optional text for the menu item.
-     * @property contentDescription Content description for this item. `null` if not important for accessibility.
+     * @property text The text shown for this item.
+     * @property contentDescription Content description for this item.
      * @property onClick Optional [BrowserToolbarEvent] to be dispatched when this item is clicked.
      */
     data class BrowserToolbarMenuButton(
-        val icon: Drawable? = null,
-        @DrawableRes val iconResource: Int?,
-        @StringRes val text: Int?,
-        @StringRes val contentDescription: Int?,
+        val icon: Icon?,
+        val text: Text,
+        val contentDescription: ContentDescription,
         val onClick: BrowserToolbarEvent?,
-    ) : BrowserToolbarMenuItem()
+    ) : BrowserToolbarMenuItem() {
+
+        /**
+         * The image to use as icon for this menu item.
+         */
+        sealed interface Icon {
+            /**
+             *  The [Drawable] as icon for this menu item.
+             *
+             *  @property drawable The [Drawable] to use as icon.
+             *  @property shouldTint Whether or not to apply the application default tint to this icon.
+             */
+            data class DrawableIcon(
+                val drawable: Drawable,
+                val shouldTint: Boolean = true,
+            ) : Icon
+
+            /**
+             * The [DrawableRes] as icon for this menu item.
+             */
+            @JvmInline
+            value class DrawableResIcon(@DrawableRes val resourceId: Int) : Icon
+        }
+
+        /**
+         * The text that this menu item should display.
+         */
+        sealed interface Text {
+            /**
+             * The [String] to display in this this menu item.
+             */
+            @JvmInline
+            value class StringText(val text: String) : Text
+
+            /**
+             * The [StringRes] to display as text in this menu item.
+             */
+            @JvmInline
+            value class StringResText(@StringRes val resourceId: Int) : Text
+        }
+
+        /**
+         * The content description menu item.
+         */
+        sealed interface ContentDescription {
+            /**
+             * The [String] to use as content description of this menu item.
+             */
+            @JvmInline
+            value class StringContentDescription(val text: String) : ContentDescription
+
+            /**
+             * The [StringRes] to use as content description of this menu item.
+             */
+            @JvmInline
+            value class StringResContentDescription(@StringRes val resourceId: Int) : ContentDescription
+        }
+    }
 
     /**
      * Divider to show in a [BrowserToolbarMenu].

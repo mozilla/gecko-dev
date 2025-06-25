@@ -7,6 +7,8 @@ package mozilla.components.compose.browser.toolbar.ui
 import android.graphics.drawable.Drawable
 import android.view.SoundEffectConstants
 import androidx.annotation.DrawableRes
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,6 +29,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
@@ -46,11 +50,13 @@ import mozilla.components.ui.icons.R as iconsR
 /**
  * Search selector toolbar action.
  *
- * @property icon A [Drawable] to display in the search selector. If null will use [fallbackIcon] instead.
+ * @param icon A [Drawable] to display in the search selector. If null will use [fallbackIcon] instead.
  * @param contentDescription The content description to use.
  * @param menu The [BrowserToolbarMenu] to show when the search selector is clicked.
  * @param onInteraction Invoked for user interactions with the menu items.
  * @param fallbackIcon The resource id of the icon to use for this button if a [Drawable] is not provided.
+ * @param shouldTint Whether the icon should have a default tint applied or not. Defaults to `true`.
+ * @param onClick Optional [BrowserToolbarEvent] to be dispatched when this button is clicked.
  */
 @Composable
 fun SearchSelector(
@@ -59,8 +65,11 @@ fun SearchSelector(
     menu: BrowserToolbarMenu,
     onInteraction: (BrowserToolbarEvent) -> Unit,
     @DrawableRes fallbackIcon: Int = iconsR.drawable.mozac_ic_search_24,
+    shouldTint: Boolean = true,
+    onClick: BrowserToolbarEvent? = null,
 ) {
     val view = LocalView.current
+    val validIcon = icon ?: AppCompatResources.getDrawable(view.context, fallbackIcon)
     var showMenu by remember { mutableStateOf(false) }
 
     Card(
@@ -72,6 +81,9 @@ fun SearchSelector(
             .clickable {
                 view.playSoundEffect(SoundEffectConstants.CLICK)
                 showMenu = true
+                onClick?.let {
+                    onInteraction(onClick)
+                }
             },
         shape = RoundedCornerShape(4.dp),
         colors = CardDefaults.cardColors(
@@ -90,16 +102,17 @@ fun SearchSelector(
             ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                painter = when (icon) {
-                    null -> painterResource(fallbackIcon)
-                    else -> rememberDrawablePainter(drawable = icon)
-                },
+            Image(
+                painter = rememberDrawablePainter(validIcon),
                 contentDescription = null,
                 modifier = Modifier
                     .size(24.dp)
                     .clip(RoundedCornerShape(2.dp)),
-                tint = AcornTheme.colors.iconPrimary,
+                contentScale = ContentScale.Crop,
+                colorFilter = when (shouldTint) {
+                    true -> ColorFilter.tint(AcornTheme.colors.iconPrimary)
+                    else -> null
+                },
             )
 
             Spacer(modifier = Modifier.width(4.dp))
