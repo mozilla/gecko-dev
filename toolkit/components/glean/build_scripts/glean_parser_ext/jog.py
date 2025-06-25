@@ -45,6 +45,8 @@ known_extra_args = [
     "histogram_type",
     "numerators",
     "ordered_labels",
+    "ordered_keys",
+    "ordered_categories",
 ]
 
 # List of all metric-type-specific metadata that JOG understands.

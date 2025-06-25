@@ -27,6 +27,7 @@ use crate::private::{
     CustomDistributionMetric,
     DatetimeMetric,
     DenominatorMetric,
+    DualLabeledCounterMetric,
     EventMetric,
     MemoryDistributionMetric,
     NumeratorMetric,
@@ -62,6 +63,7 @@ pub fn id_and_map_reset() {
   __jog_metric_maps::CUSTOM_DISTRIBUTION_MAP.write().unwrap().clear();
   __jog_metric_maps::DATETIME_MAP.write().unwrap().clear();
   __jog_metric_maps::DENOMINATOR_MAP.write().unwrap().clear();
+  __jog_metric_maps::DUAL_LABELED_COUNTER_MAP.write().unwrap().clear();
   __jog_metric_maps::EVENT_MAP.write().unwrap().clear();
   __jog_metric_maps::LABELED_BOOLEAN_MAP.write().unwrap().clear();
   __jog_metric_maps::LABELED_COUNTER_MAP.write().unwrap().clear();
@@ -95,6 +97,7 @@ pub(crate) mod __jog_metric_maps {
         CustomDistributionMetric,
         DatetimeMetric,
         DenominatorMetric,
+        DualLabeledCounterMetric,
         EventMetric,
         LabeledBooleanMetric,
         LabeledCounterMetric,
@@ -128,6 +131,9 @@ pub(crate) mod __jog_metric_maps {
         Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
     pub static DENOMINATOR_MAP: Lazy<Arc<RwLock<HashMap<BaseMetricId, DenominatorMetric>>>> =
+        Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+
+    pub static DUAL_LABELED_COUNTER_MAP: Lazy<Arc<RwLock<HashMap<BaseMetricId, DualLabeledCounterMetric>>>> =
         Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
     pub static MEMORY_DISTRIBUTION_MAP: Lazy<Arc<RwLock<HashMap<BaseMetricId, MemoryDistributionMetric>>>> =
@@ -206,6 +212,8 @@ pub fn create_and_register_metric(
     numerators: Option<Vec<CommonMetricData>>,
     labels: Option<Vec<Cow<'static, str>>>,
     permit_non_commutative_operations_over_ipc: Option<bool>,
+    keys: Option<Vec<Cow<'static, str>>>,
+    categories: Option<Vec<Cow<'static, str>>>,
 ) -> Result<(u32, u32), Box<dyn std::error::Error>> {
     let metric_id = NEXT_METRIC_ID.fetch_add(1, Ordering::SeqCst);
     let metric32 = match metric_type {
@@ -274,7 +282,7 @@ pub fn create_and_register_metric(
                 ..Default::default()
             };
             let metric = DatetimeMetric::new(BaseMetricId(metric_id), meta, time_unit.unwrap());
-            let metric32: u32 = (14 << 27) | metric_id;
+            let metric32: u32 = (15 << 27) | metric_id;
             assert!(
                 __jog_metric_maps::DATETIME_MAP.write()?.insert(BaseMetricId(metric_id), metric).is_none(),
                 "We should never insert a runtime metric with an already-used id."
@@ -291,9 +299,26 @@ pub fn create_and_register_metric(
                 ..Default::default()
             };
             let metric = DenominatorMetric::new(BaseMetricId(metric_id), meta, numerators.unwrap());
-            let metric32: u32 = (16 << 27) | metric_id;
+            let metric32: u32 = (17 << 27) | metric_id;
             assert!(
                 __jog_metric_maps::DENOMINATOR_MAP.write()?.insert(BaseMetricId(metric_id), metric).is_none(),
+                "We should never insert a runtime metric with an already-used id."
+            );
+            metric32
+        }
+        "dual_labeled_counter" => {
+            let meta = CommonMetricData {
+                name,
+                category,
+                send_in_pings,
+                lifetime,
+                disabled,
+                ..Default::default()
+            };
+            let metric = DualLabeledCounterMetric::new(BaseMetricId(metric_id), meta, keys, categories);
+            let metric32: u32 = (13 << 27) | metric_id;
+            assert!(
+                __jog_metric_maps::DUAL_LABELED_COUNTER_MAP.write()?.insert(BaseMetricId(metric_id), metric).is_none(),
                 "We should never insert a runtime metric with an already-used id."
             );
             metric32
@@ -308,7 +333,7 @@ pub fn create_and_register_metric(
                 ..Default::default()
             };
             let metric = EventMetric::with_runtime_extra_keys(BaseMetricId(metric_id), meta, allowed_extra_keys.unwrap());
-            let metric32: u32 = (15 << 27) | metric_id;
+            let metric32: u32 = (16 << 27) | metric_id;
             assert!(
                 __jog_metric_maps::EVENT_MAP.write()?.insert(BaseMetricId(metric_id), metric).is_none(),
                 "We should never insert a runtime metric with an already-used id."
@@ -400,7 +425,7 @@ pub fn create_and_register_metric(
                 ..Default::default()
             };
             let metric = NumeratorMetric::new(BaseMetricId(metric_id), meta);
-            let metric32: u32 = (19 << 27) | metric_id;
+            let metric32: u32 = (20 << 27) | metric_id;
             assert!(
                 __jog_metric_maps::NUMERATOR_MAP.write()?.insert(BaseMetricId(metric_id), metric).is_none(),
                 "We should never insert a runtime metric with an already-used id."
@@ -417,7 +442,7 @@ pub fn create_and_register_metric(
                 ..Default::default()
             };
             let metric = ObjectMetric::new(BaseMetricId(metric_id), meta);
-            let metric32: u32 = (13 << 27) | metric_id;
+            let metric32: u32 = (14 << 27) | metric_id;
             assert!(
                 __jog_metric_maps::OBJECT_MAP.write()?.insert(BaseMetricId(metric_id), metric).is_none(),
                 "We should never insert a runtime metric with an already-used id."
@@ -434,7 +459,7 @@ pub fn create_and_register_metric(
                 ..Default::default()
             };
             let metric = QuantityMetric::new(BaseMetricId(metric_id), meta);
-            let metric32: u32 = (17 << 27) | metric_id;
+            let metric32: u32 = (18 << 27) | metric_id;
             assert!(
                 __jog_metric_maps::QUANTITY_MAP.write()?.insert(BaseMetricId(metric_id), metric).is_none(),
                 "We should never insert a runtime metric with an already-used id."
@@ -451,7 +476,7 @@ pub fn create_and_register_metric(
                 ..Default::default()
             };
             let metric = RateMetric::new(BaseMetricId(metric_id), meta);
-            let metric32: u32 = (18 << 27) | metric_id;
+            let metric32: u32 = (19 << 27) | metric_id;
             assert!(
                 __jog_metric_maps::RATE_MAP.write()?.insert(BaseMetricId(metric_id), metric).is_none(),
                 "We should never insert a runtime metric with an already-used id."
@@ -553,7 +578,7 @@ pub fn create_and_register_metric(
                 ..Default::default()
             };
             let metric = UuidMetric::new(BaseMetricId(metric_id), meta);
-            let metric32: u32 = (20 << 27) | metric_id;
+            let metric32: u32 = (21 << 27) | metric_id;
             assert!(
                 __jog_metric_maps::UUID_MAP.write()?.insert(BaseMetricId(metric_id), metric).is_none(),
                 "We should never insert a runtime metric with an already-used id."

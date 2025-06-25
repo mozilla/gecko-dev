@@ -807,6 +807,30 @@ test_only:
     expires: never
     telemetry_mirror: TELEMETRY_TEST_EXPIRED
 
+  keyed_categories:
+    type: dual_labeled_counter
+    description: >
+      How many categories of each key do we have?
+    dual_labels:
+      key:
+        description: |
+          The kind of key.
+      category:
+        description: |
+          The kind of category.
+        labels:
+          - cut
+          - polished
+          - lasered
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1973102
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1973102
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+
+
 test_only.ipc:
   a_counter:
     type: counter

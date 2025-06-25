@@ -163,3 +163,23 @@ pub extern "C" fn fog_labeled_quantity_enum_get(id: u32, label: u16) -> u32 {
     assert!(!is_jog_id(id), "No enum_get support for JOG");
     metric_maps::labeled_submetric_id_get(id, metric_maps::labeled_enum_to_str(id, label))
 }
+
+#[no_mangle]
+pub extern "C" fn fog_dual_labeled_counter_get(
+    id: u32,
+    key: &nsACString,
+    category: &nsACString,
+) -> u32 {
+    let key = &key.to_utf8();
+    let category = &category.to_utf8();
+    if is_jog_id(id) {
+        just_with_jog_metric!(
+            DUAL_LABELED_COUNTER_MAP,
+            id,
+            metric,
+            metric.get_submetric_id(key, category)
+        )
+    } else {
+        metric_maps::dual_labeled_submetric_id_get(id, key, category)
+    }
+}

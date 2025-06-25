@@ -711,3 +711,26 @@ interface GleanObject : GleanMetric {
   [Throws, ChromeOnly]
   object? testGetValue(optional UTF8String aPingName = "");
 };
+
+[Func="GleanWebidlEnabled", Exposed=Window]
+interface GleanDualLabeledCounter : GleanMetric {
+  /**
+   * Gets a specific counter metric for a given key and category.
+   *
+   * If a set of acceptable labels were specified in the `metrics.yaml` file,
+   * and the given label is not in the set, it will be recorded under the
+   * special `__other__` label.
+   *
+   * If a set of acceptable labels was not specified in the `metrics.yaml`
+   * file, only the first 16 unique labels will be used.
+   * After that, any additional labels will be recorded under the special
+   * `__other__` label.
+   *
+   * This applies to both key labels and category labels.
+   *
+   * @param aKey - A label of at most 111 bytes of length when encoded as UTF-8
+   * @param aCategory - A label of at most 111 bytes of length when encoded as
+   *                    UTF-8.
+   */
+  GleanCounter get(UTF8String aKey, UTF8String aCategory);
+};

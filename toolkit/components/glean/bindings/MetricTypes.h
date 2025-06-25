@@ -10,6 +10,7 @@
 #include "mozilla/glean/bindings/CustomDistribution.h"
 #include "mozilla/glean/bindings/Datetime.h"
 #include "mozilla/glean/bindings/Denominator.h"
+#include "mozilla/glean/bindings/DualLabeledCounter.h"
 #include "mozilla/glean/bindings/Event.h"
 #include "mozilla/glean/bindings/Labeled.h"
 #include "mozilla/glean/bindings/MemoryDistribution.h"

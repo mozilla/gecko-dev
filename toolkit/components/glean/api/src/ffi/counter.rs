@@ -26,3 +26,33 @@ pub extern "C" fn fog_counter_test_get_error(id: u32, error_str: &mut nsACString
     let err = with_metric!(COUNTER_MAP, id, metric, test_get_errors!(metric));
     err.map(|err_str| error_str.assign(&err_str)).is_some()
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn fog_dual_labeled_counter_add(id: u32, amount: i32) {
+    with_metric!(DUAL_COUNTER_MAP, id, metric, metric.add(amount));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn fog_dual_labeled_counter_test_has_value(
+    id: u32,
+    ping_name: &nsACString,
+) -> bool {
+    with_metric!(DUAL_COUNTER_MAP, id, metric, test_has!(metric, ping_name))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn fog_dual_labeled_counter_test_get_value(
+    id: u32,
+    ping_name: &nsACString,
+) -> i32 {
+    with_metric!(DUAL_COUNTER_MAP, id, metric, test_get!(metric, ping_name))
+}
+
+#[no_mangle]
+pub extern "C" fn fog_dual_labeled_counter_test_get_error(
+    id: u32,
+    error_str: &mut nsACString,
+) -> bool {
+    let err = with_metric!(DUAL_COUNTER_MAP, id, metric, test_get_errors!(metric));
+    err.map(|err_str| error_str.assign(&err_str)).is_some()
+}

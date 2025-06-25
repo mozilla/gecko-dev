@@ -22,6 +22,8 @@ def type_name(obj):
         label_enum = "DynamicLabel"
         if obj.labels and len(obj.labels):
             label_enum = f"{util.Camelize(obj.name)}Label"
+        if class_name == "Counter":
+            return f"Labeled<impl::{class_name}Metric<impl::CounterType::eBaseOrLabeled>, {label_enum}>"
         return f"Labeled<impl::{class_name}Metric, {label_enum}>"
     generate_enums = getattr(obj, "_generate_enums", [])  # Extra Keys? Reasons?
     if len(generate_enums):
@@ -38,6 +40,8 @@ def type_name(obj):
         generic = util.Camelize(obj.name) + "Object"
         tag = generic + "Tag"
         return f"ObjectMetric<{generic}, struct {tag}>"
+    if obj.type == "counter":
+        return "CounterMetric<impl::CounterType::eBaseOrLabeled>"
     return util.Camelize(obj.type) + "Metric"
 
 

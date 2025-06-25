@@ -17,6 +17,9 @@ namespace mozilla::glean {
 
 namespace impl {
 
+enum class CounterType { eBaseOrLabeled, eDualLabeled };
+
+template <CounterType C = CounterType::eBaseOrLabeled>
 class CounterMetric {
  public:
   constexpr explicit CounterMetric(uint32_t aId) : mId(aId) {}
@@ -55,8 +58,10 @@ class CounterMetric {
 
 class GleanCounter final : public GleanMetric {
  public:
-  explicit GleanCounter(uint32_t id, nsISupports* aParent)
-      : GleanMetric(aParent), mCounter(id) {}
+  explicit GleanCounter(
+      uint32_t id, nsISupports* aParent,
+      impl::CounterType aType = impl::CounterType::eBaseOrLabeled)
+      : GleanMetric(aParent), mId(id), mType(aType) {}
 
   virtual JSObject* WrapObject(
       JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override final;
@@ -69,7 +74,8 @@ class GleanCounter final : public GleanMetric {
  private:
   virtual ~GleanCounter() = default;
 
-  const impl::CounterMetric mCounter;
+  const uint32_t mId;
+  const impl::CounterType mType;
 };
 
 }  // namespace mozilla::glean
