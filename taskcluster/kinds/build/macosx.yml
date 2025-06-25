@@ -51,6 +51,7 @@ macosx64/debug:
             - linux64-sccache
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-x86_64-apple-darwin
 
 macosx64-aarch64/debug:
     description: "MacOS X Aarch64 Cross-compile"
@@ -84,6 +85,7 @@ macosx64-aarch64/debug:
             - linux64-sccache
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-aarch64-apple-darwin
 
 macosx64-non-unified/plain:
     description: "MacOS X x64 Hybrid Cross-compile"
@@ -112,6 +114,7 @@ macosx64-non-unified/plain:
             - linux64-sccache
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-x86_64-apple-darwin
 
 macosx64/opt:
     description: "MacOS X x64 Cross-compile"
@@ -140,6 +143,7 @@ macosx64/opt:
             - linux64-sccache
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-x86_64-apple-darwin
 
 macosx64-asan-fuzzing/opt:
     description: "MacOS X x64 Cross-compile Fuzzing ASAN"
@@ -170,6 +174,7 @@ macosx64-asan-fuzzing/opt:
             - macosx64-llvm-symbolizer
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-x86_64-apple-darwin
     optimization:
         skip-unless-expanded: null
 
@@ -203,6 +208,7 @@ macosx64-fuzzing/debug:
             - macosx64-sdk
             - macosx64-llvm-symbolizer
             - sysroot-wasm32-wasi
+            - onnxruntime-x86_64-apple-darwin
     optimization:
         skip-unless-expanded: null
 
@@ -237,6 +243,7 @@ macosx64-aarch64-asan-fuzzing/opt:
             - macosx64-aarch64-llvm-symbolizer
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-aarch64-apple-darwin
     optimization:
         skip-unless-expanded: null
 
@@ -272,6 +279,7 @@ macosx64-aarch64-fuzzing/debug:
             - macosx64-aarch64-llvm-symbolizer
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-aarch64-apple-darwin
     optimization:
         skip-unless-expanded: null
 
@@ -311,6 +319,7 @@ macosx64-x64-devedition/opt:
             - linux64-clang
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-x86_64-apple-darwin
 
 macosx64-aarch64-devedition/opt:
     description: "MacOS X Dev Edition Aarch64 (shippable)"
@@ -350,6 +359,7 @@ macosx64-aarch64-devedition/opt:
             - linux64-clang
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-aarch64-apple-darwin
 
 macosx64-devedition/opt:
     description: "MacOS X Dev Edition Universal"
@@ -496,6 +506,7 @@ macosx64-devedition/opt:
               dest: aarch64/update_framework_artifacts
         toolchain:
             - linux64-cctools-port
+            - onnxruntime-x86_64-apple-darwin
 
 macosx64-noopt/debug:
     description: "MacOS X x64 No-optimize Debug"
@@ -522,6 +533,7 @@ macosx64-noopt/debug:
             - linux64-sccache
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-x86_64-apple-darwin
 
 macosx64-aarch64-noopt/debug:
     description: "MacOS X aarch64 No-optimize Debug"
@@ -552,6 +564,7 @@ macosx64-aarch64-noopt/debug:
             - linux64-sccache
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-aarch64-apple-darwin
 
 macosx64-x64-add-on-devel/opt:
     description: "MacOS X x64 add-on-devel"
@@ -579,6 +592,7 @@ macosx64-x64-add-on-devel/opt:
             - linux64-sccache
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-x86_64-apple-darwin
 
 macosx64-aarch64-add-on-devel/opt:
     description: "MacOS X Aarch64 add-on-devel"
@@ -608,6 +622,7 @@ macosx64-aarch64-add-on-devel/opt:
             - linux64-sccache
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-aarch64-apple-darwin
 
 macosx64-add-on-devel/opt:
     description: "MacOS X add-on-devel"
@@ -676,6 +691,7 @@ macosx64-add-on-devel/opt:
               dest: aarch64/jsshell
         toolchain:
             - linux64-cctools-port
+            - onnxruntime-x86_64-apple-darwin
 
 macosx64-nightlyasrelease/opt:
     description: "MacOS X Nightly-As-Release"
@@ -708,6 +724,7 @@ macosx64-nightlyasrelease/opt:
             - linux64-clang
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-x86_64-apple-darwin
 
 macosx64-x64-shippable/opt:
     description: "MacOS X x64 Cross-compile"
@@ -741,6 +758,7 @@ macosx64-x64-shippable/opt:
             - linux64-clang
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-x86_64-apple-darwin
 
 macosx64-aarch64-shippable/opt:
     description: "MacOS X aarch64 Cross-compile"
@@ -777,6 +795,7 @@ macosx64-aarch64-shippable/opt:
             - linux64-clang
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-aarch64-apple-darwin
 
 macosx64-shippable/opt:
     description: "MacOS X Universal"
@@ -922,3 +941,4 @@ macosx64-shippable/opt:
               dest: aarch64/update_framework_artifacts
         toolchain:
             - linux64-cctools-port
+            - onnxruntime-x86_64-apple-darwin

@@ -43,6 +43,7 @@ macosx64-plain/opt:
             - macosx64-rust
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-x86_64-apple-darwin
     optimization:
         skip-unless-expanded: null
 
@@ -77,6 +78,7 @@ macosx64-plain/debug:
             - macosx64-rust
             - macosx64-sdk
             - sysroot-wasm32-wasi
+            - onnxruntime-x86_64-apple-darwin
     optimization:
         skip-unless-expanded: null
 
