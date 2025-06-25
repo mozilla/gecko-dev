@@ -781,6 +781,9 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   void MaybeMoveToLoadedList(ScriptLoadRequest* aRequest);
 
   // Check whether the bytecode for the request should be saved or not.
+  // If the request is a non-top-level module request and it passed the
+  // condition, it's stored into mBytecodeEncodableDependencyModules in order
+  // to iterate over them later.
   void CalculateBytecodeCacheFlag(ScriptLoadRequest* aRequest);
 
   void RunScriptWhenSafe(ScriptLoadRequest* aRequest);
@@ -825,6 +828,12 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   // When the off-thread compilation finishes, the request is added back to
   // the original list if any.
   ScriptLoadRequestList mOffThreadCompilingRequests;
+
+  // Holds non-top-level module requests which passed the bytecode encoding
+  // conditions, until it's queued to mBytecodeEncodingQueue.
+  //
+  // TODO: Remove this and per-ScriptLoader encoding queue (bug 1902951).
+  ScriptLoadRequestList mBytecodeEncodableDependencyModules;
 
   // Holds already-evaluted requests that are holding a buffer which has to be
   // saved on the cache, until it's encoded or the encoding is aborted.

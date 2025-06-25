@@ -2662,6 +2662,12 @@ void ScriptLoader::CalculateBytecodeCacheFlag(ScriptLoadRequest* aRequest) {
 
   if (aRequest->IsStencil()) {
     aRequest->MarkPassedConditionForBytecodeEncoding();
+
+    if (aRequest->IsModuleRequest() &&
+        !aRequest->AsModuleRequest()->IsTopLevel()) {
+      MOZ_ASSERT(!aRequest->isInList());
+      mBytecodeEncodableDependencyModules.AppendElement(aRequest);
+    }
     return;
   }
 
@@ -2751,6 +2757,12 @@ void ScriptLoader::CalculateBytecodeCacheFlag(ScriptLoadRequest* aRequest) {
 
   LOG(("ScriptLoadRequest (%p): Bytecode-cache: Trigger encoding.", aRequest));
   aRequest->MarkPassedConditionForBytecodeEncoding();
+
+  if (aRequest->IsModuleRequest() &&
+      !aRequest->AsModuleRequest()->IsTopLevel()) {
+    MOZ_ASSERT(!aRequest->isInList());
+    mBytecodeEncodableDependencyModules.AppendElement(aRequest);
+  }
 }
 
 class MOZ_RAII AutoSetProcessingScriptTag {
@@ -3219,8 +3231,17 @@ void ScriptLoader::MaybePrepareModuleForBytecodeEncodingBeforeExecute(
     aRequest->MarkModuleForBytecodeEncoding();
   }
 
-  for (ModuleLoadRequest* childRequest : aRequest->mImports) {
-    MaybePrepareModuleForBytecodeEncodingBeforeExecute(aCx, childRequest);
+  for (auto* r = mBytecodeEncodableDependencyModules.getFirst(); r;
+       r = r->getNext()) {
+    auto* dep = r->AsModuleRequest();
+    MOZ_ASSERT(dep->PassedConditionForBytecodeEncoding());
+
+    if (dep->GetRootModule() != aRequest) {
+      continue;
+    }
+    MOZ_ASSERT(!dep->IsMarkedForBytecodeEncoding());
+
+    dep->MarkModuleForBytecodeEncoding();
   }
 }
 
@@ -3233,8 +3254,21 @@ nsresult ScriptLoader::MaybePrepareModuleForBytecodeEncodingAfterExecute(
 
   aRv = MaybePrepareForBytecodeEncodingAfterExecute(aRequest, aRv);
 
-  for (ModuleLoadRequest* childRequest : aRequest->mImports) {
-    aRv = MaybePrepareModuleForBytecodeEncodingAfterExecute(childRequest, aRv);
+  for (auto* r = mBytecodeEncodableDependencyModules.getFirst(); r;) {
+    auto* dep = r->AsModuleRequest();
+    MOZ_ASSERT(dep->PassedConditionForBytecodeEncoding());
+
+    r = r->getNext();
+
+    if (dep->GetRootModule() != aRequest) {
+      continue;
+    }
+
+    mBytecodeEncodableDependencyModules.Remove(dep);
+
+    if (!IsAlreadyHandledForBytecodeEncodingPreparation(dep)) {
+      aRv = MaybePrepareForBytecodeEncodingAfterExecute(dep, aRv);
+    }
   }
 
   return aRv;
@@ -3602,6 +3636,10 @@ void ScriptLoader::GiveUpBytecodeEncoding() {
 
     request->DropBytecode();
     request->DropBytecodeCacheReferences();
+  }
+
+  while (!mBytecodeEncodableDependencyModules.isEmpty()) {
+    (void)mBytecodeEncodableDependencyModules.StealFirst();
   }
 }
 
