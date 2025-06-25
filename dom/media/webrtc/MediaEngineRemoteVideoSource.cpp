@@ -84,7 +84,7 @@ static Maybe<VideoFacingModeEnum> GetFacingMode(const nsString& aDeviceName) {
   return Nothing();
 }
 
-static VideoResizeModeEnum GetResizeMode(NormalizedConstraints& c,
+static VideoResizeModeEnum GetResizeMode(const NormalizedConstraintSet& c,
                                          const MediaEnginePrefs& aPrefs) {
   auto defaultResizeMode = aPrefs.mResizeMode;
   nsString defaultResizeModeString =
@@ -187,7 +187,7 @@ nsresult MediaEngineRemoteVideoSource::Allocate(
       ToString(distanceMode));
   if (!ChooseCapability(c, aPrefs, newCapability, distanceMode)) {
     *aOutBadConstraint =
-        MediaConstraintsHelper::FindBadConstraint(c, mMediaDevice);
+        MediaConstraintsHelper::FindBadConstraint(c, aPrefs, mMediaDevice);
     return NS_ERROR_FAILURE;
   }
   LOG("ChooseCapability(%s) for mCapability (Allocate) --",
@@ -366,7 +366,7 @@ nsresult MediaEngineRemoteVideoSource::Reconfigure(
       ToString(distanceMode));
   if (!ChooseCapability(c, aPrefs, newCapability, distanceMode)) {
     *aOutBadConstraint =
-        MediaConstraintsHelper::FindBadConstraint(c, mMediaDevice);
+        MediaConstraintsHelper::FindBadConstraint(c, aPrefs, mMediaDevice);
     return NS_ERROR_INVALID_ARG;
   }
   LOG("ChooseCapability(%s) for mTargetCapability (Reconfigure) --",
@@ -704,7 +704,8 @@ void MediaEngineRemoteVideoSource::TrimLessFitCandidates(
 }
 
 uint32_t MediaEngineRemoteVideoSource::GetBestFitnessDistance(
-    const nsTArray<const NormalizedConstraintSet*>& aConstraintSets) const {
+    const nsTArray<const NormalizedConstraintSet*>& aConstraintSets,
+    const MediaEnginePrefs& aPrefs) const {
   AssertIsOnOwningThread();
 
   size_t num = NumCapabilities();
@@ -715,9 +716,10 @@ uint32_t MediaEngineRemoteVideoSource::GetBestFitnessDistance(
 
   bool first = true;
   for (const NormalizedConstraintSet* ns : aConstraintSets) {
+    auto mode = ToDistanceCalculation(GetResizeMode(*ns, aPrefs));
     for (size_t i = 0; i < candidateSet.Length();) {
       auto& candidate = candidateSet[i];
-      uint32_t distance = GetFitnessDistance(candidate.mCapability, *ns);
+      uint32_t distance = GetDistance(candidate.mCapability, *ns, mode);
       if (distance == UINT32_MAX) {
         candidateSet.RemoveElementAt(i);
       } else {

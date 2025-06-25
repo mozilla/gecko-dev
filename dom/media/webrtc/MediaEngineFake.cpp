@@ -97,8 +97,8 @@ class MediaEngineFakeVideoSource : public MediaEngineSource {
   nsresult Deallocate() override;
 
   uint32_t GetBestFitnessDistance(
-      const nsTArray<const NormalizedConstraintSet*>& aConstraintSets)
-      const override;
+      const nsTArray<const NormalizedConstraintSet*>& aConstraintSets,
+      const MediaEnginePrefs& aPrefs) const override;
   void GetSettings(dom::MediaTrackSettings& aOutSettings) const override;
 
   void GetCapabilities(
@@ -149,7 +149,8 @@ nsString MediaEngineFakeVideoSource::GetGroupId() {
 }
 
 uint32_t MediaEngineFakeVideoSource::GetBestFitnessDistance(
-    const nsTArray<const NormalizedConstraintSet*>& aConstraintSets) const {
+    const nsTArray<const NormalizedConstraintSet*>& aConstraintSets,
+    const MediaEnginePrefs& aPrefs) const {
   AssertIsOnOwningThread();
 
   uint64_t distance = 0;

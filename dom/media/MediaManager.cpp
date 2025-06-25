@@ -1060,7 +1060,7 @@ uint32_t LocalMediaDevice::FitnessDistance(
 
 uint32_t LocalMediaDevice::GetBestFitnessDistance(
     const nsTArray<const NormalizedConstraintSet*>& aConstraintSets,
-    CallerType aCallerType) {
+    const MediaEnginePrefs& aPrefs, CallerType aCallerType) {
   MOZ_ASSERT(MediaManager::IsInMediaThread());
   MOZ_ASSERT(GetMediaSource() != MediaSourceEnum::Other);
 
@@ -1081,7 +1081,7 @@ uint32_t LocalMediaDevice::GetBestFitnessDistance(
   if (distance < UINT32_MAX) {
     // Forward request to underlying object to interrogate per-mode
     // capabilities.
-    distance += Source()->GetBestFitnessDistance(aConstraintSets);
+    distance += Source()->GetBestFitnessDistance(aConstraintSets, aPrefs);
   }
   return std::min<uint64_t>(distance, UINT32_MAX);
 }
@@ -1281,7 +1281,7 @@ RefPtr<LocalDeviceSetPromise> MediaManager::SelectSettings(
   // Modifies passed-in aDevices.
 
   return MediaManager::Dispatch<LocalDeviceSetPromise>(
-      __func__, [aConstraints, devices = std::move(aDevices),
+      __func__, [aConstraints, devices = std::move(aDevices), prefs = mPrefs,
                  aCallerType](MozPromiseHolder<LocalDeviceSetPromise>& holder) {
         auto& devicesRef = *devices;
 
@@ -1309,13 +1309,13 @@ RefPtr<LocalDeviceSetPromise> MediaManager::SelectSettings(
 
         if (needVideo && videos.Length()) {
           badConstraint = MediaConstraintsHelper::SelectSettings(
-              NormalizedConstraints(GetInvariant(aConstraints.mVideo)), videos,
-              aCallerType);
+              NormalizedConstraints(GetInvariant(aConstraints.mVideo)), prefs,
+              videos, aCallerType);
         }
         if (!badConstraint && needAudio && audios.Length()) {
           badConstraint = MediaConstraintsHelper::SelectSettings(
-              NormalizedConstraints(GetInvariant(aConstraints.mAudio)), audios,
-              aCallerType);
+              NormalizedConstraints(GetInvariant(aConstraints.mAudio)), prefs,
+              audios, aCallerType);
         }
         if (badConstraint) {
           LOG("SelectSettings: bad constraint found! Calling error handler!");
@@ -1498,7 +1498,7 @@ class GetUserMediaStreamTask final : public GetUserMediaTask {
           nsTArray<RefPtr<LocalMediaDevice>> devices;
           devices.AppendElement(mAudioDevice);
           badConstraint = MediaConstraintsHelper::SelectSettings(
-              NormalizedConstraints(constraints), devices, mCallerType);
+              NormalizedConstraints(constraints), mPrefs, devices, mCallerType);
         }
       }
     }
@@ -1512,7 +1512,7 @@ class GetUserMediaStreamTask final : public GetUserMediaTask {
           nsTArray<RefPtr<LocalMediaDevice>> devices;
           devices.AppendElement(mVideoDevice);
           badConstraint = MediaConstraintsHelper::SelectSettings(
-              NormalizedConstraints(constraints), devices, mCallerType);
+              NormalizedConstraints(constraints), mPrefs, devices, mCallerType);
         }
         if (mAudioDevice) {
           mAudioDevice->Deallocate();
@@ -4719,8 +4719,9 @@ RefPtr<DeviceListener::DeviceListenerPromise> DeviceListener::ApplyConstraints(
   }
 
   return MediaManager::Dispatch<DeviceListenerPromise>(
-      __func__, [device = mDeviceState->mDevice, aConstraints, aCallerType](
-                    MozPromiseHolder<DeviceListenerPromise>& aHolder) mutable {
+      __func__,
+      [device = mDeviceState->mDevice, aConstraints, prefs = mgr->mPrefs,
+       aCallerType](MozPromiseHolder<DeviceListenerPromise>& aHolder) mutable {
         MOZ_ASSERT(MediaManager::IsInMediaThread());
         MediaManager* mgr = MediaManager::GetIfExists();
         MOZ_RELEASE_ASSERT(mgr);  // Must exist while media thread is alive
@@ -4734,7 +4735,8 @@ RefPtr<DeviceListener::DeviceListenerPromise> DeviceListener::ApplyConstraints(
               nsTArray<RefPtr<LocalMediaDevice>> devices;
               devices.AppendElement(device);
               badConstraint = MediaConstraintsHelper::SelectSettings(
-                  NormalizedConstraints(aConstraints), devices, aCallerType);
+                  NormalizedConstraints(aConstraints), prefs, devices,
+                  aCallerType);
             }
           } else {
             // Unexpected. ApplyConstraints* cannot fail with any other error.

@@ -144,7 +144,7 @@ class LocalMediaDevice final : public nsIMediaDevice {
 
   uint32_t GetBestFitnessDistance(
       const nsTArray<const NormalizedConstraintSet*>& aConstraintSets,
-      dom::CallerType aCallerType);
+      const MediaEnginePrefs& aPrefs, dom::CallerType aCallerType);
 
   nsresult Allocate(const dom::MediaTrackConstraints& aConstraints,
                     const MediaEnginePrefs& aPrefs, uint64_t aWindowId,

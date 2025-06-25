@@ -127,8 +127,8 @@ class MediaEngineRemoteVideoSource : public MediaEngineSource,
   nsresult Stop() override;
 
   uint32_t GetBestFitnessDistance(
-      const nsTArray<const NormalizedConstraintSet*>& aConstraintSets)
-      const override;
+      const nsTArray<const NormalizedConstraintSet*>& aConstraintSets,
+      const MediaEnginePrefs& aPrefs) const override;
   void GetSettings(dom::MediaTrackSettings& aOutSettings) const override;
 
   RefPtr<GenericNonExclusivePromise> GetFirstFramePromise() const override {
