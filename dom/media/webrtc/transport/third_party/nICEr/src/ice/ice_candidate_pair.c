@@ -255,6 +255,14 @@ static void nr_ice_candidate_pair_stun_cb(NR_SOCKET s, int how, void *cb_arg)
           break;
         }
 
+        // Update the rtt related fields
+        if (pair->stun_client->rtt_valid) {
+          nr_ice_candidate_pair_update_rtt(pair, pair->stun_client->rtt_ms);
+          // clear rtt_ms so we can't double process it.
+          pair->stun_client->rtt_valid = 0;
+          pair->stun_client->rtt_ms = 0;
+        }
+
         if(strlen(pair->stun_client->results.ice_binding_response.mapped_addr.as_string)==0){
           /* we're using the mapped_addr returned by the server to lookup our
            * candidate, but if the server fails to do that we can't perform
@@ -690,6 +698,17 @@ void nr_ice_candidate_pair_role_change(nr_ice_cand_pair *pair)
       if(!pair->restart_role_change_cb_timer)
         NR_ASYNC_TIMER_SET(0,nr_ice_candidate_pair_restart_stun_role_change_cb,pair,&pair->restart_role_change_cb_timer);
     }
+  }
+
+void nr_ice_candidate_pair_update_rtt(nr_ice_cand_pair *pair, UINT8 rtt_ms)
+  {
+    assert(pair);
+
+    pair->responses_recvd++;
+    pair->current_rtt_ms = rtt_ms;
+    pair->total_rtt_ms += rtt_ms;
+    r_log(LOG_ICE,LOG_DEBUG,"ICE-PEER(%s)/CAND-PAIR(%s): responses_recvd %llu, current_rtt_ms %llu ms, total_rtt_ms %llu ms",
+          pair->pctx->label,pair->codeword,pair->responses_recvd,pair->current_rtt_ms,pair->total_rtt_ms);
   }
 
 static void nr_ice_candidate_pair_compute_codeword(nr_ice_cand_pair *pair,
