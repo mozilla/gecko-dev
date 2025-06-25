@@ -8,7 +8,7 @@ ChromeUtils.defineLazyGetter(lazy, "logConsole", function () {
   return console.createInstance({
     prefix: "NewTabGleanUtils",
     maxLogLevel: Services.prefs.getBoolPref(
-      "browser.newtabpage.glean-utils.log",
+      "browser.newtab.builtin-addon.log",
       false
     )
       ? "Debug"

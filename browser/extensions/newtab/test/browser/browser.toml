@@ -11,7 +11,6 @@ support-files = [
   "file_pdf.PDF",
 ]
 prefs = [
-  "browser.newtabpage.resource-mapping.log=true",
   "browser.newtabpage.activity-stream.debug=false",
   "browser.newtabpage.activity-stream.discoverystream.enabled=true",
   "browser.newtabpage.activity-stream.discoverystream.endpoints=data:",

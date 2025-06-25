@@ -104,3 +104,9 @@ browser/chrome/browser/content/newtab/data/content/assets/glyph-mail-16.svg
 # Bug 1946597 - Move glyph-webextension-16.svg in browser/themes/shared/icons
 browser/chrome/browser/content/activity-stream/data/content/assets/glyph-webextension-16.svg
 browser/chrome/browser/content/newtab/data/content/assets/glyph-webextension-16.svg
+
+#ifdef BROWSER_NEWTAB_AS_ADDON
+# Bug 1946564 - Remove once newtab's schema.json changes.
+browser/features/formautofill@mozilla.org/schema.json
+browser/chrome/browser/builtin-addons/newtab/webext-glue/schema.json
+#endif

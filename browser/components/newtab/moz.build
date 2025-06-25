@@ -10,7 +10,6 @@ with Files("**"):
 EXTRA_JS_MODULES += [
     "AboutHomeStartupCache.sys.mjs",
     "AboutNewTabRedirector.sys.mjs",
-    "AboutNewTabResourceMapping.sys.mjs",
 ]
 
 XPCOM_MANIFESTS += [

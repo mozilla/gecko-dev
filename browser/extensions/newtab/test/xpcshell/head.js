@@ -21,7 +21,6 @@ const { ExtensionTestUtils } = ChromeUtils.importESModule(
 );
 
 ChromeUtils.defineESModuleGetters(this, {
-  AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AddonManagerPrivate: "resource://gre/modules/AddonManager.sys.mjs",
   ExtensionParent: "resource://gre/modules/ExtensionParent.sys.mjs",
@@ -70,7 +69,7 @@ add_setup(async function head_initialize() {
     "xpcshell@tests.mozilla.org",
     "XPCShell",
     "1",
-    "142"
+    "138"
   );
   await AddonTestUtils.promiseStartupManager();
 
@@ -78,5 +77,4 @@ add_setup(async function head_initialize() {
     Services.prefs.setBoolPref("extensions.experiments.enabled", true);
     await loadExtension();
   }
-  AboutNewTab.init();
 });

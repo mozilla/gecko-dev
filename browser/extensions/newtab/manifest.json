@@ -7,7 +7,19 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "newtab@mozilla.org",
-      "strict_min_version": "142.0a1"
+      "strict_min_version": "138.0a1"
+    }
+  },
+
+  "experiment_apis": {
+    "builtin_newtab": {
+      "schema": "webext-glue/schema.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "script": "webext-glue/builtin-newtab.js",
+        "events": ["startup"],
+        "paths": [["builtin", "newtab"]]
+      }
     }
   },
 

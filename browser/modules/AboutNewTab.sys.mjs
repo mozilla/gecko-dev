@@ -8,9 +8,8 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  AboutNewTabResourceMapping:
-    "resource:///modules/AboutNewTabResourceMapping.sys.mjs",
   ActivityStream: "resource://newtab/lib/ActivityStream.sys.mjs",
+  AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
 });
 
@@ -20,6 +19,7 @@ const PREF_ACTIVITY_STREAM_DEBUG = "browser.newtabpage.activity-stream.debug";
 // TODO: We could better have a shared async shutdown blocker?
 const TOPIC_APP_QUIT = "profile-before-change";
 const BROWSER_READY_NOTIFICATION = "sessionstore-windows-restored";
+const BUILTIN_ADDON_ID = "newtab@mozilla.org";
 
 export const AboutNewTab = {
   QueryInterface: ChromeUtils.generateQI([
@@ -68,17 +68,18 @@ export const AboutNewTab = {
       }
     );
 
-    // Make sure to register newtab resource mapping as early as possible
-    // on startup.
-    if (AppConstants.BROWSER_NEWTAB_AS_ADDON) {
-      lazy.AboutNewTabResourceMapping.init();
-    }
-
     // More initialization happens here
     this.toggleActivityStream(true);
     this.initialized = true;
 
     Services.obs.addObserver(this, BROWSER_READY_NOTIFICATION);
+  },
+
+  async uninstallAddon() {
+    let addon = await lazy.AddonManager.getAddonByID(BUILTIN_ADDON_ID);
+    if (addon) {
+      addon.uninstall();
+    }
   },
 
   /**
@@ -169,7 +170,7 @@ export const AboutNewTab = {
       // We may have had the built-in addon installed in the past. Since the
       // flag is false, let's go ahead and remove it. We don't need to await on
       // this since the extension should be inert if the build flag is false.
-      lazy.AboutNewTabResourceMapping.uninstallAddon();
+      this.uninstallAddon();
     }
 
     try {
