@@ -344,7 +344,13 @@ class WindowGlobalParent final : public WindowContext,
   ~WindowGlobalParent();
 
   bool ShouldTrackSiteOriginTelemetry();
-  void FinishAccumulatingPageUseCounters();
+  enum class PageUseCounterResultBits : uint8_t {
+    WAITING,
+    DATA_RECEIVED,
+    EMPTY_DATA,
+  };
+  using PageUseCounterResult = EnumSet<PageUseCounterResultBits>;
+  PageUseCounterResult FinishAccumulatingPageUseCounters();
 
   // Returns failure if the new storage principal cannot be validated
   // against the current document principle.

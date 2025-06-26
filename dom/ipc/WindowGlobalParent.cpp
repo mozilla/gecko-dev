@@ -1144,7 +1144,8 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvAccumulatePageUseCounters(
 // This is called on the top-level WindowGlobal, i.e. the one that is
 // accumulating the page use counters, not the (potentially descendant) window
 // that has finished providing use counter data.
-void WindowGlobalParent::FinishAccumulatingPageUseCounters() {
+WindowGlobalParent::PageUseCounterResult
+WindowGlobalParent::FinishAccumulatingPageUseCounters() {
   MOZ_LOG(gUseCountersLog, LogLevel::Debug,
           ("Stop expecting page use counters: -> WindowContext %" PRIu64,
            InnerWindowId()));
@@ -1153,7 +1154,7 @@ void WindowGlobalParent::FinishAccumulatingPageUseCounters() {
     MOZ_ASSERT_UNREACHABLE("Not expecting page use counter data");
     MOZ_LOG(gUseCountersLog, LogLevel::Debug,
             (" > not expecting page use counter data"));
-    return;
+    return WindowGlobalParent::PageUseCounterResult();
   }
 
   MOZ_ASSERT(mPageUseCounters->mWaiting > 0);
@@ -1162,14 +1163,16 @@ void WindowGlobalParent::FinishAccumulatingPageUseCounters() {
   if (mPageUseCounters->mWaiting > 0) {
     MOZ_LOG(gUseCountersLog, LogLevel::Debug,
             (" > now waiting on %d", mPageUseCounters->mWaiting));
-    return;
+    return PageUseCounterResultBits::WAITING;
   }
 
+  PageUseCounterResult result;
   if (mPageUseCounters->mReceivedAny) {
     MOZ_LOG(gUseCountersLog, LogLevel::Debug,
             (" > reporting [%s]",
              nsContentUtils::TruncatedURLForDisplay(mDocumentURI).get()));
 
+    result += PageUseCounterResultBits::DATA_RECEIVED;
     Maybe<nsCString> urlForLogging;
     const bool dumpCounters = StaticPrefs::dom_use_counters_dump_page();
     if (dumpCounters) {
@@ -1203,6 +1206,7 @@ void WindowGlobalParent::FinishAccumulatingPageUseCounters() {
     if (!any) {
       MOZ_LOG(gUseCountersLog, LogLevel::Debug,
               (" > page use counter data was received, but was empty"));
+      result += PageUseCounterResultBits::EMPTY_DATA;
     }
   } else {
     MOZ_LOG(gUseCountersLog, LogLevel::Debug,
@@ -1211,6 +1215,7 @@ void WindowGlobalParent::FinishAccumulatingPageUseCounters() {
 
   mSentPageUseCounters = true;
   mPageUseCounters = nullptr;
+  return result;
 }
 
 Element* WindowGlobalParent::GetRootOwnerElement() {
@@ -1495,11 +1500,11 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
         .Add();
   }
 
-  bool finishedPageUseCounters = false;
+  PageUseCounterResult pageUseCounterResult;
   if (mPageUseCountersWindow) {
-    mPageUseCountersWindow->FinishAccumulatingPageUseCounters();
+    pageUseCounterResult =
+        mPageUseCountersWindow->FinishAccumulatingPageUseCounters();
     mPageUseCountersWindow = nullptr;
-    finishedPageUseCounters = true;
   }
 
   if (GetBrowsingContext()->IsTopContent() &&
@@ -1575,8 +1580,12 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
         GetContentBlockingLog()->ReportLog();
 
         if (mDocumentURI && net::SchemeIsHttpOrHttps(mDocumentURI)) {
+          bool incrementedTopLevelContentDocumentsDestroyed =
+              pageUseCounterResult.contains(
+                  PageUseCounterResultBits::DATA_RECEIVED);
           GetContentBlockingLog()->ReportCanvasFingerprintingLog(
-              DocumentPrincipal(), finishedPageUseCounters);
+              DocumentPrincipal(),
+              incrementedTopLevelContentDocumentsDestroyed);
           GetContentBlockingLog()->ReportFontFingerprintingLog(
               DocumentPrincipal());
           GetContentBlockingLog()->ReportEmailTrackingLog(DocumentPrincipal());
