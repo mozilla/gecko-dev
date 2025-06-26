@@ -4,27 +4,30 @@
 
 package org.mozilla.fenix.search.awesomebar
 
-import org.mozilla.fenix.HomeActivity
+import android.content.Context
+import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.search.SearchFragmentState
 
 /**
  * Configures what search suggestions to show in the awesome bar.
  *
- * @param activity [HomeActivity] used for accessing needing dependencies.
- * @param interactor [AwesomeBarInteractor] used for handling user interactions with the search suggestions.
- * @param view [AwesomeBarWrapper] used for displaying the search suggestions.
- * @param includeSelectedTab Whether or not to include the current tab in search suggestions.
+ * @property context Activity [Context] used for various system interactions.
+ * @property interactor [AwesomeBarInteractor] used for handling user interactions with the search suggestions.
+ * @property view [AwesomeBarWrapper] used for displaying the search suggestions.
+ * @property includeSelectedTab Whether or not to include the current tab in search suggestions.
+ * @property browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
  */
 @Suppress("OutdatedDocumentation")
 class AwesomeBarView(
-    activity: HomeActivity,
+    context: Context,
     private val interactor: AwesomeBarInteractor,
     val view: AwesomeBarWrapper,
     includeSelectedTab: Boolean,
+    browsingModeManager: BrowsingModeManager,
 ) {
     private val suggestionsProvidersBuilder by lazy(LazyThreadSafetyMode.NONE) {
         SearchSuggestionsProvidersBuilder(
-            activity = activity,
+            context = context,
             includeSelectedTab = includeSelectedTab,
             loadUrlUseCase = AwesomeBarLoadUrlUseCase(interactor),
             searchUseCase = AwesomeBarSearchUseCase(interactor),
@@ -32,6 +35,7 @@ class AwesomeBarView(
             onSearchEngineShortcutSelected = interactor::onSearchShortcutEngineSelected,
             onSearchEngineSuggestionSelected = interactor::onSearchEngineSuggestionSelected,
             onSearchEngineSettingsClicked = interactor::onClickSearchEngineSettings,
+            browsingModeManager = browsingModeManager,
         )
     }
 

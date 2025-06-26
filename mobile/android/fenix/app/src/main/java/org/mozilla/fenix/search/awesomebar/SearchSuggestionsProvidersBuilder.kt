@@ -39,9 +39,9 @@ import mozilla.components.support.ktx.android.content.getColorFromAttr
 import mozilla.components.support.ktx.android.net.sameHostWithoutMobileSubdomainAs
 import mozilla.components.support.ktx.kotlin.tryGetHostFromUrl
 import mozilla.components.support.ktx.kotlin.urlContainsQueryParameters
-import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
+import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.Core.Companion.METADATA_HISTORY_SUGGESTION_LIMIT
 import org.mozilla.fenix.components.Core.Companion.METADATA_SHORTCUT_SUGGESTION_LIMIT
@@ -56,7 +56,8 @@ import org.mozilla.fenix.search.SearchEngineSource
  */
 @Suppress("LargeClass", "LongParameterList")
 class SearchSuggestionsProvidersBuilder(
-    private val activity: HomeActivity,
+    private val context: Context,
+    private val browsingModeManager: BrowsingModeManager,
     private val includeSelectedTab: Boolean,
     private val loadUrlUseCase: LoadUrlUseCase,
     private val searchUseCase: SearchUseCases.SearchUseCase,
@@ -65,7 +66,7 @@ class SearchSuggestionsProvidersBuilder(
     onSearchEngineSuggestionSelected: (searchEngine: SearchEngine) -> Unit,
     onSearchEngineSettingsClicked: () -> Unit,
 ) {
-    private var components: Components = activity.components
+    private var components: Components = context.components
     val engineForSpeculativeConnects: Engine?
     val defaultHistoryStorageProvider: HistoryStorageSuggestionProvider
     val defaultCombinedHistoryProvider: CombinedHistorySuggestionProvider
@@ -78,9 +79,9 @@ class SearchSuggestionsProvidersBuilder(
     val searchSuggestionProviderMap: MutableMap<SearchEngine, List<AwesomeBar.SuggestionProvider>>
 
     init {
-        val primaryTextColor = activity.getColorFromAttr(R.attr.textPrimary)
+        val primaryTextColor = context.getColorFromAttr(R.attr.textPrimary)
 
-        engineForSpeculativeConnects = when (activity.browsingModeManager.mode) {
+        engineForSpeculativeConnects = when (browsingModeManager.mode) {
             BrowsingMode.Normal -> components.core.engine
             BrowsingMode.Private -> null
         }
@@ -92,7 +93,7 @@ class SearchSuggestionsProvidersBuilder(
                 components.core.icons,
                 engineForSpeculativeConnects,
                 showEditSuggestion = false,
-                suggestionsHeader = activity.getString(R.string.firefox_suggest_header),
+                suggestionsHeader = context.getString(R.string.firefox_suggest_header),
             )
 
         defaultCombinedHistoryProvider =
@@ -104,18 +105,18 @@ class SearchSuggestionsProvidersBuilder(
                 engine = engineForSpeculativeConnects,
                 maxNumberOfSuggestions = METADATA_SUGGESTION_LIMIT,
                 showEditSuggestion = false,
-                suggestionsHeader = activity.getString(R.string.firefox_suggest_header),
+                suggestionsHeader = context.getString(R.string.firefox_suggest_header),
             )
 
-        val searchBitmap = getDrawable(activity, R.drawable.ic_search)!!.apply {
+        val searchBitmap = getDrawable(context, R.drawable.ic_search)!!.apply {
             colorFilter = createBlendModeColorFilterCompat(primaryTextColor, SRC_IN)
         }.toBitmap()
 
-        val searchWithBitmap = getDrawable(activity, R.drawable.ic_search_with)?.toBitmap()
+        val searchWithBitmap = getDrawable(context, R.drawable.ic_search_with)?.toBitmap()
 
         defaultSearchSuggestionProvider =
             SearchSuggestionProvider(
-                context = activity,
+                context = context,
                 store = components.core.store,
                 searchUseCase = searchUseCase,
                 fetchClient = components.core.client,
@@ -125,10 +126,7 @@ class SearchSuggestionsProvidersBuilder(
                 showDescription = false,
                 engine = engineForSpeculativeConnects,
                 filterExactMatch = true,
-                private = when (activity.browsingModeManager.mode) {
-                    BrowsingMode.Normal -> false
-                    BrowsingMode.Private -> true
-                },
+                private = browsingModeManager.mode.isPrivate,
                 suggestionsHeader = getSearchEngineSuggestionsHeader(),
             )
 
@@ -144,10 +142,7 @@ class SearchSuggestionsProvidersBuilder(
         defaultTrendingSearchProvider =
             TrendingSearchProvider(
                 fetchClient = components.core.client,
-                privateMode = when (activity.browsingModeManager.mode) {
-                    BrowsingMode.Normal -> false
-                    BrowsingMode.Private -> true
-                },
+                privateMode = browsingModeManager.mode.isPrivate,
                 searchUseCase = searchUseCase,
                 limit = FxNimbus.features.trendingSearches.value().maxSuggestions,
                 icon = searchBitmap,
@@ -165,18 +160,18 @@ class SearchSuggestionsProvidersBuilder(
         shortcutsEnginePickerProvider =
             ShortcutsSuggestionProvider(
                 store = components.core.store,
-                context = activity,
+                context = context,
                 selectShortcutEngine = onSearchEngineShortcutSelected,
                 selectShortcutEngineSettings = onSearchEngineSettingsClicked,
             )
 
         searchEngineSuggestionProvider =
             SearchEngineSuggestionProvider(
-                context = activity,
+                context = context,
                 searchEnginesList = components.core.store.state.search.searchEngines,
                 selectShortcutEngine = onSearchEngineSuggestionSelected,
                 title = R.string.search_engine_suggestions_title,
-                description = activity.getString(R.string.search_engine_suggestions_description),
+                description = context.getString(R.string.search_engine_suggestions_description),
                 searchIcon = searchWithBitmap,
             )
 
@@ -184,17 +179,17 @@ class SearchSuggestionsProvidersBuilder(
     }
 
     private fun getSearchEngineSuggestionsHeader(): String? {
-        val searchState = activity.components.core.store.state.search
+        val searchState = context.components.core.store.state.search
         var searchEngine = searchState.selectedOrDefaultSearchEngine?.name
 
         if (!searchEngine.isNullOrEmpty()) {
             searchEngine = when (searchEngine) {
                 GOOGLE_SEARCH_ENGINE_NAME -> getString(
-                    activity,
+                    context,
                     R.string.google_search_engine_suggestion_header,
                 )
                 else -> getString(
-                    activity,
+                    context,
                     R.string.other_default_search_engine_suggestion_header,
                     searchEngine,
                 )
@@ -205,12 +200,12 @@ class SearchSuggestionsProvidersBuilder(
     }
 
     /**
-     * Get a suggestions header if [currentEngineName] is the one of the default search engine.
+     * Get a suggestions header if [currentEngine] is the one of the default search engine.
      *
      * @param currentEngine The currently selected search engine.
      */
     private fun getSearchEngineSuggestionsHeader(currentEngine: SearchEngine?): String? {
-        val defaultSearchEngine = activity.components.core.store.state.search.selectedOrDefaultSearchEngine
+        val defaultSearchEngine = context.components.core.store.state.search.selectedOrDefaultSearchEngine
 
         return when (defaultSearchEngine == currentEngine) {
             true -> getSearchEngineSuggestionsHeader()
@@ -219,10 +214,9 @@ class SearchSuggestionsProvidersBuilder(
     }
 
     @Suppress("ComplexMethod", "LongMethod")
-    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     internal fun getProvidersToAdd(
         state: SearchProviderState,
-    ): MutableSet<AwesomeBar.SuggestionProvider> {
+    ): Set<AwesomeBar.SuggestionProvider> {
         val providersToAdd = mutableSetOf<AwesomeBar.SuggestionProvider>()
 
         when (state.searchEngineSource) {
@@ -295,12 +289,12 @@ class SearchSuggestionsProvidersBuilder(
             }
         }
 
-        if (activity.browsingModeManager.mode == BrowsingMode.Normal && state.showAllSessionSuggestions) {
+        if (!browsingModeManager.mode.isPrivate && state.showAllSessionSuggestions) {
             // Unlike other providers, we don't exclude sponsored suggestions for open tabs.
             providersToAdd.add(getLocalTabsProvider())
         }
 
-        if (activity.browsingModeManager.mode == BrowsingMode.Normal && state.showSessionSuggestionsForCurrentEngine) {
+        if (!browsingModeManager.mode.isPrivate && state.showSessionSuggestionsForCurrentEngine) {
             getFilterForCurrentEngineResults(state)?.let {
                 providersToAdd.add(getLocalTabsProvider(it))
             }
@@ -308,24 +302,24 @@ class SearchSuggestionsProvidersBuilder(
 
         if (state.showSponsoredSuggestions || state.showNonSponsoredSuggestions) {
             providersToAdd.add(
-                if (activity.settings().boostAmpWikiSuggestions) {
+                if (context.settings().boostAmpWikiSuggestions) {
                     FxSuggestSuggestionProvider(
-                        resources = activity.resources,
+                        resources = context.resources,
                         loadUrlUseCase = loadUrlUseCase,
                         includeSponsoredSuggestions = state.showSponsoredSuggestions,
                         includeNonSponsoredSuggestions = state.showNonSponsoredSuggestions,
-                        suggestionsHeader = activity.getString(R.string.firefox_suggest_header),
-                        contextId = activity.settings().contileContextId,
+                        suggestionsHeader = context.getString(R.string.firefox_suggest_header),
+                        contextId = context.settings().contileContextId,
                         scorer = FxSuggestionExperimentScorer(),
                     )
                 } else {
                     FxSuggestSuggestionProvider(
-                        resources = activity.resources,
+                        resources = context.resources,
                         loadUrlUseCase = loadUrlUseCase,
                         includeSponsoredSuggestions = state.showSponsoredSuggestions,
                         includeNonSponsoredSuggestions = state.showNonSponsoredSuggestions,
-                        suggestionsHeader = activity.getString(R.string.firefox_suggest_header),
-                        contextId = activity.settings().contileContextId,
+                        suggestionsHeader = context.getString(R.string.firefox_suggest_header),
+                        contextId = context.settings().contileContextId,
                     )
                 },
             )
@@ -340,7 +334,7 @@ class SearchSuggestionsProvidersBuilder(
         if (state.showTrendingSearches) {
             val suggestionHeader = state.searchEngineSource.searchEngine?.name?.let { searchEngineName ->
                 getString(
-                    activity,
+                    context,
                     R.string.trending_searches_header_2,
                     searchEngineName,
                 )
@@ -367,7 +361,7 @@ class SearchSuggestionsProvidersBuilder(
     internal fun getHistoryProvider(
         filter: SearchResultFilter? = null,
     ): AwesomeBar.SuggestionProvider {
-        return if (activity.settings().historyMetadataUIFeature) {
+        return if (context.settings().historyMetadataUIFeature) {
             if (filter != null) {
                 CombinedHistorySuggestionProvider(
                     historyStorage = components.core.historyStorage,
@@ -377,7 +371,7 @@ class SearchSuggestionsProvidersBuilder(
                     engine = engineForSpeculativeConnects,
                     maxNumberOfSuggestions = METADATA_SUGGESTION_LIMIT,
                     showEditSuggestion = false,
-                    suggestionsHeader = activity.getString(R.string.firefox_suggest_header),
+                    suggestionsHeader = context.getString(R.string.firefox_suggest_header),
                     resultsUriFilter = filter::shouldIncludeUri,
                 )
             } else {
@@ -392,7 +386,7 @@ class SearchSuggestionsProvidersBuilder(
                     engine = engineForSpeculativeConnects,
                     maxNumberOfSuggestions = METADATA_SUGGESTION_LIMIT,
                     showEditSuggestion = false,
-                    suggestionsHeader = activity.getString(R.string.firefox_suggest_header),
+                    suggestionsHeader = context.getString(R.string.firefox_suggest_header),
                     resultsUriFilter = filter::shouldIncludeUri,
                 )
             } else {
@@ -427,7 +421,7 @@ class SearchSuggestionsProvidersBuilder(
             historyStorage = components.core.historyStorage,
             searchUseCase = searchUseCase,
             searchEngine = validSearchEngine,
-            icon = getDrawable(activity, R.drawable.ic_history)?.toBitmap(),
+            icon = getDrawable(context, R.drawable.ic_history)?.toBitmap(),
             engine = engineForSpeculativeConnects,
             suggestionsHeader = getSearchEngineSuggestionsHeader(searchEngineSource.searchEngine),
         )
@@ -445,24 +439,24 @@ class SearchSuggestionsProvidersBuilder(
             searchUseCase = searchUseCase,
             searchEngine = validSearchEngine,
             maxNumberOfSuggestions = maxNumberOfSuggestions,
-            icon = getDrawable(activity, R.drawable.ic_history)?.toBitmap(),
+            icon = getDrawable(context, R.drawable.ic_history)?.toBitmap(),
             engine = engineForSpeculativeConnects,
-            suggestionsHeader = activity.getString(R.string.recent_searches_header),
+            suggestionsHeader = context.getString(R.string.recent_searches_header),
         )
     }
 
     private fun getSuggestionProviderForEngine(engine: SearchEngine): List<AwesomeBar.SuggestionProvider> {
         return searchSuggestionProviderMap.getOrPut(engine) {
-            val components = activity.components
-            val primaryTextColor = activity.getColorFromAttr(R.attr.textPrimary)
+            val components = context.components
+            val primaryTextColor = context.getColorFromAttr(R.attr.textPrimary)
 
-            val searchBitmap = getDrawable(activity, R.drawable.ic_search)!!.apply {
+            val searchBitmap = getDrawable(context, R.drawable.ic_search)!!.apply {
                 colorFilter = createBlendModeColorFilterCompat(primaryTextColor, SRC_IN)
             }.toBitmap()
 
-            val engineForSpeculativeConnects = when (activity.browsingModeManager.mode) {
-                BrowsingMode.Normal -> components.core.engine
-                BrowsingMode.Private -> null
+            val engineForSpeculativeConnects = when (browsingModeManager.mode.isPrivate) {
+                true -> null
+                else -> components.core.engine
             }
 
             listOf(
@@ -481,10 +475,7 @@ class SearchSuggestionsProvidersBuilder(
                     icon = searchBitmap,
                     engine = engineForSpeculativeConnects,
                     filterExactMatch = true,
-                    private = when (activity.browsingModeManager.mode) {
-                        BrowsingMode.Normal -> false
-                        BrowsingMode.Private -> true
-                    },
+                    private = browsingModeManager.mode.isPrivate,
                 ),
             )
         }
@@ -506,11 +497,11 @@ class SearchSuggestionsProvidersBuilder(
             loadUrlUseCase,
             components.core.icons,
             DeviceIndicators(
-                getDrawable(activity, R.drawable.ic_search_results_device_desktop),
-                getDrawable(activity, R.drawable.ic_search_results_device_mobile),
-                getDrawable(activity, R.drawable.ic_search_results_device_tablet),
+                getDrawable(context, R.drawable.ic_search_results_device_desktop),
+                getDrawable(context, R.drawable.ic_search_results_device_mobile),
+                getDrawable(context, R.drawable.ic_search_results_device_tablet),
             ),
-            suggestionsHeader = activity.getString(R.string.firefox_suggest_header),
+            suggestionsHeader = context.getString(R.string.firefox_suggest_header),
             resultsUrlFilter = filter?.let { it::shouldIncludeUrl },
         )
     }
@@ -527,13 +518,13 @@ class SearchSuggestionsProvidersBuilder(
         filter: SearchResultFilter? = null,
     ): SessionSuggestionProvider {
         return SessionSuggestionProvider(
-            activity.resources,
+            context.resources,
             components.core.store,
             selectTabUseCase,
             components.core.icons,
-            getDrawable(activity, R.drawable.ic_search_results_tab),
+            getDrawable(context, R.drawable.ic_search_results_tab),
             excludeSelectedSession = !includeSelectedTab,
-            suggestionsHeader = activity.getString(R.string.firefox_suggest_header),
+            suggestionsHeader = context.getString(R.string.firefox_suggest_header),
             resultsUriFilter = filter?.let { it::shouldIncludeUri },
         )
     }
@@ -553,10 +544,10 @@ class SearchSuggestionsProvidersBuilder(
             bookmarksStorage = components.core.bookmarksStorage,
             loadUrlUseCase = loadUrlUseCase,
             icons = components.core.icons,
-            indicatorIcon = getDrawable(activity, R.drawable.ic_search_results_bookmarks),
+            indicatorIcon = getDrawable(context, R.drawable.ic_search_results_bookmarks),
             engine = engineForSpeculativeConnects,
             showEditSuggestion = false,
-            suggestionsHeader = activity.getString(R.string.firefox_suggest_header),
+            suggestionsHeader = context.getString(R.string.firefox_suggest_header),
             resultsUriFilter = filter?.let { it::shouldIncludeUri },
         )
     }
@@ -574,7 +565,7 @@ class SearchSuggestionsProvidersBuilder(
      */
     internal fun getFilterToExcludeSponsoredResults(state: SearchProviderState): SearchResultFilter? =
         if (state.showSponsoredSuggestions) {
-            SearchResultFilter.ExcludeSponsored(activity.settings().frecencyFilterQuery)
+            SearchResultFilter.ExcludeSponsored(context.settings().frecencyFilterQuery)
         } else {
             null
         }

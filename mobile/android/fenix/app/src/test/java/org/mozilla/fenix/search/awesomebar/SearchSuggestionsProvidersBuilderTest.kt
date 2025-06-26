@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.search.awesomebar
 
-import android.app.Activity
 import android.graphics.drawable.VectorDrawable
 import androidx.core.net.toUri
 import io.mockk.every
@@ -30,6 +29,7 @@ import mozilla.components.feature.awesomebar.provider.TrendingSearchProvider
 import mozilla.components.feature.fxsuggest.FxSuggestSuggestionProvider
 import mozilla.components.feature.syncedtabs.SyncedTabsStorageSuggestionProvider
 import mozilla.components.support.ktx.android.content.getColorFromAttr
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -39,8 +39,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
+import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.Core.Companion
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
@@ -51,8 +51,8 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class SearchSuggestionsProvidersBuilderTest {
-    private var activity: HomeActivity = mockk(relaxed = true)
     private lateinit var builder: SearchSuggestionsProvidersBuilder
+    private val browsingModeManager: BrowsingModeManager = mockk(relaxed = true)
 
     @Before
     fun setup() {
@@ -60,23 +60,24 @@ class SearchSuggestionsProvidersBuilderTest {
         mockkStatic("org.mozilla.fenix.ext.ContextKt")
         mockkStatic("mozilla.components.support.ktx.android.content.ContextKt")
         mockkObject(SearchSuggestionsProvidersBuilder.Companion)
-        every { any<Activity>().components.core.engine } returns mockk()
-        every { any<Activity>().components.core.icons } returns mockk()
-        every { any<Activity>().components.core.store } returns mockk()
-        every { any<Activity>().components.core.historyStorage } returns mockk()
-        every { any<Activity>().components.core.bookmarksStorage } returns mockk()
-        every { any<Activity>().components.core.topSitesStorage } returns mockk()
-        every { any<Activity>().components.core.client } returns mockk()
-        every { any<Activity>().components.backgroundServices.syncedTabsStorage } returns mockk()
-        every { any<Activity>().components.core.store.state.search } returns mockk(relaxed = true)
-        every { any<Activity>().getColorFromAttr(any()) } returns 0
+        every { testContext.components.core.engine } returns mockk()
+        every { testContext.components.core.icons } returns mockk()
+        every { testContext.components.core.store } returns mockk()
+        every { testContext.components.core.historyStorage } returns mockk()
+        every { testContext.components.core.bookmarksStorage } returns mockk()
+        every { testContext.components.core.topSitesStorage } returns mockk()
+        every { testContext.components.core.client } returns mockk()
+        every { testContext.components.backgroundServices.syncedTabsStorage } returns mockk()
+        every { testContext.components.core.store.state.search } returns mockk(relaxed = true)
+        every { testContext.getColorFromAttr(any()) } returns 0
         every { SearchSuggestionsProvidersBuilder.Companion.getDrawable(any(), any()) } returns mockk<VectorDrawable>(relaxed = true) {
             every { intrinsicWidth } returns 10
             every { intrinsicHeight } returns 10
         }
 
         builder = SearchSuggestionsProvidersBuilder(
-            activity = activity,
+            context = testContext,
+            browsingModeManager = browsingModeManager,
             includeSelectedTab = false,
             loadUrlUseCase = mockk(),
             searchUseCase = mockk(),
@@ -99,7 +100,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.History(mockk(relaxed = true)),
             showSponsoredSuggestions = true,
@@ -120,7 +121,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.History(mockk(relaxed = true)),
             showSponsoredSuggestions = false,
@@ -141,7 +142,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.History(mockk(relaxed = true)),
             showSponsoredSuggestions = true,
@@ -162,7 +163,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.History(mockk(relaxed = true)),
             showSponsoredSuggestions = false,
@@ -183,7 +184,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Shortcut(mockk(relaxed = true)),
             showSponsoredSuggestions = true,
@@ -204,7 +205,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Shortcut(mockk(relaxed = true)),
             showSponsoredSuggestions = false,
@@ -225,7 +226,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Bookmarks(mockk(relaxed = true)),
             showSponsoredSuggestions = true,
@@ -246,7 +247,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Bookmarks(mockk(relaxed = true)),
         )
@@ -267,7 +268,7 @@ class SearchSuggestionsProvidersBuilderTest {
             every { historyMetadataUIFeature } returns true
         }
         val url = "test.com".toUri()
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -292,7 +293,7 @@ class SearchSuggestionsProvidersBuilderTest {
             every { historyMetadataUIFeature } returns true
         }
         val url = "test.com".toUri()
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -319,7 +320,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showHistorySuggestionsForCurrentEngine = false,
@@ -345,7 +346,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showHistorySuggestionsForCurrentEngine = false,
@@ -371,7 +372,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showHistorySuggestionsForCurrentEngine = false,
@@ -403,7 +404,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showHistorySuggestionsForCurrentEngine = false,
@@ -435,7 +436,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showAllHistorySuggestions = false,
@@ -465,7 +466,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showAllHistorySuggestions = false,
@@ -495,7 +496,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showSearchTermHistory = false,
@@ -525,7 +526,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showSearchTermHistory = false,
@@ -555,7 +556,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showSearchTermHistory = false,
@@ -583,7 +584,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showSearchTermHistory = false,
@@ -611,7 +612,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showSearchTermHistory = false,
@@ -641,7 +642,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk(relaxed = true) {
             every { historyMetadataUIFeature } returns false
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSearchShortcuts = false,
             showSearchTermHistory = false,
@@ -672,7 +673,7 @@ class SearchSuggestionsProvidersBuilderTest {
             every { historyMetadataUIFeature } returns false
         }
         val url = "test.com".toUri()
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -697,7 +698,7 @@ class SearchSuggestionsProvidersBuilderTest {
             every { historyMetadataUIFeature } returns false
         }
         val url = "test.com".toUri()
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -719,7 +720,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN a search from the default engine WHEN configuring providers THEN add search action and search suggestions providers`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
@@ -734,7 +735,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN a search from a shortcut engine WHEN configuring providers THEN add search action and search suggestions providers`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showAllHistorySuggestions = false,
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
@@ -749,7 +750,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN searches from other than default and shortcut engines WHEN configuring providers THEN don't add search action and search suggestion providers`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
 
         val historyState = getSearchProviderState(
             searchEngineSource = SearchEngineSource.History(mockk(relaxed = true)),
@@ -776,8 +777,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN normal browsing mode and needing to show all local tabs suggestions and sponsored suggestions are enabled WHEN configuring providers THEN add the tabs provider`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showSessionSuggestionsForCurrentEngine = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -799,8 +800,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN normal browsing mode and needing to show all local tabs suggestions and sponsored suggestions are disabled WHEN configuring providers THEN add the tabs provider`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showSessionSuggestionsForCurrentEngine = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -822,8 +823,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN normal browsing mode and needing to show filtered local tabs suggestions WHEN configuring providers THEN add the tabs provider with an engine filter`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showAllSessionSuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -843,8 +844,8 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN private browsing mode and needing to show tabs suggestions WHEN configuring providers THEN don't add the tabs provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Private
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Private
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Shortcut(mockk(relaxed = true)),
         )
@@ -858,8 +859,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN needing to show all synced tabs suggestions and sponsored suggestions are enabled WHEN configuring providers THEN add the synced tabs provider with a sponsored filter`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showSyncedTabsSuggestionsForCurrentEngine = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -881,8 +882,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN needing to show filtered synced tabs suggestions and sponsored suggestions are enabled WHEN configuring providers THEN add the synced tabs provider with an engine filter`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showAllSyncedTabsSuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -904,8 +905,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN needing to show all synced tabs suggestions and sponsored suggestions are disabled WHEN configuring providers THEN add the synced tabs provider`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showSyncedTabsSuggestionsForCurrentEngine = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -927,8 +928,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN needing to show all bookmarks suggestions and sponsored suggestions are enabled WHEN configuring providers THEN add the bookmarks provider with a sponsored filter`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showBookmarksSuggestionsForCurrentEngine = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -950,8 +951,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN needing to show all bookmarks suggestions and sponsored suggestions are disabled WHEN configuring providers THEN add the bookmarks provider`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showBookmarksSuggestionsForCurrentEngine = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -973,8 +974,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN needing to show filtered bookmarks suggestions WHEN configuring providers THEN add the bookmarks provider with an engine filter`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showAllBookmarkSuggestions = false,
             searchEngineSource = SearchEngineSource.Shortcut(
@@ -994,7 +995,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN a search is made by the user WHEN configuring providers THEN search engine suggestion provider should always be added`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
         )
@@ -1008,8 +1009,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN a search from the default engine with all suggestions asked and sponsored suggestions are enabled WHEN configuring providers THEN add them all`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(
                 mockk(relaxed = true) {
@@ -1046,8 +1047,8 @@ class SearchSuggestionsProvidersBuilderTest {
     fun `GIVEN a search from the default engine with all suggestions asked and sponsored suggestions are disabled WHEN configuring providers THEN add them all`() {
         val settings: Settings = mockk(relaxed = true)
         val url = "https://www.test.com".toUri()
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(
                 mockk(relaxed = true) {
@@ -1083,8 +1084,8 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN a search from the default engine with no suggestions asked WHEN configuring providers THEN add only search engine suggestion provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
-        every { activity.browsingModeManager.mode } returns BrowsingMode.Normal
+        every { testContext.settings() } returns settings
+        every { browsingModeManager.mode } returns BrowsingMode.Normal
         val state = getSearchProviderState(
             showHistorySuggestionsForCurrentEngine = false,
             showSearchShortcuts = false,
@@ -1113,7 +1114,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN sponsored suggestions are enabled WHEN configuring providers THEN add the Firefox Suggest suggestion provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSponsoredSuggestions = true,
             showNonSponsoredSuggestions = false,
@@ -1128,7 +1129,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN non-sponsored suggestions are enabled WHEN configuring providers THEN add the Firefox Suggest suggestion provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSponsoredSuggestions = false,
             showNonSponsoredSuggestions = true,
@@ -1143,7 +1144,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN sponsored and non-sponsored suggestions are enabled WHEN configuring providers THEN add the Firefox Suggest suggestion provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSponsoredSuggestions = true,
             showNonSponsoredSuggestions = true,
@@ -1158,7 +1159,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN sponsored and non-sponsored suggestions are disabled WHEN configuring providers THEN don't add the Firefox Suggest suggestion provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showSponsoredSuggestions = false,
             showNonSponsoredSuggestions = false,
@@ -1175,7 +1176,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk {
             every { historyMetadataUIFeature } returns true
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val searchEngineSource = SearchEngineSource.Shortcut(mockk(relaxed = true))
         val state = getSearchProviderState(searchEngineSource = searchEngineSource)
 
@@ -1194,7 +1195,7 @@ class SearchSuggestionsProvidersBuilderTest {
         val settings: Settings = mockk {
             every { historyMetadataUIFeature } returns false
         }
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val searchEngineSource = SearchEngineSource.Shortcut(mockk(relaxed = true))
         val state = getSearchProviderState(
             searchEngineSource = searchEngineSource,
@@ -1294,7 +1295,7 @@ class SearchSuggestionsProvidersBuilderTest {
 
     @Test
     fun `GIVEN history search term suggestions disabled WHEN getting suggestions providers THEN don't search term provider of past searches`() {
-        every { activity.settings() } returns mockk(relaxed = true)
+        every { testContext.settings() } returns mockk(relaxed = true)
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSearchTermHistory = false,
@@ -1307,7 +1308,7 @@ class SearchSuggestionsProvidersBuilderTest {
 
     @Test
     fun `GIVEN history search term suggestions enabled WHEN getting suggestions providers THEN add a search term provider of past searches`() {
-        every { activity.settings() } returns mockk(relaxed = true)
+        every { testContext.settings() } returns mockk(relaxed = true)
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSearchTermHistory = true,
@@ -1320,7 +1321,7 @@ class SearchSuggestionsProvidersBuilderTest {
 
     @Test
     fun `GIVEN sponsored suggestions are enabled WHEN getting a filter to exclude sponsored suggestions THEN return the filter`() {
-        every { activity.settings() } returns mockk(relaxed = true) {
+        every { testContext.settings() } returns mockk(relaxed = true) {
             every { frecencyFilterQuery } returns "query=value"
         }
         val state = getSearchProviderState(
@@ -1334,7 +1335,7 @@ class SearchSuggestionsProvidersBuilderTest {
 
     @Test
     fun `GIVEN sponsored suggestions are disabled WHEN getting a filter to exclude sponsored suggestions THEN return null`() {
-        every { activity.settings() } returns mockk(relaxed = true) {
+        every { testContext.settings() } returns mockk(relaxed = true) {
             every { frecencyFilterQuery } returns "query=value"
         }
         val state = getSearchProviderState(
@@ -1348,7 +1349,7 @@ class SearchSuggestionsProvidersBuilderTest {
 
     @Test
     fun `GIVEN a sponsored query parameter and a sponsored filter WHEN a URL contains the sponsored query parameter THEN that URL should be excluded`() {
-        every { activity.settings() } returns mockk(relaxed = true) {
+        every { testContext.settings() } returns mockk(relaxed = true) {
             every { frecencyFilterQuery } returns "query=value"
         }
         val state = getSearchProviderState(
@@ -1370,7 +1371,7 @@ class SearchSuggestionsProvidersBuilderTest {
 
     @Test
     fun `GIVEN a sponsored query parameter and a sponsored filter WHEN a URL does not contain the sponsored query parameter THEN that URL should be included`() {
-        every { activity.settings() } returns mockk(relaxed = true) {
+        every { testContext.settings() } returns mockk(relaxed = true) {
             every { frecencyFilterQuery } returns "query=value"
         }
         val state = getSearchProviderState(
@@ -1436,7 +1437,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN should show trending searches WHEN configuring providers THEN add the trending search provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showTrendingSearches = true,
         )
@@ -1449,7 +1450,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN should not show trending searches WHEN configuring providers THEN don't add the trending search provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showTrendingSearches = false,
         )
@@ -1462,7 +1463,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN should show shortcuts suggestions WHEN configuring providers THEN add the top sites provider and top sites suggestion providers`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showShortcutsSuggestions = true,
         )
@@ -1475,7 +1476,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN should not show shortcuts suggestions WHEN configuring providers THEN don't add the top sites provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             showShortcutsSuggestions = false,
         )
@@ -1488,7 +1489,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN should show recent searches WHEN configuring providers THEN add the recent search suggestions provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSearchTermHistory = false,
@@ -1503,7 +1504,7 @@ class SearchSuggestionsProvidersBuilderTest {
     @Test
     fun `GIVEN should not show recent searches WHEN configuring providers THEN don't add the recent search suggestions provider`() {
         val settings: Settings = mockk(relaxed = true)
-        every { activity.settings() } returns settings
+        every { testContext.settings() } returns settings
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
             showSearchTermHistory = false,
