@@ -3770,8 +3770,8 @@ bool BaselineCacheIRCompiler::emitCallScriptedFunctionShared(
   {
     // Call the arguments rectifier.
     ArgumentsRectifierKind kind = isInlined
-        ? ArgumentsRectifierKind::TrialInlining
-        : ArgumentsRectifierKind::Normal;
+                                      ? ArgumentsRectifierKind::TrialInlining
+                                      : ArgumentsRectifierKind::Normal;
     TrampolinePtr argumentsRectifier =
         cx_->runtime()->jitRuntime()->getArgumentsRectifier(kind);
     masm.movePtr(argumentsRectifier, code);
