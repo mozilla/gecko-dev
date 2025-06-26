@@ -9,7 +9,11 @@
 
 #include <cstdint>
 
+#include "nsCOMPtr.h"
 #include "nsString.h"
+
+class nsIChannel;
+class nsIURI;
 
 namespace IPC {
 template <typename>
@@ -85,7 +89,8 @@ class PageloadEventData {
   // Define a setter for every member.
   FOR_EACH_PAGELOAD_METRIC(DEFINE_SETTER)
 
-  bool MaybeSetDomain(nsCString& aDomain);
+  bool MaybeSetPublicRegistrableDomain(nsCOMPtr<nsIURI> aURI,
+                                       nsIChannel* aChannel);
   bool HasDomain() { return mDomain.isSome() && !mDomain.value().IsEmpty(); }
 
   bool HasLoadTime() { return loadTime.isSome(); }

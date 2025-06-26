@@ -2079,6 +2079,10 @@ void Document::RecordPageLoadEventTelemetry() {
     return;
   }
 
+  if (!GetChannel()) {
+    return;
+  }
+
   auto pageloadEventType = performance::pageload_event::GetPageloadEventType();
 
   // Return if we are not sending an event for this pageload.
@@ -2143,30 +2147,13 @@ void Document::RecordPageLoadEventTelemetry() {
         }
       }
     }
+  }
 
-    // If the event type is kDomain, then collect etld+1 field of the data
-    // struct.
-    if (pageloadEventType == PageloadEventType::kDomain) {
-      // Only record events for domains that have suffixes from the public
-      // suffix list.
-      nsCOMPtr<nsIURI> currentURI = GetDomainURI();
-      bool hasKnownPublicSuffix = false;
-      rv = tldService->HasKnownPublicSuffix(currentURI, &hasKnownPublicSuffix);
-      if (NS_FAILED(rv) || !hasKnownPublicSuffix) {
-        return;
-      }
-
-      // Get ETLD+1 domain info, or return on failure.
-      nsAutoCString currentBaseDomain;
-      rv = tldService->GetBaseDomain(currentURI, 0, currentBaseDomain);
-      if (NS_FAILED(rv)) {
-        return;
-      }
-
-      // Do not record anything if we failed to assign the domain.
-      if (!mPageloadEventData.MaybeSetDomain(currentBaseDomain)) {
-        return;
-      }
+  if (pageloadEventType == PageloadEventType::kDomain) {
+    // Do not record anything if we failed to assign the domain.
+    if (!mPageloadEventData.MaybeSetPublicRegistrableDomain(GetDocumentURI(),
+                                                            GetChannel())) {
+      return;
     }
   }
 
