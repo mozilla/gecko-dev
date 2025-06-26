@@ -688,11 +688,11 @@ async function test_pinned_tabs_activations(verticalTabs) {
 add_task(async function test_pinned_tabs_activations_sidebar() {
   await test_pinned_tabs_activations(true);
 
-  const pinEvent = Glean.pinnedTabs.pin.testGetValue()?.[0];
-  const closeEvent = Glean.pinnedTabs.close.testGetValue()?.[0];
+  const pinEvent = Glean.pinnedTabs.pin.testGetValue()?.at(-1);
+  const closeEvent = Glean.pinnedTabs.close.testGetValue()?.at(-1);
   Assert.deepEqual(
     pinEvent?.extra,
-    { layout: "vertical", source: "context_menu" },
+    { layout: "vertical", source: "unknown" },
     "Pin event was recorded for vertical tabs."
   );
   Assert.deepEqual(
@@ -705,11 +705,11 @@ add_task(async function test_pinned_tabs_activations_sidebar() {
 add_task(async function test_pinned_tabs_activations_horizontal_bar() {
   await test_pinned_tabs_activations(false);
 
-  const pinEvent = Glean.pinnedTabs.pin.testGetValue()?.[1];
-  const closeEvent = Glean.pinnedTabs.close.testGetValue()?.[1];
+  const pinEvent = Glean.pinnedTabs.pin.testGetValue()?.at(-1);
+  const closeEvent = Glean.pinnedTabs.close.testGetValue()?.at(-1);
   Assert.deepEqual(
     pinEvent?.extra,
-    { layout: "horizontal", source: "context_menu" },
+    { layout: "horizontal", source: "unknown" },
     "Pin event was recorded for horizontal tabs."
   );
   Assert.deepEqual(
@@ -762,3 +762,39 @@ add_task(async function test_pinned_tabs_count_sidebar() {
 add_task(async function test_pinned_tabs_count_horizontal_bar() {
   await test_pinned_tabs_count(false);
 });
+
+add_task(async function test_pinned_tabs_pin_from_context_menu() {
+  info("Open a new tab.");
+  const newTab = BrowserTestUtils.addTab(gBrowser, "https://example.com/", {
+    skipAnimation: true,
+  });
+
+  info("Pin the new tab using context menu.");
+  const tabContextMenu = document.getElementById("tabContextMenu");
+  const promiseMenuShown = BrowserTestUtils.waitForEvent(
+    tabContextMenu,
+    "popupshown"
+  );
+  EventUtils.synthesizeMouseAtCenter(newTab, {
+    type: "contextmenu",
+    button: 2,
+  });
+  await promiseMenuShown;
+  const promiseTabPinned = BrowserTestUtils.waitForEvent(
+    window,
+    "TabPinned",
+    true
+  );
+  const pinTabMenuItem = document.getElementById("context_pinTab");
+  tabContextMenu.activateItem(pinTabMenuItem);
+  await promiseTabPinned;
+
+  const pinEvent = Glean.pinnedTabs.pin.testGetValue()?.at(-1);
+  Assert.deepEqual(
+    pinEvent?.extra,
+    { layout: "horizontal", source: "tab_menu" },
+    "Pin event was recorded with the correct telemetry source."
+  );
+});
+
+// TODO: Bug 1971584 - Add test coverage for pinning and unpinning a tab from the vertical grid

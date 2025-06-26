@@ -1319,7 +1319,7 @@ export let BrowserUsageTelemetry = {
     this.recordPinnedTabsCount(pinnedTabs);
     Glean.pinnedTabs.pin.record({
       layout: lazy.sidebarVerticalTabs ? "vertical" : "horizontal",
-      source: event.detail?.dragging ? "drag" : "context_menu",
+      source: event.detail?.telemetrySource,
     });
   },
 
