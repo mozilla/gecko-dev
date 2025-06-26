@@ -248,33 +248,7 @@ void StackTrace::Fill() {
 // Change this to 1 to enable some PHC logging. Useful for debugging.
 #define PHC_LOGGING 0
 
-#if PHC_LOGGING
-
-static size_t GetPid() { return size_t(getpid()); }
-
-static size_t GetTid() {
-#  if defined(XP_WIN)
-  return size_t(GetCurrentThreadId());
-#  else
-  return size_t(pthread_self());
-#  endif
-}
-
-#  if defined(XP_WIN)
-#    define LOG_STDERR \
-      reinterpret_cast<intptr_t>(GetStdHandle(STD_ERROR_HANDLE))
-#  else
-#    define LOG_STDERR 2
-#  endif
-#  define LOG(fmt, ...)                                                \
-    FdPrintf(LOG_STDERR, "PHC[%zu,%zu,~%zu] " fmt, GetPid(), GetTid(), \
-             size_t(PHC::Now()), ##__VA_ARGS__)
-
-#else
-
-#  define LOG(fmt, ...)
-
-#endif  // PHC_LOGGING
+static void Log(const char* fmt, ...);
 
 //---------------------------------------------------------------------------
 // Global state
@@ -646,7 +620,10 @@ class PHCRegion {
   }
 
  public:
-  PHCRegion();
+  PHCRegion()
+      : mPagesStart(AllocAllPages()), mPagesLimit(mPagesStart + kAllPagesSize) {
+    Log("AllocAllPages at %p..%p\n", mPagesStart, mPagesLimit);
+  }
 
   class PtrKind PtrKind(const void* aPtr) {
     class PtrKind pk(aPtr, mPagesStart, mPagesLimit);
@@ -776,7 +753,7 @@ class PHC {
     // An operation on a guard page? This is a bounds violation. Deliberately
     // touch the page in question to cause a crash that triggers the usual PHC
     // machinery.
-    LOG("CrashOnGuardPage(%p), bounds violation\n", aPtr);
+    Log("CrashOnGuardPage(%p), bounds violation\n", aPtr);
     *static_cast<uint8_t*>(aPtr) = 0;
     MOZ_CRASH("unreachable");
   }
@@ -788,7 +765,7 @@ class PHC {
     MOZ_RELEASE_ASSERT(page.mBaseAddr == aPtr);
 
     if (page.mState == AllocPageState::Freed) {
-      LOG("EnsureValidAndInUse(%p), use-after-free\n", aPtr);
+      Log("EnsureValidAndInUse(%p), use-after-free\n", aPtr);
       // An operation on a freed page? This is a particular kind of
       // use-after-free. Deliberately touch the page in question, in order to
       // cause a crash that triggers the usual PHC machinery. But unlock mMutex
@@ -1004,7 +981,7 @@ class PHC {
       // underflowed.
       tlsAllocDelay.set(kDelayDecrementAmount);
       tlsLastDelay.set(kDelayDecrementAmount);
-      LOG("Update sAllocDelay <- %zu, tlsAllocDelay <- %zu\n",
+      Log("Update sAllocDelay <- %zu, tlsAllocDelay <- %zu\n",
           size_t(new_delay), size_t(kDelayDecrementAmount));
       return false;
     }
@@ -1012,7 +989,7 @@ class PHC {
     if (old_delay < new_delay) {
       // The shared delay only just underflowed, so unless we hit exactly zero
       // we should set our local counter and continue.
-      LOG("Update sAllocDelay <- %zu, tlsAllocDelay <- %zu\n",
+      Log("Update sAllocDelay <- %zu, tlsAllocDelay <- %zu\n",
           size_t(new_delay), size_t(old_delay));
       if (old_delay == 0) {
         // We don't need to set tlsAllocDelay because it's already zero, we know
@@ -1027,7 +1004,7 @@ class PHC {
     // The delay underflowed on another thread or a previous failed allocation
     // by this thread.  Return true and attempt the next allocation, if the
     // other thread wins we'll check for that before committing.
-    LOG("Update sAllocDelay <- %zu, tlsAllocDelay <- %zu\n", size_t(new_delay),
+    Log("Update sAllocDelay <- %zu, tlsAllocDelay <- %zu\n", size_t(new_delay),
         size_t(alloc_delay));
     return true;
   }
@@ -1042,7 +1019,7 @@ class PHC {
   }
 
   static void ForceSetNewAllocDelay(Delay aNewAllocDelay) {
-    LOG("Setting sAllocDelay <- %zu\n", size_t(aNewAllocDelay));
+    Log("Setting sAllocDelay <- %zu\n", size_t(aNewAllocDelay));
     sAllocDelay = aNewAllocDelay;
     ResetLocalAllocDelay();
   }
@@ -1060,22 +1037,22 @@ class PHC {
       Delay read_delay = sAllocDelay;
       if (read_delay < DELAY_MAX) {
         // Another thread already set a valid delay.
-        LOG("Observe delay %zu this thread lost the race\n",
+        Log("Observe delay %zu this thread lost the race\n",
             size_t(read_delay));
         ResetLocalAllocDelay();
         return false;
       } else {
-        LOG("Preparing for CAS, read sAllocDelay %zu\n", size_t(read_delay));
+        Log("Preparing for CAS, read sAllocDelay %zu\n", size_t(read_delay));
       }
 
       cas_retry = !sAllocDelay.compareExchange(read_delay, aNewAllocDelay);
       if (cas_retry) {
-        LOG("Lost the CAS, sAllocDelay is now %zu\n", size_t(sAllocDelay));
+        Log("Lost the CAS, sAllocDelay is now %zu\n", size_t(sAllocDelay));
         cpu_pause();
         //  We raced against another thread and lost.
       }
     } while (cas_retry);
-    LOG("Won the CAS, set sAllocDelay = %zu\n", size_t(sAllocDelay));
+    Log("Won the CAS, set sAllocDelay = %zu\n", size_t(sAllocDelay));
     ResetLocalAllocDelay();
     return true;
   }
@@ -1319,12 +1296,6 @@ PHC_THREAD_LOCAL(Delay) PHC::tlsAllocDelay;
 Atomic<Delay, ReleaseAcquire> PHC::sAllocDelay;
 PHC_THREAD_LOCAL(Delay) PHC::tlsLastDelay;
 
-// This must be defined after the PHC class.
-PHCRegion::PHCRegion()
-    : mPagesStart(AllocAllPages()), mPagesLimit(mPagesStart + kAllPagesSize) {
-  LOG("AllocAllPages at %p..%p\n", mPagesStart, mPagesLimit);
-}
-
 // When PHC wants to crash we first have to unlock so that the crash reporter
 // can call into PHC to lockup its pointer. That also means that before calling
 // PHCCrash please ensure that state is consistent.  Because this can report an
@@ -1415,12 +1386,12 @@ void PHC::LogNoAlloc(size_t aReqSize, size_t aAlignment, Delay newAllocDelay)
   // No pages are available, or VirtualAlloc/mprotect failed.
 #if PHC_LOGGING
   phc::PHCStats stats = GetPageStats();
-#endif
-  LOG("No PageAlloc(%zu, %zu), sAllocDelay <- %zu, fullness %zu/%zu/%zu, "
+  Log("No PageAlloc(%zu, %zu), sAllocDelay <- %zu, fullness %zu/%zu/%zu, "
       "hits %zu/%zu (%zu%%)\n",
       aReqSize, aAlignment, size_t(newAllocDelay), stats.mSlotsAllocated,
       stats.mSlotsFreed, kNumAllocPages, PageAllocHits(), PageAllocAttempts(),
       PageAllocHitRate());
+#endif
 }
 
 // Attempt a page allocation if the time and the size are right. Allocated
@@ -1532,14 +1503,14 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
   PHC::sPHC->IncPageAllocHits();
 #if PHC_LOGGING
   phc::PHCStats stats = PHC::sPHC->GetPageStats();
-#endif
-  LOG("PageAlloc(%zu, %zu) -> %p[%zu]/%p (%zu) (z%zu), sAllocDelay <- %zu, "
+  Log("PageAlloc(%zu, %zu) -> %p[%zu]/%p (%zu) (z%zu), sAllocDelay <- %zu, "
       "fullness %zu/%zu/%zu, hits %zu/%zu (%zu%%), lifetime %zu\n",
       aReqSize, aAlignment, pagePtr, index, ptr, usableSize,
       size_t(newAllocDelay), size_t(PHC::SharedAllocDelay()),
       stats.mSlotsAllocated, stats.mSlotsFreed, kNumAllocPages,
       PHC::sPHC->PageAllocHits(), PHC::sPHC->PageAllocAttempts(),
       PHC::sPHC->PageAllocHitRate(), lifetime);
+#endif
 
   return ptr;
 }
@@ -1706,7 +1677,7 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
     uint8_t* newPtr = pagePtr + kPageSize - newUsableSize;
     memmove(newPtr, aOldPtr, std::min(oldUsableSize, aNewSize));
     PHC::sPHC->ResizePageInUse(index, aArenaId, newPtr, stack);
-    LOG("PageRealloc-Reuse(%p, %zu) -> %p\n", aOldPtr, aNewSize, newPtr);
+    Log("PageRealloc-Reuse(%p, %zu) -> %p\n", aOldPtr, aNewSize, newPtr);
     return Some(newPtr);
   }
 
@@ -1733,7 +1704,7 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
   size_t oldUsableSize = PHC::sPHC->PageUsableSize(index);
   memcpy(newPtr, aOldPtr, std::min(oldUsableSize, aNewSize));
   FreePage(index, aArenaId, stack, reuseDelay);
-  LOG("PageRealloc-Free(%p[%zu], %zu) -> %p, %zu delay, reuse at ~%zu\n",
+  Log("PageRealloc-Free(%p[%zu], %zu) -> %p, %zu delay, reuse at ~%zu\n",
       aOldPtr, index, aNewSize, newPtr, size_t(reuseDelay),
       size_t(PHC::Now()) + reuseDelay);
 
@@ -1789,10 +1760,10 @@ static void DoPageFree(const Maybe<arena_id_t>& aArenaId, void* aPtr) {
 
 #if PHC_LOGGING
   phc::PHCStats stats = PHC::sPHC->GetPageStats();
-#endif
-  LOG("PageFree(%p[%zu]), %zu delay, reuse at ~%zu, fullness %zu/%zu/%zu\n",
+  Log("PageFree(%p[%zu]), %zu delay, reuse at ~%zu, fullness %zu/%zu/%zu\n",
       aPtr, index, size_t(reuseDelay), size_t(PHC::Now()) + reuseDelay,
       stats.mSlotsAllocated, stats.mSlotsFreed, kNumAllocPages);
+#endif
 }
 
 MOZ_ALWAYS_INLINE static bool FastIsPHCPtr(void* aPtr) {
@@ -1949,10 +1920,10 @@ inline void MozJemallocPHC::jemalloc_ptr_info(const void* aPtr,
 
   PHC::sPHC->FillJemallocPtrInfo(aPtr, index, aInfo);
 #if DEBUG
-  LOG("JemallocPtrInfo(%p[%zu]) -> {%zu, %p, %zu, %zu}\n", aPtr, index,
+  Log("JemallocPtrInfo(%p[%zu]) -> {%zu, %p, %zu, %zu}\n", aPtr, index,
       size_t(aInfo->tag), aInfo->addr, aInfo->size, aInfo->arenaId);
 #else
-  LOG("JemallocPtrInfo(%p[%zu]) -> {%zu, %p, %zu}\n", aPtr, index,
+  Log("JemallocPtrInfo(%p[%zu]) -> {%zu, %p, %zu}\n", aPtr, index,
       size_t(aInfo->tag), aInfo->addr, aInfo->size);
 #endif
 }
@@ -2023,13 +1994,13 @@ bool IsPHCAllocation(const void* aPtr, AddrInfo* aOut) {
   if (aOut) {
     if (PHC::sPHC->mMutex.TryLock()) {
       PHC::sPHC->FillAddrInfo(index, aPtr, isGuardPage, *aOut);
-      LOG("IsPHCAllocation: %zu, %p, %zu, %zu, %zu\n", size_t(aOut->mKind),
+      Log("IsPHCAllocation: %zu, %p, %zu, %zu, %zu\n", size_t(aOut->mKind),
           aOut->mBaseAddr, aOut->mUsableSize,
           aOut->mAllocStack.isSome() ? aOut->mAllocStack->mLength : 0,
           aOut->mFreeStack.isSome() ? aOut->mFreeStack->mLength : 0);
       PHC::sPHC->mMutex.Unlock();
     } else {
-      LOG("IsPHCAllocation: PHC is locked\n");
+      Log("IsPHCAllocation: PHC is locked\n");
       aOut->mPhcWasLocked = true;
     }
   }
@@ -2038,17 +2009,17 @@ bool IsPHCAllocation(const void* aPtr, AddrInfo* aOut) {
 
 void DisablePHCOnCurrentThread() {
   PHC::DisableOnCurrentThread();
-  LOG("DisablePHCOnCurrentThread: %zu\n", 0ul);
+  Log("DisablePHCOnCurrentThread: %zu\n", 0ul);
 }
 
 void ReenablePHCOnCurrentThread() {
   PHC::sPHC->EnableOnCurrentThread();
-  LOG("ReenablePHCOnCurrentThread: %zu\n", 0ul);
+  Log("ReenablePHCOnCurrentThread: %zu\n", 0ul);
 }
 
 bool IsPHCEnabledOnCurrentThread() {
   bool enabled = !PHC::IsDisabledOnCurrentThread();
-  LOG("IsPHCEnabledOnCurrentThread: %zu\n", size_t(enabled));
+  Log("IsPHCEnabledOnCurrentThread: %zu\n", size_t(enabled));
   return enabled;
 }
 
@@ -2099,3 +2070,37 @@ void SetPHCProbabilities(int64_t aAvgDelayFirst, int64_t aAvgDelayNormal,
 }
 
 }  // namespace mozilla::phc
+
+#if PHC_LOGGING
+static size_t GetPid() { return size_t(getpid()); }
+
+static size_t GetTid() {
+#  if defined(XP_WIN)
+  return size_t(GetCurrentThreadId());
+#  else
+  return size_t(pthread_self());
+#  endif
+}
+#endif  // PHC_LOGGING
+
+static void Log(const char* fmt, ...) {
+#if PHC_LOGGING
+#  if defined(XP_WIN)
+#    define LOG_STDERR \
+      reinterpret_cast<intptr_t>(GetStdHandle(STD_ERROR_HANDLE))
+#  else
+#    define LOG_STDERR 2
+#  endif
+
+  char buf[256];
+  size_t pos = SNPrintf(buf, sizeof(buf), "PHC[%zu,%zu,~%zu] ", GetPid(),
+                        GetTid(), size_t(PHC::Now()));
+  va_list vargs;
+  va_start(vargs, fmt);
+  pos += VSNPrintf(&buf[pos], sizeof(buf) - pos, fmt, vargs);
+  MOZ_ASSERT(pos < sizeof(buf));
+  va_end(vargs);
+
+  FdPuts(LOG_STDERR, buf, pos);
+#endif  // PHC_LOGGING
+}
