@@ -11,6 +11,7 @@
 
 #include "jit/MoveResolver.h"
 #include "jit/none/Assembler-none.h"
+#include "jit/shared/IonAssemblerBuffer.h"
 #include "wasm/WasmCodegenTypes.h"
 #include "wasm/WasmTypeDecls.h"
 
@@ -97,7 +98,7 @@ class MacroAssemblerNone : public Assembler {
   void nop() { MOZ_CRASH(); }
   void breakpoint() { MOZ_CRASH(); }
   void abiret() { MOZ_CRASH(); }
-  void ret() { MOZ_CRASH(); }
+  BufferOffset ret() { MOZ_CRASH(); }
 
   CodeOffset toggledJump(Label*) { MOZ_CRASH(); }
   CodeOffset toggledCall(JitCode*, bool) { MOZ_CRASH(); }

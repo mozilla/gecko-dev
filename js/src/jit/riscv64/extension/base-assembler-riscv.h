@@ -43,6 +43,7 @@
 #include "jit/riscv64/Architecture-riscv64.h"
 #include "jit/riscv64/constant/Constant-riscv64.h"
 #include "jit/riscv64/Register-riscv64.h"
+#include "jit/shared/IonAssemblerBuffer.h"
 
 #define xlen (uint8_t(sizeof(void*) * 8))
 
@@ -102,9 +103,9 @@ class AssemblerRiscvBase {
  protected:
   virtual int32_t branch_offset_helper(Label* L, OffsetSize bits) = 0;
 
-  virtual void emit(Instr x) = 0;
-  virtual void emit(ShortInstr x) = 0;
-  virtual void emit(uint64_t x) = 0;
+  virtual BufferOffset emit(Instr x) = 0;
+  virtual BufferOffset emit(ShortInstr x) = 0;
+  virtual BufferOffset emit(uint64_t x) = 0;
   virtual uint32_t currentOffset() = 0;
   // Instruction generation.
 
@@ -132,10 +133,10 @@ class AssemblerRiscvBase {
                        Register rd, Register rs1, Register rs2);
   void GenInstrRFrm(uint8_t funct7, BaseOpcode opcode, Register rd,
                     Register rs1, Register rs2, FPURoundingMode frm);
-  void GenInstrI(uint8_t funct3, BaseOpcode opcode, Register rd, Register rs1,
-                 int16_t imm12);
-  void GenInstrI(uint8_t funct3, BaseOpcode opcode, FPURegister rd,
-                 Register rs1, int16_t imm12);
+  BufferOffset GenInstrI(uint8_t funct3, BaseOpcode opcode, Register rd,
+                         Register rs1, int16_t imm12);
+  BufferOffset GenInstrI(uint8_t funct3, BaseOpcode opcode, FPURegister rd,
+                         Register rs1, int16_t imm12);
   void GenInstrIShift(bool arithshift, uint8_t funct3, BaseOpcode opcode,
                       Register rd, Register rs1, uint8_t shamt);
   void GenInstrIShiftW(bool arithshift, uint8_t funct3, BaseOpcode opcode,

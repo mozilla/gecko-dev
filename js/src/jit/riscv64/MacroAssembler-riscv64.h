@@ -620,9 +620,9 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
     jr(scratch);
   }
   void branch(const Register reg) { jr(reg); }
-  void ret() {
+  BufferOffset ret() {
     ma_pop(ra);
-    jalr(zero_reg, ra, 0);
+    return jalr(zero_reg, ra, 0);
   }
   inline void retn(Imm32 n);
   void push(Imm32 imm) {

@@ -1284,9 +1284,11 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     Negs(ARMRegister(reg, 64), Operand(ARMRegister(reg, 64)));
   }
 
-  void ret() {
+  BufferOffset ret() {
     pop(lr);
+    BufferOffset ret(currentOffset());
     abiret();
+    return ret;
   }
 
   void retn(Imm32 n) {
