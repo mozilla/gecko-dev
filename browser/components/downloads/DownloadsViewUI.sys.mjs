@@ -1076,11 +1076,10 @@ DownloadsViewUI.DownloadElementShell.prototype = {
         return this.download.canceled || !!this.download.error;
       case "downloadsCmd_pauseResume":
         return this.download.hasPartialData && !this.download.error;
-      case "downloadsCmd_openReferrer":
-        return (
-          !!this.download.source.referrerInfo &&
-          !!this.download.source.referrerInfo.originalReferrer
-        );
+      case "downloadsCmd_openReferrer": {
+        let referrer = this.download.source.referrerInfo?.originalReferrer;
+        return !!referrer && referrer.asciiSpec != "about:blank";
+      }
       case "downloadsCmd_confirmBlock":
       case "downloadsCmd_chooseUnblock":
       case "downloadsCmd_chooseOpen":
