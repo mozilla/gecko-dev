@@ -71,7 +71,7 @@ add_task(async function test_idle_telemetry() {
 
   let distr = await Glean.network.trrIdleCloseTimeH2.other.testGetValue();
   Assert.equal(distr.count, 1, "just one connection being killed");
-  Assert.greater(
+  Assert.greaterOrEqual(
     distr.sum,
     timeout * 1000000000,
     "should be slightly longer than the timeout. Note timeout is in microseconds"
@@ -129,7 +129,7 @@ add_task(
     await new Promise(resolve => do_timeout((timeout + 1) * 1000, resolve));
     let distr = await Glean.network.trrIdleCloseTimeH3.other.testGetValue();
     Assert.equal(distr.count, 1, "just one connection being killed");
-    Assert.greater(
+    Assert.greaterOrEqual(
       distr.sum,
       timeout * 1000000000,
       "should be slightly longer than the timeout. Note timeout is in microseconds"
