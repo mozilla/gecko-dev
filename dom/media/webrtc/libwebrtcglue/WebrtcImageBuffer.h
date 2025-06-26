@@ -8,8 +8,6 @@
 #define WebrtcImageBuffer_h__
 
 #include "common_video/include/video_frame_buffer.h"
-#include "mozilla/RefPtr.h"
-#include "ImageContainer.h"
 
 namespace mozilla {
 namespace layers {

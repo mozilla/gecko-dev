@@ -12247,14 +12247,6 @@
   value: true
   mirror: once
 
-# When true enables capability enumeration and capture of a fake video capture
-# backend. Platform independent. Note, does not come into effect when the pref
-# `media.navigator.streams.fake` or the `fake` constraint is true.
-- name: media.getusermedia.camera.fake.force
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 # Tell the audio backend to prefer a stream adapted for voice when processing is
 # enabled through constraints (possibly defaults). Whether it has any effect
 # depends on the backend.
