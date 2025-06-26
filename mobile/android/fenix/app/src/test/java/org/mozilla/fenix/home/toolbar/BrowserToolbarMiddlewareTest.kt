@@ -5,6 +5,8 @@
 package org.mozilla.fenix.home.toolbar
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -16,14 +18,18 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.setMain
 import mozilla.components.browser.state.action.TabListAction.AddTabAction
 import mozilla.components.browser.state.action.TabListAction.RemoveTabAction
+import mozilla.components.browser.state.search.SearchEngine
+import mozilla.components.browser.state.search.SearchEngine.Type.APPLICATION
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
+import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption.LoadFromClipboard
@@ -40,6 +46,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.B
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Text.StringResText
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.support.test.ext.joinBlocking
+import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
@@ -59,6 +66,7 @@ import org.mozilla.fenix.browser.browsingmode.SimpleBrowsingModeManager
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.UseCases
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppAction.SearchEngineSelected
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.OrientationMode.Landscape
 import org.mozilla.fenix.components.appstate.OrientationMode.Portrait
@@ -73,7 +81,10 @@ import org.mozilla.fenix.home.toolbar.PageOriginInteractions.OriginClicked
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.AddNewPrivateTab
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.TabCounterClicked
+import org.mozilla.fenix.search.fixtures.assertSearchSelectorEquals
+import org.mozilla.fenix.search.fixtures.buildExpectedSearchSelector
 import org.mozilla.fenix.tabstray.Page
+import org.robolectric.Shadows.shadowOf
 import mozilla.components.ui.icons.R as iconsR
 
 @RunWith(AndroidJUnit4::class)
@@ -570,6 +581,38 @@ class BrowserToolbarMiddlewareTest {
             }
         }
     }
+
+    @Test
+    fun `WHEN the selected search engine changes THEN update the search selector`() {
+        Dispatchers.setMain(Handler(Looper.getMainLooper()).asCoroutineDispatcher())
+
+        val middleware = BrowserToolbarMiddleware(appStore, browserStore, mockk()).apply {
+            updateLifecycleDependencies(
+                LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
+            )
+        }
+        val newSearchEngine = SearchEngine("test", "Test", mock(), type = APPLICATION)
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        appStore.dispatch(SearchEngineSelected(newSearchEngine)).joinBlocking()
+        shadowOf(Looper.getMainLooper()).idle() // wait for observing and processing the search engine update
+
+        assertSearchSelectorEquals(
+            expectedSearchSelector(newSearchEngine),
+            toolbarStore.state.displayState.pageActionsStart[0] as SearchSelectorAction,
+        )
+    }
+
+    private fun expectedSearchSelector(
+        defaultOrSelectedSearchEngine: SearchEngine,
+        searchEngineShortcuts: List<SearchEngine> = emptyList(),
+    ) = buildExpectedSearchSelector(
+        defaultOrSelectedSearchEngine,
+        searchEngineShortcuts,
+        testContext.resources,
+    )
 
     private fun assertEqualsToolbarButton(expected: TabCounterAction, actual: TabCounterAction) {
         assertEquals(expected.count, actual.count)

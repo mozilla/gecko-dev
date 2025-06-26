@@ -149,6 +149,9 @@ class BrowserToolbarSearchMiddleware(
             }
 
             is SearchSelectorItemClicked -> {
+                if (!toolbarStore.state.isEditMode()) {
+                    toolbarStore.dispatch(ToggleEditMode(true))
+                }
                 appStore.dispatch(SearchEngineSelected(action.searchEngine))
                 refreshConfigurationAfterSearchEngineChange(action.searchEngine)
             }
