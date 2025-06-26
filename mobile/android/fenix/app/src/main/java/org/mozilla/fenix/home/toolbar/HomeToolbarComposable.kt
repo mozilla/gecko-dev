@@ -204,7 +204,12 @@ internal class HomeToolbarComposable(
         BrowserToolbarSearchMiddleware::class.java ->
             ViewModelProvider(
                 lifecycleOwner,
-                BrowserToolbarSearchMiddleware.viewModelFactory(appStore, browserStore),
+                BrowserToolbarSearchMiddleware.viewModelFactory(
+                    appStore = appStore,
+                    browserStore = browserStore,
+                    components = context.components,
+                    settings = context.components.settings,
+                ),
             ).get(BrowserToolbarSearchMiddleware::class.java).also {
                 it.updateLifecycleDependencies(
                     BrowserToolbarSearchMiddleware.LifecycleDependencies(

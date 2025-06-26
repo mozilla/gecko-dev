@@ -10,6 +10,7 @@ import mozilla.components.compose.browser.toolbar.R
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
+import mozilla.components.concept.toolbar.AutocompleteProvider
 import mozilla.components.lib.state.State
 
 /**
@@ -122,6 +123,7 @@ sealed class ProgressBarGravity {
  */
 data class EditState(
     val editText: String? = null,
+    val autocompleteProviders: List<AutocompleteProvider> = emptyList(),
     val editActionsStart: List<Action> = emptyList(),
     val editActionsEnd: List<Action> = emptyList(),
 ) : State

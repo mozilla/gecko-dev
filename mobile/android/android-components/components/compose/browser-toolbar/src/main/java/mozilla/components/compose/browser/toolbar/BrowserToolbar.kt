@@ -6,10 +6,12 @@ package mozilla.components.compose.browser.toolbar
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UpdateEditText
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UrlSuggestionAutocompleted
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.CommitUrl
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
@@ -33,14 +35,19 @@ fun BrowserToolbar(
     store: BrowserToolbarStore,
 ) {
     val uiState by store.observeAsState(initialValue = store.state) { it }
+    val url = remember(uiState.editState.editText, uiState.displayState.pageOrigin.url) {
+        uiState.editState.editText ?: uiState.displayState.pageOrigin.url.orEmpty()
+    }
 
     if (uiState.isEditMode()) {
         BrowserEditToolbar(
-            url = uiState.editState.editText ?: uiState.displayState.pageOrigin.url.orEmpty(),
+            url = url,
+            autocompleteProviders = uiState.editState.autocompleteProviders,
             editActionsStart = uiState.editState.editActionsStart,
             editActionsEnd = uiState.editState.editActionsEnd,
             onUrlCommitted = { text -> store.dispatch(CommitUrl(text)) },
             onUrlEdit = { text -> store.dispatch(UpdateEditText(text)) },
+            onUrlSuggestionAutocompleted = { store.dispatch(UrlSuggestionAutocompleted(it)) },
             onInteraction = { store.dispatch(it) },
         )
     } else {
@@ -62,6 +69,7 @@ private fun BrowserToolbarPreview_EditMode() {
     // Mock edit state
     val editState = EditState(
         editText = "https://www.mozilla.org",
+        autocompleteProviders = emptyList(),
         editActionsStart = emptyList(),
         editActionsEnd = emptyList(),
     )

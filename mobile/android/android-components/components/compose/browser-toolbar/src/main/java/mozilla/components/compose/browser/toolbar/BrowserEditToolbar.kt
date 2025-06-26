@@ -38,6 +38,7 @@ import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorA
 import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.Icon.DrawableIcon
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.ui.InlineAutocompleteTextField
+import mozilla.components.concept.toolbar.AutocompleteProvider
 import mozilla.components.ui.icons.R as iconsR
 
 private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
@@ -47,6 +48,8 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
  * URL ("edit mode").
  *
  * @param url The initial URL to be edited.
+ * @param autocompleteProviders Optional list of [AutocompleteProvider]s to be used for
+ * inline autocompleting the current query.
  * @param useComposeTextField Whether or not to use the Compose [TextField] or a view-based
  * inline autocomplete text field.
  * @param editActionsStart List of [Action]s to be displayed at the start of the URL of
@@ -63,11 +66,13 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
 @Suppress("LongMethod")
 fun BrowserEditToolbar(
     url: String,
+    autocompleteProviders: List<AutocompleteProvider> = emptyList(),
     useComposeTextField: Boolean = false,
     editActionsStart: List<Action> = emptyList(),
     editActionsEnd: List<Action> = emptyList(),
     onUrlEdit: (String) -> Unit = {},
     onUrlCommitted: (String) -> Unit = {},
+    onUrlSuggestionAutocompleted: (String) -> Unit = {},
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
     Row(
@@ -137,9 +142,11 @@ fun BrowserEditToolbar(
 
             InlineAutocompleteTextField(
                 url = url,
+                autocompleteProviders = autocompleteProviders,
                 modifier = Modifier.weight(1f),
                 onUrlEdit = onUrlEdit,
                 onUrlCommitted = onUrlCommitted,
+                onUrlSuggestionAutocompleted = onUrlSuggestionAutocompleted,
             )
 
             ActionContainer(
@@ -186,6 +193,7 @@ private fun BrowserEditToolbarPreview() {
     AcornTheme {
         BrowserEditToolbar(
             url = "http://www.mozilla.org",
+            autocompleteProviders = emptyList(),
             useComposeTextField = true,
             editActionsStart = listOf(
                 SearchSelectorAction(

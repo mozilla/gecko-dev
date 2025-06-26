@@ -7,10 +7,17 @@ package org.mozilla.fenix.search
 import android.content.res.Resources
 import androidx.annotation.VisibleForTesting
 import androidx.core.graphics.drawable.toDrawable
+import androidx.lifecycle.Lifecycle.State.RESUMED
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.launch
 import mozilla.components.browser.state.action.AwesomeBarAction
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.search.SearchEngine.Type.APPLICATION
@@ -18,8 +25,10 @@ import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.AutocompleteProvidersUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.SearchActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UpdateEditText
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UrlSuggestionAutocompleted
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Init
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
@@ -31,17 +40,25 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
+import mozilla.components.lib.state.State
+import mozilla.components.lib.state.Store
+import mozilla.components.lib.state.ext.flow
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.UnifiedSearch
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.appstate.AppAction.SearchEngineSelected
 import org.mozilla.fenix.components.appstate.AppAction.UpdateSearchBeingActiveState
+import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
+import org.mozilla.fenix.components.search.HISTORY_SEARCH_ENGINE_ID
+import org.mozilla.fenix.components.search.TABS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.search.SearchSelectorEvents.SearchSelectorClicked
 import org.mozilla.fenix.search.SearchSelectorEvents.SearchSelectorItemClicked
 import org.mozilla.fenix.search.SearchSelectorEvents.SearchSettingsItemClicked
 import org.mozilla.fenix.search.ext.searchEngineShortcuts
+import org.mozilla.fenix.utils.Settings
 import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.ContentDescription.StringContentDescription as SearchSelectorDescription
 import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.Icon.DrawableIcon as SearchSelectorIcon
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.ContentDescription.StringContentDescription as MenuItemStringDescription
@@ -50,6 +67,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.B
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Icon.DrawableResIcon as MenuItemIconRes
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Text.StringResText as MenuItemStringResText
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Text.StringText as MenuItemStringText
+import mozilla.components.lib.state.Action as MVIAction
 
 @VisibleForTesting
 internal sealed class SearchSelectorEvents : BrowserToolbarEvent {
@@ -68,13 +86,18 @@ internal sealed class SearchSelectorEvents : BrowserToolbarEvent {
  *
  * @param appStore [AppStore] used for querying and updating application state.
  * @param browserStore [BrowserStore] used for querying and updating browser state.
+ * @param components [Components] for accessing other functionalities of the application.
+ * @param settings [Settings] for accessing application settings.
  */
 class BrowserToolbarSearchMiddleware(
     private val appStore: AppStore,
     private val browserStore: BrowserStore,
+    private val components: Components,
+    private val settings: Settings,
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
     private lateinit var toolbarStore: BrowserToolbarStore
     private lateinit var dependencies: LifecycleDependencies
+    private var syncCurrentSearchEngineJob: Job? = null
 
     /**
      * Updates the [LifecycleDependencies] of this middleware.
@@ -83,6 +106,9 @@ class BrowserToolbarSearchMiddleware(
      */
     fun updateLifecycleDependencies(dependencies: LifecycleDependencies) {
         this.dependencies = dependencies
+        if (syncCurrentSearchEngineJob?.isCancelled == false) {
+            syncCurrentSearchEngine()
+        }
     }
 
     override fun invoke(
@@ -90,6 +116,8 @@ class BrowserToolbarSearchMiddleware(
         next: (BrowserToolbarAction) -> Unit,
         action: BrowserToolbarAction,
     ) {
+        next(action)
+
         when (action) {
             is Init -> {
                 toolbarStore = context.store as BrowserToolbarStore
@@ -97,11 +125,12 @@ class BrowserToolbarSearchMiddleware(
 
             is ToggleEditMode -> {
                 if (action.editMode == true) {
-                    val searchState = browserStore.state.search
-                    updateSearchSelectorMenu(
-                        searchState.selectedOrDefaultSearchEngine,
-                        searchState.searchEngineShortcuts,
+                    refreshConfigurationAfterSearchEngineChange(
+                        appStore.state.shortcutSearchEngine ?: browserStore.state.search.selectedOrDefaultSearchEngine,
                     )
+                    syncCurrentSearchEngine()
+                } else {
+                    syncCurrentSearchEngineJob?.cancel()
                 }
             }
 
@@ -121,15 +150,22 @@ class BrowserToolbarSearchMiddleware(
 
             is SearchSelectorItemClicked -> {
                 appStore.dispatch(SearchEngineSelected(action.searchEngine))
-                updateSearchSelectorMenu(action.searchEngine, browserStore.state.search.searchEngineShortcuts)
+                refreshConfigurationAfterSearchEngineChange(action.searchEngine)
+            }
+
+            is UrlSuggestionAutocompleted -> {
+                components.core.engine.speculativeConnect(action.url)
             }
 
             else -> {
                 // no-op.
             }
         }
+    }
 
-        next(action)
+    private fun refreshConfigurationAfterSearchEngineChange(searchEngine: SearchEngine?) {
+        updateSearchSelectorMenu(searchEngine, browserStore.state.search.searchEngineShortcuts)
+        updateAutocompleteProviders(searchEngine)
     }
 
     private fun updateSearchSelectorMenu(
@@ -145,6 +181,65 @@ class BrowserToolbarSearchMiddleware(
                 },
             ),
         )
+    }
+
+    private fun updateAutocompleteProviders(selectedSearchEngine: SearchEngine?) {
+        if (!settings.shouldAutocompleteInAwesomebar) return
+
+        val autocompleteProviders = buildAutocompleteProvidersList(selectedSearchEngine)
+        toolbarStore.dispatch(AutocompleteProvidersUpdated(autocompleteProviders))
+    }
+
+    private fun buildAutocompleteProvidersList(selectedSearchEngine: SearchEngine?) = when (selectedSearchEngine?.id) {
+        browserStore.state.search.selectedOrDefaultSearchEngine?.id -> listOfNotNull(
+            when (settings.shouldShowHistorySuggestions) {
+                true -> components.core.historyStorage
+                false -> null
+            },
+            when (settings.shouldShowBookmarkSuggestions) {
+                true -> components.core.bookmarksStorage
+                false -> null
+            },
+            components.core.domainsAutocompleteProvider,
+        )
+
+        TABS_SEARCH_ENGINE_ID -> listOf(
+            components.core.sessionAutocompleteProvider,
+            components.backgroundServices.syncedTabsAutocompleteProvider,
+        )
+
+        BOOKMARKS_SEARCH_ENGINE_ID -> listOf(
+            components.core.bookmarksStorage,
+        )
+
+        HISTORY_SEARCH_ENGINE_ID -> listOf(
+            components.core.historyStorage,
+        )
+
+        else -> emptyList()
+    }
+
+    private fun syncCurrentSearchEngine() {
+        syncCurrentSearchEngineJob?.cancel()
+        syncCurrentSearchEngineJob = observeWhileActive(appStore) {
+            distinctUntilChangedBy { it.shortcutSearchEngine }
+                .collect {
+                    it.shortcutSearchEngine?.let {
+                        refreshConfigurationAfterSearchEngineChange(it)
+                    }
+                }
+        }
+    }
+
+    private inline fun <S : State, A : MVIAction> observeWhileActive(
+        store: Store<S, A>,
+        crossinline observe: suspend (Flow<S>.() -> Unit),
+    ): Job = with(dependencies.lifecycleOwner) {
+        lifecycleScope.launch {
+            repeatOnLifecycle(RESUMED) {
+                store.flow().observe()
+            }
+        }
     }
 
     /**
@@ -169,15 +264,23 @@ class BrowserToolbarSearchMiddleware(
          *
          * @param appStore The [AppStore] to sync search related data with.
          * @param browserStore The [BrowserStore] to sync search related data with.
+         * @param components [Components] for accessing other functionalities of the application.
+         * @param settings [Settings] for accessing application settings.
          */
         fun viewModelFactory(
             appStore: AppStore,
             browserStore: BrowserStore,
+            components: Components,
+            settings: Settings,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                BrowserToolbarSearchMiddleware(appStore, browserStore) as? T
-                    ?: throw IllegalArgumentException("Unknown ViewModel class")
+                BrowserToolbarSearchMiddleware(
+                    appStore,
+                    browserStore,
+                    components,
+                    settings,
+                ) as? T ?: throw IllegalArgumentException("Unknown ViewModel class")
         }
 
         /**

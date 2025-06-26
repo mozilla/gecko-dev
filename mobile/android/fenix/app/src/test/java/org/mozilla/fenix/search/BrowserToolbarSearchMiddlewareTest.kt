@@ -29,6 +29,9 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Tog
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.concept.toolbar.AutocompleteProvider
+import mozilla.components.support.test.ext.joinBlocking
+import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.telemetry.glean.testing.GleanTestRule
@@ -44,13 +47,20 @@ import org.mozilla.fenix.GleanMetrics.UnifiedSearch
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.Components
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.UpdateSearchBeingActiveState
+import org.mozilla.fenix.components.appstate.AppState
+import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
+import org.mozilla.fenix.components.search.HISTORY_SEARCH_ENGINE_ID
+import org.mozilla.fenix.components.search.TABS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.helpers.lifecycle.TestLifecycleOwner
 import org.mozilla.fenix.search.BrowserToolbarSearchMiddleware.LifecycleDependencies
 import org.mozilla.fenix.search.SearchSelectorEvents.SearchSelectorClicked
 import org.mozilla.fenix.search.SearchSelectorEvents.SearchSelectorItemClicked
 import org.mozilla.fenix.search.SearchSelectorEvents.SearchSettingsItemClicked
 import org.mozilla.fenix.search.ext.searchEngineShortcuts
+import org.mozilla.fenix.utils.Settings
 import org.robolectric.RobolectricTestRunner
 import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.ContentDescription as SearchSelectorDescription
 import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.Icon as SearchSelectorIcon
@@ -63,10 +73,12 @@ class BrowserToolbarSearchMiddlewareTest {
     @get:Rule
     val gleanTestRule = GleanTestRule(testContext)
 
-    val appStore: AppStore = mockk(relaxed = true)
+    val appStore = AppStore()
     val browserStore: BrowserStore = mockk(relaxed = true) {
         every { state.search } returns fakeSearchState()
     }
+    val components: Components = mockk()
+    val settings: Settings = mockk(relaxed = true)
     val lifecycleOwner: LifecycleOwner = TestLifecycleOwner(RESUMED)
     val navController: NavController = mockk {
         every { navigate(any<NavDirections>()) } just Runs
@@ -96,7 +108,9 @@ class BrowserToolbarSearchMiddlewareTest {
 
     @Test
     fun `GIVEN the search selector menu is open WHEN the search settings button is clicked THEN exit edit mode and open search settings`() {
-        val (_, store) = buildMiddlewareAndAddToStore()
+        val captorMiddleware = CaptureActionsMiddleware<AppState, AppAction>()
+        val appStore = AppStore(middlewares = listOf(captorMiddleware))
+        val (_, store) = buildMiddlewareAndAddToStore(appStore = appStore)
         store.dispatch(ToggleEditMode(true))
         store.dispatch(UpdateEditText("test"))
         assertTrue(store.state.isEditMode())
@@ -106,7 +120,9 @@ class BrowserToolbarSearchMiddlewareTest {
 
         assertFalse(store.state.isEditMode())
         assertEquals("", store.state.editState.editText)
-        verify { appStore.dispatch(UpdateSearchBeingActiveState(false)) }
+        captorMiddleware.assertLastAction(UpdateSearchBeingActiveState::class) {
+            assertFalse(it.isSearchActive)
+        }
         verify { browserStore.dispatch(AwesomeBarAction.EngagementFinished(abandoned = true)) }
         verify {
             navController.navigate(
@@ -130,6 +146,155 @@ class BrowserToolbarSearchMiddlewareTest {
         assertSearchSelectorEquals(
             expectedSearchSelector(newEngineSelection),
             store.state.editState.editActionsStart[0] as SearchSelectorAction,
+        )
+    }
+
+    @Test
+    fun `GIVEN default engine selected WHEN entering in edit mode THEN set autocomplete providers`() {
+        every { settings.shouldAutocompleteInAwesomebar } returns true
+        every { settings.shouldShowHistorySuggestions } returns true
+        every { settings.shouldShowBookmarkSuggestions } returns true
+        configureAutocompleteProvidersInComponents()
+        val (_, store) = buildMiddlewareAndAddToStore()
+
+        store.dispatch(ToggleEditMode(true))
+
+        assertEquals(
+            listOf(
+                components.core.historyStorage,
+                components.core.bookmarksStorage,
+                components.core.domainsAutocompleteProvider,
+            ),
+            store.state.editState.autocompleteProviders,
+        )
+    }
+
+    @Test
+    fun `GIVEN default engine selected and history suggestions disabled WHEN entering in edit mode THEN set autocomplete providers`() {
+        every { settings.shouldAutocompleteInAwesomebar } returns true
+        every { settings.shouldShowHistorySuggestions } returns false
+        every { settings.shouldShowBookmarkSuggestions } returns true
+        configureAutocompleteProvidersInComponents()
+        val (_, store) = buildMiddlewareAndAddToStore()
+
+        store.dispatch(ToggleEditMode(true))
+
+        assertEquals(
+            listOf(
+                components.core.bookmarksStorage,
+                components.core.domainsAutocompleteProvider,
+            ),
+            store.state.editState.autocompleteProviders,
+        )
+    }
+
+    @Test
+    fun `GIVEN default engine selected and bookmarks suggestions disabled WHEN entering in edit mode THEN set autocomplete providers`() {
+        every { settings.shouldAutocompleteInAwesomebar } returns true
+        every { settings.shouldShowHistorySuggestions } returns true
+        every { settings.shouldShowBookmarkSuggestions } returns false
+        configureAutocompleteProvidersInComponents()
+        val (_, store) = buildMiddlewareAndAddToStore()
+
+        store.dispatch(ToggleEditMode(true))
+
+        assertEquals(
+            listOf(
+                components.core.historyStorage,
+                components.core.domainsAutocompleteProvider,
+            ),
+            store.state.editState.autocompleteProviders,
+        )
+    }
+
+    @Test
+    fun `GIVEN default engine selected and history + bookmarks suggestions disabled WHEN entering in edit mode THEN set autocomplete providers`() {
+        every { settings.shouldAutocompleteInAwesomebar } returns true
+        every { settings.shouldShowHistorySuggestions } returns false
+        every { settings.shouldShowBookmarkSuggestions } returns false
+        configureAutocompleteProvidersInComponents()
+        val (_, store) = buildMiddlewareAndAddToStore()
+
+        store.dispatch(ToggleEditMode(true))
+
+        assertEquals(
+            listOf(components.core.domainsAutocompleteProvider),
+            store.state.editState.autocompleteProviders,
+        )
+    }
+
+    @Test
+    fun `GIVEN tabs engine selected WHEN entering in edit mode THEN set autocomplete providers`() {
+        every { settings.shouldAutocompleteInAwesomebar } returns true
+        configureAutocompleteProvidersInComponents()
+        val (_, store) = buildMiddlewareAndAddToStore()
+
+        store.dispatch(
+            SearchSelectorItemClicked(
+                fakeSearchState().applicationSearchEngines.first { it.id == TABS_SEARCH_ENGINE_ID },
+            ),
+        ).joinBlocking()
+        store.dispatch(ToggleEditMode(true))
+
+        assertEquals(
+            listOf(
+                components.core.sessionAutocompleteProvider,
+                components.backgroundServices.syncedTabsAutocompleteProvider,
+            ),
+            store.state.editState.autocompleteProviders,
+        )
+    }
+
+    @Test
+    fun `GIVEN bookmarks engine selected WHEN entering in edit mode THEN set autocomplete providers`() {
+        every { settings.shouldAutocompleteInAwesomebar } returns true
+        configureAutocompleteProvidersInComponents()
+        val (_, store) = buildMiddlewareAndAddToStore()
+
+        store.dispatch(
+            SearchSelectorItemClicked(
+                fakeSearchState().applicationSearchEngines.first { it.id == BOOKMARKS_SEARCH_ENGINE_ID },
+            ),
+        ).joinBlocking()
+        store.dispatch(ToggleEditMode(true))
+
+        assertEquals(
+            listOf(components.core.bookmarksStorage),
+            store.state.editState.autocompleteProviders,
+        )
+    }
+
+    @Test
+    fun `GIVEN history engine selected WHEN entering in edit mode THEN set autocomplete providers`() {
+        every { settings.shouldAutocompleteInAwesomebar } returns true
+        configureAutocompleteProvidersInComponents()
+        val (_, store) = buildMiddlewareAndAddToStore()
+
+        store.dispatch(
+            SearchSelectorItemClicked(
+                fakeSearchState().applicationSearchEngines.first { it.id == HISTORY_SEARCH_ENGINE_ID },
+            ),
+        ).joinBlocking()
+        store.dispatch(ToggleEditMode(true))
+
+        assertEquals(
+            listOf(components.core.historyStorage),
+            store.state.editState.autocompleteProviders,
+        )
+    }
+
+    @Test
+    fun `GIVEN other search engine selected WHEN entering in edit mode THEN set autocomplete providers`() {
+        every { settings.shouldAutocompleteInAwesomebar } returns true
+        configureAutocompleteProvidersInComponents()
+        val (_, store) = buildMiddlewareAndAddToStore()
+
+        store.dispatch(SearchSelectorItemClicked(mockk(relaxed = true))).joinBlocking()
+        store.dispatch(ToggleEditMode(true))
+
+        assertEquals(
+            emptyList<AutocompleteProvider>(),
+            store.state.editState.autocompleteProviders,
         )
     }
 
@@ -265,11 +430,15 @@ class BrowserToolbarSearchMiddlewareTest {
     private fun buildMiddlewareAndAddToStore(
         appStore: AppStore = this.appStore,
         browserStore: BrowserStore = this.browserStore,
+        components: Components = this.components,
+        settings: Settings = this.settings,
         lifecycleOwner: LifecycleOwner = this.lifecycleOwner,
         navController: NavController = this.navController,
         resources: Resources = this.resources,
     ): Pair<BrowserToolbarSearchMiddleware, BrowserToolbarStore> {
-        val middleware = buildMiddleware(appStore, browserStore, lifecycleOwner, navController, resources)
+        val middleware = buildMiddleware(
+            appStore, browserStore, components, settings, lifecycleOwner, navController, resources,
+        )
         val store = BrowserToolbarStore(middleware = listOf(middleware))
 
         return middleware to store
@@ -278,15 +447,25 @@ class BrowserToolbarSearchMiddlewareTest {
     private fun buildMiddleware(
         appStore: AppStore = this.appStore,
         browserStore: BrowserStore = this.browserStore,
+        components: Components = this.components,
+        settings: Settings = this.settings,
         lifecycleOwner: LifecycleOwner = this.lifecycleOwner,
         navController: NavController = this.navController,
         resources: Resources = this.resources,
-    ) = BrowserToolbarSearchMiddleware(appStore, browserStore).apply {
+    ) = BrowserToolbarSearchMiddleware(appStore, browserStore, components, settings).apply {
         updateLifecycleDependencies(
             LifecycleDependencies(
                 lifecycleOwner, navController, resources,
             ),
         )
+    }
+
+    private fun configureAutocompleteProvidersInComponents() {
+        every { components.core.historyStorage } returns mockk()
+        every { components.core.bookmarksStorage } returns mockk()
+        every { components.core.domainsAutocompleteProvider } returns mockk()
+        every { components.core.sessionAutocompleteProvider } returns mockk()
+        every { components.backgroundServices.syncedTabsAutocompleteProvider } returns mockk()
     }
 
     private fun fakeSearchState() = SearchState(
@@ -299,7 +478,9 @@ class BrowserToolbarSearchMiddlewareTest {
             SearchEngine("engine-c", "Engine C", mock(), type = SearchEngine.Type.CUSTOM),
         ),
         applicationSearchEngines = listOf(
-            SearchEngine("engine-d", "Engine D", mock(), type = SearchEngine.Type.APPLICATION),
+            SearchEngine(TABS_SEARCH_ENGINE_ID, "Tabs", mock(), type = SearchEngine.Type.APPLICATION),
+            SearchEngine(BOOKMARKS_SEARCH_ENGINE_ID, "Bookmarks", mock(), type = SearchEngine.Type.APPLICATION),
+            SearchEngine(HISTORY_SEARCH_ENGINE_ID, "History", mock(), type = SearchEngine.Type.APPLICATION),
         ),
         additionalSearchEngines = listOf(
             SearchEngine("engine-e", "Engine E", mock(), type = SearchEngine.Type.BUNDLED_ADDITIONAL),

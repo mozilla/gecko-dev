@@ -5,6 +5,7 @@
 package mozilla.components.compose.browser.toolbar.store
 
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
+import mozilla.components.concept.toolbar.AutocompleteProvider
 import mozilla.components.lib.state.Action
 import mozilla.components.compose.browser.toolbar.concept.Action as ToolbarAction
 
@@ -103,6 +104,20 @@ sealed class BrowserEditToolbarAction : BrowserToolbarAction {
      * @property text The text in the toolbar that is being edited.
      */
     data class UpdateEditText(val text: String) : BrowserEditToolbarAction()
+
+    /**
+     * Indicates that a new url suggestion has been autocompleted in the search toolbar.
+     */
+    data class UrlSuggestionAutocompleted(val url: String) : BrowserEditToolbarAction()
+
+    /**
+     * Indicates that a new list of toolbar autocomplete providers is available.
+     *
+     * @property autocompleteProviders The new list of [AutocompleteProvider]s.
+     */
+    data class AutocompleteProvidersUpdated(
+        val autocompleteProviders: List<AutocompleteProvider>,
+    ) : BrowserEditToolbarAction()
 
     /**
      * Replaces the currently displayed list of start actions while searching with the provided list of actions.

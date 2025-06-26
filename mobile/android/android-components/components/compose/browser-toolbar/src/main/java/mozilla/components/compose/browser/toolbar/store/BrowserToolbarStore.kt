@@ -9,6 +9,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAct
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageOriginUpdated
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UrlSuggestionAutocompleted
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.UiStore
@@ -89,6 +90,12 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
             ),
         )
 
+        is BrowserEditToolbarAction.AutocompleteProvidersUpdated -> state.copy(
+            editState = state.editState.copy(
+                autocompleteProviders = action.autocompleteProviders,
+            ),
+        )
+
         is BrowserEditToolbarAction.SearchActionsStartUpdated -> state.copy(
             editState = state.editState.copy(
                 editActionsStart = action.actions,
@@ -107,7 +114,9 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
             ),
         )
 
-        is BrowserToolbarEvent -> {
+        is UrlSuggestionAutocompleted,
+        is BrowserToolbarEvent,
+            -> {
             // no-op
             // Expected to be handled in middlewares set by integrators.
             state
