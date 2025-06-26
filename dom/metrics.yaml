@@ -140,11 +140,16 @@ perf:
         description:
           "TRR domain used."
         type: string
-      features:
-        description:
-          "Bitfield of features in use within this document:
+      document_features:
+        description: >
+          Bitfield of web features in use within this document:
             1 - fetchpriority applied to images
-            2 - assistive technology in use"
+        type: quantity
+        unit: integer
+      user_features:
+        description: >
+          Bitfield of features the user is enabling:
+            1 - assistive technology in use
         type: quantity
         unit: integer
       has_ssd:

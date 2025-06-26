@@ -39,6 +39,7 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/EventStateManager.h"
+#include "mozilla/PageloadEvent.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/StaticPrefs_image.h"
@@ -53,7 +54,6 @@
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/ImageTextBinding.h"
 #include "mozilla/dom/ImageTracker.h"
-#include "mozilla/dom/PageLoadEventUtils.h"
 #include "mozilla/dom/ReferrerInfo.h"
 #include "mozilla/dom/ResponsiveImageSelector.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -1225,7 +1225,7 @@ nsresult nsImageLoadingContent::LoadImage(nsIURI* aNewURI, bool aForce,
 
   if (fetchPriority != FetchPriority::Auto) {
     aDocument->SetPageloadEventFeature(
-        pageload_event::FeatureBits::FETCH_PRIORITY_IMAGES);
+        performance::pageload_event::DocumentFeature::FETCH_PRIORITY_IMAGES);
   }
 
   // Reset the flag to avoid loading from XPCOM or somewhere again else without

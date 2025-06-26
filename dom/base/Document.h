@@ -35,6 +35,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/NotNull.h"
+#include "mozilla/PageloadEvent.h"
 #include "mozilla/PointerLockManager.h"
 #include "mozilla/PreloadService.h"
 #include "mozilla/RefPtr.h"
@@ -331,9 +332,6 @@ enum BFCacheStatus {
 };
 
 }  // namespace dom
-namespace glean::perf {
-struct PageLoadExtra;
-}
 }  // namespace mozilla
 
 namespace mozilla::net {
@@ -344,6 +342,8 @@ class EarlyHintConnectArgs;
 // Must be kept in sync with xpcom/rust/xpcom/src/interfaces/nonidl.rs
 #define NS_IDOCUMENT_IID \
   {0xce1f7627, 0x7109, 0x4977, {0xba, 0x77, 0x49, 0x0f, 0xfd, 0xe0, 0x7a, 0xaa}}
+
+using mozilla::performance::pageload_event::PageloadEventData;
 
 namespace mozilla::dom {
 
@@ -3231,8 +3231,9 @@ class Document : public nsINode,
 
   void SetNavigationTiming(nsDOMNavigationTiming* aTiming);
 
-  inline void SetPageloadEventFeature(uint32_t aFeature) {
-    mPageloadEventFeatures |= aFeature;
+  inline void SetPageloadEventFeature(
+      performance::pageload_event::DocumentFeature aFeature) {
+    mPageloadEventData.SetDocumentFeature(aFeature);
   }
 
   nsContentList* ImageMapList();
@@ -5591,21 +5592,17 @@ class Document : public nsINode,
   // collected shadowed HTMLDocument properties. (Limited to 10 entries)
   nsTArray<nsString> mShadowedHTMLDocumentProperties;
 
-  // Bitfield to be collected in the pageload event, recording relevant features
-  // used in the document
-  uint32_t mPageloadEventFeatures = 0;
+  // Collection of data used by the pageload event.
+  PageloadEventData mPageloadEventData;
 
   // Record page load telemetry
-  void RecordPageLoadEventTelemetry(
-      glean::perf::PageLoadExtra& aEventTelemetryData);
+  void RecordPageLoadEventTelemetry();
 
   // Accumulate JS telemetry collected
-  void AccumulateJSTelemetry(
-      glean::perf::PageLoadExtra& aEventTelemetryDataOut);
+  void AccumulateJSTelemetry();
 
   // Accumulate page load metrics
-  void AccumulatePageLoadTelemetry(
-      glean::perf::PageLoadExtra& aEventTelemetryDataOut);
+  void AccumulatePageLoadTelemetry();
 
   // The OOP counterpart to nsDocLoader::mChildrenInOnload.
   // Not holding strong refs here since we don't actually use the BBCs.

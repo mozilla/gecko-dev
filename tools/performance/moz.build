@@ -4,11 +4,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-UNIFIED_SOURCES += [
-    "PerfStats.cpp",
-]
+UNIFIED_SOURCES += ["PageloadEvent.cpp", "PerfStats.cpp"]
 
 EXPORTS.mozilla += [
+    "PageloadEvent.h",
     "Perfetto.h",
     "PerfStats.h",
 ]

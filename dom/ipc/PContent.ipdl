@@ -132,7 +132,7 @@ using mozilla::dom::geolocation::GeolocationPermissionStatus from "mozilla/dom/G
 #endif  // defined(XP_WIN)
 
 using mozilla::Telemetry::DiscardedData from "mozilla/TelemetryComms.h";
-using mozilla::glean::perf::PageLoadExtra from "mozilla/glean/DomMetrics.h";
+using mozilla::performance::pageload_event::PageloadEventData from "mozilla/PageloadEvent.h";
 [MoveOnly] using mozilla::CrossProcessMutexHandle from "mozilla/ipc/CrossProcessMutex.h";
 using mozilla::dom::MaybeDiscardedBrowsingContext from "mozilla/dom/BrowsingContext.h";
 using mozilla::dom::BrowsingContextTransaction from "mozilla/dom/BrowsingContext.h";
@@ -1588,7 +1588,7 @@ parent:
     /**
      * Messages for communicating child Glean data to the parent process
      */
-    async RecordPageLoadEvent(PageLoadExtra event);
+    async RecordPageLoadEvent(PageloadEventData event);
 
     /**
      * Messages for communicating child Telemetry to the parent process
