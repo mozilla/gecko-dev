@@ -89,19 +89,13 @@ static void WriteDigits(CheckedIncrement<char*>& b, size_t i,
   } while (x > 0);
 }
 
-void FdPrintf(platform_handle_t aFd, const char* aFormat, ...) {
-  if (aFd == 0) {
-    return;
-  }
-  char buf[256];
-  CheckedIncrement<char*> b(buf, sizeof(buf));
+int VSNPrintf(char* aBuf, size_t aSize, const char* aFormat, va_list aArgs) {
+  CheckedIncrement<char*> b(aBuf, aSize);
   CheckedIncrement<const char*> f(aFormat, strlen(aFormat) + 1);
-  va_list ap;
-  va_start(ap, aFormat);
   while (true) {
     switch (*f) {
       case '\0':
-        goto out;
+        return b - aBuf;
 
       case '%': {
         // The start of the format specifier is used if this specifier is
@@ -119,7 +113,7 @@ void FdPrintf(platform_handle_t aFd, const char* aFormat, ...) {
         switch (*f) {
           case 'z': {
             if (*(++f) == 'u') {
-              size_t i = va_arg(ap, size_t);
+              size_t i = va_arg(aArgs, size_t);
 
               size_t num_digits = NumDigits(i);
               LeftPad(b, width > num_digits ? width - num_digits : 0);
@@ -135,7 +129,7 @@ void FdPrintf(platform_handle_t aFd, const char* aFormat, ...) {
           }
 
           case 'p': {
-            intptr_t ptr = va_arg(ap, intptr_t);
+            intptr_t ptr = va_arg(aArgs, intptr_t);
             *(b++) = '0';
             *(b++) = 'x';
             int x = sizeof(intptr_t) * 8;
@@ -155,7 +149,7 @@ void FdPrintf(platform_handle_t aFd, const char* aFormat, ...) {
           }
 
           case 's': {
-            const char* str = va_arg(ap, const char*);
+            const char* str = va_arg(aArgs, const char*);
             size_t len = strlen(str);
 
             LeftPad(b, width > len ? width - len : 0);
@@ -188,13 +182,39 @@ void FdPrintf(platform_handle_t aFd, const char* aFormat, ...) {
     }
     f++;
   }
-out:
+}
+
+int SNPrintf(char* aBuf, size_t aSize, const char* aFormat, ...) {
+  va_list args;
+  va_start(args, aFormat);
+  int ret = VSNPrintf(aBuf, aSize, aFormat, args);
+  va_end(args);
+  return ret;
+}
+
+void VFdPrintf(platform_handle_t aFd, const char* aFormat, va_list aArgs) {
+  char buf[256];
+  int len = VSNPrintf(buf, 256, aFormat, aArgs);
+  FdPuts(aFd, buf, len);
+}
+
+void FdPrintf(platform_handle_t aFd, const char* aFormat, ...) {
+  va_list args;
+  va_start(args, aFormat);
+  VFdPrintf(aFd, aFormat, args);
+  va_end(args);
+}
+
+void FdPuts(platform_handle_t aFd, const char* aBuf, size_t aSize) {
+  if (aFd == 0) {
+    return;
+  }
+
 #ifdef _WIN32
   // See comment in FdPrintf.h as to why WriteFile is used.
   DWORD written;
-  WriteFile(aFd, buf, b - buf, &written, nullptr);
+  WriteFile(aFd, aBuf, aSize, &written, nullptr);
 #else
-  MOZ_UNUSED(write(aFd, buf, b - buf));
+  MOZ_UNUSED(write(aFd, aBuf, aSize));
 #endif
-  va_end(ap);
 }
