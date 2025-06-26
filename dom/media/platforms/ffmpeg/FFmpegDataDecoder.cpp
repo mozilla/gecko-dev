@@ -82,22 +82,11 @@ MediaResult FFmpegDataDecoder<LIBAV_VER>::InitSWDecoder(
     AVDictionary** aOptions) {
   FFMPEG_LOG("Initialising FFmpeg decoder");
 
-  AVCodec* codec = FindAVCodec(mLib, mCodecID);
+  AVCodec* codec = FindSoftwareAVCodec(mLib, mCodecID);
   if (!codec) {
     FFMPEG_LOG("  couldn't find ffmpeg decoder for codec id %d", mCodecID);
     return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                        RESULT_DETAIL("unable to find codec"));
-  }
-  // This logic is mirrored in FFmpegDecoderModule::Supports. We prefer to use
-  // our own OpenH264 decoder through the plugin over ffmpeg by default due to
-  // broken decoding with some versions. openh264 has broken decoding of some
-  // h264 videos so don't use it unless explicitly allowed for now.
-  if (!strcmp(codec->name, "libopenh264") &&
-      !StaticPrefs::media_ffmpeg_allow_openh264()) {
-    FFMPEG_LOG("  unable to find codec (openh264 disabled by pref)");
-    return MediaResult(
-        NS_ERROR_DOM_MEDIA_FATAL_ERR,
-        RESULT_DETAIL("unable to find codec (openh264 disabled by pref)"));
   }
   FFMPEG_LOG("  codec %s : %s", codec->name, codec->long_name);
 
@@ -314,27 +303,114 @@ AVFrame* FFmpegDataDecoder<LIBAV_VER>::PrepareFrame() {
   return mFrame;
 }
 
-/* static */ AVCodec* FFmpegDataDecoder<LIBAV_VER>::FindAVCodec(
+/* static */ AVCodec* FFmpegDataDecoder<LIBAV_VER>::FindSoftwareAVCodec(
     FFmpegLibWrapper* aLib, AVCodecID aCodec) {
-  return aLib->avcodec_find_decoder(aCodec);
-}
+  MOZ_ASSERT(aLib);
 
-#ifdef MOZ_USE_HWDECODE
-/* static */ AVCodec* FFmpegDataDecoder<LIBAV_VER>::FindHardwareAVCodec(
-    FFmpegLibWrapper* aLib, AVCodecID aCodec) {
+  // We use this instead of MOZ_USE_HWDECODE because it is possible to disable
+  // support for hardware decoding in Firefox, while the system ffmpeg library
+  // still exposes the hardware codecs.
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+  AVCodec* fallbackCodec = nullptr;
   void* opaque = nullptr;
   while (AVCodec* codec = aLib->av_codec_iterate(&opaque)) {
     if (codec->id != aCodec || !aLib->av_codec_is_decoder(codec)) {
       continue;
     }
 
-    for (int i = 0;
-         const AVCodecHWConfig* config = aLib->avcodec_get_hw_config(codec, i);
-         ++i) {
-      if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) {
-        return codec;
+    if (codec->capabilities & AV_CODEC_CAP_HARDWARE) {
+      continue;
+    }
+
+    // We prefer to use our own OpenH264 decoder through the plugin over ffmpeg
+    // by default due to broken decoding with some versions. openh264 has broken
+    // decoding of some h264 videos so don't use it unless explicitly allowed
+    // for now.
+    if (strcmp(codec->name, "libopenh264") == 0) {
+      if (!StaticPrefs::media_ffmpeg_allow_openh264()) {
+        FFMPEGV_LOG("libopenh264 available but disabled by pref");
+      } else if (!fallbackCodec) {
+        fallbackCodec = codec;
+      }
+      continue;
+    }
+
+    if (codec->capabilities & AV_CODEC_CAP_EXPERIMENTAL) {
+      if (!fallbackCodec) {
+        fallbackCodec = codec;
+      }
+      continue;
+    }
+
+    FFMPEGV_LOG("Using preferred software codec %s", codec->name);
+    return codec;
+  }
+
+  if (fallbackCodec) {
+    FFMPEGV_LOG("Using fallback software codec %s", fallbackCodec->name);
+  }
+  return fallbackCodec;
+#else
+  AVCodec* codec = aLib->avcodec_find_decoder(aCodec);
+  if (codec) {
+    // We prefer to use our own OpenH264 decoder through the plugin over ffmpeg
+    // by default due to broken decoding with some versions. openh264 has broken
+    // decoding of some h264 videos so don't use it unless explicitly allowed
+    // for now.
+    if (strcmp(codec->name, "libopenh264") == 0 &&
+        !StaticPrefs::media_ffmpeg_allow_openh264()) {
+      FFMPEGV_LOG("libopenh264 selected but disabled by pref");
+      return nullptr;
+    }
+
+    FFMPEGV_LOG("Using preferred software codec %s", codec->name);
+  }
+  return codec;
+#endif
+}
+
+#ifdef MOZ_USE_HWDECODE
+/* static */ AVCodec* FFmpegDataDecoder<LIBAV_VER>::FindHardwareAVCodec(
+    FFmpegLibWrapper* aLib, AVCodecID aCodec, AVHWDeviceType aDeviceType) {
+  AVCodec* fallbackCodec = nullptr;
+  void* opaque = nullptr;
+  const bool ignoreDeviceType = aDeviceType == AV_HWDEVICE_TYPE_NONE;
+  while (AVCodec* codec = aLib->av_codec_iterate(&opaque)) {
+    if (codec->id != aCodec || !aLib->av_codec_is_decoder(codec)) {
+      continue;
+    }
+
+    bool hasHwConfig =
+        codec->capabilities & AV_CODEC_CAP_HARDWARE && ignoreDeviceType;
+    if (!hasHwConfig) {
+      for (int i = 0; const AVCodecHWConfig* config =
+                          aLib->avcodec_get_hw_config(codec, i);
+           ++i) {
+        if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX &&
+            (ignoreDeviceType || config->device_type == aDeviceType)) {
+          hasHwConfig = true;
+          break;
+        }
       }
     }
+
+    if (!hasHwConfig) {
+      continue;
+    }
+
+    if (codec->capabilities & AV_CODEC_CAP_EXPERIMENTAL) {
+      if (!fallbackCodec) {
+        fallbackCodec = codec;
+      }
+      continue;
+    }
+
+    FFMPEGV_LOG("Using preferred hardware codec %s", codec->name);
+    return codec;
+  }
+
+  if (fallbackCodec) {
+    FFMPEGV_LOG("Using fallback hardware codec %s", fallbackCodec->name);
   }
   return nullptr;
 }

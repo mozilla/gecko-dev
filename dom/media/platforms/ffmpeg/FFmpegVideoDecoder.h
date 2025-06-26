@@ -146,6 +146,12 @@ class FFmpegVideoDecoder<LIBAV_VER>
   RefPtr<KnowsCompositor> mImageAllocator;
 
 #ifdef MOZ_USE_HWDECODE
+ public:
+  static AVCodec* FindVideoHardwareAVCodec(
+      FFmpegLibWrapper* aLib, AVCodecID aCodec,
+      AVHWDeviceType aDeviceType = AV_HWDEVICE_TYPE_NONE);
+
+ private:
   // This will be called inside the ctor.
   void InitHWDecoderIfAllowed();
 
@@ -181,7 +187,6 @@ class FFmpegVideoDecoder<LIBAV_VER>
   MediaResult InitVAAPIDecoder();
   MediaResult InitV4L2Decoder();
   bool CreateVAAPIDeviceContext();
-  AVCodec* FindVAAPICodec();
   bool GetVAAPISurfaceDescriptor(VADRMPRIMESurfaceDescriptor* aVaDesc);
   void AddAcceleratedFormats(nsTArray<AVCodecID>& aCodecList,
                              AVCodecID aCodecID, AVVAAPIHWConfig* hwconfig);

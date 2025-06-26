@@ -214,27 +214,6 @@ static AVPixelFormat ChooseD3D11VAPixelFormat(AVCodecContext* aCodecContext,
 #endif
 
 #if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
-AVCodec* FFmpegVideoDecoder<LIBAV_VER>::FindVAAPICodec() {
-  AVCodec* decoder = FindHardwareAVCodec(mLib, mCodecID);
-  if (!decoder) {
-    FFMPEG_LOG("  We're missing hardware accelerated decoder");
-    return nullptr;
-  }
-  for (int i = 0;; i++) {
-    const AVCodecHWConfig* config = mLib->avcodec_get_hw_config(decoder, i);
-    if (!config) {
-      break;
-    }
-    if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX &&
-        config->device_type == AV_HWDEVICE_TYPE_VAAPI) {
-      return decoder;
-    }
-  }
-
-  FFMPEG_LOG("  HW Decoder does not support VAAPI device type");
-  return nullptr;
-}
-
 static void VAAPIDisplayReleaseCallback(struct AVHWDeviceContext* hwctx) {
   auto displayHolder = static_cast<VADisplayHolder*>(hwctx->user_opaque);
   displayHolder->Release();
@@ -308,7 +287,8 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitVAAPIDecoder() {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  AVCodec* codec = FindVAAPICodec();
+  AVCodec* codec =
+      FindVideoHardwareAVCodec(mLib, mCodecID, AV_HWDEVICE_TYPE_VAAPI);
   if (!codec) {
     FFMPEG_LOG("  couldn't find ffmpeg VA-API decoder");
     return NS_ERROR_DOM_MEDIA_FATAL_ERR;
@@ -396,19 +376,7 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitV4L2Decoder() {
   }
 
   // Select the appropriate v4l2 codec
-  AVCodec* codec = nullptr;
-  if (mCodecID == AV_CODEC_ID_H264) {
-    codec = mLib->avcodec_find_decoder_by_name("h264_v4l2m2m");
-  }
-  if (mCodecID == AV_CODEC_ID_VP8) {
-    codec = mLib->avcodec_find_decoder_by_name("vp8_v4l2m2m");
-  }
-  if (mCodecID == AV_CODEC_ID_VP9) {
-    codec = mLib->avcodec_find_decoder_by_name("vp9_v4l2m2m");
-  }
-  if (mCodecID == AV_CODEC_ID_HEVC) {
-    codec = mLib->avcodec_find_decoder_by_name("hevc_v4l2m2m");
-  }
+  AVCodec* codec = FindVideoHardwareAVCodec(mLib, mCodecID);
   if (!codec) {
     FFMPEG_LOG("No appropriate v4l2 codec found");
     return NS_ERROR_DOM_MEDIA_FATAL_ERR;
@@ -2052,7 +2020,7 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitD3D11VADecoder() {
                        RESULT_DETAIL("not supported color depth"));
   }
 
-  AVCodec* codec = FindHardwareAVCodec(mLib, mCodecID);
+  AVCodec* codec = FindVideoHardwareAVCodec(mLib, mCodecID);
   if (!codec) {
     FFMPEG_LOG("  couldn't find d3d11va decoder for %s",
                AVCodecToString(mCodecID));
@@ -2213,6 +2181,29 @@ bool FFmpegVideoDecoder<LIBAV_VER>::CanUseZeroCopyVideoFrame() const {
          mImageAllocator->UsingHardwareWebRender() && mDXVA2Manager &&
          mDXVA2Manager->SupportsZeroCopyNV12Texture() &&
          mNumOfHWTexturesInUse <= EXTRA_HW_FRAMES / 2;
+}
+#endif
+
+#if MOZ_USE_HWDECODE
+/* static */ AVCodec* FFmpegVideoDecoder<LIBAV_VER>::FindVideoHardwareAVCodec(
+    FFmpegLibWrapper* aLib, AVCodecID aCodec, AVHWDeviceType aDeviceType) {
+#  ifdef MOZ_WIDGET_GTK
+  if (aDeviceType == AV_HWDEVICE_TYPE_NONE) {
+    switch (aCodec) {
+      case AV_CODEC_ID_H264:
+        return aLib->avcodec_find_decoder_by_name("h264_v4l2m2m");
+      case AV_CODEC_ID_VP8:
+        return aLib->avcodec_find_decoder_by_name("vp8_v4l2m2m");
+      case AV_CODEC_ID_VP9:
+        return aLib->avcodec_find_decoder_by_name("vp9_v4l2m2m");
+      case AV_CODEC_ID_HEVC:
+        return aLib->avcodec_find_decoder_by_name("hevc_v4l2m2m");
+      default:
+        return nullptr;
+    }
+  }
+#  endif
+  return FindHardwareAVCodec(aLib, aCodec, aDeviceType);
 }
 #endif
 
