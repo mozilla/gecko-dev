@@ -121,7 +121,6 @@ class FenixBrowserUseCases(
     fun addNewHomepageTab(private: Boolean): String {
         return addNewTabUseCase.invoke(
             url = ABOUT_HOME,
-            startLoading = false,
             title = homepageTitle,
             private = private,
         )

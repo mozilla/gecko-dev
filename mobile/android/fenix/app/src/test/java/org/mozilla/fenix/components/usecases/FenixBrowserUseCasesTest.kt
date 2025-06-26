@@ -315,7 +315,6 @@ class FenixBrowserUseCasesTest {
         verify {
             addNewTabUseCase.invoke(
                 url = ABOUT_HOME,
-                startLoading = false,
                 title = testContext.getString(R.string.tab_tray_homepage_tab),
                 private = true,
             )
@@ -326,7 +325,6 @@ class FenixBrowserUseCasesTest {
         verify {
             addNewTabUseCase.invoke(
                 url = ABOUT_HOME,
-                startLoading = false,
                 title = testContext.getString(R.string.tab_tray_homepage_tab),
                 private = false,
             )
