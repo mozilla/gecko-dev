@@ -1224,6 +1224,7 @@ function prompt(aActor, aBrowser, aRequest) {
       // If we haven't handled the permission yet, we want to show the doorhanger.
       return false;
     },
+    queue: true,
   };
 
   function shouldShowAlwaysRemember() {
