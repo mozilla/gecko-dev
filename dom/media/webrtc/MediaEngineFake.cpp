@@ -5,34 +5,24 @@
 #include "MediaEngineFake.h"
 
 #include "AudioSegment.h"
-#include "DOMMediaStream.h"
+#include "FakeVideoSource.h"
 #include "ImageContainer.h"
-#include "ImageTypes.h"
 #include "MediaEnginePrefs.h"
 #include "MediaEngineSource.h"
 #include "MediaTrackGraph.h"
 #include "MediaTrackListener.h"
 #include "MediaTrackConstraints.h"
-#include "mozilla/dom/File.h"
 #include "mozilla/MediaManager.h"
-#include "mozilla/Mutex.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/UniquePtr.h"
-#include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
-#include "nsITimer.h"
 #include "SineWaveGenerator.h"
 #include "Tracing.h"
 #include "VideoSegment.h"
-#include "VideoUtils.h"
 
 #ifdef MOZ_WIDGET_ANDROID
 #  include "nsISupportsUtils.h"
-#endif
-
-#ifdef MOZ_WEBRTC
-#  include "YuvStamper.h"
 #endif
 
 #define VIDEO_WIDTH_MIN 160
@@ -109,32 +99,25 @@ class MediaEngineFakeVideoSource : public MediaEngineSource {
  protected:
   ~MediaEngineFakeVideoSource() = default;
 
-  /**
-   * Called by mTimer when it's time to generate a new frame.
-   */
-  void GenerateFrame();
+  void OnGeneratedImage(RefPtr<layers::Image> aImage);
 
-  nsCOMPtr<nsITimer> mTimer;
-
-  RefPtr<layers::ImageContainer> mImageContainer;
+  // Owning thread only.
+  RefPtr<FakeVideoSource> mCapturer;
+  MediaEventListener mGeneratedImageListener;
 
   // Current state of this source.
   MediaEngineSourceState mState = kReleased;
-  RefPtr<layers::Image> mImage;
   RefPtr<SourceMediaTrack> mTrack;
   PrincipalHandle mPrincipalHandle = PRINCIPAL_HANDLE_NONE;
 
   MediaEnginePrefs mOpts;
-  int mCb = 16;
-  int mCr = 16;
 
   // Main thread only.
   const RefPtr<media::Refcountable<dom::MediaTrackSettings>> mSettings;
 };
 
 MediaEngineFakeVideoSource::MediaEngineFakeVideoSource()
-    : mTimer(nullptr),
-      mSettings(MakeAndAddRef<media::Refcountable<MediaTrackSettings>>()) {
+    : mSettings(MakeAndAddRef<media::Refcountable<MediaTrackSettings>>()) {
   mSettings->mWidth.Construct(
       int32_t(MediaEnginePrefs::DEFAULT_43_VIDEO_WIDTH));
   mSettings->mHeight.Construct(
@@ -243,6 +226,11 @@ nsresult MediaEngineFakeVideoSource::Allocate(
   mOpts.mHeight =
       std::clamp(mOpts.mHeight, VIDEO_HEIGHT_MIN, VIDEO_HEIGHT_MAX) & ~1;
 
+  nsCOMPtr<nsISerialEventTarget> target = GetCurrentSerialEventTarget();
+  mCapturer = MakeRefPtr<FakeVideoSource>(target);
+  mGeneratedImageListener = mCapturer->GeneratedImageEvent().Connect(
+      target, this, &MediaEngineFakeVideoSource::OnGeneratedImage);
+
   NS_DispatchToMainThread(NS_NewRunnableFunction(
       __func__, [settings = mSettings, frameRate = mOpts.mFPS,
                  width = mOpts.mWidth, height = mOpts.mHeight]() {
@@ -258,50 +246,18 @@ nsresult MediaEngineFakeVideoSource::Allocate(
 nsresult MediaEngineFakeVideoSource::Deallocate() {
   AssertIsOnOwningThread();
 
-  MOZ_ASSERT(!mImage);
   MOZ_ASSERT(mState == kStopped || mState == kAllocated);
 
+  mGeneratedImageListener.Disconnect();
+  mCapturer = nullptr;
   if (mTrack) {
     mTrack->End();
     mTrack = nullptr;
     mPrincipalHandle = PRINCIPAL_HANDLE_NONE;
   }
   mState = kReleased;
-  mImageContainer = nullptr;
 
   return NS_OK;
-}
-
-static bool AllocateSolidColorFrame(layers::PlanarYCbCrData& aData, int aWidth,
-                                    int aHeight, int aY, int aCb, int aCr) {
-  MOZ_ASSERT(!(aWidth & 1));
-  MOZ_ASSERT(!(aHeight & 1));
-  // Allocate a single frame with a solid color
-  int yLen = aWidth * aHeight;
-  int cbLen = yLen >> 2;
-  int crLen = cbLen;
-  uint8_t* frame = (uint8_t*)malloc(yLen + cbLen + crLen);
-  if (!frame) {
-    return false;
-  }
-  memset(frame, aY, yLen);
-  memset(frame + yLen, aCb, cbLen);
-  memset(frame + yLen + cbLen, aCr, crLen);
-
-  aData.mYChannel = frame;
-  aData.mYStride = aWidth;
-  aData.mCbCrStride = aWidth >> 1;
-  aData.mCbChannel = frame + yLen;
-  aData.mCrChannel = aData.mCbChannel + cbLen;
-  aData.mPictureRect = IntRect(0, 0, aWidth, aHeight);
-  aData.mStereoMode = StereoMode::MONO;
-  aData.mYUVColorSpace = gfx::YUVColorSpace::BT601;
-  aData.mChromaSubsampling = gfx::ChromaSubsampling::HALF_WIDTH_AND_HEIGHT;
-  return true;
-}
-
-static void ReleaseFrame(layers::PlanarYCbCrData& aData) {
-  free(aData.mYChannel);
 }
 
 void MediaEngineFakeVideoSource::SetTrack(const RefPtr<MediaTrack>& aTrack,
@@ -322,26 +278,11 @@ nsresult MediaEngineFakeVideoSource::Start() {
   MOZ_ASSERT(mState == kAllocated || mState == kStopped);
   MOZ_ASSERT(mTrack, "SetTrack() must happen before Start()");
 
-  mTimer = NS_NewTimer(GetCurrentSerialEventTarget());
-  if (!mTimer) {
+  int32_t rv = mCapturer->StartCapture(
+      mOpts.mWidth, mOpts.mHeight, TimeDuration::FromSeconds(1.0 / mOpts.mFPS));
+  if (NS_WARN_IF(rv != 0)) {
     return NS_ERROR_FAILURE;
   }
-
-  if (!mImageContainer) {
-    mImageContainer = MakeAndAddRef<layers::ImageContainer>(
-        layers::ImageUsageType::Webrtc, layers::ImageContainer::ASYNCHRONOUS);
-  }
-
-  // Start timer for subsequent frames
-  const uint32_t interval = 1000 / mOpts.mFPS;
-  mTimer->InitWithNamedFuncCallback(
-      [](nsITimer* aTimer, void* aClosure) {
-        RefPtr<MediaEngineFakeVideoSource> source =
-            static_cast<MediaEngineFakeVideoSource*>(aClosure);
-        source->GenerateFrame();
-      },
-      this, interval, nsITimer::TYPE_REPEATING_PRECISE_CAN_SKIP,
-      "MediaEngineFakeVideoSource::GenerateFrame");
 
   mState = kStarted;
   return NS_OK;
@@ -355,11 +296,12 @@ nsresult MediaEngineFakeVideoSource::Stop() {
   }
 
   MOZ_ASSERT(mState == kStarted);
-  MOZ_ASSERT(mTimer);
   MOZ_ASSERT(mTrack);
 
-  mTimer->Cancel();
-  mTimer = nullptr;
+  int32_t rv = mCapturer->StopCapture();
+  if (NS_WARN_IF(rv != 0)) {
+    return NS_ERROR_FAILURE;
+  }
 
   mState = kStopped;
 
@@ -372,60 +314,10 @@ nsresult MediaEngineFakeVideoSource::Reconfigure(
   return NS_OK;
 }
 
-void MediaEngineFakeVideoSource::GenerateFrame() {
-  AssertIsOnOwningThread();
-
-  // Update the target color
-  if (mCr <= 16) {
-    if (mCb < 240) {
-      mCb++;
-    } else {
-      mCr++;
-    }
-  } else if (mCb >= 240) {
-    if (mCr < 240) {
-      mCr++;
-    } else {
-      mCb--;
-    }
-  } else if (mCr >= 240) {
-    if (mCb > 16) {
-      mCb--;
-    } else {
-      mCr--;
-    }
-  } else {
-    mCr--;
-  }
-
-  // Allocate a single solid color image
-  RefPtr<layers::PlanarYCbCrImage> ycbcr_image =
-      mImageContainer->CreatePlanarYCbCrImage();
-  layers::PlanarYCbCrData data;
-  if (NS_WARN_IF(!AllocateSolidColorFrame(data, mOpts.mWidth, mOpts.mHeight,
-                                          0x80, mCb, mCr))) {
-    return;
-  }
-
-#ifdef MOZ_WEBRTC
-  uint64_t timestamp = PR_Now();
-  YuvStamper::Encode(mOpts.mWidth, mOpts.mHeight, mOpts.mWidth, data.mYChannel,
-                     reinterpret_cast<unsigned char*>(&timestamp),
-                     sizeof(timestamp), 0, 0);
-#endif
-
-  bool setData = NS_SUCCEEDED(ycbcr_image->CopyData(data));
-  MOZ_ASSERT(setData);
-
-  // SetData copies data, so we can free the frame
-  ReleaseFrame(data);
-
-  if (!setData) {
-    return;
-  }
-
+void MediaEngineFakeVideoSource::OnGeneratedImage(
+    RefPtr<layers::Image> aImage) {
   VideoSegment segment;
-  segment.AppendFrame(ycbcr_image.forget(),
+  segment.AppendFrame(aImage.forget(),
                       gfx::IntSize(mOpts.mWidth, mOpts.mHeight),
                       mPrincipalHandle);
   mTrack->AppendData(&segment);

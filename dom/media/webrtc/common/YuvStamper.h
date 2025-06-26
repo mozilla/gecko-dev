@@ -5,6 +5,7 @@
 #ifndef YUV_STAMPER_H_
 #define YUV_STAMPER_H_
 
+#include <cstddef>
 #include <cstdint>
 
 namespace mozilla {

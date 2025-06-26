@@ -101,6 +101,9 @@ UNIFIED_SOURCES += [
     "MediaUtils.cpp",
     "ShmemPool.cpp",
 ]
+SOURCES += [
+    "FakeVideoSource.cpp",
+]
 IPDL_SOURCES += [
     "PCameras.ipdl",
     "PMedia.ipdl",
