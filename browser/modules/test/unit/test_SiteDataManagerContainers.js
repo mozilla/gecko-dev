@@ -89,10 +89,14 @@ add_task(async function testGetSitesByContainers() {
     "Has correct usage for example.com^userContextId=1"
   );
 
-  Assert.ok(
-    typeof site1Container1.lastAccessed.getDate == "function",
+  Assert.equal(
+    typeof site1Container1.lastAccessed.getDate,
+    "function",
     "lastAccessed for example.com^userContextId=1 is a Date"
   );
+  // Note: this is comparing a date and a number, and Assert.greater requires
+  // inputs to be the same type. bug 1973910 covers fixing this.
+  // eslint-disable-next-line mozilla/no-comparison-or-assignment-inside-ok
   Assert.ok(
     site1Container1.lastAccessed > Date.now() - 60 * 1000,
     "lastAccessed for example.com^userContextId=1 happened recently"
@@ -110,8 +114,9 @@ add_task(async function testGetSitesByContainers() {
     "Has correct usage for example.org^userContextId=2"
   );
 
-  Assert.ok(
-    typeof site1Container2.lastAccessed.getDate == "function",
+  Assert.equal(
+    typeof site1Container2.lastAccessed.getDate,
+    "function",
     "lastAccessed for example.com^userContextId=2 is a Date"
   );
 
@@ -127,10 +132,14 @@ add_task(async function testGetSitesByContainers() {
     "Has correct usage for example.org^userContextId=3"
   );
 
-  Assert.ok(
-    typeof site2Container3.lastAccessed.getDate == "function",
+  Assert.equal(
+    typeof site2Container3.lastAccessed.getDate,
+    "function",
     "lastAccessed for example.org^userContextId=3 is a Date"
   );
+  // Note: this is comparing a date and a number, and Assert.greater requires
+  // inputs to be the same type. bug 1973910 covers fixing this.
+  // eslint-disable-next-line mozilla/no-comparison-or-assignment-inside-ok
   Assert.ok(
     site2Container3.lastAccessed > Date.now() - 60 * 1000,
     "lastAccessed for example.org^userContextId=3 happened recently"

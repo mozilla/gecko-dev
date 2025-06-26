@@ -785,6 +785,9 @@ add_task(async function test_can_suppress_after_chances() {
     UnsubmittedCrashHandler.prefs.getCharPref("suppressUntilDate");
 
   let today = UnsubmittedCrashHandler.dateString(new Date());
+  // Note: this is comparing strings, and Assert.greater requires inputs to
+  // be numbers or dates. bug 1973910 covers fixing this.
+  // eslint-disable-next-line mozilla/no-comparison-or-assignment-inside-ok
   Assert.ok(
     suppressUntilDate > today,
     "We should be suppressing until some days into the future."

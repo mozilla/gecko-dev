@@ -227,7 +227,7 @@ add_task(async function test_telemetry_new_alt_text_dialog() {
       let values = Glean.pdfjsImageAltText.modelResult.testGetValue();
       Assert.equal(values.length, 1, "Should have 1 model result");
       const extra = values[0].extra;
-      Assert.ok(extra.time > 0, "time must be a positive number");
+      Assert.greater(Number(extra.time), 0, "time must be a positive number");
       Assert.ok(!!extra.length, "length must be a positive number");
 
       await waitForSelector(browser, "#newAltTextDialog");

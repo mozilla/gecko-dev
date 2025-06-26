@@ -164,6 +164,10 @@ add_task(async function test_findmarks_vertical() {
     const marks = await getMarks(browser, true, true);
     Assert.equal(marks.length, 3, `marks count with text "tex"`);
     for (const markPos of marks) {
+      // This test is bogus; `0 <= -1 <= 9` as a JS expression returns true,
+      // but that doesn't match the intent of the test. Caught by the linter,
+      // tracked in bug 1973910.
+      // eslint-disable-next-line mozilla/no-comparison-or-assignment-inside-ok
       Assert.ok(
         0 <= markPos <= maxMarkPos,
         `mark position ${markPos} should be in the range 0 ~ ${maxMarkPos}`
@@ -233,7 +237,7 @@ async function getMarks(browser, increase, shouldBeOnHScrollbar = false) {
   // this could happen several times as either a find for multiple
   // characters occurs. This check allows for mutliple updates to occur.
   if (increase) {
-    Assert.ok(results.count > gUpdateCount, "expected events count");
+    Assert.greater(results.count, gUpdateCount, "expected events count");
 
     Assert.strictEqual(
       results.onHorizontalScrollbar,
