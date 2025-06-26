@@ -45,6 +45,7 @@ add_task(async function test_page_menu_prompt() {
     set: [
       ["browser.ml.chat.provider", "http://localhost:8080"],
       ["browser.ml.chat.page", true],
+      ["browser.ml.chat.page.menuBadge", true],
     ],
   });
   await BrowserTestUtils.withNewTab("about:blank", async () => {
@@ -62,6 +63,11 @@ add_task(async function test_page_menu_prompt() {
   Assert.equal(stub.callCount, 1, "one menu prompt");
   Assert.equal(stub.firstCall.args[0].id, "summarize", "summarize prompt");
   Assert.ok(stub.firstCall.args[0].badge, "new badge");
+  Assert.equal(
+    Services.prefs.getBoolPref("browser.ml.chat.page.menuBadge"),
+    false,
+    "badge dismissed"
+  );
 
   sandbox.restore();
   SidebarController.hide();
@@ -120,10 +126,7 @@ add_task(async function test_click_summarize_button() {
   const summarizeButton = document.getElementById("summarize-button");
 
   const sandbox = sinon.createSandbox();
-  const stub = sandbox.stub(
-    SidebarController.browser.contentWindow,
-    "summarizeCurrentPage"
-  );
+  const stub = sandbox.stub(GenAI, "summarizeCurrentPage");
 
   summarizeButton.click();
 
@@ -133,6 +136,45 @@ add_task(async function test_click_summarize_button() {
   );
   Assert.equal(stub.callCount, 1);
 
-  stub.restore();
+  sandbox.restore();
   SidebarController.hide();
+});
+
+/**
+ * Test provider-less summarization - onboarding then summarize
+ */
+add_task(async function test_provider_less_summarization() {
+  const origTabs = gBrowser.tabs.length;
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.chat.provider", ""],
+      ["browser.ml.chat.sidebar", false],
+    ],
+  });
+
+  await GenAI.summarizeCurrentPage(window, "test");
+
+  await TestUtils.waitForCondition(
+    () => SidebarController.isOpen,
+    "Sidebar opened for onboarding"
+  );
+  Assert.equal(gBrowser.tabs.length, origTabs, "No tabs opened");
+
+  // Mock selecting a provider with onboarding
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.chat.provider", "http://localhost:8080"]],
+  });
+  const resolve = await TestUtils.waitForCondition(
+    () => SidebarController.browser.contentWindow.showOnboarding?.resolve,
+    "Chat loaded ready for onboarding"
+  );
+  resolve();
+
+  await TestUtils.waitForCondition(
+    () => gBrowser.tabs.length == origTabs + 1,
+    "Chat opened tab for summarize"
+  );
+
+  SidebarController.hide();
+  gBrowser.removeTab(gBrowser.selectedTab);
 });

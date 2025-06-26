@@ -409,9 +409,12 @@ let JSWINDOWACTORS = {
     onAddActor(register, unregister) {
       let isRegistered = false;
 
-      // Register the actor if we have a provider set and not yet registered
+      // Register the actor if we have a provider or support provider-less
       const maybeRegister = () => {
-        if (Services.prefs.getCharPref("browser.ml.chat.provider", "")) {
+        if (
+          Services.prefs.getCharPref("browser.ml.chat.provider", "") ||
+          Services.prefs.getBoolPref("browser.ml.chat.page")
+        ) {
           if (!isRegistered) {
             register();
             isRegistered = true;
@@ -422,6 +425,7 @@ let JSWINDOWACTORS = {
         }
       };
 
+      Services.prefs.addObserver("browser.ml.chat.page", maybeRegister);
       Services.prefs.addObserver("browser.ml.chat.provider", maybeRegister);
       maybeRegister();
     },
