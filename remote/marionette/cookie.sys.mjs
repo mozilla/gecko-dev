@@ -274,9 +274,6 @@ cookie.remove = function (toDelete) {
  *
  * @param {string} host
  *     Hostname to retrieve cookies for.
- * @param {BrowsingContext=} [browsingContext=undefined] browsingContext
- *     The BrowsingContext that is reading these cookies.
- *     Used to get the correct partitioned cookies.
  * @param {string=} [currentPath="/"] currentPath
  *     Optionally filter the cookies for ``host`` for the specific path.
  *     Defaults to ``/``, meaning all cookies for ``host`` are included.
@@ -284,7 +281,7 @@ cookie.remove = function (toDelete) {
  * @returns {Iterable.<Cookie>}
  *     Iterator.
  */
-cookie.iter = function* (host, browsingContext = undefined, currentPath = "/") {
+cookie.iter = function* (host, currentPath = "/") {
   lazy.assert.string(
     host,
     lazy.pprint`Expected "host" to be a string, got ${host}`
@@ -295,34 +292,23 @@ cookie.iter = function* (host, browsingContext = undefined, currentPath = "/") {
   );
 
   const isForCurrentPath = path => currentPath.includes(path);
+
   let cookies = cookie.manager.getCookiesFromHost(host, {});
-  if (browsingContext) {
-    let partitionedOriginAttributes = {
-      partitionKey:
-        browsingContext.currentWindowGlobal?.cookieJarSettings?.partitionKey,
-    };
-    let cookiesPartitioned = cookie.manager.getCookiesFromHost(
-      host,
-      partitionedOriginAttributes
-    );
-    cookies.push(...cookiesPartitioned);
-  }
-  for (let currentCookie of cookies) {
+  for (let cookie of cookies) {
     // take the hostname and progressively shorten
     let hostname = host;
     do {
       if (
-        (currentCookie.host == "." + hostname ||
-          currentCookie.host == hostname) &&
-        isForCurrentPath(currentCookie.path)
+        (cookie.host == "." + hostname || cookie.host == hostname) &&
+        isForCurrentPath(cookie.path)
       ) {
         let data = {
-          name: currentCookie.name,
-          value: currentCookie.value,
-          path: currentCookie.path,
-          domain: currentCookie.host,
-          secure: currentCookie.isSecure,
-          httpOnly: currentCookie.isHttpOnly,
+          name: cookie.name,
+          value: cookie.value,
+          path: cookie.path,
+          domain: cookie.host,
+          secure: cookie.isSecure,
+          httpOnly: cookie.isHttpOnly,
         };
 
         if (!cookie.isSession) {
@@ -330,7 +316,7 @@ cookie.iter = function* (host, browsingContext = undefined, currentPath = "/") {
           data.expiry = Math.round(cookie.expiry / 1000);
         }
 
-        data.sameSite = SAMESITE_MAP.get(currentCookie.sameSite) || "None";
+        data.sameSite = SAMESITE_MAP.get(cookie.sameSite) || "None";
 
         yield data;
       }
