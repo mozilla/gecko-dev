@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.progressSemantics
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.LinearProgressIndicator
@@ -24,6 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
@@ -71,7 +76,7 @@ internal fun FileListItem(
         description = fileItem.description,
         icon = if (fileItem.status == FileItem.Status.Failed) R.drawable.mozac_ic_critical_24 else fileItem.icon,
         isSelected = isSelected,
-        modifier = modifier,
+        modifier = modifier.selectableListItemProgressSemantics(status = fileItem.status),
         descriptionTextColor = if (fileItem.status == FileItem.Status.Failed) {
             FirefoxTheme.colors.iconCritical
         } else {
@@ -201,17 +206,33 @@ private fun DownloadProgressIndicator(
 
         if (progress == null) {
             LinearProgressIndicator(
+                modifier = Modifier.clearAndSetSemantics {},
                 color = FirefoxTheme.colors.borderAccent,
                 backgroundColor = FirefoxTheme.colors.borderPrimary,
             )
         } else {
             LinearProgressIndicator(
+                modifier = Modifier.clearAndSetSemantics {},
                 progress = progress,
                 color = FirefoxTheme.colors.borderAccent,
                 backgroundColor = FirefoxTheme.colors.borderPrimary,
             )
         }
     }
+}
+
+private fun Modifier.selectableListItemProgressSemantics(status: FileItem.Status): Modifier = when (status) {
+    FileItem.Status.Cancelled,
+    FileItem.Status.Initiated,
+        -> semantics(mergeDescendants = true) {}
+
+    FileItem.Status.Completed,
+    FileItem.Status.Failed,
+        -> semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+
+    is FileItem.Status.Downloading,
+    is FileItem.Status.Paused,
+        -> progressSemantics()
 }
 
 private fun getContextMenuItems(
