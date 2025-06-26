@@ -72,11 +72,6 @@ abstract class EngineSession(
         fun onNavigateBack() = Unit
 
         /**
-         * Event to indicate a product URL is currently open.
-         */
-        fun onProductUrlChange(isProductUrl: Boolean) = Unit
-
-        /**
          * Event to indicate that a page change is occurring, which will invalidate the page's
          * translations state.
          */

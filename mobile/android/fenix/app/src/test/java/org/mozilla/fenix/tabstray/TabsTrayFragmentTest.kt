@@ -120,7 +120,6 @@ class TabsTrayFragmentTest {
             content = ContentState(
                 url = "https://mozilla.org",
                 private = false,
-                isProductUrl = false,
             ),
         )
         val tab2 = TabSessionState(
@@ -128,7 +127,6 @@ class TabsTrayFragmentTest {
             content = ContentState(
                 url = "https://mozilla.org",
                 private = false,
-                isProductUrl = false,
             ),
         )
         val tab3 = TabSessionState(
@@ -136,7 +134,6 @@ class TabsTrayFragmentTest {
             content = ContentState(
                 url = "https://mozilla.org",
                 private = false,
-                isProductUrl = false,
             ),
         )
         val tabsList = listOf(

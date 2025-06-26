@@ -715,7 +715,6 @@ class AppLinksInterceptorTest {
             content = ContentState(
                 url = "https://mozilla.org",
                 private = false,
-                isProductUrl = false,
             ),
             source = SessionState.Source.External.CustomTab(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
         )
@@ -727,7 +726,6 @@ class AppLinksInterceptorTest {
             content = ContentState(
                 url = "https://mozilla.org",
                 private = false,
-                isProductUrl = false,
             ),
         )
         assertFalse(AppLinksInterceptor.isAuthentication(tabSessionState2, "com.zxing.app"))
@@ -737,7 +735,6 @@ class AppLinksInterceptorTest {
             content = ContentState(
                 url = "https://mozilla.org",
                 private = false,
-                isProductUrl = false,
             ),
             source = SessionState.Source.External.CustomTab(ExternalPackage("com.example.app", PackageCategory.PRODUCTIVITY)),
         )
@@ -761,7 +758,6 @@ class AppLinksInterceptorTest {
             content = ContentState(
                 url = "https://mozilla.org",
                 private = false,
-                isProductUrl = false,
             ),
             source = SessionState.Source.External.CustomTab(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
         )
@@ -773,7 +769,6 @@ class AppLinksInterceptorTest {
             content = ContentState(
                 url = "https://mozilla.org",
                 private = false,
-                isProductUrl = false,
             ),
             source = SessionState.Source.External.ActionView(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
         )
@@ -784,7 +779,6 @@ class AppLinksInterceptorTest {
             content = ContentState(
                 url = "https://mozilla.org",
                 private = false,
-                isProductUrl = false,
             ),
             source = SessionState.Source.External.ActionSend(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
         )
@@ -795,7 +789,6 @@ class AppLinksInterceptorTest {
             content = ContentState(
                 url = "https://mozilla.org",
                 private = false,
-                isProductUrl = false,
             ),
             source = SessionState.Source.External.ActionSearch(ExternalPackage("com.zxing.app", PackageCategory.PRODUCTIVITY)),
         )

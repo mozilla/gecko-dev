@@ -9,8 +9,11 @@ permalink: /changelog/
   * `DownloadAction.RemoveDeletedDownloads` will now only remove downloads that are cancelled or completed. [Bug 1971848](https://bugzilla.mozilla.org/show_bug.cgi?id=1971848).
 * **concept-engine** and **browser-engine-gecko**
   * 🌟️ Added `TrackingProtectionPolicy.bounceTrackingProtectionMode` it allows configuring the Bounce Tracking Protection feature, disabled by default. [Bug 1963445](https://bugzilla.mozilla.org/show_bug.cgi?id=1963445)
+* **browser-state**
+  * Removed `ContentState.isProductUrl` and related internal changes.
 
 # 141.0
+=======
 * **feature-accounts**:
   * Respond to FxA with an error response when unknown web channel messages are sent to the client.
 * **concept-engine**, **browser-engine-gecko**: Added methods to get, set, and clear browser preferences. [Bug 1949876](https://bugzilla.mozilla.org/show_bug.cgi?id=1949876)

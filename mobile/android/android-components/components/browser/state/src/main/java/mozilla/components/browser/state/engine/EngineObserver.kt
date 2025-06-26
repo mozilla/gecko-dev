@@ -186,10 +186,6 @@ internal class EngineObserver(
         store.dispatch(CookieBannerAction.UpdateStatusAction(tabId, status))
     }
 
-    override fun onProductUrlChange(isProductUrl: Boolean) {
-        store.dispatch(ContentAction.UpdateProductUrlStateAction(tabId, isProductUrl))
-    }
-
     override fun onTranslatePageChange() {
         store.dispatch(TranslationsAction.SetTranslateProcessingAction(tabId, isProcessing = false))
     }

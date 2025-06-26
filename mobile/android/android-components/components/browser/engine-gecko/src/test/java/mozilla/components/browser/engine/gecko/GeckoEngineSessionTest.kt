@@ -315,10 +315,6 @@ class GeckoEngineSessionTest {
                 override fun onCookieBannerChange(status: CookieBannerHandlingStatus) {
                     cookieBanner = status
                 }
-                override fun onProductUrlChange(isProductUrl: Boolean) {
-                    displaysProduct = isProductUrl
-                }
-
                 override fun onTranslatePageChange() {
                     translationsProcessing = false
                 }
