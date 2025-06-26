@@ -32,6 +32,7 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.metrics.MetricsUtils
+import org.mozilla.fenix.search.fixtures.EMPTY_SEARCH_FRAGMENT_STATE
 import org.mozilla.fenix.utils.Settings
 
 class SearchFragmentStoreTest {
@@ -70,34 +71,15 @@ class SearchFragmentStoreTest {
         every { settings.showNonSponsoredSuggestions } returns true
 
         mockkStatic("org.mozilla.fenix.search.SearchFragmentStoreKt") {
-            val expected = SearchFragmentState(
-                query = "",
-                url = "",
-                searchTerms = "",
-                searchEngineSource = SearchEngineSource.None,
-                defaultEngine = null,
+            val expected = EMPTY_SEARCH_FRAGMENT_STATE.copy(
                 showSearchShortcutsSetting = true,
                 showSearchSuggestions = true,
-                showSearchSuggestionsHint = false,
-                showSearchShortcuts = false,
-                areShortcutsAvailable = false,
-                showClipboardSuggestions = false,
                 showSearchTermHistory = true,
-                showHistorySuggestionsForCurrentEngine = false,
                 showAllHistorySuggestions = true,
-                showBookmarksSuggestionsForCurrentEngine = false,
-                showAllBookmarkSuggestions = false,
-                showSyncedTabsSuggestionsForCurrentEngine = false,
-                showAllSyncedTabsSuggestions = false,
-                showSessionSuggestionsForCurrentEngine = false,
                 showAllSessionSuggestions = true,
                 showSponsoredSuggestions = true,
                 showNonSponsoredSuggestions = true,
-                showTrendingSearches = false,
-                showRecentSearches = false,
-                showShortcutsSuggestions = false,
                 showQrButton = true,
-                tabId = null,
                 pastedText = "pastedText",
                 searchAccessPoint = MetricsUtils.Source.ACTION,
             )
@@ -153,34 +135,12 @@ class SearchFragmentStoreTest {
         every { settings.showSponsoredSuggestions } returns true
         every { settings.showNonSponsoredSuggestions } returns true
 
-        val expected = SearchFragmentState(
-            query = "",
-            url = "",
-            searchTerms = "",
-            searchEngineSource = SearchEngineSource.None,
-            defaultEngine = null,
+        val expected = EMPTY_SEARCH_FRAGMENT_STATE.copy(
             showSearchShortcutsSetting = true,
-            showSearchSuggestions = false,
-            showSearchSuggestionsHint = false,
-            showSearchShortcuts = false,
-            areShortcutsAvailable = false,
-            showClipboardSuggestions = false,
             showSearchTermHistory = true,
-            showHistorySuggestionsForCurrentEngine = false,
             showAllHistorySuggestions = true,
-            showBookmarksSuggestionsForCurrentEngine = false,
-            showAllBookmarkSuggestions = false,
-            showSyncedTabsSuggestionsForCurrentEngine = false,
-            showAllSyncedTabsSuggestions = false,
-            showSessionSuggestionsForCurrentEngine = false,
             showAllSessionSuggestions = true,
-            showSponsoredSuggestions = false,
-            showNonSponsoredSuggestions = false,
-            showTrendingSearches = false,
-            showRecentSearches = false,
-            showShortcutsSuggestions = false,
             showQrButton = true,
-            tabId = null,
             pastedText = "pastedText",
             searchAccessPoint = MetricsUtils.Source.ACTION,
         )
@@ -214,32 +174,11 @@ class SearchFragmentStoreTest {
         )
 
         assertEquals(
-            SearchFragmentState(
+            EMPTY_SEARCH_FRAGMENT_STATE.copy(
                 query = "https://example.com",
                 url = "https://example.com",
                 searchTerms = "search terms",
-                searchEngineSource = SearchEngineSource.None,
-                defaultEngine = null,
-                showSearchSuggestions = false,
-                showSearchShortcutsSetting = false,
-                showSearchSuggestionsHint = false,
-                showSearchShortcuts = false,
-                areShortcutsAvailable = false,
-                showClipboardSuggestions = false,
-                showSearchTermHistory = false,
-                showHistorySuggestionsForCurrentEngine = false,
-                showAllHistorySuggestions = false,
-                showBookmarksSuggestionsForCurrentEngine = false,
-                showAllBookmarkSuggestions = false,
-                showSyncedTabsSuggestionsForCurrentEngine = false,
-                showAllSyncedTabsSuggestions = false,
-                showSessionSuggestionsForCurrentEngine = false,
                 showAllSessionSuggestions = true,
-                showSponsoredSuggestions = false,
-                showNonSponsoredSuggestions = false,
-                showTrendingSearches = false,
-                showRecentSearches = false,
-                showShortcutsSuggestions = false,
                 showQrButton = true,
                 tabId = "tabId",
                 pastedText = "",
@@ -1381,34 +1320,15 @@ class SearchFragmentStoreTest {
         showHistorySuggestionsForCurrentEngine: Boolean = true,
         showSponsoredSuggestions: Boolean = true,
         showNonSponsoredSuggestions: Boolean = true,
-    ): SearchFragmentState = SearchFragmentState(
-        tabId = null,
-        url = "",
-        searchTerms = "",
-        query = "",
+    ): SearchFragmentState = EMPTY_SEARCH_FRAGMENT_STATE.copy(
         searchEngineSource = searchEngineSource,
         defaultEngine = defaultEngine,
-        showSearchSuggestionsHint = false,
         showSearchShortcutsSetting = showSearchShortcutsSetting,
-        showSearchSuggestions = false,
-        showSearchShortcuts = false,
         areShortcutsAvailable = areShortcutsAvailable,
-        showClipboardSuggestions = false,
         showSearchTermHistory = true,
         showHistorySuggestionsForCurrentEngine = showHistorySuggestionsForCurrentEngine,
-        showAllHistorySuggestions = false,
-        showBookmarksSuggestionsForCurrentEngine = false,
-        showAllBookmarkSuggestions = false,
-        showSyncedTabsSuggestionsForCurrentEngine = false,
-        showAllSyncedTabsSuggestions = false,
-        showSessionSuggestionsForCurrentEngine = false,
-        showAllSessionSuggestions = false,
         showSponsoredSuggestions = showSponsoredSuggestions,
         showNonSponsoredSuggestions = showNonSponsoredSuggestions,
-        showTrendingSearches = false,
-        showRecentSearches = false,
-        showShortcutsSuggestions = false,
         showQrButton = true,
-        searchAccessPoint = MetricsUtils.Source.NONE,
     )
 }
