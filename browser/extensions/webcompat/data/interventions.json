@@ -2438,6 +2438,23 @@
       }
     ]
   },
+  "1899930": {
+    "label": "africanews.com",
+    "bugs": {
+      "1899930": {
+        "issue": "unsupported-warning",
+        "matches": ["*://www.africanews.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1899930-africanews.com-hide-unsupported.css"]
+        }
+      }
+    ]
+  },
   "1899932": {
     "label": "ct-tc.apps.cic.gc.ca",
     "bugs": {
