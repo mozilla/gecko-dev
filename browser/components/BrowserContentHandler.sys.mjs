@@ -1307,6 +1307,181 @@ nsDefaultCommandLineHandler.prototype = {
 
   _haveProfile: false,
 
+  /**
+   * @param {nsICommandLine} cmdLine
+   * @returns {boolean} true if the command is handled as notification, otherwise false.
+   */
+  handleNotification(cmdLine) {
+    if (AppConstants.platform !== "win") {
+      // Only for Windows for now
+      return false;
+    }
+
+    // Windows itself does disk I/O when the notification service is
+    // initialized, so make sure that is lazy.
+    let tag = cmdLine.handleFlagWithParam("notification-windowsTag", false);
+    if (!tag) {
+      return false;
+    }
+
+    // All notifications will invoke Firefox with an action.  Prior to Bug 1805514,
+    // this data was extracted from the Windows toast object directly (keyed by the
+    // notification ID) and not passed over the command line.  This is acceptable
+    // because the data passed is chrome-controlled, but if we implement the `actions`
+    // part of the DOM Web Notifications API, this will no longer be true:
+    // content-controlled data might transit over the command line.  This could lead
+    // to escaping bugs and overflows.  In the future, we intend to avoid any such
+    // issue by once again extracting all such data from the Windows toast object.
+    let notificationData = cmdLine.handleFlagWithParam(
+      "notification-windowsAction",
+      false
+    );
+    if (!notificationData) {
+      return false;
+    }
+
+    let alertService = lazy.gWindowsAlertsService;
+    if (!alertService) {
+      console.error("Windows alert service not available.");
+      return false;
+    }
+
+    // Notification handling occurs asynchronously to prevent blocking the
+    // main thread. As a result we won't have the information we need to open
+    // a new tab in the case of notification fallback handling before
+    // returning. We call `enterLastWindowClosingSurvivalArea` to prevent
+    // the browser from exiting in case early blank window is pref'd off.
+    if (cmdLine.state == Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
+      Services.startup.enterLastWindowClosingSurvivalArea();
+    }
+    this.handleNotificationImpl(cmdLine, tag, notificationData, alertService)
+      .catch(e => {
+        console.error(
+          `Error handling Windows notification with tag '${tag}':`,
+          e
+        );
+      })
+      .finally(() => {
+        if (cmdLine.state == Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
+          Services.startup.exitLastWindowClosingSurvivalArea();
+        }
+      });
+    return true;
+  },
+
+  /**
+   * @param {nsICommandLine} cmdLine
+   * @param {string} tag
+   * @param {string} notificationData
+   * @param {nsIWindowsAlertsService} alertService
+   */
+  async handleNotificationImpl(cmdLine, tag, notificationData, alertService) {
+    let { tagWasHandled } = await alertService.handleWindowsTag(tag);
+
+    try {
+      notificationData = JSON.parse(notificationData);
+    } catch (e) {
+      console.error(
+        `Failed to parse (notificationData=${notificationData}) for Windows notification (tag=${tag})`
+      );
+    }
+
+    // This is awkward: the relaunch data set by the caller is _wrapped_
+    // into a compound object that includes additional notification data,
+    // and everything is exchanged as strings.  Unwrap and parse here.
+    let opaqueRelaunchData = null;
+    if (notificationData?.opaqueRelaunchData) {
+      try {
+        opaqueRelaunchData = JSON.parse(notificationData.opaqueRelaunchData);
+      } catch (e) {
+        console.error(
+          `Failed to parse (opaqueRelaunchData=${notificationData.opaqueRelaunchData}) for Windows notification (tag=${tag})`
+        );
+      }
+    }
+
+    if (notificationData?.privilegedName) {
+      Glean.browserLaunchedToHandle.systemNotification.record({
+        name: notificationData.privilegedName,
+      });
+    }
+
+    // If we have an action in the notification data, this will be the
+    // window to perform the action in.
+    let winForAction;
+
+    // Fall back to launchUrl to not break notifications opened from
+    // previous builds after browser updates, as such notification would
+    // still have the old field.
+    let origin = notificationData?.origin ?? notificationData?.launchUrl;
+
+    if (!tagWasHandled && origin && !opaqueRelaunchData) {
+      let originPrincipal =
+        Services.scriptSecurityManager.createContentPrincipalFromOrigin(origin);
+      // Unprivileged Web Notifications contain a launch URL and are
+      // handled slightly differently than privileged notifications with
+      // actions. If the tag was not handled, then the notification was
+      // from a prior instance of the application and we need to handle
+      // fallback behavior.
+      let { uri, principal } = resolveURIInternal(
+        cmdLine,
+        // TODO(krosylight): We should handle origin suffix to open the
+        // relevant container. See bug 1945501.
+        originPrincipal.originNoSuffix
+      );
+      if (cmdLine.state != Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
+        // Try to find an existing window and load our URI into the current
+        // tab, new tab, or new window as prefs determine.
+        try {
+          handURIToExistingBrowser(
+            uri,
+            Ci.nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW,
+            cmdLine,
+            false,
+            principal
+          );
+          return;
+        } catch (e) {}
+      }
+
+      if (shouldLoadURI(uri)) {
+        openBrowserWindow(cmdLine, principal, [uri.spec]);
+      }
+    } else if (cmdLine.state == Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
+      // No URL provided, but notification was interacted with while the
+      // application was closed. Fall back to opening the browser without url.
+      winForAction = openBrowserWindow(cmdLine, lazy.gSystemPrincipal);
+      await lazy.BrowserUtils.promiseObserved(
+        "browser-delayed-startup-finished",
+        subject => subject == winForAction
+      );
+    } else {
+      // Relaunch in private windows only if we're in perma-private mode.
+      let allowPrivate = lazy.PrivateBrowsingUtils.permanentPrivateBrowsing;
+      winForAction = lazy.BrowserWindowTracker.getTopWindow({
+        private: allowPrivate,
+      });
+    }
+
+    // Note: at time of writing `opaqueRelaunchData` was only used by the
+    // Messaging System; if present it could be inferred that the message
+    // originated from the Messaging System. The Messaging System did not
+    // act on Windows 8 style notification callbacks, so there was no risk
+    // of duplicating behavior. If a non-Messaging System consumer is
+    // modified to populate `opaqueRelaunchData` or the Messaging System
+    // modified to use the callback directly, we will need to revisit
+    // this assumption.
+    if (opaqueRelaunchData && winForAction) {
+      // Without dispatch, `OPEN_URL` with `where: "tab"` does not work on relaunch.
+      Services.tm.dispatchToMainThread(() => {
+        lazy.SpecialMessageActions.handleAction(
+          opaqueRelaunchData,
+          winForAction.gBrowser
+        );
+      });
+    }
+  },
+
   /* nsICommandLineHandler */
   handle: function dch_handle(cmdLine) {
     var urilist = [];
@@ -1320,173 +1495,9 @@ nsDefaultCommandLineHandler.prototype = {
       return;
     }
 
-    if (AppConstants.platform == "win") {
-      // Windows itself does disk I/O when the notification service is
-      // initialized, so make sure that is lazy.
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        let tag = cmdLine.handleFlagWithParam("notification-windowsTag", false);
-        if (!tag) {
-          break;
-        }
-
-        // All notifications will invoke Firefox with an action.  Prior to Bug 1805514,
-        // this data was extracted from the Windows toast object directly (keyed by the
-        // notification ID) and not passed over the command line.  This is acceptable
-        // because the data passed is chrome-controlled, but if we implement the `actions`
-        // part of the DOM Web Notifications API, this will no longer be true:
-        // content-controlled data might transit over the command line.  This could lead
-        // to escaping bugs and overflows.  In the future, we intend to avoid any such
-        // issue by once again extracting all such data from the Windows toast object.
-        let notificationData = cmdLine.handleFlagWithParam(
-          "notification-windowsAction",
-          false
-        );
-        if (!notificationData) {
-          break;
-        }
-
-        let alertService = lazy.gWindowsAlertsService;
-        if (!alertService) {
-          console.error("Windows alert service not available.");
-          break;
-        }
-
-        async function handleNotification() {
-          let { tagWasHandled } = await alertService.handleWindowsTag(tag);
-
-          try {
-            notificationData = JSON.parse(notificationData);
-          } catch (e) {
-            console.error(
-              `Failed to parse (notificationData=${notificationData}) for Windows notification (tag=${tag})`
-            );
-          }
-
-          // This is awkward: the relaunch data set by the caller is _wrapped_
-          // into a compound object that includes additional notification data,
-          // and everything is exchanged as strings.  Unwrap and parse here.
-          let opaqueRelaunchData = null;
-          if (notificationData?.opaqueRelaunchData) {
-            try {
-              opaqueRelaunchData = JSON.parse(
-                notificationData.opaqueRelaunchData
-              );
-            } catch (e) {
-              console.error(
-                `Failed to parse (opaqueRelaunchData=${notificationData.opaqueRelaunchData}) for Windows notification (tag=${tag})`
-              );
-            }
-          }
-
-          if (notificationData?.privilegedName) {
-            Glean.browserLaunchedToHandle.systemNotification.record({
-              name: notificationData.privilegedName,
-            });
-          }
-
-          // If we have an action in the notification data, this will be the
-          // window to perform the action in.
-          let winForAction;
-
-          // Fall back to launchUrl to not break notifications opened from
-          // previous builds after browser updates, as such notification would
-          // still have the old field.
-          let origin = notificationData?.origin ?? notificationData?.launchUrl;
-
-          if (!tagWasHandled && origin && !opaqueRelaunchData) {
-            let originPrincipal =
-              Services.scriptSecurityManager.createContentPrincipalFromOrigin(
-                origin
-              );
-            // Unprivileged Web Notifications contain a launch URL and are
-            // handled slightly differently than privileged notifications with
-            // actions. If the tag was not handled, then the notification was
-            // from a prior instance of the application and we need to handle
-            // fallback behavior.
-            let { uri, principal } = resolveURIInternal(
-              cmdLine,
-              // TODO(krosylight): We should handle origin suffix to open the
-              // relevant container. See bug 1945501.
-              originPrincipal.originNoSuffix
-            );
-            if (cmdLine.state != Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
-              // Try to find an existing window and load our URI into the current
-              // tab, new tab, or new window as prefs determine.
-              try {
-                handURIToExistingBrowser(
-                  uri,
-                  Ci.nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW,
-                  cmdLine,
-                  false,
-                  principal
-                );
-                return;
-              } catch (e) {}
-            }
-
-            if (shouldLoadURI(uri)) {
-              openBrowserWindow(cmdLine, principal, [uri.spec]);
-            }
-          } else if (cmdLine.state == Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
-            // No URL provided, but notification was interacted with while the
-            // application was closed. Fall back to opening the browser without url.
-            winForAction = openBrowserWindow(cmdLine, lazy.gSystemPrincipal);
-            await lazy.BrowserUtils.promiseObserved(
-              "browser-delayed-startup-finished",
-              subject => subject == winForAction
-            );
-          } else {
-            // Relaunch in private windows only if we're in perma-private mode.
-            let allowPrivate =
-              lazy.PrivateBrowsingUtils.permanentPrivateBrowsing;
-            winForAction = lazy.BrowserWindowTracker.getTopWindow({
-              private: allowPrivate,
-            });
-          }
-
-          // Note: at time of writing `opaqueRelaunchData` was only used by the
-          // Messaging System; if present it could be inferred that the message
-          // originated from the Messaging System. The Messaging System did not
-          // act on Windows 8 style notification callbacks, so there was no risk
-          // of duplicating behavior. If a non-Messaging System consumer is
-          // modified to populate `opaqueRelaunchData` or the Messaging System
-          // modified to use the callback directly, we will need to revisit
-          // this assumption.
-          if (opaqueRelaunchData && winForAction) {
-            // Without dispatch, `OPEN_URL` with `where: "tab"` does not work on relaunch.
-            Services.tm.dispatchToMainThread(() => {
-              lazy.SpecialMessageActions.handleAction(
-                opaqueRelaunchData,
-                winForAction.gBrowser
-              );
-            });
-          }
-        }
-
-        // Notification handling occurs asynchronously to prevent blocking the
-        // main thread. As a result we won't have the information we need to open
-        // a new tab in the case of notification fallback handling before
-        // returning. We call `enterLastWindowClosingSurvivalArea` to prevent
-        // the browser from exiting in case early blank window is pref'd off.
-        if (cmdLine.state == Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
-          Services.startup.enterLastWindowClosingSurvivalArea();
-        }
-        handleNotification()
-          .catch(e => {
-            console.error(
-              `Error handling Windows notification with tag '${tag}':`,
-              e
-            );
-          })
-          .finally(() => {
-            if (cmdLine.state == Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
-              Services.startup.exitLastWindowClosingSurvivalArea();
-            }
-          });
-
-        return;
-      }
+    if (this.handleNotification(cmdLine)) {
+      // This command is about notification and is handled already
+      return;
     }
 
     if (
