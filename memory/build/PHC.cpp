@@ -114,6 +114,7 @@
 #include "mozjemalloc.h"
 #include "FdPrintf.h"
 #include "Mutex.h"
+#include "mozilla/Array.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
@@ -1301,7 +1302,8 @@ class PHC {
   // The last value we set tlsAllocDelay to before starting to count down.
   static PHC_THREAD_LOCAL(Delay) tlsLastDelay;
 
-  AllocPageInfo mAllocPages[kNumAllocPages] MOZ_GUARDED_BY(mMutex);
+  // Using mfbt/Array.h makes MOZ_GUARDED_BY more reliable than a C array.
+  Array<AllocPageInfo, kNumAllocPages> mAllocPages MOZ_GUARDED_BY(mMutex);
 
  public:
   Delay GetAvgAllocDelay() MOZ_REQUIRES(mMutex) { return mAvgAllocDelay; }
