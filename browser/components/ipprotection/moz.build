@@ -17,3 +17,4 @@ EXTRA_JS_MODULES.ipprotection += [
 BROWSER_CHROME_MANIFESTS += [
     "tests/browser/browser.toml",
 ]
+XPCSHELL_TESTS_MANIFESTS += ["tests/xpcshell/xpcshell.toml"]

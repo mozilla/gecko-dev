@@ -1,0 +1,7 @@
+[DEFAULT]
+firefox-appdir = "browser"
+prefs = [
+  "browser.ipProtection.enabled=true",
+]
+
+["test_IPProtectionPanel.js"]

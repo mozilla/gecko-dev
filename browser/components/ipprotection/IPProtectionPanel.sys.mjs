@@ -61,13 +61,19 @@ export class IPProtectionPanel {
    * Updates the current panel component state,
    * if the panel is currently active (showing or not hiding).
    *
+   * @example
+   * panel.setState({
+   *  isSomething: true,
+   * });
+   *
    * @param {object} state
    *    The state object from IPProtectionPanel.
    */
   setState(state) {
-    this.state = state;
+    Object.assign(this.state, state);
+
     if (this.active) {
-      this.updateState(state);
+      this.updateState();
     }
   }
 
@@ -84,7 +90,7 @@ export class IPProtectionPanel {
       return;
     }
 
-    Object.assign(panelEl.state, state);
+    panelEl.state = state;
   }
 
   /**
