@@ -3,6 +3,69 @@
     {
       "stash": {
         "blocked": [
+          "firefox-extension-single-file@egrajeda.com:1.22.81",
+          "firefox-extension-single-file@egrajeda.com:1.22.82"
+        ],
+        "unblocked": [],
+        "softblocked": []
+      },
+      "schema": 1750817734161,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1750854905447,
+      "id": "9e9d51c8-f63a-44cd-ac65-792864fdbcea",
+      "last_modified": 1750854976158
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{91a36cb9-b25f-481a-92ab-d7f95b0b4488}:2.6",
+          "{91a36cb9-b25f-481a-92ab-d7f95b0b4488}:132.18.9",
+          "{74daf2f5-6377-4135-95cd-59e96fb05aa8}:1.1.2",
+          "{74daf2f5-6377-4135-95cd-59e96fb05aa8}:3.120.0",
+          "phantomrbt@outlook.com:1.0.0",
+          "phantomrbt@outlook.com:1.1.0",
+          "Phantomdappt@outlook.com:1.0",
+          "Phantomdappt@outlook.com:1.1.0",
+          "okx-wallet-porta2l@huntersoutce.site:15.20",
+          "okx-wallet-porta2l@huntersoutce.site:15.20.2",
+          "phantomrbt2@outlook.com:1.1.0",
+          "phantomrbt2@outlook.com:1.2.0",
+          "{19e8bf5a-7b82-42c9-8b94-0b8f9870a034}:9.6.18.0",
+          "{19e8bf5a-7b82-42c9-8b94-0b8f9870a034}:10.1",
+          "etexctgvuygjhgukjhkjmbb@gmail.com:1.0",
+          "etexctgvuygjhgukjhkjmbb@gmail.com:101.3",
+          "etexctgvuygjhgukjhkjmbb@gmail.com:101.3.1",
+          "{3363ec66-1bd7-46ee-8b8e-70f61c0d6977}:5.3.3"
+        ],
+        "unblocked": [],
+        "softblocked": []
+      },
+      "schema": 1750779054751,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1750790105843,
+      "id": "3bb59b3d-e0aa-46fe-931c-f744ac21b2e3",
+      "last_modified": 1750790183628
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{c53c03b7-7d8b-4bc2-8a0f-619e435ec982}:4.1280",
+          "{c53c03b7-7d8b-4bc2-8a0f-619e435ec982}:10.1",
+          "{c53c03b7-7d8b-4bc2-8a0f-619e435ec982}:11.0",
+          "{9eef92f7-82c3-41da-81e2-c6711b8fff99}:13.18.9"
+        ],
+        "unblocked": [],
+        "softblocked": []
+      },
+      "schema": 1750358175634,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1750682106103,
+      "id": "8889a530-f77a-4ecf-9fdf-531ad0f0094a",
+      "last_modified": 1750682176263
+    },
+    {
+      "stash": {
+        "blocked": [
           "okx-wallet-portal@gitsources.site:13.54.2",
           "okx-wallet-portal@gitsources.site:13.54.3"
         ],
@@ -760,5 +823,5 @@
       "last_modified": 1739466430716
     }
   ],
-  "timestamp": 1750358175311
+  "timestamp": 1750854976158
 }
