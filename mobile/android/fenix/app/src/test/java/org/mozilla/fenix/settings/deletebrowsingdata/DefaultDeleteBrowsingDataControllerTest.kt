@@ -25,6 +25,7 @@ import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.components.PermissionStorage
@@ -93,6 +94,7 @@ class DefaultDeleteBrowsingDataControllerTest {
         }
     }
 
+    @Ignore("Disabled: Fails if new tests are added: https://bugzilla.mozilla.org/show_bug.cgi?id=1956618")
     @Test
     fun deleteCachedFiles() = runTestOnMain {
         val onSuccessSlot = slot<() -> Unit>()
