@@ -6261,6 +6261,12 @@ Version 1.6.48 [April 30, 2025]
   Removed the Travis CI configuration files, with heartfelt thanks for
     their generous support of our project over the past five years!
 
+Version 1.6.49 [June 12, 2025]
+  Added SIMD-optimized code for the RISC-V Vector Extension (RVV).
+    (Contributed by Manfred Schlaegl, Dragos Tiselice and Filip Wasil)
+  Added various fixes and improvements to the build scripts and to
+    the sample code.
+
 Send comments/corrections/commendations to png-mng-implement at lists.sf.net.
 Subscription is required; visit
 https://lists.sourceforge.net/lists/listinfo/png-mng-implement

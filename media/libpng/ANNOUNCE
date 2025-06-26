@@ -1,5 +1,5 @@
-libpng 1.6.48 - April 30, 2025
-==============================
+libpng 1.6.49 - June 12, 2025
+=============================
 
 This is a public release of libpng, intended for use in production code.
 
@@ -9,13 +9,13 @@ Files available for download
 
 Source files with LF line endings (for Unix/Linux):
 
- * libpng-1.6.48.tar.xz (LZMA-compressed, recommended)
- * libpng-1.6.48.tar.gz (deflate-compressed)
+ * libpng-1.6.49.tar.xz (LZMA-compressed, recommended)
+ * libpng-1.6.49.tar.gz (deflate-compressed)
 
 Source files with CRLF line endings (for Windows):
 
- * lpng1648.7z (LZMA-compressed, recommended)
- * lpng1648.zip (deflate-compressed)
+ * lpng1649.7z (LZMA-compressed, recommended)
+ * lpng1649.zip (deflate-compressed)
 
 Other information:
 
@@ -25,17 +25,13 @@ Other information:
  * TRADEMARK.md
 
 
-Changes from version 1.6.47 to version 1.6.48
+Changes from version 1.6.48 to version 1.6.49
 ---------------------------------------------
 
- * Fixed the floating-point version of the mDCv setter `png_set_mDCv`.
-   (Reported by Mohit Bakshi; fixed by John Bowler)
- * Added #error directives to discourage the inclusion of private
-   libpng implementation header files in PNG-supporting applications.
- * Added the CMake build option `PNG_LIBCONF_HEADER`, to be used as an
-   alternative to `DFA_XTRA`.
- * Removed the Travis CI configuration files, with heartfelt thanks for
-   their generous support of our project over the past five years!
+ * Added SIMD-optimized code for the RISC-V Vector Extension (RVV).
+   (Contributed by Manfred Schlaegl, Dragos Tiselice and Filip Wasil)
+ * Added various fixes and improvements to the build scripts and to
+   the sample code.
 
 
 Send comments/corrections/commendations to png-mng-implement at lists.sf.net.
