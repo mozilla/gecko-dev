@@ -38,6 +38,7 @@ import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.search.SearchFragmentAction.SearchProvidersUpdated
 import org.mozilla.fenix.search.SearchFragmentAction.SearchStarted
+import org.mozilla.fenix.search.SearchFragmentAction.SearchSuggestionsVisibilityUpdated
 import org.mozilla.fenix.search.fixtures.EMPTY_SEARCH_FRAGMENT_STATE
 import org.mozilla.fenix.utils.Settings
 import org.robolectric.RobolectricTestRunner
@@ -1341,6 +1342,17 @@ class SearchFragmentStoreTest {
         store.dispatch(SearchStarted(selectedSearchEngine, true)).joinBlocking()
 
         assertEquals(initialState, store.state)
+    }
+
+    @Test
+    fun `WHEN the search UX changes visibility THEN persist this in state`() {
+        val store = SearchFragmentStore(emptyDefaultState())
+
+        store.dispatch(SearchSuggestionsVisibilityUpdated(true))
+        assertTrue(store.state.shouldShowSearchSuggestions)
+
+        store.dispatch(SearchSuggestionsVisibilityUpdated(false))
+        assertFalse(store.state.shouldShowSearchSuggestions)
     }
 
     private fun emptyDefaultState(

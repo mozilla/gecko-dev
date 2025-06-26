@@ -44,6 +44,7 @@ import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.search.SearchEngineSource.Bookmarks
 import org.mozilla.fenix.search.SearchEngineSource.Shortcut
 import org.mozilla.fenix.search.SearchFragmentAction.SearchStarted
+import org.mozilla.fenix.search.SearchFragmentAction.UpdateQuery
 import org.mozilla.fenix.search.awesomebar.SearchSuggestionsProvidersBuilder
 import org.mozilla.fenix.search.fixtures.EMPTY_SEARCH_FRAGMENT_STATE
 import org.mozilla.fenix.utils.Settings
@@ -102,6 +103,69 @@ class FenixSearchMiddlewareTest {
         assertEquals(Shortcut(preselectedSearchEngine), store.state.searchEngineSource)
         assertNotNull(store.state.defaultEngine)
         assertEquals(defaultSearchEngine?.id, store.state.defaultEngine?.id)
+        assertFalse(store.state.shouldShowSearchSuggestions)
+    }
+
+    @Test
+    fun `GIVEN should show recent searches and a query is set WHEN search is started THEN show search suggestions`() {
+        val defaultSearchEngine = fakeSearchEnginesState().selectedOrDefaultSearchEngine
+        val preselectedSearchEngine = SearchEngine("engine-a", "Engine A", mockk(), type = SearchEngine.Type.BUNDLED)
+        val isSearchInPrivateMode = false
+        every { settings.shouldShowRecentSearchSuggestions } returns true
+        val (middleware, store) = buildMiddlewareAndAddToSearchStore()
+        val expectedSuggestionProviders = setOf(mockk<SuggestionProvider>(), mockk<SuggestionProvider>())
+        val expectedSearchSuggestionsProvider: SearchSuggestionsProvidersBuilder = mockk {
+            every { getProvidersToAdd(any()) } returns expectedSuggestionProviders
+        }
+        every { middleware.buildSearchSuggestionsProvider() } returns expectedSearchSuggestionsProvider
+
+        store.dispatch(UpdateQuery("test"))
+        store.dispatch(SearchStarted(preselectedSearchEngine, isSearchInPrivateMode))
+
+        verify { engine.speculativeCreateSession(isSearchInPrivateMode) }
+        assertEquals(expectedSearchSuggestionsProvider, middleware.suggestionsProvidersBuilder)
+        assertEquals(expectedSuggestionProviders.toList(), store.state.searchSuggestionsProviders.toList())
+        assertEquals(Shortcut(preselectedSearchEngine), store.state.searchEngineSource)
+        assertNotNull(store.state.defaultEngine)
+        assertEquals(defaultSearchEngine?.id, store.state.defaultEngine?.id)
+        assertTrue(store.state.shouldShowSearchSuggestions)
+    }
+
+    @Test
+    fun `GIVEN should show shortcut suggestions and a query is set WHEN search is started THEN show search suggestions`() {
+        val defaultSearchEngine = fakeSearchEnginesState().selectedOrDefaultSearchEngine!!
+        val isSearchInPrivateMode = true
+        every { settings.shouldShowShortcutSuggestions } returns true
+        val (middleware, store) = buildMiddlewareAndAddToSearchStore()
+        val expectedSuggestionProviders = setOf(mockk<SuggestionProvider>(), mockk<SuggestionProvider>())
+        val expectedSearchSuggestionsProvider: SearchSuggestionsProvidersBuilder = mockk {
+            every { getProvidersToAdd(any()) } returns expectedSuggestionProviders
+        }
+        every { middleware.buildSearchSuggestionsProvider() } returns expectedSearchSuggestionsProvider
+
+        store.dispatch(UpdateQuery("test"))
+        store.dispatch(SearchStarted(null, isSearchInPrivateMode))
+        store.waitUntilIdle()
+
+        verify { engine.speculativeCreateSession(isSearchInPrivateMode) }
+        assertEquals(expectedSearchSuggestionsProvider, middleware.suggestionsProvidersBuilder)
+        assertEquals(expectedSuggestionProviders.toList(), store.state.searchSuggestionsProviders.toList())
+        assertEquals(defaultSearchEngine.id, store.state.searchEngineSource.searchEngine?.id)
+        assertTrue(store.state.shouldShowSearchSuggestions)
+    }
+
+    @Test
+    fun `GIVEN the search query is updated WHEN is is different than the current URL and not empty THEN show search suggestions`() {
+        val (_, store) = buildMiddlewareAndAddToSearchStore()
+
+        store.dispatch(UpdateQuery(store.state.url))
+        assertFalse(store.state.shouldShowSearchSuggestions)
+
+        store.dispatch(UpdateQuery("test"))
+        assertTrue(store.state.shouldShowSearchSuggestions)
+
+        store.dispatch(UpdateQuery(""))
+        assertFalse(store.state.shouldShowSearchSuggestions)
     }
 
     @Test
