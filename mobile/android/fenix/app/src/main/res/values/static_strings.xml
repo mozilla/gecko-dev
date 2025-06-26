@@ -175,10 +175,6 @@
     <string name="debug_drawer_cfr_tools_homepage_searchbar_title">Homepage Searchbar</string>
     <!-- The homepage searchbar CFR description in CFR Tools -->
     <string name="debug_drawer_cfr_tools_homepage_searchbar_description">Displayed when a new user sees the homepage for the first time.</string>
-    <!-- The homepage sync CFR title in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_homepage_sync_title">Homepage Sync</string>
-    <!-- The homepage sync CFR description in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_homepage_sync_description">Displayed the first time visiting the homepage after signing-in and the Homepage Navigation Toolbar CFR has been shown.</string>
     <!-- The inactive tabs CFR title in CFR Tools -->
     <string name="debug_drawer_cfr_tools_inactive_tabs_title">Inactive Tabs</string>
     <!-- The inactive tabs CFR description in CFR Tools -->

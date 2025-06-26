@@ -96,11 +96,6 @@ class CfrToolsPreferencesMiddlewareTest {
 
         preferenceUpdates.forEach {
             when (it.preferenceType) {
-                CfrPreferencesRepository.CfrPreference.HomepageSync -> {
-                    val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.HomepageSyncCfrLoaded
-                    val actualValue = !actual.newValue
-                    assertEquals(it.value, actualValue)
-                }
                 CfrPreferencesRepository.CfrPreference.HomepageSearchBar -> {
                     val actual = middleware.mapRepoUpdateToStoreAction(it) as CfrToolsAction.HomepageSearchbarCfrLoaded
                     val actualValue = !actual.newValue
@@ -122,48 +117,6 @@ class CfrToolsPreferencesMiddlewareTest {
                     assertEquals(it.value, actualValue)
                 }
             }
-        }
-    }
-
-    @Test
-    fun `GIVEN the homepage sync CFR should not be shown WHEN the toggle homepage sync CFR action is dispatched THEN its preference is set to should be shown`() {
-        val store = CfrToolsStore(
-            initialState = CfrToolsState(
-                homepageSyncShown = true,
-            ),
-            middlewares = listOf(
-                middleware,
-            ),
-        )
-        store.dispatch(CfrToolsAction.HomepageSyncShownToggled)
-        verify {
-            cfrPreferencesRepository.updateCfrPreference(
-                CfrPreferencesRepository.CfrPreferenceUpdate(
-                    preferenceType = CfrPreferencesRepository.CfrPreference.HomepageSync,
-                    value = false,
-                ),
-            )
-        }
-    }
-
-    @Test
-    fun `GIVEN the homepage sync CFR should be shown WHEN the toggle homepage sync CFR action is dispatched THEN its preference is set to should not be shown`() {
-        val store = CfrToolsStore(
-            initialState = CfrToolsState(
-                homepageSyncShown = false,
-            ),
-            middlewares = listOf(
-                middleware,
-            ),
-        )
-        store.dispatch(CfrToolsAction.HomepageSyncShownToggled)
-        verify {
-            cfrPreferencesRepository.updateCfrPreference(
-                CfrPreferencesRepository.CfrPreferenceUpdate(
-                    preferenceType = CfrPreferencesRepository.CfrPreference.HomepageSync,
-                    value = true,
-                ),
-            )
         }
     }
 

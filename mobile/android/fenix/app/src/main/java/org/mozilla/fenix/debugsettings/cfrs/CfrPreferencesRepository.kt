@@ -30,7 +30,6 @@ interface CfrPreferencesRepository {
     enum class CfrPreference(
         @StringRes val preferenceKey: Int,
     ) {
-        HomepageSync(preferenceKey = R.string.pref_key_should_show_sync_cfr),
         HomepageSearchBar(preferenceKey = R.string.pref_key_should_searchbar_cfr),
         TabAutoCloseBanner(preferenceKey = R.string.pref_key_should_show_auto_close_tabs_banner),
         InactiveTabs(preferenceKey = R.string.pref_key_should_show_inactive_tabs_popup),
@@ -94,8 +93,6 @@ class DefaultCfrPreferencesRepository(
     override fun init() {
         CfrPreferencesRepository.CfrPreference.entries.forEach { preference ->
             val initialPreferenceValue = when (preference) {
-                CfrPreferencesRepository.CfrPreference.HomepageSync ->
-                    settings.showSyncCFR
                 CfrPreferencesRepository.CfrPreference.HomepageSearchBar ->
                     settings.shouldShowSearchBarCFR
                 CfrPreferencesRepository.CfrPreference.TabAutoCloseBanner ->
@@ -151,8 +148,6 @@ class DefaultCfrPreferencesRepository(
         // will require toggling more than 1 pref value or has inverted logic.
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=1916992 for more details.
         when (preferenceUpdate.preferenceType) {
-            CfrPreferencesRepository.CfrPreference.HomepageSync ->
-                settings.showSyncCFR = !preferenceUpdate.value
             CfrPreferencesRepository.CfrPreference.HomepageSearchBar ->
                 settings.shouldShowSearchBarCFR = !preferenceUpdate.value
             CfrPreferencesRepository.CfrPreference.TabAutoCloseBanner ->

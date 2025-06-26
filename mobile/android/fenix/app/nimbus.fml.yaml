@@ -101,7 +101,6 @@ features:
         type: Map<MR2022Section, Boolean>
         default:
           {
-            "sync-cfr": true,
             "wallpapers-selection-tool": true,
             "tcp-cfr": true,
             "tcp-feature": true,
@@ -110,7 +109,6 @@ features:
       - channel: developer
         value: {
           "sections-enabled": {
-            "sync-cfr": true,
             "wallpapers-selection-tool": true,
           }
         }
@@ -926,8 +924,6 @@ types:
     MR2022Section:
       description: The identifiers for the sections of the MR 2022.
       variants:
-        sync-cfr:
-          description: CFR for the first time you see a synced tab on the home screen.
         wallpapers-selection-tool:
           description: Wallpapers selection dialog tool for the home screen.
         tcp-cfr:

@@ -110,15 +110,6 @@ private fun ResetCfrTool(
                     cfrToolsStore.dispatch(CfrToolsAction.HomepageSearchBarShownToggled)
                 },
             )
-
-            CfrToggle(
-                title = stringResource(R.string.debug_drawer_cfr_tools_homepage_sync_title),
-                description = stringResource(R.string.debug_drawer_cfr_tools_homepage_sync_description),
-                checked = cfrPreferences.homepageSyncShown,
-                onCfrToggle = {
-                    cfrToolsStore.dispatch(CfrToolsAction.HomepageSyncShownToggled)
-                },
-            )
         }
 
         Column(

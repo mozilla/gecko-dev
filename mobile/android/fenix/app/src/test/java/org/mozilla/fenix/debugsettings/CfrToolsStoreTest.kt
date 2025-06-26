@@ -28,32 +28,6 @@ class CfrToolsStoreTest {
     }
 
     @Test
-    fun `GIVEN the homepage sync CFR has been shown WHEN the homepage sync CFR is toggled THEN its preference is set to false`() {
-        val store = CfrToolsStore(
-            initialState = CfrToolsState(
-                homepageSyncShown = true,
-            ),
-        )
-
-        assertTrue(store.state.homepageSyncShown)
-        store.dispatch(CfrToolsAction.HomepageSyncShownToggled)
-        assertFalse(store.state.homepageSyncShown)
-    }
-
-    @Test
-    fun `GIVEN the homepage sync CFR has not been shown WHEN the homepage sync CFR is toggled THEN its preference is set to true`() {
-        val store = CfrToolsStore(
-            initialState = CfrToolsState(
-                homepageSyncShown = false,
-            ),
-        )
-
-        assertFalse(store.state.homepageSyncShown)
-        store.dispatch(CfrToolsAction.HomepageSyncShownToggled)
-        assertTrue(store.state.homepageSyncShown)
-    }
-
-    @Test
     fun `GIVEN the homepage searchbar CFR has been shown WHEN the homepage searchbar CFR is toggled THEN its preference is set to false`() {
         val store = CfrToolsStore(
             initialState = CfrToolsState(
@@ -190,32 +164,6 @@ class CfrToolsStoreTest {
         val previousState = store.state
         store.dispatch(CfrToolsAction.ResetLastCFRTimestampButtonClicked)
         assertEquals(previousState, store.state)
-    }
-
-    @Test
-    fun `GIVEN the homepage sync CFR has not been shown WHEN the corresponding CfrPreferenceUpdate is dispatched THEN update its state to true`() {
-        val store = CfrToolsStore(
-            initialState = CfrToolsState(
-                homepageSyncShown = false,
-            ),
-        )
-
-        assertFalse(store.state.homepageSyncShown)
-        store.dispatch(CfrToolsAction.HomepageSyncCfrLoaded(true))
-        assertTrue(store.state.homepageSyncShown)
-    }
-
-    @Test
-    fun `GIVEN the homepage sync CFR has been shown WHEN the corresponding CfrPreferenceUpdate is dispatched THEN update its state to false`() {
-        val store = CfrToolsStore(
-            initialState = CfrToolsState(
-                homepageSyncShown = true,
-            ),
-        )
-
-        assertTrue(store.state.homepageSyncShown)
-        store.dispatch(CfrToolsAction.HomepageSyncCfrLoaded(false))
-        assertFalse(store.state.homepageSyncShown)
     }
 
     @Test

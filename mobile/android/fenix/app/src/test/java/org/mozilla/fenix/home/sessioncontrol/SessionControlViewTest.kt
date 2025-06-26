@@ -346,7 +346,7 @@ class SessionControlViewTest {
         every { settings.numberOfAppLaunches } returns 3
         every { settings.showWallpaperOnboarding } returns true
 
-        assertTrue(settings.showWallpaperOnboardingDialog(false))
+        assertTrue(settings.showWallpaperOnboardingDialog())
     }
 
     @Test
@@ -355,7 +355,7 @@ class SessionControlViewTest {
         every { settings.numberOfAppLaunches } returns 2
         every { settings.showWallpaperOnboarding } returns true
 
-        assertFalse(settings.showWallpaperOnboardingDialog(false))
+        assertFalse(settings.showWallpaperOnboardingDialog())
     }
 
     @Test
@@ -364,15 +364,6 @@ class SessionControlViewTest {
         every { settings.numberOfAppLaunches } returns 3
         every { settings.showWallpaperOnboarding } returns false
 
-        assertFalse(settings.showWallpaperOnboardingDialog(false))
-    }
-
-    @Test
-    fun `GIVEN app opened three times, should show the dialog and wallpaper feature already recommended WHEN showWallpaperOnboardingDialog THEN returns false`() {
-        val settings = mockk<Settings>()
-        every { settings.numberOfAppLaunches } returns 3
-        every { settings.showWallpaperOnboarding } returns false
-
-        assertFalse(settings.showWallpaperOnboardingDialog(true))
+        assertFalse(settings.showWallpaperOnboardingDialog())
     }
 }

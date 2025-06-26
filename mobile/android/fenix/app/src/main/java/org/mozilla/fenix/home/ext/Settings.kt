@@ -14,5 +14,5 @@ private const val MIN_NUMBER_OF_APP_LAUNCHES = 3
  * Note: We use 'at least three' instead of exactly 'three' in case the app is opened in such a
  * way that the other conditions are not met.
  */
-internal fun Settings.showWallpaperOnboardingDialog(featureRecommended: Boolean) =
-    numberOfAppLaunches >= MIN_NUMBER_OF_APP_LAUNCHES && showWallpaperOnboarding && !featureRecommended
+internal fun Settings.showWallpaperOnboardingDialog() =
+    numberOfAppLaunches >= MIN_NUMBER_OF_APP_LAUNCHES && showWallpaperOnboarding

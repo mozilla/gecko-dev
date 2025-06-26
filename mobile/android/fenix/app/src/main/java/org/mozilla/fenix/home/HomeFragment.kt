@@ -256,10 +256,6 @@ class HomeFragment : Fragment() {
     private val searchSelectorMenuBinding = ViewBoundFeatureWrapper<SearchSelectorMenuBinding>()
     private val homeScreenPopupManager = ViewBoundFeatureWrapper<HomeScreenPopupManager>()
 
-    // This limits feature recommendations (CFR and wallpaper onboarding dialog) so only one will
-    // show at a time.
-    private var featureRecommended = false
-
     override fun onCreate(savedInstanceState: Bundle?) {
         // DO NOT ADD ANYTHING ABOVE THIS getProfilerTime CALL!
         val profilerStartTime = requireComponents.core.engine.profiler?.getProfilerTime()
@@ -549,7 +545,6 @@ class HomeFragment : Fragment() {
                 containerView = binding.sessionControlRecyclerView,
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = sessionControlInteractor,
-                fragmentManager = parentFragmentManager,
             )
 
             updateSessionControlView()
@@ -1010,8 +1005,8 @@ class HomeFragment : Fragment() {
 
     private fun onFirstHomepageFrameDrawn() {
         with(requireContext().components.settings) {
-            if (!featureRecommended && showWallpaperOnboardingDialog(featureRecommended)) {
-                featureRecommended = sessionControlInteractor.showWallpapersOnboardingDialog(
+            if (showWallpaperOnboardingDialog()) {
+                sessionControlInteractor.showWallpapersOnboardingDialog(
                     requireContext().components.appStore.state.wallpaperState,
                 )
             }

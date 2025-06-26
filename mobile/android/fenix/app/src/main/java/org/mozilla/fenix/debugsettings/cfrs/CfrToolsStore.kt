@@ -12,7 +12,6 @@ import mozilla.components.lib.state.UiStore
 /**
  * Value type that represents the state of the CFR Tools.
  *
- * @property homepageSyncShown Whether the homepage sync CFR has been shown.
  * @property homepageSearchBarShown Whether the homepage search toolbar CFR has been shown.
  * @property tabAutoCloseBannerShown Whether the tab auto close banner CFR has been shown.
  * @property inactiveTabsShown Whether the inactive tabs CFR has been shown.
@@ -20,7 +19,6 @@ import mozilla.components.lib.state.UiStore
  * @property pwaShown Whether the progressive web app dialog CFR has been shown.
  */
 data class CfrToolsState(
-    val homepageSyncShown: Boolean = false,
     val homepageSearchBarShown: Boolean = false,
     val tabAutoCloseBannerShown: Boolean = false,
     val inactiveTabsShown: Boolean = false,
@@ -37,11 +35,6 @@ sealed class CfrToolsAction : Action {
      * Dispatched when the store is initialized.
      */
     data object Init : CfrToolsAction()
-
-    /**
-     * Toggle whether the homepage sync CFR has been shown.
-     */
-    data object HomepageSyncShownToggled : CfrToolsAction()
 
     /**
      * Toggle whether the homepage searchbar CFR has been shown.
@@ -77,14 +70,6 @@ sealed class CfrToolsAction : Action {
      * [Action] fired when the user toggles a CFR.
      */
     sealed interface LoadCfrPreference
-
-    /**
-     * Action fired when initializing the [CfrPreferencesRepository]
-     *
-     * @property newValue The updated value of the pref indicating whether or not to show the homepage
-     * sync CFR.
-     */
-    data class HomepageSyncCfrLoaded(val newValue: Boolean) : CfrToolsAction(), LoadCfrPreference
 
     /**
      * [LoadCfrPreference] fired when the user toggles the homepage searchbar CFR.
@@ -134,8 +119,6 @@ internal object CfrToolsReducer {
     fun reduce(state: CfrToolsState, action: CfrToolsAction): CfrToolsState {
         return when (action) {
             is CfrToolsAction.Init -> state
-            is CfrToolsAction.HomepageSyncShownToggled ->
-                state.copy(homepageSyncShown = !state.homepageSyncShown)
             is CfrToolsAction.HomepageSearchBarShownToggled ->
                 state.copy(homepageSearchBarShown = !state.homepageSearchBarShown)
             is CfrToolsAction.TabAutoCloseBannerShownToggled ->
@@ -149,8 +132,6 @@ internal object CfrToolsReducer {
             is CfrToolsAction.ResetLastCFRTimestampButtonClicked -> state
             is CfrToolsAction.HomepageSearchbarCfrLoaded ->
                 state.copy(homepageSearchBarShown = action.newValue)
-            is CfrToolsAction.HomepageSyncCfrLoaded ->
-                state.copy(homepageSyncShown = action.newValue)
             is CfrToolsAction.InactiveTabsCfrLoaded ->
                 state.copy(inactiveTabsShown = action.newValue)
             is CfrToolsAction.OpenInAppCfrLoaded ->

@@ -6,8 +6,6 @@ package org.mozilla.fenix.home.sessioncontrol
 
 import android.view.View
 import androidx.annotation.VisibleForTesting
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.LifecycleOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -26,8 +24,6 @@ import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.ext.showWallpaperOnboardingDialog
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
-import org.mozilla.fenix.onboarding.HomeCFRPresenter
-import org.mozilla.fenix.search.SearchDialogFragment
 import org.mozilla.fenix.utils.Settings
 
 // This method got a little complex with the addition of the tab tray feature flag
@@ -151,20 +147,15 @@ private fun collectionTabItems(collection: TabCollection) =
  *
  * @param containerView The [View] that is used to initialize the Home recycler view.
  * @param viewLifecycleOwner [LifecycleOwner] for the view.
- * @param fragmentManager The [FragmentManager] of the parent [Fragment].
  * @param interactor [SessionControlInteractor] which will have delegated to all user interactions.
  */
 class SessionControlView(
     containerView: View,
     viewLifecycleOwner: LifecycleOwner,
-    fragmentManager: FragmentManager,
     private val interactor: SessionControlInteractor,
 ) {
 
     val view: RecyclerView = containerView as RecyclerView
-
-    // We want to limit feature recommendations to one per HomePage visit.
-    var featureRecommended = false
 
     private val sessionControlAdapter = SessionControlAdapter(
         interactor,
@@ -180,22 +171,10 @@ class SessionControlView(
                 override fun onLayoutCompleted(state: RecyclerView.State?) {
                     super.onLayoutCompleted(state)
 
-                    val searchDialogFragment: SearchDialogFragment? =
-                        fragmentManager.fragments.find { it is SearchDialogFragment } as SearchDialogFragment?
-
-                    with(settings()) {
-                        if (!featureRecommended) {
-                            if (searchDialogFragment == null && showSyncCFR) {
-                                featureRecommended =
-                                    HomeCFRPresenter(context = context, recyclerView = view).show()
-                            }
-
-                            if (showWallpaperOnboardingDialog(featureRecommended)) {
-                                featureRecommended = interactor.showWallpapersOnboardingDialog(
-                                    context.components.appStore.state.wallpaperState,
-                                )
-                            }
-                        }
+                    if (settings().showWallpaperOnboardingDialog()) {
+                        interactor.showWallpapersOnboardingDialog(
+                            context.components.appStore.state.wallpaperState,
+                        )
                     }
 
                     // We want some parts of the home screen UI to be rendered first if they are
