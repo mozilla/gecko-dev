@@ -829,7 +829,8 @@ already_AddRefed<RTCRtpTransceiver> PeerConnectionImpl::AddTransceiver(
         }
       }
       if (!found) {
-        const auto mime = NS_LossyConvertUTF16toASCII(encoding.mCodec.Value().mMimeType);
+        const auto mime =
+            NS_LossyConvertUTF16toASCII(encoding.mCodec.Value().mMimeType);
         std::stringstream ss;
         ss << "Codec " << mime
            << " does not match any codec "
