@@ -2794,6 +2794,23 @@
       }
     ]
   },
+  "1960294": {
+    "label": "firstenergycorp.com",
+    "bugs": {
+      "1960294": {
+        "issue": "unsupported-warning",
+        "matches": ["*://www.firstenergycorp.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1960294-firstenergycorp.com-hide-unsupported.css"]
+        }
+      }
+    ]
+  },
   "1904952": {
     "label": "idserver.servizicie.interno.gov.it",
     "bugs": {
