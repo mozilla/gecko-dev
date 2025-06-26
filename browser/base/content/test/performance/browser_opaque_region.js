@@ -3,7 +3,12 @@
 
 "use strict";
 
-add_task(async function test_opaque_region() {
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
+});
+
+async function assert_opaque_region() {
   // Ensure we've painted.
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
@@ -33,4 +38,31 @@ add_task(async function test_opaque_region() {
     anyContainsContentRect,
     "The browser area should be considered opaque by widget"
   );
+}
+
+registerCleanupFunction(async function () {
+  let defaultTheme = await lazy.AddonManager.getAddonByID(
+    "default-theme@mozilla.org"
+  );
+  await defaultTheme.enable();
+});
+
+add_task(async function assert_opaque_region_system_theme() {
+  return assert_opaque_region();
+});
+
+add_task(async function assert_opaque_region_light_theme() {
+  let lightTheme = await lazy.AddonManager.getAddonByID(
+    "firefox-compact-light@mozilla.org"
+  );
+  await lightTheme.enable();
+  return assert_opaque_region();
+});
+
+add_task(async function assert_opaque_region_dark_theme() {
+  let lightTheme = await lazy.AddonManager.getAddonByID(
+    "firefox-compact-dark@mozilla.org"
+  );
+  await lightTheme.enable();
+  return assert_opaque_region();
 });
