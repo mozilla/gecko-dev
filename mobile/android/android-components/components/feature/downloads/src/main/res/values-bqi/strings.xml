@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- Name of the "notification channel" used for displaying download notification. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_downloads_notification_channel">دانلودا</string>
-  <!--
-    Text shown on the second row of an in progress download notification.
-    %1$s will be replaced with the percentage of download completed so far.
-  -->
-  <string name="mozac_feature_downloads_percentage_notification_text" moz:removedIn="139" tools:ignore="UnusedResources">%1$s کامل وابی</string>
   <!--
     Summary text shown on an in progress download notification.
     %1$s will be replaced with the estimated time remaining to complete the download.
@@ -28,6 +23,8 @@
     %1$s will be replaced with the size of the file.
   -->
   <string name="mozac_feature_downloads_dialog_title_3">دانلود فایل؟ (%1$s)</string>
+  <!-- This string is used as the title for the download confirmation dialog when the size of the file is not known. -->
+  <string name="mozac_feature_downloads_dialog_title_with_unknown_size">فایل دانلود بۊ؟</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">دانلود</string>
   <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->

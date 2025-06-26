@@ -166,7 +166,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Gamitin ang %1$s bilang login provider</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">Ang pag-login sa %1$s gamit ang isang %2$s account ay napapailalim sa kanilang &lt;a href="%3$s"&gt;Patakaran sa Pribasiya&lt;/a&gt; at &lt;a href="%4$s"&gt;Mga Tuntunin ng Serbisyo&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Ang pag-login sa %1$s gamit ang isang %2$s account ay napapailalim sa kanilang <a href=\"%3$s\">Patakaran sa Pribasiya</a> at <a href=\"%4$s\">Mga Tuntunin ng Serbisyo</a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Magpatuloy</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

@@ -419,7 +419,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Żodyn roz</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Zewnyntrzny menedżer pobiyranio</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Zewnyntrzny menedżer pobiyranio</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Załōncz protokōł Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1418,4 +1418,5 @@
     Title of the translation settings dialog that allows a user to set their preferred translation settings.
   -->
   <string name="translation_settings_toolbar_title">Przekłady</string>
+  <!-- TextField Design System Component -->
 </resources>

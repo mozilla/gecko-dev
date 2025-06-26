@@ -251,7 +251,7 @@
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Uddit jokke e nder jaaɓnirɗe</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Toppitorde gaawte yaasiire</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Toppitorde gaawte yaasiire</string>
   <!-- Summary for notification preference indicating notifications are allowed -->
   <string name="notifications_allowed_summary">Yamiraama</string>
   <!-- Summary for notification preference indicating notifications are not allowed -->
@@ -1094,4 +1094,6 @@
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">Barjinaaɗi</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

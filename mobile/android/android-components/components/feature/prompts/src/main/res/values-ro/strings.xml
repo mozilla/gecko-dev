@@ -124,11 +124,11 @@
   -->
   <string name="mozac_feature_prompts_select_credit_card_2">Folosește cartela salvată</string>
   <!-- Content description for expanding the saved card options in the select card prompt. -->
-  <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">Epandează cardurile de credit </string>
+  <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">Epandează cardurile de credit</string>
   <!-- Content description for collapsing the saved card options in the select prompt. -->
   <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">Restrânge cardurile salvate</string>
   <!-- Option in the expanded select card prompt that links to cards settings. -->
-  <string name="mozac_feature_prompts_manage_credit_cards_2">Gestionează cardurile </string>
+  <string name="mozac_feature_prompts_manage_credit_cards_2">Gestionează cardurile</string>
   <!-- Text for the title of a save credit card dialog. -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_title">Salvează securizat acest card?</string>
   <!-- Text for the title of an update credit card dialog. -->

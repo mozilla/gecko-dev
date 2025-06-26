@@ -70,7 +70,7 @@
   <string name="mozac_feature_prompts_dec">Dec</string>
   <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
   <string name="mozac_feature_prompt_repost_title">i-Padala usab ang mga data dinhi nga site?</string>
-  <string name="mozac_feature_prompt_repost_message">Pag-refresh ani nga page posibleng maka-kopya sa bag-o nga mga aksyon, sama sa pagpadala ug bayad o pag-post sa usa ka komento makaduha. </string>
+  <string name="mozac_feature_prompt_repost_message">Pag-refresh ani nga page posibleng maka-kopya sa bag-o nga mga aksyon, sama sa pagpadala ug bayad o pag-post sa usa ka komento makaduha.</string>
   <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
   <string name="mozac_feature_prompt_repost_positive_button_text">Resend data</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->

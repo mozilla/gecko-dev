@@ -164,7 +164,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">%1$s-ны керү тәэминатчысы итеп куллану</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">%1$s эченә %2$s хисабы белән керү аларның &lt;a href="%3$s"&gt;Хосусыйлык Сәясәте&lt;/a&gt; һәм &lt;a href="%4$s"&gt;Куллану Шартлары&lt;/a&gt; нигезендә башкарыла</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s эченә %2$s хисабы белән керү аларның <a href=\"%3$s\">Хосусыйлык Сәясәте</a> һәм <a href=\"%4$s\">Куллану Шартлары</a> нигезендә башкарыла]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Дәвам итү</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

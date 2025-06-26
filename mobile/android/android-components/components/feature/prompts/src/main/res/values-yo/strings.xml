@@ -80,7 +80,7 @@
   <!-- Text for the title of a save credit card dialog. -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_title">Fí káàdì yí pamọ́ dáada?</string>
   <!-- Text for the title of an update credit card dialog. -->
-  <string name="mozac_feature_prompts_update_credit_card_prompt_title">  Ṣe ìsọdituntun fún ọjọ́ òpin-ìlò káàdì?</string>
+  <string name="mozac_feature_prompts_update_credit_card_prompt_title">Ṣe ìsọdituntun fún ọjọ́ òpin-ìlò káàdì?</string>
   <!--
     Address Autofill
 

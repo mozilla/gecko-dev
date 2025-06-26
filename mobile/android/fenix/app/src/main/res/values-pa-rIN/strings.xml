@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">ਟੈਬਾਂ ਵਿਚਾਲੇ ਬਦਲਣ ਵਾਸਤੇ ਟੂਲਬਾਰ ਨੂੰ ਸਰਕਾਓ</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">ਬਦਲਣ ਵਾਸਤੇ ਖੱਬੇ ਜਾਂ ਸੱਜੇ ਵੱਲ ਸਰਕਾਓ। ਆਪਣੀ ਆਖਰੀ ਟੈਬ ਉੱਤੇ ਖੱਬੇ ਵੱਲ ਸਰਕਾਉਣ ਨਾਲ ਨਵੀਂ ਟੈਬ ਨੂੰ ਖੋਲ੍ਹੋ।</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">ਟੈਬਾਂ ਬਦਲਣ ਲਈ ਟੂਲਬਾਰ ਨੂੰ ਖੱਬੇ ਜਾਂ ਸੱਜੇ ਕਰੋ।</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">ਕੈਮਰੇ ਲਈ ਪਹੁੰਚ ਚਾਹੀਦੀ ਹੈ। Android ਸੈਟਿੰਗਾਂ ਉੱਤੇ ਜਾਓ, ਇਜਾਜ਼ਤਾਂ ਨੂੰ ਛੂਹੋ ਅਤੇ ਇਜਾਜ਼ਤ ਨੂੰ ਛੂਹੋ।</string>
@@ -334,7 +330,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">%1$s ਵਿੱਚ ਨਵਾਂ</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">%1$s ਵਿੱਚ ਨਵਾਂ</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">ਡੈਸਕਟਾਪ ਸਾਈਟ ਲਈ ਬਦਲੋ</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -942,7 +938,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">ਕਦੇ ਨਹੀਂ</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">ਬਾਹਰੀ ਡਾਊਨਲੋਡ ਮੈਨੇਜਰ</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">ਬਾਹਰੀ ਡਾਊਨਲੋਡ ਮੈਨੇਜਰ</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Gecko ਲਾਗ ਸਮਰੱਥ ਕਰੋ</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1563,8 +1559,6 @@
   <string name="download_delete_item">ਹਟਾਓ</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">ਪਿੱਛੇ ਵੱਲ ਨੈਵੀਗੇਟ ਕਰੋ</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">ਉੱਤੇ ਜਾਓ</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">ਵਾਪਸ ਜਾਓ ਅਤੇ ਖੋਜ ਨੂੰ ਬੰਦ ਕਰੋ</string>
   <!--
@@ -3589,14 +3583,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">ਐਡ-ਆਨ ਅਤੇ ਹੋਰ ਫ਼ੀਚਰਾਂ ਨੂੰ ਵਰਤਣਾ ਜਾਰੀ ਰੱਖਣ ਲਈ 14 ਮਾਰਚ ਤੋਂ ਪਹਿਲਾਂ ਅੱਪਡੇਟ ਕਰ ਲਵੋ</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">ਭਲਕੇ ਕੁਝ ਫ਼ੀਚਰ ਕੰਮ ਕਰਨਾ ਬੰਦ ਕਰ ਦੇਣਗੇ।</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">ਲੁਕਵੀਂ ਲਿਖਤ ਨੂੰ ਵੇਖਾਓ</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">ਲਿਖਤ ਨੂੰ ਮਿਟਾਓ</string>
   <!--
     Setup checklist feature
 

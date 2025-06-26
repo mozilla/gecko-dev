@@ -123,6 +123,14 @@
   <string name="mozac_feature_prompt_repost_positive_button_text">Adatok újraküldése</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
   <string name="mozac_feature_prompt_repost_negative_button_text">Mégse</string>
+  <!-- Strings show in a dialog that appear when user confirm folder upload -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_title">Fájl feltöltése?</string>
+  <!-- Prompt message displayed when user selects a specific folder. %1$s is a folder / directory name. -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_message">Győződjön meg arról, hogy megbízik-e ebben a webhelyben, mielőtt feltölt innen: „%1$s”.</string>
+  <!-- Pressing this will dismiss the dialog and allow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">Feltöltés</string>
+  <!-- Pressing this will dismiss the dialog and disallow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_negative_button_text">Mégse</string>
   <!--
     Credit Card Autofill
 
@@ -166,7 +174,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">A(z) %1$s használata bejelentkezési szolgáltatóként</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">A(z) %2$s fiókkal a(z) %1$s szolgáltatásba való bejelentkezésre az &lt;a href="%3$s"&gt;Adatvédelmi irányelvek&lt;/a&gt; és a &lt;a href="%4$s"&gt;Szolgáltatási feltételei&lt;/a&gt; vonatkoznak</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[A(z) %2$s fiókkal a(z) %1$s szolgáltatásba való bejelentkezésre az <a href=\"%3$s\">Adatvédelmi irányelvek</a> és a <a href=\"%4$s\">Szolgáltatási feltételei</a> vonatkoznak]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Folytatás</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

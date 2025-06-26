@@ -123,6 +123,8 @@
   <string name="mozac_feature_prompt_repost_positive_button_text">Prześlij ponownie</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
   <string name="mozac_feature_prompt_repost_negative_button_text">Anuluj</string>
+  <!-- Pressing this will dismiss the dialog and disallow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_negative_button_text">Anuluj</string>
   <!--
     Credit Card Autofill
 
@@ -166,7 +168,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Używaj konta %1$s jako dostawcę logowania</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">Logowanie na %1$s za pomocą konta %2$s podlega &lt;a href="%3$s"&gt;zasadom ochrony prywatności&lt;/a&gt; i &lt;a href="%4$s"&gt;regulaminowi usługi&lt;/a&gt; danego konta</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Logowanie na %1$s za pomocą konta %2$s podlega <a href=\"%3$s\">zasadom ochrony prywatności</a> i <a href=\"%4$s\">regulaminowi usługi</a> danego konta]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Kontynuuj</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

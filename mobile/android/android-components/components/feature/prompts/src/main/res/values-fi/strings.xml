@@ -123,6 +123,14 @@
   <string name="mozac_feature_prompt_repost_positive_button_text">Lähetä tiedot uudelleen</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
   <string name="mozac_feature_prompt_repost_negative_button_text">Peruuta</string>
+  <!-- Strings show in a dialog that appear when user confirm folder upload -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_title">Lähetetäänkö tiedostot?</string>
+  <!-- Prompt message displayed when user selects a specific folder. %1$s is a folder / directory name. -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_message">Varmista, että luotat tähän sivustoon, ennen kuin lähetät tiedoston kansiosta “%1$s”.</string>
+  <!-- Pressing this will dismiss the dialog and allow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">Lähetä</string>
+  <!-- Pressing this will dismiss the dialog and disallow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_negative_button_text">Peruuta</string>
   <!--
     Credit Card Autofill
 
@@ -166,7 +174,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Käytä palvelua %1$s kirjautumiseen</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"> Kirjautuminen palvelun %1$s tilillä %2$s on kyseisen palvelun &lt;a href="%3$s"&gt;tietosuojakäytännön&lt;/a&gt; ja &lt;a href="%4$s"&gt;käyttöehtojen&lt;/a&gt; alaista</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Kirjautuminen palvelun %1$s tilillä %2$s on kyseisen palvelun <a href=\"%3$s\">tietosuojakäytännön</a> ja <a href=\"%4$s\">käyttöehtojen</a> alaista]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Jatka</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

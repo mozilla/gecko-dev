@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Šmórńće přez symbolowu lajstu, zo byšće rajtarki wuměnił</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Šmórńće nalěwo abo naprawo, zo byšće wuměnił. Šmórńće nalěwo na waš posledni rajtark, zo byšće nowy rajtark wočinił.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">Trějće symbolowu lajstu dolěwa abo doprawa, zo byšće rajtarki přepinał.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Přistup ke kamerje trěbny. Wočińće nastajenja Android, podótkńće so zapiska Prawa a podótkńće so zapiska Dowolić.</string>
@@ -336,7 +332,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">Nowy w %1$s</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">Nowy w %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">K websydłu za desktop</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -944,7 +940,15 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Ženje</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Eksterny zrjadowak sćehnjenjow</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Eksterny zrjadowak sćehnjenjow</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">Sćehnjenja z druhim nałoženjom rjadować</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">Z %s a grata zhašeć</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">Hdyž dataje ze zrjadowaka sćehnjenjow wotstronjeće, wotstronjeja so tež z wašeho grata</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">Sćehnjenja</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Protokole Gecko zmóžnić</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1110,6 +1114,12 @@
   <string name="alternative_app_icon_option_momo">Momo</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">Wutworjeny přez @heyheymomodraws</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">Jednotne barby</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">Barbowe přeběhi</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">Druhe</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1581,8 +1591,6 @@
   <string name="download_delete_item">Zhašeć</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Wróćo nawigěrować</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Horje nawigěrować</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Wróćo a pytanje začinić</string>
   <!--
@@ -1754,12 +1762,20 @@
   <string name="tab_crash_restore">Rajtark wobnowić</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s dyrbješe so znowa startować</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">Sće njepósłanu rozprawu spada, kotraž so na spady poćahuje, kotrež so přepytuja. Hdyž ju sćeleće, pomhaće nam %1$s polěpšić. Hdyž tutu zdźělenku začinjeće, so tuta rozprawa ignoruje.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Sće njepósłane rozprawy spadow (%1$d), kotrež so na spady poćahuja, kotrež so přepytuja. Hdyž je sćeleće, pomhaće nam %2$s polěpšić. Hdyž tutu zdźělenku začinjeće, so tute rozprawy ignoruja.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">Spadowe rozprawy awtomatisce pósłać</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Začinić</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Hižo so njepokazać</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Rozprawu wo spadźe pósłać</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Dalše informacije</string>
   <!--
     Bookmarks
 
@@ -3607,14 +3623,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Aktualizujće do 14. měrca, zo byšće přidatki a druhe funkcije dale wužiwał.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Někotre funkcije jutře hižo njebudu fungować.</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Schowany tekst pokazać</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Tekst zhašeć</string>
   <!--
     Setup checklist feature
 

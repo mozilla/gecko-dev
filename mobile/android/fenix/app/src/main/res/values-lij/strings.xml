@@ -924,4 +924,6 @@
   <!-- Confirmation dialog button text when top sites limit is reached. -->
   <string name="top_sites_max_limit_confirmation_button">Va ben, ò capio</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

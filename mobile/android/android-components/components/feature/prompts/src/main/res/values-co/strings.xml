@@ -33,11 +33,11 @@
   <!-- Error text displayed underneath the password field when it is in an error case -->
   <string name="mozac_feature_prompt_error_unknown_cause_2">Ùn si pò micca arregistrà a parolla d’intesa</string>
   <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
-  <string name="mozac_feature_prompt_login_save_headline_2">Arregistrà a parolla d’intesa ?</string>
+  <string name="mozac_feature_prompt_login_save_headline_2">Arregistrà a parolla d’intesa ?</string>
   <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
-  <string name="mozac_feature_prompt_login_update_headline_2">Mudificà a parolla d’intesa ?</string>
+  <string name="mozac_feature_prompt_login_update_headline_2">Mudificà a parolla d’intesa ?</string>
   <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-  <string name="mozac_feature_prompt_login_add_username_headline_2">Mudificà u nome d’utilizatore ?</string>
+  <string name="mozac_feature_prompt_login_add_username_headline_2">Mudificà u nome d’utilizatore ?</string>
   <!--
     Text for a label for the field when prompt requesting a text is shown.
 
@@ -51,7 +51,7 @@
   <!-- Text of a negative button in dialog requesting to open a new window. -->
   <string name="mozac_feature_prompts_deny">Ricusà</string>
   <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
-  <string name="mozac_feature_prompts_popup_dialog_title">Permette à stu situ l’apertura d’una finestra ?</string>
+  <string name="mozac_feature_prompts_popup_dialog_title">Permette à stu situ l’apertura d’una finestra ?</string>
   <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
   <string name="mozac_feature_prompt_before_unload_dialog_title">Cunfirmazione</string>
   <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
@@ -101,9 +101,9 @@
   <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
   <string name="mozac_feature_prompts_suggest_strong_password_2">Impiegà una parolla d’intesa forte</string>
   <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
-  <string name="mozac_feature_prompts_suggest_strong_password_message">Impiegà una parolla d’intesa forte : %1$s</string>
+  <string name="mozac_feature_prompts_suggest_strong_password_message">Impiegà una parolla d’intesa forte : %1$s</string>
   <!-- Title for using the suggest strong password confirmation dialog -->
-  <string name="mozac_feature_prompts_suggest_strong_password_title">Impiegà una parolla d’intesa forte ?</string>
+  <string name="mozac_feature_prompts_suggest_strong_password_title">Impiegà una parolla d’intesa forte ?</string>
   <!-- Content description for the suggest strong password confirmation dialog -->
   <string name="mozac_feature_prompts_suggest_strong_password_description_3">Prutigite u vostru contu impieghendu una parolla d’intesa forte è ingenerata à l’azardu. Serà arregistrata in u vostru contu per un aghjovu futuru.</string>
   <!-- Pressing this will use the suggested strong password -->
@@ -136,9 +136,9 @@
   <!-- Option in the expanded select card prompt that links to cards settings. -->
   <string name="mozac_feature_prompts_manage_credit_cards_2">Amministrà e carte</string>
   <!-- Text for the title of a save credit card dialog. -->
-  <string name="mozac_feature_prompts_save_credit_card_prompt_title">Arregistrà sta carta di manera sicura ?</string>
+  <string name="mozac_feature_prompts_save_credit_card_prompt_title">Arregistrà sta carta di manera sicura ?</string>
   <!-- Text for the title of an update credit card dialog. -->
-  <string name="mozac_feature_prompts_update_credit_card_prompt_title">Mudificà a data di scadenza di a carta ?</string>
+  <string name="mozac_feature_prompts_update_credit_card_prompt_title">Mudificà a data di scadenza di a carta ?</string>
   <!-- Subtitle text displayed under the title of the saved card dialog. %s is the name of the app (for example "Firefox"). -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s cifra u vostru numeru di carta. U vostru codice di sicurità ùn serà micca arregistratu.</string>
   <!--
@@ -166,7 +166,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Impiegà %1$s cum’è furnidore di cunnessione</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">Cunnettesi à %1$s cù un contu %2$s hè sottumessu à a so &lt;a href="%3$s"&gt;pulitica di cunfidenzialità&lt;/a&gt; è à e so &lt;a href="%4$s"&gt;cundizioni d’utilizazione&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Cunnettesi à %1$s cù un contu %2$s hè sottumessu à a so <a href=\"%3$s\">pulitica di cunfidenzialità</a> è à e so <a href=\"%4$s\">cundizioni d’utilizazione</a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Cuntinuà</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

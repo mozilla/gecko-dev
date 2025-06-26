@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Fà sfilà a barra d’attrezzi per cambià d’unghjetta</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Spazzà à manca o à diritta per cambià d’unghjetta. Spazzà versu à manca nant’à a vostra ultima unghjetta per apre un’unghjetta nova.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">Spazzà a barra d’attrezzi à manca o à diritta per cambià d’unghjetta.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Accessu richiestu à l’apparechju-fotò. Accidite à i parametri d’Android, picchichjate Permessi, è dopu Permette.</string>
@@ -326,7 +322,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">Nuvità in %1$s</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">Nuvità in %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Passà à a versione per urdinatore</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -911,7 +907,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Mai</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Ghjestiunariu esternu di scaricamentu</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Ghjestiunariu esternu di scaricamentu</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Attivà i ghjurnali di Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1480,8 +1476,6 @@
   <string name="download_delete_item">Squassà</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Navigazione in daretu</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Navigà insù</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Ritornu è chjode a ricerca</string>
   <string name="download_clear_search_description">Squassà</string>
@@ -3449,14 +3443,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Mittite à livellu prima di u 14 di marzu per cuntinuà à impiegà i moduli addiziunali è d’altre funzioni.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Certe funzioni ùn funziuneranu più dumane.</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Affissà u testu piattatu</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Squassà u testu</string>
   <!--
     Setup checklist feature
 

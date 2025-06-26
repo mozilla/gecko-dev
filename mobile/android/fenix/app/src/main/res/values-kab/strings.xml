@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Sfeḍ afeggag n yifecka akken ad tbeddleḍ accaren</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Zuɣer s azelmaḍ neɣ s ayeffus akken ad tbeddleḍ. Zuɣer iccer aneggaru ɣer uzelmaḍ i wakken ad teldiḍ iccer amaynut.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">Uɣal ɣer ufeggag n yifecka ɣer tama n zelmeḍ neɣ n yeffus i uzgal seg yiccer ɣer wayeḍ.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Isɛa anekcum ɣer tkamiṛat. Ddu ɣer iɣewwaṛen Android, sit ɣef tisirag, sakin senned sireg.</string>
@@ -332,7 +328,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">Amaynut deg %1$s</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">Amaynut deg %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Ddu ɣer usmel n tnarit</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -923,7 +919,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Weṛǧin</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Amsefrak n usader azɣaray</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Amsefrak n usader azɣaray</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Rmed iɣmisen n Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1535,8 +1531,6 @@
   <string name="download_delete_item">Kkes</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Inig ar deffir</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Inig d asawen</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Uɣal ɣer deffir syen mdel anadi</string>
   <string name="download_clear_search_description">Sfeḍ</string>
@@ -3500,14 +3494,8 @@
   <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Aql-ak tesseqdaceḍ lqem aqbuṛ n Firefox.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Kra n tmahilin ad ḥebsent, ur teddunt ara, azekka.</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Sken-d aḍris uffir</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Sfeḍ aḍṛis</string>
   <!--
     Setup checklist feature
 

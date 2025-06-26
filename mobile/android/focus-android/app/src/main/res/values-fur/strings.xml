@@ -319,7 +319,7 @@
   <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->
   <string name="preference_mozilla_telemetry_summary">Plui informazions</string>
   <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-  <string name="preference_mozilla_telemetry_summary2">Mozilla al cîr di tirâ dongje dome i dâts che i coventin par dâ fûr e miorâ %1$s par ducj i utents.</string>
+  <string name="preference_mozilla_telemetry_summary2">Mozilla al cîr di tirâ sù dome i dâts che i coventin par dâ fûr e miorâ %1$s par ducj i utents.</string>
   <!-- Preference switch for daily usage ping data collection -->
   <string name="preference_daily_usage_ping_title">Ping di utilizazion zornaliere</string>
   <string name="preference_daily_usage_ping_description">Chest al permet a Mozilla di stimâ il numar di utents atîfs.</string>
@@ -463,20 +463,28 @@
     %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text
   -->
   <string name="onboarding_first_screen_terms_of_use_text" moz:removedIn="141" tools:ignore="UnusedResources">Continuant, tu acetis lis %1$s</string>
+  <!-- %1$s will be replaced by a link using onboarding_first_screen_terms_of_use_link as text -->
+  <string name="onboarding_first_screen_terms_of_use_text_2" tools:ignore="UnusedResources">Continuant, tu acetis lis %1$s.</string>
   <!--
     New Onboarding flow first screen 'terms of use link'
 
     Text for the link used in onboarding_first_screen_terms_of_use_text
   -->
   <string name="onboarding_first_screen_terms_of_use_link" moz:removedIn="141" tools:ignore="BrandUsage">cundizions di utilizazion di Firefox.</string>
+  <!-- Text for the link used in onboarding_first_screen_terms_of_use_text -->
+  <string name="onboarding_first_screen_terms_of_use_link_2" tools:ignore="BrandUsage">cundizions di utilizazion di Firefox</string>
   <!--
     New Onboarding flow first screen 'privacy notice' text
 
     %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text
   -->
   <string name="onboarding_first_screen_privacy_notice_text" moz:removedIn="141" tools:ignore="BrandUsage">Firefox al considere une vore la tô riservatece. Altris informazions te nestre %1$s</string>
+  <!-- %1$s will be replaced by a link using onboarding_first_screen_privacy_notice_link as text -->
+  <string name="onboarding_first_screen_privacy_notice_text_2" tools:ignore="BrandUsage">La tô riservatece e sta sul cûr a Firefox. Altris informazions te nestre %1$s.</string>
   <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
   <string name="onboarding_first_screen_privacy_notice_link" moz:removedIn="141" tools:ignore="UnusedResources">Informative su la riservatece.</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link_2">Informative su la riservatece</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Acete e continue</string>
   <!-- New Onboarding flow first screen button label -->

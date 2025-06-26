@@ -219,7 +219,7 @@
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">இணைப்புகளைத் செயலியில் திறக்கவும்</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">வெளிப்புற பதிவிறக்க மேலாளர்</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">வெளிப்புற பதிவிறக்க மேலாளர்</string>
   <!-- Preference for notifications -->
   <string name="preferences_notifications">அறிவிப்புகள்</string>
   <!-- Preference for triggering sync -->
@@ -1020,4 +1020,6 @@
   <!-- Content description for close button in collection placeholder. -->
   <string name="remove_home_collection_placeholder_content_description">நீக்கு</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

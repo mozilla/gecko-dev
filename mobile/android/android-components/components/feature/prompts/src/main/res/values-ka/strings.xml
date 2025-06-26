@@ -166,7 +166,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">გამოიყენეთ %1$s ანგარიშის უზრუნველმყოფად</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">შესვლისთვის როცა %1$s გამოიყენება %2$s ანგარიშით, ექვემდებარება მათს &lt;a href="%3$s"&gt;პირადულობის დებულებასა&lt;/a&gt; და &lt;a href="%4$s"&gt;მომსახურების პირობებს&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[შესვლისთვის როცა %1$s გამოიყენება %2$s ანგარიშით, ექვემდებარება მათს <a href=\"%3$s\">პირადულობის დებულებასა</a> და <a href=\"%4$s\">მომსახურების პირობებს</a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">განაგრძეთ</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

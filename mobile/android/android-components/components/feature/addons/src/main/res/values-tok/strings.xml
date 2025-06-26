@@ -96,14 +96,24 @@
   <string name="mozac_feature_addons_rating">pona seme</string>
   <!-- A link that points to the detail page of the extension. -->
   <string name="mozac_feature_addons_more_info_link_2">o sona e ilo namako</string>
+  <!-- The settings of the add-on. -->
+  <string name="mozac_feature_addons_settings">nasin ilo</string>
+  <!-- Indicates the add-on is enabled. -->
+  <string name="mozac_feature_addons_settings_on">open</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">o ken e ilo lon poki len</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">o open e ilo lon poki len</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
   <string name="mozac_feature_addons_not_allowed_in_private_browsing">ilo li ken ala lukin e poki len</string>
+  <!-- Indicates the add-on is enabled. -->
+  <string name="mozac_feature_addons_enabled">ilo li open</string>
+  <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the installed section. -->
+  <string name="mozac_feature_addons_installed_section">ilo li open ala</string>
   <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the recommended section. -->
   <string name="mozac_feature_addons_recommended_section">ona li pona tawa jan</string>
+  <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the disabled section. -->
+  <string name="mozac_feature_addons_disabled_section">ilo li pini</string>
   <!-- Displays a page with all the details of an add-on. -->
   <string name="mozac_feature_addons_details">sona ante</string>
   <!-- Displays a page with all the permissions of an add-on. -->
@@ -138,6 +148,8 @@
   <string name="mozac_feature_addons_permissions_dialog_cancel">wile ala</string>
   <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_install_addon_content_description_2">o jo e ilo %1$s</string>
+  <!-- This is the label of a button to cancel an ongoing add-on installation. -->
+  <string name="mozac_feature_addons_install_addon_dialog_cancel">o weka</string>
   <!-- Indicates how many users have rated an add-on. %1$s will be replaced with number of reviews -->
   <string name="mozac_feature_addons_user_rating_count_2">pilin jan: %1$s</string>
   <!-- Accessibility content description for the amount of stars that add-on has, where %1$.02f will be the amount of stars. -->
@@ -146,6 +158,10 @@
   <string name="mozac_feature_addons_addons">ilo namako</string>
   <!-- Label for add-ons sub menu item for add-ons manager -->
   <string name="mozac_feature_addons_addons_manager">ilo lawa namako</string>
+  <!-- Button to re-enable the extensions in the "crash" notification -->
+  <string name="mozac_feature_extensions_manager_notification_restart_button">o sin e ilo namako</string>
+  <!-- Button in the extensions manager that opens AMO in a tab -->
+  <string name="mozac_feature_addons_find_more_extensions_button_text">o alasa e ilo namako ante</string>
   <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on -->
   <string name="mozac_feature_addons_updater_notification_allow_button">o ken</string>
   <!-- The label of the deny button on a notification, this will be shown to the user when an add-on needs new permissions. Indicates the user denies the new permissions and prevents the add-on from be updated -->
@@ -166,6 +182,16 @@
   <string name="mozac_feature_addons_supported_checker_notification_content_two">o pana e ilo %1$s e ilo %2$s tawa ilo %3$s</string>
   <!-- The content of the notification, this will be shown to the user when more than two newly supported add-ons are available. %1$s is the app name (in most cases Firefox). -->
   <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">o pana e ona tawa ilo %1$s</string>
+  <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->
+  <string name="mozac_feature_addons_failed_to_query_extensions">pakala la mi ken ala sona e ilo namako.</string>
+  <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_failed_to_install">pakala la mi ken ala pana e ilo %1$s tawa sina</string>
+  <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
+  <string name="mozac_feature_addons_extension_failed_to_install">pakala la mi ken ala pana e ilo namako tawa sina.</string>
+  <!-- Text shown when installing an add-on has failed. -->
+  <string name="mozac_feature_addons_cant_install_extension">pakala la mi ken ala pana e ilo namako tawa sina</string>
+  <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
+  <string name="mozac_feature_addons_blocklisted_2">ilo %1$s li ike tawa lawa pi kulupu Mozilla. mi ken ala pana e ona tawa ilo %2$s.</string>
   <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_successfully_enabled">mi open e ilo %1$s</string>
   <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -194,6 +220,8 @@
   <string name="mozac_feature_addons_updater_status_no_update_available">sin ala li lon</string>
   <!-- Displayed in the "Status" field for the updater when there was an error during the add-on update. -->
   <string name="mozac_feature_addons_updater_status_error">pakala</string>
+  <!-- Text shown in a dialog that displays information about the last attempt to update an add-on. This is the title of the dialog. -->
+  <string name="mozac_feature_addons_updater_dialog_title">sona pi sin ijo</string>
   <!-- Displayed in the "Status" field for the updater when an add-on has been correctly updated -->
   <string name="mozac_feature_addons_updater_dialog_status">nasin pi tenpo lon:</string>
   <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->

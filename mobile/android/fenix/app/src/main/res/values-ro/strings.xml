@@ -345,7 +345,7 @@
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Deschide linkuri în aplicații</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Manager extern pentru descărcări</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Manager extern pentru descărcări</string>
   <!-- Preference for notifications -->
   <string name="preferences_notifications">Notificări</string>
   <!-- Button caption to confirm the add-on collection configuration -->
@@ -1221,4 +1221,5 @@
   <string name="translation_option_bottom_sheet_always_translate">Oferă întotdeauna traducerea</string>
   <!-- Toggle switch description that will appear under the "Never translate" and "Always translate" toggle switch settings to provide more information on how these  settings interacts with other settings. -->
   <string name="translation_option_bottom_sheet_switch_description">Suprascrie oferirea traducerii</string>
+  <!-- TextField Design System Component -->
 </resources>

@@ -154,7 +154,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Tokisäx %1$s achi\'el ya\'öl rutikirib\'al moloj</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">Tatikirisaj moloj pa %1$s rik\'in jun rub\'i\' rutaq\'oya\'l %2$s ruximon ri\' rik\'in ri &lt;a href="%3$s"&gt;Runa\'ojil ichinanem&lt;/a&gt; chuqa\' &lt;a href="%4$s"&gt;Rutzijol Samak&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Tatikirisaj moloj pa %1$s rik\'in jun rub\'i\' rutaq\'oya\'l %2$s ruximon ri\' rik\'in ri <a href=\"%3$s\">Runa\'ojil ichinanem</a> chuqa\' <a href=\"%4$s\">Rutzijol Samak</a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Titikïr chik el</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

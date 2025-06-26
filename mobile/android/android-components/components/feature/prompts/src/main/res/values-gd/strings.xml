@@ -164,7 +164,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Cleachd %1$s mar sholaraiche clàraidh a-steach</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">Ma chlàraicheas tu a-steach gu %1$s le cunntas %2$s, bidh sin fo bhuaidh &lt;a href="%3$s"&gt;a’ phoileasaidh phrìobhaideachd&lt;/a&gt; agus &lt;a href="%4$s"&gt;teirmichean na seirbheise&lt;/a&gt; aca</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Ma chlàraicheas tu a-steach gu %1$s le cunntas %2$s, bidh sin fo bhuaidh <a href=\"%3$s\">a’ phoileasaidh phrìobhaideachd</a> agus <a href=\"%4$s\">teirmichean na seirbheise</a> aca]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Lean air adhart</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

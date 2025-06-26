@@ -345,7 +345,7 @@
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Ṣí àwọn ọ̀nà àsopọ̀ nínú awọn áápù</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Alákòóso ìgbàsílẹ̀ ìta</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Alákòóso ìgbàsílẹ̀ ìta</string>
   <!-- Preference for notifications -->
   <string name="preferences_notifications">Àwọn ìfitónilétí</string>
   <!-- Button caption to confirm the add-on collection configuration -->
@@ -1571,4 +1571,6 @@
   <!-- Snackbar button text to navigate to telemetry settings. -->
   <string name="experiments_snackbar_button">Lọ sí àwọn ààtò</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

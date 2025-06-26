@@ -290,7 +290,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">%1$s-دا یئنی</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">%1$s-دا یئنی</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">دسکتاپ سایتا گئچ</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -670,7 +670,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">هئچ زامان</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">خاریجی یئندیرمه موْدیری.</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">خاریجی یئندیرمه موْدیری.</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Gecko قیدلرینی گوجلندیر</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -2328,4 +2328,5 @@
   <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">فایرفاکس‌دا پرینتی یاخچیلاشدیرماغا کمک ائدین. یالنیز بیر ثانیه چکیر.</string>
   <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
   <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">فایرفاکس‌دا پرینت‌دن نه قدر راضیسینیز؟</string>
+  <!-- TextField Design System Component -->
 </resources>

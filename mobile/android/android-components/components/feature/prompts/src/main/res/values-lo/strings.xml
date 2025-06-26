@@ -166,7 +166,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">ໃຊ້ %1$s ເປັນຜູ້ໃຫ້ບໍລິການເຂົ້າສູ່ລະບົບ</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">ການເຂົ້າສູ່ລະບົບ %1$s ດ້ວຍບັນຊີ %2$s ແມ່ນຢູ່ພາຍໃຕ້ &lt;a href="%3$s"&gt;ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ&lt;/a&gt; ແລະ &lt;a href="%4$s"&gt;ເງື່ອນໄຂການໃຫ້ບໍລິການ &lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ການເຂົ້າສູ່ລະບົບ %1$s ດ້ວຍບັນຊີ %2$s ແມ່ນຢູ່ພາຍໃຕ້ <a href=\"%3$s\">ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ</a> ແລະ <a href=\"%4$s\">ເງື່ອນໄຂການໃຫ້ບໍລິການ </a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">ສືບຕໍ່</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

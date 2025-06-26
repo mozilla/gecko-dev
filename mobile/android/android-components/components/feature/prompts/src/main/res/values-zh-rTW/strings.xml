@@ -123,6 +123,14 @@
   <string name="mozac_feature_prompt_repost_positive_button_text">重送資料</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
   <string name="mozac_feature_prompt_repost_negative_button_text">取消</string>
+  <!-- Strings show in a dialog that appear when user confirm folder upload -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_title">要上傳檔案嗎？</string>
+  <!-- Prompt message displayed when user selects a specific folder. %1$s is a folder / directory name. -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_message">從「%1$s」上傳檔案前，請先確認您信任此網站。</string>
+  <!-- Pressing this will dismiss the dialog and allow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">上傳</string>
+  <!-- Pressing this will dismiss the dialog and disallow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_negative_button_text">取消</string>
   <!--
     Credit Card Autofill
 
@@ -166,7 +174,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">使用 %1$s 登入</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">使用 %2$s 帳號登入 %1$s 須遵守該登入服務的&lt;a href="%3$s"&gt;隱私權保護政策&lt;/a&gt;及&lt;a href="%4$s"&gt;服務條款&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[使用 %2$s 帳號登入 %1$s 須遵守該登入服務的<a href=\"%3$s\">隱私權保護政策</a>及<a href=\"%4$s\">服務條款</a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">繼續</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

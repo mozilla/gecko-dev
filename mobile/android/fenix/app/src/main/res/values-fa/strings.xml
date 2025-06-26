@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">نوار ابزار را به چپ یا راست بکشید تا زبانه‌ها تغییر کنند</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">به چپ یا راست بکشید تا زبانه تغییر کنید. روی زبانه آخر خود به چپ بکشید تا یک زبانه جدید باز کنید.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">با کشیدن نوارابزار به چپ و راست، میان زبانه‌ها جابجا شوید.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">دسترسی به دوربین مورد نیاز است. به تنظیمات اندروید بروید، روی مجوزها ضربه بزنید و بعد روی اجازه ضربه بزنید.</string>
@@ -332,7 +328,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">جدید در %1$s</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">جدید در %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">تغییر به حالت رومیزی</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -927,7 +923,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">هرگز</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">مدیریت بارگیری خارجی</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">مدیریت بارگیری خارجی</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">به کار انداختن گزارش‌ها گکو</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1532,8 +1528,6 @@
   <string name="download_delete_item">حذف</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">بازگشت به عقب</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">پیمایش به بالا</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">بازگشت و بستن جستجو</string>
   <string name="download_clear_search_description">پاک کردن</string>
@@ -3516,14 +3510,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">قبل از ۱۴ مارس به‌روزرسانی کنید تا به استفاده از برافزاها و سایر ویژگی‌ها ادامه دهید.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">برخی ویژگی‌ها فردا متوقف خواهند شد.</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">نمایش متن مخفی</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">پاک کردن متن</string>
   <!--
     Setup checklist feature
 

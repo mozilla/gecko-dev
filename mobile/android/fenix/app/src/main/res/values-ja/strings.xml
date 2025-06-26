@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">ツールバーをスワイプすると、タブを切り替えられます</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">左右にスワイプするとタブが切り替わります。最後のタブを左にスワイプすると、新しいタブを開きます。</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">ツールバーを左または右にスワイプして、タブを切り替えます。</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">カメラへのアクセスが必要です。Android の設定から、権限をタップし、許可をタップしてください。</string>
@@ -334,7 +330,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">%1$s の新着情報</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">%1$s の新着情報</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">PC 版サイトに切り替える</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -942,7 +938,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">使用しない</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">外部のダウンロードマネージャー</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">外部のダウンロードマネージャー</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Gecko ログを有効にする</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1563,8 +1559,6 @@
   <string name="download_delete_item">削除</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">前のページへ戻ります</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">上へ移動します</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">戻って検索を閉じる</string>
   <!--
@@ -3589,14 +3583,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">アドオンやその他の機能を引き続き使用するには、3 月 14 日までに更新してください。</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">明日以降、一部の機能が動作しなくなります。</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">隠しテキストを表示</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">テキストを消去</string>
   <!--
     Setup checklist feature
 

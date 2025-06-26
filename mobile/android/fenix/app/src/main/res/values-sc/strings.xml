@@ -279,7 +279,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">Nou in %1$s</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">Nou in %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Càmbia a situ de iscrivania</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -729,7 +729,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Mai</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Gestore de iscarrigamentos esternu</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Gestore de iscarrigamentos esternu</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Ativa is registros de Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -2590,4 +2590,5 @@
   <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Abarrant prus pagu de 7 dies pro atualizare</string>
   <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">Dae su 14 de martzu, is cumplementos e àteras caraterìsticas de Firefox no ant a funtzionare prus, ca unu tzertificadu printzipale at a iscadire.</string>
+  <!-- TextField Design System Component -->
 </resources>

@@ -267,7 +267,7 @@
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">ایپس میں ربط کھولیں</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">بیرونی ڈاؤن لوڈ مینیجر</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">بیرونی ڈاؤن لوڈ مینیجر</string>
   <!-- Preference for notifications -->
   <string name="preferences_notifications">اعلانات</string>
   <!-- Button caption to confirm the add-on collection configuration -->
@@ -1283,4 +1283,6 @@
   <!-- Clickable text for opening an external link for more information about Pocket. -->
   <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">مزید سیکھیں</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

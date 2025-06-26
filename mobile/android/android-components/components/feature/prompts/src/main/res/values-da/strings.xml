@@ -166,7 +166,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Brug %1$s som login-udbyder</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"> Indlogning på %1$s med en %2$s-konto er underlagt deres &lt;a href="%3$s"&gt;privatlivspolitik&lt;/a&gt; og &lt;a href="%4$s"&gt;tjenestevilkår&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Indlogning på %1$s med en %2$s-konto er underlagt deres <a href=\"%3$s\">privatlivspolitik</a> og <a href=\"%4$s\">tjenestevilkår</a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Fortsæt</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

@@ -166,7 +166,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Erabili %1$s saio-hasiera hornitzaile gisa</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">%1$s hornitzailean %2$s kontuarekin saioa hastea bere &lt;a href="%3$s"&gt;pribatutasun-politika&lt;/a&gt; eta &lt;a href="%4$s"&gt;zerbitzuaren baldintzen&lt;/a&gt; menpe dago</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s hornitzailean %2$s kontuarekin saioa hastea bere <a href=\"%3$s\">pribatutasun-politika</a> eta <a href=\"%4$s\">zerbitzuaren baldintzen</a> menpe dago]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Jarraitu</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

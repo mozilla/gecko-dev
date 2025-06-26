@@ -696,4 +696,6 @@
   <!-- Positive action of a dialog asking to delete -->
   <string name="dialog_delete_positive">Sil</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

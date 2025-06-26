@@ -520,7 +520,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Mitte kunagi</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Kasutatakse välist allalaadimishaldurit</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Kasutatakse välist allalaadimishaldurit</string>
   <!-- Preference for extensions -->
   <string name="preferences_extensions">Lisad</string>
   <!-- Preference for notifications -->
@@ -2182,6 +2182,8 @@
   <string name="protection_panel_permissions_title">Õigused</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
   <string name="clear_site_data_dialog_negative_button_text">Loobu</string>
+  <!-- TextField Design System Component -->
+
   <!-- Label for the primary action button to unlock private tabs -->
   <string name="pbm_authentication_unlock">Ava</string>
   <!-- Title text instructing the user to unlock private tabs -->

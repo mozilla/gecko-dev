@@ -123,6 +123,14 @@
   <string name="mozac_feature_prompt_repost_positive_button_text">Reenviar dados</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
   <string name="mozac_feature_prompt_repost_negative_button_text">Cancelar</string>
+  <!-- Strings show in a dialog that appear when user confirm folder upload -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_title">Enviar arquivos?</string>
+  <!-- Prompt message displayed when user selects a specific folder. %1$s is a folder / directory name. -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_message">Tenha certeza se confia neste site antes de enviar de “%1$s”.</string>
+  <!-- Pressing this will dismiss the dialog and allow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">Enviar</string>
+  <!-- Pressing this will dismiss the dialog and disallow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_negative_button_text">Cancelar</string>
   <!--
     Credit Card Autofill
 
@@ -166,7 +174,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Usar %1$s como um provedor acesso a contas</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"> Entrar em %1$s com uma conta %2$s está sujeito à sua &lt;a href="%3$s"&gt;política de privacidade&lt;/a&gt; e seus &lt;a href="%4$s"&gt;termos do serviço&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Entrar em %1$s com uma conta %2$s está sujeito à sua <a href=\"%3$s\">política de privacidade</a> e seus <a href=\"%4$s\">termos do serviço</a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Avançar</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

@@ -76,7 +76,7 @@
     %1$s is the name of the app (for example "Firefox").
     %2$s is a link using felt_privacy_info_card_subtitle_link_text as text
   -->
-  <string name="felt_privacy_info_card_subtitle_2">Když zavřete všechna anonymní panely, %1$s odstraní vaše soubory cookie, historii a data stránek. %2$s</string>
+  <string name="felt_privacy_info_card_subtitle_2">Když zavřete všechny anonymní panely, %1$s odstraní vaše soubory cookie, historii a data stránek. %2$s</string>
   <!--
     Clickable portion of the explanation for private browsing that links the user to our
     about privacy page.
@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Přepínání panelů přejetím po panelu nástrojů</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Přejetím doleva nebo doprava přepínáte. Přejetím doleva na posledním panelu otevřete nový panel.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">Tažením po nástrojové liště doleva nebo doprava přepínáte panely.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Pro tuto funkci je potřeba povolit přístup k fotoaparátu. Ten můžete povolit v nastavení oprávnění aplikací v systému Android.</string>
@@ -322,6 +318,8 @@
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Synchronizovat hesla, panely a další</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">Synchronizace záložek, hesel, panelů a dalších položek</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_3">Synchronizace hesel, záložek a dalších položek</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Přihlásit se a synchronizovat</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -334,7 +332,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">Novinky ve %1$su</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">Novinky ve %1$su</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Přepnout na plnou verzi webu</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -942,7 +940,15 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Nikdy</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Externí správce stahování</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Externí správce stahování</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">Spravovat stahování pomocí jiné aplikace</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">Smazat z aplikace %s a zařízení</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">Smazáním souborů ze správce stahování je odstraníte také z vašeho zařízení</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">Stahování</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Povolit protokol jádra Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -971,6 +977,20 @@
   <string name="addons_permissions_allow_for_all_sites_subtitle">Pokud tomuto rozšíření důvěřujete, můžete mu udělit povolení pro každou webovou stránku.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">Toto rozšíření nevyžaduje žádná oprávnění.</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">Vývojář říká, že toto rozšíření shromažďuje: %1$s.</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description_2">Vývojář říká, že toto rozšíření shromažďuje: %1$s</string>
+  <!-- The description of the "none" data collection permission, when the extension doesn't collect anything according to the developer. -->
+  <string name="addons_permissions_none_required_data_collection_description">Vývojář uvádí, že toto rozšíření nevyžaduje sběr dat.</string>
+  <!-- The title of the required permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_permissions">Požadovaná oprávnění:</string>
+  <!-- The title of the optional permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_permissions">Volitelná oprávnění:</string>
+  <!-- The title of the required data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_data_collection">Požadovaný sběr dat:</string>
+  <!-- The title of the optional data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_data_collection">Volitelný sběr dat:</string>
   <!--
     Add-on Preferences
 
@@ -1094,6 +1114,12 @@
   <string name="alternative_app_icon_option_momo">Momo</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">Autor: @heyheymomodraws</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">Plné barvy</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">Přechody barev</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">Jiné</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1521,6 +1547,8 @@
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">Smazané položky: %1$d</string>
+  <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
+  <string name="download_app_dialog_title">Stáhnout soubor pomocí:</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Smazáno “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -1563,8 +1591,6 @@
   <string name="download_delete_item">Smazat</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Návrat zpět</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Přejít nahoru</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Zpět a zavřít hledání</string>
   <!--
@@ -1736,12 +1762,20 @@
   <string name="tab_crash_restore">Obnovit panel</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s se musel restartovat</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">Máte neodeslané hlášení o pádu, které je předmětem šetření. Jeho odeslání nám pomůže vylepšit aplikaci %1$s. Zavřením tohoto oznámení bude toto hlášení ignorováno.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Máte neodeslaná hlášení o pádech (%1$d) souvisejících s pády, které jsou šetřeny. Jejich odeslání nám pomůže vylepšit aplikaci %2$s. Zavřením tohoto oznámení budou tato hlášení ignorována.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">Automaticky odesílat hlášení o pádech</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Zavřít</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Příště už nezobrazovat</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Odeslat hlášení o pádu</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Zjistit více</string>
   <!--
     Bookmarks
 
@@ -3589,14 +3623,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Chcete-li nadále používat doplňky a další funkce, aktualizujte před 14. březnem.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Některé funkce přestanou zítra fungovat.</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Zobrazit skrytý text</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Smazat text</string>
   <!--
     Setup checklist feature
 

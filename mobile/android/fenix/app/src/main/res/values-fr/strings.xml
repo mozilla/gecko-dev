@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Balayez la barre d\'outils pour changer d’onglet</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Faites glisser vers la gauche ou la droite pour changer d’onglet. Faites glisser vers la gauche depuis votre dernier onglet pour ouvrir un nouvel onglet.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">Glissez la barre d’outils vers la gauche ou la droite pour passer d’un onglet à un autre.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Accès à la caméra nécessaire. Accédez aux paramètres Android, appuyez sur Autorisations, puis sur Autoriser.</string>
@@ -336,7 +332,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">Nouveautés dans %1$s</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">Nouveautés dans %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Passer en version pour ordinateur</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -944,7 +940,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Jamais</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Gestionnaire de téléchargement externe</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Gestionnaire de téléchargement externe</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Activer les journaux de Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1581,8 +1577,6 @@
   <string name="download_delete_item">Supprimer</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Précédent</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Remonter</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Précédent et fermer la recherche</string>
   <!--
@@ -3607,14 +3601,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Effectuez la mise à jour avant le 14 mars pour continuer à utiliser vos modules complémentaires et d’autres fonctionnalités.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Certaines fonctionnalités cesseront de fonctionner demain.</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Afficher le texte masqué</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Effacer le texte</string>
   <!--
     Setup checklist feature
 

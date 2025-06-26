@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Gesek bilah alat untuk beralih tab</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Gesek ke kiri atau kanan untuk beralih. Gesek ke kiri pada tab terakhir Anda untuk membuka tab baru.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">Geser bilah alat ke kiri atau kanan untuk berpindah tab.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Akses kamera diperlukan. Buka pengaturan Android, ketuk izin, dan ketuk izinkan.</string>
@@ -326,7 +322,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">Baru di %1$s</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">Baru di %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Beralih ke situs desktop</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -913,7 +909,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Jangan pernah</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Pengelola unduhan eksternal</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Pengelola unduhan eksternal</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Aktifkan log Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1534,8 +1530,6 @@
   <string name="download_delete_item">Hapus</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Arahkan kembali</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Arahkan ke atas</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Kembali dan tutup pencarian</string>
   <string name="download_clear_search_description">Bersihkan</string>
@@ -3523,14 +3517,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Perbarui sebelum 14 Maret untuk tetap menggunakan pengaya dan fitur lainnya.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Beberapa fitur tidak lagi berfungsi besok.</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Tampilkan teks tersembunyi</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Bersihkan teks</string>
   <!--
     Setup checklist feature
 

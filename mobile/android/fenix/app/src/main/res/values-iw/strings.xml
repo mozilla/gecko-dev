@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">החלקה על סרגל הכלים תחליף בין לשוניות</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">ניתן להחליק ימינה או שמאלה כדי להחליף בין לשוניות. החלקה שמאלה על הלשונית האחרונה שלך תפתח לשונית חדשה.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">יש להחליק את סרגל הכלים שמאלה או ימינה כדי לעבור בין לשוניות.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">דרושה גישה למצלמה. יש לעבור להגדרות ה־Android, להקיש על הרשאות ולאחר מכן על ״לאפשר״.</string>
@@ -336,7 +332,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">חדש ב־%1$s</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">חדש ב־%1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">מעבר לאתר למחשבים</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -942,7 +938,15 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">לעולם לא</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">מנהל הורדות חיצוני</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">מנהל הורדות חיצוני</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">ניהול הורדות באמצעות יישומון אחר</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">מחיקה מ־%s ומהמכשיר</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">הסרת קבצים ממנהל ההורדות שלך מסירה אותם גם מהמכשיר שלך</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">הורדות</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">לאפשר יומני Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1108,6 +1112,12 @@
   <string name="alternative_app_icon_option_momo">Momo</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">נוצר על־ידי ‎@heyheymomodraws</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">צבעים אחידים</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">מעברי צבע</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">אחר</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1579,8 +1589,6 @@
   <string name="download_delete_item">מחיקה</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">ניווט אחורה</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">ניווט למעלה</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">חזרה וסגירת החיפוש</string>
   <!--
@@ -1752,12 +1760,20 @@
   <string name="tab_crash_restore">שחזור לשונית</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">על %s היה להיות מופעל מחדש</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">יש לך דיווח קריסה שלא נשלח הקשור לקריסות הנמצאות בתהליכי חקירה. שליחת הדיווח תסייע לנו לשפר את %1$s. סגירת התרעה זו תתעלם מדיווח זה.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">יש לך דיווחי קריסה שלא נשלחו (%1$d) הקשורים לקריסות הנמצאות בתהליכי חקירה. שליחת הדיווחים תסייע לנו לשפר את %2$s. סגירת התרעה זו תתעלם מדיווחים אלו.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">שליחת דיווחי קריסה באופן אוטומטי</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">סגירה</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">לעולם לא להציג שוב</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">שליחת דיווח קריסה</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">מידע נוסף</string>
   <!--
     Bookmarks
 
@@ -3599,14 +3615,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">יש לעדכן לפני ה־14 במרץ כדי להמשיך להשתמש בתוספות ותכונות אחרות.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">חלק מהתכונות יפסיקו לעבוד מחר.</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">הצגת טקסט מוסתר</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">ניקוי טקסט</string>
   <!--
     Setup checklist feature
 

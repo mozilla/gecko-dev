@@ -33,11 +33,11 @@
   <!-- Error text displayed underneath the password field when it is in an error case -->
   <string name="mozac_feature_prompt_error_unknown_cause_2">Enregistrament de senhal impossible</string>
   <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
-  <string name="mozac_feature_prompt_login_save_headline_2">Salvar lo senhal ?</string>
+  <string name="mozac_feature_prompt_login_save_headline_2">Salvar lo senhal ?</string>
   <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
-  <string name="mozac_feature_prompt_login_update_headline_2">Actualizar lo senhal ?</string>
+  <string name="mozac_feature_prompt_login_update_headline_2">Actualizar lo senhal ?</string>
   <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-  <string name="mozac_feature_prompt_login_add_username_headline_2">Actualizar lo nom d’utilizaire ?</string>
+  <string name="mozac_feature_prompt_login_add_username_headline_2">Actualizar lo nom d’utilizaire ?</string>
   <!--
     Text for a label for the field when prompt requesting a text is shown.
 
@@ -51,11 +51,11 @@
   <!-- Text of a negative button in dialog requesting to open a new window. -->
   <string name="mozac_feature_prompts_deny">Refusar</string>
   <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
-  <string name="mozac_feature_prompts_popup_dialog_title">Autorizar la dobertura d’aqueste site ?</string>
+  <string name="mozac_feature_prompts_popup_dialog_title">Autorizar la dobertura d’aqueste site ?</string>
   <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
-  <string name="mozac_feature_prompt_before_unload_dialog_title">O confirmatz ?</string>
+  <string name="mozac_feature_prompt_before_unload_dialog_title">O confirmatz ?</string>
   <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
-  <string name="mozac_feature_prompt_before_unload_dialog_body">Volètz quitar aqueste site ? Las donadas qu’ajatz picadas seràn benlèu pas enregistradas.</string>
+  <string name="mozac_feature_prompt_before_unload_dialog_body">Volètz quitar aqueste site ? Las donadas qu’ajatz picadas seràn benlèu pas enregistradas.</string>
   <!-- Stay button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to stay in the website. -->
   <string name="mozac_feature_prompts_before_unload_stay">Demorar</string>
   <!-- Leave button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to leave in the website. -->
@@ -101,9 +101,9 @@
   <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
   <string name="mozac_feature_prompts_suggest_strong_password_2">Utilizar aqueste senhal segur</string>
   <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
-  <string name="mozac_feature_prompts_suggest_strong_password_message">Utilizar un senhal fòrt : %1$s</string>
+  <string name="mozac_feature_prompts_suggest_strong_password_message">Utilizar un senhal fòrt : %1$s</string>
   <!-- Title for using the suggest strong password confirmation dialog -->
-  <string name="mozac_feature_prompts_suggest_strong_password_title">Utilizar un senhal segur ?</string>
+  <string name="mozac_feature_prompts_suggest_strong_password_title">Utilizar un senhal segur ?</string>
   <!-- Content description for the suggest strong password confirmation dialog -->
   <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protegissètz vòstre compte en utilizant un senhal fòrt e generat a l\'azard. Serà salvat dins vòstre compte per d\'usatges futurs.</string>
   <!-- Pressing this will use the suggested strong password -->
@@ -117,7 +117,7 @@
   <!-- Title for showing the username updated confirmation snackbar -->
   <string name="mozac_feature_prompt_login_snackbar_username_updated">Nom d’utilizaire actualizat</string>
   <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
-  <string name="mozac_feature_prompt_repost_title">Tornar enviar las donadas a aqueste site ?</string>
+  <string name="mozac_feature_prompt_repost_title">Tornar enviar las donadas a aqueste site ?</string>
   <string name="mozac_feature_prompt_repost_message">L’actualizacion d’aquesta pagina poiriá menar a la duplicacion d’accions recentas coma enviar un pagament o publicar un comentari dos còps.</string>
   <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
   <string name="mozac_feature_prompt_repost_positive_button_text">Tornar enviar</string>
@@ -136,9 +136,9 @@
   <!-- Option in the expanded select card prompt that links to cards settings. -->
   <string name="mozac_feature_prompts_manage_credit_cards_2">Gerir las cartas</string>
   <!-- Text for the title of a save credit card dialog. -->
-  <string name="mozac_feature_prompts_save_credit_card_prompt_title">Salvar d’un biais segur aquesta carta ?</string>
+  <string name="mozac_feature_prompts_save_credit_card_prompt_title">Salvar d’un biais segur aquesta carta ?</string>
   <!-- Text for the title of an update credit card dialog. -->
-  <string name="mozac_feature_prompts_update_credit_card_prompt_title">Actualizar la data d’expiracion de la carta ?</string>
+  <string name="mozac_feature_prompts_update_credit_card_prompt_title">Actualizar la data d’expiracion de la carta ?</string>
   <!-- Subtitle text displayed under the title of the saved card dialog. %s is the name of the app (for example "Firefox"). -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s chifra lo numèro de carta. Lo còdi de seguretat s’enregistrarà pas.</string>
   <!--
@@ -166,7 +166,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Causir %1$s coma provesidor d’identificants</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">La connexion a %1$s amb un compte %2$s es somesa a la &lt;a href="%3$s"&gt;politica de confidencialitat&lt;/a&gt; e a las &lt;a href="%4$s"&gt;condicions d’utilizacion&lt;/a&gt; d’aqueste.</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[La connexion a %1$s amb un compte %2$s es somesa a la <a href=\"%3$s\">politica de confidencialitat</a> e a las <a href=\"%4$s\">condicions d’utilizacion</a> d’aqueste.]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Contunhar</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

@@ -802,4 +802,6 @@
   <!-- Positive action of a dialog asking to delete -->
   <string name="dialog_delete_positive">Rimovi</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

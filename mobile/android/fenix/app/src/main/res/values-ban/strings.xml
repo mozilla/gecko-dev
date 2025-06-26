@@ -27,4 +27,6 @@
   <!-- Text for the menu button to edit a search engine -->
   <string name="search_engine_edit">Uah</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>
