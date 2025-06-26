@@ -118,6 +118,9 @@ class WebrtcAudioConduit : public AudioSessionConduit,
 
   RefPtr<GenericPromise> Shutdown() override;
 
+  // Call thread only.
+  bool IsShutdown() const override;
+
   WebrtcAudioConduit(RefPtr<WebrtcCallWrapper> aCall,
                      nsCOMPtr<nsISerialEventTarget> aStsThread);
 
@@ -195,6 +198,10 @@ class WebrtcAudioConduit : public AudioSessionConduit,
   void DeleteSendStream();
   void CreateRecvStream();
   void DeleteRecvStream();
+
+  // Call thread only.
+  // Should only be called from Shutdown()
+  void SetIsShutdown();
 
   // Are SSRC changes without signaling allowed or not.
   // Call thread only.
@@ -316,6 +323,10 @@ class WebrtcAudioConduit : public AudioSessionConduit,
   MediaEventListener mReceiverRtpEventListener;   // Rtp-receiving pipeline
   MediaEventListener mReceiverRtcpEventListener;  // Rctp-receiving pipeline
   MediaEventListener mSenderRtcpEventListener;    // Rctp-sending pipeline
+
+  // Whether the conduit is shutdown or not.
+  // Call thread only.
+  bool mIsShutdown = false;
 };
 
 }  // namespace mozilla

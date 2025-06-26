@@ -170,6 +170,8 @@ class MediaSessionConduit {
                              PacketType type) = 0;
 
   virtual RefPtr<GenericPromise> Shutdown() = 0;
+  // Call thread only. Is set at the end of Shutdown()
+  virtual bool IsShutdown() const = 0;
 
   virtual Maybe<RefPtr<AudioSessionConduit>> AsAudioSessionConduit() = 0;
   virtual Maybe<RefPtr<VideoSessionConduit>> AsVideoSessionConduit() = 0;

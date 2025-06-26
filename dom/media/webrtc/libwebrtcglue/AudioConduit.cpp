@@ -151,9 +151,21 @@ RefPtr<GenericPromise> WebrtcAudioConduit::Shutdown() {
         // Clear the stats send stream stats cache
         mTransitionalSendStreamStats = Nothing();
 
+        SetIsShutdown();
+
         return GenericPromise::CreateAndResolve(
             true, "WebrtcAudioConduit::Shutdown (call thread)");
       });
+}
+
+bool WebrtcAudioConduit::IsShutdown() const {
+  MOZ_ASSERT(mCallThread->IsOnCurrentThread());
+  return mIsShutdown;
+}
+
+void WebrtcAudioConduit::SetIsShutdown() {
+  MOZ_ASSERT(mCallThread->IsOnCurrentThread());
+  mIsShutdown = true;
 }
 
 WebrtcAudioConduit::WebrtcAudioConduit(

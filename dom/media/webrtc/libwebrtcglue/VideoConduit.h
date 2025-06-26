@@ -133,6 +133,9 @@ class WebrtcVideoConduit : public VideoSessionConduit,
 
   RefPtr<GenericPromise> Shutdown() override;
 
+  // Call thread only.
+  bool IsShutdown() const override;
+
   bool Denoising() const { return mDenoising; }
 
   uint8_t SpatialLayers() const { return mSpatialLayers; }
@@ -262,6 +265,10 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   void DeleteSendStream();
   void CreateRecvStream();
   void DeleteRecvStream();
+
+  // Call thread only.
+  // Should only be called from Shutdown()
+  void SetIsShutdown();
 
   void DeliverPacket(rtc::CopyOnWriteBuffer packet, PacketType type) override;
 
@@ -523,6 +530,10 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   MediaEventListener mReceiverRtpEventListener;   // Rtp-receiving pipeline
   MediaEventListener mReceiverRtcpEventListener;  // Rctp-receiving pipeline
   MediaEventListener mSenderRtcpEventListener;    // Rctp-sending pipeline
+
+  // Whether the conduit is shutdown or not.
+  // Call thread only.
+  bool mIsShutdown = false;
 };
 }  // namespace mozilla
 

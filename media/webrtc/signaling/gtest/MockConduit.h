@@ -56,6 +56,7 @@ class MockConduit : public MediaSessionConduit {
   MOCK_METHOD2(SendReceiverRtcp, bool(const uint8_t*, size_t));
   MOCK_METHOD2(DeliverPacket, void(rtc::CopyOnWriteBuffer, PacketType));
   MOCK_METHOD0(Shutdown, RefPtr<GenericPromise>());
+  MOCK_CONST_METHOD0(IsShutdown, bool());
   MOCK_METHOD0(AsAudioSessionConduit, Maybe<RefPtr<AudioSessionConduit>>());
   MOCK_METHOD0(AsVideoSessionConduit, Maybe<RefPtr<VideoSessionConduit>>());
   MOCK_CONST_METHOD0(GetCallStats, Maybe<webrtc::Call::Stats>());
