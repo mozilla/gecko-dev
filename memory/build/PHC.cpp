@@ -751,7 +751,7 @@ class PHC {
     }
   }
 
-  // This expects GMUt::mMutex to be locked but can't check it with a parameter
+  // This expects sPHC::mMutex to be locked but can't check it with a parameter
   // since we try-lock it.
   void FillAddrInfo(uintptr_t aIndex, const void* aBaseAddr, bool isGuardPage,
                     phc::AddrInfo& aOut) {
