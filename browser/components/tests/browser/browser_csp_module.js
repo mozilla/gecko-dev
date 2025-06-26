@@ -45,8 +45,7 @@ add_task(async function test_data_url_script() {
 
 add_task(function test_eval_in_module() {
   // nsContentSecurityUtils::IsEvalAllowed uses MOZ_CRASH in debug and fuzzing builds.
-  // Non-Nightly builds still allow eval due to nsContentSecurityUtils::DetectJsHacks.
-  if (AppConstants.DEBUG || !AppConstants.NIGHTLY_BUILD) {
+  if (AppConstants.DEBUG) {
     ok(true, "Don't crash");
     return;
   }
