@@ -247,11 +247,11 @@ struct OldSnapshotData {
 
   ~OldSnapshotData() {
     if (mManager) {
-      wr::SnapshotImageKey key = { mImageKey };
+      wr::SnapshotImageKey key = {mImageKey};
       if (mUsed) {
-          mManager->AddSnapshotImageKeyForDiscard(key);
+        mManager->AddSnapshotImageKeyForDiscard(key);
       } else {
-          mManager->AddUnusedSnapshotImageKeyForDiscard(key);
+        mManager->AddUnusedSnapshotImageKeyForDiscard(key);
       }
     }
   }

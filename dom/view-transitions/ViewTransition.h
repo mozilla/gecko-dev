@@ -105,8 +105,8 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   Maybe<nsSize> GetOldSize(nsAtom* aName) const;
   Maybe<nsSize> GetNewSize(nsAtom* aName) const;
   // Use this to generate the old state image key for use in a stacking context.
-  // Do not use the returned image key in an image display item, use ReadOldImageKey
-  // instead.
+  // Do not use the returned image key in an image display item, use
+  // ReadOldImageKey instead.
   const wr::ImageKey* GetOrCreateOldImageKey(nsAtom* aName,
                                              layers::RenderRootStateManager*,
                                              wr::IpcResourceUpdateQueue&) const;
