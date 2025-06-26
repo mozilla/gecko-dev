@@ -3082,17 +3082,25 @@ export var XPIProvider = {
         continue;
       }
 
+      logger.debug(`Processing staged addons in ${loc.name}`);
       // Collect any install errors for specific removal from the staged directory
       // during cleanStagingDir.  Successful installs remove the files.
+      let locationChanged = false;
       let stagedFailureNames = [];
       let promises = [];
       for (let [id, metadata] of loc.getStagedAddons()) {
+        logger.debug(
+          `Installing staged addon ${id} version ${metadata.version} in ${loc.name}`
+        );
         loc.unstageAddon(id);
 
         aManifests[loc.name][id] = null;
         promises.push(
           XPIExports.XPIInstall.installStagedAddon(id, metadata, loc).then(
             addon => {
+              logger.debug(
+                `Successfully installed staged addon ${id} version ${metadata.version} in ${loc.name}`
+              );
               aManifests[loc.name][id] = addon;
             },
             error => {
@@ -3110,11 +3118,15 @@ export var XPIProvider = {
 
       if (promises.length) {
         changed = true;
+        locationChanged = true;
         awaitPromise(Promise.all(promises));
       }
 
       try {
-        if (changed || stagedFailureNames.length) {
+        if (locationChanged || stagedFailureNames.length) {
+          logger.debug(
+            `Cleaning staged addon directory for location ${loc.name}`
+          );
           loc.installer.cleanStagingDir(stagedFailureNames);
         }
       } catch (e) {
