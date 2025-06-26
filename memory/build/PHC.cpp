@@ -507,6 +507,10 @@ class AllocPageInfo {
   // - Freed: must be > 0 and < kMaxTime.
   Time mReuseTime;
 
+#if PHC_LOGGING
+  Time mFreeTime;
+#endif
+
   // The next index for a free list of pages.`
   Maybe<uintptr_t> mNextPage;
 };
@@ -666,7 +670,9 @@ class PHC {
   }
 
 #if PHC_LOGGING
-  Time GetFreeTime(uintptr_t aIndex) const { return mFreeTime[aIndex]; }
+  Time GetFreeTime(uintptr_t aIndex) const {
+    return mAllocPages[aIndex].mFreeTime;
+  }
 #endif
 
   void ResizePageInUse(PHCLock aLock, uintptr_t aIndex,
@@ -713,7 +719,7 @@ class PHC {
     page.mFreeStack = Some(aFreeStack);
     Time now = Now();
 #if PHC_LOGGING
-    mFreeTime[aIndex] = now;
+    page.mFreeTime = now;
 #endif
     page.mReuseTime = now + aReuseDelay;
 
@@ -1259,9 +1265,6 @@ class PHC {
   static PHC_THREAD_LOCAL(Delay) tlsLastDelay;
 
   AllocPageInfo mAllocPages[kNumAllocPages];
-#if PHC_LOGGING
-  Time mFreeTime[kNumAllocPages];
-#endif
 
  public:
   Delay GetAvgAllocDelay(const MutexAutoLock&) { return mAvgAllocDelay; }
