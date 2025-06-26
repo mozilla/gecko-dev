@@ -4137,6 +4137,21 @@
       }
     ]
   },
+  "1964947": {
+    "label": "dotnetfiddle.net",
+    "bugs": {
+      "1964947": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://dotnetfiddle.net/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome_with_FxQuantum"]
+      }
+    ]
+  },
   "1966330": {
     "label": "salling.dk",
     "bugs": {
