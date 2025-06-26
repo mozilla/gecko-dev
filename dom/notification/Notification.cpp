@@ -569,32 +569,24 @@ nsresult Notification::ResolveIconURL(nsIGlobalObject* aGlobal,
     return rv;
   }
 
-  nsCOMPtr<nsIURI> baseUri = nullptr;
-
-  // XXXnsm If I understand correctly, the character encoding for resolving
-  // URIs in new specs is dictated by the URL spec, which states that unless
-  // the URL parser is passed an override encoding, the charset to be used is
-  // UTF-8. The new Notification icon/sound specification just says to use the
-  // Fetch API, where the Request constructor defers to URL parsing specifying
-  // the API base URL and no override encoding. So we've to use UTF-8 on
-  // workers, but for backwards compat keeping it document charset on main
-  // thread.
-  auto encoding = UTF_8_ENCODING;
-
-  if (nsCOMPtr<nsPIDOMWindowInner> window = aGlobal->GetAsInnerWindow()) {
-    if (RefPtr<Document> doc = window->GetExtantDoc()) {
-      baseUri = doc->GetBaseURI();
-      encoding = doc->GetDocumentCharacterSet();
-    } else {
-      NS_WARNING("No document found for main thread notification!");
-      return NS_ERROR_FAILURE;
-    }
-  } else if (WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate()) {
-    baseUri = workerPrivate->GetBaseURI();
-  }
-
+  nsCOMPtr<nsIURI> baseUri = aGlobal->GetBaseURI();
   if (!baseUri) {
     return rv;
+  }
+
+  auto encoding = UTF_8_ENCODING;
+
+  // TODO(krosylight): Ultimately we can use UTF8String for icon definition of
+  // Web IDL when we remove this.
+  if (!StaticPrefs::dom_webnotifications_icon_encoding_utf8_enabled()) {
+    if (nsCOMPtr<nsPIDOMWindowInner> window = aGlobal->GetAsInnerWindow()) {
+      if (RefPtr<Document> doc = window->GetExtantDoc()) {
+        encoding = doc->GetDocumentCharacterSet();
+      } else {
+        NS_WARNING("No document found for main thread notification!");
+        return NS_ERROR_FAILURE;
+      }
+    }
   }
 
   nsCOMPtr<nsIURI> srcUri;
@@ -607,6 +599,8 @@ nsresult Notification::ResolveIconURL(nsIGlobalObject* aGlobal,
     CopyUTF8toUTF16(src, aDecodedUrl);
   }
 
+  // TODO(krosylight): We should be able to remove the following when removing
+  // the non-UTF8 branch above.
   if (encoding == UTF_8_ENCODING) {
     return rv;
   }

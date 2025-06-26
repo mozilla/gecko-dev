@@ -5603,6 +5603,12 @@
 #endif
   mirror: always
 
+# Always treat icon URLs as UTF8 instead of document charset
+- name: dom.webnotifications.icon_encoding_utf8.enabled
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # Forcing all notification requests do storage cleanup.
 - name: dom.webnotifications.testing.force_storage_cleanup.enabled
   type: bool

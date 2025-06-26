@@ -10,6 +10,10 @@
   const iconEucKr = new Uint8Array([0xbe, 0xc6, 0xc0, 0xcc, 0xc4, 0xdc]);
 
   add_task(async function test() {
+    await SpecialPowers.pushPrefEnv({
+      set: [["dom.webnotifications.icon_encoding_utf8.enabled", false]]
+    });
+
     await GleanTest.testResetFOG();
 
     new Notification("title", { icon: "?icon=icon" });
