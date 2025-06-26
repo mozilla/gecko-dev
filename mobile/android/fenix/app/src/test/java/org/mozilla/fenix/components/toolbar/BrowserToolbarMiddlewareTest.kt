@@ -18,7 +18,6 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.verify
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.setMain
@@ -150,9 +149,7 @@ class BrowserToolbarMiddlewareTest {
     private val permissionsStorage: SitePermissionsStorage = mockk()
     private val cookieBannersStorage: CookieBannersStorage = mockk()
     private val trackingProtectionUseCases: TrackingProtectionUseCases = mockk()
-    private val publicSuffixList: PublicSuffixList = mockk {
-        every { getPublicSuffixPlusOne(any()) } returns CompletableDeferred(null)
-    }
+    private val publicSuffixList = PublicSuffixList(testContext)
 
     @Test
     fun `WHEN initializing the toolbar THEN add browser start actions`() = runTestOnMain {
@@ -274,6 +271,7 @@ class BrowserToolbarMiddlewareTest {
             hint = R.string.search_hint,
             title = null,
             url = URLStringUtils.toDisplayUrl(tab.getUrl()!!).toString(),
+            registrableDomainIndexRange = 0 to 11,
             contextualMenuOptions = ContextualMenuOption.entries,
             onClick = OriginClicked,
         )
@@ -282,7 +280,13 @@ class BrowserToolbarMiddlewareTest {
         browserStore.dispatch(UpdateUrlAction(sessionId = tab.id, url = ABOUT_HOME)).joinBlocking()
         testScheduler.advanceUntilIdle()
 
-        assertEquals(pageOrigin.copy(url = ""), toolbarStore.state.displayState.pageOrigin)
+        assertEquals(
+            pageOrigin.copy(
+                url = "",
+                registrableDomainIndexRange = null,
+            ),
+            toolbarStore.state.displayState.pageOrigin,
+        )
     }
 
     @Test
@@ -1157,11 +1161,11 @@ class BrowserToolbarMiddlewareTest {
             browserStore = browserStore,
             useCases = useCases,
             clipboard = mockk(),
+            publicSuffixList = publicSuffixList,
             settings = settings,
             permissionsStorage = permissionsStorage,
             cookieBannersStorage = cookieBannersStorage,
             trackingProtectionUseCases = trackingProtectionUseCases,
-            publicSuffixList = publicSuffixList,
         ).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(
@@ -1212,11 +1216,11 @@ class BrowserToolbarMiddlewareTest {
             browserStore = browserStore,
             useCases = useCases,
             clipboard = mockk(),
+            publicSuffixList = publicSuffixList,
             settings = settings,
             permissionsStorage = permissionsStorage,
             cookieBannersStorage = cookieBannersStorage,
             trackingProtectionUseCases = trackingProtectionUseCases,
-            publicSuffixList = publicSuffixList,
         ).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(
@@ -1286,11 +1290,11 @@ class BrowserToolbarMiddlewareTest {
             browserStore = browserStore,
             useCases = useCases,
             clipboard = mockk(),
+            publicSuffixList = publicSuffixList,
             settings = settings,
             permissionsStorage = permissionsStorage,
             cookieBannersStorage = cookieBannersStorage,
             trackingProtectionUseCases = trackingProtectionUseCases,
-            publicSuffixList = publicSuffixList,
         ).apply {
             updateLifecycleDependencies(
                 LifecycleDependencies(
@@ -1351,11 +1355,11 @@ class BrowserToolbarMiddlewareTest {
                 browserStore = browserStore,
                 useCases = useCases,
                 clipboard = mockk(),
+                publicSuffixList = publicSuffixList,
                 settings = settings,
                 permissionsStorage = permissionsStorage,
                 cookieBannersStorage = cookieBannersStorage,
                 trackingProtectionUseCases = trackingProtectionUseCases,
-                publicSuffixList = publicSuffixList,
             ).apply {
                 updateLifecycleDependencies(
                     LifecycleDependencies(
@@ -1416,10 +1420,10 @@ class BrowserToolbarMiddlewareTest {
                 useCases = useCases,
                 clipboard = mockk(),
                 settings = settings,
+                publicSuffixList = publicSuffixList,
                 permissionsStorage = permissionsStorage,
                 cookieBannersStorage = cookieBannersStorage,
                 trackingProtectionUseCases = trackingProtectionUseCases,
-                publicSuffixList = publicSuffixList,
             ).apply {
                 updateLifecycleDependencies(
                     LifecycleDependencies(
@@ -1493,12 +1497,12 @@ class BrowserToolbarMiddlewareTest {
                 browserStore = browserStore,
                 useCases = useCases,
                 clipboard = mockk(),
+                publicSuffixList = publicSuffixList,
                 settings = settings,
                 sessionUseCases = sessionUseCases,
                 permissionsStorage = permissionsStorage,
                 cookieBannersStorage = cookieBannersStorage,
                 trackingProtectionUseCases = trackingProtectionUseCases,
-                publicSuffixList = publicSuffixList,
             ).apply {
                 updateLifecycleDependencies(
                     LifecycleDependencies(
@@ -1565,12 +1569,12 @@ class BrowserToolbarMiddlewareTest {
                 browserStore = browserStore,
                 useCases = useCases,
                 clipboard = mockk(),
+                publicSuffixList = publicSuffixList,
                 settings = settings,
                 sessionUseCases = sessionUseCases,
                 permissionsStorage = permissionsStorage,
                 cookieBannersStorage = cookieBannersStorage,
                 trackingProtectionUseCases = trackingProtectionUseCases,
-                publicSuffixList = publicSuffixList,
             ).apply {
                 updateLifecycleDependencies(
                     LifecycleDependencies(
@@ -1870,22 +1874,22 @@ class BrowserToolbarMiddlewareTest {
         browserStore: BrowserStore = this.browserStore,
         useCases: UseCases = this.useCases,
         clipboard: ClipboardHandler = this.clipboard,
+        publicSuffixList: PublicSuffixList = this.publicSuffixList,
         settings: Settings = this.settings,
         permissionsStorage: SitePermissionsStorage = this.permissionsStorage,
         cookieBannersStorage: CookieBannersStorage = this.cookieBannersStorage,
         trackingProtectionUseCases: TrackingProtectionUseCases = this.trackingProtectionUseCases,
-        publicSuffixList: PublicSuffixList = this.publicSuffixList,
     ) = BrowserToolbarMiddleware(
         appStore = appStore,
         browserScreenStore = browserScreenStore,
         browserStore = browserStore,
         useCases = useCases,
         clipboard = clipboard,
+        publicSuffixList = publicSuffixList,
         settings = settings,
         permissionsStorage = permissionsStorage,
         cookieBannersStorage = cookieBannersStorage,
         trackingProtectionUseCases = trackingProtectionUseCases,
-        publicSuffixList = publicSuffixList,
     )
 
     private fun BrowserToolbarMiddleware.updateDependencies(

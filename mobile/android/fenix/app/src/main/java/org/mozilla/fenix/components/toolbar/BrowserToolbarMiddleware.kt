@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
@@ -99,6 +100,7 @@ import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivate
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.CloseCurrentTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterClicked
+import org.mozilla.fenix.components.toolbar.URLDomainHighlight.getRegistrableDomainOrHostIndexRange
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases.Companion.ABOUT_HOME
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.nav
@@ -703,8 +705,9 @@ class BrowserToolbarMiddleware(
         }
     }
 
-    private fun updateCurrentPageOrigin() {
-        val urlString = browserStore.state.selectedTab?.content?.url?.let { originalUrl ->
+    private fun updateCurrentPageOrigin() = MainScope().launch {
+        val url = browserStore.state.selectedTab?.content?.url
+        val displayUrl = url?.let { originalUrl ->
             if (originalUrl == ABOUT_HOME) {
                 // Default to showing the toolbar hint when the URL is ABOUT_HOME.
                 ""
@@ -712,13 +715,18 @@ class BrowserToolbarMiddleware(
                 URLStringUtils.toDisplayUrl(originalUrl).toString()
             }
         }
+        val registrableDomainIndexRange = when (displayUrl != null && displayUrl.isNotEmpty()) {
+            true -> getRegistrableDomainOrHostIndexRange(url, displayUrl, publicSuffixList)
+            false -> null
+        }
 
         store?.dispatch(
             BrowserDisplayToolbarAction.PageOriginUpdated(
                 PageOrigin(
                     hint = R.string.search_hint,
                     title = null,
-                    url = urlString,
+                    url = displayUrl,
+                    registrableDomainIndexRange = registrableDomainIndexRange,
                     contextualMenuOptions = ContextualMenuOption.entries,
                     onClick = OriginClicked,
                 ),
@@ -799,7 +807,7 @@ class BrowserToolbarMiddleware(
     private fun observePageRefreshUpdates() {
         with(dependencies.lifecycleOwner) {
             this.lifecycleScope.launch {
-                repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+                repeatOnLifecycle(RESUMED) {
                     browserStore.flow()
                         .distinctUntilChangedBy {
                             it.selectedTab?.content?.loading == true

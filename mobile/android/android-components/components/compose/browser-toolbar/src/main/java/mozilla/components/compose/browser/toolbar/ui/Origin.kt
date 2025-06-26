@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Arrangement.Center
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -80,6 +81,7 @@ internal fun Origin(
     @StringRes hint: Int,
     modifier: Modifier = Modifier,
     url: String? = null,
+    registrableDomainIndexRange: Pair<Int, Int>? = null,
     title: String? = null,
     textGravity: TextGravity = TEXT_GRAVITY_START,
     contextualMenuOptions: List<ContextualMenuOption> = emptyList(),
@@ -144,7 +146,7 @@ internal fun Origin(
             ) {
                 Title(title, textGravity)
 
-                Url(urlToShow, urlTextSize, textGravity)
+                Url(urlToShow, registrableDomainIndexRange, urlTextSize)
             }
 
             LongPressMenu(showMenu, contextualMenuOptions, clipboardHandler, onInteraction) {
@@ -175,17 +177,23 @@ private fun Title(
 @Composable
 private fun Url(
     url: String,
+    registrableDomainIndexRange: Pair<Int, Int>?,
     fontSize: Int,
-    textGravity: TextGravity,
 ) {
-    FadedText(
-        text = url,
-        style = TextStyle(
+    // Ensure compatibility with MaterialTheme attributes. See bug 1936346 for more context.
+    val materialTextStyle = LocalTextStyle.current
+
+    HighlightedDomainUrl(
+        url = url,
+        registrableDomainIndexRange = registrableDomainIndexRange,
+        fadedTextStyle = materialTextStyle.merge(
+            fontSize = fontSize.sp,
+            color = AcornTheme.colors.textSecondary,
+        ),
+        boldedTextStyle = materialTextStyle.merge(
             fontSize = fontSize.sp,
             color = AcornTheme.colors.textPrimary,
         ),
-        truncationDirection = textGravity.toTextTruncationDirection(),
-        fadeLength = FADE_LENGTH.dp,
     )
 }
 
