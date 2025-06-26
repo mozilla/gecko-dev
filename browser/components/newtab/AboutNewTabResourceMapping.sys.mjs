@@ -5,22 +5,28 @@
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
-let lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
+const lazy = XPCOMUtils.declareLazy({
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AboutHomeStartupCache: "resource:///modules/AboutHomeStartupCache.sys.mjs",
   NewTabGleanUtils: "resource://newtab/lib/NewTabGleanUtils.sys.mjs",
+
+  resProto: {
+    service: "@mozilla.org/network/protocol;1?name=resource",
+    iid: Ci.nsISubstitutingProtocolHandler,
+  },
+  aomStartup: {
+    service: "@mozilla.org/addons/addon-manager-startup;1",
+    iid: Ci.amIAddonManagerStartup,
+  },
+  aboutRedirector: {
+    service: "@mozilla.org/network/protocol/about;1?what=newtab",
+    iid: Ci.nsIAboutModule,
+  },
 });
 
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "resProto",
-  "@mozilla.org/network/protocol;1?name=resource",
-  "nsISubstitutingProtocolHandler"
-);
-
-const BUILTIN_ADDON_ID = "newtab@mozilla.org";
-const BUNDLED_RESOURCES_URL = "resource://builtin-addons/newtab/";
+export const BUILTIN_ADDON_ID = "newtab@mozilla.org";
+export const DISABLE_NEWTAB_AS_ADDON_PREF =
+  "browser.newtabpage.disableNewTabAsAddon";
 
 /**
  * AboutNewTabResourceMapping is responsible for creating the mapping between
@@ -35,9 +41,11 @@ const BUNDLED_RESOURCES_URL = "resource://builtin-addons/newtab/";
 export var AboutNewTabResourceMapping = {
   initialized: false,
   log: null,
+  newTabAsAddonDisabled: false,
 
   _rootURISpec: null,
   _addonId: null,
+  _addonListener: null,
 
   /**
    * This should be called early on in the lifetime of the browser, before any
@@ -61,25 +69,53 @@ export var AboutNewTabResourceMapping = {
     });
     this.logger.debug("Initializing");
 
+    // NOTE: this pref is read only once per session on purpose
+    // (and it is expected to be used by the resource mapping logic
+    // on the next application startup if flipped at runtime, e.g. as
+    // part of an emergency pref flip through Nimbus).
+    this.newTabAsAddonDisabled = Services.prefs.getBoolPref(
+      DISABLE_NEWTAB_AS_ADDON_PREF,
+      false
+    );
     this.registerNewTabResources();
+    this.addAddonListener();
 
-    // The newtab addon has a background.js script which defers updating until
-    // the next restart. We still, however, want to blow away the about:home
-    // startup cache when we notice this postponed install, to avoid loading
-    // a cache created with another version of newtab.
-    const addonInstallListener = {};
-    addonInstallListener.onInstallPostponed = install => {
-      if (install.addon.id === BUILTIN_ADDON_ID) {
-        this.logger.debug(
-          "Invalidating AboutHomeStartupCache on detected newly installed newtab resources"
-        );
-        lazy.AboutHomeStartupCache.clearCacheAndUninit();
-      }
-    };
-
-    lazy.AddonManager.addInstallListener(addonInstallListener);
     this.initialized = true;
     this.logger.debug("Initialized");
+  },
+
+  addAddonListener() {
+    if (!this._addonListener && !this.newTabAsAddonDisabled) {
+      // The newtab addon has a background.js script which defers updating until
+      // the next restart. We still, however, want to blow away the about:home
+      // startup cache when we notice this postponed install, to avoid loading
+      // a cache created with another version of newtab.
+      const addonInstallListener = {};
+      addonInstallListener.onInstallPostponed = install => {
+        if (install.addon.id === BUILTIN_ADDON_ID) {
+          this.logger.debug(
+            "Invalidating AboutHomeStartupCache on detected newly installed newtab resources"
+          );
+          lazy.AboutHomeStartupCache.clearCacheAndUninit();
+        }
+      };
+      lazy.AddonManager.addInstallListener(addonInstallListener);
+      this._addonListener = addonInstallListener;
+    }
+  },
+
+  getPreferredMapping() {
+    let policy = WebExtensionPolicy.getByID(BUILTIN_ADDON_ID);
+    // Retrieve the mapping url (but fallback to the known url for the
+    // newtab resources bundled in the Desktop omni jar if that fails).
+    let { id, version, rootURI } = policy?.extension ?? {};
+    if (!rootURI || Services.appinfo.inSafeMode || this.newTabAsAddonDisabled) {
+      id = null;
+      const builtinAddonsURI = lazy.resProto.getSubstitution("builtin-addons");
+      rootURI = Services.io.newURI("newtab/", null, builtinAddonsURI);
+      version = null;
+    }
+    return { id, version, rootURI };
   },
 
   /**
@@ -90,31 +126,23 @@ export var AboutNewTabResourceMapping = {
   registerNewTabResources() {
     const RES_PATH = "newtab";
     try {
-      let policy = WebExtensionPolicy.getByID(BUILTIN_ADDON_ID);
-      // Retrieve the mapping url (but fallback to the known url for the
-      // newtab resources bundled in the Desktop omni jar if that fails).
-      let { rootURI, version, id } = policy?.extension ?? {};
-      if (!rootURI || Services.appinfo.inSafeMode) {
-        rootURI = Services.io.newURI(BUNDLED_RESOURCES_URL);
-        version = "bundled-resources-fallback";
-      }
+      const { id, version, rootURI } = this.getPreferredMapping();
       this._rootURISpec = rootURI.spec;
       this._addonId = id;
       const isXPI = rootURI.spec.endsWith(".xpi!/");
       this.logger.log(
-        `Mapping newtab resources from ${isXPI ? "XPI" : "built-in add-on"} version ${version} ` +
-          `on application version ${AppConstants.MOZ_APP_VERSION_DISPLAY}`
+        this.newTabAsAddonDisabled || !version
+          ? `Mapping newtab resources from ${rootURI.spec}`
+          : `Mapping newtab resources from ${isXPI ? "XPI" : "built-in add-on"} version ${version} ` +
+              `on application version ${AppConstants.MOZ_APP_VERSION_DISPLAY}`
       );
       lazy.resProto.setSubstitutionWithFlags(
         RES_PATH,
         rootURI,
         Ci.nsISubstitutingProtocolHandler.ALLOW_CONTENT_ACCESS
       );
-      let aomStartup = Cc[
-        "@mozilla.org/addons/addon-manager-startup;1"
-      ].getService(Ci.amIAddonManagerStartup);
       const manifestURI = Services.io.newURI("manifest.json", null, rootURI);
-      this._chromeHandle = aomStartup.registerChrome(manifestURI, [
+      this._chromeHandle = lazy.aomStartup.registerChrome(manifestURI, [
         ["content", "newtab", "data/content", "contentaccessible=yes"],
       ]);
 
@@ -124,10 +152,7 @@ export var AboutNewTabResourceMapping = {
         this.registerFluentSources(rootURI);
         this.registerMetricsFromJson();
       }
-      let redirector = Cc[
-        "@mozilla.org/network/protocol/about;1?what=newtab"
-      ].getService(Ci.nsIAboutModule).wrappedJSObject;
-      redirector.notifyBuiltInAddonInitialized();
+      lazy.aboutRedirector.wrappedJSObject.notifyBuiltInAddonInitialized();
       Glean.newtab.addonReadySuccess.set(true);
       this.logger.debug("Newtab resource mapping completed successfully");
     } catch (e) {
