@@ -56,6 +56,7 @@ class nsIDocShellTreeItem;
 class nsMenuPopupFrame;
 class nsPIDOMWindowOuter;
 class nsRefreshDriver;
+class PopupQueue;
 
 namespace mozilla {
 class PresShell;
@@ -776,8 +777,11 @@ class nsXULPopupManager final : public nsIDOMEventListener,
    * aIsContextMenu - true for context menus
    * aSelectFirstItem - true to select the first item in the menu
    * TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
+   *
+   * Return false if the popup is not going to be shown. This is mainly used for
+   * the queue popup logic.
    */
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY void BeginShowingPopup(
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY bool BeginShowingPopup(
       const PendingPopup& aPendingPopup, bool aIsContextMenu,
       bool aSelectFirstItem);
 
@@ -868,6 +872,9 @@ class nsXULPopupManager final : public nsIDOMEventListener,
   // Finds a chain item in mPopups.
   nsMenuChainItem* FindPopup(Element* aPopup) const;
 
+  // Dimiss existing queueable shown popups before showing a non-queueable one.
+  void DismissQueueableShownPopups();
+
   // the document the key event listener is attached to
   nsCOMPtr<mozilla::dom::EventTarget> mKeyListener;
 
@@ -906,6 +913,9 @@ class nsXULPopupManager final : public nsIDOMEventListener,
   // This map is empty if mNativeMenu is null.
   nsTHashMap<RefPtr<mozilla::dom::Element>, nsPopupState>
       mNativeMenuSubmenuStates;
+
+  // A queue for "queuable" popups.
+  RefPtr<PopupQueue> mPopupQueue;
 };
 
 #endif
