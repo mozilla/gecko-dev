@@ -4045,6 +4045,21 @@
       }
     ]
   },
+  "1962587": {
+    "label": "virtualvisit.telushealth.com",
+    "bugs": {
+      "1962587": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://virtualvisit.telushealth.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome_with_FxQuantum"]
+      }
+    ]
+  },
   "1962642": {
     "label": "hoanghamobile.com",
     "bugs": {
