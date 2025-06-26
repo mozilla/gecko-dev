@@ -28,11 +28,11 @@ class PlatformInfo:
     }
 
     buildmap = {
-        "debug-isolated-process": "isolated-process",
+        "debug-isolated-process": "isolated_process",
     }
 
     def __init__(self, test_settings: Optional[dict[str, Any]] = None) -> None:
-        if test_settings is None:
+        if not test_settings:
             return
 
         self._platform: dict[str, Any] = test_settings["platform"]

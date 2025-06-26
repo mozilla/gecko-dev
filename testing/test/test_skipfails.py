@@ -1504,7 +1504,7 @@ def test_reftest_get_lineno3():
 def test_reftest_skip_failure_win_32(capsys):
     """Test reftest_skip_failure_win_32"""
 
-    sf = Skipfails(verbose=True, bugzilla="disable", implicit_vars=True)
+    sf = Skipfails(verbose=True, bugzilla="disable", implicit_vars=True, dry_run=True)
     manifest = "layout/reftests/svg/reftest.list"
     kind = Kind.LIST
     path = "fuzzy(0-1,0-5) fuzzy-if(winWidget,0-96,0-21713) skip-if(winWidget&&isCoverageBuild) fuzzy-if(Android&&device,0-4,0-946) == radialGradient-basic-03.svg radialGradient-basic-03-ref.html"
@@ -1576,7 +1576,7 @@ def test_reftest_skip_failure_reorder(capsys):
     manifest_fp.close()
     manifest_after_path = DATA_PATH.joinpath("reftest-reorder-after.list")
     manifest_after = open(manifest_after_path, encoding="utf-8").read()
-    sf = Skipfails(verbose=True, bugzilla="disable", implicit_vars=True)
+    sf = Skipfails(verbose=True, bugzilla="disable", implicit_vars=True, dry_run=True)
     manifest = "testing/test/data/reftest-reorder.list"
     kind = Kind.LIST
     path = "fuzzy-if(cocoaWidget,0-80,0-76800) fuzzy-if(appleSilicon,0-80,0-76800) skip-if(Android) fuzzy-if(winWidget,0-63,0-76799) fuzzy-if(gtkWidget,0-70,0-2032) HTTP(..) == short.mp4.firstframe.html short.mp4.firstframe-ref.html"

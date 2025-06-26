@@ -3548,6 +3548,7 @@ toolbar#nav-bar {
                 "android": mozinfo.info.get("android", False),
                 "is_emulator": mozinfo.info.get("is_emulator", False),
                 "coverage": mozinfo.info.get("coverage", False),
+                "nogpu": mozinfo.info.get("nogpu", False),
             }
         )
 
