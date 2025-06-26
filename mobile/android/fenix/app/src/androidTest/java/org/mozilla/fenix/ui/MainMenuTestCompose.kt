@@ -362,7 +362,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860814
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyTheAddToShortcutsSubMenuOptionTest() {
@@ -388,7 +387,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860815
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyTheAddToHomeScreenSubMenuOptionTest() {
@@ -413,7 +411,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860816
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyTheSaveToCollectionSubMenuOptionTest() {
@@ -467,7 +464,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860799
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyTheTranslatePageButtonsStatesTest() {
@@ -492,7 +488,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860802
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyTheShareButtonTest() {
@@ -513,7 +508,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860804
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyOpenInAppButtonIsEnabledTest() {
@@ -557,7 +551,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860801
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @SmokeTest
     @Test
     fun verifyPrintSubMenuOptionTest() {
@@ -905,7 +898,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939173
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyTheWhatIsBrokenErrorMessageTest() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
@@ -926,7 +918,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939175
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyThatTheBrokenSiteFormCanBeCanceledTest() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
@@ -975,7 +966,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939179
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyThatTheBrokenSiteFormInfoPersistsTest() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
@@ -998,7 +988,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939180
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyTheBrokenSiteFormIsEmptyWithoutSubmittingThePreviousOneTest() {
         val firstWebPage = getGenericAsset(mockWebServer, 1)
@@ -1026,7 +1015,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939181
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971476")
     @Test
     fun verifyThatTheBrokenSiteFormInfoIsErasedWhenKillingTheAppTest() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
