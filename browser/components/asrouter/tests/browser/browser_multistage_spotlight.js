@@ -194,3 +194,38 @@ add_task(async function test_disableEscClose() {
   await win.close();
   sandbox.restore();
 });
+
+add_task(async function test_spotlight_modal_fullsize_and_nonzero() {
+  let message = (await PanelTestProvider.getMessages()).find(
+    m => m.id === "MULTISTAGE_SPOTLIGHT_MESSAGE"
+  );
+  let browser = gBrowser.selectedBrowser;
+  let win = await showDialog({ message, browser });
+
+  await TestUtils.waitForCondition(
+    () => win.document.readyState === "complete",
+    "Waiting for spotlight dialog to finish loading"
+  );
+
+  let docElem = win.document.documentElement;
+  let rect = docElem.getBoundingClientRect();
+
+  Assert.ok(
+    rect.width > 0 && rect.height > 0,
+    `Spotlight modal container should have non-zero dimensions, got ${rect.width}px × ${rect.height}px`
+  );
+
+  let parentWin = win.opener;
+  Assert.equal(
+    rect.width,
+    parentWin.innerWidth,
+    `Container width (${rect.width}px) should fill parent window's innerWidth (${parentWin.innerWidth}px)`
+  );
+  Assert.equal(
+    rect.height,
+    parentWin.innerHeight,
+    `Container height (${rect.height}px) should fill parent window's innerHeight (${parentWin.innerHeight}px)`
+  );
+
+  await win.close();
+});
