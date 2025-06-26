@@ -8,7 +8,10 @@ const lazy = {};
 
 ChromeUtils.defineLazyGetter(lazy, "require", () => {
   const { require } = ChromeUtils.importESModule(
-    "resource://devtools/shared/loader/Loader.sys.mjs"
+    "resource://devtools/shared/loader/Loader.sys.mjs",
+    // Ensure loading all DevTools modules in the dedicated "devtools" global
+    // so that it can safely debug all the privileged modules running from the shared system global.
+    { global: "devtools" }
   );
   return require;
 });
