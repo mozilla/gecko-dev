@@ -1367,6 +1367,7 @@ def build_push_addons_payload(config, task, task_def):
                 ],
             }
         ],
+        Optional("actions"): object,
         Optional("merge-info"): object,
         Optional("android-l10n-import-info"): {
             Required("from-repo-url"): str,
