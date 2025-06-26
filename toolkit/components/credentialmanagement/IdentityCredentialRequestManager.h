@@ -32,6 +32,8 @@ class IdentityCredentialRequestManager final : nsISupports {
                              const nsCString& aToken,
                              const dom::IdentityResolveOptions& aOptions);
 
+  bool IsActivePopup(dom::WebIdentityParent* aPopupWindow);
+
  private:
   static StaticRefPtr<IdentityCredentialRequestManager> sSingleton;
   IdentityCredentialRequestManager() {};

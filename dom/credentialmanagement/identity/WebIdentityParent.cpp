@@ -117,6 +117,18 @@ mozilla::ipc::IPCResult WebIdentityParent::RecvResolveContinuationWindow(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult WebIdentityParent::RecvIsActiveContinuationWindow(
+    const IsActiveContinuationWindowResolver& aResolver) {
+  IdentityCredentialRequestManager* requestManager =
+      IdentityCredentialRequestManager::GetInstance();
+  if (!requestManager) {
+    aResolver(false);
+    return IPC_OK();
+  }
+  aResolver(requestManager->IsActivePopup(this));
+  return IPC_OK();
+}
+
 namespace identity {
 
 nsresult CanSilentlyCollect(nsIPrincipal* aPrincipal,

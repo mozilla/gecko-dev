@@ -136,4 +136,24 @@ nsresult IdentityCredentialRequestManager::MaybeResolvePopup(
   return NS_OK;
 }
 
+bool IdentityCredentialRequestManager::IsActivePopup(
+    dom::WebIdentityParent* aPopupWindow) {
+  dom::WindowGlobalParent* manager =
+      static_cast<dom::WindowGlobalParent*>(aPopupWindow->Manager());
+  if (!manager) {
+    return false;
+  }
+  dom::CanonicalBrowsingContext* bc = manager->BrowsingContext();
+  if (!bc) {
+    return false;
+  }
+  // Transform the BC ID into its top-chrome-window-bc, so we have
+  // something stable through navigation and can listen for the popup's close.
+  dom::CanonicalBrowsingContext* chromeBC = bc->TopCrossChromeBoundary();
+  if (!chromeBC) {
+    return false;
+  }
+  return mPendingTokenRequests.Contains(chromeBC->Id());
+}
+
 }  // namespace mozilla
