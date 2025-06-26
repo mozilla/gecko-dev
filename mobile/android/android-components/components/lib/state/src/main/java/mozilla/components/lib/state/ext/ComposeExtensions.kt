@@ -30,9 +30,9 @@ import androidx.compose.runtime.State as ComposeState
  * [LifecycleOwner] moves to the [Lifecycle.State.DESTROYED] state.
  */
 @Composable
-fun <S : State, A : Action, R> Store<S, A>.observeAsComposableState(map: (S) -> R): ComposeState<R?> {
+fun <S : State, A : Action, R> Store<S, A>.observeAsComposableState(map: (S) -> R): ComposeState<R> {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val state = remember { mutableStateOf<R?>(map(state)) }
+    val state = remember { mutableStateOf(map(state)) }
 
     DisposableEffect(this, lifecycleOwner) {
         val subscription = observe(lifecycleOwner) { browserState ->

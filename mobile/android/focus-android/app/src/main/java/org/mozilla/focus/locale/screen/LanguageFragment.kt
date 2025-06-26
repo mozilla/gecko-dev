@@ -60,7 +60,7 @@ class LanguageFragment : BaseComposeFragment() {
         val languageSelected = languageScreenStore.observeAsComposableState { state ->
             state.selectedLanguage
         }.value
-        if (languageSelected != null && languagesList != null) {
+        if (languageSelected != null) {
             Languages(languageSelected = languageSelected, languages = languagesList)
         }
     }
