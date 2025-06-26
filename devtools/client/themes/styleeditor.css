@@ -218,17 +218,17 @@ li.error > .stylesheet-info > .stylesheet-more > .stylesheet-error-message {
   -moz-context-properties: fill, stroke;
   fill: currentColor;
   stroke: currentColor;
-}
 
-.disabled > .stylesheet-toggle {
-  background-image: url(images/eye-closed.svg);
-}
+  .disabled > & {
+    background-image: url(images/eye-closed.svg);
+  }
 
-.stylesheet-system > .stylesheet-toggle {
-  /* Override the default "color: grayText" from [disabled] browser style */
-  color: currentColor;
-  cursor: auto;
-  opacity: 0.3;
+  .stylesheet-readonly & {
+    background-image: url(images/lock.svg);
+    cursor: auto;
+    /* Override the default "color: grayText" from [disabled] browser style */
+    color: currentColor;
+  }
 }
 
 .stylesheet-linked-file:not(:empty) {

@@ -934,7 +934,7 @@ export class StyleEditorUI extends EventEmitter {
 
     const isSystem = !!editor.styleSheet.system;
     if (isSystem) {
-      summary.classList.add("stylesheet-system");
+      summary.classList.add("stylesheet-readonly");
     }
 
     this.#nav.appendChild(summary);
