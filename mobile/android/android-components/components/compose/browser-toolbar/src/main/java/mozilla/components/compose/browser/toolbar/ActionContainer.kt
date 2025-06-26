@@ -8,6 +8,7 @@ import android.graphics.drawable.Drawable
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.toArgb
@@ -18,7 +19,11 @@ import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
-import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
+import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction
+import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.ContentDescription.StringContentDescription
+import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.ContentDescription.StringResContentDescription
+import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.Icon.DrawableIcon
+import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.Icon.DrawableResIcon
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.ui.SearchSelector
@@ -33,7 +38,7 @@ import mozilla.components.ui.icons.R as iconsR
  * @param onInteraction Callback for handling [BrowserToolbarEvent]s on user interactions.
  */
 @Composable
-internal fun ActionContainer(
+fun ActionContainer(
     actions: List<Action>,
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
@@ -68,12 +73,14 @@ internal fun ActionContainer(
                     }
                 }
 
-                is DropdownAction -> {
+                is SearchSelectorAction -> {
                     SearchSelector(
-                        icon = action.icon,
-                        contentDescription = stringResource(action.contentDescription),
+                        icon = action.iconDrawable(),
+                        shouldTint = (action.icon as? DrawableIcon)?.shouldTint ?: true,
+                        contentDescription = action.contentDescription(),
                         menu = action.menu,
                         onInteraction = { onInteraction(it) },
+                        onClick = action.onClick,
                     )
                 }
 
@@ -114,16 +121,39 @@ private fun ActionButton.iconDrawable(): Drawable? {
     }
 }
 
+@Composable
+@ReadOnlyComposable
+private fun SearchSelectorAction.contentDescription() = when (contentDescription) {
+    is StringContentDescription -> contentDescription.text
+    is StringResContentDescription -> stringResource(contentDescription.resourceId)
+}
+
+@Composable
+private fun SearchSelectorAction.iconDrawable(): Drawable? {
+    val context = LocalContext.current
+    val tint = AcornTheme.colors.iconPrimary
+
+    val drawable = remember(this, context) {
+        when (icon) {
+            is DrawableIcon -> icon.drawable
+            is DrawableResIcon -> AppCompatResources.getDrawable(context, icon.resourceId)
+                ?.apply { setTint(tint.toArgb()) }
+        }
+    }
+    return drawable
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun ActionContainerPreview() {
     AcornTheme {
         ActionContainer(
             actions = listOf(
-                DropdownAction(
-                    icon = AppCompatResources.getDrawable(LocalContext.current, iconsR.drawable.mozac_ic_search_24)!!,
-                    contentDescription = R.string.mozac_clear_button_description,
+                SearchSelectorAction(
+                    icon = DrawableResIcon(iconsR.drawable.mozac_ic_search_24),
+                    contentDescription = StringContentDescription("Change search engine for this search"),
                     menu = { emptyList() },
+                    onClick = null,
                 ),
                 ActionButtonRes(
                     drawableResId = iconsR.drawable.mozac_ic_microphone_24,

@@ -10,7 +10,6 @@ import androidx.annotation.StringRes
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
-import mozilla.components.ui.icons.R as iconsR
 
 /**
  * Actions that can be added to the toolbar.
@@ -67,21 +66,79 @@ sealed class Action {
     }
 
     /**
-     * An action button styled as a dropdown button to be added to the toolbar.
-     * This wraps the provided [icon] or [iconResource] at the start with a down arrow to it's right
+     * An action button styled as a search selector to be added to the toolbar, that upon pressed will
+     * automatically show a dropdown menu built from the passed in [menu] configuration.
+     * This wraps the provided [icon] at the start with a down arrow to it's end
      * to indicate that clicking this will open a dropdown menu.
      *
-     * @property icon A [Drawable] to use as icon for this button. If null will use [iconResource] instead.
-     * @property iconResource The resource id of the icon to use for this button if a [Drawable] is not provided.
-     * @property contentDescription The content description for this button.
+     * @property icon A [Drawable] or [DrawableRes] to use as icon for this button.
+     * @property contentDescription A [String] or [StringRes] to use as content description for this button.
      * @property menu The [BrowserToolbarMenu] to show when this button is clicked.
+     * @property onClick Optional [BrowserToolbarEvent] to be dispatched when this button is clicked.
      */
-    data class DropdownAction(
-        val icon: Drawable?,
-        @DrawableRes val iconResource: Int = iconsR.drawable.mozac_ic_star_fill_20,
-        @StringRes val contentDescription: Int,
+    data class SearchSelectorAction(
+        val icon: Icon,
+        val contentDescription: ContentDescription,
         val menu: BrowserToolbarMenu,
-    ) : Action()
+        val onClick: BrowserToolbarEvent?,
+    ) : Action() {
+
+        /**
+         * The image to use as icon for this button.
+         */
+        sealed interface Icon {
+            /**
+             *  The [Drawable] as icon for this button.
+             *
+             *  @property drawable The [Drawable] to use as icon.
+             *  @property shouldTint Whether or not to apply the application default tint to this icon.
+             */
+            data class DrawableIcon(
+                val drawable: Drawable,
+                val shouldTint: Boolean = true,
+            ) : Icon
+
+            /**
+             * The [DrawableRes] as icon for this button.
+             */
+            @JvmInline
+            value class DrawableResIcon(@DrawableRes val resourceId: Int) : Icon
+        }
+
+        /**
+         * The text that this button should display.
+         */
+        sealed interface Text {
+            /**
+             * The [String] to display in this this button.
+             */
+            @JvmInline
+            value class StringText(val text: String) : Text
+
+            /**
+             * The [StringRes] to display as text in this button.
+             */
+            @JvmInline
+            value class StringResText(@StringRes val resourceId: Int) : Text
+        }
+
+        /**
+         * The content description menu item.
+         */
+        sealed interface ContentDescription {
+            /**
+             * The [String] to use as content description of this button.
+             */
+            @JvmInline
+            value class StringContentDescription(val text: String) : ContentDescription
+
+            /**
+             * The [StringRes] to use as content description of this button.
+             */
+            @JvmInline
+            value class StringResContentDescription(@StringRes val resourceId: Int) : ContentDescription
+        }
+    }
 
     /**
      * An action button styled as a tab counter to be added to the toolbar.

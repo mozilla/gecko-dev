@@ -46,6 +46,9 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Tog
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.ContentDescription.StringResContentDescription
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Icon.DrawableResIcon
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Text.StringResText
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuDivider
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
@@ -626,25 +629,25 @@ class BrowserToolbarMiddleware(
     private fun buildTabCounterMenu() = BrowserToolbarMenu {
         listOf(
             BrowserToolbarMenuButton(
-                iconResource = iconsR.drawable.mozac_ic_plus_24,
-                text = R.string.mozac_browser_menu_new_tab,
-                contentDescription = R.string.mozac_browser_menu_new_tab,
+                icon = DrawableResIcon(iconsR.drawable.mozac_ic_plus_24),
+                text = StringResText(R.string.mozac_browser_menu_new_tab),
+                contentDescription = StringResContentDescription(R.string.mozac_browser_menu_new_tab),
                 onClick = AddNewTab,
             ),
 
             BrowserToolbarMenuButton(
-                iconResource = iconsR.drawable.mozac_ic_private_mode_24,
-                text = R.string.mozac_browser_menu_new_private_tab,
-                contentDescription = R.string.mozac_browser_menu_new_private_tab,
+                icon = DrawableResIcon(iconsR.drawable.mozac_ic_private_mode_24),
+                text = StringResText(R.string.mozac_browser_menu_new_private_tab),
+                contentDescription = StringResContentDescription(R.string.mozac_browser_menu_new_private_tab),
                 onClick = AddNewPrivateTab,
             ),
 
             BrowserToolbarMenuDivider,
 
             BrowserToolbarMenuButton(
-                iconResource = iconsR.drawable.mozac_ic_cross_24,
-                text = R.string.mozac_close_tab,
-                contentDescription = R.string.mozac_close_tab,
+                icon = DrawableResIcon(iconsR.drawable.mozac_ic_cross_24),
+                text = StringResText(R.string.mozac_close_tab),
+                contentDescription = StringResContentDescription(R.string.mozac_close_tab),
                 onClick = CloseCurrentTab,
             ),
         )

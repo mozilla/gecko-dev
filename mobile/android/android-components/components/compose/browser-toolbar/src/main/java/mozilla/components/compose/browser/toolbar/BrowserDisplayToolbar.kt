@@ -22,7 +22,9 @@ import mozilla.components.compose.base.progressbar.AnimatedProgressBar
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
-import mozilla.components.compose.browser.toolbar.concept.Action.DropdownAction
+import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction
+import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.ContentDescription.StringResContentDescription
+import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction.Icon.DrawableResIcon
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
@@ -216,11 +218,11 @@ private class DisplayToolbarDataProvider : PreviewParameterProvider<DisplayToolb
         ),
     )
     val pageActionsStart = listOf(
-        DropdownAction(
-            icon = null,
-            iconResource = iconsR.drawable.mozac_ic_search_24,
-            contentDescription = android.R.string.untitled,
+        SearchSelectorAction(
+            icon = DrawableResIcon(iconsR.drawable.mozac_ic_search_24),
+            contentDescription = StringResContentDescription(resourceId = android.R.string.untitled),
             menu = { emptyList() },
+            onClick = null,
         ),
     )
     val pageActionsEnd = listOf(

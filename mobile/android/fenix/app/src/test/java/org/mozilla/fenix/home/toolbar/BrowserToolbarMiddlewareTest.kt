@@ -35,6 +35,9 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteractio
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.CombinedEventAndMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.ContentDescription.StringResContentDescription
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Icon.DrawableResIcon
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Text.StringResText
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
@@ -605,18 +608,18 @@ class BrowserToolbarMiddlewareTest {
             when (isPrivate) {
                 true -> listOf(
                     BrowserToolbarMenuButton(
-                        iconResource = iconsR.drawable.mozac_ic_plus_24,
-                        text = R.string.mozac_browser_menu_new_tab,
-                        contentDescription = R.string.mozac_browser_menu_new_tab,
+                        icon = DrawableResIcon(iconsR.drawable.mozac_ic_plus_24),
+                        text = StringResText(R.string.mozac_browser_menu_new_tab),
+                        contentDescription = StringResContentDescription(R.string.mozac_browser_menu_new_tab),
                         onClick = AddNewTab,
                     ),
                 )
 
                 false -> listOf(
                     BrowserToolbarMenuButton(
-                        iconResource = iconsR.drawable.mozac_ic_private_mode_24,
-                        text = R.string.mozac_browser_menu_new_private_tab,
-                        contentDescription = R.string.mozac_browser_menu_new_private_tab,
+                        icon = DrawableResIcon(iconsR.drawable.mozac_ic_private_mode_24),
+                        text = StringResText(R.string.mozac_browser_menu_new_private_tab),
+                        contentDescription = StringResContentDescription(R.string.mozac_browser_menu_new_private_tab),
                         onClick = AddNewPrivateTab,
                     ),
                 )
