@@ -303,6 +303,9 @@ export const CustomizableWidgets = [
         const { SidebarController } = aNode.ownerGlobal;
         SidebarController.updateToolbarButton(aNode);
         aNode.setAttribute("overflows", "false");
+        // Show the toolbar button badge by setting the badged attribute.
+        // This activates badge styling by adding feature-callout class to the toolbarbutton-badge element.
+        aNode.setAttribute("badged", true);
       } else {
         // Add an observer so the button is checked while the sidebar is open
         let doc = aNode.ownerDocument;
