@@ -13,19 +13,19 @@ import org.mozilla.fenix.search.SearchFragmentState
  * @param activity [HomeActivity] used for accessing needing dependencies.
  * @param interactor [AwesomeBarInteractor] used for handling user interactions with the search suggestions.
  * @param view [AwesomeBarWrapper] used for displaying the search suggestions.
- * @param fromHomeFragment Whether the awesome bar is being shown from the home fragment.
+ * @param includeSelectedTab Whether or not to include the current tab in search suggestions.
  */
 @Suppress("OutdatedDocumentation")
 class AwesomeBarView(
     activity: HomeActivity,
     private val interactor: AwesomeBarInteractor,
     val view: AwesomeBarWrapper,
-    fromHomeFragment: Boolean,
+    includeSelectedTab: Boolean,
 ) {
     private val suggestionsProvidersBuilder by lazy(LazyThreadSafetyMode.NONE) {
         SearchSuggestionsProvidersBuilder(
             activity = activity,
-            fromHomeFragment = fromHomeFragment,
+            includeSelectedTab = includeSelectedTab,
             loadUrlUseCase = AwesomeBarLoadUrlUseCase(interactor),
             searchUseCase = AwesomeBarSearchUseCase(interactor),
             selectTabUseCase = AwesomeBarSelectTabUseCase(interactor),
