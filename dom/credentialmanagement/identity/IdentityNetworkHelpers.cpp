@@ -134,14 +134,12 @@ IdentityNetworkHelpers::FetchAccountsHelper(
   return result;
 }
 
-RefPtr<MozPromise<IdentityAssertionResponse, nsresult, true>>
+RefPtr<MozPromise<IdentityProviderToken, nsresult, true>>
 IdentityNetworkHelpers::FetchTokenHelper(nsIURI* aAccountsEndpoint,
                                          const nsCString& aBody,
                                          nsIPrincipal* aTriggeringPrincipal) {
-  RefPtr<MozPromise<IdentityAssertionResponse, nsresult, true>::Private>
-      result =
-          new MozPromise<IdentityAssertionResponse, nsresult, true>::Private(
-              __func__);
+  RefPtr<MozPromise<IdentityProviderToken, nsresult, true>::Private> result =
+      new MozPromise<IdentityProviderToken, nsresult, true>::Private(__func__);
   nsresult rv;
   nsCOMPtr<nsICredentialChooserService> ccService =
       mozilla::components::CredentialChooserService::Service(&rv);
@@ -160,7 +158,7 @@ IdentityNetworkHelpers::FetchTokenHelper(nsIURI* aAccountsEndpoint,
   }
   serviceResult->AddCallbacksWithCycleCollectedArgs(
       [result](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult&) {
-        IdentityAssertionResponse value;
+        IdentityProviderToken value;
         bool success = value.Init(aCx, aValue);
         if (!success) {
           JS_ClearPendingException(aCx);
