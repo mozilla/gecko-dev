@@ -501,6 +501,7 @@ addon-details {
 
 .addon-detail-description-wrapper {
   margin: 16px 0;
+  overflow-wrap: break-word;
 }
 
 .addon-detail-description-collapse .addon-detail-description {
