@@ -800,6 +800,20 @@ bool nsWindow::WidgetTypeSupportsAcceleration() {
   return true;
 }
 
+bool nsWindow::WidgetTypeSupportsNativeCompositing() {
+  if (mIsDragPopup) {
+    return false;
+  }
+#if defined(NIGHTLY_BUILD)
+  // For testing purpose use layered native composition for popups
+  // on nightly. It uses rapid map/unmap sequences it may reveal
+  // hidden bugs in layered code.
+  return true;
+#else
+  return WidgetTypeSupportsAcceleration();
+#endif
+}
+
 static bool IsPenEvent(GdkEvent* aEvent, bool* isEraser) {
   GdkDevice* device = gdk_event_get_source_device(aEvent);
   GdkInputSource eSource = gdk_device_get_source(device);
