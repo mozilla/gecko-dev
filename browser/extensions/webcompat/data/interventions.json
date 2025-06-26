@@ -4410,5 +4410,20 @@
         }
       }
     ]
+  },
+  "1973920": {
+    "label": "app.genio.co",
+    "bugs": {
+      "1973920": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://app.genio.co/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
   }
 }
