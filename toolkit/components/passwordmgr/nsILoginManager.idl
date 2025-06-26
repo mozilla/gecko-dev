@@ -32,19 +32,6 @@ interface nsILoginManager : nsISupports {
   readonly attribute Promise initializationPromise;
 
   /**
-   * Store a new login in the login manager.
-   *
-   * @param aLogin
-   *        The login to be added.
-   * @return a clone of the login info with the guid set (even if it was not provided)
-   *
-   * Default values for the login's nsILoginMetaInfo properties will be
-   * created. However, if the caller specifies non-default values, they will
-   * be used instead.
-   */
-  nsILoginInfo addLogin(in nsILoginInfo aLogin);
-
-  /**
    * Like addLogin, but asynchronous.
    *
    * @param aLogin
