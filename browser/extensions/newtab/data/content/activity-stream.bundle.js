@@ -11318,7 +11318,9 @@ const PersonalizedCard = ({
   }, /*#__PURE__*/external_React_default().createElement("img", {
     src: wavingFox,
     alt: ""
-  }), /*#__PURE__*/external_React_default().createElement("h2", null, messageData.content.cardTitle), /*#__PURE__*/external_React_default().createElement("p", null, messageData.content.cardMessage), /*#__PURE__*/external_React_default().createElement("moz-button", {
+  }), /*#__PURE__*/external_React_default().createElement("h2", null, messageData.content.cardTitle), /*#__PURE__*/external_React_default().createElement("p", null, messageData.content.cardMessage), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "personalized-card-cta-wrapper"
+  }, /*#__PURE__*/external_React_default().createElement("moz-button", {
     type: "primary",
     class: "personalized-card-cta",
     onClick: () => onToggleClick("open-personalization-panel")
@@ -11329,7 +11331,7 @@ const PersonalizedCard = ({
     onLinkClick: () => {
       handleClick("link-click");
     }
-  }, messageData.content.linkText)));
+  }, messageData.content.linkText))));
 };
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/FeatureHighlight/FollowSectionButtonHighlight.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public

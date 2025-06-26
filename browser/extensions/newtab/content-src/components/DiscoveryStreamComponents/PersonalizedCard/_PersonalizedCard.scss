@@ -2,15 +2,15 @@
   background-color: var(--background-color-canvas);
   border: 2px solid var(--border-color-card);
   color: var(--text-color);
-  padding: var(--space-medium) var(--space-xlarge);
+  padding: var(--space-xlarge);
   border-radius: var(--border-radius-large);
   margin: var(--space-xlarge) 0;
   position: relative;
 
   .personalized-card-dismiss {
-    text-align: end;
-    margin-block-end: var(--space-small);
-    margin-inline-end: calc(var(--space-medium) * -1);
+    position: absolute;
+    inset-inline-end: var(--space-medium);
+    inset-block-start: var(--space-medium);
   }
 
   .personalized-card-inner {
@@ -18,6 +18,11 @@
     grid-template-columns: 0.5fr 1fr 1fr 1fr;
     align-items: start;
 
+    .personalized-card-cta-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-medium);
+    }
 
     img {
       max-width: 200px;
@@ -50,36 +55,26 @@
         justify-self: initial;
       }
 
-      .personalized-card-link {
-        margin-block-start: var(--space-small);
-        margin-block-end: var(--space-large);
+      h2 {
+        margin-block-end: var(--space-xsmall);
       }
     }
 
     // 2-column layout
     @media (min-width: $break-point-layout-variant){
-      grid-template-columns: 0.2fr 1fr 1fr;
+      grid-template-columns: 0.2fr 1fr 1.2fr;
       gap: var(--space-large);
 
-      h2 {
-        width: 200px;
-      }
-
       img {
-        width: 80px;
+        width: 75px;
       }
 
-      .personalized-card-cta {
+      .personalized-card-cta-wrapper {
+        align-items: center;
+        display: grid;
+        grid-template-columns: subgrid;
+        grid-row: 2;
         grid-column: 2 / span 2;
-        grid-row: span 2;
-        margin-block-start: calc(var(--space-xxlarge) * -1);
-        width: 195px;
-      }
-
-      .personalized-card-link {
-        // Bug 1967304 - Large number (-64px)
-        margin-block-start: calc(var(--space-xxlarge) * -2);
-        grid-column: 3;
       }
     }
 
@@ -89,32 +84,41 @@
       gap: var(--space-small);
 
       img {
-        width: 100px;
+        width: 75px;
       }
 
       h2 {
         grid-column:  2;
+        grid-row: 1;
         width: initial;
       }
 
       p {
         grid-column:  3;
+        grid-row: 1;
+        width: 400px;
+      }
+
+      .personalized-card-cta-wrapper {
+        grid-column: 4;
+        grid-row: 1;
+        display: flex;
+        flex-direction: column;
+        justify-self: end;
+        gap: var(--space-medium);
+        width: max-content;
+        margin-inline-end: var(--space-medium);
       }
 
       .personalized-card-cta {
-        grid-column:  4;
-        margin-block-start: initial;
-        width: 220px;
-      }
-
-      .personalized-card-link {
-        grid-column:  4;
-        // Bug 1967304 - Large number (-48px)
-        margin-block-start: calc(var(--space-xlarge) * -2);
+        align-self: baseline;
       }
     }
 
+    // rules for 3-col
     @media (min-width: $break-point-widest) and (max-width: $break-point-sections-variant) {
+      gap: var(--space-small);
+
       h2 {
         max-width: 200px;
       }
@@ -122,17 +126,10 @@
       p {
         width: 300px;
       }
-
-      .personalized-card-cta {
-        // Bug 1967304 - Large number (40px)
-        margin-inline-end: calc(var(--space-large) + var(--space-xlarge));
-      }
-
-      .personalized-card-link {
-        width: 290px;
-        // Bug 1967304 - Large number (-64px)
-        margin-block-start: calc(var(--space-xxlarge) * -2);
-      }
     }
+  }
+
+  @media (min-width: $break-point-layout-variant) {
+    padding: var(--space-xxlarge);
   }
 }

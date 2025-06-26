@@ -44,23 +44,25 @@ export const PersonalizedCard = ({
         <img src={wavingFox} alt="" />
         <h2>{messageData.content.cardTitle}</h2>
         <p>{messageData.content.cardMessage}</p>
-        <moz-button
-          type="primary"
-          class="personalized-card-cta"
-          onClick={() => onToggleClick("open-personalization-panel")}
-        >
-          {messageData.content.ctaText}
-        </moz-button>
-        <SafeAnchor
-          className="personalized-card-link"
-          dispatch={dispatch}
-          url="https://www.mozilla.org/en-US/privacy/firefox/#notice"
-          onLinkClick={() => {
-            handleClick("link-click");
-          }}
-        >
-          {messageData.content.linkText}
-        </SafeAnchor>
+        <div className="personalized-card-cta-wrapper">
+          <moz-button
+            type="primary"
+            class="personalized-card-cta"
+            onClick={() => onToggleClick("open-personalization-panel")}
+          >
+            {messageData.content.ctaText}
+          </moz-button>
+          <SafeAnchor
+            className="personalized-card-link"
+            dispatch={dispatch}
+            url="https://www.mozilla.org/en-US/privacy/firefox/#notice"
+            onLinkClick={() => {
+              handleClick("link-click");
+            }}
+          >
+            {messageData.content.linkText}
+          </SafeAnchor>
+        </div>
       </div>
     </aside>
   );

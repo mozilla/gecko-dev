@@ -1559,7 +1559,7 @@ const MESSAGES = () => [
     content: {
       messageType: "PersonalizedCard",
       position: 1,
-      cardTitle: "Personalized Just for You!",
+      cardTitle: "Personalized Just for You",
       cardMessage:
         "We’re customizing your feed to show content that matters to you, while ensuring your privacy is always respected.",
       ctaText: "Manage your settings",
