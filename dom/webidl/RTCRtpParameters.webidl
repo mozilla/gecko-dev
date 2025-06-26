@@ -22,6 +22,7 @@ enum RTCDegradationPreference {
 
 dictionary RTCRtpEncodingParameters {
   boolean                  active = true;
+  RTCRtpCodec codec;
   // From https://www.w3.org/TR/webrtc-priority/
   RTCPriorityType          priority = "low";
   unsigned long            maxBitrate;
