@@ -161,6 +161,18 @@ struct FullOriginMetadata : OriginMetadata, OriginStateMetadata {
            mQuotaVersion == aOther.mQuotaVersion;
   }
 
+  // Compares all fields of this FullOriginMetadata instance with another,
+  // except for the fields inherited from OriginStateMetadata.
+  template <typename T, typename = std::enable_if_t<
+                            std::is_same<T, FullOriginMetadata>::value>>
+  bool EqualsIgnoringOriginState(const T& aOther) const {
+    return static_cast<const OriginMetadata&>(*this).Equals(
+               static_cast<const OriginMetadata&>(aOther)) &&
+           mClientUsages == aOther.mClientUsages &&
+           mOriginUsage == aOther.mOriginUsage &&
+           mQuotaVersion == aOther.mQuotaVersion;
+  }
+
   // Convenient method for duplicating a FullOriginMetadata instance. Creates
   // a new object by copying both the OriginMetadata and OriginStateMetadata
   // parts of this instance.

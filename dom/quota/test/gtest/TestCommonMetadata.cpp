@@ -342,6 +342,113 @@ TEST(DOM_Quota_CommonMetadata, FullOriginMetadata_Equals)
   }
 }
 
+TEST(DOM_Quota_CommonMetadata, FullOriginMetadata_EqualsIgnoringOriginState)
+{
+  // Base object to compare against.
+  PrincipalMetadata principalMetadata1 = GetPrincipalMetadata(
+      ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+  OriginMetadata originMetadata1(principalMetadata1, PERSISTENCE_TYPE_DEFAULT);
+
+  OriginStateMetadata originStateMetadata1 = OriginStateMetadata(
+      /* aLastAccessTime */ 0, /* aLastMaintenanceDate */ 0,
+      /* aAccessed */ false, /* aPersisted */ false);
+
+  FullOriginMetadata fullOriginMetadata1(originMetadata1, originStateMetadata1,
+                                         ClientUsageArray(), /* aUsage */ 0,
+                                         kCurrentQuotaVersion);
+
+  {
+    // All fields are the same.
+    PrincipalMetadata principalMetadata2 = GetPrincipalMetadata(
+        ""_ns, "example.org"_ns, "http://www.example.org"_ns);
+
+    OriginMetadata originMetadata2(principalMetadata2,
+                                   PERSISTENCE_TYPE_DEFAULT);
+
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 0, /* aLastMaintenanceDate */ 0,
+        /* aAccessed */ false, /* aPersisted */ false);
+
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata2, originStateMetadata2, ClientUsageArray(),
+        /* aUsage */ 0, kCurrentQuotaVersion);
+
+    EXPECT_TRUE(
+        fullOriginMetadata1.EqualsIgnoringOriginState(fullOriginMetadata2));
+  }
+
+  {
+    // Different last access time (ignored).
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 1, /* aLastMaintenanceDate */ 0,
+        /* aAccessed */ false, /* aPersisted */ false);
+
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata1, originStateMetadata2, ClientUsageArray(),
+        /* aUsage */ 0, kCurrentQuotaVersion);
+
+    EXPECT_TRUE(
+        fullOriginMetadata1.EqualsIgnoringOriginState(fullOriginMetadata2));
+  }
+
+  {
+    // Different last maintenance date (ignored).
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 0, /* aLastMaintenanceDate */ 1,
+        /* aAccessed */ false, /* aPersisted */ false);
+
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata1, originStateMetadata2, ClientUsageArray(),
+        /* aUsage */ 0, kCurrentQuotaVersion);
+
+    EXPECT_TRUE(
+        fullOriginMetadata1.EqualsIgnoringOriginState(fullOriginMetadata2));
+  }
+
+  {
+    // Different accessed flag (ignored).
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 0, /* aLastMaintenanceDate */ 0,
+        /* aAccessed */ true, /* aPersisted */ false);
+
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata1, originStateMetadata2, ClientUsageArray(),
+        /* aUsage */ 0, kCurrentQuotaVersion);
+
+    EXPECT_TRUE(
+        fullOriginMetadata1.EqualsIgnoringOriginState(fullOriginMetadata2));
+  }
+
+  {
+    // Different persisted flag (ignored).
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 0, /* aLastMaintenanceDate */ 0,
+        /* aAccessed */ false, /* aPersisted */ true);
+
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata1, originStateMetadata2, ClientUsageArray(),
+        /* aUsage */ 0, kCurrentQuotaVersion);
+
+    EXPECT_TRUE(
+        fullOriginMetadata1.EqualsIgnoringOriginState(fullOriginMetadata2));
+  }
+
+  {
+    // Different origin usage (not ignored).
+    OriginStateMetadata originStateMetadata2 = OriginStateMetadata(
+        /* aLastAccessTime */ 0, /* aLastMaintenanceDate */ 0,
+        /* aAccessed */ false, /* aPersisted */ false);
+
+    FullOriginMetadata fullOriginMetadata2(
+        originMetadata1, originStateMetadata2, ClientUsageArray(),
+        /* aUsage */ 1, kCurrentQuotaVersion);
+
+    EXPECT_FALSE(
+        fullOriginMetadata1.EqualsIgnoringOriginState(fullOriginMetadata2));
+  }
+}
+
 TEST(DOM_Quota_CommonMetadata, FullOriginMetadata_Clone)
 {
   auto fullOriginMetadata1 = GetFullOriginMetadata(""_ns, "mozilla.org"_ns,
