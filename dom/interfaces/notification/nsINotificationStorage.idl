@@ -47,7 +47,7 @@ interface nsINotificationStorage : nsISupports
   /**
    * Add/replace a notification to the persistence layer.
    *
-   * @param aOrigin: the origin/app of this notification
+   * @param aOrigin: the origin of this notification
    * @param aScope: the ServiceWorker registration scope, or empty if unscoped.
    * @param aEntry: the notification data to store
    */
@@ -58,7 +58,7 @@ interface nsINotificationStorage : nsISupports
   /**
    * Retrieve a list of notifications.
    *
-   * @param origin: the origin/app for which to fetch notifications from
+   * @param origin: the origin for which to fetch notifications from
    * @param scope: Used to limit for the specific scope.
    *               Pass an empty string for unscoped notifications.
    *               (See bug 1881812 for potential spec changes to how notifications
@@ -75,7 +75,7 @@ interface nsINotificationStorage : nsISupports
   /**
    * Remove a notification from storage.
    *
-   * @param origin: the origin/app to delete the notification from
+   * @param origin: the origin to delete the notification from
    * @param id: the uuid for the notification to delete
    */
   void delete(in AString origin,
