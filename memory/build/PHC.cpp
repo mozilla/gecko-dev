@@ -110,8 +110,6 @@
 #endif
 
 #include "mozjemalloc.h"
-
-#include "mozjemalloc.h"
 #include "FdPrintf.h"
 #include "Mutex.h"
 #include "mozilla/Array.h"
