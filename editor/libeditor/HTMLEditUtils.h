@@ -36,6 +36,7 @@
 #include "nsGkAtoms.h"
 #include "nsHTMLTags.h"
 #include "nsTArray.h"
+#include "nsTextFragment.h"
 
 class nsAtom;
 class nsPresContext;
@@ -58,6 +59,8 @@ class HTMLEditUtils final {
   using Element = dom::Element;
   using Selection = dom::Selection;
   using Text = dom::Text;
+  using WhitespaceOption = nsTextFragment::WhitespaceOption;
+  using WhitespaceOptions = nsTextFragment::WhitespaceOptions;
 
  public:
   static constexpr char16_t kNewLine = '\n';

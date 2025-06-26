@@ -14,6 +14,7 @@
 #define nsTextFragment_h___
 
 #include "mozilla/Attributes.h"
+#include "mozilla/EnumSet.h"
 #include "mozilla/MemoryReporting.h"
 
 #include "nsCharTraits.h"
@@ -36,6 +37,14 @@
  * meant to be subclassed.
  */
 class nsTextFragment final {
+ private:
+  constexpr static unsigned char kFormFeed = '\f';
+  constexpr static unsigned char kNewLine = '\n';
+  constexpr static unsigned char kCarriageReturn = '\r';
+  constexpr static unsigned char kTab = '\t';
+  constexpr static unsigned char kSpace = ' ';
+  constexpr static unsigned char kNBSP = 0xA0;
+
  public:
   static nsresult Init();
   static void Shutdown();
@@ -78,10 +87,20 @@ class nsTextFragment final {
 
   /**
    * Get a pointer to constant char data.
+   * NOTE: nsTextFragment treat the 1b buffer as an array of unsigned chars.
+   * Therefore, Get1b() is not good one for looking for a character between 0x80
+   * - 0xFF in the buffer.
    */
   const char* Get1b() const {
     NS_ASSERTION(!Is2b(), "not 1b text");
     return (const char*)m1b;
+  }
+  /**
+   * Get a pointer to constant unsigned char data.
+   */
+  const unsigned char* GetUnsigned1b() const {
+    NS_ASSERTION(!Is2b(), "not 1b text");
+    return (const unsigned char*)m1b;
   }
 
   /**
@@ -317,28 +336,6 @@ class nsTextFragment final {
   // be valid offset in the data.
   constexpr static uint32_t kNotFound = UINT32_MAX;
 
-  [[nodiscard]] uint32_t FindChar(char aChar, uint32_t aOffset = 0) const {
-    if (aOffset >= GetLength()) {
-      return kNotFound;
-    }
-    if (Is2b()) {
-      const char16_t* end = Get2b() + GetLength();
-      for (const char16_t* ch = Get2b() + aOffset; ch != end; ch++) {
-        if (*ch == aChar) {
-          return ch - Get2b();
-        }
-      }
-      return kNotFound;
-    }
-    const char* end = Get1b() + GetLength();
-    for (const char* ch = Get1b() + aOffset; ch != end; ch++) {
-      if (*ch == aChar) {
-        return ch - Get1b();
-      }
-    }
-    return kNotFound;
-  }
-
   [[nodiscard]] uint32_t FindChar(char16_t aChar, uint32_t aOffset = 0) const {
     if (aOffset >= GetLength()) {
       return kNotFound;
@@ -355,10 +352,134 @@ class nsTextFragment final {
     if (aChar > 0xFF) {
       return kNotFound;
     }
-    const char* end = Get1b() + GetLength();
-    for (const char* ch = Get1b() + aOffset; ch != end; ch++) {
+    const unsigned char* end = GetUnsigned1b() + GetLength();
+    for (const unsigned char* ch = GetUnsigned1b() + aOffset; ch != end; ch++) {
       if (*ch == aChar) {
-        return ch - Get1b();
+        return ch - GetUnsigned1b();
+      }
+    }
+    return kNotFound;
+  }
+
+  enum class WhitespaceOption {
+    // If set, new lines (\n, U+000A) are treated as significant.
+    NewLineIsSignificant,
+    // If set, NBSPs (&nbsp;, U+00A0) are treated as collapsible whitespaces.
+    // This option is useful to scan previous or next visible character from
+    // middle of a whitespace sequence because our editor makes consecutive
+    // whitespaces visible with converting collapsible whitespaces to pairs of
+    // &nbsp; and ASCII whitespace.
+    TreatNBSPAsCollapsible,
+    // If set, form feeds (\f, U+000C) are treated as significant.
+    // Be aware, form feed is defined as a whitespace by the HTML spec, but is
+    // not defined as so by the CSS spec. Therefore, it won't be rendered if it
+    // appears in a whitespace sequence surrounded by block boundaries like
+    // `data:text/html,%0C<div>%0Cabc%0C</div>%0C`. However, it'll be rendered
+    // as a character if it appears if surrounded by visible contents like
+    // `data:text/html,<div>abc %0C def</div>`.
+    FormFeedIsSignificant,
+  };
+  using WhitespaceOptions = mozilla::EnumSet<WhitespaceOption>;
+
+ private:
+  // Helper class to check whether the character is a non-whitespace or not.
+  // This avoids to call EnumSet<WhitespaceOption>::contains() a lot.
+  class MOZ_STACK_CLASS AutoWhitespaceChecker final {
+   public:
+    explicit AutoWhitespaceChecker(const WhitespaceOptions& aOptions)
+        : mNBSPIsSignificant(
+              !aOptions.contains(WhitespaceOption::TreatNBSPAsCollapsible)),
+          mFormFeedIsSignificant(
+              aOptions.contains(WhitespaceOption::FormFeedIsSignificant)),
+          mNewLineIsSignificant(
+              aOptions.contains(WhitespaceOption::NewLineIsSignificant)) {}
+
+    [[nodiscard]] bool IsNonWhitespace(char16_t aChar) const {
+      switch (aChar) {
+        case kNBSP:
+          return mNBSPIsSignificant;
+        case kFormFeed:
+          return mFormFeedIsSignificant;
+        case kNewLine:
+          return mNewLineIsSignificant;
+        case kSpace:
+        case kTab:
+        case kCarriageReturn:
+          return false;
+        default:
+          return true;
+      }
+    }
+
+   private:
+    const bool mNBSPIsSignificant;
+    const bool mFormFeedIsSignificant;
+    const bool mNewLineIsSignificant;
+  };
+
+ public:
+  /**
+   * Return the first non-whitespace character index.
+   *
+   * @param aOptions Set options to change which character should not be treated
+   * as a whitespace.
+   * @param aOffset Start offset, so, the result will equal or greater than
+   * aOffset if a char found.
+   */
+  [[nodiscard]] uint32_t FindNonWhitespaceChar(
+      const WhitespaceOptions& aOptions = {}, uint32_t aOffset = 0) const {
+    if (aOffset >= GetLength()) {
+      return kNotFound;
+    }
+    const AutoWhitespaceChecker checker(aOptions);
+    if (Is2b()) {
+      const char16_t* end = Get2b() + GetLength();
+      for (const char16_t* ch = Get2b() + aOffset; ch != end; ch++) {
+        if (checker.IsNonWhitespace(*ch)) {
+          return ch - Get2b();
+        }
+      }
+      return kNotFound;
+    }
+    const unsigned char* end = GetUnsigned1b() + GetLength();
+    for (const unsigned char* ch = GetUnsigned1b() + aOffset; ch != end; ch++) {
+      if (checker.IsNonWhitespace(*ch)) {
+        return ch - GetUnsigned1b();
+      }
+    }
+    return kNotFound;
+  }
+
+  /**
+   * Return the last non-whitespace character index.
+   *
+   * @param aOptions Set options to change which character should not be
+   * treated as a whitespace.
+   * @param aOffset Start offset, so, the result will equal or greater than
+   * aOffset if a char found.
+   */
+  [[nodiscard]] uint32_t RFindNonWhitespaceChar(
+      const WhitespaceOptions& aOptions = {},
+      uint32_t aOffset = UINT32_MAX) const {
+    const uint32_t length = GetLength();
+    if (!length) {
+      return kNotFound;
+    }
+    const AutoWhitespaceChecker checker(aOptions);
+    aOffset = std::min(length - 1u, aOffset);
+    if (Is2b()) {
+      const char16_t* end = Get2b() - 1;
+      for (const char16_t* ch = Get2b() + aOffset; ch != end; ch--) {
+        if (checker.IsNonWhitespace(*ch)) {
+          return ch - Get2b();
+        }
+      }
+      return kNotFound;
+    }
+    const unsigned char* end = GetUnsigned1b() - 1;
+    for (const unsigned char* ch = GetUnsigned1b() + aOffset; ch != end; ch--) {
+      if (checker.IsNonWhitespace(*ch)) {
+        return ch - GetUnsigned1b();
       }
     }
     return kNotFound;
@@ -414,6 +535,9 @@ class nsTextFragment final {
 
   union {
     mozilla::StringBuffer* m2b;
+    // FIXME: m1b is actually treated as const unsigned char* since the array
+    // may contain characters between 0x80 - 0xFF.  So, copying the value to
+    // char16_t might depend on how the compiler to treat the values.
     const char* m1b;  // This is const since it can point to shared data
   };
 
