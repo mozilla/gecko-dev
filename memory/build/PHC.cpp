@@ -513,6 +513,96 @@ class AllocPageInfo {
 
   // The next index for a free list of pages.`
   Maybe<uintptr_t> mNextPage;
+
+  void AssertInUse() const {
+    MOZ_ASSERT(mState == AllocPageState::InUse);
+    // There is nothing to assert about aPage.mArenaId.
+    MOZ_ASSERT(mBaseAddr);
+    MOZ_ASSERT(UsableSize() > 0);
+    MOZ_ASSERT(mAllocStack.isSome());
+    MOZ_ASSERT(mFreeStack.isNothing());
+    MOZ_ASSERT(mReuseTime == kMaxTime);
+    MOZ_ASSERT(!mNextPage);
+  }
+
+  void AssertNotInUse() const {
+    // We can assert a lot about `NeverAllocated` pages, but not much about
+    // `Freed` pages.
+#ifdef DEBUG
+    bool isFresh = mState == AllocPageState::NeverAllocated;
+    MOZ_ASSERT(isFresh || mState == AllocPageState::Freed);
+    MOZ_ASSERT_IF(isFresh, mArenaId == Nothing());
+    MOZ_ASSERT(isFresh == (mBaseAddr == nullptr));
+    MOZ_ASSERT(isFresh == (mAllocStack.isNothing()));
+    MOZ_ASSERT(isFresh == (mFreeStack.isNothing()));
+    MOZ_ASSERT(mReuseTime != kMaxTime);
+#endif
+  }
+
+  bool IsPageInUse() const { return mState == AllocPageState::InUse; }
+  bool IsPageFreed() const { return mState == AllocPageState::Freed; }
+
+  bool IsPageAllocatable(Time aNow) const {
+    return !IsPageInUse() && aNow >= mReuseTime;
+  }
+
+  void SetInUse(const Maybe<arena_id_t>& aArenaId, uint8_t* aBaseAddr,
+                const StackTrace& aAllocStack) {
+    AssertNotInUse();
+    mState = AllocPageState::InUse;
+    mArenaId = aArenaId;
+    mBaseAddr = aBaseAddr;
+    mAllocStack = Some(aAllocStack);
+    mFreeStack = Nothing();
+    mReuseTime = kMaxTime;
+
+    MOZ_ASSERT(!mNextPage);
+  }
+
+  void ResizeInUse(const Maybe<arena_id_t>& aArenaId, uint8_t* aNewBaseAddr,
+                   const StackTrace& aAllocStack) {
+    AssertInUse();
+
+    // page.mState is not changed.
+    if (aArenaId.isSome()) {
+      // Crash if the arenas don't match.
+      MOZ_RELEASE_ASSERT(mArenaId == aArenaId);
+    }
+    mBaseAddr = aNewBaseAddr;
+    // We could just keep the original alloc stack, but the realloc stack is
+    // more recent and therefore seems more useful.
+    mAllocStack = Some(aAllocStack);
+    // mFreeStack is not changed.
+    // mReuseTime is not changed.
+    // mNextPage is not changed.
+  }
+
+  void SetPageFreed(const Maybe<arena_id_t>& aArenaId,
+                    const StackTrace& aFreeStack, Delay aReuseDelay,
+                    Time aNow) {
+    AssertInUse();
+
+    mState = AllocPageState::Freed;
+
+    // page.mArenaId is left unchanged, for jemalloc_ptr_info() calls that
+    // occur after freeing (e.g. in the PtrInfo test in TestJemalloc.cpp).
+    if (aArenaId.isSome()) {
+      // Crash if the arenas don't match.
+      MOZ_RELEASE_ASSERT(mArenaId == aArenaId);
+    }
+
+    // page.musableSize is left unchanged, for reporting on UAF, and for
+    // jemalloc_ptr_info() calls that occur after freeing (e.g. in the PtrInfo
+    // test in TestJemalloc.cpp).
+
+    // page.mAllocStack is left unchanged, for reporting on UAF.
+
+    mFreeStack = Some(aFreeStack);
+#if PHC_LOGGING
+    mFreeTime = aNow;
+#endif
+    mReuseTime = aNow + aReuseDelay;
+  }
 };
 
 // The virtual address space reserved by PHC.  It is shared, immutable global
@@ -615,16 +705,6 @@ class PHC {
 
   uint64_t Random64(PHCLock) { return mRNG.next(); }
 
-  bool IsPageInUse(PHCLock, uintptr_t aIndex) {
-    return mAllocPages[aIndex].mState == AllocPageState::InUse;
-  }
-
-  // Is the page free? And if so, has enough time passed that we can use it?
-  bool IsPageAllocatable(PHCLock, uintptr_t aIndex, Time aNow) {
-    const AllocPageInfo& page = mAllocPages[aIndex];
-    return page.mState != AllocPageState::InUse && aNow >= page.mReuseTime;
-  }
-
   // Get the address of the allocation page referred to via an index. Used
   // when checking pointers against page boundaries.
   uint8_t* AllocPageBaseAddr(PHCLock, uintptr_t aIndex) {
@@ -633,14 +713,14 @@ class PHC {
 
   Maybe<arena_id_t> PageArena(PHCLock aLock, uintptr_t aIndex) {
     const AllocPageInfo& page = mAllocPages[aIndex];
-    AssertAllocPageInUse(aLock, page);
+    page.AssertInUse();
 
     return page.mArenaId;
   }
 
   size_t PageUsableSize(PHCLock aLock, uintptr_t aIndex) {
     const AllocPageInfo& page = mAllocPages[aIndex];
-    AssertAllocPageInUse(aLock, page);
+    page.AssertInUse();
 
     return page.UsableSize();
   }
@@ -654,19 +734,23 @@ class PHC {
     return sum;
   }
 
+  // Used by the memory reporter to count usable space of in-use allocations.
+  size_t AllocatedBytes() {
+    MutexAutoLock lock(mMutex);
+
+    size_t allocated = 0;
+    for (const auto& page : mAllocPages) {
+      if (page.IsPageInUse()) {
+        allocated += page.UsableSize();
+      }
+    }
+    return allocated;
+  }
+
   void SetPageInUse(PHCLock aLock, uintptr_t aIndex,
                     const Maybe<arena_id_t>& aArenaId, uint8_t* aBaseAddr,
                     const StackTrace& aAllocStack) {
-    AllocPageInfo& page = mAllocPages[aIndex];
-    AssertAllocPageNotInUse(aLock, page);
-
-    page.mState = AllocPageState::InUse;
-    page.mArenaId = aArenaId;
-    page.mBaseAddr = aBaseAddr;
-    page.mAllocStack = Some(aAllocStack);
-    page.mFreeStack = Nothing();
-    page.mReuseTime = kMaxTime;
-    MOZ_ASSERT(!page.mNextPage);
+    mAllocPages[aIndex].SetInUse(aArenaId, aBaseAddr, aAllocStack);
   }
 
 #if PHC_LOGGING
@@ -678,50 +762,15 @@ class PHC {
   void ResizePageInUse(PHCLock aLock, uintptr_t aIndex,
                        const Maybe<arena_id_t>& aArenaId, uint8_t* aNewBaseAddr,
                        const StackTrace& aAllocStack) {
-    AllocPageInfo& page = mAllocPages[aIndex];
-    AssertAllocPageInUse(aLock, page);
-
-    // page.mState is not changed.
-    if (aArenaId.isSome()) {
-      // Crash if the arenas don't match.
-      MOZ_RELEASE_ASSERT(page.mArenaId == aArenaId);
-    }
-    page.mBaseAddr = aNewBaseAddr;
-    // We could just keep the original alloc stack, but the realloc stack is
-    // more recent and therefore seems more useful.
-    page.mAllocStack = Some(aAllocStack);
-    // page.mFreeStack is not changed.
-    // page.mReuseTime is not changed.
-    // page.mNextPage is not changed.
+    mAllocPages[aIndex].ResizeInUse(aArenaId, aNewBaseAddr, aAllocStack);
   };
 
   void SetPageFreed(PHCLock aLock, uintptr_t aIndex,
                     const Maybe<arena_id_t>& aArenaId,
                     const StackTrace& aFreeStack, Delay aReuseDelay) {
     AllocPageInfo& page = mAllocPages[aIndex];
-    AssertAllocPageInUse(aLock, page);
 
-    page.mState = AllocPageState::Freed;
-
-    // page.mArenaId is left unchanged, for jemalloc_ptr_info() calls that
-    // occur after freeing (e.g. in the PtrInfo test in TestJemalloc.cpp).
-    if (aArenaId.isSome()) {
-      // Crash if the arenas don't match.
-      MOZ_RELEASE_ASSERT(page.mArenaId == aArenaId);
-    }
-
-    // page.musableSize is left unchanged, for reporting on UAF, and for
-    // jemalloc_ptr_info() calls that occur after freeing (e.g. in the PtrInfo
-    // test in TestJemalloc.cpp).
-
-    // page.mAllocStack is left unchanged, for reporting on UAF.
-
-    page.mFreeStack = Some(aFreeStack);
-    Time now = Now();
-#if PHC_LOGGING
-    page.mFreeTime = now;
-#endif
-    page.mReuseTime = now + aReuseDelay;
+    page.SetPageFreed(aArenaId, aFreeStack, aReuseDelay, Now());
 
     MOZ_ASSERT(!page.mNextPage);
     AppendPageToFreeList(aLock, aIndex);
@@ -852,8 +901,8 @@ class PHC {
     phc::PHCStats stats;
 
     for (const auto& page : mAllocPages) {
-      stats.mSlotsAllocated += page.mState == AllocPageState::InUse ? 1 : 0;
-      stats.mSlotsFreed += page.mState == AllocPageState::Freed ? 1 : 0;
+      stats.mSlotsAllocated += page.IsPageInUse() ? 1 : 0;
+      stats.mSlotsFreed += page.IsPageFreed() ? 1 : 0;
     }
     stats.mSlotsUnused =
         kNumAllocPages - stats.mSlotsAllocated - stats.mSlotsFreed;
@@ -1047,9 +1096,9 @@ class PHC {
 
     MOZ_RELEASE_ASSERT(index < kNumAllocPages);
     AllocPageInfo& page = mAllocPages[index];
-    AssertAllocPageNotInUse(lock, page);
+    page.AssertNotInUse();
 
-    if (!IsPageAllocatable(lock, index, now)) {
+    if (!page.IsPageAllocatable(now)) {
       return Nothing();
     }
 
@@ -1113,31 +1162,6 @@ class PHC {
       seed = uintptr_t(&sRegion) ^ (uintptr_t(&sRegion) << 32);
     }
     return seed;
-  }
-
-  void AssertAllocPageInUse(PHCLock, const AllocPageInfo& aPage) {
-    MOZ_ASSERT(aPage.mState == AllocPageState::InUse);
-    // There is nothing to assert about aPage.mArenaId.
-    MOZ_ASSERT(aPage.mBaseAddr);
-    MOZ_ASSERT(aPage.UsableSize() > 0);
-    MOZ_ASSERT(aPage.mAllocStack.isSome());
-    MOZ_ASSERT(aPage.mFreeStack.isNothing());
-    MOZ_ASSERT(aPage.mReuseTime == kMaxTime);
-    MOZ_ASSERT(!aPage.mNextPage);
-  }
-
-  void AssertAllocPageNotInUse(PHCLock, const AllocPageInfo& aPage) {
-    // We can assert a lot about `NeverAllocated` pages, but not much about
-    // `Freed` pages.
-#ifdef DEBUG
-    bool isFresh = aPage.mState == AllocPageState::NeverAllocated;
-    MOZ_ASSERT(isFresh || aPage.mState == AllocPageState::Freed);
-    MOZ_ASSERT_IF(isFresh, aPage.mArenaId == Nothing());
-    MOZ_ASSERT(isFresh == (aPage.mBaseAddr == nullptr));
-    MOZ_ASSERT(isFresh == (aPage.mAllocStack.isNothing()));
-    MOZ_ASSERT(isFresh == (aPage.mFreeStack.isNothing()));
-    MOZ_ASSERT(aPage.mReuseTime != kMaxTime);
-#endif
   }
 
   // To improve locality we try to order this file by how frequently different
@@ -1877,18 +1901,7 @@ inline void MozJemallocPHC::jemalloc_stats_internal(
 
   aStats->allocated -= kAllPagesJemallocSize;
 
-  size_t allocated = 0;
-  {
-    MutexAutoLock lock(PHC::sPHC->mMutex);
-
-    // Add usable space of in-use allocations to `allocated`.
-    for (size_t i = 0; i < kNumAllocPages; i++) {
-      if (PHC::sPHC->IsPageInUse(lock, i)) {
-        allocated += PHC::sPHC->PageUsableSize(lock, i);
-      }
-    }
-  }
-  aStats->allocated += allocated;
+  aStats->allocated += PHC::sPHC->AllocatedBytes();
 
   // guards is the gap between `allocated` and `mapped`. In some ways this
   // almost fits into aStats->wasted since it feels like wasted memory. However
