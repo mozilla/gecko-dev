@@ -52,6 +52,8 @@ cff-font-creation.patch: make cairo_cff_font_t allocation consistent
 
 27-windows-sdk-26100.patch: fix build bustage with Windows SDK 26100
 
+28-win32-vertical-glyph-advance-direction.patch: fix sign of glyph y-advance for ExtTextOut
+
 ==== pixman patches ====
 
 pixman-armasm.patch: add an ifdef guard around pixman-config.h include
