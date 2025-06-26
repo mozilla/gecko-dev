@@ -220,6 +220,10 @@ class WebRenderCommandBuilder final {
 
   bool mApzEnabled;
 
+  bool mComputingOpaqueRegion;
+
+  nsPoint mOpaqueRegionOffset;
+
  public:
   // Whether consecutive inactive display items should be grouped into one
   // blob image.

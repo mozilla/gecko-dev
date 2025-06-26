@@ -1722,6 +1722,7 @@ WebRenderCommandBuilder::WebRenderCommandBuilder(
       mBuilderDumpIndex(0),
       mDumpIndent(0),
       mApzEnabled(true),
+      mComputingOpaqueRegion(XRE_IsParentProcess()),
       mDoGrouping(false),
       mContainsSVGGroup(false) {}
 
@@ -1925,6 +1926,33 @@ struct NewLayerData {
   }
 };
 
+static bool AllowComputingOpaqueRegionAcross(nsDisplayItem* aWrappingItem,
+                                             nsDisplayListBuilder* aBuilder,
+                                             nsPoint& aOpaqueRegionOffset) {
+  if (!aWrappingItem) {
+    return true;
+  }
+  if (aWrappingItem->GetType() != DisplayItemType::TYPE_TRANSFORM) {
+    return false;
+  }
+  auto* transformItem = static_cast<nsDisplayTransform*>(aWrappingItem);
+  if (transformItem->MayBeAnimated(aBuilder)) {
+    return false;
+  }
+  const auto& transform = transformItem->GetTransform();
+  if (!transform.Is2D()) {
+    return false;
+  }
+  const auto transform2d = transform.GetMatrix().As2D();
+  if (!transform2d.IsTranslation()) {
+    return false;
+  }
+  aOpaqueRegionOffset += LayoutDevicePoint::ToAppUnits(
+      LayoutDevicePoint::FromUnknownPoint(transform2d.GetTranslation()),
+      transformItem->Frame()->PresContext()->AppUnitsPerDevPixel());
+  return true;
+}
+
 void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
     nsDisplayList* aDisplayList, nsDisplayItem* aWrappingItem,
     nsDisplayListBuilder* aDisplayListBuilder, const StackingContextHelper& aSc,
@@ -1958,6 +1986,13 @@ void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
   if (aNewClipList) {
     mClipManager.BeginList(aSc);
   }
+
+  AutoRestore<bool> restoreComputingOpaqueRegion(mComputingOpaqueRegion);
+  AutoRestore<nsPoint> restoreOpaqueRegionOffset(mOpaqueRegionOffset);
+  mComputingOpaqueRegion =
+      mComputingOpaqueRegion &&
+      AllowComputingOpaqueRegionAcross(aWrappingItem, aDisplayListBuilder,
+                                       mOpaqueRegionOffset);
 
   do {
     nsDisplayItem* item = iter.GetNextItem();
@@ -2001,7 +2036,7 @@ void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
 
     // If this is an unscrolled background item, in the root display list
     // for the parent process, consider doing opaque checks.
-    if (XRE_IsParentProcess() && !aWrappingItem &&
+    if (mComputingOpaqueRegion &&
         (itemType == DisplayItemType::TYPE_BACKGROUND_COLOR ||
          itemType == DisplayItemType::TYPE_SOLID_COLOR ||
          itemType == DisplayItemType::TYPE_BACKGROUND) &&
@@ -2012,8 +2047,8 @@ void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
         const nsRect clippedOpaque =
             item->GetClip().ApproximateIntersectInward(opaque.GetBounds());
         if (!clippedOpaque.IsEmpty()) {
-          aDisplayListBuilder->AddWindowOpaqueRegion(item->Frame(),
-                                                     clippedOpaque);
+          aDisplayListBuilder->AddWindowOpaqueRegion(
+              item->Frame(), clippedOpaque + mOpaqueRegionOffset);
         }
       }
     }

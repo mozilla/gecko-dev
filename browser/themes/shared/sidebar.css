@@ -233,7 +233,9 @@ sidebar-main,
 #sidebar-splitter,
 #tabbrowser-tabbox {
   transform-origin: 0 0;
-  will-change: translate;
+  /* will-change would cause us to be considered animated unconditionally, see
+   * bug 1930674 */
+  translate: 0;
 }
 
 #sidebar-main {

@@ -51,6 +51,11 @@ add_task(async function assert_opaque_region_system_theme() {
   return assert_opaque_region();
 });
 
+add_task(async function assert_opaque_region_mica() {
+  await SpecialPowers.pushPrefEnv({ set: [["widget.windows.mica", true]] });
+  return assert_opaque_region();
+});
+
 add_task(async function assert_opaque_region_light_theme() {
   let lightTheme = await lazy.AddonManager.getAddonByID(
     "firefox-compact-light@mozilla.org"
