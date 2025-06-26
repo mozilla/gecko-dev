@@ -457,8 +457,8 @@ RefPtr<GetIPCIdentityCredentialPromise> CreateCredentialDuringDiscovery(
   RefPtr<CanonicalBrowsingContext> browsingContext(
       aRelyingParty->MaybeBrowsingContext());
   if (!browsingContext) {
-    return GetIPCIdentityCredentialPromise::CreateAndReject(
-        NS_ERROR_FAILURE, __func__);
+    return GetIPCIdentityCredentialPromise::CreateAndReject(NS_ERROR_FAILURE,
+                                                            __func__);
   }
 
   return FetchAccountList(argumentPrincipal, aProvider, aManifest)
