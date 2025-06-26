@@ -191,7 +191,7 @@ class SearchInFileBar extends Component {
     const results = find(ctx, query, true, modifiers, {
       shouldScroll,
     });
-    this.setSearchResults(results, matches);
+    this.setSearchResults(results, matches, shouldScroll);
   };
 
   traverseResults = (e, reverse = false) => {
@@ -216,18 +216,19 @@ class SearchInFileBar extends Component {
     if (modifiers) {
       const findArgs = [ctx, query, true, modifiers];
       const results = reverse ? findPrev(...findArgs) : findNext(...findArgs);
-      this.setSearchResults(results, matches);
+      this.setSearchResults(results, matches, true);
     }
   };
 
   /**
    * Update the state with the results and matches from the search.
-   * The cursor location is also set for CM6.
+   * This will also scroll to result's location in CodeMirror.
+   *
    * @param {Object} results
    * @param {Array} matches
    * @returns
    */
-  setSearchResults(results, matches) {
+  setSearchResults(results, matches, shouldScroll) {
     if (!results) {
       this.setState({
         results: {
@@ -249,7 +250,12 @@ class SearchInFileBar extends Component {
       return false;
     });
 
-    this.setCursorLocation(line, ch, matchContent);
+    // Only change the selected location if we should scroll to it,
+    // otherwise we are most likely updating the search results while being paused
+    // and don't want to change the selected location from the current paused location
+    if (shouldScroll) {
+      this.setCursorLocation(line, ch, matchContent);
+    }
     this.setState({
       results: {
         matches,
@@ -261,11 +267,12 @@ class SearchInFileBar extends Component {
   }
 
   /**
-   * CodeMirror event handler, called whenever the cursor moves
-   * for user-driven or programatic reasons.
+   * Ensure showing the search result in CodeMirror editor,
+   * and setting the cursor at the end of the matched string.
+   *
    * @param {Number} line
    * @param {Number} ch
-   * @param {Number} matchCount
+   * @param {String} matchContent
    */
   setCursorLocation = (line, ch, matchContent) => {
     this.props.selectLocation(
@@ -282,9 +289,10 @@ class SearchInFileBar extends Component {
         // Avoid highlighting the selected line
         highlight: false,
 
-        // This is mostly for displaying the correct location
-        // in the footer, so this should not scroll.
-        scroll: false,
+        // We should ensure showing the search result by scrolling it
+        // into the viewport.
+        // We won't be scrolling when receiving redux updates and we are paused.
+        scroll: true,
       }
     );
   };

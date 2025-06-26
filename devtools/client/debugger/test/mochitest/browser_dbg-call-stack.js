@@ -97,6 +97,15 @@ add_task(async function testFrameNavigation() {
   assertFrameIsSelected(dbg, frames[2], "recurseA");
   assertFrameContent(dbg, frames[2], "recurseA", "frames.js:8");
 
+  is(
+    dbg.win.document.activeElement,
+    findElement(dbg, "CodeMirrorLines"),
+    "Selecting the frame via the Enter key will open the source, set the cursor at the frame location and focus CodeMirror"
+  );
+
+  info("Focus the frame again in the frame list");
+  frames[2].focus();
+
   info("Navigate up and assert the second frame");
   pressKey(dbg, "Up");
   is(
@@ -112,6 +121,8 @@ add_task(async function testFrameNavigation() {
 
   await assertSelectedLocation(dbg, source.id, 18);
   assertFrameIsSelected(dbg, frames[1], "recurseB");
+
+  frames[0].focus();
 
   button.click();
 

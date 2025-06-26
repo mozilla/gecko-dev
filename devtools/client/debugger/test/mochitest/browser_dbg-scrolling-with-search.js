@@ -22,6 +22,7 @@ add_task(async function () {
     () => getSearchSelection(dbg).text == "candidate",
     "Wait for actual selection in CodeMirror"
   );
+  await waitForSelectedLocation(dbg, 50, 53);
 
   is(
     getSearchSelection(dbg).line,
