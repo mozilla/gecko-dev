@@ -13,7 +13,7 @@
 interface IdentityCredential : Credential {
  [Throws]
  static Promise<undefined> disconnect(optional IdentityCredentialDisconnectOptions options = {});
- readonly attribute USVString? token;
+ readonly attribute UTF8String? token;
 };
 
 enum IdentityCredentialRequestOptionsMode {
@@ -107,14 +107,30 @@ dictionary IdentityProviderClientMetadata {
   USVString terms_of_service_url;
 };
 
-// https://fedidcg.github.io/FedCM/#dictdef-identityprovidertoken
+// https://w3c-fedid.github.io/FedCM/#dictdef-identityassertionresponse
 [GenerateInit]
-dictionary IdentityProviderToken {
-  required USVString token;
+dictionary IdentityAssertionResponse {
+  UTF8String token;
+  UTF8String continue_on;
 };
 
 // https://w3c-fedid.github.io/FedCM/#dictdef-disconnectedaccount
 [GenerateInit]
 dictionary DisconnectedAccount {
   required UTF8String account_id;
+};
+
+// https://w3c-fedid.github.io/FedCM/#dictdef-identityresolveoptions
+dictionary IdentityResolveOptions {
+  UTF8String accountId;
+};
+
+ // https://w3c-fedid.github.io/FedCM/#identityprovider
+[Exposed=Window, SecureContext,
+ Pref="dom.security.credentialmanagement.identity.enabled"]
+interface IdentityProvider {
+    static undefined close();
+    [Throws]
+    static Promise<undefined> resolve(UTF8String token, optional IdentityResolveOptions options = {});
+    // static Promise<sequence<IdentityUserInfo>> getUserInfo(IdentityProviderConfig config); Bug 1945589: Not yet implemented
 };
