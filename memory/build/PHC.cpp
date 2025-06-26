@@ -1624,7 +1624,7 @@ inline void* MozJemallocPHC::calloc(size_t aNum, size_t aReqSize) {
   return PageCalloc(Nothing(), aNum, aReqSize);
 }
 
-MOZ_ALWAYS_INLINE static bool FastIsPHCPtr(void* aPtr) {
+MOZ_ALWAYS_INLINE static bool FastIsPHCPtr(const void* aPtr) {
   if (MOZ_UNLIKELY(!maybe_init())) {
     return false;
   }
@@ -1856,12 +1856,7 @@ inline void* MozJemallocPHC::memalign(size_t aAlignment, size_t aReqSize) {
 }
 
 inline size_t MozJemallocPHC::malloc_usable_size(usable_ptr_t aPtr) {
-  if (!maybe_init()) {
-    return MozJemalloc::malloc_usable_size(aPtr);
-  }
-
-  PtrKind pk = PHC::sRegion.PtrKind(aPtr);
-  if (pk.IsNothing()) {
+  if (!FastIsPHCPtr(aPtr)) {
     // Not a page allocation. Measure it normally.
     return MozJemalloc::malloc_usable_size(aPtr);
   }
@@ -1938,15 +1933,7 @@ inline void MozJemallocPHC::jemalloc_stats_lite(jemalloc_stats_lite_t* aStats) {
 
 inline void MozJemallocPHC::jemalloc_ptr_info(const void* aPtr,
                                               jemalloc_ptr_info_t* aInfo) {
-  if (!maybe_init()) {
-    MozJemalloc::jemalloc_ptr_info(aPtr, aInfo);
-    return;
-  }
-
-  // We need to implement this properly, because various code locations do
-  // things like checking that allocations are in the expected arena.
-  PtrKind pk = PHC::sRegion.PtrKind(aPtr);
-  if (pk.IsNothing()) {
+  if (!FastIsPHCPtr(aPtr)) {
     // Not a page allocation.
     MozJemalloc::jemalloc_ptr_info(aPtr, aInfo);
     return;
@@ -1957,6 +1944,9 @@ inline void MozJemallocPHC::jemalloc_ptr_info(const void* aPtr,
 
 void PHC::PagePtrInfo(const void* aPtr, jemalloc_ptr_info_t* aInfo)
     MOZ_EXCLUDES(mMutex) {
+  // We need to implement this properly, because various code locations do
+  // things like checking that allocations are in the expected arena.
+
   PtrKind pk = sRegion.PtrKind(aPtr);
   if (pk.IsGuardPage()) {
     // Treat a guard page as unknown because there's no better alternative.
@@ -2006,9 +1996,7 @@ inline void* MozJemallocPHC::moz_arena_memalign(arena_id_t aArenaId,
 
 bool PHC::IsPHCAllocation(const void* aPtr, mozilla::phc::AddrInfo* aOut) {
   PtrKind pk = sRegion.PtrKind(aPtr);
-  if (pk.IsNothing()) {
-    return false;
-  }
+  MOZ_ASSERT(!pk.IsNothing());
 
   bool isGuardPage = false;
   if (pk.IsGuardPage()) {
@@ -2055,7 +2043,7 @@ bool PHC::IsPHCAllocation(const void* aPtr, mozilla::phc::AddrInfo* aOut) {
 namespace mozilla::phc {
 
 bool IsPHCAllocation(const void* aPtr, AddrInfo* aOut) {
-  if (!maybe_init()) {
+  if (!FastIsPHCPtr(aPtr)) {
     return false;
   }
 
