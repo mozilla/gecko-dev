@@ -431,6 +431,86 @@ class PtrKind {
     detail::ThreadLocal<T, detail::ThreadLocalKeyStorage>
 #endif
 
+enum class AllocPageState {
+  NeverAllocated = 0,
+  InUse = 1,
+  Freed = 2,
+};
+
+// Metadata for each allocation page.
+class AllocPageInfo {
+ public:
+  AllocPageInfo()
+      : mState(AllocPageState::NeverAllocated),
+        mBaseAddr(nullptr),
+        mReuseTime(0) {}
+
+  // The current allocation page state.
+  AllocPageState mState;
+
+  // The arena that the allocation is nominally from. This isn't meaningful
+  // within PHC, which has no arenas. But it is necessary for reallocation of
+  // page allocations as normal allocations, such as in this code:
+  //
+  //   p = moz_arena_malloc(arenaId, 4096);
+  //   realloc(p, 8192);
+  //
+  // The realloc is more than one page, and thus too large for PHC to handle.
+  // Therefore, if PHC handles the first allocation, it must ask mozjemalloc
+  // to allocate the 8192 bytes in the correct arena, and to do that, it must
+  // call MozJemalloc::moz_arena_malloc with the correct arenaId under the
+  // covers. Therefore it must record that arenaId.
+  //
+  // This field is also needed for jemalloc_ptr_info() to work, because it
+  // also returns the arena ID (but only in debug builds).
+  //
+  // - NeverAllocated: must be 0.
+  // - InUse | Freed: can be any valid arena ID value.
+  Maybe<arena_id_t> mArenaId;
+
+  // The starting address of the allocation. Will not be the same as the page
+  // address unless the allocation is a full page.
+  // - NeverAllocated: must be 0.
+  // - InUse | Freed: must be within the allocation page.
+  uint8_t* mBaseAddr;
+
+  // Usable size is computed as the number of bytes between the pointer and
+  // the end of the allocation page. This might be bigger than the requested
+  // size, especially if an outsized alignment is requested.
+  size_t UsableSize() const {
+    return mState == AllocPageState::NeverAllocated
+               ? 0
+               : kPageSize -
+                     (reinterpret_cast<uintptr_t>(mBaseAddr) & (kPageSize - 1));
+  }
+
+  // The internal fragmentation for this allocation.
+  size_t FragmentationBytes() const {
+    MOZ_ASSERT(kPageSize >= UsableSize());
+    return mState == AllocPageState::InUse ? kPageSize - UsableSize() : 0;
+  }
+
+  // The allocation stack.
+  // - NeverAllocated: Nothing.
+  // - InUse | Freed: Some.
+  Maybe<StackTrace> mAllocStack;
+
+  // The free stack.
+  // - NeverAllocated | InUse: Nothing.
+  // - Freed: Some.
+  Maybe<StackTrace> mFreeStack;
+
+  // The time at which the page is available for reuse, as measured against
+  // mNow. When the page is in use this value will be kMaxTime.
+  // - NeverAllocated: must be 0.
+  // - InUse: must be kMaxTime.
+  // - Freed: must be > 0 and < kMaxTime.
+  Time mReuseTime;
+
+  // The next index for a free list of pages.`
+  Maybe<uintptr_t> mNextPage;
+};
+
 // The virtual address space reserved by PHC.  It is shared, immutable global
 // state. Initialized by phc_init() and never changed after that. phc_init()
 // runs early enough that no synchronization is needed.
@@ -501,86 +581,6 @@ using PHCLock = const MutexAutoLock&;
 // that access those feilds should take a PHCLock as proof that mMutex is held.
 // Other fields are TLS or Atomic and don't need the lock.
 class PHC {
-  enum class AllocPageState {
-    NeverAllocated = 0,
-    InUse = 1,
-    Freed = 2,
-  };
-
-  // Metadata for each allocation page.
-  class AllocPageInfo {
-   public:
-    AllocPageInfo()
-        : mState(AllocPageState::NeverAllocated),
-          mBaseAddr(nullptr),
-          mReuseTime(0) {}
-
-    // The current allocation page state.
-    AllocPageState mState;
-
-    // The arena that the allocation is nominally from. This isn't meaningful
-    // within PHC, which has no arenas. But it is necessary for reallocation of
-    // page allocations as normal allocations, such as in this code:
-    //
-    //   p = moz_arena_malloc(arenaId, 4096);
-    //   realloc(p, 8192);
-    //
-    // The realloc is more than one page, and thus too large for PHC to handle.
-    // Therefore, if PHC handles the first allocation, it must ask mozjemalloc
-    // to allocate the 8192 bytes in the correct arena, and to do that, it must
-    // call MozJemalloc::moz_arena_malloc with the correct arenaId under the
-    // covers. Therefore it must record that arenaId.
-    //
-    // This field is also needed for jemalloc_ptr_info() to work, because it
-    // also returns the arena ID (but only in debug builds).
-    //
-    // - NeverAllocated: must be 0.
-    // - InUse | Freed: can be any valid arena ID value.
-    Maybe<arena_id_t> mArenaId;
-
-    // The starting address of the allocation. Will not be the same as the page
-    // address unless the allocation is a full page.
-    // - NeverAllocated: must be 0.
-    // - InUse | Freed: must be within the allocation page.
-    uint8_t* mBaseAddr;
-
-    // Usable size is computed as the number of bytes between the pointer and
-    // the end of the allocation page. This might be bigger than the requested
-    // size, especially if an outsized alignment is requested.
-    size_t UsableSize() const {
-      return mState == AllocPageState::NeverAllocated
-                 ? 0
-                 : kPageSize - (reinterpret_cast<uintptr_t>(mBaseAddr) &
-                                (kPageSize - 1));
-    }
-
-    // The internal fragmentation for this allocation.
-    size_t FragmentationBytes() const {
-      MOZ_ASSERT(kPageSize >= UsableSize());
-      return mState == AllocPageState::InUse ? kPageSize - UsableSize() : 0;
-    }
-
-    // The allocation stack.
-    // - NeverAllocated: Nothing.
-    // - InUse | Freed: Some.
-    Maybe<StackTrace> mAllocStack;
-
-    // The free stack.
-    // - NeverAllocated | InUse: Nothing.
-    // - Freed: Some.
-    Maybe<StackTrace> mFreeStack;
-
-    // The time at which the page is available for reuse, as measured against
-    // mNow. When the page is in use this value will be kMaxTime.
-    // - NeverAllocated: must be 0.
-    // - InUse: must be kMaxTime.
-    // - Freed: must be > 0 and < kMaxTime.
-    Time mReuseTime;
-
-    // The next index for a free list of pages.`
-    Maybe<uintptr_t> mNextPage;
-  };
-
  public:
   // The RNG seeds here are poor, but non-reentrant since this can be called
   // from malloc().  SetState() will reset the RNG later.
