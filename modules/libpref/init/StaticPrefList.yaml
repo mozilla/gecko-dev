@@ -4003,7 +4003,11 @@
 # L2 cache to all users on all platforms in the release channel.
 - name: dom.quotaManager.originInitialization.updateOriginMetadata
   type: RelaxedAtomicBool
+#if defined(NIGHTLY_BUILD) && defined(XP_LINUX) && !defined(ANDROID)
+  value: true
+#else
   value: false
+#endif
   mirror: always
 
 # A pref that is used to slow down origin initialization for testing purposes.
