@@ -125,6 +125,9 @@ pub enum GenerateFrame {
         /// If false, (a subset of) the frame will be rendered, but nothing will
         /// be presented on the window.
         present: bool,
+        /// This flag is used by Firefox to differentiate between frames that
+        /// participate or not in the frame throttling mechanism.
+        tracked: bool,
     },
     /// Don't generate a frame even if something has changed.
     No,
@@ -144,6 +147,15 @@ impl GenerateFrame {
     pub fn present(&self) -> bool {
         match self {
             GenerateFrame::Yes { present, .. } => *present,
+            GenerateFrame::No => false,
+        }
+    }
+
+    /// This flag is used by Gecko to indicate whether the transaction
+    /// participates in frame throttling mechanisms.
+    pub fn tracked(&self) -> bool {
+        match self {
+            GenerateFrame::Yes { tracked, .. } => *tracked,
             GenerateFrame::No => false,
         }
     }
@@ -375,8 +387,8 @@ impl Transaction {
     /// as to when happened.
     ///
     /// [notifier]: trait.RenderNotifier.html#tymethod.new_frame_ready
-    pub fn generate_frame(&mut self, id: u64, present: bool, reasons: RenderReasons) {
-        self.generate_frame = GenerateFrame::Yes{ id, present };
+    pub fn generate_frame(&mut self, id: u64, present: bool, tracked: bool, reasons: RenderReasons) {
+        self.generate_frame = GenerateFrame::Yes{ id, present, tracked };
         self.render_reasons |= reasons;
     }
 

@@ -561,9 +561,8 @@ void RenderThread::HandleWrNotifierEvents(WrWindowId aWindowId) {
 void RenderThread::WrNotifierEvent_HandleWakeUp(
     wr::WindowId aWindowId, const wr::FrameReadyParams& aParams) {
   MOZ_ASSERT(IsInRenderThread());
-
-  bool isTrackedFrame = false;
-  HandleFrameOneDoc(aWindowId, aParams, isTrackedFrame, Nothing());
+  MOZ_ASSERT(!aParams.tracked);
+  HandleFrameOneDoc(aWindowId, aParams, Nothing());
 }
 
 void RenderThread::WrNotifierEvent_HandleNewFrameReady(
@@ -571,8 +570,7 @@ void RenderThread::WrNotifierEvent_HandleNewFrameReady(
     const wr::FrameReadyParams& aParams) {
   MOZ_ASSERT(IsInRenderThread());
 
-  bool isTrackedFrame = true;
-  HandleFrameOneDoc(aWindowId, aParams, isTrackedFrame, Some(aPublishId));
+  HandleFrameOneDoc(aWindowId, aParams, Some(aPublishId));
 }
 
 void RenderThread::WrNotifierEvent_HandleExternalEvent(
@@ -603,7 +601,6 @@ Maybe<layers::FrameRecording> RenderThread::EndRecordingForWindow(
 
 void RenderThread::HandleFrameOneDoc(wr::WindowId aWindowId,
                                      const wr::FrameReadyParams& aParams,
-                                     bool aTrackedFrame,
                                      Maybe<FramePublishId> aPublishId) {
   MOZ_ASSERT(IsInRenderThread());
 
@@ -611,16 +608,15 @@ void RenderThread::HandleFrameOneDoc(wr::WindowId aWindowId,
     return;
   }
 
-  HandleFrameOneDocInner(aWindowId, aParams, aTrackedFrame, aPublishId);
+  HandleFrameOneDocInner(aWindowId, aParams, aPublishId);
 
-  if (aTrackedFrame) {
+  if (aParams.tracked) {
     DecPendingFrameCount(aWindowId);
   }
 }
 
 void RenderThread::HandleFrameOneDocInner(wr::WindowId aWindowId,
                                           const wr::FrameReadyParams& aParams,
-                                          bool aTrackedFrame,
                                           Maybe<FramePublishId> aPublishId) {
   if (IsDestroyed(aWindowId)) {
     return;
@@ -631,7 +627,7 @@ void RenderThread::HandleFrameOneDocInner(wr::WindowId aWindowId,
   }
 
   PendingFrameInfo frame;
-  if (aTrackedFrame) {
+  if (aParams.tracked) {
     // scope lock
     auto windows = mWindowInfos.Lock();
     auto it = windows->find(AsUint64(aWindowId));
@@ -1745,7 +1741,9 @@ void wr_notifier_new_frame_ready(wr::WrWindowId aWindowId,
                                  wr::FramePublishId aPublishId,
                                  const wr::FrameReadyParams* aParams) {
   auto* renderThread = mozilla::wr::RenderThread::Get();
-  renderThread->DecPendingFrameBuildCount(aWindowId);
+  if (aParams->tracked) {
+    renderThread->DecPendingFrameBuildCount(aWindowId);
+  }
 
   renderThread->WrNotifierEvent_NewFrameReady(aWindowId, aPublishId, aParams);
 }
