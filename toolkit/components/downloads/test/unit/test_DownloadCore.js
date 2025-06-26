@@ -179,7 +179,7 @@ add_task(function test_DownloadError() {
 
   error = new DownloadError({ result: Cr.NS_ERROR_NOT_RESUMABLE });
   Assert.equal(error.result, Cr.NS_ERROR_NOT_RESUMABLE);
-  Assert.greater(error.message.indexOf("Exception"), 0);
+  Assert.ok(error.message.indexOf("Exception") > 0);
 
   // becauseSourceFailed will be set, but not the unknown property.
   error = new DownloadError({

@@ -18,7 +18,7 @@ function repeat_test() {
   // The test is probably going to fail because setting a batch of cookies took
   // a significant fraction of 'gPurgeAge'. Compensate by rerunning the
   // test with a larger purge age.
-  Assert.less(gPurgeAge, 64);
+  Assert.ok(gPurgeAge < 64);
   gPurgeAge *= 2;
   gShortExpiry *= 2;
 
@@ -186,7 +186,7 @@ function* do_run_test() {
 // Set 'end - begin' total cookies, with consecutively increasing hosts numbered
 // 'begin' to 'end'.
 function set_cookies(begin, end, expiry) {
-  Assert.notEqual(begin, end);
+  Assert.ok(begin != end);
 
   let beginTime;
   for (let i = begin; i < end; ++i) {

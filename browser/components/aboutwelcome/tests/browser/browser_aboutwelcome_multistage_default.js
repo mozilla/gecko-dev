@@ -217,9 +217,8 @@ add_task(async function test_multistage_aboutwelcome_default() {
     }
   }
 
-  Assert.strictEqual(
-    clickCall.args[1].message_id,
-    "MR_WELCOME_DEFAULT_0_AW_STEP1",
+  Assert.ok(
+    clickCall.args[1].message_id === "MR_WELCOME_DEFAULT_0_AW_STEP1",
     "AboutWelcome MR message id joined with screen id"
   );
 

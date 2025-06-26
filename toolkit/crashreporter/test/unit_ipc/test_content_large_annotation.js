@@ -16,9 +16,8 @@ add_task(async function run_test() {
       crashReporter.annotateCrashReport("TestKey", "a".repeat(65536));
     },
     function (mdump, extra) {
-      Assert.equal(
-        extra.TestKey,
-        "a".repeat(65536),
+      Assert.ok(
+        extra.TestKey == "a".repeat(65536),
         "The TestKey annotation matches the expected value"
       );
     }

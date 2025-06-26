@@ -687,23 +687,20 @@ NavHistoryResultObserver.prototype = {
 function checkBookmarkObject(info) {
   do_check_valid_places_guid(info.guid);
   do_check_valid_places_guid(info.parentGuid);
-  Assert.equal(typeof info.index, "number", "index should be a number");
-  Assert.equal(
-    info.dateAdded.constructor.name,
-    "Date",
+  Assert.ok(typeof info.index == "number", "index should be a number");
+  Assert.ok(
+    info.dateAdded.constructor.name == "Date",
     "dateAdded should be a Date"
   );
-  Assert.equal(
-    info.lastModified.constructor.name,
-    "Date",
+  Assert.ok(
+    info.lastModified.constructor.name == "Date",
     "lastModified should be a Date"
   );
-  Assert.greaterOrEqual(
-    info.lastModified,
-    info.dateAdded,
+  Assert.ok(
+    info.lastModified >= info.dateAdded,
     "lastModified should never be smaller than dateAdded"
   );
-  Assert.equal(typeof info.type, "number", "type should be a number");
+  Assert.ok(typeof info.type == "number", "type should be a number");
 }
 
 /**

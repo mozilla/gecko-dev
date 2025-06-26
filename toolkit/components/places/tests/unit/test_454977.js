@@ -51,7 +51,7 @@ async function task_add_visit(aURI, aVisitType) {
     Assert.ok(stmt.executeStep());
     let placeId = stmt.getInt64(0);
     stmt.finalize();
-    Assert.greater(placeId, 0);
+    Assert.ok(placeId > 0);
     return placeId;
   }
   return 0;

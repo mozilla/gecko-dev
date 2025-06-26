@@ -51,7 +51,7 @@ add_task(async function test_records_crypto() {
 
     await cryptoWrap.encrypt(keyBundle);
     log.info("Ciphertext is " + cryptoWrap.ciphertext);
-    Assert.notEqual(cryptoWrap.ciphertext, null);
+    Assert.ok(cryptoWrap.ciphertext != null);
 
     let firstIV = cryptoWrap.IV;
 
@@ -114,7 +114,7 @@ add_task(async function test_records_crypto() {
       Service.collectionKeys.keyForCollection("bookmarks")
     );
     log.info("Ciphertext is " + bookmarkItem.ciphertext);
-    Assert.notEqual(bookmarkItem.ciphertext, null);
+    Assert.ok(bookmarkItem.ciphertext != null);
     log.info("Decrypting the record explicitly with the default key.");
     Assert.equal(
       (await bookmarkItem.decrypt(Service.collectionKeys._default)).stuff,
@@ -132,7 +132,7 @@ add_task(async function test_records_crypto() {
     await bookmarkItem.encrypt(
       Service.collectionKeys.keyForCollection("bookmarks")
     );
-    Assert.notEqual(bookmarkItem.ciphertext, null);
+    Assert.ok(bookmarkItem.ciphertext != null);
 
     // Attempt to use the default key, because this is a collision that could
     // conceivably occur in the real world. Decryption will error, because

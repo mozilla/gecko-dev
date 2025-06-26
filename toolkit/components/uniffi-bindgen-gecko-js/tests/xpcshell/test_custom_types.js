@@ -51,9 +51,8 @@ add_task(async function testTimeIntervalSecDblCustomType() {
     "[object Date]",
     "Result should be a Date instance"
   );
-  Assert.less(
-    Math.abs(result.getTime() - now.getTime()),
-    1,
+  Assert.ok(
+    Math.abs(result.getTime() - now.getTime()) < 1,
     "Times should be very close"
   );
 });

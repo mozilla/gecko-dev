@@ -289,7 +289,7 @@ add_task(async function update_lastModified() {
   Assert.deepEqual(bm.lastModified, yesterday);
 
   bm = await PlacesUtils.bookmarks.update({ guid: bm.guid, title: "title2" });
-  Assert.greaterOrEqual(bm.lastModified, time);
+  Assert.ok(bm.lastModified >= time);
 
   bm = await PlacesUtils.bookmarks.update({ guid: bm.guid, title: "" });
   Assert.strictEqual(bm.title, "");
@@ -320,12 +320,12 @@ add_task(async function update_url() {
     url: "http://mozilla.org/",
   });
   checkBookmarkObject(bm);
-  Assert.greaterOrEqual(bm.lastModified, lastModified);
+  Assert.ok(bm.lastModified >= lastModified);
   Assert.equal(bm.url.href, "http://mozilla.org/");
 
   bm = await PlacesUtils.bookmarks.fetch(bm.guid);
   Assert.equal(bm.url.href, "http://mozilla.org/");
-  Assert.greaterOrEqual(bm.lastModified, lastModified);
+  Assert.ok(bm.lastModified >= lastModified);
 
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
   Assert.equal(
@@ -373,7 +373,7 @@ add_task(async function update_index() {
   });
   checkBookmarkObject(f1);
   Assert.equal(f1.index, 1);
-  Assert.greaterOrEqual(f1.lastModified, lastModified);
+  Assert.ok(f1.lastModified >= lastModified);
 
   parent = await PlacesUtils.bookmarks.fetch(f1.parentGuid);
   Assert.deepEqual(parent.lastModified, f1.lastModified);
@@ -489,7 +489,7 @@ add_task(async function update_move() {
   checkBookmarkObject(bm);
   Assert.equal(bm.parentGuid, descendant.guid);
   Assert.equal(bm.index, 0);
-  Assert.greaterOrEqual(bm.lastModified, lastModified);
+  Assert.ok(bm.lastModified >= lastModified);
 
   parent = await PlacesUtils.bookmarks.fetch(parent.guid);
   descendant = await PlacesUtils.bookmarks.fetch(descendant.guid);

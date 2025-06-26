@@ -152,9 +152,8 @@ add_task(async function test_can_get_results_from_callback() {
   // rect was returned, so checking for properties being greater than
   // 0 is sufficient.
   for (let property of ["width", "height"]) {
-    Assert.greater(
-      rect[property],
-      0,
+    Assert.ok(
+      rect[property] > 0,
       `Rect property ${property} > 0 (${rect[property]})`
     );
   }

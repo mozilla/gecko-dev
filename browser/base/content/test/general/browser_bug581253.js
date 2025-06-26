@@ -46,7 +46,7 @@ add_task(async function test_remove_bookmark_with_tag_via_edit_bookmark() {
   await popupShownPromise;
 
   let tagsField = document.getElementById("editBMPanel_tagsField");
-  Assert.equal(tagsField.value, testTag, "tags field value was set");
+  Assert.ok(tagsField.value == testTag, "tags field value was set");
   tagsField.focus();
 
   let popupHiddenPromise = BrowserTestUtils.waitForEvent(

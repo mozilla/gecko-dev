@@ -670,11 +670,10 @@ add_task(
       "User is notified after seeing the legacy infobar"
     );
 
-    Assert.less(
+    Assert.ok(
       Services.prefs.getIntPref(
         TelemetryUtils.Preferences.AcceptedPolicyVersion
-      ),
-      900,
+      ) < 900,
       "Before, the user has not accepted experiment/rollout version"
     );
 
@@ -765,9 +764,8 @@ add_task(
 
     await p;
 
-    Assert.greaterOrEqual(
-      unblockSpy.callCount,
-      blockSpy.callCount,
+    Assert.ok(
+      unblockSpy.callCount >= blockSpy.callCount,
       "Jump list should be unblocked after user interacts with modal"
     );
 

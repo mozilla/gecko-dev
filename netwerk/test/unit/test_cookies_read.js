@@ -67,7 +67,7 @@ add_task(async () => {
   // should be around 500k.
   let file = db.db.databaseFile;
   Assert.ok(file.exists());
-  Assert.less(file.fileSize, 1e6);
+  Assert.ok(file.fileSize < 1e6);
   db.close();
 
   // fake a profile change

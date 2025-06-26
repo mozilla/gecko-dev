@@ -15,11 +15,7 @@ async function assertIsPlaceHidden(url, expectHidden) {
     "hidden",
     { url }
   );
-  Assert.notStrictEqual(
-    hidden,
-    undefined,
-    `We should have saved a visit to ${url}`
-  );
+  Assert.ok(hidden !== undefined, `We should have saved a visit to ${url}`);
   Assert.equal(
     hidden,
     expectHidden ? 1 : 0,

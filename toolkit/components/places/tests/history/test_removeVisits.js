@@ -56,11 +56,10 @@ add_task(async function remove_visits_outside_unbookmarked_uri() {
 
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
   info("Frecency should be positive.");
-  Assert.greater(
-    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
       url: TEST_URI,
-    }),
-    0
+    })) > 0
   );
 
   await cleanup();
@@ -116,11 +115,10 @@ add_task(async function remove_visits_outside_bookmarked_uri() {
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("Frecency should be positive.");
-  Assert.greater(
-    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
       url: TEST_URI,
-    }),
-    0
+    })) > 0
   );
 
   await cleanup();
@@ -170,11 +168,10 @@ add_task(async function remove_visits_unbookmarked_uri() {
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("Frecency should be positive.");
-  Assert.greater(
-    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
       url: TEST_URI,
-    }),
-    0
+    })) > 0
   );
 
   await cleanup();
@@ -230,11 +227,10 @@ add_task(async function remove_visits_bookmarked_uri() {
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("Frecency should be positive.");
-  Assert.greater(
-    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
       url: TEST_URI,
-    }),
-    0
+    })) > 0
   );
 
   await cleanup();
@@ -334,11 +330,10 @@ add_task(async function remove_all_visits_bookmarked_uri() {
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
 
   info("Frecency should be smaller.");
-  Assert.less(
-    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
       url: TEST_URI,
-    }),
-    initialFrecency
+    })) < initialFrecency
   );
 
   await cleanup();

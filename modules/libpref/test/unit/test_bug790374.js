@@ -13,8 +13,8 @@ function run_test() {
   var myFloat = 9.674;
   var fudge = 0.001;
   var floatPref = userprefs.getFloatPref(PREF_NAME);
-  Assert.greaterOrEqual(myFloat + fudge, floatPref);
-  Assert.lessOrEqual(myFloat - fudge, floatPref);
+  Assert.ok(myFloat + fudge >= floatPref);
+  Assert.ok(myFloat - fudge <= floatPref);
 
   /* Now test some failure conditions. */
   prefs.unlockPref(PREF_NAME);

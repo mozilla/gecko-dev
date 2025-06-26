@@ -120,9 +120,8 @@ add_task(async function testReasonDropdownRandomized() {
     rbs.clickCancel();
     await AppMenu().openReportBrokenSite();
     randomOrder = await getListItems(rbs);
-    Assert.notEqual(
-      randomOrder,
-      defaultOrder,
+    Assert.ok(
+      randomOrder != defaultOrder,
       "options are randomized with pref on"
     );
 

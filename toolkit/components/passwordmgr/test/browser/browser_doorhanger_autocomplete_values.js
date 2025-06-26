@@ -219,9 +219,9 @@ add_task(async function test_edit_password() {
         let usernameDropmarker = notificationElement.querySelector(
           USERNAME_DROPMARKER_SELECTOR
         );
-        Assert.equal(
-          BrowserTestUtils.isVisible(usernameDropmarker),
-          testCase.expectUsernameDropmarker,
+        Assert.ok(
+          BrowserTestUtils.isVisible(usernameDropmarker) ==
+            testCase.expectUsernameDropmarker,
           "Confirm dropmarker visibility"
         );
 

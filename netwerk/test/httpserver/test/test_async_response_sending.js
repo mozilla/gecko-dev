@@ -462,9 +462,8 @@ function CustomPipe(name) {
     interceptStreamReadyCallbacks(streamReadyInterceptCreator) {
       dumpn("*** [" + this.name + "].interceptStreamReadyCallbacks");
 
-      Assert.strictEqual(
-        this._streamReadyInterceptCreator,
-        null,
+      Assert.ok(
+        this._streamReadyInterceptCreator === null,
         "intercepting twice"
       );
       this._streamReadyInterceptCreator = streamReadyInterceptCreator;
@@ -482,9 +481,8 @@ function CustomPipe(name) {
     removeStreamReadyInterceptor() {
       dumpn("*** [" + this.name + "].removeStreamReadyInterceptor()");
 
-      Assert.notStrictEqual(
-        this._streamReadyInterceptCreator,
-        null,
+      Assert.ok(
+        this._streamReadyInterceptCreator !== null,
         "removing interceptor when none present?"
       );
       this._streamReadyInterceptCreator = null;
@@ -657,7 +655,7 @@ function CustomPipe(name) {
     maybeNotifyFinally: function maybeNotifyFinally() {
       dumpn("*** [" + this.name + "].maybeNotifyFinally()");
 
-      Assert.notStrictEqual(this._waiter, null, "must be waiting now");
+      Assert.ok(this._waiter !== null, "must be waiting now");
 
       if (self._data.length) {
         dumpn(
@@ -685,7 +683,7 @@ function CustomPipe(name) {
       dumpn("*** [" + this.name + "]._notify()");
 
       var waiter = this._waiter;
-      Assert.notStrictEqual(waiter, null, "no waiter?");
+      Assert.ok(waiter !== null, "no waiter?");
 
       if (this._event === null) {
         var event = (this._event = {
@@ -758,9 +756,8 @@ function CustomPipe(name) {
     interceptStreamReadyCallbacks(streamReadyInterceptCreator) {
       dumpn("*** [" + this.name + "].interceptStreamReadyCallbacks");
 
-      Assert.notStrictEqual(
-        this._streamReadyInterceptCreator,
-        null,
+      Assert.ok(
+        this._streamReadyInterceptCreator !== null,
         "intercepting onOutputStreamReady twice"
       );
       this._streamReadyInterceptCreator = streamReadyInterceptCreator;
@@ -778,9 +775,8 @@ function CustomPipe(name) {
     removeStreamReadyInterceptor() {
       dumpn("*** [" + this.name + "].removeStreamReadyInterceptor()");
 
-      Assert.notStrictEqual(
-        this._streamReadyInterceptCreator,
-        null,
+      Assert.ok(
+        this._streamReadyInterceptCreator !== null,
         "removing interceptor when none present?"
       );
       this._streamReadyInterceptCreator = null;
@@ -916,9 +912,8 @@ function CustomPipe(name) {
       if (this._writableAmounts.length === 0) {
         actualWritten = Math.min(this._writable, length);
       } else {
-        Assert.greaterOrEqual(
-          this._writable,
-          this._writableAmounts[0],
+        Assert.ok(
+          this._writable >= this._writableAmounts[0],
           "writable amounts value greater than writable data?"
         );
         Assert.equal(
@@ -1035,7 +1030,7 @@ function CustomPipe(name) {
       dumpn("*** [" + this.name + "]._notify()");
 
       var waiter = this._waiter;
-      Assert.notStrictEqual(waiter, null, "no waiter?");
+      Assert.ok(waiter !== null, "no waiter?");
 
       if (this._event === null) {
         var event = (this._event = {

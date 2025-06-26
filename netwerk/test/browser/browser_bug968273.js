@@ -47,9 +47,8 @@ async function do_test_cache_persistent(https) {
     loadContextInfo
   );
 
-  Assert.equal(
-    entry.persistent,
-    https,
+  Assert.ok(
+    entry.persistent == https,
     https
       ? "Permanent redirects over HTTPS can be persistent"
       : "Permanent redirects over HTTP cannot be persistent"

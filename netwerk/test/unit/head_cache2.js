@@ -335,7 +335,7 @@ VisitCallback.prototype = {
     );
 
     var index = this.entries.findIndex(findCacheIndex);
-    Assert.greater(index, -1, "Cache entry should exist");
+    Assert.ok(index > -1, "Cache entry should exist");
 
     this.entries.splice(index, 1);
   },

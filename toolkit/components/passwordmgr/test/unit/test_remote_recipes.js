@@ -137,9 +137,8 @@ add_task(async function test_malformed_recipes_in_db() {
   try {
     await parent.initializationPromise;
   } catch (e) {
-    Assert.equal(
-      e,
-      "There were 1 recipe error(s)",
+    Assert.ok(
+      e == "There were 1 recipe error(s)",
       "It should throw an error because of field that does not match the schema"
     );
   }
@@ -155,9 +154,8 @@ add_task(async function test_malformed_recipes_in_db() {
   try {
     await parent.initializationPromise;
   } catch (e) {
-    Assert.equal(
-      e,
-      "There were 1 recipe error(s)",
+    Assert.ok(
+      e == "There were 1 recipe error(s)",
       "It should throw an error because of missing hosts field"
     );
   }

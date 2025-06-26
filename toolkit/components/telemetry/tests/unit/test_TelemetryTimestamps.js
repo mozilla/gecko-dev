@@ -45,8 +45,8 @@ add_task(async function actualTest() {
   );
   let now = Date.now();
   TelemetryTimestamps.add("foo");
-  Assert.notEqual(TelemetryTimestamps.get().foo, null); // foo was added
-  Assert.greaterOrEqual(TelemetryTimestamps.get().foo, now); // foo has a reasonable value
+  Assert.ok(TelemetryTimestamps.get().foo != null); // foo was added
+  Assert.ok(TelemetryTimestamps.get().foo >= now); // foo has a reasonable value
 
   // Add timestamp with value
   // Use a value far in the future since TelemetryController substracts the time of
@@ -70,9 +70,9 @@ add_task(async function actualTest() {
 
   // Test that the data gets added to the telemetry ping properly
   let simpleMeasurements = getSimpleMeasurementsFromTelemetryController();
-  Assert.notEqual(simpleMeasurements, null); // got simple measurements from ping data
-  Assert.greater(simpleMeasurements.foo, 1); // foo was included
-  Assert.greater(simpleMeasurements.bar, 1); // bar was included
+  Assert.ok(simpleMeasurements != null); // got simple measurements from ping data
+  Assert.ok(simpleMeasurements.foo > 1); // foo was included
+  Assert.ok(simpleMeasurements.bar > 1); // bar was included
   Assert.equal(undefined, simpleMeasurements.baz); // baz wasn't included since it wasn't added
 
   await TelemetryController.testShutdown();

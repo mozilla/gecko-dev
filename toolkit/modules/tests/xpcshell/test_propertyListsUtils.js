@@ -106,7 +106,7 @@ function readPropertyList(aFile, aCallback) {
     // Note: It is important not to run do_check_n/eq directly on Dict and array
     // objects, because it cases their toString to get invoked, doing away with
     // all the lazy getter we'd like to test later.
-    Assert.notStrictEqual(aPropertyListRoot, null);
+    Assert.ok(aPropertyListRoot !== null);
     aCallback(aPropertyListRoot);
     run_next_test();
   });

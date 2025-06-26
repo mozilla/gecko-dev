@@ -54,7 +54,7 @@ add_task(function test_Logger_parent() {
   Log.repository.rootLogger.info("this shouldn't show up in gpAppender");
 
   Assert.equal(gpAppender.messages.length, 1);
-  Assert.greater(gpAppender.messages[0].indexOf("child info test"), 0);
+  Assert.ok(gpAppender.messages[0].indexOf("child info test") > 0);
 });
 
 /*
@@ -334,7 +334,7 @@ add_task(async function log_message_with_params() {
   log.trace("Test trace", testParams);
   Assert.equal(appender.messages.length, 7);
   for (let msg of appender.messages) {
-    Assert.strictEqual(msg.params, testParams);
+    Assert.ok(msg.params === testParams);
     Assert.ok(msg.message.startsWith("Test "));
   }
 });

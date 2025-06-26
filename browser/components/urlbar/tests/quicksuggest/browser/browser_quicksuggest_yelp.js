@@ -437,9 +437,8 @@ async function doDismiss({ menu, assert }) {
 
   for (let i = 0; i < UrlbarTestUtils.getResultCount(window); i++) {
     details = await UrlbarTestUtils.getDetailsOfResultAt(window, i);
-    Assert.notStrictEqual(
-      details.result.payload.provider,
-      "Yelp",
+    Assert.ok(
+      details.result.payload.provider !== "Yelp",
       "Yelp result should not be present"
     );
   }

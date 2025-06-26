@@ -261,7 +261,7 @@ async function runTestcase({ formOrigin, savedLogins, expectedItems }) {
   );
 
   if (!expectedItems.length) {
-    Assert.strictEqual(fragment, null, "Null returned. No logins were found.");
+    Assert.ok(fragment === null, "Null returned. No logins were found.");
     return;
   }
   let actualItems = [...fragment.children];

@@ -65,7 +65,7 @@ add_task(async function test_bookmarks() {
   );
 
   // test special folders
-  Assert.greater(bs.tagsFolder, 0);
+  Assert.ok(bs.tagsFolder > 0);
 
   // create a folder to hold all the tests
   // this makes the tests more tolerant of changes to default_places.html
@@ -84,7 +84,7 @@ add_task(async function test_bookmarks() {
   // insert a bookmark.
   // the time before we insert, in microseconds
   let beforeInsert = Date.now() * 1000;
-  Assert.greater(beforeInsert, 0);
+  Assert.ok(beforeInsert > 0);
 
   let newId = bs.insertBookmark(
     testRoot,
@@ -108,7 +108,7 @@ add_task(async function test_bookmarks() {
 
   // The time before we set the title, in microseconds.
   let beforeSetTitle = Date.now() * 1000;
-  Assert.greaterOrEqual(beforeSetTitle, beforeInsert);
+  Assert.ok(beforeSetTitle >= beforeInsert);
 
   // Workaround possible VM timers issues moving lastModified and dateAdded
   // to the past.
@@ -250,7 +250,7 @@ add_task(async function test_bookmarks() {
     rootNode.containerOpen = true;
     let cc = rootNode.childCount;
     info("bookmark itemId test: CC = " + cc);
-    Assert.greater(cc, 0);
+    Assert.ok(cc > 0);
     for (let i = 0; i < cc; ++i) {
       let node = rootNode.getChild(i);
       if (
@@ -259,7 +259,7 @@ add_task(async function test_bookmarks() {
         node.type == node.RESULT_TYPE_SEPARATOR ||
         node.type == node.RESULT_TYPE_QUERY
       ) {
-        Assert.greater(node.itemId, 0);
+        Assert.ok(node.itemId > 0);
       } else {
         Assert.equal(node.itemId, -1);
       }
@@ -343,7 +343,7 @@ add_task(async function test_bookmarks() {
     Assert.equal(cc, 1);
     let node = rootNode.getChild(0);
     Assert.equal(node.title, "ZZZXXXYYY");
-    Assert.greater(node.itemId, 0);
+    Assert.ok(node.itemId > 0);
     rootNode.containerOpen = false;
   } catch (ex) {
     do_throw("bookmarks query: " + ex);
@@ -365,10 +365,10 @@ add_task(async function test_bookmarks() {
     let node = rootNode.getChild(0);
 
     Assert.equal(typeof node.dateAdded, "number");
-    Assert.greater(node.dateAdded, 0);
+    Assert.ok(node.dateAdded > 0);
 
     Assert.equal(typeof node.lastModified, "number");
-    Assert.greater(node.lastModified, 0);
+    Assert.ok(node.lastModified > 0);
 
     rootNode.containerOpen = false;
   } catch (ex) {
@@ -385,16 +385,16 @@ add_task(async function test_bookmarks() {
     let rootNode = result.root;
     rootNode.containerOpen = true;
     let cc = rootNode.childCount;
-    Assert.greater(cc, 0);
+    Assert.ok(cc > 0);
     for (let i = 0; i < cc; i++) {
       let node = rootNode.getChild(i);
 
       if (node.type == node.RESULT_TYPE_URI) {
         Assert.equal(typeof node.dateAdded, "number");
-        Assert.greater(node.dateAdded, 0);
+        Assert.ok(node.dateAdded > 0);
 
         Assert.equal(typeof node.lastModified, "number");
-        Assert.greater(node.lastModified, 0);
+        Assert.ok(node.lastModified > 0);
         break;
       }
     }
@@ -450,7 +450,7 @@ async function testSimpleFolderResult() {
   // the time before we create a folder, in microseconds
   // Workaround possible VM timers issues subtracting 1us.
   let beforeCreate = Date.now() * 1000 - 1;
-  Assert.greater(beforeCreate, 0);
+  Assert.ok(beforeCreate > 0);
 
   // create a folder
   let parent = bs.createFolder(root, "test", bs.DEFAULT_INDEX);
@@ -459,7 +459,7 @@ async function testSimpleFolderResult() {
   // the time before we insert, in microseconds
   // Workaround possible VM timers issues subtracting 1ms.
   let beforeInsert = Date.now() * 1000 - 1;
-  Assert.greater(beforeInsert, 0);
+  Assert.ok(beforeInsert > 0);
 
   // re-set item title separately so can test nodes' last modified
   let item = bs.insertBookmark(
@@ -491,19 +491,19 @@ async function testSimpleFolderResult() {
 
   let node = rootNode.getChild(0);
   Assert.equal(node.itemId, item);
-  Assert.greater(node.dateAdded, 0);
-  Assert.greater(node.lastModified, 0);
+  Assert.ok(node.dateAdded > 0);
+  Assert.ok(node.lastModified > 0);
   Assert.equal(node.title, "test bookmark");
   node = rootNode.getChild(1);
   Assert.equal(node.itemId, folder);
   Assert.equal(node.title, "test folder");
-  Assert.greater(node.dateAdded, 0);
-  Assert.greater(node.lastModified, 0);
+  Assert.ok(node.dateAdded > 0);
+  Assert.ok(node.lastModified > 0);
   node = rootNode.getChild(2);
   Assert.equal(node.itemId, folderLongName);
   Assert.equal(node.title, longName.substring(0, TITLE_LENGTH_MAX));
-  Assert.greater(node.dateAdded, 0);
-  Assert.greater(node.lastModified, 0);
+  Assert.ok(node.dateAdded > 0);
+  Assert.ok(node.lastModified > 0);
 
   // update with another long title
   bs.setItemTitle(folderLongName, longName + " updated");

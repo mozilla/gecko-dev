@@ -121,10 +121,9 @@ add_task(async function test_changeChromeHiddenAutoClose() {
   Assert.equal(login.username, "notifyu1", "Check the username");
   Assert.equal(login.password, "pass2", "Check password changed");
   Assert.equal(login.timesUsed, 2, "check .timesUsed incremented on change");
-  Assert.less(login.timeCreated, login.timeLastUsed, "timeLastUsed bumped");
-  Assert.equal(
-    login.timeLastUsed,
-    login.timePasswordChanged,
+  Assert.ok(login.timeCreated < login.timeLastUsed, "timeLastUsed bumped");
+  Assert.ok(
+    login.timeLastUsed == login.timePasswordChanged,
     "timeUsed == timeChanged"
   );
 
@@ -189,10 +188,9 @@ add_task(async function test_changeChromeVisibleSameWindow() {
   Assert.equal(login.username, "notifyu2", "Check the username");
   Assert.equal(login.password, "pass2", "Check password changed");
   Assert.equal(login.timesUsed, 2, "check .timesUsed incremented on change");
-  Assert.less(login.timeCreated, login.timeLastUsed, "timeLastUsed bumped");
-  Assert.equal(
-    login.timeLastUsed,
-    login.timePasswordChanged,
+  Assert.ok(login.timeCreated < login.timeLastUsed, "timeLastUsed bumped");
+  Assert.ok(
+    login.timeLastUsed == login.timePasswordChanged,
     "timeUsed == timeChanged"
   );
 

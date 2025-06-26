@@ -97,7 +97,7 @@ add_bookmark_test(async function test_bookmark_create(engine) {
     Assert.ok(Utils.deepEquals(newrecord.tags.sort(), fxrecord.tags.sort()));
 
     _("The calculated sort index is based on frecency data.");
-    Assert.greaterOrEqual(newrecord.sortindex, 150);
+    Assert.ok(newrecord.sortindex >= 150);
 
     _("Create a record with some values missing.");
     let tbrecord = new Bookmark("bookmarks", "thunderbird1");

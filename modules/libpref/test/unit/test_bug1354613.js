@@ -16,6 +16,6 @@ function run_test() {
   let pb = Services.prefs.getBranch(BRANCH);
 
   let floatPref = pb.getFloatPref(PREF_NAME);
-  Assert.greaterOrEqual(FLOAT + FUDGE, floatPref);
-  Assert.lessOrEqual(FLOAT - FUDGE, floatPref);
+  Assert.ok(FLOAT + FUDGE >= floatPref);
+  Assert.ok(FLOAT - FUDGE <= floatPref);
 }

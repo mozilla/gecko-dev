@@ -189,7 +189,7 @@ add_task(
     EventUtils.sendString("x");
     EventUtils.synthesizeKey("KEY_Enter");
     await recievedResult;
-    Assert.less(Cu.now() - start, TIMEOUT);
+    Assert.ok(Cu.now() - start < TIMEOUT);
   })
 );
 

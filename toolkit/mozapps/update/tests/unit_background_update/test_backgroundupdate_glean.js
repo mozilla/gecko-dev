@@ -221,9 +221,8 @@ add_task(async function test_targeting_exists() {
     );
 
     // `environment.firefoxVersion` is a positive integer.
-    Assert.greater(
-      Glean.backgroundUpdate.targetingEnvFirefoxVersion.testGetValue(),
-      0
+    Assert.ok(
+      Glean.backgroundUpdate.targetingEnvFirefoxVersion.testGetValue() > 0
     );
 
     Assert.equal(
@@ -235,8 +234,8 @@ add_task(async function test_targeting_exists() {
       Glean.backgroundUpdate.targetingEnvProfileAge.testGetValue();
 
     Assert.ok(profileAge instanceof Date);
-    Assert.less(0, profileAge.getTime());
-    Assert.less(profileAge.getTime(), Date.now());
+    Assert.ok(0 < profileAge.getTime());
+    Assert.ok(profileAge.getTime() < Date.now());
 
     // `environment.profileAgeCreated` is an integer, milliseconds since the
     // Unix epoch.
@@ -252,8 +251,8 @@ add_task(async function test_targeting_exists() {
     let currentDate =
       Glean.backgroundUpdate.targetingEnvCurrentDate.testGetValue();
 
-    Assert.less(0, currentDate.getTime());
-    Assert.less(currentDate.getTime(), Date.now());
+    Assert.ok(0 < currentDate.getTime());
+    Assert.ok(currentDate.getTime() < Date.now());
 
     // `environment.currentDate` is in ISO string format.
     let targetCurrentDate = new Date(targetSnapshot.environment.currentDate);

@@ -249,8 +249,8 @@ add_task(async function () {
   ret = await rootFront.optionArgs({});
   trace.expectSend({ type: "optionArgs", to: "<actorid>" });
   trace.expectReceive({ from: "<actorid>" });
-  Assert.strictEqual(typeof ret.option1, "undefined");
-  Assert.strictEqual(typeof ret.option2, "undefined");
+  Assert.ok(typeof ret.option1 === "undefined");
+  Assert.ok(typeof ret.option2 === "undefined");
 
   // Explicitly call an optional argument...
   ret = await rootFront.optionalArgs(5, 10);
@@ -293,7 +293,7 @@ add_task(async function () {
   Assert.equal(str, "hello");
 
   const onOneWay = rootFront.once("oneway");
-  Assert.strictEqual(typeof rootFront.testOneWay("hello"), "undefined");
+  Assert.ok(typeof rootFront.testOneWay("hello") === "undefined");
   const response = await onOneWay;
   trace.expectSend({ type: "testOneWay", a: "hello", to: "<actorid>" });
   trace.expectReceive({
@@ -314,8 +314,8 @@ add_task(async function () {
     from: "<actorid>",
   });
 
-  Assert.strictEqual(res.zero, 0);
-  Assert.strictEqual(res.farce, false);
+  Assert.ok(res.zero === 0);
+  Assert.ok(res.farce === false);
 
   await client.close();
 });

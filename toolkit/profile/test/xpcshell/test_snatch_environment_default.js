@@ -62,14 +62,12 @@ add_task(async () => {
   Assert.equal(profile.name, PROFILE_DEFAULT, "The right profile was matched.");
 
   let service = getProfileService();
-  Assert.strictEqual(
-    service.defaultProfile,
-    profile,
+  Assert.ok(
+    service.defaultProfile === profile,
     "Should be the default profile."
   );
-  Assert.strictEqual(
-    service.currentProfile,
-    profile,
+  Assert.ok(
+    service.currentProfile === profile,
     "Should be the current profile."
   );
 

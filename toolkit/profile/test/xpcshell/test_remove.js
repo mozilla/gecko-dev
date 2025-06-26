@@ -22,9 +22,8 @@ function compareLists(service, knownProfiles) {
     // Cannot use strictEqual here, it attempts to print out a string
     // representation of the profile objects and on some platforms that recurses
     // infinitely.
-    Assert.strictEqual(
-      serviceProfiles[i],
-      knownProfiles[i],
+    Assert.ok(
+      serviceProfiles[i] === knownProfiles[i],
       `Should have the right profile in position ${i}.`
     );
   }

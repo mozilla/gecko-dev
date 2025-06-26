@@ -296,9 +296,8 @@ let tests = [
         savedLoginsByName.emptyXYZ.guid,
         "Check guid"
       );
-      Assert.greater(
-        finalLogins[0].timeLastUsed,
-        savedLoginsByName.emptyXYZ.timeLastUsed,
+      Assert.ok(
+        finalLogins[0].timeLastUsed > savedLoginsByName.emptyXYZ.timeLastUsed,
         "Check timeLastUsed of 0th login"
       );
     },
@@ -331,9 +330,8 @@ let tests = [
         savedLoginsByName.bobABC.guid,
         "Check guid"
       );
-      Assert.greater(
-        finalLogins[0].timeLastUsed,
-        savedLoginsByName.bobABC.timeLastUsed,
+      Assert.ok(
+        finalLogins[0].timeLastUsed > savedLoginsByName.bobABC.timeLastUsed,
         "Check timeLastUsed changed"
       );
     },
@@ -388,14 +386,13 @@ let tests = [
         savedLoginsByName.bobABC.guid,
         "Check guid"
       );
-      Assert.greater(
-        finalLogins[1].timeLastUsed,
-        savedLoginsByName.bobABC.timeLastUsed,
+      Assert.ok(
+        finalLogins[1].timeLastUsed > savedLoginsByName.bobABC.timeLastUsed,
         "Check timeLastUsed did change"
       );
-      Assert.greater(
-        finalLogins[1].timePasswordChanged,
-        savedLoginsByName.bobABC.timePasswordChanged,
+      Assert.ok(
+        finalLogins[1].timePasswordChanged >
+          savedLoginsByName.bobABC.timePasswordChanged,
         "Check timePasswordChanged did change"
       );
     },
@@ -433,9 +430,8 @@ let tests = [
         savedLoginsByName.bobABC.guid,
         "Check guid"
       );
-      Assert.greater(
-        finalLogins[0].timeLastUsed,
-        savedLoginsByName.bobABC.timeLastUsed,
+      Assert.ok(
+        finalLogins[0].timeLastUsed > savedLoginsByName.bobABC.timeLastUsed,
         "Check timeLastUsed did change"
       );
     },
@@ -492,14 +488,13 @@ let tests = [
         savedLoginsByName.bobABC.guid,
         "Check guid"
       );
-      Assert.greater(
-        finalLogins[1].timeLastUsed,
-        savedLoginsByName.bobABC.timeLastUsed,
+      Assert.ok(
+        finalLogins[1].timeLastUsed > savedLoginsByName.bobABC.timeLastUsed,
         "Check timeLastUsed did change"
       );
-      Assert.greater(
-        finalLogins[1].timePasswordChanged,
-        savedLoginsByName.bobABC.timePasswordChanged,
+      Assert.ok(
+        finalLogins[1].timePasswordChanged >
+          savedLoginsByName.bobABC.timePasswordChanged,
         "Check timePasswordChanged did change"
       );
     },
@@ -534,14 +529,13 @@ let tests = [
         savedLoginsByName.bobABC.guid,
         "Check guid"
       );
-      Assert.greater(
-        finalLogins[0].timeLastUsed,
-        savedLoginsByName.bobABC.timeLastUsed,
+      Assert.ok(
+        finalLogins[0].timeLastUsed > savedLoginsByName.bobABC.timeLastUsed,
         "Check timeLastUsed did change"
       );
-      Assert.greater(
-        finalLogins[0].timePasswordChanged,
-        savedLoginsByName.bobABC.timePasswordChanged,
+      Assert.ok(
+        finalLogins[0].timePasswordChanged >
+          savedLoginsByName.bobABC.timePasswordChanged,
         "Check timePasswordChanged did change"
       );
     },
@@ -622,9 +616,8 @@ let tests = [
         savedLoginsByName.bobABC.guid,
         "Check guid"
       );
-      Assert.greater(
-        finalLogins[0].timeLastUsed,
-        savedLoginsByName.bobABC.timeLastUsed,
+      Assert.ok(
+        finalLogins[0].timeLastUsed > savedLoginsByName.bobABC.timeLastUsed,
         "Check timeLastUsed did change"
       );
       todo_is(

@@ -58,7 +58,7 @@ add_setup(async function () {
 
 async function AssertNoPrivateResult(win) {
   let count = await UrlbarTestUtils.getResultCount(win);
-  Assert.greater(count, 0, "Sanity check result count");
+  Assert.ok(count > 0, "Sanity check result count");
   for (let i = 0; i < count; ++i) {
     let result = await UrlbarTestUtils.getDetailsOfResultAt(win, i);
     Assert.ok(
@@ -71,7 +71,7 @@ async function AssertNoPrivateResult(win) {
 
 async function AssertPrivateResult(win, engine, isPrivateEngine) {
   let count = await UrlbarTestUtils.getResultCount(win);
-  Assert.greater(count, 1, "Sanity check result count");
+  Assert.ok(count > 1, "Sanity check result count");
   let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
   Assert.equal(
     result.type,

@@ -28,19 +28,19 @@ function run_test() {
 
   pm.addFromPrincipal(principal, "test/pobject", pm.ALLOW_ACTION);
   var rootPerm = pm.getPermissionObject(principal, "test/pobject", false);
-  Assert.notEqual(rootPerm, null);
+  Assert.ok(rootPerm != null);
   Assert.equal(rootPerm.principal.origin, "http://example.com");
   Assert.equal(rootPerm.type, "test/pobject");
   Assert.equal(rootPerm.capability, pm.ALLOW_ACTION);
   Assert.equal(rootPerm.expireType, pm.EXPIRE_NEVER);
 
-  Assert.notEqual(rootPerm, null);
+  Assert.ok(rootPerm != null);
   Assert.equal(rootPerm.principal.origin, "http://example.com");
 
   var subPerm = pm.getPermissionObject(subPrincipal, "test/pobject", true);
   Assert.equal(null, subPerm);
   subPerm = pm.getPermissionObject(subPrincipal, "test/pobject", false);
-  Assert.notEqual(subPerm, null);
+  Assert.ok(subPerm != null);
   Assert.equal(subPerm.principal.origin, "http://example.com");
   Assert.equal(subPerm.type, "test/pobject");
   Assert.equal(subPerm.capability, pm.ALLOW_ACTION);
@@ -48,7 +48,7 @@ function run_test() {
   subPerm = pm.getPermissionObject(subSubPrincipal, "test/pobject", true);
   Assert.equal(null, subPerm);
   subPerm = pm.getPermissionObject(subSubPrincipal, "test/pobject", false);
-  Assert.notEqual(subPerm, null);
+  Assert.ok(subPerm != null);
   Assert.equal(subPerm.principal.origin, "http://example.com");
 
   pm.addFromPrincipal(

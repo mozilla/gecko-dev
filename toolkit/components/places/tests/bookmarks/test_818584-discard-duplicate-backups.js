@@ -15,7 +15,7 @@ add_task(async function () {
   let oldBackup = PathUtils.join(backupFolder, oldBackupName);
   let { count: count, hash: hash } =
     await BookmarkJSONUtils.exportToFile(oldBackup);
-  Assert.greater(count, 0);
+  Assert.ok(count > 0);
   Assert.equal(hash.length, 44);
   oldBackupName = oldBackupName.replace(
     /\.json/,

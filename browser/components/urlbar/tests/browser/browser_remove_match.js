@@ -105,7 +105,7 @@ add_task(async function test_remove_form_history() {
       break;
     }
   }
-  Assert.less(index, count, "Result found");
+  Assert.ok(index < count, "Result found");
 
   EventUtils.synthesizeKey("KEY_Tab", { repeat: index });
   Assert.equal(UrlbarTestUtils.getSelectedRowIndex(window), index);

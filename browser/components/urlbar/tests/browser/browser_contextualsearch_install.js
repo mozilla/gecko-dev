@@ -110,9 +110,8 @@ add_task(async function test_contextualsearch_install() {
     .click();
   await promiseEngineAdded;
 
-  Assert.greater(
-    (await Services.search.getVisibleEngines()).length,
-    initialEngines.length,
+  Assert.ok(
+    (await Services.search.getVisibleEngines()).length > initialEngines.length,
     "New engine was installed"
   );
 

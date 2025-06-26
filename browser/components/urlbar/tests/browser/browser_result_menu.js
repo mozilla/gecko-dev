@@ -142,7 +142,7 @@ add_task(async function test_remove_search_history() {
       break;
     }
   }
-  Assert.less(resultIndex, count, "Result found");
+  Assert.ok(resultIndex < count, "Result found");
 
   await UrlbarTestUtils.openResultMenuAndPressAccesskey(window, "R", {
     resultIndex,

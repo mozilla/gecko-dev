@@ -33,7 +33,7 @@ add_task(async function test_clients_escape() {
     for (let ch of serialized) {
       let code = ch.charCodeAt(0);
       _("Checking asciiness of '", ch, "'=", code);
-      Assert.less(code, 128);
+      Assert.ok(code < 128);
       checkCount++;
     }
 

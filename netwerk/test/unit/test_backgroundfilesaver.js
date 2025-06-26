@@ -111,7 +111,7 @@ function promiseVerifyContents(aFile, aExpectedContents) {
         } else {
           // Do not print the entire content string to the test log.
           Assert.equal(contents.length, aExpectedContents.length);
-          Assert.equal(contents, aExpectedContents);
+          Assert.ok(contents == aExpectedContents);
         }
         resolve();
       }

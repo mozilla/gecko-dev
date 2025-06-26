@@ -32,7 +32,7 @@ function run_test() {
   for (let i = 0; i < TESTS.length; i++) {
     Assert.ok(zipW.hasEntry(TESTS[i].name));
     var entry = zipW.getEntry(TESTS[i].name);
-    Assert.notEqual(entry, null);
+    Assert.ok(entry != null);
 
     Assert.equal(entry.realSize, TESTS[i].size);
     Assert.equal(entry.CRC32, TESTS[i].crc);

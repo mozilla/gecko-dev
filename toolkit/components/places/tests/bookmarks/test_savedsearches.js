@@ -53,7 +53,7 @@ add_task(async function test_savedsearches_bookmarks() {
     for (let i = 0; i < cc; i++) {
       let node = rootNode.getChild(i);
       // test that queries have valid itemId
-      Assert.greater(node.itemId, 0);
+      Assert.ok(node.itemId > 0);
       // test that the container is closed
       node.QueryInterface(Ci.nsINavHistoryContainerResultNode);
       Assert.equal(node.containerOpen, false);
@@ -81,7 +81,7 @@ add_task(async function test_savedsearches_bookmarks() {
       // test that query node type is container when expandQueries=1
       Assert.equal(node.type, node.RESULT_TYPE_QUERY);
       // test that queries (as containers) have valid itemId
-      Assert.greater(node.itemId, 0);
+      Assert.ok(node.itemId > 0);
       node.QueryInterface(Ci.nsINavHistoryContainerResultNode);
       node.containerOpen = true;
 

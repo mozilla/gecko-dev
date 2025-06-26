@@ -76,9 +76,9 @@ async function testToolbarButtons(aActions) {
 
   let toolbarVersion = Services.prefs.getIntPref(kPrefProtonToolbarVersion);
   if (shouldUpdateVersion) {
-    Assert.greaterOrEqual(toolbarVersion, 1, "Toolbar proton version updated");
+    Assert.ok(toolbarVersion >= 1, "Toolbar proton version updated");
   } else {
-    Assert.equal(toolbarVersion, 0, "Toolbar proton version not updated");
+    Assert.ok(toolbarVersion == 0, "Toolbar proton version not updated");
   }
 
   // Cleanup
@@ -193,9 +193,8 @@ add_task(async function testNullSavedState() {
   );
   CustomizableUIInternal.initialize();
 
-  Assert.greaterOrEqual(
-    Services.prefs.getIntPref(kPrefProtonToolbarVersion),
-    1,
+  Assert.ok(
+    Services.prefs.getIntPref(kPrefProtonToolbarVersion) >= 1,
     "Toolbar proton version updated"
   );
   let navbarPlacements = CustomizableUI.getTestOnlyInternalProp("gAreas")

@@ -40,9 +40,8 @@ add_task(async function () {
   // We haven't set a permission yet - so even the "good" URI should fail.
   let got = await promiseNewChannelResponse(TEST_URI_GOOD);
   // Should return an error.
-  Assert.strictEqual(
-    got.errno,
-    2,
+  Assert.ok(
+    got.errno === 2,
     "should have failed with errno 2, no such channel"
   );
 
@@ -102,9 +101,8 @@ add_task(async function () {
 
   // Now a http:// URI - should receive an error
   got = await promiseNewChannelResponse(TEST_URI_BAD);
-  Assert.strictEqual(
-    got.errno,
-    2,
+  Assert.ok(
+    got.errno === 2,
     "should have failed with errno 2, no such channel"
   );
 });

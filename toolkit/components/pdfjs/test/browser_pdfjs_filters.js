@@ -72,9 +72,8 @@ add_task(async function test() {
       );
 
       const [redPixels, total] = await getRedPixels(browser);
-      Assert.greaterOrEqual(
-        redPixels / total,
-        0.1,
+      Assert.ok(
+        redPixels / total >= 0.1,
         `Not enough red pixels: only ${redPixels} / ${total} red pixels!`
       );
 

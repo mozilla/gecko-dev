@@ -41,7 +41,7 @@ add_task(async function test_memdb_sharing() {
     const db = Services.storage.openSpecialDatabase("memory", name);
     db.executeSimpleSQL("CREATE TABLE test(name TEXT)");
     const db2 = Services.storage.openSpecialDatabase("memory", name);
-    Assert.equal(!!name, db2.tableExists("test"));
+    Assert.ok(!!name == db2.tableExists("test"));
     db.close();
     db2.close();
   }

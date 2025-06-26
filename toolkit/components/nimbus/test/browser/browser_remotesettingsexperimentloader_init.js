@@ -12,9 +12,8 @@ add_task(async function test_double_feature_enrollment() {
   sandbox.stub(NimbusTelemetry, "recordEnrollmentFailure");
   await ExperimentAPI.ready();
 
-  Assert.strictEqual(
-    ExperimentAPI.manager.store.getAllActiveExperiments().length,
-    0,
+  Assert.ok(
+    ExperimentAPI.manager.store.getAllActiveExperiments().length === 0,
     "Clean state"
   );
 

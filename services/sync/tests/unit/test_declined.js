@@ -166,27 +166,23 @@ add_task(async function testDeclinedMeta() {
       "'dummy' is enabled and not remotely declined."
     );
 
-    Assert.lessOrEqual(
-      0,
-      declined.indexOf("nonexistent"),
+    Assert.ok(
+      0 <= declined.indexOf("nonexistent"),
       "'nonexistent' was declined on the server."
     );
 
-    Assert.lessOrEqual(
-      0,
-      declined.indexOf("localdecline"),
+    Assert.ok(
+      0 <= declined.indexOf("localdecline"),
       "'localdecline' was declined locally."
     );
 
     // The meta/global is modified, too.
-    Assert.lessOrEqual(
-      0,
-      meta.payload.declined.indexOf("nonexistent"),
+    Assert.ok(
+      0 <= meta.payload.declined.indexOf("nonexistent"),
       "meta/global's declined contains 'nonexistent'."
     );
-    Assert.lessOrEqual(
-      0,
-      meta.payload.declined.indexOf("localdecline"),
+    Assert.ok(
+      0 <= meta.payload.declined.indexOf("localdecline"),
       "meta/global's declined contains 'localdecline'."
     );
     Assert.strictEqual(true, meta.changed, "meta/global was changed.");

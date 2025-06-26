@@ -54,11 +54,11 @@ WebTransportStreamCallback.prototype = {
   QueryInterface: ChromeUtils.generateQI(["nsIWebTransportStreamCallback"]),
 
   onBidirectionalStreamReady(aStream) {
-    Assert.notEqual(aStream, null);
+    Assert.ok(aStream != null);
     this.finish(aStream);
   },
   onUnidirectionalStreamReady(aStream) {
-    Assert.notEqual(aStream, null);
+    Assert.ok(aStream != null);
     this.finish(aStream);
   },
   onError(aError) {
@@ -74,11 +74,11 @@ StreamStatsCallback.prototype = {
   ]),
 
   onSendStatsAvailable(aStats) {
-    Assert.notEqual(aStats, null);
+    Assert.ok(aStats != null);
     this.finish(aStats);
   },
   onReceiveStatsAvailable(aStats) {
-    Assert.notEqual(aStats, null);
+    Assert.ok(aStats != null);
     this.finish(aStats);
   },
 };

@@ -11,7 +11,7 @@ add_setup(async () => {
     Ci.nsILoginInfo,
     "init"
   );
-  Assert.notEqual(nsLoginInfo, null, "nsLoginInfo constructor");
+  Assert.ok(nsLoginInfo != null, "nsLoginInfo constructor");
 
   info("Adding two logins to get autocomplete instead of autofill");
   let login1 = new nsLoginInfo(

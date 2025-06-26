@@ -50,9 +50,9 @@ add_task(async function () {
     null,
     async win => {
       await BrowserTestUtils.waitForEvent(win, "load");
-      Assert.equal(
-        win.document.documentURI,
-        "chrome://mozapps/content/handling/appChooser.xhtml",
+      Assert.ok(
+        win.document.documentURI ==
+          "chrome://mozapps/content/handling/appChooser.xhtml",
         "application chooser dialog opened"
       );
       return true;

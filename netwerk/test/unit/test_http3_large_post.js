@@ -66,7 +66,7 @@ Http3Listener.prototype = {
     if (this.amount > 500000) {
       // 10 is an arbitrary number, but we cannot calculate exact number
       // because it depends on timing.
-      Assert.greater(this.onProgressNotificationCount, 10);
+      Assert.ok(this.onProgressNotificationCount > 10);
     }
     this.finish();
   },

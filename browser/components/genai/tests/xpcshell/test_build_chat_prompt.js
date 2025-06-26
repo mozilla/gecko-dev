@@ -144,11 +144,11 @@ add_task(async function test_estimate_limit() {
   const length = 1234;
   const limit = GenAI.estimateSelectionLimit(length);
   Assert.ok(limit, "Got some limit");
-  Assert.less(limit, length, "Limit smaller than length");
+  Assert.ok(limit < length, "Limit smaller than length");
 
   const defaultLimit = GenAI.estimateSelectionLimit();
   Assert.ok(defaultLimit, "Got a default limit");
-  Assert.greater(defaultLimit, limit, "Default uses a larger length");
+  Assert.ok(defaultLimit > limit, "Default uses a larger length");
 });
 
 /**
@@ -169,7 +169,7 @@ add_task(async function test_prompt_limit() {
 
   const newLength = getLength();
   Assert.ok(newLength, "Got another max length");
-  Assert.notEqual(newLength, length, "Lengths changed with provider change");
+  Assert.ok(newLength != length, "Lengths changed with provider change");
 
   Services.prefs.clearUserPref("browser.ml.chat.provider");
 });

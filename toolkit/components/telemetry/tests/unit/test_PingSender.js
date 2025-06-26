@@ -262,9 +262,8 @@ add_task(async function test_pingSender_multiple_pings() {
     let req = await PingServer.promiseNextRequest();
     let ping = decodeRequestPayload(req);
     let idx = data.findIndex(d => d.id == ping.id);
-    Assert.greaterOrEqual(
-      idx,
-      0,
+    Assert.ok(
+      idx >= 0,
       `Should have received the correct ping id: ${data[idx].id}`
     );
     data2.push(data[idx]);

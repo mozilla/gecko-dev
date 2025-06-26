@@ -100,7 +100,7 @@ add_task(async function test_jog_timespan_works() {
   await sleep(10);
   Glean.jogCat.jogTimespan.stop();
 
-  Assert.greater(Glean.jogCat.jogTimespan.testGetValue(), 0);
+  Assert.ok(Glean.jogCat.jogTimespan.testGetValue() > 0);
 });
 
 add_task(async function test_jog_uuid_works() {

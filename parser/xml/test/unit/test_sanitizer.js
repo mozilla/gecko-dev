@@ -25,9 +25,8 @@ function run_test() {
     let { PlacesUtils } = ChromeUtils.importESModule(
       "resource://gre/modules/PlacesUtils.sys.mjs"
     );
-    Assert.lessOrEqual(
-      PlacesUtils.history.databaseStatus,
-      1,
+    Assert.ok(
+      PlacesUtils.history.databaseStatus <= 1,
       "ensure places database is successfully initialized."
     );
   }

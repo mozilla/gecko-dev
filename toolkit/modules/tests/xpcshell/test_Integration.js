@@ -192,7 +192,7 @@ add_task(async function test_state_preserved() {
 
   let combined = Integration.testModule.getCombined(TestIntegration);
   combined.property = valueObject;
-  Assert.strictEqual(combined.property, valueObject);
+  Assert.ok(combined.property === valueObject);
 
   Integration.testModule.register(overrideFn);
   combined = Integration.testModule.getCombined(TestIntegration);
@@ -200,7 +200,7 @@ add_task(async function test_state_preserved() {
 
   Integration.testModule.unregister(overrideFn);
   combined = Integration.testModule.getCombined(TestIntegration);
-  Assert.strictEqual(combined.property, valueObject);
+  Assert.ok(combined.property === valueObject);
 });
 
 /**

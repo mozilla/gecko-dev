@@ -229,24 +229,21 @@ function checkPayloadInfo(data, reason) {
   );
   Assert.equal(data.reason, reason, "Payload reason must match expected.");
 
-  Assert.greaterOrEqual(
-    Date.parse(data.subsessionStartDate),
-    Date.parse(data.sessionStartDate)
+  Assert.ok(
+    Date.parse(data.subsessionStartDate) >= Date.parse(data.sessionStartDate)
   );
-  Assert.greaterOrEqual(data.profileSubsessionCounter, data.subsessionCounter);
+  Assert.ok(data.profileSubsessionCounter >= data.subsessionCounter);
 
   // According to https://en.wikipedia.org/wiki/List_of_UTC_time_offsets,
   // UTC offsets range from -12 to +14 hours.
   // Don't think the extremes of the range are affected by further
   // daylight-savings adjustments, but it is possible.
-  Assert.greaterOrEqual(
-    data.timezoneOffset,
-    -12 * 60,
+  Assert.ok(
+    data.timezoneOffset >= -12 * 60,
     "The timezone must be in a valid range."
   );
-  Assert.lessOrEqual(
-    data.timezoneOffset,
-    14 * 60,
+  Assert.ok(
+    data.timezoneOffset <= 14 * 60,
     "The timezone must be in a valid range."
   );
 }
@@ -278,16 +275,14 @@ function checkScalars(processes) {
     const valueType = typeof scalar;
     switch (valueType) {
       case "string":
-        Assert.lessOrEqual(
-          scalar.length,
-          50,
+        Assert.ok(
+          scalar.length <= 50,
           "String values can't have more than 50 characters"
         );
         break;
       case "number":
-        Assert.greaterOrEqual(
-          scalar,
-          0,
+        Assert.ok(
+          scalar >= 0,
           "We only support unsigned integer values in scalars."
         );
         break;
@@ -319,9 +314,8 @@ function checkScalars(processes) {
     );
     for (let key in keyedScalars[name]) {
       Assert.equal(typeof key, "string", "Keyed scalar keys must be strings.");
-      Assert.lessOrEqual(
-        key.length,
-        70,
+      Assert.ok(
+        key.length <= 70,
         "Keyed scalar keys can't have more than 70 characters."
       );
       checkScalar(scalars[name][key], name);
@@ -333,11 +327,11 @@ function checkPayload(payload, reason, successfulPings) {
   Assert.ok("info" in payload, "Payload must contain an info section.");
   checkPayloadInfo(payload.info, reason);
 
-  Assert.greaterOrEqual(payload.simpleMeasurements.totalTime, 0);
+  Assert.ok(payload.simpleMeasurements.totalTime >= 0);
   Assert.equal(payload.simpleMeasurements.shutdownDuration, SHUTDOWN_TIME);
 
   let activeTicks = payload.simpleMeasurements.activeTicks;
-  Assert.greaterOrEqual(activeTicks, 0);
+  Assert.ok(activeTicks >= 0);
 
   if ("browser.timings.last_shutdown" in payload.processes.parent.scalars) {
     Assert.equal(
@@ -357,14 +351,8 @@ function checkPayload(payload, reason, successfulPings) {
 
   let isWindows = "@mozilla.org/windows-registry-key;1" in Cc;
   if (isWindows) {
-    Assert.greater(
-      payload.simpleMeasurements.startupSessionRestoreReadBytes,
-      0
-    );
-    Assert.greater(
-      payload.simpleMeasurements.startupSessionRestoreWriteBytes,
-      0
-    );
+    Assert.ok(payload.simpleMeasurements.startupSessionRestoreReadBytes > 0);
+    Assert.ok(payload.simpleMeasurements.startupSessionRestoreWriteBytes > 0);
   }
 
   const TELEMETRY_SEND_SUCCESS = "TELEMETRY_SEND_SUCCESS";
@@ -548,15 +536,13 @@ add_task(async function sessionTimeExcludingAndIncludingSuspend() {
   let withoutSuspend =
     parentScalars["browser.engagement.session_time_excluding_suspend"];
 
-  Assert.greater(
-    withSuspend,
-    0,
+  Assert.ok(
+    withSuspend > 0,
     "The session time including suspend should be positive"
   );
 
-  Assert.greater(
-    withoutSuspend,
-    0,
+  Assert.ok(
+    withoutSuspend > 0,
     "The session time excluding suspend should be positive"
   );
 
@@ -570,9 +556,8 @@ add_task(async function sessionTimeExcludingAndIncludingSuspend() {
   //    following assertion test, but that's unlikely in practice.
   const max_delta_ms = 100;
 
-  Assert.lessOrEqual(
-    withSuspend - withoutSuspend,
-    max_delta_ms,
+  Assert.ok(
+    withSuspend - withoutSuspend <= max_delta_ms,
     "In test condition, the two uptimes should be close to each other"
   );
 

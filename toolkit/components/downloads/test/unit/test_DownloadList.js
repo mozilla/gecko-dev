@@ -410,7 +410,7 @@ add_task(async function test_removeFinished() {
           aDownload == downloadTwo ||
           aDownload == downloadThree
       );
-      Assert.less(removeNotifications, 3);
+      Assert.ok(removeNotifications < 3);
       if (++removeNotifications == 3) {
         deferred.resolve();
       }

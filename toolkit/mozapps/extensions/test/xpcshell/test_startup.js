@@ -81,7 +81,7 @@ add_task(async function test_scan_profile() {
     Assert.notEqual(addon, null);
     Assert.equal(addon.id, id);
     Assert.notEqual(addon.syncGUID, null);
-    Assert.greaterOrEqual(addon.syncGUID.length, 9);
+    Assert.ok(addon.syncGUID.length >= 9);
     Assert.equal(addon.version, initialVersion(n));
     Assert.ok(isExtensionInBootstrappedList(profileDir, id));
     Assert.ok(hasFlag(addon.permissions, AddonManager.PERM_CAN_UNINSTALL));

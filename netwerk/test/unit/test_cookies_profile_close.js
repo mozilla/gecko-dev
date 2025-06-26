@@ -38,7 +38,7 @@ add_task(async () => {
   );
 
   let cookies = Services.cookies.cookies;
-  Assert.equal(cookies.length, 1);
+  Assert.ok(cookies.length == 1);
   let cookie = cookies[0];
 
   // Fire 'profile-before-change'.

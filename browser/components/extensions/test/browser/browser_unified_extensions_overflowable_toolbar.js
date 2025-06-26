@@ -419,9 +419,8 @@ async function verifyExtensionWidget(widget, win = window) {
       .args.extensionName.startsWith("Extension "),
     "expected l10n args attribute to start with the correct name"
   );
-  Assert.notStrictEqual(
-    menuButton.getAttribute("aria-label"),
-    "",
+  Assert.ok(
+    menuButton.getAttribute("aria-label") !== "",
     "expected menu button to have non-empty localized content"
   );
 }
@@ -652,9 +651,8 @@ add_task(async function test_message_deck() {
             { id: "origin-controls-state-when-clicked", args: null },
             "expected correct l10n attributes for the default message"
           );
-          Assert.notStrictEqual(
-            defaultMessage.textContent,
-            "",
+          Assert.ok(
+            defaultMessage.textContent !== "",
             "expected default message to not be empty"
           );
 
@@ -666,9 +664,8 @@ add_task(async function test_message_deck() {
             { id: "origin-controls-state-hover-run-visit-only", args: null },
             "expected correct l10n attributes for the hover message"
           );
-          Assert.notStrictEqual(
-            hoverMessage.textContent,
-            "",
+          Assert.ok(
+            hoverMessage.textContent !== "",
             "expected hover message to not be empty"
           );
 
@@ -680,9 +677,8 @@ add_task(async function test_message_deck() {
             { id: "unified-extensions-item-message-manage", args: null },
             "expected correct l10n attributes for the message when hovering the menu button"
           );
-          Assert.notStrictEqual(
-            hoverMenuButtonMessage.textContent,
-            "",
+          Assert.ok(
+            hoverMenuButtonMessage.textContent !== "",
             "expected message for when the menu button is hovered to not be empty"
           );
 

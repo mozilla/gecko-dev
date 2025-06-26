@@ -24,11 +24,7 @@ add_task(async function test_enrollmentHelper() {
     manager,
   });
 
-  Assert.strictEqual(
-    manager.store.getAllActiveExperiments().length,
-    1,
-    "Enrolled"
-  );
+  Assert.ok(manager.store.getAllActiveExperiments().length === 1, "Enrolled");
   Assert.equal(
     manager.store.getAllActiveExperiments()[0].slug,
     recipe.slug,
@@ -41,7 +37,7 @@ add_task(async function test_enrollmentHelper() {
 
   await doEnrollmentCleanup();
 
-  Assert.strictEqual(manager.store.getAll().length, 0, "Cleanup done");
+  Assert.ok(manager.store.getAll().length === 0, "Cleanup done");
   Assert.ok(
     !Services.prefs.prefHasUserValue("nimbus.syncdatastore.aboutwelcome"),
     "Sync pref cache is cleared"

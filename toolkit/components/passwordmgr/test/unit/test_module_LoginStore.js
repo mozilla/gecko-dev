@@ -320,9 +320,8 @@ add_task(async function test_load_bad_dates() {
     let login = store.data.logins[0];
     for (let pname of ["timeCreated", "timeLastUsed", "timePasswordChanged"]) {
       if (testData.expectedProps[pname] === "now") {
-        Assert.greaterOrEqual(
-          login[pname],
-          now,
+        Assert.ok(
+          login[pname] >= now,
           `${testData.name}: Check ${pname} is at/near now`
         );
       } else {

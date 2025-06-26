@@ -46,9 +46,8 @@ add_task(async function test_global_manual_http_proxy() {
   await loadedPromise;
 
   await SpecialPowers.spawn(browser, [], async () => {
-    Assert.strictEqual(
-      content.document.body.textContent,
-      "Not proxied",
+    Assert.ok(
+      content.document.body.textContent === "Not proxied",
       "The page was not proxied"
     );
   });
@@ -68,9 +67,8 @@ add_task(async function test_global_manual_http_proxy() {
   await loadedPromise;
 
   await SpecialPowers.spawn(browser, [], async () => {
-    Assert.strictEqual(
-      content.document.body.textContent,
-      "Proxied",
+    Assert.ok(
+      content.document.body.textContent === "Proxied",
       "The page was proxied"
     );
   });
@@ -85,9 +83,8 @@ add_task(async function test_global_manual_http_proxy() {
   await loadedPromise;
 
   await SpecialPowers.spawn(browser, [], async () => {
-    Assert.strictEqual(
-      content.document.body.textContent,
-      "Not proxied",
+    Assert.ok(
+      content.document.body.textContent === "Not proxied",
       "The page was not proxied"
     );
   });

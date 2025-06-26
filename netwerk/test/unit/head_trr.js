@@ -155,9 +155,8 @@ class TRRDNSListener {
   }
 
   onLookupComplete(inRequest, inRecord, inStatus) {
-    Assert.equal(
-      inRequest,
-      this.request,
+    Assert.ok(
+      inRequest == this.request,
       "Checking that this is the correct callback"
     );
 

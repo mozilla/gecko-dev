@@ -70,7 +70,7 @@ function testStatus(aFunc, aCurr, aMore, aRate, aTest) {
   if (last == Infinity) {
     Assert.equal(last, aTest[1]);
   } else {
-    Assert.less(Math.abs(last - aTest[1]), 0.1);
+    Assert.ok(Math.abs(last - aTest[1]) < 0.1);
   }
 }
 

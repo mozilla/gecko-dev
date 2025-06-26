@@ -369,9 +369,9 @@ add_task(async function ignoreEndsEngagement() {
         await EventUtils.synthesizeMouseAtCenter(spring, {});
         AccessibilityUtils.resetEnv();
       });
-      Assert.equal(
-        UrlbarProviderSearchTips.showedTipTypeInCurrentEngagement,
-        UrlbarProviderSearchTips.TIP_TYPE.NONE,
+      Assert.ok(
+        UrlbarProviderSearchTips.showedTipTypeInCurrentEngagement ==
+          UrlbarProviderSearchTips.TIP_TYPE.NONE,
         "The engagement should have ended after the tip was ignored."
       );
     });

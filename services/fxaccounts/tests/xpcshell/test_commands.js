@@ -144,7 +144,7 @@ add_task(async function test_sendtab_send_rate_limit() {
   let invoked = 0;
   fxAccounts.fxAccountsClient.invokeCommand = async function invokeCommand() {
     invoked++;
-    Assert.lessOrEqual(invoked, 2, "only called twice and not more");
+    Assert.ok(invoked <= 2, "only called twice and not more");
     if (rejected) {
       return {};
     }

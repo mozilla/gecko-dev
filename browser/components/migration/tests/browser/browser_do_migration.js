@@ -58,9 +58,8 @@ add_task(async function test_successful_migrations() {
   // scalar was set, since we know that at least one migration wizard has
   // been opened.
   let scalars = TelemetryTestUtils.getProcessScalars("parent", false, false);
-  Assert.greater(
-    scalars["migration.time_to_produce_migrator_list"],
-    0,
+  Assert.ok(
+    scalars["migration.time_to_produce_migrator_list"] > 0,
     "Non-zero scalar value recorded for migration.time_to_produce_migrator_list"
   );
 

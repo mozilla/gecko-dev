@@ -53,32 +53,19 @@ function run_test() {
 
   // The objects appear as global variables in the sandbox, and as
   // the sandbox object's properties in chrome.
-  Assert.strictEqual(
-    Cu.evalInSandbox("mainObj", contentBox),
-    contentBox.mainObj
+  Assert.ok(Cu.evalInSandbox("mainObj", contentBox) === contentBox.mainObj);
+  Assert.ok(
+    Cu.evalInSandbox("contentObj", contentBox) === contentBox.contentObj
   );
-  Assert.strictEqual(
-    Cu.evalInSandbox("contentObj", contentBox),
-    contentBox.contentObj
-  );
-  Assert.strictEqual(
-    Cu.evalInSandbox("chromeObj", contentBox),
-    contentBox.chromeObj
-  );
-  Assert.strictEqual(Cu.evalInSandbox("mainObj", chromeBox), chromeBox.mainObj);
-  Assert.strictEqual(
-    Cu.evalInSandbox("contentObj", chromeBox),
-    chromeBox.contentObj
-  );
-  Assert.strictEqual(
-    Cu.evalInSandbox("chromeObj", chromeBox),
-    chromeBox.chromeObj
-  );
+  Assert.ok(Cu.evalInSandbox("chromeObj", contentBox) === contentBox.chromeObj);
+  Assert.ok(Cu.evalInSandbox("mainObj", chromeBox) === chromeBox.mainObj);
+  Assert.ok(Cu.evalInSandbox("contentObj", chromeBox) === chromeBox.contentObj);
+  Assert.ok(Cu.evalInSandbox("chromeObj", chromeBox) === chromeBox.chromeObj);
 
   // We (the main global) can see properties of all objects in all globals.
-  Assert.strictEqual(contentBox.mainObj.name, "mainObj");
-  Assert.strictEqual(contentBox.contentObj.name, "contentObj");
-  Assert.strictEqual(contentBox.chromeObj.name, "chromeObj");
+  Assert.ok(contentBox.mainObj.name === "mainObj");
+  Assert.ok(contentBox.contentObj.name === "contentObj");
+  Assert.ok(contentBox.chromeObj.name === "chromeObj");
 
   // chromeBox can see properties of all objects in all globals.
   Assert.equal(Cu.evalInSandbox("mainObj.name", chromeBox), "mainObj");

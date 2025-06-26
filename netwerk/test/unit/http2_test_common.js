@@ -86,7 +86,7 @@ Http2CheckListener.prototype = {
     if (this.shouldSucceed) {
       Assert.ok(Components.isSuccessCode(status));
       Assert.ok(this.onDataAvailableFired);
-      Assert.equal(this.isHttp2Connection, this.shouldBeHttp2);
+      Assert.ok(this.isHttp2Connection == this.shouldBeHttp2);
     } else {
       Assert.ok(!Components.isSuccessCode(status));
     }
@@ -127,7 +127,7 @@ Http2MultiplexListener.prototype.onStopRequest = function (request) {
   Assert.ok(this.onStartRequestFired);
   Assert.ok(this.onDataAvailableFired);
   Assert.ok(this.isHttp2Connection);
-  Assert.equal(this.buffer, multiplexContent);
+  Assert.ok(this.buffer == multiplexContent);
 
   request.QueryInterface(Ci.nsIProxiedChannel);
   // This is what does most of the hard work for us
@@ -195,7 +195,7 @@ Http2BigListener.prototype.onStopRequest = function (request) {
   Assert.ok(this.isHttp2Connection);
 
   // Don't want to flood output, so don't use do_check_eq
-  Assert.equal(this.buffer, bigListenerData);
+  Assert.ok(this.buffer == bigListenerData);
 
   request.QueryInterface(Ci.nsIProxiedChannel);
   var httpProxyConnectResponseCode = request.httpProxyConnectResponseCode;
@@ -282,7 +282,7 @@ ResumeStalledChannelListener.prototype = {
     Assert.ok(this.onStartRequestFired);
     Assert.ok(Components.isSuccessCode(status));
     Assert.ok(this.onDataAvailableFired);
-    Assert.equal(this.isHttp2Connection, this.shouldBeHttp2);
+    Assert.ok(this.isHttp2Connection == this.shouldBeHttp2);
     this.resumable.resume();
   },
 };
@@ -822,7 +822,7 @@ H11RequiredSessionListener.prototype.onStopRequest = function (request) {
 
   Assert.ok(this.onStartRequestFired);
   Assert.ok(this.onDataAvailableFired);
-  Assert.equal(this.isHttp2Connection, this.shouldBeHttp2);
+  Assert.ok(this.isHttp2Connection == this.shouldBeHttp2);
 
   request.QueryInterface(Ci.nsIProxiedChannel);
   var httpProxyConnectResponseCode = request.httpProxyConnectResponseCode;
@@ -879,7 +879,7 @@ Http2IllegalHpackValidationListener.prototype.onStopRequest = function (
 
   Assert.ok(this.onStartRequestFired);
   Assert.ok(this.onDataAvailableFired);
-  Assert.equal(this.isHttp2Connection, this.shouldBeHttp2);
+  Assert.ok(this.isHttp2Connection == this.shouldBeHttp2);
 
   request.QueryInterface(Ci.nsIProxiedChannel);
   var httpProxyConnectResponseCode = request.httpProxyConnectResponseCode;

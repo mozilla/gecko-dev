@@ -354,9 +354,8 @@ async function awaitTip(searchString, win = window) {
     waitForFocus,
     fireInputEvent: true,
   });
-  Assert.greaterOrEqual(
-    context.results.length,
-    2,
+  Assert.ok(
+    context.results.length >= 2,
     "Number of results is greater than or equal to 2"
   );
   let result = context.results[1];

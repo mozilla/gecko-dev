@@ -504,15 +504,13 @@ function verifyPassword(rules, generatedPassword) {
         }
       }
     } else if (_name === "minlength") {
-      Assert.greaterOrEqual(
-        generatedPassword.length,
-        value,
+      Assert.ok(
+        generatedPassword.length >= value,
         `Password should have a minimum length of ${value}`
       );
     } else if (_name === "maxlength") {
-      Assert.lessOrEqual(
-        generatedPassword.length,
-        value,
+      Assert.ok(
+        generatedPassword.length <= value,
         `Password should have a maximum length of ${value}`
       );
     } else if (_name === "max-consecutive") {

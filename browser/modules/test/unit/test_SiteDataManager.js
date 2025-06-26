@@ -84,14 +84,10 @@ add_task(async function testGetSites() {
     3, // 2 top level, 1 partitioned.
     "Has correct number of cookies for example.com"
   );
-  Assert.equal(
-    typeof site1.lastAccessed.getDate,
-    "function",
+  Assert.ok(
+    typeof site1.lastAccessed.getDate == "function",
     "lastAccessed for example.com is a Date"
   );
-  // Note: this is comparing a date and a number, and Assert.greater requires
-  // inputs to be the same type. bug 1973910 covers fixing this.
-  // eslint-disable-next-line mozilla/no-comparison-or-assignment-inside-ok
   Assert.ok(
     site1.lastAccessed > Date.now() - 60 * 1000,
     "lastAccessed for example.com happened recently"
@@ -109,14 +105,10 @@ add_task(async function testGetSites() {
     1,
     "Has correct number of cookies for example.org"
   );
-  Assert.equal(
-    typeof site2.lastAccessed.getDate,
-    "function",
+  Assert.ok(
+    typeof site2.lastAccessed.getDate == "function",
     "lastAccessed for example.org is a Date"
   );
-  // Note: this is comparing a date and a number, and Assert.greater requires
-  // inputs to be the same type. bug 1973910 covers fixing this.
-  // eslint-disable-next-line mozilla/no-comparison-or-assignment-inside-ok
   Assert.ok(
     site2.lastAccessed > Date.now() - 60 * 1000,
     "lastAccessed for example.org happened recently"

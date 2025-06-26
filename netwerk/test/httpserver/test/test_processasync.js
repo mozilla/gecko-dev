@@ -195,7 +195,7 @@ function start_handleAsync2(ch) {
       (now - startTime_handleAsync2) +
       "ms after start time"
   );
-  Assert.greaterOrEqual(now, startTime_handleAsync2 + startToHeaderDelay);
+  Assert.ok(now >= startTime_handleAsync2 + startToHeaderDelay);
 
   Assert.equal(ch.responseStatus, 200);
   Assert.equal(ch.responseStatusText, "Status line");
@@ -211,7 +211,7 @@ function stop_handleAsync2(ch, status, data) {
       (now - startTime_handleAsync2) +
       "ms after header time"
   );
-  Assert.greaterOrEqual(now, startTime_handleAsync2 + startToFinishedDelay);
+  Assert.ok(now >= startTime_handleAsync2 + startToFinishedDelay);
 
   Assert.equal(String.fromCharCode.apply(null, data), "BODY");
 }

@@ -98,7 +98,7 @@ add_task(async function test_empty_jar_file_async() {
   await new Promise(resolve => {
     chan.asyncOpen(
       new Listener(function () {
-        Assert.equal(chan.contentLength, 0);
+        Assert.ok(chan.contentLength == 0);
         resolve();
       })
     );

@@ -32,7 +32,7 @@ add_task(async function test_tracker_basics() {
   _("Adding without time defaults to current time");
   await tracker.addChangedID(id);
   changes = await tracker.getChangedIDs();
-  Assert.greater(changes[id], 10);
+  Assert.ok(changes[id] > 10);
 });
 
 add_task(async function test_tracker_persistence() {

@@ -33,7 +33,7 @@ add_task(async function () {
       }
       if (expectedParentGuids.length) {
         let index = expectedParentGuids.indexOf(event.parentGuid);
-        Assert.notEqual(index, -1, "Found expected parent");
+        Assert.ok(index != -1, "Found expected parent");
         expectedParentGuids.splice(index, 1);
       }
     }

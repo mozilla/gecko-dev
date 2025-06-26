@@ -221,10 +221,9 @@ function test_trackStartupCrashEnd() {
   appStartup.trackStartupCrashEnd();
   // ensure last_success was set since we have declared a succesful startup
   // main timestamp doesn't get set in XPCShell so approximate with now
-  Assert.lessOrEqual(prefService.getIntPref(pref_last_success), now_seconds());
-  Assert.greaterOrEqual(
-    prefService.getIntPref(pref_last_success),
-    now_seconds() - 4 * 60 * 60
+  Assert.ok(prefService.getIntPref(pref_last_success) <= now_seconds());
+  Assert.ok(
+    prefService.getIntPref(pref_last_success) >= now_seconds() - 4 * 60 * 60
   );
   Assert.ok(!prefService.prefHasUserValue(pref_recent_crashes));
 

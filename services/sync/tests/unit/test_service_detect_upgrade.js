@@ -166,8 +166,8 @@ add_task(async function v4_upgrade() {
     _("New key should have forced upload of data.");
     _("Tabs: " + oldTabsModified + " < " + collections.tabs);
     _("Clients: " + oldClientsModified + " < " + collections.clients);
-    Assert.greater(collections.clients, oldClientsModified);
-    Assert.greater(collections.tabs, oldTabsModified);
+    Assert.ok(collections.clients > oldClientsModified);
+    Assert.ok(collections.tabs > oldTabsModified);
 
     _("... and keys will now match.");
     await retrieve_and_compare_default(true);

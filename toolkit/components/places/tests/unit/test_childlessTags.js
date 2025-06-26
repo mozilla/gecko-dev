@@ -132,7 +132,7 @@ function ensureTagsExist(aTags) {
   for (let i = 0; i < resultRoot.childCount; i++) {
     var tag = resultRoot.getChild(i).title;
     var indexOfTag = tags.indexOf(tag);
-    Assert.greaterOrEqual(indexOfTag, 0);
+    Assert.ok(indexOfTag >= 0);
     tags.splice(indexOfTag, 1);
   }
 

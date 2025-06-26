@@ -58,7 +58,7 @@ add_task(async function test_tab_quickwrite_works() {
   Assert.ok(await engine.quickWrite());
   // Validate we didn't bork lastSync
   let lastSync = await engine.getLastSync();
-  Assert.less(lastSync, FAR_FUTURE);
+  Assert.ok(lastSync < FAR_FUTURE);
   Assert.equal(collection.count(), 1, "tab record was written");
 
   await promiseStopServer(server);
@@ -82,7 +82,7 @@ add_task(async function test_tab_bad_status() {
   await quickWrite();
   // Validate we didn't bork lastSync
   let lastSync = await engine.getLastSync();
-  Assert.less(lastSync, FAR_FUTURE);
+  Assert.ok(lastSync < FAR_FUTURE);
   Service.status.resetSync();
   engine.lock = lock;
   await promiseStopServer(server);

@@ -26,9 +26,9 @@ add_task(async function test_eraseEverything() {
   let folder = unfiled.getChild(0);
   // Test dateAdded and lastModified properties.
   Assert.equal(typeof folder.dateAdded, "number");
-  Assert.greater(folder.dateAdded, 0);
+  Assert.ok(folder.dateAdded > 0);
   Assert.equal(typeof folder.lastModified, "number");
-  Assert.greater(folder.lastModified, 0);
+  Assert.ok(folder.lastModified > 0);
 
   let root = PlacesUtils.getFolderContents(folder.bookmarkGuid).root;
   Assert.equal(root.childCount, 4, "The folder should have 4 children");
@@ -68,9 +68,9 @@ add_task(async function test_search_title() {
 
   // Test dateAdded and lastModified properties.
   Assert.equal(typeof node.dateAdded, "number");
-  Assert.greater(node.dateAdded, 0);
+  Assert.ok(node.dateAdded > 0);
   Assert.equal(typeof node.lastModified, "number");
-  Assert.greater(node.lastModified, 0);
+  Assert.ok(node.lastModified > 0);
   Assert.equal(node.bookmarkGuid, bm.guid);
 
   await PlacesUtils.bookmarks.remove(bm);

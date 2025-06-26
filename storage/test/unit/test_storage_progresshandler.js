@@ -60,7 +60,7 @@ function test_handler_call() {
   while (stmt.executeStep()) {
     // Do nothing.
   }
-  Assert.greater(testProgressHandler.calls, 0);
+  Assert.ok(testProgressHandler.calls > 0);
   stmt.finalize();
 }
 

@@ -49,9 +49,8 @@ function depError(has, missing) {
 }
 
 function assertContains(haystack, needle) {
-  Assert.notStrictEqual(
-    haystack.find(item => ObjectUtils.deepEqual(item, needle)),
-    null
+  Assert.ok(
+    haystack.find(item => ObjectUtils.deepEqual(item, needle)) !== null
   );
 }
 

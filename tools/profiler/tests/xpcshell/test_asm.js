@@ -61,16 +61,16 @@ add_task(async () => {
   Assert.notEqual(stack, null);
 
   var i1 = stack.indexOf("entry trampoline");
-  Assert.notStrictEqual(i1, -1);
+  Assert.ok(i1 !== -1);
   var i2 = stack.indexOf("asmjs_function");
-  Assert.notStrictEqual(i2, -1);
+  Assert.ok(i2 !== -1);
   var i3 = stack.indexOf("exit trampoline");
-  Assert.notStrictEqual(i3, -1);
+  Assert.ok(i3 !== -1);
   var i4 = stack.indexOf("ffi_function");
-  Assert.notStrictEqual(i4, -1);
-  Assert.less(i1, i2);
-  Assert.less(i2, i3);
-  Assert.less(i3, i4);
+  Assert.ok(i4 !== -1);
+  Assert.ok(i1 < i2);
+  Assert.ok(i2 < i3);
+  Assert.ok(i3 < i4);
 
   await Services.profiler.StopProfiler();
 });

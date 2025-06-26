@@ -18,8 +18,8 @@ add_task(async function test_eraseEverything() {
     "frecency",
     { url: "http://mozilla.org/" }
   );
-  Assert.greater(frecencyForExample, 0);
-  Assert.greater(frecencyForMozilla, 0);
+  Assert.ok(frecencyForExample > 0);
+  Assert.ok(frecencyForMozilla > 0);
   let unfiledFolder = await PlacesUtils.bookmarks.insert({
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     type: PlacesUtils.bookmarks.TYPE_FOLDER,
@@ -75,17 +75,15 @@ add_task(async function test_eraseEverything() {
   checkBookmarkObject(toolbarBookmarkInFolder);
 
   await PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
-  Assert.greater(
-    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
       url: "http://example.com/",
-    }),
-    frecencyForExample
+    })) > frecencyForExample
   );
-  Assert.greater(
-    await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
+  Assert.ok(
+    (await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
       url: "http://example.com/",
-    }),
-    frecencyForMozilla
+    })) > frecencyForMozilla
   );
 
   await PlacesUtils.bookmarks.eraseEverything();

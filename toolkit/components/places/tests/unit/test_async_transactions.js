@@ -134,7 +134,7 @@ function run_test() {
 }
 
 function sanityCheckTransactionHistory() {
-  Assert.lessOrEqual(PT.undoPosition, PT.length);
+  Assert.ok(PT.undoPosition <= PT.length);
 
   let check_entry_throws = f => {
     try {

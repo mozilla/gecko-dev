@@ -33,9 +33,8 @@ add_task(
       })
     );
 
-    Assert.lessOrEqual(
-      gNumTimesSourcesSent,
-      1,
+    Assert.ok(
+      gNumTimesSourcesSent <= 1,
       "Should only send one sources request at most, even though we" +
         " might have had to send one to determine feature support."
     );

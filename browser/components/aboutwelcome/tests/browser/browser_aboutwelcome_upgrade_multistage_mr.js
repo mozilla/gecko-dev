@@ -175,9 +175,9 @@ add_task(async function test_aboutwelcome_upgrade_mr_private_pin() {
     2,
     "pinFirefoxToTaskbar should have been called twice"
   );
-  Assert.notEqual(
-    pinStub.firstCall.lastArg,
-    pinStub.secondCall.lastArg,
+  Assert.ok(
+    // eslint-disable-next-line eqeqeq
+    pinStub.firstCall.lastArg != pinStub.secondCall.lastArg,
     "pinFirefoxToTaskbar should have been called once for private, once not"
   );
 

@@ -25,5 +25,5 @@ add_task(async function () {
   }
   // check that an entry still exists
   let num = await promiseCountEntries("name-A", "value-A");
-  Assert.greater(num, 0);
+  Assert.ok(num > 0);
 });

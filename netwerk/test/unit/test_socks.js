@@ -292,7 +292,7 @@ SocksClient.prototype = {
       return;
     }
 
-    Assert.greaterOrEqual(nmethods, 1);
+    Assert.ok(nmethods >= 1);
     var methods = this.inbuf.slice(2, 2 + nmethods);
     Assert.ok(0 in methods);
 
@@ -419,7 +419,7 @@ SocksTestServer.prototype = {
     var test = this.pickTest(port_id);
 
     print("server: test finished", test.port);
-    Assert.notEqual(test, null);
+    Assert.ok(test != null);
     Assert.equal(test.expectedType || test.type, client.type);
     Assert.equal(test.port, port_id);
 

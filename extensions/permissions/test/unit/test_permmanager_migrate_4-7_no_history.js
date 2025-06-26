@@ -57,11 +57,7 @@ add_task(function test() {
   // We need to execute a pm method to be sure that the DB is fully
   // initialized.
   var pm = Services.perms;
-  Assert.greaterOrEqual(
-    pm.all.length,
-    0,
-    "Permission manager not initialized?"
-  );
+  Assert.ok(pm.all.length >= 0, "Permission manager not initialized?");
 
   let db = Services.storage.openDatabase(GetPermissionsFile(profile));
   db.schemaVersion = 4;
@@ -245,9 +241,8 @@ add_task(function test() {
   }
 
   found.forEach((count, i) => {
-    Assert.equal(
-      count,
-      1,
+    Assert.ok(
+      count == 1,
       "Expected count = 1, got count = " +
         count +
         " for permission " +

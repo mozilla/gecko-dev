@@ -916,7 +916,7 @@ function test_bind_empty_array() {
 function test_multiple_results() {
   let expectedResults = getTableRowCount("test");
   // Sanity check - we should have more than one result, but let's be sure.
-  Assert.greater(expectedResults, 1);
+  Assert.ok(expectedResults > 1);
 
   // Now check that we get back two rows of data from our async query.
   let stmt = makeTestStatement("SELECT * FROM test");

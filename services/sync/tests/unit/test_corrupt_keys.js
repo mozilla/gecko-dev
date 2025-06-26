@@ -87,7 +87,7 @@ add_task(async function test_locally_changed_keys() {
 
     // Tabs exist.
     _("Tabs modified: " + johndoe.modified("tabs"));
-    Assert.greater(johndoe.modified("tabs"), 0);
+    Assert.ok(johndoe.modified("tabs") > 0);
 
     // Let's create some server side history records.
     let liveKeys = Service.collectionKeys.keyForCollection("history");
@@ -210,7 +210,7 @@ add_task(async function test_locally_changed_keys() {
     _(
       "Server keys have been updated, and we skipped over 5 more HMAC errors without adjusting history."
     );
-    Assert.greater(johndoe.modified("crypto"), old_key_time);
+    Assert.ok(johndoe.modified("crypto") > old_key_time);
     Assert.equal(hmacErrorCount, 6);
     Assert.equal(
       false,

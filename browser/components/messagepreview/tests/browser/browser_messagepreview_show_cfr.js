@@ -77,10 +77,9 @@ add_task(async function test_show_cfr_message() {
   // Wait for the CFR to show
   await BrowserTestUtils.waitForEvent(PopupNotifications.panel, "popupshown");
 
-  Assert.strictEqual(
+  Assert.ok(
     document.getElementById("contextual-feature-recommendation-notification")
-      .hidden,
-    false,
+      .hidden === false,
     "Panel should be visible"
   );
 

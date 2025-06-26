@@ -1165,7 +1165,7 @@ tests.push({
       );
       for (let row of parentRows) {
         let actualChangeCounter = row.getResultByName("syncChangeCounter");
-        Assert.greater(actualChangeCounter, 0);
+        Assert.ok(actualChangeCounter > 0);
       }
     }
 
@@ -2478,7 +2478,7 @@ tests.push({
           let nowAsPRTime = PlacesUtils.toPRTime(new Date());
           Assert.greater(dateAdded, 0);
           Assert.equal(dateAdded, lastModified);
-          Assert.lessOrEqual(dateAdded, nowAsPRTime);
+          Assert.ok(dateAdded <= nowAsPRTime);
           break;
         }
 
@@ -2667,7 +2667,7 @@ add_task(async function test_preventive_maintenance() {
   defaultBookmarksMaxId = (
     await db.executeCached("SELECT MAX(id) FROM moz_bookmarks")
   )[0].getResultByIndex(0);
-  Assert.greater(defaultBookmarksMaxId, 0);
+  Assert.ok(defaultBookmarksMaxId > 0);
 
   for (let test of tests) {
     await PlacesTestUtils.markBookmarksAsSynced();

@@ -98,12 +98,11 @@ add_task(async function testFullscreenCloseAddonInstallPrompt() {
     () => PopupNotifications.isPanelOpen,
     "Waiting for addon installation prompt to open"
   );
-  Assert.notEqual(
+  Assert.ok(
     PopupNotifications.getNotification(
       "addon-webext-permissions",
       gBrowser.selectedBrowser
-    ),
-    null,
+    ) != null,
     "Opened notification is webextension permissions prompt"
   );
 

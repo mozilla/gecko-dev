@@ -29,7 +29,7 @@ function run_test() {
   zipreader.extract(entryName, target);
 
   var entry = zipreader.getEntry(entryName);
-  Assert.notEqual(entry, null);
+  Assert.ok(entry != null);
 
   zipreader.test(entryName);
 

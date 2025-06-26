@@ -192,7 +192,7 @@ add_task(async function test_random_mode() {
   await applyRanking(suggestions);
 
   for (let s of suggestions) {
-    Assert.equal(typeof s.score, "number", "Suggestion should have a score");
+    Assert.ok(typeof s.score == "number", "Suggestion should have a score");
     Assert.greaterOrEqual(s.score, 0, "Suggestion score should be >= 0");
     Assert.lessOrEqual(s.score, 1, "Suggestion score should be <= 1");
     Assert.notEqual(

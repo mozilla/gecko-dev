@@ -10,11 +10,7 @@ let defaultValue;
 add_task(async function default_need() {
   defaultValue = await ShellService.doesAppNeedPin();
 
-  Assert.notStrictEqual(
-    defaultValue,
-    undefined,
-    "Got a default app need pin value"
-  );
+  Assert.ok(defaultValue !== undefined, "Got a default app need pin value");
 });
 
 add_task(async function remote_disable() {

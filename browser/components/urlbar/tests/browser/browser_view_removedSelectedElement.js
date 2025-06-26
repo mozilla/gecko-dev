@@ -63,9 +63,8 @@ add_task(async function () {
     value: "exa",
   });
   Assert.ok(receivedResults, "Results observer was invoked");
-  Assert.greater(
-    UrlbarTestUtils.getResultCount(window),
-    0,
+  Assert.ok(
+    UrlbarTestUtils.getResultCount(window) > 0,
     `There should be some results in the view.`
   );
   Assert.ok(view.isOpen, `The view should be open.`);

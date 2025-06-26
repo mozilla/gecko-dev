@@ -70,11 +70,11 @@ async function do_test_timing(url) {
   await channelOpenPromise(chan);
   info(`secureConnectionStartTime=${timedChannel.secureConnectionStartTime}`);
   info(`connectEndTime=${timedChannel.connectEndTime}`);
-  Assert.greater(timedChannel.secureConnectionStartTime, 0);
-  Assert.greater(timedChannel.connectEndTime, 0);
+  Assert.ok(timedChannel.secureConnectionStartTime > 0);
+  Assert.ok(timedChannel.connectEndTime > 0);
   let handshakeTime =
     timedChannel.connectEndTime - timedChannel.secureConnectionStartTime;
-  Assert.greater(handshakeTime, 0);
+  Assert.ok(handshakeTime > 0);
   info(`handshakeTime=${handshakeTime}`);
   info("perfMetrics", { handshakeTime });
 }

@@ -45,9 +45,8 @@ add_task(async function () {
       objectElt instanceof Ci.nsIObjectLoadingContent,
       "object should be an nsIObjectLoadingContent"
     );
-    Assert.equal(
-      objectElt.displayedType,
-      Ci.nsIObjectLoadingContent.TYPE_FALLBACK,
+    Assert.ok(
+      objectElt.displayedType == Ci.nsIObjectLoadingContent.TYPE_FALLBACK,
       "object should be blocked"
     );
 
@@ -57,9 +56,8 @@ add_task(async function () {
       embedElt instanceof Ci.nsIObjectLoadingContent,
       "embed should be an nsIObjectLoadingContent"
     );
-    Assert.equal(
-      embedElt.displayedType,
-      Ci.nsIObjectLoadingContent.TYPE_FALLBACK,
+    Assert.ok(
+      embedElt.displayedType == Ci.nsIObjectLoadingContent.TYPE_FALLBACK,
       "embed should be blocked"
     );
   });

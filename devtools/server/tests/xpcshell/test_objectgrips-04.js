@@ -38,7 +38,7 @@ add_task(
     Assert.equal(ownProperties.a.get.getGrip().class, "Function");
     Assert.equal(ownProperties.a.set.type, "undefined");
 
-    Assert.notEqual(prototype, undefined);
+    Assert.ok(prototype != undefined);
 
     await threadFront.resume();
   })

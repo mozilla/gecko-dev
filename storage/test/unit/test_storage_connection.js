@@ -994,7 +994,7 @@ add_task(async function test_getInterface() {
     .getInterface(Ci.nsIEventTarget);
   // Just check that target is non-null.  Other tests will ensure that it has
   // the correct value.
-  Assert.notEqual(target, null);
+  Assert.ok(target != null);
 
   await asyncClose(db);
   gDBConn = null;

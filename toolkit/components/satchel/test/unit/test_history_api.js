@@ -58,10 +58,10 @@ add_task(async function () {
     testfile.copyTo(profileDir, "formhistory.sqlite");
 
     function checkExists(num) {
-      Assert.greater(num, 0);
+      Assert.ok(num > 0);
     }
     function checkNotExists(num) {
-      Assert.equal(num, 0);
+      Assert.ok(num == 0);
     }
 
     // ===== 1 =====
@@ -221,8 +221,8 @@ add_task(async function () {
     );
     let [timesUsed, firstUsed, lastUsed] = processFirstResult(results);
     Assert.equal(1, timesUsed);
-    Assert.greater(firstUsed, 0);
-    Assert.greater(lastUsed, 0);
+    Assert.ok(firstUsed > 0);
+    Assert.ok(lastUsed > 0);
     await promiseCountEntries(null, null, num => Assert.equal(num, 1));
 
     // ===== 11 =====
@@ -290,7 +290,7 @@ add_task(async function () {
     [timesUsed, firstUsed, lastUsed] = processFirstResult(results);
     Assert.equal(21, timesUsed);
     Assert.equal(100, firstUsed);
-    Assert.greater(lastUsed, 500);
+    Assert.ok(lastUsed > 500);
     await promiseCountEntries(null, null, num => Assert.equal(num, 3));
 
     // ===== 15 =====
@@ -336,7 +336,7 @@ add_task(async function () {
     [timesUsed, firstUsed, lastUsed] = processFirstResult(results);
     Assert.equal(11, timesUsed);
     Assert.equal(50, firstUsed);
-    Assert.greater(lastUsed, 400);
+    Assert.ok(lastUsed > 400);
     await promiseCountEntries(null, null, num => Assert.equal(num, 4));
 
     // ===== 17 =====
@@ -356,9 +356,7 @@ add_task(async function () {
     await promiseCountEntries(null, null, num => Assert.equal(num, 3));
 
     await countDeletedEntries(8);
-    await checkTimeDeleted(guid, timeDeleted =>
-      Assert.greater(timeDeleted, 10000)
-    );
+    await checkTimeDeleted(guid, timeDeleted => Assert.ok(timeDeleted > 10000));
 
     // ===== 18 =====
     // Add yet another single entry
@@ -425,8 +423,8 @@ add_task(async function () {
     Assert.equal(13, results[3].timesUsed);
     Assert.equal(230, results[2].firstUsed);
     Assert.equal(430, results[3].firstUsed);
-    Assert.greater(results[2].lastUsed, 600);
-    Assert.greater(results[3].lastUsed, 700);
+    Assert.ok(results[2].lastUsed > 600);
+    Assert.ok(results[3].lastUsed > 700);
 
     await promiseCountEntries(null, null, num => Assert.equal(num, 4));
 

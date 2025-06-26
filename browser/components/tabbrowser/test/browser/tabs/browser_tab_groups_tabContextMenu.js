@@ -468,9 +468,8 @@ add_task(async function test_tabGroupContextMenuMovePinnedTabToNewGroup() {
   );
   Assert.ok(!pinnedTab.pinned, "first pinned tab is no longer pinned");
   Assert.ok(pinnedTab.group, "first pinned tab is grouped");
-  Assert.greater(
-    pinnedTab._tPos,
-    pinnedUngroupedTab._tPos,
+  Assert.ok(
+    pinnedTab._tPos > pinnedUngroupedTab._tPos,
     "pinned tab's group appears after the list of pinned tabs"
   );
   await removeTabGroup(pinnedTab.group);

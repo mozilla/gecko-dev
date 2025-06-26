@@ -5,7 +5,7 @@ function check_enumerator(principal, permissions) {
   let perms = Services.perms.getAllForPrincipal(principal);
   for (let [type, capability] of permissions) {
     let perm = perms.shift();
-    Assert.notEqual(perm, null);
+    Assert.ok(perm != null);
     Assert.equal(perm.type, type);
     Assert.equal(perm.capability, capability);
     Assert.equal(perm.expireType, Services.perms.EXPIRE_NEVER);

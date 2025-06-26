@@ -41,9 +41,8 @@ async function test_image_preload_hint_request_loaded(
         let image = content.document.getElementById("test_image");
         return image && image.complete && image.naturalHeight !== 0;
       });
-      await Assert.equal(
-        image_should_load,
-        imageLoaded,
+      await Assert.ok(
+        image_should_load == imageLoaded,
         "test_image_preload_hint_request_loaded: the image can be loaded as expected " +
           requestUrl
       );

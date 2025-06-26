@@ -718,7 +718,7 @@ add_task(async function test_idle_shrink_reset_on_operation() {
     i++;
   }
 
-  Assert.greater(i, 0);
+  Assert.ok(i > 0);
 
   // We should not have performed an idle while doing operations.
   Assert.equal(count, 0);

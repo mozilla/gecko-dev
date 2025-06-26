@@ -859,15 +859,13 @@ add_autofill_task(async function bookmarkBelowThreshold() {
   );
   let originFrecency = await getOriginFrecency("http://", host);
   let threshold = await getOriginAutofillThreshold();
-  Assert.less(
-    placeFrecency,
-    threshold,
+  Assert.ok(
+    placeFrecency < threshold,
     `Place frecency should be below the threshold: ` +
       `placeFrecency=${placeFrecency} threshold=${threshold}`
   );
-  Assert.less(
-    originFrecency,
-    threshold,
+  Assert.ok(
+    originFrecency < threshold,
     `Origin frecency should be below the threshold: ` +
       `originFrecency=${originFrecency} threshold=${threshold}`
   );
@@ -1135,7 +1133,7 @@ add_autofill_task(async function suggestHistoryFalse_bookmark_0() {
   // still be autofilled.
   let originFrecency = await getOriginFrecency("http://", host);
   let threshold = await getOriginAutofillThreshold();
-  Assert.less(originFrecency, threshold);
+  Assert.ok(originFrecency < threshold);
 
   Services.prefs.setBoolPref("browser.urlbar.suggest.history", false);
   let context = createContext(search, { isPrivate: false });
@@ -1242,7 +1240,7 @@ add_autofill_task(async function suggestHistoryFalse_bookmark_prefix_0() {
   // still be autofilled.
   let originFrecency = await getOriginFrecency("http://", host);
   let threshold = await getOriginAutofillThreshold();
-  Assert.less(originFrecency, threshold);
+  Assert.ok(originFrecency < threshold);
 
   Services.prefs.setBoolPref("browser.urlbar.suggest.history", false);
   await PlacesTestUtils.addBookmarkWithDetails({

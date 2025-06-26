@@ -470,7 +470,7 @@ add_task(async function fetch_byurl() {
   checkBookmarkObject(bm5);
   // Cannot use deepEqual cause lastModified changed.
   Assert.equal(bm1.guid, bm5.guid);
-  Assert.greater(bm5.lastModified, bm1.lastModified);
+  Assert.ok(bm5.lastModified > bm1.lastModified);
   Assert.equal(gAccumulator.results.length, 2);
   gAccumulator.results.forEach(checkBookmarkObject);
   Assert.deepEqual(gAccumulator.results[0], bm5);

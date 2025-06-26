@@ -177,9 +177,8 @@ add_task(async function test_reenroll() {
 
   const labs = await FirefoxLabs.create();
 
-  Assert.strictEqual(
-    typeof manager.store.get(recipe.slug),
-    "undefined",
+  Assert.ok(
+    typeof manager.store.get(recipe.slug) === "undefined",
     `No enrollment for ${recipe.slug}`
   );
 
@@ -190,16 +189,14 @@ add_task(async function test_reenroll() {
   );
 
   labs.unenroll(recipe.slug);
-  Assert.strictEqual(
-    manager.store.get(recipe.slug)?.active,
-    false,
+  Assert.ok(
+    manager.store.get(recipe.slug)?.active === false,
     `Inactive enrollment for ${recipe.slug}`
   );
 
   await ExperimentAPI._rsLoader.updateRecipes();
-  Assert.strictEqual(
-    manager.store.get(recipe.slug)?.active,
-    false,
+  Assert.ok(
+    manager.store.get(recipe.slug)?.active === false,
     `Inactive enrollment for ${recipe.slug} after updateRecipes()`
   );
 
@@ -241,9 +238,8 @@ add_task(async function test_unenroll() {
   const labs = await FirefoxLabs.create();
 
   Assert.ok(manager.store.get("rollout")?.active, "Enrolled in rollout");
-  Assert.strictEqual(
-    typeof manager.store.get("opt-in"),
-    "undefined",
+  Assert.ok(
+    typeof manager.store.get("opt-in") === "undefined",
     "Did not enroll in rollout"
   );
 

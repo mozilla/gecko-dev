@@ -79,9 +79,8 @@ add_task(async function test_process_crash_telemetry() {
     "Expect a child process with remoteType extension to be found for the process childID set"
   );
 
-  Assert.greater(
-    Glean.extensions.processEvent.created_fg.testGetValue(),
-    0,
+  Assert.ok(
+    Glean.extensions.processEvent.created_fg.testGetValue() > 0,
     "Expect glean processEvent.created_fg to be set."
   );
   Assert.equal(
@@ -112,15 +111,13 @@ add_task(async function test_process_crash_telemetry() {
   );
 
   if (ExtensionProcessCrashObserver._isAndroid) {
-    Assert.greater(
-      Glean.extensions.processEvent.crashed_bg.testGetValue(),
-      0,
+    Assert.ok(
+      Glean.extensions.processEvent.crashed_bg.testGetValue() > 0,
       "Expect glean processEvent.crashed_bg to be set on Android builds."
     );
   } else {
-    Assert.greater(
-      Glean.extensions.processEvent.crashed_fg.testGetValue(),
-      0,
+    Assert.ok(
+      Glean.extensions.processEvent.crashed_fg.testGetValue() > 0,
       "Expect glean processEvent.crashed_fg to be set on desktop."
     );
   }

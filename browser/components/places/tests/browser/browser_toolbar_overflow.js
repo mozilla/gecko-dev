@@ -41,9 +41,8 @@ add_task(async function test_overflow() {
   // Check that the overflow chevron is visible.
   Assert.ok(!gChevron.collapsed, "The overflow chevron should be visible");
   let children = getPlacesChildren();
-  Assert.less(
-    children.length,
-    BOOKMARKS_COUNT,
+  Assert.ok(
+    children.length < BOOKMARKS_COUNT,
     "Not all the nodes should be built by default"
   );
   let visibleNodes = [];
@@ -52,9 +51,8 @@ add_task(async function test_overflow() {
       visibleNodes.push(node);
     }
   }
-  Assert.less(
-    visibleNodes.length,
-    children.length,
+  Assert.ok(
+    visibleNodes.length < children.length,
     `The number of visible nodes (${visibleNodes.length}) should be smaller than the number of built nodes (${children.length})`
   );
 
@@ -181,9 +179,8 @@ async function test_index(desc, index, expected) {
   children = getPlacesChildren();
 
   if (!expected) {
-    Assert.lessOrEqual(
-      children.length,
-      index,
+    Assert.ok(
+      children.length <= index,
       "The new node should not have been added"
     );
   } else {
@@ -257,9 +254,8 @@ async function test_move_index(desc, fromIndex, toIndex, original, expected) {
   children = getPlacesChildren();
 
   if (!expected) {
-    Assert.lessOrEqual(
-      children.length,
-      toIndex,
+    Assert.ok(
+      children.length <= toIndex,
       "Node in the new position is not expected"
     );
     Assert.ok(

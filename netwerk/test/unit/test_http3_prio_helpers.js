@@ -45,7 +45,7 @@ Http3Listener.prototype = {
 
     let secinfo = request.securityInfo;
     Assert.equal(secinfo.resumed, this.resumed);
-    Assert.notEqual(secinfo.serverCert, null);
+    Assert.ok(secinfo.serverCert != null);
 
     // check priority urgency and incremental from response header
     let priority_urgency = null;

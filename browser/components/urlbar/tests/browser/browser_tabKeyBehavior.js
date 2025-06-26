@@ -262,9 +262,8 @@ add_task(async function tabOnTopSites() {
       window,
       value: "",
     });
-    Assert.greater(
-      UrlbarTestUtils.getResultCount(window),
-      0,
+    Assert.ok(
+      UrlbarTestUtils.getResultCount(window) > 0,
       "There should be some results"
     );
     Assert.deepEqual(
@@ -281,7 +280,7 @@ add_task(async function tabOnTopSites() {
 
 async function expectTabThroughResults(options = { reverse: false }) {
   let resultCount = UrlbarTestUtils.getResultCount(window);
-  Assert.greater(resultCount, 0, "There should be results");
+  Assert.ok(resultCount > 0, "There should be results");
 
   let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
 

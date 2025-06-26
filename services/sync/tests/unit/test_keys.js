@@ -120,8 +120,8 @@ add_task(async function test_ensureLoggedIn() {
   await storage_keys.encrypt(keyBundle);
 
   // Sanity checking.
-  Assert.equal(null, storage_keys.cleartext);
-  Assert.notEqual(null, storage_keys.ciphertext);
+  Assert.ok(null == storage_keys.cleartext);
+  Assert.ok(null != storage_keys.ciphertext);
 
   log.info("Updating collection keys.");
 

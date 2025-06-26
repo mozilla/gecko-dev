@@ -110,9 +110,8 @@ async function run_test() {
     "the update isSecurityUpdate attribute" + MSG_SHOULD_EQUAL
   );
   // Check that installDate is within 10 seconds of the current date.
-  Assert.less(
-    Date.now() - bestUpdate.installDate,
-    10000,
+  Assert.ok(
+    Date.now() - bestUpdate.installDate < 10000,
     "the update installDate attribute should be within 10 seconds " +
       "of the current time"
   );

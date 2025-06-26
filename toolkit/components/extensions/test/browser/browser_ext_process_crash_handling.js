@@ -104,9 +104,8 @@ add_task(async function test_ExtensionProcessCrashObserver() {
   await mv3Extension.awaitMessage("background_running");
   const bgPageBrowser = await promiseBackgroundBrowser;
 
-  Assert.greater(
-    Glean.extensions.processEvent.created_fg.testGetValue(),
-    0,
+  Assert.ok(
+    Glean.extensions.processEvent.created_fg.testGetValue() > 0,
     "Expect glean processEvent.created_fg to be set."
   );
   Assert.equal(
@@ -159,9 +158,8 @@ add_task(async function test_ExtensionProcessCrashObserver() {
     "Got the expected childID notified as part of the extension-process-crash Management event"
   );
 
-  Assert.greater(
-    Glean.extensions.processEvent.crashed_fg.testGetValue(),
-    0,
+  Assert.ok(
+    Glean.extensions.processEvent.crashed_fg.testGetValue() > 0,
     "Expect glean processEvent.crashed_fg to be set"
   );
   Assert.equal(

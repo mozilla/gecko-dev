@@ -113,7 +113,7 @@ add_task(async function test_info_collections() {
   let expectedColl = server.getCollection("john", "crypto");
   Assert.ok(!!expectedColl);
   let modified = expectedColl.timestamp;
-  Assert.greater(modified, 0);
+  Assert.ok(modified > 0);
   Assert.equal(putResponseBody, modified);
   Assert.equal(JSON.parse(req.response.body).crypto, modified);
 
@@ -136,7 +136,7 @@ add_task(async function test_storage_request() {
   Assert.ok(!!coll);
 
   _("We're tracking timestamps.");
-  Assert.greaterOrEqual(coll.timestamp, creation);
+  Assert.ok(coll.timestamp >= creation);
 
   async function retrieveWBONotExists() {
     let req = localRequest(server, keysURL);
@@ -197,7 +197,7 @@ add_task(async function test_storage_request() {
     _("Body is " + req.response.body);
     _("Modified is " + req.response.newModified);
     let parsedBody = JSON.parse(req.response.body);
-    Assert.greaterOrEqual(parsedBody, now);
+    Assert.ok(parsedBody >= now);
     do_check_empty(server.users.john.collections);
   }
 

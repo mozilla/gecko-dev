@@ -51,7 +51,7 @@ add_task(async function () {
     );
 
     // check for upgraded schema.
-    Assert.greaterOrEqual(getDBVersion(destFile), 13);
+    Assert.ok(getDBVersion(destFile) >= 13);
 
     // Check that the index was deleted
     Assert.ok(!indexExists(destFile, "moz_basedomain"));

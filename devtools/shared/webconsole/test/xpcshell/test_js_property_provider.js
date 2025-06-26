@@ -452,15 +452,15 @@ function runChecks(dbgObject, environment, sandbox) {
     authorizedEvaluations: [["testGetters", "x"]],
   });
   test_has_exact_results(results, ["hello", "world"]);
-  Assert.strictEqual(Object.keys(results).includes("isUnsafeGetter"), false);
-  Assert.strictEqual(Object.keys(results).includes("getterPath"), false);
+  Assert.ok(Object.keys(results).includes("isUnsafeGetter") === false);
+  Assert.ok(Object.keys(results).includes("getterPath") === false);
 
   results = propertyProvider("testGetters.x.", {
     authorizedEvaluations: [["testGetters", "x"], ["y"]],
   });
   test_has_exact_results(results, ["hello", "world"]);
-  Assert.strictEqual(Object.keys(results).includes("isUnsafeGetter"), false);
-  Assert.strictEqual(Object.keys(results).includes("getterPath"), false);
+  Assert.ok(Object.keys(results).includes("isUnsafeGetter") === false);
+  Assert.ok(Object.keys(results).includes("getterPath") === false);
 
   info("Test that executing getters filters with provided string");
   results = propertyProvider("testGetters.x.hell", {
@@ -497,17 +497,13 @@ function runChecks(dbgObject, environment, sandbox) {
 
   info("Test with number literals");
   results = propertyProvider("1.");
-  Assert.strictEqual(
-    results,
-    null,
-    "Does not complete on possible floating number"
-  );
+  Assert.ok(results === null, "Does not complete on possible floating number");
 
   results = propertyProvider("(1)..");
-  Assert.strictEqual(results, null, "Does not complete on invalid syntax");
+  Assert.ok(results === null, "Does not complete on invalid syntax");
 
   results = propertyProvider("(1.1.).");
-  Assert.strictEqual(results, null, "Does not complete on invalid syntax");
+  Assert.ok(results === null, "Does not complete on invalid syntax");
 
   results = propertyProvider("1..");
   test_has_result(results, "toFixed");
@@ -574,12 +570,11 @@ function runChecks(dbgObject, environment, sandbox) {
   test_has_result(results, `'prop-A'`);
 
   results = propertyProvider(`//t`);
-  Assert.strictEqual(results, null, "Does not complete in inline comment");
+  Assert.ok(results === null, "Does not complete in inline comment");
 
   results = propertyProvider(`// t`);
-  Assert.strictEqual(
-    results,
-    null,
+  Assert.ok(
+    results === null,
     "Does not complete in inline comment after space"
   );
 
@@ -593,19 +588,17 @@ function runChecks(dbgObject, environment, sandbox) {
   test_has_result(results, "testObject");
 
   results = propertyProvider(`/* t`);
-  Assert.strictEqual(results, null, "Does not complete in multiline comment");
+  Assert.ok(results === null, "Does not complete in multiline comment");
 
   results = propertyProvider(`/*I'm\nt`);
-  Assert.strictEqual(
-    results,
-    null,
+  Assert.ok(
+    results === null,
     "Does not complete in multiline comment after line break"
   );
 
   results = propertyProvider(`/*I'm a comment\n \t * /t`);
-  Assert.strictEqual(
-    results,
-    null,
+  Assert.ok(
+    results === null,
     "Does not complete in multiline comment after line break and invalid comment end"
   );
 
@@ -702,7 +695,7 @@ function runChecks(dbgObject, environment, sandbox) {
 
   // Test autocompletion on debugger statement does not throw
   results = propertyProvider(`debugger.`);
-  Assert.strictEqual(results, null, "Does not complete a debugger keyword");
+  Assert.ok(results === null, "Does not complete a debugger keyword");
 
   // Test autocompletion on Proxies
   // proxy does not get autocompletion result from prototype defined in `getPrototypeOf`
@@ -740,7 +733,7 @@ function test_has_no_results(results) {
  */
 function test_has_result(results, requiredSuggestion) {
   Assert.notEqual(results, null);
-  Assert.greater(results.matches.size, 0);
+  Assert.ok(results.matches.size > 0);
   Assert.ok(
     results.matches.has(requiredSuggestion),
     `<${requiredSuggestion}> found in ${[...results.matches.values()].join(

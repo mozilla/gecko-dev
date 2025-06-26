@@ -212,9 +212,8 @@ add_task(async function test_timers() {
 
   fakePolicy(
     (callback, delay) => {
-      Assert.lessOrEqual(
-        delay,
-        TelemetryEventPing.maxFrequency,
+      Assert.ok(
+        delay <= TelemetryEventPing.maxFrequency,
         "Timer should be at most the max frequency for a subsequent MAX ping."
       );
     },

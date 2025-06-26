@@ -1773,9 +1773,8 @@ add_task(async function test_prefChange() {
     for (const enrollmentKind of expectedEnrollments) {
       const enrollment = manager.store.get(slugs[enrollmentKind]);
 
-      Assert.notStrictEqual(
-        enrollment,
-        null,
+      Assert.ok(
+        enrollment !== null,
         `An enrollment of kind ${enrollmentKind} should exist`
       );
       Assert.ok(enrollment.active, "It should still be active");
@@ -1790,9 +1789,8 @@ add_task(async function test_prefChange() {
 
         const enrollment = manager.store.get(slug);
 
-        Assert.notStrictEqual(
-          enrollment,
-          null,
+        Assert.ok(
+          enrollment !== null,
           `An enrollment of kind ${enrollmentKind} should exist`
         );
         Assert.ok(!enrollment.active, "It should not be active");
@@ -2418,9 +2416,8 @@ add_task(async function test_clearUserPref() {
       }
 
       const enrollment = manager.store.get(slug);
-      Assert.notStrictEqual(
-        enrollment,
-        null,
+      Assert.ok(
+        enrollment !== null,
         `An enrollment of kind ${enrollmentKind} should exist`
       );
 
@@ -2910,9 +2907,8 @@ async function test_restorePrefs_manifestChanged() {
     for (const enrollmentKind of expectedEnrollments) {
       const enrollment = manager.store.get(slugs[enrollmentKind]);
 
-      Assert.notStrictEqual(
-        enrollment,
-        null,
+      Assert.ok(
+        enrollment !== null,
         `An experiment of kind ${enrollmentKind} should exist`
       );
       Assert.ok(enrollment.active, "It should still be active");
@@ -2966,9 +2962,8 @@ async function test_restorePrefs_manifestChanged() {
         const slug = slugs[enrollmentKind];
         const enrollment = manager.store.get(slug);
 
-        Assert.notStrictEqual(
-          enrollment,
-          null,
+        Assert.ok(
+          enrollment !== null,
           `An enrollment of kind ${enrollmentKind} should exist`
         );
         Assert.ok(!enrollment.active, "It should not be active");

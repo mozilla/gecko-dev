@@ -420,7 +420,7 @@ async function testSimpleChildren(trace) {
   trace.expectReceive({ actor: "<actorid>", from: "<actorid>" });
 
   expectRootChildren(1);
-  Assert.strictEqual(ret, childFront);
+  Assert.ok(ret === childFront);
 
   ret = await childFront.echo("hello");
   trace.expectSend({ type: "echo", str: "hello", to: "<actorid>" });
@@ -433,12 +433,12 @@ async function testDetail(trace) {
   let ret = await childFront.getDetail1();
   trace.expectSend({ type: "getDetail1", to: "<actorid>" });
   trace.expectReceive({ child: childFront.actorID, from: "<actorid>" });
-  Assert.strictEqual(ret, childFront);
+  Assert.ok(ret === childFront);
 
   ret = await childFront.getDetail2();
   trace.expectSend({ type: "getDetail2", to: "<actorid>" });
   trace.expectReceive({ child: childFront.actorID, from: "<actorid>" });
-  Assert.strictEqual(ret, childFront);
+  Assert.ok(ret === childFront);
 
   ret = await childFront.getIDDetail();
   trace.expectSend({ type: "getIDDetail", to: "<actorid>" });
@@ -446,7 +446,7 @@ async function testDetail(trace) {
     idDetail: childFront.actorID,
     from: "<actorid>",
   });
-  Assert.strictEqual(ret, childFront);
+  Assert.ok(ret === childFront);
 }
 
 async function testSibling(trace) {
@@ -480,8 +480,8 @@ async function testEvents(trace) {
   });
 
   expectRootChildren(3);
-  Assert.strictEqual(ret[0], childFront);
-  Assert.notStrictEqual(ret[1], childFront);
+  Assert.ok(ret[0] === childFront);
+  Assert.ok(ret[1] !== childFront);
   Assert.ok(ret[1] instanceof ChildFront);
 
   // On both children, listen to events.  We're only
@@ -523,11 +523,11 @@ async function testEvents(trace) {
     set.delete("named-event");
   });
   childFront.on("object-event", obj => {
-    Assert.strictEqual(obj, childFront);
+    Assert.ok(obj === childFront);
     set.delete("object-event");
   });
   childFront.on("array-object-event", array => {
-    Assert.strictEqual(array[0], childFront);
+    Assert.ok(array[0] === childFront);
     set.delete("array-object-event");
   });
 
@@ -620,8 +620,8 @@ async function testGenerator() {
   };
   ret = await rootFront.getChildren2(f2());
   Assert.equal(ret.length, 2);
-  Assert.strictEqual(ret[0], childFront);
-  Assert.notStrictEqual(ret[1], childFront);
+  Assert.ok(ret[0] === childFront);
+  Assert.ok(ret[1] !== childFront);
   Assert.ok(ret[1] instanceof ChildFront);
 }
 

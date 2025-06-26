@@ -90,9 +90,8 @@ async function prepareClosedData() {
 
   closedIds.testWindow3 = SessionStore.getClosedWindowData()[0].closedId;
   await BrowserTestUtils.closeWindow(privateWin);
-  Assert.greater(
-    closedIds.testWindow2,
-    closedIds.testWindow1,
+  Assert.ok(
+    closedIds.testWindow2 > closedIds.testWindow1,
     "We got the closedIds in the expected order"
   );
 

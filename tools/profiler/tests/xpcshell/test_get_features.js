@@ -4,5 +4,5 @@
 
 function run_test() {
   var profilerFeatures = Services.profiler.GetFeatures();
-  Assert.notEqual(profilerFeatures, null);
+  Assert.ok(profilerFeatures != null);
 }

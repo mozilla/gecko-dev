@@ -240,7 +240,7 @@ add_task(async function test_download_noverify() {
   });
 
   let stat = await IOUtils.stat(path);
-  Assert.notStrictEqual(stat.type, "directory");
+  Assert.ok(!stat.type !== "directory");
   Assert.equal(stat.size, 452);
 
   Assert.ok(
@@ -336,7 +336,7 @@ add_task(async function test_download_works() {
   });
 
   let stat = await IOUtils.stat(path);
-  Assert.notStrictEqual(stat.type, "directory");
+  Assert.ok(stat.type !== "directory");
 
   Assert.ok(
     compareFiles(
@@ -359,7 +359,7 @@ add_task(async function test_download_mirror_works() {
   });
 
   let stat = await IOUtils.stat(path);
-  Assert.notStrictEqual(stat.type, "directory");
+  Assert.ok(stat.type !== "directory");
 
   Assert.ok(
     compareFiles(

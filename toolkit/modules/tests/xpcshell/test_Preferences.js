@@ -326,7 +326,7 @@ add_test(function test_observe_value_of_set_pref() {
 
 add_test(function test_observe_value_of_reset_pref() {
   let observer = function (newVal) {
-    Assert.equal(typeof newVal, "undefined");
+    Assert.ok(typeof newVal == "undefined");
   };
 
   Preferences.set("test_observe_value_of_reset_pref", "something");

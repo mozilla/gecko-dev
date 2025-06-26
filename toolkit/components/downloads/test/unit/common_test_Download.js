@@ -559,9 +559,9 @@ add_task(async function test_initial_final_state() {
     Assert.ok(download.stopped);
     Assert.ok(!download.succeeded);
     Assert.ok(!download.canceled);
-    Assert.strictEqual(download.error, null);
+    Assert.ok(download.error === null);
     Assert.equal(download.progress, 0);
-    Assert.strictEqual(download.startTime, null);
+    Assert.ok(download.startTime === null);
     Assert.ok(!download.target.exists);
     Assert.equal(download.target.size, 0);
 
@@ -576,7 +576,7 @@ add_task(async function test_initial_final_state() {
   Assert.ok(download.stopped);
   Assert.ok(download.succeeded);
   Assert.ok(!download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
   Assert.equal(download.progress, 100);
   Assert.ok(isValidDate(download.startTime));
   Assert.ok(download.target.exists);
@@ -806,7 +806,7 @@ add_task(async function test_start_twice() {
   Assert.ok(download.stopped);
   Assert.ok(download.succeeded);
   Assert.ok(!download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   await promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
@@ -865,7 +865,7 @@ add_task(async function test_cancel_midway() {
 
   Assert.ok(download.stopped);
   Assert.ok(download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
   Assert.ok(!download.target.exists);
   Assert.equal(download.target.size, 0);
 
@@ -908,7 +908,7 @@ add_task(async function test_cancel_midway_tryToKeepPartialData() {
 
   Assert.ok(download.stopped);
   Assert.ok(download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   Assert.equal(false, await IOUtils.exists(download.target.path));
   Assert.equal(false, await IOUtils.exists(download.target.partFilePath));
@@ -944,7 +944,7 @@ add_task(async function test_cancel_immediately() {
 
   Assert.ok(download.stopped);
   Assert.ok(download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   Assert.equal(false, await IOUtils.exists(download.target.path));
 
@@ -974,7 +974,7 @@ add_task(async function test_cancel_midway_restart() {
   // Download state should have already been reset.
   Assert.ok(!download.stopped);
   Assert.ok(!download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   // For the following test, we rely on the network layer reporting its progress
   // asynchronously.  Otherwise, there is nothing stopping the restarted
@@ -988,7 +988,7 @@ add_task(async function test_cancel_midway_restart() {
   Assert.ok(download.stopped);
   Assert.ok(download.succeeded);
   Assert.ok(!download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   await promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
@@ -1162,7 +1162,7 @@ add_task(async function test_cancel_immediately_restart_immediately() {
   let promiseRestarted = download.start();
   Assert.ok(!download.stopped);
   Assert.ok(!download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   // For the following test, we rely on the network layer reporting its progress
   // asynchronously.  Otherwise, there is nothing stopping the restarted
@@ -1194,7 +1194,7 @@ add_task(async function test_cancel_immediately_restart_immediately() {
   Assert.ok(download.stopped);
   Assert.ok(download.succeeded);
   Assert.ok(!download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   await promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
@@ -1216,7 +1216,7 @@ add_task(async function test_cancel_midway_restart_immediately() {
   let promiseRestarted = download.start();
   Assert.ok(!download.stopped);
   Assert.ok(!download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   // For the following test, we rely on the network layer reporting its progress
   // asynchronously.  Otherwise, there is nothing stopping the restarted
@@ -1244,7 +1244,7 @@ add_task(async function test_cancel_midway_restart_immediately() {
   Assert.ok(download.stopped);
   Assert.ok(download.succeeded);
   Assert.ok(!download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   await promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
@@ -1262,7 +1262,7 @@ add_task(async function test_cancel_successful() {
   Assert.ok(download.stopped);
   Assert.ok(download.succeeded);
   Assert.ok(!download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   await promiseVerifyTarget(download.target, TEST_DATA_SHORT);
 });
@@ -1300,7 +1300,7 @@ add_task(async function test_cancel_twice() {
   Assert.ok(download.stopped);
   Assert.ok(!download.succeeded);
   Assert.ok(download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   Assert.equal(false, await IOUtils.exists(download.target.path));
 });
@@ -1352,7 +1352,7 @@ add_task(async function test_finalize() {
   Assert.ok(download.stopped);
   Assert.ok(!download.succeeded);
   Assert.ok(download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   Assert.equal(false, await IOUtils.exists(download.target.path));
 });
@@ -1420,7 +1420,7 @@ add_task(async function test_whenSucceeded_after_restart() {
   Assert.ok(download.stopped);
   Assert.ok(download.succeeded);
   Assert.ok(!download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
 
   await promiseVerifyTarget(download.target, TEST_DATA_SHORT + TEST_DATA_SHORT);
 });
@@ -1440,7 +1440,7 @@ add_task(async function test_error_source() {
         // returned by the "start" method is rejected.
         download = await promiseNewDownload(sourceUrl);
 
-        Assert.strictEqual(download.error, null);
+        Assert.ok(download.error === null);
 
         await download.start();
       } else {
@@ -1462,7 +1462,7 @@ add_task(async function test_error_source() {
     // Check the properties now that the download stopped.
     Assert.ok(download.stopped);
     Assert.ok(!download.canceled);
-    Assert.notStrictEqual(download.error, null);
+    Assert.ok(download.error !== null);
     Assert.ok(download.error.becauseSourceFailed);
     Assert.ok(!download.error.becauseTargetFailed);
 
@@ -1501,7 +1501,7 @@ add_task(async function test_error_source_partial() {
       // returned by the "start" method is rejected.
       download = await promiseNewDownload(sourceUrl);
 
-      Assert.strictEqual(download.error, null);
+      Assert.ok(download.error === null);
 
       await download.start();
     } else {
@@ -1523,7 +1523,7 @@ add_task(async function test_error_source_partial() {
   // Check the properties now that the download stopped.
   Assert.ok(download.stopped);
   Assert.ok(!download.canceled);
-  Assert.notStrictEqual(download.error, null);
+  Assert.ok(download.error !== null);
   Assert.ok(download.error.becauseSourceFailed);
   Assert.ok(!download.error.becauseTargetFailed);
   Assert.equal(download.error.result, Cr.NS_ERROR_NET_PARTIAL_TRANSFER);
@@ -1548,7 +1548,7 @@ add_task(async function test_error_source_netreset() {
       // returned by the "start" method is rejected.
       download = await promiseNewDownload(httpUrl("netreset.txt"));
 
-      Assert.strictEqual(download.error, null);
+      Assert.ok(download.error === null);
 
       await download.start();
     } else {
@@ -1570,7 +1570,7 @@ add_task(async function test_error_source_netreset() {
   // Check the properties now that the download stopped.
   Assert.ok(download.stopped);
   Assert.ok(!download.canceled);
-  Assert.notStrictEqual(download.error, null);
+  Assert.ok(download.error !== null);
   Assert.ok(download.error.becauseSourceFailed);
   Assert.ok(!download.error.becauseTargetFailed);
   Assert.equal(download.error.result, Cr.NS_ERROR_NET_RESET);
@@ -1615,7 +1615,7 @@ add_task(async function test_error_target() {
     // Check the properties now that the download stopped.
     Assert.ok(download.stopped);
     Assert.ok(!download.canceled);
-    Assert.notStrictEqual(download.error, null);
+    Assert.ok(download.error !== null);
     Assert.ok(download.error.becauseTargetFailed);
     Assert.ok(!download.error.becauseSourceFailed);
 
@@ -1685,7 +1685,7 @@ add_task(async function test_error_restart() {
   Assert.ok(download.stopped);
   Assert.ok(download.succeeded);
   Assert.ok(!download.canceled);
-  Assert.strictEqual(download.error, null);
+  Assert.ok(download.error === null);
   Assert.equal(download.progress, 100);
 
   await promiseVerifyTarget(download.target, TEST_DATA_SHORT);
@@ -1764,7 +1764,7 @@ add_task(async function test_cancel_immediately_restart_and_check_startTime() {
   await promiseTimeout(10);
 
   await download.start();
-  Assert.greater(download.startTime.getTime(), startTime.getTime());
+  Assert.ok(download.startTime.getTime() > startTime.getTime());
 });
 
 /**
@@ -2400,7 +2400,7 @@ add_task(async function test_launch() {
     // Verify that the results match the test case.
     if (!launcherPath) {
       // This indicates that the default handler has been chosen.
-      Assert.strictEqual(result, null);
+      Assert.ok(result === null);
     } else {
       // Check the nsIMIMEInfo instance that would have been used for launching.
       Assert.equal(result.preferredAction, Ci.nsIMIMEInfo.useHelperApp);
@@ -2465,7 +2465,7 @@ add_task(
       // Verify that the results match the test case.
       if (!launcherId) {
         // This indicates that the default handler has been chosen.
-        Assert.strictEqual(result, null);
+        Assert.ok(result === null);
       } else {
         // Check the nsIMIMEInfo instance that would have been used for launching.
         let launcher = Cc["@mozilla.org/gio-service;1"]
@@ -2605,7 +2605,7 @@ add_task(async function test_launchWhenSucceeded() {
     // Verify that the results match the test case.
     if (!launcherPath) {
       // This indicates that the default handler has been chosen.
-      Assert.strictEqual(result, null);
+      Assert.ok(result === null);
     } else {
       // Check the nsIMIMEInfo instance that would have been used for launching.
       Assert.equal(result.preferredAction, Ci.nsIMIMEInfo.useHelperApp);
@@ -2774,7 +2774,7 @@ add_task(async function test_history_tryToKeepPartialData() {
   // The time set by nsIHelperAppService may be different than the start time in
   // the download object, thus we only check that it is a meaningful time.  Note
   // that we subtract one second from the earliest time to account for rounding.
-  Assert.greaterOrEqual(time, beforeStartTimeMs - 1000);
+  Assert.ok(time >= beforeStartTimeMs - 1000);
 
   // Complete the download before finishing the test.
   continueResponses();

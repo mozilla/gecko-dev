@@ -31,7 +31,7 @@ add_task(async function test_bookmark_record() {
 
   await bookmarkItem.encrypt(keyBundle);
   _("Ciphertext is " + bookmarkItem.ciphertext);
-  Assert.notEqual(bookmarkItem.ciphertext, null);
+  Assert.ok(bookmarkItem.ciphertext != null);
 
   _("Decrypting the record");
 

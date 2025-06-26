@@ -727,11 +727,7 @@ add_task(async function otherPanelOpenTests() {
   await TestUtils.waitForTick();
 
   // As a popup was already open, the preview panel should not have opened.
-  Assert.strictEqual(
-    previewComponent._panel.state,
-    "closed",
-    "Panel is closed"
-  );
+  Assert.ok(previewComponent._panel.state === "closed", "Panel is closed");
   Assert.ok(
     previewComponent._panel.openPopup.notCalled,
     "openPopup was not invoked"
@@ -932,9 +928,8 @@ add_task(async function tabPreview_verticalTabsPositioning() {
   let tabRect = tab.getBoundingClientRect();
   let panelRect = previewPanel.getBoundingClientRect();
 
-  Assert.less(
-    Math.abs(tabRect.top - panelRect.top),
-    5,
+  Assert.ok(
+    Math.abs(tabRect.top - panelRect.top) < 5,
     "Preview panel not displayed beneath tab"
   );
 

@@ -24,7 +24,7 @@ function run_test() {
       pumpReadStream(is, function (read) {
         Assert.equal(read.length, kChunkSize + 10);
         is.close();
-        Assert.equal(read, payload); // not using do_check_eq since logger will fail for the 1/4MB string
+        Assert.ok(read == payload); // not using do_check_eq since logger will fail for the 1/4MB string
         finish_cache2_test();
       });
     })

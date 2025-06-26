@@ -76,9 +76,8 @@ add_task(async function test_no_engine() {
     value: "test",
   });
 
-  Assert.greater(
-    UrlbarTestUtils.getResultCount(window),
-    0,
+  Assert.ok(
+    UrlbarTestUtils.getResultCount(window) > 0,
     "At least one result is shown"
   );
   await UrlbarTestUtils.promisePopupClose(window);

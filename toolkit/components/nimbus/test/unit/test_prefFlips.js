@@ -2046,18 +2046,16 @@ add_task(async function test_prefFlip_setPref_restore() {
     info("Checking expected enrollments...");
     {
       const enrollment = manager.store.get(enrollmentOrder[0]);
-      Assert.notStrictEqual(
-        enrollment,
-        null,
+      Assert.ok(
+        enrollment !== null,
         `An enrollment for ${enrollmentOrder[0]} should exist`
       );
       Assert.ok(!enrollment.active, "It should no longer be active.");
     }
     {
       const enrollment = manager.store.get(enrollmentOrder[1]);
-      Assert.notStrictEqual(
-        enrollment,
-        null,
+      Assert.ok(
+        enrollment !== null,
         `An enrollment for ${enrollmentOrder[1]} should exist`
       );
       Assert.ok(enrollment.active, "It should be active.");
@@ -2400,9 +2398,8 @@ add_task(async function test_prefFlips_failed_multiple_prefs() {
     [BAD_PREF, 123, { branch: USER }],
     `should have attempted to set ${BAD_PREF}`
   );
-  Assert.notStrictEqual(
-    typeof setPrefSpy.getCall(1).exception,
-    "undefined",
+  Assert.ok(
+    typeof setPrefSpy.getCall(1).exception !== "undefined",
     `Attempting to set ${BAD_PREF} threw`
   );
   Assert.deepEqual(

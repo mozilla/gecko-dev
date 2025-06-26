@@ -211,9 +211,9 @@ add_task(async function test_changeIcon() {
     ["16"],
     "One icon with the correct resolution was added."
   );
-  Assert.equal(
-    await engine.getIconURL(),
-    await SearchTestUtils.fetchAsDataUrl(svgIconUrl),
+  Assert.ok(
+    (await engine.getIconURL()) ==
+      (await SearchTestUtils.fetchAsDataUrl(svgIconUrl)),
     "Correct icon was added."
   );
 
@@ -231,9 +231,9 @@ add_task(async function test_changeIcon() {
     ["32"],
     "Icon with the correct resolution was added and old icon removed."
   );
-  Assert.notEqual(
-    await engine.getIconURL(),
-    await SearchTestUtils.fetchAsDataUrl(bigIconUrl),
+  Assert.ok(
+    (await engine.getIconURL()) !=
+      (await SearchTestUtils.fetchAsDataUrl(bigIconUrl)),
     "The icon was re-scaled."
   );
 });

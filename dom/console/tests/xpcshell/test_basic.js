@@ -12,8 +12,8 @@ add_task(async function () {
     consoleListener.prototype = {
       observe(aSubject) {
         let obj = aSubject.wrappedJSObject;
-        Assert.strictEqual(obj.arguments[0], 42, "Message received!");
-        Assert.strictEqual(obj.ID, "jsm", "The ID is JSM");
+        Assert.ok(obj.arguments[0] === 42, "Message received!");
+        Assert.ok(obj.ID === "jsm", "The ID is JSM");
         Assert.ok(obj.innerID.endsWith("test_basic.js"), "The innerID matches");
 
         removeConsoleStorageListener(this);

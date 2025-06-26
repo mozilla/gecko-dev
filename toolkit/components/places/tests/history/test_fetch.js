@@ -70,7 +70,7 @@ add_task(async function test_fetch_existent() {
       }
 
       // Since idealPageInfo doesn't contain a frecency, check it and delete.
-      Assert.strictEqual(typeof pageInfo.frecency, "number");
+      Assert.ok(typeof pageInfo.frecency === "number");
       delete pageInfo.frecency;
 
       // Visits should be from newer to older.

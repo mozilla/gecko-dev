@@ -38,9 +38,8 @@ add_task(async () => {
         TOGGLE_POSITION_RIGHT
       );
 
-      Assert.strictEqual(
-        position,
-        TOGGLE_POSITION_LEFT,
+      Assert.ok(
+        position === TOGGLE_POSITION_LEFT,
         "Picture-in-Picture toggle position value should be 'left'."
       );
 
@@ -50,9 +49,8 @@ add_task(async () => {
         TOGGLE_POSITION_RIGHT
       );
 
-      Assert.strictEqual(
-        position,
-        TOGGLE_POSITION_RIGHT,
+      Assert.ok(
+        position === TOGGLE_POSITION_RIGHT,
         "Picture-in-Picture toggle position value should be 'right'."
       );
     }

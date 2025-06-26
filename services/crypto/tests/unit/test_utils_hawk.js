@@ -94,8 +94,8 @@ add_task(async function test_hawk() {
   /* The HAWK spec calls for seconds-since-epoch, not ms-since-epoch.
    * Warning: this test will fail in the year 33658, and for time travellers
    * who journey earlier than 2001. Please plan accordingly. */
-  Assert.greater(result.artifacts.ts, 1000 * 1000 * 1000);
-  Assert.less(result.artifacts.ts, 1000 * 1000 * 1000 * 1000);
+  Assert.ok(result.artifacts.ts > 1000 * 1000 * 1000);
+  Assert.ok(result.artifacts.ts < 1000 * 1000 * 1000 * 1000);
   Assert.ok(fields[3].startsWith('nonce="'));
   Assert.equal(fields[3].length, 'nonce="12345678901=",'.length);
   Assert.equal(result.artifacts.nonce.length, "12345678901=".length);

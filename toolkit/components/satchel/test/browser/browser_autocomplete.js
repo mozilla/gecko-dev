@@ -79,9 +79,8 @@ add_setup(async function () {
 
   await FormHistory.update(changes);
 
-  Assert.greater(
-    await countEntries("field1", null),
-    0,
+  Assert.ok(
+    (await countEntries("field1", null)) > 0,
     "Check initial state is as expected"
   );
 

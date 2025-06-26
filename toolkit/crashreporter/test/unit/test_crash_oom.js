@@ -12,9 +12,9 @@ add_task(async function run_test() {
     },
     function (mdump, extra) {
       Assert.ok("OOMAllocationSize" in extra);
-      Assert.greater(Number(extra.OOMAllocationSize), 0);
+      Assert.ok(Number(extra.OOMAllocationSize) > 0);
       Assert.ok("TotalPhysicalMemory" in extra);
-      Assert.greaterOrEqual(Number(extra.TotalPhysicalMemory), 0);
+      Assert.ok(Number(extra.TotalPhysicalMemory) >= 0);
     },
     true
   );

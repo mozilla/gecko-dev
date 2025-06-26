@@ -833,9 +833,8 @@ add_task(async function test_migration_firefoxLabsEnrollments_falseTargeting() {
   }
 
   for (const slug of Object.values(LABS_MIGRATION_FEATURE_MAP)) {
-    Assert.strictEqual(
-      typeof manager.store.get(slug),
-      "undefined",
+    Assert.ok(
+      typeof manager.store.get(slug) === "undefined",
       `There should be no store entry for ${slug}`
     );
   }
@@ -1299,9 +1298,8 @@ async function testMigrateEnrollmentsToSql(primary = "jsonfile") {
         );
         Assert.equal(enrollment.source, expected.source, msg("source"));
 
-        Assert.strictEqual(
-          typeof enrollment.lastSeen,
-          "string",
+        Assert.ok(
+          typeof enrollment.lastSeen === "string",
           msg("lastSeen serialized as string")
         );
 
@@ -1348,9 +1346,8 @@ async function testMigrateEnrollmentsToSql(primary = "jsonfile") {
         );
 
         for (const [i, branch] of enrollment.recipe.branches.entries()) {
-          Assert.strictEqual(
-            typeof branch.ratio,
-            "number",
+          Assert.ok(
+            typeof branch.ratio === "number",
             msg(`recipe.branches[${i}].ratio is a number`)
           );
 
@@ -1363,9 +1360,8 @@ async function testMigrateEnrollmentsToSql(primary = "jsonfile") {
             const idx = branch.features.findIndex(
               fc => fc.featureId === featureId
             );
-            Assert.notStrictEqual(
-              idx,
-              -1,
+            Assert.ok(
+              idx !== -1,
               msg(
                 `recipe.branches[${i}].features[${idx}].featureId = ${featureId}`
               )

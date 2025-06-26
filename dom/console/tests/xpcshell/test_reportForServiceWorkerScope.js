@@ -10,21 +10,16 @@ add_task(async function () {
     consoleListener.prototype = {
       observe(aSubject) {
         let obj = aSubject.wrappedJSObject;
-        Assert.strictEqual(
-          obj.arguments[0],
-          "Hello world!",
-          "Message received!"
-        );
-        Assert.strictEqual(obj.ID, "scope", "The ID is the scope");
-        Assert.strictEqual(
-          obj.innerID,
-          "ServiceWorker",
+        Assert.ok(obj.arguments[0] === "Hello world!", "Message received!");
+        Assert.ok(obj.ID === "scope", "The ID is the scope");
+        Assert.ok(
+          obj.innerID === "ServiceWorker",
           "The innerID is ServiceWorker"
         );
-        Assert.strictEqual(obj.filename, "filename", "The filename matches");
-        Assert.strictEqual(obj.lineNumber, 42, "The lineNumber matches");
-        Assert.strictEqual(obj.columnNumber, 24, "The columnNumber matches");
-        Assert.strictEqual(obj.level, "error", "The level is correct");
+        Assert.ok(obj.filename === "filename", "The filename matches");
+        Assert.ok(obj.lineNumber === 42, "The lineNumber matches");
+        Assert.ok(obj.columnNumber === 24, "The columnNumber matches");
+        Assert.ok(obj.level === "error", "The level is correct");
 
         removeConsoleStorageListener(this);
         resolve();

@@ -178,7 +178,7 @@ add_task(async function test_bookmark() {
   frecency = await PlacesTestUtils.getDatabaseValue("moz_places", "frecency", {
     url: TEST_URL_2,
   });
-  Assert.greater(frecency, 0, "frecency is valid");
+  Assert.ok(frecency > 0, "frecency is valid");
   recalc = await PlacesTestUtils.getDatabaseValue(
     "moz_places",
     "recalc_frecency",

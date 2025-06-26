@@ -96,7 +96,7 @@ decorate_task(
     const recipe = prefExperimentRecipeFactory();
     await action.processRecipe(recipe, BaseAction.suitability.FILTER_MATCH);
 
-    Assert.strictEqual(action.log.debug.args.length, 1);
+    Assert.ok(action.log.debug.args.length === 1);
     Assert.deepEqual(action.log.debug.args[0], [
       "User has opted-out of opt-out experiments, disabling action.",
     ]);
@@ -108,7 +108,7 @@ decorate_task(
     ]);
 
     await action.finalize();
-    Assert.strictEqual(action.log.debug.args.length, 2);
+    Assert.ok(action.log.debug.args.length === 2);
     Assert.deepEqual(action.log.debug.args[1], [
       "Skipping post-execution hook for PreferenceExperimentAction because it is disabled.",
     ]);

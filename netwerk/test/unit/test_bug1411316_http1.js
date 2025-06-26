@@ -78,7 +78,7 @@ HttpResponseListener.prototype = {
 
   onStopRequest(request, status) {
     log("STOP id=" + this.id + " status=" + status);
-    Assert.equal(this.onStopRequestStatus, status);
+    Assert.ok(this.onStopRequestStatus == status);
     do_test_finished();
   },
 };

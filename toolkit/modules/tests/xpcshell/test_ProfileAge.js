@@ -18,9 +18,8 @@ function withDummyProfile(task) {
 add_task(
   withDummyProfile(async profile => {
     let times = await ProfileAge(profile);
-    Assert.greater(
-      await times.created,
-      0,
+    Assert.ok(
+      (await times.created) > 0,
       "We can't really say what this will be, just assume if it is a number it's ok."
     );
     Assert.equal(
@@ -28,9 +27,8 @@ add_task(
       undefined,
       "Reset time is undefined in a new profile"
     );
-    Assert.lessOrEqual(
-      await times.firstUse,
-      Date.now(),
+    Assert.ok(
+      (await times.firstUse) <= Date.now(),
       "Should have initialised a first use time."
     );
   })
@@ -124,9 +122,8 @@ add_task(
     });
 
     let times = await ProfileAge(profile);
-    Assert.lessOrEqual(
-      await times.firstUse,
-      Date.now(),
+    Assert.ok(
+      (await times.firstUse) <= Date.now(),
       "Should have initialised a first use time."
     );
   })

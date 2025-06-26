@@ -530,14 +530,12 @@ add_task(async function () {
     ...unexpiredTypedURLsReferenceItems,
   ];
 
-  Assert.less(
-    MigrationUtils.HISTORY_MAX_AGE_IN_DAYS,
-    300,
+  Assert.ok(
+    MigrationUtils.HISTORY_MAX_AGE_IN_DAYS < 300,
     "This test expects the current pref to be less than the youngest expired visit."
   );
-  Assert.greater(
-    MigrationUtils.HISTORY_MAX_AGE_IN_DAYS,
-    160,
+  Assert.ok(
+    MigrationUtils.HISTORY_MAX_AGE_IN_DAYS > 160,
     "This test expects the current pref to be greater than the oldest unexpired visit."
   );
 

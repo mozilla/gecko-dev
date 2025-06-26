@@ -10,10 +10,10 @@
  */
 
 function run_test() {
-  Assert.equal(typeof this.MODULE_IMPORTED, "undefined");
-  Assert.equal(typeof this.MODULE_URI, "undefined");
+  Assert.ok(typeof this.MODULE_IMPORTED == "undefined");
+  Assert.ok(typeof this.MODULE_URI == "undefined");
   let uri = "resource://test/import_module.sys.mjs";
   let exports = ChromeUtils.importESModule(uri);
-  Assert.equal(exports.MODULE_URI, uri);
+  Assert.ok(exports.MODULE_URI == uri);
   Assert.ok(exports.MODULE_IMPORTED);
 }

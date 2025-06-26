@@ -111,9 +111,8 @@ add_task(async function test_remote_window_open_data_uri() {
       "The principal of data: document should be a NullPrincipal."
     );
 
-    Assert.notEqual(
-      content.document.nodePrincipal.originAttributes.firstPartyDomain,
-      "",
+    Assert.ok(
+      content.document.nodePrincipal.originAttributes.firstPartyDomain != "",
       "data: URI should have firstPartyDomain set."
     );
   });
@@ -145,9 +144,8 @@ add_task(async function test_remote_window_open_data_uri2() {
       "The principal of data: document should be a NullPrincipal."
     );
 
-    Assert.notEqual(
-      content.document.nodePrincipal.originAttributes.firstPartyDomain,
-      "",
+    Assert.ok(
+      content.document.nodePrincipal.originAttributes.firstPartyDomain != "",
       "data: URI should have firstPartyDomain set."
     );
 

@@ -14,9 +14,8 @@ add_task(async function test_backgroundtask_minruntime() {
 
   // minruntime sets backgroundTaskMinRuntimeMS = 2000;
   // Have some tolerance for flaky timers.
-  Assert.greater(
-    finishTime - startTime,
-    1800,
+  Assert.ok(
+    finishTime - startTime > 1800,
     "Runtime was at least 2 seconds (approximately)."
   );
 });

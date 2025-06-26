@@ -333,7 +333,7 @@ add_task(async function test_loop_avoidance_storage() {
 
     // This sync occurred within the backoff interval.
     let elapsedTime = Date.now() - now;
-    Assert.less(elapsedTime, MINIMUM_BACKOFF_INTERVAL);
+    Assert.ok(elapsedTime < MINIMUM_BACKOFF_INTERVAL);
 
     // This pref will be true until a sync completes successfully.
     Assert.ok(getReassigned());
@@ -346,7 +346,7 @@ add_task(async function test_loop_avoidance_storage() {
     _("Next sync scheduled for " + Service.scheduler.nextSync);
     _("Expected to be slightly greater than " + expectedNextSync);
 
-    Assert.greaterOrEqual(Service.scheduler.nextSync, expectedNextSync);
+    Assert.ok(Service.scheduler.nextSync >= expectedNextSync);
     Assert.ok(!!Service.scheduler.syncTimer);
 
     // Undo our evil scheme.
@@ -469,7 +469,7 @@ add_task(async function test_loop_avoidance_engine() {
 
     // This sync occurred within the backoff interval.
     let elapsedTime = Date.now() - now;
-    Assert.less(elapsedTime, MINIMUM_BACKOFF_INTERVAL);
+    Assert.ok(elapsedTime < MINIMUM_BACKOFF_INTERVAL);
 
     // This pref will be true until a sync completes successfully.
     Assert.ok(getReassigned());
@@ -482,7 +482,7 @@ add_task(async function test_loop_avoidance_engine() {
     _("Next sync scheduled for " + Service.scheduler.nextSync);
     _("Expected to be slightly greater than " + expectedNextSync);
 
-    Assert.greaterOrEqual(Service.scheduler.nextSync, expectedNextSync);
+    Assert.ok(Service.scheduler.nextSync >= expectedNextSync);
     Assert.ok(!!Service.scheduler.syncTimer);
 
     // Undo our evil scheme.

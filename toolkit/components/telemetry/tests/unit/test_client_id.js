@@ -120,9 +120,9 @@ add_task(async function test_client_id() {
       !Services.prefs.prefHasUserValue(PREF_CACHED_CLIENTID),
       "ClientID should reset invalid cached IDs"
     );
-    Assert.equal(
-      Services.prefs.getPrefType(PREF_CACHED_CLIENTID),
-      Ci.nsIPrefBranch.PREF_INVALID,
+    Assert.ok(
+      Services.prefs.getPrefType(PREF_CACHED_CLIENTID) ==
+        Ci.nsIPrefBranch.PREF_INVALID,
       "ClientID should reset invalid cached IDs"
     );
   }
@@ -278,9 +278,9 @@ add_task(async function test_profile_group_id() {
       !Services.prefs.prefHasUserValue(PREF_CACHED_PROFILEGROUPID),
       "ClientID should reset invalid cached IDs"
     );
-    Assert.equal(
-      Services.prefs.getPrefType(PREF_CACHED_PROFILEGROUPID),
-      Ci.nsIPrefBranch.PREF_INVALID,
+    Assert.ok(
+      Services.prefs.getPrefType(PREF_CACHED_PROFILEGROUPID) ==
+        Ci.nsIPrefBranch.PREF_INVALID,
       "ClientID should reset invalid cached IDs"
     );
   }
@@ -616,9 +616,9 @@ add_task(async function test_usage_profile_id() {
       !Services.prefs.prefHasUserValue(PREF_CACHED_USAGE_PROFILEID),
       "ClientID should reset invalid cached IDs"
     );
-    Assert.equal(
-      Services.prefs.getPrefType(PREF_CACHED_USAGE_PROFILEID),
-      Ci.nsIPrefBranch.PREF_INVALID,
+    Assert.ok(
+      Services.prefs.getPrefType(PREF_CACHED_USAGE_PROFILEID) ==
+        Ci.nsIPrefBranch.PREF_INVALID,
       "ClientID should reset invalid cached IDs"
     );
   }
@@ -747,9 +747,9 @@ add_task(async function test_usage_profile_group_id() {
       !Services.prefs.prefHasUserValue(PREF_CACHED_USAGE_PROFILEGROUPID),
       "ClientID should reset invalid cached profile group IDs"
     );
-    Assert.equal(
-      Services.prefs.getPrefType(PREF_CACHED_USAGE_PROFILEGROUPID),
-      Ci.nsIPrefBranch.PREF_INVALID,
+    Assert.ok(
+      Services.prefs.getPrefType(PREF_CACHED_USAGE_PROFILEGROUPID) ==
+        Ci.nsIPrefBranch.PREF_INVALID,
       "ClientID should reset invalid cached profile group IDs"
     );
   }

@@ -1124,9 +1124,8 @@ add_task(async function getTopFrencentSites_maxLimit() {
   }
 
   let links = await provider.getTopSites({ topsiteFrecency: 100 });
-  Assert.less(
-    links.length,
-    MANY_LINKS,
+  Assert.ok(
+    links.length < MANY_LINKS,
     "query default limited to less than many"
   );
   Assert.greater(links.length, 6, "query default to more than visible count");

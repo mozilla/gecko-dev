@@ -17,5 +17,5 @@ add_task(async function test_execute() {
   let options = hs.getNewQueryOptions();
   let result = hs.executeQuery(query, options);
   result.root.containerOpen = true;
-  Assert.equal(result.root.childCount, 1);
+  Assert.ok(result.root.childCount == 1);
 });

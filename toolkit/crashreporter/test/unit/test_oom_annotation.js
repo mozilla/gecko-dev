@@ -61,9 +61,9 @@ add_task(async function run_test() {
         // All these annotations should represent non-negative numbers.
         // A few of them (e.g. physical memory) are guaranteed to be positive.
         if (shouldBeGreaterThanZero) {
-          Assert.greater(Number(extra[label]), 0);
+          Assert.ok(Number(extra[label]) > 0);
         } else {
-          Assert.greaterOrEqual(Number(extra[label]), 0);
+          Assert.ok(Number(extra[label]) >= 0);
         }
       }
     }

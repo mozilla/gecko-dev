@@ -135,7 +135,7 @@ function killSocketProcess(pid) {
 add_task(async function testSimpleRequestAfterCrash() {
   let socketProcessId = Services.io.socketProcessId;
   info(`socket process pid is ${socketProcessId}`);
-  Assert.notEqual(socketProcessId, 0);
+  Assert.ok(socketProcessId != 0);
 
   killSocketProcess(socketProcessId);
 
@@ -152,7 +152,7 @@ add_task(async function testSimpleRequestAfterCrash() {
 add_task(async function testTooManyCrashes() {
   let socketProcessId = Services.io.socketProcessId;
   info(`socket process pid is ${socketProcessId}`);
-  Assert.notEqual(socketProcessId, 0);
+  Assert.ok(socketProcessId != 0);
 
   let socketProcessCrashed = false;
   Services.obs.addObserver(function observe(subject, topic) {

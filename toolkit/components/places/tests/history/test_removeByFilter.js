@@ -77,9 +77,8 @@ add_task(async function test_removeByFilter() {
           PlacesUtils.validatePageInfo(pageInfo, false),
           "pageInfo should follow a basic format"
         );
-        Assert.greater(
-          netCallbacksRequired,
-          0,
+        Assert.ok(
+          netCallbacksRequired > 0,
           "Callback called as many times as required"
         );
         netCallbacksRequired--;
