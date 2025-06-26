@@ -93,7 +93,7 @@ export class MigratorBase {
    * and not an empty array.  That is the default implementation.
    *
    * @abstract
-   * @returns {object[]|null}
+   * @returns {Promise<object[]|null>}
    */
   getSourceProfiles() {
     return null;

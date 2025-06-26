@@ -1232,8 +1232,15 @@ export class OperaProfileMigrator extends ChromeProfileMigrator {
   _keychainServiceName = "Opera Safe Storage";
   _keychainAccountName = "Opera";
 
-  getSourceProfiles() {
-    return null;
+  async getSourceProfiles() {
+    let detectedProfiles = await super.getSourceProfiles();
+    if (Array.isArray(detectedProfiles) && !detectedProfiles.length) {
+      // We might be attempting from a version of Opera that doesn't support
+      // profiles yet, so try returning null to see if the profile data
+      // exists in the data directory.
+      return null;
+    }
+    return detectedProfiles;
   }
 }
 
