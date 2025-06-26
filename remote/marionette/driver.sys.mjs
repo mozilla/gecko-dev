@@ -2458,7 +2458,7 @@ GeckoDriver.prototype.getCookies = async function () {
   await this._handleUserPrompts();
 
   let { hostname, pathname } = this._getCurrentURL({ top: false });
-  return [...lazy.cookie.iter(hostname, pathname)];
+  return [...lazy.cookie.iter(hostname, this.getBrowsingContext(), pathname)];
 };
 
 /**
@@ -2477,7 +2477,11 @@ GeckoDriver.prototype.deleteAllCookies = async function () {
   await this._handleUserPrompts();
 
   let { hostname, pathname } = this._getCurrentURL({ top: false });
-  for (let toDelete of lazy.cookie.iter(hostname, pathname)) {
+  for (let toDelete of lazy.cookie.iter(
+    hostname,
+    this.getBrowsingContext(),
+    pathname
+  )) {
     lazy.cookie.remove(toDelete);
   }
 };
@@ -2502,7 +2506,11 @@ GeckoDriver.prototype.deleteCookie = async function (cmd) {
     cmd.parameters.name,
     lazy.pprint`Expected "name" to be a string, got ${cmd.parameters.name}`
   );
-  for (let c of lazy.cookie.iter(hostname, pathname)) {
+  for (let c of lazy.cookie.iter(
+    hostname,
+    this.getBrowsingContext(),
+    pathname
+  )) {
     if (c.name === name) {
       lazy.cookie.remove(c);
     }
