@@ -2039,7 +2039,7 @@ pref("nimbus.profilesdatastoreservice.enabled", true);
 
 // Should Nimbus read from the shared ProfilesDatastoreService?
 // TODO(bug 1972426): Enable this behaviour by default and remove this pref.
-#if defined(NIGHTLY_BUIILD)
+#if defined(NIGHTLY_BUILD)
 pref("nimbus.profilesdatastoreservice.read.enabled", true);
 #else
 pref("nimbus.profilesdatastoreservice.read.enabled", false);
