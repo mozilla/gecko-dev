@@ -10,8 +10,8 @@ origin:
 
   url: https://www.xiph.org/ogg/
 
-  release: v1.3.5 (2021-06-03T16:38:31-07:00).
-  revision: v1.3.5
+  release: v1.3.6 (2025-06-16T11:55:41-04:00).
+  revision: v1.3.6
 
   license: BSD-3-Clause
   license-file: COPYING
