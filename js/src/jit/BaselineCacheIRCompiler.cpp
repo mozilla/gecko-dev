@@ -591,7 +591,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedGetterShared(
   }
 
   masm.Push(callee);
-  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, /* argc = */ 0);
+  masm.Push(FrameDescriptor(FrameType::BaselineStub, /* argc = */ 0));
 
   // Handle arguments underflow.
   Label noUnderflow;
@@ -1697,7 +1697,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
   masm.Push(callee);
 
   // Push frame descriptor.
-  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, /* argc = */ 1);
+  masm.Push(FrameDescriptor(FrameType::BaselineStub, /* argc = */ 1));
 
   if (isInlined) {
     // Store icScript in the context.
@@ -3406,7 +3406,7 @@ bool BaselineCacheIRCompiler::emitCallNativeShared(
   // Construct a native exit frame.
   masm.push(argcReg);
 
-  masm.pushFrameDescriptor(FrameType::BaselineStub);
+  masm.push(FrameDescriptor(FrameType::BaselineStub));
   masm.push(ICTailCallReg);
   masm.push(FramePointer);
   masm.loadJSContext(scratch);
@@ -3960,7 +3960,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedProxyGetShared(
   masm.loadJitCodeRaw(callee, code);
 
   masm.Push(callee);
-  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, 3);
+  masm.Push(FrameDescriptor(FrameType::BaselineStub, 3));
 
   masm.callJit(code);
 
@@ -4368,7 +4368,7 @@ bool BaselineCacheIRCompiler::emitCloseIterScriptedResult(
   }
   masm.Push(TypedOrValueRegister(MIRType::Object, AnyRegister(iter)));
   masm.Push(callee);
-  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, /* argc = */ 0);
+  masm.Push(FrameDescriptor(FrameType::BaselineStub, /* argc = */ 0));
 
   masm.callJit(code);
 

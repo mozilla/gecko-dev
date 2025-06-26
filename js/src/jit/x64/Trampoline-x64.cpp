@@ -249,7 +249,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.subPtr(valuesSize, rsp);
 
     // Enter exit frame.
-    masm.pushFrameDescriptor(FrameType::BaselineJS);
+    masm.push(FrameDescriptor(FrameType::BaselineJS));
     masm.push(Imm32(0));  // Fake return address.
     masm.push(FramePointer);
     // No GC things to mark, push a bare token.
