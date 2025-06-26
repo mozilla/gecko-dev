@@ -12,6 +12,9 @@ import androidx.navigation.NavController
 import mozilla.components.browser.state.action.AwesomeBarAction
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UpdateEditText
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.feature.search.SearchUseCases.SearchUseCase
@@ -20,7 +23,10 @@ import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.tabs.TabsUseCases.SelectTabUseCase
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
+import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.fenix.GleanMetrics.BookmarksManagement
 import org.mozilla.fenix.GleanMetrics.Events
+import org.mozilla.fenix.GleanMetrics.History
 import org.mozilla.fenix.GleanMetrics.UnifiedSearch
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
@@ -37,6 +43,10 @@ import org.mozilla.fenix.search.SearchFragmentAction.Init
 import org.mozilla.fenix.search.SearchFragmentAction.SearchEnginesSelectedActions
 import org.mozilla.fenix.search.SearchFragmentAction.SearchProvidersUpdated
 import org.mozilla.fenix.search.SearchFragmentAction.SearchStarted
+import org.mozilla.fenix.search.SearchFragmentAction.SearchSuggestionsVisibilityUpdated
+import org.mozilla.fenix.search.SearchFragmentAction.SuggestionClicked
+import org.mozilla.fenix.search.SearchFragmentAction.SuggestionSelected
+import org.mozilla.fenix.search.SearchFragmentAction.UpdateQuery
 import org.mozilla.fenix.search.awesomebar.SearchSuggestionsProvidersBuilder
 import org.mozilla.fenix.search.awesomebar.toSearchProviderState
 import org.mozilla.fenix.utils.Settings
@@ -49,6 +59,7 @@ import org.mozilla.fenix.utils.Settings
  * @param nimbusComponents [NimbusComponents] used for accessing Nimbus events to use in telemetry.
  * @param settings [Settings] application settings.
  * @param browserStore [BrowserStore] used for updating search related data.
+ * @param toolbarStore [BrowserToolbarStore] used for querying and updating the toolbar state.
  * @param includeSelectedTab Whether to include the currently selected tab in the search suggestions.
  */
 class FenixSearchMiddleware(
@@ -57,6 +68,7 @@ class FenixSearchMiddleware(
     private val nimbusComponents: NimbusComponents,
     private val settings: Settings,
     private val browserStore: BrowserStore,
+    private val toolbarStore: BrowserToolbarStore,
     private val includeSelectedTab: Boolean = false,
 ) : Middleware<SearchFragmentState, SearchFragmentAction>, ViewModel() {
     private lateinit var dependencies: LifecycleDependencies
@@ -105,13 +117,13 @@ class FenixSearchMiddleware(
                 setSearchEngine(action.selectedSearchEngine)
             }
 
-            is SearchFragmentAction.UpdateQuery -> {
+            is UpdateQuery -> {
                 next(action)
 
                 val shouldShowSuggestions = with(searchStore.state) {
                     url != action.query && action.query.isNotBlank() || showSearchShortcuts
                 }
-                searchStore.dispatch(SearchFragmentAction.SearchSuggestionsVisibilityUpdated(shouldShowSuggestions))
+                searchStore.dispatch(SearchSuggestionsVisibilityUpdated(shouldShowSuggestions))
             }
 
             is SearchEnginesSelectedActions -> {
@@ -119,6 +131,27 @@ class FenixSearchMiddleware(
 
                 updateSearchProviders()
                 maybeShowSearchSuggestions()
+            }
+
+            is SuggestionClicked -> {
+                val suggestion = action.suggestion
+                when {
+                    suggestion.flags.contains(AwesomeBar.Suggestion.Flag.HISTORY) -> {
+                        History.searchResultTapped.record(NoExtras())
+                    }
+                    suggestion.flags.contains(AwesomeBar.Suggestion.Flag.BOOKMARK) -> {
+                        BookmarksManagement.searchResultTapped.record(NoExtras())
+                    }
+                }
+                suggestion.onSuggestionClicked?.invoke()
+                browserStore.dispatch(AwesomeBarAction.SuggestionClicked(suggestion))
+                toolbarStore.dispatch(UpdateEditText(""))
+            }
+
+            is SuggestionSelected -> {
+                action.suggestion.editSuggestion?.let {
+                    toolbarStore.dispatch(UpdateEditText(it))
+                }
             }
 
             else -> next(action)
@@ -143,7 +176,7 @@ class FenixSearchMiddleware(
             (showTrendingSearches || showRecentSearches || showShortcutsSuggestions) &&
                 (query.isNotEmpty() || FxNimbus.features.searchSuggestionsOnHomepage.value().enabled)
         }
-        searchStore.dispatch(SearchFragmentAction.SearchSuggestionsVisibilityUpdated(shouldShowSuggestions))
+        searchStore.dispatch(SearchSuggestionsVisibilityUpdated(shouldShowSuggestions))
     }
 
     /**
@@ -352,6 +385,7 @@ class FenixSearchMiddleware(
          * @param nimbusComponents [NimbusComponents] used for accessing Nimbus events to use in telemetry.
          * @param settings [Settings] application settings.
          * @param browserStore [BrowserStore] used for updating search related data.
+         * @param toolbarStore [BrowserToolbarStore] used for querying and updating the toolbar state.
          * @param includeSelectedTab Whether to include the currently selected tab in the search suggestions.
          */
         fun viewModelFactory(
@@ -360,6 +394,7 @@ class FenixSearchMiddleware(
             nimbusComponents: NimbusComponents,
             settings: Settings,
             browserStore: BrowserStore,
+            toolbarStore: BrowserToolbarStore,
             includeSelectedTab: Boolean,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -369,6 +404,7 @@ class FenixSearchMiddleware(
                 nimbusComponents = nimbusComponents,
                 settings = settings,
                 browserStore = browserStore,
+                toolbarStore = toolbarStore,
                 includeSelectedTab = includeSelectedTab,
             ) as? T ?: throw IllegalArgumentException("Unknown ViewModel class")
         }
