@@ -166,7 +166,7 @@ class MOZ_RAII TrialInliner {
   [[nodiscard]] bool maybeInlineSetter(ICEntry& entry, ICFallbackStub* fallback,
                                        BytecodeLocation loc, CacheKind kind);
 
-  static bool canInline(JSScript* target, HandleScript caller,
+  static bool canInline(JSContext* cx, JSScript* target, HandleScript caller,
                         BytecodeLocation loc);
 
   static bool IsValidInliningOp(JSOp op);

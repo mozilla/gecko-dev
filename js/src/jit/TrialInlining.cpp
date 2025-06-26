@@ -11,6 +11,7 @@
 #include "jit/BaselineCacheIRCompiler.h"
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineIC.h"
+#include "jit/BytecodeAnalysis.h"
 #include "jit/CacheIRCloner.h"
 #include "jit/CacheIRHealth.h"
 #include "jit/CacheIRWriter.h"
@@ -548,14 +549,10 @@ bool TrialInliner::IsValidInliningOp(JSOp op) {
 }
 
 /*static*/
-bool TrialInliner::canInline(JSScript* script, HandleScript caller,
-                             BytecodeLocation loc) {
+bool TrialInliner::canInline(JSContext* cx, JSScript* script,
+                             HandleScript caller, BytecodeLocation loc) {
   if (!script->hasJitScript()) {
     JitSpew(JitSpew_WarpTrialInlining, "SKIP: no JIT script");
-    return false;
-  }
-  if (!script->jitScript()->hasBaselineScript()) {
-    JitSpew(JitSpew_WarpTrialInlining, "SKIP: no BaselineScript");
     return false;
   }
   if (script->uninlineable()) {
@@ -613,6 +610,33 @@ bool TrialInliner::canInline(JSScript* script, HandleScript caller,
     JitSpew(JitSpew_WarpTrialInlining, "SKIP: argc too large: %u",
             unsigned(loc.getCallArgc()));
     return false;
+  }
+
+  if (!script->hasBaselineScript() &&
+      !script->jitScript()->ranBytecodeAnalysis()) {
+    // If we don't have a baseline script, then we maybe haven't done
+    // bytecode analysis yet. It's possible that the script is
+    // uninlineable or can't be Ion compiled. Do bytecode analysis now.
+    TempAllocator temp(&cx->tempLifoAlloc());
+    BytecodeAnalysis analysis(temp, script);
+    if (!analysis.init(temp)) {
+      JitSpew(JitSpew_WarpTrialInlining, "SKIP: OOM in bytecode analysis");
+      cx->recoverFromOutOfMemory();
+      return false;
+    }
+    bool result = true;
+    if (analysis.isInliningDisabled()) {
+      JitSpew(JitSpew_WarpTrialInlining, "SKIP: uninlineable flag");
+      script->disableIon();
+      result = false;
+    }
+    if (analysis.isIonDisabled()) {
+      JitSpew(JitSpew_WarpTrialInlining, "SKIP: can't ion-compile");
+      script->setUninlineable();
+      result = false;
+    }
+    script->jitScript()->setRanBytecodeAnalysis();
+    return result;
   }
 
   return true;
@@ -681,7 +705,7 @@ TrialInliningDecision TrialInliner::getInliningDecision(JSScript* targetScript,
   }
 #endif
 
-  if (!canInline(targetScript, script_, loc)) {
+  if (!canInline(cx(), targetScript, script_, loc)) {
     return TrialInliningDecision::NoInline;
   }
 
