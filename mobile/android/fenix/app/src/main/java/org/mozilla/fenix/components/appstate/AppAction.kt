@@ -32,7 +32,6 @@ import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.library.history.PendingDeletionHistory
 import org.mozilla.fenix.messaging.MessagingState
-import org.mozilla.fenix.search.SearchDialogFragment
 import org.mozilla.fenix.wallpapers.Wallpaper
 
 /**
@@ -60,9 +59,11 @@ sealed class AppAction : Action {
     data class UpdateFirstFrameDrawn(val drawn: Boolean) : AppAction()
 
     /**
-     * Updates whether the [SearchDialogFragment] is visible.
+     * Updates whether the user is currently performing a search.
+     *
+     * @property isSearchActive Whether whether the user is currently performing a search or not.
      */
-    data class UpdateSearchDialogVisibility(val isVisible: Boolean) : AppAction()
+    data class UpdateSearchBeingActiveState(val isSearchActive: Boolean) : AppAction()
     data class AddNonFatalCrash(val crash: NativeCodeCrash) : AppAction()
     data class RemoveNonFatalCrash(val crash: NativeCodeCrash) : AppAction()
     object RemoveAllNonFatalCrashes : AppAction()

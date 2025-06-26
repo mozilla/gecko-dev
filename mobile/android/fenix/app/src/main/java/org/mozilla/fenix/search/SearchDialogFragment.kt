@@ -196,7 +196,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         }
 
         requireComponents.appStore.dispatch(
-            AppAction.UpdateSearchDialogVisibility(isVisible = true),
+            AppAction.UpdateSearchBeingActiveState(isSearchActive = true),
         )
     }
 
@@ -668,7 +668,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         }
 
         requireComponents.appStore.dispatch(
-            AppAction.UpdateSearchDialogVisibility(isVisible = false),
+            AppAction.UpdateSearchBeingActiveState(isSearchActive = false),
         )
     }
 
