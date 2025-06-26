@@ -158,7 +158,7 @@ class CopyDownloadFeatureTest {
     }
 
     @Test
-    fun `download() will persist in cache the response#body() if available`() {
+    fun `download() will persist in cache the response#body() if available`() = runTest {
         val copyFeature =
             CopyDownloadFeature(context, mock(), null, mock(), mock(), dispatcher)
         val inputStream = "test".byteInputStream(StandardCharsets.UTF_8)
@@ -178,7 +178,7 @@ class CopyDownloadFeatureTest {
     }
 
     @Test(expected = RuntimeException::class)
-    fun `download() will throw an error if the request is not successful`() {
+    fun `download() will throw an error if the request is not successful`() = runTest {
         val copyFeature =
             CopyDownloadFeature(context, mock(), null, mock(), mock(), dispatcher)
         val inputStream = "test".byteInputStream(StandardCharsets.UTF_8)
@@ -192,7 +192,7 @@ class CopyDownloadFeatureTest {
     }
 
     @Test
-    fun `download() will download from the provided url the response#body() if is unavailable`() {
+    fun `download() will download from the provided url the response#body() if is unavailable`() = runTest {
         val client: Client = mock()
         val inputStream = "clientTest".byteInputStream(StandardCharsets.UTF_8)
         doAnswer { Response("randomUrl", 200, MutableHeaders(), Response.Body(inputStream)) }
@@ -210,7 +210,7 @@ class CopyDownloadFeatureTest {
     }
 
     @Test
-    fun `download() will create a not private Request if not in private mode`() {
+    fun `download() will create a not private Request if not in private mode`() = runTest {
         val client: Client = mock()
         val requestCaptor = argumentCaptor<Request>()
         val inputStream = "clientTest".byteInputStream(StandardCharsets.UTF_8)
@@ -233,7 +233,7 @@ class CopyDownloadFeatureTest {
     }
 
     @Test
-    fun `download() will create a private Request if in private mode`() {
+    fun `download() will create a private Request if in private mode`() = runTest {
         val client: Client = mock()
         val requestCaptor = argumentCaptor<Request>()
         val inputStream = "clientTest".byteInputStream(StandardCharsets.UTF_8)

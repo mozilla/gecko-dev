@@ -7,6 +7,7 @@ package mozilla.components.feature.downloads.temporary
 import android.content.Context
 import android.webkit.MimeTypeMap
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.state.action.ShareResourceAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
@@ -158,7 +159,7 @@ class ShareResourceFeatureTest {
     }
 
     @Test
-    fun `download() will persist in cache the response#body() if available`() {
+    fun `download() will persist in cache the response#body() if available`() = runTest {
         val shareFeature = ShareResourceFeature(context, mock(), null, mock(), dispatcher)
         val inputStream = "test".byteInputStream(StandardCharsets.UTF_8)
         val responseFromShareState = mock<Response>()
@@ -176,7 +177,7 @@ class ShareResourceFeatureTest {
     }
 
     @Test(expected = RuntimeException::class)
-    fun `download() will throw an error if the request is not successful`() {
+    fun `download() will throw an error if the request is not successful`() = runTest {
         val shareFeature = ShareResourceFeature(context, mock(), null, mock(), dispatcher)
         val inputStream = "test".byteInputStream(StandardCharsets.UTF_8)
         val responseFromShareState = mock<Response>()
@@ -189,7 +190,7 @@ class ShareResourceFeatureTest {
     }
 
     @Test
-    fun `download() will download from the provided url the response#body() if is unavailable`() {
+    fun `download() will download from the provided url the response#body() if is unavailable`() = runTest {
         val client: Client = mock()
         val inputStream = "clientTest".byteInputStream(StandardCharsets.UTF_8)
         doAnswer { Response("randomUrl", 200, MutableHeaders(), Response.Body(inputStream)) }
@@ -206,7 +207,7 @@ class ShareResourceFeatureTest {
     }
 
     @Test
-    fun `download() will create a not private Request if not in private mode`() {
+    fun `download() will create a not private Request if not in private mode`() = runTest {
         val client: Client = mock()
         val requestCaptor = argumentCaptor<Request>()
         val inputStream = "clientTest".byteInputStream(StandardCharsets.UTF_8)
@@ -221,7 +222,7 @@ class ShareResourceFeatureTest {
     }
 
     @Test
-    fun `download() will create a private Request if in private mode`() {
+    fun `download() will create a private Request if in private mode`() = runTest {
         val client: Client = mock()
         val requestCaptor = argumentCaptor<Request>()
         val inputStream = "clientTest".byteInputStream(StandardCharsets.UTF_8)

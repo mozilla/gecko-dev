@@ -50,16 +50,20 @@ private const val OPERATION_TIMEOUT_MS: Long = 1000L
  *  @property store a reference to the application's [BrowserStore]
  *  @property tabId ID of the tab session, or null if the selected session should be used.
  *  @param httpClient Client used for downloading internet resources
- *  @param cleanupCacheCoroutineDispatcher Coroutine dispatcher used for the cleanup of old
- *  cached files. Defaults to IO.
+ *  @param ioDispatcher Coroutine dispatcher used for IO operations like the download operation
+ *  and cleanup of old cached files. Defaults to IO.
  */
 class ShareResourceFeature(
     private val context: Context,
     private val store: BrowserStore,
     private val tabId: String?,
     httpClient: Client,
-    cleanupCacheCoroutineDispatcher: CoroutineDispatcher = Dispatchers.IO,
-) : TemporaryDownloadFeature(context, httpClient, cleanupCacheCoroutineDispatcher) {
+    ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) : TemporaryDownloadFeature(
+    context = context,
+    httpClient = httpClient,
+    ioDispatcher = ioDispatcher,
+) {
 
     override fun start() {
         scope = store.flowScoped { flow ->

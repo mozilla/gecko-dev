@@ -23,6 +23,9 @@ permalink: /changelog/
   * ⚠️ **Breaking change**: Added new `downloadEstimator` abstract val to `AbstractFetchDownloadService`. [Bug 1970176](https://bugzilla.mozilla.org/show_bug.cgi?id=1970176).
   * ⚠️ **Breaking change**: Removed `dateTimeProvider` abstract val from `AbstractFetchDownloadService`. [Bug 1970176](https://bugzilla.mozilla.org/show_bug.cgi?id=1970176).
   * ⚠️ **Breaking change**: Changed function signature of `DownloadNotification.createOngoingDownloadNotification`. [Bug 1970176](https://bugzilla.mozilla.org/show_bug.cgi?id=1970176).
+  * ⚠️ **Breaking change**: Changed behavior and constructor signatures of `TemporaryDownloadFeature`, `CopyDownloadFeature` and `ShareResourceFeature`. [Bug 1958367](https://bugzilla.mozilla.org/show_bug.cgi?id=1958367).
+    * Renamed `cleanupCacheCoroutineDispatcher` to `ioDispatcher`
+    * The new `ioDispatcher` param is now also used for the download operation.
 
 # 140.0
 * **feature-downloads**

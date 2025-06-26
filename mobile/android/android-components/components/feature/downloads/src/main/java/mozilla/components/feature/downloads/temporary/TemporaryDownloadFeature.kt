@@ -7,13 +7,14 @@ package mozilla.components.feature.downloads.temporary
 import android.content.Context
 import android.webkit.MimeTypeMap
 import androidx.annotation.VisibleForTesting
-import androidx.annotation.WorkerThread
+import androidx.annotation.VisibleForTesting.Companion.PROTECTED
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Headers
@@ -51,13 +52,13 @@ internal var cacheDirName = "mozac_share_cache"
  *
  *  @property context Android context used for various platform interactions.
  *  @property httpClient Client used for downloading internet resources.
- *  @param cleanupCacheCoroutineDispatcher Coroutine dispatcher used for the cleanup of old
- *  cached files. Defaults to IO.
+ *  @property ioDispatcher Coroutine dispatcher used for IO operations like the download operation
+ *  and cleanup of old cached files. Defaults to IO.
  */
 abstract class TemporaryDownloadFeature(
     private val context: Context,
     private val httpClient: Client,
-    cleanupCacheCoroutineDispatcher: CoroutineDispatcher = IO,
+    private val ioDispatcher: CoroutineDispatcher = IO,
 ) : LifecycleAwareFeature {
 
     val logger = Logger("TemporaryDownloadFeature")
@@ -70,39 +71,40 @@ abstract class TemporaryDownloadFeature(
     }
 
     init {
-        CoroutineScope(cleanupCacheCoroutineDispatcher).launch {
+        CoroutineScope(ioDispatcher).launch {
             cleanupCache()
         }
     }
 
-    @WorkerThread
-    @VisibleForTesting
-    internal fun download(internetResource: ShareResourceState.InternetResource): File {
-        val request = Request(
-            internetResource.url.sanitizeURL(),
-            private = internetResource.private,
-            referrerUrl = internetResource.referrerUrl,
-        )
-        val response = if (internetResource.response == null) {
-            httpClient.fetch(request)
-        } else {
-            requireNotNull(internetResource.response)
-        }
+    @VisibleForTesting(otherwise = PROTECTED)
+    internal suspend fun download(internetResource: ShareResourceState.InternetResource): File {
+        return withContext(ioDispatcher) {
+            val request = Request(
+                internetResource.url.sanitizeURL(),
+                private = internetResource.private,
+                referrerUrl = internetResource.referrerUrl,
+            )
+            val response = if (internetResource.response == null) {
+                httpClient.fetch(request)
+            } else {
+                requireNotNull(internetResource.response)
+            }
 
-        if (response.status != Response.SUCCESS) {
-            response.close()
-            // We experienced a problem trying to fetch the file, nothing more we can do.
-            throw (RuntimeException("Resource is not available to download"))
-        }
+            if (response.status != Response.SUCCESS) {
+                response.close()
+                // We experienced a problem trying to fetch the file, nothing more we can do.
+                throw (RuntimeException("Resource is not available to download"))
+            }
 
-        var tempFile: File? = null
-        response.body.useStream { input ->
-            val fileExtension = '.' + getFileExtension(response.headers, input)
-            tempFile = getTempFile(fileExtension)
-            FileOutputStream(tempFile).use { output -> input.copyTo(output) }
-        }
+            var tempFile: File? = null
+            response.body.useStream { input ->
+                val fileExtension = '.' + getFileExtension(response.headers, input)
+                tempFile = getTempFile(fileExtension)
+                FileOutputStream(tempFile).use { output -> input.copyTo(output) }
+            }
 
-        return tempFile!!
+            tempFile!!
+        }
     }
 
     @VisibleForTesting
