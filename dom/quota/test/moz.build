@@ -26,6 +26,10 @@ TEST_HARNESS_FILES.testing.mochitest.browser.dom.quota.test.common += [
     "common/global.js",
     "common/nestedtest.js",
     "common/system.js",
+    "common/test_simpledb.js",
+    "common/test_storage_manager_persist_allow.js",
+    "common/test_storage_manager_persist_deny.js",
+    "common/test_storage_manager_persisted.js",
 ]
 
 TEST_HARNESS_FILES.testing.mochitest.tests.dom.quota.test.common += [

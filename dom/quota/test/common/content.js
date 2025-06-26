@@ -3,7 +3,8 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-const NS_ERROR_STORAGE_BUSY = SpecialPowers.Cr.NS_ERROR_STORAGE_BUSY;
+// This cannot be `const` due to the lexical scope used by eval.
+var NS_ERROR_STORAGE_BUSY = SpecialPowers.Cr.NS_ERROR_STORAGE_BUSY;
 
 loadScript("dom/quota/test/common/global.js");
 
