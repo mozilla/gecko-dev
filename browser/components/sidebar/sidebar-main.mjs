@@ -627,6 +627,7 @@ export default class SidebarMain extends MozLitElement {
           .iconSrc=${buttonValues.action.iconUrl}
           ?extension=${buttonValues.action.view?.includes("-sidebar-action")}
           extensionId=${ifDefined(buttonValues.action.extensionId)}
+          ?attention=${!!action?.attention}
         >
         </moz-button>
       `

@@ -249,6 +249,19 @@ export const SidebarManager = {
   },
 
   /**
+   * Return a list of tool IDs that have registered a badge for notification.
+   * This reads all prefs under "sidebar.notification.badge."
+   *
+   * @returns {Array}
+   */
+  getBadgeTools() {
+    const BADGE_PREF_BRANCH = "sidebar.notification.badge.";
+    const badgePrefs = Services.prefs.getChildList(BADGE_PREF_BRANCH);
+
+    return badgePrefs.map(pref => pref.slice(BADGE_PREF_BRANCH.length));
+  },
+
+  /**
    * Provide a system-level "backup" state to be stored for those using "Never
    * remember history" or "Clear history when browser closes".
    *

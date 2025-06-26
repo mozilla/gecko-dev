@@ -24,8 +24,8 @@ const EXPAND_ON_HOVER_DEBOUNCE_TIMEOUT_MS = 1000;
 const LAUNCHER_SPLITTER_WIDTH = 4;
 
 var SidebarController = {
-  makeSidebar({ elementId, ...rest }) {
-    return {
+  makeSidebar({ elementId, ...rest }, commandID) {
+    const sidebar = {
       get sourceL10nEl() {
         return document.getElementById(elementId);
       },
@@ -35,10 +35,24 @@ var SidebarController = {
       },
       ...rest,
     };
+
+    const toolID = toolsNameMap[commandID];
+    if (toolID) {
+      XPCOMUtils.defineLazyPreferenceGetter(
+        sidebar,
+        "attention",
+        `sidebar.notification.badge.${toolID}`,
+        false,
+        (_pref, _prev) => this.handleToolBadges(toolID)
+      );
+      sidebar.attention;
+    }
+
+    return sidebar;
   },
 
   registerPrefSidebar(pref, commandID, config) {
-    const sidebar = this.makeSidebar(config);
+    const sidebar = this.makeSidebar(config, commandID);
     this._sidebars.set(commandID, sidebar);
 
     let switcherMenuitem;
@@ -1233,13 +1247,10 @@ var SidebarController = {
     if (shouldShowLauncher && this._state.command) {
       await this.show(this._state.command);
     } else if (!shouldShowLauncher) {
-      // hide will only update the toolbar button state if the panel was open
-      if (!this.isOpen) {
-        this.updateToolbarButton();
-      }
       // hide the open panel. It will re-open next time as we don't change the command value
       this.hide({ dismissPanel: false });
     }
+    this.updateToolbarButton();
   },
 
   /**
@@ -1264,6 +1275,7 @@ var SidebarController = {
       } else {
         toolbarButton.toggleAttribute("expanded", false);
       }
+      this.handleToolBadges();
       switch (this.sidebarRevampVisibility) {
         case "always-show":
         case "expand-on-hover":
@@ -1281,6 +1293,73 @@ var SidebarController = {
             : "sidebar-widget-show-sidebar2";
           break;
       }
+    }
+  },
+
+  /**
+   * Handles badges display for the toolbar and sidebar.
+   * Check if a tool(toolID) has requested a badge from pref (i.e) sidebar.notification.badge.{toolID})
+   * Ensure that badges are shown or cleared based on the sidebar visibility and user interaction.
+   *
+   * @param {string|null} toolID
+   */
+  handleToolBadges(toolID = null) {
+    const toolPrefList = this.SidebarManager.getBadgeTools();
+
+    for (const pref of toolPrefList) {
+      if (toolID && toolID !== pref) {
+        continue;
+      }
+
+      const badgePref = Services.prefs.getBoolPref(
+        `sidebar.notification.badge.${pref}`,
+        false
+      );
+      const commandID = [...this.toolsAndExtensions.keys()].find(
+        id => toolsNameMap[id] === pref
+      );
+
+      if (!commandID) {
+        continue;
+      }
+
+      const isSidebarClosed = !this._state?.launcherVisible;
+      const isCurrentView = this._state?.command === commandID;
+
+      // Don't show sidebar badge if sidebar is open and user is already viewing the tool panel
+      if (badgePref && isCurrentView && this.isOpen) {
+        this.dismissSidebarBadge(commandID);
+      }
+
+      if (this.sidebarRevampEnabled && badgePref && isSidebarClosed) {
+        this._showToolbarButtonBadge();
+      } else {
+        this._clearToolbarButtonBadge();
+      }
+
+      window.dispatchEvent(new CustomEvent("SidebarItemChanged"));
+    }
+  },
+
+  _showToolbarButtonBadge() {
+    const badgeEl = this.toolbarButton?.querySelector(".toolbarbutton-badge");
+    return badgeEl?.classList.add("feature-callout");
+  },
+
+  _clearToolbarButtonBadge() {
+    const badgeEl = this.toolbarButton?.querySelector(".toolbarbutton-badge");
+    return badgeEl?.classList.remove("feature-callout");
+  },
+
+  /**
+   * Set badge toolID pref false on clicking the tool icon
+   *
+   * @param {string} view
+   */
+  dismissSidebarBadge(view) {
+    const prefName = `sidebar.notification.badge.${toolsNameMap[view]}`;
+    if (Services.prefs.getBoolPref(prefName, false)) {
+      Services.prefs.setBoolPref(prefName, false);
     }
   },
 
@@ -1445,6 +1524,7 @@ var SidebarController = {
           ];
       Services.prefs.setStringPref(this.TOOLS_PREF, updatedTools.join());
     }
+    this.dismissSidebarBadge(commandID);
     window.dispatchEvent(new CustomEvent("SidebarItemChanged"));
   },
 
@@ -1638,6 +1718,9 @@ var SidebarController = {
           get hidden() {
             return !(sidebar.visible ?? true);
           },
+          get attention() {
+            return sidebar.attention ?? false;
+          },
         };
       });
   },
@@ -1700,6 +1783,7 @@ var SidebarController = {
         updateToggleControlLabel(triggerNode);
       }
       this.updateToolbarButton();
+      this.dismissSidebarBadge(commandID);
 
       this._fireFocusedEvent();
       return true;
@@ -1972,6 +2056,7 @@ var SidebarController = {
     if (toVerticalTabs) {
       arrowScrollbox.setAttribute("orient", "vertical");
       tabStrip.setAttribute("orient", "vertical");
+      this._clearToolbarButtonBadge();
     } else {
       arrowScrollbox.setAttribute("orient", "horizontal");
       tabStrip.removeAttribute("expanded");

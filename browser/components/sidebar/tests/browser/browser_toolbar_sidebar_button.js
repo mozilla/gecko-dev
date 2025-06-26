@@ -300,6 +300,58 @@ add_task(async function test_states_for_hide_sidebar() {
   await waitForTabstripOrientation("vertical");
 });
 
+add_task(async function test_toolbar_sidebar_badges() {
+  const SIDEBAR_COMMAND_ID = "viewGenaiChatSidebar";
+
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.notification.badge.aichat", true],
+      [VERTICAL_TABS_PREF, false],
+    ],
+  });
+  await waitForTabstripOrientation("horizontal");
+
+  let toolbarButton = document.getElementById("sidebar-button");
+  let badgeEl = toolbarButton?.querySelector(".toolbarbutton-badge");
+  let toolEntry = SidebarController.toolsAndExtensions.get(SIDEBAR_COMMAND_ID);
+
+  await SidebarController.initializeUIState({ launcherExpanded: true });
+  Assert.ok(
+    !badgeEl.classList.contains("feature-callout"),
+    "Toolbar badge should not be visible when sidebar is open"
+  );
+  Assert.ok(
+    toolEntry.attention,
+    "Sidebar tool badge should show when sidebar is open"
+  );
+
+  // Simulate user closing the sidebar
+  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, window);
+  Assert.ok(
+    badgeEl.classList.contains("feature-callout"),
+    "Toolbar badge should appear when sidebar is closed"
+  );
+
+  // Set badge pref false to check if all badges are cleared
+  await SpecialPowers.pushPrefEnv({
+    set: [[`sidebar.notification.badge.aichat`, false]],
+  });
+  Assert.ok(
+    !badgeEl.classList.contains("feature-callout") && !toolEntry.attention,
+    "Toolbar badge and sidebar badge should clear when pref is false"
+  );
+
+  await SpecialPowers.pushPrefEnv({
+    set: [[VERTICAL_TABS_PREF, true]],
+  });
+  await waitForTabstripOrientation("vertical");
+
+  Assert.ok(
+    !badgeEl.classList.contains("feature-callout"),
+    "Toolbar button don't appear a badge in vertical sidebar"
+  );
+});
+
 add_task(async function test_states_for_hide_sidebar_vertical() {
   info(
     `starting test with pref values: verticalTabs: ${Services.prefs.getBoolPref(VERTICAL_TABS_PREF)},
@@ -398,7 +450,6 @@ add_task(async function test_states_for_hide_sidebar_vertical() {
 
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   await checkStates({ hidden: false, expanded: true });
-
   info("Check states on a new window.");
   const newWin = await BrowserTestUtils.openNewBrowserWindow();
   await checkStates(
