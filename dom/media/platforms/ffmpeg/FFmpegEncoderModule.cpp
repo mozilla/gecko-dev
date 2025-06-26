@@ -11,11 +11,15 @@
 #include "FFmpegUtils.h"
 #include "FFmpegVideoEncoder.h"
 
-// This must be the last header included
-#include "FFmpegLibs.h"
+#ifdef DEBUG
+#  include "mozilla/AppShutdown.h"
+#endif
 
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/StaticPrefs_media.h"
+
+// This must be the last header included
+#include "FFmpegLibs.h"
 
 using mozilla::media::EncodeSupport;
 using mozilla::media::EncodeSupportSet;
@@ -24,75 +28,73 @@ namespace mozilla {
 
 template <int V>
 /* static */ void FFmpegEncoderModule<V>::Init(FFmpegLibWrapper* aLib) {
-#if defined(MOZ_USE_HWDECODE)
-#  if defined(XP_WIN) && !defined(MOZ_FFVPX_AUDIOONLY)
-  if (XRE_IsContentProcess() || XRE_IsParentProcess()) {
+#if (defined(XP_WIN) || defined(MOZ_WIDGET_GTK)) && \
+    defined(MOZ_USE_HWDECODE) && !defined(MOZ_FFVPX_AUDIOONLY)
+#  ifdef XP_WIN
+  if (!XRE_IsGPUProcess()) {
     return;
   }
-  static constexpr AVCodecID kCodecIDs[] = {
-      AV_CODEC_ID_AV1,
-      AV_CODEC_ID_VP9,
+#  else
+  if (!XRE_IsRDDProcess()) {
+    return;
+  }
+#  endif
+
+  if (!gfx::gfxVars::IsInitialized()) {
+    MOZ_ASSERT(AppShutdown::IsInOrBeyond(ShutdownPhase::XPCOMShutdown));
+    return;
+  }
+
+  struct CodecEntry {
+    AVCodecID mId;
+    bool mHwAllowed;
   };
-  for (const auto& codecId : kCodecIDs) {
-    const auto* codec =
-        FFmpegDataEncoder<V>::FindHardwareEncoder(aLib, codecId);
-    if (!codec) {
+
+  const CodecEntry kCodecIDs[] = {
+  // The following open video codecs can be encoded via hardware by using the
+  // system ffmpeg or ffvpx.
+#  if LIBAVCODEC_VERSION_MAJOR >= 59
+      {AV_CODEC_ID_AV1, gfx::gfxVars::UseAV1HwEncode()},
+#  endif
+#  if LIBAVCODEC_VERSION_MAJOR >= 55
+      {AV_CODEC_ID_VP9, gfx::gfxVars::UseVP9HwEncode()},
+#  endif
+#  if defined(MOZ_WIDGET_GTK) && LIBAVCODEC_VERSION_MAJOR >= 54
+      {AV_CODEC_ID_VP8, gfx::gfxVars::UseVP8HwEncode()},
+#  endif
+
+  // These proprietary video codecs can only be encoded via hardware by using
+  // the system ffmpeg, not supported by ffvpx.
+#  if defined(MOZ_WIDGET_GTK) && !defined(FFVPX_VERSION)
+#    if LIBAVCODEC_VERSION_MAJOR >= 55
+      {AV_CODEC_ID_HEVC, gfx::gfxVars::UseHEVCHwEncode()},
+#    endif
+      {AV_CODEC_ID_H264, gfx::gfxVars::UseH264HwEncode()},
+#  endif
+  };
+
+  for (const auto& entry : kCodecIDs) {
+    if (!entry.mHwAllowed) {
       MOZ_LOG(
-          sPEMLog, LogLevel::Debug,
-          ("No codec or encoder for %s on d3d11va", AVCodecToString(codecId)));
+          sPDMLog, LogLevel::Debug,
+          ("Hw codec disabled by gfxVars for %s", AVCodecToString(entry.mId)));
       continue;
     }
-    for (int i = 0;
-         const AVCodecHWConfig* config = aLib->avcodec_get_hw_config(codec, i);
-         ++i) {
-      if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX) {
-        sSupportedHWCodecs.AppendElement(static_cast<uint32_t>(codecId));
-        MOZ_LOG(sPEMLog, LogLevel::Debug,
-                ("Support %s on d3d11va", AVCodecToString(codecId)));
-        break;
-      }
+
+    const auto* codec =
+        FFmpegDataEncoder<V>::FindHardwareEncoder(aLib, entry.mId);
+    if (!codec) {
+      MOZ_LOG(sPDMLog, LogLevel::Debug,
+              ("No hw codec or encoder for %s", AVCodecToString(entry.mId)));
+      continue;
     }
-  }
-#  elif MOZ_WIDGET_GTK
-  if (XRE_IsContentProcess()) {
-    return;
-  }
-  // UseXXXHWEncode are already set in gfxPlatform at the startup.
-#    define ADD_HW_CODEC(codec)                          \
-      if (gfx::gfxVars::Use##codec##HwEncode()) {        \
-        sSupportedHWCodecs.AppendElement(                \
-            static_cast<uint32_t>(AV_CODEC_ID_##codec)); \
-      }
 
-// These patented video codecs can only be encoded via hardware by using
-// the system ffmpeg, not supported by ffvpx.
-#    ifndef FFVPX_VERSION
-  ADD_HW_CODEC(H264);
-#      if LIBAVCODEC_VERSION_MAJOR >= 55
-  ADD_HW_CODEC(HEVC);
-#      endif
-#    endif  // !FFVPX_VERSION
-
-// The following royalty-free video codecs can be encoded via hardware using
-// ffvpx.
-#    if LIBAVCODEC_VERSION_MAJOR >= 54
-  ADD_HW_CODEC(VP8);
-#    endif
-#    if LIBAVCODEC_VERSION_MAJOR >= 55
-  ADD_HW_CODEC(VP9);
-#    endif
-#    if LIBAVCODEC_VERSION_MAJOR >= 59
-  ADD_HW_CODEC(AV1);
-#    endif
-
-  for (const auto& codec : sSupportedHWCodecs) {
-    MOZ_LOG(sPEMLog, LogLevel::Debug,
-            ("Support %s for hw encoding",
-             AVCodecToString(static_cast<AVCodecID>(codec))));
+    sSupportedHWCodecs.AppendElement(entry.mId);
+    MOZ_LOG(sPDMLog, LogLevel::Debug,
+            ("Support %s for hw encoding", AVCodecToString(entry.mId)));
   }
-#    undef ADD_HW_CODEC
-#  endif  // XP_WIN, MOZ_WIDGET_GTK
-#endif    // MOZ_USE_HWDECODE
+#endif  // (XP_WIN || MOZ_WIDGET_GTK) && MOZ_USE_HWDECODE &&
+        // !MOZ_FFVPX_AUDIOONLY
 }  // namespace mozilla
 
 template <int V>
