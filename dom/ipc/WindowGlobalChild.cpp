@@ -16,7 +16,6 @@
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/BrowserBridgeChild.h"
 #include "mozilla/dom/ContentParent.h"
-#include "mozilla/dom/CloseWatcherManager.h"
 #include "mozilla/dom/IdentityCredential.h"
 #include "mozilla/dom/SecurityPolicyViolationEvent.h"
 #include "mozilla/dom/SessionStoreRestoreData.h"
@@ -572,23 +571,6 @@ IPCResult WindowGlobalChild::RecvNotifyPermissionChange(const nsCString& aType,
       this->GetWindowGlobal()->UsingStorageAccess() &&
       aPermission != nsIPermissionManager::ALLOW_ACTION) {
     this->GetWindowGlobal()->SaveStorageAccessPermissionRevoked();
-  }
-  return IPC_OK();
-}
-
-IPCResult WindowGlobalChild::RecvProcessCloseRequest(
-    const MaybeDiscarded<dom::BrowsingContext>& aFocused) {
-  RefPtr<nsFocusManager> focusManager = nsFocusManager::GetFocusManager();
-  RefPtr<dom::BrowsingContext> focusedContext =
-      focusManager ? focusManager->GetFocusedBrowsingContext() : nullptr;
-  MOZ_ASSERT(focusedContext, "Cannot find focused context");
-  // Only the currently focused context's CloseWatcher should be processed.
-  if (RefPtr<Document> doc = focusedContext->GetExtantDocument()) {
-    RefPtr<nsPIDOMWindowInner> win = doc->GetInnerWindow();
-    if (win && win->IsFullyActive()) {
-      RefPtr manager = win->EnsureCloseWatcherManager();
-      manager->ProcessCloseRequest();
-    }
   }
   return IPC_OK();
 }

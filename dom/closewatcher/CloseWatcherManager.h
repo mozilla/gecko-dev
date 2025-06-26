@@ -37,8 +37,6 @@ class CloseWatcherManager : public nsISupports {
 
   bool CanGrow() const;
 
-  bool IsEmpty() const { return mGroups.IsEmpty(); }
-
  protected:
   virtual ~CloseWatcherManager() = default;
 

@@ -226,8 +226,6 @@ parent:
 
 child:
   async NotifyPermissionChange(nsCString type, uint32_t permission);
-
-  async ProcessCloseRequest(MaybeDiscardedBrowsingContext aFocused);
 };
 
 } // namespace dom

@@ -829,10 +829,6 @@ class MozBrowser extends MozElements.MozElementMixin(XULFrameElement) {
     }
   }
 
-  processCloseRequest() {
-    this.browsingContext.currentWindowContext?.processCloseRequest();
-  }
-
   goBack(
     requireUserInteraction = lazy.BrowserUtils.navigationRequireUserInteraction
   ) {
@@ -1775,16 +1771,6 @@ class MozBrowser extends MozElements.MozElementMixin(XULFrameElement) {
       return bc.children.some(hasBeforeUnload);
     }
     return hasBeforeUnload(this.browsingContext);
-  }
-
-  get hasActiveCloseWatcher() {
-    function hasActiveCloseWatcher(bc) {
-      if (bc.currentWindowContext?.hasActiveCloseWatcher) {
-        return true;
-      }
-      return bc.children.some(hasActiveCloseWatcher);
-    }
-    return hasActiveCloseWatcher(this.browsingContext);
   }
 
   permitUnload(action) {

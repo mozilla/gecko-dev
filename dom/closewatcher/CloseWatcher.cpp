@@ -119,14 +119,12 @@ void CloseWatcher::Close() {
 void CloseWatcher::AddToWindowsCloseWatcherManager() {
   if (auto* window = GetOwnerWindow()) {
     window->EnsureCloseWatcherManager()->Add(*this);
-    window->NotifyCloseWatcherAdded();
   }
 }
 
 void CloseWatcher::Destroy() {
   if (auto* window = GetOwnerWindow()) {
     window->EnsureCloseWatcherManager()->Remove(*this);
-    window->NotifyCloseWatcherRemoved();
   }
 }
 

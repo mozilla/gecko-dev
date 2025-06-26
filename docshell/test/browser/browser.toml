@@ -265,9 +265,6 @@ https_first_disabled = true
 
 ["browser_click_link_within_view_source.js"]
 
-["browser_closewatcher_integration.js"]
-support-files = ["page_with_closewatcher.html"]
-
 ["browser_crossGroupOpener.js"]
 
 ["browser_cross_process_csp_inheritance.js"]

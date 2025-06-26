@@ -7795,20 +7795,6 @@ CloseWatcherManager* nsPIDOMWindowInner::EnsureCloseWatcherManager() {
   return mCloseWatcherManager;
 }
 
-void nsPIDOMWindowInner::NotifyCloseWatcherAdded() {
-  MOZ_ASSERT(mCloseWatcherManager && !mCloseWatcherManager->IsEmpty());
-  if (WindowContext* top = TopWindowContext(*this)) {
-    Unused << top->SetHasActiveCloseWatcher(true);
-  }
-}
-
-void nsPIDOMWindowInner::NotifyCloseWatcherRemoved() {
-  MOZ_ASSERT(mCloseWatcherManager);
-  if (WindowContext* top = TopWindowContext(*this)) {
-    Unused << top->SetHasActiveCloseWatcher(!mCloseWatcherManager->IsEmpty());
-  }
-}
-
 nsPIDOMWindowInner::nsPIDOMWindowInner(nsPIDOMWindowOuter* aOuterWindow,
                                        WindowGlobalChild* aActor)
     : mOuterWindow(aOuterWindow), mWindowGlobalChild(aActor) {

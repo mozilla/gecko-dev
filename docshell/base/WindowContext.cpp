@@ -358,17 +358,6 @@ bool WindowContext::CanSet(FieldIndex<IDX_HasActivePeerConnections>, bool,
   return XRE_IsParentProcess() && IsTop();
 }
 
-void WindowContext::ProcessCloseRequest() {
-  MOZ_ASSERT(XRE_IsParentProcess(), "Window must be Global Parent");
-  BrowsingContext* top = mBrowsingContext->Top();
-  top->PreOrderWalk([&](BrowsingContext* aBrowsingContext) {
-    CanonicalBrowsingContext* canonical = aBrowsingContext->Canonical();
-    if (WindowGlobalParent* parent = canonical->GetCurrentWindowGlobal()) {
-      Unused << parent->SendProcessCloseRequest(aBrowsingContext);
-    }
-  });
-}
-
 void WindowContext::RecomputeCanExecuteScripts(bool aApplyChanges) {
   const bool old = mCanExecuteScripts;
   if (!AllowJavascript()) {
