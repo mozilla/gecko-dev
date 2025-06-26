@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+import buildconfig
 from mozpack import dmg
 
 from mozbuild.bootstrap import bootstrap_toolchain
@@ -33,8 +34,8 @@ def main(args):
 
     options = parser.parse_args(args)
 
-    dmg_tool = bootstrap_toolchain("dmg/dmg")
-    hfs_tool = bootstrap_toolchain("dmg/hfsplus")
+    dmg_tool = buildconfig.substs.get("DMG_TOOL") or bootstrap_toolchain("dmg/dmg")
+    hfs_tool = buildconfig.substs.get("HFS_TOOL") or bootstrap_toolchain("dmg/hfsplus")
 
     dmg.extract_dmg(
         dmgfile=Path(options.dmgfile),

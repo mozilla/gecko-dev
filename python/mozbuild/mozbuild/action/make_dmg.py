@@ -7,6 +7,7 @@ import platform
 import sys
 from pathlib import Path
 
+import buildconfig
 from mozpack import dmg
 
 from mozbuild.bootstrap import bootstrap_toolchain
@@ -46,9 +47,11 @@ def main(args):
         )
 
     # Resolve required tools
-    dmg_tool = bootstrap_toolchain("dmg/dmg")
-    hfs_tool = bootstrap_toolchain("dmg/hfsplus")
-    mkfshfs_tool = bootstrap_toolchain("hfsplus/newfs_hfs")
+    dmg_tool = buildconfig.substs.get("DMG_TOOL") or bootstrap_toolchain("dmg/dmg")
+    hfs_tool = buildconfig.substs.get("HFS_TOOL") or bootstrap_toolchain("dmg/hfsplus")
+    mkfshfs_tool = buildconfig.substs.get("MKFSHFS") or bootstrap_toolchain(
+        "hfsplus/newfs_hfs"
+    )
 
     dmg.create_dmg(
         source_directory=Path(options.inpath),
