@@ -35,7 +35,7 @@ option(
 )
 
 
-@depends_if("--enable-bootstrap")
+@depends("--enable-bootstrap")
 def want_bootstrap(bootstrap):
     include = set()
     exclude = set()
@@ -48,6 +48,9 @@ def want_bootstrap(bootstrap):
             include.add(item)
 
     def match(name):
+        if not bootstrap:
+            return False
+
         if name in exclude:
             return False
         if include and name in include:
@@ -275,7 +278,7 @@ def bootstrap_path(path, **kwargs):
             return True
 
         path = os.path.join(toolchains_base_dir, path_prefix, *path_parts)
-        if enable_bootstrap and want_bootstrap(path_parts[0]):
+        if want_bootstrap(path_parts[0]):
             exists = os.path.exists(path)
             try:
                 # With --enable-bootstrap=no-update, we don't `try_bootstrap`, except

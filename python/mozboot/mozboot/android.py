@@ -447,6 +447,13 @@ def ensure_android_sdk(os_name: str, os_tag: str):
 
 
 def ensure_bundletool():
+    bundletool_path = os.environ.get("ANDROID_BUNDLETOOL_PATH")
+    if bundletool_path:
+        print(
+            f"ANDROID_BUNDLETOOL_PATH specified. Using {bundletool_path}. Bundletool will not be bootstrapped."
+        )
+        return
+
     download(BUNDLETOOL_URL, MOZBUILD_PATH / "bundletool.jar")
 
 
@@ -461,6 +468,13 @@ def ensure_android_avd(
     Use the given sdkmanager tool (like 'sdkmanager') to install required
     Android packages.
     """
+    avd_path = os.environ.get("ANDROID_AVD_PATH")
+    if avd_path:
+        print(
+            f"ANDROID_AVD_PATH specified. Using {avd_path}. Android AVD will not be bootstrapped."
+        )
+        return
+
     if avd_manifest is None:
         return
 

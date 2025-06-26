@@ -239,43 +239,75 @@ def android_emulator(sdk_root, android_os_info, want_bootstrap, avd_manifest):
     )
 
 
-@depends(toolchains_base_dir, want_bootstrap)
+@depends(toolchains_base_dir, "--help")
+@imports(_from="os.path", _import="isdir")
+def bundletool_default_path(toolchains_base_dir, _):
+    return os.path.join(toolchains_base_dir, "bundletool.jar")
+
+
+option(
+    env="ANDROID_BUNDLETOOL_PATH",
+    nargs=1,
+    help="Optional path to a bundletool.jar (like ~/.mozbuild/bundletool.jar). If unset, the default location is used",
+)
+
+
+@depends("ANDROID_BUNDLETOOL_PATH", bundletool_default_path, want_bootstrap)
 @checking("for Bundletool")
 @imports(_from="os.path", _import="exists")
 @imports(_from="mozboot.android", _import="ensure_bundletool")
-def android_bundletool(toolchains_base_dir, want_bootstrap):
-    bundletool_path = os.path.join(toolchains_base_dir, "bundletool.jar")
-    if exists(bundletool_path):
-        return [bundletool_path]
+def android_bundletool(bundletool_path, bundletool_default_path, want_bootstrap):
+    if bundletool_path:
+        return [bundletool_path[0]]
+
+    if exists(bundletool_default_path):
+        return [bundletool_default_path]
 
     if not want_bootstrap("android-sdk"):
         die(
             "You must install Bundletool.  Try |mach bootstrap|.  (Looked for %s)"
-            % bundletool_path
+            % bundletool_default_path
         )
 
     ensure_bundletool()
 
-    return [bundletool_path]
+    return [bundletool_default_path]
+
+
+@depends(toolchains_base_dir, "--help")
+@imports(_from="os.path", _import="isdir")
+def avd_default_path(toolchains_base_dir, _):
+    return os.path.join(toolchains_base_dir, "android-device", "avd")
+
+
+option(
+    env="ANDROID_AVD_PATH",
+    nargs=1,
+    help="Optional path to an AVD executable (like ~/.mozbuild/android-device/avd). If unset, the default location is used",
+)
+
+
+@depends(want_bootstrap, moz_automation)
+def want_android_avd_bootstrap(want_bootstrap, moz_automation):
+    return not moz_automation and want_bootstrap("android-sdk")
 
 
 @depends(
-    toolchains_base_dir,
+    "ANDROID_AVD_PATH",
+    avd_default_path,
     android_os_info,
-    want_bootstrap,
     avd_manifest,
-    when=~moz_automation,
+    when=want_android_avd_bootstrap,
 )
 @checking("for AVD")
 @imports(_from="os.path", _import="exists")
 @imports(_from="mozboot.android", _import="ensure_android_avd")
-def android_avd(toolchains_base_dir, android_os_info, want_bootstrap, avd_manifest):
-    avd_path = os.path.join(toolchains_base_dir, "android-device", "avd")
-    if exists(avd_path):
-        return [avd_path]
+def android_avd(avd_path, avd_default_path, android_os_info, avd_manifest):
+    if avd_path:
+        return [avd_path[0]]
 
-    if not want_bootstrap("android-sdk"):
-        die("You must install AVD.  Try |mach bootstrap|.  (Looked for %s)" % avd_path)
+    if exists(avd_default_path):
+        return [avd_default_path]
 
     ensure_android_avd(
         android_os_info.os_name,
