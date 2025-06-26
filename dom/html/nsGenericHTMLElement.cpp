@@ -3031,12 +3031,10 @@ MOZ_CAN_RUN_SCRIPT bool nsGenericHTMLElement::HandleCommandInternal(
     return false;
   }
 
-  const bool canShow = aCommand == Command::Auto ||
-                       aCommand == Command::TogglePopover ||
-                       aCommand == Command::ShowPopover;
-  const bool canHide = aCommand == Command::Auto ||
-                       aCommand == Command::TogglePopover ||
-                       aCommand == Command::HidePopover;
+  const bool canShow =
+      aCommand == Command::TogglePopover || aCommand == Command::ShowPopover;
+  const bool canHide =
+      aCommand == Command::TogglePopover || aCommand == Command::HidePopover;
 
   if (canShow && !IsPopoverOpen()) {
     ShowPopoverInternal(aSource, aRv);

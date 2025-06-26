@@ -579,18 +579,13 @@ bool HTMLDialogElement::HandleCommandInternal(Element* aSource,
 
   MOZ_ASSERT(IsValidCommandAction(aCommand));
 
-  const bool actionMayClose =
-      aCommand == Command::Auto || aCommand == Command::Close;
-  const bool actionMayOpen =
-      aCommand == Command::Auto || aCommand == Command::ShowModal;
-
-  if (actionMayClose && Open()) {
+  if (aCommand == Command::Close && Open()) {
     Optional<nsAString> retValue;
     Close(retValue);
     return true;
   }
 
-  if (IsInComposedDoc() && !Open() && actionMayOpen) {
+  if (IsInComposedDoc() && !Open() && aCommand == Command::ShowModal) {
     ShowModal(aRv);
     return true;
   }

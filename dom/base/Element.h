@@ -1160,7 +1160,6 @@ class Element : public FragmentOrElement {
   enum class Command : uint8_t {
     Invalid,
     Custom,
-    Auto,
     TogglePopover,
     ShowPopover,
     HidePopover,
@@ -1170,9 +1169,7 @@ class Element : public FragmentOrElement {
     Open,
   };
 
-  virtual bool IsValidCommandAction(Command aCommand) const {
-    return aCommand == Command::Auto;
-  }
+  virtual bool IsValidCommandAction(Command aCommand) const { return false; }
 
   /**
    * Elements can provide their own default behaviours for "Invoke" (see
