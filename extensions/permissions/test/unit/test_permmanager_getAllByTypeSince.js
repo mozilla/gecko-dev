@@ -8,7 +8,7 @@ function check_enumerator(prefix, from, permissions) {
   Assert.equal(array.length, permissions.length);
   for (let [principal, type, capability] of permissions) {
     let perm = array.find(p => p.principal.equals(principal));
-    Assert.ok(perm != null);
+    Assert.notEqual(perm, null);
     Assert.equal(perm.type, type);
     Assert.equal(perm.capability, capability);
     Assert.equal(perm.expireType, pm.EXPIRE_NEVER);

@@ -890,8 +890,9 @@ function startOCSPResponder(
           "Actual and expected base path should match"
         );
       }
-      Assert.ok(
-        expectedCertNames.length >= 1,
+      Assert.greaterOrEqual(
+        expectedCertNames.length,
+        1,
         "expectedCertNames should contain >= 1 entries"
       );
       if (expectedMethods && expectedMethods.length >= 1) {

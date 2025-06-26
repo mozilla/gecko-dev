@@ -260,7 +260,7 @@ add_task(async function test_exposure_ping() {
     param: { host: "messenger.com" },
   });
 
-  Assert.ok(exposureSpy.callCount === 1, "Should send exposure ping");
+  Assert.strictEqual(exposureSpy.callCount, 1, "Should send exposure ping");
   const scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
   TelemetryTestUtils.assertKeyedScalar(
     scalars,

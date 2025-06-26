@@ -63,10 +63,10 @@ Listener.prototype = {
 function testAsync() {
   var uri = jarBase + "/inner40.zip";
   var chan = NetUtil.newChannel({ uri, loadUsingSystemPrincipal: true });
-  Assert.ok(chan.contentLength < 0);
+  Assert.less(chan.contentLength, 0);
   chan.asyncOpen(
     new Listener(function (l) {
-      Assert.ok(chan.contentLength > 0);
+      Assert.greater(chan.contentLength, 0);
       Assert.ok(l.gotStartRequest);
       Assert.ok(l.gotStopRequest);
       Assert.equal(l.available, chan.contentLength);
@@ -90,8 +90,8 @@ function testZipEntry() {
     loadUsingSystemPrincipal: true,
   }).QueryInterface(Ci.nsIJARChannel);
   var entry = chan.zipEntry;
-  Assert.ok(entry.CRC32 == 0x8b635486);
-  Assert.ok(entry.realSize == 184);
+  Assert.equal(entry.CRC32, 0x8b635486);
+  Assert.equal(entry.realSize, 184);
   run_next_test();
 }
 
@@ -104,7 +104,7 @@ add_test(function testSync() {
   var uri = jarBase + "/inner40.zip";
   var chan = NetUtil.newChannel({ uri, loadUsingSystemPrincipal: true });
   var stream = chan.open();
-  Assert.ok(chan.contentLength > 0);
+  Assert.greater(chan.contentLength, 0);
   Assert.equal(stream.available(), chan.contentLength);
   stream.close();
   stream.close(); // should still not throw
@@ -119,7 +119,7 @@ add_test(function testSyncNested() {
   var uri = "jar:" + jarBase + "/inner40.zip!/foo";
   var chan = NetUtil.newChannel({ uri, loadUsingSystemPrincipal: true });
   var stream = chan.open();
-  Assert.ok(chan.contentLength > 0);
+  Assert.greater(chan.contentLength, 0);
   Assert.equal(stream.available(), chan.contentLength);
   stream.close();
   stream.close(); // should still not throw
@@ -135,7 +135,7 @@ add_test(function testAsyncNested() {
   var chan = NetUtil.newChannel({ uri, loadUsingSystemPrincipal: true });
   chan.asyncOpen(
     new Listener(function (l) {
-      Assert.ok(chan.contentLength > 0);
+      Assert.greater(chan.contentLength, 0);
       Assert.ok(l.gotStartRequest);
       Assert.ok(l.gotStopRequest);
       Assert.equal(l.available, chan.contentLength);
@@ -156,7 +156,7 @@ add_test(function testSyncCloseUnlocks() {
   var uri = "jar:" + ios.newFileURI(copy).spec + "!/inner40.zip";
   var chan = NetUtil.newChannel({ uri, loadUsingSystemPrincipal: true });
   var stream = chan.open();
-  Assert.ok(chan.contentLength > 0);
+  Assert.greater(chan.contentLength, 0);
   stream.close();
 
   // Drop any jar caches
@@ -185,7 +185,7 @@ add_test(function testAsyncCloseUnlocks() {
 
   chan.asyncOpen(
     new Listener(function () {
-      Assert.ok(chan.contentLength > 0);
+      Assert.greater(chan.contentLength, 0);
 
       // Drop any jar caches
       obs.notifyObservers(null, "chrome-flush-caches");

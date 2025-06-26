@@ -220,8 +220,9 @@ add_task(async function checkAdvancedDetails() {
       errorCode.click();
       let div = doc.getElementById("certificateErrorDebugInformation");
       let text = doc.getElementById("certificateErrorText");
-      Assert.ok(
-        content.getComputedStyle(div).display !== "none",
+      Assert.notStrictEqual(
+        content.getComputedStyle(div).display,
+        "none",
         "Debug information is visible"
       );
       let failedCertChain =

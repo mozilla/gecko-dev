@@ -136,20 +136,23 @@ async function _saveLogins(loginDatas) {
 function _compare(expectedArr, actualArr) {
   Assert.ok(!!expectedArr, "Expect expectedArr to be truthy");
   Assert.ok(!!actualArr, "Expect actualArr to be truthy");
-  Assert.ok(
-    expectedArr.length == actualArr.length,
+  Assert.equal(
+    expectedArr.length,
+    actualArr.length,
     "Expect expectedArr and actualArr to be the same length"
   );
   for (let i = 0; i < expectedArr.length; i++) {
     const expected = expectedArr[i];
     const actual = actualArr[i];
 
-    Assert.ok(
-      expected.text == actual.text,
+    Assert.equal(
+      expected.text,
+      actual.text,
       `Expect element #${i} text to match.  Expected: '${expected.text}', Actual '${actual.text}'`
     );
-    Assert.ok(
-      expected.style == actual.style,
+    Assert.equal(
+      expected.style,
+      actual.style,
       `Expect element #${i} text to match.  Expected: '${expected.style}', Actual '${actual.style}'`
     );
   }

@@ -363,8 +363,9 @@ add_task(async function test_normal_popup_notification_3() {
     loginGuid,
     "Sanity-check we are comparing the same login record"
   );
-  Assert.ok(
-    allLogins[0].timeLastUsed > timeLastUsed,
+  Assert.greater(
+    allLogins[0].timeLastUsed,
+    timeLastUsed,
     "The timeLastUsed timestamp has been updated"
   );
 });

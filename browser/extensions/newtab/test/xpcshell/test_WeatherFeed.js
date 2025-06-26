@@ -29,13 +29,18 @@ add_task(async function test_construction() {
   info("WeatherFeed constructor should create initial values");
 
   Assert.ok(feed, "Could construct a WeatherFeed");
-  Assert.ok(feed.loaded === false, "WeatherFeed is not loaded");
-  Assert.ok(feed.merino === null, "merino is initialized as null");
-  Assert.ok(
-    feed.suggestions.length === 0,
+  Assert.strictEqual(feed.loaded, false, "WeatherFeed is not loaded");
+  Assert.strictEqual(feed.merino, null, "merino is initialized as null");
+  Assert.strictEqual(
+    feed.suggestions.length,
+    0,
     "suggestions is initialized as a array with length of 0"
   );
-  Assert.ok(feed.fetchTimer === null, "fetchTimer is initialized as null");
+  Assert.strictEqual(
+    feed.fetchTimer,
+    null,
+    "fetchTimer is initialized as null"
+  );
   sandbox.restore();
 });
 

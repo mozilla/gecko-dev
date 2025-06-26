@@ -14,7 +14,7 @@ function testBug1091706() {
   const indent1 = require("resource://devtools/shared/indentation.js");
   const indent2 = require("resource://devtools/shared/indentation.js");
 
-  Assert.ok(indent1 === indent2);
+  Assert.strictEqual(indent1, indent2);
 }
 
 function testInvalidModule() {

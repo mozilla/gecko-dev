@@ -67,7 +67,7 @@ add_test(function test_intl_accept_language() {
   function checkLanguagePref() {
     CommonUtils.nextTick(function () {
       // Ensure we're only called for the number of entries in languages[].
-      Assert.ok(testCount < languages.length);
+      Assert.less(testCount, languages.length);
 
       Assert.equal(hawk._intl.accept_languages, languages[testCount]);
 

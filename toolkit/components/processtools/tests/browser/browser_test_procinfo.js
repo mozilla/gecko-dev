@@ -61,8 +61,9 @@ function checkProcessCpuTime(proc) {
     // On Windows, our test jobs likely run in VMs without constant TSC,
     // so we might have low precision CPU time measurements.
     const MAX_DISCREPENCY = 100;
-    Assert.ok(
-      cpuThreads - processCpuTime < MAX_DISCREPENCY,
+    Assert.less(
+      cpuThreads - processCpuTime,
+      MAX_DISCREPENCY,
       `on Windows, we accept a discrepency of up to ${MAX_DISCREPENCY}ms between the process CPU time and the sum of its threads' CPU time, process CPU time: ${processCpuTime}, sum of thread CPU time: ${cpuThreads}`
     );
   } else {
@@ -104,7 +105,7 @@ add_task(async function test_proc_info() {
           "At least one of the threads of the parent process is named"
         );
 
-        Assert.ok(parentProc.memory > 0, "Memory was set");
+        Assert.greater(parentProc.memory, 0, "Memory was set");
 
         // While it's very unlikely that the parent will disappear while we're running
         // tests, some children can easily vanish. So we go twice through the list of
@@ -153,7 +154,7 @@ add_task(async function test_proc_info() {
             continue;
           }
           hasPrivilegedAbout = true;
-          Assert.ok(childProc.memory > 0, "Memory was set");
+          Assert.greater(childProc.memory, 0, "Memory was set");
 
           for (var win of childProc.windows) {
             if (win.documentURI.spec != "about:home") {
@@ -161,8 +162,9 @@ add_task(async function test_proc_info() {
               continue;
             }
             numberOfAboutTabs++;
-            Assert.ok(
-              win.outerWindowId > 0,
+            Assert.greater(
+              win.outerWindowId,
+              0,
               `ContentParentID should be > 0 ${win.outerWindowId}`
             );
             if (win.documentTitle) {
@@ -171,8 +173,9 @@ add_task(async function test_proc_info() {
               Assert.equal(win.documentTitle, "New Tab");
             }
           }
-          Assert.ok(
-            numberOfAboutTabs >= tabsAboutHome.length,
+          Assert.greaterOrEqual(
+            numberOfAboutTabs,
+            tabsAboutHome.length,
             "We have found at least as many about:home tabs as we opened"
           );
 

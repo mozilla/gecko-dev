@@ -114,7 +114,7 @@ add_task(async function test_send_ping() {
   // Test the ping payload's validity.
   Assert.ok(found, "Untrusted modules ping submitted");
   Assert.ok(found.environment, "Ping has an environment");
-  Assert.ok(typeof found.clientId != "undefined", "Ping has a client ID");
+  Assert.notEqual(typeof found.clientId, "undefined", "Ping has a client ID");
 
   Assert.equal(found.payload.structVersion, 1, "Version is correct");
   Assert.ok(found.payload.modules, "'modules' object exists");
@@ -154,7 +154,7 @@ add_task(async function test_send_ping() {
   let ourProcInfo = found.payload.processes[gCurrentPidStr];
   Assert.equal(ourProcInfo.processType, "browser", "'processType' is correct");
   Assert.equal(curProcInfo.processType, "browser", "'processType' is correct");
-  Assert.ok(typeof ourProcInfo.elapsed == "number", "'elapsed' exists");
+  Assert.equal(typeof ourProcInfo.elapsed, "number", "'elapsed' exists");
   Assert.ok(
     Number.isFinite(Number.parseFloat(curProcInfo.elapsed)),
     "'elapsed' is a number (in a string)"
@@ -184,29 +184,35 @@ add_task(async function test_send_ping() {
   );
 
   for (let event of ourProcInfo.events) {
-    Assert.ok(
-      typeof event.processUptimeMS == "number",
+    Assert.equal(
+      typeof event.processUptimeMS,
+      "number",
       "'processUptimeMS' exists"
     );
-    Assert.ok(typeof event.threadID == "number", "'threadID' exists");
-    Assert.ok(typeof event.baseAddress == "string", "'baseAddress' exists");
+    Assert.equal(typeof event.threadID, "number", "'threadID' exists");
+    Assert.equal(typeof event.baseAddress, "string", "'baseAddress' exists");
 
-    Assert.ok(typeof event.moduleIndex == "number", "'moduleIndex' exists");
-    Assert.ok(event.moduleIndex >= 0, "'moduleIndex' is non-negative");
+    Assert.equal(typeof event.moduleIndex, "number", "'moduleIndex' exists");
+    Assert.greaterOrEqual(
+      event.moduleIndex,
+      0,
+      "'moduleIndex' is non-negative"
+    );
 
-    Assert.ok(typeof event.isDependent == "boolean", "'isDependent' exists");
+    Assert.equal(typeof event.isDependent, "boolean", "'isDependent' exists");
     Assert.ok(!event.isDependent, "'isDependent' is false");
 
-    Assert.ok(typeof event.loadStatus == "number", "'loadStatus' exists");
-    Assert.ok(event.loadStatus == 0, "'loadStatus' is 0 (Loaded)");
+    Assert.equal(typeof event.loadStatus, "number", "'loadStatus' exists");
+    Assert.equal(event.loadStatus, 0, "'loadStatus' is 0 (Loaded)");
 
     let modRecord = found.payload.modules[event.moduleIndex];
     Assert.ok(modRecord, "module record for this event exists");
-    Assert.ok(
-      typeof modRecord.resolvedDllName == "string",
+    Assert.equal(
+      typeof modRecord.resolvedDllName,
+      "string",
       "'resolvedDllName' exists"
     );
-    Assert.ok(typeof modRecord.trustFlags == "number", "'trustFlags' exists");
+    Assert.equal(typeof modRecord.trustFlags, "number", "'trustFlags' exists");
 
     let mod = expectedModules.find(function (elem) {
       return elem.nameMatch.test(modRecord.resolvedDllName);

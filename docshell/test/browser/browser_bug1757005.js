@@ -34,11 +34,11 @@ add_task(async function () {
       );
 
       await ContentTask.spawn(browser, browserId, async function (browserId) {
-        Assert.ok(
-          BrowsingContext.getCurrentTopByBrowserId(browserId) ==
-            docShell.browsingContext
+        Assert.equal(
+          BrowsingContext.getCurrentTopByBrowserId(browserId),
+          docShell.browsingContext
         );
-        Assert.ok(docShell.browsingContext.browserId == browserId);
+        Assert.equal(docShell.browsingContext.browserId, browserId);
       });
 
       let awaitPageShow = BrowserTestUtils.waitForContentEvent(
@@ -62,11 +62,11 @@ add_task(async function () {
       );
 
       await ContentTask.spawn(browser, browserId, async function (browserId) {
-        Assert.ok(
-          BrowsingContext.getCurrentTopByBrowserId(browserId) ==
-            docShell.browsingContext
+        Assert.equal(
+          BrowsingContext.getCurrentTopByBrowserId(browserId),
+          docShell.browsingContext
         );
-        Assert.ok(docShell.browsingContext.browserId == browserId);
+        Assert.equal(docShell.browsingContext.browserId, browserId);
       });
     }
   );

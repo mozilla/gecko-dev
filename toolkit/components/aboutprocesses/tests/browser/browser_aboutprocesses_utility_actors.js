@@ -28,13 +28,15 @@ add_task(async function testUtilityActorNames() {
       for (let actorName of ChromeUtils.getAllPossibleUtilityActorNames()) {
         const fluentName = View.utilityActorNameToFluentName(actorName);
         if (actorName === unknownActorName) {
-          Assert.ok(
-            fluentName === unknownFluentName,
+          Assert.strictEqual(
+            fluentName,
+            unknownFluentName,
             `Actor name ${actorName} is expected unknown ${fluentName}`
           );
         } else {
-          Assert.ok(
-            fluentName !== unknownFluentName,
+          Assert.notStrictEqual(
+            fluentName,
+            unknownFluentName,
             `Actor name ${actorName} is known ${fluentName}`
           );
         }

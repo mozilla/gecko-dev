@@ -91,7 +91,7 @@ const createDummyRecommendation = ({
 };
 
 function checkCFRAddonsElements(notification) {
-  Assert.ok(notification.hidden === false, "Panel should be visible");
+  Assert.strictEqual(notification.hidden, false, "Panel should be visible");
   Assert.equal(
     notification.getAttribute("data-notification-category"),
     "addon_recommendation",
@@ -214,9 +214,10 @@ add_task(async function test_cfr_notification_show() {
     }
   );
 
-  Assert.ok(
+  Assert.strictEqual(
     document.getElementById("contextual-feature-recommendation-notification")
-      .hidden === false,
+      .hidden,
+    false,
     "Panel should be visible"
   );
   Assert.equal(
@@ -281,9 +282,10 @@ add_task(async function test_cfr_notification_show() {
   document.getElementById("contextual-feature-recommendation").click();
   await showPanel;
 
-  Assert.ok(
+  Assert.strictEqual(
     document.getElementById("contextual-feature-recommendation-notification")
-      .hidden === false,
+      .hidden,
+    false,
     "Panel should be visible"
   );
 
@@ -332,8 +334,9 @@ add_task(async function test_cfr_notification_minimize() {
     () => gURLBar.hasAttribute("cfr-recommendation-state"),
     "Wait for the notification to show up and have a state"
   );
-  Assert.ok(
-    gURLBar.getAttribute("cfr-recommendation-state") === "expanded",
+  Assert.strictEqual(
+    gURLBar.getAttribute("cfr-recommendation-state"),
+    "expanded",
     "CFR recomendation state is correct"
   );
 
@@ -380,8 +383,9 @@ add_task(async function test_cfr_notification_minimize_2() {
     () => gURLBar.hasAttribute("cfr-recommendation-state"),
     "Wait for the notification to show up and have a state"
   );
-  Assert.ok(
-    gURLBar.getAttribute("cfr-recommendation-state") === "expanded",
+  Assert.strictEqual(
+    gURLBar.getAttribute("cfr-recommendation-state"),
+    "expanded",
     "CFR recomendation state is correct"
   );
 
@@ -449,9 +453,10 @@ add_task(async function test_cfr_addon_install() {
   document.getElementById("contextual-feature-recommendation").click();
   await showPanel;
 
-  Assert.ok(
+  Assert.strictEqual(
     document.getElementById("contextual-feature-recommendation-notification")
-      .hidden === false,
+      .hidden,
+    false,
     "Panel should be visible"
   );
   checkCFRAddonsElements(
@@ -549,9 +554,10 @@ add_task(async function test_cfr_addon_and_features_show() {
   document.getElementById("contextual-feature-recommendation").click();
   await showPanel;
 
-  Assert.ok(
+  Assert.strictEqual(
     document.getElementById("contextual-feature-recommendation-notification")
-      .hidden === false,
+      .hidden,
+    false,
     "Panel should be visible"
   );
   checkCFRAddonsElements(

@@ -87,8 +87,9 @@ async function doTest(proxySetup, delay) {
 
   // A non-zero request count indicates that TRR requests are being routed
   // through the proxy.
-  Assert.ok(
-    (await trrProxy.request_count()) >= 1,
+  Assert.greaterOrEqual(
+    await trrProxy.request_count(),
+    1,
     `Request count should be at least 1`
   );
 

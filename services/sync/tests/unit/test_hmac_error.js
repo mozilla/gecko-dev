@@ -196,7 +196,7 @@ add_task(async function hmac_error_during_node_reassignment() {
     let hasKeys = keysWBO.modified;
 
     _("We correctly handle 401s by aborting the sync and starting again.");
-    Assert.ok(!hasData == !hasKeys);
+    Assert.equal(!hasData, !hasKeys);
 
     _("Be prepared for the second (automatic) sync...");
   }
@@ -210,7 +210,7 @@ add_task(async function hmac_error_during_node_reassignment() {
         _("== Second (automatic) sync done.");
         let hasData = rotaryColl.wbo("flying") || rotaryColl.wbo("scotsman");
         let hasKeys = keysWBO.modified;
-        Assert.ok(!hasData == !hasKeys);
+        Assert.equal(!hasData, !hasKeys);
 
         // Kick off another sync. Can't just call it, because we're inside the
         // lock...

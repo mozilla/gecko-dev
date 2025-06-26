@@ -425,8 +425,9 @@ async function verifyPickerPosition(browsingContext, inputId) {
   function is_close(got, exp, msg) {
     // on some platforms we see differences of a fraction of a pixel - so
     // allow any difference of < 1 pixels as being OK.
-    Assert.ok(
-      Math.abs(got - exp) < 1,
+    Assert.less(
+      Math.abs(got - exp),
+      1,
       msg + ": " + got + " should be equal(-ish) to " + exp
     );
   }

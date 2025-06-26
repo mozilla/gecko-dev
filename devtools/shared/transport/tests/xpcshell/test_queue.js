@@ -176,7 +176,8 @@ function verify() {
           input,
           reallyLong.length
         );
-        // Avoid do_check_eq here so we don't log the contents
+        // Avoid Assert.strictEqual here so we don't log the contents
+        // eslint-disable-next-line mozilla/no-comparison-or-assignment-inside-ok
         Assert.ok(outputData === reallyLong);
         input.close();
         resolve();

@@ -4,9 +4,10 @@
 
 /* eslint-disable @microsoft/sdl/no-insecure-url */
 function checkCFRTrackingProtectionMilestone(notification) {
-  Assert.ok(notification.hidden === false, "Panel should be visible");
-  Assert.ok(
-    notification.getAttribute("data-notification-category") === "short_message",
+  Assert.strictEqual(notification.hidden, false, "Panel should be visible");
+  Assert.strictEqual(
+    notification.getAttribute("data-notification-category"),
+    "short_message",
     "Panel have correct data attribute"
   );
 }

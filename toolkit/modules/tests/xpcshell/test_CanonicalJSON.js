@@ -104,8 +104,8 @@ add_task(async function test_canonicalJSON_escapes_backslashes() {
 
 add_task(async function test_canonicalJSON_handles_signed_zeros() {
   // do_check_eq doesn't support comparison of -0 and 0 properly.
-  Assert.ok(CanonicalJSON.stringify(-0) === "-0");
-  Assert.ok(CanonicalJSON.stringify(0) === "0");
+  Assert.strictEqual(CanonicalJSON.stringify(-0), "-0");
+  Assert.strictEqual(CanonicalJSON.stringify(0), "0");
 });
 
 add_task(async function test_canonicalJSON_with_deeply_nested_dicts() {

@@ -38,9 +38,9 @@ function run_test() {
   );
 
   print(`String positions: ${runTestPos} ${barPos} ${fooPos}`);
-  Assert.ok(barPos >= 0);
-  Assert.ok(fooPos > barPos);
-  Assert.ok(runTestPos > fooPos);
+  Assert.greaterOrEqual(barPos, 0);
+  Assert.greater(fooPos, barPos);
+  Assert.greater(runTestPos, fooPos);
 
   const emptyArgTrace = start();
 
@@ -53,7 +53,7 @@ function run_test() {
   );
 
   print(`String positions: ${finishPos} ${nextPos} ${startPos}`);
-  Assert.ok(finishPos >= 0);
-  Assert.ok(nextPos > finishPos);
-  Assert.ok(startPos > nextPos);
+  Assert.greaterOrEqual(finishPos, 0);
+  Assert.greater(nextPos, finishPos);
+  Assert.greater(startPos, nextPos);
 }

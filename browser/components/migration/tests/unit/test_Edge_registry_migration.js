@@ -23,12 +23,14 @@ add_task(async function test_Edge_history_past_max_days() {
     sandbox.restore();
   });
 
-  Assert.ok(
-    MigrationUtils.HISTORY_MAX_AGE_IN_DAYS < 300,
+  Assert.less(
+    MigrationUtils.HISTORY_MAX_AGE_IN_DAYS,
+    300,
     "This test expects the current pref to be less than the youngest expired visit."
   );
-  Assert.ok(
-    MigrationUtils.HISTORY_MAX_AGE_IN_DAYS > 160,
+  Assert.greater(
+    MigrationUtils.HISTORY_MAX_AGE_IN_DAYS,
+    160,
     "This test expects the current pref to be greater than the oldest unexpired visit."
   );
 

@@ -196,8 +196,9 @@ async function test_hint_redirect(
       expected.hinted + expected.cancelled
     }`
   );
-  Assert.ok(
-    got.normal == expected.normal,
+  Assert.equal(
+    got.normal,
+    expected.normal,
     `${name}: unexpected amount of normal request made expected ${expected.normal}, got ${got.normal}`
   );
   Assert.equal(numRequestRemaining, 0, "Requests remaining");

@@ -193,8 +193,9 @@ add_task(async function test() {
   info(found);
 
   found.forEach((count, i) => {
-    Assert.ok(
-      count == 1,
+    Assert.equal(
+      count,
+      1,
       "Expected count = 1, got count = " +
         count +
         " for permission " +

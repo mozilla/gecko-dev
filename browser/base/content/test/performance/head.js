@@ -356,8 +356,9 @@ function computeMaxTabCount() {
 
   let maxTabCount =
     Math.floor(availableTabStripWidth / tabMinWidth) - currentTabCount;
-  Assert.ok(
-    maxTabCount > 0,
+  Assert.greater(
+    maxTabCount,
+    0,
     "Tabstrip needs to be wide enough to accomodate at least 1 more tab " +
       "without overflowing."
   );

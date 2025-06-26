@@ -48,8 +48,9 @@ async function test_referrer_policy(input, expected_results) {
     "https://example.com/browser/netwerk/test/browser/early_hint_referrer_policy_html.sjs?action=get_request_referrer_results"
   ).then(response => response.text());
 
-  Assert.ok(
-    referrer_response === expected_results.referrer,
+  Assert.strictEqual(
+    referrer_response,
+    expected_results.referrer,
     "Request referrer matches expected - " + input.test_name
   );
 

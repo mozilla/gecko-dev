@@ -365,10 +365,15 @@ add_task(async function groupByHost() {
   let threshold = await getOriginAutofillThreshold();
   Assert.less(httpFrec, threshold, "http origin should be < threshold");
   Assert.less(httpsFrec, threshold, "https origin should be < threshold");
-  Assert.ok(threshold <= otherFrec, "Other origin should cross threshold");
+  Assert.lessOrEqual(
+    threshold,
+    otherFrec,
+    "Other origin should cross threshold"
+  );
 
-  Assert.ok(
-    threshold <= httpFrec + httpsFrec,
+  Assert.lessOrEqual(
+    threshold,
+    httpFrec + httpsFrec,
     "http and https origin added together should cross threshold"
   );
 
@@ -448,10 +453,15 @@ add_task(async function groupByHostNonDefaultStddevMultiplier() {
   let threshold = await getOriginAutofillThreshold();
   Assert.less(httpFrec, threshold, "http origin should be < threshold");
   Assert.less(httpsFrec, threshold, "https origin should be < threshold");
-  Assert.ok(threshold <= otherFrec, "Other origin should cross threshold");
+  Assert.lessOrEqual(
+    threshold,
+    otherFrec,
+    "Other origin should cross threshold"
+  );
 
-  Assert.ok(
-    threshold <= httpFrec + httpsFrec,
+  Assert.lessOrEqual(
+    threshold,
+    httpFrec + httpsFrec,
     "http and https origin added together should cross threshold"
   );
 

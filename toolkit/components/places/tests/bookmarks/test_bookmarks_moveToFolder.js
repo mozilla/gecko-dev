@@ -712,7 +712,7 @@ add_task(async function test_move_folder_with_descendant() {
   checkBookmarkObject(bm);
   Assert.equal(bm.parentGuid, descendant.guid);
   Assert.equal(bm.index, 0);
-  Assert.ok(bm.lastModified >= lastModified);
+  Assert.greaterOrEqual(bm.lastModified, lastModified);
 
   parent = await PlacesUtils.bookmarks.fetch(parent.guid);
   descendant = await PlacesUtils.bookmarks.fetch(descendant.guid);

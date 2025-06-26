@@ -15,15 +15,16 @@ add_task(async function test_pip_label_changes_tab() {
     let selectedTab = newWin.document.querySelector(
       ".tabbrowser-tab[selected]"
     );
-    Assert.ok(
-      selectedTab != pipTab,
+    Assert.notEqual(
+      selectedTab,
+      pipTab,
       "Picture in picture tab is not selected tab"
     );
 
     selectedTab = await BrowserTestUtils.switchTab(newWin.gBrowser, () =>
       pipLabel.click()
     );
-    Assert.ok(selectedTab == pipTab, "Picture in picture tab is selected tab");
+    Assert.equal(selectedTab, pipTab, "Picture in picture tab is selected tab");
   });
 
   await BrowserTestUtils.closeWindow(newWin);

@@ -8,13 +8,14 @@ function run_test() {
   );
 
   const systemLocale = osprefs.systemLocale;
-  Assert.ok(systemLocale != "", "systemLocale is non-empty");
+  Assert.notEqual(systemLocale, "", "systemLocale is non-empty");
 
   const systemLocales = osprefs.systemLocales;
   Assert.ok(Array.isArray(systemLocales), "systemLocales returns an array");
 
-  Assert.ok(
-    systemLocale == systemLocales[0],
+  Assert.equal(
+    systemLocale,
+    systemLocales[0],
     "systemLocale matches first entry in systemLocales"
   );
 

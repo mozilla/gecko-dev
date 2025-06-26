@@ -122,7 +122,7 @@ add_task(async function test_successful_sync_adjustSyncInterval() {
   await Service.sync();
   Assert.equal(syncSuccesses, 5);
   Assert.ok(scheduler.idle);
-  Assert.ok(scheduler.numClients > 1);
+  Assert.greater(scheduler.numClients, 1);
   Assert.ok(scheduler.hasIncomingItems);
   Assert.equal(scheduler.syncInterval, scheduler.idleInterval);
 
@@ -131,7 +131,7 @@ add_task(async function test_successful_sync_adjustSyncInterval() {
   await Service.sync();
   Assert.equal(syncSuccesses, 6);
   Assert.ok(scheduler.idle);
-  Assert.ok(scheduler.numClients > 1);
+  Assert.greater(scheduler.numClients, 1);
   Assert.ok(!scheduler.hasIncomingItems);
   Assert.equal(scheduler.syncInterval, scheduler.idleInterval);
 
@@ -141,7 +141,7 @@ add_task(async function test_successful_sync_adjustSyncInterval() {
   await Service.sync();
   Assert.equal(syncSuccesses, 7);
   Assert.ok(!scheduler.idle);
-  Assert.ok(scheduler.numClients > 1);
+  Assert.greater(scheduler.numClients, 1);
   Assert.ok(!scheduler.hasIncomingItems);
   Assert.equal(scheduler.syncInterval, scheduler.activeInterval);
 
@@ -151,7 +151,7 @@ add_task(async function test_successful_sync_adjustSyncInterval() {
   await Service.sync();
   Assert.equal(syncSuccesses, 8);
   Assert.ok(!scheduler.idle);
-  Assert.ok(scheduler.numClients > 1);
+  Assert.greater(scheduler.numClients, 1);
   Assert.ok(!scheduler.hasIncomingItems); // gets reset to false
   Assert.equal(scheduler.syncInterval, scheduler.immediateInterval);
 
@@ -232,7 +232,7 @@ add_task(async function test_unsuccessful_sync_adjustSyncInterval() {
   await Service.sync();
   Assert.equal(syncFailures, 5);
   Assert.ok(scheduler.idle);
-  Assert.ok(scheduler.numClients > 1);
+  Assert.greater(scheduler.numClients, 1);
   Assert.ok(scheduler.hasIncomingItems);
   Assert.equal(scheduler.syncInterval, scheduler.idleInterval);
 
@@ -241,7 +241,7 @@ add_task(async function test_unsuccessful_sync_adjustSyncInterval() {
   await Service.sync();
   Assert.equal(syncFailures, 6);
   Assert.ok(scheduler.idle);
-  Assert.ok(scheduler.numClients > 1);
+  Assert.greater(scheduler.numClients, 1);
   Assert.ok(!scheduler.hasIncomingItems);
   Assert.equal(scheduler.syncInterval, scheduler.idleInterval);
 
@@ -251,7 +251,7 @@ add_task(async function test_unsuccessful_sync_adjustSyncInterval() {
   await Service.sync();
   Assert.equal(syncFailures, 7);
   Assert.ok(!scheduler.idle);
-  Assert.ok(scheduler.numClients > 1);
+  Assert.greater(scheduler.numClients, 1);
   Assert.ok(!scheduler.hasIncomingItems);
   Assert.equal(scheduler.syncInterval, scheduler.activeInterval);
 
@@ -261,7 +261,7 @@ add_task(async function test_unsuccessful_sync_adjustSyncInterval() {
   await Service.sync();
   Assert.equal(syncFailures, 8);
   Assert.ok(!scheduler.idle);
-  Assert.ok(scheduler.numClients > 1);
+  Assert.greater(scheduler.numClients, 1);
   Assert.ok(!scheduler.hasIncomingItems); // gets reset to false
   Assert.equal(scheduler.syncInterval, scheduler.immediateInterval);
 
@@ -336,7 +336,7 @@ add_task(async function test_adjust_interval_on_sync_error() {
   await Service.sync();
 
   Assert.equal(syncFailures, 1);
-  Assert.ok(scheduler.numClients > 1);
+  Assert.greater(scheduler.numClients, 1);
   Assert.equal(scheduler.syncInterval, scheduler.activeInterval);
 
   Svc.Obs.remove("weave:service:sync:error", onSyncError);
@@ -380,7 +380,7 @@ add_task(async function test_bug671378_scenario() {
       if (syncSuccesses == 2) {
         Assert.notEqual(scheduler.nextSync, 0);
         Assert.equal(scheduler.syncInterval, scheduler.activeInterval);
-        Assert.ok(scheduler.syncTimer.delay <= scheduler.activeInterval);
+        Assert.lessOrEqual(scheduler.syncTimer.delay, scheduler.activeInterval);
 
         scheduler.scheduleNextSync = scheduler._scheduleNextSync;
         Svc.Obs.remove("weave:service:sync:finish", onSyncFinish);
@@ -440,7 +440,7 @@ add_task(async function test_adjust_timer_larger_syncInterval() {
 
   // Ensure timer delay remains as the small interval.
   Assert.notEqual(scheduler.nextSync, 0);
-  Assert.ok(scheduler.syncTimer.delay <= scheduler.activeInterval);
+  Assert.lessOrEqual(scheduler.syncTimer.delay, scheduler.activeInterval);
 
   // SyncSchedule.
   await Service.startOver();
@@ -465,7 +465,7 @@ add_task(async function test_adjust_timer_smaller_syncInterval() {
 
   // Ensure smaller timer delay is used.
   Assert.notEqual(scheduler.nextSync, 0);
-  Assert.ok(scheduler.syncTimer.delay <= scheduler.activeInterval);
+  Assert.lessOrEqual(scheduler.syncTimer.delay, scheduler.activeInterval);
 
   // SyncSchedule.
   await Service.startOver();

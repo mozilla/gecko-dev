@@ -52,7 +52,7 @@ add_task(async function () {
 
     // check that an entry still exists
     let num = await promiseCountEntries("name-A", "value-A");
-    Assert.ok(num > 0);
+    Assert.greater(num, 0);
   } catch (e) {
     throw new Error(`FAILED in test #${testnum} -- ${e}`);
   }

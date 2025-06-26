@@ -110,11 +110,12 @@ add_task(async function test_omnibox_searchMode_switch() {
 
 async function assertNoOmniboxResult(win) {
   let count = await UrlbarTestUtils.getResultCount(win);
-  Assert.ok(count >= 1, "There should be at least one result");
+  Assert.greaterOrEqual(count, 1, "There should be at least one result");
   for (let i = 0; i < count; ++i) {
     let result = await UrlbarTestUtils.getDetailsOfResultAt(win, i);
-    Assert.ok(
-      result.type != UrlbarUtils.RESULT_TYPE.OMNIBOX,
+    Assert.notEqual(
+      result.type,
+      UrlbarUtils.RESULT_TYPE.OMNIBOX,
       "Result is not Omnibox"
     );
   }

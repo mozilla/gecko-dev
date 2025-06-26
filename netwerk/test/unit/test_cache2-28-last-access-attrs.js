@@ -6,8 +6,8 @@ function run_test() {
     return parseInt(new Date().getTime() / 1000);
   }
   function do_check_time(t, min, max) {
-    Assert.ok(t >= min);
-    Assert.ok(t <= max);
+    Assert.greaterOrEqual(t, min);
+    Assert.lessOrEqual(t, max);
   }
 
   var timeStart = NowSeconds();

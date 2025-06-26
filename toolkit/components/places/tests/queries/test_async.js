@@ -132,7 +132,7 @@ Test.prototype = {
     // aOldState comes from xpconnect and will therefore be defined.  It may be
     // zero, though, so use strict equality just to make sure aExpectOldState is
     // also defined.
-    Assert.ok(aOldState === aExpectOldState);
+    Assert.strictEqual(aOldState, aExpectOldState);
   },
 
   /**

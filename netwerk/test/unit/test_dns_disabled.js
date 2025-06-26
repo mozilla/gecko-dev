@@ -46,7 +46,7 @@ function do_test({ dnsDisabled, mustBlock, testDomain, expectedAnswer }) {
         {} // Default origin attributes
       );
     } catch (e) {
-      Assert.ok(mustBlock === true);
+      Assert.strictEqual(mustBlock, true);
       resolve();
     }
   });

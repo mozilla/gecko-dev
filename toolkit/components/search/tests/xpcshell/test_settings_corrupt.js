@@ -43,8 +43,9 @@ add_task(async function test_settings_invalid_json() {
   );
 
   let fiveMinAgo = Date.now() / 1000 - 5 * 60;
-  Assert.ok(
-    lastSettingsCorruptTime > fiveMinAgo,
+  Assert.greater(
+    lastSettingsCorruptTime,
+    fiveMinAgo,
     "lastSettingsCorruptTime is set to the current time."
   );
 
@@ -95,8 +96,9 @@ add_task(async function test_settings_migration_fail() {
   );
 
   let fiveMinAgo = Date.now() / 1000 - 5 * 60;
-  Assert.ok(
-    lastSettingsCorruptTime > fiveMinAgo,
+  Assert.greater(
+    lastSettingsCorruptTime,
+    fiveMinAgo,
     "lastSettingsCorruptTime is set to the current time."
   );
 

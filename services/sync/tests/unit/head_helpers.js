@@ -418,7 +418,7 @@ async function sync_and_validate_telem(
       }
     };
     await Service.sync();
-    Assert.ok(numErrors == 0, "There were telemetry validation errors");
+    Assert.equal(numErrors, 0, "There were telemetry validation errors");
   } finally {
     telem.submit = oldSubmit;
   }

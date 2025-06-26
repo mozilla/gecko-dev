@@ -667,7 +667,7 @@ add_task(async function test_add_visit() {
         visit.transitionType
       )
     );
-    Assert.ok(visit.referrerURI === null);
+    Assert.strictEqual(visit.referrerURI, null);
 
     // For TRANSITION_EMBED visits, many properties will always be zero or
     // undefined.
@@ -681,11 +681,11 @@ add_task(async function test_add_visit() {
     } else {
       // But they should be valid for non-embed visits.
       // Check mozIPlaceInfo properties.
-      Assert.ok(placeInfo.placeId > 0);
+      Assert.greater(placeInfo.placeId, 0);
       do_check_valid_places_guid(placeInfo.guid);
 
       // Check mozIVisitInfo properties.
-      Assert.ok(visit.visitId > 0);
+      Assert.greater(visit.visitId, 0);
     }
 
     // If we have had all of our callbacks, continue running tests.

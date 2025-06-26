@@ -13,7 +13,7 @@ function check_enumerator(permissionTypes, expectedPermissions) {
   );
 
   for (const perm of permissions) {
-    Assert.ok(perm != null);
+    Assert.notEqual(perm, null);
 
     // For some reason, the order in which we get the permissions doesn't seem to be
     // stable when running the test with --verify. As a result, we need to retrieve the
@@ -23,7 +23,11 @@ function check_enumerator(permissionTypes, expectedPermissions) {
         perm.principal.equals(expectedPrincipal) && perm.type === expectedType
     );
 
-    Assert.ok(expectedPermission !== null, "Found the expected permission");
+    Assert.notStrictEqual(
+      expectedPermission,
+      null,
+      "Found the expected permission"
+    );
     Assert.equal(perm.capability, expectedPermission[2]);
     Assert.equal(perm.expireType, Services.perms.EXPIRE_NEVER);
   }

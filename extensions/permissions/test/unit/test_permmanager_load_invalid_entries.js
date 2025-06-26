@@ -240,8 +240,9 @@ function run_test() {
   let numMigrated = 0;
   while (select.executeStep()) {
     let thisModTime = select.getInt64(0);
-    Assert.ok(
-      thisModTime > 0,
+    Assert.greater(
+      thisModTime,
+      0,
       "new modifiedTime field is correct (but it's not 0!)"
     );
     numMigrated += 1;

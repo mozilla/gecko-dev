@@ -155,7 +155,11 @@ add_task(async function test_download_as_bytes() {
   const bytes = await downloader.downloadAsBytes(RECORD);
 
   // See *.pem file in tests data.
-  Assert.ok(bytes.byteLength > 1500, `Wrong bytes size: ${bytes.byteLength}`);
+  Assert.greater(
+    bytes.byteLength,
+    1500,
+    `Wrong bytes size: ${bytes.byteLength}`
+  );
 });
 add_task(clear_state);
 

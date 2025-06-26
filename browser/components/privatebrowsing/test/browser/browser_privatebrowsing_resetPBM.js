@@ -539,8 +539,9 @@ add_task(async function test_reset_action() {
 
   info("Switch to the last tab.");
   win.gBrowser.selectedTab = win.gBrowser.tabs[win.gBrowser.tabs.length - 1];
-  Assert.ok(
-    win.gBrowser.selectedBrowser.currentURI.spec != "about:privatebrowsing",
+  Assert.notEqual(
+    win.gBrowser.selectedBrowser.currentURI.spec,
+    "about:privatebrowsing",
     "The selected tab should not show about:privatebrowsing."
   );
 

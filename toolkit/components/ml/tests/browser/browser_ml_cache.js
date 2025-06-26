@@ -1811,7 +1811,7 @@ add_task(async function test_update_allow_deny_after_model_cache() {
   try {
     await hub.getModelFileAsArrayBuffer({ ...FAKE_MODEL_ARGS, file, revision });
   } catch (e) {
-    Assert.ok(e.name === "ForbiddenURLError");
+    Assert.strictEqual(e.name, "ForbiddenURLError");
   }
   // make sure that the model is deleted after
   const dataAfterForbidden = await cache.getFile({

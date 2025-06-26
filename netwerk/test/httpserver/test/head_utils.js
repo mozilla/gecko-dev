@@ -319,7 +319,7 @@ function runHttpTests(testArray, done) {
     _data: [],
 
     onStartRequest(request) {
-      Assert.ok(request === this._channel);
+      Assert.strictEqual(request, this._channel);
       var ch = request
         .QueryInterface(Ci.nsIHttpChannel)
         .QueryInterface(Ci.nsIHttpChannelInternal);
@@ -528,7 +528,7 @@ function runRawTests(testArray, done, beforeTestCallback) {
   /** Reads data from the socket. */
   var reader = {
     onInputStreamReady(stream) {
-      Assert.ok(stream === this.stream);
+      Assert.strictEqual(stream, this.stream);
       try {
         var bis = new BinaryInputStream(stream);
 

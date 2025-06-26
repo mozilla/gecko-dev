@@ -68,7 +68,7 @@ add_task(async function () {
           kVerboseFlag,
           fontPath,
         ]);
-        Assert.ok(exitCode == 0, "registering font" + fontPath);
+        Assert.equal(exitCode, 0, "registering font" + fontPath);
         if (exitCode == 0) {
           // Wait for the font registration to be detected by the browser.
           await fontRegistered;
@@ -89,7 +89,7 @@ add_task(async function () {
 
         let exitCode = runProcess(kPythonPath, args.concat(fontPath));
         if (waitForUnreg) {
-          Assert.ok(exitCode == 0, "unregistering font" + fontPath);
+          Assert.equal(exitCode, 0, "unregistering font" + fontPath);
           if (exitCode == 0) {
             await fontUnregistered;
           }

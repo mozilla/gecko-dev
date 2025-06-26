@@ -259,7 +259,7 @@ add_task(async function test_update() {
   let address = await profileStorage.addresses.get(guid, { rawData: true });
 
   Assert.equal(address.country, "US");
-  Assert.ok(address.timeLastModified > timeLastModified);
+  Assert.greater(address.timeLastModified, timeLastModified);
   do_check_record_matches(address, TEST_ADDRESS_3);
   Assert.equal(getSyncChangeCounter(profileStorage.addresses, guid), 1);
 

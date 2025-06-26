@@ -40,8 +40,9 @@ add_task(async function test() {
                 addEventListener(
                   "load",
                   function onLoad() {
-                    Assert.ok(
-                      history.index < history.count,
+                    Assert.less(
+                      history.index,
+                      history.count,
                       "history.index is valid"
                     );
                     testDone.resolve();
@@ -105,8 +106,9 @@ add_task(async function test() {
                     let history = docShell.QueryInterface(
                       Ci.nsIWebNavigation
                     ).sessionHistory;
-                    Assert.ok(
-                      history.index < history.count,
+                    Assert.less(
+                      history.index,
+                      history.count,
                       "history.index is valid"
                     );
                     resolve();

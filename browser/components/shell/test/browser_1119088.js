@@ -71,10 +71,10 @@ function setAndCheckDesktopBackgroundCLI(imagePath) {
   Assert.ok(FileUtils.File(imagePath).exists(), `${imagePath} exists`);
 
   let setExitCode = setDesktopBackgroundCLI(imagePath);
-  Assert.ok(setExitCode == 0, `Setting background via CLI to ${imagePath}`);
+  Assert.equal(setExitCode, 0, `Setting background via CLI to ${imagePath}`);
 
   let checkExitCode = checkDesktopBackgroundCLI(imagePath);
-  Assert.ok(checkExitCode == 0, `Checking background via CLI is ${imagePath}`);
+  Assert.equal(checkExitCode, 0, `Checking background via CLI is ${imagePath}`);
 }
 
 // Restore the automation default background image. i.e., the default used
@@ -167,7 +167,7 @@ add_task(async function () {
 
       // Check that the desktop background image is the image we set above.
       let exitCode = checkDesktopBackgroundCLI(backgroundImage.path);
-      Assert.ok(exitCode == 0, `background should be ${backgroundImage.path}`);
+      Assert.equal(exitCode, 0, `background should be ${backgroundImage.path}`);
 
       // Restore the background image to the Mac default.
       restoreDefaultBackground();

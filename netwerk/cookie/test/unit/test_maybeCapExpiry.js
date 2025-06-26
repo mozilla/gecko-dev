@@ -8,11 +8,16 @@ add_task(function test_maybeCapExpiry() {
   let expiry = now + 60 * 1000; // 60 seconds in future
   let capped = Services.cookies.maybeCapExpiry(expiry);
 
-  Assert.ok(
-    capped <= now + 20 * 1000,
+  Assert.lessOrEqual(
+    capped,
+    now + 20 * 1000,
     "expiry should be capped to about now + cap"
   );
-  Assert.ok(capped <= expiry, "result should not exceed original expiry");
+  Assert.lessOrEqual(
+    capped,
+    expiry,
+    "result should not exceed original expiry"
+  );
 
   // Expiry below cap should be returned unchanged
   let smallExpiry = now + 1000; // 1 seconds

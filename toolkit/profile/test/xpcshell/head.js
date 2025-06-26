@@ -167,8 +167,9 @@ function selectStartupProfile(args = [], isResetting = false, legacyHash = "") {
       localDir.value.equals(profile.value.localDir),
       "Should have matched the local dir."
     );
-    Assert.ok(
-      service.currentProfile === profile.value,
+    Assert.strictEqual(
+      service.currentProfile,
+      profile.value,
       "Should have marked the profile as the current profile."
     );
   }

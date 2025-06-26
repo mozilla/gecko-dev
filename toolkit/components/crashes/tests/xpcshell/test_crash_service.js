@@ -104,13 +104,15 @@ async function test_addCrashBase(crashId, allThreads) {
     );
 
     if (allThreads) {
-      Assert.ok(
-        stackTraces.threads.length > 1,
+      Assert.greater(
+        stackTraces.threads.length,
+        1,
         "The stack trace contains more than one thread."
       );
     } else {
-      Assert.ok(
-        stackTraces.threads.length == 1,
+      Assert.equal(
+        stackTraces.threads.length,
+        1,
         "The stack trace contains exactly one thread."
       );
     }
@@ -153,8 +155,9 @@ add_task(async function test_addCrash_shutdownOnCrash() {
 
   let crash = await getCrash(crashId);
   Assert.ok(crash, "Crash " + crashId + " has been stored successfully.");
-  Assert.ok(
-    crash.metadata.StackTraces === undefined,
+  Assert.strictEqual(
+    crash.metadata.StackTraces,
+    undefined,
     "The StackTraces field is not present because the minidump " +
       "analyzer did not start.\n"
   );
@@ -206,8 +209,9 @@ add_task(async function test_addCrash_quitting() {
   await addCrash(secondCrashId);
   crash = await getCrash(secondCrashId);
   Assert.ok(crash, "Crash " + secondCrashId + " has been stored successfully.");
-  Assert.ok(
-    crash.metadata.StackTraces === undefined,
+  Assert.strictEqual(
+    crash.metadata.StackTraces,
+    undefined,
     "The StackTraces field is not present because the minidump " +
       "analyzer did not start.\n"
   );

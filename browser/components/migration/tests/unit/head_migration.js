@@ -67,8 +67,9 @@ async function promiseMigration(
 ) {
   // Ensure resource migration is available.
   let availableSources = await migrator.getMigrateData(aProfile);
-  Assert.ok(
-    (availableSources & resourceType) > 0,
+  Assert.greater(
+    availableSources & resourceType,
+    0,
     "Resource supported by migrator"
   );
   let promises = [TestUtils.topicObserved("Migration:Ended")];

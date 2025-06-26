@@ -15,8 +15,8 @@ function run_test() {
   const indent1 = loader1.require("resource://devtools/shared/indentation.js");
   const indent2 = loader2.require("resource://devtools/shared/indentation.js");
 
-  Assert.ok(indent1 !== indent2);
+  Assert.notStrictEqual(indent1, indent2);
 
-  Assert.ok(loader1.loader !== loader2.loader);
-  Assert.ok(loader1.id !== loader2.id);
+  Assert.notStrictEqual(loader1.loader, loader2.loader);
+  Assert.notStrictEqual(loader1.id, loader2.id);
 }

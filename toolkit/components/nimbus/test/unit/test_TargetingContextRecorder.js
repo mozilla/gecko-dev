@@ -103,7 +103,11 @@ function assertRecordingFailures({
       Glean.nimbusTargetingEnvironment.prefTypeErrors[pref].testGetValue() ?? 0;
 
     if (prefTypeErrors.includes(pref)) {
-      Assert.ok(errorCount > 0, `An type error was reported for pref ${pref}`);
+      Assert.greater(
+        errorCount,
+        0,
+        `An type error was reported for pref ${pref}`
+      );
       Assert.ok(
         !Object.hasOwn(prefValues, normalizePrefName(pref)),
         `The pref ${pref} should not be recorded`
@@ -119,7 +123,11 @@ function assertRecordingFailures({
       Glean.nimbusTargetingEnvironment.attrEvalErrors[attr].testGetValue() ?? 0;
 
     if (attrEvalErrors.includes(attr)) {
-      Assert.ok(errorCount > 0, `An error was reported for attribute ${attr}`);
+      Assert.greater(
+        errorCount,
+        0,
+        `An error was reported for attribute ${attr}`
+      );
       Assert.ok(
         !Object.hasOwn(targetingContextMetrics, normalizeAttributeName(attr)),
         `The attribute ${attr} should not have been recorded`
@@ -144,8 +152,9 @@ add_task(async function testAttributeTransforms() {
     "testing all attributes in ATTRIBUTE_TRANSFORMS have callable transforms"
   );
   for (const [attribute, transform] of Object.entries(ATTRIBUTE_TRANSFORMS)) {
-    Assert.ok(
-      typeof transform === "function",
+    Assert.strictEqual(
+      typeof transform,
+      "function",
       `Attribute ${attribute} has a callable transform`
     );
   }
@@ -185,8 +194,9 @@ add_task(async function testNimbusTargetingContextAllKeysPresent() {
 
     const values = getRecordedTargetingContextMetrics();
 
-    Assert.ok(
-      Object.keys(values).length !== 0,
+    Assert.notStrictEqual(
+      Object.keys(values).length,
+      0,
       "nimbusTargetingContext metrics were recorded"
     );
 
@@ -523,8 +533,9 @@ add_task(async function testRecordingErrors() {
 
     const stringifiedCtx =
       Glean.nimbusTargetingEnvironment.targetingContextValue.testGetValue();
-    Assert.ok(
-      typeof stringifiedCtx === "string",
+    Assert.strictEqual(
+      typeof stringifiedCtx,
+      "string",
       "The targetingContextValue metric is recorded"
     );
 

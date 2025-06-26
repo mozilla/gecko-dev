@@ -181,7 +181,7 @@ add_task(async function test() {
 
             // Check that document zooms in the expected way (in/out)
             let zoom = (actualWidth - previousWidth) * subTest.expectedZoom;
-            Assert.ok(zoom > 0, subTest.message);
+            Assert.greater(zoom, 0, subTest.message);
 
             previousWidth = actualWidth;
           }

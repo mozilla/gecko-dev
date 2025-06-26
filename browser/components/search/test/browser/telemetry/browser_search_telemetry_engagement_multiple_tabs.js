@@ -141,7 +141,7 @@ add_task(async function test_multiple_tabs_forward() {
     if (pid == null) {
       pid = currentPid;
     } else {
-      Assert.ok(pid == currentPid, "The process ID should be the same.");
+      Assert.equal(pid, currentPid, "The process ID should be the same.");
     }
   }
 
@@ -182,7 +182,7 @@ add_task(async function test_multiple_tabs_backward() {
     if (pid == null) {
       pid = currentPid;
     } else {
-      Assert.ok(pid == currentPid, "The process ID should be the same.");
+      Assert.equal(pid, currentPid, "The process ID should be the same.");
     }
   }
 

@@ -204,8 +204,9 @@ add_task(
     );
     Assert.equal(loginHTTPS.password, "pass2", "Check the password changed");
     Assert.equal(loginHTTPS.timesUsed, 2, "Check times used increased");
-    Assert.ok(
-      loginHTTPS.timeCreated < loginHTTPS.timePasswordChanged,
+    Assert.less(
+      loginHTTPS.timeCreated,
+      loginHTTPS.timePasswordChanged,
       "login.timeCreated < login.timePasswordChanged"
     );
     Assert.equal(

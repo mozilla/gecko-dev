@@ -45,9 +45,9 @@ async function doTestTimings() {
   Assert.equal(httpVersion, "h3");
 
   let timing = req.QueryInterface(Ci.nsITimedChannel);
-  Assert.ok(timing.connectStartTime > 0);
+  Assert.greater(timing.connectStartTime, 0);
   Assert.equal(timing.connectStartTime, timing.secureConnectionStartTime);
-  Assert.ok(timing.connectEndTime > timing.connectStartTime);
+  Assert.greater(timing.connectEndTime, timing.connectStartTime);
 }
 
 add_task(async function test_connectStart_equals_secureConnectionStart() {

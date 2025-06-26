@@ -36,8 +36,9 @@ function run_test() {
         var creationTime = Math.floor(cookie.creationTime / 1000);
         // allow the times to slip by one second at most,
         // which should be fine under normal circumstances.
-        Assert.ok(
-          Math.abs(creationTime - now) <= 1000,
+        Assert.lessOrEqual(
+          Math.abs(creationTime - now),
+          1000,
           "Cookie's creationTime is set incorrectly"
         );
         found = true;

@@ -50,8 +50,9 @@ add_task(async function target_to_new_blank_browser() {
   let newTab = await newTabPromise;
   let newBrowser = newTab.linkedBrowser;
 
-  Assert.ok(
-    originalBrowser !== newBrowser,
+  Assert.notStrictEqual(
+    originalBrowser,
+    newBrowser,
     "A new browser should have been created."
   );
   await SpecialPowers.spawn(newBrowser, [TEST_PAGE], async referrer => {
@@ -92,8 +93,9 @@ add_task(async function target_to_new_blank_browser() {
   newTab = await newTabPromise;
   newBrowser = newTab.linkedBrowser;
 
-  Assert.ok(
-    originalBrowser !== newBrowser,
+  Assert.notStrictEqual(
+    originalBrowser,
+    newBrowser,
     "A new browser should have been created."
   );
   await SpecialPowers.spawn(

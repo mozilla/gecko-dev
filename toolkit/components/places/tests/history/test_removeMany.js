@@ -166,8 +166,9 @@ add_task(async function test_remove_many() {
       page.onResultCalled,
       `We have reached the page #${i} from the callback`
     );
-    Assert.ok(
-      visits_in_database(page.uri) == 0,
+    Assert.equal(
+      visits_in_database(page.uri),
+      0,
       "History entry has disappeared"
     );
     Assert.equal(

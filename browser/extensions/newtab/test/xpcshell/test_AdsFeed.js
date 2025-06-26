@@ -317,11 +317,16 @@ add_task(async function test_construction() {
   info("AdsFeed constructor should create initial values");
 
   Assert.ok(feed, "Could construct a AdsFeed");
-  Assert.ok(feed.loaded === false, "AdsFeed is not loaded");
-  Assert.ok(feed.enabled === false, "AdsFeed is not enabled");
-  Assert.ok(feed.lastUpdated === null, "AdsFeed has no lastUpdated record");
-  Assert.ok(
-    feed.tiles.length === 0,
+  Assert.strictEqual(feed.loaded, false, "AdsFeed is not loaded");
+  Assert.strictEqual(feed.enabled, false, "AdsFeed is not enabled");
+  Assert.strictEqual(
+    feed.lastUpdated,
+    null,
+    "AdsFeed has no lastUpdated record"
+  );
+  Assert.strictEqual(
+    feed.tiles.length,
+    0,
     "tiles is initialized as a array with length of 0"
   );
   sandbox.restore();

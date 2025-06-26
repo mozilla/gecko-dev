@@ -44,8 +44,9 @@ async function checkRecord(
 
     if (timePasswordChanged !== undefined) {
       if (recordIsUpdated) {
-        Assert.ok(
-          stored_record.timePasswordChanged >= expectedTimePasswordChanged
+        Assert.greaterOrEqual(
+          stored_record.timePasswordChanged,
+          expectedTimePasswordChanged
         );
       } else {
         Assert.equal(

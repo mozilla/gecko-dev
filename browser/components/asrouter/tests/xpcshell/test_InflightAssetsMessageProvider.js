@@ -20,8 +20,9 @@ add_task(function test_InflightAssetsMessageProvider() {
 
   for (const message of messages) {
     const validator = MESSAGE_VALIDATORS[message.template];
-    Assert.ok(
-      typeof validator !== "undefined",
+    Assert.notStrictEqual(
+      typeof validator,
+      "undefined",
       typeof validator !== "undefined"
         ? `Schema validator found for ${message.template}`
         : `No schema validator found for template ${message.template}. Please update this test to add one.`

@@ -14,7 +14,7 @@ function run_test() {
   do_timeout(1000, function wait() {
     // Check text profile format
     var profileStr = Services.profiler.GetProfile();
-    Assert.ok(profileStr.length > 10);
+    Assert.greater(profileStr.length, 10);
 
     // check json profile format
     var profileObj = Services.profiler.getProfileData();
@@ -25,7 +25,7 @@ function run_test() {
     // here we can't check that we're capturing memory counter data.
     Assert.notEqual(profileObj.counters, null);
     Assert.notEqual(profileObj.memory, null);
-    Assert.ok(profileObj.threads.length >= 1);
+    Assert.greaterOrEqual(profileObj.threads.length, 1);
     Assert.notEqual(profileObj.threads[0].samples, null);
     // NOTE: The number of samples will be empty since we
     //       don't have any labels in the xpcshell code

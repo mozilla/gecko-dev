@@ -116,7 +116,7 @@ async function test_loadgroup_glean_http2(page, probes) {
   const result = page
     ? network.pageLoadSize.page.testGetValue()
     : network.pageLoadSize.subresources.testGetValue();
-  Assert.ok(result.sum > 100, "size should > 100");
+  Assert.greater(result.sum, 100, "size should > 100");
 }
 
 add_task(async function test_loadgroup_glean_http2_page() {

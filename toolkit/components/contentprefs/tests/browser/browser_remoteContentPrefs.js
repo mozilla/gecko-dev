@@ -12,7 +12,7 @@ async function runTestsForFrame(browser, isPrivate) {
     var cps = Cc["@mozilla.org/content-pref/service;1"].getService(
       Ci.nsIContentPrefService2
     );
-    Assert.ok(cps !== null, "got the content pref service");
+    Assert.notStrictEqual(cps, null, "got the content pref service");
 
     await new Promise(resolve => {
       cps.setGlobal("testing", 42, null, {

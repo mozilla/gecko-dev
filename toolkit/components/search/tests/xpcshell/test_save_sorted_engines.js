@@ -62,5 +62,5 @@ add_task(async function test_save_sorted_engines() {
 
   metadata = await promiseEngineMetadata();
   Assert.ok(engine.aliases.includes("foo"));
-  Assert.ok(metadata.foo.order > 0);
+  Assert.greater(metadata.foo.order, 0);
 });

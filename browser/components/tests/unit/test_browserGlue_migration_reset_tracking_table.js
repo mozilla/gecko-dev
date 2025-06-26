@@ -38,9 +38,10 @@ add_task(async function test_migration_reset_tracking_table() {
     !Services.prefs.getBoolPref(CUSTOM_BLOCK_LIST_PREF, false),
     "browser.contentblocking.customBlockList.preferences.ui.enabled pref should be false"
   );
-  Assert.ok(
-    (Services.prefs.getStringPref(TRACKING_TABLE_PREF),
-    LEVEL_1_TRACKING_TABLE) === LEVEL_1_TRACKING_TABLE,
+  Assert.strictEqual(
+    Services.prefs.getStringPref(TRACKING_TABLE_PREF),
+    LEVEL_1_TRACKING_TABLE,
+    LEVEL_1_TRACKING_TABLE,
     "urlclassifier.trackingTable pref should be reset to level 1"
   );
 });

@@ -196,8 +196,9 @@ async function testFileAccessAllPlatforms() {
       // Mac sandbox rules use /private/var because /var is a symlink
       // to /private/var on OS X. Make sure that hasn't changed.
       varDir.normalize();
-      Assert.ok(
-        varDir.path === "/private/var",
+      Assert.strictEqual(
+        varDir.path,
+        "/private/var",
         "/var resolves to /private/var"
       );
     }

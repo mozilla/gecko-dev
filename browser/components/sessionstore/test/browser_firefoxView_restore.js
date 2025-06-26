@@ -12,7 +12,7 @@ add_task(async function test_TODO() {
 
   Assert.equal(gBrowser.tabs[1].linkedBrowser.currentURI.spec, CLOSED_URI);
 
-  Assert.ok(gBrowser.selectedTab == tab);
+  Assert.equal(gBrowser.selectedTab, tab);
 
   let state = ss.getCurrentState(true);
 
