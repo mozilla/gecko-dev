@@ -66,4 +66,5 @@ when trying to switch with Marionette into chrome scope (parent process) testing
 Instead of switching the preference value, the client should ideally fix the breakage
 by passing `-remote-allow-system-access` as an argument to the Firefox binary.
 
-Introduced in Firefox 138, the preference is set to `true` by default.
+This preference was introduced in Firefox 138 with a default value of `true`
+and was removed in Firefox 141.
