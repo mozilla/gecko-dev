@@ -53,7 +53,9 @@ impl IPCListener {
 
     pub fn listen(&mut self) -> Result<(), IPCError> {
         self.overlapped = Some(OverlappedOperation::listen(
-            self.handle.as_raw_handle() as HANDLE,
+            self.handle
+                .try_clone()
+                .map_err(IPCError::CloneHandleFailed)?,
             self.event_raw_handle(),
         )?);
         Ok(())
