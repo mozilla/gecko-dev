@@ -86,6 +86,11 @@ void RenderRootStateManager::AddBlobImageKeyForDiscard(wr::BlobImageKey key) {
   mBlobImageKeysToDelete.AppendElement(key);
 }
 
+void RenderRootStateManager::AddUnusedSnapshotImageKeyForDiscard(
+    wr::SnapshotImageKey key) {
+  mUnusedSnapshotImageKeysToDelete.AppendElement(key);
+}
+
 void RenderRootStateManager::AddSnapshotImageKeyForDiscard(
     wr::SnapshotImageKey key) {
   mSnapshotImageKeysToDelete.AppendElement(key);
@@ -105,6 +110,16 @@ void RenderRootStateManager::DiscardImagesInTransaction(
   mImageKeysToDelete.Clear();
   mBlobImageKeysToDelete.Clear();
   mSnapshotImageKeysToDelete.Clear();
+
+  DiscardUnusedImagesInTransaction(aResources);
+}
+
+void RenderRootStateManager::DiscardUnusedImagesInTransaction(
+    wr::IpcResourceUpdateQueue& aResources) {
+  for (const auto& key : mUnusedSnapshotImageKeysToDelete) {
+    aResources.DeleteSnapshotImage(key);
+  }
+  mUnusedSnapshotImageKeysToDelete.Clear();
 }
 
 void RenderRootStateManager::DiscardLocalImages() {

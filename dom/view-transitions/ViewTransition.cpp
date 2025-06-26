@@ -204,6 +204,7 @@ struct OldSnapshotData {
   nsSize mSize;
   RefPtr<gfx::DataSourceSurface> mFallback;
   RefPtr<layers::RenderRootStateManager> mManager;
+  bool mUsed = false;
 
   OldSnapshotData() = default;
 
@@ -246,7 +247,12 @@ struct OldSnapshotData {
 
   ~OldSnapshotData() {
     if (mManager) {
-      mManager->AddImageKeyForDiscard(mImageKey);
+      wr::SnapshotImageKey key = { mImageKey };
+      if (mUsed) {
+          mManager->AddSnapshotImageKeyForDiscard(key);
+      } else {
+          mManager->AddUnusedSnapshotImageKeyForDiscard(key);
+      }
     }
   }
 };
@@ -378,7 +384,7 @@ Maybe<nsSize> ViewTransition::GetNewSize(nsAtom* aName) const {
   return Some(el->mNewSnapshotSize);
 }
 
-const wr::ImageKey* ViewTransition::GetOldImageKey(
+const wr::ImageKey* ViewTransition::GetOrCreateOldImageKey(
     nsAtom* aName, layers::RenderRootStateManager* aManager,
     wr::IpcResourceUpdateQueue& aResources) const {
   auto* el = mNamedElements.Get(aName);
@@ -386,6 +392,18 @@ const wr::ImageKey* ViewTransition::GetOldImageKey(
     return nullptr;
   }
   el->mOldState.mSnapshot.EnsureKey(aManager, aResources);
+  return &el->mOldState.mSnapshot.mImageKey;
+}
+
+const wr::ImageKey* ViewTransition::ReadOldImageKey(
+    nsAtom* aName, layers::RenderRootStateManager* aManager,
+    wr::IpcResourceUpdateQueue& aResources) const {
+  auto* el = mNamedElements.Get(aName);
+  if (NS_WARN_IF(!el)) {
+    return nullptr;
+  }
+
+  el->mOldState.mSnapshot.mUsed = true;
   return &el->mOldState.mSnapshot.mImageKey;
 }
 
@@ -415,7 +433,7 @@ const wr::ImageKey* ViewTransition::GetImageKeyForCapturedFrame(
          nsAtomCString(name).get(), isOld);
 
   if (isOld) {
-    const auto* key = GetOldImageKey(name, aManager, aResources);
+    const auto* key = GetOrCreateOldImageKey(name, aManager, aResources);
     VT_LOG(" > old image is %s", key ? ToString(*key).c_str() : "null");
     return key;
   }
