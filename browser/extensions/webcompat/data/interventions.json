@@ -2954,6 +2954,21 @@
       }
     ]
   },
+  "1916900": {
+    "label": "vuemotion.santacasaba.org.br",
+    "bugs": {
+      "1916900": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://vuemotion.santacasaba.org.br/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1918604": {
     "label": "g1.globo.com Caça Palavras",
     "bugs": {
