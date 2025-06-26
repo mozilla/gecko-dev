@@ -99,7 +99,7 @@ export class NimbusEnrollments {
     );
 
     this.#shutdownBlocker = this.finalize.bind(this);
-    lazy.Sqlite.shutdown.addBlocker(
+    lazy.ProfilesDatastoreService.shutdown.addBlocker(
       "NimbusEnrollments: writing to database",
       this.#shutdownBlocker
     );
@@ -193,7 +193,7 @@ export class NimbusEnrollments {
     const pending = this.#pending;
     this.#pending = new Map();
 
-    lazy.log.debug(`Flushing ${this.#pending.size} changes to database`);
+    lazy.log.debug(`Flushing ${pending.size} changes to database`);
 
     let success = true;
     try {
