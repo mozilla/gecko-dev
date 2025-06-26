@@ -8,9 +8,6 @@ const { AddonTestUtils } = ChromeUtils.importESModule(
 const { AddonManager } = ChromeUtils.importESModule(
   "resource://gre/modules/AddonManager.sys.mjs"
 );
-const { ExtensionTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/ExtensionXPCShellUtils.sys.mjs"
-);
 
 AddonTestUtils.init(this);
 AddonTestUtils.overrideCertDB();
@@ -26,34 +23,6 @@ let themeID = "policytheme@mozilla.com";
 let policyOnlyID = "policy_installed_only@mozilla.com";
 
 let fileURL;
-
-async function assertManagementAPIInstallType(addonId, expectedInstallType) {
-  const addon = await AddonManager.getAddonByID(addonId);
-  const expectInstalledByPolicy = expectedInstallType === "admin";
-  equal(
-    addon.isInstalledByEnterprisePolicy,
-    expectInstalledByPolicy,
-    `Addon should ${
-      expectInstalledByPolicy ? "be" : "NOT be"
-    } marked as installed by enterprise policy`
-  );
-  const policy = WebExtensionPolicy.getByID(addonId);
-  const pageURL = policy.extension.baseURI.resolve(
-    "_generated_background_page.html"
-  );
-  const page = await ExtensionTestUtils.loadContentPage(pageURL);
-  const { id, installType } = await page.spawn([], async () => {
-    const res = await this.content.wrappedJSObject.browser.management.getSelf();
-    return { id: res.id, installType: res.installType };
-  });
-  await page.close();
-  Assert.equal(id, addonId, "Got results for the expected addon id");
-  Assert.equal(
-    installType,
-    expectedInstallType,
-    "Got the expected installType on policy installed extension"
-  );
-}
 
 function waitForAddonInstall(addonId) {
   return new Promise(resolve => {

@@ -9,9 +9,6 @@ const { AddonTestUtils } = ChromeUtils.importESModule(
 const { AddonManager } = ChromeUtils.importESModule(
   "resource://gre/modules/AddonManager.sys.mjs"
 );
-const { ExtensionTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/ExtensionXPCShellUtils.sys.mjs"
-);
 
 AddonTestUtils.init(this);
 AddonTestUtils.overrideCertDB();

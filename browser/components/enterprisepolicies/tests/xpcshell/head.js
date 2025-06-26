@@ -27,6 +27,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const { EnterprisePolicyTesting } = ChromeUtils.importESModule(
   "resource://testing-common/EnterprisePolicyTesting.sys.mjs"
 );
+const { ExtensionTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/ExtensionXPCShellUtils.sys.mjs"
+);
 
 updateAppInfo({
   name: "XPCShell",
@@ -146,5 +149,33 @@ function checkUnsetPref(prefName) {
     prefType,
     Services.prefs.PREF_INVALID,
     `Pref ${prefName} is not set on the default branch`
+  );
+}
+
+async function assertManagementAPIInstallType(addonId, expectedInstallType) {
+  const addon = await AddonManager.getAddonByID(addonId);
+  const expectInstalledByPolicy = expectedInstallType === "admin";
+  equal(
+    addon.isInstalledByEnterprisePolicy,
+    expectInstalledByPolicy,
+    `Addon should ${
+      expectInstalledByPolicy ? "be" : "NOT be"
+    } marked as installed by enterprise policy`
+  );
+  const policy = WebExtensionPolicy.getByID(addonId);
+  const pageURL = policy.extension.baseURI.resolve(
+    "_generated_background_page.html"
+  );
+  const page = await ExtensionTestUtils.loadContentPage(pageURL);
+  const { id, installType } = await page.spawn([], async () => {
+    const res = await this.content.wrappedJSObject.browser.management.getSelf();
+    return { id: res.id, installType: res.installType };
+  });
+  await page.close();
+  Assert.equal(id, addonId, "Got results for the expected addon id");
+  Assert.equal(
+    installType,
+    expectedInstallType,
+    "Got the expected installType on policy installed extension"
   );
 }

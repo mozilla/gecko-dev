@@ -1375,8 +1375,12 @@ export class AddonWrapper {
    */
   get isInstalledByEnterprisePolicy() {
     const policySettings = Services.policies?.getExtensionSettings(this.id);
-    return ["force_installed", "normal_installed"].includes(
-      policySettings?.installation_mode
+    const legacyLockedSettings =
+      Services.policies?.getActivePolicies()?.Extensions?.Locked ?? [];
+    return (
+      ["force_installed", "normal_installed"].includes(
+        policySettings?.installation_mode
+      ) || legacyLockedSettings.includes(this.id)
     );
   }
 

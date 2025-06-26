@@ -59,6 +59,8 @@ add_task(async function test_addon_forceinstalled_remote() {
     0,
     "Addon should not be able to be disabled."
   );
+  await assertManagementAPIInstallType(addon.id, "admin");
+
   await addon.uninstall();
 });
 

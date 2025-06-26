@@ -80,9 +80,10 @@ add_task(async function test_enterprise_management_works() {
 
   let serverHost = `http://localhost:${server.identity.primaryPort}`;
 
-  let xpiFilename = `/foo.xpi`;
+  let xpiFilename = `/admin.xpi`;
   server.registerFile(xpiFilename, originalXpi);
 
+  info("Testing add-on installed via ExtensionSettings policy");
   let extension = ExtensionTestUtils.expectExtension(TEST_ID);
   await Promise.all([
     AddonTestUtils.promiseInstallEvent("onInstallEnded"),
@@ -93,6 +94,24 @@ add_task(async function test_enterprise_management_works() {
             installation_mode: "force_installed",
             install_url: serverHost + xpiFilename,
           },
+        },
+      },
+    }),
+  ]);
+  await extension.awaitStartup();
+  await extension.awaitMessage("done");
+  await extension.unload();
+
+  info("Testing add-on installed & locked via Extensions policy");
+  extension = ExtensionTestUtils.expectExtension(TEST_ID);
+  await Promise.all([
+    AddonTestUtils.promiseInstallEvent("onInstallEnded"),
+    EnterprisePolicyTesting.setupPolicyEngineWithJson({
+      policies: {
+        ExtensionSettings: {},
+        Extensions: {
+          Install: [serverHost + xpiFilename],
+          Locked: [TEST_ID],
         },
       },
     }),
