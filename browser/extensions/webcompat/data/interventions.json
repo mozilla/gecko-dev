@@ -3964,6 +3964,21 @@
       }
     ]
   },
+  "1959046": {
+    "label": "angeljackets.com",
+    "bugs": {
+      "1959046": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://www.angeljackets.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1959117": {
     "label": "cesupils.lv",
     "bugs": {
