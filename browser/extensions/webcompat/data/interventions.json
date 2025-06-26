@@ -2242,6 +2242,21 @@
       }
     ]
   },
+  "1898963": {
+    "label": "england.nhs.attendanywhere.com",
+    "bugs": {
+      "1898963": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://england.nhs.attendanywhere.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1898994": {
     "label": "eportal.uestc.edu.cn",
     "bugs": {
