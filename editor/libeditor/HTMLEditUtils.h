@@ -652,8 +652,8 @@ class HTMLEditUtils final {
 
   /**
    * Return a point to insert a padding line break if aPoint is following a
-   * collapsible ASCII white-space or a block boundary and the line containing
-   * aPoint requires a following padding line break which there is not.
+   * block boundary and the line containing aPoint requires a following padding
+   * line break to make the line visible.
    */
   template <typename PT, typename CT>
   static EditorDOMPoint LineRequiresPaddingLineBreakToBeVisible(
