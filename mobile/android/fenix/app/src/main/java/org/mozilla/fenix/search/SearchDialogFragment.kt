@@ -104,8 +104,7 @@ import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.navigation.DefaultNavControllerProvider
 import org.mozilla.fenix.navigation.NavControllerProvider
 import org.mozilla.fenix.nimbus.FxNimbus
-import org.mozilla.fenix.search.awesomebar.AwesomeBarView
-import org.mozilla.fenix.search.awesomebar.toSearchProviderState
+import org.mozilla.fenix.search.awesomebar.AwesomeBarViewSuggestions
 import org.mozilla.fenix.search.ext.searchEngineShortcuts
 import org.mozilla.fenix.search.toolbar.IncreasedTapAreaActionDecorator
 import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
@@ -134,8 +133,8 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
     @VisibleForTesting internal val toolbarView: ToolbarView get() = _toolbarView!!
 
     @VisibleForTesting internal lateinit var inlineAutocompleteEditText: InlineAutocompleteEditText
-    private var _awesomeBarView: AwesomeBarView? = null
-    private val awesomeBarView: AwesomeBarView get() = _awesomeBarView!!
+    private var _awesomeBarView: AwesomeBarViewSuggestions? = null
+    private val awesomeBarView: AwesomeBarViewSuggestions get() = _awesomeBarView!!
     private lateinit var startForResult: ActivityResultLauncher<Intent>
 
     private val searchSelectorMenu by lazy {
@@ -299,7 +298,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
 
         val awesomeBar = binding.awesomeBar
 
-        _awesomeBarView = AwesomeBarView(
+        _awesomeBarView = AwesomeBarViewSuggestions(
             activity,
             interactor,
             awesomeBar,
@@ -563,7 +562,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
     }
 
     private fun observeSuggestionProvidersState() = consumeFlow(store) { flow ->
-        flow.map { state -> state.toSearchProviderState() }
+        flow
             .distinctUntilChanged()
             .collect { state -> awesomeBarView.updateSuggestionProvidersVisibility(state) }
     }
@@ -635,7 +634,6 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        awesomeBarView.onDestroy()
         _awesomeBarView = null
         nullableInteractor = null
         controller?.apply {
