@@ -1145,10 +1145,34 @@ class PHC {
     return seed;
   }
 
+ public:
+  // Attempt a page allocation if the time and the size are right. Allocated
+  // memory is zeroed if aZero is true. On failure, the caller should attempt a
+  // normal allocation via MozJemalloc. Can be called in a context where
+  // PHC::mMutex is locked.
+  void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
+                       size_t aAlignment, bool aZero);
+
+  void FreePage(uintptr_t aIndex, const Maybe<arena_id_t>& aArenaId,
+                const StackTrace& aFreeStack, Delay aReuseDelay);
+
+  // This handles both free and moz_arena_free.
+  void PageFree(const Maybe<arena_id_t>& aArenaId, void* aPtr);
+
+  Maybe<void*> PageRealloc(const Maybe<arena_id_t>& aArenaId, void* aOldPtr,
+                           size_t aNewSize);
+
+  void PagePtrInfo(const void* aPtr, jemalloc_ptr_info_t* aInfo);
+
+  size_t PtrUsableSize(usable_ptr_t aPtr);
+
+  bool IsPHCAllocation(const void* aPtr, mozilla::phc::AddrInfo* aOut);
+
+  void Crash(const char* aMessage);
+
   // To improve locality we try to order this file by how frequently different
   // fields are modified and place all the modified-together fields early and
   // ideally within a single cache line.
- public:
   // The mutex that protects the other members.
   alignas(kCacheLineSize) Mutex mMutex MOZ_UNANNOTATED;
 
@@ -1280,6 +1304,11 @@ class PHC {
   Delay GetAvgPageReuseDelay() MOZ_REQUIRES(mMutex) {
     return mAvgPageReuseDelay;
   }
+  Delay ReuseDelay() MOZ_REQUIRES(mMutex) {
+    Delay avg_reuse_delay = GetAvgPageReuseDelay();
+    return (avg_reuse_delay / 2) +
+           Rnd64ToDelay(avg_reuse_delay / 2, Random64());
+  }
 
   // Both of these are accessed early on hot code paths.  We make them both
   // static variables rathan making sRegion a member of sPHC to keep these hot
@@ -1306,8 +1335,8 @@ PHC_THREAD_LOCAL(Delay) PHC::tlsLastDelay;
 // can call into PHC to lockup its pointer. That also means that before calling
 // PHCCrash please ensure that state is consistent.  Because this can report an
 // arbitrary string, use of it must be reviewed by Firefox data stewards.
-static void PHCCrash(const char* aMessage) MOZ_REQUIRES(PHC::sPHC->mMutex) {
-  PHC::sPHC->mMutex.Unlock();
+void PHC::Crash(const char* aMessage) MOZ_REQUIRES(mMutex) {
+  mMutex.Unlock();
   MOZ_CRASH_UNSAFE(aMessage);
 }
 
@@ -1401,32 +1430,27 @@ void PHC::LogNoAlloc(size_t aReqSize, size_t aAlignment, Delay newAllocDelay)
 #endif
 }
 
-// Attempt a page allocation if the time and the size are right. Allocated
-// memory is zeroed if aZero is true. On failure, the caller should attempt a
-// normal allocation via MozJemalloc. Can be called in a context where
-// PHC::mMutex is locked.
-static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
-                            size_t aAlignment, bool aZero) {
+void* PHC::MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
+                          size_t aAlignment, bool aZero) {
   MOZ_ASSERT(IsPowerOfTwo(aAlignment));
-  MOZ_ASSERT(PHC::sPHC);
-  if (!PHC::sPHC->ShouldMakeNewAllocations()) {
+  if (!ShouldMakeNewAllocations()) {
     // Reset the allocation delay so that we take the fast path most of the
     // time.  Rather than take the lock and use the RNG which are unnecessary
     // when PHC is disabled, instead set the delay to a reasonably high number,
     // the default average first allocation delay.  This is reset when PHC is
     // re-enabled anyway.
-    PHC::ForceSetNewAllocDelay(kDelayResetWhenDisabled);
+    ForceSetNewAllocDelay(kDelayResetWhenDisabled);
     return nullptr;
   }
 
-  if (PHC::IsDisabledOnCurrentThread()) {
+  if (IsDisabledOnCurrentThread()) {
     // We don't reset sAllocDelay since that might affect other threads.  We
     // assume this is okay because either this thread will be re-enabled after
     // less than DELAY_MAX allocations or that there are other active threads
     // that will reset sAllocDelay.  We do reset our local delay which will
     // cause this thread to "back off" from updating sAllocDelay on future
     // allocations.
-    PHC::ResetLocalAllocDelay(kDelayBackoffAmount);
+    ResetLocalAllocDelay(kDelayBackoffAmount);
     return nullptr;
   }
 
@@ -1440,13 +1464,12 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
   StackTrace allocStack;
   allocStack.Fill();
 
-  MutexAutoLock lock(PHC::sPHC->mMutex);
+  MutexAutoLock lock(mMutex);
 
-  Time now = PHC::Now();
+  Time now = Now();
 
-  Delay newAllocDelay =
-      Rnd64ToDelay(PHC::sPHC->GetAvgAllocDelay(), PHC::sPHC->Random64());
-  if (!PHC::sPHC->SetNewAllocDelay(newAllocDelay)) {
+  Delay newAllocDelay = Rnd64ToDelay(GetAvgAllocDelay(), Random64());
+  if (!SetNewAllocDelay(newAllocDelay)) {
     return nullptr;
   }
 
@@ -1454,10 +1477,10 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
   // freed.  If the page at the head of the list is too recently freed to be
   // reused then no other pages on the list will be either.
 
-  Maybe<uintptr_t> mb_index = PHC::sPHC->PopNextFreeIfAllocatable(now);
+  Maybe<uintptr_t> mb_index = PopNextFreeIfAllocatable(now);
   if (!mb_index) {
-    PHC::sPHC->IncPageAllocMisses();
-    PHC::sPHC->LogNoAlloc(aReqSize, aAlignment, newAllocDelay);
+    IncPageAllocMisses();
+    LogNoAlloc(aReqSize, aAlignment, newAllocDelay);
     return nullptr;
   }
   uintptr_t index = mb_index.value();
@@ -1465,7 +1488,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
 #if PHC_LOGGING
   Time lifetime = 0;
 #endif
-  uint8_t* pagePtr = PHC::sRegion.AllocPagePtr(index);
+  uint8_t* pagePtr = sRegion.AllocPagePtr(index);
   MOZ_ASSERT(pagePtr);
   bool ok =
 #ifdef XP_WIN
@@ -1475,9 +1498,9 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
 #endif
 
   if (!ok) {
-    PHC::sPHC->UnpopNextFree(index);
-    PHC::sPHC->IncPageAllocMisses();
-    PHC::sPHC->LogNoAlloc(aReqSize, aAlignment, newAllocDelay);
+    UnpopNextFree(index);
+    IncPageAllocMisses();
+    LogNoAlloc(aReqSize, aAlignment, newAllocDelay);
     return nullptr;
   }
 
@@ -1493,11 +1516,11 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
   }
 
 #if PHC_LOGGING
-  Time then = PHC::sPHC->GetFreeTime(index);
+  Time then = GetFreeTime(index);
   lifetime = then != 0 ? now - then : 0;
 #endif
 
-  PHC::sPHC->SetPageInUse(index, aArenaId, ptr, allocStack);
+  SetPageInUse(index, aArenaId, ptr, allocStack);
 
   if (aZero) {
     memset(ptr, 0, usableSize);
@@ -1507,38 +1530,37 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
 #endif
   }
 
-  PHC::sPHC->IncPageAllocHits();
+  IncPageAllocHits();
 #if PHC_LOGGING
-  phc::PHCStats stats = PHC::sPHC->GetPageStats();
+  phc::PHCStats stats = GetPageStats();
   Log("PageAlloc(%zu, %zu) -> %p[%zu]/%p (%zu) (z%zu), sAllocDelay <- %zu, "
       "fullness %zu/%zu/%zu, hits %zu/%zu (%zu%%), lifetime %zu\n",
       aReqSize, aAlignment, pagePtr, index, ptr, usableSize,
-      size_t(newAllocDelay), size_t(PHC::SharedAllocDelay()),
-      stats.mSlotsAllocated, stats.mSlotsFreed, kNumAllocPages,
-      PHC::sPHC->PageAllocHits(), PHC::sPHC->PageAllocAttempts(),
-      PHC::sPHC->PageAllocHitRate(), lifetime);
+      size_t(newAllocDelay), size_t(SharedAllocDelay()), stats.mSlotsAllocated,
+      stats.mSlotsFreed, kNumAllocPages, PageAllocHits(), PageAllocAttempts(),
+      PageAllocHitRate(), lifetime);
 #endif
 
   return ptr;
 }
 
-static void FreePage(uintptr_t aIndex, const Maybe<arena_id_t>& aArenaId,
-                     const StackTrace& aFreeStack, Delay aReuseDelay)
-    MOZ_REQUIRES(PHC::sPHC->mMutex) {
-  void* pagePtr = PHC::sRegion.AllocPagePtr(aIndex);
+void PHC::FreePage(uintptr_t aIndex, const Maybe<arena_id_t>& aArenaId,
+                   const StackTrace& aFreeStack, Delay aReuseDelay)
+    MOZ_REQUIRES(mMutex) {
+  void* pagePtr = sRegion.AllocPagePtr(aIndex);
 
 #ifdef XP_WIN
   if (!VirtualFree(pagePtr, kPageSize, MEM_DECOMMIT)) {
-    PHCCrash("VirtualFree failed");
+    Crash("VirtualFree failed");
   }
 #else
   if (mmap(pagePtr, kPageSize, PROT_NONE, MAP_FIXED | MAP_PRIVATE | MAP_ANON,
            -1, 0) == MAP_FAILED) {
-    PHCCrash("mmap failed");
+    Crash("mmap failed");
   }
 #endif
 
-  PHC::sPHC->SetPageFreed(aIndex, aArenaId, aFreeStack, aReuseDelay);
+  SetPageFreed(aIndex, aArenaId, aFreeStack, aReuseDelay);
 }
 
 //---------------------------------------------------------------------------
@@ -1548,13 +1570,14 @@ static void FreePage(uintptr_t aIndex, const Maybe<arena_id_t>& aArenaId,
 // This handles malloc, moz_arena_malloc, and realloc-with-a-nullptr.
 MOZ_ALWAYS_INLINE static void* PageMalloc(const Maybe<arena_id_t>& aArenaId,
                                           size_t aReqSize) {
-  void* ptr = ShouldPageAllocHot(aReqSize)
-                  // The test on aArenaId here helps the compiler optimise away
-                  // the construction of Nothing() in the caller.
-                  ? MaybePageAlloc(aArenaId.isSome() ? aArenaId : Nothing(),
-                                   aReqSize, /* aAlignment */ 1,
-                                   /* aZero */ false)
-                  : nullptr;
+  void* ptr =
+      ShouldPageAllocHot(aReqSize)
+          // The test on aArenaId here helps the compiler optimise away
+          // the construction of Nothing() in the caller.
+          ? PHC::sPHC->MaybePageAlloc(aArenaId.isSome() ? aArenaId : Nothing(),
+                                      aReqSize, /* aAlignment */ 1,
+                                      /* aZero */ false)
+          : nullptr;
   return ptr ? ptr
              : (aArenaId.isSome()
                     ? MozJemalloc::moz_arena_malloc(*aArenaId, aReqSize)
@@ -1565,12 +1588,6 @@ inline void* MozJemallocPHC::malloc(size_t aReqSize) {
   return PageMalloc(Nothing(), aReqSize);
 }
 
-static Delay ReuseDelay() MOZ_REQUIRES(PHC::sPHC->mMutex) {
-  Delay avg_reuse_delay = PHC::sPHC->GetAvgPageReuseDelay();
-  return (avg_reuse_delay / 2) +
-         Rnd64ToDelay(avg_reuse_delay / 2, PHC::sPHC->Random64());
-}
-
 // This handles both calloc and moz_arena_calloc.
 MOZ_ALWAYS_INLINE static void* PageCalloc(const Maybe<arena_id_t>& aArenaId,
                                           size_t aNum, size_t aReqSize) {
@@ -1579,13 +1596,14 @@ MOZ_ALWAYS_INLINE static void* PageCalloc(const Maybe<arena_id_t>& aArenaId,
     return nullptr;
   }
 
-  void* ptr = ShouldPageAllocHot(checkedSize.value())
-                  // The test on aArenaId here helps the compiler optimise away
-                  // the construction of Nothing() in the caller.
-                  ? MaybePageAlloc(aArenaId.isSome() ? aArenaId : Nothing(),
-                                   checkedSize.value(), /* aAlignment */ 1,
-                                   /* aZero */ true)
-                  : nullptr;
+  void* ptr =
+      ShouldPageAllocHot(checkedSize.value())
+          // The test on aArenaId here helps the compiler optimise away
+          // the construction of Nothing() in the caller.
+          ? PHC::sPHC->MaybePageAlloc(aArenaId.isSome() ? aArenaId : Nothing(),
+                                      checkedSize.value(), /* aAlignment */ 1,
+                                      /* aZero */ true)
+          : nullptr;
   return ptr ? ptr
              : (aArenaId.isSome()
                     ? MozJemalloc::moz_arena_calloc(*aArenaId, aNum, aReqSize)
@@ -1594,6 +1612,15 @@ MOZ_ALWAYS_INLINE static void* PageCalloc(const Maybe<arena_id_t>& aArenaId,
 
 inline void* MozJemallocPHC::calloc(size_t aNum, size_t aReqSize) {
   return PageCalloc(Nothing(), aNum, aReqSize);
+}
+
+MOZ_ALWAYS_INLINE static bool FastIsPHCPtr(void* aPtr) {
+  if (MOZ_UNLIKELY(!maybe_init())) {
+    return false;
+  }
+
+  PtrKind pk = PHC::sRegion.PtrKind(aPtr);
+  return !pk.IsNothing();
 }
 
 // This function handles both realloc and moz_arena_realloc.
@@ -1632,31 +1659,34 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
     return Some(PageMalloc(aArenaId, aNewSize));
   }
 
-  if (!maybe_init()) {
-    return Nothing();
-  }
-
-  PtrKind pk = PHC::sRegion.PtrKind(aOldPtr);
-  if (pk.IsNothing()) {
+  if (!FastIsPHCPtr(aOldPtr)) {
     // A normal-to-normal transition.
     return Nothing();
   }
 
+  return PHC::sPHC->PageRealloc(aArenaId, aOldPtr, aNewSize);
+}
+
+Maybe<void*> PHC::PageRealloc(const Maybe<arena_id_t>& aArenaId, void* aOldPtr,
+                              size_t aNewSize) MOZ_EXCLUDES(mMutex) {
+  PtrKind pk = sRegion.PtrKind(aOldPtr);
+  MOZ_ASSERT(!pk.IsNothing());
+
   if (pk.IsGuardPage()) {
-    PHC::CrashOnGuardPage(aOldPtr);
+    CrashOnGuardPage(aOldPtr);
   }
 
   // At this point we know we have an allocation page.
   uintptr_t index = pk.AllocPageIndex();
 
   // A page-to-something transition.
-  PHC::sPHC->AdvanceNow(PHC::LocalAllocDelay());
+  AdvanceNow(LocalAllocDelay());
 
   // Note that `disable` has no effect unless it is emplaced below.
   Maybe<AutoDisableOnCurrentThread> disable;
   // Get the stack trace *before* locking the mutex.
   StackTrace stack;
-  if (PHC::IsDisabledOnCurrentThread()) {
+  if (IsDisabledOnCurrentThread()) {
     // PHC is disabled on this thread. Leave the stack empty.
   } else {
     // Disable on this thread *before* getting the stack trace.
@@ -1664,12 +1694,12 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
     stack.Fill();
   }
 
-  MutexAutoLock lock(PHC::sPHC->mMutex);
+  MutexAutoLock lock(mMutex);
 
   // Check for realloc() of a freed block.
-  PHC::sPHC->EnsureValidAndInUse(aOldPtr, index);
+  EnsureValidAndInUse(aOldPtr, index);
 
-  if (aNewSize <= kPageSize && PHC::sPHC->ShouldMakeNewAllocations()) {
+  if (aNewSize <= kPageSize && ShouldMakeNewAllocations()) {
     // A page-to-page transition. Just keep using the page allocation. We do
     // this even if the thread is disabled, because it doesn't create a new
     // page allocation. Note that ResizePageInUse() checks aArenaId.
@@ -1678,12 +1708,12 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
     // allocation overlap. Move the usable size rather than the requested size,
     // because the user might have used malloc_usable_size() and filled up the
     // usable size.
-    size_t oldUsableSize = PHC::sPHC->PageUsableSize(index);
+    size_t oldUsableSize = PageUsableSize(index);
     size_t newUsableSize = MozJemalloc::malloc_good_size(aNewSize);
-    uint8_t* pagePtr = PHC::sRegion.AllocPagePtr(index);
+    uint8_t* pagePtr = sRegion.AllocPagePtr(index);
     uint8_t* newPtr = pagePtr + kPageSize - newUsableSize;
     memmove(newPtr, aOldPtr, std::min(oldUsableSize, aNewSize));
-    PHC::sPHC->ResizePageInUse(index, aArenaId, newPtr, stack);
+    ResizePageInUse(index, aArenaId, newPtr, stack);
     Log("PageRealloc-Reuse(%p, %zu) -> %p\n", aOldPtr, aNewSize, newPtr);
     return Some(newPtr);
   }
@@ -1694,7 +1724,7 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
   if (aArenaId.isSome()) {
     newPtr = MozJemalloc::moz_arena_malloc(*aArenaId, aNewSize);
   } else {
-    Maybe<arena_id_t> oldArenaId = PHC::sPHC->PageArena(index);
+    Maybe<arena_id_t> oldArenaId = PageArena(index);
     newPtr = (oldArenaId.isSome()
                   ? MozJemalloc::moz_arena_malloc(*oldArenaId, aNewSize)
                   : MozJemalloc::malloc(aNewSize));
@@ -1708,12 +1738,12 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
   // Copy the usable size rather than the requested size, because the user
   // might have used malloc_usable_size() and filled up the usable size. Note
   // that FreePage() checks aArenaId (via SetPageFreed()).
-  size_t oldUsableSize = PHC::sPHC->PageUsableSize(index);
+  size_t oldUsableSize = PageUsableSize(index);
   memcpy(newPtr, aOldPtr, std::min(oldUsableSize, aNewSize));
   FreePage(index, aArenaId, stack, reuseDelay);
   Log("PageRealloc-Free(%p[%zu], %zu) -> %p, %zu delay, reuse at ~%zu\n",
       aOldPtr, index, aNewSize, newPtr, size_t(reuseDelay),
-      size_t(PHC::Now()) + reuseDelay);
+      size_t(Now()) + reuseDelay);
 
   return Some(newPtr);
 }
@@ -1733,22 +1763,23 @@ inline void* MozJemallocPHC::realloc(void* aOldPtr, size_t aNewSize) {
   return PageRealloc(Nothing(), aOldPtr, aNewSize);
 }
 
-// This handles both free and moz_arena_free.
-static void DoPageFree(const Maybe<arena_id_t>& aArenaId, void* aPtr) {
-  PtrKind pk = PHC::sRegion.PtrKind(aPtr);
+void PHC::PageFree(const Maybe<arena_id_t>& aArenaId, void* aPtr)
+    MOZ_EXCLUDES(mMutex) {
+  PtrKind pk = sRegion.PtrKind(aPtr);
+  MOZ_ASSERT(!pk.IsNothing());
   if (pk.IsGuardPage()) {
     PHC::CrashOnGuardPage(aPtr);
   }
 
   // At this point we know we have an allocation page.
-  PHC::sPHC->AdvanceNow(PHC::LocalAllocDelay());
+  AdvanceNow(LocalAllocDelay());
   uintptr_t index = pk.AllocPageIndex();
 
   // Note that `disable` has no effect unless it is emplaced below.
   Maybe<AutoDisableOnCurrentThread> disable;
   // Get the stack trace *before* locking the mutex.
   StackTrace freeStack;
-  if (PHC::IsDisabledOnCurrentThread()) {
+  if (IsDisabledOnCurrentThread()) {
     // PHC is disabled on this thread. Leave the stack empty.
   } else {
     // Disable on this thread *before* getting the stack trace.
@@ -1756,30 +1787,21 @@ static void DoPageFree(const Maybe<arena_id_t>& aArenaId, void* aPtr) {
     freeStack.Fill();
   }
 
-  MutexAutoLock lock(PHC::sPHC->mMutex);
+  MutexAutoLock lock(mMutex);
 
   // Check for a double-free.
-  PHC::sPHC->EnsureValidAndInUse(aPtr, index);
+  EnsureValidAndInUse(aPtr, index);
 
   // Note that FreePage() checks aArenaId (via SetPageFreed()).
   Delay reuseDelay = ReuseDelay();
   FreePage(index, aArenaId, freeStack, reuseDelay);
 
 #if PHC_LOGGING
-  phc::PHCStats stats = PHC::sPHC->GetPageStats();
+  phc::PHCStats stats = GetPageStats();
   Log("PageFree(%p[%zu]), %zu delay, reuse at ~%zu, fullness %zu/%zu/%zu\n",
-      aPtr, index, size_t(reuseDelay), size_t(PHC::Now()) + reuseDelay,
+      aPtr, index, size_t(reuseDelay), size_t(Now()) + reuseDelay,
       stats.mSlotsAllocated, stats.mSlotsFreed, kNumAllocPages);
 #endif
-}
-
-MOZ_ALWAYS_INLINE static bool FastIsPHCPtr(void* aPtr) {
-  if (MOZ_UNLIKELY(!maybe_init())) {
-    return false;
-  }
-
-  PtrKind pk = PHC::sRegion.PtrKind(aPtr);
-  return !pk.IsNothing();
 }
 
 MOZ_ALWAYS_INLINE static void PageFree(const Maybe<arena_id_t>& aArenaId,
@@ -1787,7 +1809,7 @@ MOZ_ALWAYS_INLINE static void PageFree(const Maybe<arena_id_t>& aArenaId,
   if (MOZ_UNLIKELY(FastIsPHCPtr(aPtr))) {
     // The tenery expression here helps the compiler optimise away the
     // construction of Nothing() in the caller.
-    DoPageFree(aArenaId.isSome() ? aArenaId : Nothing(), aPtr);
+    PHC::sPHC->PageFree(aArenaId.isSome() ? aArenaId : Nothing(), aPtr);
     return;
   }
 
@@ -1809,8 +1831,8 @@ MOZ_ALWAYS_INLINE static void* PageMemalign(const Maybe<arena_id_t>& aArenaId,
   if (ShouldPageAllocHot(aReqSize) && aAlignment <= kPageSize) {
     // The test on aArenaId here helps the compiler optimise away
     // the construction of Nothing() in the caller.
-    ptr = MaybePageAlloc(aArenaId.isSome() ? aArenaId : Nothing(), aReqSize,
-                         aAlignment, /* aZero */ false);
+    ptr = PHC::sPHC->MaybePageAlloc(aArenaId.isSome() ? aArenaId : Nothing(),
+                                    aReqSize, aAlignment, /* aZero */ false);
   }
   return ptr ? ptr
              : (aArenaId.isSome()
@@ -1834,8 +1856,13 @@ inline size_t MozJemallocPHC::malloc_usable_size(usable_ptr_t aPtr) {
     return MozJemalloc::malloc_usable_size(aPtr);
   }
 
+  return PHC::sPHC->PtrUsableSize(aPtr);
+}
+
+size_t PHC::PtrUsableSize(usable_ptr_t aPtr) MOZ_EXCLUDES(mMutex) {
+  PtrKind pk = sRegion.PtrKind(aPtr);
   if (pk.IsGuardPage()) {
-    PHC::CrashOnGuardPage(const_cast<void*>(aPtr));
+    CrashOnGuardPage(const_cast<void*>(aPtr));
   }
 
   // At this point we know aPtr lands within an allocation page, due to the
@@ -1843,15 +1870,15 @@ inline size_t MozJemallocPHC::malloc_usable_size(usable_ptr_t aPtr) {
   // before the base address of the allocation, we return 0.
   uintptr_t index = pk.AllocPageIndex();
 
-  MutexAutoLock lock(PHC::sPHC->mMutex);
+  MutexAutoLock lock(mMutex);
 
-  void* pageBaseAddr = PHC::sPHC->AllocPageBaseAddr(index);
+  void* pageBaseAddr = AllocPageBaseAddr(index);
 
   if (MOZ_UNLIKELY(aPtr < pageBaseAddr)) {
     return 0;
   }
 
-  return PHC::sPHC->PageUsableSize(index);
+  return PageUsableSize(index);
 }
 
 static size_t metadata_size() {
@@ -1902,7 +1929,8 @@ inline void MozJemallocPHC::jemalloc_stats_lite(jemalloc_stats_lite_t* aStats) {
 inline void MozJemallocPHC::jemalloc_ptr_info(const void* aPtr,
                                               jemalloc_ptr_info_t* aInfo) {
   if (!maybe_init()) {
-    return MozJemalloc::jemalloc_ptr_info(aPtr, aInfo);
+    MozJemalloc::jemalloc_ptr_info(aPtr, aInfo);
+    return;
   }
 
   // We need to implement this properly, because various code locations do
@@ -1910,9 +1938,16 @@ inline void MozJemallocPHC::jemalloc_ptr_info(const void* aPtr,
   PtrKind pk = PHC::sRegion.PtrKind(aPtr);
   if (pk.IsNothing()) {
     // Not a page allocation.
-    return MozJemalloc::jemalloc_ptr_info(aPtr, aInfo);
+    MozJemalloc::jemalloc_ptr_info(aPtr, aInfo);
+    return;
   }
 
+  PHC::sPHC->PagePtrInfo(aPtr, aInfo);
+}
+
+void PHC::PagePtrInfo(const void* aPtr, jemalloc_ptr_info_t* aInfo)
+    MOZ_EXCLUDES(mMutex) {
+  PtrKind pk = sRegion.PtrKind(aPtr);
   if (pk.IsGuardPage()) {
     // Treat a guard page as unknown because there's no better alternative.
     *aInfo = {TagUnknown, nullptr, 0, 0};
@@ -1922,9 +1957,9 @@ inline void MozJemallocPHC::jemalloc_ptr_info(const void* aPtr,
   // At this point we know we have an allocation page.
   uintptr_t index = pk.AllocPageIndex();
 
-  MutexAutoLock lock(PHC::sPHC->mMutex);
+  MutexAutoLock lock(mMutex);
 
-  PHC::sPHC->FillJemallocPtrInfo(aPtr, index, aInfo);
+  FillJemallocPtrInfo(aPtr, index, aInfo);
 #if DEBUG
   Log("JemallocPtrInfo(%p[%zu]) -> {%zu, %p, %zu, %zu}\n", aPtr, index,
       size_t(aInfo->tag), aInfo->addr, aInfo->size, aInfo->arenaId);
@@ -1959,14 +1994,8 @@ inline void* MozJemallocPHC::moz_arena_memalign(arena_id_t aArenaId,
   return PageMemalign(Some(aArenaId), aAlignment, aReqSize);
 }
 
-namespace mozilla::phc {
-
-bool IsPHCAllocation(const void* aPtr, AddrInfo* aOut) {
-  if (!maybe_init()) {
-    return false;
-  }
-
-  PtrKind pk = PHC::sRegion.PtrKind(aPtr);
+bool PHC::IsPHCAllocation(const void* aPtr, mozilla::phc::AddrInfo* aOut) {
+  PtrKind pk = sRegion.PtrKind(aPtr);
   if (pk.IsNothing()) {
     return false;
   }
@@ -1977,17 +2006,17 @@ bool IsPHCAllocation(const void* aPtr, AddrInfo* aOut) {
       // The address is in the lower half of a guard page, so it's probably an
       // overflow. But first check that it is not on the very first guard
       // page, in which case it cannot be an overflow, and we ignore it.
-      if (PHC::sRegion.IsInFirstGuardPage(aPtr)) {
+      if (sRegion.IsInFirstGuardPage(aPtr)) {
         return false;
       }
 
       // Get the allocation page preceding this guard page.
-      pk = PHC::sRegion.PtrKind(static_cast<const uint8_t*>(aPtr) - kPageSize);
+      pk = sRegion.PtrKind(static_cast<const uint8_t*>(aPtr) - kPageSize);
 
     } else {
       // The address is in the upper half of a guard page, so it's probably an
       // underflow. Get the allocation page following this guard page.
-      pk = PHC::sRegion.PtrKind(static_cast<const uint8_t*>(aPtr) + kPageSize);
+      pk = sRegion.PtrKind(static_cast<const uint8_t*>(aPtr) + kPageSize);
     }
 
     // Make a note of the fact that we hit a guard page.
@@ -1998,19 +2027,29 @@ bool IsPHCAllocation(const void* aPtr, AddrInfo* aOut) {
   uintptr_t index = pk.AllocPageIndex();
 
   if (aOut) {
-    if (PHC::sPHC->mMutex.TryLock()) {
-      PHC::sPHC->FillAddrInfo(index, aPtr, isGuardPage, *aOut);
+    if (mMutex.TryLock()) {
+      FillAddrInfo(index, aPtr, isGuardPage, *aOut);
       Log("IsPHCAllocation: %zu, %p, %zu, %zu, %zu\n", size_t(aOut->mKind),
           aOut->mBaseAddr, aOut->mUsableSize,
           aOut->mAllocStack.isSome() ? aOut->mAllocStack->mLength : 0,
           aOut->mFreeStack.isSome() ? aOut->mFreeStack->mLength : 0);
-      PHC::sPHC->mMutex.Unlock();
+      mMutex.Unlock();
     } else {
       Log("IsPHCAllocation: PHC is locked\n");
       aOut->mPhcWasLocked = true;
     }
   }
   return true;
+}
+
+namespace mozilla::phc {
+
+bool IsPHCAllocation(const void* aPtr, AddrInfo* aOut) {
+  if (!maybe_init()) {
+    return false;
+  }
+
+  return PHC::sPHC->IsPHCAllocation(aPtr, aOut);
 }
 
 void DisablePHCOnCurrentThread() {
