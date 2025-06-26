@@ -391,6 +391,10 @@ void gfxWindowsPlatform::InitAcceleration() {
   gfxVars::SetSystemTextQualityListener(
       gfxDWriteFont::SystemTextQualityChanged);
 
+  // CanUseHardwareVideoDecoding depends on DeviceManagerDx state,
+  // so update the cached value now.
+  UpdateCanUseHardwareVideoDecoding();
+
   // Our ScreenHelperWin also depends on DeviceManagerDx state.
   if (XRE_IsParentProcess() && !gfxPlatform::IsHeadless()) {
     ScreenHelperWin::RefreshScreens();
@@ -404,33 +408,15 @@ void gfxWindowsPlatform::InitWebRenderConfig() {
   UpdateBackendPrefs();
 }
 
-void gfxWindowsPlatform::InitPlatformHardwareVideoConfig() {
-  FeatureState& featureDec =
-      gfxConfig::GetFeature(Feature::HARDWARE_VIDEO_DECODING);
-  FeatureState& featureEnc =
-      gfxConfig::GetFeature(Feature::HARDWARE_VIDEO_ENCODING);
-
+bool gfxWindowsPlatform::CanUseHardwareVideoDecoding() {
   DeviceManagerDx* dm = DeviceManagerDx::Get();
   if (!dm) {
-    featureDec.ForceDisable(FeatureStatus::Unavailable,
-                            "Requires DeviceManagerDx",
-                            "FEATURE_FAILURE_NO_DEVICE_MANAGER_DX"_ns);
-    featureEnc.ForceDisable(FeatureStatus::Unavailable,
-                            "Requires DeviceManagerDx",
-                            "FEATURE_FAILURE_NO_DEVICE_MANAGER_DX"_ns);
-  } else if (!dm->TextureSharingWorks()) {
-    featureDec.ForceDisable(FeatureStatus::Unavailable,
-                            "Requires texture sharing",
-                            "FEATURE_FAILURE_BROKEN_TEXTURE_SHARING"_ns);
-    featureEnc.ForceDisable(FeatureStatus::Unavailable,
-                            "Requires texture sharing",
-                            "FEATURE_FAILURE_BROKEN_TEXTURE_SHARING"_ns);
-  } else if (dm->IsWARP()) {
-    featureDec.ForceDisable(FeatureStatus::Unavailable, "Cannot use with WARP",
-                            "FEATURE_FAILURE_D3D11_WARP_DEVICE"_ns);
-    featureEnc.ForceDisable(FeatureStatus::Unavailable, "Cannot use with WARP",
-                            "FEATURE_FAILURE_D3D11_WARP_DEVICE"_ns);
+    return false;
   }
+  if (!dm->TextureSharingWorks()) {
+    return false;
+  }
+  return !dm->IsWARP() && gfxPlatform::CanUseHardwareVideoDecoding();
 }
 
 bool gfxWindowsPlatform::InitDWriteSupport() {
@@ -1953,12 +1939,9 @@ void gfxWindowsPlatform::ImportGPUDeviceData(
     }
   }
 
-  // Hardware video decoding depends on d3d11 state, so update the cache.
-  InitPlatformHardwareVideoConfig();
-  gfxVars::SetCanUseHardwareVideoDecoding(
-      gfxConfig::IsEnabled(Feature::HARDWARE_VIDEO_DECODING));
-  gfxVars::SetCanUseHardwareVideoEncoding(
-      gfxConfig::IsEnabled(Feature::HARDWARE_VIDEO_ENCODING));
+  // CanUseHardwareVideoDecoding depends on d3d11 state, so update
+  // the cached value now.
+  UpdateCanUseHardwareVideoDecoding();
 
   // For completeness (and messaging in about:support). Content recomputes this
   // on its own, and we won't use ANGLE in the UI process if we're using a GPU

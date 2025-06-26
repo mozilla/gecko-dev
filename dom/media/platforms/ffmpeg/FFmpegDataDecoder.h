@@ -40,12 +40,8 @@ class FFmpegDataDecoder<LIBAV_VER>
   RefPtr<FlushPromise> Flush() override;
   RefPtr<ShutdownPromise> Shutdown() override;
 
-  static AVCodec* FindSoftwareAVCodec(FFmpegLibWrapper* aLib, AVCodecID aCodec);
-#ifdef MOZ_USE_HWDECODE
-  static AVCodec* FindHardwareAVCodec(
-      FFmpegLibWrapper* aLib, AVCodecID aCodec,
-      AVHWDeviceType aDeviceType = AV_HWDEVICE_TYPE_NONE);
-#endif
+  static AVCodec* FindAVCodec(FFmpegLibWrapper* aLib, AVCodecID aCodec);
+  static AVCodec* FindHardwareAVCodec(FFmpegLibWrapper* aLib, AVCodecID aCodec);
 
  protected:
   // Flush and Drain operation, always run
