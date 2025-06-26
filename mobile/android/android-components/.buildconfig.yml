@@ -607,6 +607,7 @@ projects:
     path: components/feature/addons
     publish: true
     upstream_dependencies:
+    - components:browser-engine-gecko
     - components:browser-errorpages
     - components:browser-state
     - components:concept-awesomebar
@@ -618,8 +619,10 @@ projects:
     - components:concept-toolbar
     - components:lib-publicsuffixlist
     - components:lib-state
+    - components:service-nimbus
     - components:support-base
     - components:support-ktx
+    - components:support-locale
     - components:support-test
     - components:support-test-libstate
     - components:support-utils

@@ -105,7 +105,6 @@ import org.mozilla.geckoview.MediaSession;
 import org.mozilla.geckoview.OrientationController;
 import org.mozilla.geckoview.OverscrollEdgeEffect;
 import org.mozilla.geckoview.PanZoomController;
-import org.mozilla.geckoview.ProfilerController;
 import org.mozilla.geckoview.RuntimeSettings;
 import org.mozilla.geckoview.ScreenLength;
 import org.mozilla.geckoview.SessionAccessibility;
@@ -2508,6 +2507,7 @@ package org.mozilla.geckoview {
     method @UiThread public void setDownloadDelegate(@Nullable WebExtension.DownloadDelegate);
     method @UiThread public void setMessageDelegate(@Nullable WebExtension.MessageDelegate, @NonNull String);
     method @UiThread public void setTabDelegate(@Nullable WebExtension.TabDelegate);
+    field public static final List<String> DATA_COLLECTION_PERMISSIONS;
     field public final long flags;
     field @NonNull public final String id;
     field public final boolean isBuiltIn;

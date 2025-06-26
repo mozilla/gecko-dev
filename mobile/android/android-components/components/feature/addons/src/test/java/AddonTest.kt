@@ -5,6 +5,7 @@
 package mozilla.components.feature.addons
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.browser.engine.gecko.webextension.GeckoWebExtension
 import mozilla.components.concept.engine.webextension.DisabledFlags
 import mozilla.components.concept.engine.webextension.Incognito
 import mozilla.components.concept.engine.webextension.Metadata
@@ -642,21 +643,9 @@ class AddonTest {
 
     @Test
     fun `localizeDataCollectionPermissions - should return a localized string for each data collection permission`() {
-        listOf(
-            "authenticationInfo",
-            "bookmarksInfo",
-            "browsingActivity",
-            "financialAndPaymentInfo",
-            "healthInfo",
-            "locationInfo",
-            "personalCommunications",
-            "personallyIdentifyingInfo",
-            "searchTerms",
-            "technicalAndInteraction",
-            "websiteActivity",
-            "websiteContent",
-        ).map { permission ->
-            val list = Addon.localizeDataCollectionPermissions(listOf(permission), testContext)
+        // The "none" permission is special and it doesn't get localized strings like the other data permissions.
+        GeckoWebExtension.DATA_COLLECTION_PERMISSIONS.filter { permission -> permission != "none" }.map { permission ->
+        val list = Addon.localizeDataCollectionPermissions(listOf(permission), testContext)
             assertTrue("expected a localized string for $permission", list.size == 1)
         }
 
@@ -687,20 +676,8 @@ class AddonTest {
 
     @Test
     fun `localizeOptionalDataCollectionPermissions - should return a LocalizedPermission for each data collection permission`() {
-        listOf(
-            "authenticationInfo",
-            "bookmarksInfo",
-            "browsingActivity",
-            "financialAndPaymentInfo",
-            "healthInfo",
-            "locationInfo",
-            "personalCommunications",
-            "personallyIdentifyingInfo",
-            "searchTerms",
-            "technicalAndInteraction",
-            "websiteActivity",
-            "websiteContent",
-        ).map { permission ->
+        // The "none" permission is special and it doesn't get localized strings like the other data permissions.
+        GeckoWebExtension.DATA_COLLECTION_PERMISSIONS.filter { permission -> permission != "none" }.map { permission ->
             val list = Addon.localizeOptionalDataCollectionPermissions(
                 listOf(Addon.Permission(permission, false)),
                 testContext,
