@@ -24,6 +24,12 @@ vendoring:
   exclude:
     - .hgignore
     - .hgtags
+  keep:
+    - TAG-INFO
+  update-actions:
+    - action: run-script
+      cwd: '{yaml_dir}/../../'
+      script: '{cwd}/security/manager/tools/regen_root_ca_metadata.py'
 
 updatebot:
   maintainer-phab: "#nss-reviewers"
@@ -31,3 +37,4 @@ updatebot:
   tasks:
     - type: vendoring
       enabled: true
+      frequency: 1 week
