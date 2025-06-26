@@ -2103,6 +2103,21 @@
       }
     ]
   },
+  "1898926": {
+    "label": "dgslms.aduacademy.in",
+    "bugs": {
+      "1898926": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://dgslms.aduacademy.in/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome_with_FxQuantum"]
+      }
+    ]
+  },
   "1898931": {
     "label": "facturador.afip.gob.ar",
     "bugs": {
