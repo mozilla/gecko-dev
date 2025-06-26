@@ -30,6 +30,7 @@ import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.support.ktx.android.view.ImeInsetsSynchronizer
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
@@ -71,7 +72,7 @@ internal class HomeToolbarComposable(
     private val browsingModeManager: BrowsingModeManager,
     private val settings: Settings,
     private val tabStripContent: @Composable () -> Unit,
-    private val searchSuggestionsContent: @Composable (BrowserToolbarStore) -> Unit,
+    private val searchSuggestionsContent: @Composable (BrowserToolbarStore, Modifier) -> Unit,
 ) : FenixHomeToolbar {
     private var showDivider by mutableStateOf(true)
 
@@ -96,8 +97,14 @@ internal class HomeToolbarComposable(
                     if (shouldShowTabStrip) {
                         tabStripContent()
                     }
+
+                    if (settings.shouldUseBottomToolbar) {
+                        searchSuggestionsContent(store, Modifier.weight(1f))
+                    }
                     BrowserToolbar(showDivider, settings.shouldUseBottomToolbar)
-                    searchSuggestionsContent(store)
+                    if (!settings.shouldUseBottomToolbar) {
+                        searchSuggestionsContent(store, Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -111,6 +118,10 @@ internal class HomeToolbarComposable(
                 TOP -> Gravity.TOP
                 BOTTOM -> Gravity.BOTTOM
             }
+        }
+
+        if (settings.shouldUseBottomToolbar) {
+            ImeInsetsSynchronizer.setup(layout)
         }
 
         updateHomeAppBarIntegration()

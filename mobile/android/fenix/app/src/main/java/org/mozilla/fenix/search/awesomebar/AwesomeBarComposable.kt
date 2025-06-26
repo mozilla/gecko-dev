@@ -56,6 +56,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * Wrapper over a [Composable] to show search suggestions, responsible for its setup.
  *
  * @param activity [HomeActivity] providing the ability to open URLs and querying the current browsing mode.
+ * @param modifier [Modifier] to be applied to the [Composable].
  * @param components [Components] for accessing other functionalities of the application.
  * @param appStore [AppStore] for accessing the current application state.
  * @param browserStore [BrowserStore] for accessing the current browser state.
@@ -68,6 +69,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
 @Suppress("LongParameterList")
 class AwesomeBarComposable(
     private val activity: HomeActivity,
+    private val modifier: Modifier,
     private val components: Components,
     private val appStore: AppStore,
     private val browserStore: BrowserStore,
@@ -117,7 +119,7 @@ class AwesomeBarComposable(
 
         if (isSearchActive && state.shouldShowSearchSuggestions) {
             Box(
-                modifier = Modifier
+                modifier = modifier
                     .background(AcornTheme.colors.layer1)
                     .fillMaxSize()
                     .pointerInput(WindowInsets.isImeVisible) {

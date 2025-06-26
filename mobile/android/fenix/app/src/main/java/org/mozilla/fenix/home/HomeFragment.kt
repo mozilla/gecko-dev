@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
@@ -579,8 +580,9 @@ class HomeFragment : Fragment() {
                 browsingModeManager = activity.browsingModeManager,
                 settings = activity.settings(),
                 tabStripContent = { TabStrip() },
-                searchSuggestionsContent = { toolbarStore ->
-                    (awesomeBarComposable ?: initializeAwesomeBarComposable(toolbarStore))?.SearchSuggestions()
+                searchSuggestionsContent = { toolbarStore, modifier ->
+                    (awesomeBarComposable ?: initializeAwesomeBarComposable(toolbarStore, modifier))
+                        ?.SearchSuggestions()
                 },
             )
 
@@ -1329,9 +1331,13 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun initializeAwesomeBarComposable(toolbarStore: BrowserToolbarStore) = context?.let {
+    private fun initializeAwesomeBarComposable(
+        toolbarStore: BrowserToolbarStore,
+        modifier: Modifier,
+    ) = context?.let {
         AwesomeBarComposable(
             activity = requireActivity() as HomeActivity,
+            modifier = modifier,
             components = requireComponents,
             appStore = requireComponents.appStore,
             browserStore = requireComponents.core.store,
