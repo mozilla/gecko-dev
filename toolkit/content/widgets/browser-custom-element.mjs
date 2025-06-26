@@ -1773,6 +1773,16 @@ class MozBrowser extends MozElements.MozElementMixin(XULFrameElement) {
     return hasBeforeUnload(this.browsingContext);
   }
 
+  get hasActiveCloseWatcher() {
+    function hasActiveCloseWatcher(bc) {
+      if (bc.currentWindowContext?.hasActiveCloseWatcher) {
+        return true;
+      }
+      return bc.children.some(hasActiveCloseWatcher);
+    }
+    return hasActiveCloseWatcher(this.browsingContext);
+  }
+
   permitUnload(action) {
     if (this.isRemoteBrowser) {
       if (!this.hasBeforeUnload) {

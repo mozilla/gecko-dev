@@ -33,6 +33,9 @@ interface WindowContext {
   // True if the principal of this window is for a local ip address.
   readonly attribute boolean isLocalIP;
 
+  // True if the principal of this window has an active CloseWatcher
+  readonly attribute boolean hasActiveCloseWatcher;
+
   readonly attribute boolean shouldResistFingerprinting;
 
   // True if this window is using unpartitioned cookies.
