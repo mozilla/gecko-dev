@@ -76,6 +76,7 @@ import mozilla.components.compose.base.textfield.TextField
 import mozilla.components.compose.base.textfield.TextFieldColors
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
+import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.ContextualMenu
 import org.mozilla.fenix.compose.Favicon
@@ -101,18 +102,20 @@ private val IconButtonHeight = 48.dp
  *
  * @param buildStore A builder function to construct a [BookmarksStore] using the NavController that's local
  * to the nav graph for the Bookmarks view hierarchy.
+ * @param appStore The [AppStore] to observe the state of the private browsing mode lock feature.
  * @param startDestination the screen on which to initialize [BookmarksScreen] with.
  */
 @Composable
 internal fun BookmarksScreen(
     buildStore: (NavHostController) -> BookmarksStore,
+    appStore: AppStore = components.appStore,
     startDestination: String = BookmarksDestinations.LIST,
 ) {
     val navController = rememberNavController()
     val store = buildStore(navController)
 
-    val isPrivateModeLocked by components.appStore.observeAsState(
-        initialValue = components.appStore.state.isPrivateScreenLocked,
+    val isPrivateModeLocked by appStore.observeAsState(
+        initialValue = appStore.state.isPrivateScreenLocked,
     ) { appState ->
         appState.isPrivateScreenLocked
     }
@@ -1528,7 +1531,10 @@ private fun BookmarksScreenPreview() {
 
     FirefoxTheme {
         Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
-            BookmarksScreen(buildStore = store)
+            BookmarksScreen(
+                buildStore = store,
+                appStore = AppStore(),
+            )
         }
     }
 }
@@ -1565,7 +1571,10 @@ private fun EmptyBookmarksScreenPreview() {
 
     FirefoxTheme {
         Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
-            BookmarksScreen(buildStore = store)
+            BookmarksScreen(
+                buildStore = store,
+                appStore = AppStore(),
+            )
         }
     }
 }
