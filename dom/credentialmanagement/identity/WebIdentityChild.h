@@ -24,6 +24,9 @@ class WebIdentityChild final : public PWebIdentityChild {
 
   void SetHandler(WebIdentityHandler* aHandler);
 
+  mozilla::ipc::IPCResult RecvOpenContinuationWindow(
+      nsIURI* aContinueURI, const OpenContinuationWindowResolver& aResolver);
+
  private:
   ~WebIdentityChild() = default;
 
