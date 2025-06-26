@@ -2069,6 +2069,21 @@
       }
     ]
   },
+  "1898911": {
+    "label": "forms.ontariodrugbenefit.ca",
+    "bugs": {
+      "1898911": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://forms.ontariodrugbenefit.ca/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1898923": {
     "label": "trade-in.vodafone.com",
     "bugs": {
@@ -2081,6 +2096,21 @@
       {
         "platforms": ["all"],
         "ua_string": ["Chrome"]
+      }
+    ]
+  },
+  "1898931": {
+    "label": "facturador.afip.gob.ar",
+    "bugs": {
+      "1898931": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://facturador.afip.gob.ar/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
       }
     ]
   },
@@ -2159,6 +2189,21 @@
       }
     ]
   },
+  "1898943": {
+    "label": "carelink.minimed.eu",
+    "bugs": {
+      "1898943": {
+        "issue": "unsupported-warning",
+        "matches": ["*://carelink.minimed.eu/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1898946": {
     "label": "transcrib.io",
     "bugs": {
@@ -2208,6 +2253,21 @@
       }
     ]
   },
+  "1898963": {
+    "label": "england.nhs.attendanywhere.com",
+    "bugs": {
+      "1898963": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://england.nhs.attendanywhere.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1898988": {
     "label": "prudential.com.hk",
     "bugs": {
@@ -2224,51 +2284,6 @@
       {
         "platforms": ["linux"],
         "ua_string": ["add_Chrome", "change_OS_to_MacOSX"]
-      }
-    ]
-  },
-  "1898931": {
-    "label": "facturador.afip.gob.ar",
-    "bugs": {
-      "1898931": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://facturador.afip.gob.ar/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "ua_string": ["add_Chrome"]
-      }
-    ]
-  },
-  "1898943": {
-    "label": "carelink.minimed.eu",
-    "bugs": {
-      "1898943": {
-        "issue": "unsupported-warning",
-        "matches": ["*://carelink.minimed.eu/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["desktop"],
-        "ua_string": ["add_Chrome"]
-      }
-    ]
-  },
-  "1898963": {
-    "label": "england.nhs.attendanywhere.com",
-    "bugs": {
-      "1898963": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://england.nhs.attendanywhere.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "ua_string": ["add_Chrome"]
       }
     ]
   },
