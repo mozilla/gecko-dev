@@ -304,7 +304,7 @@ static const size_t kNumAllPages = kNumAllocPages * 2 + 1;
 static const size_t kAllPagesSize = kNumAllPages * kPageSize;
 
 // jemalloc adds a guard page to the end of our allocation, see the comment in
-// AllocAllPages() for more information.
+// AllocVirtualAddresses() for more information.
 static const size_t kAllPagesJemallocSize = kAllPagesSize - kPageSize;
 
 // The amount to decrement from the shared allocation delay each time a thread's
@@ -584,12 +584,17 @@ class AllocPageInfo {
 // runs early enough that no synchronization is needed.
 class PHCRegion {
  private:
-  // The bounds of the allocated pages.
-  uint8_t* const mPagesStart;
-  uint8_t* const mPagesLimit;
+  // The bounds of PHC's virtual address space.  These are only ever set once
+  // before any threads are spawned, after that they're read only, and therefore
+  // can be accessed without a lock.
+  uint8_t* mPagesStart = nullptr;
+  uint8_t* mPagesLimit = nullptr;
 
+ public:
   // Allocates the allocation pages and the guard pages, contiguously.
-  uint8_t* AllocAllPages() {
+  void AllocVirtualAddresses() {
+    MOZ_ASSERT(!mPagesStart || !mPagesLimit);
+
     // The memory allocated here is never freed, because it would happen at
     // process termination when it would be of little use.
 
@@ -616,27 +621,28 @@ class PHCRegion {
     }
 #endif
 
-    return static_cast<uint8_t*>(pages);
+    mPagesStart = static_cast<uint8_t*>(pages);
+    mPagesLimit = mPagesStart + kAllPagesSize;
+    Log("AllocVirtualAddresses at %p..%p\n", mPagesStart, mPagesLimit);
   }
 
- public:
-  PHCRegion()
-      : mPagesStart(AllocAllPages()), mPagesLimit(mPagesStart + kAllPagesSize) {
-    Log("AllocAllPages at %p..%p\n", mPagesStart, mPagesLimit);
-  }
+  constexpr PHCRegion() {}
 
   class PtrKind PtrKind(const void* aPtr) {
+    MOZ_ASSERT(mPagesStart != nullptr && mPagesLimit != nullptr);
     class PtrKind pk(aPtr, mPagesStart, mPagesLimit);
     return pk;
   }
 
   bool IsInFirstGuardPage(const void* aPtr) {
+    MOZ_ASSERT(mPagesStart != nullptr && mPagesLimit != nullptr);
     return mPagesStart <= aPtr && aPtr < mPagesStart + kPageSize;
   }
 
   // Get the address of the allocation page referred to via an index. Used when
   // marking the page as accessible/inaccessible.
   uint8_t* AllocPagePtr(uintptr_t aIndex) {
+    MOZ_ASSERT(mPagesStart != nullptr && mPagesLimit != nullptr);
     MOZ_ASSERT(aIndex < kNumAllocPages);
     // Multiply by two and add one to account for allocation pages *and* guard
     // pages.
@@ -1279,7 +1285,7 @@ class PHC {
   // static variables rathan making sRegion a member of sPHC to keep these hot
   // code paths as fast as possible.  They're both "write once" so they can
   // share a cache line.
-  static PHCRegion* sRegion;
+  static PHCRegion sRegion;
   static PHC* sPHC;
 };
 
@@ -1288,7 +1294,7 @@ class PHC {
 // is manipulated often (sMutex and mNow are members of sPHC for that reason) so
 // that this cache line can be shared amoung cores.  This makes a measurable
 // impact to calls to maybe_init()
-alignas(kCacheLineSize) PHCRegion* PHC::sRegion;
+alignas(kCacheLineSize) PHCRegion PHC::sRegion;
 PHC* PHC::sPHC;
 
 PHC_THREAD_LOCAL(bool) PHC::tlsIsDisabled;
@@ -1321,17 +1327,18 @@ class AutoDisableOnCurrentThread {
 //---------------------------------------------------------------------------
 
 // WARNING: this function runs *very* early -- before all static initializers
-// have run. For this reason, non-scalar globals (sRegion, sPHC) are allocated
+// have run. For this reason, non-scalar globals (sPHC) are allocated
 // dynamically (so we can guarantee their construction in this function) rather
-// than statically.
+// than statically.  sRegion is allocated statically to avoid an extra
+// dereference.
 static bool phc_init() {
   if (GetKernelPageSize() != kPageSize) {
     return false;
   }
 
-  // sRegion and sPHC are never freed. They live for the life of the process.
-  PHC::sRegion = InfallibleAllocPolicy::new_<PHCRegion>();
+  PHC::sRegion.AllocVirtualAddresses();
 
+  // sPHC is never freed. It lives for the life of the process.
   PHC::sPHC = InfallibleAllocPolicy::new_<PHC>();
 
 #ifndef XP_WIN
@@ -1458,7 +1465,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
 #if PHC_LOGGING
   Time lifetime = 0;
 #endif
-  uint8_t* pagePtr = PHC::sRegion->AllocPagePtr(index);
+  uint8_t* pagePtr = PHC::sRegion.AllocPagePtr(index);
   MOZ_ASSERT(pagePtr);
   bool ok =
 #ifdef XP_WIN
@@ -1518,7 +1525,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
 static void FreePage(uintptr_t aIndex, const Maybe<arena_id_t>& aArenaId,
                      const StackTrace& aFreeStack, Delay aReuseDelay)
     MOZ_REQUIRES(PHC::sPHC->mMutex) {
-  void* pagePtr = PHC::sRegion->AllocPagePtr(aIndex);
+  void* pagePtr = PHC::sRegion.AllocPagePtr(aIndex);
 
 #ifdef XP_WIN
   if (!VirtualFree(pagePtr, kPageSize, MEM_DECOMMIT)) {
@@ -1629,7 +1636,7 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
     return Nothing();
   }
 
-  PtrKind pk = PHC::sRegion->PtrKind(aOldPtr);
+  PtrKind pk = PHC::sRegion.PtrKind(aOldPtr);
   if (pk.IsNothing()) {
     // A normal-to-normal transition.
     return Nothing();
@@ -1673,7 +1680,7 @@ MOZ_ALWAYS_INLINE static Maybe<void*> MaybePageRealloc(
     // usable size.
     size_t oldUsableSize = PHC::sPHC->PageUsableSize(index);
     size_t newUsableSize = MozJemalloc::malloc_good_size(aNewSize);
-    uint8_t* pagePtr = PHC::sRegion->AllocPagePtr(index);
+    uint8_t* pagePtr = PHC::sRegion.AllocPagePtr(index);
     uint8_t* newPtr = pagePtr + kPageSize - newUsableSize;
     memmove(newPtr, aOldPtr, std::min(oldUsableSize, aNewSize));
     PHC::sPHC->ResizePageInUse(index, aArenaId, newPtr, stack);
@@ -1728,7 +1735,7 @@ inline void* MozJemallocPHC::realloc(void* aOldPtr, size_t aNewSize) {
 
 // This handles both free and moz_arena_free.
 static void DoPageFree(const Maybe<arena_id_t>& aArenaId, void* aPtr) {
-  PtrKind pk = PHC::sRegion->PtrKind(aPtr);
+  PtrKind pk = PHC::sRegion.PtrKind(aPtr);
   if (pk.IsGuardPage()) {
     PHC::CrashOnGuardPage(aPtr);
   }
@@ -1771,7 +1778,7 @@ MOZ_ALWAYS_INLINE static bool FastIsPHCPtr(void* aPtr) {
     return false;
   }
 
-  PtrKind pk = PHC::sRegion->PtrKind(aPtr);
+  PtrKind pk = PHC::sRegion.PtrKind(aPtr);
   return !pk.IsNothing();
 }
 
@@ -1821,7 +1828,7 @@ inline size_t MozJemallocPHC::malloc_usable_size(usable_ptr_t aPtr) {
     return MozJemalloc::malloc_usable_size(aPtr);
   }
 
-  PtrKind pk = PHC::sRegion->PtrKind(aPtr);
+  PtrKind pk = PHC::sRegion.PtrKind(aPtr);
   if (pk.IsNothing()) {
     // Not a page allocation. Measure it normally.
     return MozJemalloc::malloc_usable_size(aPtr);
@@ -1848,8 +1855,7 @@ inline size_t MozJemallocPHC::malloc_usable_size(usable_ptr_t aPtr) {
 }
 
 static size_t metadata_size() {
-  return MozJemalloc::malloc_usable_size(PHC::sRegion) +
-         MozJemalloc::malloc_usable_size(PHC::sPHC);
+  return MozJemalloc::malloc_usable_size(PHC::sPHC);
 }
 
 inline void MozJemallocPHC::jemalloc_stats_internal(
@@ -1901,7 +1907,7 @@ inline void MozJemallocPHC::jemalloc_ptr_info(const void* aPtr,
 
   // We need to implement this properly, because various code locations do
   // things like checking that allocations are in the expected arena.
-  PtrKind pk = PHC::sRegion->PtrKind(aPtr);
+  PtrKind pk = PHC::sRegion.PtrKind(aPtr);
   if (pk.IsNothing()) {
     // Not a page allocation.
     return MozJemalloc::jemalloc_ptr_info(aPtr, aInfo);
@@ -1960,7 +1966,7 @@ bool IsPHCAllocation(const void* aPtr, AddrInfo* aOut) {
     return false;
   }
 
-  PtrKind pk = PHC::sRegion->PtrKind(aPtr);
+  PtrKind pk = PHC::sRegion.PtrKind(aPtr);
   if (pk.IsNothing()) {
     return false;
   }
@@ -1971,17 +1977,17 @@ bool IsPHCAllocation(const void* aPtr, AddrInfo* aOut) {
       // The address is in the lower half of a guard page, so it's probably an
       // overflow. But first check that it is not on the very first guard
       // page, in which case it cannot be an overflow, and we ignore it.
-      if (PHC::sRegion->IsInFirstGuardPage(aPtr)) {
+      if (PHC::sRegion.IsInFirstGuardPage(aPtr)) {
         return false;
       }
 
       // Get the allocation page preceding this guard page.
-      pk = PHC::sRegion->PtrKind(static_cast<const uint8_t*>(aPtr) - kPageSize);
+      pk = PHC::sRegion.PtrKind(static_cast<const uint8_t*>(aPtr) - kPageSize);
 
     } else {
       // The address is in the upper half of a guard page, so it's probably an
       // underflow. Get the allocation page following this guard page.
-      pk = PHC::sRegion->PtrKind(static_cast<const uint8_t*>(aPtr) + kPageSize);
+      pk = PHC::sRegion.PtrKind(static_cast<const uint8_t*>(aPtr) + kPageSize);
     }
 
     // Make a note of the fact that we hit a guard page.
