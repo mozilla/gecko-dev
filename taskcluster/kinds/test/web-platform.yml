@@ -310,7 +310,7 @@ web-platform-tests-webgpu:
             android.*: 2  # https://bugzilla.mozilla.org/show_bug.cgi?id=1849914
             macosx.*: 2  # https://bugzilla.mozilla.org/show_bug.cgi?id=1849913
             linux2204.*-64.*: 2  # https://bugzilla.mozilla.org/show_bug.cgi?id=1849912
-            windows.*-64.*: 2  # https://bugzilla.mozilla.org/show_bug.cgi?id=1849911
+            windows.*-64.*: default
             default: 2
     # Choice of `chunks`:
     # Time-to-TEST-START on Windows is ~7m (~9m for debug).
@@ -331,6 +331,7 @@ web-platform-tests-webgpu:
     run-on-projects:
         by-test-platform:
             android.*: []  # https://bugzilla.mozilla.org/show_bug.cgi?id=1836811
+            windows.*-64.*: built-projects
             default: ['trunk']
     mozharness:
         chunked: true
