@@ -8,6 +8,7 @@
 
 #include <string>
 #include <vector>
+#include <sstream>
 
 #include "common/EncodingConstraints.h"
 #include "jsep/JsepCodecDescription.h"
@@ -42,7 +43,7 @@ struct AudioCodecConfig {
   AudioCodecConfig(int type, std::string name, int freq, int channels,
                    bool FECEnabled)
       : mType(type),
-        mName(name),
+        mName(std::move(name)),
         mFreq(freq),
         mChannels(channels),
         mFECEnabled(FECEnabled),
@@ -67,6 +68,12 @@ struct AudioCodecConfig {
            mMaxAverageBitrate == aOther.mMaxAverageBitrate &&
            mMaxPlaybackRate == aOther.mMaxPlaybackRate &&
            mCbrEnabled == aOther.mCbrEnabled;
+  }
+
+  std::string MimeType() {
+    std::stringstream ss;
+    ss << "audio/" << mName;
+    return ss.str();
   }
 };
 
@@ -238,6 +245,12 @@ class VideoCodecConfig {
   bool RtcpFbTransportCCIsSet() const { return mTransportCCFbSet; }
 
   bool RtxPayloadTypeIsSet() const { return mRTXPayloadType != -1; }
+
+  std::string MimeType() {
+    std::stringstream ss;
+    ss << "video/" << mName;
+    return ss.str();
+  }
 };
 }  // namespace mozilla
 #endif
