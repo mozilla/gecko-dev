@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.settings.logins.ui
 
+import java.net.URI
+
 /**
  *  An item representing a saved login
  *
@@ -20,3 +22,5 @@ data class LoginItem(
     val password: String,
     val timeLastUsed: Long = 0L,
 )
+
+internal fun LoginItem.getDomainName(): String = URI(url).host.removePrefix("www.")

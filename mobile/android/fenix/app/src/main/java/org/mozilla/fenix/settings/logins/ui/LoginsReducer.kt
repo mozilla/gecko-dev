@@ -22,24 +22,25 @@ internal fun loginsReducer(state: LoginsState, action: LoginsAction) = when (act
     is SearchLogins -> {
         state.handleSearchLogins(action)
     }
-    is LoginClicked -> if (state.loginItems.isNotEmpty()) {
-        state.toggleSelectionOf(action.item)
-    } else {
-        state
-    }
+    is LoginClicked -> state.copy(loginsLoginDetailState = LoginsLoginDetailState(action.item))
+    is LoginsDetailBackClicked -> state.respondToLoginsDetailBackClick()
     is EditLoginAction -> state.loginsEditLoginState?.let {
         state.copy(loginsEditLoginState = it.handleEditLoginAction(action))
     } ?: state
     is AddLoginAction -> state.loginsAddLoginState?.let {
         state.copy(loginsAddLoginState = handleAddLoginAction(action))
     } ?: state
-    is DetailLoginAction -> state.loginsLoginDetailState?.let {
-        state.copy(loginsLoginDetailState = handleDetailLoginAction(action))
-    } ?: state
-    is DetailLoginMenuAction -> state
+    is DetailLoginAction -> state
+    is DetailLoginMenuAction.EditLoginMenuItemClicked -> state
+    is DetailLoginMenuAction.DeleteLoginMenuItemClicked -> state.copy(
+        loginsDeletionState = state.loginsLoginDetailState?.let {
+            LoginDeletionState.Presenting(it.login.guid)
+        },
+        loginsLoginDetailState = null,
+    )
     is LoginsListBackClicked -> state.respondToLoginsListBackClick()
     ViewDisposed,
-    is InitEdit, Init, InitAdd, LearnMoreAboutSync, is InitDetails, is InitAddLoaded,
+    is InitEdit, Init, InitAdd, LearnMoreAboutSync, is InitAddLoaded,
     -> state
 }
 
@@ -62,13 +63,6 @@ private fun LoginsState.handleLoginsLoadedAction(action: LoginsLoaded): LoginsSt
                 .filter { it.url.contains(searchText, ignoreCase = true) }
         },
     )
-
-private fun LoginsState.toggleSelectionOf(item: LoginItem): LoginsState =
-    if (loginItems.any { it.guid == item.guid }) {
-        copy(loginItems = loginItems - item)
-    } else {
-        copy(loginItems = loginItems + item)
-    }
 
 private fun LoginsState.respondToLoginsListBackClick(): LoginsState = when {
     loginsListState != null -> copy(loginsListState = null)
@@ -114,13 +108,11 @@ private fun handleAddLoginAction(action: AddLoginAction): LoginsAddLoginState? =
         -> null
     }
 
-private fun handleDetailLoginAction(action: DetailLoginAction): LoginsLoginDetailState? =
-    when (action) {
-        is DetailLoginAction.OptionsMenuClicked,
-        is DetailLoginAction.GoToSiteClicked,
-        is DetailLoginAction.CopyUsernameClicked,
-        is DetailLoginAction.CopyPasswordClicked,
-        is DetailLoginAction.PasswordVisibleClicked,
-        is DetailLoginAction.BackDetailClicked,
-        -> null
-    }
+private fun LoginsState.respondToLoginsDetailBackClick(): LoginsState = when {
+    loginsLoginDetailState != null -> copy(
+        loginsLoginDetailState = null,
+        loginsDeletionState = null,
+    )
+
+    else -> this
+}
