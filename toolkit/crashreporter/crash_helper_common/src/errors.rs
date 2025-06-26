@@ -38,6 +38,8 @@ pub enum IPCError {
     InvalidSize(#[from] TryFromIntError),
     #[error("Error while parsing a file descriptor string")]
     ParseError,
+    #[error("Failed to duplicate clone handle")]
+    CloneHandleFailed(#[source] std::io::Error),
 }
 
 #[derive(Debug, Error)]
