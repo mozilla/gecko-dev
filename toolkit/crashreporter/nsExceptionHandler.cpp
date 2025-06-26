@@ -1424,11 +1424,13 @@ static void WriteCrashEventFile(time_t crashTime, const char* crashTimeString,
                                 const XP_CHAR* minidump_id
 #endif
 ) {
+#ifdef MOZ_BACKGROUNDTASKS
   if (BackgroundTasks::IsBackgroundTaskMode()) {
     // Do not generate a crash event file if the main process was running a
     // background task, as the crash won't be visible to the user.
     return;
   }
+#endif
 
   // Minidump IDs are UUIDs (36) + NULL.
   static char id_ascii[37] = {};
@@ -1567,7 +1569,11 @@ bool MinidumpCallback(
 
   SetUpMemtestEnv();
 
-  if (doReport && isSafeToDump && !BackgroundTasks::IsBackgroundTaskMode()) {
+  bool isBackgroundTaskMode = false;
+#ifdef MOZ_BACKGROUNDTASKS
+  isBackgroundTaskMode = BackgroundTasks::IsBackgroundTaskMode();
+#endif
+  if (doReport && isSafeToDump && !isBackgroundTaskMode) {
     // We launch the crash reporter client/dialog only if we've been explicitly
     // asked to report crashes and if we weren't already trying to unset the
     // exception handler (which is indicated by isSafeToDump being false).
