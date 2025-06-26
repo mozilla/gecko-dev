@@ -504,19 +504,19 @@ static const unsigned PushedRetAddr = 8;
 static const unsigned PushedFP = 16;
 static const unsigned SetFP = 20;
 static const unsigned PoppedFP = 4;
-static const unsigned PoppedFPJitEntry = 0;
+static const unsigned PoppedFPJitEntry = 8;
 #elif defined(JS_CODEGEN_LOONG64)
 static const unsigned PushedRetAddr = 8;
 static const unsigned PushedFP = 16;
 static const unsigned SetFP = 20;
 static const unsigned PoppedFP = 4;
-static const unsigned PoppedFPJitEntry = 0;
+static const unsigned PoppedFPJitEntry = 8;
 #elif defined(JS_CODEGEN_RISCV64)
 static const unsigned PushedRetAddr = 8;
 static const unsigned PushedFP = 16;
 static const unsigned SetFP = 20;
 static const unsigned PoppedFP = 4;
-static const unsigned PoppedFPJitEntry = 0;
+static const unsigned PoppedFPJitEntry = 8;
 #elif defined(JS_CODEGEN_NONE) || defined(JS_CODEGEN_WASM32)
 // Synthetic values to satisfy asserts and avoid compiler warnings.
 static const unsigned PushedRetAddr = 0;
@@ -1102,8 +1102,7 @@ void wasm::GenerateJitEntryEpilogue(MacroAssembler& masm,
   masm.pop(FramePointer);
   poppedFP = masm.currentOffset();
 
-  offsets->ret = masm.currentOffset();
-  masm.ret();
+  offsets->ret = masm.ret().getOffset();
 #endif
   MOZ_ASSERT_IF(!masm.oom(), PoppedFPJitEntry == offsets->ret - poppedFP);
 }
