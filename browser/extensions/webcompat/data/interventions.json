@@ -2374,6 +2374,21 @@
       }
     ]
   },
+  "1899932": {
+    "label": "ct-tc.apps.cic.gc.ca",
+    "bugs": {
+      "1899932": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://ct-tc.apps.cic.gc.ca/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1899937": {
     "label": "plus.nhk.jp",
     "bugs": {
@@ -4183,23 +4198,6 @@
       }
     ]
   },
-  "1971504": {
-    "label": "wallapop.com",
-    "bugs": {
-      "1971504": {
-        "issue": "broken-interactive-elements",
-        "matches": ["*://*.wallapop.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "css": ["bug1971504-wallapop.com-fix-range-sliders.css"]
-        }
-      }
-    ]
-  },
   "1969245": {
     "label": "www.wills-vegan-store.com",
     "bugs": {
@@ -4215,6 +4213,23 @@
           "css": [
             "bug1969245-www.wills-vegan-store.com-unhide-product-images.css"
           ]
+        }
+      }
+    ]
+  },
+  "1971504": {
+    "label": "wallapop.com",
+    "bugs": {
+      "1971504": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.wallapop.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1971504-wallapop.com-fix-range-sliders.css"]
         }
       }
     ]
