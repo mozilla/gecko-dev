@@ -3989,6 +3989,17 @@
   value: 0
   mirror: always
 
+# Should we update the origin metadata file after full origin initialization?
+# When enabled, the origin metadata file will be updated after origin
+# initialization to ensure it reflects the most recent state.
+# This feature is essential for the functionality of the L2 quota info cache.
+# The preference may be later removed after a successful full rollout of the
+# L2 cache to all users on all platforms in the release channel.
+- name: dom.quotaManager.originInitialization.updateOriginMetadata
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # A pref that is used to slow down origin initialization for testing purposes.
 - name: dom.quotaManager.originInitialization.pauseOnIOThreadMs
   type: RelaxedAtomicUint32
