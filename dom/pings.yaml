@@ -7,7 +7,7 @@ $schema: moz://mozilla.org/schemas/glean/pings/2-0-0
 
 pageload:
   description: |
-    Non sensitive instrumentation collected during a page load.
+    Instrumentation collected during a page load.
   reasons:
     startup: |
       Page load ping sent during startup.
@@ -23,24 +23,6 @@ pageload:
   notification_emails:
     - perf-telemetry-alerts@mozilla.com
     - dpalmeiro@mozilla.com
-
-pageload-domain:
-  description: |
-    Page load instrumentation that includes etld+1.  Sent with ohttp.
-  reasons:
-    pageload: |
-      Ping sent upon page load completion.
-  include_client_id: false
-  send_if_empty: false
-  metadata:
-    include_info_sections: false
-    use_ohttp: true
-  bugs:
-    - https://bugzilla.mozilla.org/show_bug.cgi?id=1967780
-  data_reviews:
-    - https://phabricator.services.mozilla.com/D250521
-  notification_emails:
-    - perf-telemetry-alerts@mozilla.com
 
 use-counters:
   description: |
