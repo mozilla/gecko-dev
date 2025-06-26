@@ -33,6 +33,28 @@ const runTest =
       `hasActiveCloseWatcher is ${bool}`
     );
 
+    gBrowser.selectedBrowser.processCloseRequest();
+
+    // CloseWatcher may not be immediately closed as the request is over IPC, so allow some grace
+    // by checking every 100ms to see if hasActiveCloseWatcher flips to false.
+    {
+      // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const hasActiveCloseWatcherEventuallyFalse = (async () => {
+        while (gBrowser.selectedBrowser.hasActiveCloseWatcher) {
+          await sleep(50);
+        }
+      })();
+      await Promise.race([hasActiveCloseWatcherEventuallyFalse, sleep(3000)]);
+    }
+
+    // Assert the hasActiveCloseWatcher property is false after a close request
+    is(
+      gBrowser.selectedBrowser.hasActiveCloseWatcher,
+      false,
+      `hasActiveCloseWatcher is false after processCloseRequest`
+    );
+
     BrowserTestUtils.removeTab(tab);
 
     Services.prefs.clearUserPref("dom.closewatcher.enabled");

@@ -829,6 +829,10 @@ class MozBrowser extends MozElements.MozElementMixin(XULFrameElement) {
     }
   }
 
+  processCloseRequest() {
+    this.browsingContext.currentWindowContext?.processCloseRequest();
+  }
+
   goBack(
     requireUserInteraction = lazy.BrowserUtils.navigationRequireUserInteraction
   ) {

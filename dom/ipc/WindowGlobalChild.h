@@ -201,6 +201,10 @@ class WindowGlobalChild final : public WindowGlobalActor,
   mozilla::ipc::IPCResult RecvNotifyPermissionChange(const nsCString& aType,
                                                      uint32_t aPermission);
 
+  // TODO: Use MOZ_CAN_RUN_SCRIPT when it gains IPDL support (bug 1539864)
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY mozilla::ipc::IPCResult RecvProcessCloseRequest(
+      const MaybeDiscarded<dom::BrowsingContext>& aFrameContext);
+
   virtual void ActorDestroy(ActorDestroyReason aWhy) override;
 
  private:

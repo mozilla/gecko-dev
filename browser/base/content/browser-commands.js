@@ -601,4 +601,8 @@ var BrowserCommands = {
       Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE
     );
   },
+
+  processCloseRequest() {
+    gBrowser.selectedBrowser.processCloseRequest();
+  },
 };

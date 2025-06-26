@@ -248,6 +248,8 @@ class WindowContext : public nsISupports, public nsWrapperCache {
 
   bool HasActiveCloseWatcher() const { return GetHasActiveCloseWatcher(); }
 
+  void ProcessCloseRequest();
+
  protected:
   WindowContext(BrowsingContext* aBrowsingContext, uint64_t aInnerWindowId,
                 uint64_t aOuterWindowId, FieldValues&& aFields);
