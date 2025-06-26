@@ -809,6 +809,38 @@ already_AddRefed<RTCRtpTransceiver> PeerConnectionImpl::AddTransceiver(
 
   auto& sendEncodings = init.mSendEncodings;
 
+  // See https://www.w3.org/TR/webrtc/#dom-rtcrtpsender-setparameters step 11
+  // Also see https://bugzilla.mozilla.org/show_bug.cgi?id=1968828
+  auto getCapabilitiesResult = dom::Nullable<dom::RTCRtpCapabilities>();
+  GetCapabilities(aKind, getCapabilitiesResult, sdp::Direction::kSend);
+  MOZ_ASSERT(!getCapabilitiesResult.IsNull());
+  if (NS_WARN_IF(getCapabilitiesResult.IsNull())) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+  const auto& codecs = getCapabilitiesResult.Value().mCodecs;
+  for (const auto& encoding : sendEncodings) {
+    bool found = false;
+    if (encoding.mCodec.WasPassed()) {
+      for (const auto& codec : codecs) {
+        if (DoesCodecParameterMatchCodec(encoding.mCodec.Value(), codec)) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        const auto mime = NS_LossyConvertUTF16toASCII(encoding.mCodec.Value().mMimeType);
+        std::stringstream ss;
+        ss << "Codec " << mime
+           << " does not match any codec "
+              "in GetCapabilities";
+        nsCString errorStr(ss.str().c_str());
+        aRv.ThrowOperationError(errorStr);
+        return nullptr;
+      }
+    }
+  }
+
   // CheckAndRectifyEncodings covers these six:
   // If any encoding contains a rid member whose value does not conform to the
   // grammar requirements specified in Section 10 of [RFC8851], throw a
@@ -828,8 +860,12 @@ already_AddRefed<RTCRtpTransceiver> PeerConnectionImpl::AddTransceiver(
   // Verify that the value of each maxFramerate member in sendEncodings that is
   // defined is greater than 0.0. If one of the maxFramerate values does not
   // meet this requirement, throw a RangeError.
-  RTCRtpSender::CheckAndRectifyEncodings(sendEncodings,
-                                         *type == SdpMediaSection::kVideo, aRv);
+
+  RTCRtpSender::CheckAndRectifyEncodings(
+      sendEncodings, *type == SdpMediaSection::kVideo,
+      // No codecs until after negotiation
+      Optional<Sequence<RTCRtpCodecParameters>>(), false, false,
+      MatchGetCapabilities::NO, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }

@@ -773,6 +773,45 @@ already_AddRefed<Promise> RTCRtpSender::SetParameters(
     WarnAboutBadSetParameters(error);
   }
 
+  // Coverts a list of JsepCodecDescription to a list of
+  // dom::RTCRtpCodecParameters
+  auto toDomCodecParametersList =
+      [](const std::vector<UniquePtr<JsepCodecDescription>>& aJsepCodec)
+      -> dom::Sequence<RTCRtpCodecParameters> {
+    dom::Sequence<RTCRtpCodecParameters> codecs;
+    for (const auto& codec : aJsepCodec) {
+      if (codec) {
+        auto type = codec->Type();
+        std::string typeStr;
+        switch (type) {
+          case SdpMediaSection::MediaType::kApplication:
+            typeStr = "application";
+            break;
+          case SdpMediaSection::MediaType::kAudio:
+            typeStr = "audio";
+            break;
+          case SdpMediaSection::MediaType::kVideo:
+            typeStr = "video";
+            break;
+          case SdpMediaSection::MediaType::kMessage:
+            typeStr = "message";
+            break;
+          case SdpMediaSection::MediaType::kText:
+            typeStr = "text";
+            break;
+          default:
+            MOZ_CRASH("Unexpected SdpMediaSection::MediaType");
+        };
+        if (typeStr == "audio" || typeStr == "video") {
+          dom::RTCRtpCodecParameters domCodec;
+          RTCRtpTransceiver::ToDomRtpCodecParameters(*codec, &domCodec);
+          Unused << codecs.AppendElement(domCodec, fallible);
+        }
+      }
+    }
+    return codecs;
+  };
+
   // TODO: Verify remaining read-only parameters
   // headerExtensions (bug 1765851)
   // rtcp (bug 1765852)
@@ -789,8 +828,30 @@ already_AddRefed<Promise> RTCRtpSender::SetParameters(
   // value is greater than or equal to 0.0. If one of the maxFramerate values
   // does not meet this requirement, return a promise rejected with a newly
   // created RangeError.
+
+  auto choosableCodecs =
+      mParameters.mCodecs.WasPassed() && mParameters.mCodecs.Value().Length()
+          ? mParameters.mCodecs.Value()
+          : Sequence<RTCRtpCodecParameters>();
+  if (choosableCodecs.Length() == 0) {
+    // If choosableCodecs is still an empty list, set choosableCodecs to the
+    // list of implemented send codecs for transceiver's kind.
+    std::vector<UniquePtr<JsepCodecDescription>> codecs;
+    if (mTransceiver->IsVideo()) {
+      auto useRtx =
+          Preferences::GetBool("media.peerconnection.video.use_rtx", false)
+              ? OverrideRtxPreference::OverrideWithEnabled
+              : OverrideRtxPreference::OverrideWithDisabled;
+      PeerConnectionImpl::GetDefaultVideoCodecs(codecs, useRtx);
+    } else {
+      PeerConnectionImpl::GetDefaultAudioCodecs(codecs);
+    }
+    choosableCodecs = toDomCodecParametersList(codecs);
+  }
   ErrorResult rv;
-  CheckAndRectifyEncodings(paramsCopy.mEncodings, mTransceiver->IsVideo(), rv);
+  CheckAndRectifyEncodings(paramsCopy.mEncodings, mTransceiver->IsVideo(),
+                           dom::Optional(choosableCodecs), true, false,
+                           MatchGetCapabilities::NO, rv);
   if (rv.Failed()) {
     if (!mHaveFailedBecauseOtherError) {
       mHaveFailedBecauseOtherError = true;
@@ -883,10 +944,214 @@ already_AddRefed<Promise> RTCRtpSender::SetParameters(
   return p.forget();
 }
 
+using FmtpParamKey = nsString;
+using FmtpParamValue = nsString;
+
+// Helper type for the codec dictionary matching functions.
+// This stores the level & (h264) subprofile separately from the parameter set.
+// Which parameters are considered part of the level is codec-specific.
+// All of the matching logic is kept out of this struct, instead it all lives
+// in the DoesCodecParameterMatchCodec function. This is to make it easier to
+// read against the spec.
+struct ParametersAndLevel {
+  Maybe<std::set<std::tuple<FmtpParamKey, FmtpParamValue>>> mSet = Nothing();
+  Maybe<uint32_t> mLevel = Nothing();
+  Maybe<uint32_t> mSubprofile = Nothing();
+
+  // Helper function to get the default level for a codec.
+  static Maybe<uint32_t> DefaultLevelForCodec(const nsString& aMimeType) {
+    // AV1 has a defined default level-idx of 5, which is omittable by spec.
+    if (aMimeType.LowerCaseEqualsASCII("video/av1")) {
+      return Some(5);
+    }
+    // https://datatracker.ietf.org/doc/html/rfc6184 defines a default value
+    // for this parameter, 0x420010.
+    if (aMimeType.LowerCaseEqualsASCII("video/h264")) {
+      return Some(JsepVideoCodecDescription::GetSaneH264Level(0x420010));
+    }
+    // VP8 and VP9 are not defined to have a level parameter. Though they do
+    // have a profile-id, which doesn't seem to be used in our negotiation.
+    if (aMimeType.LowerCaseEqualsASCII("video/vp8") ||
+        aMimeType.LowerCaseEqualsASCII("video/vp9")) {
+      return Nothing();  // A little pedantic...
+    }
+    return Nothing();
+  }
+
+  static Maybe<uint32_t> DefaultSubprofileForCodec(const nsString& aMimeType) {
+    // See DefaultLevelCodec for comments on the default level.
+    if (aMimeType.LowerCaseEqualsASCII("video/h264")) {
+      return Some(JsepVideoCodecDescription::GetSubprofile(0x420010));
+    }
+    return Nothing();
+  }
+
+  // A helper function to extract the level from a parameter set in a codec-
+  // specific way. If the level cannot be extracted, Nothing() is returned.
+  static Maybe<uint32_t> ExtractLevel(const nsString& aMimeType,
+                                      const FmtpParamKey& aKey,
+                                      const FmtpParamValue& aValue) {
+    if (aMimeType.LowerCaseEqualsASCII("video/h264") &&
+        aKey.LowerCaseEqualsASCII("profile-level-id")) {
+      // The level is the last two characters of the value.
+      nsresult rv;
+      // Note the radix
+      auto val = aValue.ToUnsignedInteger(&rv, 16);
+      if (NS_FAILED(rv)) {
+        return Nothing();
+      }
+      return Some(JsepVideoCodecDescription::GetSaneH264Level(val));
+    }
+    if (aMimeType.LowerCaseEqualsASCII("video/av1") &&
+        aKey.EqualsLiteral("level-idx")) {
+      nsresult rv;
+      auto val = aValue.ToUnsignedInteger(&rv);
+      if (NS_FAILED(rv)) {
+        return Nothing();
+      }
+      return Some(val);
+    }
+    return Nothing();
+  }
+
+  // Helper function to get the subprofile for a codec.
+  static Maybe<uint32_t> ExtractSubprofile(const nsString& aMimeType,
+                                           const FmtpParamKey& aKey,
+                                           const FmtpParamValue& aValue) {
+    if (aMimeType.LowerCaseEqualsASCII("video/h264") &&
+        aKey.EqualsLiteral("profile-level-id")) {
+      nsresult rv;
+      auto val = aValue.ToUnsignedInteger(&rv, 16);
+      if (NS_FAILED(rv)) {
+        return Nothing();
+      }
+      return Some(JsepVideoCodecDescription::GetSubprofile(val));
+    }
+    return Nothing();
+  }
+};
+
+// We can not directly compare H264 or AV1 FMTP parameter sets, since the level
+// and subprofile information must be treated seperately as a hiearchical value.
+//  So we need to seperate the regular parameters from profile-level-id for
+// H264, and levelidx for AV1. This is done by parsing the FMTP line into a set
+// of key-value pairs and a level/subprofile value. If the FMTP line is not in
+// a key-value pair format, then we return an empty parameter set.
+ParametersAndLevel FmtpToParametersAndLevel(const nsString& aMimeType,
+                                            const nsString& aFmtp) {
+  auto resultParams = std::set<std::tuple<FmtpParamKey, FmtpParamValue>>();
+  Maybe<uint32_t> resultLevel = Nothing();
+  Maybe<uint32_t> resultSubprofile = Nothing();
+  nsTArray<nsString> parts;
+  for (const auto& kvp : aFmtp.Split(';')) {
+    auto parts = nsTArray<nsString>();
+    for (const auto& part : kvp.Split('=')) {
+      parts.AppendElement(part);
+    }
+    // To be a valid key-value pair, there must be exactly two parts.
+    if (parts.Length() == 2) {
+      // Check to see if it is the level parameter.
+      auto level =
+          ParametersAndLevel::ExtractLevel(aMimeType, parts[0], parts[1]);
+      if (level.isNothing()) {
+        // If it is not the level parameter, then it is a regular parameter.
+        // We store the key-value pair in the result parameter set.
+        resultParams.insert(std::make_tuple(parts[0], parts[1]));
+      } else {
+        // It is the level parameter, so we do not store it in the result
+        // parameter set. Instead we store it in the result level, and
+        // subprofile (if provided).
+        resultSubprofile = ParametersAndLevel::ExtractSubprofile(
+            aMimeType, parts[0], parts[1]);
+        // Store the level separately
+        resultLevel = level;
+      }
+    } else {
+      // This is not a valid key-value pair FMTP line, so we do not have
+      // parameters.
+      return ParametersAndLevel{
+          .mSet = Nothing(),
+          .mLevel = resultLevel.orElse([&]() -> Maybe<uint32_t> {
+            return ParametersAndLevel::DefaultLevelForCodec(aMimeType);
+          }),
+          .mSubprofile = resultSubprofile,
+      };
+    }
+  }
+  return ParametersAndLevel{
+      .mSet = Some(resultParams),
+      .mLevel = resultLevel.orElse([&]() -> Maybe<uint32_t> {
+        return ParametersAndLevel::DefaultLevelForCodec(aMimeType);
+      }),
+      .mSubprofile = resultSubprofile,
+  };
+}
+
+bool DoesCodecParameterMatchCodec(const RTCRtpCodec& aCodec1,
+                                  const RTCRtpCodec& aCodec2,
+                                  const bool aIgnoreLevels) {
+  const auto compare = [](const nsString& aStr1, const nsString& aStr2) {
+    return NS_LossyConvertUTF16toASCII(aStr1).EqualsIgnoreCase(
+        NS_LossyConvertUTF16toASCII(aStr2).get());
+  };
+  if (!compare(aCodec1.mMimeType, aCodec2.mMimeType)) {
+    return false;
+  }
+  if (aCodec1.mClockRate != aCodec2.mClockRate) {
+    return false;
+  }
+
+  if (aCodec1.mChannels != aCodec2.mChannels) {
+    return false;
+  }
+  // To match both or neither should have a sdpFmtpLine.
+  if (aCodec1.mSdpFmtpLine.WasPassed() != aCodec2.mSdpFmtpLine.WasPassed()) {
+    return false;
+  }
+  // If both have a sdpFmtpLine, compare them, and conditionally take levels
+  // into account.
+  if (aCodec1.mSdpFmtpLine.WasPassed() && aCodec2.mSdpFmtpLine.WasPassed()) {
+    // Get the key-value pairs from the sdpFmtpLine if they are in a key-value
+    // pair format.
+    const auto pset1 = FmtpToParametersAndLevel(aCodec1.mMimeType,
+                                                aCodec1.mSdpFmtpLine.Value());
+    const auto pset2 = FmtpToParametersAndLevel(aCodec2.mMimeType,
+                                                aCodec2.mSdpFmtpLine.Value());
+    if (pset1.mSet.isNothing() || pset2.mSet.isNothing()) {
+      // If either or both are not in a key-value pair format, they should be
+      // compared using string equality.
+      if (aCodec1.mSdpFmtpLine != aCodec2.mSdpFmtpLine) {
+        return false;
+      }
+    } else {
+      // If both are in a key-value pair format, compare the key-value pairs.
+      const auto& set1 = pset1.mSet.value();
+      const auto& set2 = pset2.mSet.value();
+
+      if (set1.size() != set2.size()) {
+        return false;
+      }
+      if (!aIgnoreLevels && (pset1.mLevel != pset2.mLevel ||
+                             pset1.mSubprofile != pset2.mSubprofile)) {
+        return false;
+      }
+      // Compare pair-wise the two parameter sets.
+      for (const auto& pair : set1) {
+        if (set2.find(pair) == set2.end()) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
 // static
 void RTCRtpSender::CheckAndRectifyEncodings(
     Sequence<RTCRtpEncodingParameters>& aEncodings, bool aVideo,
-    ErrorResult& aRv) {
+    const Optional<Sequence<RTCRtpCodecParameters>>& aCodecs,
+    const bool aIgnoreLevels, const bool aCodecErasure,
+    const MatchGetCapabilities aMatchGetCapabilities, ErrorResult& aRv) {
   // If any encoding contains a rid member whose value does not conform to the
   // grammar requirements specified in Section 10 of [RFC8851], throw a
   // TypeError.
@@ -904,6 +1169,70 @@ void RTCRtpSender::CheckAndRectifyEncodings(
            << " characters long (due to internal limitations)";
         aRv.ThrowTypeError(nsCString(ss.str()));
         return;
+      }
+    }
+  }
+
+  // Post-negotiation we should have a list of aCodecs, and for any encoding in
+  // aEncodings that is using a codec that is not in aCodecs, we erase the codec
+  // field from the encoding during set session description.
+  // Yes. Really. This is what the spec says.
+  // https://w3c.github.io/webrtc-pc/#set-the-session-description 4.6.13
+  // Let codecs be transceiver.[[Sender]].[[SendCodecs]].
+  //  If codecs is not an empty list:
+  //    For each encoding in transceiver.[[Sender]].[[SendEncodings]], if
+  //    encoding.codec does not match any entry in codecs, using the codec
+  //    dictionary match algorithm with ignoreLevels set to true, remove
+  //    encoding.codec.
+  if (aCodecs.WasPassed() && aCodecs.Value().Length()) {
+    for (auto& encoding : aEncodings) {
+      if (encoding.mCodec.WasPassed()) {
+        bool matched = false;
+        for (const auto& codec : aCodecs.Value()) {
+          if (DoesCodecParameterMatchCodec(encoding.mCodec.Value(), codec,
+                                           aIgnoreLevels)) {
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          if (aCodecErasure) {
+            encoding.mCodec.Reset();
+          } else {
+            std::stringstream ss;
+            ss << "Codec " << encoding.mCodec.Value().mMimeType
+               << " not found in send codecs";
+            aRv.ThrowInvalidModificationError(nsCString(ss.str()));
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addtransceiver
+  // Step 8.3
+  // If any encoding contains a codec member whose value does not match any
+  // codec in RTCRtpSender.getCapabilities(kind).codecs, throw an
+  // OperationError.
+  if (aMatchGetCapabilities == MatchGetCapabilities::YES) {
+    MOZ_ASSERT(aCodecs.WasPassed(),
+               "aCodecs must be passed if aMatchGetCapabilities is YES");
+
+    bool found = false;
+    for (const auto& encoding : aEncodings) {
+      if (encoding.mCodec.WasPassed()) {
+        for (const auto& codec : aCodecs.Value()) {
+          if (DoesCodecParameterMatchCodec(encoding.mCodec.Value(), codec,
+                                           aIgnoreLevels)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          aRv.ThrowOperationError("Codec not found in codecs");
+          return;
+        }
       }
     }
   }
@@ -1449,6 +1778,26 @@ void RTCRtpSender::UpdateParametersCodecs() {
         }
       }
     }
+
+    // Check to see if we have a codec that is not in the codecs list.
+    const auto& hasCodecMatch =
+        [&](const RTCRtpEncodingParameters& param) -> bool {
+      if (mParameters.mCodecs.WasPassed()) {
+        for (const auto& codec : mParameters.mCodecs.Value()) {
+          if (DoesCodecParameterMatchCodec(param.mCodec.Value(), codec, true)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    // If we have a codec that is not in the codecs list, remove it from the
+    // encoding.
+    for (auto& encoding : mParameters.mEncodings) {
+      if (encoding.mCodec.WasPassed() && !hasCodecMatch(encoding)) {
+        encoding.mCodec.Reset();
+      }
+    }
   }
 }
 
@@ -1528,6 +1877,25 @@ void RTCRtpSender::SyncToJsep(JsepTransceiver& aJsepTransceiver) const {
   }
 }
 
+template <typename CodecConfigT>
+CodecConfigT& findMatchingCodec(
+    std::vector<CodecConfigT>& aCodecs,
+    const Sequence<RTCRtpEncodingParameters>& aParameters) {
+  MOZ_ASSERT(aCodecs.size());
+  if (aParameters.Length()) {
+    const auto& encoding = aParameters[0];
+    if (encoding.mCodec.WasPassed()) {
+      for (auto& codec : aCodecs) {
+        if (encoding.mCodec.Value().mMimeType.EqualsIgnoreCase(
+                codec.MimeType())) {
+          return codec;
+        }
+      }
+    }
+  }
+  return aCodecs[0];
+};
+
 Maybe<RTCRtpSender::VideoConfig> RTCRtpSender::GetNewVideoConfig() {
   // It is possible for SDP to signal that there is a send track, but there not
   // actually be a send track, according to the specification; all that needs to
@@ -1603,7 +1971,10 @@ Maybe<RTCRtpSender::VideoConfig> RTCRtpSender::GetNewVideoConfig() {
     return Nothing();
   }
 
-  newConfig.mVideoCodec = Some(configs[0]);
+  newConfig.mVideoCodec =
+      Some(mPendingParameters
+               ? findMatchingCodec(configs, mPendingParameters->mEncodings)
+               : findMatchingCodec(configs, mParameters.mEncodings));
   // Spec says that we start using new parameters right away, _before_ we
   // update the parameters that are visible to JS (ie; mParameters).
   const RTCRtpSendParameters& parameters =
@@ -1704,7 +2075,10 @@ Maybe<RTCRtpSender::AudioConfig> RTCRtpSender::GetNewAudioConfig() {
         configs.begin(), configs.end(), std::back_inserter(dtmfConfigs),
         [](const auto& value) { return value.mName == "telephone-event"; });
 
-    const AudioCodecConfig& sendCodec = configs[0];
+    const AudioCodecConfig& sendCodec =
+        mPendingParameters
+            ? findMatchingCodec(configs, mPendingParameters->mEncodings)
+            : findMatchingCodec(configs, mParameters.mEncodings);
 
     if (!dtmfConfigs.empty()) {
       // There is at least one telephone-event codec.

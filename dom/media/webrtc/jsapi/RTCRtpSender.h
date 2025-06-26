@@ -38,6 +38,15 @@ struct RTCRtpCapabilities;
 class RTCRtpTransceiver;
 class RTCRtpScriptTransform;
 
+enum class MatchGetCapabilities {
+  NO,
+  YES,
+};
+
+bool DoesCodecParameterMatchCodec(const RTCRtpCodec& aCodec1,
+                                  const RTCRtpCodec& aCodec2,
+                                  const bool aIgnoreLevels = false);
+
 class RTCRtpSender : public nsISupports,
                      public nsWrapperCache,
                      public MediaPipelineTransmitControlInterface {
@@ -74,7 +83,9 @@ class RTCRtpSender : public nsISupports,
 
   static void CheckAndRectifyEncodings(
       Sequence<RTCRtpEncodingParameters>& aEncodings, bool aVideo,
-      ErrorResult& aRv);
+      const Optional<Sequence<RTCRtpCodecParameters>>& aCodecs,
+      const bool aIgnoreLevels, const bool aCodecErasure,
+      const MatchGetCapabilities aMatchGetCapabilities, ErrorResult& aRv);
 
   RTCRtpScriptTransform* GetTransform() const { return mTransform; }
 
