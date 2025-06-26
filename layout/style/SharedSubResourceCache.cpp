@@ -106,7 +106,7 @@ bool ShouldClearEntry(nsIURI* aEntryURI, nsIPrincipal* aEntryLoaderPrincipal,
     return spec == *aURL;
   }
 
-  if (aPrincipal && aEntryLoaderPrincipal->Equals(aPrincipal.ref())) {
+  if (aPrincipal && aEntryPartitionPrincipal->Equals(aPrincipal.ref())) {
     return true;
   }
   if (!aSchemelessSite) {

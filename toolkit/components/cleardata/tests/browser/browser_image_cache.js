@@ -129,7 +129,12 @@ add_task(async function test_deleteByPrincipal() {
   info("Clearing cache for principal " + ORIGIN_A);
   await new Promise(resolve => {
     Services.clearData.deleteDataFromPrincipal(
-      Services.scriptSecurityManager.createContentPrincipalFromOrigin(ORIGIN_A),
+      Services.scriptSecurityManager.createContentPrincipal(
+        Services.io.newURI(ORIGIN_A),
+        {
+          partitionKey: `(https,${BASE_DOMAIN_A})`,
+        }
+      ),
       false,
       Ci.nsIClearDataService.CLEAR_IMAGE_CACHE,
       resolve
@@ -148,12 +153,7 @@ add_task(async function test_deleteByPrincipal() {
   await testCached(ORIGIN_A, true, true);
   await testCached(ORIGIN_A_SUB, true, true);
   await testCached(ORIGIN_A_HTTP, true, true);
-  // TODO: ImageCacheCleaner deleteByPrincipal does not look at the cache key's
-  // isolationKey and thus over-clears. In this case it clears cache for A
-  // partitioned under B, even though the test principal does not set a
-  // partitionKey.
-  // See Bug 1713088.
-  await testCached(ORIGIN_B, true, true, true);
+  await testCached(ORIGIN_B, true, true);
   await testCached(ORIGIN_B_SUB, true, true);
   await testCached(ORIGIN_B_HTTP, true, true);
 
