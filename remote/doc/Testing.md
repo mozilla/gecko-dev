@@ -93,9 +93,10 @@ It is also possible, similar to how it works in CI, to run tests in chunks:
 
 More customizations for [Mocha] can be found in its own documentation.
 
-Test expectation metadata is collected in _remote/test/puppeteer-expected.json_
+Test expectation metadata is collected in [TestExpectations.json]
 via log parsing and a custom Mocha reporter under
-_remote/test/puppeteer/json-mocha-reporter.js_
+_remote/test/puppeteer/json-mocha-reporter.js_. For Nightly, overrides to these expectations
+are stored in [CanaryTestExpectations.json].
 
 Check the upstream [Puppeteer test suite] documentation for instructions on
 how to skip tests, run only one test or a subsuite of tests.
@@ -121,3 +122,5 @@ But you can also schedule tests by selecting relevant jobs yourself:
 [exclusive tests]: https://mochajs.org/#exclusive-tests
 [track progress]: https://puppeteer.github.io/ispuppeteerfirefoxready/
 [try preset]: /tools/try/presets
+[TestExpectations.json]: https://searchfox.org/mozilla-central/source/remote/test/puppeteer/test/TestExpectations.json
+[CanaryTestExpectations.json]: https://searchfox.org/mozilla-central/source/remote/test/puppeteer/test/CanaryTestExpectations.json
