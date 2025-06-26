@@ -47,6 +47,8 @@ class WebIdentityHandler final : public AbortFollower {
   RefPtr<MozPromise<nsresult, nsresult, true>> ResolveContinuationWindow(
       const nsACString& aToken, const IdentityResolveOptions& aOptions);
 
+  RefPtr<MozPromise<bool, nsresult, true>> IsContinuationWindow();
+
   nsPIDOMWindowInner* GetWindow() {
     MOZ_ASSERT(mWindow);
     return mWindow;
