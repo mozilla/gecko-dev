@@ -8,6 +8,11 @@ import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import "chrome://global/content/elements/moz-support-link.mjs";
 
 /**
+ * @typedef {("mobile"|"default")} PageNavType
+ * @property {PageNavType} [type] - The type of the component
+ */
+
+/**
  * A grouping of navigation buttons that is displayed at the page level,
  * intended to change the selected view, provide a heading, and have links
  * to external resources.
@@ -15,6 +20,7 @@ import "chrome://global/content/elements/moz-support-link.mjs";
  * @tagname moz-page-nav
  * @property {string} currentView - The currently selected view.
  * @property {string} heading - A heading to be displayed at the top of the navigation.
+ * @property {PageNavType} [type] - The type of the component
  * @slot [default] - Used to append moz-page-nav-button elements to the navigation.
  * @slot [subheading] - Used to append page specific search input or notification to the nav.
  */
@@ -22,6 +28,7 @@ export default class MozPageNav extends MozLitElement {
   static properties = {
     currentView: { type: String },
     heading: { type: String, fluent: true },
+    type: { type: String, reflect: true },
   };
 
   static queries = {
@@ -29,6 +36,14 @@ export default class MozPageNav extends MozLitElement {
     primaryNavGroupSlot: ".primary-nav-group slot",
     secondaryNavGroupSlot: "#secondary-nav-group slot",
   };
+
+  constructor() {
+    super();
+    /**
+     * @type {PageNavType}
+     */
+    this.type = "default";
+  }
 
   get pageNavButtons() {
     return this.getVisibleSlottedChildren(this.primaryNavGroupSlot);
@@ -107,6 +122,15 @@ export default class MozPageNav extends MozLitElement {
         href="chrome://global/content/elements/moz-page-nav.css"
       />
       <div class="page-nav-heading-wrapper">
+        ${this.type === "mobile"
+          ? html`<moz-button
+              type="icon ghost"
+              aria-label="Open Menu"
+              aria-expanded="false"
+              iconsrc="chrome://browser/skin/menu.svg"
+            >
+            </moz-button>`
+          : ""}
         <div class="logo"></div>
         <h1 class="page-nav-heading" id="page-nav-heading">${this.heading}</h1>
       </div>

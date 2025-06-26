@@ -33,26 +33,30 @@ moz-page-nav-search-input =
   },
 };
 
-const Template = ({ hasFooterLinks, hasIcons, showSearch, scrollable }) => {
+const Template = ({
+  hasFooterLinks,
+  hasIcons,
+  showSearch,
+  type = "",
+  customHeight = "initial",
+}) => {
   let iconSrc = hasIcons
     ? "chrome://global/skin/icons/settings.svg"
     : undefined;
 
-  let maxHeight = scrollable ? "190px" : "initial";
-
   return html`
     <style>
       #page {
-        height: 100%;
+        height: ${customHeight};
         display: flex;
-        max-height: ${maxHeight};
+        max-height: ${customHeight};
 
         @media (max-width: 52rem) {
           grid-template-columns: 82px 1fr;
         }
       }
-      moz-page-nav {
-        height: 100%;
+      moz-page-nav:not([type="mobile"]) {
+        height: ${customHeight};
         margin-inline-start: 10px;
         --page-nav-margin-top: 10px;
 
@@ -62,7 +66,7 @@ const Template = ({ hasFooterLinks, hasIcons, showSearch, scrollable }) => {
       }
     </style>
     <div id="page">
-      <moz-page-nav data-l10n-id="moz-page-nav-heading">
+      <moz-page-nav data-l10n-id="moz-page-nav-heading" type=${ifDefined(type)}>
         ${when(
           showSearch,
           () =>
@@ -118,17 +122,28 @@ Default.args = {
   hasFooterLinks: false,
   hasIcons: true,
   showSearch: false,
-  scrollable: false,
+  customHeight: "100%",
 };
 
 export const WithFooterLinks = Template.bind({});
-WithFooterLinks.args = { ...Default.args, hasFooterLinks: true };
+WithFooterLinks.args = {
+  ...Default.args,
+  hasFooterLinks: true,
+  customHeight: "100%",
+};
 
 export const WithoutIcons = Template.bind({});
-WithoutIcons.args = { ...Default.args, hasIcons: false };
+WithoutIcons.args = { ...Default.args, hasIcons: false, customHeight: "100%" };
 
 export const WithSearch = Template.bind({});
-WithSearch.args = { ...Default.args, showSearch: true };
+WithSearch.args = { ...Default.args, showSearch: true, customHeight: "100%" };
 
 export const WithSearchScroll = Template.bind({});
-WithSearchScroll.args = { ...Default.args, showSearch: true, scrollable: true };
+WithSearchScroll.args = {
+  ...Default.args,
+  showSearch: true,
+  customHeight: "190px",
+};
+
+export const Mobile = Template.bind({});
+Mobile.args = { type: "mobile" };

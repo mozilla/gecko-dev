@@ -96,3 +96,30 @@ hr {
   background-color: var(--page-nav-hr-color);
   flex-shrink: 0;
 }
+
+:host([type="mobile"]) {
+  --page-nav-heading-logo-size: var(--icon-size-xlarge);
+
+  margin-inline-start: var(--page-nav-gap);
+  margin-block-start: var(--space-small);
+  padding: var(--page-nav-gap);
+  box-shadow: var(--box-shadow-level-4);
+  height: min-content;
+
+  .page-nav-heading-wrapper {
+    margin-block-start: unset;
+
+    > .page-nav-heading {
+      font-size: var(--font-size-xxlarge);
+    }
+  }
+
+  .logo {
+    margin-inline-start: unset;
+  }
+
+  nav {
+    /* Temporarily hiding nav while in mobile mode until expanded state is worked on: https://bugzilla.mozilla.org/show_bug.cgi?id=1948407 */
+    display: none;
+  }
+}
