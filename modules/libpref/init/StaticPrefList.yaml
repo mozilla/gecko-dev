@@ -3672,6 +3672,12 @@
   value: true
   mirror: always
 
+# Whether the codebase attribute in an <object> is used as the base URI.
+- name: dom.object_embed.codebase.enabled
+  type: bool
+  value: false
+  mirror: always
+
 # Whether origin trials are enabled.
 - name: dom.origin-trials.enabled
   type: bool

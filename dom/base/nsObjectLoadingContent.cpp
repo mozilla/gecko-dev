@@ -73,6 +73,7 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/StaticPrefs_browser.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "nsChannelClassifier.h"
 #include "nsFocusManager.h"
 #include "ReferrerInfo.h"
@@ -736,11 +737,12 @@ nsObjectLoadingContent::UpdateObjectParameters() {
   /// Codebase
   ///
 
-  nsAutoString codebaseStr;
   nsIURI* docBaseURI = el->GetBaseURI();
-  el->GetAttr(nsGkAtoms::codebase, codebaseStr);
 
-  if (!codebaseStr.IsEmpty()) {
+  nsAutoString codebaseStr;
+  el->GetAttr(nsGkAtoms::codebase, codebaseStr);
+  if (StaticPrefs::dom_object_embed_codebase_enabled() &&
+      !codebaseStr.IsEmpty()) {
     rv = nsContentUtils::NewURIWithDocumentCharset(
         getter_AddRefs(newBaseURI), codebaseStr, el->OwnerDoc(), docBaseURI);
     if (NS_FAILED(rv)) {
