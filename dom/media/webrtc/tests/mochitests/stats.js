@@ -23,26 +23,33 @@ const statsExpectedByType = {
       "jitter",
       "lastPacketReceivedTimestamp",
       "headerBytesReceived",
-      // Always missing from libwebrtc stats
-      // "estimatedPlayoutTimestamp",
       "jitterBufferDelay",
+      "jitterBufferTargetDelay",
+      "jitterBufferMinimumDelay",
       "jitterBufferEmittedCount",
     ],
-    optional: ["remoteId", "nackCount", "qpSum"],
+    optional: ["remoteId", "nackCount", "qpSum", "estimatedPlayoutTimestamp"],
     localVideoOnly: [
       "firCount",
       "pliCount",
       "framesDecoded",
+      "keyFramesDecoded",
       "framesDropped",
       "discardedPackets",
       "framesPerSecond",
       "frameWidth",
       "frameHeight",
       "framesReceived",
+      "framesAssembledFromMultiplePackets",
       "totalDecodeTime",
       "totalInterFrameDelay",
       "totalProcessingDelay",
       "totalSquaredInterFrameDelay",
+      "pauseCount",
+      "totalPausesDuration",
+      "freezeCount",
+      "totalFreezesDuration",
+      "totalAssemblyTime",
     ],
     localAudioOnly: [
       "totalSamplesReceived",
@@ -595,18 +602,37 @@ function pedanticChecks(report) {
           `value=${stat.headerBytesReceived}`
       );
 
-      // Always missing from libwebrtc stats
       // estimatedPlayoutTimestamp
-      // ok(
-      //   stat.estimatedPlayoutTimestamp !== undefined,
-      //   `${stat.type}.estimatedPlayoutTimestamp has a value`
-      // );
+      if (stat.estimatedPlayoutTimestamp !== undefined) {
+        ok(
+          stat.estimatedPlayoutTimestamp < stat.timestamp + 100000,
+          `${stat.type}.estimatedPlayoutTimestamp is not too far in the future`
+        );
+        ok(
+          stat.estimatedPlayoutTimestamp > stat.timestamp - 100000,
+          `${stat.type}.estimatedPlayoutTimestamp is not too far in the past`
+        );
+      }
 
       // jitterBufferEmittedCount
       ok(
         stat.jitterBufferEmittedCount > 0,
         `${stat.type}.jitterBufferEmittedCount is a sane number for a short ` +
           `${stat.kind} test. value=${stat.jitterBufferEmittedCount}`
+      );
+
+      // jitterBufferTargetDelay
+      ok(
+        stat.jitterBufferTargetDelay >= 0,
+        `${stat.type}.jitterBufferTargetDelay is a sane number for a short ` +
+          `${stat.kind} test. value=${stat.jitterBufferTargetDelay}`
+      );
+
+      // jitterBufferMinimumDelay
+      ok(
+        stat.jitterBufferMinimumDelay >= 0,
+        `${stat.type}.jitterBufferMinimumDelay is a sane number for a short ` +
+          `${stat.kind} test. value=${stat.jitterBufferMinimumDelay}`
       );
 
       // jitterBufferDelay
@@ -760,6 +786,13 @@ function pedanticChecks(report) {
             `${stat.kind} test. value=${stat.framesDecoded}`
         );
 
+        // keyFramesDecoded
+        ok(
+          stat.keyFramesDecoded >= 0 && stat.keyFramesDecoded < 1000000,
+          `${stat.type}.keyFramesDecoded is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.keyFramesDecoded}`
+        );
+
         // framesDropped
         ok(
           stat.framesDropped >= 0 && stat.framesDropped < 100,
@@ -811,11 +844,55 @@ function pedanticChecks(report) {
             `value=${stat.totalSquaredInterFrameDelay}`
         );
 
+        // pauseCount
+        ok(
+          stat.pauseCount >= 0 && stat.pauseCount < 100,
+          `${stat.type}.pauseCount is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.pauseCount}`
+        );
+
+        // totalPausesDuration
+        ok(
+          stat.totalPausesDuration >= 0 && stat.totalPausesDuration < 10000,
+          `${stat.type}.totalPausesDuration is sane for a short test. ` +
+            `value=${stat.totalPausesDuration}`
+        );
+
+        // freezeCount
+        ok(
+          stat.freezeCount >= 0 && stat.freezeCount < 100,
+          `${stat.type}.freezeCount is a sane number for a short ` +
+            `${stat.kind} test. value=${stat.freezeCount}`
+        );
+
+        // totalFreezesDuration
+        ok(
+          stat.totalFreezesDuration >= 0 && stat.totalFreezesDuration < 10000,
+          `${stat.type}.totalFreezesDuration is sane for a short test. ` +
+            `value=${stat.totalFreezesDuration}`
+        );
+
         // framesReceived
         ok(
           stat.framesReceived >= 0 && stat.framesReceived < 100000,
           `${stat.type}.framesReceived is a sane number for a short ` +
             `${stat.kind} test. value=${stat.framesReceived}`
+        );
+
+        // framesAssembledFromMultiplePackets
+        ok(
+          stat.framesAssembledFromMultiplePackets >= 0 &&
+            stat.framesAssembledFromMultiplePackets < 100,
+          `${stat.type}.framesAssembledFromMultiplePackets is a sane number ` +
+            `for a short ${stat.kind} test.` +
+            `value=${stat.framesAssembledFromMultiplePackets}`
+        );
+
+        // totalAssemblyTime
+        ok(
+          stat.totalAssemblyTime >= 0 && stat.totalAssemblyTime < 10000,
+          `${stat.type}.totalAssemblyTime is sane for a short test. ` +
+            `value=${stat.totalAssemblyTime}`
         );
       }
     } else if (stat.type == "remote-inbound-rtp") {

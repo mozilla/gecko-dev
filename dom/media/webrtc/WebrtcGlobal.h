@@ -139,18 +139,19 @@ DEFINE_IPC_SERIALIZER_WITH_SUPER_CLASS_AND_FIELDS(
 DEFINE_IPC_SERIALIZER_WITH_SUPER_CLASS_AND_FIELDS(
     mozilla::dom::RTCInboundRtpStreamStats,
     mozilla::dom::RTCReceivedRtpStreamStats, mTrackIdentifier, mRemoteId,
-    mFramesDecoded, mFramesDropped, mFrameWidth, mFrameHeight, mFramesPerSecond,
-    mQpSum, mTotalDecodeTime, mTotalInterFrameDelay,
-    mTotalSquaredInterFrameDelay, mLastPacketReceivedTimestamp,
-    mHeaderBytesReceived, mFecPacketsReceived, mFecPacketsDiscarded,
-    mBytesReceived, mNackCount, mFirCount, mPliCount, mTotalProcessingDelay,
-    // Always missing from libwebrtc stats
-    // mEstimatedPlayoutTimestamp,
-    mFramesReceived, mJitterBufferDelay, mJitterBufferEmittedCount,
-    mTotalSamplesReceived, mConcealedSamples, mSilentConcealedSamples,
-    mConcealmentEvents, mInsertedSamplesForDeceleration,
-    mRemovedSamplesForAcceleration, mAudioLevel, mTotalAudioEnergy,
-    mTotalSamplesDuration);
+    mFramesDecoded, mKeyFramesDecoded, mFramesDropped, mFrameWidth,
+    mFrameHeight, mFramesPerSecond, mQpSum, mTotalDecodeTime,
+    mTotalInterFrameDelay, mTotalSquaredInterFrameDelay, mPauseCount,
+    mTotalPausesDuration, mFreezeCount, mTotalFreezesDuration,
+    mLastPacketReceivedTimestamp, mHeaderBytesReceived, mFecPacketsReceived,
+    mFecPacketsDiscarded, mBytesReceived, mNackCount, mFirCount, mPliCount,
+    mTotalProcessingDelay, mEstimatedPlayoutTimestamp, mFramesReceived,
+    mJitterBufferDelay, mJitterBufferEmittedCount, mJitterBufferTargetDelay,
+    mJitterBufferMinimumDelay, mTotalSamplesReceived, mConcealedSamples,
+    mSilentConcealedSamples, mConcealmentEvents,
+    mInsertedSamplesForDeceleration, mRemovedSamplesForAcceleration,
+    mAudioLevel, mTotalAudioEnergy, mTotalSamplesDuration,
+    mFramesAssembledFromMultiplePackets, mTotalAssemblyTime);
 
 DEFINE_IPC_SERIALIZER_WITH_SUPER_CLASS_AND_FIELDS(
     mozilla::dom::RTCRtpStreamStats, mozilla::dom::RTCStats, mSsrc, mKind,
