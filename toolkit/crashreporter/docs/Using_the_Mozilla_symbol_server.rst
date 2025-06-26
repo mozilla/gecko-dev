@@ -122,11 +122,11 @@ be similar to:
 Downloading symbols on Linux / Mac OS X
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you are on Linux and running GDB 7.9 or newer, you can use `this GDB
-Python script <https://gist.github.com/luser/193572147c401c8a965c>`__ to
-automatically fetch symbols. You will need to source this script before
-loading symbols (the part where it spends a few seconds loading each .so
-when you attach gdb). If you want to reload symbols, you can try:
+If you are on Linux and running GDB 7.9 or newer, you can use the python script
+in `python/gdb-symbol-server/symbols.py <https://searchfox.org/mozilla-central/source/python/gdb-symbol-server/symbols.py>`_
+to automatically fetch symbols. You will need to source this script before
+loading symbols (the part where it spends a few seconds loading each .so when
+you attach gdb). If you want to reload symbols, you can try:
 
 ::
 
