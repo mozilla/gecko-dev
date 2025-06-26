@@ -7,7 +7,6 @@ package org.mozilla.fenix.downloads.listscreen.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.delete
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.Icon
@@ -55,25 +53,57 @@ fun DownloadSearchField(
     val focusRequester = remember { FocusRequester() }
     val state = rememberTextFieldState(initialText)
 
-    BasicTextField(
-        state = state,
-        textStyle = FirefoxTheme.typography.body2.copy(color = FirefoxTheme.colors.textPrimary),
-        lineLimits = TextFieldLineLimits.SingleLine,
-        cursorBrush = SolidColor(FirefoxTheme.colors.textPrimary),
-        decorator = { innerTextField ->
-            SearchTextFieldContent(
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .padding(horizontal = 8.dp, vertical = 8.dp)
+            .background(FirefoxTheme.colors.layer3, RoundedCornerShape(8.dp))
+            .fillMaxWidth(),
+    ) {
+        IconButton(
+            onClick = onSearchDismissRequest,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.mozac_ic_back_24),
+                contentDescription = stringResource(R.string.download_close_search_description),
+                tint = FirefoxTheme.colors.iconPrimary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Box(
+            contentAlignment = Alignment.CenterStart,
+            modifier = Modifier.weight(1f, fill = true),
+        ) {
+            if (state.text.isEmpty()) {
+                PlaceholderText()
+            }
+            BasicTextField(
                 state = state,
-                onSearchDismissRequest = onSearchDismissRequest,
-                onClearSearchQuery = {
+                textStyle = FirefoxTheme.typography.body2.copy(color = FirefoxTheme.colors.textPrimary),
+                lineLimits = TextFieldLineLimits.SingleLine,
+                cursorBrush = SolidColor(FirefoxTheme.colors.textPrimary),
+                modifier = modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
+            )
+        }
+
+        if (state.text.isNotEmpty()) {
+            IconButton(
+                onClick = {
                     state.edit {
                         delete(0, state.text.length)
                     }
                 },
-                innerTextField = innerTextField,
-            )
-        },
-        modifier = modifier.focusRequester(focusRequester),
-    )
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.mozac_ic_cross_circle_fill_20),
+                    contentDescription = stringResource(R.string.download_clear_search_description),
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -82,55 +112,6 @@ fun DownloadSearchField(
             .collect { text ->
                 onValueChange(text.toString())
             }
-    }
-}
-
-@Composable
-private fun SearchTextFieldContent(
-    state: TextFieldState,
-    onSearchDismissRequest: () -> Unit,
-    onClearSearchQuery: () -> Unit = {},
-    innerTextField: @Composable () -> Unit,
-) {
-    Box(
-        contentAlignment = Alignment.CenterStart,
-        modifier = Modifier
-            .padding(horizontal = 8.dp, vertical = 8.dp)
-            .background(FirefoxTheme.colors.layer3, RoundedCornerShape(8.dp)),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            IconButton(onClick = onSearchDismissRequest) {
-                Icon(
-                    painter = painterResource(R.drawable.mozac_ic_back_24),
-                    contentDescription = stringResource(R.string.download_close_search_description),
-                    tint = FirefoxTheme.colors.iconPrimary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-
-            Box(
-                contentAlignment = Alignment.CenterStart,
-                modifier = Modifier.weight(1f, fill = true),
-            ) {
-                if (state.text.isEmpty()) {
-                    PlaceholderText()
-                }
-                innerTextField()
-            }
-
-            if (state.text.isNotEmpty()) {
-                IconButton(onClick = onClearSearchQuery) {
-                    Icon(
-                        painter = painterResource(R.drawable.mozac_ic_cross_circle_fill_20),
-                        contentDescription = stringResource(R.string.download_clear_search_description),
-                        tint = FirefoxTheme.colors.iconPrimary,
-                    )
-                }
-            }
-        }
     }
 }
 
