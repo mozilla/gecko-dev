@@ -1146,6 +1146,10 @@
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.springbokcasino.co.za/*"]
       },
+      "1902475": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://cdk.fairgocasinowins.com/*"]
+      },
       "1902493": {
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.ozwincasino.com/*"]
